@@ -327,3 +327,38 @@ export interface ComplianceAutomationFramework {
   assessComplianceAwareness(assessment: any): Promise<any>;
   automateComplianceCommunication(message: any): Promise<any>;
 }
+
+// Add missing interfaces
+export interface PolicyImplementationPlan {
+  status: ImplementationStatus;
+  startDate: Date;
+  targetDate: Date;
+  completionDate?: Date;
+  resources: string[];
+  milestones: ImplementationMilestone[];
+  steps: string[];
+  dependencies: string[];
+  approvals: string[];
+  risks: string[];
+}
+
+export interface CompliancePolicy {
+  id: string;
+  name: string;
+  version: string;
+  content: PolicyContent;
+  governance: PolicyGovernance;
+  applicability: PolicyApplicability;
+  enforcement: PolicyEnforcement;
+  status: ComplianceStatus;
+  lastReviewed: Date;
+  nextReview: Date;
+}
+
+// Additional interface that might be needed
+export interface PolicyFramework {
+  id: string;
+  policies: CompliancePolicy[];
+  implementation: PolicyImplementationPlan;
+  governance: PolicyGovernance;
+}
