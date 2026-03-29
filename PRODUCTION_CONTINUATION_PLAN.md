@@ -14,7 +14,7 @@
 #### **Current Issue:**
 ```bash
 # INCORRECT (Currently set)
-STRIPE_SECRET_KEY=pk_live_51Gx5IrHjjUzwIJDNUlnkyODSG4xOzdGRj6RzQctaAJFe0MVhD6NaXMLIqYCAvRzDBeRrFzp3yyRgGV6CblPnpUIT00frcmDwO7
+STRIPE_SECRET_KEY=pk_live_REPLACE_WITH_YOUR_STRIPE_PUBLISHABLE_KEY
 # ❌ This is a PUBLISHABLE key, not a SECRET key!
 ```
 
@@ -22,8 +22,8 @@ STRIPE_SECRET_KEY=pk_live_51Gx5IrHjjUzwIJDNUlnkyODSG4xOzdGRj6RzQctaAJFe0MVhD6NaX
 ```bash
 # CORRECT Configuration Needed:
 STRIPE_SECRET_KEY=sk_live_51YourActualSecretKey...           # Starts with 'sk_live_'
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_51Gx5IrHjjUzwIJDNUlnkyODSG4xOzdGRj6RzQctaAJFe0MVhD6NaXMLIqYCAvRzDBeRrFzp3yyRgGV6CblPnpUIT00frcmDwO7
-STRIPE_WEBHOOK_SECRET=whsec_2zscv88gTrul2bnrLrNbRab4m8iCqwoF  # ✅ Already correct
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_REPLACE_WITH_YOUR_STRIPE_PUBLISHABLE_KEY
+STRIPE_WEBHOOK_SECRET=whsec_REPLACE_WITH_YOUR_STRIPE_WEBHOOK_SECRET  # ✅ Already correct
 ```
 
 #### **Action Steps:**

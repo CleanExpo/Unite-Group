@@ -30,12 +30,12 @@
 #### **CRITICAL: Stripe Configuration Fix** 🚨 **Required**
 ```bash
 # CURRENT ISSUE: Wrong key type
-STRIPE_SECRET_KEY=pk_live_51Gx5IrHjjUzwIJDNUlnkyODSG4xOzdGRj6RzQctaAJFe0MVhD6NaXMLIqYCAvRzDBeRrFzp3yyRgGV6CblPnpUIT00frcmDwO7
+STRIPE_SECRET_KEY=pk_live_REPLACE_WITH_YOUR_STRIPE_PUBLISHABLE_KEY
 # ❌ This is a PUBLISHABLE key (pk_live_), not a SECRET key!
 
 # REQUIRED FIX:
 STRIPE_SECRET_KEY=sk_live_YOUR_ACTUAL_SECRET_KEY              # Must start with sk_live_
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_51Gx5IrHjjUzwIJDNUlnkyODSG4xOzdGRj6RzQctaAJFe0MVhD6NaXMLIqYCAvRzDBeRrFzp3yyRgGV6CblPnpUIT00frcmDwO7
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_REPLACE_WITH_YOUR_STRIPE_PUBLISHABLE_KEY
 ```
 
 **Action**: Go to Stripe Dashboard → Copy Secret Key → Update Environment Variable  

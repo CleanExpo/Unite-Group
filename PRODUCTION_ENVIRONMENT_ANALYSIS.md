@@ -23,22 +23,22 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```bash
 NEXTAUTH_SECRET=xPlHM+TBxWycSZU0YS5fo7n1bwAPjJwfP+tkazcrUPE=
 GOOGLE_CLIENT_ID=28568213419-bhv57p4btgavvijoq9bjv4q41499s7bf.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=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
+GOOGLE_CLIENT_SECRET=GOCSPX-REPLACE_WITH_YOUR_GOOGLE_CLIENT_SECRET
 ```
 **Status**: ✅ Google OAuth fully configured
 
 #### **3. Email Service (Resend)** ✅ **PERFECT**
 ```bash
-EMAIL_API_KEY=re_Q9YrXMop_3M4MhpZABsQ5vhsr7RLThoqr
+EMAIL_API_KEY=re_REPLACE_WITH_YOUR_RESEND_API_KEY
 EMAIL_FROM=support@carsi.com.au
-RESEND_API_KEY=re_Q9YrXMop_3M4MhpZABsQ5vhsr7RLThoqr
+RESEND_API_KEY=re_REPLACE_WITH_YOUR_RESEND_API_KEY
 ```
 **Status**: ✅ Resend email service configured
 
 #### **4. Database Connections** ✅ **PERFECT**
 ```bash
-POSTGRES_PRISMA_URL=postgres://postgres.euviqrttsmbymrdphuow:GkVsiuqc19SzrmCl@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres?sslmode=require&supa=base-pooler.x
-POSTGRES_URL_NON_POOLING=postgres://postgres.euviqrttsmbymrdphuow:GkVsiuqc19SzrmCl@aws-0-ap-southeast-2.pooler.supabase.com:5432/postgres?sslmode=require
+POSTGRES_PRISMA_URL=postgres://postgres.REPLACE_WITH_YOUR_PROJECT_REF:REPLACE_WITH_YOUR_DB_PASSWORD@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres?sslmode=require&supa=base-pooler.x
+POSTGRES_URL_NON_POOLING=postgres://postgres.REPLACE_WITH_YOUR_PROJECT_REF:REPLACE_WITH_YOUR_DB_PASSWORD@aws-0-ap-southeast-2.pooler.supabase.com:5432/postgres?sslmode=require
 ```
 **Status**: ✅ Multiple database connection strings configured
 
@@ -49,7 +49,7 @@ POSTGRES_URL_NON_POOLING=postgres://postgres.euviqrttsmbymrdphuow:GkVsiuqc19Szrm
 ### **1. STRIPE CONFIGURATION ERROR** 🚨 **CRITICAL**
 ```bash
 # CURRENT (INCORRECT)
-STRIPE_SECRET_KEY=pk_live_51Gx5IrHjjUzwIJDNUlnkyODSG4xOzdGRj6RzQctaAJFe0MVhD6NaXMLIqYCAvRzDBeRrFzp3yyRgGV6CblPnpUIT00frcmDwO7
+STRIPE_SECRET_KEY=pk_live_REPLACE_WITH_YOUR_STRIPE_PUBLISHABLE_KEY
 
 # PROBLEM: This is a PUBLISHABLE key (pk_live_), NOT a secret key!
 # Secret keys should start with "sk_live_"
@@ -60,7 +60,7 @@ STRIPE_SECRET_KEY=pk_live_51Gx5IrHjjUzwIJDNUlnkyODSG4xOzdGRj6RzQctaAJFe0MVhD6NaX
 # You need BOTH keys from Stripe Dashboard:
 STRIPE_SECRET_KEY=sk_live_51YourActualSecretKey...           # Server-side (starts with sk_live_)
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_51YourPublishableKey...  # Client-side (starts with pk_live_)
-STRIPE_WEBHOOK_SECRET=whsec_2zscv88gTrul2bnrLrNbRab4m8iCqwoF     # ✅ This one is correct
+STRIPE_WEBHOOK_SECRET=whsec_REPLACE_WITH_YOUR_STRIPE_WEBHOOK_SECRET     # ✅ This one is correct
 ```
 
 **Impact**: Payment processing will FAIL without correct secret key.
@@ -84,7 +84,7 @@ NEXT_PUBLIC_CONSULTATION_PRICE=55000  # $550.00 in cents
 SMTP_HOST=smtp.resend.com
 SMTP_PORT=587
 SMTP_USER=resend
-SMTP_PASSWORD=re_Q9YrXMop_3M4MhpZABsQ5vhsr7RLThoqr  # Use your API key
+SMTP_PASSWORD=re_REPLACE_WITH_YOUR_RESEND_API_KEY  # Use your API key
 DEFAULT_FROM=support@carsi.com.au
 ADMIN_EMAIL=support@carsi.com.au
 ```
@@ -119,7 +119,7 @@ ADMIN_EMAIL=support@carsi.com.au
 4. Update environment variable:
    ```bash
    STRIPE_SECRET_KEY=sk_live_YOUR_ACTUAL_SECRET_KEY
-   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_51Gx5IrHjjUzwIJDNUlnkyODSG4xOzdGRj6RzQctaAJFe0MVhD6NaXMLIqYCAvRzDBeRrFzp3yyRgGV6CblPnpUIT00frcmDwO7
+   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_REPLACE_WITH_YOUR_STRIPE_PUBLISHABLE_KEY
    ```
 
 ### **Step 2: Add Missing Configuration**
