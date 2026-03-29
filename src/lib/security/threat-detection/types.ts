@@ -938,4 +938,52 @@ export interface RateLimit {
   throttling_strategy: ThrottlingStrategy;
 }
 
-export type Th
+export type ThrottlingStrategy = 'token_bucket' | 'leaky_bucket' | 'fixed_window' | 'sliding_window';
+
+// Stubs for types referenced in ThreatDetectionFramework and other interfaces
+
+export interface MonitoredEntity { id: string; type: string; metadata: Record<string, unknown>; }
+export interface AnomalyDetection { anomaly_id: string; entity_id: string; severity: ThreatSeverity; description: string; detected_at: Date; }
+export interface ThreatData { threat_id: string; type: ThreatType; raw_data: Record<string, unknown>; source: string; timestamp: Date; }
+export interface ThreatClassification { classification_id: string; threat_type: ThreatType; severity: ThreatSeverity; confidence: ConfidenceLevel; tags: string[]; }
+export interface ThreatSignature { signature_id: string; pattern: string; threat_type: ThreatType; version: string; }
+export interface SignatureUpdateResult { updated: number; failed: number; timestamp: Date; }
+export interface PlaybookDefinition { name: string; description: string; steps: string[]; triggers: string[]; }
+export interface Playbook { playbook_id: string; definition: PlaybookDefinition; status: string; created_at: Date; }
+export interface ExecutionContext { context_id: string; environment: string; metadata: Record<string, unknown>; }
+export interface PlaybookExecution { execution_id: string; playbook_id: string; status: string; started_at: Date; completed_at?: Date; }
+export type ExecutionStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+export interface APTIndicator { indicator_id: string; type: string; value: string; confidence: ConfidenceLevel; }
+export interface APTDetectionResult { campaign_id: string; indicators_matched: number; confidence: ConfidenceLevel; detected_at: Date; }
+export interface APTProgressionAnalysis { campaign_id: string; current_phase: string; next_predicted_phase: string; timeline: Date[]; }
+export interface APTReport { report_id: string; campaign_id: string; summary: string; indicators: APTIndicator[]; generated_at: Date; }
+export type MitigationStrategy = 'isolate' | 'monitor' | 'block' | 'remediate' | 'accept';
+export interface MitigationResult { success: boolean; actions_taken: string[]; timestamp: Date; }
+export interface ScanTarget { target_id: string; type: 'host' | 'network' | 'application'; address: string; }
+export interface VulnerabilityReport { report_id: string; target: ScanTarget; vulnerabilities: Vulnerability[]; scan_date: Date; }
+export interface Vulnerability { vuln_id: string; cve?: string; severity: ThreatSeverity; description: string; affected_component: string; }
+export interface VulnerabilityPriority { vuln_id: string; priority_score: number; recommended_action: string; }
+export interface PatchSchedule { patch_id: string; vuln_id: string; scheduled_at: Date; environment: string; }
+export interface PatchingPlan { plan_id: string; patches: PatchSchedule[]; estimated_completion: Date; }
+export interface PatchValidationResult { patch_id: string; validated: boolean; validation_date: Date; notes: string; }
+export interface IncidentData { title: string; description: string; severity: ThreatSeverity; affected_systems: string[]; detected_at: Date; }
+export interface SecurityIncident { incident_id: string; data: IncidentData; status: string; created_at: Date; }
+export type EscalationLevel = 'low' | 'medium' | 'high' | 'critical' | 'emergency';
+export interface IncidentEscalation { escalation_id: string; incident_id: string; level: EscalationLevel; escalated_at: Date; }
+export interface ResponseTeam { team_id: string; name: string; members: string[]; specialization: string; }
+export interface ResponseCoordination { coordination_id: string; incident_id: string; teams: ResponseTeam[]; started_at: Date; }
+export interface ForensicReport { report_id: string; incident_id: string; findings: string[]; timeline: Date[]; generated_at: Date; }
+export interface ThreatDataFilters { severity?: ThreatSeverity; type?: ThreatType; since?: Date; limit?: number; }
+export interface ThreatDataStream { stream_id: string; filters: ThreatDataFilters; created_at: Date; }
+export interface ThreatMetrics { total_threats: number; by_severity: Record<string, number>; by_type: Record<string, number>; timeframe: string; }
+export interface DashboardConfig { title: string; refresh_interval_seconds: number; widgets: string[]; }
+export interface ThreatDashboard { dashboard_id: string; config: DashboardConfig; metrics: ThreatMetrics; created_at: Date; }
+export type AnalysisPeriod = 'day' | 'week' | 'month' | 'quarter' | 'year';
+export interface ThreatTrendAnalysis { period: AnalysisPeriod; trend_direction: 'increasing' | 'decreasing' | 'stable'; change_pct: number; predictions: string[]; }
+export interface AustralianThreatContext { acsc_alerts: string[]; sector_relevance: string[]; regional_threat_level: string; }
+export interface RequiredResource { type: string; quantity: number; estimated_cost_aud?: number; }
+export interface SuccessMetric { name: string; target: number; unit: string; }
+export interface MessageTemplate { template_id: string; name: string; subject: string; body: string; }
+export interface EscalationPath { from_level: EscalationLevel; to_level: EscalationLevel; trigger_conditions: string[]; }
+export interface ChannelAudience { roles: string[]; teams: string[]; individual_ids: string[]; }
+export interface ContentRule { rule_id: string; description: string; applies_to: string[]; }

@@ -1,5 +1,10 @@
 ﻿// const withNextIntl = require('next-intl/plugin')('./i18n.ts');
 
+// SYN-519: Authority Hub routes (/clients/[slug]) use ISR with revalidate=3600.
+// These pages carry LocalBusiness+VideoObject schema for E.E.A.T. positioning.
+// See SYN-512, SYN-516 for architectural context.
+// DO NOT add caching exceptions for /clients/* routes without reading those issues first.
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,

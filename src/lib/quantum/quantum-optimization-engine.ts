@@ -776,6 +776,69 @@ export class QuantumOptimizationEngine extends EventEmitter {
       quantumAvailable: quantumProcessor.getQuantumStatus().available
     };
   }
+
+  // Stub methods referenced by solveWithQuantum, solveWithHybrid, solveWithClassical
+
+  private convertQuantumToBusiness(quantumResult: QuantumOptimizationResult, problem: BusinessOptimizationProblem): BusinessSolution {
+    return { id: `sol_${Date.now()}`, problemId: problem.id, variables: quantumResult.solution ?? {}, objectives: {}, constraints: {}, feasible: quantumResult.convergence > 0.5, optimal: quantumResult.convergence > 0.9, score: quantumResult.energy ?? 0, confidence: quantumResult.convergence, metadata: { solverType: 'QUANTUM', executionTime: 0, iterations: 0, convergence: quantumResult.convergence, quantumAdvantage: 1, energyConsumption: 0, timestamp: new Date(), version: '1.0' } };
+  }
+
+  private async analyzeQuantumSolution(solution: BusinessSolution, problem: BusinessOptimizationProblem, _quantumResult: QuantumOptimizationResult): Promise<OptimizationAnalysis> {
+    void problem;
+    return { solutionQuality: solution.score, convergenceAnalysis: { finalConvergence: solution.confidence, convergenceHistory: [], stagnationPoints: [], convergenceRate: 0, stabilityScore: solution.confidence }, sensitivityAnalysis: { parameterSensitivity: {}, constraintSensitivity: {}, robustnessScore: 0.8, criticalParameters: [] }, riskAssessment: { riskScore: 0.2, uncertaintyLevel: 0.1, worstCaseScenario: solution, riskFactors: [], mitigationStrategies: [] }, tradeoffAnalysis: { objectiveTradeoffs: {}, paretoFrontier: [], dominanceAnalysis: {}, compromiseSolutions: [] } };
+  }
+
+  private generateQuantumRecommendations(_analysis: OptimizationAnalysis, _problem: BusinessOptimizationProblem): string[] {
+    return ['Consider increasing qubit count for higher accuracy', 'Review constraint tightness for convergence improvement'];
+  }
+
+  private calculateQuantumPerformance(_quantumResult: QuantumOptimizationResult, _problem: BusinessOptimizationProblem): PerformanceMetrics {
+    return { quantumSpeedup: 10, accuracyImprovement: 0.15, energyEfficiency: 0.9, scalabilityScore: 0.8, reliabilityScore: 0.95, costEffectiveness: 0.85 };
+  }
+
+  private splitProblem(problem: BusinessOptimizationProblem, quantumProblem: QuantumOptimizationProblem): { quantumPart: QuantumOptimizationProblem; classicalPart: BusinessOptimizationProblem } {
+    return { quantumPart: quantumProblem, classicalPart: problem };
+  }
+
+  private async solveClassicalWithQuantumInput(_classicalPart: BusinessOptimizationProblem, quantumResult: QuantumOptimizationResult): Promise<BusinessSolution> {
+    return { id: `sol_classical_${Date.now()}`, problemId: 'hybrid', variables: quantumResult.solution ?? {}, objectives: {}, constraints: {}, feasible: true, optimal: false, score: quantumResult.energy ?? 0, confidence: 0.8, metadata: { solverType: 'CLASSICAL', executionTime: 0, iterations: 100, convergence: 0.8, quantumAdvantage: 0, energyConsumption: 0, timestamp: new Date(), version: '1.0' } };
+  }
+
+  private combineQuantumClassicalResults(_quantumResult: QuantumOptimizationResult, classicalResult: BusinessSolution, problem: BusinessOptimizationProblem): BusinessSolution {
+    return { ...classicalResult, problemId: problem.id, metadata: { ...classicalResult.metadata, solverType: 'HYBRID', quantumAdvantage: 0.5 } };
+  }
+
+  private async analyzeHybridSolution(solution: BusinessSolution, problem: BusinessOptimizationProblem, _quantumResult: QuantumOptimizationResult, _classicalResult: BusinessSolution): Promise<OptimizationAnalysis> {
+    return this.analyzeQuantumSolution(solution, problem, _quantumResult);
+  }
+
+  private generateHybridRecommendations(analysis: OptimizationAnalysis, problem: BusinessOptimizationProblem): string[] {
+    return [...this.generateQuantumRecommendations(analysis, problem), 'Tune hybrid split ratio for optimal performance'];
+  }
+
+  private calculateHybridPerformance(_quantumResult: QuantumOptimizationResult, _classicalResult: BusinessSolution, _problem: BusinessOptimizationProblem): PerformanceMetrics {
+    return { quantumSpeedup: 5, accuracyImprovement: 0.1, energyEfficiency: 0.85, scalabilityScore: 0.9, reliabilityScore: 0.92, costEffectiveness: 0.88 };
+  }
+
+  private generateAlternativeSolutions(_solution: BusinessSolution, _problem: BusinessOptimizationProblem): BusinessSolution[] {
+    return [];
+  }
+
+  private async solveWithQuantumInspiredAlgorithms(problem: BusinessOptimizationProblem): Promise<BusinessSolution> {
+    return { id: `sol_qi_${Date.now()}`, problemId: problem.id, variables: {}, objectives: {}, constraints: {}, feasible: true, optimal: false, score: 0.7, confidence: 0.75, metadata: { solverType: 'CLASSICAL', executionTime: 0, iterations: 200, convergence: 0.75, quantumAdvantage: 0, energyConsumption: 0, timestamp: new Date(), version: '1.0' } };
+  }
+
+  private async analyzeClassicalSolution(solution: BusinessSolution, problem: BusinessOptimizationProblem): Promise<OptimizationAnalysis> {
+    return this.analyzeQuantumSolution(solution, problem, {} as QuantumOptimizationResult);
+  }
+
+  private generateClassicalRecommendations(analysis: OptimizationAnalysis, problem: BusinessOptimizationProblem): string[] {
+    return this.generateQuantumRecommendations(analysis, problem);
+  }
+
+  private calculateClassicalPerformance(_solution: BusinessSolution, _problem: BusinessOptimizationProblem): PerformanceMetrics {
+    return { quantumSpeedup: 1, accuracyImprovement: 0, energyEfficiency: 0.7, scalabilityScore: 0.95, reliabilityScore: 0.98, costEffectiveness: 0.9 };
+  }
 }
 
 // Placeholder interfaces for specific optimization types

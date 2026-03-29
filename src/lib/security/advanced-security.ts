@@ -430,7 +430,7 @@ export class AdvancedSecurityService {
         `)
         .eq('user_id', userId);
 
-      const typedUserRoles = userRoles as UserRole[] | null;
+      const typedUserRoles = userRoles as unknown as UserRole[] | null;
 
       const hasPermission = typedUserRoles?.some((ur: UserRole) => 
         ur.role.permissions.some((p: RolePermission) => 

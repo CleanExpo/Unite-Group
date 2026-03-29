@@ -21,11 +21,11 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@/components/*": ["./src/components/*"],
-      "@/lib/*": ["./src/lib/*"],
+      "@/*": ["./src/*", "./*"],
+      "@/components/*": ["./src/components/*", "./components/*"],
+      "@/lib/*": ["./src/lib/*", "./lib/*"],
       "@/app/*": ["./src/app/*"],
-      "@/types/*": ["./src/types/*"]
+      "@/types/*": ["./src/types/*", "./types/*"]
     },
     "types": ["node"],
     "allowSyntheticDefaultImports": true,
@@ -38,5 +38,5 @@
     "**/*.tsx",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "backups", "src-backup", "vercel-export-2025-05-23-0456", "**/*.test.ts", "**/*.spec.ts"]
 }

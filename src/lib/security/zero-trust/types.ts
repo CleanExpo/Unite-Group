@@ -1068,3 +1068,36 @@ export interface NetworkMonitoring {
 }
 
 export interface AlertConfiguration {
+  type: string;
+  threshold: number;
+  enabled: boolean;
+  notification_channels: string[];
+}
+
+// Stubs for types referenced in ZeroTrustFramework and other interfaces
+export interface NetworkSegment { segment_id: string; name: string; cidr: string; trust_level: string; }
+export interface PolicyEnforcement { policy_id: string; enforced: boolean; mode: string; timestamp: Date; }
+export interface TrafficAnalysis { flow_id: string; source: string; destination: string; protocol: string; anomalous: boolean; }
+export type AnomalyDetection = { anomaly_id: string; type: string; severity: string; detected_at: Date; };
+export type ScanType = 'vulnerability' | 'compliance' | 'configuration' | 'penetration';
+export interface SecurityScanResult { scan_id: string; type: ScanType; findings: string[]; scanned_at: Date; }
+export interface RuntimeProtectionConfig { enabled: boolean; mode: string; rules: string[]; }
+export type ProtectionStatus = 'active' | 'inactive' | 'degraded' | 'error';
+export interface ThreatDetection { threat_id: string; type: string; severity: string; detected_at: Date; }
+export interface RemediationAction { action_id: string; type: string; target: string; parameters: Record<string, unknown>; }
+export interface RemediationResult { action_id: string; success: boolean; completed_at: Date; notes: string; }
+export interface DataClassificationRequest { data_id: string; content_sample: string; context: string; }
+export interface DataClassification { data_id: string; classification: string; confidence: number; labels: string[]; }
+export interface SensitiveDataRequest { query: string; requester_id: string; purpose: string; }
+export interface EncryptionResult { data_id: string; algorithm: string; key_id: string; encrypted_at: Date; }
+export interface AccessLog { log_id: string; user_id: string; resource: string; action: string; timestamp: Date; allowed: boolean; }
+export interface SecurityPosture { score: number; grade: string; vulnerabilities: number; last_assessed: Date; }
+export interface RiskEntity { entity_id: string; type: string; metadata: Record<string, unknown>; }
+export interface RiskScore { entity_id: string; score: number; factors: string[]; assessed_at: Date; }
+export interface SecurityReportFilters { from?: Date; to?: Date; severity?: string; type?: string; }
+export interface SecurityReport { report_id: string; filters: SecurityReportFilters; summary: string; generated_at: Date; }
+export interface SecurityIncident { incident_id: string; title: string; severity: string; status: string; created_at: Date; }
+export interface IncidentResponse { incident_id: string; actions: string[]; responder_id: string; timestamp: Date; }
+export type ActionStatus = 'pending' | 'in_progress' | 'completed' | 'failed' | 'cancelled';
+export type EnforcementMode = 'permissive' | 'enforcing' | 'strict' | 'audit';
+export interface LoggingConfiguration { level: string; destinations: string[]; retention_days: number; }
