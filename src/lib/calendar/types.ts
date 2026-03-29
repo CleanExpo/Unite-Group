@@ -16,6 +16,8 @@ export interface CalendarSlot {
   hashtag_set: string[];
   topic_hint: string;
   based_on_content_type: string;
+  /** Approval workflow status — populated when slot is fetched from the database */
+  status?: 'draft' | 'approved' | 'rejected';
 }
 
 export interface ContentCalendar {

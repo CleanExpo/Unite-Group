@@ -38,5 +38,5 @@
     "**/*.tsx",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "backups", "src-backup", "vercel-export-2025-05-23-0456", "**/*.test.ts", "**/*.spec.ts"]
+  "exclude": ["node_modules", "backups", "src-backup", "vercel-export-2025-05-23-0456", "**/*.test.ts", "**/*.spec.ts", "supabase/functions"]
 }
