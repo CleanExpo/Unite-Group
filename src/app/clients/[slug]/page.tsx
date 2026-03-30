@@ -13,7 +13,9 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import { getClientBySlug } from '@/lib/clients/getClientBySlug';
+import { getClientVideos } from '@/lib/videos/getClientVideos';
 import { LocalBusinessSchema } from '@/components/schema/LocalBusinessSchema';
+import { VideoObjectSchema } from '@/components/schema/VideoObjectSchema';
 import { AuthorityHubAnalytics } from './AuthorityHubAnalytics';
 
 interface AuthorityHubPageProps {
@@ -53,6 +55,8 @@ export default async function AuthorityHubPage({ params }: AuthorityHubPageProps
   const client = await getClientBySlug(params.slug);
   if (!client) notFound();
 
+  const videos = await getClientVideos(client.id);
+
   const location = [client.address_suburb, client.address_state]
     .filter(Boolean)
     .join(', ');
@@ -60,6 +64,7 @@ export default async function AuthorityHubPage({ params }: AuthorityHubPageProps
   return (
     <>
       <LocalBusinessSchema client={client} />
+      <VideoObjectSchema videos={videos} />
       <AuthorityHubAnalytics clientSlug={params.slug} />
 
       <main className="min-h-screen bg-background text-foreground">
