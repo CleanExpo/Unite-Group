@@ -21,6 +21,7 @@ import { Calendar, Clock, User, Briefcase, FileText, Loader2, PlusCircle, BarCha
 import { YouTubeEmbedWidget } from "@/components/dashboard/YouTubeEmbedWidget";
 import type { ClientVideoWithStats } from "@/lib/dashboard/getClientYouTubeVideos";
 import { TrialEndModal } from "@/components/trial/TrialEndModal";
+import { BrandIQCard } from "@/components/dashboard/BrandIQCard";
 
 interface Consultation {
   id: string;
@@ -65,6 +66,9 @@ export default function Dashboard() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [youtubeVideos, setYoutubeVideos] = useState<ClientVideoWithStats[]>([]);
 
+  // SYN-527: Brand IQ unlock state (driven by first_win_detected on profile)
+  const [firstWinDetected, setFirstWinDetected] = useState(false);
+
   // SYN-526: Trial-end modal state
   const [showTrialEndModal, setShowTrialEndModal] = useState(false);
   const [trialEndData, setTrialEndData] = useState({
@@ -102,6 +106,9 @@ export default function Dashboard() {
         .single();
 
       setIsAdmin(profile?.role === 'admin');
+
+      // SYN-527: Brand IQ unlock state
+      setFirstWinDetected(!!profile?.first_win_detected);
 
       // SYN-526: Determine if trial has ended and set up TrialEndModal
       if (profile?.trial_ends_at) {
@@ -615,9 +622,19 @@ export default function Dashboard() {
           </TabsContent>
         </Tabs>
 
-        {/* SYN-509: YouTube content embed widget */}
-        <div className="mt-8">
-          <YouTubeEmbedWidget videos={youtubeVideos} />
+        {/* SYN-509: YouTube content embed widget + SYN-527: Brand IQ card */}
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <YouTubeEmbedWidget videos={youtubeVideos} />
+          </div>
+          <div>
+            {user && (
+              <BrandIQCard
+                clientId={user.id}
+                isUnlocked={firstWinDetected}
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>
