@@ -17,6 +17,7 @@ import { getClientVideos } from '@/lib/videos/getClientVideos';
 import { LocalBusinessSchema } from '@/components/schema/LocalBusinessSchema';
 import { VideoObjectSchema } from '@/components/schema/VideoObjectSchema';
 import { AuthorityHubAnalytics } from './AuthorityHubAnalytics';
+import { FeaturedBadge } from '@/components/authority/FeaturedBadge';
 
 interface AuthorityHubPageProps {
   params: { slug: string };
@@ -87,6 +88,7 @@ export default async function AuthorityHubPage({ params }: AuthorityHubPageProps
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
                     Verified by Synthex
                   </span>
+                  {client.featured_programme_status === 'published' && <FeaturedBadge />}
                 </div>
                 <h1 className="text-3xl font-bold tracking-tight">{client.business_name}</h1>
                 {location && (

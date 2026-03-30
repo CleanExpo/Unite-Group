@@ -24,6 +24,7 @@ export interface ClientRecord {
   description: string | null;
   is_active: boolean;
   created_at: string;
+  featured_programme_status: 'not_applied' | 'applied' | 'in_production' | 'published';
 }
 
 export async function getClientBySlug(slug: string): Promise<ClientRecord | null> {
