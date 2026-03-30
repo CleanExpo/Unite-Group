@@ -18,6 +18,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabaseClient } from "@/lib/supabase/client";
 import { Calendar, Clock, User, Briefcase, FileText, Loader2, PlusCircle, BarChart } from "lucide-react";
+import { YouTubeEmbedWidget } from "@/components/dashboard/YouTubeEmbedWidget";
+import type { ClientVideoWithStats } from "@/lib/dashboard/getClientYouTubeVideos";
 
 interface Consultation {
   id: string;
@@ -60,6 +62,7 @@ export default function Dashboard() {
   const [projectsError, setProjectsError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [youtubeVideos, setYoutubeVideos] = useState<ClientVideoWithStats[]>([]);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -89,9 +92,13 @@ export default function Dashboard() {
         
       setIsAdmin(profile?.role === 'admin');
       
-      // Fetch consultations and projects
+      // Fetch consultations, projects, and YouTube videos
       fetchConsultations();
       fetchProjects();
+      fetch('/api/dashboard/videos')
+        .then((r) => r.ok ? r.json() : { videos: [] })
+        .then((data) => setYoutubeVideos(data.videos ?? []))
+        .catch(() => {});
     };
     
     checkUser();
@@ -551,6 +558,11 @@ export default function Dashboard() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* SYN-509: YouTube content embed widget */}
+        <div className="mt-8">
+          <YouTubeEmbedWidget videos={youtubeVideos} />
+        </div>
       </div>
     </div>
   );
