@@ -20,6 +20,7 @@ import { supabaseClient } from "@/lib/supabase/client";
 import { Calendar, Clock, User, Briefcase, FileText, Loader2, PlusCircle, BarChart } from "lucide-react";
 import { YouTubeEmbedWidget } from "@/components/dashboard/YouTubeEmbedWidget";
 import type { ClientVideoWithStats } from "@/lib/dashboard/getClientYouTubeVideos";
+import { TrialEndModal } from "@/components/trial/TrialEndModal";
 
 interface Consultation {
   id: string;
@@ -64,6 +65,16 @@ export default function Dashboard() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [youtubeVideos, setYoutubeVideos] = useState<ClientVideoWithStats[]>([]);
 
+  // SYN-526: Trial-end modal state
+  const [showTrialEndModal, setShowTrialEndModal] = useState(false);
+  const [trialEndData, setTrialEndData] = useState({
+    daysLeft: 0,
+    copyVariant: 'control' as 'win' | 'control',
+    firstWinDetected: false,
+    bestResultMessage: undefined as string | undefined,
+    postsPublished: 0,
+  });
+
   useEffect(() => {
     const checkUser = async () => {
       const { data: { session }, error } = await supabaseClient.auth.getSession();
@@ -83,14 +94,48 @@ export default function Dashboard() {
       
       setUser(session.user);
       
-      // Check if user is admin
+      // Check if user is admin and fetch trial/win data for SYN-526
       const { data: profile } = await supabaseClient
         .from('profiles')
-        .select('role')
+        .select('role, first_win_detected, conversion_copy_variant, trial_ends_at, posts_published_count')
         .eq('id', session.user.id)
         .single();
-        
+
       setIsAdmin(profile?.role === 'admin');
+
+      // SYN-526: Determine if trial has ended and set up TrialEndModal
+      if (profile?.trial_ends_at) {
+        const trialEndsAt = new Date(profile.trial_ends_at);
+        const now = new Date();
+        const msLeft = trialEndsAt.getTime() - now.getTime();
+        const daysLeft = Math.max(0, Math.ceil(msLeft / (1000 * 60 * 60 * 24)));
+
+        if (daysLeft <= 0) {
+          // Fetch the best result message from the latest first-win notification if win detected
+          let bestResultMessage: string | undefined;
+          if (profile.first_win_detected) {
+            const { data: winNotif } = await supabaseClient
+              .from('client_notifications')
+              .select('payload')
+              .eq('client_id', session.user.id)
+              .eq('type', 'first_win')
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .single();
+
+            bestResultMessage = winNotif?.payload?.message as string | undefined;
+          }
+
+          setTrialEndData({
+            daysLeft: 0,
+            copyVariant: (profile.conversion_copy_variant ?? 'control') as 'win' | 'control',
+            firstWinDetected: !!profile.first_win_detected,
+            bestResultMessage,
+            postsPublished: profile.posts_published_count ?? 0,
+          });
+          setShowTrialEndModal(true);
+        }
+      }
       
       // Fetch consultations, projects, and YouTube videos
       fetchConsultations();
@@ -196,6 +241,17 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      {/* SYN-526: Trial-end conversion modal */}
+      <TrialEndModal
+        open={showTrialEndModal}
+        onClose={() => setShowTrialEndModal(false)}
+        onConvert={() => {
+          setShowTrialEndModal(false);
+          router.push('/pricing');
+        }}
+        trialData={trialEndData}
+      />
+
       {/* Navigation */}
       <nav className="bg-slate-900/80 backdrop-blur-md border-b border-slate-700 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 flex justify-between items-center h-16">

@@ -44,14 +44,18 @@ export default function Register() {
 
       // Create a profile record in the profiles table
       if (data.user) {
+        // SYN-526: 50/50 A/B split for trial-end conversion copy
+        const conversion_copy_variant = Math.random() < 0.5 ? 'win' : 'control';
+
         const { error: profileError } = await supabaseClient
           .from('profiles')
           .insert([
-            { 
+            {
               id: data.user.id,
               first_name: firstName,
               last_name: lastName,
               role: 'user',
+              conversion_copy_variant,
             },
           ]);
 
