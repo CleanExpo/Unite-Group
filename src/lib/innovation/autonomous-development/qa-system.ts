@@ -25,12 +25,20 @@ export interface FeatureValidationResult {
   timestamp: string;
 }
 
+export interface QualityThresholds {
+  unit: number;
+  integration: number;
+  e2e: number;
+  performance: number;
+  security: number;
+}
+
 /**
  * Autonomous Quality Assurance System
  */
 export class Autonomous_QA_System {
   private testSuites: Map<string, any> = new Map();
-  private qualityThresholds = {
+  private qualityThresholds: QualityThresholds = {
     unit: 0.95,
     integration: 0.90,
     e2e: 0.85,
@@ -142,7 +150,7 @@ export class Autonomous_QA_System {
         testId: `${testType}_${Date.now()}`,
         featureId: feature.id || `feature_${Date.now()}`,
         testType: testType as any,
-        status: result.score >= this.qualityThresholds[testType as keyof typeof this.qualityThresholds] ? 'passed' : 'warning',
+        status: result.score >= this.qualityThresholds[testType as keyof QualityThresholds] ? 'passed' : 'warning',
         score: result.score,
         details: result.details,
         timestamp: new Date().toISOString(),
@@ -315,7 +323,7 @@ export class Autonomous_QA_System {
   getSystemStatus(): {
     testSuites: number;
     enabledSuites: number;
-    qualityThresholds: typeof this.qualityThresholds;
+    qualityThresholds: QualityThresholds;
   } {
     return {
       testSuites: this.testSuites.size,
@@ -327,7 +335,7 @@ export class Autonomous_QA_System {
   /**
    * Update quality thresholds
    */
-  updateQualityThresholds(thresholds: Partial<typeof this.qualityThresholds>): void {
+  updateQualityThresholds(thresholds: Partial<QualityThresholds>): void {
     this.qualityThresholds = { ...this.qualityThresholds, ...thresholds };
   }
 

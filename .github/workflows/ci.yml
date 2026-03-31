@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop, "feature/**", "fix/**"]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  type-check:
+    name: TypeScript
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - name: Type check
+        run: npm run type-check
+
+  jsonld-validation:
+    name: JSON-LD Schema Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - name: Build Next.js
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      - name: Validate JSON-LD schemas
+        run: npm run validate:jsonld
+
+  schema-drift:
+    name: Supabase Schema Drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - name: Install Supabase CLI
+        run: npm install -g supabase@2.22.6
+      - name: Check for schema drift
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase gen types typescript --project-id uqfgdezadpkiadugufbs > /tmp/supabase-fresh.ts
+          if ! diff -q types/supabase.ts /tmp/supabase-fresh.ts > /dev/null 2>&1; then
+            echo "❌ Schema drift detected — database schema has changed but types/supabase.ts was not regenerated."
+            echo "Run: npm run gen:types"
+            diff types/supabase.ts /tmp/supabase-fresh.ts || true
+            exit 1
+          fi
+          echo "✅ No schema drift"
+
+  smoke-tests:
+    name: Pipeline Smoke Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - name: Run pipeline smoke tests
+        run: npm test
+        # No bypass: smoke test failures ALWAYS block PR merge.
+        # Do not add continue-on-error: true here.
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run lint

@@ -272,20 +272,21 @@ export class QuantumOptimizationEngine extends EventEmitter {
       return result;
     } catch (error) {
       console.error('Optimization failed:', error);
-      
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
       const failureResult: OptimizationResult = {
         success: false,
         solutions: [],
         bestSolution: this.createEmptySolution(problem),
         alternativeSolutions: [],
         analysis: this.createEmptyAnalysis(),
-        recommendations: [`Optimization failed: ${error.message}`],
+        recommendations: [`Optimization failed: ${errorMessage}`],
         performance: this.createEmptyPerformance()
       };
 
       this.emit('optimization-failed', {
         problemType: problem.type,
-        error: error.message,
+        error: errorMessage,
         timestamp: new Date()
       });
 

@@ -1,0 +1,151 @@
+name: Review Board
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+# Required for gh CLI to post PR comments
+permissions:
+  pull-requests: write
+  contents: read
+  checks: write
+  statuses: write
+
+jobs:
+  triage:
+    name: PR Triage & Risk Classification
+    runs-on: ubuntu-latest
+    outputs:
+      risk_tier: ${{ steps.triage.outputs.risk_tier }}
+      specialists: ${{ steps.triage.outputs.specialists }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Classify PR risk tier
+        id: triage
+        run: |
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          echo "Changed files:"
+          echo "$CHANGED"
+
+          # Determine risk tier
+          TIER="trivial"
+
+          # High-risk: auth, middleware, migrations, payments
+          if echo "$CHANGED" | grep -qiE "middleware|auth|migration|stripe|payment|billing|\.env"; then
+            TIER="critical"
+          # Medium-risk: API routes, lib, schema components
+          elif echo "$CHANGED" | grep -qiE "app/api|src/lib|schema|supabase|database"; then
+            TIER="standard"
+          # Low-risk: UI components, styles, docs
+          elif echo "$CHANGED" | grep -qiE "\.tsx|\.css|\.md|docs/"; then
+            TIER="trivial"
+          fi
+
+          echo "Risk tier: $TIER"
+          echo "risk_tier=$TIER" >> $GITHUB_OUTPUT
+
+          # Determine specialists
+          if [ "$TIER" = "critical" ]; then
+            echo 'specialists=["security","typescript","database","performance","architecture","accessibility","react","api-design","error-handling","logging","testing","documentation","dependencies","migrations","auth","bundle-size"]' >> $GITHUB_OUTPUT
+          elif [ "$TIER" = "standard" ]; then
+            echo 'specialists=["security","typescript","database","performance","architecture","react","api-design","error-handling","testing","documentation"]' >> $GITHUB_OUTPUT
+          else
+            echo 'specialists=["typescript","react","documentation"]' >> $GITHUB_OUTPUT
+          fi
+
+  specialist-review:
+    name: Specialist Review
+    needs: triage
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        specialist: ${{ fromJson(needs.triage.outputs.specialists) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Run ${{ matrix.specialist }} review
+        id: review
+        env:
+          SPECIALIST: ${{ matrix.specialist }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          node scripts/review/run-specialist.js \
+            --specialist "$SPECIALIST" \
+            --base-sha "$BASE_SHA" \
+            --head-sha "$HEAD_SHA" \
+            --pr "$PR_NUMBER" \
+            --output "/tmp/review-$SPECIALIST.json"
+
+      - name: Upload review findings
+        uses: actions/upload-artifact@v4
+        with:
+          name: review-${{ matrix.specialist }}
+          path: /tmp/review-${{ matrix.specialist }}.json
+          if-no-files-found: warn
+
+  chief-reviewer:
+    name: Chief Reviewer — Final Verdict
+    needs: [triage, specialist-review]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Download all specialist findings
+        uses: actions/download-artifact@v4
+        with:
+          pattern: review-*
+          path: /tmp/specialist-findings/
+          merge-multiple: true
+
+      - name: Synthesise verdict
+        id: verdict
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          RISK_TIER: ${{ needs.triage.outputs.risk_tier }}
+        run: |
+          node scripts/review/chief-reviewer.js \
+            --findings-dir /tmp/specialist-findings \
+            --pr "$PR_NUMBER" \
+            --risk-tier "$RISK_TIER" \
+            --metrics-log .review-metrics.jsonl
+
+      - name: Persist metrics log
+        uses: actions/upload-artifact@v4
+        with:
+          name: review-metrics
+          path: .review-metrics.jsonl
+          if-no-files-found: ignore
+
+      - name: Set status check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # The chief-reviewer.js script exits non-zero on REQUEST_CHANGES — blocks merge
+          echo "Verdict applied"

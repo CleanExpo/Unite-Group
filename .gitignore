@@ -50,3 +50,6 @@ deployment/frontend/node_modules/
 deployment/frontend/.next/
 landing-page/node_modules/
 frontend-minimal/node_modules/
+
+# Review Board metrics (local only — uploaded as CI artifact)
+.review-metrics.jsonl

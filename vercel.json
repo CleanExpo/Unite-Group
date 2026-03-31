@@ -69,5 +69,11 @@
       "destination": "/login",
       "permanent": true
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/geo-citation-monitor",
+      "schedule": "0 17 * * 6"
+    }
   ]
 }
