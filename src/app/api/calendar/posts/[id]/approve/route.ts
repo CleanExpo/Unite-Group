@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const supabase = createRouteHandlerClient({ cookies });
 
@@ -24,7 +24,8 @@ export async function PATCH(
     return NextResponse.json({ error: 'client_id is required' }, { status: 400 });
   }
 
-  const slotId = params.id;
+  const { id } = await params;
+  const slotId = id;
 
   // Fetch the calendar that owns this slot, verifying user ownership
   const { data: calendar, error: fetchError } = await supabase

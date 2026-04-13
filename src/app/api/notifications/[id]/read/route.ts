@@ -8,7 +8,7 @@ import type { Database } from '@/types/supabase';
 
 export async function PATCH(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const supabase = createServerComponentClient<Database>({ cookies });
 
@@ -17,10 +17,11 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const { id } = await params;
   const { error } = await supabase
     .from('client_notifications')
     .update({ read: true, read_at: new Date().toISOString() })
-    .eq('id', params.id)
+    .eq('id', id)
     .eq('client_id', session.user.id); // RLS guard: can only mark own notifications read
 
   if (error) {
