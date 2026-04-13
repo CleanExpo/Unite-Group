@@ -8,14 +8,10 @@ import { defaultMetadata, viewport } from '@/lib/metadata';
 import type { Metadata } from 'next';
 
 // Import client components dynamically
-const ClientWrapper = dynamic(() => import('../../components/ClientWrapper'), {
-  ssr: false
-});
+const ClientWrapper = dynamic(() => import('../../components/ClientWrapper'));
 
-// Import the Navigation component dynamically with SSR disabled to avoid client/server mismatch issues
-const Navigation = dynamic(() => import('../../components/Navigation'), { 
-  ssr: false 
-});
+// Import the Navigation component dynamically
+const Navigation = dynamic(() => import('../../components/Navigation'));
 
 const satoshi = localFont({
   src: [
@@ -39,13 +35,14 @@ export async function generateStaticParams() {
   ];
 }
 
-export default function LocaleLayout({
+export default async function LocaleLayout({
   children,
-  params: { locale }
+  params,
 }: {
   children: React.ReactNode;
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }) {
+  const { locale } = await params;
   // Validate that the locale is supported
   const supportedLocales = ['en', 'es', 'fr'];
   if (!supportedLocales.includes(locale)) {

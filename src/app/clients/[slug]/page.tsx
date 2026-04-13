@@ -20,7 +20,7 @@ import { AuthorityHubAnalytics } from './AuthorityHubAnalytics';
 import { FeaturedBadge } from '@/components/authority/FeaturedBadge';
 
 interface AuthorityHubPageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export async function generateStaticParams() {
@@ -36,7 +36,8 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: AuthorityHubPageProps): Promise<Metadata> {
-  const client = await getClientBySlug(params.slug);
+  const { slug } = await params;
+  const client = await getClientBySlug(slug);
   if (!client) {
     return { title: 'Not Found — Synthex' };
   }
@@ -53,7 +54,8 @@ export async function generateMetadata({ params }: AuthorityHubPageProps): Promi
 }
 
 export default async function AuthorityHubPage({ params }: AuthorityHubPageProps) {
-  const client = await getClientBySlug(params.slug);
+  const { slug } = await params;
+  const client = await getClientBySlug(slug);
   if (!client) notFound();
 
   const videos = await getClientVideos(client.id);
@@ -66,7 +68,7 @@ export default async function AuthorityHubPage({ params }: AuthorityHubPageProps
     <>
       <LocalBusinessSchema client={client} />
       <VideoObjectSchema videos={videos} />
-      <AuthorityHubAnalytics clientSlug={params.slug} />
+      <AuthorityHubAnalytics clientSlug={slug} />
 
       <main className="min-h-screen bg-background text-foreground">
         {/* Hero */}

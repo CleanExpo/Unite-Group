@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
     const { operation, ...params } = body;
     
     // Rate limiting check
-    const clientIP = request.ip || 'unknown';
+    const clientIP = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     if (!checkRateLimit(clientIP)) {
       return NextResponse.json(
         { 

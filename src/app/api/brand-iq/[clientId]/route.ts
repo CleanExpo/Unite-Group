@@ -11,7 +11,7 @@ import { generateNextSteps } from '@/lib/brandiq/generateNextSteps';
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { clientId: string } }
+  { params }: { params: Promise<{ clientId: string }> }
 ) {
   const supabase = createServerComponentClient<Database>({ cookies });
 
@@ -21,7 +21,8 @@ export async function GET(
   }
 
   // Only allow clients to fetch their own Brand IQ (or admins)
-  const requestedId = params.clientId;
+  const { clientId } = await params;
+  const requestedId = clientId;
   if (requestedId !== session.user.id) {
     const { data: profile } = await supabase
       .from('profiles')
