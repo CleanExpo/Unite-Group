@@ -88,7 +88,7 @@
         "build": "next build",
         "dev": "next dev",
         "start": "next start",
-        "test": "jest --testPathPattern=tests/pipelines",
+        "test": "jest --testPathPattern=tests/pipelines --runInBand",
         "test:all": "jest",
         "type-check": "tsc --noEmit",
         "gen:types": "supabase gen types typescript --project-id uqfgdezadpkiadugufbs > types/supabase.ts",
