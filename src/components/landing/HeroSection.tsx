@@ -61,7 +61,7 @@ export function HeroSection() {
           </div>
 
           {/* Main Heading with Gradient */}
-          <h1 className="text-6xl md:text-7xl font-bold mb-6 leading-tight">
+          <h1 className="text-[clamp(2.5rem,5vw,4.5rem)] font-bold mb-6 leading-tight">
             <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent bg-size-200 animate-gradient">
               Unite Group
             </span>
@@ -94,8 +94,8 @@ export function HeroSection() {
           </div>
 
           {/* Description */}
-          <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 mb-12 max-w-4xl mx-auto leading-relaxed">
-            We deliver enterprise-grade SaaS platforms with advanced AI capabilities, 
+          <p className="text-lg text-gray-600 dark:text-gray-400 mb-12 max-w-[65ch] mx-auto leading-relaxed">
+            We deliver enterprise-grade SaaS platforms with advanced AI capabilities,
             bulletproof reliability, and comprehensive business solutions that scale with your organization.
           </p>
           
@@ -122,25 +122,6 @@ export function HeroSection() {
             </Link>
           </div>
 
-          {/* Trust Indicators */}
-          <div className="flex flex-wrap justify-center items-center gap-8 text-sm text-gray-500 dark:text-gray-400">
-            <div className="flex items-center gap-2">
-              <Shield className="w-4 h-4 text-green-500" />
-              <span>SOC2 Compliant</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Globe className="w-4 h-4 text-blue-500" />
-              <span>Global Infrastructure</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-purple-500" />
-              <span>AI-Powered</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-yellow-500" />
-              <span>Enterprise Performance</span>
-            </div>
-          </div>
         </div>
       </div>
 
