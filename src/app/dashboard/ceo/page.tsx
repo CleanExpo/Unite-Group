@@ -4,18 +4,8 @@ import { useState, useEffect, useCallback, useRef, Component } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import dynamic from "next/dynamic";
+import { AreaChart, Area, BarChart, Bar, XAxis, ResponsiveContainer, Cell } from "recharts";
 import { supabaseClient } from "@/lib/supabase/client";
-
-// Recharts must be dynamically imported to avoid SSR crashes
-// (recharts accesses DOM APIs that don't exist on the server)
-const AreaChart = dynamic(() => import("recharts").then(m => ({ default: m.AreaChart })), { ssr: false });
-const Area = dynamic(() => import("recharts").then(m => ({ default: m.Area })), { ssr: false });
-const BarChart = dynamic(() => import("recharts").then(m => ({ default: m.BarChart })), { ssr: false });
-const Bar = dynamic(() => import("recharts").then(m => ({ default: m.Bar })), { ssr: false });
-const XAxis = dynamic(() => import("recharts").then(m => ({ default: m.XAxis })), { ssr: false });
-const Cell = dynamic(() => import("recharts").then(m => ({ default: m.Cell })), { ssr: false });
-const ResponsiveContainer = dynamic(() => import("recharts").then(m => ({ default: m.ResponsiveContainer })), { ssr: false });
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -113,6 +103,8 @@ function EmpireScore({ score }: { score: number }) {
 
 function Sparkline({ data, color }: { data: number[]; color: string }) {
   if (!data || data.length === 0) return <div className="h-10" />;
+  // Recharts cannot render server-side — render placeholder until mounted
+  if (typeof window === 'undefined') return <div className="h-10 bg-slate-800/30 rounded" />;
   const chartData = data.map((v, i) => ({ i, v }));
   const gradId = `grad-${color.replace("#", "")}`;
   return (
@@ -231,11 +223,14 @@ class DashboardErrorBoundary extends Component<
 
 export default function CeoCommandCenter() {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState<{ email: string } | null>(null);
   const [health, setHealth] = useState<EmpireHealth | null>(null);
   const [loading, setLoading] = useState(true);
   const [secondsAgo, setSecondsAgo] = useState(0);
   const lastFetchRef = useRef<Date>(new Date());
+
+  useEffect(() => { setMounted(true); }, []);
 
   const fetchHealth = useCallback(async () => {
     try {
@@ -377,6 +372,7 @@ export default function CeoCommandCenter() {
               </span>
             </div>
             <div className="border-t border-slate-700/50 pt-3">
+              {mounted ? (
               <ResponsiveContainer width="100%" height={120}>
                 <BarChart data={arrData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }} barSize={16}>
                   <XAxis
@@ -397,6 +393,9 @@ export default function CeoCommandCenter() {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
+              ) : (
+                <div className="h-20 bg-slate-800/30 rounded animate-pulse" />
+              )}
               <div className="mt-3 space-y-1">
                 <p className="text-slate-300 text-xs">
                   Total ARR: <span className="text-emerald-400 font-medium">${(health?.total_arr ?? 2400).toLocaleString()}/yr</span>
