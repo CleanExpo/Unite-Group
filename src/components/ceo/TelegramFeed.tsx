@@ -33,10 +33,16 @@ export function TelegramFeed() {
 
   const fetchMessages = useCallback(async () => {
     try {
-      const res = await fetch("/api/telegram/feed?limit=20");
+      const res = await fetch("/api/telegram/feed?limit=30");
       if (res.ok) {
         const data = await res.json();
-        setMessages(data.messages || []);
+        const fetched: TelegramMessage[] = data.messages || [];
+        // Merge: keep optimistic messages not yet confirmed in DB
+        setMessages(prev => {
+          const dbIds = new Set(fetched.map(m => m.id));
+          const pendingOptimistic = prev.filter(m => m.id.startsWith("opt-") && !dbIds.has(m.id));
+          return [...fetched, ...pendingOptimistic];
+        });
         setConnected(true);
         setLastFetch(new Date());
       }
@@ -73,14 +79,16 @@ export function TelegramFeed() {
     setMessages(prev => [...prev, optimistic]);
 
     try {
+      // Send to Telegram AND store in DB immediately (so it persists in feed)
       await fetch("/api/telegram/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, persist: true }),
       });
-      // Refresh after 2s to get the response
-      setTimeout(fetchMessages, 2000);
-      setTimeout(fetchMessages, 6000);
+      // Replace optimistic with real DB entry after short delay
+      setTimeout(fetchMessages, 3000);
+      setTimeout(fetchMessages, 8000);
+      setTimeout(fetchMessages, 20000); // Margot response window
     } catch {
       // Remove optimistic on failure
       setMessages(prev => prev.filter(m => m.id !== optimistic.id));
