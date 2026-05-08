@@ -3,26 +3,49 @@
 @tailwind utilities;
 
 :root {
-  --ug-blue: #1D4ED8;
-  --ug-blue-light: #3B82F6;
-  --ug-amber: #FBBF24;
-  --ug-surface: #0F172A;
-  --ug-surface-1: #1E293B;
-  --ug-surface-2: #334155;
-  --ug-border: #334155;
-  --ug-text: #F8FAFC;
-  --ug-text-muted: #94A3B8;
-  --ug-success: #16A34A;
-  --ug-warning: #D97706;
-  --ug-danger: #DC2626;
+  --canvas:          #0a0f1e;
+  --surface-1:       #0f172a;
+  --surface-2:       #111827;
+  --surface-3:       #1e293b;
+  --surface-4:       #334155;
+  --hairline:        #1e293b;
+  --hairline-strong: #334155;
+  --ink:             #f8fafc;
+  --ink-muted:       #94a3b8;
+  --ink-subtle:      #64748b;
+  --ink-ghost:       #334155;
+  --primary:         #1d4ed8;
+  --primary-hover:   #3b82f6;
+  --primary-focus:   #1e40af;
+  --amber:           #fbbf24;
+  --success:         #16a34a;
+  --warning:         #d97706;
+  --danger:          #dc2626;
+  --ease-out:        cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out:     cubic-bezier(0.77, 0, 0.175, 1);
 
+  /* Legacy tokens (kept for backward compat) */
+  --ug-blue:         #1D4ED8;
+  --ug-blue-light:   #3B82F6;
+  --ug-amber:        #FBBF24;
+  --ug-surface:      #0F172A;
+  --ug-surface-1:    #1E293B;
+  --ug-surface-2:    #334155;
+  --ug-border:       #334155;
+  --ug-text:         #F8FAFC;
+  --ug-text-muted:   #94A3B8;
+  --ug-success:      #16A34A;
+  --ug-warning:      #D97706;
+  --ug-danger:       #DC2626;
+
+  /* shadcn HSL vars */
   --background: 222 47% 6%;
   --foreground: 214 32% 97%;
   --card: 222 47% 11%;
   --card-foreground: 214 32% 97%;
   --popover: 222 47% 11%;
   --popover-foreground: 214 32% 97%;
-  --primary: 221 83% 53%;
+  --primary-hsl: 221 83% 53%;
   --primary-foreground: 0 0% 98%;
   --secondary: 222 47% 18%;
   --secondary-foreground: 214 32% 97%;
@@ -78,6 +101,8 @@ body { background: #0a0f1e; color: #f8fafc; -webkit-font-smoothing: antialiased;
   100% { background-position: 200% 0; }
 }
 
+@keyframes spin { to { transform: rotate(360deg); } }
+
 .skeleton {
   background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 75%);
   background-size: 200% 100%;
@@ -91,7 +116,6 @@ body { background: #0a0f1e; color: #f8fafc; -webkit-font-smoothing: antialiased;
   animation: pulse-dot 2.5s ease-in-out infinite;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
 .spin { animation: spin 1s linear infinite; }
 
 @layer base {

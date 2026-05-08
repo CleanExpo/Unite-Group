@@ -168,80 +168,106 @@ function CiBadge({ passing }: { passing: boolean | null }) {
   return <Circle size={13} color="#334155" />;
 }
 
-function BusinessCard({ biz, index }: { biz: BusinessHealth; index: number }) {
-  const cfg = STATUS_CONFIG[biz.status];
-  const descriptors: Record<string, string> = {
-    restoreassist:      "iOS App · TestFlight active",
-    synthex:            "Marketing Automation SaaS",
-    "ccw-crm":          "First paying client · $2,400/yr",
-    "disaster-recovery": "Disaster Recovery Platform",
-    nrpg:               "ANZ Restoration Movement",
-    carsi:              "Compliance Delivery",
-  };
+// ─── DESCRIPTORS for roster ───────────────────────────────────────────────────
+
+const DESCRIPTORS: Record<string, string> = {
+  restoreassist:       "iOS App · TestFlight",
+  synthex:             "Marketing Automation SaaS",
+  "ccw-crm":           "$2,400/yr ARR · First client",
+  "disaster-recovery": "Disaster Recovery Platform",
+  nrpg:                "ANZ Restoration Movement",
+  carsi:               "Compliance Delivery",
+};
+
+// ─── BusinessRoster (replaces BusinessCard grid) ──────────────────────────────
+
+function BusinessRoster({ businesses }: { businesses: BusinessHealth[] }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, delay: index * 0.05, ease: [0.25, 0.4, 0.25, 1] }}
-      style={{
-        background: "rgba(15,23,42,0.8)",
-        backdropFilter: "blur(10px)",
-        WebkitBackdropFilter: "blur(10px)",
-        borderRadius: 12,
-        padding: 16,
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-        minHeight: 170,
-        border: "1px solid rgba(255,255,255,0.07)",
-        borderLeft: `3px solid ${cfg.dotColor}`,
-        boxShadow: `0 0 0 1px rgba(255,255,255,0.04), 0 4px 24px rgba(0,0,0,0.4), 0 0 40px ${cfg.dotColor}10`,
-      }}
-    >
-      {/* Top row: status dot + CI */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span
-          className="status-dot"
-          style={{ width: 8, height: 8, background: cfg.dotColor, color: cfg.dotColor }}
-        />
-        <Building2 size={12} color="#334155" strokeWidth={2} style={{ flexShrink: 0 }} />
-        <span style={{ fontSize: 11, fontWeight: 500, color: cfg.labelColor, flex: 1, letterSpacing: "0.02em" }}>{biz.status}</span>
-        <CiBadge passing={biz.ci_passing} />
-      </div>
+    <div style={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 12, overflow: "hidden" }}>
+      {businesses.map((biz, i) => {
+        const cfg = STATUS_CONFIG[biz.status];
+        const isAlert = biz.status === "degraded" || biz.status === "down";
+        return (
+          <motion.div
+            key={biz.id}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.25, delay: i * 0.04, ease: [0.23, 1, 0.32, 1] }}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "12px 1fr 68px 58px 52px 20px 96px",
+              alignItems: "center",
+              gap: 16,
+              padding: "13px 20px",
+              borderBottom: i < businesses.length - 1 ? "1px solid #1e293b" : "none",
+              background: isAlert
+                ? `rgba(${biz.status === "down" ? "220,38,38" : "217,119,6"},0.04)`
+                : "transparent",
+              transition: "background 0.15s ease",
+            }}
+          >
+            {/* Status dot */}
+            <span
+              className="status-dot"
+              style={{ width: 7, height: 7, background: cfg.dotColor, color: cfg.dotColor }}
+            />
 
-      {/* Name */}
-      <div style={{ fontSize: 15, fontWeight: 700, color: "#f8fafc", lineHeight: 1.2, letterSpacing: "-0.02em", fontFamily: "var(--font-inter)" }}>
-        {biz.name}
-      </div>
+            {/* Name + descriptor */}
+            <div style={{ minWidth: 0 }}>
+              <span style={{
+                fontSize: 14,
+                fontWeight: 600,
+                color: "#f8fafc",
+                letterSpacing: "-0.02em",
+                fontFamily: "var(--font-inter)",
+              }}>
+                {biz.name}
+              </span>
+              <span style={{ fontSize: 11, color: "#475569", marginLeft: 10 }}>
+                {DESCRIPTORS[biz.id] ?? ""}
+              </span>
+            </div>
 
-      {/* Descriptor */}
-      <div style={{ fontSize: 11, color: "#475569", lineHeight: 1.5 }}>
-        {descriptors[biz.id] ?? ""}
-      </div>
-
-      {/* Sparkline */}
-      <div style={{ flex: 1 }}>
-        <Sparkline data={biz.trend} color={cfg.sparkColor} />
-      </div>
-
-      {/* Bottom stats */}
-      <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 10, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", gap: 12 }}>
-          <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", fontWeight: 500, color: "#64748b" }}>
-            {biz.deploy_frequency}x/wk
-          </span>
-          {biz.open_prs > 0 && (
-            <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, fontFamily: "var(--font-mono)", fontWeight: 500, color: "#D97706" }}>
-              <GitBranch size={10} color="#D97706" />
-              {biz.open_prs} PRs
+            {/* Uptime */}
+            <span style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 12,
+              fontWeight: 600,
+              color: biz.uptime_pct >= 99 ? "#16a34a" : biz.uptime_pct >= 95 ? "#d97706" : "#dc2626",
+              textAlign: "right",
+            }}>
+              {biz.uptime_pct}%
             </span>
-          )}
-        </div>
-        <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", fontWeight: 600, color: "#64748b" }}>
-          {biz.uptime_pct}%
-        </span>
-      </div>
-    </motion.div>
+
+            {/* Deploy frequency */}
+            <span style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 11,
+              color: "#64748b",
+              textAlign: "right",
+            }}>
+              {biz.deploy_frequency}×/wk
+            </span>
+
+            {/* PRs */}
+            <span style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 11,
+              textAlign: "right",
+              color: biz.open_prs > 0 ? "#d97706" : "#334155",
+            }}>
+              {biz.open_prs > 0 ? `${biz.open_prs} PR` : "—"}
+            </span>
+
+            {/* CI */}
+            <CiBadge passing={biz.ci_passing} />
+
+            {/* Sparkline */}
+            <Sparkline data={biz.trend} color={cfg.sparkColor} />
+          </motion.div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -373,14 +399,12 @@ export default function CeoCommandCenter() {
 
   const updatedLabel = secondsAgo < 60 ? `${secondsAgo}s ago` : `${Math.floor(secondsAgo / 60)}m ago`;
 
+  // Solid surface-1 card — no glassmorphism
   const card: React.CSSProperties = {
-    background: "rgba(15,23,42,0.8)",
-    backdropFilter: "blur(10px)",
-    WebkitBackdropFilter: "blur(10px)",
-    border: "1px solid rgba(255,255,255,0.07)",
+    background: "#0f172a",
+    border: "1px solid #1e293b",
     borderRadius: 12,
     padding: 20,
-    boxShadow: "0 0 0 1px rgba(255,255,255,0.04), 0 4px 24px rgba(0,0,0,0.4)",
   };
 
   const sectionLabel: React.CSSProperties = {
@@ -414,7 +438,7 @@ export default function CeoCommandCenter() {
 
           {/* Left — wordmark */}
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: "#1d4ed8", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Zap size={16} color="white" strokeWidth={2.5} />
             </div>
             <div>
@@ -424,11 +448,6 @@ export default function CeoCommandCenter() {
                 <span style={{ fontSize: 10, color: "#FBBF24", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>Live</span>
               </div>
             </div>
-          </div>
-
-          {/* Centre — Empire Score ring */}
-          <div style={{ display: "flex" }}>
-            <EmpireScore score={health?.score ?? 0} />
           </div>
 
           {/* Right — quick stats */}
@@ -460,21 +479,89 @@ export default function CeoCommandCenter() {
         </div>
       </header>
 
+      {/* ── Stats strip — replaces hero-metric ring ──────────────────────── */}
+      <div style={{ maxWidth: 1440, margin: "0 auto", padding: "20px 24px 0" }}>
+        <div style={{
+          display: "flex",
+          background: "#0f172a",
+          border: "1px solid #1e293b",
+          borderRadius: 10,
+          overflow: "hidden",
+        }}>
+          {[
+            {
+              label: "Health",
+              value: health ? `${health.score}/100` : "—/100",
+              color: health
+                ? (health.score >= 80 ? "#16a34a" : health.score >= 60 ? "#d97706" : "#dc2626")
+                : "#334155",
+            },
+            {
+              label: "ARR",
+              value: `$${((health?.total_arr ?? 2400) / 1000).toFixed(1)}K`,
+              color: "#16a34a",
+            },
+            {
+              label: "Agents",
+              value: String(health?.active_agents ?? 4),
+              color: "#94a3b8",
+            },
+            {
+              label: "Content",
+              value: `${health?.content_produced ?? totalContent}/${health?.content_total ?? totalTarget}`,
+              color: "#94a3b8",
+            },
+            {
+              label: "Updated",
+              value: updatedLabel,
+              color: "#334155",
+            },
+          ].map((stat, i, arr) => (
+            <div key={stat.label} style={{
+              flex: 1,
+              padding: "14px 20px",
+              textAlign: "center",
+              borderRight: i < arr.length - 1 ? "1px solid #1e293b" : "none",
+            }}>
+              <div style={{
+                fontSize: 10,
+                fontWeight: 600,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "#334155",
+                marginBottom: 4,
+              }}>
+                {stat.label}
+              </div>
+              <div style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 18,
+                fontWeight: 600,
+                letterSpacing: "-0.02em",
+                color: stat.color,
+              }}>
+                {stat.value}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <main style={{ maxWidth: 1440, margin: "0 auto", padding: "24px", display: "flex", flexDirection: "column", gap: 24 }}>
 
-        {/* ── Business Health Grid ─────────────────────────────────────────── */}
+        {/* ── Portfolio Health Roster ──────────────────────────────────────── */}
         <section>
-          <p style={sectionLabel}>Business Health</p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
-            <AnimatePresence>
-              {loading
-                ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
-                : (health?.businesses ?? []).map((biz, index) => (
-                    <BusinessCard key={biz.id} biz={biz} index={index} />
-                  ))
-              }
-            </AnimatePresence>
-          </div>
+          <p style={sectionLabel}>Portfolio Health</p>
+          {loading
+            ? (
+              <div style={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 12, overflow: "hidden" }}>
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="skeleton" style={{ height: 46, borderBottom: i < 5 ? "1px solid #1e293b" : "none" }} />
+                ))}
+              </div>
+            )
+            : <BusinessRoster businesses={health?.businesses ?? []} />
+          }
         </section>
 
         {/* ── Three-column feeds ──────────────────────────────────────────── */}
@@ -485,7 +572,7 @@ export default function CeoCommandCenter() {
             style={card}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, delay: 0.1, ease: [0.25, 0.4, 0.25, 1] }}
+            transition={{ duration: 0.35, delay: 0.1, ease: [0.23, 1, 0.32, 1] }}
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -524,7 +611,7 @@ export default function CeoCommandCenter() {
             style={card}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, delay: 0.15, ease: [0.25, 0.4, 0.25, 1] }}
+            transition={{ duration: 0.35, delay: 0.15, ease: [0.23, 1, 0.32, 1] }}
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -582,7 +669,7 @@ export default function CeoCommandCenter() {
             style={card}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, delay: 0.2, ease: [0.25, 0.4, 0.25, 1] }}
+            transition={{ duration: 0.35, delay: 0.2, ease: [0.23, 1, 0.32, 1] }}
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -623,45 +710,55 @@ export default function CeoCommandCenter() {
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
             <Link
               href="/dashboard/board"
-              style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", fontSize: 12, fontWeight: 500, borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", color: "#94a3b8", textDecoration: "none", background: "transparent", transition: "all 0.12s ease" }}
+              style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", fontSize: 12, fontWeight: 500, borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", color: "#94a3b8", textDecoration: "none", background: "transparent", transition: "transform 0.1s ease, background 0.12s ease, color 0.12s ease" }}
               onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.04)"; (e.currentTarget as HTMLAnchorElement).style.color = "#f1f5f9"; }}
               onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; (e.currentTarget as HTMLAnchorElement).style.color = "#94a3b8"; }}
+              onMouseDown={e => { (e.currentTarget as HTMLAnchorElement).style.transform = "scale(0.97)"; }}
+              onMouseUp={e => { (e.currentTarget as HTMLAnchorElement).style.transform = "scale(1)"; }}
             >
               Board Minutes
               <ArrowUpRight size={12} color="#475569" />
             </Link>
             <Link
               href="/clients/ccw"
-              style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", fontSize: 12, fontWeight: 500, borderRadius: 8, border: "1px solid rgba(59,130,246,0.25)", color: "#60a5fa", textDecoration: "none", background: "transparent", transition: "all 0.12s ease" }}
+              style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", fontSize: 12, fontWeight: 500, borderRadius: 8, border: "1px solid rgba(59,130,246,0.25)", color: "#60a5fa", textDecoration: "none", background: "transparent", transition: "transform 0.1s ease, background 0.12s ease" }}
               onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "rgba(59,130,246,0.08)"; }}
               onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
+              onMouseDown={e => { (e.currentTarget as HTMLAnchorElement).style.transform = "scale(0.97)"; }}
+              onMouseUp={e => { (e.currentTarget as HTMLAnchorElement).style.transform = "scale(1)"; }}
             >
               CCW Portal
               <ArrowUpRight size={12} color="#60a5fa" />
             </Link>
             <Link
               href="/dashboard/content"
-              style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", fontSize: 12, fontWeight: 500, borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", color: "#94a3b8", textDecoration: "none", background: "transparent", transition: "all 0.12s ease" }}
+              style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", fontSize: 12, fontWeight: 500, borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", color: "#94a3b8", textDecoration: "none", background: "transparent", transition: "transform 0.1s ease, background 0.12s ease, color 0.12s ease" }}
               onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.04)"; (e.currentTarget as HTMLAnchorElement).style.color = "#f1f5f9"; }}
               onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; (e.currentTarget as HTMLAnchorElement).style.color = "#94a3b8"; }}
+              onMouseDown={e => { (e.currentTarget as HTMLAnchorElement).style.transform = "scale(0.97)"; }}
+              onMouseUp={e => { (e.currentTarget as HTMLAnchorElement).style.transform = "scale(1)"; }}
             >
               Content Artefacts
             </Link>
             <button
               onClick={fetchHealth}
               disabled={loading}
-              style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", fontSize: 12, fontWeight: 500, borderRadius: 8, border: "1px solid rgba(251,191,36,0.25)", color: "#FBBF24", background: "transparent", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.5 : 1, transition: "all 0.12s ease" }}
+              style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", fontSize: 12, fontWeight: 500, borderRadius: 8, border: "1px solid rgba(251,191,36,0.25)", color: "#FBBF24", background: "transparent", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.5 : 1, transition: "transform 0.1s ease, background 0.12s ease" }}
               onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = "rgba(251,191,36,0.08)"; }}
               onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+              onMouseDown={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.transform = "scale(0.97)"; }}
+              onMouseUp={e => { (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)"; }}
             >
               <RefreshCw size={12} color="#FBBF24" className={loading ? "spin" : ""} />
               {loading ? "Running…" : "Run Health Check"}
             </button>
             <Link
               href="/dashboard/brief"
-              style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", fontSize: 12, fontWeight: 600, borderRadius: 8, border: "1px solid #1D4ED8", color: "white", textDecoration: "none", background: "#1D4ED8", transition: "all 0.12s ease" }}
-              onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "#1e40af"; }}
+              style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", fontSize: 12, fontWeight: 600, borderRadius: 8, border: "1px solid #1D4ED8", color: "white", textDecoration: "none", background: "#1D4ED8", transition: "transform 0.1s ease, background 0.16s ease" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "#3b82f6"; }}
               onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "#1D4ED8"; }}
+              onMouseDown={e => { (e.currentTarget as HTMLAnchorElement).style.transform = "scale(0.97)"; (e.currentTarget as HTMLAnchorElement).style.background = "#1e40af"; }}
+              onMouseUp={e => { (e.currentTarget as HTMLAnchorElement).style.transform = "scale(1)"; }}
             >
               6-Pager Brief
             </Link>
@@ -669,9 +766,11 @@ export default function CeoCommandCenter() {
               href="https://linear.app"
               target="_blank"
               rel="noopener noreferrer"
-              style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", fontSize: 12, fontWeight: 500, borderRadius: 8, border: "1px solid rgba(139,92,246,0.25)", color: "#a78bfa", textDecoration: "none", background: "transparent", transition: "all 0.12s ease" }}
+              style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", fontSize: 12, fontWeight: 500, borderRadius: 8, border: "1px solid rgba(139,92,246,0.25)", color: "#a78bfa", textDecoration: "none", background: "transparent", transition: "transform 0.1s ease, background 0.12s ease" }}
               onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "rgba(139,92,246,0.08)"; }}
               onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
+              onMouseDown={e => { (e.currentTarget as HTMLAnchorElement).style.transform = "scale(0.97)"; }}
+              onMouseUp={e => { (e.currentTarget as HTMLAnchorElement).style.transform = "scale(1)"; }}
             >
               Linear Tickets
               <ArrowUpRight size={12} color="#a78bfa" />

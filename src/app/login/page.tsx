@@ -49,7 +49,7 @@ export default function Login() {
 
       {/* ── Left Panel: Brand Hero ─────────────────────────────────────── */}
       <div className="hidden lg:flex lg:w-[480px] xl:w-[560px] shrink-0 relative flex-col justify-between p-10 overflow-hidden"
-           style={{ background: "linear-gradient(135deg, #050D1A 0%, #0F172A 50%, #0D1B35 100%)" }}>
+           style={{ background: "#0f172a" }}>
 
         {/* Background grid pattern */}
         <div className="absolute inset-0 opacity-[0.03]"
@@ -65,7 +65,7 @@ export default function Login() {
         <div className="relative">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg text-white"
-                 style={{ background: "linear-gradient(135deg, #1D4ED8, #3B82F6)" }}>
+                 style={{ background: "#1d4ed8" }}>
               U
             </div>
             <div>
@@ -136,12 +136,12 @@ export default function Login() {
 
       {/* ── Right Panel: Form ──────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-10"
-           style={{ background: "#080E1A" }}>
+           style={{ background: "#0a0f1e" }}>
 
         {/* Mobile logo */}
         <div className="lg:hidden mb-8 flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white"
-               style={{ background: "linear-gradient(135deg, #1D4ED8, #3B82F6)" }}>
+               style={{ background: "#1d4ed8" }}>
             U
           </div>
           <div className="text-white font-bold">Unite Group</div>
@@ -151,7 +151,7 @@ export default function Login() {
 
           {/* Heading */}
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-white mb-1">Welcome back</h2>
+            <h2 className="text-2xl font-bold text-white mb-1" style={{ letterSpacing: "-0.03em" }}>Welcome back</h2>
             <p className="text-sm" style={{ color: "#64748B" }}>
               Sign in to your empire command center
             </p>
@@ -228,9 +228,9 @@ export default function Login() {
             <button
               type="submit" disabled={loading}
               className="w-full rounded-xl py-3 text-sm font-semibold text-white flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-2"
-              style={{ background: loading ? "#1D4ED8" : "linear-gradient(135deg, #1D4ED8 0%, #2563EB 100%)" }}
-              onMouseEnter={e => !loading && ((e.target as HTMLButtonElement).style.background = "linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)")}
-              onMouseLeave={e => !loading && ((e.target as HTMLButtonElement).style.background = "linear-gradient(135deg, #1D4ED8 0%, #2563EB 100%)")}>
+              style={{ background: "#1d4ed8" }}
+              onMouseEnter={e => !loading && ((e.target as HTMLButtonElement).style.background = "#3b82f6")}
+              onMouseLeave={e => !loading && ((e.target as HTMLButtonElement).style.background = "#1d4ed8")}>
               {loading ? (
                 <><Loader2 className="h-4 w-4 animate-spin" />Signing in...</>
               ) : (
