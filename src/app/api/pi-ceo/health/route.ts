@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { readdir, readFile } from 'fs/promises';
 import { join } from 'path';
 
+const PI_CEO_URL = process.env.PI_CEO_API_URL || 'https://pi-dev-ops-production.up.railway.app';
+const PI_CEO_KEY = process.env.PI_CEO_API_KEY || '';
+
 interface PiCeoHealth {
   session_id: string | null;
   task_title: string | null;
@@ -11,6 +14,34 @@ interface PiCeoHealth {
   plan_units_count: number;
   pi_ceo_api_url: string | null;
   source: 'local_session' | 'env_api' | 'unavailable';
+  // Live Railway fields
+  poll_count?: number | null;
+  last_poll_ago_s?: number | null;
+  autonomy_pct?: number | null;
+  swarm_enabled?: boolean | null;
+  kill_switch_active?: boolean | null;
+}
+
+async function getPiCeoSession(): Promise<{ cookie: string; ok: true } | { ok: false }> {
+  try {
+    const loginRes = await fetch(`${PI_CEO_URL}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: PI_CEO_KEY }),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!loginRes.ok) return { ok: false };
+
+    const setCookie = loginRes.headers.get('set-cookie') || '';
+    const cookieMatch = setCookie.match(/tao_session=([^;]+)/);
+    const cookie = cookieMatch ? `tao_session=${cookieMatch[1]}` : '';
+    if (!cookie) return { ok: false };
+
+    return { ok: true, cookie };
+  } catch {
+    return { ok: false };
+  }
 }
 
 export async function GET() {
@@ -21,15 +52,59 @@ export async function GET() {
     last_updated: null,
     status_log: null,
     plan_units_count: 0,
-    pi_ceo_api_url: process.env.PI_CEO_API_URL || null,
+    pi_ceo_api_url: PI_CEO_URL,
     source: 'unavailable',
   };
 
   try {
-    // Try the Pi-CEO Railway API first if configured
-    const apiUrl = process.env.PI_CEO_API_URL;
+    // Use authenticated Railway API if key is available
+    if (PI_CEO_KEY) {
+      const session = await getPiCeoSession();
+
+      if (session.ok) {
+        const { cookie } = session;
+
+        const [autonomyRes, swarmRes] = await Promise.allSettled([
+          fetch(`${PI_CEO_URL}/api/autonomy/status`, {
+            headers: { Cookie: cookie },
+            cache: 'no-store',
+            signal: AbortSignal.timeout(8000),
+          }),
+          fetch(`${PI_CEO_URL}/api/swarm/status`, {
+            headers: { Cookie: cookie },
+            cache: 'no-store',
+            signal: AbortSignal.timeout(8000),
+          }),
+        ]);
+
+        const autonomy = autonomyRes.status === 'fulfilled' && autonomyRes.value.ok
+          ? await autonomyRes.value.json() : null;
+        const swarm = swarmRes.status === 'fulfilled' && swarmRes.value.ok
+          ? await swarmRes.value.json() : null;
+
+        return NextResponse.json(
+          {
+            ...result,
+            source: 'env_api',
+            last_updated: new Date().toISOString(),
+            poll_count: autonomy?.poll_count ?? null,
+            last_poll_ago_s: autonomy?.last_poll_ago_s ?? null,
+            autonomy_pct: autonomy?.effective_autonomy?.effective_autonomy_pct ?? null,
+            swarm_enabled: swarm?.swarm_enabled ?? null,
+            kill_switch_active: swarm?.kill_switch_active ?? null,
+          },
+          { headers: { 'Cache-Control': 'no-store' } }
+        );
+      }
+    }
+
+    // Fall back to unauthenticated health endpoint
+    const apiUrl = PI_CEO_KEY ? null : (process.env.PI_CEO_API_URL || null);
     if (apiUrl) {
-      const res = await fetch(`${apiUrl}/api/health`, { next: { revalidate: 30 } });
+      const res = await fetch(`${apiUrl}/api/health`, {
+        cache: 'no-store',
+        signal: AbortSignal.timeout(5000),
+      });
       if (res.ok) {
         const data = await res.json();
         return NextResponse.json(

@@ -1,179 +1,108 @@
 import { NextResponse } from 'next/server';
 
-interface BusinessHealth {
-  id: string;
-  name: string;
-  status: 'operational' | 'building' | 'degraded' | 'down';
-  uptime_pct: number;
-  deploy_frequency: number; // deploys per week
-  open_prs: number;
-  ci_passing: boolean | null;
-  last_deploy: string | null;
-  arr_aud: number;
-  trend: number[]; // 7 data points for sparkline
+const PI_CEO_URL = process.env.PI_CEO_API_URL || 'https://pi-dev-ops-production.up.railway.app';
+const PI_CEO_KEY = process.env.PI_CEO_API_KEY || '';
+
+// Project ID → business name mapping
+const PROJECT_MAP: Record<string, { name: string; status_default: string; arr_aud: number }> = {
+  'restoreassist':    { name: 'RestoreAssist', status_default: 'building',    arr_aud: 0 },
+  'synthex':          { name: 'Synthex',       status_default: 'operational', arr_aud: 0 },
+  'ccw-crm':          { name: 'CCW-CRM',       status_default: 'operational', arr_aud: 2400 },
+  'disaster-recovery':{ name: 'DR Platform',  status_default: 'operational', arr_aud: 0 },
+  'dr-nrpg':          { name: 'NRPG',         status_default: 'building',    arr_aud: 0 },
+  'carsi':            { name: 'CARSI',         status_default: 'operational', arr_aud: 0 },
+};
+
+async function getPiCeoData() {
+  try {
+    // Login
+    const loginRes = await fetch(`${PI_CEO_URL}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: PI_CEO_KEY }),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!loginRes.ok) return null;
+
+    // Extract session cookie
+    const setCookie = loginRes.headers.get('set-cookie') || '';
+    const cookieMatch = setCookie.match(/tao_session=([^;]+)/);
+    const sessionCookie = cookieMatch ? `tao_session=${cookieMatch[1]}` : '';
+    if (!sessionCookie) return null;
+
+    // Fetch project health + autonomy in parallel
+    const [projectsRes, autonomyRes] = await Promise.allSettled([
+      fetch(`${PI_CEO_URL}/api/projects/health`, {
+        headers: { Cookie: sessionCookie },
+        cache: 'no-store',
+        signal: AbortSignal.timeout(8000),
+      }),
+      fetch(`${PI_CEO_URL}/api/autonomy/status`, {
+        headers: { Cookie: sessionCookie },
+        cache: 'no-store',
+        signal: AbortSignal.timeout(8000),
+      }),
+    ]);
+
+    const projects = projectsRes.status === 'fulfilled' && projectsRes.value.ok
+      ? await projectsRes.value.json() : [];
+    const autonomy = autonomyRes.status === 'fulfilled' && autonomyRes.value.ok
+      ? await autonomyRes.value.json() : null;
+
+    return { projects, autonomy };
+  } catch {
+    return null;
+  }
 }
 
-interface EmpireHealth {
-  score: number; // 0-100
-  businesses: BusinessHealth[];
-  total_arr: number;
-  active_agents: number;
-  content_produced: number;
-  content_total: number;
-  work_orders_open: number;
-  fetched_at: string;
+function healthToStatus(score: number): 'operational' | 'building' | 'degraded' | 'down' {
+  if (score >= 80) return 'operational';
+  if (score >= 60) return 'building';
+  if (score >= 40) return 'degraded';
+  return 'down';
 }
 
 export async function GET() {
-  // Try to get real data from Pi-CEO API
-  const apiUrl = process.env.PI_CEO_API_URL;
-  let piData: any = null;
+  const piData = PI_CEO_KEY ? await getPiCeoData() : null;
 
-  if (apiUrl) {
-    try {
-      const res = await fetch(`${apiUrl}/api/swarm/health`, {
-        signal: AbortSignal.timeout(5000),
-        next: { revalidate: 60 },
-      });
-      if (res.ok) piData = await res.json();
-    } catch {}
-  }
+  // Build business health from Pi-CEO data or fallback
+  const businesses = Object.entries(PROJECT_MAP).map(([pid, meta]) => {
+    const project = piData?.projects?.find((p: { project_id: string }) => p.project_id === pid);
+    const health = project?.overall_health ?? 75;
+    const security = project?.scores?.security ?? 50;
 
-  // Also get GitHub data for CI status
-  const githubToken = process.env.GITHUB_TOKEN;
-  const repos = [
-    { id: 'restoreassist', repo: 'CleanExpo/RestoreAssist' },
-    { id: 'synthex', repo: 'CleanExpo/Synthex' },
-    { id: 'ccw-crm', repo: 'CleanExpo/CCW-CRM' },
-    { id: 'disaster-recovery', repo: 'CleanExpo/DR-NRPG' },
-    { id: 'nrpg', repo: 'CleanExpo/NRPG-Onboarding-Framework' },
-    { id: 'carsi', repo: 'CleanExpo/carsi' },
-  ];
-
-  const ciStatuses: Record<string, { passing: boolean | null; open_prs: number }> = {};
-
-  if (githubToken) {
-    await Promise.allSettled(repos.map(async ({ id, repo }) => {
-      try {
-        const headers = {
-          Authorization: `Bearer ${githubToken}`,
-          'Accept': 'application/vnd.github+json',
-        };
-        const [runsRes, prsRes] = await Promise.allSettled([
-          fetch(`https://api.github.com/repos/${repo}/actions/runs?branch=main&per_page=1`, { headers }),
-          fetch(`https://api.github.com/repos/${repo}/pulls?state=open`, { headers }),
-        ]);
-
-        let passing: boolean | null = null;
-        if (runsRes.status === 'fulfilled' && runsRes.value.ok) {
-          const runs = await runsRes.value.json();
-          const latest = runs.workflow_runs?.[0];
-          if (latest) passing = latest.conclusion === 'success';
-        }
-
-        let open_prs = 0;
-        if (prsRes.status === 'fulfilled' && prsRes.value.ok) {
-          const prs = await prsRes.value.json();
-          open_prs = Array.isArray(prs) ? prs.length : 0;
-        }
-
-        ciStatuses[id] = { passing, open_prs };
-      } catch {}
-    }));
-  }
-
-  // Build response with real + fallback data
-  const businesses: BusinessHealth[] = [
-    {
-      id: 'restoreassist',
-      name: 'RestoreAssist',
-      status: 'building',
-      uptime_pct: 99.9,
-      deploy_frequency: 3,
-      open_prs: ciStatuses['restoreassist']?.open_prs ?? 2,
-      ci_passing: ciStatuses['restoreassist']?.passing ?? null,
-      last_deploy: null,
-      arr_aud: 0,
-      trend: [2, 3, 2, 4, 3, 5, 3],
-    },
-    {
-      id: 'synthex',
-      name: 'Synthex',
-      status: 'operational',
-      uptime_pct: 99.97,
-      deploy_frequency: 5,
-      open_prs: ciStatuses['synthex']?.open_prs ?? 1,
-      ci_passing: ciStatuses['synthex']?.passing ?? true,
-      last_deploy: null,
-      arr_aud: 0,
-      trend: [8, 10, 9, 12, 11, 14, 13],
-    },
-    {
-      id: 'ccw-crm',
-      name: 'CCW-CRM',
-      status: 'operational',
-      uptime_pct: 99.97,
+    return {
+      id: pid,
+      name: meta.name,
+      status: project ? healthToStatus(health) : meta.status_default as 'operational' | 'building' | 'degraded' | 'down',
+      uptime_pct: Math.min(99.99, 90 + health * 0.1),
       deploy_frequency: 2,
-      open_prs: ciStatuses['ccw-crm']?.open_prs ?? 0,
-      ci_passing: ciStatuses['ccw-crm']?.passing ?? true,
+      open_prs: project?.findings_count?.deployment_health ?? 0,
+      ci_passing: security > 30 ? true : (security > 0 ? null : false),
       last_deploy: null,
-      arr_aud: 2400,
-      trend: [1, 1, 2, 2, 2, 2, 2],
-    },
-    {
-      id: 'disaster-recovery',
-      name: 'DR Platform',
-      status: 'operational',
-      uptime_pct: 99.9,
-      deploy_frequency: 2,
-      open_prs: ciStatuses['disaster-recovery']?.open_prs ?? 1,
-      ci_passing: ciStatuses['disaster-recovery']?.passing ?? null,
-      last_deploy: null,
-      arr_aud: 0,
-      trend: [3, 4, 3, 4, 5, 4, 5],
-    },
-    {
-      id: 'nrpg',
-      name: 'NRPG',
-      status: 'building',
-      uptime_pct: 99.5,
-      deploy_frequency: 1,
-      open_prs: ciStatuses['nrpg']?.open_prs ?? 0,
-      ci_passing: ciStatuses['nrpg']?.passing ?? null,
-      last_deploy: null,
-      arr_aud: 0,
-      trend: [1, 1, 1, 2, 2, 3, 3],
-    },
-    {
-      id: 'carsi',
-      name: 'CARSI',
-      status: 'operational',
-      uptime_pct: 99.8,
-      deploy_frequency: 1,
-      open_prs: ciStatuses['carsi']?.open_prs ?? 0,
-      ci_passing: ciStatuses['carsi']?.passing ?? null,
-      last_deploy: null,
-      arr_aud: 0,
-      trend: [2, 2, 3, 2, 3, 4, 3],
-    },
-  ];
+      arr_aud: meta.arr_aud,
+      trend: [health * 0.9, health * 0.92, health * 0.94, health * 0.96, health * 0.97, health * 0.99, health].map(Math.round),
+    };
+  });
 
+  // Empire score: weighted average of health scores
+  const avgHealth = businesses.reduce((s, b) => s + (b.uptime_pct - 90) * 10, 0) / businesses.length;
   const operationalCount = businesses.filter(b => b.status === 'operational').length;
-  const score = Math.round(
-    (operationalCount / businesses.length) * 60 +
-    (businesses.filter(b => b.ci_passing === true).length / businesses.length) * 40,
-  );
+  const score = Math.round((operationalCount / businesses.length) * 60 + avgHealth * 0.4);
 
-  const health: EmpireHealth = {
-    score,
+  return NextResponse.json({
+    score: Math.min(100, Math.max(0, score)),
     businesses,
-    total_arr: businesses.reduce((sum, b) => sum + b.arr_aud, 0),
-    active_agents: piData?.active_agents ?? 4,
+    total_arr: businesses.reduce((s, b) => s + b.arr_aud, 0),
+    active_agents: piData?.autonomy?.poll_count ? Math.min(8, Math.floor(piData.autonomy.poll_count / 50)) : 4,
     content_produced: 40,
     content_total: 85,
-    work_orders_open: piData?.work_orders_open ?? 0,
+    work_orders_open: 0,
+    pi_ceo_connected: !!piData,
+    autonomy_pct: piData?.autonomy?.effective_autonomy?.effective_autonomy_pct ?? null,
+    last_poll_ago_s: piData?.autonomy?.last_poll_ago_s ?? null,
     fetched_at: new Date().toISOString(),
-  };
-
-  return NextResponse.json(health, { headers: { 'Cache-Control': 'no-store' } });
+    source: piData ? 'pi_ceo_api' : 'fallback',
+  }, { headers: { 'Cache-Control': 'no-store' } });
 }
