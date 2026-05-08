@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { supabaseClient } from "@/lib/supabase/client";
-import { Plus, ArrowLeft } from "lucide-react";
+import { Plus, ArrowLeft, Send, CheckCircle2, Loader2 } from "lucide-react";
 
 interface KanbanCard {
   id: string;
@@ -52,8 +52,47 @@ export default function KanbanBoard() {
   const router = useRouter();
   const [columns] = useState<Column[]>(INITIAL_COLUMNS);
   const [mounted, setMounted] = useState(false);
+  const [teams, setTeams] = useState<Array<{id: string; name: string; key: string}>>([]);
+  const [pushing, setPushing] = useState<string | null>(null); // card id being pushed
+  const [pushed, setPushed] = useState<Record<string, string>>({}); // cardId -> linearUrl
 
   useEffect(() => { setMounted(true); }, []);
+
+  // Fetch Linear teams on mount
+  useEffect(() => {
+    fetch('/api/linear/issue?action=teams')
+      .then(r => r.json())
+      .then(data => {
+        const nodes = data?.data?.teams?.nodes ?? [];
+        if (nodes.length > 0) setTeams(nodes);
+      })
+      .catch(() => { /* silently ignore */ });
+  }, []);
+
+  const pushToLinear = async (card: KanbanCard) => {
+    setPushing(card.id);
+    const teamMatch = teams.find(t =>
+      t.key === 'RA' || t.name.toLowerCase().includes('restoreassist') || t.name.toLowerCase().includes('unite')
+    ) ?? teams[0];
+
+    if (!teamMatch) { setPushing(null); return; }
+
+    const res = await fetch('/api/linear/issue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'create',
+        title: card.title,
+        teamId: teamMatch.id,
+        description: `${card.description}\n\n_Pushed from Unite-Group CRM Kanban board — Business: ${card.business}_`,
+        priority: card.priority === 'critical' ? 1 : card.priority === 'high' ? 2 : card.priority === 'medium' ? 3 : 4,
+      }),
+    });
+    const data = await res.json();
+    const url = data?.data?.issueCreate?.issue?.url;
+    if (url) setPushed(prev => ({ ...prev, [card.id]: url }));
+    setPushing(null);
+  };
 
   useEffect(() => {
     supabaseClient.auth.getSession().then(({ data: { session } }) => {
@@ -147,6 +186,33 @@ export default function KanbanBoard() {
                   {/* Description */}
                   <div style={{ fontSize: 11, color: "#52525b", lineHeight: 1.5 }}>
                     {card.description}
+                  </div>
+
+                  {/* Push to Linear */}
+                  <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    {pushed[card.id] ? (
+                      <a href={pushed[card.id]} target="_blank" rel="noopener noreferrer"
+                        style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#16a34a', textDecoration: 'none' }}>
+                        <CheckCircle2 size={10} /> View in Linear
+                      </a>
+                    ) : (
+                      <button
+                        onClick={() => pushToLinear(card)}
+                        disabled={pushing === card.id}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px',
+                          fontSize: 10, fontWeight: 500, borderRadius: 5,
+                          border: '1px solid #27272a', color: '#52525b',
+                          background: 'transparent', cursor: pushing === card.id ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.1s ease',
+                        }}
+                        onMouseEnter={e => { if (pushing !== card.id) { (e.currentTarget as HTMLButtonElement).style.borderColor = '#1d4ed8'; (e.currentTarget as HTMLButtonElement).style.color = '#1d4ed8'; }}}
+                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#27272a'; (e.currentTarget as HTMLButtonElement).style.color = '#52525b'; }}
+                      >
+                        {pushing === card.id ? <Loader2 size={9} className="spin" /> : <Send size={9} />}
+                        {pushing === card.id ? 'Pushing…' : 'Push to Linear'}
+                      </button>
+                    )}
                   </div>
                 </motion.div>
               ))}

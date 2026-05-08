@@ -118,6 +118,21 @@ export default function SEOAuditPage() {
             <span style={{ fontSize: 12, color: '#52525b' }}>— SEO Audit</span>
           </div>
           <div style={{ flex: 1 }} />
+          <a
+            href={`/api/seo/audit/pdf?domain=${meta.domain}`}
+            download
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px',
+              fontSize: 11, fontWeight: 500, borderRadius: 7,
+              border: '1px solid rgba(29,78,216,0.4)', color: '#60a5fa',
+              textDecoration: 'none', background: 'rgba(29,78,216,0.08)',
+              transition: 'all 0.1s ease',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(29,78,216,0.15)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(29,78,216,0.08)'; }}
+          >
+            <span style={{ fontSize: 13 }}>↓</span> Download PDF Report
+          </a>
           <a href={`https://${meta.domain}`} target="_blank" rel="noopener noreferrer"
             style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#52525b', textDecoration: 'none' }}
             onMouseEnter={e => (e.currentTarget.style.color = '#a1a1aa')}

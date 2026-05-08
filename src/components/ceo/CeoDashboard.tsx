@@ -52,6 +52,14 @@ interface PiCeoActivity {
   icon: string;
 }
 
+interface PiCeoActivityEvent {
+  agent: string;
+  action: string;
+  timeAgo: string;
+  ts: string;
+  found: number;
+}
+
 // ─── Static fallback data ────────────────────────────────────────────────────
 
 const CONTENT_PIPELINE: ContentProgress[] = [
@@ -402,6 +410,8 @@ export default function CeoCommandCenter() {
   const [loading, setLoading] = useState(true);
   const [secondsAgo, setSecondsAgo] = useState(0);
   const lastFetchRef = useRef<Date>(new Date());
+  const [piActivity, setPiActivity] = useState<PiCeoActivityEvent[]>([]);
+  const [piConnected, setPiConnected] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -436,6 +446,23 @@ export default function CeoCommandCenter() {
     const interval = setInterval(fetchHealth, 30_000);
     return () => clearInterval(interval);
   }, [fetchHealth]);
+
+  // Pi-CEO activity feed — fetch on mount and every 30 seconds
+  useEffect(() => {
+    const fetchPiActivity = async () => {
+      try {
+        const res = await fetch('/api/pi-ceo/activity');
+        if (res.ok) {
+          const data = await res.json();
+          setPiActivity(data.events ?? []);
+          setPiConnected(data.connected ?? false);
+        }
+      } catch { /* silently retain previous */ }
+    };
+    fetchPiActivity();
+    const interval = setInterval(fetchPiActivity, 30_000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Tick "Updated Xs ago"
   useEffect(() => {
@@ -573,17 +600,18 @@ export default function CeoCommandCenter() {
                 <span style={{ fontSize: 13, fontWeight: 600, color: "#fafafa" }}>Pi-CEO Activity</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span className="status-dot" style={{ width: 6, height: 6, background: "#16a34a", color: "#16a34a" }} />
-                <span style={{ fontSize: 10, fontWeight: 600, color: "#16a34a", letterSpacing: "0.05em", textTransform: "uppercase" }}>Live</span>
-                <span style={{ fontSize: 10, color: "#27272a", marginLeft: 4 }}>30s</span>
+                <span className="status-dot" style={{ width: 6, height: 6, background: piConnected ? "#16a34a" : "#d97706", color: piConnected ? "#16a34a" : "#d97706" }} />
+                <span style={{ fontSize: 10, fontWeight: 600, color: piConnected ? "#16a34a" : "#d97706", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                  {piConnected ? "Live" : "Fallback"}
+                </span>
               </div>
             </div>
 
             {/* Vertical timeline */}
             <div style={{ borderTop: "1px solid #27272a", paddingTop: 12, position: "relative" }}>
               <div style={{ borderLeft: "1px solid #27272a", marginLeft: 8, paddingLeft: 16, display: "flex", flexDirection: "column", gap: 0 }}>
-                {FALLBACK_ACTIVITIES.map((a, i) => (
-                  <div key={i} style={{ position: "relative", paddingBottom: i < FALLBACK_ACTIVITIES.length - 1 ? 14 : 0 }}>
+                {(piActivity.length > 0 ? piActivity : FALLBACK_ACTIVITIES).map((a, i, arr) => (
+                  <div key={i} style={{ position: "relative", paddingBottom: i < arr.length - 1 ? 14 : 0 }}>
                     <span style={{ position: "absolute", left: -20, top: 4, width: 5, height: 5, borderRadius: "50%", background: "#27272a", border: "1px solid #3f3f46", display: "inline-block" }} />
                     <p style={{ fontSize: 12, color: "#a1a1aa", margin: 0, lineHeight: 1.4 }}>{a.agent}</p>
                     <p style={{ fontSize: 10, color: "#52525b", margin: 0, marginTop: 1 }}>{a.timeAgo}</p>
