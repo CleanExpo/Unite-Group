@@ -21,46 +21,24 @@ export default function UpdatePassword() {
   useEffect(() => {
     const checkSession = async () => {
       const { data, error } = await supabaseClient.auth.getSession();
-
-      if (error) {
-        setError("Invalid or expired password reset link. Please request a new one.");
-        setTokenChecked(true);
-        return;
-      }
-
+      if (error) { setError("Invalid or expired password reset link. Please request a new one."); setTokenChecked(true); return; }
       if (data.session) {
         setValidToken(true);
       } else {
         const hash = window.location.hash;
-        if (hash && hash.includes("type=recovery")) {
-          setValidToken(true);
-        } else {
-          setError("No valid recovery session found. Please request a password reset link.");
-        }
+        if (hash && hash.includes("type=recovery")) { setValidToken(true); }
+        else { setError("No valid recovery session found. Please request a password reset link."); }
       }
-
       setTokenChecked(true);
     };
-
     checkSession();
   }, []);
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters long");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
+    if (password !== confirmPassword) { setError("Passwords do not match"); return; }
+    if (password.length < 6) { setError("Password must be at least 6 characters long"); return; }
+    setLoading(true); setError(null);
     try {
       const { error } = await supabaseClient.auth.updateUser({ password });
       if (error) throw error;
@@ -73,155 +51,134 @@ export default function UpdatePassword() {
     }
   };
 
+  const inputStyle: React.CSSProperties = {
+    width: "100%", borderRadius: 10, padding: "10px 14px", paddingRight: 44,
+    fontSize: 14, color: "#f8fafc", background: "#111827", border: "1px solid #1e293b",
+    outline: "none", boxSizing: "border-box", transition: "border-color 0.12s ease",
+  };
+
+  const wrapStyle: React.CSSProperties = { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, background: "#0a0f1e" };
+  const cardStyle: React.CSSProperties = { width: "100%", maxWidth: 400, background: "#0f172a", border: "1px solid #1e293b", borderRadius: 16, padding: 32 };
+
+  const Logo = () => (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
+      <div style={{ width: 32, height: 32, borderRadius: 8, background: "#1d4ed8", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, color: "#fff" }}>U</div>
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#f8fafc", letterSpacing: "-0.02em" }}>Unite Group</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#fbbf24", display: "inline-block" }} />
+          <span style={{ fontSize: 9, color: "#fbbf24", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Empire</span>
+        </div>
+      </div>
+    </div>
+  );
+
   if (!tokenChecked) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6" style={{ background: "#080E1A" }}>
-        <div className="flex items-center gap-3">
-          <Loader2 className="h-6 w-6 animate-spin" style={{ color: "#3B82F6" }} />
-          <p className="text-white text-sm">Verifying your reset link...</p>
+      <div style={wrapStyle}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <Loader2 size={18} color="#3b82f6" className="animate-spin" />
+          <p style={{ color: "#94a3b8", fontSize: 14 }}>Verifying your reset link&hellip;</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6" style={{ background: "#080E1A" }}>
-      <div className="w-full max-w-[400px]">
-
-        {/* Logo */}
-        <div className="flex items-center gap-3 mb-8">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white text-sm"
-               style={{ background: "linear-gradient(135deg, #1D4ED8, #3B82F6)" }}>
-            U
-          </div>
-          <div>
-            <div className="text-white font-bold text-base leading-tight">Unite Group</div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "#FBBF24" }} />
-              <span className="text-xs font-medium" style={{ color: "#FBBF24" }}>Empire</span>
-            </div>
-          </div>
-        </div>
+    <div style={wrapStyle}>
+      <div style={cardStyle}>
+        <Logo />
 
         {success ? (
-          <div className="text-center space-y-4">
-            <CheckCircle2 className="h-12 w-12 mx-auto" style={{ color: "#16A34A" }} />
-            <h2 className="text-xl font-bold text-white">Password updated</h2>
-            <p className="text-sm" style={{ color: "#64748B" }}>
-              Your password has been updated. Redirecting to sign in...
-            </p>
+          <div style={{ textAlign: "center", padding: "16px 0" }}>
+            <CheckCircle2 size={40} color="#16a34a" style={{ margin: "0 auto 12px" }} />
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: "#f8fafc", margin: "0 0 8px" }}>Password updated</h2>
+            <p style={{ fontSize: 14, color: "#475569", marginBottom: 20 }}>Your password has been updated. Redirecting to sign in&hellip;</p>
             <button
               onClick={() => router.push("/login")}
-              className="w-full rounded-xl py-3 text-sm font-semibold text-white flex items-center justify-center gap-2 transition-all"
-              style={{ background: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 100%)" }}>
-              <ArrowLeft className="h-4 w-4" />
-              Go to sign in
+              style={{ width: "100%", padding: "11px 0", borderRadius: 10, fontSize: 14, fontWeight: 600, color: "#fff", background: "#1d4ed8", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+            >
+              <ArrowLeft size={15} />Go to sign in
             </button>
           </div>
         ) : validToken ? (
           <>
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-white mb-1">Set a new password</h2>
-              <p className="text-sm" style={{ color: "#64748B" }}>
-                Create a new secure password for your account.
-              </p>
+            <div style={{ marginBottom: 24 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 700, color: "#f8fafc", letterSpacing: "-0.02em", margin: 0 }}>Set a new password</h2>
+              <p style={{ fontSize: 14, color: "#475569", marginTop: 6 }}>Create a new secure password for your account.</p>
             </div>
 
             {error && (
-              <div className="mb-5 rounded-xl p-4 border" style={{ background: "rgba(220,38,38,0.08)", borderColor: "rgba(220,38,38,0.25)" }}>
-                <p className="text-sm" style={{ color: "#F87171" }}>{error}</p>
+              <div style={{ marginBottom: 16, padding: "12px 14px", borderRadius: 10, background: "rgba(220,38,38,0.08)", border: "1px solid rgba(220,38,38,0.25)" }}>
+                <p style={{ fontSize: 13, color: "#f87171", margin: 0 }}>{error}</p>
               </div>
             )}
 
-            <form onSubmit={handleUpdatePassword} className="space-y-4">
-              <div className="space-y-1.5">
-                <label htmlFor="password" className="block text-sm font-medium" style={{ color: "#CBD5E1" }}>
-                  New password
-                </label>
-                <div className="relative">
+            <form onSubmit={handleUpdatePassword} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#94a3b8", marginBottom: 6 }}>New password</label>
+                <div style={{ position: "relative" }}>
                   <input
                     id="password" type={showPassword ? "text" : "password"} required minLength={6}
                     value={password} onChange={e => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full rounded-xl px-4 py-3 pr-11 text-sm text-white placeholder-[#334155] border focus:outline-none transition-all"
-                    style={{ background: "#0F172A", borderColor: "#1E293B" }}
-                    onFocus={e => { e.target.style.borderColor = "#1D4ED8"; }}
-                    onBlur={e => { e.target.style.borderColor = "#1E293B"; }}
+                    placeholder="••••••••" style={inputStyle}
+                    onFocus={e => (e.target.style.borderColor = "#1d4ed8")}
+                    onBlur={e => (e.target.style.borderColor = "#1e293b")}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded transition-colors"
-                    style={{ color: "#475569" }}
-                    onMouseEnter={e => (e.currentTarget.style.color = "#94A3B8")}
-                    onMouseLeave={e => (e.currentTarget.style.color = "#475569")}
-                    tabIndex={-1}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} tabIndex={-1}
+                    style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#334155", padding: 4 }}>
+                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
-                <p className="text-xs" style={{ color: "#475569" }}>At least 6 characters</p>
+                <p style={{ fontSize: 11, color: "#334155", marginTop: 5 }}>At least 6 characters</p>
               </div>
 
-              <div className="space-y-1.5">
-                <label htmlFor="confirmPassword" className="block text-sm font-medium" style={{ color: "#CBD5E1" }}>
-                  Confirm password
-                </label>
-                <div className="relative">
+              <div>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#94a3b8", marginBottom: 6 }}>Confirm password</label>
+                <div style={{ position: "relative" }}>
                   <input
                     id="confirmPassword" type={showConfirm ? "text" : "password"} required
                     value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full rounded-xl px-4 py-3 pr-11 text-sm text-white placeholder-[#334155] border focus:outline-none transition-all"
-                    style={{ background: "#0F172A", borderColor: "#1E293B" }}
-                    onFocus={e => { e.target.style.borderColor = "#1D4ED8"; }}
-                    onBlur={e => { e.target.style.borderColor = "#1E293B"; }}
+                    placeholder="••••••••" style={inputStyle}
+                    onFocus={e => (e.target.style.borderColor = "#1d4ed8")}
+                    onBlur={e => (e.target.style.borderColor = "#1e293b")}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirm(!showConfirm)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded transition-colors"
-                    style={{ color: "#475569" }}
-                    onMouseEnter={e => (e.currentTarget.style.color = "#94A3B8")}
-                    onMouseLeave={e => (e.currentTarget.style.color = "#475569")}
-                    tabIndex={-1}
-                    aria-label={showConfirm ? "Hide password" : "Show password"}
-                  >
-                    {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  <button type="button" onClick={() => setShowConfirm(!showConfirm)} tabIndex={-1}
+                    style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#334155", padding: 4 }}>
+                    {showConfirm ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
               </div>
 
               <button
                 type="submit" disabled={loading}
-                className="w-full rounded-xl py-3 text-sm font-semibold text-white flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-                style={{ background: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 100%)" }}>
-                {loading ? <><Loader2 className="h-4 w-4 animate-spin" />Updating...</> : <><KeyRound className="h-4 w-4" />Update password</>}
+                style={{ width: "100%", padding: "11px 0", borderRadius: 10, fontSize: 14, fontWeight: 600, color: "#fff", background: "#1d4ed8", border: "none", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.6 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "background 0.16s ease" }}
+                onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = "#3b82f6"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#1d4ed8"; }}
+                onMouseDown={e => { (e.currentTarget as HTMLButtonElement).style.transform = "scale(0.97)"; }}
+                onMouseUp={e => { (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)"; }}
+              >
+                {loading ? <><Loader2 size={15} className="animate-spin" />Updating…</> : <><KeyRound size={15} />Update password</>}
               </button>
             </form>
           </>
         ) : (
           <>
-            <div className="mb-6 rounded-xl p-4 border" style={{ background: "rgba(220,38,38,0.08)", borderColor: "rgba(220,38,38,0.25)" }}>
-              <p className="text-sm" style={{ color: "#F87171" }}>
-                {error ?? "The password reset link is invalid or has expired."}
-              </p>
+            <div style={{ marginBottom: 20, padding: "12px 14px", borderRadius: 10, background: "rgba(220,38,38,0.08)", border: "1px solid rgba(220,38,38,0.25)" }}>
+              <p style={{ fontSize: 13, color: "#f87171", margin: 0 }}>{error ?? "The password reset link is invalid or has expired."}</p>
             </div>
             <Link
               href="/reset-password"
-              className="w-full rounded-xl py-3 text-sm font-semibold text-white flex items-center justify-center gap-2 transition-all"
-              style={{ background: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 100%)" }}>
-              <ArrowLeft className="h-4 w-4" />
-              Request a new reset link
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", padding: "11px 0", borderRadius: 10, fontSize: 14, fontWeight: 600, color: "#fff", background: "#1d4ed8", textDecoration: "none" }}
+            >
+              <ArrowLeft size={15} />Request a new reset link
             </Link>
           </>
         )}
 
-        <div className="mt-8 text-center">
-          <Link href="/login" className="inline-flex items-center gap-2 text-sm transition-colors" style={{ color: "#3B82F6" }}>
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Back to sign in
+        <div style={{ marginTop: 24, textAlign: "center" }}>
+          <Link href="/login" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, color: "#3b82f6", textDecoration: "none" }}>
+            <ArrowLeft size={13} />Back to sign in
           </Link>
         </div>
       </div>

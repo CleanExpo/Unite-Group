@@ -255,34 +255,30 @@ export default function PrivacyPage() {
 
   if (state.loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-6">Privacy Settings</h1>
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded mb-4 w-1/4"></div>
-          <div className="h-24 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
-          <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
-        </div>
+      <div style={{ minHeight: "100vh", background: "#0a0f1e", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <p style={{ color: "#475569", fontSize: 14 }}>Loading privacy settings&hellip;</p>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Privacy Settings</h1>
-      
+    <div style={{ minHeight: "100vh", background: "#0a0f1e", color: "#f8fafc" }}>
+      <div style={{ maxWidth: 800, margin: "0 auto", padding: "40px 24px 80px" }}>
+      <h1 style={{ fontSize: 24, fontWeight: 700, color: "#f8fafc", letterSpacing: "-0.03em", marginBottom: 24 }}>Privacy Settings</h1>
+
       {state.error && (
-        <div className="bg-red-100 dark:bg-red-900 border border-red-400 text-red-700 dark:text-red-200 px-4 py-3 rounded relative mb-6">
-          <span className="block sm:inline">{state.error}</span>
+        <div style={{ marginBottom: 16, padding: "12px 16px", borderRadius: 10, background: "rgba(220,38,38,0.08)", border: "1px solid rgba(220,38,38,0.25)" }}>
+          <span style={{ fontSize: 13, color: "#f87171" }}>{state.error}</span>
         </div>
       )}
-      
+
       {state.success && (
-        <div className="bg-green-100 dark:bg-green-900 border border-green-400 text-green-700 dark:text-green-200 px-4 py-3 rounded relative mb-6">
-          <span className="block sm:inline">{state.success}</span>
+        <div style={{ marginBottom: 16, padding: "12px 16px", borderRadius: 10, background: "rgba(22,163,74,0.08)", border: "1px solid rgba(22,163,74,0.25)" }}>
+          <span style={{ fontSize: 13, color: "#16a34a" }}>{state.success}</span>
         </div>
       )}
-      
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
+
+      <div style={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 12, padding: 24, marginBottom: 20 }}>
         <h2 className="text-xl font-semibold mb-4">Communication Preferences</h2>
         <p className="mb-4">
           Control what types of communications you receive from us. You can change these settings at any time.
@@ -423,30 +419,29 @@ export default function PrivacyPage() {
           </div>
         </div>
         
-        <div className="flex justify-end">
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <button
             type="button"
             onClick={handleSaveSettings}
             disabled={state.submitting}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            style={{ padding: "8px 16px", background: "#1d4ed8", color: "#fff", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: state.submitting ? "not-allowed" : "pointer", opacity: state.submitting ? 0.6 : 1 }}
           >
-            {state.submitting ? 'Saving...' : 'Save Preferences'}
+            {state.submitting ? 'Saving…' : 'Save Preferences'}
           </button>
         </div>
       </div>
-      
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
-        <h2 className="text-xl font-semibold mb-4">Cookie Preferences</h2>
-        <p className="mb-4">
+
+      <div style={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 12, padding: 24, marginBottom: 20 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 600, color: "#f8fafc", marginBottom: 8 }}>Cookie Preferences</h2>
+        <p style={{ fontSize: 14, color: "#64748b", marginBottom: 16 }}>
           Manage your cookie preferences to control what information is collected when you visit our website.
         </p>
-        
-        <div className="flex justify-start">
+        <div>
           <CookiePreferencesButton className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" />
         </div>
       </div>
-      
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
+
+      <div style={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 12, padding: 24, marginBottom: 20 }}>
         <h2 className="text-xl font-semibold mb-4">Data Export</h2>
         <p className="mb-4">
           You can request a copy of your personal data at any time. We will process your request and provide a download link.
@@ -538,8 +533,8 @@ export default function PrivacyPage() {
         )}
       </div>
       
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
-        <h2 className="text-xl font-semibold mb-4">Data Deletion</h2>
+      <div style={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 12, padding: 24 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 600, color: "#f8fafc", marginBottom: 8 }}>Data Deletion</h2>
         <p className="mb-4">
           You can request the deletion of your personal data. This process cannot be undone.
         </p>
@@ -607,6 +602,7 @@ export default function PrivacyPage() {
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

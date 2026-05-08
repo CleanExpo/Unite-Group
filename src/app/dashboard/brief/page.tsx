@@ -1,20 +1,152 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { motion } from "framer-motion";
+import { supabaseClient } from "@/lib/supabase/client";
+import { Zap, ArrowLeft, Cpu } from "lucide-react";
+
+const SECTIONS = [
+  {
+    number: "01",
+    title: "Opportunity",
+    content: "Australia's restoration, compliance, and field-services industries are under-served by software. Unite Group has identified a $50M+ TAM across 6 verticals where incumbent tools are legacy or absent. The thesis: acquire founder-led businesses at 3–5x ARR, inject Pi-CEO automation, exit at 8–12x ARR within 48 months.",
+  },
+  {
+    number: "02",
+    title: "Strategy",
+    content: "Three-phase playbook: (1) Validate with CCW — prove the Pi-CEO stack on a paying client delivering measurable CRM + campaign ROI. (2) Build momentum — RestoreAssist App Store launch, Synthex SaaS platform, NRPG community flywheel. (3) Consolidate — CARSI compliance revenue, DR Platform, portfolio acquisition fund.",
+  },
+  {
+    number: "03",
+    title: "Current State",
+    content: "6 portfolio businesses. 1 paying client (CCW, $2,400/yr ARR). 4 Pi-CEO agents live. Synthex at 40/85 content assets. RestoreAssist on TestFlight. Unite-Hub platform rebuilt with zinc design system. SEO pipeline active across all 6 domains. Monthly burn: managed. Runway: 6+ months.",
+  },
+  {
+    number: "04",
+    title: "Goals — Next 90 Days",
+    content: "1. CCW → $5,000 ARR (upsell SEO package). 2. RestoreAssist → App Store live. 3. Synthex → 85/85 content assets published. 4. NRPG → contractor onboarding flow. 5. Pi-CEO → 8 agents live, automated weekly brief. 6. Unite-Hub → client portal v2 for 2 new clients.",
+  },
+  {
+    number: "05",
+    title: "People & Org",
+    content: "Phill McGurk — Founder & CEO, product + strategy. Pi-CEO swarm — 4 live agents (health-monitor, gap-detector, wiki-ingest, brief-generator). Development team: Yasir (lead), Afifa, Usman. Design: Ayesha, Amina, Shahid. Marketing: Claire Booth. Headcount target: +2 senior engineers Q3.",
+  },
+  {
+    number: "06",
+    title: "Actions — This Week",
+    content: "[ ] Publish CCW SEO audit report. [ ] RestoreAssist TestFlight build 1.2.3. [ ] Synthex: 5 blog posts drafted. [ ] Pi-CEO: wire health-monitor to Slack alerts. [ ] Unite-Hub: deploy zinc modernization. [ ] NRPG: contractor onboarding wireframe review. [ ] Board minutes: file this 6-pager.",
+  },
+];
+
+const card: React.CSSProperties = {
+  background: "#0f172a",
+  border: "1px solid #1e293b",
+  borderRadius: 12,
+  padding: 24,
+};
 
 export default function SixPagerBrief() {
+  const router = useRouter();
+  const [loaded, setLoaded] = useState(false);
+  const [sections, setSections] = useState(SECTIONS.map(s => ({ ...s })));
+
+  useEffect(() => {
+    supabaseClient.auth.getSession().then(({ data: { session } }) => {
+      if (!session) { router.push("/login"); return; }
+      setLoaded(true);
+    });
+  }, [router]);
+
+  if (!loaded) return (
+    <div style={{ minHeight: "100vh", background: "#0a0f1e", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Zap size={20} color="#334155" />
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-6 text-white">
-      <h1 className="text-3xl font-bold">6-Pager Brief</h1>
-      <p className="text-slate-400 text-center max-w-sm">
-        The weekly empire 6-pager brief will be generated and displayed here.
-      </p>
-      <Link
-        href="/dashboard/ceo"
-        className="px-4 py-2 rounded-md border border-slate-600 text-slate-300 hover:bg-slate-800 transition-colors text-sm"
-      >
-        Back to Command Center
-      </Link>
+    <div style={{ minHeight: "100vh", background: "#0a0f1e", color: "#f8fafc" }}>
+
+      {/* Header */}
+      <header style={{ background: "rgba(10,15,30,0.9)", backdropFilter: "blur(20px)", borderBottom: "1px solid #1e293b", height: 60, padding: "0 24px", position: "sticky", top: 0, zIndex: 40, display: "flex", alignItems: "center" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <Link href="/dashboard/ceo" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#475569", textDecoration: "none" }}>
+              <ArrowLeft size={13} />Back
+            </Link>
+            <span style={{ color: "#1e293b", fontSize: 12 }}>|</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "#f8fafc" }}>Empire 6-Pager</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", background: "rgba(29,78,216,0.1)", border: "1px solid rgba(29,78,216,0.2)", borderRadius: 20 }}>
+            <Cpu size={11} color="#3b82f6" />
+            <span style={{ fontSize: 10, fontWeight: 600, color: "#3b82f6", letterSpacing: "0.04em" }}>Generated by Pi-CEO</span>
+          </div>
+        </div>
+      </header>
+
+      <main style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 64px", display: "flex", flexDirection: "column", gap: 20 }}>
+
+        <div style={{ marginBottom: 8 }}>
+          <h1 style={{ fontSize: 28, fontWeight: 700, color: "#f8fafc", letterSpacing: "-0.03em", margin: 0 }}>Empire 6-Pager</h1>
+          <p style={{ fontSize: 14, color: "#475569", marginTop: 6 }}>Weekly strategic brief — Unite Group portfolio. Edit any section below.</p>
+        </div>
+
+        {sections.map((section, i) => (
+          <motion.div
+            key={section.number}
+            style={card}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: i * 0.06, ease: [0.23, 1, 0.32, 1] }}
+          >
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 600, color: "#334155" }}>{section.number}</span>
+                <h2 style={{ fontSize: 16, fontWeight: 600, color: "#f8fafc", letterSpacing: "-0.02em", margin: 0 }}>{section.title}</h2>
+              </div>
+              <span style={{ fontSize: 10, fontWeight: 600, color: "#334155", letterSpacing: "0.06em", textTransform: "uppercase", flexShrink: 0 }}>editable</span>
+            </div>
+            <textarea
+              value={section.content}
+              onChange={e => {
+                const updated = [...sections];
+                updated[i] = { ...updated[i], content: e.target.value };
+                setSections(updated);
+              }}
+              rows={4}
+              style={{
+                width: "100%",
+                background: "#111827",
+                border: "1px solid #1e293b",
+                borderRadius: 8,
+                padding: "12px 14px",
+                fontSize: 14,
+                color: "#94a3b8",
+                lineHeight: 1.6,
+                resize: "vertical",
+                outline: "none",
+                fontFamily: "var(--font-inter)",
+                boxSizing: "border-box",
+                transition: "border-color 0.12s ease",
+              }}
+              onFocus={e => (e.target.style.borderColor = "#334155")}
+              onBlur={e => (e.target.style.borderColor = "#1e293b")}
+            />
+          </motion.div>
+        ))}
+
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 8 }}>
+          <Link
+            href="/dashboard/ceo"
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 500, color: "#94a3b8", border: "1px solid #1e293b", textDecoration: "none", background: "transparent", transition: "all 0.12s ease" }}
+            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "#111827"; (e.currentTarget as HTMLAnchorElement).style.color = "#f8fafc"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; (e.currentTarget as HTMLAnchorElement).style.color = "#94a3b8"; }}
+          >
+            Back to Command Center
+          </Link>
+        </div>
+      </main>
     </div>
   );
 }

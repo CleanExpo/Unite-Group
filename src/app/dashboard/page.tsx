@@ -1,644 +1,294 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  Table, 
-  TableBody, 
-  TableCaption, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { motion } from "framer-motion";
 import { supabaseClient } from "@/lib/supabase/client";
-import { Calendar, Clock, User, Briefcase, FileText, Loader2, PlusCircle, BarChart } from "lucide-react";
-import { YouTubeEmbedWidget } from "@/components/dashboard/YouTubeEmbedWidget";
-import type { ClientVideoWithStats } from "@/lib/dashboard/getClientYouTubeVideos";
-import { TrialEndModal } from "@/components/trial/TrialEndModal";
-import { BrandIQCard } from "@/components/dashboard/BrandIQCard";
-import { PiCeoStatusCard } from "@/components/dashboard/PiCeoStatusCard";
+import {
+  Building2, TrendingUp, Zap, ExternalLink, Activity,
+  FileText, BarChart3, Users, ArrowUpRight, RefreshCw,
+} from "lucide-react";
 
-interface Consultation {
-  id: string;
-  client_name: string;
-  client_email: string;
-  service_type: string;
-  preferred_date: string;
-  preferred_time: string;
-  status: string;
-  payment_status: string;
-  created_at: string;
-  scheduled_at: string | null;
-}
+// ── Static data ──────────────────────────────────────────────────────────────
 
-interface Project {
-  id: string;
-  title: string;
-  description: string | null;
-  client_id: string | null;
-  client?: { id: string; email: string };
-  status: string;
-  start_date: string | null;
-  target_completion_date: string | null;
-  actual_completion_date: string | null;
-  budget: number | null;
-  created_at: string;
-  updated_at: string;
-  created_by: string | null;
-  assigned_to: string | null;
-  priority: string;
-}
+const BUSINESSES = [
+  { id: "synthex",           name: "Synthex",           status: "operational" as const, arr: 0,    seoSlug: "synthex",           desc: "Marketing Automation · 1,000+ users" },
+  { id: "restoreassist",     name: "RestoreAssist",     status: "building"    as const, arr: 0,    seoSlug: "restoreassist",     desc: "iOS App · TestFlight Active" },
+  { id: "ccw-crm",           name: "CCW",               status: "operational" as const, arr: 2400, seoSlug: "ccw-crm",           desc: "First Paying Client · $2,400/yr ARR" },
+  { id: "carsi",             name: "CARSI",             status: "building"    as const, arr: 0,    seoSlug: "carsi",             desc: "Compliance Delivery" },
+  { id: "disaster-recovery", name: "DR Platform",       status: "building"    as const, arr: 0,    seoSlug: "disaster-recovery", desc: "Disaster Recovery Platform" },
+  { id: "nrpg",              name: "NRPG",              status: "building"    as const, arr: 0,    seoSlug: "nrpg",              desc: "ANZ Restoration Movement" },
+];
 
-export default function Dashboard() {
+const STATUS_COLOR: Record<string, string> = {
+  operational: "#16a34a",
+  building:    "#1d4ed8",
+  degraded:    "#d97706",
+  down:        "#dc2626",
+};
+
+const FALLBACK_ACTIVITIES = [
+  { agent: "health-monitor",   action: "System health checked",  timeAgo: "2m ago"  },
+  { agent: "gap-detector",     action: "Content gaps analysed",  timeAgo: "1h ago"  },
+  { agent: "wiki-ingest",      action: "Knowledge base updated", timeAgo: "2h ago"  },
+  { agent: "sources-watcher",  action: "Sources scanned",        timeAgo: "3h ago"  },
+  { agent: "brief-generator",  action: "Weekly brief prepared",  timeAgo: "5h ago"  },
+  { agent: "alert-dispatcher", action: "No alerts triggered",    timeAgo: "6h ago"  },
+];
+
+const QUICK_LINKS = [
+  { label: "Board Room",   href: "/dashboard/board",   icon: <Users size={13} /> },
+  { label: "Content",      href: "/dashboard/content", icon: <BarChart3 size={13} /> },
+  { label: "SEO Audits",   href: "/businesses/synthex/seo", icon: <Activity size={13} /> },
+  { label: "CCW Portal",   href: "/clients/ccw",       icon: <ExternalLink size={13} /> },
+  { label: "Clients",      href: "/clients",           icon: <Building2 size={13} /> },
+  { label: "6-Pager",      href: "/dashboard/brief",   icon: <FileText size={13} />, primary: true },
+];
+
+// ── Styles ───────────────────────────────────────────────────────────────────
+
+const card: React.CSSProperties = {
+  background: "#0f172a",
+  border: "1px solid #1e293b",
+  borderRadius: 12,
+  padding: 20,
+};
+
+const sectionLabel: React.CSSProperties = {
+  fontSize: 10,
+  fontWeight: 600,
+  letterSpacing: "0.1em",
+  textTransform: "uppercase",
+  color: "#334155",
+  marginBottom: 12,
+};
+
+// ── Page ─────────────────────────────────────────────────────────────────────
+
+export default function DashboardPage() {
   const router = useRouter();
+  const [user, setUser] = useState<{ email: string } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [projectsLoading, setProjectsLoading] = useState(true);
-  const [consultations, setConsultations] = useState<Consultation[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [projectsError, setProjectsError] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [youtubeVideos, setYoutubeVideos] = useState<ClientVideoWithStats[]>([]);
-
-  // SYN-527: Brand IQ unlock state (driven by first_win_detected on profile)
-  const [firstWinDetected, setFirstWinDetected] = useState(false);
-
-  // SYN-526: Trial-end modal state
-  const [showTrialEndModal, setShowTrialEndModal] = useState(false);
-  const [trialEndData, setTrialEndData] = useState({
-    daysLeft: 0,
-    copyVariant: 'control' as 'win' | 'control',
-    firstWinDetected: false,
-    bestResultMessage: undefined as string | undefined,
-    postsPublished: 0,
-  });
+  const [now, setNow] = useState("");
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session }, error } = await supabaseClient.auth.getSession();
-      
-      if (error) {
-        console.error("Error checking session:", error);
-        setError("Error checking authentication status");
-        setLoading(false);
-        return;
-      }
-      
-      if (!session) {
-        // Redirect to login if not authenticated
-        router.push("/login");
-        return;
-      }
-      
-      setUser(session.user);
-      
-      // Check if user is admin and fetch trial/win data for SYN-526
-      const { data: profile } = await supabaseClient
-        .from('profiles')
-        .select('role, first_win_detected, conversion_copy_variant, trial_ends_at, posts_published_count')
-        .eq('id', session.user.id)
-        .single();
+    setNow(new Date().toLocaleString("en-AU", { timeZone: "Australia/Sydney", dateStyle: "medium", timeStyle: "short" }));
+  }, []);
 
-      setIsAdmin(profile?.role === 'admin');
-
-      // SYN-527: Brand IQ unlock state
-      setFirstWinDetected(!!profile?.first_win_detected);
-
-      // SYN-526: Determine if trial has ended and set up TrialEndModal
-      if (profile?.trial_ends_at) {
-        const trialEndsAt = new Date(profile.trial_ends_at);
-        const now = new Date();
-        const msLeft = trialEndsAt.getTime() - now.getTime();
-        const daysLeft = Math.max(0, Math.ceil(msLeft / (1000 * 60 * 60 * 24)));
-
-        if (daysLeft <= 0) {
-          // Fetch the best result message from the latest first-win notification if win detected
-          let bestResultMessage: string | undefined;
-          if (profile.first_win_detected) {
-            const { data: winNotif } = await supabaseClient
-              .from('client_notifications')
-              .select('payload')
-              .eq('client_id', session.user.id)
-              .eq('type', 'first_win')
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .single();
-
-            bestResultMessage = winNotif?.payload?.message as string | undefined;
-          }
-
-          setTrialEndData({
-            daysLeft: 0,
-            copyVariant: (profile.conversion_copy_variant ?? 'control') as 'win' | 'control',
-            firstWinDetected: !!profile.first_win_detected,
-            bestResultMessage,
-            postsPublished: profile.posts_published_count ?? 0,
-          });
-          setShowTrialEndModal(true);
-        }
-      }
-      
-      // Fetch consultations, projects, and YouTube videos
-      fetchConsultations();
-      fetchProjects();
-      fetch('/api/dashboard/videos')
-        .then((r) => r.ok ? r.json() : { videos: [] })
-        .then((data) => setYoutubeVideos(data.videos ?? []))
-        .catch(() => {});
-    };
-    
-    checkUser();
-  }, [router]);
-  
-  const fetchConsultations = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch("/api/consultations");
-      
-      if (!response.ok) {
-        throw new Error("Failed to fetch consultations");
-      }
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        setConsultations(data.data);
-      } else {
-        throw new Error(data.error || "Unknown error fetching consultations");
-      }
-    } catch (error) {
-      console.error("Error fetching consultations:", error);
-      setError(error instanceof Error ? error.message : "Failed to load your consultations");
-    } finally {
+  useEffect(() => {
+    supabaseClient.auth.getSession().then(({ data: { session } }) => {
+      if (!session) { router.push("/login"); return; }
+      setUser({ email: session.user.email ?? "" });
       setLoading(false);
-    }
-  };
-  
-  const fetchProjects = async () => {
-    try {
-      setProjectsLoading(true);
-      const response = await fetch("/api/projects");
-      
-      if (!response.ok) {
-        throw new Error("Failed to fetch projects");
-      }
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        setProjects(data.data);
-      } else {
-        throw new Error(data.error || "Unknown error fetching projects");
-      }
-    } catch (error) {
-      console.error("Error fetching projects:", error);
-      setProjectsError(error instanceof Error ? error.message : "Failed to load your projects");
-    } finally {
-      setProjectsLoading(false);
-    }
-  };
-  
-  const getStatusBadge = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "pending":
-        return <Badge className="bg-yellow-600/20 text-yellow-400 border-yellow-800">Pending</Badge>;
-      case "scheduled":
-        return <Badge className="bg-green-600/20 text-green-400 border-green-800">Scheduled</Badge>;
-      case "completed":
-        return <Badge className="bg-blue-600/20 text-blue-400 border-blue-800">Completed</Badge>;
-      case "cancelled":
-        return <Badge className="bg-red-600/20 text-red-400 border-red-800">Cancelled</Badge>;
-      default:
-        return <Badge className="bg-slate-600/20 text-slate-400 border-slate-800">{status}</Badge>;
-    }
-  };
-  
-  const getPaymentStatusBadge = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "paid":
-        return <Badge className="bg-green-600/20 text-green-400 border-green-800">Paid</Badge>;
-      case "unpaid":
-        return <Badge className="bg-yellow-600/20 text-yellow-400 border-yellow-800">Unpaid</Badge>;
-      case "refunded":
-        return <Badge className="bg-purple-600/20 text-purple-400 border-purple-800">Refunded</Badge>;
-      default:
-        return <Badge className="bg-slate-600/20 text-slate-400 border-slate-800">{status}</Badge>;
-    }
-  };
-  
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    } catch (error) {
-      return dateString;
-    }
-  };
+    });
+  }, [router]);
+
+  const totalARR = BUSINESSES.reduce((s, b) => s + b.arr, 0);
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#0a0f1e", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <RefreshCw size={18} color="#334155" className="spin" />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* SYN-526: Trial-end conversion modal */}
-      <TrialEndModal
-        open={showTrialEndModal}
-        onClose={() => setShowTrialEndModal(false)}
-        onConvert={() => {
-          setShowTrialEndModal(false);
-          router.push('/pricing');
-        }}
-        trialData={trialEndData}
-      />
+    <div style={{ minHeight: "100vh", background: "#0a0f1e", color: "#f8fafc" }}>
 
-      {/* Navigation */}
-      <nav className="bg-slate-900/80 backdrop-blur-md border-b border-slate-700 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 flex justify-between items-center h-16">
-          <Link href="/" className="text-2xl font-bold text-white">
-            <span className="text-teal-400">UG</span> UNITE Group
-          </Link>
-          <div className="hidden md:flex items-center gap-8">
-            <Link href="/features" className="text-slate-300 hover:text-white transition-colors">Services</Link>
-            <Link href="/pricing" className="text-slate-300 hover:text-white transition-colors">Pricing</Link>
-            <Link href="/contact" className="text-slate-300 hover:text-white transition-colors">Contact</Link>
-            <Link href="/about" className="text-slate-300 hover:text-white transition-colors">About</Link>
+      {/* Header */}
+      <header style={{
+        background: "rgba(10,15,30,0.9)",
+        backdropFilter: "blur(20px) saturate(180%)",
+        WebkitBackdropFilter: "blur(20px) saturate(180%)",
+        borderBottom: "1px solid #1e293b",
+        height: 60,
+        padding: "0 24px",
+        position: "sticky",
+        top: 0,
+        zIndex: 40,
+        display: "flex",
+        alignItems: "center",
+      }}>
+        <div style={{ maxWidth: 1440, margin: "0 auto", width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 28, height: 28, borderRadius: 7, background: "#1d4ed8", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Zap size={14} color="white" strokeWidth={2.5} />
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#f8fafc", letterSpacing: "-0.02em" }}>Unite Group</div>
+              <div style={{ fontSize: 9, color: "#334155", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Dashboard</div>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            {user ? (
-              <>
-                <span className="text-slate-300">
-                  {user.email}
-                </span>
-                <Button 
-                  variant="ghost" 
-                  className="text-slate-300 hover:text-white hover:bg-slate-700"
-                  onClick={async () => {
-                    await supabaseClient.auth.signOut();
-                    router.push("/login");
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            {user && <span style={{ fontSize: 11, color: "#334155", fontFamily: "var(--font-mono)" }}>{user.email}</span>}
+            {now && <span style={{ fontSize: 11, color: "#334155", fontFamily: "var(--font-mono)" }}>Updated {now} AEST</span>}
+            <Link href="/dashboard/ceo" style={{ fontSize: 12, fontWeight: 500, color: "#1d4ed8", textDecoration: "none" }}>Command Center →</Link>
+          </div>
+        </div>
+      </header>
+
+      <main style={{ maxWidth: 1440, margin: "0 auto", padding: "24px", display: "flex", flexDirection: "column", gap: 32 }}>
+
+        {/* Stats strip */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+          style={{ display: "flex", background: "#0f172a", border: "1px solid #1e293b", borderRadius: 10, overflow: "hidden" }}
+        >
+          {[
+            { label: "Total Businesses", value: "6",                     suffix: "",     color: "#f8fafc" },
+            { label: "Total ARR",        value: `$${(totalARR/1000).toFixed(1)}K`, suffix: "/yr", color: "#16a34a" },
+            { label: "Active Agents",    value: "4",                     suffix: " live", color: "#94a3b8" },
+          ].map((stat, i, arr) => (
+            <div key={stat.label} style={{ flex: 1, padding: "16px 20px", textAlign: "center", borderRight: i < arr.length - 1 ? "1px solid #1e293b" : "none" }}>
+              <div style={{ ...sectionLabel, marginBottom: 5 }}>{stat.label}</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em", color: stat.color, lineHeight: 1 }}>
+                {stat.value}<span style={{ fontSize: 12, fontWeight: 400, color: "#334155" }}>{stat.suffix}</span>
+              </div>
+            </div>
+          ))}
+        </motion.div>
+
+        {/* 2-column layout */}
+        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16 }}>
+
+          {/* Left: Business roster table */}
+          <motion.div
+            style={card}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.05, ease: [0.23, 1, 0.32, 1] }}
+          >
+            <p style={sectionLabel}>Portfolio Status</p>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid #1e293b" }}>
+                  {["Business", "Status", "ARR", "SEO Audit"].map(h => (
+                    <th key={h} style={{ padding: "6px 8px", textAlign: "left", fontSize: 10, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "#334155" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {BUSINESSES.map((biz, i) => {
+                  const dotColor = STATUS_COLOR[biz.status];
+                  return (
+                    <motion.tr
+                      key={biz.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.2, delay: 0.1 + i * 0.04 }}
+                      style={{ borderBottom: "1px solid #1e293b" }}
+                    >
+                      <td style={{ padding: "12px 8px" }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "#f8fafc", letterSpacing: "-0.01em" }}>{biz.name}</div>
+                        <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>{biz.desc}</div>
+                      </td>
+                      <td style={{ padding: "12px 8px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span className="status-dot" style={{ width: 6, height: 6, background: dotColor, color: dotColor }} />
+                          <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", color: dotColor }}>{biz.status}</span>
+                        </div>
+                      </td>
+                      <td style={{ padding: "12px 8px" }}>
+                        {biz.arr > 0 ? (
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600, color: "#16a34a" }}>${biz.arr.toLocaleString()}</span>
+                        ) : (
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "#334155" }}>pre-revenue</span>
+                        )}
+                      </td>
+                      <td style={{ padding: "12px 8px" }}>
+                        <Link
+                          href={`/businesses/${biz.seoSlug}/seo`}
+                          style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "#1d4ed8", textDecoration: "none", fontWeight: 500 }}
+                          onMouseEnter={e => (e.currentTarget.style.color = "#3b82f6")}
+                          onMouseLeave={e => (e.currentTarget.style.color = "#1d4ed8")}
+                        >
+                          View audit <ArrowUpRight size={10} />
+                        </Link>
+                      </td>
+                    </motion.tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </motion.div>
+
+          {/* Right: Quick links */}
+          <motion.div
+            style={card}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.1, ease: [0.23, 1, 0.32, 1] }}
+          >
+            <p style={sectionLabel}>Quick Links</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {QUICK_LINKS.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "9px 12px",
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: link.primary ? 600 : 400,
+                    color: link.primary ? "#fff" : "#94a3b8",
+                    background: link.primary ? "#1d4ed8" : "transparent",
+                    border: `1px solid ${link.primary ? "#1d4ed8" : "#1e293b"}`,
+                    textDecoration: "none",
+                    transition: "all 0.12s ease",
                   }}
+                  onMouseEnter={e => {
+                    if (link.primary) { (e.currentTarget as HTMLAnchorElement).style.background = "#3b82f6"; }
+                    else { (e.currentTarget as HTMLAnchorElement).style.background = "#111827"; (e.currentTarget as HTMLAnchorElement).style.color = "#f8fafc"; }
+                  }}
+                  onMouseLeave={e => {
+                    if (link.primary) { (e.currentTarget as HTMLAnchorElement).style.background = "#1d4ed8"; }
+                    else { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; (e.currentTarget as HTMLAnchorElement).style.color = "#94a3b8"; }
+                  }}
+                  onMouseDown={e => { (e.currentTarget as HTMLAnchorElement).style.transform = "scale(0.97)"; }}
+                  onMouseUp={e => { (e.currentTarget as HTMLAnchorElement).style.transform = "scale(1)"; }}
                 >
-                  Logout
-                </Button>
-              </>
-            ) : (
-              <Link href="/login" className="text-slate-300 hover:text-white px-4 py-2 rounded-md transition-colors">
-                Login
-              </Link>
-            )}
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-white">My Dashboard</h1>
-          <div className="flex items-center gap-4">
-            {isAdmin && (
-              <Button asChild variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white">
-                <Link href="/dashboard/analytics">
-                  <BarChart className="h-4 w-4 mr-2" />
-                  Analytics
+                  {link.icon}
+                  {link.label}
                 </Link>
-              </Button>
-            )}
-            <Button asChild className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white">
-              <Link href="/book-consultation">Book New Consultation</Link>
-            </Button>
-          </div>
+              ))}
+            </div>
+          </motion.div>
         </div>
-        
-        <Tabs defaultValue="consultations" className="w-full">
-          <TabsList className="bg-slate-800 border-slate-700 mb-8">
-            <TabsTrigger value="consultations" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
-              My Consultations
-            </TabsTrigger>
-            <TabsTrigger value="projects" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
-              Projects
-            </TabsTrigger>
-            <TabsTrigger value="profile" className="data-[state=active]:bg-slate-700 data-[state=active]:text-white">
-              Profile
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="consultations">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-xl text-white">My Consultation Bookings</CardTitle>
-                <CardDescription className="text-slate-400">
-                  View and manage your consultation bookings with UNITE Group.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="flex justify-center items-center py-12">
-                    <Loader2 className="h-8 w-8 text-teal-400 animate-spin" />
-                    <span className="ml-3 text-slate-300">Loading your consultations...</span>
-                  </div>
-                ) : error ? (
-                  <div className="bg-red-900/20 text-red-400 border border-red-800 rounded-md p-4">
-                    <p className="font-medium">Error loading consultations</p>
-                    <p className="text-sm">{error}</p>
-                  </div>
-                ) : consultations.length === 0 ? (
-                  <div className="text-center py-12">
-                    <p className="text-slate-300 mb-6">You haven't booked any consultations yet.</p>
-                    <Button asChild className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white">
-                      <Link href="/book-consultation">Book Your First Consultation</Link>
-                    </Button>
-                  </div>
-                ) : (
-                  <Table>
-                    <TableCaption>A list of your recent consultations.</TableCaption>
-                    <TableHeader>
-                      <TableRow className="border-slate-700 hover:bg-slate-750">
-                        <TableHead className="text-slate-300">Service</TableHead>
-                        <TableHead className="text-slate-300">Date & Time</TableHead>
-                        <TableHead className="text-slate-300">Status</TableHead>
-                        <TableHead className="text-slate-300">Payment</TableHead>
-                        <TableHead className="text-slate-300">Created</TableHead>
-                        <TableHead className="text-right text-slate-300">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {consultations.map((consultation) => (
-                        <TableRow key={consultation.id} className="border-slate-700 hover:bg-slate-700/50">
-                          <TableCell className="font-medium text-white">
-                            {consultation.service_type}
-                          </TableCell>
-                          <TableCell className="text-slate-300">
-                            <div className="flex items-center">
-                              <Calendar className="h-4 w-4 mr-2 text-teal-400" />
-                              {formatDate(consultation.preferred_date)}
-                            </div>
-                            <div className="flex items-center mt-1 text-sm">
-                              <Clock className="h-3 w-3 mr-2 text-teal-400" />
-                              {consultation.preferred_time}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {getStatusBadge(consultation.status)}
-                          </TableCell>
-                          <TableCell>
-                            {getPaymentStatusBadge(consultation.payment_status)}
-                          </TableCell>
-                          <TableCell className="text-slate-400 text-sm">
-                            {new Date(consultation.created_at).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
-                            >
-                              View Details
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="projects">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader className="flex flex-row justify-between items-start">
-                <div>
-                  <CardTitle className="text-xl text-white">Projects</CardTitle>
-                  <CardDescription className="text-slate-400">
-                    View and manage your projects with UNITE Group.
-                  </CardDescription>
-                </div>
-                <Button className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white">
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  New Project
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {projectsLoading ? (
-                  <div className="flex justify-center items-center py-12">
-                    <Loader2 className="h-8 w-8 text-teal-400 animate-spin" />
-                    <span className="ml-3 text-slate-300">Loading your projects...</span>
-                  </div>
-                ) : projectsError ? (
-                  <div className="bg-red-900/20 text-red-400 border border-red-800 rounded-md p-4">
-                    <p className="font-medium">Error loading projects</p>
-                    <p className="text-sm">{projectsError}</p>
-                  </div>
-                ) : projects.length === 0 ? (
-                  <div className="text-center py-12">
-                    <p className="text-slate-300 mb-6">You don't have any active projects yet.</p>
-                    <p className="text-slate-400 mb-6">Projects are created after your consultation is complete and a work plan is established.</p>
-                  </div>
-                ) : (
-                  <Table>
-                    <TableCaption>A list of your active projects.</TableCaption>
-                    <TableHeader>
-                      <TableRow className="border-slate-700 hover:bg-slate-750">
-                        <TableHead className="text-slate-300">Project</TableHead>
-                        <TableHead className="text-slate-300">Status</TableHead>
-                        <TableHead className="text-slate-300">Timeline</TableHead>
-                        <TableHead className="text-slate-300">Priority</TableHead>
-                        <TableHead className="text-slate-300">Last Update</TableHead>
-                        <TableHead className="text-right text-slate-300">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {projects.map((project) => (
-                        <TableRow key={project.id} className="border-slate-700 hover:bg-slate-700/50">
-                          <TableCell className="font-medium text-white">
-                            {project.title}
-                            {project.description && (
-                              <p className="text-xs text-slate-400 mt-1 truncate max-w-[250px]">
-                                {project.description}
-                              </p>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {(() => {
-                              switch (project.status.toLowerCase()) {
-                                case 'planning':
-                                  return <Badge className="bg-blue-900/20 text-blue-400 border-blue-800">Planning</Badge>;
-                                case 'in-progress':
-                                  return <Badge className="bg-green-900/20 text-green-400 border-green-800">In Progress</Badge>;
-                                case 'review':
-                                  return <Badge className="bg-purple-900/20 text-purple-400 border-purple-800">Review</Badge>;
-                                case 'completed':
-                                  return <Badge className="bg-teal-900/20 text-teal-400 border-teal-800">Completed</Badge>;
-                                case 'on-hold':
-                                  return <Badge className="bg-yellow-900/20 text-yellow-400 border-yellow-800">On Hold</Badge>;
-                                case 'cancelled':
-                                  return <Badge className="bg-red-900/20 text-red-400 border-red-800">Cancelled</Badge>;
-                                default:
-                                  return <Badge className="bg-slate-900/20 text-slate-400 border-slate-800">{project.status}</Badge>;
-                              }
-                            })()}
-                          </TableCell>
-                          <TableCell className="text-slate-300">
-                            {project.start_date && (
-                              <div className="flex items-center text-xs">
-                                <Calendar className="h-3 w-3 mr-1 text-teal-400" />
-                                <span>Start: {new Date(project.start_date).toLocaleDateString()}</span>
-                              </div>
-                            )}
-                            {project.target_completion_date && (
-                              <div className="flex items-center text-xs mt-1">
-                                <Calendar className="h-3 w-3 mr-1 text-teal-400" />
-                                <span>Target: {new Date(project.target_completion_date).toLocaleDateString()}</span>
-                              </div>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {(() => {
-                              switch (project.priority.toLowerCase()) {
-                                case 'low':
-                                  return <Badge className="bg-slate-700/20 text-slate-400 border-slate-600">Low</Badge>;
-                                case 'medium':
-                                  return <Badge className="bg-blue-900/20 text-blue-400 border-blue-800">Medium</Badge>;
-                                case 'high':
-                                  return <Badge className="bg-orange-900/20 text-orange-400 border-orange-800">High</Badge>;
-                                case 'urgent':
-                                  return <Badge className="bg-red-900/20 text-red-400 border-red-800">Urgent</Badge>;
-                                default:
-                                  return <Badge className="bg-slate-700/20 text-slate-400 border-slate-600">{project.priority}</Badge>;
-                              }
-                            })()}
-                          </TableCell>
-                          <TableCell className="text-slate-400 text-sm">
-                            {new Date(project.updated_at).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
-                            >
-                              View Details
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="profile">
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-xl text-white">My Profile</CardTitle>
-                <CardDescription className="text-slate-400">
-                  View and update your profile information.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {loading ? (
-                  <div className="flex justify-center items-center py-12">
-                    <Loader2 className="h-8 w-8 text-teal-400 animate-spin" />
-                    <span className="ml-3 text-slate-300">Loading your profile...</span>
-                  </div>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="bg-slate-750 p-4 rounded-md border border-slate-700">
-                        <div className="flex items-center mb-3">
-                          <User className="h-5 w-5 mr-2 text-teal-400" />
-                          <h3 className="text-lg font-medium text-white">Account Information</h3>
-                        </div>
-                        <div className="space-y-2 text-slate-300">
-                          <p>
-                            <span className="text-slate-400 text-sm">Email:</span><br />
-                            {user?.email}
-                          </p>
-                          <p>
-                            <span className="text-slate-400 text-sm">Account Created:</span><br />
-                            {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
-                          </p>
-                          <p>
-                            <span className="text-slate-400 text-sm">Last Sign In:</span><br />
-                            {user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString() : 'N/A'}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="bg-slate-750 p-4 rounded-md border border-slate-700">
-                        <div className="flex items-center mb-3">
-                          <Briefcase className="h-5 w-5 mr-2 text-teal-400" />
-                          <h3 className="text-lg font-medium text-white">Consultation Summary</h3>
-                        </div>
-                        <div className="space-y-2 text-slate-300">
-                          <p>
-                            <span className="text-slate-400 text-sm">Total Consultations:</span><br />
-                            {consultations.length}
-                          </p>
-                          <p>
-                            <span className="text-slate-400 text-sm">Upcoming Consultations:</span><br />
-                            {consultations.filter(c => c.status.toLowerCase() === 'scheduled').length}
-                          </p>
-                          <p>
-                            <span className="text-slate-400 text-sm">Completed Consultations:</span><br />
-                            {consultations.filter(c => c.status.toLowerCase() === 'completed').length}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-col md:flex-row gap-4 mt-8">
-                      <Button 
-                        className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white"
-                      >
-                        Edit Profile
-                      </Button>
-                      <Button 
-                        variant="outline"
-                        className="border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
-                      >
-                        Change Password
-                      </Button>
-                      <Button 
-                        variant="outline"
-                        className="border-red-800 text-red-400 hover:bg-red-900/30 hover:text-red-300"
-                      >
-                        Delete Account
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
 
-        {/* SYN-509: YouTube content embed widget + SYN-527: Brand IQ card + Pi-CEO status */}
-        <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <YouTubeEmbedWidget videos={youtubeVideos} />
+        {/* Recent Activity */}
+        <motion.section
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.15, ease: [0.23, 1, 0.32, 1] }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <p style={{ ...sectionLabel, marginBottom: 0 }}>Recent Activity</p>
+            <Link href="/dashboard/ceo" style={{ fontSize: 11, color: "#1d4ed8", textDecoration: "none" }}>Full command center →</Link>
           </div>
-          <div className="flex flex-col gap-4">
-            {user && (
-              <BrandIQCard
-                clientId={user.id}
-                isUnlocked={firstWinDetected}
-              />
-            )}
-            <PiCeoStatusCard />
+          <div style={{ ...card, display: "flex", flexDirection: "column", gap: 0 }}>
+            <div style={{ borderLeft: "1px solid #1e293b", marginLeft: 8, paddingLeft: 16 }}>
+              {FALLBACK_ACTIVITIES.map((a, i) => (
+                <div key={i} style={{ position: "relative", paddingBottom: i < FALLBACK_ACTIVITIES.length - 1 ? 16 : 0 }}>
+                  <span style={{ position: "absolute", left: -20, top: 4, width: 5, height: 5, borderRadius: "50%", background: "#1e293b", border: "1px solid #334155", display: "inline-block" }} />
+                  <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+                    <p style={{ fontSize: 13, color: "#94a3b8", margin: 0 }}>{a.action}</p>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#334155", flexShrink: 0, marginLeft: 16 }}>{a.timeAgo}</span>
+                  </div>
+                  <p style={{ fontSize: 11, color: "#334155", margin: 0, marginTop: 1 }}>{a.agent}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </div>
+        </motion.section>
+
+      </main>
     </div>
   );
 }
