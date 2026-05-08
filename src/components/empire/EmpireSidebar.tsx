@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   Zap, LayoutDashboard, Building2, Users, FileText,
   ChevronRight, Activity, BarChart3, TrendingUp,
+  BookOpen, Rss, FileBarChart,
 } from 'lucide-react';
 
 const BUSINESS_SLUGS: Record<string, { slug: string; domain: string }> = {
@@ -26,6 +27,14 @@ const NAV = [
   { href: '/dashboard/board',   icon: Activity,        label: 'Board Room'     },
   { href: '/dashboard/content', icon: FileText,        label: 'Content'        },
   { href: '/dashboard/brief',   icon: BarChart3,       label: '6-Pager'        },
+];
+
+const INTELLIGENCE_NAV = [
+  { href: '/wiki',             icon: BookOpen,     label: 'Knowledge Base'   },
+  { href: '/sources',          icon: Rss,          label: 'Sources Pipeline' },
+  { href: '/pi-ceo/activity',  icon: Activity,     label: 'Activity Log'     },
+  { href: '/pi-ceo/health',    icon: BarChart3,    label: 'Health History'   },
+  { href: '/pi-ceo/reports',   icon: FileBarChart, label: 'SEO Reports'      },
 ];
 
 const BUSINESSES = [
@@ -73,6 +82,33 @@ export function EmpireSidebar() {
       {/* Nav */}
       <nav style={{ flex: 1, padding: '12px 10px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
         {NAV.map(({ href, icon: Icon, label }) => {
+          const active = pathname === href || pathname.startsWith(href + '/');
+          return (
+            <Link
+              key={href}
+              href={href}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
+                borderRadius: 8, textDecoration: 'none',
+                background: active ? 'rgba(29,78,216,0.12)' : 'transparent',
+                borderLeft: active ? '2px solid #3b82f6' : '2px solid transparent',
+                transition: 'all 0.12s ease',
+              }}
+              onMouseEnter={e => { if (!active) (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.03)'; }}
+              onMouseLeave={e => { if (!active) (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; }}
+            >
+              <Icon size={15} color={active ? '#60a5fa' : '#a1a1aa'} strokeWidth={2} />
+              <span style={{ fontSize: 13, fontWeight: active ? 500 : 400, color: active ? '#fafafa' : '#a1a1aa', flex: 1 }}>{label}</span>
+              {active && <ChevronRight size={12} color="#3b82f6" />}
+            </Link>
+          );
+        })}
+
+        {/* Intelligence section */}
+        <div style={{ marginTop: 16, marginBottom: 6, padding: '0 10px' }}>
+          <span style={{ fontSize: 10, fontWeight: 600, color: '#3f3f46', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Intelligence</span>
+        </div>
+        {INTELLIGENCE_NAV.map(({ href, icon: Icon, label }) => {
           const active = pathname === href || pathname.startsWith(href + '/');
           return (
             <Link
