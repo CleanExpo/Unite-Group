@@ -1,130 +1,107 @@
 "use client";
-
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { supabaseClient } from "@/lib/supabase/client";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, KeyRound, AlertCircle, ArrowLeft } from "lucide-react";
+import { Loader2, Mail, ArrowLeft, CheckCircle2 } from "lucide-react";
 
 export default function ResetPassword() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const router = useRouter();
 
-  const handleResetPassword = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-
     try {
       const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/update-password`,
+        redirectTo: `${window.location.origin}/en/update-password`,
       });
-
       if (error) throw error;
-
       setSuccess(true);
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "An error occurred during password reset request");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
-      <Link href="/" className="flex items-center gap-2 mb-8">
-        <div className="w-10 h-10 bg-gradient-to-r from-teal-400 to-cyan-400 rounded-lg flex items-center justify-center">
-          <span className="text-slate-900 font-bold text-lg">UG</span>
-        </div>
-        <h1 className="text-2xl font-bold text-white">UNITE Group</h1>
-      </Link>
-      
-      <Card className="w-full max-w-md bg-slate-800 border-slate-700 shadow-xl">
-        <CardHeader>
-          <CardTitle className="text-white text-xl">Reset your password</CardTitle>
-          <CardDescription className="text-slate-400">
-            Enter your email and we'll send you a password reset link
-          </CardDescription>
-        </CardHeader>
-        
-        <CardContent>
-          {error && (
-            <Alert className="mb-4 bg-red-900/20 text-red-400 border-red-800">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          
-          {success ? (
-            <div className="space-y-4">
-              <Alert className="mb-4 bg-green-900/20 text-green-400 border-green-800">
-                <AlertDescription>
-                  Password reset link has been sent to your email address.
-                  Please check your inbox and follow the instructions.
-                </AlertDescription>
-              </Alert>
-              
-              <Button 
-                onClick={() => router.push('/login')}
-                className="w-full bg-slate-700 hover:bg-slate-600 text-white"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to login
-              </Button>
+    <div className="min-h-screen flex items-center justify-center p-6" style={{ background: "#080E1A" }}>
+      <div className="w-full max-w-[400px]">
+
+        {/* Logo */}
+        <div className="flex items-center gap-3 mb-8">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white text-sm"
+               style={{ background: "linear-gradient(135deg, #1D4ED8, #3B82F6)" }}>
+            U
+          </div>
+          <div>
+            <div className="text-white font-bold text-base leading-tight">Unite Group</div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "#FBBF24" }} />
+              <span className="text-xs font-medium" style={{ color: "#FBBF24" }}>Empire</span>
             </div>
-          ) : (
-            <form onSubmit={handleResetPassword} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-200">Email address</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  placeholder="name@example.com"
-                  className="bg-slate-700 border-slate-600 text-white"
+          </div>
+        </div>
+
+        {!success ? (
+          <>
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-white mb-1">Reset your password</h2>
+              <p className="text-sm" style={{ color: "#64748B" }}>
+                Enter your email and we&apos;ll send you a reset link.
+              </p>
+            </div>
+
+            {error && (
+              <div className="mb-5 rounded-xl p-4 border" style={{ background: "rgba(220,38,38,0.08)", borderColor: "rgba(220,38,38,0.25)" }}>
+                <p className="text-sm" style={{ color: "#F87171" }}>{error}</p>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <label htmlFor="email" className="block text-sm font-medium" style={{ color: "#CBD5E1" }}>
+                  Email address
+                </label>
+                <input
+                  id="email" type="email" required
+                  value={email} onChange={e => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-[#334155] border focus:outline-none transition-all"
+                  style={{ background: "#0F172A", borderColor: "#1E293B" }}
+                  onFocus={e => { e.target.style.borderColor = "#1D4ED8"; }}
+                  onBlur={e => { e.target.style.borderColor = "#1E293B"; }}
                 />
               </div>
-              
-              <Button 
-                type="submit" 
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending reset link...
-                  </>
-                ) : (
-                  <>
-                    <KeyRound className="mr-2 h-4 w-4" />
-                    Send reset link
-                  </>
-                )}
-              </Button>
+
+              <button
+                type="submit" disabled={loading}
+                className="w-full rounded-xl py-3 text-sm font-semibold text-white flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                style={{ background: "linear-gradient(135deg, #1D4ED8 0%, #2563EB 100%)" }}>
+                {loading ? <><Loader2 className="h-4 w-4 animate-spin" />Sending...</> : <><Mail className="h-4 w-4" />Send reset link</>}
+              </button>
             </form>
-          )}
-        </CardContent>
-        
-        <CardFooter className="flex justify-center border-t border-slate-700 pt-4">
-          <p className="text-sm text-slate-400">
-            Remember your password?{" "}
-            <Link href="/login" className="text-teal-400 hover:text-teal-300 font-medium">
-              Back to login
-            </Link>
-          </p>
-        </CardFooter>
-      </Card>
+          </>
+        ) : (
+          <div className="text-center space-y-4">
+            <CheckCircle2 className="h-12 w-12 mx-auto" style={{ color: "#16A34A" }} />
+            <h2 className="text-xl font-bold text-white">Check your email</h2>
+            <p className="text-sm" style={{ color: "#64748B" }}>
+              A password reset link has been sent to <span className="text-white font-medium">{email}</span>
+            </p>
+          </div>
+        )}
+
+        <div className="mt-8 text-center">
+          <Link href="/login" className="inline-flex items-center gap-2 text-sm transition-colors" style={{ color: "#3B82F6" }}>
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Back to sign in
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
