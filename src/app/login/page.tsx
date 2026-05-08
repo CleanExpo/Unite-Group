@@ -1,14 +1,9 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseClient } from "@/lib/supabase/client";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, LogIn, AlertCircle } from "lucide-react";
 
 export default function Login() {
@@ -31,7 +26,7 @@ export default function Login() {
 
       if (error) throw error;
 
-      router.push("/dashboard");
+      router.push("/en/dashboard");
     } catch (error) {
       setError(error instanceof Error ? error.message : "An error occurred during login");
     } finally {
@@ -40,90 +35,105 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
-      <Link href="/" className="flex items-center gap-2 mb-8">
-        <div className="w-10 h-10 bg-gradient-to-r from-teal-400 to-cyan-400 rounded-lg flex items-center justify-center">
-          <span className="text-slate-900 font-bold text-lg">UG</span>
+    <div className="min-h-screen bg-[#0F172A] flex flex-col items-center justify-center p-4">
+      {/* Logo */}
+      <Link href="/" className="flex items-center gap-3 mb-8">
+        <div className="w-10 h-10 bg-[#1D4ED8] rounded-xl flex items-center justify-center">
+          <span className="text-white font-bold text-lg">U</span>
         </div>
-        <h1 className="text-2xl font-bold text-white">UNITE Group</h1>
+        <div>
+          <div className="text-white font-bold text-xl leading-tight">Unite Group</div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#FBBF24] animate-pulse inline-block" />
+            <span className="text-[#FBBF24] text-xs font-medium">Empire</span>
+          </div>
+        </div>
       </Link>
-      
-      <Card className="w-full max-w-md bg-slate-800 border-slate-700 shadow-xl">
-        <CardHeader>
-          <CardTitle className="text-white text-xl">Sign in to your account</CardTitle>
-          <CardDescription className="text-slate-400">
-            Enter your credentials to access your dashboard
-          </CardDescription>
-        </CardHeader>
-        
-        <CardContent>
+
+      {/* Card */}
+      <div className="w-full max-w-md bg-[#1E293B] border border-[#334155] rounded-2xl shadow-2xl overflow-hidden">
+        <div className="px-8 pt-8 pb-2">
+          <h1 className="text-[#F8FAFC] text-2xl font-bold mb-1">Sign in to the Empire</h1>
+          <p className="text-[#94A3B8] text-sm">
+            Connected service for the field.
+          </p>
+        </div>
+
+        <div className="px-8 py-6">
           {error && (
-            <Alert className="mb-4 bg-red-900/20 text-red-400 border-red-800">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
+            <div className="mb-5 flex items-start gap-3 bg-[#DC2626]/10 border border-[#DC2626]/30 rounded-lg p-3">
+              <AlertCircle className="h-4 w-4 text-[#DC2626] mt-0.5 shrink-0" />
+              <p className="text-[#DC2626] text-sm">{error}</p>
+            </div>
           )}
-          
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-slate-200">Email</Label>
-              <Input
+
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div className="space-y-1.5">
+              <label htmlFor="email" className="block text-sm font-medium text-[#F8FAFC]">
+                Email
+              </label>
+              <input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="name@example.com"
-                className="bg-slate-700 border-slate-600 text-white"
+                className="w-full bg-[#0F172A] border border-[#334155] text-[#F8FAFC] placeholder-[#475569] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8] focus:border-transparent transition-colors"
               />
             </div>
-            
-            <div className="space-y-2">
+
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-slate-200">Password</Label>
-                <Link href="/reset-password" className="text-sm text-teal-400 hover:text-teal-300">
+                <label htmlFor="password" className="block text-sm font-medium text-[#F8FAFC]">
+                  Password
+                </label>
+                <Link
+                  href="/reset-password"
+                  className="text-xs text-[#3B82F6] hover:text-[#60A5FA] transition-colors"
+                >
                   Forgot password?
                 </Link>
               </div>
-              <Input
+              <input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="bg-slate-700 border-slate-600 text-white"
+                className="w-full bg-[#0F172A] border border-[#334155] text-[#F8FAFC] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8] focus:border-transparent transition-colors"
               />
             </div>
-            
-            <Button 
-              type="submit" 
+
+            <button
+              type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white"
+              className="w-full bg-[#1D4ED8] text-white rounded-lg px-5 py-2.5 text-sm font-medium hover:bg-[#3B82F6] disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                   Signing in...
                 </>
               ) : (
                 <>
-                  <LogIn className="mr-2 h-4 w-4" />
+                  <LogIn className="h-4 w-4" />
                   Sign in
                 </>
               )}
-            </Button>
+            </button>
           </form>
-        </CardContent>
-        
-        <CardFooter className="flex justify-center border-t border-slate-700 pt-4">
-          <p className="text-sm text-slate-400">
-            Don't have an account?{" "}
-            <Link href="/register" className="text-teal-400 hover:text-teal-300 font-medium">
+        </div>
+
+        <div className="px-8 py-4 border-t border-[#334155] flex justify-center">
+          <p className="text-sm text-[#94A3B8]">
+            Don&apos;t have an account?{" "}
+            <Link href="/register" className="text-[#3B82F6] hover:text-[#60A5FA] font-medium transition-colors">
               Create account
             </Link>
           </p>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

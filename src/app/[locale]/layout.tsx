@@ -1,17 +1,10 @@
 import localFont from 'next/font/local';
 import '../globals.css';
-import { ThemeProvider } from "@/components/theme-provider";
-import PWAInitializer from '@/lib/pwa/PWAInitializer';
 import { notFound } from 'next/navigation';
-import dynamic from 'next/dynamic';
 import { defaultMetadata, viewport } from '@/lib/metadata';
 import type { Metadata } from 'next';
-
-// Import client components dynamically
-const ClientWrapper = dynamic(() => import('../../components/ClientWrapper'));
-
-// Import the Navigation component dynamically
-const Navigation = dynamic(() => import('../../components/Navigation'));
+import { createClient } from '@/lib/supabase/server';
+import { EmpireSidebar } from '@/components/empire/EmpireSidebar';
 
 const satoshi = localFont({
   src: [
@@ -23,7 +16,6 @@ const satoshi = localFont({
   display: 'swap',
 });
 
-// Export metadata and viewport for this layout to fix Next.js 14 warnings
 export const metadata: Metadata = defaultMetadata;
 export { viewport };
 
@@ -35,6 +27,16 @@ export async function generateStaticParams() {
   ];
 }
 
+async function getSession() {
+  try {
+    const supabase = await createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    return session;
+  } catch {
+    return null;
+  }
+}
+
 export default async function LocaleLayout({
   children,
   params,
@@ -43,28 +45,30 @@ export default async function LocaleLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  // Validate that the locale is supported
   const supportedLocales = ['en', 'es', 'fr'];
   if (!supportedLocales.includes(locale)) {
     notFound();
   }
 
-  // Set the HTML lang attribute for accessibility
+  const session = await getSession();
+
+  if (session) {
+    // Authenticated: full empire layout with sidebar
+    return (
+      <html lang={locale} suppressHydrationWarning className="dark">
+        <body className={`${satoshi.variable} bg-[#0F172A] text-[#F8FAFC] font-sans min-h-screen flex`}>
+          <EmpireSidebar />
+          <main className="flex-1 min-h-screen overflow-auto">{children}</main>
+        </body>
+      </html>
+    );
+  }
+
+  // Unauthenticated: minimal centered layout, no nav
   return (
-    <html lang={locale} suppressHydrationWarning>
-      <body className={`${satoshi.variable} font-sans`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          
-          disableTransitionOnChange
-        >
-          <ClientWrapper>
-            <Navigation />
-            <main>{children}</main>
-          </ClientWrapper>
-        </ThemeProvider>
-        <PWAInitializer />
+    <html lang={locale} suppressHydrationWarning className="dark">
+      <body className={`${satoshi.variable} bg-[#0F172A] text-[#F8FAFC] font-sans min-h-screen flex items-center justify-center`}>
+        {children}
       </body>
     </html>
   );
