@@ -1,26 +1,51 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseClient } from "@/lib/supabase/client";
-import { Loader2, Eye, EyeOff, ArrowRight } from "lucide-react";
 
-const PORTFOLIO = [
-  { name: "Synthex",       color: "#6366f1", status: "operational", arr: null      },
-  { name: "RestoreAssist", color: "#0e7c7b", status: "building",    arr: null      },
-  { name: "CCW-CRM",       color: "#dc2626", status: "operational", arr: "$33K"    },
-  { name: "DR Platform",   color: "#2563eb", status: "operational", arr: null      },
-  { name: "NRPG",          color: "#16a34a", status: "building",    arr: null      },
-  { name: "CARSI",         color: "#d97706", status: "operational", arr: null      },
+// Live clock for telemetry panel
+function Clock() {
+  const [time, setTime] = useState("");
+  useEffect(() => {
+    const tick = () => setTime(new Date().toLocaleTimeString("en-AU", { hour12: false, timeZone: "Australia/Brisbane" }));
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+  return <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "#3f3f46", letterSpacing: "0.1em" }}>{time} AEST</span>;
+}
+
+const BUSINESSES = [
+  { name: "SYNTHEX",       health: 50,  arr: null,    status: "LIVE"  },
+  { name: "RESTOREASSIST", health: 85,  arr: null,    status: "LIVE"  },
+  { name: "CCW-CRM",       health: 78,  arr: 33000,   status: "LIVE"  },
+  { name: "DR PLATFORM",   health: 71,  arr: null,    status: "LIVE"  },
+  { name: "NRPG",          health: 50,  arr: null,    status: "BUILD" },
+  { name: "CARSI",         health: 65,  arr: null,    status: "LIVE"  },
 ];
 
-export default function Login() {
-  const [email, setEmail]         = useState("");
-  const [password, setPassword]   = useState("");
-  const [loading, setLoading]     = useState(false);
-  const [error, setError]         = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
+function HealthBar({ value }: { value: number }) {
+  const color = value >= 80 ? "#22c55e" : value >= 60 ? "#f59e0b" : "#ef4444";
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      <div style={{ flex: 1, height: 2, background: "#1a1a1d", position: "relative" }}>
+        <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: `${value}%`, background: color, transition: "width 1s ease" }} />
+      </div>
+      <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color, width: 28, textAlign: "right" }}>{value}</span>
+    </div>
+  );
+}
+
+export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
+
+  useEffect(() => { setMounted(true); }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,264 +62,306 @@ export default function Login() {
     }
   };
 
+  const totalARR = BUSINESSES.reduce((s, b) => s + (b.arr || 0), 0);
+
   return (
-    <div style={{ minHeight: "100vh", display: "flex", fontFamily: "var(--font-inter)" }}>
+    <>
+      <style>{`
+        @keyframes scan {
+          0% { transform: translateY(-100%); }
+          100% { transform: translateY(100vh); }
+        }
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
+        @keyframes pulse-amber {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.4); }
+          50% { box-shadow: 0 0 0 6px rgba(245,158,11,0); }
+        }
+        .scan-line {
+          position: absolute; left: 0; right: 0; height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(245,158,11,0.15), transparent);
+          animation: scan 4s linear infinite;
+          pointer-events: none;
+        }
+        .cursor { animation: blink 1.2s step-end infinite; }
+        .amber-pulse { animation: pulse-amber 2.5s ease-in-out infinite; }
+        @media (max-width: 900px) {
+          .telemetry-panel { display: none !important; }
+          .form-panel { border-left: none !important; }
+        }
+      `}</style>
 
-      {/* ── Left Panel ───────────────────────────────────────────────────── */}
-      <div style={{
-        width: 520,
-        flexShrink: 0,
-        display: "none",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        padding: "48px 52px",
-        background: "#09090b",
-        borderRight: "1px solid #27272a",
-        position: "relative",
-        overflow: "hidden",
-      }} className="lg-panel">
+      <div style={{ minHeight: "100vh", display: "flex", background: "#08080a", fontFamily: "var(--font-display, system-ui)" }}>
 
-        {/* Subtle noise texture overlay */}
-        <div style={{
-          position: "absolute", inset: 0, opacity: 0.025,
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-          backgroundSize: "200px 200px",
-          pointerEvents: "none",
-        }} />
+        {/* ── LEFT: MISSION TELEMETRY ──────────────────────────────────────── */}
+        <div className="telemetry-panel" style={{
+          width: 480, flexShrink: 0, display: "flex", flexDirection: "column",
+          padding: "32px 36px", background: "#08080a",
+          borderRight: "1px solid rgba(245,158,11,0.12)",
+          position: "relative", overflow: "hidden",
+        }}>
+          {/* Subtle grid overlay */}
+          <div style={{
+            position: "absolute", inset: 0, opacity: 0.03, pointerEvents: "none",
+            backgroundImage: "linear-gradient(#f59e0b 1px, transparent 1px), linear-gradient(90deg, #f59e0b 1px, transparent 1px)",
+            backgroundSize: "32px 32px",
+          }} />
+          {/* Scan line animation */}
+          <div className="scan-line" />
 
-        {/* Top: Wordmark */}
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 64 }}>
-            <img src="/logo-mark.svg" width={40} height={40} alt="Unite Group" />
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em" }}>Unite Group</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
-                <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#f59e0b", display: "inline-block", boxShadow: "0 0 6px #f59e0b" }} />
-                <span style={{ fontSize: 10, color: "#f59e0b", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Empire</span>
+          {/* Header */}
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 48 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <img src="/logo-mark.svg" width={36} height={36} alt="Unite Group" style={{ opacity: 0.95 }} />
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#f0f0f2", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                  Unite Group
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
+                  <span className="amber-pulse" style={{ width: 5, height: 5, borderRadius: "50%", background: "#f59e0b", display: "inline-block" }} />
+                  <span style={{ fontSize: 9, color: "#f59e0b", fontWeight: 600, letterSpacing: "0.15em", textTransform: "uppercase", fontFamily: "var(--font-mono)" }}>
+                    EMPIRE / CLASSIFIED
+                  </span>
+                </div>
               </div>
             </div>
+            <Clock />
           </div>
 
-          {/* Hero headline */}
-          <div style={{ marginBottom: 48 }}>
-            <h1 style={{
-              fontSize: 40, fontWeight: 700, color: "#fafafa",
-              letterSpacing: "-0.04em", lineHeight: 1.1,
-              margin: "0 0 16px",
-            }}>
-              Empire<br />Command<br />Centre.
-            </h1>
-            <p style={{ fontSize: 14, color: "#52525b", lineHeight: 1.6, margin: 0, maxWidth: 320 }}>
-              AI-driven operations, real-time health monitoring, autonomous execution — all from a single authenticated session.
-            </p>
-          </div>
-
-          {/* Stats strip */}
-          <div style={{ display: "flex", gap: 0, marginBottom: 40, background: "#111113", border: "1px solid #27272a", borderRadius: 10, overflow: "hidden" }}>
-            {[
-              { label: "Businesses",  value: "6"     },
-              { label: "ARR/yr",      value: "$33K"  },
-              { label: "Autonomy",    value: "100%"  },
-            ].map((s, i) => (
-              <div key={s.label} style={{
-                flex: 1, padding: "14px 0", textAlign: "center",
-                borderRight: i < 2 ? "1px solid #27272a" : "none",
-              }}>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: 20, fontWeight: 700, letterSpacing: "-0.03em", color: "#fafafa", lineHeight: 1 }}>
-                  {s.value}
-                </div>
-                <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "#52525b", marginTop: 5 }}>
-                  {s.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Portfolio roster */}
-        <div>
-          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "#3f3f46", marginBottom: 12 }}>
-            Portfolio
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-            {PORTFOLIO.map(biz => (
-              <div key={biz.name} style={{
-                display: "flex", alignItems: "center", gap: 10,
-                padding: "8px 12px", borderRadius: 8,
-                background: "transparent",
-              }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: biz.color, display: "inline-block", flexShrink: 0 }} />
-                <span style={{ fontSize: 12, color: "#a1a1aa", flex: 1, letterSpacing: "-0.01em" }}>{biz.name}</span>
-                {biz.arr && (
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#16a34a", fontWeight: 600 }}>{biz.arr}</span>
-                )}
-                <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase",
-                  color: biz.status === "operational" ? "#16a34a" : "#1d4ed8" }}>
-                  {biz.status === "operational" ? "Live" : "Build"}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* Pi-CEO live indicator */}
-          <div style={{ marginTop: 24, display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#111113", border: "1px solid #27272a", borderRadius: 8 }}>
-            <span className="status-dot" style={{ width: 6, height: 6, background: "#16a34a", color: "#16a34a", flexShrink: 0 }} />
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#52525b" }}>Pi-CEO swarm active · 100% autonomy</span>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div style={{ marginTop: 32 }}>
-          <p style={{ fontSize: 10, color: "#3f3f46", margin: 0 }}>
-            © 2026 Unite Group. Private system — authorised access only.
-          </p>
-        </div>
-      </div>
-
-      {/* ── Right Panel: Form ────────────────────────────────────────────── */}
-      <div style={{
-        flex: 1, display: "flex", flexDirection: "column",
-        alignItems: "center", justifyContent: "center",
-        padding: "40px 24px",
-        background: "#09090b",
-      }}>
-
-        {/* Mobile wordmark */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 40 }} className="mobile-logo">
-          <img src="/logo-mark.svg" width={36} height={36} alt="Unite Group" />
-          <span style={{ fontSize: 14, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em" }}>Unite Group</span>
-        </div>
-
-        <div style={{ width: "100%", maxWidth: 380 }}>
-
-          {/* Heading */}
-          <div style={{ marginBottom: 32 }}>
-            <h2 style={{ fontSize: 26, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.04em", margin: "0 0 6px", lineHeight: 1.2 }}>
-              Sign in
-            </h2>
-            <p style={{ fontSize: 13, color: "#52525b", margin: 0 }}>
-              Access restricted to authorised personnel only.
-            </p>
-          </div>
-
-          {/* Error */}
-          {error && (
+          {/* Large empire identifier */}
+          <div style={{ marginBottom: 40 }}>
             <div style={{
-              marginBottom: 20, padding: "12px 14px", borderRadius: 8,
-              background: "rgba(220,38,38,0.07)", border: "1px solid rgba(220,38,38,0.2)",
-              display: "flex", alignItems: "flex-start", gap: 10,
+              fontSize: 68, fontWeight: 800, color: "#f0f0f2",
+              letterSpacing: "-0.04em", lineHeight: 0.9,
+              textTransform: "uppercase",
             }}>
-              <span style={{ fontSize: 12, color: "#f87171", lineHeight: 1.5 }}>{error}</span>
+              EMPIRE<br />
+              <span style={{ color: "#f59e0b" }}>CMD</span><br />
+              CTR
             </div>
-          )}
-
-          {/* Form */}
-          <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <label htmlFor="email" style={{ fontSize: 12, fontWeight: 500, color: "#a1a1aa" }}>
-                Email
-              </label>
-              <input
-                id="email" type="email" required autoComplete="email"
-                value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="you@unite-group.in"
-                style={{
-                  width: "100%", padding: "10px 14px", fontSize: 14,
-                  background: "#111113", border: "1px solid #27272a",
-                  borderRadius: 9, color: "#fafafa", outline: "none",
-                  fontFamily: "var(--font-inter)", boxSizing: "border-box",
-                  transition: "border-color 0.12s ease",
-                }}
-                onFocus={e => (e.target.style.borderColor = "#1d4ed8")}
-                onBlur={e => (e.target.style.borderColor = "#27272a")}
-              />
+            <div style={{
+              marginTop: 12, fontFamily: "var(--font-mono)", fontSize: 10,
+              color: "#3f3f46", letterSpacing: "0.15em",
+              borderLeft: "2px solid #f59e0b", paddingLeft: 10,
+            }}>
+              6 BUSINESSES · PI-CEO SWARM · 100% AUTONOMY<br />
+              AUTH REQUIRED · ACCESS LOGGED
             </div>
+          </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <label htmlFor="password" style={{ fontSize: 12, fontWeight: 500, color: "#a1a1aa" }}>
-                  Password
-                </label>
-                <a href="/reset-password" style={{ fontSize: 11, color: "#3b82f6", textDecoration: "none" }}
-                  onMouseEnter={e => (e.currentTarget.style.color = "#60a5fa")}
-                  onMouseLeave={e => (e.currentTarget.style.color = "#3b82f6")}>
-                  Forgot?
-                </a>
+          {/* Telemetry: business health */}
+          <div style={{ flex: 1 }}>
+            <div style={{
+              fontSize: 9, fontWeight: 600, letterSpacing: "0.2em",
+              textTransform: "uppercase", color: "#3f3f46",
+              fontFamily: "var(--font-mono)", marginBottom: 12,
+              display: "flex", alignItems: "center", gap: 8,
+            }}>
+              <span style={{ flex: 1, height: 1, background: "#1a1a1d", display: "inline-block" }} />
+              PORTFOLIO TELEMETRY
+              <span style={{ flex: 1, height: 1, background: "#1a1a1d", display: "inline-block" }} />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {BUSINESSES.map(biz => (
+                <div key={biz.name} style={{ display: "grid", gridTemplateColumns: "110px 1fr 44px", gap: 10, alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                    <span style={{
+                      fontSize: 8, fontWeight: 600, fontFamily: "var(--font-mono)",
+                      letterSpacing: "0.05em", color: biz.status === "LIVE" ? "#22c55e" : "#f59e0b",
+                      padding: "1px 5px", border: `1px solid ${biz.status === "LIVE" ? "#166534" : "#78350f"}`,
+                      borderRadius: 2,
+                    }}>{biz.status}</span>
+                  </div>
+                  <HealthBar value={biz.health} />
+                  <div style={{ textAlign: "right" }}>
+                    {biz.arr ? (
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#22c55e" }}>
+                        ${(biz.arr / 1000).toFixed(0)}K
+                      </span>
+                    ) : (
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#27272a" }}>—</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Footer strip */}
+          <div style={{
+            marginTop: 32, paddingTop: 16,
+            borderTop: "1px solid #1a1a1d",
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+          }}>
+            <div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#3f3f46", letterSpacing: "0.1em" }}>TOTAL ARR</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 18, fontWeight: 700, color: "#22c55e", letterSpacing: "-0.02em" }}>
+                ${(totalARR / 1000).toFixed(0)}K<span style={{ fontSize: 10, color: "#3f3f46" }}>/yr</span>
               </div>
-              <div style={{ position: "relative" }}>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#3f3f46", letterSpacing: "0.1em" }}>SWARM STATUS</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, justifyContent: "flex-end" }}>
+                <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#22c55e", display: "inline-block" }} />
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#22c55e" }}>NOMINAL</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── RIGHT: AUTH PANEL ────────────────────────────────────────────── */}
+        <div className="form-panel" style={{
+          flex: 1, display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center",
+          padding: "40px 32px",
+          background: "#08080a",
+          borderLeft: "1px solid #1a1a1d",
+          position: "relative",
+        }}>
+
+          {/* Corner decorations */}
+          {[
+            { top: 20, left: 20, borderTop: "1px solid #2a2a2e", borderLeft: "1px solid #2a2a2e" },
+            { top: 20, right: 20, borderTop: "1px solid #2a2a2e", borderRight: "1px solid #2a2a2e" },
+            { bottom: 20, left: 20, borderBottom: "1px solid #2a2a2e", borderLeft: "1px solid #2a2a2e" },
+            { bottom: 20, right: 20, borderBottom: "1px solid #2a2a2e", borderRight: "1px solid #2a2a2e" },
+          ].map((s, i) => (
+            <div key={i} style={{ position: "absolute", width: 20, height: 20, ...s }} />
+          ))}
+
+          <div style={{ width: "100%", maxWidth: 340 }}>
+
+            {/* Auth header */}
+            <div style={{ marginBottom: 36 }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#3f3f46", letterSpacing: "0.2em", marginBottom: 8 }}>
+                // SECURE ACCESS TERMINAL
+              </div>
+              <h2 style={{
+                fontSize: 28, fontWeight: 800, color: "#f0f0f2",
+                letterSpacing: "-0.03em", margin: 0, textTransform: "uppercase",
+                lineHeight: 1.1,
+              }}>
+                AUTHENTICATE
+                <span className="cursor" style={{ color: "#f59e0b", marginLeft: 2 }}>_</span>
+              </h2>
+              <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#3f3f46", margin: "8px 0 0", letterSpacing: "0.05em" }}>
+                AUTHORISED PERSONNEL ONLY
+              </p>
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div style={{
+                marginBottom: 16, padding: "10px 14px",
+                border: "1px solid rgba(239,68,68,0.3)",
+                background: "rgba(239,68,68,0.06)",
+                borderRadius: 2,
+                fontFamily: "var(--font-mono)", fontSize: 11, color: "#ef4444",
+              }}>
+                ERR: {error}
+              </div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+
+              {/* Email field */}
+              <div style={{ marginBottom: 16 }}>
+                <div style={{
+                  fontFamily: "var(--font-mono)", fontSize: 9, color: "#3f3f46",
+                  letterSpacing: "0.2em", marginBottom: 6, textTransform: "uppercase",
+                }}>
+                  &gt; EMAIL IDENTIFIER
+                </div>
                 <input
-                  id="password" type={showPassword ? "text" : "password"} required autoComplete="current-password"
+                  type="email" required autoComplete="email"
+                  value={email} onChange={e => setEmail(e.target.value)}
+                  placeholder="user@unite-group.in"
+                  style={{
+                    width: "100%", padding: "11px 14px",
+                    fontSize: 13, fontFamily: "var(--font-mono)",
+                    background: "#0d0d10",
+                    border: "1px solid #27272a",
+                    borderRadius: 2, color: "#f0f0f2",
+                    outline: "none", boxSizing: "border-box",
+                    transition: "border-color 0.15s",
+                    letterSpacing: "0.02em",
+                  }}
+                  onFocus={e => (e.target.style.borderColor = "#f59e0b")}
+                  onBlur={e => (e.target.style.borderColor = "#27272a")}
+                />
+              </div>
+
+              {/* Password field */}
+              <div style={{ marginBottom: 28 }}>
+                <div style={{
+                  fontFamily: "var(--font-mono)", fontSize: 9, color: "#3f3f46",
+                  letterSpacing: "0.2em", marginBottom: 6, textTransform: "uppercase",
+                  display: "flex", justifyContent: "space-between",
+                }}>
+                  <span>&gt; ACCESS CODE</span>
+                  <a href="/reset-password" style={{ color: "#f59e0b", textDecoration: "none" }}>RESET</a>
+                </div>
+                <input
+                  type="password" required autoComplete="current-password"
                   value={password} onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••••••"
                   style={{
-                    width: "100%", padding: "10px 42px 10px 14px", fontSize: 14,
-                    background: "#111113", border: "1px solid #27272a",
-                    borderRadius: 9, color: "#fafafa", outline: "none",
-                    fontFamily: "var(--font-inter)", boxSizing: "border-box",
-                    transition: "border-color 0.12s ease",
+                    width: "100%", padding: "11px 14px",
+                    fontSize: 14, fontFamily: "var(--font-mono)",
+                    background: "#0d0d10",
+                    border: "1px solid #27272a",
+                    borderRadius: 2, color: "#f0f0f2",
+                    outline: "none", boxSizing: "border-box",
+                    transition: "border-color 0.15s",
+                    letterSpacing: "0.1em",
                   }}
-                  onFocus={e => (e.target.style.borderColor = "#1d4ed8")}
+                  onFocus={e => (e.target.style.borderColor = "#f59e0b")}
                   onBlur={e => (e.target.style.borderColor = "#27272a")}
                 />
-                <button
-                  type="button" tabIndex={-1}
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
-                    background: "transparent", border: "none", cursor: "pointer",
-                    color: "#52525b", padding: 2, display: "flex",
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.color = "#a1a1aa")}
-                  onMouseLeave={e => (e.currentTarget.style.color = "#52525b")}
-                >
-                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
               </div>
+
+              {/* Submit */}
+              <button
+                type="submit" disabled={loading}
+                style={{
+                  width: "100%", padding: "13px 0",
+                  fontSize: 12, fontWeight: 700,
+                  fontFamily: "var(--font-mono)",
+                  letterSpacing: "0.2em", textTransform: "uppercase",
+                  background: loading ? "#1a1a1d" : "#f59e0b",
+                  color: loading ? "#3f3f46" : "#08080a",
+                  border: "none", borderRadius: 2,
+                  cursor: loading ? "not-allowed" : "pointer",
+                  transition: "all 0.15s ease",
+                }}
+                onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = "#fbbf24"; }}
+                onMouseLeave={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = "#f59e0b"; }}
+              >
+                {loading ? "VERIFYING..." : "GRANT ACCESS →"}
+              </button>
+            </form>
+
+            {/* Status bar */}
+            <div style={{
+              marginTop: 32, paddingTop: 16,
+              borderTop: "1px solid #1a1a1d",
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#22c55e", display: "inline-block" }} />
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#3f3f46", letterSpacing: "0.1em" }}>
+                  ALL SYSTEMS NOMINAL
+                </span>
+              </div>
+              {mounted && <Clock />}
             </div>
 
-            <button
-              type="submit" disabled={loading}
-              style={{
-                width: "100%", padding: "11px 0", marginTop: 4,
-                fontSize: 14, fontWeight: 600,
-                background: loading ? "#1e40af" : "#1d4ed8",
-                color: "#fff", border: "none", borderRadius: 9,
-                cursor: loading ? "not-allowed" : "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
-                transition: "background 0.12s ease",
-                fontFamily: "var(--font-inter)",
-              }}
-              onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = "#3b82f6"; }}
-              onMouseLeave={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = "#1d4ed8"; }}
-            >
-              {loading
-                ? <><Loader2 size={15} className="spin" /> Signing in…</>
-                : <><ArrowRight size={15} /> Sign in</>
-              }
-            </button>
-
-          </form>
-
-          {/* System status */}
-          <div style={{ marginTop: 32, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
-            <span className="status-dot" style={{ width: 5, height: 5, background: "#16a34a", color: "#16a34a" }} />
-            <span style={{ fontSize: 11, color: "#3f3f46", fontFamily: "var(--font-mono)" }}>All systems operational</span>
           </div>
         </div>
       </div>
-
-      {/* Responsive: show left panel on lg+ */}
-      <style>{`
-        @media (min-width: 1024px) {
-          .lg-panel { display: flex !important; }
-          .mobile-logo { display: none !important; }
-        }
-        @media (max-width: 1023px) {
-          .lg-panel { display: none !important; }
-          .mobile-logo { display: flex !important; }
-        }
-      `}</style>
-    </div>
+    </>
   );
 }
