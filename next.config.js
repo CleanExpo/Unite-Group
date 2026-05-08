@@ -7,12 +7,6 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  async redirects() {
-    return [
-      // CEO Dashboard — redirect locale-prefixed URL back to canonical
-      { source: '/:locale/dashboard/ceo', destination: '/dashboard/ceo', permanent: false },
-    ];
-  },
   reactStrictMode: true,
   // Tell Next.js to use the src directory
   distDir: '.next',
