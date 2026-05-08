@@ -98,3 +98,8 @@ export async function GET(req: NextRequest) {
     headers: { 'Cache-Control': 'no-store' },
   });
 }
+
+// Note: SEMRUSH_API_KEY is now available in Vercel env. 
+// Future enhancement: replace regex-based checks with Semrush API calls
+// for keyword volume, competitor data, and backlink profile.
+// Endpoint: https://api.semrush.com/?type=domain_rank&key=${process.env.SEMRUSH_API_KEY}&domain=X&database=au
