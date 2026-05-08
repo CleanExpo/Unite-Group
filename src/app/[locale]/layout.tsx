@@ -55,8 +55,8 @@ export default async function LocaleLayout({
       <body className={`${satoshi.variable} font-sans`}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="dark"
+          
           disableTransitionOnChange
         >
           <ClientWrapper>
