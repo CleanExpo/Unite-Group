@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 
-export default function HomePage({ params }: { params: { locale: string } }) {
-  // Site redirects authenticated users to CEO dashboard.
-  // Public visitors land here briefly before redirect.
-  redirect(`/${params.locale}/ceo`);
+export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  redirect(`/${locale}/ceo`);
 }
