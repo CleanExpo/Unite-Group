@@ -14,7 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning className="dark">
       <body className={`${inter.variable} ${mono.variable} font-sans min-h-screen flex`}
-            style={{ background: '#0a0f1e', color: '#f8fafc' }}>
+            style={{ background: '#09090b', color: '#fafafa' }}>
         <EmpireSidebar />
         <main className="flex-1 min-h-screen overflow-auto">{children}</main>
       </body>
