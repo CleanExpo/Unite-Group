@@ -1,18 +1,21 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, Component } from "react";
+import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  XAxis,
-  ResponsiveContainer,
-  Cell,
-} from "recharts";
+import dynamic from "next/dynamic";
 import { supabaseClient } from "@/lib/supabase/client";
+
+// Recharts must be dynamically imported to avoid SSR crashes
+// (recharts accesses DOM APIs that don't exist on the server)
+const AreaChart = dynamic(() => import("recharts").then(m => ({ default: m.AreaChart })), { ssr: false });
+const Area = dynamic(() => import("recharts").then(m => ({ default: m.Area })), { ssr: false });
+const BarChart = dynamic(() => import("recharts").then(m => ({ default: m.BarChart })), { ssr: false });
+const Bar = dynamic(() => import("recharts").then(m => ({ default: m.Bar })), { ssr: false });
+const XAxis = dynamic(() => import("recharts").then(m => ({ default: m.XAxis })), { ssr: false });
+const Cell = dynamic(() => import("recharts").then(m => ({ default: m.Cell })), { ssr: false });
+const ResponsiveContainer = dynamic(() => import("recharts").then(m => ({ default: m.ResponsiveContainer })), { ssr: false });
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -109,6 +112,7 @@ function EmpireScore({ score }: { score: number }) {
 }
 
 function Sparkline({ data, color }: { data: number[]; color: string }) {
+  if (!data || data.length === 0) return <div className="h-10" />;
   const chartData = data.map((v, i) => ({ i, v }));
   const gradId = `grad-${color.replace("#", "")}`;
   return (
@@ -192,6 +196,37 @@ function SkeletonCard() {
   );
 }
 
+// ─── Error boundary ───────────────────────────────────────────────────────────
+
+class DashboardErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean; error: string }
+> {
+  state = { hasError: false, error: "" };
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error: error.message };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+          <div className="text-center p-8">
+            <p className="text-red-400 text-sm font-mono mb-4">Dashboard Error</p>
+            <p className="text-slate-400 text-xs max-w-md">{this.state.error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-6 px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+            >
+              Reload
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function CeoCommandCenter() {
@@ -255,6 +290,7 @@ export default function CeoCommandCenter() {
   const updatedLabel = secondsAgo < 60 ? `${secondsAgo}s ago` : `${Math.floor(secondsAgo / 60)}m ago`;
 
   return (
+    <DashboardErrorBoundary>
     <div className="min-h-screen bg-slate-950 text-white">
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <header className="bg-slate-900 border-b border-slate-700/60 px-6 py-3 sticky top-0 z-40">
@@ -455,5 +491,6 @@ export default function CeoCommandCenter() {
         </section>
       </main>
     </div>
+    </DashboardErrorBoundary>
   );
 }
