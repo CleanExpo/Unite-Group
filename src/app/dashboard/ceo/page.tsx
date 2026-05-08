@@ -9,10 +9,10 @@ const CeoDashboard = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-slate-400 text-sm">Loading Empire Command Center...</p>
+      <div style={{ minHeight: "100vh", background: "#09090b", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+          <div style={{ width: 48, height: 48, border: "2px solid #1d4ed8", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+          <p style={{ color: "#52525b", fontSize: 13 }}>Loading Empire Command Center...</p>
         </div>
       </div>
     ),
@@ -22,7 +22,7 @@ const CeoDashboard = dynamic(
 export default function CeoPage() {
   // Server-renders the dark bg immediately — no white flash while JS loads
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div style={{ minHeight: "100vh", background: "#09090b" }}>
       <CeoDashboard />
     </div>
   );

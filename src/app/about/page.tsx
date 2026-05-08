@@ -11,18 +11,18 @@ const BUSINESSES = [
 ];
 
 const card: React.CSSProperties = {
-  background: "#0f172a",
-  border: "1px solid #1e293b",
+  background: "#111113",
+  border: "1px solid #27272a",
   borderRadius: 12,
   padding: 20,
 };
 
 export default function About() {
   return (
-    <div style={{ minHeight: "100vh", background: "#0a0f1e", color: "#f8fafc" }}>
+    <div style={{ minHeight: "100vh", background: "#09090b", color: "#f8fafc" }}>
 
       {/* Nav */}
-      <nav style={{ background: "rgba(10,15,30,0.9)", backdropFilter: "blur(20px)", borderBottom: "1px solid #1e293b", height: 60, padding: "0 24px", position: "sticky", top: 0, zIndex: 40, display: "flex", alignItems: "center" }}>
+      <nav style={{ background: "rgba(10,15,30,0.9)", backdropFilter: "blur(20px)", borderBottom: "1px solid #27272a", height: 60, padding: "0 24px", position: "sticky", top: 0, zIndex: 40, display: "flex", alignItems: "center" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto", width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
             <div style={{ width: 26, height: 26, borderRadius: 6, background: "#1d4ed8", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 11, color: "#fff" }}>U</div>

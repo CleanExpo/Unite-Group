@@ -53,12 +53,12 @@ export default function UpdatePassword() {
 
   const inputStyle: React.CSSProperties = {
     width: "100%", borderRadius: 10, padding: "10px 14px", paddingRight: 44,
-    fontSize: 14, color: "#f8fafc", background: "#111827", border: "1px solid #1e293b",
+    fontSize: 14, color: "#f8fafc", background: "#18181b", border: "1px solid #27272a",
     outline: "none", boxSizing: "border-box", transition: "border-color 0.12s ease",
   };
 
-  const wrapStyle: React.CSSProperties = { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, background: "#0a0f1e" };
-  const cardStyle: React.CSSProperties = { width: "100%", maxWidth: 400, background: "#0f172a", border: "1px solid #1e293b", borderRadius: 16, padding: 32 };
+  const wrapStyle: React.CSSProperties = { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, background: "#09090b" };
+  const cardStyle: React.CSSProperties = { width: "100%", maxWidth: 400, background: "#111113", border: "1px solid #27272a", borderRadius: 16, padding: 32 };
 
   const Logo = () => (
     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
@@ -123,7 +123,7 @@ export default function UpdatePassword() {
                     value={password} onChange={e => setPassword(e.target.value)}
                     placeholder="••••••••" style={inputStyle}
                     onFocus={e => (e.target.style.borderColor = "#1d4ed8")}
-                    onBlur={e => (e.target.style.borderColor = "#1e293b")}
+                    onBlur={e => (e.target.style.borderColor = "#27272a")}
                   />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} tabIndex={-1}
                     style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#334155", padding: 4 }}>
@@ -141,7 +141,7 @@ export default function UpdatePassword() {
                     value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
                     placeholder="••••••••" style={inputStyle}
                     onFocus={e => (e.target.style.borderColor = "#1d4ed8")}
-                    onBlur={e => (e.target.style.borderColor = "#1e293b")}
+                    onBlur={e => (e.target.style.borderColor = "#27272a")}
                   />
                   <button type="button" onClick={() => setShowConfirm(!showConfirm)} tabIndex={-1}
                     style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#334155", padding: 4 }}>

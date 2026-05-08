@@ -60,18 +60,18 @@ export default function Register() {
     padding: "10px 14px",
     fontSize: 14,
     color: "#f8fafc",
-    background: "#0f172a",
-    border: "1px solid #1e293b",
+    background: "#111113",
+    border: "1px solid #27272a",
     outline: "none",
     boxSizing: "border-box",
     transition: "border-color 0.12s ease",
   };
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", background: "#0a0f1e" }}>
+    <div style={{ minHeight: "100vh", display: "flex", background: "#09090b" }}>
 
       {/* Left panel */}
-      <div style={{ width: "45%", background: "#0f172a", borderRight: "1px solid #1e293b", padding: "48px 40px", display: "flex", flexDirection: "column", gap: 32 }}>
+      <div style={{ width: "45%", background: "#111113", borderRight: "1px solid #27272a", padding: "48px 40px", display: "flex", flexDirection: "column", gap: 32 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 32, height: 32, borderRadius: 8, background: "#1d4ed8", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, color: "#fff" }}>U</div>
           <div>
@@ -92,7 +92,7 @@ export default function Register() {
           <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "#334155", marginBottom: 10 }}>Portfolio Status</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {PORTFOLIO.map((biz) => (
-              <div key={biz.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: "#111827", border: "1px solid #1e293b", borderRadius: 8 }}>
+              <div key={biz.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: "#18181b", border: "1px solid #27272a", borderRadius: 8 }}>
                 <span style={{ fontSize: 13, color: "#94a3b8" }}>{biz.name}</span>
                 <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                   <span className="status-dot" style={{ width: 5, height: 5, background: biz.color, color: biz.color }} />
@@ -133,7 +133,7 @@ export default function Register() {
                     type="text" required value={firstName} onChange={e => setFirstName(e.target.value)}
                     placeholder="Phill" style={inputStyle}
                     onFocus={e => (e.target.style.borderColor = "#1d4ed8")}
-                    onBlur={e => (e.target.style.borderColor = "#1e293b")}
+                    onBlur={e => (e.target.style.borderColor = "#27272a")}
                   />
                 </div>
                 <div>
@@ -142,7 +142,7 @@ export default function Register() {
                     type="text" required value={lastName} onChange={e => setLastName(e.target.value)}
                     placeholder="McGurk" style={inputStyle}
                     onFocus={e => (e.target.style.borderColor = "#1d4ed8")}
-                    onBlur={e => (e.target.style.borderColor = "#1e293b")}
+                    onBlur={e => (e.target.style.borderColor = "#27272a")}
                   />
                 </div>
               </div>
@@ -153,7 +153,7 @@ export default function Register() {
                   type="email" required value={email} onChange={e => setEmail(e.target.value)}
                   placeholder="you@example.com" style={inputStyle}
                   onFocus={e => (e.target.style.borderColor = "#1d4ed8")}
-                  onBlur={e => (e.target.style.borderColor = "#1e293b")}
+                  onBlur={e => (e.target.style.borderColor = "#27272a")}
                 />
               </div>
 
@@ -163,7 +163,7 @@ export default function Register() {
                   type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••" style={inputStyle}
                   onFocus={e => (e.target.style.borderColor = "#1d4ed8")}
-                  onBlur={e => (e.target.style.borderColor = "#1e293b")}
+                  onBlur={e => (e.target.style.borderColor = "#27272a")}
                 />
                 <p style={{ fontSize: 11, color: "#334155", marginTop: 5 }}>Minimum 6 characters</p>
               </div>
@@ -174,7 +174,7 @@ export default function Register() {
                   type="password" required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
                   placeholder="••••••••" style={inputStyle}
                   onFocus={e => (e.target.style.borderColor = "#1d4ed8")}
-                  onBlur={e => (e.target.style.borderColor = "#1e293b")}
+                  onBlur={e => (e.target.style.borderColor = "#27272a")}
                 />
               </div>
 

@@ -14,7 +14,7 @@ import {
 
 const BH = {
   blue:    "#228FE0",
-  dark:    "#0a0f1e",
+  dark:    "#09090b",
   surface: "#111113",
   border:  "#27272a",
   ink:     "#fafafa",

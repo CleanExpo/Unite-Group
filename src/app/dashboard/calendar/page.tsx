@@ -11,7 +11,7 @@ export default async function CalendarPage() {
 
   if (!user) {
     return (
-      <div style={{ minHeight: "100vh", background: "#0a0f1e", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ minHeight: "100vh", background: "#09090b", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <p style={{ color: "#475569", fontSize: 14 }}>Please sign in to view your calendar.</p>
       </div>
     );
@@ -73,8 +73,8 @@ export default async function CalendarPage() {
       : 0;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0a0f1e", color: "#f8fafc" }}>
-      <header style={{ background: "rgba(10,15,30,0.9)", backdropFilter: "blur(20px)", borderBottom: "1px solid #1e293b", height: 60, padding: "0 24px", display: "flex", alignItems: "center", position: "sticky", top: 0, zIndex: 40 }}>
+    <div style={{ minHeight: "100vh", background: "#09090b", color: "#f8fafc" }}>
+      <header style={{ background: "rgba(10,15,30,0.9)", backdropFilter: "blur(20px)", borderBottom: "1px solid #27272a", height: 60, padding: "0 24px", display: "flex", alignItems: "center", position: "sticky", top: 0, zIndex: 40 }}>
         <div style={{ maxWidth: 1440, margin: "0 auto", width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <h1 style={{ fontSize: 16, fontWeight: 600, color: "#f8fafc", letterSpacing: "-0.02em", margin: 0 }}>Content Calendar</h1>
           <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", color: "#334155" }}>Week of {weekStart}</span>

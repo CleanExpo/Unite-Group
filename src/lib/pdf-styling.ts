@@ -29,14 +29,14 @@ export const COLOR_SCHEMES = {
   dark: {
     primary: "#2563eb", // Darker blue
     secondary: "#4b5563", // Darker gray
-    text: "#111827", // Nearly black
+    text: "#18181b", // Nearly black
     background: "#f9fafb", // Light gray
     accent: "#d97706", // Darker amber
   },
   modern: {
     primary: "#0ea5e9", // Sky blue
     secondary: "#64748b", // Slate
-    text: "#0f172a", // Slate dark
+    text: "#111113", // Slate dark
     background: "#ffffff", // White
     accent: "#ec4899", // Pink
   },

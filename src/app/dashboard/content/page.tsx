@@ -29,8 +29,8 @@ const totalItems = CONTENT_PIPELINE.reduce((s, i) => s + i.total, 0);
 const overallPct = Math.round((totalDone / totalItems) * 100);
 
 const card: React.CSSProperties = {
-  background: "#0f172a",
-  border: "1px solid #1e293b",
+  background: "#111113",
+  border: "1px solid #27272a",
   borderRadius: 12,
   padding: 20,
 };
@@ -56,16 +56,16 @@ export default function ContentPipeline() {
   }, [router]);
 
   if (!loaded) return (
-    <div style={{ minHeight: "100vh", background: "#0a0f1e", display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div style={{ minHeight: "100vh", background: "#09090b", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <BarChart3 size={20} color="#334155" />
     </div>
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0a0f1e", color: "#f8fafc" }}>
+    <div style={{ minHeight: "100vh", background: "#09090b", color: "#f8fafc" }}>
 
       {/* Header */}
-      <header style={{ background: "rgba(10,15,30,0.9)", backdropFilter: "blur(20px)", borderBottom: "1px solid #1e293b", height: 60, padding: "0 24px", position: "sticky", top: 0, zIndex: 40, display: "flex", alignItems: "center" }}>
+      <header style={{ background: "rgba(10,15,30,0.9)", backdropFilter: "blur(20px)", borderBottom: "1px solid #27272a", height: 60, padding: "0 24px", position: "sticky", top: 0, zIndex: 40, display: "flex", alignItems: "center" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", width: "100%", display: "flex", alignItems: "center" }}>
           <Link href="/dashboard/ceo" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#475569", textDecoration: "none", marginRight: 16 }}>
             <ArrowLeft size={13} />Back
@@ -147,7 +147,7 @@ export default function ContentPipeline() {
           <p style={sectionLabel}>Content Queue — Next 5</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
             {CONTENT_QUEUE.map((item, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: i < CONTENT_QUEUE.length - 1 ? "1px solid #1e293b" : "none" }}>
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: i < CONTENT_QUEUE.length - 1 ? "1px solid #27272a" : "none" }}>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 7px", borderRadius: 4, background: `${item.color}12`, border: `1px solid ${item.color}22`, flexShrink: 0 }}>
                   <span style={{ width: 4, height: 4, borderRadius: "50%", background: item.color, display: "inline-block" }} />
                   <span style={{ fontSize: 9, fontWeight: 700, color: item.color, letterSpacing: "0.04em" }}>{item.biz}</span>

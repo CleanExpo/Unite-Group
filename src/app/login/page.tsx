@@ -49,7 +49,7 @@ export default function Login() {
 
       {/* ── Left Panel: Brand Hero ─────────────────────────────────────── */}
       <div className="hidden lg:flex lg:w-[480px] xl:w-[560px] shrink-0 relative flex-col justify-between p-10 overflow-hidden"
-           style={{ background: "#0f172a" }}>
+           style={{ background: "#111113" }}>
 
         {/* Background grid pattern */}
         <div className="absolute inset-0 opacity-[0.03]"
@@ -112,7 +112,7 @@ export default function Login() {
               {BUSINESSES.map(biz => (
                 <div key={biz.name}
                      className="flex items-center gap-2 rounded-lg px-3 py-2 border"
-                     style={{ background: "rgba(30,41,59,0.6)", borderColor: "#1E293B" }}>
+                     style={{ background: "rgba(30,41,59,0.6)", borderColor: "#27272a" }}>
                   <span className="w-2 h-2 rounded-full shrink-0" style={{ background: biz.color }} />
                   <span className="text-xs font-medium truncate" style={{ color: "#94A3B8" }}>{biz.name}</span>
                   <span className="ml-auto text-[9px] font-semibold" style={{
@@ -128,7 +128,7 @@ export default function Login() {
 
         {/* Footer */}
         <div className="relative">
-          <p className="text-xs" style={{ color: "#1E293B" }}>
+          <p className="text-xs" style={{ color: "#27272a" }}>
             © 2026 Unite Group. All systems operational.
           </p>
         </div>
@@ -136,7 +136,7 @@ export default function Login() {
 
       {/* ── Right Panel: Form ──────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-10"
-           style={{ background: "#0a0f1e" }}>
+           style={{ background: "#09090b" }}>
 
         {/* Mobile logo */}
         <div className="lg:hidden mb-8 flex items-center gap-3">
@@ -179,12 +179,12 @@ export default function Login() {
                 placeholder="you@example.com"
                 className="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-[#334155] border focus:outline-none focus:ring-2 transition-all"
                 style={{
-                  background: "#0F172A",
-                  borderColor: "#1E293B",
+                  background: "#111113",
+                  borderColor: "#27272a",
                   ["--tw-ring-color" as any]: "#1D4ED8",
                 }}
                 onFocus={e => { e.target.style.borderColor = "#1D4ED8"; }}
-                onBlur={e => { e.target.style.borderColor = "#1E293B"; }}
+                onBlur={e => { e.target.style.borderColor = "#27272a"; }}
               />
             </div>
 
@@ -206,9 +206,9 @@ export default function Login() {
                   value={password} onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
                   className="w-full rounded-xl px-4 py-3 pr-11 text-sm text-white placeholder-[#334155] border focus:outline-none transition-all"
-                  style={{ background: "#0F172A", borderColor: "#1E293B" }}
+                  style={{ background: "#111113", borderColor: "#27272a" }}
                   onFocus={e => { e.target.style.borderColor = "#1D4ED8"; }}
-                  onBlur={e => { e.target.style.borderColor = "#1E293B"; }}
+                  onBlur={e => { e.target.style.borderColor = "#27272a"; }}
                 />
                 <button
                   type="button"
@@ -241,9 +241,9 @@ export default function Login() {
 
           {/* Divider */}
           <div className="my-6 flex items-center gap-4">
-            <div className="flex-1 h-px" style={{ background: "#1E293B" }} />
+            <div className="flex-1 h-px" style={{ background: "#27272a" }} />
             <span className="text-xs" style={{ color: "#334155" }}>or</span>
-            <div className="flex-1 h-px" style={{ background: "#1E293B" }} />
+            <div className="flex-1 h-px" style={{ background: "#27272a" }} />
           </div>
 
           {/* Create account */}
@@ -260,7 +260,7 @@ export default function Login() {
         {/* Bottom badge */}
         <div className="mt-12 flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "#16A34A" }} />
-          <span className="text-xs" style={{ color: "#1E293B" }}>All systems operational</span>
+          <span className="text-xs" style={{ color: "#27272a" }}>All systems operational</span>
         </div>
       </div>
     </div>

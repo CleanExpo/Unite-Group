@@ -169,7 +169,7 @@ class EcosystemAPIService {
       branding: config.branding || {
         logo: 'default-logo.png',
         colors: {
-          primary: '#0f172a',
+          primary: '#111113',
           secondary: '#0d9488'
         }
       },

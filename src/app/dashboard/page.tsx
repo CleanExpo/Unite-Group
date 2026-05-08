@@ -49,8 +49,8 @@ const QUICK_LINKS = [
 // ── Styles ───────────────────────────────────────────────────────────────────
 
 const card: React.CSSProperties = {
-  background: "#0f172a",
-  border: "1px solid #1e293b",
+  background: "#111113",
+  border: "1px solid #27272a",
   borderRadius: 12,
   padding: 20,
 };
@@ -88,21 +88,21 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: "100vh", background: "#0a0f1e", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ minHeight: "100vh", background: "#09090b", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <RefreshCw size={18} color="#334155" className="spin" />
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0a0f1e", color: "#f8fafc" }}>
+    <div style={{ minHeight: "100vh", background: "#09090b", color: "#f8fafc" }}>
 
       {/* Header */}
       <header style={{
         background: "rgba(10,15,30,0.9)",
         backdropFilter: "blur(20px) saturate(180%)",
         WebkitBackdropFilter: "blur(20px) saturate(180%)",
-        borderBottom: "1px solid #1e293b",
+        borderBottom: "1px solid #27272a",
         height: 60,
         padding: "0 24px",
         position: "sticky",
@@ -136,14 +136,14 @@ export default function DashboardPage() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-          style={{ display: "flex", background: "#0f172a", border: "1px solid #1e293b", borderRadius: 10, overflow: "hidden" }}
+          style={{ display: "flex", background: "#111113", border: "1px solid #27272a", borderRadius: 10, overflow: "hidden" }}
         >
           {[
             { label: "Total Businesses", value: "6",                     suffix: "",     color: "#f8fafc" },
             { label: "Total ARR",        value: `$${(totalARR/1000).toFixed(1)}K`, suffix: "/yr", color: "#16a34a" },
             { label: "Active Agents",    value: "4",                     suffix: " live", color: "#94a3b8" },
           ].map((stat, i, arr) => (
-            <div key={stat.label} style={{ flex: 1, padding: "16px 20px", textAlign: "center", borderRight: i < arr.length - 1 ? "1px solid #1e293b" : "none" }}>
+            <div key={stat.label} style={{ flex: 1, padding: "16px 20px", textAlign: "center", borderRight: i < arr.length - 1 ? "1px solid #27272a" : "none" }}>
               <div style={{ ...sectionLabel, marginBottom: 5 }}>{stat.label}</div>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em", color: stat.color, lineHeight: 1 }}>
                 {stat.value}<span style={{ fontSize: 12, fontWeight: 400, color: "#334155" }}>{stat.suffix}</span>
@@ -165,7 +165,7 @@ export default function DashboardPage() {
             <p style={sectionLabel}>Portfolio Status</p>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr style={{ borderBottom: "1px solid #1e293b" }}>
+                <tr style={{ borderBottom: "1px solid #27272a" }}>
                   {["Business", "Status", "ARR", "SEO Audit"].map(h => (
                     <th key={h} style={{ padding: "6px 8px", textAlign: "left", fontSize: 10, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "#334155" }}>{h}</th>
                   ))}
@@ -180,7 +180,7 @@ export default function DashboardPage() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ duration: 0.2, delay: 0.1 + i * 0.04 }}
-                      style={{ borderBottom: "1px solid #1e293b" }}
+                      style={{ borderBottom: "1px solid #27272a" }}
                     >
                       <td style={{ padding: "12px 8px" }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: "#f8fafc", letterSpacing: "-0.01em" }}>{biz.name}</div>
@@ -239,13 +239,13 @@ export default function DashboardPage() {
                     fontWeight: link.primary ? 600 : 400,
                     color: link.primary ? "#fff" : "#94a3b8",
                     background: link.primary ? "#1d4ed8" : "transparent",
-                    border: `1px solid ${link.primary ? "#1d4ed8" : "#1e293b"}`,
+                    border: `1px solid ${link.primary ? "#1d4ed8" : "#27272a"}`,
                     textDecoration: "none",
                     transition: "all 0.12s ease",
                   }}
                   onMouseEnter={e => {
                     if (link.primary) { (e.currentTarget as HTMLAnchorElement).style.background = "#3b82f6"; }
-                    else { (e.currentTarget as HTMLAnchorElement).style.background = "#111827"; (e.currentTarget as HTMLAnchorElement).style.color = "#f8fafc"; }
+                    else { (e.currentTarget as HTMLAnchorElement).style.background = "#18181b"; (e.currentTarget as HTMLAnchorElement).style.color = "#f8fafc"; }
                   }}
                   onMouseLeave={e => {
                     if (link.primary) { (e.currentTarget as HTMLAnchorElement).style.background = "#1d4ed8"; }
@@ -273,10 +273,10 @@ export default function DashboardPage() {
             <Link href="/dashboard/ceo" style={{ fontSize: 11, color: "#1d4ed8", textDecoration: "none" }}>Full command center →</Link>
           </div>
           <div style={{ ...card, display: "flex", flexDirection: "column", gap: 0 }}>
-            <div style={{ borderLeft: "1px solid #1e293b", marginLeft: 8, paddingLeft: 16 }}>
+            <div style={{ borderLeft: "1px solid #27272a", marginLeft: 8, paddingLeft: 16 }}>
               {FALLBACK_ACTIVITIES.map((a, i) => (
                 <div key={i} style={{ position: "relative", paddingBottom: i < FALLBACK_ACTIVITIES.length - 1 ? 16 : 0 }}>
-                  <span style={{ position: "absolute", left: -20, top: 4, width: 5, height: 5, borderRadius: "50%", background: "#1e293b", border: "1px solid #334155", display: "inline-block" }} />
+                  <span style={{ position: "absolute", left: -20, top: 4, width: 5, height: 5, borderRadius: "50%", background: "#27272a", border: "1px solid #334155", display: "inline-block" }} />
                   <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
                     <p style={{ fontSize: 13, color: "#94a3b8", margin: 0 }}>{a.action}</p>
                     <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#334155", flexShrink: 0, marginLeft: 16 }}>{a.timeAgo}</span>

@@ -41,8 +41,8 @@ const SECTIONS = [
 ];
 
 const card: React.CSSProperties = {
-  background: "#0f172a",
-  border: "1px solid #1e293b",
+  background: "#111113",
+  border: "1px solid #27272a",
   borderRadius: 12,
   padding: 24,
 };
@@ -60,22 +60,22 @@ export default function SixPagerBrief() {
   }, [router]);
 
   if (!loaded) return (
-    <div style={{ minHeight: "100vh", background: "#0a0f1e", display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div style={{ minHeight: "100vh", background: "#09090b", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <Zap size={20} color="#334155" />
     </div>
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0a0f1e", color: "#f8fafc" }}>
+    <div style={{ minHeight: "100vh", background: "#09090b", color: "#f8fafc" }}>
 
       {/* Header */}
-      <header style={{ background: "rgba(10,15,30,0.9)", backdropFilter: "blur(20px)", borderBottom: "1px solid #1e293b", height: 60, padding: "0 24px", position: "sticky", top: 0, zIndex: 40, display: "flex", alignItems: "center" }}>
+      <header style={{ background: "rgba(10,15,30,0.9)", backdropFilter: "blur(20px)", borderBottom: "1px solid #27272a", height: 60, padding: "0 24px", position: "sticky", top: 0, zIndex: 40, display: "flex", alignItems: "center" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <Link href="/dashboard/ceo" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#475569", textDecoration: "none" }}>
               <ArrowLeft size={13} />Back
             </Link>
-            <span style={{ color: "#1e293b", fontSize: 12 }}>|</span>
+            <span style={{ color: "#27272a", fontSize: 12 }}>|</span>
             <span style={{ fontSize: 13, fontWeight: 600, color: "#f8fafc" }}>Empire 6-Pager</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", background: "rgba(29,78,216,0.1)", border: "1px solid rgba(29,78,216,0.2)", borderRadius: 20 }}>
@@ -117,8 +117,8 @@ export default function SixPagerBrief() {
               rows={4}
               style={{
                 width: "100%",
-                background: "#111827",
-                border: "1px solid #1e293b",
+                background: "#18181b",
+                border: "1px solid #27272a",
                 borderRadius: 8,
                 padding: "12px 14px",
                 fontSize: 14,
@@ -131,7 +131,7 @@ export default function SixPagerBrief() {
                 transition: "border-color 0.12s ease",
               }}
               onFocus={e => (e.target.style.borderColor = "#334155")}
-              onBlur={e => (e.target.style.borderColor = "#1e293b")}
+              onBlur={e => (e.target.style.borderColor = "#27272a")}
             />
           </motion.div>
         ))}
@@ -139,8 +139,8 @@ export default function SixPagerBrief() {
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 8 }}>
           <Link
             href="/dashboard/ceo"
-            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 500, color: "#94a3b8", border: "1px solid #1e293b", textDecoration: "none", background: "transparent", transition: "all 0.12s ease" }}
-            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "#111827"; (e.currentTarget as HTMLAnchorElement).style.color = "#f8fafc"; }}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 500, color: "#94a3b8", border: "1px solid #27272a", textDecoration: "none", background: "transparent", transition: "all 0.12s ease" }}
+            onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "#18181b"; (e.currentTarget as HTMLAnchorElement).style.color = "#f8fafc"; }}
             onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; (e.currentTarget as HTMLAnchorElement).style.color = "#94a3b8"; }}
           >
             Back to Command Center

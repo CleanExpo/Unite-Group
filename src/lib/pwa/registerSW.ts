@@ -105,7 +105,7 @@ function notifyUserAboutUpdate() {
   updateNotification.style.position = 'fixed';
   updateNotification.style.bottom = '20px';
   updateNotification.style.right = '20px';
-  updateNotification.style.backgroundColor = '#0f172a';
+  updateNotification.style.backgroundColor = '#111113';
   updateNotification.style.color = 'white';
   updateNotification.style.padding = '15px';
   updateNotification.style.borderRadius = '8px';

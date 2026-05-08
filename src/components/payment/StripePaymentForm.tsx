@@ -129,9 +129,9 @@ export default function StripePaymentForm({
           appearance: {
             theme: 'stripe',
             variables: {
-              colorPrimary: '#0f172a',
+              colorPrimary: '#111113',
               colorBackground: '#ffffff',
-              colorText: '#1e293b',
+              colorText: '#27272a',
               colorDanger: '#ef4444',
               fontFamily: 'Inter, system-ui, sans-serif',
               spacingUnit: '4px',
@@ -147,8 +147,8 @@ export default function StripePaymentForm({
         const cardElement = elements.create('card', {
           style: {
             base: {
-              iconColor: '#0f172a',
-              color: '#1e293b',
+              iconColor: '#111113',
+              color: '#27272a',
               fontWeight: '500',
               fontFamily: 'Inter, system-ui, sans-serif',
               fontSize: '16px',

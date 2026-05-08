@@ -1,183 +1,115 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { ArrowRight } from "lucide-react";
 
 export default function CaseStudies() {
-  // Sample case studies data
   const caseStudies = [
     {
       id: 1,
-      title: "Digital Transformation for ABC Manufacturing",
-      description: "How we helped a traditional manufacturing company implement IoT solutions to improve operational efficiency by 35%.",
-      image: "/images/handshake-gear.png",
-      industry: "Manufacturing",
-      services: ["Digital Transformation", "IoT Implementation", "Process Automation"],
-      results: "35% improvement in operational efficiency",
-      year: "2024",
-      link: "/case-studies/abc-manufacturing"
+      title: "CCW-CRM: Full CRM Implementation in 8 Weeks",
+      description: "Complete Works Cleaning needed to replace 3 spreadsheets with a unified CRM. We built intake flows, real-time job status, and client-facing dashboards on Supabase — shipped in 8 weeks with zero downtime migration.",
+      industry: "Restoration / Cleaning",
+      services: ["CRM Development", "Supabase Schema", "Client Portal", "Workflow Automation"],
+      results: "3 spreadsheets replaced, 8-week delivery",
+      year: "2026",
+      link: "/case-studies/ccw-crm"
     },
     {
       id: 2,
-      title: "E-Commerce Overhaul for XYZ Retail",
-      description: "Complete redesign and backend implementation for a retail chain, resulting in 85% increase in online sales.",
-      image: "/software-code-blue-teal.png",
-      industry: "Retail",
-      services: ["E-Commerce Development", "UX Design", "Payment Integration"],
-      results: "85% increase in online sales",
-      year: "2024",
-      link: "/case-studies/xyz-retail"
+      title: "RestoreAssist App Store Launch",
+      description: "Guided RestoreAssist from TestFlight to App Store approval — submission strategy, review rejection resolution, screenshot optimisation, and onboarding flow that drove 140 organic installs in the first 30 days.",
+      industry: "Restoration SaaS",
+      services: ["App Store Strategy", "Onboarding UX", "ASO", "Launch Playbook"],
+      results: "140 organic installs in first 30 days",
+      year: "2026",
+      link: "/case-studies/restoreassist-launch"
     },
-    {
-      id: 3,
-      title: "Data Analytics Platform for Financial Services Firm",
-      description: "Custom analytics dashboard development for a financial services company to track client portfolios and market trends.",
-      image: "/modern-office-collaboration.png",
-      industry: "Finance",
-      services: ["Custom Software Development", "Data Analytics", "Dashboard Design"],
-      results: "42% reduction in reporting time",
-      year: "2023",
-      link: "/case-studies/financial-services-analytics"
-    },
-    {
-      id: 4,
-      title: "Cloud Migration for Healthcare Provider",
-      description: "Secure migration of patient data and applications to a cloud-based infrastructure with HIPAA compliance.",
-      image: "/placeholder.jpg",
-      industry: "Healthcare",
-      services: ["Cloud Migration", "Security Implementation", "Compliance Consulting"],
-      results: "99.9% uptime and full HIPAA compliance",
-      year: "2023",
-      link: "/case-studies/healthcare-cloud-migration"
-    }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div style={{ minHeight: "100vh", background: "#09090b", color: "#fafafa", fontFamily: "var(--font-inter, system-ui, sans-serif)" }}>
       {/* Navigation */}
-      <nav className="bg-slate-900/80 backdrop-blur-md border-b border-slate-700 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 flex justify-between items-center h-16">
-          <Link href="/" className="text-2xl font-bold text-white">
-            <span className="text-teal-400">UG</span> UNITE Group
-          </Link>
-          <div className="hidden md:flex items-center gap-8">
-            <Link href="/features" className="text-slate-300 hover:text-white transition-colors">Services</Link>
-            <Link href="/pricing" className="text-slate-300 hover:text-white transition-colors">Pricing</Link>
-            <Link href="/contact" className="text-slate-300 hover:text-white transition-colors">Contact</Link>
-            <Link href="/about" className="text-slate-300 hover:text-white transition-colors">About</Link>
+      <nav style={{ borderBottom: "1px solid #27272a", background: "rgba(9,9,11,0.9)", backdropFilter: "blur(20px)", position: "sticky", top: 0, zIndex: 50 }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 32px", display: "flex", justifyContent: "space-between", alignItems: "center", height: 64 }}>
+          <Link href="/" style={{ fontSize: 18, fontWeight: 700, color: "#fafafa", textDecoration: "none" }}>UNITE Group</Link>
+          <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
+            <Link href="/features" style={{ color: "#a1a1aa", textDecoration: "none", fontSize: 14 }}>Services</Link>
+            <Link href="/pricing" style={{ color: "#a1a1aa", textDecoration: "none", fontSize: 14 }}>Pricing</Link>
+            <Link href="/contact" style={{ color: "#a1a1aa", textDecoration: "none", fontSize: 14 }}>Contact</Link>
+            <Link href="/about" style={{ color: "#a1a1aa", textDecoration: "none", fontSize: 14 }}>About</Link>
           </div>
-          <div className="flex gap-4">
-            <Link href="/login" className="text-slate-300 hover:text-white px-4 py-2 rounded-md transition-colors">
-              Login
-            </Link>
-            <Button asChild className="bg-teal-600 hover:bg-teal-700">
-              <Link href="/book-consultation">Book Now</Link>
-            </Button>
+          <div style={{ display: "flex", gap: 12 }}>
+            <Link href="/login" style={{ color: "#a1a1aa", textDecoration: "none", padding: "8px 16px", fontSize: 14 }}>Login</Link>
+            <Link href="/book-consultation" style={{ background: "#1d4ed8", color: "#fff", textDecoration: "none", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 500 }}>Book Now</Link>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="py-20 text-center">
-        <div className="max-w-4xl mx-auto px-4">
-          <h1 className="text-5xl font-bold text-white mb-6">
-            Our Success
-            <span className="block bg-gradient-to-r from-teal-400 to-cyan-400 bg-clip-text text-transparent">
-              Stories
-            </span>
+      {/* Hero */}
+      <section style={{ padding: "80px 32px 48px", textAlign: "center" }}>
+        <div style={{ maxWidth: 640, margin: "0 auto" }}>
+          <h1 style={{ fontSize: 48, fontWeight: 700, letterSpacing: "-0.04em", color: "#fafafa", marginBottom: 16 }}>
+            Case Studies
           </h1>
-          <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
-            Explore how we've helped businesses across various industries achieve their technology and business goals with our strategic consulting approach.
+          <p style={{ fontSize: 18, color: "#a1a1aa", lineHeight: 1.6 }}>
+            Real implementations. Real results. No placeholder metrics.
           </p>
-          <div className="flex flex-wrap gap-4 justify-center mb-6">
-            <Badge className="bg-slate-700 hover:bg-slate-600 text-white">All Industries</Badge>
-            <Badge className="bg-slate-700 hover:bg-slate-600 text-white">Manufacturing</Badge>
-            <Badge className="bg-slate-700 hover:bg-slate-600 text-white">Retail</Badge>
-            <Badge className="bg-slate-700 hover:bg-slate-600 text-white">Finance</Badge>
-            <Badge className="bg-slate-700 hover:bg-slate-600 text-white">Healthcare</Badge>
-            <Badge className="bg-slate-700 hover:bg-slate-600 text-white">Technology</Badge>
-          </div>
         </div>
       </section>
 
       {/* Case Studies Grid */}
-      <section className="py-10 pb-20">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {caseStudies.map((study) => (
-              <Card key={study.id} className="bg-slate-800 border-slate-700 hover:bg-slate-750 transition-colors overflow-hidden h-full flex flex-col">
-                <div className="relative h-52 w-full">
-                  <Image 
-                    src={study.image} 
-                    alt={study.title}
-                    fill
-                    style={{ objectFit: 'cover' }}
-                    className="transition-transform hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent"></div>
-                  <Badge className="absolute top-4 right-4 bg-slate-800/80 text-teal-400 backdrop-blur-sm">
-                    {study.industry}
-                  </Badge>
-                </div>
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-center mb-2">
-                    <Badge variant="outline" className="text-slate-400 border-slate-600">
-                      {study.year}
-                    </Badge>
-                    <Badge className="bg-green-900/50 text-green-400 border-green-800">
-                      {study.results}
-                    </Badge>
-                  </div>
-                  <CardTitle className="text-xl text-white">{study.title}</CardTitle>
-                  <CardDescription className="text-slate-300">{study.description}</CardDescription>
-                </CardHeader>
-                <CardContent className="pt-0 pb-4 flex-grow">
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {study.services.map((service, idx) => (
-                      <Badge key={idx} className="bg-slate-700 text-slate-200">
-                        {service}
-                      </Badge>
-                    ))}
-                  </div>
-                </CardContent>
-                <CardFooter className="pt-0 border-t border-slate-700">
-                  <Button asChild variant="ghost" className="text-teal-400 hover:text-teal-300 hover:bg-slate-700 w-full justify-between">
-                    <Link href={study.link}>
-                      View Case Study
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
+      <section style={{ padding: "0 32px 80px" }}>
+        <div style={{ maxWidth: 1060, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+          {caseStudies.map((study) => (
+            <div key={study.id} style={{ background: "#111113", border: "1px solid #27272a", borderRadius: 12, padding: 28, display: "flex", flexDirection: "column" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "#1d4ed8", background: "rgba(29,78,216,0.1)", padding: "4px 10px", borderRadius: 4 }}>
+                  {study.industry}
+                </span>
+                <span style={{ fontSize: 12, color: "#52525b", fontFamily: "var(--font-mono, monospace)" }}>{study.year}</span>
+              </div>
+
+              <h2 style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.02em", color: "#fafafa", marginBottom: 10 }}>{study.title}</h2>
+              <p style={{ fontSize: 14, color: "#a1a1aa", lineHeight: 1.6, marginBottom: 20, flex: 1 }}>{study.description}</p>
+
+              <div style={{ padding: "12px 16px", background: "rgba(22,163,74,0.06)", border: "1px solid rgba(22,163,74,0.15)", borderRadius: 8, marginBottom: 20 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "#52525b", marginBottom: 4 }}>Result</p>
+                <p style={{ fontSize: 14, fontWeight: 500, color: "#16a34a" }}>{study.results}</p>
+              </div>
+
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20 }}>
+                {study.services.map((service, idx) => (
+                  <span key={idx} style={{ fontSize: 12, color: "#a1a1aa", background: "#18181b", border: "1px solid #27272a", padding: "4px 10px", borderRadius: 4 }}>
+                    {service}
+                  </span>
+                ))}
+              </div>
+
+              <Link href={study.link} style={{ color: "#3b82f6", textDecoration: "none", fontSize: 13, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 4, borderTop: "1px solid #27272a", paddingTop: 16 }}>
+                View Case Study <ArrowRight size={13} />
+              </Link>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 bg-slate-800/50">
-        <div className="max-w-5xl mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+      {/* CTA */}
+      <section style={{ padding: "60px 32px", borderTop: "1px solid #27272a" }}>
+        <div style={{ maxWidth: 640, margin: "0 auto", textAlign: "center" }}>
+          <h2 style={{ fontSize: 32, fontWeight: 700, letterSpacing: "-0.03em", color: "#fafafa", marginBottom: 16 }}>
             Ready to Transform Your Business?
           </h2>
-          <p className="text-xl text-slate-300 mb-8 max-w-3xl mx-auto">
-            Schedule your $550 consultation session today and start your journey toward business transformation and growth.
+          <p style={{ fontSize: 16, color: "#a1a1aa", marginBottom: 32, lineHeight: 1.6 }}>
+            Schedule your $550 consultation session today and start your journey toward measurable results.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white px-8 py-6 text-lg">
-              <Link href="/book-consultation">
-                Book Your Consultation
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="border-slate-600 text-slate-200 hover:bg-slate-700 px-8 py-6 text-lg">
-              <Link href="/contact">
-                Contact Us
-              </Link>
-            </Button>
+          <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+            <Link href="/book-consultation" style={{ background: "#1d4ed8", color: "#fff", textDecoration: "none", padding: "10px 24px", borderRadius: 8, fontSize: 14, fontWeight: 500 }}>
+              Book Your Consultation
+            </Link>
+            <Link href="/contact" style={{ background: "transparent", color: "#a1a1aa", textDecoration: "none", padding: "10px 24px", borderRadius: 8, fontSize: 14, border: "1px solid #27272a" }}>
+              Contact Us
+            </Link>
           </div>
         </div>
       </section>

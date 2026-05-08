@@ -30,15 +30,15 @@ function formatDate(isoString: string | null): string {
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 const card: React.CSSProperties = {
-  background: "#0f172a",
-  border: "1px solid #1e293b",
+  background: "#111113",
+  border: "1px solid #27272a",
   borderRadius: 12,
   padding: 20,
 };
 
 function MetricRow({ label, value }: { label: string; value: string | number }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "8px 0", borderBottom: "1px solid #1e293b" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "8px 0", borderBottom: "1px solid #27272a" }}>
       <span style={{ fontSize: 13, color: "#475569" }}>{label}</span>
       <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 600, color: "#94a3b8" }}>{value}</span>
     </div>
@@ -168,17 +168,17 @@ export default function CcwPortal() {
 
   if (loadingAuth) {
     return (
-      <div style={{ minHeight: "100vh", background: "#0a0f1e", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ minHeight: "100vh", background: "#09090b", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <p style={{ color: "#334155", fontSize: 14 }}>Authenticating&hellip;</p>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0a0f1e", color: "#f8fafc" }}>
+    <div style={{ minHeight: "100vh", background: "#09090b", color: "#f8fafc" }}>
 
       {/* Portal header — CCW red accent confined to header only */}
-      <header style={{ background: "#0f172a", borderBottom: "1px solid #1e293b", padding: "0 24px" }}>
+      <header style={{ background: "#111113", borderBottom: "1px solid #27272a", padding: "0 24px" }}>
         {/* CCW red accent bar at very top */}
         <div style={{ height: 3, background: CCW_RED, marginLeft: -24, marginRight: -24 }} />
         <div style={{ maxWidth: 1100, margin: "0 auto", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -198,8 +198,8 @@ export default function CcwPortal() {
             )}
             <button
               onClick={fetchHealth} disabled={loadingData}
-              style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", fontSize: 11, fontWeight: 500, borderRadius: 7, border: "1px solid #1e293b", color: "#94a3b8", background: "transparent", cursor: loadingData ? "not-allowed" : "pointer", transition: "all 0.12s ease" }}
-              onMouseEnter={e => { if (!loadingData) { (e.currentTarget as HTMLButtonElement).style.background = "#111827"; (e.currentTarget as HTMLButtonElement).style.color = "#f8fafc"; } }}
+              style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", fontSize: 11, fontWeight: 500, borderRadius: 7, border: "1px solid #27272a", color: "#94a3b8", background: "transparent", cursor: loadingData ? "not-allowed" : "pointer", transition: "all 0.12s ease" }}
+              onMouseEnter={e => { if (!loadingData) { (e.currentTarget as HTMLButtonElement).style.background = "#18181b"; (e.currentTarget as HTMLButtonElement).style.color = "#f8fafc"; } }}
               onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "#94a3b8"; }}
             >
               <RefreshCw size={11} className={loadingData ? "spin" : ""} />

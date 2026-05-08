@@ -61,8 +61,8 @@ const COMPARISON = [
 ];
 
 const card: React.CSSProperties = {
-  background: "#0f172a",
-  border: "1px solid #1e293b",
+  background: "#111113",
+  border: "1px solid #27272a",
   borderRadius: 12,
   padding: 24,
 };
@@ -75,10 +75,10 @@ function Check({ ok }: { ok: boolean | string }) {
 
 export default function Pricing() {
   return (
-    <div style={{ minHeight: "100vh", background: "#0a0f1e", color: "#f8fafc" }}>
+    <div style={{ minHeight: "100vh", background: "#09090b", color: "#f8fafc" }}>
 
       {/* Nav */}
-      <nav style={{ background: "rgba(10,15,30,0.9)", backdropFilter: "blur(20px)", borderBottom: "1px solid #1e293b", height: 60, padding: "0 24px", position: "sticky", top: 0, zIndex: 40, display: "flex", alignItems: "center" }}>
+      <nav style={{ background: "rgba(10,15,30,0.9)", backdropFilter: "blur(20px)", borderBottom: "1px solid #27272a", height: 60, padding: "0 24px", position: "sticky", top: 0, zIndex: 40, display: "flex", alignItems: "center" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto", width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
             <div style={{ width: 26, height: 26, borderRadius: 6, background: "#1d4ed8", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 11, color: "#fff" }}>U</div>
@@ -111,8 +111,8 @@ export default function Pricing() {
               key={tier.name}
               style={{
                 ...card,
-                border: tier.primary ? "1px solid rgba(29,78,216,0.4)" : "1px solid #1e293b",
-                background: tier.primary ? "rgba(29,78,216,0.06)" : "#0f172a",
+                border: tier.primary ? "1px solid rgba(29,78,216,0.4)" : "1px solid #27272a",
+                background: tier.primary ? "rgba(29,78,216,0.06)" : "#111113",
                 display: "flex",
                 flexDirection: "column",
                 gap: 16,
@@ -151,7 +151,7 @@ export default function Pricing() {
                   textDecoration: "none",
                   color: tier.primary ? "#fff" : "#94a3b8",
                   background: tier.primary ? "#1d4ed8" : "transparent",
-                  border: `1px solid ${tier.primary ? "#1d4ed8" : "#1e293b"}`,
+                  border: `1px solid ${tier.primary ? "#1d4ed8" : "#27272a"}`,
                   transition: "all 0.14s ease",
                 }}
               >
@@ -165,10 +165,10 @@ export default function Pricing() {
       {/* Feature comparison table */}
       <section style={{ maxWidth: 900, margin: "0 auto", padding: "0 24px 80px" }}>
         <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#334155", marginBottom: 16 }}>Comparison</p>
-        <div style={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 12, overflow: "hidden" }}>
+        <div style={{ background: "#111113", border: "1px solid #27272a", borderRadius: 12, overflow: "hidden" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ borderBottom: "1px solid #1e293b" }}>
+              <tr style={{ borderBottom: "1px solid #27272a" }}>
                 <th style={{ padding: "12px 16px", textAlign: "left", fontSize: 11, fontWeight: 600, color: "#334155" }}>Feature</th>
                 {["Foundation", "Growth", "Full Agency"].map(h => (
                   <th key={h} style={{ padding: "12px 16px", textAlign: "center", fontSize: 11, fontWeight: 600, color: "#334155" }}>{h}</th>
@@ -177,7 +177,7 @@ export default function Pricing() {
             </thead>
             <tbody>
               {COMPARISON.map((row, i) => (
-                <tr key={row.feature} style={{ borderBottom: i < COMPARISON.length - 1 ? "1px solid #1e293b" : "none" }}>
+                <tr key={row.feature} style={{ borderBottom: i < COMPARISON.length - 1 ? "1px solid #27272a" : "none" }}>
                   <td style={{ padding: "12px 16px", fontSize: 13, color: "#94a3b8" }}>{row.feature}</td>
                   <td style={{ padding: "12px 16px", textAlign: "center" }}><Check ok={row.foundation} /></td>
                   <td style={{ padding: "12px 16px", textAlign: "center" }}><Check ok={row.growth} /></td>
@@ -190,7 +190,7 @@ export default function Pricing() {
       </section>
 
       {/* CTA */}
-      <section style={{ background: "#0f172a", borderTop: "1px solid #1e293b", padding: "48px 24px", textAlign: "center" }}>
+      <section style={{ background: "#111113", borderTop: "1px solid #27272a", padding: "48px 24px", textAlign: "center" }}>
         <h2 style={{ fontSize: 24, fontWeight: 700, color: "#f8fafc", letterSpacing: "-0.03em", margin: "0 0 10px" }}>Ready to get started?</h2>
         <p style={{ fontSize: 15, color: "#64748b", margin: "0 0 24px" }}>Contact us to discuss your requirements and check current availability.</p>
         <Link href="/contact" style={{ display: "inline-flex", alignItems: "center", padding: "10px 22px", borderRadius: 10, background: "#1d4ed8", color: "#fff", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
