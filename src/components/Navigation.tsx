@@ -116,8 +116,8 @@ export default function Navigation() {
                   </Link>
                   {(user.email?.endsWith("@unite-group.in") || user.email === "contact@unite-group.in") && (
                     <Link
-                      href="/dashboard/ceo"
-                      className={cn(linkClass("/dashboard/ceo"), "text-amber-400 hover:text-amber-300")}
+                      href="/ceo"
+                      className={cn(linkClass("/ceo"), "text-amber-400 hover:text-amber-300")}
                     >
                       CEO View
                     </Link>
@@ -179,7 +179,7 @@ export default function Navigation() {
               )}
               {!loading && (user?.email?.endsWith("@unite-group.in") || user?.email === "contact@unite-group.in") && (
                 <SheetClose asChild>
-                  <Link href="/dashboard/ceo" className={cn(mobileLinkClass("/dashboard/ceo"), "text-amber-400")}>
+                  <Link href="/ceo" className={cn(mobileLinkClass("/ceo"), "text-amber-400")}>
                     CEO View
                   </Link>
                 </SheetClose>
