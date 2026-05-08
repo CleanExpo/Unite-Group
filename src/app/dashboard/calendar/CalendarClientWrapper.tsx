@@ -118,8 +118,8 @@ export default function CalendarClientWrapper({
           onEdit={handleEdit}
         />
       ) : (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <p className="text-gray-500 text-base max-w-sm">
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "64px 0", textAlign: "center" }}>
+          <p style={{ color: "#52525b", fontSize: 14, maxWidth: 320 }}>
             Your calendar for this week is being generated. Check back Monday morning.
           </p>
         </div>

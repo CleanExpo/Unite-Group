@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -35,12 +34,12 @@ interface Project {
   }[];
 }
 
-const statusColors = {
-  planning: 'bg-blue-500',
-  'in-progress': 'bg-yellow-500',
-  review: 'bg-purple-500',
-  completed: 'bg-green-500',
-  'on-hold': 'bg-red-500'
+const statusColors: Record<string, string> = {
+  planning: '#1d4ed8',
+  'in-progress': '#f59e0b',
+  review: '#a1a1aa',
+  completed: '#16a34a',
+  'on-hold': '#dc2626'
 };
 
 const statusIcons = {
@@ -49,6 +48,13 @@ const statusIcons = {
   review: AlertCircle,
   completed: CheckCircle,
   'on-hold': XCircle
+};
+
+const cardStyle: React.CSSProperties = {
+  background: "#111113",
+  border: "1px solid #27272a",
+  borderRadius: 12,
+  padding: 20,
 };
 
 export default function ProjectsPage() {
@@ -76,34 +82,30 @@ export default function ProjectsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 text-white">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-400"></div>
-          </div>
-        </div>
+      <div style={{ minHeight: "100vh", background: "#09090b", color: "#fafafa", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: 40, height: 40, border: "2px solid #1d4ed8", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
       </div>
     );
   }
 
   if (selectedProject) {
     return (
-      <div className="min-h-screen bg-slate-900 text-white">
-        <div className="container mx-auto px-4 py-8">
-          <div className="mb-6">
-            <Button 
-              variant="outline" 
+      <div style={{ minHeight: "100vh", background: "#09090b", color: "#fafafa", fontFamily: "var(--font-inter, system-ui, sans-serif)" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px" }}>
+          <div style={{ marginBottom: 24 }}>
+            <Button
+              variant="outline"
               onClick={() => setSelectedProject(null)}
-              className="mb-4 border-teal-600 text-teal-400 hover:bg-teal-600 hover:text-white"
+              style={{ marginBottom: 16, border: "1px solid #27272a", background: "transparent", color: "#a1a1aa" }}
             >
               ← Back to Projects
             </Button>
-            <h1 className="text-4xl font-bold mb-2">{selectedProject.name}</h1>
-            <p className="text-slate-300 text-lg">{selectedProject.description}</p>
+            <h1 style={{ fontSize: 32, fontWeight: 700, letterSpacing: "-0.02em", color: "#fafafa", marginBottom: 8 }}>{selectedProject.name}</h1>
+            <p style={{ fontSize: 15, color: "#a1a1aa" }}>{selectedProject.description}</p>
           </div>
 
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="bg-slate-800">
+            <TabsList style={{ background: "#111113", border: "1px solid #27272a" }}>
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="timeline">Timeline</TabsTrigger>
               <TabsTrigger value="tasks">Tasks</TabsTrigger>
@@ -111,130 +113,96 @@ export default function ProjectsPage() {
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="bg-slate-800 border-slate-700">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-slate-300">Progress</CardTitle>
-                    <BarChart3 className="h-4 w-4 text-teal-400" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-white">{selectedProject.progress}%</div>
-                    <Progress value={selectedProject.progress} className="mt-2" />
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-slate-800 border-slate-700">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-slate-300">Budget</CardTitle>
-                    <DollarSign className="h-4 w-4 text-teal-400" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-white">
-                      ${selectedProject.spent.toLocaleString()} / ${selectedProject.budget.toLocaleString()}
-                    </div>
-                    <Progress 
-                      value={(selectedProject.spent / selectedProject.budget) * 100} 
-                      className="mt-2" 
-                    />
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-slate-800 border-slate-700">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-slate-300">Status</CardTitle>
-                    {(() => {
-                      const StatusIcon = statusIcons[selectedProject.status];
-                      return <StatusIcon className="h-4 w-4 text-teal-400" />;
-                    })()}
-                  </CardHeader>
-                  <CardContent>
-                    <Badge className={`${statusColors[selectedProject.status]} text-white`}>
-                      {selectedProject.status.charAt(0).toUpperCase() + selectedProject.status.slice(1)}
-                    </Badge>
-                  </CardContent>
-                </Card>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+                <div style={cardStyle}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <span style={{ fontSize: 12, color: "#a1a1aa" }}>Progress</span>
+                    <BarChart3 size={14} style={{ color: "#1d4ed8" }} />
+                  </div>
+                  <div style={{ fontSize: 28, fontWeight: 700, color: "#fafafa", fontFamily: "var(--font-mono, monospace)", marginBottom: 8 }}>{selectedProject.progress}%</div>
+                  <Progress value={selectedProject.progress} className="mt-2" />
+                </div>
+                <div style={cardStyle}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <span style={{ fontSize: 12, color: "#a1a1aa" }}>Budget</span>
+                    <DollarSign size={14} style={{ color: "#1d4ed8" }} />
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: "#fafafa", fontFamily: "var(--font-mono, monospace)", marginBottom: 8 }}>
+                    ${selectedProject.spent.toLocaleString()} / ${selectedProject.budget.toLocaleString()}
+                  </div>
+                  <Progress value={(selectedProject.spent / selectedProject.budget) * 100} className="mt-2" />
+                </div>
+                <div style={cardStyle}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <span style={{ fontSize: 12, color: "#a1a1aa" }}>Status</span>
+                    {(() => { const StatusIcon = statusIcons[selectedProject.status]; return <StatusIcon size={14} style={{ color: "#1d4ed8" }} />; })()}
+                  </div>
+                  <span style={{ display: "inline-block", background: `${statusColors[selectedProject.status]}22`, color: statusColors[selectedProject.status], padding: "4px 10px", borderRadius: 4, fontSize: 13, fontWeight: 500 }}>
+                    {selectedProject.status.charAt(0).toUpperCase() + selectedProject.status.slice(1)}
+                  </span>
+                </div>
               </div>
 
-              <Card className="bg-slate-800 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white">Project Details</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-slate-400">Client</p>
-                      <p className="text-white">{selectedProject.client}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-slate-400">Duration</p>
-                      <p className="text-white">
-                        {new Date(selectedProject.startDate).toLocaleDateString()} - {new Date(selectedProject.endDate).toLocaleDateString()}
+              <div style={cardStyle}>
+                <h3 style={{ fontSize: 16, fontWeight: 600, color: "#fafafa", marginBottom: 16 }}>Project Details</h3>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  <div>
+                    <p style={{ fontSize: 12, color: "#52525b", marginBottom: 4 }}>Client</p>
+                    <p style={{ color: "#fafafa", fontSize: 14 }}>{selectedProject.client}</p>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 12, color: "#52525b", marginBottom: 4 }}>Duration</p>
+                    <p style={{ color: "#fafafa", fontSize: 14 }}>
+                      {new Date(selectedProject.startDate).toLocaleDateString()} — {new Date(selectedProject.endDate).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="timeline" className="space-y-3">
+              {selectedProject.timeline.map((phase, index) => (
+                <div key={index} style={cardStyle}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: "50%", flexShrink: 0, background: phase.status === 'completed' ? '#16a34a' : phase.status === 'current' ? '#f59e0b' : '#27272a' }} />
+                    <div style={{ flex: 1 }}>
+                      <h3 style={{ fontWeight: 500, color: "#fafafa", fontSize: 14 }}>{phase.phase}</h3>
+                      <p style={{ fontSize: 12, color: "#52525b" }}>
+                        {new Date(phase.startDate).toLocaleDateString()} — {new Date(phase.endDate).toLocaleDateString()}
                       </p>
                     </div>
+                    <Badge variant={phase.status === 'completed' ? 'default' : 'secondary'}>{phase.status}</Badge>
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="timeline" className="space-y-4">
-              {selectedProject.timeline.map((phase, index) => (
-                <Card key={index} className="bg-slate-800 border-slate-700">
-                  <CardContent className="p-4">
-                    <div className="flex items-center space-x-4">
-                      <div className={`w-4 h-4 rounded-full ${
-                        phase.status === 'completed' ? 'bg-green-500' :
-                        phase.status === 'current' ? 'bg-yellow-500' :
-                        'bg-slate-500'
-                      }`} />
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-white">{phase.phase}</h3>
-                        <p className="text-sm text-slate-400">
-                          {new Date(phase.startDate).toLocaleDateString()} - {new Date(phase.endDate).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <Badge variant={phase.status === 'completed' ? 'default' : 'secondary'}>
-                        {phase.status}
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
+                </div>
               ))}
             </TabsContent>
 
-            <TabsContent value="tasks" className="space-y-4">
+            <TabsContent value="tasks" className="space-y-3">
               {selectedProject.tasks.map((task) => (
-                <Card key={task.id} className="bg-slate-800 border-slate-700">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-semibold text-white">{task.name}</h3>
-                        <p className="text-sm text-slate-400">Assigned to: {task.assignee}</p>
-                        <p className="text-sm text-slate-400">Due: {new Date(task.dueDate).toLocaleDateString()}</p>
-                      </div>
-                      <Badge className={
-                        task.status === 'completed' ? 'bg-green-500' :
-                        task.status === 'in-progress' ? 'bg-yellow-500' :
-                        'bg-slate-500'
-                      }>
-                        {task.status}
-                      </Badge>
+                <div key={task.id} style={cardStyle}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div>
+                      <h3 style={{ fontWeight: 500, color: "#fafafa", fontSize: 14, marginBottom: 4 }}>{task.name}</h3>
+                      <p style={{ fontSize: 12, color: "#52525b" }}>Assigned to: {task.assignee}</p>
+                      <p style={{ fontSize: 12, color: "#52525b" }}>Due: {new Date(task.dueDate).toLocaleDateString()}</p>
                     </div>
-                  </CardContent>
-                </Card>
+                    <span style={{ display: "inline-block", background: task.status === 'completed' ? 'rgba(22,163,74,0.15)' : task.status === 'in-progress' ? 'rgba(245,158,11,0.15)' : '#27272a', color: task.status === 'completed' ? '#16a34a' : task.status === 'in-progress' ? '#f59e0b' : '#a1a1aa', padding: "4px 10px", borderRadius: 4, fontSize: 12 }}>
+                      {task.status}
+                    </span>
+                  </div>
+                </div>
               ))}
             </TabsContent>
 
-            <TabsContent value="team" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <TabsContent value="team">
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
                 {selectedProject.team.map((member, index) => (
-                  <Card key={index} className="bg-slate-800 border-slate-700">
-                    <CardContent className="p-4 text-center">
-                      <div className="w-12 h-12 bg-teal-600 rounded-full flex items-center justify-center mx-auto mb-2">
-                        <Users className="h-6 w-6 text-white" />
-                      </div>
-                      <h3 className="font-semibold text-white">{member}</h3>
-                    </CardContent>
-                  </Card>
+                  <div key={index} style={{ ...cardStyle, textAlign: "center" }}>
+                    <div style={{ width: 40, height: 40, background: "rgba(29,78,216,0.2)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px" }}>
+                      <Users size={16} style={{ color: "#3b82f6" }} />
+                    </div>
+                    <h3 style={{ fontWeight: 500, color: "#fafafa", fontSize: 14 }}>{member}</h3>
+                  </div>
                 ))}
               </div>
             </TabsContent>
@@ -245,77 +213,64 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-4">Projects</h1>
-          <p className="text-slate-300 text-lg">
-            Manage and track all your projects in one place
-          </p>
+    <div style={{ minHeight: "100vh", background: "#09090b", color: "#fafafa", fontFamily: "var(--font-inter, system-ui, sans-serif)" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px" }}>
+        <div style={{ marginBottom: 32 }}>
+          <h1 style={{ fontSize: 32, fontWeight: 700, letterSpacing: "-0.02em", color: "#fafafa", marginBottom: 8 }}>Projects</h1>
+          <p style={{ fontSize: 15, color: "#a1a1aa" }}>Manage and track all your projects in one place</p>
         </div>
 
         {projects.length === 0 ? (
-          <Card className="bg-slate-800 border-slate-700">
-            <CardContent className="p-8 text-center">
-              <BarChart3 className="h-16 w-16 text-slate-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-2">No Projects Found</h3>
-              <p className="text-slate-400 mb-4">
-                You don&apos;t have any projects yet. Contact us to get started!
-              </p>
-              <Button className="bg-teal-600 hover:bg-teal-700">
-                Get Started
-              </Button>
-            </CardContent>
-          </Card>
+          <div style={{ ...cardStyle, textAlign: "center", padding: 48 }}>
+            <BarChart3 size={40} style={{ color: "#27272a", margin: "0 auto 16px" }} />
+            <h3 style={{ fontSize: 18, fontWeight: 600, color: "#fafafa", marginBottom: 8 }}>No Projects Found</h3>
+            <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 24 }}>
+              You don&apos;t have any projects yet. Contact us to get started!
+            </p>
+            <button style={{ background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 8, padding: "8px 20px", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
+              Get Started
+            </button>
+          </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
             {projects.map((project) => {
               const StatusIcon = statusIcons[project.status];
               return (
-                <Card 
-                  key={project.id} 
-                  className="bg-slate-800 border-slate-700 hover:border-teal-600 transition-colors cursor-pointer"
+                <div
+                  key={project.id}
+                  style={{ ...cardStyle, cursor: "pointer" }}
                   onClick={() => setSelectedProject(project)}
                 >
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-white">{project.name}</CardTitle>
-                      <StatusIcon className="h-5 w-5 text-teal-400" />
-                    </div>
-                    <CardDescription className="text-slate-400">
-                      {project.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="text-slate-400">Progress</span>
-                          <span className="text-white">{project.progress}%</span>
-                        </div>
-                        <Progress value={project.progress} className="h-2" />
-                      </div>
-                      
-                      <div className="flex justify-between items-center">
-                        <Badge className={`${statusColors[project.status]} text-white`}>
-                          {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
-                        </Badge>
-                        <span className="text-sm text-slate-400">{project.client}</span>
-                      </div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                    <h3 style={{ fontSize: 16, fontWeight: 600, color: "#fafafa" }}>{project.name}</h3>
+                    <StatusIcon size={16} style={{ color: "#1d4ed8" }} />
+                  </div>
+                  <p style={{ fontSize: 13, color: "#a1a1aa", marginBottom: 16, lineHeight: 1.5 }}>{project.description}</p>
 
-                      <div className="flex justify-between text-sm text-slate-400">
-                        <div className="flex items-center">
-                          <CalendarDays className="h-4 w-4 mr-1" />
-                          {new Date(project.endDate).toLocaleDateString()}
-                        </div>
-                        <div className="flex items-center">
-                          <DollarSign className="h-4 w-4 mr-1" />
-                          ${project.budget.toLocaleString()}
-                        </div>
-                      </div>
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 6 }}>
+                      <span style={{ color: "#52525b" }}>Progress</span>
+                      <span style={{ color: "#fafafa", fontFamily: "var(--font-mono, monospace)" }}>{project.progress}%</span>
                     </div>
-                  </CardContent>
-                </Card>
+                    <Progress value={project.progress} className="h-1.5" />
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <span style={{ display: "inline-block", background: `${statusColors[project.status]}22`, color: statusColors[project.status], padding: "3px 8px", borderRadius: 4, fontSize: 11, fontWeight: 500 }}>
+                      {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
+                    </span>
+                    <span style={{ fontSize: 12, color: "#52525b" }}>{project.client}</span>
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#52525b", borderTop: "1px solid #27272a", paddingTop: 12 }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <CalendarDays size={11} />{new Date(project.endDate).toLocaleDateString()}
+                    </span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 4, fontFamily: "var(--font-mono, monospace)" }}>
+                      <DollarSign size={11} />${project.budget.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
               );
             })}
           </div>
