@@ -7,6 +7,14 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async redirects() {
+    return [
+      { source: '/en/dashboard/ceo', destination: '/dashboard/ceo', permanent: false },
+      { source: '/es/dashboard/ceo', destination: '/dashboard/ceo', permanent: false },
+      { source: '/fr/dashboard/ceo', destination: '/dashboard/ceo', permanent: false },
+      { source: '/dashboard/login', destination: '/login', permanent: true },
+    ];
+  },
   reactStrictMode: true,
   // Tell Next.js to use the src directory
   distDir: '.next',
