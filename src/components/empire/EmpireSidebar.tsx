@@ -17,6 +17,7 @@ const BUSINESS_SLUGS: Record<string, { slug: string; domain: string }> = {
 };
 
 const AUTH_ROUTES = ['/login', '/register', '/reset-password', '/update-password'];
+const CLIENT_ROUTES = ['/clients/']; // client portals get their own clean layout
 
 const NAV = [
   { href: '/ceo',               icon: Zap,             label: 'Command Center' },
@@ -46,8 +47,9 @@ const STATUS_COLOR: Record<string, string> = {
 export function EmpireSidebar() {
   const pathname = usePathname();
   const isAuthRoute = AUTH_ROUTES.some(r => pathname.endsWith(r));
+  const isClientRoute = CLIENT_ROUTES.some(r => pathname.startsWith(r));
   const [expandedBiz, setExpandedBiz] = useState<string | null>(null);
-  if (isAuthRoute) return null;
+  if (isAuthRoute || isClientRoute) return null;
 
   return (
     <aside style={{ width: 240, minHeight: '100vh', background: '#0c0c0e', border: '1px solid #27272a', borderTop: 'none', borderBottom: 'none', borderLeft: 'none', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
