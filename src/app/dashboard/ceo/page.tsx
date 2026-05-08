@@ -1,3 +1,4 @@
+"use client";
 import dynamic from 'next/dynamic';
 
 // Load the CEO dashboard entirely on the client — prevents SSR crashes
