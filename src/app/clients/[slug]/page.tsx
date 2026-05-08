@@ -70,32 +70,32 @@ export default async function AuthorityHubPage({ params }: AuthorityHubPageProps
       <VideoObjectSchema videos={videos} />
       <AuthorityHubAnalytics clientSlug={slug} />
 
-      <main className="min-h-screen bg-background text-foreground">
+      <main style={{ minHeight: '100vh', background: '#09090b', color: '#fafafa' }}>
         {/* Hero */}
-        <section className="border-b bg-card">
-          <div className="max-w-4xl mx-auto px-4 py-12">
-            <div className="flex items-start gap-6">
+        <section style={{ borderBottom: '1px solid #27272a', background: '#111113' }}>
+          <div style={{ maxWidth: 896, margin: '0 auto', padding: '48px 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 24 }}>
               {client.logo_url && (
                 <img
                   src={client.logo_url}
                   alt={`${client.business_name} logo`}
-                  className="w-20 h-20 rounded-lg object-cover border"
+                  style={{ width: 80, height: 80, borderRadius: 8, objectFit: 'cover', border: '1px solid #27272a', flexShrink: 0 }}
                 />
               )}
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 10px', borderRadius: 9999, fontSize: 12, fontWeight: 500, background: 'rgba(29,78,216,0.1)', color: '#60a5fa', border: '1px solid rgba(29,78,216,0.2)' }}>
                     {client.industry}
                   </span>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                  <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 10px', borderRadius: 9999, fontSize: 12, fontWeight: 500, background: 'rgba(22,163,74,0.1)', color: '#4ade80', border: '1px solid rgba(22,163,74,0.2)' }}>
                     Verified by Synthex
                   </span>
                   {client.featured_programme_status === 'published' && <FeaturedBadge />}
                 </div>
-                <h1 className="text-3xl font-bold tracking-tight">{client.business_name}</h1>
+                <h1 style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.03em', color: '#fafafa', margin: 0 }}>{client.business_name}</h1>
                 {location && (
-                  <p className="mt-1 text-muted-foreground text-sm flex items-center gap-1">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <p style={{ marginTop: 4, color: '#a1a1aa', fontSize: 14, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <svg style={{ width: 16, height: 16, flexShrink: 0 }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
                     </svg>
@@ -103,7 +103,7 @@ export default async function AuthorityHubPage({ params }: AuthorityHubPageProps
                   </p>
                 )}
                 {client.description && (
-                  <p className="mt-3 text-muted-foreground leading-relaxed max-w-2xl">
+                  <p style={{ marginTop: 12, color: '#a1a1aa', lineHeight: 1.6, maxWidth: 672 }}>
                     {client.description}
                   </p>
                 )}
@@ -112,17 +112,17 @@ export default async function AuthorityHubPage({ params }: AuthorityHubPageProps
           </div>
         </section>
 
-        <div className="max-w-4xl mx-auto px-4 py-10 space-y-10">
+        <div style={{ maxWidth: 896, margin: '0 auto', padding: '40px 16px', display: 'flex', flexDirection: 'column', gap: 40 }}>
           {/* Authority Score — SYN-513 will populate this */}
           <section>
-            <h2 className="text-lg font-semibold mb-4">Authority Score</h2>
-            <div className="rounded-xl border bg-card p-6 flex items-center gap-6">
-              <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center border-4 border-muted shrink-0">
-                <span className="text-2xl font-bold text-muted-foreground">—</span>
+            <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: '#fafafa' }}>Authority Score</h2>
+            <div style={{ borderRadius: 12, border: '1px solid #27272a', background: '#111113', padding: 24, display: 'flex', alignItems: 'center', gap: 24 }}>
+              <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#18181b', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '4px solid #27272a', flexShrink: 0 }}>
+                <span style={{ fontSize: 24, fontWeight: 700, color: '#a1a1aa' }}>—</span>
               </div>
               <div>
-                <p className="font-medium text-muted-foreground text-sm">Coming soon</p>
-                <p className="text-sm text-muted-foreground mt-1">
+                <p style={{ fontWeight: 500, color: '#a1a1aa', fontSize: 14, margin: 0 }}>Coming soon</p>
+                <p style={{ fontSize: 14, color: '#a1a1aa', marginTop: 4 }}>
                   Authority Score is being calculated based on E.E.A.T. signals.
                   Full score available once analysis is complete.
                 </p>
@@ -132,12 +132,12 @@ export default async function AuthorityHubPage({ params }: AuthorityHubPageProps
 
           {/* E.E.A.T. Metrics Grid */}
           <section>
-            <h2 className="text-lg font-semibold mb-4">E.E.A.T. Index</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: '#fafafa' }}>E.E.A.T. Index</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
               {(['Expertise', 'Experience', 'Authoritativeness', 'Trustworthiness'] as const).map((metric) => (
-                <div key={metric} className="rounded-xl border bg-card p-4 text-center">
-                  <p className="text-2xl font-bold text-muted-foreground">—</p>
-                  <p className="text-xs text-muted-foreground mt-1 font-medium">{metric}</p>
+                <div key={metric} style={{ borderRadius: 12, border: '1px solid #27272a', background: '#111113', padding: 16, textAlign: 'center' }}>
+                  <p style={{ fontSize: 24, fontWeight: 700, color: '#a1a1aa', margin: 0 }}>—</p>
+                  <p style={{ fontSize: 12, color: '#a1a1aa', marginTop: 4, fontWeight: 500 }}>{metric}</p>
                 </div>
               ))}
             </div>
@@ -145,9 +145,9 @@ export default async function AuthorityHubPage({ params }: AuthorityHubPageProps
 
           {/* Social Proof */}
           <section>
-            <h2 className="text-lg font-semibold mb-4">Social Proof</h2>
-            <div className="rounded-xl border bg-card p-6">
-              <p className="text-sm text-muted-foreground text-center py-4">
+            <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: '#fafafa' }}>Social Proof</h2>
+            <div style={{ borderRadius: 12, border: '1px solid #27272a', background: '#111113', padding: 24 }}>
+              <p style={{ fontSize: 14, color: '#a1a1aa', textAlign: 'center', padding: '16px 0', margin: 0 }}>
                 Social proof metrics loading — check back soon.
               </p>
             </div>
@@ -156,29 +156,29 @@ export default async function AuthorityHubPage({ params }: AuthorityHubPageProps
           {/* Contact */}
           {(client.phone || client.website_url || client.address_street) && (
             <section>
-              <h2 className="text-lg font-semibold mb-4">Contact</h2>
-              <div className="rounded-xl border bg-card p-6 space-y-3 text-sm">
+              <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: '#fafafa' }}>Contact</h2>
+              <div style={{ borderRadius: 12, border: '1px solid #27272a', background: '#111113', padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {client.phone && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#a1a1aa', fontSize: 14 }}>
+                    <svg style={{ width: 16, height: 16, flexShrink: 0 }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
                     </svg>
-                    <a href={`tel:${client.phone}`} className="hover:text-foreground">{client.phone}</a>
+                    <a href={`tel:${client.phone}`} style={{ color: '#a1a1aa', textDecoration: 'none' }}>{client.phone}</a>
                   </div>
                 )}
                 {client.website_url && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#a1a1aa', fontSize: 14 }}>
+                    <svg style={{ width: 16, height: 16, flexShrink: 0 }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
                     </svg>
-                    <a href={client.website_url} target="_blank" rel="noopener noreferrer" className="hover:text-foreground truncate max-w-xs">
+                    <a href={client.website_url} target="_blank" rel="noopener noreferrer" style={{ color: '#a1a1aa', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 288 }}>
                       {client.website_url.replace(/^https?:\/\//, '')}
                     </a>
                   </div>
                 )}
                 {client.address_street && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#a1a1aa', fontSize: 14 }}>
+                    <svg style={{ width: 16, height: 16, flexShrink: 0 }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
                     </svg>

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { supabaseClient } from "@/lib/supabase/client";
 import {
-  Building2, TrendingUp, Zap, ExternalLink, Activity,
+  Building2, ExternalLink, Activity,
   FileText, BarChart3, Users, ArrowUpRight, RefreshCw,
 } from "lucide-react";
 
@@ -97,37 +97,18 @@ export default function DashboardPage() {
   return (
     <div style={{ minHeight: "100vh", background: "#09090b", color: "#f8fafc" }}>
 
-      {/* Header */}
-      <header style={{
-        background: "rgba(10,15,30,0.9)",
-        backdropFilter: "blur(20px) saturate(180%)",
-        WebkitBackdropFilter: "blur(20px) saturate(180%)",
-        borderBottom: "1px solid #27272a",
-        height: 60,
-        padding: "0 24px",
-        position: "sticky",
-        top: 0,
-        zIndex: 40,
-        display: "flex",
-        alignItems: "center",
-      }}>
-        <div style={{ maxWidth: 1440, margin: "0 auto", width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 7, background: "#1d4ed8", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Zap size={14} color="white" strokeWidth={2.5} />
-            </div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#f8fafc", letterSpacing: "-0.02em" }}>Unite Group</div>
-              <div style={{ fontSize: 9, color: "#334155", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Dashboard</div>
-            </div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            {user && <span style={{ fontSize: 11, color: "#334155", fontFamily: "var(--font-mono)" }}>{user.email}</span>}
-            {now && <span style={{ fontSize: 11, color: "#334155", fontFamily: "var(--font-mono)" }}>Updated {now} AEST</span>}
-            <Link href="/dashboard/ceo" style={{ fontSize: 12, fontWeight: 500, color: "#1d4ed8", textDecoration: "none" }}>Command Center →</Link>
-          </div>
+      {/* Page title */}
+      <div style={{ padding: "24px 24px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div>
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em", margin: 0, fontFamily: "var(--font-inter)" }}>
+            Dashboard
+          </h1>
+          <p style={{ fontSize: 11, color: "#52525b", margin: "3px 0 0", fontFamily: "var(--font-mono)" }}>
+            {user?.email}{now ? ` · Updated ${now} AEST` : ""}
+          </p>
         </div>
-      </header>
+        <Link href="/dashboard/ceo" style={{ fontSize: 12, fontWeight: 500, color: "#1d4ed8", textDecoration: "none" }}>Command Center →</Link>
+      </div>
 
       <main style={{ maxWidth: 1440, margin: "0 auto", padding: "24px", display: "flex", flexDirection: "column", gap: 32 }}>
 

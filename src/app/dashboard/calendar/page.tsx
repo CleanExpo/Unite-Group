@@ -74,12 +74,15 @@ export default async function CalendarPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#09090b", color: "#f8fafc" }}>
-      <header style={{ background: "rgba(10,15,30,0.9)", backdropFilter: "blur(20px)", borderBottom: "1px solid #27272a", height: 60, padding: "0 24px", display: "flex", alignItems: "center", position: "sticky", top: 0, zIndex: 40 }}>
-        <div style={{ maxWidth: 1440, margin: "0 auto", width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <h1 style={{ fontSize: 16, fontWeight: 600, color: "#f8fafc", letterSpacing: "-0.02em", margin: 0 }}>Content Calendar</h1>
-          <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", color: "#334155" }}>Week of {weekStart}</span>
+      {/* Page title */}
+      <div style={{ padding: "24px 24px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div>
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em", margin: 0, fontFamily: "var(--font-inter)" }}>
+            Calendar
+          </h1>
+          <p style={{ fontSize: 11, color: "#52525b", margin: "3px 0 0", fontFamily: "var(--font-mono)" }}>Week of {weekStart}</p>
         </div>
-      </header>
+      </div>
       <div style={{ maxWidth: 1440, margin: "0 auto", padding: "32px 24px" }}>
         <CalendarClientWrapper
           calendar={calendar}

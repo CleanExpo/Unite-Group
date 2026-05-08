@@ -1,10 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import { supabaseClient } from "@/lib/supabase/client";
-import { Plus, ArrowLeft, Send, CheckCircle2, Loader2 } from "lucide-react";
+import { Plus, Send, CheckCircle2, Loader2 } from "lucide-react";
 
 interface KanbanCard {
   id: string;
@@ -107,33 +106,27 @@ export default function KanbanBoard() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#09090b", color: "#fafafa" }}>
-      {/* Header */}
-      <header style={{ height: 60, display: "flex", alignItems: "center", padding: "0 24px", borderBottom: "1px solid #27272a", position: "sticky", top: 0, background: "rgba(9,9,11,0.9)", backdropFilter: "blur(20px)", zIndex: 40 }}>
-        <div style={{ maxWidth: 1440, margin: "0 auto", width: "100%", display: "flex", alignItems: "center", gap: 16 }}>
-          <Link href="/ceo" style={{ display: "flex", alignItems: "center", gap: 6, color: "#52525b", textDecoration: "none", fontSize: 12, transition: "color 0.12s ease" }}
-            onMouseEnter={e => (e.currentTarget.style.color = "#a1a1aa")}
-            onMouseLeave={e => (e.currentTarget.style.color = "#52525b")}
-          >
-            <ArrowLeft size={12} /> Command Center
-          </Link>
-          <span style={{ color: "#27272a" }}>·</span>
-          <h1 style={{ fontSize: 14, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em", margin: 0, fontFamily: "var(--font-inter)" }}>Work Orders</h1>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "#52525b" }}>{doneCards}/{totalCards} done</span>
-          <div style={{ flex: 1 }} />
-          {/* Progress bar */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 120, height: 3, background: "#27272a", borderRadius: 2, overflow: "hidden" }}>
-              <motion.div
-                style={{ height: "100%", borderRadius: 2, background: "#16a34a" }}
-                initial={{ width: 0 }}
-                animate={{ width: `${Math.round((doneCards / totalCards) * 100)}%` }}
-                transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
-              />
-            </div>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#52525b" }}>{Math.round((doneCards / totalCards) * 100)}%</span>
-          </div>
+      {/* Page title */}
+      <div style={{ padding: "24px 24px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div>
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em", margin: 0, fontFamily: "var(--font-inter)" }}>
+            Work Orders
+          </h1>
+          <p style={{ fontSize: 11, color: "#52525b", margin: "3px 0 0", fontFamily: "var(--font-mono)" }}>{doneCards}/{totalCards} done</p>
         </div>
-      </header>
+        {/* Progress bar */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 120, height: 3, background: "#27272a", borderRadius: 2, overflow: "hidden" }}>
+            <motion.div
+              style={{ height: "100%", borderRadius: 2, background: "#16a34a" }}
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.round((doneCards / totalCards) * 100)}%` }}
+              transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
+            />
+          </div>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#52525b" }}>{Math.round((doneCards / totalCards) * 100)}%</span>
+        </div>
+      </div>
 
       {/* Board */}
       <div style={{ maxWidth: 1440, margin: "0 auto", padding: "24px", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, alignItems: "start" }}>

@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import { supabaseClient } from "@/lib/supabase/client";
-import { ArrowLeft, BarChart3 } from "lucide-react";
+import { BarChart3 } from "lucide-react";
 
 const CONTENT_PIPELINE = [
   { business: "Synthex",       done: 9,  total: 15, color: "#6366f1" },
@@ -64,23 +63,17 @@ export default function ContentPipeline() {
   return (
     <div style={{ minHeight: "100vh", background: "#09090b", color: "#f8fafc" }}>
 
-      {/* Header */}
-      <header style={{ background: "rgba(10,15,30,0.9)", backdropFilter: "blur(20px)", borderBottom: "1px solid #27272a", height: 60, padding: "0 24px", position: "sticky", top: 0, zIndex: 40, display: "flex", alignItems: "center" }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto", width: "100%", display: "flex", alignItems: "center" }}>
-          <Link href="/dashboard/ceo" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#475569", textDecoration: "none", marginRight: 16 }}>
-            <ArrowLeft size={13} />Back
-          </Link>
-          <span style={{ fontSize: 13, fontWeight: 600, color: "#f8fafc" }}>Content Pipeline</span>
+      {/* Page title */}
+      <div style={{ padding: "24px 24px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div>
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em", margin: 0, fontFamily: "var(--font-inter)" }}>
+            Content Pipeline
+          </h1>
+          <p style={{ fontSize: 11, color: "#52525b", margin: "3px 0 0", fontFamily: "var(--font-mono)" }}>{totalDone} of {totalItems} assets complete across 6 businesses</p>
         </div>
-      </header>
+      </div>
 
       <main style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 64px", display: "flex", flexDirection: "column", gap: 24 }}>
-
-        {/* Overview header */}
-        <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: "#f8fafc", letterSpacing: "-0.03em", margin: 0 }}>Content Pipeline</h1>
-          <p style={{ fontSize: 14, color: "#475569", marginTop: 6 }}>{totalDone} of {totalItems} assets complete across 6 businesses</p>
-        </div>
 
         {/* Overall progress */}
         <motion.div

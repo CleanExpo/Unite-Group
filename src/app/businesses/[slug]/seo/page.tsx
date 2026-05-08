@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowLeft, CheckCircle2, XCircle, RefreshCw, ExternalLink } from "lucide-react";
+import { CheckCircle2, XCircle, RefreshCw, ExternalLink } from "lucide-react";
 import { supabaseClient } from "@/lib/supabase/client";
 
 const SLUG_TO_DOMAIN: Record<string, { name: string; domain: string; color: string }> = {
@@ -92,7 +91,7 @@ export default function SEOAuditPage() {
     <div style={{ minHeight: '100vh', background: '#09090b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ textAlign: 'center' }}>
         <p style={{ color: '#52525b', fontFamily: 'var(--font-mono)', fontSize: 13 }}>Unknown business: {slug}</p>
-        <Link href="/ceo" style={{ color: '#1d4ed8', fontSize: 12, marginTop: 12, display: 'block' }}>← Back to Command Center</Link>
+        <a href="/ceo" style={{ color: '#1d4ed8', fontSize: 12, marginTop: 12, display: 'block' }}>← Back to Command Center</a>
       </div>
     </div>
   );
@@ -102,22 +101,24 @@ export default function SEOAuditPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#09090b', color: '#fafafa' }}>
-      {/* Header */}
-      <header style={{ height: 60, display: 'flex', alignItems: 'center', padding: '0 24px', borderBottom: '1px solid #27272a', position: 'sticky', top: 0, background: 'rgba(9,9,11,0.9)', backdropFilter: 'blur(20px)', zIndex: 40 }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', width: '100%', display: 'flex', alignItems: 'center', gap: 16 }}>
-          <Link href="/ceo" style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#52525b', textDecoration: 'none', fontSize: 12, transition: 'color 0.1s' }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#a1a1aa')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#52525b')}
-          >
-            <ArrowLeft size={12} /> Command Center
-          </Link>
-          <span style={{ color: '#27272a' }}>·</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      {/* Page title */}
+      <div style={{ padding: "24px 24px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div>
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em", margin: 0, fontFamily: "var(--font-inter)", display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: meta.color, display: 'inline-block' }} />
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#fafafa', letterSpacing: '-0.02em', fontFamily: 'var(--font-inter)' }}>{meta.name}</span>
-            <span style={{ fontSize: 12, color: '#52525b' }}>— SEO Audit</span>
-          </div>
-          <div style={{ flex: 1 }} />
+            {meta.name} — SEO Audit
+          </h1>
+          <p style={{ fontSize: 11, color: "#52525b", margin: "3px 0 0", fontFamily: "var(--font-mono)" }}>
+            <a href={`https://${meta.domain}`} target="_blank" rel="noopener noreferrer"
+              style={{ color: '#52525b', textDecoration: 'none' }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#a1a1aa')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#52525b')}
+            >
+              {meta.domain} <ExternalLink size={9} style={{ display: 'inline', verticalAlign: 'middle' }} />
+            </a>
+          </p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <a
             href={`/api/seo/audit/pdf?domain=${meta.domain}`}
             download
@@ -133,13 +134,6 @@ export default function SEOAuditPage() {
           >
             <span style={{ fontSize: 13 }}>↓</span> Download PDF Report
           </a>
-          <a href={`https://${meta.domain}`} target="_blank" rel="noopener noreferrer"
-            style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#52525b', textDecoration: 'none' }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#a1a1aa')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#52525b')}
-          >
-            {meta.domain} <ExternalLink size={10} />
-          </a>
           <button
             onClick={runAudit} disabled={loading}
             style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', fontSize: 11, borderRadius: 7, border: '1px solid #27272a', color: loading ? '#52525b' : '#a1a1aa', background: 'transparent', cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.1s' }}
@@ -148,7 +142,7 @@ export default function SEOAuditPage() {
             {loading ? 'Scanning…' : 'Re-run'}
           </button>
         </div>
-      </header>
+      </div>
 
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
 
