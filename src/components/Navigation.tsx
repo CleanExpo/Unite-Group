@@ -114,6 +114,11 @@ export default function Navigation() {
                   <Link href="/dashboard" className={linkClass("/dashboard")}>
                     Dashboard
                   </Link>
+                  {user.email?.endsWith("@ccw.com.au") && (
+                    <Link href="/clients/ccw" className={linkClass("/clients/ccw")}>
+                      Client Portal
+                    </Link>
+                  )}
                   <Button variant="destructive" size="sm" onClick={handleLogout}>
                     Logout
                   </Button>
@@ -161,6 +166,13 @@ export default function Navigation() {
                 <SheetClose asChild>
                   <Link href="/dashboard" className={mobileLinkClass("/dashboard")}>
                     Dashboard
+                  </Link>
+                </SheetClose>
+              )}
+              {!loading && user?.email?.endsWith("@ccw.com.au") && (
+                <SheetClose asChild>
+                  <Link href="/clients/ccw" className={mobileLinkClass("/clients/ccw")}>
+                    Client Portal
                   </Link>
                 </SheetClose>
               )}
