@@ -6,6 +6,8 @@ import {
   ChevronRight, Activity, BarChart3,
 } from 'lucide-react';
 
+const AUTH_ROUTES = ['/login', '/register', '/reset-password', '/update-password'];
+
 const NAV = [
   { href: '/ceo',               icon: Zap,             label: 'Command Center' },
   { href: '/dashboard',         icon: LayoutDashboard, label: 'Dashboard'      },
@@ -33,6 +35,8 @@ const STATUS_COLOR: Record<string, string> = {
 
 export function EmpireSidebar() {
   const pathname = usePathname();
+  const isAuthRoute = AUTH_ROUTES.some(r => pathname.endsWith(r));
+  if (isAuthRoute) return null;
 
   return (
     <aside style={{ width: 240, minHeight: '100vh', background: '#0d1424', borderRight: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>

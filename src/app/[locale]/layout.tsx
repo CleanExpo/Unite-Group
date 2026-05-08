@@ -3,7 +3,6 @@ import '../globals.css';
 import { notFound } from 'next/navigation';
 import { defaultMetadata, viewport } from '@/lib/metadata';
 import type { Metadata } from 'next';
-import { createClient } from '@/lib/supabase/server';
 import { EmpireSidebar } from '@/components/empire/EmpireSidebar';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -23,16 +22,6 @@ export async function generateStaticParams() {
   ];
 }
 
-async function getSession() {
-  try {
-    const supabase = await createClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    return session;
-  } catch {
-    return null;
-  }
-}
-
 export default async function LocaleLayout({
   children,
   params,
@@ -46,25 +35,11 @@ export default async function LocaleLayout({
     notFound();
   }
 
-  const session = await getSession();
-
-  if (session) {
-    // Authenticated: full empire layout with sidebar
-    return (
-      <html lang={locale} suppressHydrationWarning className="dark">
-        <body className={`${plusJakartaSans.variable} bg-[#0F172A] text-[#F8FAFC] font-sans min-h-screen flex`}>
-          <EmpireSidebar />
-          <main className="flex-1 min-h-screen overflow-auto">{children}</main>
-        </body>
-      </html>
-    );
-  }
-
-  // Unauthenticated: minimal centered layout, no nav
   return (
     <html lang={locale} suppressHydrationWarning className="dark">
-      <body className={`${plusJakartaSans.variable} bg-[#0F172A] text-[#F8FAFC] font-sans min-h-screen flex items-center justify-center`}>
-        {children}
+      <body className={`${plusJakartaSans.variable} bg-[#0a0f1e] text-[#F8FAFC] font-sans min-h-screen flex`}>
+        <EmpireSidebar />
+        <main className="flex-1 min-h-screen overflow-auto">{children}</main>
       </body>
     </html>
   );
