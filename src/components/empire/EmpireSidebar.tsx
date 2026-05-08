@@ -1,10 +1,20 @@
 'use client';
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Zap, LayoutDashboard, Building2, Users, FileText,
-  ChevronRight, Activity, BarChart3,
+  ChevronRight, Activity, BarChart3, TrendingUp,
 } from 'lucide-react';
+
+const BUSINESS_SLUGS: Record<string, { slug: string; domain: string }> = {
+  'RestoreAssist': { slug: 'restoreassist', domain: 'restoreassist.app' },
+  'Synthex':       { slug: 'synthex',       domain: 'synthex.social' },
+  'CCW-CRM':       { slug: 'ccw-crm',       domain: 'carpetcleanerswarehouse.com.au' },
+  'DR Platform':   { slug: 'dr-platform',   domain: 'disasterrecovery.com.au' },
+  'NRPG':          { slug: 'nrpg',          domain: 'nrpg.com.au' },
+  'CARSI':         { slug: 'carsi',          domain: 'carsi.com.au' },
+};
 
 const AUTH_ROUTES = ['/login', '/register', '/reset-password', '/update-password'];
 
@@ -36,6 +46,7 @@ const STATUS_COLOR: Record<string, string> = {
 export function EmpireSidebar() {
   const pathname = usePathname();
   const isAuthRoute = AUTH_ROUTES.some(r => pathname.endsWith(r));
+  const [expandedBiz, setExpandedBiz] = useState<string | null>(null);
   if (isAuthRoute) return null;
 
   return (
@@ -86,16 +97,89 @@ export function EmpireSidebar() {
         <div style={{ marginTop: 16, marginBottom: 6, padding: '0 10px' }}>
           <span style={{ fontSize: 10, fontWeight: 600, color: '#52525b', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Portfolio</span>
         </div>
-        {BUSINESSES.map(biz => (
-          <div key={biz.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px', borderRadius: 8 }}>
-            <span
-              className="status-dot"
-              style={{ width: 6, height: 6, background: STATUS_COLOR[biz.status], color: STATUS_COLOR[biz.status] }}
-            />
-            <span style={{ fontSize: 12, color: '#a1a1aa', flex: 1 }}>{biz.label}</span>
-            <span style={{ width: 5, height: 5, borderRadius: '50%', background: biz.color, display: 'inline-block', opacity: 0.7 }} />
-          </div>
-        ))}
+        {BUSINESSES.map(biz => {
+          const meta = BUSINESS_SLUGS[biz.label];
+          const isOpen = expandedBiz === biz.label;
+          return (
+            <div key={biz.label}>
+              {/* Header row — click to expand */}
+              <button
+                onClick={() => setExpandedBiz(isOpen ? null : biz.label)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px',
+                  width: '100%', background: 'transparent', border: 'none', cursor: 'pointer',
+                  borderRadius: 6, transition: 'background 0.1s ease',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
+                <span className="status-dot" style={{ width: 6, height: 6, background: STATUS_COLOR[biz.status], color: STATUS_COLOR[biz.status], flexShrink: 0 }} />
+                <span style={{ fontSize: 12, color: '#a1a1aa', flex: 1, textAlign: 'left' }}>{biz.label}</span>
+                <ChevronRight
+                  size={10}
+                  color="#52525b"
+                  style={{ transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s ease', flexShrink: 0 }}
+                />
+              </button>
+
+              {/* Sub-items — only when expanded */}
+              {isOpen && meta && (
+                <div style={{ paddingLeft: 24, paddingBottom: 4, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Link
+                    href={`/businesses/${meta.slug}/seo`}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 7, padding: '5px 10px',
+                      borderRadius: 6, textDecoration: 'none', fontSize: 11, color: '#52525b',
+                      transition: 'all 0.1s ease',
+                      background: pathname === `/businesses/${meta.slug}/seo` ? 'rgba(29,78,216,0.1)' : 'transparent',
+                    }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.04)'; (e.currentTarget as HTMLAnchorElement).style.color = '#a1a1aa'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = pathname === `/businesses/${meta.slug}/seo` ? 'rgba(29,78,216,0.1)' : 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = '#52525b'; }}
+                  >
+                    <TrendingUp size={10} color="#52525b" />
+                    SEO Audit
+                  </Link>
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Clients section */}
+        <div style={{ marginTop: 16, marginBottom: 6, padding: '0 10px' }}>
+          <span style={{ fontSize: 10, fontWeight: 600, color: '#52525b', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Clients</span>
+        </div>
+
+        {/* CCW — existing client */}
+        <Link
+          href="/clients/ccw"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px',
+            borderRadius: 6, textDecoration: 'none', transition: 'all 0.1s ease',
+            background: pathname.startsWith('/clients/ccw') ? 'rgba(29,78,216,0.1)' : 'transparent',
+          }}
+          onMouseEnter={e => { if (!pathname.startsWith('/clients/ccw')) (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.03)'; }}
+          onMouseLeave={e => { if (!pathname.startsWith('/clients/ccw')) (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; }}
+        >
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#DC2626', display: 'inline-block', flexShrink: 0 }} />
+          <span style={{ fontSize: 12, color: '#a1a1aa', flex: 1 }}>CCW</span>
+          <span style={{ fontSize: 9, fontWeight: 600, color: '#16a34a', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Active</span>
+        </Link>
+
+        {/* Add Client */}
+        <Link
+          href="/clients"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px',
+            borderRadius: 6, textDecoration: 'none', transition: 'all 0.1s ease',
+            background: pathname === '/clients' ? 'rgba(29,78,216,0.1)' : 'transparent',
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.03)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = pathname === '/clients' ? 'rgba(29,78,216,0.1)' : 'transparent'; }}
+        >
+          <span style={{ fontSize: 14, color: '#3f3f46', lineHeight: 1 }}>+</span>
+          <span style={{ fontSize: 11, color: '#52525b' }}>Add / Manage Clients</span>
+        </Link>
       </nav>
 
       {/* Footer */}
