@@ -107,7 +107,7 @@ export default function GeoCitationsAdminPage() {
         </div>
 
         {/* Filters */}
-        <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 16, marginBottom: 24, padding: 20, background: "#111113", border: "1px solid #27272a", borderRadius: 10 }}>
+        <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 16, marginBottom: 24, padding: 20, background: "#111113", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 12 }}>
           <div>
             <label style={labelStyle}>Brand Mentioned</label>
             <select
@@ -160,7 +160,7 @@ export default function GeoCitationsAdminPage() {
         )}
 
         {/* Table */}
-        <div style={{ background: "#111113", border: "1px solid #27272a", borderRadius: 10, overflow: "hidden" }}>
+        <div style={{ background: "#111113", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 12, overflow: "hidden" }}>
           <div style={{ overflowX: "auto" as const }}>
             <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 13 }}>
               <thead>

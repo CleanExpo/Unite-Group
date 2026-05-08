@@ -1,5 +1,6 @@
 "use client";
 
+import { TelegramFeed } from "@/components/ceo/TelegramFeed";
 import { useState, useEffect, useCallback, useRef, Component } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
@@ -732,6 +733,12 @@ export default function CeoCommandCenter() {
             <Link href="/dashboard/board" style={{ fontSize: 11, color: "#1d4ed8", textDecoration: "none" }}>View full board →</Link>
           </div>
           <KanbanPreview />
+        </section>
+
+        {/* ── Telegram Live Feed ──────────────────────────────────────────── */}
+        <section>
+          <p style={sectionLabel}>Margot — Telegram Live Feed</p>
+          <TelegramFeed />
         </section>
 
         {/* ── Quick Actions ───────────────────────────────────────────────── */}

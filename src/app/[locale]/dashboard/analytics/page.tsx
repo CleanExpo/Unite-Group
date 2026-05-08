@@ -78,7 +78,7 @@ export default function Analytics() {
   if (!isAdmin) {
     return (
       <div style={{ minHeight: "100vh", background: "#09090b", padding: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ maxWidth: 480, background: "#111113", border: "1px solid #27272a", borderRadius: 12, padding: 40, textAlign: "center" }}>
+        <div style={{ maxWidth: 480, background: "#111113", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 12, padding: 40, textAlign: "center" }}>
           <h1 style={{ fontSize: 22, fontWeight: 600, color: "#fafafa", marginBottom: 12 }}>Access Denied</h1>
           <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 24 }}>You don&apos;t have permission to access the analytics dashboard.</p>
           <Link href={`/${locale}/dashboard`} style={{ background: "#1d4ed8", color: "#fff", textDecoration: "none", padding: "8px 20px", borderRadius: 8, fontSize: 13, fontWeight: 500 }}>

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CalendarDays, Clock, DollarSign, Users, BarChart3, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface Project {
   id: string;
@@ -52,6 +53,7 @@ const statusIcons = {
 
 const cardStyle: React.CSSProperties = {
   background: "#111113",
+  backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)",
   border: "1px solid #27272a",
   borderRadius: 12,
   padding: 20,
@@ -215,11 +217,15 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#09090b", color: "#fafafa", fontFamily: "var(--font-inter, system-ui, sans-serif)" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px" }}>
+    <div style={{ minHeight: "100vh", background: "#09090b", color: "#fafafa", fontFamily: "var(--font-inter)" }}>
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+        style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px" }}>
         <div style={{ marginBottom: 32 }}>
-          <h1 style={{ fontSize: 32, fontWeight: 700, letterSpacing: "-0.02em", color: "#fafafa", marginBottom: 8 }}>Projects</h1>
-          <p style={{ fontSize: 15, color: "#a1a1aa" }}>Manage and track all your projects in one place</p>
+          <h1 style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", color: "#fafafa", marginBottom: 8, fontFamily: "var(--font-inter)" }}>Projects</h1>
+          <p style={{ fontSize: 13, color: "#52525b" }}>Manage and track all your projects in one place</p>
         </div>
 
         {projects.length === 0 ? (
@@ -277,7 +283,7 @@ export default function ProjectsPage() {
             })}
           </div>
         )}
-      </div>
+      </motion.div>
     </div>
   );
 }

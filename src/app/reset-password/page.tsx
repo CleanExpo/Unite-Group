@@ -3,6 +3,7 @@ import { useState } from "react";
 import { supabaseClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { Loader2, Mail, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function ResetPassword() {
   const [email, setEmail] = useState("");
@@ -29,13 +30,17 @@ export default function ResetPassword() {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, background: "#09090b" }}>
-      <div style={{ width: "100%", maxWidth: 400, background: "#111113", border: "1px solid #27272a", borderRadius: 16, padding: 32 }}>
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+        style={{ width: "100%", maxWidth: 400, background: "#111113", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 16, padding: 32 }}>
 
         {/* Logo */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
           <div style={{ width: 32, height: 32, borderRadius: 8, background: "#1d4ed8", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, color: "#fff" }}>U</div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#f8fafc", letterSpacing: "-0.02em" }}>Unite Group</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em" }}>Unite Group</div>
             <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
               <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#fbbf24", display: "inline-block" }} />
               <span style={{ fontSize: 9, color: "#fbbf24", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Empire</span>
@@ -46,8 +51,8 @@ export default function ResetPassword() {
         {!success ? (
           <>
             <div style={{ marginBottom: 24 }}>
-              <h2 style={{ fontSize: 22, fontWeight: 700, color: "#f8fafc", letterSpacing: "-0.02em", margin: 0 }}>Reset your password</h2>
-              <p style={{ fontSize: 14, color: "#475569", marginTop: 6 }}>Enter your email and we&apos;ll send you a reset link.</p>
+              <h2 style={{ fontSize: 22, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em", margin: 0 }}>Reset your password</h2>
+              <p style={{ fontSize: 14, color: "#52525b", marginTop: 6 }}>Enter your email and we&apos;ll send you a reset link.</p>
             </div>
 
             {error && (
@@ -62,7 +67,7 @@ export default function ResetPassword() {
                 <input
                   id="email" type="email" required value={email} onChange={e => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  style={{ width: "100%", borderRadius: 10, padding: "10px 14px", fontSize: 14, color: "#f8fafc", background: "#18181b", border: "1px solid #27272a", outline: "none", boxSizing: "border-box", transition: "border-color 0.12s ease" }}
+                  style={{ width: "100%", borderRadius: 10, padding: "10px 14px", fontSize: 14, color: "#fafafa", background: "#18181b", border: "1px solid #27272a", outline: "none", boxSizing: "border-box", transition: "border-color 0.12s ease" }}
                   onFocus={e => (e.target.style.borderColor = "#1d4ed8")}
                   onBlur={e => (e.target.style.borderColor = "#27272a")}
                 />
@@ -83,9 +88,9 @@ export default function ResetPassword() {
         ) : (
           <div style={{ textAlign: "center", padding: "16px 0" }}>
             <CheckCircle2 size={40} color="#16a34a" style={{ margin: "0 auto 12px" }} />
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: "#f8fafc", margin: "0 0 8px" }}>Check your email</h2>
-            <p style={{ fontSize: 14, color: "#475569" }}>
-              A reset link has been sent to <span style={{ color: "#f8fafc", fontWeight: 500 }}>{email}</span>
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: "#fafafa", margin: "0 0 8px" }}>Check your email</h2>
+            <p style={{ fontSize: 14, color: "#52525b" }}>
+              A reset link has been sent to <span style={{ color: "#fafafa", fontWeight: 500 }}>{email}</span>
             </p>
           </div>
         )}
@@ -95,7 +100,7 @@ export default function ResetPassword() {
             <ArrowLeft size={13} />Back to sign in
           </Link>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

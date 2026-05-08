@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabaseClient } from "@/lib/supabase/client";
 import { Plus, Building2, Users, FolderOpen, CheckSquare, Settings, LogOut, Home, ArrowLeft } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface Organization {
   id: string;
@@ -256,7 +257,11 @@ export default function Organizations() {
         </div>
 
         {organizations.length === 0 ? (
-          <div style={{ background: "#111113", border: "1px solid #27272a", borderRadius: 12, padding: 48, textAlign: "center" }}>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+            style={{ background: "#111113", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 12, padding: 48, textAlign: "center" }}>
             <Building2 size={40} style={{ color: "#52525b", margin: "0 auto 16px" }} />
             <h3 style={{ fontSize: 16, fontWeight: 600, color: "#fafafa", marginBottom: 8 }}>No organizations yet</h3>
             <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 24 }}>
@@ -265,9 +270,13 @@ export default function Organizations() {
             <button onClick={() => setIsDialogOpen(true)} style={{ background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 8, padding: "8px 20px", fontSize: 13, fontWeight: 500, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}>
               <Plus size={14} /> Add Your First Organization
             </button>
-          </div>
+          </motion.div>
         ) : (
-          <div style={{ background: "#111113", border: "1px solid #27272a", borderRadius: 12, overflow: "hidden" }}>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+            style={{ background: "#111113", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 12, overflow: "hidden" }}>
             <div style={{ padding: "20px 24px", borderBottom: "1px solid #27272a" }}>
               <h2 style={{ fontSize: 16, fontWeight: 600, color: "#fafafa", margin: 0 }}>All Organizations</h2>
               <p style={{ color: "#52525b", fontSize: 13, marginTop: 4 }}>
@@ -303,7 +312,7 @@ export default function Organizations() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </motion.div>
         )}
       </main>
     </div>

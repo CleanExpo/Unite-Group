@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabaseClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { Loader2, CheckCircle2 } from "lucide-react";
+import { motion } from "framer-motion";
 
 const PORTFOLIO = [
   { name: "Synthex",        status: "operational", color: "#16a34a" },
@@ -59,7 +60,7 @@ export default function Register() {
     borderRadius: 10,
     padding: "10px 14px",
     fontSize: 14,
-    color: "#f8fafc",
+    color: "#fafafa",
     background: "#111113",
     border: "1px solid #27272a",
     outline: "none",
@@ -71,11 +72,15 @@ export default function Register() {
     <div style={{ minHeight: "100vh", display: "flex", background: "#09090b" }}>
 
       {/* Left panel */}
-      <div style={{ width: "45%", background: "#111113", borderRight: "1px solid #27272a", padding: "48px 40px", display: "flex", flexDirection: "column", gap: 32 }}>
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+        style={{ width: "45%", background: "#111113", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", borderRight: "1px solid #27272a", padding: "48px 40px", display: "flex", flexDirection: "column", gap: 32 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 32, height: 32, borderRadius: 8, background: "#1d4ed8", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, color: "#fff" }}>U</div>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#f8fafc", letterSpacing: "-0.02em" }}>Unite Group</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em" }}>Unite Group</div>
             <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
               <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#fbbf24", display: "inline-block" }} />
               <span style={{ fontSize: 9, color: "#fbbf24", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Empire</span>
@@ -84,12 +89,12 @@ export default function Register() {
         </div>
 
         <div>
-          <h1 style={{ fontSize: 28, fontWeight: 700, color: "#f8fafc", letterSpacing: "-0.03em", lineHeight: 1.15, margin: 0 }}>Join the Empire</h1>
-          <p style={{ fontSize: 14, color: "#475569", marginTop: 10 }}>6 portfolio businesses. 200+ people. One command center.</p>
+          <h1 style={{ fontSize: 28, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.03em", lineHeight: 1.15, margin: 0 }}>Join the Empire</h1>
+          <p style={{ fontSize: 14, color: "#52525b", marginTop: 10 }}>6 portfolio businesses. 200+ people. One command center.</p>
         </div>
 
         <div>
-          <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "#334155", marginBottom: 10 }}>Portfolio Status</p>
+          <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "#52525b", marginBottom: 10 }}>Portfolio Status</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {PORTFOLIO.map((biz) => (
               <div key={biz.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: "#18181b", border: "1px solid #27272a", borderRadius: 8 }}>
@@ -102,14 +107,14 @@ export default function Register() {
             ))}
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Right form panel */}
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 40 }}>
         <div style={{ width: "100%", maxWidth: 400 }}>
           <div style={{ marginBottom: 28 }}>
-            <h2 style={{ fontSize: 22, fontWeight: 700, color: "#f8fafc", letterSpacing: "-0.02em", margin: 0 }}>Create your account</h2>
-            <p style={{ fontSize: 14, color: "#475569", marginTop: 6 }}>Enter your details to request access.</p>
+            <h2 style={{ fontSize: 22, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em", margin: 0 }}>Create your account</h2>
+            <p style={{ fontSize: 14, color: "#52525b", marginTop: 6 }}>Enter your details to request access.</p>
           </div>
 
           {error && (
@@ -121,8 +126,8 @@ export default function Register() {
           {success ? (
             <div style={{ textAlign: "center", padding: "32px 0" }}>
               <CheckCircle2 size={40} color="#16a34a" style={{ margin: "0 auto 12px" }} />
-              <h3 style={{ fontSize: 18, fontWeight: 600, color: "#f8fafc", margin: "0 0 8px" }}>Account created</h3>
-              <p style={{ fontSize: 14, color: "#475569" }}>Check your email for verification. Redirecting to sign in&hellip;</p>
+              <h3 style={{ fontSize: 18, fontWeight: 600, color: "#fafafa", margin: "0 0 8px" }}>Account created</h3>
+              <p style={{ fontSize: 14, color: "#52525b" }}>Check your email for verification. Redirecting to sign in&hellip;</p>
             </div>
           ) : (
             <form onSubmit={handleRegister} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -165,7 +170,7 @@ export default function Register() {
                   onFocus={e => (e.target.style.borderColor = "#1d4ed8")}
                   onBlur={e => (e.target.style.borderColor = "#27272a")}
                 />
-                <p style={{ fontSize: 11, color: "#334155", marginTop: 5 }}>Minimum 6 characters</p>
+                <p style={{ fontSize: 11, color: "#52525b", marginTop: 5 }}>Minimum 6 characters</p>
               </div>
 
               <div>
@@ -196,7 +201,7 @@ export default function Register() {
             </form>
           )}
 
-          <p style={{ fontSize: 13, color: "#334155", textAlign: "center", marginTop: 24 }}>
+          <p style={{ fontSize: 13, color: "#52525b", textAlign: "center", marginTop: 24 }}>
             Already have an account?{" "}
             <Link href="/login" style={{ color: "#3b82f6", textDecoration: "none", fontWeight: 500 }}>Sign in</Link>
           </p>

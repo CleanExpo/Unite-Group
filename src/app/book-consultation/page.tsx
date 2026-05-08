@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns";
 import { Calendar as CalendarIcon, Check, Clock, Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 export default function BookConsultation() {
   const router = useRouter();
@@ -86,7 +87,7 @@ export default function BookConsultation() {
     background: "#111113",
     border: "1px solid #27272a",
     color: "#fafafa",
-    borderRadius: 6,
+    borderRadius: 8,
     padding: "8px 12px",
     fontSize: 14,
     width: "100%",
@@ -106,7 +107,7 @@ export default function BookConsultation() {
     background: "#111113",
     border: "1px solid #27272a",
     color: hasValue ? "#fafafa" : "#52525b",
-    borderRadius: 6,
+    borderRadius: 8,
     padding: "8px 12px",
     fontSize: 14,
     width: "100%",
@@ -118,112 +119,152 @@ export default function BookConsultation() {
   });
 
   return (
-    <div style={{ minHeight: "100vh", background: "#09090b", color: "#fafafa", fontFamily: "var(--font-inter, system-ui, sans-serif)" }}>
-      {/* Navigation */}
-      <nav style={{ borderBottom: "1px solid #27272a", background: "rgba(9,9,11,0.9)", backdropFilter: "blur(20px)", position: "sticky", top: 0, zIndex: 50 }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 32px", display: "flex", justifyContent: "space-between", alignItems: "center", height: 64 }}>
-          <Link href="/" style={{ fontSize: 18, fontWeight: 700, color: "#fafafa", textDecoration: "none" }}>UNITE Group</Link>
-          <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
-            <Link href="/features" style={{ color: "#a1a1aa", textDecoration: "none", fontSize: 14 }}>Services</Link>
-            <Link href="/pricing" style={{ color: "#a1a1aa", textDecoration: "none", fontSize: 14 }}>Pricing</Link>
-            <Link href="/contact" style={{ color: "#a1a1aa", textDecoration: "none", fontSize: 14 }}>Contact</Link>
-            <Link href="/about" style={{ color: "#a1a1aa", textDecoration: "none", fontSize: 14 }}>About</Link>
-          </div>
-          <div style={{ display: "flex", gap: 12 }}>
-            <Link href="/login" style={{ color: "#a1a1aa", textDecoration: "none", padding: "8px 16px", fontSize: 14 }}>Login</Link>
-            <Link href="/book-consultation" style={{ background: "#1d4ed8", color: "#fff", textDecoration: "none", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 500 }}>Book Now</Link>
-          </div>
-        </div>
-      </nav>
+    <div style={{ minHeight: "100vh", background: "#09090b", color: "#fafafa", fontFamily: "var(--font-inter)" }}>
 
-      {/* Hero */}
-      <section style={{ padding: "80px 32px 40px", textAlign: "center" }}>
-        <div style={{ maxWidth: 640, margin: "0 auto" }}>
-          <h1 style={{ fontSize: 48, fontWeight: 700, letterSpacing: "-0.04em", color: "#fafafa", marginBottom: 16 }}>
-            Book Your Strategic Consultation
-          </h1>
-          <p style={{ fontSize: 18, color: "#a1a1aa", lineHeight: 1.6 }}>
-            Schedule your $550 consultation session. Comprehensive business analysis, actionable insights, and a strategic roadmap for success.
-          </p>
-        </div>
-      </section>
+      {/* Page title */}
+      <div style={{ padding: "24px 32px 0" }}>
+        <h1 style={{ fontSize: 18, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em", margin: 0, fontFamily: "var(--font-inter)" }}>
+          Book a Consultation
+        </h1>
+        <p style={{ fontSize: 13, color: "#52525b", margin: "4px 0 0" }}>
+          Schedule your $550 strategic consultation session.
+        </p>
+      </div>
 
-      {/* Booking Form */}
-      <section style={{ padding: "32px 32px 80px" }}>
-        <div style={{ maxWidth: 720, margin: "0 auto" }}>
-          <div style={{ background: "#111113", border: "1px solid #27272a", borderRadius: 12, padding: 40 }}>
-            <h2 style={{ fontSize: 22, fontWeight: 600, color: "#fafafa", marginBottom: 8 }}>Book Your Consultation</h2>
-            <p style={{ fontSize: 14, color: "#a1a1aa", marginBottom: 32 }}>
-              Complete the form below. We&apos;ll confirm your booking within 24 hours.
-            </p>
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+      >
+        {/* Booking Form */}
+        <section style={{ padding: "32px 32px 80px" }}>
+          <div style={{ maxWidth: 720, margin: "0 auto" }}>
+            <div style={{
+              background: "#111113",
+              backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)",
+              border: "1px solid #27272a",
+              borderRadius: 12,
+              padding: 40,
+            }}>
+              <h2 style={{ fontSize: 22, fontWeight: 600, color: "#fafafa", marginBottom: 8 }}>Book Your Consultation</h2>
+              <p style={{ fontSize: 14, color: "#a1a1aa", marginBottom: 32 }}>
+                Complete the form below. We&apos;ll confirm your booking within 24 hours.
+              </p>
 
-            {success && (
-              <div style={{ marginBottom: 24, padding: 16, background: "rgba(22,163,74,0.08)", border: "1px solid rgba(22,163,74,0.2)", borderRadius: 8, display: "flex", gap: 10, alignItems: "flex-start" }}>
-                <Check size={16} style={{ color: "#16a34a", flexShrink: 0, marginTop: 1 }} />
-                <div>
-                  <p style={{ color: "#16a34a", fontWeight: 500, fontSize: 14 }}>Consultation booked successfully!</p>
-                  <p style={{ color: "#a1a1aa", fontSize: 13, marginTop: 4 }}>We&apos;ll contact you within 24 hours to confirm your preferred time and date.</p>
+              {success && (
+                <div style={{ marginBottom: 24, padding: 16, background: "rgba(22,163,74,0.08)", border: "1px solid rgba(22,163,74,0.2)", borderRadius: 8, display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <Check size={16} style={{ color: "#16a34a", flexShrink: 0, marginTop: 1 }} />
+                  <div>
+                    <p style={{ color: "#16a34a", fontWeight: 500, fontSize: 14 }}>Consultation booked successfully!</p>
+                    <p style={{ color: "#a1a1aa", fontSize: 13, marginTop: 4 }}>We&apos;ll contact you within 24 hours to confirm your preferred time and date.</p>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {error && (
-              <div style={{ marginBottom: 24, padding: 16, background: "rgba(220,38,38,0.08)", border: "1px solid rgba(220,38,38,0.2)", borderRadius: 8, display: "flex", gap: 10, alignItems: "flex-start" }}>
-                <AlertCircle size={16} style={{ color: "#dc2626", flexShrink: 0, marginTop: 1 }} />
-                <div>
-                  <p style={{ color: "#dc2626", fontWeight: 500, fontSize: 14 }}>Error booking consultation</p>
-                  <p style={{ color: "#a1a1aa", fontSize: 13, marginTop: 4 }}>{error}</p>
+              {error && (
+                <div style={{ marginBottom: 24, padding: 16, background: "rgba(220,38,38,0.08)", border: "1px solid rgba(220,38,38,0.2)", borderRadius: 8, display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <AlertCircle size={16} style={{ color: "#dc2626", flexShrink: 0, marginTop: 1 }} />
+                  <div>
+                    <p style={{ color: "#dc2626", fontWeight: 500, fontSize: 14 }}>Error booking consultation</p>
+                    <p style={{ color: "#a1a1aa", fontSize: 13, marginTop: 4 }}>{error}</p>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            <form id="booking-form" onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                <div>
-                  <label style={labelStyle}>Full Name <span style={{ color: "#dc2626" }}>*</span></label>
-                  <input id="client_name" name="client_name" type="text" placeholder="John Doe" value={formData.client_name} onChange={handleChange} style={inputStyle} required />
+              <form id="booking-form" onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  <div>
+                    <label style={labelStyle}>Full Name <span style={{ color: "#dc2626" }}>*</span></label>
+                    <input id="client_name" name="client_name" type="text" placeholder="John Doe" value={formData.client_name} onChange={handleChange} style={inputStyle} required />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Email Address <span style={{ color: "#dc2626" }}>*</span></label>
+                    <input id="client_email" name="client_email" type="email" placeholder="john@example.com" value={formData.client_email} onChange={handleChange} style={inputStyle} required />
+                  </div>
                 </div>
-                <div>
-                  <label style={labelStyle}>Email Address <span style={{ color: "#dc2626" }}>*</span></label>
-                  <input id="client_email" name="client_email" type="email" placeholder="john@example.com" value={formData.client_email} onChange={handleChange} style={inputStyle} required />
-                </div>
-              </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                <div>
-                  <label style={labelStyle}>Company (Optional)</label>
-                  <input id="company" name="company" type="text" placeholder="Your Company" value={formData.company} onChange={handleChange} style={inputStyle} />
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  <div>
+                    <label style={labelStyle}>Company (Optional)</label>
+                    <input id="company" name="company" type="text" placeholder="Your Company" value={formData.company} onChange={handleChange} style={inputStyle} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Phone Number</label>
+                    <input id="phone" name="phone" type="tel" placeholder="+61 400 000 000" value={formData.phone} onChange={handleChange} style={inputStyle} />
+                  </div>
                 </div>
+
                 <div>
-                  <label style={labelStyle}>Phone Number</label>
-                  <input id="phone" name="phone" type="tel" placeholder="+61 400 000 000" value={formData.phone} onChange={handleChange} style={inputStyle} />
+                  <label style={labelStyle}>Consultation Type <span style={{ color: "#dc2626" }}>*</span></label>
+                  <select id="service_type" name="service_type" value={formData.service_type} onChange={handleChange} style={inputStyle} aria-label="Consultation Type" title="Select the type of consultation" required>
+                    {serviceTypes.map((type, index) => (
+                      <option key={index} value={type}>{type}</option>
+                    ))}
+                  </select>
                 </div>
-              </div>
 
-              <div>
-                <label style={labelStyle}>Consultation Type <span style={{ color: "#dc2626" }}>*</span></label>
-                <select id="service_type" name="service_type" value={formData.service_type} onChange={handleChange} style={inputStyle} aria-label="Consultation Type" title="Select the type of consultation" required>
-                  {serviceTypes.map((type, index) => (
-                    <option key={index} value={type}>{type}</option>
-                  ))}
-                </select>
-              </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  <div>
+                    <label style={labelStyle}>Preferred Date <span style={{ color: "#dc2626" }}>*</span></label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button type="button" style={popoverBtnStyle(!!formData.preferred_date)}>
+                          <CalendarIcon size={14} style={{ flexShrink: 0 }} />
+                          {formData.preferred_date ? format(formData.preferred_date, "MMMM d, yyyy") : "Select date"}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent style={{ padding: 0, background: "#18181b", border: "1px solid #27272a", borderRadius: 8 } as React.CSSProperties}>
+                        <Calendar
+                          mode="single"
+                          selected={formData.preferred_date}
+                          onSelect={(date) => handleDateChange('preferred_date', date)}
+                          initialFocus
+                          disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                          className="bg-transparent text-white"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  <div>
+                    <label style={labelStyle}>Preferred Time <span style={{ color: "#dc2626" }}>*</span></label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button type="button" style={popoverBtnStyle(!!formData.preferred_time)}>
+                          <Clock size={14} style={{ flexShrink: 0 }} />
+                          {formData.preferred_time || "Select time"}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent style={{ padding: 8, background: "#18181b", border: "1px solid #27272a", borderRadius: 8, display: "grid", gap: 2 } as React.CSSProperties}>
+                        {timeSlots.map((time) => (
+                          <button
+                            key={time}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, preferred_time: time })}
+                            style={{ background: formData.preferred_time === time ? "rgba(29,78,216,0.2)" : "transparent", border: "none", color: formData.preferred_time === time ? "#3b82f6" : "#a1a1aa", borderRadius: 4, padding: "6px 12px", fontSize: 13, cursor: "pointer", textAlign: "left" }}
+                          >
+                            {time}
+                          </button>
+                        ))}
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+
                 <div>
-                  <label style={labelStyle}>Preferred Date <span style={{ color: "#dc2626" }}>*</span></label>
+                  <label style={labelStyle}>Alternate Date (Optional)</label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <button type="button" style={popoverBtnStyle(!!formData.preferred_date)}>
+                      <button type="button" style={popoverBtnStyle(!!formData.alternate_date)}>
                         <CalendarIcon size={14} style={{ flexShrink: 0 }} />
-                        {formData.preferred_date ? format(formData.preferred_date, "MMMM d, yyyy") : "Select date"}
+                        {formData.alternate_date ? format(formData.alternate_date, "MMMM d, yyyy") : "Select alternate date"}
                       </button>
                     </PopoverTrigger>
                     <PopoverContent style={{ padding: 0, background: "#18181b", border: "1px solid #27272a", borderRadius: 8 } as React.CSSProperties}>
                       <Calendar
                         mode="single"
-                        selected={formData.preferred_date}
-                        onSelect={(date) => handleDateChange('preferred_date', date)}
+                        selected={formData.alternate_date}
+                        onSelect={(date) => handleDateChange('alternate_date', date)}
                         initialFocus
                         disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                         className="bg-transparent text-white"
@@ -233,103 +274,63 @@ export default function BookConsultation() {
                 </div>
 
                 <div>
-                  <label style={labelStyle}>Preferred Time <span style={{ color: "#dc2626" }}>*</span></label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <button type="button" style={popoverBtnStyle(!!formData.preferred_time)}>
-                        <Clock size={14} style={{ flexShrink: 0 }} />
-                        {formData.preferred_time || "Select time"}
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent style={{ padding: 8, background: "#18181b", border: "1px solid #27272a", borderRadius: 8, display: "grid", gap: 2 } as React.CSSProperties}>
-                      {timeSlots.map((time) => (
-                        <button
-                          key={time}
-                          type="button"
-                          onClick={() => setFormData({ ...formData, preferred_time: time })}
-                          style={{ background: formData.preferred_time === time ? "rgba(29,78,216,0.2)" : "transparent", border: "none", color: formData.preferred_time === time ? "#3b82f6" : "#a1a1aa", borderRadius: 4, padding: "6px 12px", fontSize: 13, cursor: "pointer", textAlign: "left" }}
-                        >
-                          {time}
-                        </button>
-                      ))}
-                    </PopoverContent>
-                  </Popover>
+                  <label style={labelStyle}>What would you like to discuss? (Optional)</label>
+                  <textarea id="message" name="message" rows={4} value={formData.message} onChange={handleChange} placeholder="Please share any specific topics you'd like to discuss during the consultation..." style={{ ...inputStyle, resize: "vertical", minHeight: 100 }} />
                 </div>
-              </div>
 
-              <div>
-                <label style={labelStyle}>Alternate Date (Optional)</label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button type="button" style={popoverBtnStyle(!!formData.alternate_date)}>
-                      <CalendarIcon size={14} style={{ flexShrink: 0 }} />
-                      {formData.alternate_date ? format(formData.alternate_date, "MMMM d, yyyy") : "Select alternate date"}
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent style={{ padding: 0, background: "#18181b", border: "1px solid #27272a", borderRadius: 8 } as React.CSSProperties}>
-                    <Calendar
-                      mode="single"
-                      selected={formData.alternate_date}
-                      onSelect={(date) => handleDateChange('alternate_date', date)}
-                      initialFocus
-                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                      className="bg-transparent text-white"
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
+                <button
+                  type="submit"
+                  disabled={loading || success}
+                  style={{ background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 8, padding: "12px 24px", fontSize: 15, fontWeight: 500, cursor: loading || success ? "not-allowed" : "pointer", opacity: loading || success ? 0.7 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "background 160ms ease-out" }}
+                >
+                  {loading ? (
+                    <><Loader2 size={16} className="animate-spin" /> Processing...</>
+                  ) : (
+                    "Book Consultation — $550"
+                  )}
+                </button>
 
-              <div>
-                <label style={labelStyle}>What would you like to discuss? (Optional)</label>
-                <textarea id="message" name="message" rows={4} value={formData.message} onChange={handleChange} placeholder="Please share any specific topics you'd like to discuss during the consultation..." style={{ ...inputStyle, resize: "vertical", minHeight: 100 }} />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading || success}
-                style={{ background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 8, padding: "12px 24px", fontSize: 15, fontWeight: 500, cursor: loading || success ? "not-allowed" : "pointer", opacity: loading || success ? 0.7 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "background 160ms ease-out" }}
-              >
-                {loading ? (
-                  <><Loader2 size={16} className="animate-spin" /> Processing...</>
-                ) : (
-                  "Book Consultation — $550"
-                )}
-              </button>
-
-              <p style={{ fontSize: 12, color: "#52525b", textAlign: "center" }}>
-                By booking a consultation, you agree to our{" "}
-                <Link href="/terms" style={{ color: "#3b82f6", textDecoration: "none" }}>Terms of Service</Link>
-                {" "}and{" "}
-                <Link href="/privacy" style={{ color: "#3b82f6", textDecoration: "none" }}>Privacy Policy</Link>.
-              </p>
-            </form>
+                <p style={{ fontSize: 12, color: "#52525b", textAlign: "center" }}>
+                  By booking a consultation, you agree to our{" "}
+                  <Link href="/terms" style={{ color: "#3b82f6", textDecoration: "none" }}>Terms of Service</Link>
+                  {" "}and{" "}
+                  <Link href="/privacy" style={{ color: "#3b82f6", textDecoration: "none" }}>Privacy Policy</Link>.
+                </p>
+              </form>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Benefits */}
-      <section style={{ padding: "60px 32px 80px", borderTop: "1px solid #27272a" }}>
-        <div style={{ maxWidth: 1060, margin: "0 auto" }}>
-          <h2 style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.02em", color: "#fafafa", textAlign: "center", marginBottom: 40 }}>
-            What to Expect From Your Consultation
-          </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20 }}>
-            {[
-              { title: "Comprehensive Analysis", body: "Our expert consultants will conduct an in-depth analysis of your business, technology needs, market position, and growth opportunities." },
-              { title: "Strategic Roadmap", body: "Receive a detailed strategic roadmap with actionable recommendations tailored to your business goals, technical requirements, and budget." },
-              { title: "Implementation Plan", body: "Get a clear implementation timeline with defined milestones, resource requirements, and cost estimates for your project or business initiative." },
-            ].map((item, i) => (
-              <div key={i} style={{ background: "#111113", border: "1px solid #27272a", borderRadius: 12, padding: 24 }}>
-                <div style={{ width: 36, height: 36, background: "rgba(29,78,216,0.15)", borderRadius: 8, marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <span style={{ color: "#3b82f6", fontSize: 16, fontWeight: 700 }}>{i + 1}</span>
+        {/* Benefits */}
+        <section style={{ padding: "60px 32px 80px", borderTop: "1px solid #27272a" }}>
+          <div style={{ maxWidth: 1060, margin: "0 auto" }}>
+            <h2 style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.02em", color: "#fafafa", textAlign: "center", marginBottom: 40 }}>
+              What to Expect From Your Consultation
+            </h2>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20 }}>
+              {[
+                { title: "Comprehensive Analysis", body: "Our expert consultants will conduct an in-depth analysis of your business, technology needs, market position, and growth opportunities." },
+                { title: "Strategic Roadmap", body: "Receive a detailed strategic roadmap with actionable recommendations tailored to your business goals, technical requirements, and budget." },
+                { title: "Implementation Plan", body: "Get a clear implementation timeline with defined milestones, resource requirements, and cost estimates for your project or business initiative." },
+              ].map((item, i) => (
+                <div key={i} style={{
+                  background: "#111113",
+                  backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)",
+                  border: "1px solid #27272a",
+                  borderRadius: 12,
+                  padding: 24,
+                }}>
+                  <div style={{ width: 36, height: 36, background: "rgba(29,78,216,0.15)", borderRadius: 8, marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <span style={{ color: "#3b82f6", fontSize: 16, fontWeight: 700 }}>{i + 1}</span>
+                  </div>
+                  <h3 style={{ fontSize: 16, fontWeight: 600, color: "#fafafa", marginBottom: 10 }}>{item.title}</h3>
+                  <p style={{ fontSize: 14, color: "#a1a1aa", lineHeight: 1.6 }}>{item.body}</p>
                 </div>
-                <h3 style={{ fontSize: 16, fontWeight: 600, color: "#fafafa", marginBottom: 10 }}>{item.title}</h3>
-                <p style={{ fontSize: 14, color: "#a1a1aa", lineHeight: 1.6 }}>{item.body}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </motion.div>
     </div>
   );
 }

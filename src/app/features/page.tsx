@@ -1,8 +1,11 @@
-import Link from "next/link";
+"use client";
+
 import {
   Building2, Smartphone, Users, ShieldCheck, Cloud, TrendingUp,
   Cpu, BarChart3, Globe,
 } from "lucide-react";
+import { motion } from "framer-motion";
+import Link from "next/link";
 
 const BUSINESSES = [
   { icon: <TrendingUp size={18} color="#6366f1" />, name: "Synthex", desc: "Marketing automation platform. AI-powered content, email sequences, and campaign management for field-services businesses.", color: "#6366f1" },
@@ -33,6 +36,7 @@ const CAPABILITIES = [
 
 const card: React.CSSProperties = {
   background: "#111113",
+  backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)",
   border: "1px solid #27272a",
   borderRadius: 12,
   padding: 20,
@@ -40,71 +44,71 @@ const card: React.CSSProperties = {
 
 export default function Features() {
   return (
-    <div style={{ minHeight: "100vh", background: "#09090b", color: "#f8fafc" }}>
+    <div style={{ minHeight: "100vh", background: "#09090b", color: "#fafafa", fontFamily: "var(--font-inter)" }}>
 
-      {/* Nav */}
-      <nav style={{ background: "rgba(10,15,30,0.9)", backdropFilter: "blur(20px)", borderBottom: "1px solid #27272a", height: 60, padding: "0 24px", position: "sticky", top: 0, zIndex: 40, display: "flex", alignItems: "center" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto", width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
-            <div style={{ width: 26, height: 26, borderRadius: 6, background: "#1d4ed8", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 11, color: "#fff" }}>U</div>
-            <span style={{ fontSize: 14, fontWeight: 700, color: "#f8fafc", letterSpacing: "-0.02em" }}>Unite Group</span>
-          </Link>
-          <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
-            <Link href="/features" style={{ fontSize: 13, fontWeight: 500, color: "#f8fafc", textDecoration: "none" }}>Platform</Link>
-            <Link href="/pricing" style={{ fontSize: 13, color: "#64748b", textDecoration: "none" }}>Pricing</Link>
-            <Link href="/about" style={{ fontSize: 13, color: "#64748b", textDecoration: "none" }}>About</Link>
-            <Link href="/login" style={{ fontSize: 13, fontWeight: 500, color: "#fff", background: "#1d4ed8", padding: "6px 14px", borderRadius: 8, textDecoration: "none" }}>Sign in</Link>
-          </div>
-        </div>
-      </nav>
-
-      {/* Hero */}
-      <section style={{ maxWidth: 900, margin: "0 auto", padding: "80px 24px 60px", textAlign: "center" }}>
-        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#334155", marginBottom: 16 }}>Platform</p>
-        <h1 style={{ fontSize: 42, fontWeight: 700, color: "#f8fafc", letterSpacing: "-0.04em", lineHeight: 1.1, margin: "0 0 16px" }}>
-          The Empire Command Center
+      {/* Page title */}
+      <div style={{ padding: "24px 24px 0" }}>
+        <h1 style={{ fontSize: 18, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em", margin: 0, fontFamily: "var(--font-inter)" }}>
+          Platform
         </h1>
-        <p style={{ fontSize: 16, color: "#64748b", maxWidth: 560, margin: "0 auto 32px", lineHeight: 1.6 }}>
-          A single platform managing 6 portfolio businesses — SEO intelligence, AI agents, client portals, and real-time operational health, all in one place.
+        <p style={{ fontSize: 13, color: "#52525b", margin: "4px 0 0" }}>
+          The Empire Command Center — 6 portfolio businesses, one platform.
         </p>
-        <Link href="/login" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 20px", borderRadius: 10, background: "#1d4ed8", color: "#fff", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
-          Access the platform
-        </Link>
-      </section>
+      </div>
 
-      {/* 6 Business blocks */}
-      <section style={{ maxWidth: 1280, margin: "0 auto", padding: "0 24px 64px" }}>
-        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#334155", marginBottom: 20 }}>Portfolio Businesses</p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 12 }}>
-          {BUSINESSES.map((biz) => (
-            <div key={biz.name} style={{ ...card, display: "flex", gap: 14, alignItems: "flex-start" }}>
-              <div style={{ width: 36, height: 36, borderRadius: 9, background: `${biz.color}12`, border: `1px solid ${biz.color}22`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                {biz.icon}
-              </div>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "#f8fafc", letterSpacing: "-0.01em", marginBottom: 5 }}>{biz.name}</div>
-                <p style={{ fontSize: 13, color: "#64748b", margin: 0, lineHeight: 1.55 }}>{biz.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+      >
+        {/* Hero */}
+        <section style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px 32px", textAlign: "center" }}>
+          <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#52525b", marginBottom: 16 }}>Platform</p>
+          <h2 style={{ fontSize: 42, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.04em", lineHeight: 1.1, margin: "0 0 16px" }}>
+            The Empire Command Center
+          </h2>
+          <p style={{ fontSize: 16, color: "#a1a1aa", maxWidth: 560, margin: "0 auto 32px", lineHeight: 1.6 }}>
+            A single platform managing 6 portfolio businesses — SEO intelligence, AI agents, client portals, and real-time operational health, all in one place.
+          </p>
+          <Link href="/login" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 20px", borderRadius: 10, background: "#1d4ed8", color: "#fff", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
+            Access the platform
+          </Link>
+        </section>
 
-      {/* 3 Platform capabilities */}
-      <section style={{ maxWidth: 1280, margin: "0 auto", padding: "0 24px 80px" }}>
-        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#334155", marginBottom: 20 }}>Platform Capabilities</p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
-          {CAPABILITIES.map((cap) => (
-            <div key={cap.name} style={{ ...card, padding: 24 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: "#18181b", border: "1px solid #27272a", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
-                {cap.icon}
+        {/* 6 Business blocks */}
+        <section style={{ maxWidth: 1280, margin: "0 auto", padding: "0 24px 64px" }}>
+          <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#52525b", marginBottom: 20 }}>Portfolio Businesses</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 12 }}>
+            {BUSINESSES.map((biz) => (
+              <div key={biz.name} style={{ ...card, display: "flex", gap: 14, alignItems: "flex-start" }}>
+                <div style={{ width: 36, height: 36, borderRadius: 9, background: `${biz.color}12`, border: `1px solid ${biz.color}22`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  {biz.icon}
+                </div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "#fafafa", letterSpacing: "-0.01em", marginBottom: 5 }}>{biz.name}</div>
+                  <p style={{ fontSize: 13, color: "#a1a1aa", margin: 0, lineHeight: 1.55 }}>{biz.desc}</p>
+                </div>
               </div>
-              <h3 style={{ fontSize: 16, fontWeight: 600, color: "#f8fafc", letterSpacing: "-0.02em", margin: "0 0 8px" }}>{cap.name}</h3>
-              <p style={{ fontSize: 14, color: "#64748b", margin: 0, lineHeight: 1.6 }}>{cap.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
+
+        {/* 3 Platform capabilities */}
+        <section style={{ maxWidth: 1280, margin: "0 auto", padding: "0 24px 80px" }}>
+          <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#52525b", marginBottom: 20 }}>Platform Capabilities</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+            {CAPABILITIES.map((cap) => (
+              <div key={cap.name} style={{ ...card, padding: 24 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: "#18181b", border: "1px solid #27272a", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
+                  {cap.icon}
+                </div>
+                <h3 style={{ fontSize: 16, fontWeight: 600, color: "#fafafa", letterSpacing: "-0.02em", margin: "0 0 8px" }}>{cap.name}</h3>
+                <p style={{ fontSize: 14, color: "#a1a1aa", margin: 0, lineHeight: 1.6 }}>{cap.desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      </motion.div>
 
     </div>
   );

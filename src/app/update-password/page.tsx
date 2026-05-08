@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabaseClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { Loader2, KeyRound, ArrowLeft, CheckCircle2, Eye, EyeOff } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function UpdatePassword() {
   const [password, setPassword] = useState("");
@@ -53,18 +54,18 @@ export default function UpdatePassword() {
 
   const inputStyle: React.CSSProperties = {
     width: "100%", borderRadius: 10, padding: "10px 14px", paddingRight: 44,
-    fontSize: 14, color: "#f8fafc", background: "#18181b", border: "1px solid #27272a",
+    fontSize: 14, color: "#fafafa", background: "#18181b", border: "1px solid #27272a",
     outline: "none", boxSizing: "border-box", transition: "border-color 0.12s ease",
   };
 
   const wrapStyle: React.CSSProperties = { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, background: "#09090b" };
-  const cardStyle: React.CSSProperties = { width: "100%", maxWidth: 400, background: "#111113", border: "1px solid #27272a", borderRadius: 16, padding: 32 };
+  const cardStyle: React.CSSProperties = { width: "100%", maxWidth: 400, background: "#111113", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 16, padding: 32 };
 
   const Logo = () => (
     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
       <div style={{ width: 32, height: 32, borderRadius: 8, background: "#1d4ed8", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, color: "#fff" }}>U</div>
       <div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "#f8fafc", letterSpacing: "-0.02em" }}>Unite Group</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em" }}>Unite Group</div>
         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
           <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#fbbf24", display: "inline-block" }} />
           <span style={{ fontSize: 9, color: "#fbbf24", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Empire</span>
@@ -86,14 +87,18 @@ export default function UpdatePassword() {
 
   return (
     <div style={wrapStyle}>
-      <div style={cardStyle}>
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+        style={cardStyle}>
         <Logo />
 
         {success ? (
           <div style={{ textAlign: "center", padding: "16px 0" }}>
             <CheckCircle2 size={40} color="#16a34a" style={{ margin: "0 auto 12px" }} />
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: "#f8fafc", margin: "0 0 8px" }}>Password updated</h2>
-            <p style={{ fontSize: 14, color: "#475569", marginBottom: 20 }}>Your password has been updated. Redirecting to sign in&hellip;</p>
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: "#fafafa", margin: "0 0 8px" }}>Password updated</h2>
+            <p style={{ fontSize: 14, color: "#52525b", marginBottom: 20 }}>Your password has been updated. Redirecting to sign in&hellip;</p>
             <button
               onClick={() => router.push("/login")}
               style={{ width: "100%", padding: "11px 0", borderRadius: 10, fontSize: 14, fontWeight: 600, color: "#fff", background: "#1d4ed8", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
@@ -104,8 +109,8 @@ export default function UpdatePassword() {
         ) : validToken ? (
           <>
             <div style={{ marginBottom: 24 }}>
-              <h2 style={{ fontSize: 22, fontWeight: 700, color: "#f8fafc", letterSpacing: "-0.02em", margin: 0 }}>Set a new password</h2>
-              <p style={{ fontSize: 14, color: "#475569", marginTop: 6 }}>Create a new secure password for your account.</p>
+              <h2 style={{ fontSize: 22, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em", margin: 0 }}>Set a new password</h2>
+              <p style={{ fontSize: 14, color: "#52525b", marginTop: 6 }}>Create a new secure password for your account.</p>
             </div>
 
             {error && (
@@ -126,11 +131,11 @@ export default function UpdatePassword() {
                     onBlur={e => (e.target.style.borderColor = "#27272a")}
                   />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} tabIndex={-1}
-                    style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#334155", padding: 4 }}>
+                    style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#52525b", padding: 4 }}>
                     {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
-                <p style={{ fontSize: 11, color: "#334155", marginTop: 5 }}>At least 6 characters</p>
+                <p style={{ fontSize: 11, color: "#52525b", marginTop: 5 }}>At least 6 characters</p>
               </div>
 
               <div>
@@ -144,7 +149,7 @@ export default function UpdatePassword() {
                     onBlur={e => (e.target.style.borderColor = "#27272a")}
                   />
                   <button type="button" onClick={() => setShowConfirm(!showConfirm)} tabIndex={-1}
-                    style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#334155", padding: 4 }}>
+                    style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#52525b", padding: 4 }}>
                     {showConfirm ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
@@ -181,7 +186,7 @@ export default function UpdatePassword() {
             <ArrowLeft size={13} />Back to sign in
           </Link>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

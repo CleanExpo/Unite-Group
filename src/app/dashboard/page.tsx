@@ -50,6 +50,7 @@ const QUICK_LINKS = [
 
 const card: React.CSSProperties = {
   background: "#111113",
+  backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)",
   border: "1px solid #27272a",
   borderRadius: 12,
   padding: 20,
@@ -60,7 +61,7 @@ const sectionLabel: React.CSSProperties = {
   fontWeight: 600,
   letterSpacing: "0.1em",
   textTransform: "uppercase",
-  color: "#334155",
+  color: "#52525b",
   marginBottom: 12,
 };
 
@@ -95,7 +96,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#09090b", color: "#f8fafc" }}>
+    <div style={{ minHeight: "100vh", background: "#09090b", color: "#fafafa" }}>
 
       {/* Page title */}
       <div style={{ padding: "24px 24px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -117,7 +118,7 @@ export default function DashboardPage() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-          style={{ display: "flex", background: "#111113", border: "1px solid #27272a", borderRadius: 10, overflow: "hidden" }}
+          style={{ display: "flex", background: "#111113", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 10, overflow: "hidden" }}
         >
           {[
             { label: "Total Businesses", value: "6",                     suffix: "",     color: "#f8fafc" },
@@ -127,7 +128,7 @@ export default function DashboardPage() {
             <div key={stat.label} style={{ flex: 1, padding: "16px 20px", textAlign: "center", borderRight: i < arr.length - 1 ? "1px solid #27272a" : "none" }}>
               <div style={{ ...sectionLabel, marginBottom: 5 }}>{stat.label}</div>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em", color: stat.color, lineHeight: 1 }}>
-                {stat.value}<span style={{ fontSize: 12, fontWeight: 400, color: "#334155" }}>{stat.suffix}</span>
+                {stat.value}<span style={{ fontSize: 12, fontWeight: 400, color: "#52525b" }}>{stat.suffix}</span>
               </div>
             </div>
           ))}
@@ -148,7 +149,7 @@ export default function DashboardPage() {
               <thead>
                 <tr style={{ borderBottom: "1px solid #27272a" }}>
                   {["Business", "Status", "ARR", "SEO Audit"].map(h => (
-                    <th key={h} style={{ padding: "6px 8px", textAlign: "left", fontSize: 10, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "#334155" }}>{h}</th>
+                    <th key={h} style={{ padding: "6px 8px", textAlign: "left", fontSize: 10, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "#52525b" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -165,7 +166,7 @@ export default function DashboardPage() {
                     >
                       <td style={{ padding: "12px 8px" }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: "#f8fafc", letterSpacing: "-0.01em" }}>{biz.name}</div>
-                        <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>{biz.desc}</div>
+                        <div style={{ fontSize: 11, color: "#52525b", marginTop: 2 }}>{biz.desc}</div>
                       </td>
                       <td style={{ padding: "12px 8px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -177,7 +178,7 @@ export default function DashboardPage() {
                         {biz.arr > 0 ? (
                           <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600, color: "#16a34a" }}>${biz.arr.toLocaleString()}</span>
                         ) : (
-                          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "#334155" }}>pre-revenue</span>
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "#52525b" }}>pre-revenue</span>
                         )}
                       </td>
                       <td style={{ padding: "12px 8px" }}>
@@ -260,9 +261,9 @@ export default function DashboardPage() {
                   <span style={{ position: "absolute", left: -20, top: 4, width: 5, height: 5, borderRadius: "50%", background: "#27272a", border: "1px solid #334155", display: "inline-block" }} />
                   <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
                     <p style={{ fontSize: 13, color: "#94a3b8", margin: 0 }}>{a.action}</p>
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#334155", flexShrink: 0, marginLeft: 16 }}>{a.timeAgo}</span>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#52525b", flexShrink: 0, marginLeft: 16 }}>{a.timeAgo}</span>
                   </div>
-                  <p style={{ fontSize: 11, color: "#334155", margin: 0, marginTop: 1 }}>{a.agent}</p>
+                  <p style={{ fontSize: 11, color: "#52525b", margin: 0, marginTop: 1 }}>{a.agent}</p>
                 </div>
               ))}
             </div>
