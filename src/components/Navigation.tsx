@@ -114,6 +114,14 @@ export default function Navigation() {
                   <Link href="/dashboard" className={linkClass("/dashboard")}>
                     Dashboard
                   </Link>
+                  {(user.email?.endsWith("@unite-group.in") || user.email === "contact@unite-group.in") && (
+                    <Link
+                      href="/dashboard/ceo"
+                      className={cn(linkClass("/dashboard/ceo"), "text-amber-400 hover:text-amber-300")}
+                    >
+                      CEO View
+                    </Link>
+                  )}
                   {user.email?.endsWith("@ccw.com.au") && (
                     <Link href="/clients/ccw" className={linkClass("/clients/ccw")}>
                       Client Portal
@@ -166,6 +174,13 @@ export default function Navigation() {
                 <SheetClose asChild>
                   <Link href="/dashboard" className={mobileLinkClass("/dashboard")}>
                     Dashboard
+                  </Link>
+                </SheetClose>
+              )}
+              {!loading && (user?.email?.endsWith("@unite-group.in") || user?.email === "contact@unite-group.in") && (
+                <SheetClose asChild>
+                  <Link href="/dashboard/ceo" className={cn(mobileLinkClass("/dashboard/ceo"), "text-amber-400")}>
+                    CEO View
                   </Link>
                 </SheetClose>
               )}
