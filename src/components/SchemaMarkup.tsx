@@ -37,51 +37,42 @@ export interface SchemaMarkupProps {
 
 /**
  * SchemaMarkup component for structured data implementation
- * Provides search engines and LLMs with structured data about the page content
  */
 export default function SchemaMarkup({
-  title = "UNITE Group - Business Consulting Services",
-  description = "Professional business consulting services, IT solutions, and strategic planning with our proven $550 consultation model.",
+  title = "Unite Group — Empire Command Centre",
+  description = "Private CEO command centre for the Unite Group portfolio of businesses.",
   type = "WebPage",
-  image = "https://unite-group.vercel.app/images/og-image.jpg",
   datePublished,
   dateModified,
   author,
   services,
   faqs,
   address = {
-    streetAddress: "123 Business Avenue",
+    streetAddress: "",
     addressLocality: "Sydney",
     addressRegion: "NSW",
     postalCode: "2000",
     addressCountry: "Australia",
   },
   contactPoint = {
-    telephone: "+61-2-1234-5678",
-    email: "contact@unitegroup.com.au",
-    contactType: "Customer Service",
+    telephone: "",
+    email: "contact@unite-group.in",
+    contactType: "Internal",
   },
 }: SchemaMarkupProps) {
   const pathname = usePathname();
-  const url = `https://unite-group.vercel.app${pathname}`;
+  const url = `https://unite-group.in${pathname}`;
   const currentDate = new Date().toISOString();
 
   // Base schema for the organization
   const organizationSchema = {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "@id": "https://unite-group.vercel.app/#organization",
-    name: "UNITE Group",
-    url: "https://unite-group.vercel.app",
-    logo: "https://unite-group.vercel.app/images/logo.png",
-    description: "Professional business consulting services and strategic solutions.",
-    address,
+    "@id": "https://unite-group.in/#organization",
+    name: "Unite Group",
+    url: "https://unite-group.in",
+    description: "Private CEO command centre for the Unite Group portfolio.",
     contactPoint,
-    sameAs: [
-      "https://www.linkedin.com/company/unite-group",
-      "https://twitter.com/unitegroup",
-      "https://www.facebook.com/unitegroup",
-    ],
   };
 
   // Schema for WebPage
@@ -93,65 +84,12 @@ export default function SchemaMarkup({
     name: title,
     description,
     isPartOf: {
-      "@id": "https://unite-group.vercel.app/#website",
+      "@id": "https://unite-group.in/#website",
     },
     inLanguage: "en-AU",
     datePublished: datePublished || currentDate,
     dateModified: dateModified || currentDate,
   };
-
-  // Schema for LocalBusiness
-  const localBusinessSchema = {
-    "@context": "https://schema.org",
-    "@type": "LocalBusiness",
-    "@id": "https://unite-group.vercel.app/#localbusiness",
-    name: "UNITE Group",
-    image: "https://unite-group.vercel.app/images/office.jpg",
-    priceRange: "$$$",
-    address,
-    geo: {
-      "@type": "GeoCoordinates",
-      latitude: "-33.8688",
-      longitude: "151.2093",
-    },
-    url: "https://unite-group.vercel.app",
-    telephone: contactPoint.telephone,
-    email: contactPoint.email,
-    openingHoursSpecification: [
-      {
-        "@type": "OpeningHoursSpecification",
-        dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-        opens: "09:00",
-        closes: "17:00",
-      },
-    ],
-  };
-
-  // Schema for Services
-  const servicesSchema = services
-    ? {
-        "@context": "https://schema.org",
-        "@type": "ItemList",
-        "@id": "https://unite-group.vercel.app/features#servicelist",
-        name: "UNITE Group Services",
-        itemListElement: services.map((service, index) => ({
-          "@type": "Service",
-          "@id": `https://unite-group.vercel.app${service.url}#service`,
-          position: index + 1,
-          name: service.name,
-          description: service.description,
-          provider: {
-            "@id": "https://unite-group.vercel.app/#organization",
-          },
-          url: `https://unite-group.vercel.app${service.url}`,
-          ...(service.price && { offers: {
-            "@type": "Offer",
-            price: service.price.replace(/[^0-9.]/g, ''),
-            priceCurrency: "AUD",
-          }}),
-        })),
-      }
-    : null;
 
   // Schema for FAQs
   const faqSchema = faqs
@@ -179,13 +117,12 @@ export default function SchemaMarkup({
           "@id": `${url}#article`,
           headline: title,
           description,
-          image,
           author: {
             "@type": "Person",
-            name: author || "UNITE Group",
+            name: author || "Unite Group",
           },
           publisher: {
-            "@id": "https://unite-group.vercel.app/#organization",
+            "@id": "https://unite-group.in/#organization",
           },
           datePublished: datePublished || currentDate,
           dateModified: dateModified || currentDate,
@@ -195,30 +132,14 @@ export default function SchemaMarkup({
         }
       : null;
 
-  // Determine which schemas to include based on page type
-  let schemas = [];
-
-  // Always include Organization
-  schemas.push(organizationSchema);
-
-  // Include WebPage for all pages
-  schemas.push(webPageSchema);
-
-  // Include specific schema based on page type
-  if (type === "LocalBusiness") {
-    schemas.push(localBusinessSchema);
-  }
-
-  if (services && services.length > 0) {
-    schemas.push(servicesSchema);
-  }
+  const schemas = [organizationSchema, webPageSchema];
 
   if (faqs && faqs.length > 0) {
-    schemas.push(faqSchema);
+    schemas.push(faqSchema as unknown as typeof organizationSchema);
   }
 
-  if (type === "Article") {
-    schemas.push(articleSchema);
+  if (type === "Article" && articleSchema) {
+    schemas.push(articleSchema as unknown as typeof organizationSchema);
   }
 
   return (

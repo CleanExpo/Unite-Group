@@ -65,16 +65,7 @@ export default function Login() {
         {/* Top: Wordmark */}
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 64 }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: 9,
-              background: "#1d4ed8",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              flexShrink: 0,
-            }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-              </svg>
-            </div>
+            <img src="/logo-mark.svg" width={40} height={40} alt="Unite Group" />
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em" }}>Unite Group</div>
               <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
@@ -91,7 +82,7 @@ export default function Login() {
               letterSpacing: "-0.04em", lineHeight: 1.1,
               margin: "0 0 16px",
             }}>
-              Six businesses.<br />One command<br />centre.
+              Empire<br />Command<br />Centre.
             </h1>
             <p style={{ fontSize: 14, color: "#52525b", lineHeight: 1.6, margin: 0, maxWidth: 320 }}>
               AI-driven operations, real-time health monitoring, autonomous execution — all from a single authenticated session.
@@ -170,11 +161,7 @@ export default function Login() {
 
         {/* Mobile wordmark */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 40 }} className="mobile-logo">
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: "#1d4ed8", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-            </svg>
-          </div>
+          <img src="/logo-mark.svg" width={36} height={36} alt="Unite Group" />
           <span style={{ fontSize: 14, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em" }}>Unite Group</span>
         </div>
 

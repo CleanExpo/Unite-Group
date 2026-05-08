@@ -66,9 +66,7 @@ export function EmpireSidebar() {
       {/* Wordmark */}
       <div style={{ height: 64, display: 'flex', alignItems: 'center', padding: '0 20px', borderBottom: '1px solid #27272a' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Zap size={16} color="white" strokeWidth={2.5} />
-          </div>
+          <img src="/logo-mark.svg" width={32} height={32} alt="Unite Group" style={{ flexShrink: 0 }} />
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#fafafa', letterSpacing: '-0.02em', fontFamily: 'var(--font-inter)' }}>Unite Group</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 1 }}>
