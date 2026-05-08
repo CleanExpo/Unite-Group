@@ -22,6 +22,7 @@ import { YouTubeEmbedWidget } from "@/components/dashboard/YouTubeEmbedWidget";
 import type { ClientVideoWithStats } from "@/lib/dashboard/getClientYouTubeVideos";
 import { TrialEndModal } from "@/components/trial/TrialEndModal";
 import { BrandIQCard } from "@/components/dashboard/BrandIQCard";
+import { PiCeoStatusCard } from "@/components/dashboard/PiCeoStatusCard";
 
 interface Consultation {
   id: string;
@@ -622,18 +623,19 @@ export default function Dashboard() {
           </TabsContent>
         </Tabs>
 
-        {/* SYN-509: YouTube content embed widget + SYN-527: Brand IQ card */}
+        {/* SYN-509: YouTube content embed widget + SYN-527: Brand IQ card + Pi-CEO status */}
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <YouTubeEmbedWidget videos={youtubeVideos} />
           </div>
-          <div>
+          <div className="flex flex-col gap-4">
             {user && (
               <BrandIQCard
                 clientId={user.id}
                 isUnlocked={firstWinDetected}
               />
             )}
+            <PiCeoStatusCard />
           </div>
         </div>
       </div>
