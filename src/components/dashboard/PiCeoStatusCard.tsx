@@ -54,8 +54,8 @@ export function PiCeoStatusCard() {
             {data?.confidence != null && (
               <span>{data.confidence}% confidence</span>
             )}
-            {data?.plan_units_count > 0 && (
-              <span>{data.plan_units_count} units planned</span>
+            {(data?.plan_units_count ?? 0) > 0 && (
+              <span>{data!.plan_units_count} units planned</span>
             )}
           </div>
           {data?.session_id && (
