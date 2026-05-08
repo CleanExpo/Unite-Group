@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef, Component } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 import { AreaChart, Area, BarChart, Bar, XAxis, ResponsiveContainer, Cell } from "recharts";
 import { supabaseClient } from "@/lib/supabase/client";
 import {
@@ -74,30 +75,66 @@ const FALLBACK_ACTIVITIES: PiCeoActivity[] = [
 // ─── Status config ────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG = {
-  operational: { dotColor: "#10b981", ringColor: "rgba(16,185,129,0.3)",  sparkColor: "#10b981", labelColor: "#10b981" },
-  building:    { dotColor: "#3b82f6", ringColor: "rgba(59,130,246,0.3)",  sparkColor: "#3b82f6", labelColor: "#3b82f6" },
-  degraded:    { dotColor: "#f59e0b", ringColor: "rgba(245,158,11,0.3)",  sparkColor: "#f59e0b", labelColor: "#f59e0b" },
-  down:        { dotColor: "#ef4444", ringColor: "rgba(239,68,68,0.3)",   sparkColor: "#ef4444", labelColor: "#ef4444" },
+  operational: { dotColor: "#16A34A", ringColor: "rgba(22,163,74,0.3)",   sparkColor: "#16A34A", labelColor: "#16A34A" },
+  building:    { dotColor: "#3B82F6", ringColor: "rgba(59,130,246,0.3)",  sparkColor: "#3B82F6", labelColor: "#3B82F6" },
+  degraded:    { dotColor: "#D97706", ringColor: "rgba(217,119,6,0.3)",   sparkColor: "#D97706", labelColor: "#D97706" },
+  down:        { dotColor: "#DC2626", ringColor: "rgba(220,38,38,0.3)",   sparkColor: "#DC2626", labelColor: "#DC2626" },
 };
+
+// ─── useCountUp hook ──────────────────────────────────────────────────────────
+
+function useCountUp(target: number, duration = 1200): number {
+  const [value, setValue] = useState(0);
+  const frameRef = useRef<number>(0);
+  const startRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (target === 0) { setValue(0); return; }
+    const animate = (ts: number) => {
+      if (!startRef.current) startRef.current = ts;
+      const elapsed = ts - startRef.current;
+      const t = Math.min(elapsed / duration, 1);
+      // cubic ease-out
+      const eased = 1 - Math.pow(1 - t, 3);
+      setValue(Math.round(target * eased));
+      if (t < 1) { frameRef.current = requestAnimationFrame(animate); }
+      else { setValue(target); }
+    };
+    startRef.current = null;
+    frameRef.current = requestAnimationFrame(animate);
+    return () => { if (frameRef.current) cancelAnimationFrame(frameRef.current); };
+  }, [target, duration]);
+
+  return value;
+}
+
+// ─── AnimatedNumber ───────────────────────────────────────────────────────────
+
+function AnimatedNumber({ value }: { value: number }) {
+  const display = useCountUp(value);
+  return <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600 }}>${(display / 1000).toFixed(1)}K</span>;
+}
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function EmpireScore({ score }: { score: number }) {
   const circumference = 2 * Math.PI * 40;
   const offset = circumference - (score / 100) * circumference;
-  const color = score >= 80 ? "#10b981" : score >= 60 ? "#f59e0b" : "#ef4444";
+  const color = score >= 80 ? "#16A34A" : score >= 60 ? "#D97706" : "#DC2626";
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
       <svg width="100" height="100" viewBox="0 0 100 100" style={{ filter: `drop-shadow(0 0 12px ${color}40)` }}>
         <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8" />
-        <circle
+        <motion.circle
           cx="50" cy="50" r="40" fill="none" stroke={color} strokeWidth="8"
-          strokeDasharray={circumference} strokeDashoffset={offset}
+          strokeDasharray={circumference}
+          animate={{ strokeDashoffset: offset }}
+          initial={{ strokeDashoffset: circumference }}
+          transition={{ duration: 1.2, ease: [0.25, 0.4, 0.25, 1] }}
           strokeLinecap="round" transform="rotate(-90 50 50)"
-          style={{ transition: "stroke-dashoffset 1s ease" }}
         />
         <text x="50" y="48" textAnchor="middle" dominantBaseline="middle"
-          fill="white" fontSize="22" fontWeight="700" fontFamily="ui-monospace, monospace">{score}</text>
+          fill="white" fontSize="22" fontWeight="700" fontFamily="var(--font-mono)">{score}</text>
         <text x="50" y="64" textAnchor="middle" fill="#475569" fontSize="10">/ 100</text>
       </svg>
       <span style={{ fontSize: 10, fontWeight: 600, color: "#475569", letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 4 }}>Empire Score</span>
@@ -126,12 +163,12 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
 }
 
 function CiBadge({ passing }: { passing: boolean | null }) {
-  if (passing === true)  return <CheckCircle2 size={13} color="#10b981" />;
-  if (passing === false) return <XCircle      size={13} color="#ef4444" />;
+  if (passing === true)  return <CheckCircle2 size={13} color="#16A34A" />;
+  if (passing === false) return <XCircle      size={13} color="#DC2626" />;
   return <Circle size={13} color="#334155" />;
 }
 
-function BusinessCard({ biz }: { biz: BusinessHealth }) {
+function BusinessCard({ biz, index }: { biz: BusinessHealth; index: number }) {
   const cfg = STATUS_CONFIG[biz.status];
   const descriptors: Record<string, string> = {
     restoreassist:      "iOS App · TestFlight active",
@@ -142,31 +179,38 @@ function BusinessCard({ biz }: { biz: BusinessHealth }) {
     carsi:              "Compliance Delivery",
   };
   return (
-    <div style={{
-      background: "#111827",
-      border: "1px solid rgba(255,255,255,0.05)",
-      borderRadius: 12,
-      padding: 16,
-      display: "flex",
-      flexDirection: "column",
-      gap: 10,
-      minHeight: 170,
-      boxShadow: "0 20px 25px -5px rgba(0,0,0,0.2)",
-    }}>
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay: index * 0.05, ease: [0.25, 0.4, 0.25, 1] }}
+      style={{
+        background: "rgba(15,23,42,0.8)",
+        backdropFilter: "blur(10px)",
+        WebkitBackdropFilter: "blur(10px)",
+        borderRadius: 12,
+        padding: 16,
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+        minHeight: 170,
+        border: "1px solid rgba(255,255,255,0.07)",
+        borderLeft: `3px solid ${cfg.dotColor}`,
+        boxShadow: `0 0 0 1px rgba(255,255,255,0.04), 0 4px 24px rgba(0,0,0,0.4), 0 0 40px ${cfg.dotColor}10`,
+      }}
+    >
       {/* Top row: status dot + CI */}
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{
-          width: 8, height: 8, borderRadius: "50%",
-          background: cfg.dotColor, display: "inline-block", flexShrink: 0,
-          boxShadow: `0 0 0 3px ${cfg.ringColor}`,
-        }} />
+        <span
+          className="status-dot"
+          style={{ width: 8, height: 8, background: cfg.dotColor, color: cfg.dotColor }}
+        />
         <Building2 size={12} color="#334155" strokeWidth={2} style={{ flexShrink: 0 }} />
-        <span style={{ fontSize: 11, fontWeight: 500, color: "#475569", flex: 1, letterSpacing: "0.02em" }}>{biz.status}</span>
+        <span style={{ fontSize: 11, fontWeight: 500, color: cfg.labelColor, flex: 1, letterSpacing: "0.02em" }}>{biz.status}</span>
         <CiBadge passing={biz.ci_passing} />
       </div>
 
       {/* Name */}
-      <div style={{ fontSize: 15, fontWeight: 700, color: "#f8fafc", lineHeight: 1.2, letterSpacing: "-0.02em" }}>
+      <div style={{ fontSize: 15, fontWeight: 700, color: "#f8fafc", lineHeight: 1.2, letterSpacing: "-0.02em", fontFamily: "var(--font-inter)" }}>
         {biz.name}
       </div>
 
@@ -183,25 +227,25 @@ function BusinessCard({ biz }: { biz: BusinessHealth }) {
       {/* Bottom stats */}
       <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 10, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", gap: 12 }}>
-          <span style={{ fontSize: 11, fontFamily: "ui-monospace, monospace", fontWeight: 500, color: "#64748b" }}>
+          <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", fontWeight: 500, color: "#64748b" }}>
             {biz.deploy_frequency}x/wk
           </span>
           {biz.open_prs > 0 && (
-            <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, fontFamily: "ui-monospace, monospace", fontWeight: 500, color: "#f59e0b" }}>
-              <GitBranch size={10} color="#f59e0b" />
+            <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, fontFamily: "var(--font-mono)", fontWeight: 500, color: "#D97706" }}>
+              <GitBranch size={10} color="#D97706" />
               {biz.open_prs} PRs
             </span>
           )}
         </div>
-        <span style={{ fontSize: 11, fontFamily: "ui-monospace, monospace", fontWeight: 600, color: "#64748b" }}>
+        <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", fontWeight: 600, color: "#64748b" }}>
           {biz.uptime_pct}%
         </span>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
-function ProgressBar({ item }: { item: ContentProgress }) {
+function ProgressBar({ item, index }: { item: ContentProgress; index: number }) {
   const pct = Math.round((item.done / item.total) * 100);
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -209,9 +253,14 @@ function ProgressBar({ item }: { item: ContentProgress }) {
         {item.business}
       </span>
       <div style={{ flex: 1, height: 3, background: "rgba(255,255,255,0.05)", borderRadius: 2, overflow: "hidden" }}>
-        <div style={{ height: "100%", borderRadius: 2, width: `${pct}%`, background: item.color, transition: "width 0.6s ease" }} />
+        <motion.div
+          style={{ height: "100%", borderRadius: 2, background: item.color }}
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.8, delay: index * 0.1, ease: [0.25, 0.4, 0.25, 1] }}
+        />
       </div>
-      <span style={{ fontSize: 11, fontFamily: "ui-monospace, monospace", fontWeight: 500, color: "#475569", width: 36, textAlign: "right", flexShrink: 0 }}>
+      <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", fontWeight: 500, color: "#475569", width: 36, textAlign: "right", flexShrink: 0 }}>
         {item.done}/{item.total}
       </span>
     </div>
@@ -220,7 +269,7 @@ function ProgressBar({ item }: { item: ContentProgress }) {
 
 function SkeletonCard() {
   return (
-    <div style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 12, padding: 16, minHeight: 170, animation: "pulse 2s cubic-bezier(0.4,0,0.6,1) infinite" }}>
+    <div style={{ border: "1px solid rgba(255,255,255,0.05)", borderRadius: 12, padding: 16, minHeight: 170 }} className="skeleton">
       <div style={{ height: 8, background: "rgba(255,255,255,0.04)", borderRadius: 4, width: "33%", marginBottom: 12 }} />
       <div style={{ height: 16, background: "rgba(255,255,255,0.06)", borderRadius: 4, width: "66%", marginBottom: 8 }} />
       <div style={{ height: 10, background: "rgba(255,255,255,0.03)", borderRadius: 4, width: "100%", marginBottom: 16 }} />
@@ -244,11 +293,11 @@ class DashboardErrorBoundary extends Component<
       return (
         <div style={{ minHeight: "100vh", background: "#0a0f1e", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ textAlign: "center", padding: 32 }}>
-            <p style={{ color: "#ef4444", fontSize: 12, fontFamily: "ui-monospace, monospace", marginBottom: 16 }}>Dashboard Error</p>
+            <p style={{ color: "#DC2626", fontSize: 12, fontFamily: "var(--font-mono)", marginBottom: 16 }}>Dashboard Error</p>
             <p style={{ color: "#475569", fontSize: 12, maxWidth: 400 }}>{this.state.error}</p>
             <button
               onClick={() => window.location.reload()}
-              style={{ marginTop: 24, padding: "8px 16px", background: "#1d4ed8", color: "white", fontSize: 13, border: "none", borderRadius: 6, cursor: "pointer" }}
+              style={{ marginTop: 24, padding: "8px 16px", background: "#1D4ED8", color: "white", fontSize: 13, border: "none", borderRadius: 6, cursor: "pointer" }}
             >
               Reload
             </button>
@@ -324,13 +373,14 @@ export default function CeoCommandCenter() {
 
   const updatedLabel = secondsAgo < 60 ? `${secondsAgo}s ago` : `${Math.floor(secondsAgo / 60)}m ago`;
 
-  // Shared card style
   const card: React.CSSProperties = {
-    background: "#111827",
-    border: "1px solid rgba(255,255,255,0.05)",
+    background: "rgba(15,23,42,0.8)",
+    backdropFilter: "blur(10px)",
+    WebkitBackdropFilter: "blur(10px)",
+    border: "1px solid rgba(255,255,255,0.07)",
     borderRadius: 12,
     padding: 20,
-    boxShadow: "0 20px 25px -5px rgba(0,0,0,0.2)",
+    boxShadow: "0 0 0 1px rgba(255,255,255,0.04), 0 4px 24px rgba(0,0,0,0.4)",
   };
 
   const sectionLabel: React.CSSProperties = {
@@ -348,9 +398,9 @@ export default function CeoCommandCenter() {
 
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <header style={{
-        background: "rgba(10,15,30,0.9)",
-        backdropFilter: "blur(12px)",
-        WebkitBackdropFilter: "blur(12px)",
+        background: "rgba(10,15,30,0.85)",
+        backdropFilter: "blur(20px) saturate(180%)",
+        WebkitBackdropFilter: "blur(20px) saturate(180%)",
         borderBottom: "1px solid rgba(255,255,255,0.05)",
         padding: "0 24px",
         height: 64,
@@ -364,15 +414,14 @@ export default function CeoCommandCenter() {
 
           {/* Left — wordmark */}
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Zap size={16} color="white" strokeWidth={2.5} />
             </div>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#f8fafc", letterSpacing: "-0.02em", lineHeight: 1 }}>Unite-Group Empire</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#f8fafc", letterSpacing: "-0.02em", lineHeight: 1, fontFamily: "var(--font-inter)" }}>Unite-Group Empire</div>
               <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 3 }}>
-                {/* Amber "live" indicator */}
-                <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#fbbf24", display: "inline-block", boxShadow: "0 0 6px #fbbf24" }} />
-                <span style={{ fontSize: 10, color: "#fbbf24", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>Live</span>
+                <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#FBBF24", display: "inline-block", boxShadow: "0 0 6px #FBBF24" }} />
+                <span style={{ fontSize: 10, color: "#FBBF24", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>Live</span>
               </div>
             </div>
           </div>
@@ -385,20 +434,20 @@ export default function CeoCommandCenter() {
           {/* Right — quick stats */}
           <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap", justifyContent: "flex-end" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <TrendingUp size={13} color="#10b981" />
-              <span style={{ fontSize: 12, fontFamily: "ui-monospace, monospace", fontWeight: 600, color: "#10b981" }}>
-                ${((health?.total_arr ?? 2400) / 1000).toFixed(1)}K ARR
+              <TrendingUp size={13} color="#16A34A" />
+              <span style={{ fontSize: 12, fontFamily: "var(--font-mono)", fontWeight: 600, color: "#16A34A" }}>
+                <AnimatedNumber value={health?.total_arr ?? 2400} /> ARR
               </span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <Zap size={13} color="#60a5fa" />
-              <span style={{ fontSize: 12, fontFamily: "ui-monospace, monospace", fontWeight: 500, color: "#64748b" }}>
+              <span style={{ fontSize: 12, fontFamily: "var(--font-mono)", fontWeight: 500, color: "#64748b" }}>
                 {health?.active_agents ?? 4} agents
               </span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <BarChart3 size={13} color="#8b5cf6" />
-              <span style={{ fontSize: 12, fontFamily: "ui-monospace, monospace", fontWeight: 500, color: "#64748b" }}>
+              <span style={{ fontSize: 12, fontFamily: "var(--font-mono)", fontWeight: 500, color: "#64748b" }}>
                 {health?.content_produced ?? totalContent}/{health?.content_total ?? totalTarget}
               </span>
             </div>
@@ -417,12 +466,14 @@ export default function CeoCommandCenter() {
         <section>
           <p style={sectionLabel}>Business Health</p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
-            {loading
-              ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
-              : (health?.businesses ?? []).map(biz => (
-                  <BusinessCard key={biz.id} biz={biz} />
-                ))
-            }
+            <AnimatePresence>
+              {loading
+                ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
+                : (health?.businesses ?? []).map((biz, index) => (
+                    <BusinessCard key={biz.id} biz={biz} index={index} />
+                  ))
+              }
+            </AnimatePresence>
           </div>
         </section>
 
@@ -430,15 +481,20 @@ export default function CeoCommandCenter() {
         <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
 
           {/* Col 1 — Pi-CEO Activity (timeline) */}
-          <div style={card}>
+          <motion.div
+            style={card}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.1, ease: [0.25, 0.4, 0.25, 1] }}
+          >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Activity size={14} color="#60a5fa" />
                 <span style={{ fontSize: 13, fontWeight: 600, color: "#f1f5f9" }}>Pi-CEO Activity</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981", display: "inline-block", boxShadow: "0 0 6px rgba(16,185,129,0.6)" }} />
-                <span style={{ fontSize: 10, fontWeight: 600, color: "#10b981", letterSpacing: "0.05em", textTransform: "uppercase" }}>Live</span>
+                <span className="status-dot" style={{ width: 6, height: 6, background: "#16A34A", color: "#16A34A" }} />
+                <span style={{ fontSize: 10, fontWeight: 600, color: "#16A34A", letterSpacing: "0.05em", textTransform: "uppercase" }}>Live</span>
                 <span style={{ fontSize: 10, color: "#1e2d45", marginLeft: 4 }}>30s</span>
               </div>
             </div>
@@ -448,7 +504,6 @@ export default function CeoCommandCenter() {
               <div style={{ borderLeft: "1px solid rgba(255,255,255,0.06)", marginLeft: 8, paddingLeft: 16, display: "flex", flexDirection: "column", gap: 0 }}>
                 {FALLBACK_ACTIVITIES.map((a, i) => (
                   <div key={i} style={{ position: "relative", paddingBottom: i < FALLBACK_ACTIVITIES.length - 1 ? 14 : 0 }}>
-                    {/* Timeline dot */}
                     <span style={{ position: "absolute", left: -20, top: 4, width: 5, height: 5, borderRadius: "50%", background: "#1e2d45", border: "1px solid rgba(255,255,255,0.1)", display: "inline-block" }} />
                     <p style={{ fontSize: 12, color: "#94a3b8", margin: 0, lineHeight: 1.4 }}>{a.agent}</p>
                     <p style={{ fontSize: 10, color: "#334155", margin: 0, marginTop: 1 }}>{a.timeAgo}</p>
@@ -458,20 +513,25 @@ export default function CeoCommandCenter() {
             </div>
 
             <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.04)", display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ fontSize: 11, fontFamily: "ui-monospace, monospace", color: "#334155" }}>
+              <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", color: "#334155" }}>
                 {health?.work_orders_open ?? 0} open work orders
               </span>
             </div>
-          </div>
+          </motion.div>
 
           {/* Col 2 — Revenue & ARR BarChart */}
-          <div style={card}>
+          <motion.div
+            style={card}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.15, ease: [0.25, 0.4, 0.25, 1] }}
+          >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <TrendingUp size={14} color="#10b981" />
+                <TrendingUp size={14} color="#16A34A" />
                 <span style={{ fontSize: 13, fontWeight: 600, color: "#f1f5f9" }}>Revenue</span>
               </div>
-              <span style={{ fontSize: 12, fontFamily: "ui-monospace, monospace", fontWeight: 700, color: "#10b981" }}>
+              <span style={{ fontSize: 12, fontFamily: "var(--font-mono)", fontWeight: 700, color: "#16A34A" }}>
                 ${((health?.total_arr ?? 2400) / 1000).toFixed(1)}K ARR
               </span>
             </div>
@@ -484,7 +544,7 @@ export default function CeoCommandCenter() {
                       {arrData.map((entry, index) => (
                         <Cell
                           key={index}
-                          fill={entry.preRevenue ? "rgba(255,255,255,0.04)" : "#1d4ed8"}
+                          fill={entry.preRevenue ? "rgba(255,255,255,0.04)" : "#1D4ED8"}
                           stroke={entry.preRevenue ? "rgba(255,255,255,0.06)" : "none"}
                           strokeWidth={1}
                         />
@@ -498,14 +558,14 @@ export default function CeoCommandCenter() {
               <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 4 }}>
                 <p style={{ fontSize: 12, color: "#64748b", margin: 0 }}>
                   Total ARR:{" "}
-                  <span style={{ fontFamily: "ui-monospace, monospace", fontWeight: 600, color: "#10b981" }}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "#16A34A" }}>
                     ${(health?.total_arr ?? 2400).toLocaleString()}/yr
                   </span>
                 </p>
                 <p style={{ fontSize: 11, color: "#334155", margin: 0 }}>Next milestone: first $10K ARR</p>
                 <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 4 }}>
                   <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: "#475569" }}>
-                    <span style={{ width: 10, height: 10, borderRadius: 2, background: "#1d4ed8", display: "inline-block" }} />
+                    <span style={{ width: 10, height: 10, borderRadius: 2, background: "#1D4ED8", display: "inline-block" }} />
                     Revenue
                   </span>
                   <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: "#475569" }}>
@@ -515,16 +575,21 @@ export default function CeoCommandCenter() {
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Col 3 — Content Pipeline */}
-          <div style={card}>
+          <motion.div
+            style={card}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.2, ease: [0.25, 0.4, 0.25, 1] }}
+          >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <BarChart3 size={14} color="#8b5cf6" />
                 <span style={{ fontSize: 13, fontWeight: 600, color: "#f1f5f9" }}>Content Pipeline</span>
               </div>
-              <span style={{ fontSize: 11, fontFamily: "ui-monospace, monospace", fontWeight: 500, color: "#475569" }}>
+              <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", fontWeight: 500, color: "#475569" }}>
                 {totalContent}/{totalTarget} ({Math.round((totalContent / totalTarget) * 100)}%)
               </span>
             </div>
@@ -532,7 +597,12 @@ export default function CeoCommandCenter() {
             {/* Overall bar */}
             <div style={{ marginBottom: 16 }}>
               <div style={{ height: 3, background: "rgba(255,255,255,0.05)", borderRadius: 2, overflow: "hidden" }}>
-                <div style={{ height: "100%", borderRadius: 2, width: `${Math.round((totalContent / totalTarget) * 100)}%`, background: "#3b82f6", transition: "width 0.6s ease" }} />
+                <motion.div
+                  style={{ height: "100%", borderRadius: 2, background: "#3B82F6" }}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.round((totalContent / totalTarget) * 100)}%` }}
+                  transition={{ duration: 0.8, ease: [0.25, 0.4, 0.25, 1] }}
+                />
               </div>
               <p style={{ fontSize: 10, color: "#334155", margin: 0, marginTop: 5 }}>
                 {Math.round((totalContent / totalTarget) * 100)}% complete overall
@@ -540,11 +610,11 @@ export default function CeoCommandCenter() {
             </div>
 
             <div style={{ borderTop: "1px solid rgba(255,255,255,0.04)", paddingTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
-              {CONTENT_PIPELINE.map(item => (
-                <ProgressBar key={item.business} item={item} />
+              {CONTENT_PIPELINE.map((item, index) => (
+                <ProgressBar key={item.business} item={item} index={index} />
               ))}
             </div>
-          </div>
+          </motion.div>
         </section>
 
         {/* ── Quick Actions ───────────────────────────────────────────────── */}
@@ -553,35 +623,45 @@ export default function CeoCommandCenter() {
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
             <Link
               href="/dashboard/board"
-              style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", fontSize: 12, fontWeight: 500, borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", color: "#94a3b8", textDecoration: "none", background: "transparent", transition: "all 0.15s" }}
+              style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", fontSize: 12, fontWeight: 500, borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", color: "#94a3b8", textDecoration: "none", background: "transparent", transition: "all 0.12s ease" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.04)"; (e.currentTarget as HTMLAnchorElement).style.color = "#f1f5f9"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; (e.currentTarget as HTMLAnchorElement).style.color = "#94a3b8"; }}
             >
               Board Minutes
               <ArrowUpRight size={12} color="#475569" />
             </Link>
             <Link
               href="/clients/ccw"
-              style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", fontSize: 12, fontWeight: 500, borderRadius: 8, border: "1px solid rgba(59,130,246,0.25)", color: "#60a5fa", textDecoration: "none", background: "transparent", transition: "all 0.15s" }}
+              style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", fontSize: 12, fontWeight: 500, borderRadius: 8, border: "1px solid rgba(59,130,246,0.25)", color: "#60a5fa", textDecoration: "none", background: "transparent", transition: "all 0.12s ease" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "rgba(59,130,246,0.08)"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
             >
               CCW Portal
               <ArrowUpRight size={12} color="#60a5fa" />
             </Link>
             <Link
               href="/dashboard/content"
-              style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", fontSize: 12, fontWeight: 500, borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", color: "#94a3b8", textDecoration: "none", background: "transparent", transition: "all 0.15s" }}
+              style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", fontSize: 12, fontWeight: 500, borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", color: "#94a3b8", textDecoration: "none", background: "transparent", transition: "all 0.12s ease" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.04)"; (e.currentTarget as HTMLAnchorElement).style.color = "#f1f5f9"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; (e.currentTarget as HTMLAnchorElement).style.color = "#94a3b8"; }}
             >
               Content Artefacts
             </Link>
             <button
               onClick={fetchHealth}
               disabled={loading}
-              style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", fontSize: 12, fontWeight: 500, borderRadius: 8, border: "1px solid rgba(251,191,36,0.25)", color: "#fbbf24", background: "transparent", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.5 : 1, transition: "all 0.15s" }}
+              style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", fontSize: 12, fontWeight: 500, borderRadius: 8, border: "1px solid rgba(251,191,36,0.25)", color: "#FBBF24", background: "transparent", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.5 : 1, transition: "all 0.12s ease" }}
+              onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = "rgba(251,191,36,0.08)"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
             >
-              <RefreshCw size={12} color="#fbbf24" style={{ animation: loading ? "spin 1s linear infinite" : "none" }} />
+              <RefreshCw size={12} color="#FBBF24" className={loading ? "spin" : ""} />
               {loading ? "Running…" : "Run Health Check"}
             </button>
             <Link
               href="/dashboard/brief"
-              style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", fontSize: 12, fontWeight: 600, borderRadius: 8, border: "1px solid #1d4ed8", color: "white", textDecoration: "none", background: "#1d4ed8", transition: "all 0.15s" }}
+              style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", fontSize: 12, fontWeight: 600, borderRadius: 8, border: "1px solid #1D4ED8", color: "white", textDecoration: "none", background: "#1D4ED8", transition: "all 0.12s ease" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "#1e40af"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "#1D4ED8"; }}
             >
               6-Pager Brief
             </Link>
@@ -589,7 +669,9 @@ export default function CeoCommandCenter() {
               href="https://linear.app"
               target="_blank"
               rel="noopener noreferrer"
-              style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", fontSize: 12, fontWeight: 500, borderRadius: 8, border: "1px solid rgba(139,92,246,0.25)", color: "#a78bfa", textDecoration: "none", background: "transparent", transition: "all 0.15s" }}
+              style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", fontSize: 12, fontWeight: 500, borderRadius: 8, border: "1px solid rgba(139,92,246,0.25)", color: "#a78bfa", textDecoration: "none", background: "transparent", transition: "all 0.12s ease" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "rgba(139,92,246,0.08)"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
             >
               Linear Tickets
               <ArrowUpRight size={12} color="#a78bfa" />

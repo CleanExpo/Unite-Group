@@ -28,7 +28,7 @@ const BUSINESSES = [
 
 const STATUS_COLOR: Record<string, string> = {
   operational: '#16A34A',
-  building:    '#2563EB',
+  building:    '#3B82F6',
   degraded:    '#D97706',
   down:        '#DC2626',
 };
@@ -44,14 +44,14 @@ export function EmpireSidebar() {
       {/* Wordmark */}
       <div style={{ height: 64, display: 'flex', alignItems: 'center', padding: '0 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Zap size={16} color="white" strokeWidth={2.5} />
           </div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#f8fafc', letterSpacing: '-0.01em' }}>Unite Group</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#f8fafc', letterSpacing: '-0.01em', fontFamily: 'var(--font-inter)' }}>Unite Group</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 1 }}>
-              <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#fbbf24', display: 'inline-block', boxShadow: '0 0 6px #fbbf24' }} />
-              <span style={{ fontSize: 10, fontWeight: 600, color: '#fbbf24', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Empire</span>
+              <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#FBBF24', display: 'inline-block', boxShadow: '0 0 6px #FBBF24' }} />
+              <span style={{ fontSize: 10, fontWeight: 600, color: '#FBBF24', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Empire</span>
             </div>
           </div>
         </div>
@@ -69,15 +69,15 @@ export function EmpireSidebar() {
                 display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
                 borderRadius: 8, textDecoration: 'none',
                 background: active ? 'rgba(29,78,216,0.15)' : 'transparent',
-                border: active ? '1px solid rgba(29,78,216,0.3)' : '1px solid transparent',
-                transition: 'all 0.15s',
+                borderLeft: active ? '2px solid #3B82F6' : '2px solid transparent',
+                transition: 'all 0.12s ease',
               }}
               onMouseEnter={e => { if (!active) (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.04)'; }}
               onMouseLeave={e => { if (!active) (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; }}
             >
               <Icon size={15} color={active ? '#60a5fa' : '#64748b'} strokeWidth={2} />
               <span style={{ fontSize: 13, fontWeight: active ? 500 : 400, color: active ? '#f1f5f9' : '#94a3b8', flex: 1 }}>{label}</span>
-              {active && <ChevronRight size={12} color="#3b82f6" />}
+              {active && <ChevronRight size={12} color="#3B82F6" />}
             </Link>
           );
         })}
@@ -88,7 +88,10 @@ export function EmpireSidebar() {
         </div>
         {BUSINESSES.map(biz => (
           <div key={biz.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px', borderRadius: 8 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: STATUS_COLOR[biz.status], display: 'inline-block', flexShrink: 0 }} />
+            <span
+              className="status-dot"
+              style={{ width: 6, height: 6, background: STATUS_COLOR[biz.status], color: STATUS_COLOR[biz.status] }}
+            />
             <span style={{ fontSize: 12, color: '#64748b', flex: 1 }}>{biz.label}</span>
             <span style={{ width: 5, height: 5, borderRadius: '50%', background: biz.color, display: 'inline-block', opacity: 0.7 }} />
           </div>
@@ -99,7 +102,7 @@ export function EmpireSidebar() {
       <div style={{ padding: '12px 10px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
         <Link
           href="/dashboard"
-          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, textDecoration: 'none' }}
+          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, textDecoration: 'none', transition: 'all 0.12s ease' }}
           onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.04)')}
           onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.background = 'transparent')}
         >
