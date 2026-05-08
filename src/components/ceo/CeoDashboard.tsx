@@ -288,7 +288,7 @@ function BentoBusinessGrid({ businesses, loading }: { businesses: BusinessHealth
             {/* Header row */}
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
               <div>
-                <div style={{ fontSize: isFeatured ? 16 : 14, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.03em", fontFamily: "var(--font-inter)", lineHeight: 1.2 }}>{biz.name}</div>
+                <div style={{ fontSize: isFeatured ? 16 : 14, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.03em", fontFamily: "var(--font-display)", lineHeight: 1.2 }}>{biz.name}</div>
                 <div style={{ fontSize: 11, color: "#52525b", marginTop: 3 }}>{descriptors[biz.id]}</div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -530,7 +530,7 @@ export default function CeoCommandCenter() {
               <Zap size={14} color="white" strokeWidth={2.5} />
             </div>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em", fontFamily: "var(--font-inter)" }}>Unite Group</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em", fontFamily: "var(--font-display)" }}>Unite Group</div>
               <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 1 }}>
                 <span className="status-dot" style={{ width: 5, height: 5, background: "#f59e0b", color: "#f59e0b" }} />
                 <span style={{ fontSize: 9, color: "#f59e0b", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Command Center</span>

@@ -99,7 +99,7 @@ export default function BulcsHoldingsPortal() {
   const inProgress = DELIVERABLES.filter(d => d.status === "in-progress").length;
 
   return (
-    <div style={{ minHeight: "100vh", background: BH.dark, color: BH.ink, fontFamily: "var(--font-inter)" }}>
+    <div style={{ minHeight: "100vh", background: BH.dark, color: BH.ink, fontFamily: "var(--font-display)" }}>
 
       {/* ── Header ────────────────────────────────────────────────────────── */}
       <header style={{

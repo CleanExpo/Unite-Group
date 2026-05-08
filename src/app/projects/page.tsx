@@ -217,14 +217,14 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#09090b", color: "#fafafa", fontFamily: "var(--font-inter)" }}>
+    <div style={{ minHeight: "100vh", background: "#09090b", color: "#fafafa", fontFamily: "var(--font-display)" }}>
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
         style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px" }}>
         <div style={{ marginBottom: 32 }}>
-          <h1 style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", color: "#fafafa", marginBottom: 8, fontFamily: "var(--font-inter)" }}>Projects</h1>
+          <h1 style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", color: "#fafafa", marginBottom: 8, fontFamily: "var(--font-display)" }}>Projects</h1>
           <p style={{ fontSize: 13, color: "#52525b" }}>Manage and track all your projects in one place</p>
         </div>
 

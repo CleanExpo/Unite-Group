@@ -218,7 +218,7 @@ export function TelegramFeed() {
             flex: 1, padding: "7px 11px", fontSize: 12,
             background: "#111113", border: "1px solid #27272a",
             borderRadius: 8, color: "#fafafa", outline: "none",
-            fontFamily: "var(--font-inter)", transition: "border-color 0.1s",
+            fontFamily: "var(--font-display)", transition: "border-color 0.1s",
           }}
           onFocus={e => (e.target.style.borderColor = "#1d4ed8")}
           onBlur={e => (e.target.style.borderColor = "#27272a")}

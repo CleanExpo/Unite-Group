@@ -76,7 +76,7 @@ export default function ClientsDirectory() {
   const inputStyle = {
     width: '100%', padding: '8px 12px', fontSize: 13, borderRadius: 8,
     border: '1px solid #27272a', background: '#111113', color: '#fafafa',
-    outline: 'none', fontFamily: 'var(--font-inter)',
+    outline: 'none', fontFamily: 'var(--font-display)',
     transition: 'border-color 0.1s ease',
   } as React.CSSProperties;
 
@@ -92,7 +92,7 @@ export default function ClientsDirectory() {
             <ArrowLeft size={12} /> Command Center
           </Link>
           <span style={{ color: '#27272a' }}>·</span>
-          <h1 style={{ fontSize: 14, fontWeight: 700, color: '#fafafa', letterSpacing: '-0.02em', margin: 0, fontFamily: 'var(--font-inter)' }}>Clients</h1>
+          <h1 style={{ fontSize: 14, fontWeight: 700, color: '#fafafa', letterSpacing: '-0.02em', margin: 0, fontFamily: 'var(--font-display)' }}>Clients</h1>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#52525b' }}>{clients.length} total</span>
           <div style={{ flex: 1 }} />
           <button
@@ -190,7 +190,7 @@ export default function ClientsDirectory() {
             >
               {/* Panel header */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid #27272a' }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: '#fafafa', letterSpacing: '-0.02em', fontFamily: 'var(--font-inter)' }}>Add Client</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: '#fafafa', letterSpacing: '-0.02em', fontFamily: 'var(--font-display)' }}>Add Client</span>
                 <button onClick={() => setShowAdd(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 4 }}>
                   <X size={16} color="#52525b" />
                 </button>

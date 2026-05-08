@@ -68,7 +68,7 @@ export function EmpireSidebar() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <img src="/logo-mark.svg" width={32} height={32} alt="Unite Group" style={{ flexShrink: 0 }} />
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#fafafa', letterSpacing: '-0.02em', fontFamily: 'var(--font-inter)' }}>Unite Group</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#fafafa', letterSpacing: '-0.02em', fontFamily: 'var(--font-display)' }}>Unite Group</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 1 }}>
               <span className="status-dot" style={{ width: 5, height: 5, background: '#f59e0b', color: '#f59e0b' }} />
               <span style={{ fontSize: 10, fontWeight: 600, color: '#f59e0b', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Empire</span>

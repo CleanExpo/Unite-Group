@@ -71,7 +71,7 @@ export default function SixPagerBrief() {
       {/* Page title */}
       <div style={{ padding: "24px 24px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
-          <h1 style={{ fontSize: 18, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em", margin: 0, fontFamily: "var(--font-inter)" }}>
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em", margin: 0, fontFamily: "var(--font-display)" }}>
             Empire 6-Pager
           </h1>
           <p style={{ fontSize: 11, color: "#52525b", margin: "3px 0 0", fontFamily: "var(--font-mono)" }}>Weekly strategic brief — Unite Group portfolio</p>
@@ -122,7 +122,7 @@ export default function SixPagerBrief() {
                 lineHeight: 1.6,
                 resize: "vertical",
                 outline: "none",
-                fontFamily: "var(--font-inter)",
+                fontFamily: "var(--font-display)",
                 boxSizing: "border-box",
                 transition: "border-color 0.12s ease",
               }}

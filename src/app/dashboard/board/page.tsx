@@ -109,7 +109,7 @@ export default function KanbanBoard() {
       {/* Page title */}
       <div style={{ padding: "24px 24px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
-          <h1 style={{ fontSize: 18, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em", margin: 0, fontFamily: "var(--font-inter)" }}>
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em", margin: 0, fontFamily: "var(--font-display)" }}>
             Work Orders
           </h1>
           <p style={{ fontSize: 11, color: "#52525b", margin: "3px 0 0", fontFamily: "var(--font-mono)" }}>{doneCards}/{totalCards} done</p>
@@ -172,7 +172,7 @@ export default function KanbanBoard() {
                   </div>
 
                   {/* Title */}
-                  <div style={{ fontSize: 13, fontWeight: 500, color: "#d4d4d8", letterSpacing: "-0.01em", lineHeight: 1.4, marginBottom: 6, fontFamily: "var(--font-inter)" }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: "#d4d4d8", letterSpacing: "-0.01em", lineHeight: 1.4, marginBottom: 6, fontFamily: "var(--font-display)" }}>
                     {card.title}
                   </div>
 
