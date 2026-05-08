@@ -7,7 +7,7 @@ const PI_CEO_KEY = process.env.PI_CEO_API_KEY || '';
 const PROJECT_MAP: Record<string, { name: string; status_default: string; arr_aud: number }> = {
   'restoreassist':    { name: 'RestoreAssist', status_default: 'building',    arr_aud: 0 },
   'synthex':          { name: 'Synthex',       status_default: 'operational', arr_aud: 0 },
-  'ccw-crm':          { name: 'CCW-CRM',       status_default: 'operational', arr_aud: 2400 },
+  'ccw-crm':          { name: 'CCW-CRM',       status_default: 'operational', arr_aud: 33000 },
   'disaster-recovery':{ name: 'DR Platform',  status_default: 'operational', arr_aud: 0 },
   'dr-nrpg':          { name: 'NRPG',         status_default: 'building',    arr_aud: 0 },
   'carsi':            { name: 'CARSI',         status_default: 'operational', arr_aud: 0 },
