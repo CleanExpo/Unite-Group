@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseClient } from "@/lib/supabase/client";
 import Link from "next/link";
-import { Loader2, LogIn, AlertCircle, TrendingUp, Shield, Zap } from "lucide-react";
+import { Loader2, LogIn, AlertCircle, TrendingUp, Shield, Zap, Eye, EyeOff } from "lucide-react";
 
 const BUSINESSES = [
   { name: "RestoreAssist", color: "#0E7C7B", status: "BUILDING" },
@@ -26,6 +26,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -199,15 +200,29 @@ export default function Login() {
                   Forgot password?
                 </Link>
               </div>
-              <input
-                id="password" type="password" required
-                value={password} onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-[#334155] border focus:outline-none transition-all"
-                style={{ background: "#0F172A", borderColor: "#1E293B" }}
-                onFocus={e => { e.target.style.borderColor = "#1D4ED8"; }}
-                onBlur={e => { e.target.style.borderColor = "#1E293B"; }}
-              />
+              <div className="relative">
+                <input
+                  id="password" type={showPassword ? "text" : "password"} required
+                  value={password} onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full rounded-xl px-4 py-3 pr-11 text-sm text-white placeholder-[#334155] border focus:outline-none transition-all"
+                  style={{ background: "#0F172A", borderColor: "#1E293B" }}
+                  onFocus={e => { e.target.style.borderColor = "#1D4ED8"; }}
+                  onBlur={e => { e.target.style.borderColor = "#1E293B"; }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded transition-colors"
+                  style={{ color: "#475569" }}
+                  onMouseEnter={e => (e.currentTarget.style.color = "#94A3B8")}
+                  onMouseLeave={e => (e.currentTarget.style.color = "#475569")}
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
 
             <button
