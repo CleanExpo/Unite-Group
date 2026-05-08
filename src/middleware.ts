@@ -2,12 +2,11 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const PUBLIC_PATHS = [
-  '/','/en','/es','/fr',
-  '/login','/register','/reset-password','/forgot-password','/update-password',
-  '/en/login','/en/register','/en/reset-password','/en/update-password',
-  '/features','/pricing','/contact','/about',
-  '/en/features','/en/pricing','/en/contact','/en/about',
+// Only auth pages are public — everything else requires login
+const AUTH_PATHS = [
+  '/login', '/register', '/reset-password', '/forgot-password', '/update-password',
+  '/en/login', '/en/register', '/en/reset-password', '/en/update-password',
+  '/auth',
 ];
 
 export async function middleware(req: NextRequest) {
@@ -21,7 +20,6 @@ export async function middleware(req: NextRequest) {
     pathname.match(/\.(ico|png|jpg|jpeg|svg|webp|woff2?|ttf|css|js|json|txt|xml)$/)
   ) return res;
 
-  // Use @supabase/ssr — correctly reads chunked cookies written by createBrowserClient
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -29,34 +27,29 @@ export async function middleware(req: NextRequest) {
       cookies: {
         getAll() { return req.cookies.getAll(); },
         setAll(cookies) {
-          cookies.forEach(({ name, value, options }) => {
-            res.cookies.set(name, value, options);
-          });
+          cookies.forEach(({ name, value, options }) => res.cookies.set(name, value, options));
         },
       },
     }
   );
 
-  const { data: { session } } = await supabase.auth.getSession();
+  // getUser() makes a verified network call — not susceptible to stale cookie issues
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const isPublic = PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p + '/')) ||
-    pathname.startsWith('/clients/') ||
-    pathname.startsWith('/book-') ||
-    pathname.startsWith('/case-') ||
-    pathname.startsWith('/blog') ||
-    pathname.startsWith('/terms') ||
-    pathname.startsWith('/privacy') ||
-    pathname.startsWith('/auth');
+  const isAuthPage = AUTH_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'));
 
-  const isAuthPage = pathname.includes('/login') || pathname.includes('/register');
-
-  // Logged in on auth page → send to CEO dashboard
-  if (session && isAuthPage) {
-    return NextResponse.redirect(new URL('/ceo', req.url));
+  // Logged in → send auth pages to CEO dashboard
+  if (user && isAuthPage) {
+    return NextResponse.redirect(new URL('/en/ceo', req.url));
   }
 
-  // Not logged in on protected page → login
-  if (!session && !isPublic) {
+  // Root URL → redirect to CEO dashboard (authenticated) or login (not)
+  if (pathname === '/' || pathname === '/en' || pathname === '/es' || pathname === '/fr') {
+    return NextResponse.redirect(new URL(user ? '/en/ceo' : '/en/login', req.url));
+  }
+
+  // Not logged in on any non-auth page → login
+  if (!user && !isAuthPage) {
     return NextResponse.redirect(new URL('/en/login', req.url));
   }
 

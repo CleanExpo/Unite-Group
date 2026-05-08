@@ -1,25 +1,11 @@
-import { Plus_Jakarta_Sans } from 'next/font/google';
-import '../globals.css';
 import { notFound } from 'next/navigation';
-import { defaultMetadata, viewport } from '@/lib/metadata';
 import type { Metadata } from 'next';
-import { EmpireSidebar } from '@/components/empire/EmpireSidebar';
-
-const plusJakartaSans = Plus_Jakarta_Sans({
-  subsets: ['latin'],
-  variable: '--font-jakarta',
-  display: 'swap',
-});
+import { defaultMetadata } from '@/lib/metadata';
 
 export const metadata: Metadata = defaultMetadata;
-export { viewport };
 
 export async function generateStaticParams() {
-  return [
-    { locale: 'en' },
-    { locale: 'es' },
-    { locale: 'fr' }
-  ];
+  return [{ locale: 'en' }, { locale: 'es' }, { locale: 'fr' }];
 }
 
 export default async function LocaleLayout({
@@ -30,17 +16,6 @@ export default async function LocaleLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const supportedLocales = ['en', 'es', 'fr'];
-  if (!supportedLocales.includes(locale)) {
-    notFound();
-  }
-
-  return (
-    <html lang={locale} suppressHydrationWarning className="dark">
-      <body className={`${plusJakartaSans.variable} bg-[#0a0f1e] text-[#F8FAFC] font-sans min-h-screen flex`}>
-        <EmpireSidebar />
-        <main className="flex-1 min-h-screen overflow-auto">{children}</main>
-      </body>
-    </html>
-  );
+  if (!['en', 'es', 'fr'].includes(locale)) notFound();
+  return <>{children}</>;
 }

@@ -36,7 +36,7 @@ export default function Login() {
     try {
       const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      router.push("/ceo");
+      router.push("/en/ceo");
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
