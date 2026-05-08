@@ -3,29 +3,22 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseClient } from "@/lib/supabase/client";
-import Link from "next/link";
-import { Loader2, LogIn, AlertCircle, TrendingUp, Shield, Zap, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, ArrowRight } from "lucide-react";
 
-const BUSINESSES = [
-  { name: "RestoreAssist", color: "#0E7C7B", status: "BUILDING" },
-  { name: "Synthex",       color: "#6366F1", status: "OPERATIONAL" },
-  { name: "CCW-CRM",       color: "#D62828", status: "OPERATIONAL" },
-  { name: "DR Platform",   color: "#1D4ED8", status: "OPERATIONAL" },
-  { name: "NRPG",          color: "#16A34A", status: "BUILDING" },
-  { name: "CARSI",         color: "#D97706", status: "OPERATIONAL" },
-];
-
-const STATS = [
-  { icon: TrendingUp, value: "6", label: "Businesses" },
-  { icon: Zap,        value: "4",  label: "AI Agents" },
-  { icon: Shield,     value: "40", label: "Assets" },
+const PORTFOLIO = [
+  { name: "Synthex",       color: "#6366f1", status: "operational", arr: null      },
+  { name: "RestoreAssist", color: "#0e7c7b", status: "building",    arr: null      },
+  { name: "CCW-CRM",       color: "#dc2626", status: "operational", arr: "$33K"    },
+  { name: "DR Platform",   color: "#2563eb", status: "operational", arr: null      },
+  { name: "NRPG",          color: "#16a34a", status: "building",    arr: null      },
+  { name: "CARSI",         color: "#d97706", status: "operational", arr: null      },
 ];
 
 export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [email, setEmail]         = useState("");
+  const [password, setPassword]   = useState("");
+  const [loading, setLoading]     = useState(false);
+  const [error, setError]         = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
@@ -38,231 +31,283 @@ export default function Login() {
       if (error) throw error;
       router.push("/en/ceo");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      setError(err instanceof Error ? err.message : "Authentication failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div style={{ minHeight: "100vh", display: "flex", fontFamily: "var(--font-inter)" }}>
 
-      {/* ── Left Panel: Brand Hero ─────────────────────────────────────── */}
-      <div className="hidden lg:flex lg:w-[480px] xl:w-[560px] shrink-0 relative flex-col justify-between p-10 overflow-hidden"
-           style={{ background: "#111113" }}>
+      {/* ── Left Panel ───────────────────────────────────────────────────── */}
+      <div style={{
+        width: 520,
+        flexShrink: 0,
+        display: "none",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        padding: "48px 52px",
+        background: "#09090b",
+        borderRight: "1px solid #27272a",
+        position: "relative",
+        overflow: "hidden",
+      }} className="lg-panel">
 
-        {/* Background grid pattern */}
-        <div className="absolute inset-0 opacity-[0.03]"
-             style={{ backgroundImage: "linear-gradient(#FBBF24 1px, transparent 1px), linear-gradient(90deg, #FBBF24 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
+        {/* Subtle noise texture overlay */}
+        <div style={{
+          position: "absolute", inset: 0, opacity: 0.025,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+          backgroundSize: "200px 200px",
+          pointerEvents: "none",
+        }} />
 
-        {/* Glow */}
-        <div className="absolute top-1/4 -left-24 w-72 h-72 rounded-full blur-[120px] opacity-20"
-             style={{ background: "#1D4ED8" }} />
-        <div className="absolute bottom-1/3 right-0 w-56 h-56 rounded-full blur-[100px] opacity-15"
-             style={{ background: "#FBBF24" }} />
-
-        {/* Logo */}
-        <div className="relative">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg text-white"
-                 style={{ background: "#1d4ed8" }}>
-              U
+        {/* Top: Wordmark */}
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 64 }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 9,
+              background: "#1d4ed8",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              flexShrink: 0,
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+              </svg>
             </div>
             <div>
-              <div className="text-white font-bold text-lg leading-tight">Unite Group</div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "#FBBF24" }} />
-                <span className="text-xs font-medium" style={{ color: "#FBBF24" }}>Empire Command Center</span>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em" }}>Unite Group</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
+                <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#f59e0b", display: "inline-block", boxShadow: "0 0 6px #f59e0b" }} />
+                <span style={{ fontSize: 10, color: "#f59e0b", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Empire</span>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Hero content */}
-        <div className="relative space-y-8">
-          <div>
-            <h1 className="text-4xl xl:text-5xl font-bold text-white leading-[1.1] mb-4">
-              The autonomous<br />
-              <span style={{ color: "#FBBF24" }}>empire</span> runs here.
+          {/* Hero headline */}
+          <div style={{ marginBottom: 48 }}>
+            <h1 style={{
+              fontSize: 40, fontWeight: 700, color: "#fafafa",
+              letterSpacing: "-0.04em", lineHeight: 1.1,
+              margin: "0 0 16px",
+            }}>
+              Six businesses.<br />One command<br />centre.
             </h1>
-            <p className="text-base leading-relaxed" style={{ color: "#64748B" }}>
-              Six businesses. One command center. AI agents working 24/7 so you can focus on what matters.
+            <p style={{ fontSize: 14, color: "#52525b", lineHeight: 1.6, margin: 0, maxWidth: 320 }}>
+              AI-driven operations, real-time health monitoring, autonomous execution — all from a single authenticated session.
             </p>
           </div>
 
-          {/* Stats row */}
-          <div className="flex gap-6">
-            {STATS.map(({ icon: Icon, value, label }) => (
-              <div key={label} className="flex items-center gap-2">
-                <Icon className="w-4 h-4 shrink-0" style={{ color: "#FBBF24" }} />
-                <div>
-                  <div className="text-xl font-bold text-white leading-none">{value}</div>
-                  <div className="text-xs" style={{ color: "#475569" }}>{label}</div>
+          {/* Stats strip */}
+          <div style={{ display: "flex", gap: 0, marginBottom: 40, background: "#111113", border: "1px solid #27272a", borderRadius: 10, overflow: "hidden" }}>
+            {[
+              { label: "Businesses",  value: "6"     },
+              { label: "ARR/yr",      value: "$33K"  },
+              { label: "Autonomy",    value: "100%"  },
+            ].map((s, i) => (
+              <div key={s.label} style={{
+                flex: 1, padding: "14px 0", textAlign: "center",
+                borderRight: i < 2 ? "1px solid #27272a" : "none",
+              }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 20, fontWeight: 700, letterSpacing: "-0.03em", color: "#fafafa", lineHeight: 1 }}>
+                  {s.value}
+                </div>
+                <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "#52525b", marginTop: 5 }}>
+                  {s.label}
                 </div>
               </div>
             ))}
           </div>
+        </div>
 
-          {/* Business status grid */}
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: "#334155" }}>
-              Portfolio Status
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              {BUSINESSES.map(biz => (
-                <div key={biz.name}
-                     className="flex items-center gap-2 rounded-lg px-3 py-2 border"
-                     style={{ background: "rgba(30,41,59,0.6)", borderColor: "#27272a" }}>
-                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: biz.color }} />
-                  <span className="text-xs font-medium truncate" style={{ color: "#94A3B8" }}>{biz.name}</span>
-                  <span className="ml-auto text-[9px] font-semibold" style={{
-                    color: biz.status === "OPERATIONAL" ? "#16A34A" : "#3B82F6"
-                  }}>
-                    {biz.status === "OPERATIONAL" ? "●" : "◐"}
-                  </span>
-                </div>
-              ))}
-            </div>
+        {/* Portfolio roster */}
+        <div>
+          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "#3f3f46", marginBottom: 12 }}>
+            Portfolio
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+            {PORTFOLIO.map(biz => (
+              <div key={biz.name} style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "8px 12px", borderRadius: 8,
+                background: "transparent",
+              }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: biz.color, display: "inline-block", flexShrink: 0 }} />
+                <span style={{ fontSize: 12, color: "#a1a1aa", flex: 1, letterSpacing: "-0.01em" }}>{biz.name}</span>
+                {biz.arr && (
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#16a34a", fontWeight: 600 }}>{biz.arr}</span>
+                )}
+                <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase",
+                  color: biz.status === "operational" ? "#16a34a" : "#1d4ed8" }}>
+                  {biz.status === "operational" ? "Live" : "Build"}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Pi-CEO live indicator */}
+          <div style={{ marginTop: 24, display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#111113", border: "1px solid #27272a", borderRadius: 8 }}>
+            <span className="status-dot" style={{ width: 6, height: 6, background: "#16a34a", color: "#16a34a", flexShrink: 0 }} />
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#52525b" }}>Pi-CEO swarm active · 100% autonomy</span>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="relative">
-          <p className="text-xs" style={{ color: "#27272a" }}>
-            © 2026 Unite Group. All systems operational.
+        <div style={{ marginTop: 32 }}>
+          <p style={{ fontSize: 10, color: "#3f3f46", margin: 0 }}>
+            © 2026 Unite Group. Private system — authorised access only.
           </p>
         </div>
       </div>
 
-      {/* ── Right Panel: Form ──────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-10"
-           style={{ background: "#09090b" }}>
+      {/* ── Right Panel: Form ────────────────────────────────────────────── */}
+      <div style={{
+        flex: 1, display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center",
+        padding: "40px 24px",
+        background: "#09090b",
+      }}>
 
-        {/* Mobile logo */}
-        <div className="lg:hidden mb-8 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white"
-               style={{ background: "#1d4ed8" }}>
-            U
+        {/* Mobile wordmark */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 40 }} className="mobile-logo">
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: "#1d4ed8", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+            </svg>
           </div>
-          <div className="text-white font-bold">Unite Group</div>
+          <span style={{ fontSize: 14, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em" }}>Unite Group</span>
         </div>
 
-        <div className="w-full max-w-[400px]">
+        <div style={{ width: "100%", maxWidth: 380 }}>
 
           {/* Heading */}
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-white mb-1" style={{ letterSpacing: "-0.03em" }}>Welcome back</h2>
-            <p className="text-sm" style={{ color: "#64748B" }}>
-              Sign in to your empire command center
+          <div style={{ marginBottom: 32 }}>
+            <h2 style={{ fontSize: 26, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.04em", margin: "0 0 6px", lineHeight: 1.2 }}>
+              Sign in
+            </h2>
+            <p style={{ fontSize: 13, color: "#52525b", margin: 0 }}>
+              Access restricted to authorised personnel only.
             </p>
           </div>
 
           {/* Error */}
           {error && (
-            <div className="mb-5 flex items-start gap-3 rounded-xl p-4 border"
-                 style={{ background: "rgba(220,38,38,0.08)", borderColor: "rgba(220,38,38,0.25)" }}>
-              <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" style={{ color: "#DC2626" }} />
-              <p className="text-sm" style={{ color: "#F87171" }}>{error}</p>
+            <div style={{
+              marginBottom: 20, padding: "12px 14px", borderRadius: 8,
+              background: "rgba(220,38,38,0.07)", border: "1px solid rgba(220,38,38,0.2)",
+              display: "flex", alignItems: "flex-start", gap: 10,
+            }}>
+              <span style={{ fontSize: 12, color: "#f87171", lineHeight: 1.5 }}>{error}</span>
             </div>
           )}
 
           {/* Form */}
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-            <div className="space-y-1.5">
-              <label htmlFor="email" className="block text-sm font-medium" style={{ color: "#CBD5E1" }}>
-                Email address
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <label htmlFor="email" style={{ fontSize: 12, fontWeight: 500, color: "#a1a1aa" }}>
+                Email
               </label>
               <input
-                id="email" type="email" required
+                id="email" type="email" required autoComplete="email"
                 value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-[#334155] border focus:outline-none focus:ring-2 transition-all"
+                placeholder="you@unite-group.in"
                 style={{
-                  background: "#111113",
-                  borderColor: "#27272a",
-                  ["--tw-ring-color" as any]: "#1D4ED8",
+                  width: "100%", padding: "10px 14px", fontSize: 14,
+                  background: "#111113", border: "1px solid #27272a",
+                  borderRadius: 9, color: "#fafafa", outline: "none",
+                  fontFamily: "var(--font-inter)", boxSizing: "border-box",
+                  transition: "border-color 0.12s ease",
                 }}
-                onFocus={e => { e.target.style.borderColor = "#1D4ED8"; }}
-                onBlur={e => { e.target.style.borderColor = "#27272a"; }}
+                onFocus={e => (e.target.style.borderColor = "#1d4ed8")}
+                onBlur={e => (e.target.style.borderColor = "#27272a")}
               />
             </div>
 
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label htmlFor="password" className="block text-sm font-medium" style={{ color: "#CBD5E1" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <label htmlFor="password" style={{ fontSize: 12, fontWeight: 500, color: "#a1a1aa" }}>
                   Password
                 </label>
-                <Link href="/reset-password" className="text-xs transition-colors"
-                      style={{ color: "#3B82F6" }}
-                      onMouseEnter={e => (e.target as HTMLAnchorElement).style.color = "#60A5FA"}
-                      onMouseLeave={e => (e.target as HTMLAnchorElement).style.color = "#3B82F6"}>
-                  Forgot password?
-                </Link>
+                <a href="/reset-password" style={{ fontSize: 11, color: "#3b82f6", textDecoration: "none" }}
+                  onMouseEnter={e => (e.currentTarget.style.color = "#60a5fa")}
+                  onMouseLeave={e => (e.currentTarget.style.color = "#3b82f6")}>
+                  Forgot?
+                </a>
               </div>
-              <div className="relative">
+              <div style={{ position: "relative" }}>
                 <input
-                  id="password" type={showPassword ? "text" : "password"} required
+                  id="password" type={showPassword ? "text" : "password"} required autoComplete="current-password"
                   value={password} onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full rounded-xl px-4 py-3 pr-11 text-sm text-white placeholder-[#334155] border focus:outline-none transition-all"
-                  style={{ background: "#111113", borderColor: "#27272a" }}
-                  onFocus={e => { e.target.style.borderColor = "#1D4ED8"; }}
-                  onBlur={e => { e.target.style.borderColor = "#27272a"; }}
+                  placeholder="••••••••••••"
+                  style={{
+                    width: "100%", padding: "10px 42px 10px 14px", fontSize: 14,
+                    background: "#111113", border: "1px solid #27272a",
+                    borderRadius: 9, color: "#fafafa", outline: "none",
+                    fontFamily: "var(--font-inter)", boxSizing: "border-box",
+                    transition: "border-color 0.12s ease",
+                  }}
+                  onFocus={e => (e.target.style.borderColor = "#1d4ed8")}
+                  onBlur={e => (e.target.style.borderColor = "#27272a")}
                 />
                 <button
-                  type="button"
+                  type="button" tabIndex={-1}
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded transition-colors"
-                  style={{ color: "#475569" }}
-                  onMouseEnter={e => (e.currentTarget.style.color = "#94A3B8")}
-                  onMouseLeave={e => (e.currentTarget.style.color = "#475569")}
-                  tabIndex={-1}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  style={{
+                    position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
+                    background: "transparent", border: "none", cursor: "pointer",
+                    color: "#52525b", padding: 2, display: "flex",
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.color = "#a1a1aa")}
+                  onMouseLeave={e => (e.currentTarget.style.color = "#52525b")}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
             </div>
 
             <button
               type="submit" disabled={loading}
-              className="w-full rounded-xl py-3 text-sm font-semibold text-white flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-2"
-              style={{ background: "#1d4ed8" }}
-              onMouseEnter={e => !loading && ((e.target as HTMLButtonElement).style.background = "#3b82f6")}
-              onMouseLeave={e => !loading && ((e.target as HTMLButtonElement).style.background = "#1d4ed8")}>
-              {loading ? (
-                <><Loader2 className="h-4 w-4 animate-spin" />Signing in...</>
-              ) : (
-                <><LogIn className="h-4 w-4" />Sign in</>
-              )}
+              style={{
+                width: "100%", padding: "11px 0", marginTop: 4,
+                fontSize: 14, fontWeight: 600,
+                background: loading ? "#1e40af" : "#1d4ed8",
+                color: "#fff", border: "none", borderRadius: 9,
+                cursor: loading ? "not-allowed" : "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+                transition: "background 0.12s ease",
+                fontFamily: "var(--font-inter)",
+              }}
+              onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = "#3b82f6"; }}
+              onMouseLeave={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = "#1d4ed8"; }}
+            >
+              {loading
+                ? <><Loader2 size={15} className="spin" /> Signing in…</>
+                : <><ArrowRight size={15} /> Sign in</>
+              }
             </button>
+
           </form>
 
-          {/* Divider */}
-          <div className="my-6 flex items-center gap-4">
-            <div className="flex-1 h-px" style={{ background: "#27272a" }} />
-            <span className="text-xs" style={{ color: "#334155" }}>or</span>
-            <div className="flex-1 h-px" style={{ background: "#27272a" }} />
+          {/* System status */}
+          <div style={{ marginTop: 32, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+            <span className="status-dot" style={{ width: 5, height: 5, background: "#16a34a", color: "#16a34a" }} />
+            <span style={{ fontSize: 11, color: "#3f3f46", fontFamily: "var(--font-mono)" }}>All systems operational</span>
           </div>
-
-          {/* Create account */}
-          <p className="text-center text-sm" style={{ color: "#475569" }}>
-            Need access?{" "}
-            <Link href="/register"
-                  className="font-medium transition-colors"
-                  style={{ color: "#3B82F6" }}>
-              Request an account
-            </Link>
-          </p>
-        </div>
-
-        {/* Bottom badge */}
-        <div className="mt-12 flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "#16A34A" }} />
-          <span className="text-xs" style={{ color: "#27272a" }}>All systems operational</span>
         </div>
       </div>
+
+      {/* Responsive: show left panel on lg+ */}
+      <style>{`
+        @media (min-width: 1024px) {
+          .lg-panel { display: flex !important; }
+          .mobile-logo { display: none !important; }
+        }
+        @media (max-width: 1023px) {
+          .lg-panel { display: none !important; }
+          .mobile-logo { display: flex !important; }
+        }
+      `}</style>
     </div>
   );
 }
