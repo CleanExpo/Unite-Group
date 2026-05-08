@@ -1,40 +1,34 @@
-﻿import { createServerClient as createSupabaseServerClient } from '@supabase/ssr'
+import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/supabase'
 
+const SUPABASE_URL = 'https://lksfwktwtmyznckodsau.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxrc2Z3a3R3dG15em5ja29kc2F1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5MTE1MDksImV4cCI6MjA3ODQ4NzUwOX0.l2KIokOpdMAUFXR9rnFqyIt9zH2hdFX8eHc-oi-UtTw';
+
 export async function createClient() {
-  const cookieStore = await cookies()
-  
-  return createSupabaseServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  const cookieStore = await cookies();
+  return createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || SUPABASE_ANON_KEY,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
+        // getAll() is required for chunked cookie support (@supabase/ssr ≥ 0.5)
+        getAll() {
+          return cookieStore.getAll();
         },
-        set(name: string, value: string, options: Record<string, unknown>) {
+        setAll(cookiesToSet) {
           try {
-            cookieStore.set({ name, value, ...options })
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
           } catch {
-            // The set method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
-        },
-        remove(name: string, options: Record<string, unknown>) {
-          try {
-            cookieStore.set({ name, value: '', ...options })
-          } catch {
-            // The delete method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
+            // Called from Server Component — safe to ignore
           }
         },
       },
     }
-  )
+  );
 }
 
-// Export alias for compatibility
-export const createServerClient = createClient
+// Legacy alias
+export { createClient as createServerClientAlias };
