@@ -1,8 +1,9 @@
 "use client";
 import dynamic from 'next/dynamic';
 
-// Load the CEO dashboard entirely on the client — prevents SSR crashes
-// from recharts and other browser-only APIs
+// CeoDashboard loads entirely client-side (ssr:false) to prevent recharts SSR crashes.
+// The outer div is server-rendered and gives an immediate dark background,
+// eliminating the white flash before the client JS loads.
 const CeoDashboard = dynamic(
   () => import('@/components/ceo/CeoDashboard'),
   {
@@ -19,5 +20,10 @@ const CeoDashboard = dynamic(
 );
 
 export default function CeoPage() {
-  return <CeoDashboard />;
+  // Server-renders the dark bg immediately — no white flash while JS loads
+  return (
+    <div className="min-h-screen bg-slate-950">
+      <CeoDashboard />
+    </div>
+  );
 }
