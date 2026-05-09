@@ -60,10 +60,12 @@ export async function GET() {
     }
   }
 
-  // Query businesses table
+  // Query businesses table — only the 6 portfolio companies by their known slugs
+  const PORTFOLIO_SLUGS = Object.keys(FALLBACK_BUSINESSES);
   const { data: bizRows, error: bizError } = await supabase
     .from('businesses')
-    .select('id, name, status, arr_aud, pi_ceo_key');
+    .select('id, slug, name, status, arr_aud, pi_ceo_key')
+    .in('slug', PORTFOLIO_SLUGS);
 
   if (bizError) {
     console.error('[empire/businesses] businesses query error:', bizError.message);
@@ -74,7 +76,7 @@ export async function GET() {
 
   if (bizRows && bizRows.length > 0) {
     for (const biz of bizRows) {
-      const piKey = biz.pi_ceo_key ?? biz.id;
+      const piKey = biz.pi_ceo_key ?? biz.slug ?? biz.id;
       const snap = latestByProject.get(piKey) ?? latestByProject.get(biz.id);
       const overallHealth = snap?.overall_health ?? null;
 
