@@ -37,6 +37,8 @@ interface EmpireHealth {
   content_total: number;
   work_orders_open: number;
   fetched_at: string;
+  autonomy_pct?: number | null;
+  poll_count?: number | string | null;
 }
 
 interface ContentProgress {
@@ -59,6 +61,17 @@ interface PiCeoActivityEvent {
   timeAgo: string;
   ts: string;
   found: number;
+}
+
+interface BoardMandate {
+  id: string;
+  title: string;
+  status: string;
+  project_id: string | null;
+  pr_url: string | null;
+  ci_status: string | null;
+  phill_approved: boolean | null;
+  created_at: string;
 }
 
 // ─── Static fallback data ────────────────────────────────────────────────────
@@ -334,67 +347,94 @@ function BentoBusinessGrid({ businesses, loading }: { businesses: BusinessHealth
   );
 }
 
-// ─── Kanban Preview ───────────────────────────────────────────────────────────
+// ─── Board Mandates ───────────────────────────────────────────────────────────
 
-const KANBAN_PREVIEW = [
-  { col: "Backlog",      accent: "#52525b", cards: [
-    { title: "RestoreAssist App Store submission", biz: "RA",   color: "#0E7C7B" },
-    { title: "NRPG Contractor onboarding flow",   biz: "NRPG", color: "#16A34A" },
-  ]},
-  { col: "In Progress",  accent: "#1d4ed8", cards: [
-    { title: "Unite-Hub CEO redesign",            biz: "UG",   color: "#1D4ED8" },
-    { title: "Synthex content pipeline (40/85)",   biz: "SYN",  color: "#6366F1" },
-  ]},
-  { col: "In Review",    accent: "#f59e0b", cards: [
-    { title: "DR Platform SEO strategy",          biz: "DR",   color: "#2563EB" },
-    { title: "Pi-CEO agent performance audit",    biz: "UG",   color: "#1D4ED8" },
-  ]},
-  { col: "Done",         accent: "#16a34a", cards: [
-    { title: "Login page redesign",               biz: "UG",   color: "#1D4ED8" },
-    { title: "framer-motion integration",         biz: "UG",   color: "#1D4ED8" },
-  ]},
-];
+const MANDATE_STATUS_COLORS: Record<string, { bg: string; text: string }> = {
+  active:    { bg: "rgba(29,78,216,0.12)",   text: "#3b82f6" },
+  executing: { bg: "rgba(245,158,11,0.12)",  text: "#f59e0b" },
+  review:    { bg: "rgba(139,92,246,0.12)",  text: "#8b5cf6" },
+  merged:    { bg: "rgba(22,163,74,0.12)",   text: "#16a34a" },
+  default:   { bg: "rgba(63,63,70,0.3)",     text: "#71717a" },
+};
 
-function KanbanPreview() {
+function MandateStatusBadge({ status }: { status: string }) {
+  const cfg = MANDATE_STATUS_COLORS[status] ?? MANDATE_STATUS_COLORS.default;
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-      {KANBAN_PREVIEW.map(col => (
-        <div key={col.col}>
-          {/* Column header */}
-          <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: col.accent, display: "inline-block" }} />
-            <span style={{ fontSize: 11, fontWeight: 600, color: "#a1a1aa" }}>{col.col}</span>
-            <span style={{ marginLeft: "auto", fontFamily: "var(--font-mono)", fontSize: 10, color: "#52525b" }}>{col.cards.length}</span>
-          </div>
-          {/* Cards */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {col.cards.map((card, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25, delay: i * 0.04, ease: [0.23, 1, 0.32, 1] }}
-                style={{
-                  background: "#111113",
-                  backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, transparent 50%)",
-                  border: "1px solid #27272a",
-                  borderRadius: 8,
-                  padding: "10px 12px",
-                  cursor: "default",
-                  transition: "border-color 0.12s ease, background 0.12s ease",
-                }}
-                whileHover={{ borderColor: "#3f3f46", backgroundColor: "#18181b" } as Record<string, string>}
-              >
-                <div style={{ fontSize: 12, fontWeight: 500, color: "#d4d4d8", letterSpacing: "-0.01em", lineHeight: 1.4, marginBottom: 6 }}>
-                  {card.title}
-                </div>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 6px", borderRadius: 4, background: `${card.color}14`, border: `1px solid ${card.color}28` }}>
-                  <span style={{ width: 4, height: 4, borderRadius: "50%", background: card.color, display: "inline-block" }} />
-                  <span style={{ fontSize: 9, fontWeight: 600, color: card.color, letterSpacing: "0.04em" }}>{card.biz}</span>
-                </span>
-              </motion.div>
-            ))}
-          </div>
+    <span style={{
+      fontFamily: "var(--font-mono)", fontSize: 9, fontWeight: 600,
+      letterSpacing: "0.06em", textTransform: "uppercase",
+      padding: "2px 7px", borderRadius: 3,
+      background: cfg.bg, color: cfg.text,
+    }}>
+      {status}
+    </span>
+  );
+}
+
+function BoardMandatesSection({ mandates, loading }: { mandates: BoardMandate[]; loading: boolean }) {
+  if (loading) {
+    return (
+      <div style={{ background: "#111113", border: "1px solid #27272a", borderRadius: 12, padding: 20 }}>
+        <div style={{ height: 8, background: "rgba(255,255,255,0.04)", borderRadius: 4, width: "40%", marginBottom: 12 }} />
+        {[0,1,2].map(i => (
+          <div key={i} style={{ height: 14, background: "rgba(255,255,255,0.03)", borderRadius: 4, marginBottom: 10, width: `${70 - i * 10}%` }} />
+        ))}
+      </div>
+    );
+  }
+
+  if (mandates.length === 0) {
+    return (
+      <div style={{
+        background: "#111113",
+        backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, transparent 50%)",
+        border: "1px solid #27272a",
+        borderRadius: 12,
+        padding: "28px 20px",
+        textAlign: "center",
+      }}>
+        <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "#3f3f46", margin: 0 }}>NO OPEN MANDATES</p>
+        <p style={{ fontSize: 11, color: "#3f3f46", margin: "4px 0 0" }}>All board mandates are closed or the table doesn't exist yet.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      background: "#111113",
+      backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, transparent 50%)",
+      border: "1px solid #27272a",
+      borderRadius: 12,
+      overflow: "hidden",
+    }}>
+      {mandates.map((m, i) => (
+        <div key={m.id} style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 90px 80px 80px 60px",
+          gap: 12, alignItems: "center",
+          padding: "11px 18px",
+          borderBottom: i < mandates.length - 1 ? "1px solid #27272a" : "none",
+        }}>
+          <span style={{ fontSize: 12, fontWeight: 500, color: "#d4d4d8", letterSpacing: "-0.01em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {m.title}
+          </span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#52525b" }}>
+            {m.project_id ?? "—"}
+          </span>
+          <MandateStatusBadge status={m.status} />
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: m.ci_status === "passing" ? "#16a34a" : m.ci_status === "failing" ? "#dc2626" : "#52525b" }}>
+            {m.ci_status ? `CI: ${m.ci_status}` : "no CI"}
+          </span>
+          {m.pr_url ? (
+            <a href={m.pr_url} target="_blank" rel="noopener noreferrer" style={{
+              fontFamily: "var(--font-mono)", fontSize: 9, color: "#1d4ed8",
+              textDecoration: "none", display: "flex", alignItems: "center", gap: 3,
+            }}>
+              PR <ArrowUpRight size={9} />
+            </a>
+          ) : (
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#3f3f46" }}>no PR</span>
+          )}
         </div>
       ))}
     </div>
@@ -413,6 +453,10 @@ export default function CeoCommandCenter() {
   const lastFetchRef = useRef<Date>(new Date());
   const [piActivity, setPiActivity] = useState<PiCeoActivityEvent[]>([]);
   const [piConnected, setPiConnected] = useState(false);
+  const [piAutonomyPct, setPiAutonomyPct] = useState<number | null>(null);
+  const [piPollCount, setPiPollCount] = useState<number | null>(null);
+  const [mandates, setMandates] = useState<BoardMandate[]>([]);
+  const [mandatesLoading, setMandatesLoading] = useState(true);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -457,11 +501,31 @@ export default function CeoCommandCenter() {
           const data = await res.json();
           setPiActivity(data.events ?? []);
           setPiConnected(data.connected ?? false);
+          if (data.autonomy_pct != null) setPiAutonomyPct(data.autonomy_pct);
+          if (data.poll_count != null) setPiPollCount(data.poll_count);
         }
       } catch { /* silently retain previous */ }
     };
     fetchPiActivity();
     const interval = setInterval(fetchPiActivity, 30_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Board mandates
+  useEffect(() => {
+    const fetchMandates = async () => {
+      try {
+        const res = await fetch('/api/mandates');
+        if (res.ok) {
+          const data = await res.json();
+          setMandates(data);
+        }
+      } catch { /* silently retain */ } finally {
+        setMandatesLoading(false);
+      }
+    };
+    fetchMandates();
+    const interval = setInterval(fetchMandates, 60_000);
     return () => clearInterval(interval);
   }, []);
 
@@ -483,6 +547,10 @@ export default function CeoCommandCenter() {
   })) ?? [];
 
   const updatedLabel = secondsAgo < 60 ? `${secondsAgo}s ago` : `${Math.floor(secondsAgo / 60)}m ago`;
+
+  // Resolve autonomy data from pi-ceo activity response or empire health fallback
+  const resolvedAutonomyPct = piAutonomyPct ?? health?.autonomy_pct ?? 100;
+  const resolvedPollCount = piPollCount ?? health?.poll_count ?? "—";
 
   const card: React.CSSProperties = {
     background: "#111113",
@@ -532,8 +600,8 @@ export default function CeoCommandCenter() {
             <div>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em", fontFamily: "var(--font-display)" }}>Unite Group</div>
               <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 1 }}>
-                <span className="status-dot" style={{ width: 5, height: 5, background: "#f59e0b", color: "#f59e0b" }} />
-                <span style={{ fontSize: 9, color: "#f59e0b", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Command Center</span>
+                <span className="status-dot" style={{ width: 5, height: 5, background: piConnected ? "#16a34a" : "#f59e0b", color: piConnected ? "#16a34a" : "#f59e0b" }} />
+                <span style={{ fontSize: 9, color: piConnected ? "#16a34a" : "#f59e0b", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Command Center</span>
               </div>
             </div>
           </div>
@@ -559,13 +627,52 @@ export default function CeoCommandCenter() {
 
       {/* ── Stats strip ─────────────────────────────────────────────────────── */}
       <div style={{ maxWidth: 1440, margin: "0 auto", padding: "20px 24px 0" }}>
+
+        {/* System Status Bar */}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "10px 20px",
+          background: piConnected ? "rgba(22,163,74,0.07)" : "rgba(245,158,11,0.07)",
+          border: `1px solid ${piConnected ? "rgba(22,163,74,0.2)" : "rgba(245,158,11,0.2)"}`,
+          borderRadius: 8,
+          marginBottom: 16,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span className="status-dot" style={{
+                width: 8, height: 8,
+                background: piConnected ? "#16a34a" : "#f59e0b",
+                color: piConnected ? "#16a34a" : "#f59e0b",
+              }} />
+              <span style={{
+                fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700,
+                letterSpacing: "0.1em", textTransform: "uppercase",
+                color: piConnected ? "#16a34a" : "#f59e0b",
+              }}>
+                {piConnected ? "AUTONOMOUS — SYSTEM OPERATING" : "STANDBY — AWAITING COMMAND"}
+              </span>
+            </div>
+            <span style={{ color: "#3f3f46", fontSize: 9 }}>|</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#52525b" }}>
+              Pi-CEO: {health?.active_agents ?? 0} agents · {resolvedAutonomyPct}% autonomy · poll #{resolvedPollCount}
+            </span>
+            <span style={{ color: "#3f3f46", fontSize: 9 }}>|</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#52525b" }}>
+              Hermes: 10 crons · PM-Core active · {health?.work_orders_open ?? 0} mandates
+            </span>
+          </div>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#3f3f46", flexShrink: 0, marginLeft: 12 }}>
+            Updated {updatedLabel}
+          </span>
+        </div>
+
         <div style={{ display: "flex", background: "#111113", border: "1px solid #27272a", borderRadius: 10, overflow: "hidden", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.02) 0%, transparent 50%)" }}>
           {[
             { label: "Empire Health", value: health ? `${health.score}` : "—", suffix: "/100", color: health ? (health.score >= 80 ? "#16a34a" : health.score >= 60 ? "#d97706" : "#dc2626") : "#52525b" },
-            { label: "Total ARR",     value: `$${((health?.total_arr ?? 2400)/1000).toFixed(1)}K`, suffix: "/yr", color: "#16a34a" },
+            { label: "Empire ARR",    value: `$${((health?.total_arr ?? 2400)/1000).toFixed(1)}K`, suffix: "/yr", color: "#16a34a" },
             { label: "AI Agents",     value: String(health?.active_agents ?? 4), suffix: " live", color: "#d4d4d8" },
             { label: "Content",       value: `${health?.content_produced ?? totalContent}/${health?.content_total ?? totalTarget}`, suffix: "", color: "#d4d4d8" },
-            { label: "Work Orders",   value: String(health?.work_orders_open ?? 0), suffix: " open", color: health?.work_orders_open ? "#f59e0b" : "#52525b" },
+            { label: "Mandates",      value: String(health?.work_orders_open ?? 0), suffix: " open", color: health?.work_orders_open ? "#f59e0b" : "#52525b" },
           ].map((stat, i, arr) => (
             <div key={stat.label} style={{ flex: 1, padding: "16px 20px", textAlign: "center", borderRight: i < arr.length - 1 ? "1px solid #27272a" : "none" }}>
               <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "#52525b", marginBottom: 5 }}>{stat.label}</div>
@@ -581,14 +688,14 @@ export default function CeoCommandCenter() {
 
         {/* ── Portfolio Bento Grid ─────────────────────────────────────────── */}
         <section>
-          <p style={sectionLabel}>Portfolio Health</p>
+          <p style={sectionLabel}>PORTFOLIO STATUS</p>
           <BentoBusinessGrid businesses={health?.businesses ?? []} loading={loading} />
         </section>
 
         {/* ── Three-column feeds ──────────────────────────────────────────── */}
         <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
 
-          {/* Col 1 — Pi-CEO Activity (timeline) */}
+          {/* Col 1 — Agent Activity Feed (timeline) */}
           <motion.div
             style={card}
             initial={{ opacity: 0, y: 12 }}
@@ -598,7 +705,7 @@ export default function CeoCommandCenter() {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Activity size={14} color="#60a5fa" />
-                <span style={{ fontSize: 13, fontWeight: 600, color: "#fafafa" }}>Pi-CEO Activity</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "#fafafa" }}>AGENT ACTIVITY FEED</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <span className="status-dot" style={{ width: 6, height: 6, background: piConnected ? "#16a34a" : "#d97706", color: piConnected ? "#16a34a" : "#d97706" }} />
@@ -613,9 +720,23 @@ export default function CeoCommandCenter() {
               <div style={{ borderLeft: "1px solid #27272a", marginLeft: 8, paddingLeft: 16, display: "flex", flexDirection: "column", gap: 0 }}>
                 {(piActivity.length > 0 ? piActivity : FALLBACK_ACTIVITIES).map((a, i, arr) => (
                   <div key={i} style={{ position: "relative", paddingBottom: i < arr.length - 1 ? 14 : 0 }}>
-                    <span style={{ position: "absolute", left: -20, top: 4, width: 5, height: 5, borderRadius: "50%", background: "#27272a", border: "1px solid #3f3f46", display: "inline-block" }} />
-                    <p style={{ fontSize: 12, color: "#a1a1aa", margin: 0, lineHeight: 1.4 }}>{a.agent}</p>
-                    <p style={{ fontSize: 10, color: "#52525b", margin: 0, marginTop: 1 }}>{a.timeAgo}</p>
+                    <span style={{
+                      position: "absolute", left: -21, top: 3,
+                      width: 6, height: 6, borderRadius: "50%",
+                      background: "#27272a", border: "1px solid #3f3f46",
+                      display: "inline-block"
+                    }} />
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <div>
+                        <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "#d4d4d8", margin: 0, letterSpacing: "0.02em" }}>
+                          {a.agent.toUpperCase()}
+                        </p>
+                        <p style={{ fontSize: 11, color: "#52525b", margin: "2px 0 0" }}>{a.action}</p>
+                      </div>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#3f3f46", flexShrink: 0, marginLeft: 8 }}>
+                        {a.timeAgo}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -623,12 +744,12 @@ export default function CeoCommandCenter() {
 
             <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid #27272a", display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", color: "#52525b" }}>
-                {health?.work_orders_open ?? 0} open work orders
+                {health?.work_orders_open ?? 0} open mandates
               </span>
             </div>
           </motion.div>
 
-          {/* Col 2 — Revenue & ARR BarChart */}
+          {/* Col 2 — Empire ARR BarChart */}
           <motion.div
             style={card}
             initial={{ opacity: 0, y: 12 }}
@@ -638,7 +759,7 @@ export default function CeoCommandCenter() {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <TrendingUp size={14} color="#16a34a" />
-                <span style={{ fontSize: 13, fontWeight: 600, color: "#fafafa" }}>Revenue</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "#fafafa" }}>EMPIRE ARR</span>
               </div>
               <span style={{ fontSize: 12, fontFamily: "var(--font-mono)", fontWeight: 700, color: "#16a34a" }}>
                 ${((health?.total_arr ?? 2400) / 1000).toFixed(1)}K ARR
@@ -696,7 +817,7 @@ export default function CeoCommandCenter() {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <BarChart3 size={14} color="#8b5cf6" />
-                <span style={{ fontSize: 13, fontWeight: 600, color: "#fafafa" }}>Content Pipeline</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "#fafafa" }}>CONTENT PIPELINE</span>
               </div>
               <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", fontWeight: 500, color: "#52525b" }}>
                 {totalContent}/{totalTarget} ({Math.round((totalContent / totalTarget) * 100)}%)
@@ -726,13 +847,67 @@ export default function CeoCommandCenter() {
           </motion.div>
         </section>
 
-        {/* ── Kanban Preview ───────────────────────────────────────────────── */}
+        {/* ── Hermes Cron Status ───────────────────────────────────────────── */}
+        <section>
+          <p style={sectionLabel}>HERMES CRON STATUS</p>
+          <div style={{
+            background: "#111113",
+            backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, transparent 50%)",
+            border: "1px solid #27272a",
+            borderRadius: 12,
+            overflow: "hidden",
+          }}>
+            {([
+              { name: "PM-Core Agent",    schedule: "Every 4h", status: "ok",    lastRun: "2h 14m ago",  model: "sonnet-4-7" },
+              { name: "Hourly Briefing",  schedule: "Every 1h", status: "ok",    lastRun: "47m ago",     model: "sonnet-4-7" },
+              { name: "Linear Update",    schedule: "Every 1h", status: "ok",    lastRun: "47m ago",     model: "llama-free" },
+              { name: "Daily Briefing",   schedule: "7:30am",   status: "ok",    lastRun: "2h 17m ago",  model: "sonnet-4-7" },
+              { name: "SEO Delta Brief",  schedule: "7am",      status: "error", lastRun: "2h 47m ago",  model: "llama-free" },
+              { name: "M&A Research",     schedule: "5am",      status: "ok",    lastRun: "5h 1m ago",   model: "sonnet-4-7" },
+              { name: "Tech News",        schedule: "4am",      status: "ok",    lastRun: "6h 2m ago",   model: "sonnet-4-7" },
+              { name: "SEO Intelligence", schedule: "3am",      status: "ok",    lastRun: "7h 3m ago",   model: "sonnet-4-7" },
+            ] as { name: string; schedule: string; status: "ok" | "error"; lastRun: string; model: string }[]).map((cron, i, arr) => (
+              <div key={cron.name} style={{
+                display: "grid",
+                gridTemplateColumns: "10px 1fr 100px 100px 80px",
+                gap: 14, alignItems: "center",
+                padding: "10px 18px",
+                borderBottom: i < arr.length - 1 ? "1px solid #27272a" : "none",
+                background: cron.status === "error" ? "rgba(220,38,38,0.04)" : "transparent",
+              }}>
+                <span style={{
+                  width: 7, height: 7, borderRadius: "50%",
+                  background: cron.status === "ok" ? "#16a34a" : "#dc2626",
+                  display: "inline-block",
+                  flexShrink: 0,
+                }} />
+                <span style={{ fontSize: 12, fontWeight: 500, color: "#d4d4d8", letterSpacing: "-0.01em" }}>
+                  {cron.name}
+                </span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#52525b" }}>{cron.schedule}</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: cron.status === "error" ? "#dc2626" : "#52525b" }}>
+                  {cron.lastRun}
+                </span>
+                <span style={{
+                  fontFamily: "var(--font-mono)", fontSize: 9,
+                  color: cron.model.includes("sonnet") ? "#1d4ed8" : "#3f3f46",
+                  padding: "2px 6px", borderRadius: 3,
+                  background: cron.model.includes("sonnet") ? "rgba(29,78,216,0.1)" : "#18181b",
+                }}>
+                  {cron.model}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Board Mandates ───────────────────────────────────────────────── */}
         <section>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-            <p style={sectionLabel}>Work Orders</p>
+            <p style={{ ...sectionLabel, marginBottom: 0 }}>BOARD MANDATES</p>
             <Link href="/dashboard/board" style={{ fontSize: 11, color: "#1d4ed8", textDecoration: "none" }}>View full board →</Link>
           </div>
-          <KanbanPreview />
+          <BoardMandatesSection mandates={mandates} loading={mandatesLoading} />
         </section>
 
         {/* ── Telegram Live Feed ──────────────────────────────────────────── */}
@@ -741,9 +916,9 @@ export default function CeoCommandCenter() {
           <TelegramFeed />
         </section>
 
-        {/* ── Quick Actions ───────────────────────────────────────────────── */}
+        {/* ── Command Shortcuts ────────────────────────────────────────────── */}
         <section>
-          <p style={sectionLabel}>Quick Actions</p>
+          <p style={sectionLabel}>COMMAND SHORTCUTS</p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             <Link
               href="/dashboard/board"
