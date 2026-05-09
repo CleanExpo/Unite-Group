@@ -4,7 +4,7 @@
  * Generates next steps on demand (cached in DB after first generation).
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 import type { Database } from '@/types/supabase';
 import { generateNextSteps } from '@/lib/brandiq/generateNextSteps';

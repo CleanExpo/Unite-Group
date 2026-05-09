@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies, headers } from 'next/headers';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/server';
 
 import { ComplianceService } from '@/lib/compliance/service';
 import { CookieConsentFormData } from '@/lib/compliance/types';
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user information if logged in
-    const supabase = createRouteHandlerClient({ cookies });
+    const supabase = await createClient();
     const { data: { session } } = await supabase.auth.getSession();
     const userId = session?.user?.id;
 
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user information if logged in
-    const supabase = createRouteHandlerClient({ cookies });
+    const supabase = await createClient();
     const { data: { session } } = await supabase.auth.getSession();
     const userId = session?.user?.id;
 

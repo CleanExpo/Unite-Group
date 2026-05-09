@@ -3,12 +3,12 @@
  * Returns the current user's YouTube videos with stats for the YouTubeEmbedWidget.
  */
 import { NextResponse } from 'next/server';
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 import { getClientYouTubeVideos } from '@/lib/dashboard/getClientYouTubeVideos';
 
 export async function GET() {
-  const supabase = createServerComponentClient({ cookies });
+  const supabase = await createClient();
 
   const {
     data: { session },

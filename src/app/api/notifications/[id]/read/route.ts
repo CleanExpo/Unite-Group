@@ -2,7 +2,7 @@
  * SYN-525: PATCH /api/notifications/[id]/read — mark notification as read
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 import type { Database } from '@/types/supabase';
 

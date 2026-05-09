@@ -11,13 +11,9 @@ export type {
   ResourceType,
   ResourcePriority,
   LoadingStrategy,
-  ResourceOptimizerConfig
 } from './resource-optimizer';
 
 export {
-  defaultResourceOptimizerConfig,
-  getResourceOptimizerConfig,
-  setResourceOptimizerConfig,
   generateResourceHints,
   generateScriptTags,
   generateStyleTags,
@@ -67,13 +63,10 @@ export {
 } from './bundle-optimizer';
 
 // Re-export components
-export { default as ResourceOptimizer } from '../../components/performance/ResourceOptimizer';
 export { 
   createResource, 
   COMMON_RESOURCES, 
   getMainSiteResources, 
   getDashboardResources,
   DEFAULT_ROUTE_RESOURCES
-} from '../../components/performance/ResourceOptimizer';
 
-export { default as BenchmarkResults } from '../../components/performance/BenchmarkResults';

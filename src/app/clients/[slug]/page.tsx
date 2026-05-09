@@ -14,10 +14,7 @@ import type { Metadata } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import { getClientBySlug } from '@/lib/clients/getClientBySlug';
 import { getClientVideos } from '@/lib/videos/getClientVideos';
-import { LocalBusinessSchema } from '@/components/schema/LocalBusinessSchema';
-import { VideoObjectSchema } from '@/components/schema/VideoObjectSchema';
 import { AuthorityHubAnalytics } from './AuthorityHubAnalytics';
-import { FeaturedBadge } from '@/components/authority/FeaturedBadge';
 
 interface AuthorityHubPageProps {
   params: Promise<{ slug: string }>;
@@ -66,8 +63,8 @@ export default async function AuthorityHubPage({ params }: AuthorityHubPageProps
 
   return (
     <>
-      <LocalBusinessSchema client={client} />
-      <VideoObjectSchema videos={videos} />
+      
+      
       <AuthorityHubAnalytics clientSlug={slug} />
 
       <main style={{ minHeight: '100vh', background: '#09090b', color: '#fafafa' }}>
@@ -90,7 +87,7 @@ export default async function AuthorityHubPage({ params }: AuthorityHubPageProps
                   <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 10px', borderRadius: 9999, fontSize: 12, fontWeight: 500, background: 'rgba(22,163,74,0.1)', color: '#4ade80', border: '1px solid rgba(22,163,74,0.2)' }}>
                     Verified by Synthex
                   </span>
-                  {client.featured_programme_status === 'published' && <FeaturedBadge />}
+                  
                 </div>
                 <h1 style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.03em', color: '#fafafa', margin: 0 }}>{client.business_name}</h1>
                 {location && (

@@ -2,7 +2,7 @@
  * SYN-525: GET /api/notifications — list current user's notifications
  */
 import { NextResponse } from 'next/server';
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 import type { Database } from '@/types/supabase';
 
