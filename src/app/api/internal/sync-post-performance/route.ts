@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * SYN-525: Post Performance Sync — First Win Detection Hook
  *

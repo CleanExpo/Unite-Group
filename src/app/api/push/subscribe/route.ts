@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Get the Supabase client
-    const supabase = createRouteHandlerClient<Database>({ cookies });
+    const supabase = await createClient();
     
     // Get the user's session
     const { data: { session } } = await supabase.auth.getSession();

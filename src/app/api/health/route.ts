@@ -39,7 +39,7 @@ export async function GET() {
   
   try {
     // Check database connection
-    const supabase = createServerComponentClient<Database>({ cookies });
+    const supabase = await createClient();
     const { data, error } = await supabase.from('health_check').select('*').limit(1);
     
     if (error) {

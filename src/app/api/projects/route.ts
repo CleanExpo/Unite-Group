@@ -7,7 +7,7 @@ import type { Database } from '@/types/supabase';
 export async function GET(request: Request) {
   try {
     // Initialize Supabase client
-    const supabase = createServerComponentClient<Database>({ cookies });
+    const supabase = await createClient();
     
     // Get the user session
     const { data: { session } } = await supabase.auth.getSession();
@@ -118,7 +118,7 @@ export async function POST(request: Request) {
     }
     
     // Initialize Supabase client
-    const supabase = createServerComponentClient<Database>({ cookies });
+    const supabase = await createClient();
     
     // Get the user session
     const { data: { session } } = await supabase.auth.getSession();

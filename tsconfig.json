@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "es2017",
-    "lib": ["dom", "dom.iterable", "es2017"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "es2017"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -22,13 +26,28 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*", "./*"],
-      "@/components/*": ["./src/components/*"],
-      "@/lib/*": ["./src/lib/*", "./lib/*"],
-      "@/app/*": ["./src/app/*"],
-      "@/types/*": ["./src/types/*", "./types/*"]
+      "@/*": [
+        "./src/*",
+        "./*"
+      ],
+      "@/components/*": [
+        "./src/components/*"
+      ],
+      "@/lib/*": [
+        "./src/lib/*",
+        "./lib/*"
+      ],
+      "@/app/*": [
+        "./src/app/*"
+      ],
+      "@/types/*": [
+        "./src/types/*",
+        "./types/*"
+      ]
     },
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "noUncheckedIndexedAccess": false
@@ -39,5 +58,14 @@
     "**/*.tsx",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "backups", "src-backup", "vercel-export-2025-05-23-0456", "**/*.test.ts", "**/*.spec.ts", "supabase/functions"]
+  "exclude": [
+    "node_modules",
+    "backups",
+    "src-backup",
+    "vercel-export-2025-05-23-0456",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "supabase/functions",
+    "lib"
+  ]
 }

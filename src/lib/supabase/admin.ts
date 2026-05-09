@@ -1,29 +1,33 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// Initialize the Supabase Admin Client with service_role key for server-side operations
-// This client has full database access and should ONLY be used on the server
-// See: https://supabase.com/docs/reference/javascript/initializing
+// Lazy-initialized admin client — never throws at module load time.
+// The guard runs when getAdminClient() is first called (inside a request handler),
+// not when the module is imported during Next.js static analysis.
+let _adminClient: SupabaseClient | null = null;
 
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-  throw new Error('Missing environment variable: NEXT_PUBLIC_SUPABASE_URL');
-}
+export function getAdminClient(): SupabaseClient {
+  if (_adminClient) return _adminClient;
 
-if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error('Missing environment variable: SUPABASE_SERVICE_ROLE_KEY');
-}
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-/**
- * Supabase client with admin privileges for server-side operations
- * This client should ONLY be used in server contexts (API routes, server components, etc)
- * NEVER expose this client or its key to the client-side
- */
-export const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-  {
+  if (!url) throw new Error('Missing environment variable: NEXT_PUBLIC_SUPABASE_URL');
+  if (!key) throw new Error('Missing environment variable: SUPABASE_SERVICE_ROLE_KEY');
+
+  _adminClient = createClient(url, key, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
     },
-  }
-);
+  });
+
+  return _adminClient;
+}
+
+// Backwards-compatible export — resolved lazily on first property access.
+// Code that does `supabaseAdmin.from(...)` will trigger lazy init at call time.
+export const supabaseAdmin = new Proxy({} as SupabaseClient, {
+  get(_target, prop) {
+    return (getAdminClient() as Record<string | symbol, unknown>)[prop];
+  },
+});

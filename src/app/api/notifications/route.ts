@@ -7,7 +7,7 @@ import { cookies } from 'next/headers';
 import type { Database } from '@/types/supabase';
 
 export async function GET() {
-  const supabase = createServerComponentClient<Database>({ cookies });
+  const supabase = await createClient();
 
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
   if (sessionError || !session) {

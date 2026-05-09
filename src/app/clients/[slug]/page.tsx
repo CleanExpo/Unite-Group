@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /**
  * SYN-512: Synthex Client Authority Hub — Full Implementation
  * SYN-519 shipped the ISR skeleton. This is the full production build.
@@ -11,7 +12,7 @@ export const revalidate = 3600; // DO NOT REMOVE (SYN-519/SYN-512)
 
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { getClientBySlug } from '@/lib/clients/getClientBySlug';
 import { getClientVideos } from '@/lib/videos/getClientVideos';
 import { AuthorityHubAnalytics } from './AuthorityHubAnalytics';
@@ -21,10 +22,7 @@ interface AuthorityHubPageProps {
 }
 
 export async function generateStaticParams() {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabase = supabaseAdmin;;
   const { data } = await supabase
     .from('clients')
     .select('slug')
