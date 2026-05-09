@@ -619,6 +619,10 @@ export default function BusinessDetailPage({
   const [biz, setBiz] = useState<BusinessDetail | null>(null);
   const [snapshots, setSnapshots] = useState<HealthSnapshot[]>([]);
   const [loading, setLoading] = useState(true);
+  const [wikiContext, setWikiContext] = useState<{
+    mission: string; positioning: string; techStack: string;
+    keyRisks: string; lastUpdated: string; fullContent: string;
+  } | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -647,6 +651,12 @@ export default function BusinessDetailPage({
       }
     }
     load();
+
+    // Wiki context: fetch from 2nd Brain
+    fetch(`/api/wiki/context/${slug}`)
+      .then(r => r.json())
+      .then(data => !data.error && setWikiContext(data))
+      .catch(() => {});
   }, [slug]);
 
   const name = biz?.name ?? BUSINESS_NAMES[slug] ?? slug;
@@ -747,6 +757,48 @@ export default function BusinessDetailPage({
 
         {/* Key Metrics Strip */}
         <MetricsStrip biz={loading ? null : biz} />
+
+        {/* Wiki Context Panel — FROM THE 2ND BRAIN */}
+        {wikiContext && (
+          <section style={{ marginTop: 24 }}>
+            <div style={{ fontSize: 'var(--text-2xs)', fontWeight: 600,
+              letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase',
+              color: 'var(--ink-tertiary)', marginBottom: 12 }}>
+              FROM THE 2ND BRAIN
+            </div>
+            <div style={{ background: 'var(--surface-1)', border: '1px solid var(--border-default)',
+              borderLeft: '3px solid var(--red-500)', borderRadius: 'var(--radius-md)', padding: 16 }}>
+              {wikiContext.mission && (
+                <p style={{ fontSize: 13, color: 'var(--ink-secondary)', margin: '0 0 12px', lineHeight: 1.5 }}>
+                  {wikiContext.mission}
+                </p>
+              )}
+              {wikiContext.techStack && (
+                <div style={{ marginTop: 8 }}>
+                  <span style={{ fontSize: 11, color: 'var(--ink-tertiary)', fontFamily: 'var(--font-mono)' }}>
+                    STACK
+                  </span>
+                  <p style={{ fontSize: 12, color: 'var(--ink-secondary)', margin: '4px 0 0', fontFamily: 'var(--font-mono)' }}>
+                    {wikiContext.techStack.slice(0, 200)}
+                  </p>
+                </div>
+              )}
+              {wikiContext.keyRisks && (
+                <div style={{ marginTop: 8 }}>
+                  <span style={{ fontSize: 11, color: 'var(--orange-400)', fontFamily: 'var(--font-mono)' }}>
+                    KEY RISKS
+                  </span>
+                  <p style={{ fontSize: 12, color: 'var(--ink-secondary)', margin: '4px 0 0' }}>
+                    {wikiContext.keyRisks.slice(0, 200)}
+                  </p>
+                </div>
+              )}
+              <div style={{ marginTop: 12, fontSize: 11, color: 'var(--ink-tertiary)', fontFamily: 'var(--font-mono)' }}>
+                Wiki updated {wikiContext.lastUpdated ? new Date(wikiContext.lastUpdated).toLocaleDateString('en-AU') : 'unknown'}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Health Timeline */}
         {loading ? (

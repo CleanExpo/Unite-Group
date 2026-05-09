@@ -50,6 +50,19 @@ type PipelineCounts = {
   completed_today: number;
 };
 
+type ExitThesisData = {
+  currentArr: number;
+  gapToMin: number;
+  daysRemaining: number;
+};
+
+type BoardMinute = {
+  date: string;
+  topic: string;
+  decision: string;
+  directiveTo: string | null;
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function healthColor(score: number | null): string {
@@ -118,30 +131,42 @@ function Shimmer({ width, height, radius = 4 }: { width: string | number; height
 
 // ─── Empire Pulse Bar ─────────────────────────────────────────────────────────
 
-function EmpirePulseBar({ summary, loading }: { summary: PortfolioSummary | null; loading: boolean }) {
-  const days = daysToDeadline();
+function EmpirePulseBar({
+  summary,
+  loading,
+  exitThesis,
+}: {
+  summary: PortfolioSummary | null;
+  loading: boolean;
+  exitThesis: ExitThesisData | null;
+}) {
+  const fallbackDays = daysToDeadline();
+  const days = exitThesis?.daysRemaining ?? fallbackDays;
   const daysColor = days < 365 ? "var(--red-400)" : days < 548 ? "var(--orange-400)" : "var(--ink-primary)";
+
+  const liveArr = exitThesis?.currentArr ?? summary?.total_arr ?? 0;
+  const gapToMin = exitThesis?.gapToMin ?? null;
 
   const pills = [
     {
       label: "Total ARR",
-      value: summary ? formatArrFull(summary.total_arr) : "—",
-      color: summary && summary.total_arr > 0 ? "var(--green-400)" : "var(--ink-secondary)",
+      value: liveArr > 0 ? formatArrFull(liveArr) : (summary ? formatArrFull(summary.total_arr) : "—"),
+      color: liveArr > 0 ? "var(--green-400)" : "var(--ink-secondary)",
     },
     {
-      label: "Days to deadline",
+      label: "Days to $2B",
       value: `${days.toLocaleString()} days`,
       color: daysColor,
+    },
+    {
+      label: "Gap to min ARR",
+      value: gapToMin !== null ? `$${Math.round(gapToMin / 1_000_000)}m to $167M` : "—",
+      color: gapToMin !== null && gapToMin > 0 ? "var(--orange-400)" : "var(--green-400)",
     },
     {
       label: "Portfolio avg",
       value: summary?.avg_health != null ? `${summary.avg_health}/100` : "—",
       color: healthColor(summary?.avg_health ?? null),
-    },
-    {
-      label: "Businesses at risk",
-      value: summary ? `${summary.at_risk_count}` : "—",
-      color: summary && summary.at_risk_count > 0 ? "var(--red-400)" : "var(--green-400)",
     },
     {
       label: "System status",
@@ -483,6 +508,8 @@ export default function EmpireCommandCenter() {
   const [empireData, setEmpireData] = useState<EmpireData | null>(null);
   const [priorities, setPriorities] = useState<Priority[] | null>(null);
   const [pipeline, setPipeline] = useState<PipelineCounts | null>(null);
+  const [exitThesis, setExitThesis] = useState<ExitThesisData | null>(null);
+  const [boardMinutes, setBoardMinutes] = useState<BoardMinute[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -531,6 +558,18 @@ export default function EmpireCommandCenter() {
       .then(r => r.json())
       .then(json => setPipeline(json))
       .catch(() => setPipeline({ ideas_in_flight: 0, board_active: 0, completed_today: 0 }));
+
+    // Exit thesis: wiki-driven ARR + days
+    fetch("/api/wiki/exit-thesis")
+      .then(r => r.json())
+      .then(setExitThesis)
+      .catch(() => {});
+
+    // Board minutes: from harness
+    fetch("/api/empire/board-minutes")
+      .then(r => r.json())
+      .then(d => setBoardMinutes(d.minutes ?? []))
+      .catch(() => {});
 
     return () => clearInterval(interval);
   }, [checking, fetchBusinesses]);
@@ -618,7 +657,7 @@ export default function EmpireCommandCenter() {
       <main style={{ padding: "24px 32px", maxWidth: 1280, margin: "0 auto" }}>
 
         {/* SECTION 1: Empire Pulse Bar */}
-        <EmpirePulseBar summary={summary} loading={isLoading} />
+        <EmpirePulseBar summary={summary} loading={isLoading} exitThesis={exitThesis} />
 
         {/* SECTION 2 + 3: Two-column layout */}
         <div style={{
@@ -824,6 +863,42 @@ export default function EmpireCommandCenter() {
             </div>
           </div>
         </div>
+
+        {/* SECTION 5: Recent Board Directives */}
+        {boardMinutes.length > 0 && (
+          <section style={{ marginTop: 24 }}>
+            <div style={{ fontSize: 'var(--text-2xs)', fontWeight: 600,
+              letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase',
+              color: 'var(--ink-tertiary)', marginBottom: 12 }}>
+              RECENT BOARD DIRECTIVES
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {boardMinutes.map(m => (
+                <div key={m.date} style={{ background: 'var(--surface-1)',
+                  border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-md)',
+                  padding: '10px 14px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)',
+                    color: 'var(--ink-tertiary)', flexShrink: 0, marginTop: 2 }}>
+                    {m.date}
+                  </span>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-primary)', marginBottom: 2 }}>
+                      {m.topic}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--ink-secondary)', lineHeight: 1.4 }}>
+                      {m.decision}
+                    </div>
+                    {m.directiveTo && (
+                      <div style={{ fontSize: 11, color: 'var(--ink-tertiary)', marginTop: 4, fontFamily: 'var(--font-mono)' }}>
+                        → {m.directiveTo}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );
