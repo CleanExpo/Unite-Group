@@ -114,6 +114,9 @@ export default function ClientDashboardPage() {
   const [requestStatus, setRequestStatus] = useState<{ ok: boolean; msg: string } | null>(null);
   const [requestPending, setRequestPending] = useState(false);
   const [seoRefreshing, setSeoRefreshing] = useState(false);
+  const [artefacts, setArtefacts] = useState<Array<{
+    filename: string; title: string; type: string; preview: string; date: string;
+  }>>([]);
 
   const fetchSummary = () =>
     fetch('/api/portal/summary')
@@ -131,6 +134,10 @@ export default function ClientDashboardPage() {
         return;
       }
       fetchSummary();
+      fetch('/api/portal/artefacts?client=ccw')
+        .then(r => r.json())
+        .then(d => setArtefacts(d.artefacts ?? []))
+        .catch(() => {});
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
@@ -389,9 +396,68 @@ export default function ClientDashboardPage() {
         )}
       </Section>
 
-      {/* Content Pipeline */}
-      <Section title="Content Pipeline">
-        <PlaceholderCard message="Content generation active. First batch arriving soon." />
+      {/* Content & Strategy — harness artefacts */}
+      <Section title="Content &amp; Strategy">
+        <section style={{ marginTop: 0 }}>
+          <div style={{
+            fontSize: 'var(--text-2xs)', fontWeight: 600,
+            letterSpacing: 'var(--tracking-caps)', textTransform: 'uppercase',
+            color: 'var(--ink-tertiary)', marginBottom: 12,
+          }}>CONTENT &amp; STRATEGY</div>
+
+          {artefacts.length > 0 ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+              {artefacts.map(a => (
+                <div key={a.filename} style={{
+                  background: 'var(--surface-1)',
+                  border: '1px solid var(--border-default)',
+                  borderRadius: 'var(--radius-client-md)',
+                  padding: '12px 14px',
+                }}>
+                  {/* Type badge */}
+                  <div style={{
+                    fontSize: 10, fontWeight: 700, letterSpacing: 'var(--tracking-caps)',
+                    textTransform: 'uppercase', color: 'var(--red-400)',
+                    fontFamily: 'var(--font-mono)', marginBottom: 6,
+                  }}>
+                    {a.type.replace(/-/g, ' ')}
+                  </div>
+                  {/* Title */}
+                  <div style={{
+                    fontSize: 13, fontWeight: 600, color: 'var(--ink-primary)',
+                    marginBottom: 6, lineHeight: 1.3,
+                  }}>
+                    {a.title}
+                  </div>
+                  {/* Preview */}
+                  <div style={{
+                    fontSize: 12, color: 'var(--ink-tertiary)',
+                    lineHeight: 1.5, overflow: 'hidden',
+                    display: '-webkit-box', WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical' as const,
+                  }}>
+                    {a.preview}
+                  </div>
+                  {/* Date */}
+                  <div style={{
+                    fontSize: 10, color: 'var(--ink-disabled)',
+                    fontFamily: 'var(--font-mono)', marginTop: 8,
+                  }}>
+                    {a.date}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{
+              background: 'var(--surface-1)', border: '1px solid var(--border-default)',
+              borderRadius: 'var(--radius-client-md)', padding: 20,
+              color: 'var(--ink-tertiary)', fontSize: 13, textAlign: 'center',
+            }}>
+              Strategy documents are being prepared for your account.
+            </div>
+          )}
+        </section>
       </Section>
 
       {/* Request a Change */}
