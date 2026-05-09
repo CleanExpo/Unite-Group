@@ -45,16 +45,17 @@ export async function GET(req: NextRequest) {
 
   // Parse checks
   const title       = extract(html, /<title[^>]*>([^<]{1,200})<\/title>/i);
-  const description = extract(html, /<meta[^>]+name=["']description["'][^>]+content=["']([^"']{1,300})["']/i)
+  const description = extract(html, /<meta[^>]+name=["']description["'][^>]+content="([^"]{1,300})"/i)
+                   || extract(html, /<meta[^>]+content="([^"]{1,300})"[^>]+name=["']description["']/i)
                    || extract(html, /<meta[^>]+content=["']([^"']{1,300})["'][^>]+name=["']description["']/i);
-  const ogTitle     = extract(html, /<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']{1,200})["']/i)
+  const ogTitle     = extract(html, /<meta[^>]+property=["']og:title["'][^>]+content="([^"]{1,200})"/i)
                    || extract(html, /<meta[^>]+content=["']([^"']{1,200})["'][^>]+property=["']og:title["']/i);
-  const ogImage     = extract(html, /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']{1,400})["']/i)
+  const ogImage     = extract(html, /<meta[^>]+property=["']og:image["'][^>]+content="([^"]{1,400})"/i)
                    || extract(html, /<meta[^>]+content=["']([^"']{1,400})["'][^>]+property=["']og:image["']/i);
-  const canonical   = extract(html, /<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']{1,400})["']/i)
+  const canonical   = extract(html, /<link[^>]+rel=["']canonical["'][^>]+href="([^"]{1,400})"/i)
                    || extract(html, /<link[^>]+href=["']([^"']{1,400})["'][^>]+rel=["']canonical["']/i);
-  const robotsMeta  = extract(html, /<meta[^>]+name=["']robots["'][^>]+content=["']([^"']{1,100})["']/i)
-                   || extract(html, /<meta[^>]+content=["']([^"']{1,100})["'][^>]+name=["']robots["']/i);
+  const robotsMeta  = extract(html, /<meta[^>]+name=["']robots["'][^>]+content="([^"]{1,100})"/i)
+                   || extract(html, /<meta[^>]+content="([^"]{1,100})"[^>]+name=["']robots["']/i);
   const h1          = extract(html, /<h1[^>]*>([^<]{1,200})<\/h1>/i);
 
   // Check sitemap and robots.txt

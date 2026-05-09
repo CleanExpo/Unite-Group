@@ -152,10 +152,11 @@ export async function GET() {
     }
 
     return NextResponse.json(result, { headers: { 'Cache-Control': 'no-store' } });
-  } catch (error) {
+  } catch {
+    // Network or filesystem error — never crash the dashboard
     return NextResponse.json(
-      { ...result, error: String(error) },
-      { status: 500, headers: { 'Cache-Control': 'no-store' } }
+      { ...result, source: 'unavailable' as const },
+      { status: 200, headers: { 'Cache-Control': 'no-store' } }
     );
   }
 }

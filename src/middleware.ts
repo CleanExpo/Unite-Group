@@ -34,7 +34,18 @@ export async function middleware(req: NextRequest) {
   );
 
   // getUser() makes a verified network call — not susceptible to stale cookie issues
-  const { data: { user } } = await supabase.auth.getUser();
+  // Wrap in try/catch — if Supabase is unreachable, treat as unauthenticated (never crash)
+  let user = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch {
+    // Network error — redirect to login as unauthenticated
+    if (!AUTH_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'))) {
+      return NextResponse.redirect(new URL('/en/login', req.url));
+    }
+    return res;
+  }
 
   const isAuthPage = AUTH_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'));
 
