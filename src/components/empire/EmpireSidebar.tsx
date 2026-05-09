@@ -76,7 +76,7 @@ export function EmpireSidebar() {
       {/* Nav */}
       <nav style={{ flex: 1, padding: '12px 10px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
         {NAV.map(({ href, mark: Mark, label }) => {
-          const active = pathname === href || pathname.startsWith(href + '/');
+          const localeStripped = pathname.replace(/^\/[a-z]{2}/, ''); const active = localeStripped === href || localeStripped.startsWith(href + '/') || pathname === href || pathname.startsWith(href + '/');
           return (
             <Link
               key={href}
@@ -103,7 +103,7 @@ export function EmpireSidebar() {
           <span style={{ fontSize: 10, fontWeight: 600, color: '#3f3f46', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Intelligence</span>
         </div>
         {INTELLIGENCE_NAV.map(({ href, mark: Mark, label }) => {
-          const active = pathname === href || pathname.startsWith(href + '/');
+          const localeStripped = pathname.replace(/^\/[a-z]{2}/, ''); const active = localeStripped === href || localeStripped.startsWith(href + '/') || pathname === href || pathname.startsWith(href + '/');
           return (
             <Link
               key={href}

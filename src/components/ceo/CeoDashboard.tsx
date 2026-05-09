@@ -905,7 +905,7 @@ export default function CeoCommandCenter() {
         <section>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
             <p style={{ ...sectionLabel, marginBottom: 0 }}>BOARD MANDATES</p>
-            <Link href="/dashboard/board" style={{ fontSize: 11, color: "var(--orange-400)", textDecoration: "none" }}>View full board →</Link>
+            <Link href="/en/empire" style={{ fontSize: 11, color: "var(--orange-400)", textDecoration: "none" }}>View full board →</Link>
           </div>
           <BoardMandatesSection mandates={mandates} loading={mandatesLoading} />
         </section>
@@ -921,7 +921,7 @@ export default function CeoCommandCenter() {
           <p style={sectionLabel}>COMMAND SHORTCUTS</p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             <Link
-              href="/dashboard/board"
+              href="/en/empire"
               style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 12px", fontSize: 12, fontWeight: 500, borderRadius: 8, border: "1px solid #27272a", color: "var(--ink-secondary)", textDecoration: "none", background: "transparent", transition: "all 0.12s ease" }}
               onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--surface-1)"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--ink-tertiary)"; (e.currentTarget as HTMLAnchorElement).style.color = "var(--ink-primary)"; }}
               onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--border-default)"; (e.currentTarget as HTMLAnchorElement).style.color = "var(--ink-secondary)"; }}
@@ -943,7 +943,7 @@ export default function CeoCommandCenter() {
               <ArrowUpRight size={12} />
             </Link>
             <Link
-              href="/dashboard/content"
+              href="/en/empire"
               style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 12px", fontSize: 12, fontWeight: 500, borderRadius: 8, border: "1px solid #27272a", color: "var(--ink-secondary)", textDecoration: "none", background: "transparent", transition: "all 0.12s ease" }}
               onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--surface-1)"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--ink-tertiary)"; (e.currentTarget as HTMLAnchorElement).style.color = "var(--ink-primary)"; }}
               onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--border-default)"; (e.currentTarget as HTMLAnchorElement).style.color = "var(--ink-secondary)"; }}
@@ -965,7 +965,7 @@ export default function CeoCommandCenter() {
               {loading ? "Running…" : "Run Health Check"}
             </button>
             <Link
-              href="/dashboard/brief"
+              href="/en/empire"
               style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 12px", fontSize: 12, fontWeight: 600, borderRadius: 8, border: "1px solid #f59e0b", color: "#fff", textDecoration: "none", background: "var(--orange-400)", transition: "all 0.16s ease" }}
               onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--orange-400)"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--orange-400)"; }}
               onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--orange-400)"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--orange-400)"; }}

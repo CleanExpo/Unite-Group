@@ -81,7 +81,7 @@ export async function GET() {
       const overallHealth = snap?.overall_health ?? null;
 
       results.push({
-        id: biz.id,
+        id: biz.slug ?? biz.pi_ceo_key ?? biz.id,  // use slug for URLs
         name: biz.name,
         status: overallHealth !== null ? healthToStatus(overallHealth) : (biz.status ?? 'unknown'),
         arr_aud: biz.arr_aud ?? 0,

@@ -138,7 +138,7 @@ export default function Organizations() {
               <Link href="/projects" style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--ink-secondary)", textDecoration: "none", fontSize: 14 }}>
                 <FolderMark size={14} /> Projects
               </Link>
-              <Link href="/tasks" style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--ink-secondary)", textDecoration: "none", fontSize: 14 }}>
+              <Link href="/en/projects" style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--ink-secondary)", textDecoration: "none", fontSize: 14 }}>
                 <CheckSquareMark size={14} /> Tasks
               </Link>
               <Link href="/organizations" style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--red-400)", textDecoration: "none", fontSize: 14, fontWeight: 500 }}>
@@ -147,7 +147,7 @@ export default function Organizations() {
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <Link href="/profile" style={{ color: "var(--ink-secondary)", textDecoration: "none" }}>
+            <Link href="/en/account/privacy" style={{ color: "var(--ink-secondary)", textDecoration: "none" }}>
               <SettingsMark size={18} />
             </Link>
             <button onClick={handleSignOut} style={{ background: "transparent", border: "none", color: "var(--ink-secondary)", cursor: "pointer", padding: 4 }}>
