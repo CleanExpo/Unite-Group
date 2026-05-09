@@ -12,22 +12,12 @@ export const revalidate = 3600; // DO NOT REMOVE (SYN-519/SYN-512)
 
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { supabaseAdmin } from '@/lib/supabase/admin';
 import { getClientBySlug } from '@/lib/clients/getClientBySlug';
 import { getClientVideos } from '@/lib/videos/getClientVideos';
 import { AuthorityHubAnalytics } from './AuthorityHubAnalytics';
 
 interface AuthorityHubPageProps {
   params: Promise<{ slug: string }>;
-}
-
-export async function generateStaticParams() {
-  const supabase = supabaseAdmin;;
-  const { data } = await supabase
-    .from('clients')
-    .select('slug')
-    .eq('is_active', true);
-  return (data ?? []).map(({ slug }: { slug: string }) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: AuthorityHubPageProps): Promise<Metadata> {

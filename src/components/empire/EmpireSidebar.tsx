@@ -3,8 +3,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  CommandCenterMark, DashboardMark, ClientsMark, ActivityMark,
-  FileMark, BarChartMark, TrendUpMark, WikiMark, FeedMark,
+  CommandCenterMark, ClientsMark, ActivityMark,
+  BarChartMark, TrendUpMark, WikiMark, FeedMark,
   ReportsMark, UsersMark, ChevronRightMark,
 } from '@/components/ui/marks';
 
@@ -21,12 +21,8 @@ const AUTH_ROUTES = ['/login', '/register', '/reset-password', '/update-password
 const CLIENT_ROUTES = ['/clients/']; // client portals get their own clean layout
 
 const NAV = [
-  { href: '/empire',               mark: CommandCenterMark, label: 'Command Center' },
-  { href: '/dashboard',            mark: DashboardMark,     label: 'Dashboard'      },
-  { href: '/clients/ccw',          mark: ClientsMark,       label: 'CCW Portal'     },
-  { href: '/dashboard/board',      mark: ActivityMark,      label: 'Board Room'     },
-  { href: '/dashboard/content',    mark: FileMark,          label: 'Content'        },
-  { href: '/dashboard/brief',      mark: BarChartMark,      label: '6-Pager'        },
+  { href: '/empire',      mark: CommandCenterMark, label: 'Command Center' },
+  { href: '/clients/ccw', mark: ClientsMark,       label: 'CCW Portal'     },
 ];
 
 const INTELLIGENCE_NAV = [
@@ -221,13 +217,13 @@ export function EmpireSidebar() {
       {/* Footer */}
       <div style={{ padding: '12px 10px', borderTop: '1px solid #27272a' }}>
         <Link
-          href="/dashboard"
+          href="/clients"
           style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, textDecoration: 'none', transition: 'all 0.12s ease' }}
           onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.03)')}
           onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.background = 'transparent')}
         >
           <UsersMark size={14} color="#52525b" />
-          <span style={{ fontSize: 12, color: '#52525b' }}>Client View</span>
+          <span style={{ fontSize: 12, color: '#52525b' }}>Manage Clients</span>
         </Link>
       </div>
     </aside>

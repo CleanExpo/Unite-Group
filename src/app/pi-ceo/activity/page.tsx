@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { supabaseClient } from '@/lib/supabase/client';
 import { RefreshMark, ActivityMark } from '@/components/ui/marks';
 
@@ -85,6 +86,10 @@ export default function ActivityPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--canvas)', color: 'var(--ink-primary)', padding: '32px 32px 64px' }}>
+      {/* Back link */}
+      <Link href="/en/empire" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#52525b', textDecoration: 'none', marginBottom: 24 }}>
+        ← Command Center
+      </Link>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

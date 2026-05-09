@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { supabaseClient } from '@/lib/supabase/client';
 import { RefreshMark, BarChartMark } from '@/components/ui/marks';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -85,6 +86,10 @@ export default function HealthPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--canvas)', color: 'var(--ink-primary)', padding: '32px 32px 64px' }}>
+      {/* Back link */}
+      <Link href="/en/empire" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#52525b', textDecoration: 'none', marginBottom: 24 }}>
+        ← Command Center
+      </Link>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
         <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(34,197,94,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
