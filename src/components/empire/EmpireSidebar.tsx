@@ -3,10 +3,10 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Zap, LayoutDashboard, Building2, Users, FileText,
-  ChevronRight, Activity, BarChart3, TrendingUp,
-  BookOpen, Rss, FileBarChart,
-} from 'lucide-react';
+  CommandCenterMark, DashboardMark, ClientsMark, ActivityMark,
+  FileMark, BarChartMark, TrendUpMark, WikiMark, FeedMark,
+  ReportsMark, UsersMark, ChevronRightMark,
+} from '@/components/ui/marks';
 
 const BUSINESS_SLUGS: Record<string, { slug: string; domain: string }> = {
   'RestoreAssist': { slug: 'restoreassist', domain: 'restoreassist.app' },
@@ -21,20 +21,20 @@ const AUTH_ROUTES = ['/login', '/register', '/reset-password', '/update-password
 const CLIENT_ROUTES = ['/clients/']; // client portals get their own clean layout
 
 const NAV = [
-  { href: '/empire',               icon: Zap,             label: 'Command Center' },
-  { href: '/dashboard',         icon: LayoutDashboard, label: 'Dashboard'      },
-  { href: '/clients/ccw',       icon: Building2,       label: 'CCW Portal'     },
-  { href: '/dashboard/board',   icon: Activity,        label: 'Board Room'     },
-  { href: '/dashboard/content', icon: FileText,        label: 'Content'        },
-  { href: '/dashboard/brief',   icon: BarChart3,       label: '6-Pager'        },
+  { href: '/empire',               mark: CommandCenterMark, label: 'Command Center' },
+  { href: '/dashboard',            mark: DashboardMark,     label: 'Dashboard'      },
+  { href: '/clients/ccw',          mark: ClientsMark,       label: 'CCW Portal'     },
+  { href: '/dashboard/board',      mark: ActivityMark,      label: 'Board Room'     },
+  { href: '/dashboard/content',    mark: FileMark,          label: 'Content'        },
+  { href: '/dashboard/brief',      mark: BarChartMark,      label: '6-Pager'        },
 ];
 
 const INTELLIGENCE_NAV = [
-  { href: '/wiki',             icon: BookOpen,     label: 'Knowledge Base'   },
-  { href: '/sources',          icon: Rss,          label: 'Sources Pipeline' },
-  { href: '/pi-ceo/activity',  icon: Activity,     label: 'Activity Log'     },
-  { href: '/pi-ceo/health',    icon: BarChart3,    label: 'Health History'   },
-  { href: '/pi-ceo/reports',   icon: FileBarChart, label: 'SEO Reports'      },
+  { href: '/wiki',             mark: WikiMark,      label: 'Knowledge Base'   },
+  { href: '/sources',          mark: FeedMark,      label: 'Sources Pipeline' },
+  { href: '/pi-ceo/activity',  mark: ActivityMark,  label: 'Activity Log'     },
+  { href: '/pi-ceo/health',    mark: ReportsMark,   label: 'Health History'   },
+  { href: '/pi-ceo/reports',   mark: BarChartMark,  label: 'SEO Reports'      },
 ];
 
 const BUSINESSES = [
@@ -79,7 +79,7 @@ export function EmpireSidebar() {
 
       {/* Nav */}
       <nav style={{ flex: 1, padding: '12px 10px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {NAV.map(({ href, icon: Icon, label }) => {
+        {NAV.map(({ href, mark: Mark, label }) => {
           const active = pathname === href || pathname.startsWith(href + '/');
           return (
             <Link
@@ -95,9 +95,9 @@ export function EmpireSidebar() {
               onMouseEnter={e => { if (!active) (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.03)'; }}
               onMouseLeave={e => { if (!active) (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; }}
             >
-              <Icon size={15} color={active ? '#60a5fa' : '#a1a1aa'} strokeWidth={2} />
+              <Mark size={15} color={active ? '#60a5fa' : '#a1a1aa'} />
               <span style={{ fontSize: 13, fontWeight: active ? 500 : 400, color: active ? '#fafafa' : '#a1a1aa', flex: 1 }}>{label}</span>
-              {active && <ChevronRight size={12} color="#f59e0b" />}
+              {active && <ChevronRightMark size={12} color="#f59e0b" />}
             </Link>
           );
         })}
@@ -106,7 +106,7 @@ export function EmpireSidebar() {
         <div style={{ marginTop: 16, marginBottom: 6, padding: '0 10px' }}>
           <span style={{ fontSize: 10, fontWeight: 600, color: '#3f3f46', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Intelligence</span>
         </div>
-        {INTELLIGENCE_NAV.map(({ href, icon: Icon, label }) => {
+        {INTELLIGENCE_NAV.map(({ href, mark: Mark, label }) => {
           const active = pathname === href || pathname.startsWith(href + '/');
           return (
             <Link
@@ -122,9 +122,9 @@ export function EmpireSidebar() {
               onMouseEnter={e => { if (!active) (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.03)'; }}
               onMouseLeave={e => { if (!active) (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; }}
             >
-              <Icon size={15} color={active ? '#60a5fa' : '#a1a1aa'} strokeWidth={2} />
+              <Mark size={15} color={active ? '#60a5fa' : '#a1a1aa'} />
               <span style={{ fontSize: 13, fontWeight: active ? 500 : 400, color: active ? '#fafafa' : '#a1a1aa', flex: 1 }}>{label}</span>
-              {active && <ChevronRight size={12} color="#f59e0b" />}
+              {active && <ChevronRightMark size={12} color="#f59e0b" />}
             </Link>
           );
         })}
@@ -151,10 +151,10 @@ export function EmpireSidebar() {
               >
                 <span className="status-dot" style={{ width: 6, height: 6, background: STATUS_COLOR[biz.status], color: STATUS_COLOR[biz.status], flexShrink: 0 }} />
                 <span style={{ fontSize: 12, color: '#a1a1aa', flex: 1, textAlign: 'left' }}>{biz.label}</span>
-                <ChevronRight
+                <ChevronRightMark
                   size={10}
                   color="#52525b"
-                  style={{ transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s ease', flexShrink: 0 }}
+                  className={isOpen ? 'rotate-90' : undefined}
                 />
               </button>
 
@@ -172,7 +172,7 @@ export function EmpireSidebar() {
                     onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.04)'; (e.currentTarget as HTMLAnchorElement).style.color = '#a1a1aa'; }}
                     onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = pathname === `/businesses/${meta.slug}/seo` ? 'rgba(29,78,216,0.1)' : 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = '#52525b'; }}
                   >
-                    <TrendingUp size={10} color="#52525b" />
+                    <TrendUpMark size={10} color="#52525b" />
                     SEO Audit
                   </Link>
                 </div>
@@ -226,7 +226,7 @@ export function EmpireSidebar() {
           onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.03)')}
           onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.background = 'transparent')}
         >
-          <Users size={14} color="#52525b" />
+          <UsersMark size={14} color="#52525b" />
           <span style={{ fontSize: 12, color: '#52525b' }}>Client View</span>
         </Link>
       </div>

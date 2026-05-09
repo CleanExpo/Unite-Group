@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseClient } from '@/lib/supabase/client';
-import { BookOpen, Search, ChevronRight, Clock, Tag } from 'lucide-react';
+import { WikiMark, SearchMark, ChevronRightMark, ClockMark, TagMark } from '@/components/ui/marks';
 
 interface WikiPage {
   id: string;
@@ -129,7 +129,7 @@ export default function WikiPage() {
         padding: '0 20px', borderBottom: `1px solid ${BORDER}`,
         background: CARD, flexShrink: 0,
       }}>
-        <BookOpen size={18} color={ACCENT} />
+        <WikiMark size={18} color={ACCENT} />
         <span style={{ fontSize: 15, fontWeight: 700, color: TEXT, letterSpacing: '-0.02em' }}>
           2nd Brain — Knowledge Base
         </span>
@@ -167,7 +167,7 @@ export default function WikiPage() {
               background: BG, border: `1px solid ${BORDER}`, borderRadius: 8,
               padding: '6px 10px',
             }}>
-              <Search size={13} color={MUTED} />
+              <SearchMark size={13} color={MUTED} />
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
@@ -207,7 +207,7 @@ export default function WikiPage() {
                     <span style={{ flex: 1, fontSize: 12, color: isActive ? TEXT : SUBDUED, fontWeight: isActive ? 500 : 400, lineHeight: 1.4 }}>
                       {p.title}
                     </span>
-                    {isActive && <ChevronRight size={11} color={ACCENT} />}
+                    {isActive && <ChevronRightMark size={11} color={ACCENT} />}
                   </button>
                 );
               })
@@ -230,7 +230,7 @@ export default function WikiPage() {
                 </h1>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: MUTED }}>
-                    <Clock size={11} />
+                    <ClockMark size={11} />
                     {active.word_count} words
                   </span>
                   {active.updated_at && (
@@ -240,7 +240,7 @@ export default function WikiPage() {
                   )}
                   {active.tags?.length > 0 && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <Tag size={10} color={MUTED} />
+                      <TagMark size={10} color={MUTED} />
                       {active.tags.slice(0, 5).map(t => (
                         <span key={t} style={{
                           fontSize: 10, padding: '2px 6px', background: 'rgba(59,130,246,0.1)',

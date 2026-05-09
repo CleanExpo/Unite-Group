@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabaseClient } from "@/lib/supabase/client";
-import { Plus, Building2, Users, FolderOpen, CheckSquare, Settings, LogOut, Home, ArrowLeft } from "lucide-react";
+import { PlusMark, BuildingMark, UsersMark, FolderMark, CheckSquareMark, SettingsMark, LogOutMark, HomeMark, ArrowLeftMark } from "@/components/ui/marks";
 import { motion } from "framer-motion";
 
 interface Organization {
@@ -133,25 +133,25 @@ export default function Organizations() {
             </Link>
             <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
               <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--ink-secondary)", textDecoration: "none", fontSize: 14 }}>
-                <Home size={14} /> Dashboard
+                <HomeMark size={14} /> Dashboard
               </Link>
               <Link href="/projects" style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--ink-secondary)", textDecoration: "none", fontSize: 14 }}>
-                <FolderOpen size={14} /> Projects
+                <FolderMark size={14} /> Projects
               </Link>
               <Link href="/tasks" style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--ink-secondary)", textDecoration: "none", fontSize: 14 }}>
-                <CheckSquare size={14} /> Tasks
+                <CheckSquareMark size={14} /> Tasks
               </Link>
               <Link href="/organizations" style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--red-400)", textDecoration: "none", fontSize: 14, fontWeight: 500 }}>
-                <Users size={14} /> Organizations
+                <UsersMark size={14} /> Organizations
               </Link>
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <Link href="/profile" style={{ color: "var(--ink-secondary)", textDecoration: "none" }}>
-              <Settings size={18} />
+              <SettingsMark size={18} />
             </Link>
             <button onClick={handleSignOut} style={{ background: "transparent", border: "none", color: "var(--ink-secondary)", cursor: "pointer", padding: 4 }}>
-              <LogOut size={18} />
+              <LogOutMark size={18} />
             </button>
           </div>
         </div>
@@ -161,7 +161,7 @@ export default function Organizations() {
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 32 }}>
           <Link href="/dashboard" style={{ color: "#52525b", textDecoration: "none" }}>
-            <ArrowLeft size={18} />
+            <ArrowLeftMark size={18} />
           </Link>
           <div style={{ flex: 1 }}>
             <h1 style={{ fontSize: 32, fontWeight: 700, letterSpacing: "-0.02em", color: "var(--ink-primary)", margin: 0 }}>Organizations</h1>
@@ -171,7 +171,7 @@ export default function Organizations() {
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <Building2 size={20} style={{ color: "var(--red-500)" }} />
+            <BuildingMark size={20} color="var(--red-500)" />
             <div>
               <h2 style={{ fontSize: 18, fontWeight: 600, color: "var(--ink-primary)", margin: 0 }}>Organization Management</h2>
               <p style={{ color: "#52525b", fontSize: 13, marginTop: 2 }}>Create and manage client organizations</p>
@@ -181,7 +181,7 @@ export default function Organizations() {
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <button style={{ background: "var(--red-500)", color: "#fff", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 500, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-                <Plus size={14} /> Add Organization
+                <PlusMark size={14} /> Add Organization
               </button>
             </DialogTrigger>
             <DialogContent style={{ background: "var(--surface-1)", border: "1px solid #27272a", color: "var(--ink-primary)" } as React.CSSProperties}>
@@ -262,13 +262,13 @@ export default function Organizations() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
             style={{ background: "var(--surface-1)", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 12, padding: 48, textAlign: "center" }}>
-            <Building2 size={40} style={{ color: "#52525b", margin: "0 auto 16px" }} />
+            <BuildingMark size={40} color="#52525b" className="mx-auto mb-4" />
             <h3 style={{ fontSize: 16, fontWeight: 600, color: "var(--ink-primary)", marginBottom: 8 }}>No organizations yet</h3>
             <p style={{ color: "var(--ink-secondary)", fontSize: 14, marginBottom: 24 }}>
               Get started by creating your first organization to manage projects and contacts.
             </p>
             <button onClick={() => setIsDialogOpen(true)} style={{ background: "var(--red-500)", color: "#fff", border: "none", borderRadius: 8, padding: "8px 20px", fontSize: 13, fontWeight: 500, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <Plus size={14} /> Add Your First Organization
+              <PlusMark size={14} /> Add Your First Organization
             </button>
           </motion.div>
         ) : (

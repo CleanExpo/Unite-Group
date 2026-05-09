@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseClient } from "@/lib/supabase/client";
 import Link from "next/link";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { LoaderMark, CheckCircleMark } from "@/components/ui/marks";
 import { motion } from "framer-motion";
 
 const PORTFOLIO = [
@@ -126,7 +126,7 @@ export default function Register() {
 
           {success ? (
             <div style={{ textAlign: "center", padding: "32px 0" }}>
-              <CheckCircle2 size={40} color="#16a34a" style={{ margin: "0 auto 12px" }} />
+              <CheckCircleMark size={40} color="#16a34a" className="mx-auto mb-3" />
               <h3 style={{ fontSize: 18, fontWeight: 600, color: "var(--ink-primary)", margin: "0 0 8px" }}>Account created</h3>
               <p style={{ fontSize: 14, color: "#52525b" }}>Check your email for verification. Redirecting to sign in&hellip;</p>
             </div>
@@ -197,7 +197,7 @@ export default function Register() {
                 onMouseDown={e => { (e.currentTarget as HTMLButtonElement).style.transform = "scale(0.97)"; }}
                 onMouseUp={e => { (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)"; }}
               >
-                {loading ? <><Loader2 size={15} className="animate-spin" />Creating account…</> : "Create account"}
+                {loading ? <><LoaderMark size={15} className="animate-spin" />Creating account…</> : "Create account"}
               </button>
             </form>
           )}

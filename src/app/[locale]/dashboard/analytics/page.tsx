@@ -6,7 +6,7 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { supabaseClient } from "@/lib/supabase/client";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeftMark, LoaderMark } from "@/components/ui/marks";
 import { AnalyticsDashboard } from "../../../../components/analytics/AnalyticsDashboard";
 import { trackPageView, type ReportTimePeriod, type DashboardConfig } from "@/lib/analytics";
 
@@ -71,7 +71,7 @@ export default function Analytics() {
   if (loading) {
     return (
       <div style={{ minHeight: "100vh", background: "var(--canvas)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Loader2 style={{ color: "var(--red-500)" }} className="h-12 w-12 animate-spin" />
+        <LoaderMark size={48} color="var(--red-500)" className="animate-spin" />
       </div>
     );
   }
@@ -97,7 +97,7 @@ export default function Analytics() {
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 24px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <Button variant="ghost" size="sm" style={{ color: "var(--ink-secondary)" }} onClick={() => router.push(`/${locale}/dashboard`)}>
-              <ArrowLeft className="h-4 w-4 mr-2" /> Back to Dashboard
+              <ArrowLeftMark size={16} className="mr-2" /> Back to Dashboard
             </Button>
             <h1 style={{ fontSize: 18, fontWeight: 600, color: "var(--ink-primary)" }}>Analytics Dashboard</h1>
           </div>

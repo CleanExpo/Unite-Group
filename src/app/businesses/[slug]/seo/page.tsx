@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { CheckCircle2, XCircle, RefreshCw, ExternalLink } from "lucide-react";
+import { CheckCircleMark, CloseMark, RefreshMark, ExternalMark } from "@/components/ui/marks";
 import { supabaseClient } from "@/lib/supabase/client";
 
 const SLUG_TO_DOMAIN: Record<string, { name: string; domain: string; color: string }> = {
@@ -115,7 +115,7 @@ export default function SEOAuditPage() {
               onMouseEnter={e => (e.currentTarget.style.color = 'var(--ink-secondary)')}
               onMouseLeave={e => (e.currentTarget.style.color = '#52525b')}
             >
-              {meta.domain} <ExternalLink size={9} style={{ display: 'inline', verticalAlign: 'middle' }} />
+              {meta.domain} <ExternalMark size={9} />
             </a>
           </p>
         </div>
@@ -139,7 +139,7 @@ export default function SEOAuditPage() {
             onClick={runAudit} disabled={loading}
             style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', fontSize: 11, borderRadius: 7, border: '1px solid #27272a', color: loading ? '#52525b' : 'var(--ink-secondary)', background: 'transparent', cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.1s' }}
           >
-            <RefreshCw size={11} className={loading ? 'spin' : ''} />
+            <RefreshMark size={11} className={loading ? 'spin' : undefined} />
             {loading ? 'Scanning…' : 'Re-run'}
           </button>
         </div>
@@ -207,8 +207,8 @@ export default function SEOAuditPage() {
                 }}
               >
                 {check.pass
-                  ? <CheckCircle2 size={14} color="#16a34a" />
-                  : <XCircle size={14} color="#dc2626" />
+                  ? <CheckCircleMark size={14} color="#16a34a" />
+                  : <CloseMark size={14} color="#dc2626" />
                 }
                 <span style={{ fontSize: 12, fontWeight: 500, color: '#d4d4d8', letterSpacing: '-0.01em' }}>
                   {CHECK_LABELS[key] ?? key}

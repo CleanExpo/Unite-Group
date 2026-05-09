@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { supabaseClient } from "@/lib/supabase/client";
 import type { CcwHealth } from "@/app/api/clients/ccw/health/route";
-import { RefreshCw, Activity, TrendingUp, Users, BarChart3 } from "lucide-react";
+import { RefreshMark, ActivityMark, TrendUpMark, UsersMark, BarChartMark } from "@/components/ui/marks";
 
 // CCW accent — red is used only in the header/logo area
 const CCW_RED = "#D62828";
@@ -67,7 +67,7 @@ function CrmCard({ data }: { data: CcwHealth }) {
   return (
     <motion.div style={card} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0, ease: [0.23, 1, 0.32, 1] }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-        <Activity size={14} color="#94a3b8" />
+        <ActivityMark size={14} color="#94a3b8" />
         <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#334155", margin: 0 }}>CRM Health</p>
       </div>
       <div style={{ marginBottom: 14 }}><StatusPill label={data.crm_status} type={type} /></div>
@@ -82,7 +82,7 @@ function SlaCard({ data }: { data: CcwHealth }) {
   return (
     <motion.div style={card} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.05, ease: [0.23, 1, 0.32, 1] }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-        <TrendingUp size={14} color="#94a3b8" />
+        <TrendUpMark size={14} color="#94a3b8" />
         <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#334155", margin: 0 }}>SLA Status</p>
       </div>
       <div style={{ marginBottom: 14 }}><StatusPill label={data.sla_status} type={type} /></div>
@@ -97,7 +97,7 @@ function AgentsCard({ data }: { data: CcwHealth }) {
   return (
     <motion.div style={card} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.1, ease: [0.23, 1, 0.32, 1] }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-        <Users size={14} color="#94a3b8" />
+        <UsersMark size={14} color="#94a3b8" />
         <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#334155", margin: 0 }}>AI Agent Activity</p>
       </div>
       <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 14 }}>
@@ -119,7 +119,7 @@ function CampaignsCard({ data }: { data: CcwHealth }) {
   return (
     <motion.div style={card} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.15, ease: [0.23, 1, 0.32, 1] }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-        <BarChart3 size={14} color="#94a3b8" />
+        <BarChartMark size={14} color="#94a3b8" />
         <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#334155", margin: 0 }}>Synthex Campaigns</p>
       </div>
       <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 14 }}>
@@ -202,7 +202,7 @@ export default function CcwPortal() {
               onMouseEnter={e => { if (!loadingData) { (e.currentTarget as HTMLButtonElement).style.background = "var(--surface-1)"; (e.currentTarget as HTMLButtonElement).style.color = "#f8fafc"; } }}
               onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "#94a3b8"; }}
             >
-              <RefreshCw size={11} className={loadingData ? "spin" : ""} />
+              <RefreshMark size={11} className={loadingData ? "spin" : undefined} />
               {loadingData ? "Loading…" : "Refresh"}
             </button>
           </div>

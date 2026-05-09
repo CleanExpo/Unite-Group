@@ -6,9 +6,9 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { supabaseClient } from "@/lib/supabase/client";
 import {
-  Building2, ExternalLink, Activity,
-  FileText, BarChart3, Users, ArrowUpRight, RefreshCw,
-} from "lucide-react";
+  BuildingMark, ExternalMark, ActivityMark,
+  FileMark, BarChartMark, UsersMark, ArrowUpRightMark, RefreshMark,
+} from "@/components/ui/marks";
 
 // ── Static data ──────────────────────────────────────────────────────────────
 
@@ -38,12 +38,12 @@ const FALLBACK_ACTIVITIES = [
 ];
 
 const QUICK_LINKS = [
-  { label: "Board Room",   href: "/dashboard/board",   icon: <Users size={13} /> },
-  { label: "Content",      href: "/dashboard/content", icon: <BarChart3 size={13} /> },
-  { label: "SEO Audits",   href: "/businesses/synthex/seo", icon: <Activity size={13} /> },
-  { label: "CCW Portal",   href: "/clients/ccw",       icon: <ExternalLink size={13} /> },
-  { label: "Clients",      href: "/clients",           icon: <Building2 size={13} /> },
-  { label: "6-Pager",      href: "/dashboard/brief",   icon: <FileText size={13} />, primary: true },
+  { label: "Board Room",   href: "/dashboard/board",        icon: <UsersMark size={13} /> },
+  { label: "Content",      href: "/dashboard/content",      icon: <BarChartMark size={13} /> },
+  { label: "SEO Audits",   href: "/businesses/synthex/seo", icon: <ActivityMark size={13} /> },
+  { label: "CCW Portal",   href: "/clients/ccw",            icon: <ExternalMark size={13} /> },
+  { label: "Clients",      href: "/clients",                icon: <BuildingMark size={13} /> },
+  { label: "6-Pager",      href: "/dashboard/brief",        icon: <FileMark size={13} />, primary: true },
 ];
 
 // ── Styles ───────────────────────────────────────────────────────────────────
@@ -90,7 +90,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div style={{ minHeight: "100vh", background: "var(--canvas)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <RefreshCw size={18} color="#334155" className="spin" />
+        <RefreshMark size={18} color="#334155" className="spin" />
       </div>
     );
   }
@@ -188,7 +188,7 @@ export default function DashboardPage() {
                           onMouseEnter={e => (e.currentTarget.style.color = "var(--red-400)")}
                           onMouseLeave={e => (e.currentTarget.style.color = "var(--red-500)")}
                         >
-                          View audit <ArrowUpRight size={10} />
+                          View audit <ArrowUpRightMark size={10} />
                         </Link>
                       </td>
                     </motion.tr>

@@ -6,9 +6,9 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { supabaseClient } from "@/lib/supabase/client";
 import {
-  TrendingUp, FileText, Video, BarChart3, CheckCircle2,
-  Circle, Clock, ExternalLink, LogOut, Zap,
-} from "lucide-react";
+  TrendUpMark, FileMark, ActivityMark, BarChartMark, CheckCircleMark,
+  PipelineMark, ClockMark, ExternalMark, LogOutMark, CommandCenterMark,
+} from "@/components/ui/marks";
 
 // ─── Brand tokens ───────────────────────────────────────────────────────────
 
@@ -43,9 +43,9 @@ const DIVISIONS = [
 ];
 
 const STATUS_CONFIG = {
-  done:        { color: "#16a34a", label: "Complete",    icon: CheckCircle2 },
-  "in-progress": { color: BH.blue,  label: "In Progress", icon: Clock        },
-  planned:     { color: "#52525b", label: "Planned",     icon: Circle       },
+  done:          { color: "#16a34a", label: "Complete",    icon: CheckCircleMark },
+  "in-progress": { color: BH.blue,  label: "In Progress", icon: ClockMark       },
+  planned:       { color: "#52525b", label: "Planned",     icon: PipelineMark    },
 };
 
 // ─── Subcomponents ───────────────────────────────────────────────────────────
@@ -113,7 +113,7 @@ export default function BulcsHoldingsPortal() {
           {/* Unite Group wordmark */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
             <div style={{ width: 28, height: 28, borderRadius: 7, background: "var(--red-500)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Zap size={14} color="white" strokeWidth={2.5} />
+              <CommandCenterMark size={14} color="white" />
             </div>
             <span style={{ fontSize: 12, color: BH.ghost }}>Unite Group</span>
           </div>
@@ -145,7 +145,7 @@ export default function BulcsHoldingsPortal() {
             onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--ink-tertiary)"; (e.currentTarget as HTMLButtonElement).style.color = BH.muted; }}
             onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = BH.border; (e.currentTarget as HTMLButtonElement).style.color = BH.ghost; }}
           >
-            <LogOut size={11} /> Sign out
+            <LogOutMark size={11} /> Sign out
           </button>
         </div>
       </header>
@@ -251,7 +251,7 @@ export default function BulcsHoldingsPortal() {
                   href={`https://${div.domain}`} target="_blank" rel="noopener noreferrer"
                   style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: BH.blue, textDecoration: "none" }}
                 >
-                  {div.domain} <ExternalLink size={9} />
+                  {div.domain} <ExternalMark size={9} />
                 </a>
               </motion.div>
             ))}
@@ -265,11 +265,11 @@ export default function BulcsHoldingsPortal() {
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
             {[
-              { label: "Monthly SEO Report",   icon: BarChart3,  href: "#",                          note: "Available after first month" },
-              { label: "LinkedIn Posts",        icon: FileText,   href: "#",                          note: "Week 1 calendar ready for review" },
-              { label: "Video Storyboards",     icon: Video,      href: "#",                          note: "3 scripts ready" },
-              { label: "Your Website",          icon: TrendingUp, href: "https://bulcsholdings.com", note: "bulcsholdings.com" },
-              { label: "Moisture Meter Experts",icon: ExternalLink, href: "https://moisturemeterexperts.com.au", note: "Primary e-commerce" },
+              { label: "Monthly SEO Report",    icon: BarChartMark,        href: "#",                                      note: "Available after first month" },
+              { label: "LinkedIn Posts",         icon: FileMark,            href: "#",                                      note: "Week 1 calendar ready for review" },
+              { label: "Video Storyboards",      icon: ActivityMark,        href: "#",                                      note: "3 scripts ready" },
+              { label: "Your Website",           icon: TrendUpMark,         href: "https://bulcsholdings.com",              note: "bulcsholdings.com" },
+              { label: "Moisture Meter Experts", icon: ExternalMark,        href: "https://moisturemeterexperts.com.au",    note: "Primary e-commerce" },
             ].map((link, i) => {
               const Icon = link.icon;
               return (

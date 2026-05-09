@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CalendarDays, Clock, DollarSign, Users, BarChart3, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
+import { CalendarMark, ClockMark, DollarMark, UsersMark, BarChartMark, CheckCircleMark, AlertMark, CloseMark } from '@/components/ui/marks';
 import { motion } from 'framer-motion';
 
 interface Project {
@@ -44,11 +44,11 @@ const statusColors: Record<string, string> = {
 };
 
 const statusIcons = {
-  planning: Clock,
-  'in-progress': BarChart3,
-  review: AlertCircle,
-  completed: CheckCircle,
-  'on-hold': XCircle
+  planning: ClockMark,
+  'in-progress': BarChartMark,
+  review: AlertMark,
+  completed: CheckCircleMark,
+  'on-hold': CloseMark,
 };
 
 const cardStyle: React.CSSProperties = {
@@ -119,7 +119,7 @@ export default function ProjectsPage() {
                 <div style={cardStyle}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                     <span style={{ fontSize: 12, color: "var(--ink-secondary)" }}>Progress</span>
-                    <BarChart3 size={14} style={{ color: "var(--red-500)" }} />
+                    <BarChartMark size={14} color="var(--red-500)" />
                   </div>
                   <div style={{ fontSize: 28, fontWeight: 700, color: "var(--ink-primary)", fontFamily: "var(--font-mono, monospace)", marginBottom: 8 }}>{selectedProject.progress}%</div>
                   <Progress value={selectedProject.progress} className="mt-2" />
@@ -127,7 +127,7 @@ export default function ProjectsPage() {
                 <div style={cardStyle}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                     <span style={{ fontSize: 12, color: "var(--ink-secondary)" }}>Budget</span>
-                    <DollarSign size={14} style={{ color: "var(--red-500)" }} />
+                    <DollarMark size={14} color="var(--red-500)" />
                   </div>
                   <div style={{ fontSize: 20, fontWeight: 700, color: "var(--ink-primary)", fontFamily: "var(--font-mono, monospace)", marginBottom: 8 }}>
                     ${selectedProject.spent.toLocaleString()} / ${selectedProject.budget.toLocaleString()}
@@ -137,7 +137,7 @@ export default function ProjectsPage() {
                 <div style={cardStyle}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                     <span style={{ fontSize: 12, color: "var(--ink-secondary)" }}>Status</span>
-                    {(() => { const StatusIcon = statusIcons[selectedProject.status]; return <StatusIcon size={14} style={{ color: "var(--red-500)" }} />; })()}
+                    {(() => { const StatusIcon = statusIcons[selectedProject.status]; return <StatusIcon size={14} color="var(--red-500)" />; })()}
                   </div>
                   <span style={{ display: "inline-block", background: `${statusColors[selectedProject.status]}22`, color: statusColors[selectedProject.status], padding: "4px 10px", borderRadius: 4, fontSize: 13, fontWeight: 500 }}>
                     {selectedProject.status.charAt(0).toUpperCase() + selectedProject.status.slice(1)}
@@ -201,7 +201,7 @@ export default function ProjectsPage() {
                 {selectedProject.team.map((member, index) => (
                   <div key={index} style={{ ...cardStyle, textAlign: "center" }}>
                     <div style={{ width: 40, height: 40, background: "rgba(29,78,216,0.2)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px" }}>
-                      <Users size={16} style={{ color: "var(--red-400)" }} />
+                      <UsersMark size={16} color="var(--red-400)" />
                     </div>
                     <h3 style={{ fontWeight: 500, color: "var(--ink-primary)", fontSize: 14 }}>{member}</h3>
                   </div>
@@ -228,7 +228,7 @@ export default function ProjectsPage() {
 
         {projects.length === 0 ? (
           <div style={{ ...cardStyle, textAlign: "center", padding: 48 }}>
-            <BarChart3 size={40} style={{ color: "var(--border-default)", margin: "0 auto 16px" }} />
+            <BarChartMark size={40} color="var(--border-default)" className="mx-auto mb-4" />
             <h3 style={{ fontSize: 18, fontWeight: 600, color: "var(--ink-primary)", marginBottom: 8 }}>No Projects Found</h3>
             <p style={{ color: "var(--ink-secondary)", fontSize: 14, marginBottom: 24 }}>
               You don&apos;t have any projects yet. Contact us to get started!
@@ -249,7 +249,7 @@ export default function ProjectsPage() {
                 >
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                     <h3 style={{ fontSize: 16, fontWeight: 600, color: "var(--ink-primary)" }}>{project.name}</h3>
-                    <StatusIcon size={16} style={{ color: "var(--red-500)" }} />
+                    <StatusIcon size={16} color="var(--red-500)" />
                   </div>
                   <p style={{ fontSize: 13, color: "var(--ink-secondary)", marginBottom: 16, lineHeight: 1.5 }}>{project.description}</p>
 
@@ -270,10 +270,10 @@ export default function ProjectsPage() {
 
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#52525b", borderTop: "1px solid #27272a", paddingTop: 12 }}>
                     <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <CalendarDays size={11} />{new Date(project.endDate).toLocaleDateString()}
+                      <CalendarMark size={11} />{new Date(project.endDate).toLocaleDateString()}
                     </span>
                     <span style={{ display: "flex", alignItems: "center", gap: 4, fontFamily: "var(--font-mono, monospace)" }}>
-                      <DollarSign size={11} />${project.budget.toLocaleString()}
+                      <DollarMark size={11} />${project.budget.toLocaleString()}
                     </span>
                   </div>
                 </div>

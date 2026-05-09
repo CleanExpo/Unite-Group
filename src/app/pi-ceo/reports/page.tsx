@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseClient } from '@/lib/supabase/client';
-import { RefreshCw, FileBarChart, ChevronDown, ChevronUp, Download } from 'lucide-react';
+import { RefreshMark, ReportsMark, ChevronDownMark, ChevronUpMark, DownloadMark } from '@/components/ui/marks';
 
 interface SEOReport {
   id: string;
@@ -46,7 +46,7 @@ export default function ReportsPage() {
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--canvas)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <RefreshCw size={18} color="#334155" className="spin" />
+        <RefreshMark size={18} color="#334155" className="spin" />
       </div>
     );
   }
@@ -56,7 +56,7 @@ export default function ReportsPage() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
         <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(99,102,241,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <FileBarChart size={18} color="#818cf8" strokeWidth={2} />
+          <ReportsMark size={18} color="#818cf8" />
         </div>
         <div>
           <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>SEO Reports</h1>
@@ -66,7 +66,7 @@ export default function ReportsPage() {
 
       {reports.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '80px 0' }}>
-          <FileBarChart size={40} color="var(--ink-tertiary)" style={{ marginBottom: 16 }} />
+          <ReportsMark size={40} color="var(--ink-tertiary)" className="mb-4" />
           <p style={{ margin: 0, fontSize: 15, color: '#71717a' }}>No reports generated yet</p>
         </div>
       ) : (
@@ -122,7 +122,7 @@ export default function ReportsPage() {
                           padding: '6px 12px', borderRadius: 7, textDecoration: 'none', transition: 'all 0.1s ease',
                         }}
                       >
-                        <Download size={12} />
+                        <DownloadMark size={12} />
                         PDF
                       </a>
                     )}
@@ -135,7 +135,7 @@ export default function ReportsPage() {
                           padding: '6px 12px', borderRadius: 7, cursor: 'pointer', transition: 'all 0.1s ease',
                         }}
                       >
-                        {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                        {isExpanded ? <ChevronUpMark size={12} /> : <ChevronDownMark size={12} />}
                         {isExpanded ? 'Collapse' : 'Expand'}
                       </button>
                     )}

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseClient } from '@/lib/supabase/client';
-import { RefreshCw, BarChart3 } from 'lucide-react';
+import { RefreshMark, BarChartMark } from '@/components/ui/marks';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface HealthSnapshot {
@@ -78,7 +78,7 @@ export default function HealthPage() {
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--canvas)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <RefreshCw size={18} color="#334155" className="spin" />
+        <RefreshMark size={18} color="#334155" className="spin" />
       </div>
     );
   }
@@ -88,7 +88,7 @@ export default function HealthPage() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
         <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(34,197,94,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <BarChart3 size={18} color="#4ade80" strokeWidth={2} />
+          <BarChartMark size={18} color="#4ade80" />
         </div>
         <div>
           <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Health History</h1>

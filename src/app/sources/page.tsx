@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseClient } from '@/lib/supabase/client';
-import { RefreshCw, Rss, CheckCircle2, Clock } from 'lucide-react';
+import { RefreshMark, FeedMark, CheckCircleMark, ClockMark } from '@/components/ui/marks';
 
 interface WikiSource {
   id: string;
@@ -38,7 +38,7 @@ export default function SourcesPage() {
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--canvas)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <RefreshCw size={18} color="#334155" className="spin" />
+        <RefreshMark size={18} color="#334155" className="spin" />
       </div>
     );
   }
@@ -50,7 +50,7 @@ export default function SourcesPage() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
         <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(139,92,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Rss size={18} color="#a78bfa" strokeWidth={2} />
+          <FeedMark size={18} color="#a78bfa" />
         </div>
         <div>
           <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Sources Pipeline</h1>
@@ -60,7 +60,7 @@ export default function SourcesPage() {
 
       {isEmpty ? (
         <div style={{ textAlign: 'center', padding: '80px 0', color: '#52525b' }}>
-          <CheckCircle2 size={40} color="var(--ink-tertiary)" style={{ marginBottom: 16 }} />
+          <CheckCircleMark size={40} color="var(--ink-tertiary)" className="mb-4" />
           <p style={{ margin: 0, fontSize: 15, fontWeight: 500, color: '#71717a' }}>All sources processed — 2nd Brain is up to date</p>
         </div>
       ) : (
@@ -68,7 +68,7 @@ export default function SourcesPage() {
           {/* Pending */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-              <Clock size={14} color="var(--orange-400)" />
+              <ClockMark size={14} color="var(--orange-400)" />
               <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--orange-400)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Pending</span>
               {data.pending.length > 0 && (
                 <span style={{ background: 'rgba(245,158,11,0.15)', color: 'var(--orange-400)', fontSize: 11, fontWeight: 600, padding: '1px 7px', borderRadius: 20 }}>
@@ -104,7 +104,7 @@ export default function SourcesPage() {
           {/* Completed */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-              <CheckCircle2 size={14} color="#16a34a" />
+              <CheckCircleMark size={14} color="#16a34a" />
               <span style={{ fontSize: 12, fontWeight: 600, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Completed</span>
               {data.completed.length > 0 && (
                 <span style={{ background: 'rgba(22,163,74,0.15)', color: '#16a34a', fontSize: 11, fontWeight: 600, padding: '1px 7px', borderRadius: 20 }}>

@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { supabaseClient } from "@/lib/supabase/client";
 import Link from "next/link";
-import { Loader2, Mail, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { LoaderMark, MailMark, ArrowLeftMark, CheckCircleMark } from "@/components/ui/marks";
 import { motion } from "framer-motion";
 
 export default function ResetPassword() {
@@ -81,13 +81,13 @@ export default function ResetPassword() {
                 onMouseDown={e => { (e.currentTarget as HTMLButtonElement).style.transform = "scale(0.97)"; }}
                 onMouseUp={e => { (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)"; }}
               >
-                {loading ? <><Loader2 size={15} className="animate-spin" />Sending…</> : <><Mail size={15} />Send reset link</>}
+                {loading ? <><LoaderMark size={15} className="animate-spin" />Sending…</> : <><MailMark size={15} />Send reset link</>}
               </button>
             </form>
           </>
         ) : (
           <div style={{ textAlign: "center", padding: "16px 0" }}>
-            <CheckCircle2 size={40} color="#16a34a" style={{ margin: "0 auto 12px" }} />
+            <CheckCircleMark size={40} color="#16a34a" className="mx-auto mb-3" />
             <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--ink-primary)", margin: "0 0 8px" }}>Check your email</h2>
             <p style={{ fontSize: 14, color: "#52525b" }}>
               A reset link has been sent to <span style={{ color: "var(--ink-primary)", fontWeight: 500 }}>{email}</span>
@@ -97,7 +97,7 @@ export default function ResetPassword() {
 
         <div style={{ marginTop: 24, textAlign: "center" }}>
           <Link href="/login" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, color: "var(--red-400)", textDecoration: "none" }}>
-            <ArrowLeft size={13} />Back to sign in
+            <ArrowLeftMark size={13} />Back to sign in
           </Link>
         </div>
       </motion.div>

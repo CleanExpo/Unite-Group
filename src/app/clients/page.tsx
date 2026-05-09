@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Plus, X, Building2, ExternalLink } from "lucide-react";
+import { ArrowLeftMark, PlusMark, CloseMark, BuildingMark, ExternalMark } from "@/components/ui/marks";
 import { supabaseClient } from "@/lib/supabase/client";
 
 interface Client {
@@ -90,7 +90,7 @@ export default function ClientsDirectory() {
             onMouseEnter={e => (e.currentTarget.style.color = 'var(--ink-secondary)')}
             onMouseLeave={e => (e.currentTarget.style.color = '#52525b')}
           >
-            <ArrowLeft size={12} /> Command Center
+            <ArrowLeftMark size={12} /> Command Center
           </Link>
           <span style={{ color: 'var(--border-default)' }}>·</span>
           <h1 style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-primary)', letterSpacing: '-0.02em', margin: 0, fontFamily: 'var(--font-display)' }}>Clients</h1>
@@ -102,7 +102,7 @@ export default function ClientsDirectory() {
             onMouseEnter={e => (e.currentTarget.style.background = 'var(--red-400)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'var(--red-500)')}
           >
-            <Plus size={13} /> Add Client
+            <PlusMark size={13} /> Add Client
           </button>
         </div>
       </header>
@@ -123,7 +123,7 @@ export default function ClientsDirectory() {
                 <div style={{ fontSize: 11, color: '#52525b', marginTop: 2 }}>First paying client · $2,400/yr ARR · CCW-CRM portal active</div>
               </div>
               <span style={{ fontSize: 10, fontWeight: 600, color: '#16a34a', letterSpacing: '0.04em', textTransform: 'uppercase', padding: '2px 8px', borderRadius: 4, background: 'rgba(22,163,74,0.1)', border: '1px solid rgba(22,163,74,0.2)' }}>Active</span>
-              <ExternalLink size={12} color="#52525b" />
+              <ExternalMark size={12} color="#52525b" />
             </div>
           </Link>
         </div>
@@ -140,7 +140,7 @@ export default function ClientsDirectory() {
             </div>
           ) : clients.length === 0 ? (
             <div style={{ background: 'var(--surface-1)', border: '1px dashed #27272a', borderRadius: 10, padding: '40px 24px', textAlign: 'center' }}>
-              <Building2 size={24} color="var(--ink-tertiary)" style={{ margin: '0 auto 12px' }} />
+              <BuildingMark size={24} color="var(--ink-tertiary)" className="mx-auto mb-3" />
               <p style={{ fontSize: 13, color: '#52525b', margin: 0 }}>No clients yet. Add your first client.</p>
             </div>
           ) : (
@@ -193,7 +193,7 @@ export default function ClientsDirectory() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid #27272a' }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-primary)', letterSpacing: '-0.02em', fontFamily: 'var(--font-display)' }}>Add Client</span>
                 <button onClick={() => setShowAdd(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 4 }}>
-                  <X size={16} color="#52525b" />
+                  <CloseMark size={16} color="#52525b" />
                 </button>
               </div>
 

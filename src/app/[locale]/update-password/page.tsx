@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseClient } from "@/lib/supabase/client";
 import Link from "next/link";
-import { Loader2, KeyRound, ArrowLeft, CheckCircle2, Eye, EyeOff } from "lucide-react";
+import { LoaderMark, KeyMark, ArrowLeftMark, CheckCircleMark, EyeMark, EyeOffMark } from "@/components/ui/marks";
 import { motion } from "framer-motion";
 
 export default function UpdatePassword() {
@@ -78,7 +78,7 @@ export default function UpdatePassword() {
     return (
       <div style={wrapStyle}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Loader2 size={18} color="var(--red-400)" className="animate-spin" />
+          <LoaderMark size={18} color="var(--red-400)" className="animate-spin" />
           <p style={{ color: "#94a3b8", fontSize: 14 }}>Verifying your reset link&hellip;</p>
         </div>
       </div>
@@ -96,14 +96,14 @@ export default function UpdatePassword() {
 
         {success ? (
           <div style={{ textAlign: "center", padding: "16px 0" }}>
-            <CheckCircle2 size={40} color="#16a34a" style={{ margin: "0 auto 12px" }} />
+            <CheckCircleMark size={40} color="#16a34a" className="mx-auto mb-3" />
             <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--ink-primary)", margin: "0 0 8px" }}>Password updated</h2>
             <p style={{ fontSize: 14, color: "#52525b", marginBottom: 20 }}>Your password has been updated. Redirecting to sign in&hellip;</p>
             <button
               onClick={() => router.push("/login")}
               style={{ width: "100%", padding: "11px 0", borderRadius: 10, fontSize: 14, fontWeight: 600, color: "#fff", background: "var(--red-500)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
             >
-              <ArrowLeft size={15} />Go to sign in
+              <ArrowLeftMark size={15} />Go to sign in
             </button>
           </div>
         ) : validToken ? (
@@ -132,7 +132,7 @@ export default function UpdatePassword() {
                   />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} tabIndex={-1}
                     style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#52525b", padding: 4 }}>
-                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                    {showPassword ? <EyeOffMark size={15} /> : <EyeMark size={15} />}
                   </button>
                 </div>
                 <p style={{ fontSize: 11, color: "#52525b", marginTop: 5 }}>At least 6 characters</p>
@@ -150,7 +150,7 @@ export default function UpdatePassword() {
                   />
                   <button type="button" onClick={() => setShowConfirm(!showConfirm)} tabIndex={-1}
                     style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#52525b", padding: 4 }}>
-                    {showConfirm ? <EyeOff size={15} /> : <Eye size={15} />}
+                    {showConfirm ? <EyeOffMark size={15} /> : <EyeMark size={15} />}
                   </button>
                 </div>
               </div>
@@ -163,7 +163,7 @@ export default function UpdatePassword() {
                 onMouseDown={e => { (e.currentTarget as HTMLButtonElement).style.transform = "scale(0.97)"; }}
                 onMouseUp={e => { (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)"; }}
               >
-                {loading ? <><Loader2 size={15} className="animate-spin" />Updating…</> : <><KeyRound size={15} />Update password</>}
+                {loading ? <><LoaderMark size={15} className="animate-spin" />Updating…</> : <><KeyMark size={15} />Update password</>}
               </button>
             </form>
           </>
@@ -176,14 +176,14 @@ export default function UpdatePassword() {
               href="/reset-password"
               style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", padding: "11px 0", borderRadius: 10, fontSize: 14, fontWeight: 600, color: "#fff", background: "var(--red-500)", textDecoration: "none" }}
             >
-              <ArrowLeft size={15} />Request a new reset link
+              <ArrowLeftMark size={15} />Request a new reset link
             </Link>
           </>
         )}
 
         <div style={{ marginTop: 24, textAlign: "center" }}>
           <Link href="/login" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, color: "var(--red-400)", textDecoration: "none" }}>
-            <ArrowLeft size={13} />Back to sign in
+            <ArrowLeftMark size={13} />Back to sign in
           </Link>
         </div>
       </motion.div>
