@@ -1,6 +1,7 @@
 "use client";
 
 import { BusinessLogo } from '@/components/empire/BusinessLogo';
+import Link from 'next/link';
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseClient } from "@/lib/supabase/client";
@@ -335,73 +336,80 @@ function BusinessHealthRow({ biz }: { biz: BusinessHealth }) {
   const arrLabel = formatArr(biz.arr_aud);
 
   return (
-    <div style={{
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      padding: "9px 14px",
-      borderBottom: "1px solid var(--border-hairline)",
-    }}>
-      {/* Business logo with mark fallback */}
-      <BusinessLogo slug={biz.id} size="sm" />
+    <Link href={`/en/empire/businesses/${biz.id}`} style={{ textDecoration: 'none', display: 'contents' }}>
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "9px 14px",
+        borderBottom: "1px solid var(--border-hairline)",
+        cursor: "pointer",
+        transition: "background 0.12s",
+      }}
+        onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-2)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+      >
+        {/* Business logo with mark fallback */}
+        <BusinessLogo slug={biz.id} size="sm" />
 
-      {/* Name */}
-      <span style={{
-        flex: 1,
-        fontSize: 13,
-        fontWeight: 500,
-        color: "var(--ink-primary)",
-        minWidth: 0,
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap",
-      }}>
-        {biz.name}
-      </span>
-
-      {/* ARR if > 0 */}
-      {arrLabel && (
+        {/* Name */}
         <span style={{
-          fontSize: 11,
-          fontFamily: "var(--font-mono)",
-          color: "var(--green-400)",
-          fontWeight: 600,
-          flexShrink: 0,
+          flex: 1,
+          fontSize: 13,
+          fontWeight: 500,
+          color: "var(--ink-primary)",
+          minWidth: 0,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
         }}>
-          {arrLabel}
+          {biz.name}
         </span>
-      )}
 
-      {/* Security score small */}
-      {biz.security_score !== null && (
+        {/* ARR if > 0 */}
+        {arrLabel && (
+          <span style={{
+            fontSize: 11,
+            fontFamily: "var(--font-mono)",
+            color: "var(--green-400)",
+            fontWeight: 600,
+            flexShrink: 0,
+          }}>
+            {arrLabel}
+          </span>
+        )}
+
+        {/* Security score small */}
+        {biz.security_score !== null && (
+          <span style={{
+            fontSize: 10,
+            fontFamily: "var(--font-mono)",
+            color: "var(--ink-tertiary)",
+            flexShrink: 0,
+          }}>
+            sec:{biz.security_score}
+          </span>
+        )}
+
+        {/* Health score */}
         <span style={{
-          fontSize: 10,
+          fontSize: 13,
+          fontWeight: 700,
           fontFamily: "var(--font-mono)",
-          color: "var(--ink-tertiary)",
+          color,
           flexShrink: 0,
+          minWidth: 28,
+          textAlign: "right",
         }}>
-          sec:{biz.security_score}
+          {score !== null ? score : "—"}
         </span>
-      )}
 
-      {/* Health score */}
-      <span style={{
-        fontSize: 13,
-        fontWeight: 700,
-        fontFamily: "var(--font-mono)",
-        color,
-        flexShrink: 0,
-        minWidth: 28,
-        textAlign: "right",
-      }}>
-        {score !== null ? score : "—"}
-      </span>
-
-      {/* Risk warning */}
-      {atRisk && (
-        <span style={{ fontSize: 12, flexShrink: 0 }}>⚠</span>
-      )}
-    </div>
+        {/* Risk warning */}
+        {atRisk && (
+          <span style={{ fontSize: 12, flexShrink: 0 }}>⚠</span>
+        )}
+      </div>
+    </Link>
   );
 }
 
