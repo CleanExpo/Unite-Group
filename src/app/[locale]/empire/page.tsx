@@ -32,352 +32,441 @@ type EmpireData = {
   fetched_at: string;
 };
 
+type Priority = {
+  id: string;
+  title: string;
+  subtitle: string;
+  priority: "urgent" | "high" | "medium";
+  owner: string;
+  url: string | null;
+  team: string;
+};
+
+type PipelineCounts = {
+  ideas_in_flight: number;
+  board_active: number;
+  completed_today: number;
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function healthColor(score: number | null): string {
   if (score === null) return "var(--ink-disabled)";
-  if (score >= 80)   return "var(--green-400)";
-  if (score >= 50)   return "var(--orange-400)";
+  if (score >= 80) return "var(--green-400)";
+  if (score >= 50) return "var(--orange-400)";
   return "var(--red-400)";
-}
-
-function healthStatusLabel(score: number | null): string {
-  if (score === null) return "unknown";
-  if (score >= 80)   return "operational";
-  if (score >= 60)   return "building";
-  if (score >= 40)   return "degraded";
-  return "down";
-}
-
-function relativeTime(iso: string | null): string {
-  if (!iso) return "—";
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diffMs / 60_000);
-  if (mins < 1)   return "just now";
-  if (mins < 60)  return `${mins} min ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24)   return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
 }
 
 function formatArr(arr: number): string {
   if (arr === 0) return "";
+  if (arr >= 1_000_000) return `$${(arr / 1_000_000).toFixed(1)}M`;
+  if (arr >= 1_000) return `$${Math.round(arr / 1_000)}k`;
+  return `$${arr}`;
+}
+
+function formatArrFull(arr: number): string {
+  if (arr === 0) return "—";
   if (arr >= 1_000_000) return `$${(arr / 1_000_000).toFixed(1)}M ARR`;
-  if (arr >= 1_000)     return `$${Math.round(arr / 1_000)}k ARR`;
+  if (arr >= 1_000) return `$${Math.round(arr / 1_000)}k ARR`;
   return `$${arr} ARR`;
 }
 
-// ─── HealthScoreRing ──────────────────────────────────────────────────────────
-
-function HealthScoreRing({ score }: { score: number | null }) {
-  const radius = 28;
-  const circumference = 2 * Math.PI * radius;
-  const pct = score !== null ? Math.max(0, Math.min(100, score)) : 0;
-  const offset = circumference - (pct / 100) * circumference;
-  const color = healthColor(score);
-
-  return (
-    <div style={{ position: "relative", width: 72, height: 72, flexShrink: 0 }}>
-      <svg width={72} height={72} style={{ transform: "rotate(-90deg)" }}>
-        {/* Track */}
-        <circle
-          cx={36}
-          cy={36}
-          r={radius}
-          fill="none"
-          stroke="var(--surface-3)"
-          strokeWidth={5}
-        />
-        {/* Arc */}
-        <circle
-          cx={36}
-          cy={36}
-          r={radius}
-          fill="none"
-          stroke={color}
-          strokeWidth={5}
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          style={{ transition: "stroke-dashoffset 0.6s var(--ease-out), stroke 0.3s" }}
-        />
-      </svg>
-      {/* Score label */}
-      <div style={{
-        position: "absolute",
-        inset: 0,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-      }}>
-        <span style={{
-          fontSize: 18,
-          fontWeight: 700,
-          fontFamily: "var(--font-mono)",
-          color: score !== null ? color : "var(--ink-disabled)",
-          lineHeight: 1,
-        }}>
-          {score !== null ? score : "—"}
-        </span>
-        <span style={{
-          fontSize: 9,
-          color: "var(--ink-tertiary)",
-          fontFamily: "var(--font-mono)",
-          letterSpacing: "0.05em",
-          marginTop: 1,
-        }}>
-          /100
-        </span>
-      </div>
-    </div>
-  );
+function daysToDeadline(): number {
+  // 2B acquisition target deadline: calculated from today
+  const deadline = new Date("2028-03-15");
+  const now = new Date();
+  return Math.max(0, Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
-// ─── StatusDot ────────────────────────────────────────────────────────────────
+// ─── Priority helpers ─────────────────────────────────────────────────────────
 
-function StatusDot({ score }: { score: number | null }) {
-  const color = healthColor(score);
+function priorityBadgeStyle(p: Priority["priority"]): React.CSSProperties {
+  if (p === "urgent") return { background: "var(--red-500)", color: "var(--ink-inverse)" };
+  if (p === "high") return { background: "var(--orange-400)", color: "#1a0a00" };
+  return { background: "#92400e", color: "#fde68a" };
+}
+
+function priorityLabel(p: Priority["priority"]): string {
+  if (p === "urgent") return "URGENT";
+  if (p === "high") return "HIGH";
+  return "MED";
+}
+
+function ownerBadgeStyle(owner: string): React.CSSProperties {
+  if (owner === "phill") {
+    return { background: "rgba(185,28,28,0.15)", color: "#f87171", border: "1px solid rgba(185,28,28,0.4)" };
+  }
+  return { background: "rgba(34,197,94,0.12)", color: "var(--green-400)", border: "1px solid rgba(34,197,94,0.3)" };
+}
+
+function ownerLabel(owner: string): string {
+  return owner === "phill" ? "OWNER ACTION" : "AUTONOMOUS";
+}
+
+// ─── Shimmer skeleton ─────────────────────────────────────────────────────────
+
+function Shimmer({ width, height, radius = 4 }: { width: string | number; height: number; radius?: number }) {
   return (
-    <span
-      className="status-dot"
-      style={{
-        width: 7,
-        height: 7,
-        background: color,
-        flexShrink: 0,
-      }}
+    <div
+      className="skeleton"
+      style={{ width, height, borderRadius: radius, flexShrink: 0 }}
     />
   );
 }
 
-// ─── ShieldIcon ───────────────────────────────────────────────────────────────
+// ─── Empire Pulse Bar ─────────────────────────────────────────────────────────
 
-function ShieldIcon({ size = 12 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 16 16"
-      fill="none"
-      style={{ flexShrink: 0 }}
-    >
-      <path
-        d="M8 1.5L2 4v4c0 3.314 2.686 6 6 6s6-2.686 6-6V4L8 1.5Z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
+function EmpirePulseBar({ summary, loading }: { summary: PortfolioSummary | null; loading: boolean }) {
+  const days = daysToDeadline();
+  const daysColor = days < 365 ? "var(--red-400)" : days < 548 ? "var(--orange-400)" : "var(--ink-primary)";
 
-// ─── BusinessCard ─────────────────────────────────────────────────────────────
-
-function BusinessCard({ biz }: { biz: BusinessHealth }) {
-  const color = healthColor(biz.overall_health);
-  const arrLabel = formatArr(biz.arr_aud);
-
-  return (
-    <div
-      style={{
-        background: "var(--surface-1)",
-        border: "1px solid var(--border-hairline)",
-        borderRadius: "var(--radius-lg)",
-        padding: "20px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 14,
-        transition: "border-color var(--duration-base)",
-        animation: "empire-fade-in 0.4s var(--ease-out) both",
-      }}
-      onMouseEnter={(e) => {
-        (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border-default)";
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border-hairline)";
-      }}
-    >
-      {/* Header row: name + ARR */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-          <StatusDot score={biz.overall_health} />
-          <span style={{ fontSize: 14, fontWeight: 600, letterSpacing: "-0.2px" }}>
-            {biz.name}
-          </span>
-        </div>
-        {arrLabel && (
-          <span style={{
-            fontSize: 11,
-            fontWeight: 600,
-            color: "var(--green-400)",
-            fontFamily: "var(--font-mono)",
-            background: "rgba(0,168,84,0.10)",
-            padding: "2px 7px",
-            borderRadius: "var(--radius-full)",
-            letterSpacing: "0.02em",
-          }}>
-            {arrLabel}
-          </span>
-        )}
-      </div>
-
-      {/* Score row */}
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <HealthScoreRing score={biz.overall_health} />
-
-        {/* Right side metrics */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
-          {/* Security score */}
-          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-            <ShieldIcon size={11} />
-            <span style={{
-              fontSize: 11,
-              color: "var(--ink-secondary)",
-              fontFamily: "var(--font-mono)",
-            }}>
-              sec:{" "}
-              <span style={{ color: biz.security_score !== null ? color : "var(--ink-disabled)" }}>
-                {biz.security_score !== null ? biz.security_score : "—"}/100
-              </span>
-            </span>
-          </div>
-
-          {/* Findings */}
-          <div style={{ fontSize: 11, color: "var(--ink-secondary)", fontFamily: "var(--font-mono)" }}>
-            {biz.security_findings !== null
-              ? <><span style={{ color: "var(--ink-primary)" }}>{biz.security_findings.toLocaleString()}</span> findings</>
-              : <span style={{ color: "var(--ink-disabled)" }}>no scan data</span>
-            }
-          </div>
-
-          {/* Status label */}
-          <div style={{
-            fontSize: 10,
-            fontFamily: "var(--font-mono)",
-            letterSpacing: "var(--tracking-caps)",
-            textTransform: "uppercase",
-            color: color,
-            opacity: 0.8,
-          }}>
-            {healthStatusLabel(biz.overall_health)}
-          </div>
-        </div>
-      </div>
-
-      {/* Footer: last updated */}
-      <div style={{
-        fontSize: 10,
-        color: "var(--ink-tertiary)",
-        fontFamily: "var(--font-mono)",
-        letterSpacing: "0.03em",
-        borderTop: "1px solid var(--border-hairline)",
-        paddingTop: 10,
-        marginTop: -4,
-      }}>
-        Updated {relativeTime(biz.snapshot_at)}
-      </div>
-    </div>
-  );
-}
-
-// ─── SkeletonCard ─────────────────────────────────────────────────────────────
-
-function SkeletonCard() {
-  return (
-    <div style={{
-      background: "var(--surface-1)",
-      border: "1px solid var(--border-hairline)",
-      borderRadius: "var(--radius-lg)",
-      padding: "20px",
-      display: "flex",
-      flexDirection: "column",
-      gap: 14,
-    }}>
-      <div className="skeleton" style={{ height: 14, width: "60%", borderRadius: 4 }} />
-      <div style={{ display: "flex", gap: 16 }}>
-        <div className="skeleton" style={{ width: 72, height: 72, borderRadius: "50%" }} />
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, paddingTop: 4 }}>
-          <div className="skeleton" style={{ height: 11, width: "80%", borderRadius: 4 }} />
-          <div className="skeleton" style={{ height: 11, width: "55%", borderRadius: 4 }} />
-          <div className="skeleton" style={{ height: 10, width: "40%", borderRadius: 4 }} />
-        </div>
-      </div>
-      <div className="skeleton" style={{ height: 10, width: "45%", borderRadius: 4, marginTop: 6 }} />
-    </div>
-  );
-}
-
-// ─── SummaryBar ───────────────────────────────────────────────────────────────
-
-function SummaryBar({ summary }: { summary: PortfolioSummary | null }) {
-  const avgColor = healthColor(summary?.avg_health ?? null);
-
-  const items = [
+  const pills = [
     {
       label: "Total ARR",
-      value: summary ? formatArr(summary.total_arr) || "—" : "—",
+      value: summary ? formatArrFull(summary.total_arr) : "—",
       color: summary && summary.total_arr > 0 ? "var(--green-400)" : "var(--ink-secondary)",
     },
     {
-      label: "Avg Health",
-      value: summary?.avg_health !== null && summary?.avg_health !== undefined
-        ? `${summary.avg_health}/100`
-        : "—",
-      color: avgColor,
+      label: "Days to deadline",
+      value: `${days.toLocaleString()} days`,
+      color: daysColor,
     },
     {
-      label: "At Risk",
-      value: summary ? `${summary.at_risk_count} biz` : "—",
-      color: summary && summary.at_risk_count > 0 ? "var(--red-300)" : "var(--ink-secondary)",
+      label: "Portfolio avg",
+      value: summary?.avg_health != null ? `${summary.avg_health}/100` : "—",
+      color: healthColor(summary?.avg_health ?? null),
     },
     {
-      label: "Last Rescan",
-      value: summary ? relativeTime(summary.last_rescan) : "—",
-      color: "var(--ink-secondary)",
+      label: "Businesses at risk",
+      value: summary ? `${summary.at_risk_count}` : "—",
+      color: summary && summary.at_risk_count > 0 ? "var(--red-400)" : "var(--green-400)",
+    },
+    {
+      label: "System status",
+      value: "● AUTONOMOUS",
+      color: "var(--green-400)",
     },
   ];
 
   return (
     <div style={{
-      display: "grid",
-      gridTemplateColumns: "repeat(4, 1fr)",
+      display: "flex",
       gap: 1,
       background: "var(--border-hairline)",
-      border: "1px solid var(--border-hairline)",
-      borderRadius: "var(--radius-lg)",
+      border: "1px solid var(--border-default)",
+      borderRadius: "var(--radius-md)",
       overflow: "hidden",
-      marginBottom: 24,
+      marginBottom: 20,
     }}>
-      {items.map((item) => (
+      {pills.map((pill) => (
         <div
-          key={item.label}
+          key={pill.label}
           style={{
+            flex: 1,
             background: "var(--surface-1)",
-            padding: "14px 20px",
+            padding: "12px 16px",
             display: "flex",
             flexDirection: "column",
-            gap: 4,
+            gap: 3,
           }}
         >
           <div style={{
             fontSize: 10,
             color: "var(--ink-tertiary)",
             fontFamily: "var(--font-mono)",
-            letterSpacing: "var(--tracking-caps)",
+            letterSpacing: "0.08em",
             textTransform: "uppercase",
           }}>
-            {item.label}
+            {pill.label}
           </div>
-          <div style={{
-            fontSize: 16,
+          {loading ? (
+            <Shimmer width="80%" height={18} />
+          ) : (
+            <div style={{
+              fontSize: 15,
+              fontWeight: 700,
+              fontFamily: "var(--font-mono)",
+              color: pill.color,
+              letterSpacing: "-0.3px",
+            }}>
+              {pill.value}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Priority Card ────────────────────────────────────────────────────────────
+
+function PriorityCard({ p, index }: { p: Priority; index: number }) {
+  return (
+    <div style={{
+      background: "var(--surface-1)",
+      border: "1px solid var(--border-default)",
+      borderRadius: "var(--radius-md)",
+      padding: "16px 18px",
+      display: "flex",
+      flexDirection: "column",
+      gap: 10,
+      animation: `empire-fade-in 0.3s var(--ease-out) ${index * 60}ms both`,
+    }}>
+      {/* Top row: priority badge + owner badge */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {/* Priority badge */}
+          <span style={{
+            ...priorityBadgeStyle(p.priority),
+            fontSize: 10,
             fontWeight: 700,
             fontFamily: "var(--font-mono)",
-            color: item.color,
-            letterSpacing: "-0.3px",
+            letterSpacing: "0.08em",
+            padding: "3px 8px",
+            borderRadius: "var(--radius-md)",
           }}>
-            {item.value}
-          </div>
+            {priorityLabel(p.priority)}
+          </span>
+          {/* Ticket ID */}
+          <span style={{
+            fontSize: 11,
+            color: "var(--ink-tertiary)",
+            fontFamily: "var(--font-mono)",
+          }}>
+            {p.id}
+          </span>
+        </div>
+        {/* Owner badge */}
+        <span style={{
+          ...ownerBadgeStyle(p.owner),
+          fontSize: 10,
+          fontWeight: 600,
+          fontFamily: "var(--font-mono)",
+          letterSpacing: "0.06em",
+          padding: "3px 8px",
+          borderRadius: "var(--radius-md)",
+        }}>
+          {ownerLabel(p.owner)}
+        </span>
+      </div>
+
+      {/* Title */}
+      <div style={{
+        fontSize: 15,
+        fontWeight: 600,
+        letterSpacing: "-0.2px",
+        color: "var(--ink-primary)",
+        lineHeight: 1.3,
+      }}>
+        {p.title}
+      </div>
+
+      {/* Subtitle */}
+      <div style={{
+        fontSize: 12,
+        color: "var(--ink-secondary)",
+        lineHeight: 1.5,
+      }}>
+        {p.subtitle}
+      </div>
+
+      {/* Action button */}
+      {p.url && (
+        <div>
+          <a
+            href={p.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              fontSize: 11,
+              fontWeight: 600,
+              fontFamily: "var(--font-mono)",
+              color: "var(--ink-primary)",
+              border: "1px solid var(--border-default)",
+              borderRadius: "var(--radius-md)",
+              padding: "5px 12px",
+              textDecoration: "none",
+              background: "var(--surface-2)",
+              transition: "border-color 0.15s",
+            }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--border-strong)")}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border-default)")}
+          >
+            Open in Linear →
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PriorityCardSkeleton() {
+  return (
+    <div style={{
+      background: "var(--surface-1)",
+      border: "1px solid var(--border-default)",
+      borderRadius: "var(--radius-md)",
+      padding: "16px 18px",
+      display: "flex",
+      flexDirection: "column",
+      gap: 10,
+    }}>
+      <div style={{ display: "flex", gap: 8 }}>
+        <Shimmer width={52} height={20} radius={4} />
+        <Shimmer width={70} height={20} radius={4} />
+      </div>
+      <Shimmer width="65%" height={15} />
+      <Shimmer width="90%" height={12} />
+      <Shimmer width="80%" height={12} />
+    </div>
+  );
+}
+
+// ─── Business Health Row ──────────────────────────────────────────────────────
+
+function BusinessHealthRow({ biz }: { biz: BusinessHealth }) {
+  const color = healthColor(biz.overall_health);
+  const score = biz.overall_health;
+  const atRisk = score !== null && score < 60;
+  const arrLabel = formatArr(biz.arr_aud);
+
+  return (
+    <div style={{
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "9px 14px",
+      borderBottom: "1px solid var(--border-hairline)",
+    }}>
+      {/* Status dot */}
+      <span style={{
+        width: 7,
+        height: 7,
+        borderRadius: "50%",
+        background: color,
+        flexShrink: 0,
+        display: "inline-block",
+      }} />
+
+      {/* Name */}
+      <span style={{
+        flex: 1,
+        fontSize: 13,
+        fontWeight: 500,
+        color: "var(--ink-primary)",
+        minWidth: 0,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+      }}>
+        {biz.name}
+      </span>
+
+      {/* ARR if > 0 */}
+      {arrLabel && (
+        <span style={{
+          fontSize: 11,
+          fontFamily: "var(--font-mono)",
+          color: "var(--green-400)",
+          fontWeight: 600,
+          flexShrink: 0,
+        }}>
+          {arrLabel}
+        </span>
+      )}
+
+      {/* Security score small */}
+      {biz.security_score !== null && (
+        <span style={{
+          fontSize: 10,
+          fontFamily: "var(--font-mono)",
+          color: "var(--ink-tertiary)",
+          flexShrink: 0,
+        }}>
+          sec:{biz.security_score}
+        </span>
+      )}
+
+      {/* Health score */}
+      <span style={{
+        fontSize: 13,
+        fontWeight: 700,
+        fontFamily: "var(--font-mono)",
+        color,
+        flexShrink: 0,
+        minWidth: 28,
+        textAlign: "right",
+      }}>
+        {score !== null ? score : "—"}
+      </span>
+
+      {/* Risk warning */}
+      {atRisk && (
+        <span style={{ fontSize: 12, flexShrink: 0 }}>⚠</span>
+      )}
+    </div>
+  );
+}
+
+function BusinessHealthSkeleton() {
+  return (
+    <>
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "9px 14px",
+          borderBottom: "1px solid var(--border-hairline)",
+        }}>
+          <Shimmer width={7} height={7} radius={999} />
+          <Shimmer width="45%" height={13} />
+          <div style={{ flex: 1 }} />
+          <Shimmer width={28} height={13} />
+        </div>
+      ))}
+    </>
+  );
+}
+
+// ─── Board Alerts ─────────────────────────────────────────────────────────────
+
+function BoardAlerts({ businesses }: { businesses: BusinessHealth[] }) {
+  const alerts: { text: string; key: string }[] = [];
+
+  for (const biz of businesses) {
+    if (biz.security_score !== null && biz.security_score < 40) {
+      alerts.push({
+        key: `sec-${biz.id}`,
+        text: `${biz.name} security: ${biz.security_score}/100`,
+      });
+    }
+  }
+
+  if (alerts.length === 0) {
+    return (
+      <div style={{ fontSize: 12, color: "var(--ink-tertiary)", padding: "4px 0" }}>
+        No active alerts
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      {alerts.map(alert => (
+        <div key={alert.key} style={{
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 8,
+          fontSize: 12,
+          color: "var(--ink-secondary)",
+          lineHeight: 1.4,
+        }}>
+          <span style={{ color: "var(--orange-400)", flexShrink: 0 }}>⚠</span>
+          <span>{alert.text}</span>
         </div>
       ))}
     </div>
@@ -388,21 +477,21 @@ function SummaryBar({ summary }: { summary: PortfolioSummary | null }) {
 
 export default function EmpireCommandCenter() {
   const router = useRouter();
-  const [checking, setChecking]   = useState(true);
-  const [data, setData]           = useState<EmpireData | null>(null);
-  const [loading, setLoading]     = useState(false);
-  const [error, setError]         = useState<string | null>(null);
-  const [lastPoll, setLastPoll]   = useState<Date | null>(null);
+  const [checking, setChecking] = useState(true);
+  const [empireData, setEmpireData] = useState<EmpireData | null>(null);
+  const [priorities, setPriorities] = useState<Priority[] | null>(null);
+  const [pipeline, setPipeline] = useState<PipelineCounts | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchBusinesses = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const res = await fetch("/api/empire/businesses", { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json: EmpireData = await res.json();
-      setData(json);
-      setLastPoll(new Date());
+      setEmpireData(json);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load data");
     } finally {
@@ -421,13 +510,28 @@ export default function EmpireCommandCenter() {
     });
   }, [router]);
 
-  // Initial fetch + 30s polling
+  // On auth resolved: fetch all three endpoints
   useEffect(() => {
     if (checking) return;
-    fetchData();
-    const interval = setInterval(fetchData, 30_000);
+
+    // Businesses: fetch + 30s poll
+    fetchBusinesses();
+    const interval = setInterval(fetchBusinesses, 30_000);
+
+    // Priorities: one-shot
+    fetch("/api/empire/priorities")
+      .then(r => r.json())
+      .then(json => setPriorities(json.priorities ?? []))
+      .catch(() => setPriorities([]));
+
+    // Pipeline: one-shot
+    fetch("/api/empire/pipeline")
+      .then(r => r.json())
+      .then(json => setPipeline(json))
+      .catch(() => setPipeline({ ideas_in_flight: 0, board_active: 0, completed_today: 0 }));
+
     return () => clearInterval(interval);
-  }, [checking, fetchData]);
+  }, [checking, fetchBusinesses]);
 
   if (checking) {
     return (
@@ -438,15 +542,16 @@ export default function EmpireCommandCenter() {
         alignItems: "center",
         justifyContent: "center",
       }}>
-        <div style={{ color: "var(--ink-tertiary)", fontSize: 13, fontFamily: "monospace" }}>
+        <div style={{ color: "var(--ink-tertiary)", fontSize: 13, fontFamily: "var(--font-mono)" }}>
           Authenticating...
         </div>
       </div>
     );
   }
 
-  const businesses = data?.businesses ?? [];
-  const summary = data?.summary ?? null;
+  const businesses = empireData?.businesses ?? [];
+  const summary = empireData?.summary ?? null;
+  const isLoading = !empireData;
 
   return (
     <div style={{
@@ -458,40 +563,34 @@ export default function EmpireCommandCenter() {
       {/* Header */}
       <header style={{
         borderBottom: "1px solid var(--border-hairline)",
-        padding: "16px 32px",
+        padding: "14px 32px",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
         background: "var(--surface-1)",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{
-            width: 32,
-            height: 32,
-            background: "var(--red-500)",
-            borderRadius: 6,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 14,
-            fontWeight: 700,
-            color: "#fff",
-            letterSpacing: "-0.5px",
-          }}>
-            N
-          </div>
+          {/* Pulsing green dot — autonomous indicator */}
+          <span style={{
+            width: 8,
+            height: 8,
+            borderRadius: "50%",
+            background: "var(--green-400)",
+            display: "inline-block",
+            animation: "pulse-dot 2s ease-in-out infinite",
+            flexShrink: 0,
+          }} />
           <div>
             <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: "-0.3px" }}>
               Empire Command Center
             </div>
             <div style={{ fontSize: 11, color: "var(--ink-tertiary)", marginTop: 1 }}>
-              Nexus — Wave 1 · Live Data
+              Unite Group · Decision-focused · 30s polling
             </div>
           </div>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {/* Poll indicator */}
           {loading && (
             <div style={{
               width: 6,
@@ -501,99 +600,226 @@ export default function EmpireCommandCenter() {
               animation: "pulse-dot 1s ease-in-out infinite",
             }} />
           )}
-          {lastPoll && !loading && (
+          {error && (
             <span style={{
-              fontSize: 10,
-              color: "var(--ink-tertiary)",
+              fontSize: 11,
+              color: "var(--red-400)",
               fontFamily: "var(--font-mono)",
             }}>
-              polled {relativeTime(lastPoll.toISOString())}
+              {error}
             </span>
           )}
-          <div style={{
-            fontSize: 11,
-            color: "var(--red-400)",
-            fontFamily: "monospace",
-            letterSpacing: "0.08em",
-            border: "1px solid var(--red-900)",
-            padding: "4px 10px",
-            borderRadius: 4,
-            background: "var(--red-a08)",
-          }}>
-            WAVE 1 · LIVE
-          </div>
         </div>
       </header>
 
-      {/* Main */}
-      <main style={{ padding: "32px", maxWidth: 1100, margin: "0 auto" }}>
-        <h1 style={{
-          fontSize: 22,
-          fontWeight: 600,
-          marginBottom: 6,
-          letterSpacing: "-0.5px",
-        }}>
-          Portfolio Businesses
-        </h1>
-        <p style={{ color: "var(--ink-secondary)", fontSize: 13, marginBottom: 24 }}>
-          {businesses.length} businesses tracked · Pi-CEO health data · 30s polling
-          {summary?.has_live_data === false && (
-            <span style={{ color: "var(--orange-300)", marginLeft: 8 }}>
-              (no snapshot data yet — showing static fallback)
-            </span>
-          )}
-        </p>
+      {/* Main content */}
+      <main style={{ padding: "24px 32px", maxWidth: 1280, margin: "0 auto" }}>
 
-        {/* Portfolio summary bar */}
-        <SummaryBar summary={summary} />
+        {/* SECTION 1: Empire Pulse Bar */}
+        <EmpirePulseBar summary={summary} loading={isLoading} />
 
-        {/* Error banner */}
-        {error && (
-          <div style={{
-            padding: "12px 16px",
-            background: "var(--red-a08)",
-            border: "1px solid var(--red-900)",
-            borderRadius: "var(--radius-md)",
-            fontSize: 12,
-            color: "var(--red-200)",
-            marginBottom: 16,
-            fontFamily: "var(--font-mono)",
-          }}>
-            Failed to load health data: {error}
-          </div>
-        )}
-
-        {/* Bento grid */}
+        {/* SECTION 2 + 3: Two-column layout */}
         <div style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+          gridTemplateColumns: "60% 1fr",
           gap: 16,
+          marginBottom: 16,
         }}>
-          {businesses.length > 0
-            ? businesses.map((biz) => (
-                <BusinessCard key={biz.id} biz={biz} />
-              ))
-            : Array.from({ length: 6 }).map((_, i) => (
-                <SkeletonCard key={i} />
-              ))
-          }
+          {/* LEFT: Today's Priorities */}
+          <div style={{
+            background: "var(--surface-1)",
+            border: "1px solid var(--border-default)",
+            borderRadius: "var(--radius-md)",
+            overflow: "hidden",
+          }}>
+            <div style={{
+              padding: "14px 18px 12px",
+              borderBottom: "1px solid var(--border-hairline)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}>
+              <div style={{
+                fontSize: 11,
+                fontWeight: 700,
+                fontFamily: "var(--font-mono)",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "var(--ink-secondary)",
+              }}>
+                Today&apos;s Priorities
+              </div>
+              <div style={{
+                fontSize: 10,
+                color: "var(--ink-tertiary)",
+                fontFamily: "var(--font-mono)",
+              }}>
+                {priorities ? `${priorities.length} items` : "loading..."}
+              </div>
+            </div>
+            <div style={{ padding: "14px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+              {priorities === null
+                ? Array.from({ length: 3 }).map((_, i) => <PriorityCardSkeleton key={i} />)
+                : priorities.map((p, i) => <PriorityCard key={p.id} p={p} index={i} />)
+              }
+            </div>
+          </div>
+
+          {/* RIGHT: Business Health Strip */}
+          <div style={{
+            background: "var(--surface-1)",
+            border: "1px solid var(--border-default)",
+            borderRadius: "var(--radius-md)",
+            overflow: "hidden",
+          }}>
+            <div style={{
+              padding: "14px 18px 12px",
+              borderBottom: "1px solid var(--border-hairline)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}>
+              <div style={{
+                fontSize: 11,
+                fontWeight: 700,
+                fontFamily: "var(--font-mono)",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "var(--ink-secondary)",
+              }}>
+                Business Health
+              </div>
+              <div style={{
+                fontSize: 10,
+                color: "var(--ink-tertiary)",
+                fontFamily: "var(--font-mono)",
+              }}>
+                {businesses.length > 0 ? `${businesses.length} tracked` : "loading..."}
+              </div>
+            </div>
+            {isLoading
+              ? <BusinessHealthSkeleton />
+              : businesses.map(biz => <BusinessHealthRow key={biz.id} biz={biz} />)
+            }
+          </div>
         </div>
 
-        {/* Wave status banner */}
+        {/* SECTION 4: Margot Pipeline + Board Alerts */}
         <div style={{
-          marginTop: 40,
-          padding: "20px 24px",
-          background: "var(--red-a08)",
-          border: "1px solid var(--red-900)",
-          borderRadius: 8,
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 16,
         }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--red-300)", marginBottom: 6 }}>
-            Nexus Wave 1 — Live Health Pipeline
+          {/* Left: Margot Pipeline */}
+          <div style={{
+            background: "var(--surface-1)",
+            border: "1px solid var(--border-default)",
+            borderRadius: "var(--radius-md)",
+            overflow: "hidden",
+          }}>
+            <div style={{
+              padding: "14px 18px 12px",
+              borderBottom: "1px solid var(--border-hairline)",
+            }}>
+              <div style={{
+                fontSize: 11,
+                fontWeight: 700,
+                fontFamily: "var(--font-mono)",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "var(--ink-secondary)",
+              }}>
+                Margot Pipeline
+              </div>
+            </div>
+            <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10 }}>
+              {pipeline === null ? (
+                <>
+                  <Shimmer width="70%" height={13} />
+                  <Shimmer width="55%" height={13} />
+                  <Shimmer width="60%" height={13} />
+                </>
+              ) : (
+                <>
+                  {[
+                    { label: "Ideas in flight", value: pipeline.ideas_in_flight, color: "var(--ink-secondary)" },
+                    { label: "Board directives active", value: pipeline.board_active, color: pipeline.board_active > 0 ? "var(--green-400)" : "var(--ink-secondary)" },
+                    { label: "Agent actions today", value: pipeline.completed_today, color: "var(--ink-secondary)" },
+                  ].map(row => (
+                    <div key={row.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{
+                        width: 5,
+                        height: 5,
+                        borderRadius: "50%",
+                        background: "var(--border-default)",
+                        flexShrink: 0,
+                        display: "inline-block",
+                      }} />
+                      <span style={{ flex: 1, fontSize: 12, color: "var(--ink-secondary)" }}>
+                        {row.label}
+                      </span>
+                      <span style={{
+                        fontSize: 14,
+                        fontWeight: 700,
+                        fontFamily: "var(--font-mono)",
+                        color: row.color,
+                        minWidth: 24,
+                        textAlign: "right",
+                      }}>
+                        {row.value}
+                      </span>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
           </div>
-          <div style={{ fontSize: 12, color: "var(--ink-secondary)", lineHeight: 1.6 }}>
-            Schema migrations applied · /empire/ route live · Middleware protecting all empire routes ·
-            Live health data from <code style={{ fontFamily: "var(--font-mono)", color: "var(--ink-primary)" }}>pi_ceo_health_snapshots</code> ·
-            30-second polling · Agent pipeline canvas arriving in Wave 2.
+
+          {/* Right: Board Alerts */}
+          <div style={{
+            background: "var(--surface-1)",
+            border: "1px solid var(--border-default)",
+            borderRadius: "var(--radius-md)",
+            overflow: "hidden",
+          }}>
+            <div style={{
+              padding: "14px 18px 12px",
+              borderBottom: "1px solid var(--border-hairline)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}>
+              <div style={{
+                fontSize: 11,
+                fontWeight: 700,
+                fontFamily: "var(--font-mono)",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "var(--ink-secondary)",
+              }}>
+                Board Alerts
+              </div>
+              {businesses.length > 0 && (
+                <div style={{
+                  fontSize: 10,
+                  color: "var(--ink-tertiary)",
+                  fontFamily: "var(--font-mono)",
+                }}>
+                  {businesses.filter(b => b.security_score !== null && b.security_score < 40).length} active
+                </div>
+              )}
+            </div>
+            <div style={{ padding: "16px 18px" }}>
+              {isLoading ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <Shimmer width="75%" height={12} />
+                  <Shimmer width="65%" height={12} />
+                  <Shimmer width="55%" height={12} />
+                </div>
+              ) : (
+                <BoardAlerts businesses={businesses} />
+              )}
+            </div>
           </div>
         </div>
       </main>
