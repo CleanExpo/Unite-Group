@@ -50,7 +50,9 @@ jobs:
           cache: "npm"
       - run: npm ci
       - name: Install Supabase CLI
-        run: npm install -g supabase@2.22.6
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
       - name: Check for schema drift
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
