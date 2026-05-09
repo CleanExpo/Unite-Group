@@ -1,3 +1,4 @@
+import Link from 'next/link';
 "use client";
 
 import { useState, useEffect } from "react";
@@ -91,7 +92,7 @@ export default function SEOAuditPage() {
     <div style={{ minHeight: '100vh', background: '#09090b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ textAlign: 'center' }}>
         <p style={{ color: '#52525b', fontFamily: 'var(--font-mono)', fontSize: 13 }}>Unknown business: {slug}</p>
-        <a href="/ceo" style={{ color: '#1d4ed8', fontSize: 12, marginTop: 12, display: 'block' }}>← Back to Command Center</a>
+        <Link href="/ceo" style={{ color: '#b30000', fontSize: 12, marginTop: 12, display: 'block' }}>← Back to Command Center</Link>
       </div>
     </div>
   );

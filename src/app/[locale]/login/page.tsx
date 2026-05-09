@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from 'next/link';
 import { useRouter } from "next/navigation";
 import { supabaseClient } from "@/lib/supabase/client";
 
@@ -236,7 +237,7 @@ export default function LoginPage() {
             {/* Auth header */}
             <div style={{ marginBottom: 36 }}>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#3f3f46", letterSpacing: "0.2em", marginBottom: 8 }}>
-                // SECURE ACCESS TERMINAL
+                {'// SECURE ACCESS TERMINAL'}
               </div>
               <h2 style={{
                 fontSize: 28, fontWeight: 800, color: "#f0f0f2",
@@ -302,7 +303,7 @@ export default function LoginPage() {
                   display: "flex", justifyContent: "space-between",
                 }}>
                   <span>&gt; ACCESS CODE</span>
-                  <a href="/reset-password" style={{ color: "#f59e0b", textDecoration: "none" }}>RESET</a>
+                  <Link href="/reset-password" style={{ color: "#f59e0b", textDecoration: "none" }}>RESET</Link>
                 </div>
                 <input
                   type="password" required autoComplete="current-password"
