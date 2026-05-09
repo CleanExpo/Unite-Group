@@ -1,10 +1,10 @@
 export default function TermsOfUse() {
   return (
-    <div style={{ minHeight: "100vh", background: "#09090b", color: "#fafafa", fontFamily: "var(--font-inter, system-ui, sans-serif)" }}>
+    <div style={{ minHeight: "100vh", background: "var(--canvas)", color: "var(--ink-primary)", fontFamily: "var(--font-display, system-ui, sans-serif)" }}>
 
       {/* Header */}
       <div style={{ maxWidth: 800, margin: "0 auto", padding: "64px 32px 32px" }}>
-        <h1 style={{ fontSize: 40, fontWeight: 700, letterSpacing: "-0.03em", color: "#fafafa", marginBottom: 12 }}>
+        <h1 style={{ fontSize: 40, fontWeight: 700, letterSpacing: "-0.03em", color: "var(--ink-primary)", marginBottom: 12 }}>
           Terms of Use
         </h1>
       </div>

@@ -52,7 +52,7 @@ export async function middleware(req: NextRequest) {
 
   // Logged in → send auth pages to CEO dashboard
   if (user && isAuthPage) {
-    return NextResponse.redirect(new URL('/en/ceo', req.url));
+    return NextResponse.redirect(new URL('/en/empire', req.url));
   }
 
   // /empire/* → canonically /en/empire/* — redirect bare path so middleware auth applies
@@ -61,9 +61,15 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL(`/en/empire${rest}`, req.url));
   }
 
+  // /client/* → canonically /en/client/* — redirect bare path so middleware auth applies
+  if (pathname === '/client' || pathname.startsWith('/client/')) {
+    const rest = pathname.replace(/^\/client/, '');
+    return NextResponse.redirect(new URL(`/en/client${rest}`, req.url));
+  }
+
   // Root URL → redirect to CEO dashboard (authenticated) or login (not)
   if (pathname === '/' || pathname === '/en' || pathname === '/es' || pathname === '/fr') {
-    return NextResponse.redirect(new URL(user ? '/en/ceo' : '/en/login', req.url));
+    return NextResponse.redirect(new URL(user ? '/en/empire' : '/en/login', req.url));
   }
 
   // Not logged in on any non-auth page → login

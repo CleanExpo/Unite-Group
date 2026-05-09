@@ -235,7 +235,7 @@ class DashboardErrorBoundary extends Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ minHeight: "100vh", background: "#09090b", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ minHeight: "100vh", background: "var(--canvas)", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ textAlign: "center", padding: 32 }}>
             <p style={{ color: "#dc2626", fontSize: 12, fontFamily: "var(--font-mono)", marginBottom: 16 }}>Dashboard Error</p>
             <p style={{ color: "#52525b", fontSize: 12, maxWidth: 400 }}>{this.state.error}</p>
@@ -575,7 +575,7 @@ export default function CeoCommandCenter() {
 
   return (
     <DashboardErrorBoundary>
-    <div style={{ minHeight: "100vh", background: "#09090b", color: "#fafafa" }}>
+    <div style={{ minHeight: "100vh", background: "var(--canvas)", color: "#fafafa" }}>
 
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <header style={{

@@ -21,7 +21,7 @@ const AUTH_ROUTES = ['/login', '/register', '/reset-password', '/update-password
 const CLIENT_ROUTES = ['/clients/']; // client portals get their own clean layout
 
 const NAV = [
-  { href: '/ceo',               icon: Zap,             label: 'Command Center' },
+  { href: '/empire',               icon: Zap,             label: 'Command Center' },
   { href: '/dashboard',         icon: LayoutDashboard, label: 'Dashboard'      },
   { href: '/clients/ccw',       icon: Building2,       label: 'CCW Portal'     },
   { href: '/dashboard/board',   icon: Activity,        label: 'Board Room'     },

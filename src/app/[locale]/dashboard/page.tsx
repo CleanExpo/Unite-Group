@@ -15,7 +15,7 @@ import {
 const BUSINESSES = [
   { id: "synthex",           name: "Synthex",           status: "operational" as const, arr: 0,    seoSlug: "synthex",           desc: "Marketing Automation · 1,000+ users" },
   { id: "restoreassist",     name: "RestoreAssist",     status: "building"    as const, arr: 0,    seoSlug: "restoreassist",     desc: "iOS App · TestFlight Active" },
-  { id: "ccw-crm",           name: "CCW",               status: "operational" as const, arr: 2400, seoSlug: "ccw-crm",           desc: "First Paying Client · $2,400/yr ARR" },
+  { id: "ccw-crm",           name: "CCW",               status: "operational" as const, arr: 33000, seoSlug: "ccw-crm",           desc: "First Paying Client · $2,400/yr ARR" },
   { id: "carsi",             name: "CARSI",             status: "building"    as const, arr: 0,    seoSlug: "carsi",             desc: "Compliance Delivery" },
   { id: "disaster-recovery", name: "DR Platform",       status: "building"    as const, arr: 0,    seoSlug: "disaster-recovery", desc: "Disaster Recovery Platform" },
   { id: "nrpg",              name: "NRPG",              status: "building"    as const, arr: 0,    seoSlug: "nrpg",              desc: "ANZ Restoration Movement" },
@@ -23,7 +23,7 @@ const BUSINESSES = [
 
 const STATUS_COLOR: Record<string, string> = {
   operational: "#16a34a",
-  building:    "#1d4ed8",
+  building:    "var(--red-500)",
   degraded:    "#d97706",
   down:        "#dc2626",
 };
@@ -108,7 +108,7 @@ export default function DashboardPage() {
             {user?.email}{now ? ` · Updated ${now} AEST` : ""}
           </p>
         </div>
-        <Link href="/dashboard/ceo" style={{ fontSize: 12, fontWeight: 500, color: "#1d4ed8", textDecoration: "none" }}>Command Center →</Link>
+        <Link href="/dashboard/ceo" style={{ fontSize: 12, fontWeight: 500, color: "var(--red-500)", textDecoration: "none" }}>Command Center →</Link>
       </div>
 
       <main style={{ maxWidth: 1440, margin: "0 auto", padding: "24px", display: "flex", flexDirection: "column", gap: 32 }}>
@@ -184,9 +184,9 @@ export default function DashboardPage() {
                       <td style={{ padding: "12px 8px" }}>
                         <Link
                           href={`/businesses/${biz.seoSlug}/seo`}
-                          style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "#1d4ed8", textDecoration: "none", fontWeight: 500 }}
+                          style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--red-500)", textDecoration: "none", fontWeight: 500 }}
                           onMouseEnter={e => (e.currentTarget.style.color = "#3b82f6")}
-                          onMouseLeave={e => (e.currentTarget.style.color = "#1d4ed8")}
+                          onMouseLeave={e => (e.currentTarget.style.color = "var(--red-500)")}
                         >
                           View audit <ArrowUpRight size={10} />
                         </Link>
@@ -220,8 +220,8 @@ export default function DashboardPage() {
                     fontSize: 13,
                     fontWeight: link.primary ? 600 : 400,
                     color: link.primary ? "#fff" : "#94a3b8",
-                    background: link.primary ? "#1d4ed8" : "transparent",
-                    border: `1px solid ${link.primary ? "#1d4ed8" : "#27272a"}`,
+                    background: link.primary ? "var(--red-500)" : "transparent",
+                    border: `1px solid ${link.primary ? "var(--red-500)" : "#27272a"}`,
                     textDecoration: "none",
                     transition: "all 0.12s ease",
                   }}
@@ -230,7 +230,7 @@ export default function DashboardPage() {
                     else { (e.currentTarget as HTMLAnchorElement).style.background = "#18181b"; (e.currentTarget as HTMLAnchorElement).style.color = "#f8fafc"; }
                   }}
                   onMouseLeave={e => {
-                    if (link.primary) { (e.currentTarget as HTMLAnchorElement).style.background = "#1d4ed8"; }
+                    if (link.primary) { (e.currentTarget as HTMLAnchorElement).style.background = "var(--red-500)"; }
                     else { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; (e.currentTarget as HTMLAnchorElement).style.color = "#94a3b8"; }
                   }}
                   onMouseDown={e => { (e.currentTarget as HTMLAnchorElement).style.transform = "scale(0.97)"; }}
@@ -252,7 +252,7 @@ export default function DashboardPage() {
         >
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
             <p style={{ ...sectionLabel, marginBottom: 0 }}>Recent Activity</p>
-            <Link href="/dashboard/ceo" style={{ fontSize: 11, color: "#1d4ed8", textDecoration: "none" }}>Full command center →</Link>
+            <Link href="/dashboard/ceo" style={{ fontSize: 11, color: "var(--red-500)", textDecoration: "none" }}>Full command center →</Link>
           </div>
           <div style={{ ...card, display: "flex", flexDirection: "column", gap: 0 }}>
             <div style={{ borderLeft: "1px solid #27272a", marginLeft: 8, paddingLeft: 16 }}>
