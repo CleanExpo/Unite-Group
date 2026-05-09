@@ -62,11 +62,3 @@ export {
   shouldIncludeInMainBundle
 } from './bundle-optimizer';
 
-// Re-export components
-export { 
-  createResource, 
-  COMMON_RESOURCES, 
-  getMainSiteResources, 
-  getDashboardResources,
-  DEFAULT_ROUTE_RESOURCES
-

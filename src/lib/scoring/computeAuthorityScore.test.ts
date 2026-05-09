@@ -110,40 +110,22 @@ describe('computeAuthorityScore — partial inputs', () => {
 // ---------------------------------------------------------------------------
 
 describe('computeAuthorityScore — grade boundaries', () => {
-  function makeScoreInput(targetScore: number): AuthorityScoreInput {
-    // Build inputs that produce exactly the target total via profile_complete_pct,
-    // with all other signals fixed so they contribute a known amount.
-    // Fixed contributions: review=0, freshness=0 (30 days), backlink=0, schema=0, social=2
-    // Fixed total from non-profile = 2
-    // profile_pct needed = (targetScore - 2) / 25 * 100
-    // We clamp to [0, 100] and accept minor rounding
-    const profilePct = Math.min(100, Math.max(0, ((targetScore - 2) / 25) * 100));
-    return {
-      profile_complete_pct: profilePct,
-      reviews_per_month: 0,
-      days_since_last_post: 30,
-      backlink_count: 0,
-      has_localbusiness_schema: false,
-      has_videoobject_schema: false,
-      avg_star_rating: 1,
-    };
-  }
-
-  const cases: Array<[number, 'A' | 'B' | 'C' | 'D' | 'F']> = [
-    [85, 'A'],
-    [84, 'B'],
-    [70, 'B'],
-    [69, 'C'],
-    [55, 'C'],
-    [54, 'D'],
-    [40, 'D'],
-    [39, 'F'],
+  // Inputs verified to produce exact target scores via formula analysis.
+  // Each config tuned using the actual scoring function:
+  // profile(max25) + review(max20) + freshness(max20) + backlink(max15) + schema(max10) + social(max10)
+  const gradeCases: Array<[AuthorityScoreInput, 'A' | 'B' | 'C' | 'D' | 'F']> = [
+    [{ profile_complete_pct: 100, reviews_per_month: 5, days_since_last_post: 0,  backlink_count: 25, has_localbusiness_schema: true,  has_videoobject_schema: true,  avg_star_rating: 1 }, 'A'], // 85
+    [{ profile_complete_pct: 100, reviews_per_month: 5, days_since_last_post: 0,  backlink_count: 50, has_localbusiness_schema: false, has_videoobject_schema: false, avg_star_rating: 2 }, 'B'], // 84
+    [{ profile_complete_pct: 100, reviews_per_month: 5, days_since_last_post: 15, backlink_count: 25, has_localbusiness_schema: true,  has_videoobject_schema: false, avg_star_rating: 1 }, 'B'], // 70
+    [{ profile_complete_pct: 100, reviews_per_month: 5, days_since_last_post: 0,  backlink_count: 0,  has_localbusiness_schema: false, has_videoobject_schema: false, avg_star_rating: 2 }, 'C'], // 69
+    [{ profile_complete_pct: 100, reviews_per_month: 5, days_since_last_post: 30, backlink_count: 25, has_localbusiness_schema: false, has_videoobject_schema: false, avg_star_rating: 1 }, 'C'], // 55
+    [{ profile_complete_pct: 100, reviews_per_month: 5, days_since_last_post: 30, backlink_count: 0,  has_localbusiness_schema: true,  has_videoobject_schema: false, avg_star_rating: 2 }, 'D'], // 54
+    [{ profile_complete_pct: 100, reviews_per_month: 0, days_since_last_post: 30, backlink_count: 25, has_localbusiness_schema: true,  has_videoobject_schema: false, avg_star_rating: 1 }, 'D'], // 40
+    [{ profile_complete_pct: 100, reviews_per_month: 3, days_since_last_post: 30, backlink_count: 0,  has_localbusiness_schema: false, has_videoobject_schema: false, avg_star_rating: 1 }, 'F'], // 39
   ];
 
-  test.each(cases)('score %i → grade %s', (targetScore, expectedGrade) => {
-    const input = makeScoreInput(targetScore);
+  test.each(gradeCases)('input %# → correct grade', (input, expectedGrade) => {
     const result = computeAuthorityScore(input);
-    // The computed score may be off by 1 due to rounding; test the grade of the actual score
     expect(result.grade).toBe(expectedGrade);
   });
 });

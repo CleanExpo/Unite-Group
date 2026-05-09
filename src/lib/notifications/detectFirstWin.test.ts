@@ -97,7 +97,7 @@ describe('detectFirstWin', () => {
     };
     const result = detectFirstWin(post, baseline);
     expect(result).not.toBeNull();
-    expect(result?.improvement_pct).toBe(62); // (6.5/4.0 - 1) * 100 = 62.5 → rounded to 62
+    expect(result?.improvement_pct).toBe(63); // (6.5/4.0 - 1) * 100 = 62.5 → JS Math.round rounds up to 63
   });
 });
 
