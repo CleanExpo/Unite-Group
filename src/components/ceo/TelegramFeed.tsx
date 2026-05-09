@@ -118,7 +118,7 @@ export function TelegramFeed() {
         padding: "12px 16px", borderBottom: "1px solid #27272a", flexShrink: 0,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <MessageSquare size={13} color="#1d4ed8" />
+          <MessageSquare size={13} color="#f59e0b" />
           <span style={{ fontSize: 12, fontWeight: 600, color: "#fafafa", letterSpacing: "-0.01em" }}>
             Margot — Live
           </span>
@@ -167,7 +167,7 @@ export function TelegramFeed() {
                 <div style={{
                   width: 24, height: 24, borderRadius: "50%", flexShrink: 0,
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  background: msg.isBot ? "#1d4ed8" : "#27272a",
+                  background: msg.isBot ? "#92400e" : "#27272a",
                   fontSize: 9, fontWeight: 700, color: "#fafafa",
                 }}>
                   {msg.isBot ? "M" : "P"}
@@ -178,10 +178,10 @@ export function TelegramFeed() {
                   <div style={{
                     padding: "8px 11px",
                     borderRadius: msg.isBot ? "10px 10px 10px 3px" : "10px 10px 3px 10px",
-                    background: msg.isBot ? "#1d4ed8" : "#18181b",
-                    border: msg.isBot ? "none" : "1px solid #27272a",
+                    background: msg.isBot ? "#1c1009" : "#18181b",
+                    border: msg.isBot ? "1px solid #92400e" : "1px solid #27272a",
                     fontSize: 12,
-                    color: msg.isBot ? "#fff" : "#d4d4d8",
+                    color: msg.isBot ? "#fde68a" : "#d4d4d8",
                     lineHeight: 1.5,
                     wordBreak: "break-word",
                     whiteSpace: "pre-wrap",
@@ -220,7 +220,7 @@ export function TelegramFeed() {
             borderRadius: 8, color: "#fafafa", outline: "none",
             fontFamily: "var(--font-display)", transition: "border-color 0.1s",
           }}
-          onFocus={e => (e.target.style.borderColor = "#1d4ed8")}
+          onFocus={e => (e.target.style.borderColor = "#f59e0b")}
           onBlur={e => (e.target.style.borderColor = "#27272a")}
         />
         <button
@@ -228,14 +228,14 @@ export function TelegramFeed() {
           disabled={!input.trim() || sending}
           style={{
             width: 32, height: 32, borderRadius: 8, border: "none",
-            background: input.trim() && !sending ? "#1d4ed8" : "#18181b",
-            color: input.trim() && !sending ? "#fff" : "#52525b",
+            background: input.trim() && !sending ? "#f59e0b" : "#18181b",
+            color: input.trim() && !sending ? "#08080a" : "#52525b",
             cursor: input.trim() && !sending ? "pointer" : "not-allowed",
             display: "flex", alignItems: "center", justifyContent: "center",
             transition: "all 0.1s ease", flexShrink: 0,
           }}
-          onMouseEnter={e => { if (input.trim() && !sending) (e.currentTarget as HTMLButtonElement).style.background = "#3b82f6"; }}
-          onMouseLeave={e => { if (input.trim() && !sending) (e.currentTarget as HTMLButtonElement).style.background = "#1d4ed8"; }}
+          onMouseEnter={e => { if (input.trim() && !sending) (e.currentTarget as HTMLButtonElement).style.background = "#fbbf24"; }}
+          onMouseLeave={e => { if (input.trim() && !sending) (e.currentTarget as HTMLButtonElement).style.background = "#f59e0b"; }}
         >
           {sending ? <Loader2 size={13} className="spin" /> : <Send size={13} />}
         </button>

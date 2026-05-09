@@ -80,7 +80,7 @@ const CONTENT_PIPELINE: ContentProgress[] = [
   { business: "Synthex",       done: 9,  total: 15, color: "#6366f1" },
   { business: "RestoreAssist", done: 6,  total: 18, color: "#10b981" },
   { business: "CARSI",         done: 5,  total: 9,  color: "#f59e0b" },
-  { business: "CCW",           done: 6,  total: 14, color: "#3b82f6" },
+  { business: "CCW",           done: 6,  total: 14, color: "#f59e0b" },
   { business: "DR",            done: 5,  total: 11, color: "#ef4444" },
   { business: "NRPG",          done: 9,  total: 18, color: "#8b5cf6" },
 ];
@@ -98,7 +98,7 @@ const FALLBACK_ACTIVITIES: PiCeoActivity[] = [
 
 const STATUS_CONFIG = {
   operational: { dotColor: "#16a34a", ringColor: "rgba(22,163,74,0.3)",   sparkColor: "#16a34a", labelColor: "#16a34a" },
-  building:    { dotColor: "#3b82f6", ringColor: "rgba(59,130,246,0.3)",  sparkColor: "#3b82f6", labelColor: "#3b82f6" },
+  building:    { dotColor: "#f59e0b", ringColor: "rgba(245,158,11,0.3)",  sparkColor: "#f59e0b", labelColor: "#f59e0b" },
   degraded:    { dotColor: "#d97706", ringColor: "rgba(217,119,6,0.3)",   sparkColor: "#d97706", labelColor: "#d97706" },
   down:        { dotColor: "#dc2626", ringColor: "rgba(220,38,38,0.3)",   sparkColor: "#dc2626", labelColor: "#dc2626" },
 };
@@ -241,7 +241,7 @@ class DashboardErrorBoundary extends Component<
             <p style={{ color: "#52525b", fontSize: 12, maxWidth: 400 }}>{this.state.error}</p>
             <button
               onClick={() => window.location.reload()}
-              style={{ marginTop: 24, padding: "8px 16px", background: "#1d4ed8", color: "white", fontSize: 13, border: "none", borderRadius: 6, cursor: "pointer" }}
+              style={{ marginTop: 24, padding: "8px 16px", background: "#f59e0b", color: "#08080a", fontSize: 13, border: "none", borderRadius: 6, cursor: "pointer" }}
             >
               Reload
             </button>
@@ -350,7 +350,7 @@ function BentoBusinessGrid({ businesses, loading }: { businesses: BusinessHealth
 // ─── Board Mandates ───────────────────────────────────────────────────────────
 
 const MANDATE_STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  active:    { bg: "rgba(29,78,216,0.12)",   text: "#3b82f6" },
+  active:    { bg: "rgba(245,158,11,0.12)",   text: "#f59e0b" },
   executing: { bg: "rgba(245,158,11,0.12)",  text: "#f59e0b" },
   review:    { bg: "rgba(139,92,246,0.12)",  text: "#8b5cf6" },
   merged:    { bg: "rgba(22,163,74,0.12)",   text: "#16a34a" },
@@ -427,7 +427,7 @@ function BoardMandatesSection({ mandates, loading }: { mandates: BoardMandate[];
           </span>
           {m.pr_url ? (
             <a href={m.pr_url} target="_blank" rel="noopener noreferrer" style={{
-              fontFamily: "var(--font-mono)", fontSize: 9, color: "#1d4ed8",
+              fontFamily: "var(--font-mono)", fontSize: 9, color: "#f59e0b",
               textDecoration: "none", display: "flex", alignItems: "center", gap: 3,
             }}>
               PR <ArrowUpRight size={9} />
@@ -594,7 +594,7 @@ export default function CeoCommandCenter() {
         <div style={{ maxWidth: 1440, margin: "0 auto", width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           {/* Wordmark */}
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 7, background: "#1d4ed8", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 28, height: 28, borderRadius: 7, background: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Zap size={14} color="white" strokeWidth={2.5} />
             </div>
             <div>
@@ -774,7 +774,7 @@ export default function CeoCommandCenter() {
                       {arrData.map((entry, index) => (
                         <Cell
                           key={index}
-                          fill={entry.preRevenue ? "rgba(255,255,255,0.04)" : "#1d4ed8"}
+                          fill={entry.preRevenue ? "rgba(255,255,255,0.04)" : "#f59e0b"}
                           stroke={entry.preRevenue ? "#27272a" : "none"}
                           strokeWidth={1}
                         />
@@ -795,7 +795,7 @@ export default function CeoCommandCenter() {
                 <p style={{ fontSize: 11, color: "#52525b", margin: 0 }}>Next milestone: first $10K ARR</p>
                 <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 4 }}>
                   <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: "#52525b" }}>
-                    <span style={{ width: 10, height: 10, borderRadius: 2, background: "#1d4ed8", display: "inline-block" }} />
+                    <span style={{ width: 10, height: 10, borderRadius: 2, background: "#f59e0b", display: "inline-block" }} />
                     Revenue
                   </span>
                   <span style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: "#52525b" }}>
@@ -828,7 +828,7 @@ export default function CeoCommandCenter() {
             <div style={{ marginBottom: 16 }}>
               <div style={{ height: 3, background: "rgba(255,255,255,0.05)", borderRadius: 2, overflow: "hidden" }}>
                 <motion.div
-                  style={{ height: "100%", borderRadius: 2, background: "#3b82f6" }}
+                  style={{ height: "100%", borderRadius: 2, background: "#f59e0b" }}
                   initial={{ width: 0 }}
                   animate={{ width: `${Math.round((totalContent / totalTarget) * 100)}%` }}
                   transition={{ duration: 0.8, ease: [0.25, 0.4, 0.25, 1] }}
@@ -890,7 +890,7 @@ export default function CeoCommandCenter() {
                 </span>
                 <span style={{
                   fontFamily: "var(--font-mono)", fontSize: 9,
-                  color: cron.model.includes("sonnet") ? "#1d4ed8" : "#3f3f46",
+                  color: cron.model.includes("sonnet") ? "#f59e0b" : "#3f3f46",
                   padding: "2px 6px", borderRadius: 3,
                   background: cron.model.includes("sonnet") ? "rgba(29,78,216,0.1)" : "#18181b",
                 }}>
@@ -905,7 +905,7 @@ export default function CeoCommandCenter() {
         <section>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
             <p style={{ ...sectionLabel, marginBottom: 0 }}>BOARD MANDATES</p>
-            <Link href="/dashboard/board" style={{ fontSize: 11, color: "#1d4ed8", textDecoration: "none" }}>View full board →</Link>
+            <Link href="/dashboard/board" style={{ fontSize: 11, color: "#f59e0b", textDecoration: "none" }}>View full board →</Link>
           </div>
           <BoardMandatesSection mandates={mandates} loading={mandatesLoading} />
         </section>
@@ -966,9 +966,9 @@ export default function CeoCommandCenter() {
             </button>
             <Link
               href="/dashboard/brief"
-              style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 12px", fontSize: 12, fontWeight: 600, borderRadius: 8, border: "1px solid #1d4ed8", color: "#fff", textDecoration: "none", background: "#1d4ed8", transition: "all 0.16s ease" }}
-              onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "#3b82f6"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "#3b82f6"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "#1d4ed8"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "#1d4ed8"; }}
+              style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 12px", fontSize: 12, fontWeight: 600, borderRadius: 8, border: "1px solid #f59e0b", color: "#fff", textDecoration: "none", background: "#f59e0b", transition: "all 0.16s ease" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "#f59e0b"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "#f59e0b"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "#f59e0b"; (e.currentTarget as HTMLAnchorElement).style.borderColor = "#f59e0b"; }}
               onMouseDown={e => { (e.currentTarget as HTMLAnchorElement).style.transform = "scale(0.97)"; (e.currentTarget as HTMLAnchorElement).style.background = "#1e40af"; }}
               onMouseUp={e => { (e.currentTarget as HTMLAnchorElement).style.transform = "scale(1)"; }}
             >

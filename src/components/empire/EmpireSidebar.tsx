@@ -48,7 +48,7 @@ const BUSINESSES = [
 
 const STATUS_COLOR: Record<string, string> = {
   operational: '#16a34a',
-  building:    '#3b82f6',
+  building:    '#f59e0b',
   degraded:    '#d97706',
   down:        '#dc2626',
 };
@@ -89,7 +89,7 @@ export function EmpireSidebar() {
                 display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
                 borderRadius: 8, textDecoration: 'none',
                 background: active ? 'rgba(29,78,216,0.12)' : 'transparent',
-                borderLeft: active ? '2px solid #3b82f6' : '2px solid transparent',
+                borderLeft: active ? '2px solid #f59e0b' : '2px solid transparent',
                 transition: 'all 0.12s ease',
               }}
               onMouseEnter={e => { if (!active) (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.03)'; }}
@@ -97,7 +97,7 @@ export function EmpireSidebar() {
             >
               <Icon size={15} color={active ? '#60a5fa' : '#a1a1aa'} strokeWidth={2} />
               <span style={{ fontSize: 13, fontWeight: active ? 500 : 400, color: active ? '#fafafa' : '#a1a1aa', flex: 1 }}>{label}</span>
-              {active && <ChevronRight size={12} color="#3b82f6" />}
+              {active && <ChevronRight size={12} color="#f59e0b" />}
             </Link>
           );
         })}
@@ -116,7 +116,7 @@ export function EmpireSidebar() {
                 display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
                 borderRadius: 8, textDecoration: 'none',
                 background: active ? 'rgba(29,78,216,0.12)' : 'transparent',
-                borderLeft: active ? '2px solid #3b82f6' : '2px solid transparent',
+                borderLeft: active ? '2px solid #f59e0b' : '2px solid transparent',
                 transition: 'all 0.12s ease',
               }}
               onMouseEnter={e => { if (!active) (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.03)'; }}
@@ -124,7 +124,7 @@ export function EmpireSidebar() {
             >
               <Icon size={15} color={active ? '#60a5fa' : '#a1a1aa'} strokeWidth={2} />
               <span style={{ fontSize: 13, fontWeight: active ? 500 : 400, color: active ? '#fafafa' : '#a1a1aa', flex: 1 }}>{label}</span>
-              {active && <ChevronRight size={12} color="#3b82f6" />}
+              {active && <ChevronRight size={12} color="#f59e0b" />}
             </Link>
           );
         })}
