@@ -55,6 +55,12 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/en/ceo', req.url));
   }
 
+  // /empire/* → canonically /en/empire/* — redirect bare path so middleware auth applies
+  if (pathname === '/empire' || pathname.startsWith('/empire/')) {
+    const rest = pathname.replace(/^\/empire/, '');
+    return NextResponse.redirect(new URL(`/en/empire${rest}`, req.url));
+  }
+
   // Root URL → redirect to CEO dashboard (authenticated) or login (not)
   if (pathname === '/' || pathname === '/en' || pathname === '/es' || pathname === '/fr') {
     return NextResponse.redirect(new URL(user ? '/en/ceo' : '/en/login', req.url));
