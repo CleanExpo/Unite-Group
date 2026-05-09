@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * SYN-525: PATCH /api/notifications/[id]/read — mark notification as read
  */

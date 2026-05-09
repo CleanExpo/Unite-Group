@@ -66,6 +66,6 @@
     "**/*.test.ts",
     "**/*.spec.ts",
     "supabase/functions",
-    "lib"
+    "lib/**"
   ]
 }

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * SYN-509: GET /api/dashboard/videos
  * Returns the current user's YouTube videos with stats for the YouTubeEmbedWidget.

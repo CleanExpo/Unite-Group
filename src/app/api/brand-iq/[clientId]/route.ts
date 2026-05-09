@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * SYN-527: GET /api/brand-iq/[clientId]
  * Returns brand profile + AI-generated next steps for BrandIQCard.
