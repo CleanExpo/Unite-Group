@@ -30,7 +30,7 @@ function formatDate(isoString: string | null): string {
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 const card: React.CSSProperties = {
-  background: "#111113",
+  background: "var(--surface-1)",
   border: "1px solid #27272a",
   borderRadius: 12,
   padding: 20,
@@ -107,7 +107,7 @@ function AgentsCard({ data }: { data: CcwHealth }) {
       <MetricRow label="Last action" value={data.last_agent_action ?? "—"} />
       <MetricRow label="Last active" value={formatRelativeTime(data.last_agent_at)} />
       <div style={{ marginTop: 12 }}>
-        <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 20, background: "rgba(29,78,216,0.1)", border: "1px solid rgba(29,78,216,0.2)", fontSize: 10, fontWeight: 700, color: "#3b82f6", letterSpacing: "0.04em" }}>Powered by Pi-CEO</span>
+        <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 20, background: "rgba(29,78,216,0.1)", border: "1px solid rgba(29,78,216,0.2)", fontSize: 10, fontWeight: 700, color: "var(--red-400)", letterSpacing: "0.04em" }}>Powered by Pi-CEO</span>
       </div>
     </motion.div>
   );
@@ -168,17 +168,17 @@ export default function CcwPortal() {
 
   if (loadingAuth) {
     return (
-      <div style={{ minHeight: "100vh", background: "#09090b", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ minHeight: "100vh", background: "var(--canvas)", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <p style={{ color: "#334155", fontSize: 14 }}>Authenticating&hellip;</p>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#09090b", color: "#f8fafc" }}>
+    <div style={{ minHeight: "100vh", background: "var(--canvas)", color: "#f8fafc" }}>
 
       {/* Portal header — CCW red accent confined to header only */}
-      <header style={{ background: "#111113", borderBottom: "1px solid #27272a", padding: "0 24px" }}>
+      <header style={{ background: "var(--surface-1)", borderBottom: "1px solid #27272a", padding: "0 24px" }}>
         {/* CCW red accent bar at very top */}
         <div style={{ height: 3, background: CCW_RED, marginLeft: -24, marginRight: -24 }} />
         <div style={{ maxWidth: 1100, margin: "0 auto", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -199,7 +199,7 @@ export default function CcwPortal() {
             <button
               onClick={fetchHealth} disabled={loadingData}
               style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", fontSize: 11, fontWeight: 500, borderRadius: 7, border: "1px solid #27272a", color: "#94a3b8", background: "transparent", cursor: loadingData ? "not-allowed" : "pointer", transition: "all 0.12s ease" }}
-              onMouseEnter={e => { if (!loadingData) { (e.currentTarget as HTMLButtonElement).style.background = "#18181b"; (e.currentTarget as HTMLButtonElement).style.color = "#f8fafc"; } }}
+              onMouseEnter={e => { if (!loadingData) { (e.currentTarget as HTMLButtonElement).style.background = "var(--surface-1)"; (e.currentTarget as HTMLButtonElement).style.color = "#f8fafc"; } }}
               onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "#94a3b8"; }}
             >
               <RefreshCw size={11} className={loadingData ? "spin" : ""} />
@@ -237,7 +237,7 @@ export default function CcwPortal() {
         {/* Footer */}
         <p style={{ marginTop: 32, fontSize: 12, color: "#334155", textAlign: "center" }}>
           Powered by Unite-Hub · Data refreshes every 60 seconds ·{" "}
-          <a href="mailto:contact@unite-group.in" style={{ color: "#3b82f6", textDecoration: "none" }}>contact@unite-group.in</a>
+          <a href="mailto:contact@unite-group.in" style={{ color: "var(--red-400)", textDecoration: "none" }}>contact@unite-group.in</a>
         </p>
       </main>
     </div>

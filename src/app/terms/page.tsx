@@ -11,7 +11,7 @@ export default function TermsOfUse() {
 
       {/* Content */}
       <div style={{ maxWidth: 800, margin: "0 auto", padding: "0 32px 96px" }}>
-        <div style={{ background: "#111113", border: "1px solid #27272a", borderRadius: 12, padding: 40 }}>
+        <div style={{ background: "var(--surface-1)", border: "1px solid #27272a", borderRadius: 12, padding: 40 }}>
           <div style={{ color: "#d4d4d8", fontSize: 15, lineHeight: 1.7 }}>
             <p style={{ marginBottom: 16 }}>
               This system is private and restricted to authorised Unite Group personnel only.
@@ -23,7 +23,7 @@ export default function TermsOfUse() {
             </p>
             <p style={{ marginBottom: 0 }}>
               For questions contact:{" "}
-              <a href="mailto:contact@unite-group.in" style={{ color: "#3b82f6", textDecoration: "none" }}>
+              <a href="mailto:contact@unite-group.in" style={{ color: "var(--red-400)", textDecoration: "none" }}>
                 contact@unite-group.in
               </a>
             </p>

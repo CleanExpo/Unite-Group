@@ -77,14 +77,14 @@ export default function ActivityPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: '#09090b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--canvas)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <RefreshCw size={18} color="#334155" className="spin" />
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#09090b', color: '#fafafa', padding: '32px 32px 64px' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--canvas)', color: 'var(--ink-primary)', padding: '32px 32px 64px' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -103,7 +103,7 @@ export default function ActivityPage() {
             value={projectFilter}
             onChange={e => setProjectFilter(e.target.value)}
             style={{
-              background: '#111113', border: '1px solid #27272a', color: '#a1a1aa',
+              background: 'var(--surface-1)', border: '1px solid #27272a', color: 'var(--ink-secondary)',
               fontSize: 13, padding: '7px 12px', borderRadius: 8, cursor: 'pointer', outline: 'none',
             }}
           >
@@ -115,17 +115,17 @@ export default function ActivityPage() {
 
       {records.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '80px 0', color: '#52525b' }}>
-          <Activity size={40} color="#3f3f46" style={{ marginBottom: 16 }} />
+          <Activity size={40} color="var(--ink-tertiary)" style={{ marginBottom: 16 }} />
           <p style={{ margin: 0, fontSize: 15, color: '#71717a' }}>No activity recorded yet</p>
         </div>
       ) : (
         <div style={{ position: 'relative', paddingLeft: 28 }}>
           {/* Timeline line */}
-          <div style={{ position: 'absolute', left: 10, top: 0, bottom: 0, width: 1, background: '#27272a' }} />
+          <div style={{ position: 'absolute', left: 10, top: 0, bottom: 0, width: 1, background: 'var(--border-default)' }} />
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {records.map((rec, i) => (
-              <div key={rec.id || i} style={{ position: 'relative', padding: '12px 16px', background: '#111113', border: '1px solid #1f1f23', borderRadius: 10, marginBottom: 4 }}>
+              <div key={rec.id || i} style={{ position: 'relative', padding: '12px 16px', background: 'var(--surface-1)', border: '1px solid #1f1f23', borderRadius: 10, marginBottom: 4 }}>
                 {/* Dot on timeline */}
                 <div style={{ position: 'absolute', left: -22, top: 16, width: 8, height: 8, borderRadius: '50%', background: '#334155', border: '2px solid #1f2937' }} />
 
@@ -143,10 +143,10 @@ export default function ActivityPage() {
                           {rec.action_type}
                         </span>
                       )}
-                      <span style={{ fontSize: 11, color: '#3f3f46', marginLeft: 'auto' }}>{timeAgo(rec.created_at)}</span>
+                      <span style={{ fontSize: 11, color: 'var(--ink-tertiary)', marginLeft: 'auto' }}>{timeAgo(rec.created_at)}</span>
                     </div>
                     {rec.title && (
-                      <div style={{ fontSize: 13, fontWeight: 500, color: '#fafafa', marginTop: 4 }}>{rec.title}</div>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink-primary)', marginTop: 4 }}>{rec.title}</div>
                     )}
                     {rec.detail && (
                       <div style={{ fontSize: 12, color: '#71717a', marginTop: 3, lineHeight: 1.5 }}>{rec.detail}</div>

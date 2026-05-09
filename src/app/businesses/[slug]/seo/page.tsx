@@ -38,7 +38,7 @@ function ScoreRing({ score, color }: { score: number; color: string }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
       <svg width={104} height={104} viewBox="0 0 104 104">
-        <circle cx={52} cy={52} r={r} fill="none" stroke="#27272a" strokeWidth={8} />
+        <circle cx={52} cy={52} r={r} fill="none" stroke="var(--border-default)" strokeWidth={8} />
         <motion.circle
           cx={52} cy={52} r={r} fill="none" stroke={ringColor} strokeWidth={8}
           strokeLinecap="round" transform="rotate(-90 52 52)"
@@ -48,7 +48,7 @@ function ScoreRing({ score, color }: { score: number; color: string }) {
           transition={{ duration: 1.2, ease: [0.23, 1, 0.32, 1] }}
         />
         <text x={52} y={48} textAnchor="middle" dominantBaseline="middle"
-          fill="#fafafa" fontSize={22} fontWeight={700} fontFamily="var(--font-mono)">{score}</text>
+          fill="var(--ink-primary)" fontSize={22} fontWeight={700} fontFamily="var(--font-mono)">{score}</text>
         <text x={52} y={66} textAnchor="middle" fill="#52525b" fontSize={11}>/ 100</text>
       </svg>
       <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#52525b' }}>SEO Score</span>
@@ -89,7 +89,7 @@ export default function SEOAuditPage() {
   if (!mounted) return null;
 
   if (!meta) return (
-    <div style={{ minHeight: '100vh', background: '#09090b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--canvas)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ textAlign: 'center' }}>
         <p style={{ color: '#52525b', fontFamily: 'var(--font-mono)', fontSize: 13 }}>Unknown business: {slug}</p>
         <Link href="/ceo" style={{ color: '#b30000', fontSize: 12, marginTop: 12, display: 'block' }}>← Back to Command Center</Link>
@@ -101,18 +101,18 @@ export default function SEOAuditPage() {
   const passed = checkEntries.filter(([, c]) => c.pass).length;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#09090b', color: '#fafafa' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--canvas)', color: 'var(--ink-primary)' }}>
       {/* Page title */}
       <div style={{ padding: "24px 24px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
-          <h1 style={{ fontSize: 18, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em", margin: 0, fontFamily: "var(--font-display)", display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink-primary)", letterSpacing: "-0.02em", margin: 0, fontFamily: "var(--font-display)", display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: meta.color, display: 'inline-block' }} />
             {meta.name} — SEO Audit
           </h1>
           <p style={{ fontSize: 11, color: "#52525b", margin: "3px 0 0", fontFamily: "var(--font-mono)" }}>
             <a href={`https://${meta.domain}`} target="_blank" rel="noopener noreferrer"
               style={{ color: '#52525b', textDecoration: 'none' }}
-              onMouseEnter={e => (e.currentTarget.style.color = '#a1a1aa')}
+              onMouseEnter={e => (e.currentTarget.style.color = 'var(--ink-secondary)')}
               onMouseLeave={e => (e.currentTarget.style.color = '#52525b')}
             >
               {meta.domain} <ExternalLink size={9} style={{ display: 'inline', verticalAlign: 'middle' }} />
@@ -137,7 +137,7 @@ export default function SEOAuditPage() {
           </a>
           <button
             onClick={runAudit} disabled={loading}
-            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', fontSize: 11, borderRadius: 7, border: '1px solid #27272a', color: loading ? '#52525b' : '#a1a1aa', background: 'transparent', cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.1s' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', fontSize: 11, borderRadius: 7, border: '1px solid #27272a', color: loading ? '#52525b' : 'var(--ink-secondary)', background: 'transparent', cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.1s' }}
           >
             <RefreshCw size={11} className={loading ? 'spin' : ''} />
             {loading ? 'Scanning…' : 'Re-run'}
@@ -151,7 +151,7 @@ export default function SEOAuditPage() {
         <div style={{ display: 'flex', gap: 16, alignItems: 'stretch' }}>
 
           {/* Score ring card */}
-          <div style={{ background: '#111113', backgroundImage: 'linear-gradient(180deg,rgba(255,255,255,0.025) 0%,transparent 50%)', border: '1px solid #27272a', borderRadius: 12, padding: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 160 }}>
+          <div style={{ background: 'var(--surface-1)', backgroundImage: 'linear-gradient(180deg,rgba(255,255,255,0.025) 0%,transparent 50%)', border: '1px solid #27272a', borderRadius: 12, padding: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 160 }}>
             {loading ? (
               <div className="skeleton" style={{ width: 104, height: 104, borderRadius: '50%' }} />
             ) : (
@@ -160,7 +160,7 @@ export default function SEOAuditPage() {
           </div>
 
           {/* Summary stats */}
-          <div style={{ flex: 1, background: '#111113', backgroundImage: 'linear-gradient(180deg,rgba(255,255,255,0.025) 0%,transparent 50%)', border: '1px solid #27272a', borderRadius: 12, padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ flex: 1, background: 'var(--surface-1)', backgroundImage: 'linear-gradient(180deg,rgba(255,255,255,0.025) 0%,transparent 50%)', border: '1px solid #27272a', borderRadius: 12, padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#52525b' }}>Audit Summary</div>
             {loading ? (
               <div className="skeleton" style={{ height: 40, borderRadius: 6 }} />
@@ -171,8 +171,8 @@ export default function SEOAuditPage() {
                   {result?.error && <span style={{ fontSize: 12, color: '#d97706', marginLeft: 12 }}>⚠ {result.error}</span>}
                 </div>
                 <div style={{ fontSize: 12, color: '#52525b' }}>
-                  Last scanned: <span style={{ fontFamily: 'var(--font-mono)', color: '#a1a1aa' }}>{result ? new Date(result.fetchedAt).toLocaleTimeString() : '—'}</span>
-                  &nbsp;·&nbsp;Domain: <a href={`https://${meta.domain}`} target="_blank" rel="noopener noreferrer" style={{ fontFamily: 'var(--font-mono)', color: '#1d4ed8', textDecoration: 'none' }}>{meta.domain}</a>
+                  Last scanned: <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--ink-secondary)' }}>{result ? new Date(result.fetchedAt).toLocaleTimeString() : '—'}</span>
+                  &nbsp;·&nbsp;Domain: <a href={`https://${meta.domain}`} target="_blank" rel="noopener noreferrer" style={{ fontFamily: 'var(--font-mono)', color: 'var(--red-500)', textDecoration: 'none' }}>{meta.domain}</a>
                 </div>
               </>
             )}
@@ -180,7 +180,7 @@ export default function SEOAuditPage() {
         </div>
 
         {/* Checklist */}
-        <div style={{ background: '#111113', backgroundImage: 'linear-gradient(180deg,rgba(255,255,255,0.025) 0%,transparent 50%)', border: '1px solid #27272a', borderRadius: 12, overflow: 'hidden' }}>
+        <div style={{ background: 'var(--surface-1)', backgroundImage: 'linear-gradient(180deg,rgba(255,255,255,0.025) 0%,transparent 50%)', border: '1px solid #27272a', borderRadius: 12, overflow: 'hidden' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid #27272a' }}>
             <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#52525b' }}>SEO Checks</span>
           </div>

@@ -70,19 +70,19 @@ export default function Analytics() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: "100vh", background: "#09090b", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Loader2 style={{ color: "#1d4ed8" }} className="h-12 w-12 animate-spin" />
+      <div style={{ minHeight: "100vh", background: "var(--canvas)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Loader2 style={{ color: "var(--red-500)" }} className="h-12 w-12 animate-spin" />
       </div>
     );
   }
 
   if (!isAdmin) {
     return (
-      <div style={{ minHeight: "100vh", background: "#09090b", padding: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ maxWidth: 480, background: "#111113", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 12, padding: 40, textAlign: "center" }}>
-          <h1 style={{ fontSize: 22, fontWeight: 600, color: "#fafafa", marginBottom: 12 }}>Access Denied</h1>
-          <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 24 }}>You don&apos;t have permission to access the analytics dashboard.</p>
-          <Link href={`/${locale}/dashboard`} style={{ background: "#1d4ed8", color: "#fff", textDecoration: "none", padding: "8px 20px", borderRadius: 8, fontSize: 13, fontWeight: 500 }}>
+      <div style={{ minHeight: "100vh", background: "var(--canvas)", padding: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ maxWidth: 480, background: "var(--surface-1)", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 12, padding: 40, textAlign: "center" }}>
+          <h1 style={{ fontSize: 22, fontWeight: 600, color: "var(--ink-primary)", marginBottom: 12 }}>Access Denied</h1>
+          <p style={{ color: "var(--ink-secondary)", fontSize: 14, marginBottom: 24 }}>You don&apos;t have permission to access the analytics dashboard.</p>
+          <Link href={`/${locale}/dashboard`} style={{ background: "var(--red-500)", color: "#fff", textDecoration: "none", padding: "8px 20px", borderRadius: 8, fontSize: 13, fontWeight: 500 }}>
             Back to Dashboard
           </Link>
         </div>
@@ -91,15 +91,15 @@ export default function Analytics() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#09090b", color: "#fafafa", fontFamily: "var(--font-inter, system-ui, sans-serif)" }}>
+    <div style={{ minHeight: "100vh", background: "var(--canvas)", color: "var(--ink-primary)", fontFamily: "var(--var(--font-display), sans-serif)" }}>
       {/* Header */}
       <div style={{ borderBottom: "1px solid #27272a", background: "rgba(9,9,11,0.9)", backdropFilter: "blur(20px)", position: "sticky", top: 0, zIndex: 50 }}>
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 24px", height: 64, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <Button variant="ghost" size="sm" style={{ color: "#a1a1aa" }} onClick={() => router.push(`/${locale}/dashboard`)}>
+            <Button variant="ghost" size="sm" style={{ color: "var(--ink-secondary)" }} onClick={() => router.push(`/${locale}/dashboard`)}>
               <ArrowLeft className="h-4 w-4 mr-2" /> Back to Dashboard
             </Button>
-            <h1 style={{ fontSize: 18, fontWeight: 600, color: "#fafafa" }}>Analytics Dashboard</h1>
+            <h1 style={{ fontSize: 18, fontWeight: 600, color: "var(--ink-primary)" }}>Analytics Dashboard</h1>
           </div>
           <span style={{ fontSize: 13, color: "#52525b" }}>{user?.email}</span>
         </div>

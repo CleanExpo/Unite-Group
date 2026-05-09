@@ -70,13 +70,13 @@ function renderMarkdown(md: string, highlight?: string): string {
 
 // ── Styles ───────────────────────────────────────────────────────────────────
 
-const BG      = '#09090b';
-const CARD    = '#111113';
-const BORDER  = '#27272a';
+const BG      = 'var(--canvas)';
+const CARD    = 'var(--surface-1)';
+const BORDER  = 'var(--border-default)';
 const MUTED   = '#52525b';
-const TEXT    = '#fafafa';
-const SUBDUED = '#a1a1aa';
-const ACCENT  = '#3b82f6';
+const TEXT    = 'var(--ink-primary)';
+const SUBDUED = 'var(--ink-secondary)';
+const ACCENT  = 'var(--red-400)';
 
 export default function WikiPage() {
   const router = useRouter();

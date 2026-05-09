@@ -31,7 +31,7 @@ const BIZ_LABELS: Record<string, string> = {
 
 function scoreColor(score: number) {
   if (score >= 80) return '#16a34a';
-  if (score >= 60) return '#f59e0b';
+  if (score >= 60) return 'var(--orange-400)';
   return '#dc2626';
 }
 
@@ -77,14 +77,14 @@ export default function HealthPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: '#09090b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--canvas)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <RefreshCw size={18} color="#334155" className="spin" />
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#09090b', color: '#fafafa', padding: '32px 32px 64px' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--canvas)', color: 'var(--ink-primary)', padding: '32px 32px 64px' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
         <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(34,197,94,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -101,7 +101,7 @@ export default function HealthPage() {
           const color = scoreColor(biz.current);
           const bg = scoreBg(biz.current);
           return (
-            <div key={biz.name} style={{ background: '#111113', border: '1px solid #1f1f23', borderRadius: 12, padding: '20px 20px 16px' }}>
+            <div key={biz.name} style={{ background: 'var(--surface-1)', border: '1px solid #1f1f23', borderRadius: 12, padding: '20px 20px 16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: '#e4e4e7' }}>{biz.name}</span>
                 <span style={{
@@ -113,7 +113,7 @@ export default function HealthPage() {
               </div>
 
               {biz.snapshots.length < 2 ? (
-                <div style={{ height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3f3f46', fontSize: 12 }}>
+                <div style={{ height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-tertiary)', fontSize: 12 }}>
                   Not enough data
                 </div>
               ) : (
@@ -128,7 +128,7 @@ export default function HealthPage() {
                     <XAxis dataKey="date" tick={{ fill: '#52525b', fontSize: 9 }} axisLine={false} tickLine={false} />
                     <YAxis domain={[0, 100]} tick={{ fill: '#52525b', fontSize: 9 }} axisLine={false} tickLine={false} />
                     <Tooltip
-                      contentStyle={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 6, fontSize: 12, color: '#fafafa' }}
+                      contentStyle={{ background: 'var(--surface-1)', border: '1px solid #27272a', borderRadius: 6, fontSize: 12, color: 'var(--ink-primary)' }}
                       itemStyle={{ color }}
                       formatter={(val: number) => [`${Math.round(val)}`, 'Health']}
                     />

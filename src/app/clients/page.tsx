@@ -76,31 +76,31 @@ export default function ClientsDirectory() {
 
   const inputStyle = {
     width: '100%', padding: '8px 12px', fontSize: 13, borderRadius: 8,
-    border: '1px solid #27272a', background: '#111113', color: '#fafafa',
+    border: '1px solid #27272a', background: 'var(--surface-1)', color: 'var(--ink-primary)',
     outline: 'none', fontFamily: 'var(--font-display)',
     transition: 'border-color 0.1s ease',
   } as React.CSSProperties;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#09090b', color: '#fafafa' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--canvas)', color: 'var(--ink-primary)' }}>
       {/* Header */}
       <header style={{ height: 60, display: 'flex', alignItems: 'center', padding: '0 24px', borderBottom: '1px solid #27272a', position: 'sticky', top: 0, background: 'rgba(9,9,11,0.9)', backdropFilter: 'blur(20px)', zIndex: 40 }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', width: '100%', display: 'flex', alignItems: 'center', gap: 16 }}>
           <Link href="/ceo" style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#52525b', textDecoration: 'none', fontSize: 12 }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#a1a1aa')}
+            onMouseEnter={e => (e.currentTarget.style.color = 'var(--ink-secondary)')}
             onMouseLeave={e => (e.currentTarget.style.color = '#52525b')}
           >
             <ArrowLeft size={12} /> Command Center
           </Link>
-          <span style={{ color: '#27272a' }}>·</span>
-          <h1 style={{ fontSize: 14, fontWeight: 700, color: '#fafafa', letterSpacing: '-0.02em', margin: 0, fontFamily: 'var(--font-display)' }}>Clients</h1>
+          <span style={{ color: 'var(--border-default)' }}>·</span>
+          <h1 style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-primary)', letterSpacing: '-0.02em', margin: 0, fontFamily: 'var(--font-display)' }}>Clients</h1>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#52525b' }}>{clients.length} total</span>
           <div style={{ flex: 1 }} />
           <button
             onClick={() => setShowAdd(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', fontSize: 12, fontWeight: 500, borderRadius: 8, border: '1px solid #1d4ed8', color: '#fff', background: '#1d4ed8', cursor: 'pointer', transition: 'background 0.1s' }}
-            onMouseEnter={e => (e.currentTarget.style.background = '#3b82f6')}
-            onMouseLeave={e => (e.currentTarget.style.background = '#1d4ed8')}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', fontSize: 12, fontWeight: 500, borderRadius: 8, border: '1px solid #1d4ed8', color: '#fff', background: 'var(--red-500)', cursor: 'pointer', transition: 'background 0.1s' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--red-400)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'var(--red-500)')}
           >
             <Plus size={13} /> Add Client
           </button>
@@ -113,13 +113,13 @@ export default function ClientsDirectory() {
         <div style={{ marginBottom: 12 }}>
           <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#52525b', marginBottom: 10 }}>Active Portals</div>
           <Link href="/clients/ccw" style={{ textDecoration: 'none' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 20px', background: '#111113', backgroundImage: 'linear-gradient(180deg,rgba(255,255,255,0.025) 0%,transparent 50%)', border: '1px solid #27272a', borderRadius: 10, transition: 'border-color 0.1s' }}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = '#3f3f46')}
-              onMouseLeave={e => (e.currentTarget.style.borderColor = '#27272a')}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 20px', background: 'var(--surface-1)', backgroundImage: 'linear-gradient(180deg,rgba(255,255,255,0.025) 0%,transparent 50%)', border: '1px solid #27272a', borderRadius: 10, transition: 'border-color 0.1s' }}
+              onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--ink-tertiary)')}
+              onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
             >
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} />
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#fafafa', letterSpacing: '-0.02em' }}>Carpet Cleaners Warehouse (CCW)</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink-primary)', letterSpacing: '-0.02em' }}>Carpet Cleaners Warehouse (CCW)</div>
                 <div style={{ fontSize: 11, color: '#52525b', marginTop: 2 }}>First paying client · $2,400/yr ARR · CCW-CRM portal active</div>
               </div>
               <span style={{ fontSize: 10, fontWeight: 600, color: '#16a34a', letterSpacing: '0.04em', textTransform: 'uppercase', padding: '2px 8px', borderRadius: 4, background: 'rgba(22,163,74,0.1)', border: '1px solid rgba(22,163,74,0.2)' }}>Active</span>
@@ -133,18 +133,18 @@ export default function ClientsDirectory() {
           <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#52525b', marginBottom: 10 }}>All Clients</div>
 
           {loading ? (
-            <div style={{ background: '#111113', border: '1px solid #27272a', borderRadius: 10, overflow: 'hidden' }}>
+            <div style={{ background: 'var(--surface-1)', border: '1px solid #27272a', borderRadius: 10, overflow: 'hidden' }}>
               {Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="skeleton" style={{ height: 54, borderBottom: i < 2 ? '1px solid #27272a' : 'none' }} />
               ))}
             </div>
           ) : clients.length === 0 ? (
-            <div style={{ background: '#111113', border: '1px dashed #27272a', borderRadius: 10, padding: '40px 24px', textAlign: 'center' }}>
-              <Building2 size={24} color="#3f3f46" style={{ margin: '0 auto 12px' }} />
+            <div style={{ background: 'var(--surface-1)', border: '1px dashed #27272a', borderRadius: 10, padding: '40px 24px', textAlign: 'center' }}>
+              <Building2 size={24} color="var(--ink-tertiary)" style={{ margin: '0 auto 12px' }} />
               <p style={{ fontSize: 13, color: '#52525b', margin: 0 }}>No clients yet. Add your first client.</p>
             </div>
           ) : (
-            <div style={{ background: '#111113', border: '1px solid #27272a', borderRadius: 10, overflow: 'hidden' }}>
+            <div style={{ background: 'var(--surface-1)', border: '1px solid #27272a', borderRadius: 10, overflow: 'hidden' }}>
               {clients.map((client, i) => (
                 <motion.div
                   key={client.id}
@@ -161,7 +161,7 @@ export default function ClientsDirectory() {
                     <div style={{ fontSize: 13, fontWeight: 600, color: '#d4d4d8', letterSpacing: '-0.01em' }}>{client.name}</div>
                     <div style={{ fontSize: 11, color: '#52525b', marginTop: 2 }}>{client.company ?? client.email}</div>
                   </div>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#a1a1aa' }}>{client.email}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-secondary)' }}>{client.email}</span>
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: client.total_arr_aud > 0 ? '#16a34a' : '#52525b' }}>
                     {client.total_arr_aud > 0 ? `$${client.total_arr_aud.toLocaleString()}` : '—'}
                   </span>
@@ -187,11 +187,11 @@ export default function ClientsDirectory() {
             <motion.div
               initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ ease: [0.23, 1, 0.32, 1], duration: 0.3 }}
-              style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 400, background: '#111113', borderLeft: '1px solid #27272a', zIndex: 50, display: 'flex', flexDirection: 'column' }}
+              style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 400, background: 'var(--surface-1)', borderLeft: '1px solid #27272a', zIndex: 50, display: 'flex', flexDirection: 'column' }}
             >
               {/* Panel header */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid #27272a' }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: '#fafafa', letterSpacing: '-0.02em', fontFamily: 'var(--font-display)' }}>Add Client</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-primary)', letterSpacing: '-0.02em', fontFamily: 'var(--font-display)' }}>Add Client</span>
                 <button onClick={() => setShowAdd(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 4 }}>
                   <X size={16} color="#52525b" />
                 </button>
@@ -212,7 +212,7 @@ export default function ClientsDirectory() {
                   { key: 'phone',   label: 'Phone',         type: 'tel',   required: false, placeholder: '+61 4xx xxx xxx' },
                 ].map(field => (
                   <div key={field.key} style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                    <label style={{ fontSize: 11, fontWeight: 500, color: '#a1a1aa' }}>
+                    <label style={{ fontSize: 11, fontWeight: 500, color: 'var(--ink-secondary)' }}>
                       {field.label}{field.required && <span style={{ color: '#dc2626' }}> *</span>}
                     </label>
                     <input
@@ -222,14 +222,14 @@ export default function ClientsDirectory() {
                       value={form[field.key as keyof typeof form]}
                       onChange={e => setForm(f => ({ ...f, [field.key]: e.target.value }))}
                       style={inputStyle}
-                      onFocus={e => (e.target.style.borderColor = '#1d4ed8')}
-                      onBlur={e => (e.target.style.borderColor = '#27272a')}
+                      onFocus={e => (e.target.style.borderColor = 'var(--red-500)')}
+                      onBlur={e => (e.target.style.borderColor = 'var(--border-default)')}
                     />
                   </div>
                 ))}
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                  <label style={{ fontSize: 11, fontWeight: 500, color: '#a1a1aa' }}>Country</label>
+                  <label style={{ fontSize: 11, fontWeight: 500, color: 'var(--ink-secondary)' }}>Country</label>
                   <select
                     value={form.country}
                     onChange={e => setForm(f => ({ ...f, country: e.target.value }))}
@@ -246,15 +246,15 @@ export default function ClientsDirectory() {
                 <div style={{ marginTop: 'auto', display: 'flex', gap: 10 }}>
                   <button
                     type="button" onClick={() => setShowAdd(false)}
-                    style={{ flex: 1, padding: '9px 0', fontSize: 13, fontWeight: 500, borderRadius: 8, border: '1px solid #27272a', color: '#a1a1aa', background: 'transparent', cursor: 'pointer' }}
+                    style={{ flex: 1, padding: '9px 0', fontSize: 13, fontWeight: 500, borderRadius: 8, border: '1px solid #27272a', color: 'var(--ink-secondary)', background: 'transparent', cursor: 'pointer' }}
                   >
                     Cancel
                   </button>
                   <button
                     type="submit" disabled={saving}
-                    style={{ flex: 2, padding: '9px 0', fontSize: 13, fontWeight: 500, borderRadius: 8, border: 'none', color: '#fff', background: saving ? '#3f3f46' : '#1d4ed8', cursor: saving ? 'not-allowed' : 'pointer', transition: 'background 0.1s' }}
-                    onMouseEnter={e => { if (!saving) (e.currentTarget as HTMLButtonElement).style.background = '#3b82f6'; }}
-                    onMouseLeave={e => { if (!saving) (e.currentTarget as HTMLButtonElement).style.background = '#1d4ed8'; }}
+                    style={{ flex: 2, padding: '9px 0', fontSize: 13, fontWeight: 500, borderRadius: 8, border: 'none', color: '#fff', background: saving ? 'var(--ink-tertiary)' : 'var(--red-500)', cursor: saving ? 'not-allowed' : 'pointer', transition: 'background 0.1s' }}
+                    onMouseEnter={e => { if (!saving) (e.currentTarget as HTMLButtonElement).style.background = 'var(--red-400)'; }}
+                    onMouseLeave={e => { if (!saving) (e.currentTarget as HTMLButtonElement).style.background = 'var(--red-500)'; }}
                   >
                     {saving ? 'Adding…' : 'Add Client'}
                   </button>

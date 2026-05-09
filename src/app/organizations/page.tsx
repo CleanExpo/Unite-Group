@@ -19,9 +19,9 @@ interface Organization {
 }
 
 const inputStyle: React.CSSProperties = {
-  background: "#111113",
+  background: "var(--surface-1)",
   border: "1px solid #27272a",
-  color: "#fafafa",
+  color: "var(--ink-primary)",
   borderRadius: 6,
   padding: "8px 12px",
   fontSize: 14,
@@ -110,47 +110,47 @@ export default function Organizations() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: "100vh", background: "#09090b", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ minHeight: "100vh", background: "var(--canvas)", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ textAlign: "center" }}>
           <div style={{ width: 48, height: 48, border: "2px solid #1d4ed8", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto 16px" }} />
-          <p style={{ color: "#a1a1aa", fontSize: 14 }}>Loading organizations...</p>
+          <p style={{ color: "var(--ink-secondary)", fontSize: 14 }}>Loading organizations...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#09090b", color: "#fafafa", fontFamily: "var(--font-inter, system-ui, sans-serif)" }}>
+    <div style={{ minHeight: "100vh", background: "var(--canvas)", color: "var(--ink-primary)", fontFamily: "var(--var(--font-display), sans-serif)" }}>
       {/* Navigation */}
       <nav style={{ borderBottom: "1px solid #27272a", background: "rgba(9,9,11,0.9)", backdropFilter: "blur(20px)" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 24px", display: "flex", justifyContent: "space-between", alignItems: "center", height: 64 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
             <Link href="/" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none" }}>
-              <div style={{ width: 36, height: 36, background: "#1d4ed8", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ width: 36, height: 36, background: "var(--red-500)", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <span style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>UG</span>
               </div>
-              <span style={{ fontSize: 16, fontWeight: 700, color: "#fafafa" }}>UNITE Group</span>
+              <span style={{ fontSize: 16, fontWeight: 700, color: "var(--ink-primary)" }}>UNITE Group</span>
             </Link>
             <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
-              <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: 6, color: "#a1a1aa", textDecoration: "none", fontSize: 14 }}>
+              <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--ink-secondary)", textDecoration: "none", fontSize: 14 }}>
                 <Home size={14} /> Dashboard
               </Link>
-              <Link href="/projects" style={{ display: "flex", alignItems: "center", gap: 6, color: "#a1a1aa", textDecoration: "none", fontSize: 14 }}>
+              <Link href="/projects" style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--ink-secondary)", textDecoration: "none", fontSize: 14 }}>
                 <FolderOpen size={14} /> Projects
               </Link>
-              <Link href="/tasks" style={{ display: "flex", alignItems: "center", gap: 6, color: "#a1a1aa", textDecoration: "none", fontSize: 14 }}>
+              <Link href="/tasks" style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--ink-secondary)", textDecoration: "none", fontSize: 14 }}>
                 <CheckSquare size={14} /> Tasks
               </Link>
-              <Link href="/organizations" style={{ display: "flex", alignItems: "center", gap: 6, color: "#3b82f6", textDecoration: "none", fontSize: 14, fontWeight: 500 }}>
+              <Link href="/organizations" style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--red-400)", textDecoration: "none", fontSize: 14, fontWeight: 500 }}>
                 <Users size={14} /> Organizations
               </Link>
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <Link href="/profile" style={{ color: "#a1a1aa", textDecoration: "none" }}>
+            <Link href="/profile" style={{ color: "var(--ink-secondary)", textDecoration: "none" }}>
               <Settings size={18} />
             </Link>
-            <button onClick={handleSignOut} style={{ background: "transparent", border: "none", color: "#a1a1aa", cursor: "pointer", padding: 4 }}>
+            <button onClick={handleSignOut} style={{ background: "transparent", border: "none", color: "var(--ink-secondary)", cursor: "pointer", padding: 4 }}>
               <LogOut size={18} />
             </button>
           </div>
@@ -164,30 +164,30 @@ export default function Organizations() {
             <ArrowLeft size={18} />
           </Link>
           <div style={{ flex: 1 }}>
-            <h1 style={{ fontSize: 32, fontWeight: 700, letterSpacing: "-0.02em", color: "#fafafa", margin: 0 }}>Organizations</h1>
-            <p style={{ color: "#a1a1aa", fontSize: 15, marginTop: 4 }}>Manage your client organizations and accounts</p>
+            <h1 style={{ fontSize: 32, fontWeight: 700, letterSpacing: "-0.02em", color: "var(--ink-primary)", margin: 0 }}>Organizations</h1>
+            <p style={{ color: "var(--ink-secondary)", fontSize: 15, marginTop: 4 }}>Manage your client organizations and accounts</p>
           </div>
         </div>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <Building2 size={20} style={{ color: "#1d4ed8" }} />
+            <Building2 size={20} style={{ color: "var(--red-500)" }} />
             <div>
-              <h2 style={{ fontSize: 18, fontWeight: 600, color: "#fafafa", margin: 0 }}>Organization Management</h2>
+              <h2 style={{ fontSize: 18, fontWeight: 600, color: "var(--ink-primary)", margin: 0 }}>Organization Management</h2>
               <p style={{ color: "#52525b", fontSize: 13, marginTop: 2 }}>Create and manage client organizations</p>
             </div>
           </div>
 
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <button style={{ background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 500, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+              <button style={{ background: "var(--red-500)", color: "#fff", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 500, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
                 <Plus size={14} /> Add Organization
               </button>
             </DialogTrigger>
-            <DialogContent style={{ background: "#18181b", border: "1px solid #27272a", color: "#fafafa" } as React.CSSProperties}>
+            <DialogContent style={{ background: "var(--surface-1)", border: "1px solid #27272a", color: "var(--ink-primary)" } as React.CSSProperties}>
               <DialogHeader>
-                <DialogTitle style={{ color: "#fafafa" }}>Add New Organization</DialogTitle>
-                <DialogDescription style={{ color: "#a1a1aa" }}>
+                <DialogTitle style={{ color: "var(--ink-primary)" }}>Add New Organization</DialogTitle>
+                <DialogDescription style={{ color: "var(--ink-secondary)" }}>
                   Create a new organization to manage projects and contacts.
                 </DialogDescription>
               </DialogHeader>
@@ -214,10 +214,10 @@ export default function Organizations() {
                 <div>
                   <label style={labelStyle}>Industry</label>
                   <Select value={formData.industry} onValueChange={(value) => handleChange('industry', value)}>
-                    <SelectTrigger style={{ background: "#111113", border: "1px solid #27272a", color: "#fafafa" } as React.CSSProperties}>
+                    <SelectTrigger style={{ background: "var(--surface-1)", border: "1px solid #27272a", color: "var(--ink-primary)" } as React.CSSProperties}>
                       <SelectValue placeholder="Select industry" />
                     </SelectTrigger>
-                    <SelectContent style={{ background: "#18181b", border: "1px solid #27272a" } as React.CSSProperties}>
+                    <SelectContent style={{ background: "var(--surface-1)", border: "1px solid #27272a" } as React.CSSProperties}>
                       <SelectItem value="technology">Technology</SelectItem>
                       <SelectItem value="healthcare">Healthcare</SelectItem>
                       <SelectItem value="finance">Finance</SelectItem>
@@ -231,10 +231,10 @@ export default function Organizations() {
                 <div>
                   <label style={labelStyle}>Company Size</label>
                   <Select value={formData.size} onValueChange={(value) => handleChange('size', value)}>
-                    <SelectTrigger style={{ background: "#111113", border: "1px solid #27272a", color: "#fafafa" } as React.CSSProperties}>
+                    <SelectTrigger style={{ background: "var(--surface-1)", border: "1px solid #27272a", color: "var(--ink-primary)" } as React.CSSProperties}>
                       <SelectValue placeholder="Select size" />
                     </SelectTrigger>
-                    <SelectContent style={{ background: "#18181b", border: "1px solid #27272a" } as React.CSSProperties}>
+                    <SelectContent style={{ background: "var(--surface-1)", border: "1px solid #27272a" } as React.CSSProperties}>
                       <SelectItem value="1-10">1-10 employees</SelectItem>
                       <SelectItem value="11-50">11-50 employees</SelectItem>
                       <SelectItem value="51-200">51-200 employees</SelectItem>
@@ -244,10 +244,10 @@ export default function Organizations() {
                   </Select>
                 </div>
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, paddingTop: 8 }}>
-                  <button type="button" onClick={() => setIsDialogOpen(false)} style={{ background: "transparent", border: "1px solid #27272a", color: "#a1a1aa", borderRadius: 8, padding: "8px 16px", fontSize: 13, cursor: "pointer" }}>
+                  <button type="button" onClick={() => setIsDialogOpen(false)} style={{ background: "transparent", border: "1px solid #27272a", color: "var(--ink-secondary)", borderRadius: 8, padding: "8px 16px", fontSize: 13, cursor: "pointer" }}>
                     Cancel
                   </button>
-                  <button type="submit" style={{ background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
+                  <button type="submit" style={{ background: "var(--red-500)", color: "#fff", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
                     Create Organization
                   </button>
                 </div>
@@ -261,13 +261,13 @@ export default function Organizations() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-            style={{ background: "#111113", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 12, padding: 48, textAlign: "center" }}>
+            style={{ background: "var(--surface-1)", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 12, padding: 48, textAlign: "center" }}>
             <Building2 size={40} style={{ color: "#52525b", margin: "0 auto 16px" }} />
-            <h3 style={{ fontSize: 16, fontWeight: 600, color: "#fafafa", marginBottom: 8 }}>No organizations yet</h3>
-            <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 24 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 600, color: "var(--ink-primary)", marginBottom: 8 }}>No organizations yet</h3>
+            <p style={{ color: "var(--ink-secondary)", fontSize: 14, marginBottom: 24 }}>
               Get started by creating your first organization to manage projects and contacts.
             </p>
-            <button onClick={() => setIsDialogOpen(true)} style={{ background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 8, padding: "8px 20px", fontSize: 13, fontWeight: 500, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <button onClick={() => setIsDialogOpen(true)} style={{ background: "var(--red-500)", color: "#fff", border: "none", borderRadius: 8, padding: "8px 20px", fontSize: 13, fontWeight: 500, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}>
               <Plus size={14} /> Add Your First Organization
             </button>
           </motion.div>
@@ -276,9 +276,9 @@ export default function Organizations() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-            style={{ background: "#111113", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 12, overflow: "hidden" }}>
+            style={{ background: "var(--surface-1)", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 12, overflow: "hidden" }}>
             <div style={{ padding: "20px 24px", borderBottom: "1px solid #27272a" }}>
-              <h2 style={{ fontSize: 16, fontWeight: 600, color: "#fafafa", margin: 0 }}>All Organizations</h2>
+              <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--ink-primary)", margin: 0 }}>All Organizations</h2>
               <p style={{ color: "#52525b", fontSize: 13, marginTop: 4 }}>
                 {organizations.length} organization{organizations.length !== 1 ? 's' : ''} total
               </p>
@@ -297,14 +297,14 @@ export default function Organizations() {
                   {organizations.map((org) => (
                     <tr key={org.id} style={{ borderBottom: "1px solid #27272a" }}>
                       <td style={{ padding: "14px 24px" }}>
-                        <div style={{ fontWeight: 500, color: "#fafafa" }}>{org.name}</div>
+                        <div style={{ fontWeight: 500, color: "var(--ink-primary)" }}>{org.name}</div>
                         {org.description && (
                           <div style={{ fontSize: 12, color: "#52525b", marginTop: 2 }}>{org.description}</div>
                         )}
                       </td>
-                      <td style={{ padding: "14px 24px", color: "#a1a1aa" }}>{org.industry || '—'}</td>
-                      <td style={{ padding: "14px 24px", color: "#a1a1aa" }}>{org.size || '—'}</td>
-                      <td style={{ padding: "14px 24px", color: "#a1a1aa", fontFamily: "var(--font-mono, monospace)", fontSize: 12 }}>
+                      <td style={{ padding: "14px 24px", color: "var(--ink-secondary)" }}>{org.industry || '—'}</td>
+                      <td style={{ padding: "14px 24px", color: "var(--ink-secondary)" }}>{org.size || '—'}</td>
+                      <td style={{ padding: "14px 24px", color: "var(--ink-secondary)", fontFamily: "var(--font-mono, monospace)", fontSize: 12 }}>
                         {new Date(org.created_at).toLocaleDateString()}
                       </td>
                     </tr>

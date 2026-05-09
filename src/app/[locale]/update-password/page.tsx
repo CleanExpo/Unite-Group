@@ -54,18 +54,18 @@ export default function UpdatePassword() {
 
   const inputStyle: React.CSSProperties = {
     width: "100%", borderRadius: 10, padding: "10px 14px", paddingRight: 44,
-    fontSize: 14, color: "#fafafa", background: "#18181b", border: "1px solid #27272a",
+    fontSize: 14, color: "var(--ink-primary)", background: "var(--surface-1)", border: "1px solid #27272a",
     outline: "none", boxSizing: "border-box", transition: "border-color 0.12s ease",
   };
 
-  const wrapStyle: React.CSSProperties = { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, background: "#09090b" };
-  const cardStyle: React.CSSProperties = { width: "100%", maxWidth: 400, background: "#111113", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 16, padding: 32 };
+  const wrapStyle: React.CSSProperties = { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, background: "var(--canvas)" };
+  const cardStyle: React.CSSProperties = { width: "100%", maxWidth: 400, background: "var(--surface-1)", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 16, padding: 32 };
 
   const Logo = () => (
     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
-      <div style={{ width: 32, height: 32, borderRadius: 8, background: "#1d4ed8", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, color: "#fff" }}>U</div>
+      <div style={{ width: 32, height: 32, borderRadius: 8, background: "var(--red-500)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, color: "#fff" }}>U</div>
       <div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em" }}>Unite Group</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink-primary)", letterSpacing: "-0.02em" }}>Unite Group</div>
         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
           <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#fbbf24", display: "inline-block" }} />
           <span style={{ fontSize: 9, color: "#fbbf24", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Empire</span>
@@ -78,7 +78,7 @@ export default function UpdatePassword() {
     return (
       <div style={wrapStyle}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Loader2 size={18} color="#3b82f6" className="animate-spin" />
+          <Loader2 size={18} color="var(--red-400)" className="animate-spin" />
           <p style={{ color: "#94a3b8", fontSize: 14 }}>Verifying your reset link&hellip;</p>
         </div>
       </div>
@@ -97,11 +97,11 @@ export default function UpdatePassword() {
         {success ? (
           <div style={{ textAlign: "center", padding: "16px 0" }}>
             <CheckCircle2 size={40} color="#16a34a" style={{ margin: "0 auto 12px" }} />
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: "#fafafa", margin: "0 0 8px" }}>Password updated</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--ink-primary)", margin: "0 0 8px" }}>Password updated</h2>
             <p style={{ fontSize: 14, color: "#52525b", marginBottom: 20 }}>Your password has been updated. Redirecting to sign in&hellip;</p>
             <button
               onClick={() => router.push("/login")}
-              style={{ width: "100%", padding: "11px 0", borderRadius: 10, fontSize: 14, fontWeight: 600, color: "#fff", background: "#1d4ed8", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+              style={{ width: "100%", padding: "11px 0", borderRadius: 10, fontSize: 14, fontWeight: 600, color: "#fff", background: "var(--red-500)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
             >
               <ArrowLeft size={15} />Go to sign in
             </button>
@@ -109,7 +109,7 @@ export default function UpdatePassword() {
         ) : validToken ? (
           <>
             <div style={{ marginBottom: 24 }}>
-              <h2 style={{ fontSize: 22, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em", margin: 0 }}>Set a new password</h2>
+              <h2 style={{ fontSize: 22, fontWeight: 700, color: "var(--ink-primary)", letterSpacing: "-0.02em", margin: 0 }}>Set a new password</h2>
               <p style={{ fontSize: 14, color: "#52525b", marginTop: 6 }}>Create a new secure password for your account.</p>
             </div>
 
@@ -127,8 +127,8 @@ export default function UpdatePassword() {
                     id="password" type={showPassword ? "text" : "password"} required minLength={6}
                     value={password} onChange={e => setPassword(e.target.value)}
                     placeholder="••••••••" style={inputStyle}
-                    onFocus={e => (e.target.style.borderColor = "#1d4ed8")}
-                    onBlur={e => (e.target.style.borderColor = "#27272a")}
+                    onFocus={e => (e.target.style.borderColor = "var(--red-500)")}
+                    onBlur={e => (e.target.style.borderColor = "var(--border-default)")}
                   />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} tabIndex={-1}
                     style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#52525b", padding: 4 }}>
@@ -145,8 +145,8 @@ export default function UpdatePassword() {
                     id="confirmPassword" type={showConfirm ? "text" : "password"} required
                     value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
                     placeholder="••••••••" style={inputStyle}
-                    onFocus={e => (e.target.style.borderColor = "#1d4ed8")}
-                    onBlur={e => (e.target.style.borderColor = "#27272a")}
+                    onFocus={e => (e.target.style.borderColor = "var(--red-500)")}
+                    onBlur={e => (e.target.style.borderColor = "var(--border-default)")}
                   />
                   <button type="button" onClick={() => setShowConfirm(!showConfirm)} tabIndex={-1}
                     style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#52525b", padding: 4 }}>
@@ -157,9 +157,9 @@ export default function UpdatePassword() {
 
               <button
                 type="submit" disabled={loading}
-                style={{ width: "100%", padding: "11px 0", borderRadius: 10, fontSize: 14, fontWeight: 600, color: "#fff", background: "#1d4ed8", border: "none", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.6 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "background 0.16s ease" }}
-                onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = "#3b82f6"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#1d4ed8"; }}
+                style={{ width: "100%", padding: "11px 0", borderRadius: 10, fontSize: 14, fontWeight: 600, color: "#fff", background: "var(--red-500)", border: "none", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.6 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "background 0.16s ease" }}
+                onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = "var(--red-400)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--red-500)"; }}
                 onMouseDown={e => { (e.currentTarget as HTMLButtonElement).style.transform = "scale(0.97)"; }}
                 onMouseUp={e => { (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)"; }}
               >
@@ -174,7 +174,7 @@ export default function UpdatePassword() {
             </div>
             <Link
               href="/reset-password"
-              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", padding: "11px 0", borderRadius: 10, fontSize: 14, fontWeight: 600, color: "#fff", background: "#1d4ed8", textDecoration: "none" }}
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", padding: "11px 0", borderRadius: 10, fontSize: 14, fontWeight: 600, color: "#fff", background: "var(--red-500)", textDecoration: "none" }}
             >
               <ArrowLeft size={15} />Request a new reset link
             </Link>
@@ -182,7 +182,7 @@ export default function UpdatePassword() {
         )}
 
         <div style={{ marginTop: 24, textAlign: "center" }}>
-          <Link href="/login" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, color: "#3b82f6", textDecoration: "none" }}>
+          <Link href="/login" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, color: "var(--red-400)", textDecoration: "none" }}>
             <ArrowLeft size={13} />Back to sign in
           </Link>
         </div>

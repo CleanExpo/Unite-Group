@@ -37,7 +37,7 @@ export default function SourcesPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: '#09090b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--canvas)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <RefreshCw size={18} color="#334155" className="spin" />
       </div>
     );
@@ -46,7 +46,7 @@ export default function SourcesPage() {
   const isEmpty = data.pending.length === 0 && data.completed.length === 0;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#09090b', color: '#fafafa', padding: '32px 32px 64px' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--canvas)', color: 'var(--ink-primary)', padding: '32px 32px 64px' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
         <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(139,92,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -60,7 +60,7 @@ export default function SourcesPage() {
 
       {isEmpty ? (
         <div style={{ textAlign: 'center', padding: '80px 0', color: '#52525b' }}>
-          <CheckCircle2 size={40} color="#3f3f46" style={{ marginBottom: 16 }} />
+          <CheckCircle2 size={40} color="var(--ink-tertiary)" style={{ marginBottom: 16 }} />
           <p style={{ margin: 0, fontSize: 15, fontWeight: 500, color: '#71717a' }}>All sources processed — 2nd Brain is up to date</p>
         </div>
       ) : (
@@ -68,30 +68,30 @@ export default function SourcesPage() {
           {/* Pending */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-              <Clock size={14} color="#f59e0b" />
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Pending</span>
+              <Clock size={14} color="var(--orange-400)" />
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--orange-400)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Pending</span>
               {data.pending.length > 0 && (
-                <span style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', fontSize: 11, fontWeight: 600, padding: '1px 7px', borderRadius: 20 }}>
+                <span style={{ background: 'rgba(245,158,11,0.15)', color: 'var(--orange-400)', fontSize: 11, fontWeight: 600, padding: '1px 7px', borderRadius: 20 }}>
                   {data.pending.length}
                 </span>
               )}
             </div>
             {data.pending.length === 0 ? (
-              <div style={{ padding: '20px 16px', background: '#111113', border: '1px solid #27272a', borderRadius: 10, color: '#52525b', fontSize: 13 }}>
+              <div style={{ padding: '20px 16px', background: 'var(--surface-1)', border: '1px solid #27272a', borderRadius: 10, color: '#52525b', fontSize: 13 }}>
                 No pending sources
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {data.pending.map(source => (
-                  <div key={source.id} style={{ padding: '14px 16px', background: '#111113', border: '1px solid #27272a', borderRadius: 10 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: '#fafafa', marginBottom: 4 }}>
+                  <div key={source.id} style={{ padding: '14px 16px', background: 'var(--surface-1)', border: '1px solid #27272a', borderRadius: 10 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink-primary)', marginBottom: 4 }}>
                       {source.title || source.filename || 'Untitled'}
                     </div>
                     {source.filename && source.title && (
                       <div style={{ fontSize: 11, color: '#52525b', fontFamily: 'monospace' }}>{source.filename}</div>
                     )}
                     {source.created_at && (
-                      <div style={{ fontSize: 11, color: '#3f3f46', marginTop: 6 }}>
+                      <div style={{ fontSize: 11, color: 'var(--ink-tertiary)', marginTop: 6 }}>
                         Queued {new Date(source.created_at).toLocaleString('en-AU', { dateStyle: 'short', timeStyle: 'short' })}
                       </div>
                     )}
@@ -113,14 +113,14 @@ export default function SourcesPage() {
               )}
             </div>
             {data.completed.length === 0 ? (
-              <div style={{ padding: '20px 16px', background: '#111113', border: '1px solid #27272a', borderRadius: 10, color: '#52525b', fontSize: 13 }}>
+              <div style={{ padding: '20px 16px', background: 'var(--surface-1)', border: '1px solid #27272a', borderRadius: 10, color: '#52525b', fontSize: 13 }}>
                 No completed sources yet
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {data.completed.map(source => (
-                  <div key={source.id} style={{ padding: '14px 16px', background: '#111113', border: '1px solid #27272a', borderRadius: 10 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: '#fafafa', marginBottom: 4 }}>
+                  <div key={source.id} style={{ padding: '14px 16px', background: 'var(--surface-1)', border: '1px solid #27272a', borderRadius: 10 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink-primary)', marginBottom: 4 }}>
                       {source.title || source.filename || 'Untitled'}
                     </div>
                     {source.wiki_pages_updated && source.wiki_pages_updated.length > 0 && (
@@ -133,7 +133,7 @@ export default function SourcesPage() {
                       </div>
                     )}
                     {source.processed_at && (
-                      <div style={{ fontSize: 11, color: '#3f3f46', marginTop: 6 }}>
+                      <div style={{ fontSize: 11, color: 'var(--ink-tertiary)', marginTop: 6 }}>
                         Processed {new Date(source.processed_at).toLocaleString('en-AU', { dateStyle: 'short', timeStyle: 'short' })}
                       </div>
                     )}

@@ -255,16 +255,16 @@ export default function PrivacyPage() {
 
   if (state.loading) {
     return (
-      <div style={{ minHeight: "100vh", background: "#09090b", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ minHeight: "100vh", background: "var(--canvas)", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <p style={{ color: "#475569", fontSize: 14 }}>Loading privacy settings&hellip;</p>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#09090b", color: "#fafafa" }}>
+    <div style={{ minHeight: "100vh", background: "var(--canvas)", color: "var(--ink-primary)" }}>
       <div style={{ maxWidth: 800, margin: "0 auto", padding: "40px 24px 80px" }}>
-      <h1 style={{ fontSize: 24, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.03em", marginBottom: 24 }}>Privacy Settings</h1>
+      <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--ink-primary)", letterSpacing: "-0.03em", marginBottom: 24 }}>Privacy Settings</h1>
 
       {state.error && (
         <div style={{ marginBottom: 16, padding: "12px 16px", borderRadius: 10, background: "rgba(220,38,38,0.08)", border: "1px solid rgba(220,38,38,0.25)" }}>
@@ -278,7 +278,7 @@ export default function PrivacyPage() {
         </div>
       )}
 
-      <div style={{ background: "#111113", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 12, padding: 24, marginBottom: 20 }}>
+      <div style={{ background: "var(--surface-1)", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 12, padding: 24, marginBottom: 20 }}>
         <h2 className="text-xl font-semibold mb-4">Communication Preferences</h2>
         <p className="mb-4">
           Control what types of communications you receive from us. You can change these settings at any time.
@@ -424,15 +424,15 @@ export default function PrivacyPage() {
             type="button"
             onClick={handleSaveSettings}
             disabled={state.submitting}
-            style={{ padding: "8px 16px", background: "#1d4ed8", color: "#fff", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: state.submitting ? "not-allowed" : "pointer", opacity: state.submitting ? 0.6 : 1 }}
+            style={{ padding: "8px 16px", background: "var(--red-500)", color: "#fff", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: state.submitting ? "not-allowed" : "pointer", opacity: state.submitting ? 0.6 : 1 }}
           >
             {state.submitting ? 'Saving…' : 'Save Preferences'}
           </button>
         </div>
       </div>
 
-      <div style={{ background: "#111113", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 12, padding: 24, marginBottom: 20 }}>
-        <h2 style={{ fontSize: 16, fontWeight: 600, color: "#fafafa", marginBottom: 8 }}>Cookie Preferences</h2>
+      <div style={{ background: "var(--surface-1)", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 12, padding: 24, marginBottom: 20 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--ink-primary)", marginBottom: 8 }}>Cookie Preferences</h2>
         <p style={{ fontSize: 14, color: "#64748b", marginBottom: 16 }}>
           Manage your cookie preferences to control what information is collected when you visit our website.
         </p>
@@ -441,7 +441,7 @@ export default function PrivacyPage() {
         </div>
       </div>
 
-      <div style={{ background: "#111113", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 12, padding: 24, marginBottom: 20 }}>
+      <div style={{ background: "var(--surface-1)", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 12, padding: 24, marginBottom: 20 }}>
         <h2 className="text-xl font-semibold mb-4">Data Export</h2>
         <p className="mb-4">
           You can request a copy of your personal data at any time. We will process your request and provide a download link.
@@ -533,8 +533,8 @@ export default function PrivacyPage() {
         )}
       </div>
       
-      <div style={{ background: "#111113", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 12, padding: 24 }}>
-        <h2 style={{ fontSize: 16, fontWeight: 600, color: "#fafafa", marginBottom: 8 }}>Data Deletion</h2>
+      <div style={{ background: "var(--surface-1)", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 12, padding: 24 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--ink-primary)", marginBottom: 8 }}>Data Deletion</h2>
         <p className="mb-4">
           You can request the deletion of your personal data. This process cannot be undone.
         </p>

@@ -18,7 +18,7 @@ interface SEOReport {
 function scoreColor(score?: number) {
   if (!score) return '#52525b';
   if (score >= 80) return '#16a34a';
-  if (score >= 60) return '#f59e0b';
+  if (score >= 60) return 'var(--orange-400)';
   return '#dc2626';
 }
 
@@ -45,14 +45,14 @@ export default function ReportsPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: '#09090b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--canvas)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <RefreshCw size={18} color="#334155" className="spin" />
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#09090b', color: '#fafafa', padding: '32px 32px 64px' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--canvas)', color: 'var(--ink-primary)', padding: '32px 32px 64px' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
         <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(99,102,241,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -66,7 +66,7 @@ export default function ReportsPage() {
 
       {reports.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '80px 0' }}>
-          <FileBarChart size={40} color="#3f3f46" style={{ marginBottom: 16 }} />
+          <FileBarChart size={40} color="var(--ink-tertiary)" style={{ marginBottom: 16 }} />
           <p style={{ margin: 0, fontSize: 15, color: '#71717a' }}>No reports generated yet</p>
         </div>
       ) : (
@@ -75,12 +75,12 @@ export default function ReportsPage() {
             const isExpanded = expanded === report.id;
             const color = scoreColor(report.score);
             return (
-              <div key={report.id} style={{ background: '#111113', border: '1px solid #1f1f23', borderRadius: 12, overflow: 'hidden' }}>
+              <div key={report.id} style={{ background: 'var(--surface-1)', border: '1px solid #1f1f23', borderRadius: 12, overflow: 'hidden' }}>
                 {/* Card header */}
                 <div style={{ padding: '18px 20px' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: '#fafafa', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink-primary)', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {report.domain || 'Unknown domain'}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -118,7 +118,7 @@ export default function ReportsPage() {
                         rel="noopener noreferrer"
                         style={{
                           display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 500,
-                          color: '#a1a1aa', background: '#1a1a1e', border: '1px solid #27272a',
+                          color: 'var(--ink-secondary)', background: '#1a1a1e', border: '1px solid #27272a',
                           padding: '6px 12px', borderRadius: 7, textDecoration: 'none', transition: 'all 0.1s ease',
                         }}
                       >
@@ -131,7 +131,7 @@ export default function ReportsPage() {
                         onClick={() => setExpanded(isExpanded ? null : report.id)}
                         style={{
                           display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 500,
-                          color: '#a1a1aa', background: 'transparent', border: '1px solid #27272a',
+                          color: 'var(--ink-secondary)', background: 'transparent', border: '1px solid #27272a',
                           padding: '6px 12px', borderRadius: 7, cursor: 'pointer', transition: 'all 0.1s ease',
                         }}
                       >

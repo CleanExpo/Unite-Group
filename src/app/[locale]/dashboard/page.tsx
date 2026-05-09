@@ -49,7 +49,7 @@ const QUICK_LINKS = [
 // ── Styles ───────────────────────────────────────────────────────────────────
 
 const card: React.CSSProperties = {
-  background: "#111113",
+  background: "var(--surface-1)",
   backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)",
   border: "1px solid #27272a",
   borderRadius: 12,
@@ -89,19 +89,19 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: "100vh", background: "#09090b", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ minHeight: "100vh", background: "var(--canvas)", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <RefreshCw size={18} color="#334155" className="spin" />
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#09090b", color: "#fafafa" }}>
+    <div style={{ minHeight: "100vh", background: "var(--canvas)", color: "var(--ink-primary)" }}>
 
       {/* Page title */}
       <div style={{ padding: "24px 24px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
-          <h1 style={{ fontSize: 18, fontWeight: 700, color: "#fafafa", letterSpacing: "-0.02em", margin: 0, fontFamily: "var(--font-display)" }}>
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink-primary)", letterSpacing: "-0.02em", margin: 0, fontFamily: "var(--font-display)" }}>
             Dashboard
           </h1>
           <p style={{ fontSize: 11, color: "#52525b", margin: "3px 0 0", fontFamily: "var(--font-mono)" }}>
@@ -118,7 +118,7 @@ export default function DashboardPage() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-          style={{ display: "flex", background: "#111113", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 10, overflow: "hidden" }}
+          style={{ display: "flex", background: "var(--surface-1)", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 10, overflow: "hidden" }}
         >
           {[
             { label: "Total Businesses", value: "6",                     suffix: "",     color: "#f8fafc" },
@@ -185,7 +185,7 @@ export default function DashboardPage() {
                         <Link
                           href={`/businesses/${biz.seoSlug}/seo`}
                           style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--red-500)", textDecoration: "none", fontWeight: 500 }}
-                          onMouseEnter={e => (e.currentTarget.style.color = "#3b82f6")}
+                          onMouseEnter={e => (e.currentTarget.style.color = "var(--red-400)")}
                           onMouseLeave={e => (e.currentTarget.style.color = "var(--red-500)")}
                         >
                           View audit <ArrowUpRight size={10} />
@@ -221,13 +221,13 @@ export default function DashboardPage() {
                     fontWeight: link.primary ? 600 : 400,
                     color: link.primary ? "#fff" : "#94a3b8",
                     background: link.primary ? "var(--red-500)" : "transparent",
-                    border: `1px solid ${link.primary ? "var(--red-500)" : "#27272a"}`,
+                    border: `1px solid ${link.primary ? "var(--red-500)" : "var(--border-default)"}`,
                     textDecoration: "none",
                     transition: "all 0.12s ease",
                   }}
                   onMouseEnter={e => {
-                    if (link.primary) { (e.currentTarget as HTMLAnchorElement).style.background = "#3b82f6"; }
-                    else { (e.currentTarget as HTMLAnchorElement).style.background = "#18181b"; (e.currentTarget as HTMLAnchorElement).style.color = "#f8fafc"; }
+                    if (link.primary) { (e.currentTarget as HTMLAnchorElement).style.background = "var(--red-400)"; }
+                    else { (e.currentTarget as HTMLAnchorElement).style.background = "var(--surface-1)"; (e.currentTarget as HTMLAnchorElement).style.color = "#f8fafc"; }
                   }}
                   onMouseLeave={e => {
                     if (link.primary) { (e.currentTarget as HTMLAnchorElement).style.background = "var(--red-500)"; }
@@ -258,7 +258,7 @@ export default function DashboardPage() {
             <div style={{ borderLeft: "1px solid #27272a", marginLeft: 8, paddingLeft: 16 }}>
               {FALLBACK_ACTIVITIES.map((a, i) => (
                 <div key={i} style={{ position: "relative", paddingBottom: i < FALLBACK_ACTIVITIES.length - 1 ? 16 : 0 }}>
-                  <span style={{ position: "absolute", left: -20, top: 4, width: 5, height: 5, borderRadius: "50%", background: "#27272a", border: "1px solid #334155", display: "inline-block" }} />
+                  <span style={{ position: "absolute", left: -20, top: 4, width: 5, height: 5, borderRadius: "50%", background: "var(--border-default)", border: "1px solid #334155", display: "inline-block" }} />
                   <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
                     <p style={{ fontSize: 13, color: "#94a3b8", margin: 0 }}>{a.action}</p>
                     <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#52525b", flexShrink: 0, marginLeft: 16 }}>{a.timeAgo}</span>

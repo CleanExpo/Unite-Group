@@ -14,11 +14,11 @@ import {
 
 const BH = {
   blue:    "#228FE0",
-  dark:    "#09090b",
-  surface: "#111113",
-  border:  "#27272a",
-  ink:     "#fafafa",
-  muted:   "#a1a1aa",
+  dark:    "var(--canvas)",
+  surface: "var(--surface-1)",
+  border:  "var(--border-default)",
+  ink:     "var(--ink-primary)",
+  muted:   "var(--ink-secondary)",
   ghost:   "#52525b",
 };
 
@@ -112,7 +112,7 @@ export default function BulcsHoldingsPortal() {
 
           {/* Unite Group wordmark */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 7, background: "#1d4ed8", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 28, height: 28, borderRadius: 7, background: "var(--red-500)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Zap size={14} color="white" strokeWidth={2.5} />
             </div>
             <span style={{ fontSize: 12, color: BH.ghost }}>Unite Group</span>
@@ -142,7 +142,7 @@ export default function BulcsHoldingsPortal() {
               fontSize: 11, borderRadius: 7, border: `1px solid ${BH.border}`,
               color: BH.ghost, background: "transparent", cursor: "pointer", transition: "all 0.1s",
             }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "#3f3f46"; (e.currentTarget as HTMLButtonElement).style.color = BH.muted; }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--ink-tertiary)"; (e.currentTarget as HTMLButtonElement).style.color = BH.muted; }}
             onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = BH.border; (e.currentTarget as HTMLButtonElement).style.color = BH.ghost; }}
           >
             <LogOut size={11} /> Sign out
@@ -287,7 +287,7 @@ export default function BulcsHoldingsPortal() {
                     border: `1px solid ${BH.border}`, background: "transparent",
                     textDecoration: "none", transition: "all 0.1s ease", cursor: "pointer",
                   }}
-                  onMouseEnter={(e: React.MouseEvent) => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "#3f3f46"; (e.currentTarget as HTMLAnchorElement).style.background = "#111113"; }}
+                  onMouseEnter={(e: React.MouseEvent) => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--ink-tertiary)"; (e.currentTarget as HTMLAnchorElement).style.background = "var(--surface-1)"; }}
                   onMouseLeave={(e: React.MouseEvent) => { (e.currentTarget as HTMLAnchorElement).style.borderColor = BH.border; (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
