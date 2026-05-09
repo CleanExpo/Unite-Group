@@ -76,45 +76,7 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Store lead in database
-    // This would connect to your database to store the lead
-    // For example, with Supabase:
-    /*
-    const { data: lead, error } = await supabase
-      .from('leads')
-      .insert({
-        first_name: leadData.firstName,
-        last_name: leadData.lastName,
-        email: leadData.email,
-        phone: leadData.phone,
-        company: leadData.company,
-        job_title: leadData.jobTitle,
-        message: leadData.message,
-        interests: leadData.interests,
-        referral_source: leadData.referralSource,
-        marketing_consent: leadData.marketingConsent,
-        ip_address: ipAddress,
-        user_agent: userAgent,
-        created_at: timestamp,
-        additional_data: leadData.additionalData,
-      });
-      
-    if (error) {
-      console.error('Error storing lead in database:', error);
-      throw error;
-    }
-    */
-    
-    // For now, we'll just log the lead data
-    console.log('New lead captured:', {
-      ...leadData,
-      ipAddress,
-      userAgent,
-      timestamp,
-    });
-    
-    // Track lead in analytics
-    // This could connect to a service like Segment, Amplitude, etc.
+    // TODO: persist lead to Supabase leads table
     
     // Return success response
     return NextResponse.json(

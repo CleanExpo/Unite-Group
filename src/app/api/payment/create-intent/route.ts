@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { StripeApiClient } from '@/lib/api/stripe/client';
+import { createClient } from '@/lib/supabase/server';
 
 // Input validation schema
 const createIntentSchema = z.object({
@@ -16,10 +17,16 @@ const createIntentSchema = z.object({
 /**
  * Create Payment Intent API Endpoint
  * Creates a Stripe payment intent and returns the client secret
- * 
+ *
  * @route POST /api/payment/create-intent
  */
 export async function POST(request: NextRequest) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     // Parse and validate the request body
     const body = await request.json();
