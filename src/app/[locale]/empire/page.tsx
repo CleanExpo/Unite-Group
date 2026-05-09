@@ -1,5 +1,6 @@
 "use client";
 
+import { BusinessLogo } from '@/components/empire/BusinessLogo';
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseClient } from "@/lib/supabase/client";
@@ -341,15 +342,8 @@ function BusinessHealthRow({ biz }: { biz: BusinessHealth }) {
       padding: "9px 14px",
       borderBottom: "1px solid var(--border-hairline)",
     }}>
-      {/* Status dot */}
-      <span style={{
-        width: 7,
-        height: 7,
-        borderRadius: "50%",
-        background: color,
-        flexShrink: 0,
-        display: "inline-block",
-      }} />
+      {/* Business logo with mark fallback */}
+      <BusinessLogo slug={biz.id} size="sm" />
 
       {/* Name */}
       <span style={{

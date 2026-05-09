@@ -19,6 +19,8 @@ const nextConfig = {
   images: {
     domains: [
       'localhost',
+      'ccw.com.au',
+      'synthex.social',
       'unite-group.vercel.app',
       'cdn.unite-group.vercel.app',
       'unite-group-cdn.vercel.app'
