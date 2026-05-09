@@ -37,24 +37,34 @@ export default function ClientSidebar() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {/* Initials avatar */}
+          {/* CCW Logo */}
           <div
             style={{
               width: 36,
               height: 36,
               borderRadius: 'var(--radius-client-md)',
-              background: 'var(--red-500)',
+              background: 'var(--surface-3)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: 14,
-              fontWeight: 700,
-              color: '#fff',
-              letterSpacing: '-0.5px',
               flexShrink: 0,
+              overflow: 'hidden',
             }}
           >
-            CC
+            <img
+              src="/logos/ccw.png"
+              alt="CCW"
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+              onError={(e) => {
+                const t = e.currentTarget as HTMLImageElement;
+                t.style.display = 'none';
+                const parent = t.parentElement;
+                if (parent) {
+                  parent.style.background = '#D62828';
+                  parent.innerHTML = '<span style="font-size:14px;font-weight:700;color:#fff">CCW</span>';
+                }
+              }}
+            />
           </div>
           <div>
             <div
