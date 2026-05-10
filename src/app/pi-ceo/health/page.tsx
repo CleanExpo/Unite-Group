@@ -53,7 +53,9 @@ export default function HealthPage() {
 
       supabaseClient
         .from('pi_ceo_health_snapshots')
-        .select('id, project_id, overall_health, security_score, snapshot_at, created_at')
+        .select('id, project_id, overall_health, security_score, dependencies, security_findings, snapshot_at')
+        .order('snapshot_at', { ascending: false })
+        .limit(300)
         .order('created_at', { ascending: true })
         .then(({ data }) => {
           setSnapshots((data as HealthSnapshot[]) || []);
