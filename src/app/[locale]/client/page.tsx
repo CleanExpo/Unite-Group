@@ -117,6 +117,7 @@ export default function ClientDashboardPage() {
   const [artefacts, setArtefacts] = useState<Array<{
     filename: string; title: string; type: string; preview: string; date: string;
   }>>([]);
+  const [pipelineActivity, setPipelineActivity] = useState<Array<{ label: string; when: string }>>([]);
 
   const fetchSummary = () =>
     fetch('/api/portal/summary')
@@ -137,6 +138,10 @@ export default function ClientDashboardPage() {
       fetch('/api/portal/artefacts?client=ccw')
         .then(r => r.json())
         .then(d => setArtefacts(d.artefacts ?? []))
+        .catch(() => {});
+      fetch('/api/empire/pipeline')
+        .then(r => r.json())
+        .then(d => setPipelineActivity(d.recent_activity ?? []))
         .catch(() => {});
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -458,6 +463,136 @@ export default function ClientDashboardPage() {
             </div>
           )}
         </section>
+      </Section>
+
+      {/* Autonomous Pipeline Activity */}
+      <Section title="What We're Working On">
+        <div style={{
+          background: 'var(--surface-1)',
+          border: '1px solid var(--border-hairline)',
+          borderRadius: 'var(--radius-client-md)',
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            padding: '12px 20px',
+            borderBottom: '1px solid var(--border-hairline)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}>
+            <span style={{
+              width: 7,
+              height: 7,
+              borderRadius: '50%',
+              background: 'var(--green-400)',
+              display: 'inline-block',
+              flexShrink: 0,
+            }} />
+            <span style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: 'var(--ink-secondary)',
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              fontFamily: 'var(--font-mono)',
+            }}>
+              Autonomous pipeline — live
+            </span>
+          </div>
+
+          {/* Pipeline stages */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            padding: '16px 20px',
+            gap: 0,
+            borderBottom: '1px solid var(--border-hairline)',
+          }}>
+            {['Margot', 'Board', 'PM', 'Build', 'Deployed'].map((stage, i) => (
+              <div key={stage} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+                <div style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 3,
+                }}>
+                  <div style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    background: i === 4 ? 'rgba(0,168,84,0.1)' : 'var(--surface-2)',
+                    border: `1px solid ${i === 4 ? 'rgba(0,168,84,0.3)' : 'var(--border-hairline)'}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    fontFamily: 'var(--font-mono)',
+                    color: i === 4 ? 'var(--green-400)' : 'var(--ink-tertiary)',
+                  }}>
+                    {i === 4 ? '✓' : '—'}
+                  </div>
+                  <div style={{
+                    fontSize: 9,
+                    color: 'var(--ink-tertiary)',
+                    textAlign: 'center',
+                    letterSpacing: '0.04em',
+                  }}>
+                    {stage}
+                  </div>
+                </div>
+                {i < 4 && (
+                  <div style={{
+                    width: 20,
+                    textAlign: 'center',
+                    color: 'var(--border-default)',
+                    fontSize: 10,
+                    flexShrink: 0,
+                    paddingBottom: 14,
+                  }}>→</div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Recent activity feed */}
+          <div style={{ padding: '12px 20px' }}>
+            {pipelineActivity.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {pipelineActivity.map((item, i) => (
+                  <div key={i} style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 10,
+                    fontSize: 12,
+                  }}>
+                    <span style={{
+                      color: 'var(--ink-disabled)',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: 10,
+                      flexShrink: 0,
+                      paddingTop: 2,
+                    }}>
+                      {item.when}
+                    </span>
+                    <span style={{ color: 'var(--ink-secondary)', lineHeight: 1.5 }}>
+                      {item.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{
+                fontSize: 12,
+                color: 'var(--ink-tertiary)',
+                fontStyle: 'italic',
+              }}>
+                The autonomous pipeline is running on your account. Activity appears here as work completes.
+              </div>
+            )}
+          </div>
+        </div>
       </Section>
 
       {/* Request a Change */}

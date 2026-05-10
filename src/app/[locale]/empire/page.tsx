@@ -44,10 +44,20 @@ type Priority = {
   team: string;
 };
 
+type PipelineStage = {
+  id: string;
+  label: string;
+  sublabel: string;
+  count: number;
+  active: boolean;
+};
+
 type PipelineCounts = {
   ideas_in_flight: number;
   board_active: number;
   completed_today: number;
+  stages?: PipelineStage[];
+  recent_activity?: { label: string; when: string }[];
 };
 
 type ExitThesisData = {
@@ -751,7 +761,7 @@ export default function EmpireCommandCenter() {
           gridTemplateColumns: "1fr 1fr",
           gap: 16,
         }}>
-          {/* Left: Margot Pipeline */}
+          {/* Left: Autonomous Pipeline */}
           <div style={{
             background: "var(--surface-1)",
             border: "1px solid var(--border-default)",
@@ -761,6 +771,9 @@ export default function EmpireCommandCenter() {
             <div style={{
               padding: "14px 18px 12px",
               borderBottom: "1px solid var(--border-hairline)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
             }}>
               <div style={{
                 fontSize: 11,
@@ -770,48 +783,160 @@ export default function EmpireCommandCenter() {
                 textTransform: "uppercase",
                 color: "var(--ink-secondary)",
               }}>
-                Margot Pipeline
+                Autonomous Pipeline
               </div>
+              {pipeline !== null && (
+                <div style={{
+                  fontSize: 10,
+                  fontFamily: "var(--font-mono)",
+                  color: "var(--green-400)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                }}>
+                  <span style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: "var(--green-400)",
+                    display: "inline-block",
+                  }} />
+                  ACTIVE
+                </div>
+              )}
             </div>
-            <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10 }}>
+
+            {/* Pipeline flow */}
+            <div style={{ padding: "16px 18px" }}>
               {pipeline === null ? (
-                <>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <Shimmer width="100%" height={48} />
                   <Shimmer width="70%" height={13} />
-                  <Shimmer width="55%" height={13} />
-                  <Shimmer width="60%" height={13} />
+                </div>
+              ) : pipeline.stages ? (
+                <>
+                  {/* Stage nodes */}
+                  <div style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 0,
+                    overflowX: "auto",
+                  }}>
+                    {pipeline.stages.map((stage, i) => (
+                      <div key={stage.id} style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0 }}>
+                        {/* Stage box */}
+                        <div style={{
+                          flex: 1,
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          gap: 4,
+                          padding: "10px 4px",
+                          borderRadius: 6,
+                          background: stage.active
+                            ? "rgba(179,0,0,0.08)"
+                            : stage.count > 0
+                            ? "rgba(0,168,84,0.06)"
+                            : "transparent",
+                          border: stage.active
+                            ? "1px solid rgba(179,0,0,0.25)"
+                            : "1px solid transparent",
+                          minWidth: 0,
+                        }}>
+                          <div style={{
+                            fontSize: 18,
+                            fontWeight: 800,
+                            fontFamily: "var(--font-mono)",
+                            color: stage.active
+                              ? "var(--red-400)"
+                              : stage.count > 0
+                              ? "var(--green-400)"
+                              : "var(--ink-disabled)",
+                            lineHeight: 1,
+                          }}>
+                            {stage.count}
+                          </div>
+                          <div style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: stage.active ? "var(--ink-primary)" : "var(--ink-secondary)",
+                            textAlign: "center",
+                            letterSpacing: "0.02em",
+                          }}>
+                            {stage.label}
+                          </div>
+                          <div style={{
+                            fontSize: 9,
+                            color: "var(--ink-tertiary)",
+                            textAlign: "center",
+                            fontFamily: "var(--font-mono)",
+                          }}>
+                            {stage.sublabel}
+                          </div>
+                        </div>
+                        {/* Arrow between stages */}
+                        {i < pipeline.stages!.length - 1 && (
+                          <div style={{
+                            width: 16,
+                            flexShrink: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "var(--border-default)",
+                            fontSize: 10,
+                            paddingBottom: 8,
+                          }}>
+                            →
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Recent activity */}
+                  {pipeline.recent_activity && pipeline.recent_activity.length > 0 && (
+                    <div style={{
+                      marginTop: 12,
+                      paddingTop: 12,
+                      borderTop: "1px solid var(--border-hairline)",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 6,
+                    }}>
+                      {pipeline.recent_activity.map((item, i) => (
+                        <div key={i} style={{
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: 8,
+                          fontSize: 11,
+                        }}>
+                          <span style={{ color: "var(--ink-disabled)", fontFamily: "var(--font-mono)", flexShrink: 0 }}>
+                            {item.when}
+                          </span>
+                          <span style={{ color: "var(--ink-secondary)", lineHeight: 1.4 }}>
+                            {item.label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </>
               ) : (
-                <>
+                /* Fallback: legacy 3-number display */
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {[
-                    { label: "Ideas in flight", value: pipeline.ideas_in_flight, color: "var(--ink-secondary)" },
-                    { label: "Board directives active", value: pipeline.board_active, color: pipeline.board_active > 0 ? "var(--green-400)" : "var(--ink-secondary)" },
-                    { label: "Agent actions today", value: pipeline.completed_today, color: "var(--ink-secondary)" },
+                    { label: "Ideas in flight", value: pipeline.ideas_in_flight },
+                    { label: "Board directives active", value: pipeline.board_active },
+                    { label: "Agent actions today", value: pipeline.completed_today },
                   ].map(row => (
                     <div key={row.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{
-                        width: 5,
-                        height: 5,
-                        borderRadius: "50%",
-                        background: "var(--border-default)",
-                        flexShrink: 0,
-                        display: "inline-block",
-                      }} />
-                      <span style={{ flex: 1, fontSize: 12, color: "var(--ink-secondary)" }}>
-                        {row.label}
-                      </span>
-                      <span style={{
-                        fontSize: 14,
-                        fontWeight: 700,
-                        fontFamily: "var(--font-mono)",
-                        color: row.color,
-                        minWidth: 24,
-                        textAlign: "right",
-                      }}>
+                      <span style={{ flex: 1, fontSize: 12, color: "var(--ink-secondary)" }}>{row.label}</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, fontFamily: "var(--font-mono)", color: "var(--ink-secondary)" }}>
                         {row.value}
                       </span>
                     </div>
                   ))}
-                </>
+                </div>
               )}
             </div>
           </div>

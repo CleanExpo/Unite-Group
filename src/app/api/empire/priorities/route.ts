@@ -1,38 +1,82 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 
-// Hard-coded known priorities until real Linear sync is built
-// These will be replaced by live Linear data in Wave 2
-const PRIORITIES = [
-  {
-    id: 'RA-1718',
-    title: 'RestoreAssist V1 Cutover',
-    subtitle: 'Phase 5: production migration + pilot onboarding. Runbook is ready.',
-    priority: 'urgent' as const,
-    owner: 'phill',
-    url: 'https://linear.app/unite-group/issue/RA-1718',
-    team: 'RestoreAssist',
-  },
-  {
-    id: 'PI-CEO-RESCAN',
-    title: 'Pi-CEO health rescan needed',
-    subtitle: '8 security PRs merged overnight. Scores still showing pre-merge values (~74, real is ~84).',
-    priority: 'high' as const,
-    owner: 'system',
-    url: null,
-    team: 'System',
-  },
-  {
-    id: 'SYN-936',
-    title: 'Synthex preview deploys broken',
-    subtitle: '5 env vars missing from Vercel Preview environment. Fix takes 5 minutes.',
-    priority: 'medium' as const,
-    owner: 'phill',
-    url: 'https://linear.app/unite-group/issue/SYN-936',
-    team: 'Synthex',
-  },
-];
+const LINEAR_GQL = 'https://api.linear.app/graphql';
+
+const QUERY = `
+query {
+  issues(
+    filter: {
+      priority: { lte: 2 }
+      state: { type: { nin: ["completed", "cancelled"] } }
+    }
+    first: 8
+    orderBy: priority
+  ) {
+    nodes {
+      identifier
+      title
+      priority
+      state { name }
+      team { name }
+      url
+      description
+    }
+  }
+}
+`;
+
+function priorityLabel(p: number): 'urgent' | 'high' | 'medium' {
+  if (p === 1) return 'urgent';
+  if (p === 2) return 'high';
+  return 'medium';
+}
 
 export async function GET() {
-  return NextResponse.json({ priorities: PRIORITIES });
+  const apiKey = process.env.LINEAR_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json({ priorities: [], error: 'LINEAR_API_KEY not configured' });
+  }
+
+  try {
+    const res = await fetch(LINEAR_GQL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: apiKey,
+      },
+      body: JSON.stringify({ query: QUERY }),
+      signal: AbortSignal.timeout(8000),
+    });
+
+    const data = await res.json();
+    const nodes = data?.data?.issues?.nodes ?? [];
+
+    const priorities = nodes.map((issue: {
+      identifier: string;
+      title: string;
+      priority: number;
+      state: { name: string };
+      team: { name: string };
+      url: string;
+      description: string | null;
+    }) => ({
+      id: issue.identifier,
+      title: issue.title,
+      subtitle: issue.description
+        ? issue.description.slice(0, 120).replace(/\n/g, ' ')
+        : `${issue.state?.name ?? 'Open'} · ${issue.team?.name ?? 'Unassigned'}`,
+      priority: priorityLabel(issue.priority),
+      owner: 'linear',
+      url: issue.url ?? null,
+      team: issue.team?.name ?? 'Unassigned',
+    }));
+
+    return NextResponse.json({ priorities });
+  } catch (err) {
+    return NextResponse.json({
+      priorities: [],
+      error: err instanceof Error ? err.message : 'Linear fetch failed',
+    });
+  }
 }
