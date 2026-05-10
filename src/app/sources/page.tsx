@@ -10,6 +10,7 @@ interface WikiSource {
   title?: string;
   status: string;
   created_at?: string;
+  updated_at?: string;
 }
 
 function relativeDate(iso?: string): string {
