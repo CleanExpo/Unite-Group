@@ -51,16 +51,13 @@ export default function HealthPage() {
     supabaseClient.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/login'); return; }
 
-      supabaseClient
-        .from('pi_ceo_health_snapshots')
-        .select('id, project_id, overall_health, security_score, dependencies, security_findings, snapshot_at')
-        .order('snapshot_at', { ascending: false })
-        .limit(300)
-        .order('created_at', { ascending: true })
-        .then(({ data }) => {
+      fetch('/api/intelligence/health-snapshots')
+        .then(r => r.json())
+        .then(({ snapshots: data }) => {
           setSnapshots((data as HealthSnapshot[]) || []);
           setLoading(false);
-        });
+        })
+        .catch(() => setLoading(false));
     });
   }, [router]);
 
