@@ -8,9 +8,7 @@ import { FeedMark, CheckCircleMark, ClockMark } from '@/components/ui/marks';
 interface WikiSource {
   id: string;
   title?: string;
-  source_url?: string;
   status: string;
-  processed_at?: string;
   created_at?: string;
 }
 
@@ -61,12 +59,12 @@ export default function SourcesPage() {
       Promise.all([
         supabaseClient
           .from('wiki_sources')
-          .select('id, title, source_url, status, processed_at, created_at')
+          .select('id, title, status, updated_at')
           .eq('status', 'completed')
-          .order('processed_at', { ascending: false }),
+          .order('updated_at', { ascending: false }),
         supabaseClient
           .from('wiki_sources')
-          .select('id, title, source_url, status, processed_at, created_at')
+          .select('id, title, status, updated_at')
           .eq('status', 'pending')
           .order('created_at', { ascending: false }),
       ]).then(([comp, pend]) => {
@@ -87,7 +85,7 @@ export default function SourcesPage() {
   }
 
   // Last ingest time
-  const lastIngest = completed[0]?.processed_at;
+  const lastIngest = completed[0]?.updated_at;
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--canvas)', color: 'var(--ink-primary)', padding: '32px 32px 64px' }}>
@@ -161,7 +159,7 @@ export default function SourcesPage() {
             </div>
           ) : (
             completed.map((source, i) => {
-              const name = source.title || source.source_url || `Source ${source.id.slice(0, 8)}`;
+              const name = source.title || source.id.replace(/-/g, ' ').slice(0, 50);
               const wikiPage = guessWikiPage(name);
               return (
                 <div
@@ -188,7 +186,7 @@ export default function SourcesPage() {
                     fontSize: 11, color: 'var(--ink-tertiary)', fontFamily: 'var(--font-mono)',
                     whiteSpace: 'nowrap', minWidth: 60, textAlign: 'right',
                   }}>
-                    {relativeDate(source.processed_at || source.created_at)}
+                    {relativeDate(source.updated_at)}
                   </span>
                 </div>
               );
@@ -212,7 +210,7 @@ export default function SourcesPage() {
             borderRadius: 'var(--radius-md)', overflow: 'hidden',
           }}>
             {pending.map((source, i) => {
-              const name = source.title || source.source_url || `Source ${source.id.slice(0, 8)}`;
+              const name = source.title || source.id.replace(/-/g, ' ').slice(0, 50);
               return (
                 <div
                   key={source.id}
