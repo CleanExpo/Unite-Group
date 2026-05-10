@@ -7,7 +7,7 @@ import { resolvePriceId } from '@/lib/billing/tiers';
 
 const subscribeSchema = z.object({
   business_id: z.string().uuid(),
-  tier: z.enum(['starter', 'growth', 'pro']),
+  tier: z.enum(['base', 'professional', 'master']),
 });
 
 export async function POST(request: NextRequest) {
