@@ -2,64 +2,70 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 
-const DATAFORSEO_BASE = 'https://api.dataforseo.com/v3';
+const SEMRUSH_BASE = 'https://api.semrush.com/';
 
-async function dataForSEOPost(path: string, body: unknown, login: string, password: string) {
-  const res = await fetch(`${DATAFORSEO_BASE}${path}`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Basic ${Buffer.from(`${login}:${password}`).toString('base64')}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
+async function semrushGet(params: Record<string, string>, apiKey: string): Promise<string> {
+  const qs = new URLSearchParams({ ...params, key: apiKey });
+  const res = await fetch(`${SEMRUSH_BASE}?${qs}`, {
     signal: AbortSignal.timeout(15000),
   });
-  return res.json();
+  return res.text();
+}
+
+function parseSemrushCsv(raw: string): Record<string, string>[] {
+  const lines = raw.trim().split('\r\n').filter(Boolean);
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(';');
+  return lines.slice(1).map((line) => {
+    const values = line.split(';');
+    return Object.fromEntries(headers.map((h, i) => [h, values[i] ?? '']));
+  });
 }
 
 export async function POST() {
-  const login = process.env.DATAFORSEO_LOGIN;
-  const password = process.env.DATAFORSEO_PASSWORD;
-  if (!login || !password) return NextResponse.json({ error: 'DataForSEO not configured' }, { status: 500 });
+  const apiKey = process.env.SEMRUSH_API_KEY;
+  if (!apiKey) return NextResponse.json({ error: 'SEMRUSH_API_KEY not configured' }, { status: 500 });
 
   const domain = 'ccwonline.com.au';
+  const database = 'au';
 
-  // Get domain overview
-  const overviewData = await dataForSEOPost(
-    '/dataforseo_labs/google/domain_rank_overview/live',
-    [{ target: domain, language_code: 'en', location_code: 2036 }], // 2036 = Australia
-    login, password
-  );
+  // Domain overview
+  const overviewRaw = await semrushGet({
+    type: 'domain_ranks',
+    export_columns: 'Dn,Rk,Or,Ot,Oc,Ad,At,Ac',
+    domain,
+    database,
+  }, apiKey);
 
-  // Get top keywords
-  const keywordsData = await dataForSEOPost(
-    '/dataforseo_labs/google/ranked_keywords/live',
-    [{ target: domain, language_code: 'en', location_code: 2036, limit: 20, order_by: ['keyword_data.keyword_info.search_volume,desc'] }],
-    login, password
-  );
+  const [overview] = parseSemrushCsv(overviewRaw);
 
-  const overview = overviewData?.tasks?.[0]?.result?.[0] ?? {};
-  const keywords: Array<{
-    keyword_data: { keyword: string; keyword_info: { search_volume: number } };
-    ranked_serp_element: { serp_item: { rank_absolute: number } };
-  }> = keywordsData?.tasks?.[0]?.result?.[0]?.items ?? [];
+  // Top organic keywords (by traffic)
+  const keywordsRaw = await semrushGet({
+    type: 'domain_organic',
+    export_columns: 'Ph,Po,Nq,Tr',
+    domain,
+    database,
+    display_limit: '20',
+    display_sort: 'tr_desc',
+  }, apiKey);
+
+  const keywords = parseSemrushCsv(keywordsRaw);
 
   const seoSnapshot = {
     domain,
     fetchedAt: new Date().toISOString(),
     metrics: {
-      organicTraffic: overview?.metrics?.organic?.etv ?? 0,
-      totalKeywords: overview?.metrics?.organic?.count ?? 0,
-      avgPosition: null as number | null,
+      organicTraffic: parseInt(overview?.Ot ?? '0', 10),
+      totalKeywords: parseInt(overview?.Or ?? '0', 10),
+      domainRank: parseInt(overview?.Rk ?? '0', 10),
     },
     topKeywords: keywords.slice(0, 10).map((kw) => ({
-      keyword: kw.keyword_data?.keyword,
-      position: kw.ranked_serp_element?.serp_item?.rank_absolute ?? null,
-      volume: kw.keyword_data?.keyword_info?.search_volume ?? 0,
+      keyword: kw.Ph,
+      position: parseInt(kw.Po ?? '0', 10),
+      volume: parseInt(kw.Nq ?? '0', 10),
     })),
   };
 
-  // Store in Supabase
   const supabase = getAdminClient();
   const { data: business } = await supabase
     .from('businesses')
