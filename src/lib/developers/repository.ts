@@ -83,6 +83,23 @@ interface LinearIssueRow {
   state_type: string | null;
 }
 
+type PgResult<T> = { data: T[] | null; error: unknown };
+
+function pickRows<T>(
+  result: PromiseSettledResult<PgResult<T>>,
+  label: string,
+): T[] {
+  if (result.status === "rejected") {
+    console.warn(`[developers] ${label} rejected: ${String(result.reason)}`);
+    return [];
+  }
+  if (result.value.error) {
+    console.warn(`[developers] ${label} error: ${String(result.value.error)}`);
+    return [];
+  }
+  return (result.value.data ?? []) as T[];
+}
+
 export async function buildSnapshot(
   profile: DeveloperProfile,
 ): Promise<DeveloperSnapshot> {
@@ -91,50 +108,66 @@ export async function buildSnapshot(
     ? profile.gitAuthorEmails
     : [profile.primaryEmail];
 
-  // commits, last 30 days, all repos
-  const { data: commitsData, error: commitsErr } = await sb
-    .from("integration_github_commits")
-    .select("sha, repo, author_email, committed_at, branch")
-    .in("author_email", emails)
-    .gte(
-      "committed_at",
-      new Date(Date.now() - 30 * 86400_000).toISOString(),
-    )
-    .order("committed_at", { ascending: false });
-  if (commitsErr) throw commitsErr;
-  const commits: CommitRow[] = (commitsData ?? []) as CommitRow[];
+  // Tier 1: commits, prs, branchMap fire in parallel. Promise.allSettled
+  // so one failure (e.g. missing table) degrades gracefully instead of
+  // taking down the whole snapshot — mirrors integrations/dashboard-state.ts.
+  const [commitsRes, prsRes, branchMapRes] = await Promise.allSettled([
+    // .limit(5000) — PostgREST default cap is 1000; Rana is at ~953/mo and
+    // would silently truncate. 5K gives headroom; warn-log fires if hit.
+    sb
+      .from("integration_github_commits")
+      .select("sha, repo, author_email, committed_at, branch")
+      .in("author_email", emails)
+      .gte(
+        "committed_at",
+        new Date(Date.now() - 30 * 86400_000).toISOString(),
+      )
+      .order("committed_at", { ascending: false })
+      .limit(5000),
+    sb
+      .from("integration_github_prs")
+      .select(
+        "id, repo, number, title, author_email, head_ref, ci_state, mergeable, created_at, updated_at",
+      )
+      .eq("state", "open")
+      .in("author_email", emails),
+    sb
+      .from("developer_branch_map")
+      .select("repo, branch, linear_issue_id, last_seen_at")
+      .eq("developer_email", profile.primaryEmail),
+  ]);
 
-  // open PRs
-  const { data: prsData, error: prsErr } = await sb
-    .from("integration_github_prs")
-    .select(
-      "id, repo, number, title, author_email, head_ref, ci_state, mergeable, created_at, updated_at",
-    )
-    .eq("state", "open")
-    .in("author_email", emails);
-  if (prsErr) throw prsErr;
-  const prs: PrRow[] = (prsData ?? []) as PrRow[];
+  const commits: CommitRow[] = pickRows<CommitRow>(
+    commitsRes,
+    `commits[${profile.primaryEmail}]`,
+  );
+  if (commits.length === 5000) {
+    console.warn(
+      `[developers] commit limit hit for ${profile.primaryEmail} — increase the LIMIT`,
+    );
+  }
+  const prs: PrRow[] = pickRows<PrRow>(prsRes, `prs[${profile.primaryEmail}]`);
+  const branchMap: BranchMapRow[] = pickRows<BranchMapRow>(
+    branchMapRes,
+    `branchMap[${profile.primaryEmail}]`,
+  );
 
-  // branch → ticket map (maintained by sync — may be empty until Task 14 ships)
-  const { data: branchMapData, error: branchErr } = await sb
-    .from("developer_branch_map")
-    .select("repo, branch, linear_issue_id, last_seen_at")
-    .eq("developer_email", profile.primaryEmail);
-  if (branchErr) throw branchErr;
-  const branchMap: BranchMapRow[] = (branchMapData ?? []) as BranchMapRow[];
-
-  // joined Linear data for the linked tickets
+  // Tier 2: linearIssues depends on branchMap ticket ids.
   const ticketIds = branchMap
     .map((b) => b.linear_issue_id)
     .filter((id): id is string => !!id);
   let linearIssues: LinearIssueRow[] = [];
   if (ticketIds.length > 0) {
-    const { data: linearData, error: linearErr } = await sb
-      .from("integration_linear_issues")
-      .select("id, title, state_name, state_type")
-      .in("id", ticketIds);
-    if (linearErr) throw linearErr;
-    linearIssues = (linearData ?? []) as LinearIssueRow[];
+    const linearRes = await Promise.allSettled([
+      sb
+        .from("integration_linear_issues")
+        .select("id, title, state_name, state_type")
+        .in("id", ticketIds),
+    ]);
+    linearIssues = pickRows<LinearIssueRow>(
+      linearRes[0],
+      `linearIssues[${profile.primaryEmail}]`,
+    );
   }
   const linearById = new Map(linearIssues.map((i) => [i.id, i]));
 

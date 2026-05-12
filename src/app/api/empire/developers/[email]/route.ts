@@ -6,6 +6,12 @@ import {
 
 export const runtime = "nodejs";
 
+if (!process.env.PI_CEO_API_KEY) {
+  console.warn(
+    "[empire/developers/:email] PI_CEO_API_KEY is not set — all requests will 401",
+  );
+}
+
 // Auth path mirrors /api/empire/integrations — static `PI_CEO_API_KEY` compare.
 function isAuthorized(token: string | null): boolean {
   if (!token) return false;
