@@ -1,4 +1,14 @@
 // src/app/api/cron/integrations/onepassword/route.ts
+//
+// NOTE: this route is NOT registered in vercel.json. The 1Password sync
+// uses the `op` CLI which doesn't exist in Vercel serverless. It runs
+// instead from a Hermes cron on the Mac mini (where `op` is installed).
+// Follow-up: ~/.hermes/scripts/sync_1password_to_supabase.py + Hermes cron
+// "Unite-Group 1Password sync" at daily 04:00 AEST.
+//
+// This route is kept so the 1Password Connect path (when OP_CONNECT_HOST
+// + OP_CONNECT_TOKEN are configured) can be triggered manually via
+// authenticated POST. It will not auto-fire from Vercel.
 import { NextResponse } from "next/server";
 import { getAdminClient } from "@/lib/supabase/admin";
 import { syncOnePassword } from "@/lib/integrations/onepassword/sync";
