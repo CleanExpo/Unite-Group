@@ -4,7 +4,7 @@ import { getAdminClient } from "@/lib/supabase/admin";
 import { syncGitHub } from "@/lib/integrations/github/sync";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export async function GET(req: Request) {
   // Vercel cron auth — Vercel sends a special header
