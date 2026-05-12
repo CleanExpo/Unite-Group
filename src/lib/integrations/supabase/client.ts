@@ -43,7 +43,8 @@ export async function listAdvisors(
   projectRef: string,
   type: "security" | "performance",
 ): Promise<{ lints: SupabaseLintFinding[] }> {
+  // Path is /advisors/{type} — the query-string form (?type=) 404s.
   return await call<{ lints: SupabaseLintFinding[] }>(
-    `/projects/${projectRef}/advisors?type=${type}`,
+    `/projects/${projectRef}/advisors/${type}`,
   );
 }
