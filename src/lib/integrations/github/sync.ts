@@ -150,6 +150,41 @@ async function loadDeveloperEmailIndex(): Promise<Map<string, string>> {
   return idx;
 }
 
+/**
+ * Daily gate for the branch-map seeder. Returns true when the most recent
+ * row in developer_branch_map is older than 20 hours (so the seeder runs at
+ * roughly daily cadence regardless of which hourly tick happens to clear
+ * the threshold). Falls back to TRUE on read errors so a one-off DB blip
+ * doesn't lock the seeder out forever.
+ *
+ * Rationale: the seeder burns ~1 listCommits API call per branch per repo
+ * (currently ~300 calls per run on ~10 repos × ~30 branches). The hourly
+ * GitHub cron was hitting the 5000/hr authenticated quota, marking the
+ * sync as "partial" and triggering health-check regressions. See
+ * 2026-05-13 morning health-check regression.
+ */
+async function shouldRunBranchSeeder(): Promise<boolean> {
+  try {
+    const sb = getAdminClient();
+    const { data, error } = await sb
+      .from("developer_branch_map")
+      .select("last_seen_at")
+      .order("last_seen_at", { ascending: false })
+      .limit(1);
+    if (error) {
+      console.warn(`[github.sync] seeder-gate read failed: ${String(error)}`);
+      return true;
+    }
+    const last = data?.[0]?.last_seen_at;
+    if (!last) return true; // never run before
+    const ageHours = (Date.now() - new Date(last).getTime()) / 3_600_000;
+    return ageHours >= 20;
+  } catch (e) {
+    console.warn(`[github.sync] seeder-gate threw: ${e instanceof Error ? e.message : String(e)}`);
+    return true; // fail open — don't permanently disable on transient error
+  }
+}
+
 async function seedBranchMapForRepo(
   repoFq: string,
   runTimestamp: string,
@@ -263,6 +298,14 @@ export async function syncGitHub(): Promise<{
   const devEmailIndex = await loadDeveloperEmailIndex();
   const touchedEmails = new Set<string>();
 
+  // Branch-map seeder is API-heavy (~1 listCommits per branch per repo).
+  // For 10 repos × ~30 branches it burns ~300 GitHub API calls per run —
+  // hourly that breaches the 5000/hr authenticated quota and the entire
+  // sync goes partial. Daily granularity is plenty for developer activity
+  // observability. Gate the seeder so it only fires once per UTC day,
+  // determined by reading the max(last_seen_at) on developer_branch_map.
+  const branchSeederShouldRun = await shouldRunBranchSeeder();
+
   for (const repo of TRACKED_REPOS) {
     try {
       await upsertRepo(repo);
@@ -273,20 +316,22 @@ export async function syncGitHub(): Promise<{
       // Branch-map seeder runs after the canonical syncs. Failures here
       // don't fail the repo — branch enumeration can fail on quota /
       // archived repos and we'd rather keep the rest of the sync clean.
-      try {
-        const { upserted } = await seedBranchMapForRepo(
-          repo,
-          runTimestamp,
-          devEmailIndex,
-          touchedEmails,
-        );
-        total += upserted;
-      } catch (e) {
-        console.warn(
-          `[github.sync] seedBranchMap ${repo} failed: ${
-            e instanceof Error ? e.message : String(e)
-          }`,
-        );
+      if (branchSeederShouldRun) {
+        try {
+          const { upserted } = await seedBranchMapForRepo(
+            repo,
+            runTimestamp,
+            devEmailIndex,
+            touchedEmails,
+          );
+          total += upserted;
+        } catch (e) {
+          console.warn(
+            `[github.sync] seedBranchMap ${repo} failed: ${
+              e instanceof Error ? e.message : String(e)
+            }`,
+          );
+        }
       }
       succeeded.push(repo);
     } catch (e) {
