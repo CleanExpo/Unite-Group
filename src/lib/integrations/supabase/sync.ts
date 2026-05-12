@@ -79,14 +79,28 @@ export async function syncSupabase(): Promise<{
   const failed: Array<{ project: string; error: string }> = [];
 
   const projects = await listProjects();
-  for (const p of projects) {
-    try {
-      total += await syncProject(p);
-      succeeded.push(p.ref);
-    } catch (e) {
+
+  // Parallelise per-project syncs — each project is independent (own ref,
+  // own rows). Sequential loop hit Vercel's 60s function timeout at ~22
+  // projects × 2 advisor calls + DB writes each.
+  const results = await Promise.allSettled(
+    projects.map(async (p) => ({ ref: p.ref, count: await syncProject(p) })),
+  );
+
+  for (const r of results) {
+    if (r.status === "fulfilled") {
+      total += r.value.count;
+      succeeded.push(r.value.ref);
+    } else {
+      // Reason carries the rejection — extract project ref from the underlying
+      // Error message if we can; fall back to "unknown".
+      const err = r.reason;
+      const message = err instanceof Error ? err.message : String(err);
+      // Best-effort: the Supabase Mgmt error includes the project ref in path.
+      const refMatch = message.match(/\/projects\/([a-z0-9]+)\//);
       failed.push({
-        project: p.ref,
-        error: e instanceof Error ? e.message : String(e),
+        project: refMatch?.[1] ?? "unknown",
+        error: message,
       });
     }
   }
