@@ -355,6 +355,7 @@ cmd_apply() {
   fi
   require_op
   require_psql
+  require_supabase_token
   load_creds
 
   step "Applying $file to sandbox"
@@ -379,6 +380,7 @@ cmd_apply() {
 cmd_diff() {
   require_op
   require_psql
+  require_supabase_token
   load_creds
 
   step "Schema diff (prod vs sandbox)"
@@ -443,6 +445,7 @@ cmd_promote() {
 
   require_op
   require_psql
+  require_supabase_token
   load_creds
 
   step "Applying $file to PROD"
