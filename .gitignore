@@ -53,3 +53,6 @@ frontend-minimal/node_modules/
 
 # Review Board metrics (local only — uploaded as CI artifact)
 .review-metrics.jsonl
+
+# Sandbox wizard cache (schema dumps + sync state)
+.sandbox-cache/
