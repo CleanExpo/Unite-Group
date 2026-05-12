@@ -11,8 +11,12 @@ const AUTH_PATHS = [
 ];
 
 export async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
   const pathname = req.nextUrl.pathname;
+  // Expose pathname to server components (root layout uses it to decide
+  // whether to render the empire sidebar — marketing pages skip it).
+  const reqHeaders = new Headers(req.headers);
+  reqHeaders.set('x-pathname', pathname);
+  const res = NextResponse.next({ request: { headers: reqHeaders } });
 
   // Skip static/API
   if (
