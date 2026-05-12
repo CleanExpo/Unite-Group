@@ -8,7 +8,15 @@ import { Project, SyntaxKind } from "ts-morph";
 import { globby } from "globby";
 import { lintSentence, VOICE_RULES } from "../src/lib/brand/voice-rules";
 
+// Note: This project uses `src/app/[locale]/<section>/page.tsx` for public pages
+// (no `(public)` route group). The globs below target the actually-live paths:
+// homepage, about, services, contact. Empire/CEO/dashboard routes are private
+// and excluded.
 const TARGETS = [
+  "src/app/[locale]/page.tsx",
+  "src/app/[locale]/about/**/*.{tsx,mdx}",
+  "src/app/[locale]/services/**/*.{tsx,mdx}",
+  "src/app/[locale]/contact/**/*.{tsx,mdx}",
   "src/app/(public)/**/*.{tsx,mdx}",
   "src/components/marketing/**/*.tsx",
 ];

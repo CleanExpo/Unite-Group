@@ -96,7 +96,7 @@
     "check:schema-drift": "supabase gen types typescript --project-id uqfgdezadpkiadugufbs > /tmp/supabase-fresh.ts && diff types/supabase.ts /tmp/supabase-fresh.ts && echo 'No schema drift' || (echo 'SCHEMA DRIFT DETECTED — run npm run gen:types' && exit 1)",
     "validate:jsonld": "npx ts-node --project tsconfig.json scripts/validate-jsonld.ts",
     "brand:lint": "ts-node --transpile-only -O '{\"module\":\"commonjs\",\"moduleResolution\":\"node\"}' scripts/brand-guardian-lint.ts",
-    "brand:lint:csv": "ts-node --transpile-only -O '{\"module\":\"commonjs\",\"moduleResolution\":\"node\"}' scripts/brand-guardian-lint.ts > docs/brand/voice-audit-2026-05-12.csv 2>&1 || true",
+    "brand:lint:csv": "ts-node --transpile-only -O '{\"module\":\"commonjs\",\"moduleResolution\":\"node\"}' scripts/brand-guardian-lint.ts > docs/brand/voice-audit-2026-05-13.csv 2>&1 || true",
     "prepare": "husky"
   },
   "keywords": [],
