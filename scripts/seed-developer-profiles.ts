@@ -32,7 +32,7 @@ async function main(): Promise<void> {
     {
       display_name: "Rana Muzamil",
       primary_email: "ranamuzamil1199@gmail.com",
-      git_author_emails: ["ranamuzamil1199@gmail.com"],
+      git_author_emails: ["ranamuzamil1199@gmail.com", "mmlrana00@gmail.com"],
       github_login: "rana-muzamil", // confirm via gh api users/rana-muzamil — adjust if wrong
       onepassword_vault: "Developers",
       role: "contract-engineer",
