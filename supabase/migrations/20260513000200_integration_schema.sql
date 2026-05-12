@@ -16,10 +16,11 @@ CREATE TABLE IF NOT EXISTS public.integration_sync_state (
 );
 
 ALTER TABLE public.integration_sync_state ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS authenticated_read ON public.integration_sync_state;
+DROP POLICY IF EXISTS service_role_write ON public.integration_sync_state;
 CREATE POLICY authenticated_read ON public.integration_sync_state FOR SELECT TO authenticated USING (true);
-CREATE POLICY service_role_write ON public.integration_sync_state FOR ALL TO authenticated
-  USING ((current_setting('request.jwt.claims', true)::jsonb->>'role') = 'service_role')
-  WITH CHECK ((current_setting('request.jwt.claims', true)::jsonb->>'role') = 'service_role');
+CREATE POLICY service_role_write ON public.integration_sync_state FOR ALL TO service_role
+  USING (true) WITH CHECK (true);
 
 -- ── GitHub ─────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.integration_github_repos (
@@ -302,9 +303,8 @@ BEGIN
         EXECUTE format('DROP POLICY IF EXISTS service_role_write ON public.%I', t);
         EXECUTE format('CREATE POLICY authenticated_read ON public.%I FOR SELECT TO authenticated USING (true)', t);
         EXECUTE format(
-            'CREATE POLICY service_role_write ON public.%I FOR ALL TO authenticated '
-            'USING ((current_setting(''request.jwt.claims'', true)::jsonb->>''role'') = ''service_role'') '
-            'WITH CHECK ((current_setting(''request.jwt.claims'', true)::jsonb->>''role'') = ''service_role'')',
+            'CREATE POLICY service_role_write ON public.%I FOR ALL TO service_role '
+            'USING (true) WITH CHECK (true)',
             t
         );
     END LOOP;

@@ -108,14 +108,28 @@ async function syncSecretsIndex(repoFq: string): Promise<number> {
   }
 }
 
-export async function syncGitHub(): Promise<{ rowsUpserted: number }> {
+export async function syncGitHub(): Promise<{
+  rowsUpserted: number;
+  succeeded: string[];
+  failed: Array<{ repo: string; error: string }>;
+}> {
   let total = 0;
+  const succeeded: string[] = [];
+  const failed: Array<{ repo: string; error: string }> = [];
   for (const repo of TRACKED_REPOS) {
-    await upsertRepo(repo);
-    total += await syncPRs(repo);
-    total += await syncCommits(repo);
-    total += await syncActionsRuns(repo);
-    total += await syncSecretsIndex(repo);
+    try {
+      await upsertRepo(repo);
+      total += await syncPRs(repo);
+      total += await syncCommits(repo);
+      total += await syncActionsRuns(repo);
+      total += await syncSecretsIndex(repo);
+      succeeded.push(repo);
+    } catch (e) {
+      failed.push({
+        repo,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
   }
-  return { rowsUpserted: total };
+  return { rowsUpserted: total, succeeded, failed };
 }
