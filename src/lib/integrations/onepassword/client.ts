@@ -1,9 +1,11 @@
 // src/lib/integrations/onepassword/client.ts
 // Pull NAMES-ONLY from 1Password Connect server. If Connect isn't set up,
-// fall back to the `op` CLI via execSync (runs on server-side only).
+// fall back to the `op` CLI via execFileSync (runs on server-side only).
 // NEVER reads item values — only titles, categories, and last-modified timestamps.
+// execFileSync (not execSync) — args passed as an array, no shell, no
+// injection surface even if a vault name contains shell metacharacters.
 
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 
 const CONNECT_HOST = process.env.OP_CONNECT_HOST;
 const CONNECT_TOKEN = process.env.OP_CONNECT_TOKEN;
@@ -46,9 +48,12 @@ interface CliItem {
  * caller can attribute the error to a specific vault.
  */
 export async function listItemsInVaultViaCli(vault: string): Promise<OPItemIndex[]> {
-  const out = execSync(`op item list --vault "${vault}" --format json`, {
-    encoding: "utf-8",
-  });
+  // execFileSync with arg array — no shell, no injection via vault name.
+  const out = execFileSync(
+    "op",
+    ["item", "list", "--vault", vault, "--format", "json"],
+    { encoding: "utf-8" }
+  );
   const parsed: CliItem[] = JSON.parse(out);
   return parsed.map((it) => ({
     vault,
