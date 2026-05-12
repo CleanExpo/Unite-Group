@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+# RA-2999 — pre-push type-check.
+#
+# Fails the push locally if `npm run type-check` (tsc --noEmit) errors.
+# Catches the schema-drift pattern that has been hitting main CI (CFR
+# 0.76 / 7 reds in the last 14 days) before it lands.
+#
+# Skip individually with `git push --no-verify` if you're pushing a
+# WIP branch and intend to fix types in a follow-up commit.
+
+set -e
+
+# Skip when running under `npm install` / `npm ci` (some CI providers
+# trigger hooks during install — see husky FAQ).
+[ -n "$CI" ] && exit 0
+
+echo "[husky/pre-push] running type-check..."
+npm run type-check
