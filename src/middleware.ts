@@ -67,13 +67,26 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL(`/en/client${rest}`, req.url));
   }
 
-  // Root URL → redirect to CEO dashboard (authenticated) or login (not)
-  if (pathname === '/' || pathname === '/en' || pathname === '/es' || pathname === '/fr') {
-    return NextResponse.redirect(new URL(user ? '/en/empire' : '/en/login', req.url));
+  // Marketing pages — public. Unauth visitors see the landing; signed-in
+  // users hitting / or /<locale> get sent to their CEO dashboard (preserves
+  // operator-on-the-desk behaviour for Phill).
+  const PUBLIC_MARKETING_PREFIXES = ['/about', '/services', '/contact'];
+  const isPublicMarketing =
+    pathname === '/' ||
+    pathname === '/en' || pathname === '/es' || pathname === '/fr' ||
+    PUBLIC_MARKETING_PREFIXES.some(p =>
+      pathname === '/en' + p || pathname.startsWith('/en' + p + '/')
+    );
+
+  if ((pathname === '/' || pathname === '/en' || pathname === '/es' || pathname === '/fr') && user) {
+    return NextResponse.redirect(new URL('/en/empire', req.url));
+  }
+  if (pathname === '/' && !user) {
+    return NextResponse.redirect(new URL('/en', req.url));
   }
 
-  // Not logged in on any non-auth page → login
-  if (!user && !isAuthPage) {
+  // Not logged in on any non-auth, non-public page → login
+  if (!user && !isAuthPage && !isPublicMarketing) {
     return NextResponse.redirect(new URL('/en/login', req.url));
   }
 
