@@ -2,9 +2,16 @@
 // Public About page. Opens on Phill (named human, named year, named city).
 // Voice spec: Nexus Human Voice Spec v1 — non-negotiable #1 (named-human opener).
 
+import type { Metadata } from 'next';
 import { CTABlock } from '@/components/marketing/CTABlock';
 
 export const dynamic = 'force-static';
+
+export const metadata: Metadata = {
+  title: 'About Unite-Group — Phill McGurk and the operator on the desk',
+  description:
+    "Phill built his first water-damage business in Brisbane in 2014. Five years later he was running five companies and watching every operator hit the same five problems. Unite-Group is the operating company that runs them so you don't have to.",
+};
 
 export default async function AboutPage({ params }: { params: Promise<{ locale: string }> }) {
   await params;

@@ -3,12 +3,31 @@
 // All four slugs (crm, cert, disputes, leads) are fully written below per the
 // plan's self-review correction (line 1053 of the originating plan).
 
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 export const dynamic = 'force-static';
 
 export async function generateStaticParams() {
   return [{ slug: 'crm' }, { slug: 'cert' }, { slug: 'disputes' }, { slug: 'leads' }];
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const c = CONTENT[slug];
+  if (!c) return { title: 'Unite-Group' };
+  const truncated =
+    c.opener.length <= 155
+      ? c.opener
+      : c.opener.slice(0, 155).replace(/\s+\S*$/, '');
+  return {
+    title: `${c.title} — Unite-Group`,
+    description: truncated,
+  };
 }
 
 interface ServiceContent {

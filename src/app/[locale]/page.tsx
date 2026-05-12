@@ -3,9 +3,16 @@
 // authenticated CEOs navigate there directly. Unauthenticated visitors see this.
 // Copy mirrors the Nexus Human Voice Spec v1 (Karen opener, verdict last).
 
+import type { Metadata } from 'next';
 import { Hero } from '@/components/marketing/Hero';
 
 export const dynamic = 'force-static';
+
+export const metadata: Metadata = {
+  title: 'Unite-Group — CRM, cert, leads, and disputes for the five-to-fifty-van firm',
+  description:
+    "Karen runs a five-van water-damage crew. We run the operating side so she doesn't have to. The CRM, the IICRC cert, the leads, the dispute log — for the five-to-fifty-van firm that hasn't got time to fight on six fronts at once.",
+};
 
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   await params; // locale unused for now — copy is English-only at launch.

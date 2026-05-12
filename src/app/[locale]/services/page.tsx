@@ -2,9 +2,16 @@
 // Services index. Named-operator pattern: each service opens on a specific
 // operator in a specific city, then the product paragraph.
 
+import type { Metadata } from 'next';
 import { CTABlock } from '@/components/marketing/CTABlock';
 
 export const dynamic = 'force-static';
+
+export const metadata: Metadata = {
+  title: 'What we run for you — Unite-Group services',
+  description:
+    "Four products. Same operator on the desk for all of them. CRM your foreman actually opens. IICRC cert through CARSI. A dispute log that survives an audit. Leads that aren't laundered through three brokers.",
+};
 
 const SERVICES = [
   {

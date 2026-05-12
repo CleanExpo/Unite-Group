@@ -2,7 +2,15 @@
 // Public Contact page. Opens on Phill — the person who answers the email.
 // Non-negotiable #1 (named-human opener) holds.
 
+import type { Metadata } from 'next';
+
 export const dynamic = 'force-static';
+
+export const metadata: Metadata = {
+  title: 'Email Phill — Unite-Group contact',
+  description:
+    'Until we hire a second person, every email lands on Phill McGurk\'s desk. He answers within two hours during AEST business hours, twelve overnight. No portal sign-up, no demo form, no "discovery process".',
+};
 
 export default async function ContactPage({
   params,
