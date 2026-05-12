@@ -1,47 +1,12 @@
-import { IntegrationMatrix, type SyncRow } from '@/components/empire/IntegrationMatrix';
+import { IntegrationMatrix } from '@/components/empire/IntegrationMatrix';
+import { getIntegrationsState, type IntegrationsState } from '@/lib/integrations/dashboard-state';
 
-// Server component. Calls the unified read endpoint with the admin token header
-// and renders the matrix + per-integration count sections.
-//
-// NOTE: A parent layout at src/app/empire/layout.tsx currently issues an
-// unconditional redirect('/en/empire'), which means this page will not render
-// at /empire/integrations without that layout being adjusted. Plan 2 Task 12
-// explicitly pins this path; the layout fix is out-of-scope for this task.
+// Server component. Calls getIntegrationsState() directly (no fetch round-trip,
+// no NEXTAUTH_URL dependency). Lives under [locale]/empire/ because
+// src/app/empire/layout.tsx unconditionally redirects to /en/empire — the
+// canonical path is /en/empire/integrations.
 
 export const dynamic = 'force-dynamic';
-
-interface IntegrationsState {
-  sync: SyncRow[];
-  github: { repos: unknown[]; openPRs: unknown[] };
-  vercel: { projects: unknown[] };
-  railway: { services: unknown[] };
-  digitalocean: { apps: unknown[] };
-  supabase: { projects: unknown[] };
-  onepassword: { index: unknown[] };
-  linear: { openIssues: unknown[] };
-  stripe: { mtd: unknown };
-  composio: { connections: unknown[] };
-}
-
-async function fetchState(): Promise<IntegrationsState | { error: string }> {
-  const base = process.env.NEXTAUTH_URL ?? '';
-  const token = process.env.PI_CEO_API_KEY ?? '';
-  if (!base || !token) {
-    return { error: 'NEXTAUTH_URL or PI_CEO_API_KEY missing — cannot fetch integration state.' };
-  }
-  try {
-    const res = await fetch(`${base}/api/empire/integrations`, {
-      headers: { 'x-admin-token': token },
-      cache: 'no-store',
-    });
-    if (!res.ok) {
-      return { error: `integrations endpoint ${res.status}` };
-    }
-    return (await res.json()) as IntegrationsState;
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : 'fetch failed' };
-  }
-}
 
 const SECTION_CARD: React.CSSProperties = {
   background: 'var(--surface-1)',
@@ -94,47 +59,7 @@ function CountCard({
 }
 
 export default async function IntegrationsPage() {
-  const state = await fetchState();
-
-  if ('error' in state) {
-    return (
-      <div
-        style={{
-          minHeight: '100vh',
-          background: 'var(--canvas)',
-          color: 'var(--ink-primary)',
-          padding: '24px 32px',
-          fontFamily: 'system-ui, sans-serif',
-        }}
-      >
-        <header style={{ marginBottom: 20 }}>
-          <h1
-            style={{
-              fontSize: 20,
-              fontWeight: 700,
-              letterSpacing: '-0.3px',
-              color: 'var(--ink-primary)',
-            }}
-          >
-            Integration Mesh
-          </h1>
-          <p style={{ fontSize: 12, color: 'var(--ink-tertiary)', marginTop: 4 }}>
-            Per-integration health, sync state, and drift.
-          </p>
-        </header>
-        <div
-          style={{
-            ...SECTION_CARD,
-            color: 'var(--red-400)',
-            fontFamily: 'var(--font-mono)',
-            fontSize: 12,
-          }}
-        >
-          Error: {state.error}
-        </div>
-      </div>
-    );
-  }
+  const state: IntegrationsState = await getIntegrationsState();
 
   const mtdRecord = (state.stripe.mtd ?? null) as
     | { yyyymm?: string; invoice_count?: number; total_cents?: number }

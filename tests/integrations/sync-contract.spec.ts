@@ -1,9 +1,16 @@
 // tests/integrations/sync-contract.spec.ts
 //
-// Contract test: every sync function in the integration mesh must
-//   (a) return the canonical shape `{ rowsUpserted: number; succeeded: string[]; failed: Array<{ error: string; ... }> }`
-//   (b) exit gracefully when no integration token is configured —
-//       i.e. resolve rather than throw, with rowsUpserted >= 0.
+// SCOPE — this is a SHAPE contract test, not a behavioural test.
+// The mocks short-circuit each sync to its empty-result path; the loop
+// bodies (per-repo / per-project / per-vault) are NOT exercised here.
+// What this test proves: every sync function exits cleanly with the
+// canonical shape `{ rowsUpserted: number; succeeded: string[]; failed:
+// Array<{ error: string; ... }> }` when the input list is empty.
+//
+// What it does NOT prove: that the actual upserts, network calls,
+// pagination, or per-entity error handling work end-to-end. Those need
+// integration tests with `nock` (network) or a real sandbox DB — TBD as
+// a Plan 2 follow-up.
 //
 // Strategy: mock `@/lib/supabase/admin` with a chainable Proxy so any
 // `sb.from(...).upsert(...)` / `.update().eq()` / `.delete().lt()` call

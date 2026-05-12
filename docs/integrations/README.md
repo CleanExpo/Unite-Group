@@ -6,7 +6,7 @@ reference: cadence, env vars, verification queries, and how to add a tenth.
 
 All cron routes live under `/api/cron/integrations/<svc>` and are gated by
 `Authorization: Bearer $CRON_SECRET`. Reads flow through `/api/empire/integrations`
-(JWT-gated) into `src/app/dashboard/empire/integrations/page.tsx`.
+(JWT-gated) into `src/app/[locale]/empire/integrations/page.tsx`.
 
 ## Cadence
 
@@ -185,5 +185,5 @@ without reading the linked plan post-mortems first.
 - Sync logic: `src/lib/integrations/<svc>/sync.ts`
 - Shared types: `src/lib/integrations/types.ts`
 - Read endpoint: `src/app/api/empire/integrations/route.ts`
-- Dashboard: `src/app/dashboard/empire/integrations/page.tsx`
+- Dashboard: `src/app/[locale]/empire/integrations/page.tsx`
 - Plan: `docs/superpowers/plans/2026-05-12-unite-group-integration-mesh.md`
