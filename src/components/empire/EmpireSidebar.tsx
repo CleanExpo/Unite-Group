@@ -26,11 +26,12 @@ const NAV = [
 ];
 
 const INTELLIGENCE_NAV = [
-  { href: '/wiki',             mark: WikiMark,      label: 'Knowledge Base'   },
-  { href: '/sources',          mark: FeedMark,      label: 'Sources Pipeline' },
-  { href: '/pi-ceo/activity',  mark: ActivityMark,  label: 'Activity Log'     },
-  { href: '/pi-ceo/health',    mark: ReportsMark,   label: 'Health History'   },
-  { href: '/pi-ceo/reports',   mark: BarChartMark,  label: 'SEO Reports'      },
+  { href: '/wiki',                mark: WikiMark,      label: 'Knowledge Base'   },
+  { href: '/sources',             mark: FeedMark,      label: 'Sources Pipeline' },
+  { href: '/pi-ceo/activity',     mark: ActivityMark,  label: 'Activity Log'     },
+  { href: '/empire/developers',   mark: UsersMark,     label: 'Developers'       },
+  { href: '/pi-ceo/health',       mark: ReportsMark,   label: 'Health History'   },
+  { href: '/pi-ceo/reports',      mark: BarChartMark,  label: 'SEO Reports'      },
 ];
 
 const BUSINESSES = [
