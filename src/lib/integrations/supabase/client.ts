@@ -3,8 +3,11 @@
 // Raw fetch against https://api.supabase.com/v1 — do NOT import from
 // @supabase/supabase-js here.
 
-const TOKEN = process.env.SUPABASE_MANAGEMENT_TOKEN ?? "";
-if (!TOKEN) console.warn("[supabase] SUPABASE_MANAGEMENT_TOKEN not set");
+// SUPABASE_ACCESS_TOKEN is the canonical name (matches Supabase's "Personal
+// Access Token" terminology + what's set on Vercel prod). Kept the
+// SUPABASE_MANAGEMENT_TOKEN fallback for backwards-compat with historical configs.
+const TOKEN = process.env.SUPABASE_ACCESS_TOKEN ?? process.env.SUPABASE_MANAGEMENT_TOKEN ?? "";
+if (!TOKEN) console.warn("[supabase] SUPABASE_ACCESS_TOKEN not set");
 
 const BASE = "https://api.supabase.com/v1";
 
