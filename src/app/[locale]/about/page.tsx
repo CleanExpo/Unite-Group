@@ -2,6 +2,8 @@
 // Public About page. Opens on Phill (named human, named year, named city).
 // Voice spec: Nexus Human Voice Spec v1 — non-negotiable #1 (named-human opener).
 
+import { CTABlock } from '@/components/marketing/CTABlock';
+
 export const dynamic = 'force-static';
 
 export default async function AboutPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -118,6 +120,8 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
           </ul>
         </section>
       </div>
+
+      <CTABlock />
     </main>
   );
 }

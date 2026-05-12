@@ -2,6 +2,8 @@
 // Services index. Named-operator pattern: each service opens on a specific
 // operator in a specific city, then the product paragraph.
 
+import { CTABlock } from '@/components/marketing/CTABlock';
+
 export const dynamic = 'force-static';
 
 const SERVICES = [
@@ -127,6 +129,8 @@ export default async function ServicesIndex({
           ))}
         </ul>
       </div>
+
+      <CTABlock />
     </main>
   );
 }
