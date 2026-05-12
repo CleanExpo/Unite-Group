@@ -4,13 +4,44 @@ import { z } from 'zod';
 import { StripeApiClient } from '@/lib/api/stripe/client';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { resolvePriceId } from '@/lib/billing/tiers';
+import { applyRateLimit, UNKNOWN_IP } from '@/lib/rate-limit';
 
 const subscribeSchema = z.object({
   business_id: z.string().uuid(),
   tier: z.enum(['base', 'professional', 'master']),
 });
 
+// RA-3013 — even though this route is admin-token-gated, a leaked or
+// log-exposed PI_CEO_API_KEY would let an attacker create unlimited
+// Stripe subscriptions. Rate-limit IS a defense layer here, not a
+// substitute for auth. 30 req/min/IP is generous for legitimate
+// operator use and a hard stop for credential-stuffing replay.
+const ADMIN_LIMIT = 30;
+const ADMIN_WINDOW_MS = 60 * 1000;
+
+function getClientIp(req: NextRequest): string {
+  return (
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+    req.headers.get('x-real-ip') ??
+    UNKNOWN_IP
+  );
+}
+
 export async function POST(request: NextRequest) {
+  const ip = getClientIp(request);
+  const rl = applyRateLimit(`admin-subscribe:${ip}`, ADMIN_LIMIT, ADMIN_WINDOW_MS);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: 'Too many requests' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
+        },
+      },
+    );
+  }
+
   const adminToken = request.headers.get('x-admin-token');
   if (!process.env.PI_CEO_API_KEY || adminToken !== process.env.PI_CEO_API_KEY) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
