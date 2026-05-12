@@ -92,6 +92,8 @@ jobs:
           cache: "npm"
       - run: npm ci
       - run: npm run lint
+      - name: Brand Guardian (voice compliance)
+        run: npm run brand:lint
 
   audit:
     name: npm audit (high+)
