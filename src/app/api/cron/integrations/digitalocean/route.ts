@@ -4,7 +4,7 @@ import { getAdminClient } from "@/lib/supabase/admin";
 import { syncDigitalOcean } from "@/lib/integrations/digitalocean/sync";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export async function GET(req: Request) {
   // Vercel cron auth — Vercel sends a special header

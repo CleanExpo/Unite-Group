@@ -2,7 +2,7 @@
 const TOKEN = process.env.RAILWAY_INTEGRATION_TOKEN ?? "";
 if (!TOKEN) console.warn("[railway] RAILWAY_INTEGRATION_TOKEN not set");
 
-const ENDPOINT = "https://backboard.railway.com/graphql/v2";
+const ENDPOINT = "https://backboard.railway.app/graphql/v2";
 
 export async function gql<T>(
   query: string,

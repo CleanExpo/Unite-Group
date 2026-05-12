@@ -6,7 +6,10 @@ if (!TOKEN) console.warn("[vercel] VERCEL_INTEGRATION_TOKEN not set");
 if (!TEAM_ID) console.warn("[vercel] VERCEL_TEAM_ID not set");
 
 async function call<T>(path: string): Promise<T> {
-  const url = `https://api.vercel.com${path}${path.includes("?") ? "&" : "?"}teamId=${TEAM_ID}`;
+  const teamSuffix = TEAM_ID
+    ? `${path.includes("?") ? "&" : "?"}teamId=${TEAM_ID}`
+    : "";
+  const url = `https://api.vercel.com${path}${teamSuffix}`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
   if (!res.ok) throw new Error(`Vercel API ${res.status}: ${await res.text()}`);
   return (await res.json()) as T;
@@ -39,10 +42,14 @@ export interface VercelEnvVar {
 }
 
 export async function listProjects(): Promise<VercelProject[]> {
-  return (await call<{ projects: VercelProject[] }>("/v10/projects")).projects;
+  // NOTE: raised to API max (100/page). Cursor pagination is a follow-up if any
+  // team exceeds 100 projects.
+  return (await call<{ projects: VercelProject[] }>("/v10/projects?limit=100")).projects;
 }
 
-export async function listDeployments(projectId: string, limit = 10): Promise<VercelDeployment[]> {
+export async function listDeployments(projectId: string, limit = 100): Promise<VercelDeployment[]> {
+  // NOTE: raised to API max (100/page). Cursor pagination via `?until=<ts>` is a
+  // follow-up if deeper history is needed.
   return (await call<{ deployments: VercelDeployment[] }>(
     `/v6/deployments?projectId=${projectId}&limit=${limit}`
   )).deployments;

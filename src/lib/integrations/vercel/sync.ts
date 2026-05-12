@@ -15,20 +15,23 @@ export async function syncVercel(): Promise<{
   const projects = await listProjects();
   for (const p of projects) {
     try {
-      const deps = await listDeployments(p.id, 10);
+      const deps = await listDeployments(p.id, 100);
       const latest = deps[0];
 
-      await sb.from("integration_vercel_projects").upsert({
-        id: p.id,
-        name: p.name,
-        framework: p.framework,
-        git_repo: p.link?.repo ? `${p.link.org}/${p.link.repo}` : null,
-        production_url: p.targets?.production?.url ?? null,
-        last_deployment_id: latest?.uid,
-        last_deployment_state: latest?.state,
-        last_deployment_at: latest ? new Date(latest.created).toISOString() : null,
-        fetched_at: new Date().toISOString(),
-      });
+      await sb.from("integration_vercel_projects").upsert(
+        {
+          id: p.id,
+          name: p.name,
+          framework: p.framework,
+          git_repo: p.link?.repo ? `${p.link.org}/${p.link.repo}` : null,
+          production_url: p.targets?.production?.url ?? null,
+          last_deployment_id: latest?.uid,
+          last_deployment_state: latest?.state,
+          last_deployment_at: latest ? new Date(latest.created).toISOString() : null,
+          fetched_at: new Date().toISOString(),
+        },
+        { onConflict: "id" }
+      );
       total++;
 
       const depRows = deps.map((d) => ({
@@ -43,7 +46,10 @@ export async function syncVercel(): Promise<{
         created_at: new Date(d.created).toISOString(),
         fetched_at: new Date().toISOString(),
       }));
-      if (depRows.length) await sb.from("integration_vercel_deployments").upsert(depRows);
+      if (depRows.length)
+        await sb
+          .from("integration_vercel_deployments")
+          .upsert(depRows, { onConflict: "id" });
       total += depRows.length;
 
       // env-var index — captures the smoking-gun "set but empty" pattern from RA Sign-In
@@ -59,7 +65,10 @@ export async function syncVercel(): Promise<{
           fetched_at: new Date().toISOString(),
         }))
       );
-      if (envRows.length) await sb.from("integration_vercel_env_index").upsert(envRows);
+      if (envRows.length)
+        await sb
+          .from("integration_vercel_env_index")
+          .upsert(envRows, { onConflict: "project_id,env_target,key" });
       total += envRows.length;
 
       succeeded.push(p.id);

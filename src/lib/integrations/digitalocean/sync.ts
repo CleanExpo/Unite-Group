@@ -19,48 +19,57 @@ const COST_BY_DROPLET_SIZE: Record<string, number> = {
 
 async function upsertApp(app: DOApp): Promise<void> {
   const sb = getAdminClient();
-  await sb.from("integration_do_apps").upsert({
-    id: app.id,
-    name: app.spec.name,
-    project_name: app.project_name,
-    region: app.spec.region,
-    live_url: app.live_url,
-    active_deployment_id: app.active_deployment?.id,
-    active_deployment_phase: app.active_deployment?.phase,
-    last_deployment_phase: app.active_deployment?.phase,
-    last_deployment_progress_at: app.active_deployment?.updated_at,
-    fetched_at: new Date().toISOString(),
-  });
+  await sb.from("integration_do_apps").upsert(
+    {
+      id: app.id,
+      name: app.spec.name,
+      project_name: app.project_name,
+      region: app.spec.region,
+      live_url: app.live_url,
+      active_deployment_id: app.active_deployment?.id,
+      active_deployment_phase: app.active_deployment?.phase,
+      last_deployment_phase: app.active_deployment?.phase,
+      last_deployment_progress_at: app.active_deployment?.updated_at,
+      fetched_at: new Date().toISOString(),
+    },
+    { onConflict: "id" }
+  );
 }
 
 async function upsertDroplet(d: DODroplet): Promise<void> {
   const sb = getAdminClient();
   const ipv4 = d.networks.v4.find((n) => n.type === "public")?.ip_address;
-  await sb.from("integration_do_droplets").upsert({
-    id: d.id,
-    name: d.name,
-    region: d.region.slug,
-    size: d.size_slug,
-    status: d.status,
-    ipv4,
-    created_at: d.created_at,
-    monthly_cost_usd: COST_BY_DROPLET_SIZE[d.size_slug] ?? null,
-    fetched_at: new Date().toISOString(),
-  });
+  await sb.from("integration_do_droplets").upsert(
+    {
+      id: d.id,
+      name: d.name,
+      region: d.region.slug,
+      size: d.size_slug,
+      status: d.status,
+      ipv4,
+      created_at: d.created_at,
+      monthly_cost_usd: COST_BY_DROPLET_SIZE[d.size_slug] ?? null,
+      fetched_at: new Date().toISOString(),
+    },
+    { onConflict: "id" }
+  );
 }
 
 async function upsertDatabase(db: DODatabase): Promise<void> {
   const sb = getAdminClient();
-  await sb.from("integration_do_databases").upsert({
-    id: db.id,
-    name: db.name,
-    engine: db.engine,
-    version: db.version,
-    status: db.status,
-    region: db.region,
-    monthly_cost_usd: null,
-    fetched_at: new Date().toISOString(),
-  });
+  await sb.from("integration_do_databases").upsert(
+    {
+      id: db.id,
+      name: db.name,
+      engine: db.engine,
+      version: db.version,
+      status: db.status,
+      region: db.region,
+      monthly_cost_usd: null,
+      fetched_at: new Date().toISOString(),
+    },
+    { onConflict: "id" }
+  );
 }
 
 export async function syncDigitalOcean(): Promise<{

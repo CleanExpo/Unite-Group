@@ -11,16 +11,19 @@ async function syncService(svc: RailwayService): Promise<number> {
   const sb = getAdminClient();
   const latest = svc.deployments.edges[0]?.node;
 
-  await sb.from("integration_railway_services").upsert({
-    id: svc.id,
-    project_id: svc.projectId,
-    name: svc.name,
-    last_deployment_id: latest?.id,
-    last_deployment_status: latest?.status,
-    last_deployment_at: latest?.createdAt,
-    service_url: latest?.staticUrl ?? latest?.url ?? null,
-    fetched_at: new Date().toISOString(),
-  });
+  await sb.from("integration_railway_services").upsert(
+    {
+      id: svc.id,
+      project_id: svc.projectId,
+      name: svc.name,
+      last_deployment_id: latest?.id,
+      last_deployment_status: latest?.status,
+      last_deployment_at: latest?.createdAt,
+      service_url: latest?.staticUrl ?? latest?.url ?? null,
+      fetched_at: new Date().toISOString(),
+    },
+    { onConflict: "id" }
+  );
 
   const depRows = svc.deployments.edges.map((e) => ({
     id: e.node.id,
@@ -32,7 +35,9 @@ async function syncService(svc: RailwayService): Promise<number> {
     fetched_at: new Date().toISOString(),
   }));
   if (depRows.length) {
-    await sb.from("integration_railway_deployments").upsert(depRows);
+    await sb
+      .from("integration_railway_deployments")
+      .upsert(depRows, { onConflict: "id" });
   }
   return 1 + depRows.length;
 }
