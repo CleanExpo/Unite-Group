@@ -90,22 +90,35 @@ require_supabase_token() {
 load_creds() {
   step "Loading credentials from 1Password vault: $OP_VAULT"
 
-  # Prod DB password
-  PROD_DB_PASSWORD=$(op item get "UNITE_GROUP_DB_PASSWORD" --vault "$OP_VAULT" --reveal --field credential 2>/dev/null || true)
+  # Local override file (used when service account can't write to 1P)
+  local creds_file="$HOME/.hermes/.unite-group-sandbox-creds.env"
+  if [[ -f "$creds_file" ]]; then
+    # shellcheck disable=SC1090
+    source "$creds_file"
+  fi
+
+  # Prod DB password — prefer env var, fall back to 1P
+  PROD_DB_PASSWORD="${UNITE_GROUP_DB_PASSWORD:-}"
   if [[ -z "$PROD_DB_PASSWORD" ]]; then
-    err "1P item 'UNITE_GROUP_DB_PASSWORD' missing in vault $OP_VAULT"
-    echo "    Get the prod DB password from:"
-    echo "    https://supabase.com/dashboard/project/$PROD_REF/settings/database"
-    echo "    Save it as: op item create --vault $OP_VAULT --category 'API Credential' --title UNITE_GROUP_DB_PASSWORD credential=<password>"
+    PROD_DB_PASSWORD=$(op item get "UNITE_GROUP_DB_PASSWORD" --vault "$OP_VAULT" --reveal --field credential 2>/dev/null || true)
+  fi
+  if [[ -z "$PROD_DB_PASSWORD" ]]; then
+    err "Prod DB password missing in both env var and 1P item 'UNITE_GROUP_DB_PASSWORD'"
+    echo "    Reset at: https://supabase.com/dashboard/project/$PROD_REF/settings/database"
+    echo "    Save to:  $creds_file  (export UNITE_GROUP_DB_PASSWORD=...)"
+    echo "    Or to 1P: op item create --vault $OP_VAULT --category 'API Credential' --title UNITE_GROUP_DB_PASSWORD credential=<password>"
     exit 1
   fi
 
-  # Sandbox DB password
-  SANDBOX_DB_PASSWORD=$(op item get "UNITE_GROUP_SANDBOX_DB_PASSWORD" --vault "$OP_VAULT" --reveal --field credential 2>/dev/null || true)
+  # Sandbox DB password — prefer env var, fall back to 1P
+  SANDBOX_DB_PASSWORD="${UNITE_GROUP_SANDBOX_DB_PASSWORD:-}"
   if [[ -z "$SANDBOX_DB_PASSWORD" ]]; then
-    err "1P item 'UNITE_GROUP_SANDBOX_DB_PASSWORD' missing"
+    SANDBOX_DB_PASSWORD=$(op item get "UNITE_GROUP_SANDBOX_DB_PASSWORD" --vault "$OP_VAULT" --reveal --field credential 2>/dev/null || true)
+  fi
+  if [[ -z "$SANDBOX_DB_PASSWORD" ]]; then
+    err "Sandbox DB password missing in both env var and 1P"
     echo "    Reset at: https://supabase.com/dashboard/project/$SANDBOX_REF/settings/database"
-    echo "    Save:     op item create --vault $OP_VAULT --category 'API Credential' --title UNITE_GROUP_SANDBOX_DB_PASSWORD credential=<password>"
+    echo "    Save to:  $creds_file  (export UNITE_GROUP_SANDBOX_DB_PASSWORD=...)"
     exit 1
   fi
 
@@ -172,38 +185,123 @@ mirror_schema() {
   lines=$(wc -l <"$SCHEMA_DUMP" | tr -d ' ')
   ok "Dumped prod public schema → $SCHEMA_DUMP ($lines lines)"
 
-  step "Wiping sandbox public schema"
+  # ─ Wipe sandbox public schema (per-statement drops, not DROP SCHEMA CASCADE) ─
+  # DROP SCHEMA CASCADE on a 1000+-table schema exceeds Postgres
+  # max_locks_per_transaction (default 64). We instead generate per-object
+  # DROP statements and run them through one psql session in autocommit mode,
+  # so each DROP is its own implicit tx and releases locks before the next.
+  step "Wiping sandbox public schema (per-statement drops, autocommit)"
+  local cleanup_script="$SCHEMA_DUMP_DIR/cleanup.sql"
+  local cleanup_log="$SCHEMA_DUMP_DIR/cleanup.log"
+
   PGPASSWORD="$SANDBOX_DB_PASSWORD" psql \
-    --host="db.${SANDBOX_REF}.supabase.co" \
-    --port=5432 \
-    --username="postgres" \
-    --dbname=postgres \
-    --quiet \
-    -c "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;"
+    --host="db.${SANDBOX_REF}.supabase.co" --username="postgres" --dbname=postgres -qtAc "
+    SELECT 'DROP TABLE IF EXISTS public.\"' || tablename || '\" CASCADE;'
+      FROM pg_tables WHERE schemaname='public'
+    UNION ALL
+    SELECT 'DROP TYPE IF EXISTS public.\"' || t.typname || '\" CASCADE;'
+      FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace
+      WHERE n.nspname = 'public' AND t.typtype IN ('e','c','d')
+        AND t.typname NOT LIKE E'\\\\_%'
+        AND NOT EXISTS (SELECT 1 FROM pg_depend d
+          WHERE d.classid='pg_type'::regclass AND d.objid=t.oid AND d.deptype='e')
+    UNION ALL
+    SELECT 'DROP FUNCTION IF EXISTS public.\"' || p.proname || '\"(' || oidvectortypes(p.proargtypes) || ') CASCADE;'
+      FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+      WHERE n.nspname='public'
+        AND NOT EXISTS (SELECT 1 FROM pg_depend d
+          WHERE d.classid='pg_proc'::regclass AND d.objid=p.oid AND d.deptype='e')
+    UNION ALL
+    SELECT 'DROP VIEW IF EXISTS public.\"' || table_name || '\" CASCADE;'
+      FROM information_schema.views WHERE table_schema='public'
+    UNION ALL
+    SELECT 'DROP MATERIALIZED VIEW IF EXISTS public.\"' || matviewname || '\" CASCADE;'
+      FROM pg_matviews WHERE schemaname='public'
+    UNION ALL
+    SELECT 'DROP SEQUENCE IF EXISTS public.\"' || sequence_name || '\" CASCADE;'
+      FROM information_schema.sequences WHERE sequence_schema='public';" > "$cleanup_script" 2>/dev/null
+
+  local stmt_count
+  stmt_count=$(wc -l < "$cleanup_script" | tr -d ' ')
+  info "Generated $stmt_count DROP statements (tables, types, functions, views, sequences)"
+
+  if [[ "$stmt_count" -gt 0 ]]; then
+    PGPASSWORD="$SANDBOX_DB_PASSWORD" psql \
+      --host="db.${SANDBOX_REF}.supabase.co" --username="postgres" --dbname=postgres --quiet \
+      -f "$cleanup_script" > "$cleanup_log" 2>&1
+    local cleanup_err=$(grep -c '^ERROR' "$cleanup_log" 2>/dev/null || echo 0)
+    if [[ "$cleanup_err" -gt 0 ]]; then
+      warn "$cleanup_err errors during cleanup — see $cleanup_log"
+    fi
+  fi
   ok "Sandbox public schema wiped"
 
+  # ─ Install prod's user-extensions onto sandbox ─
+  # pg_dump --schema=public excludes CREATE EXTENSION statements, so we
+  # mirror them explicitly. Without this, tables using `vector(N)`,
+  # `gin_trgm_ops`, etc. fail with "type/operator does not exist" and
+  # cascade thousands of downstream errors.
+  step "Mirroring prod's user-extensions onto sandbox"
+  local ext_list
+  ext_list=$(PGPASSWORD="$PROD_DB_PASSWORD" psql \
+    --host="db.${PROD_REF}.supabase.co" --username="postgres" --dbname=postgres -qtAc \
+    "SELECT extname FROM pg_extension
+     WHERE extname NOT IN ('plpgsql','supabase_vault','pg_stat_statements','pgcrypto','uuid-ossp');" 2>/dev/null)
+  if [[ -n "$ext_list" ]]; then
+    for ext in $ext_list; do
+      info "Installing extension '$ext' on sandbox..."
+      PGPASSWORD="$SANDBOX_DB_PASSWORD" psql \
+        --host="db.${SANDBOX_REF}.supabase.co" --username="postgres" --dbname=postgres --quiet \
+        -c "CREATE EXTENSION IF NOT EXISTS \"$ext\" SCHEMA public;" 2>&1 | tail -1 \
+        || warn "  extension $ext install failed (may already exist)"
+    done
+  fi
+  ok "Extensions mirrored"
+
+  # ─ Apply dump (no ON_ERROR_STOP — large cross-referenced schemas have
+  #   benign chicken-and-egg errors; the verify step catches real drift) ─
   step "Applying prod schema to sandbox"
+  local apply_log="$SCHEMA_DUMP_DIR/apply.log"
   PGPASSWORD="$SANDBOX_DB_PASSWORD" psql \
-    --host="db.${SANDBOX_REF}.supabase.co" \
-    --port=5432 \
-    --username="postgres" \
-    --dbname=postgres \
-    --quiet \
-    --file="$SCHEMA_DUMP" 2>&1 | tail -20 || true
-
-  # Verify table parity
-  local prod_tables sandbox_tables
-  prod_tables=$(PGPASSWORD="$PROD_DB_PASSWORD" psql --host="db.${PROD_REF}.supabase.co" \
-    --username="postgres" --dbname=postgres --quiet -tAc \
-    "SELECT count(*) FROM information_schema.tables WHERE table_schema='public'")
-  sandbox_tables=$(PGPASSWORD="$SANDBOX_DB_PASSWORD" psql --host="db.${SANDBOX_REF}.supabase.co" \
-    --username="postgres" --dbname=postgres --quiet -tAc \
-    "SELECT count(*) FROM information_schema.tables WHERE table_schema='public'")
-
-  if [[ "$prod_tables" == "$sandbox_tables" ]]; then
-    ok "Table parity confirmed: $sandbox_tables public tables"
+    --host="db.${SANDBOX_REF}.supabase.co" --username="postgres" --dbname=postgres --quiet \
+    -f "$SCHEMA_DUMP" > "$apply_log" 2>&1 || true
+  local err_count
+  err_count=$(grep -c '^psql:.*ERROR' "$apply_log" 2>/dev/null || echo 0)
+  if [[ "$err_count" -gt 1 ]]; then
+    warn "$err_count psql ERROR lines during apply — see $apply_log"
+    echo "    First 5 errors:"
+    grep '^psql:.*ERROR' "$apply_log" | head -5 | sed 's/^/      /'
   else
-    warn "Table count drift: prod=$prod_tables sandbox=$sandbox_tables (some objects may have failed to restore — check output above)"
+    ok "Apply produced $err_count error(s) (1 expected: 'schema public already exists')"
+  fi
+
+  # ─ Verify parity by NAME-DIFF, not just count ─
+  # Counts can match while specific tables are missing; only a name-set
+  # comparison proves the mirror is faithful. Function returns non-zero
+  # if drift > 0 so callers can detect failure.
+  step "Verifying prod ↔ sandbox name-diff"
+  local drift_log="$SCHEMA_DUMP_DIR/drift.log"
+  local prod_tables sandbox_tables drift_count
+
+  prod_tables=$(PGPASSWORD="$PROD_DB_PASSWORD" psql \
+    --host="db.${PROD_REF}.supabase.co" --username="postgres" --dbname=postgres -qtAc \
+    "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename;")
+  sandbox_tables=$(PGPASSWORD="$SANDBOX_DB_PASSWORD" psql \
+    --host="db.${SANDBOX_REF}.supabase.co" --username="postgres" --dbname=postgres -qtAc \
+    "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename;")
+
+  echo "$prod_tables" > "${drift_log}.prod"
+  echo "$sandbox_tables" > "${drift_log}.sandbox"
+  comm -23 "${drift_log}.prod" "${drift_log}.sandbox" > "${drift_log}.missing"
+  drift_count=$(wc -l < "${drift_log}.missing" | tr -d ' ')
+
+  if [[ "$drift_count" -eq 0 ]]; then
+    ok "Name-diff clean: prod and sandbox have identical table sets ($(wc -l < ${drift_log}.prod | tr -d ' ') tables)"
+  else
+    err "Name-diff: $drift_count table(s) in prod not in sandbox — see ${drift_log}.missing"
+    echo "    Missing tables (first 10):"
+    head -10 "${drift_log}.missing" | sed 's/^/      /'
+    return 1
   fi
 
   # Persist state
