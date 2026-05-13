@@ -19,6 +19,13 @@
 
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+// Static imports of adapter route handlers. We invoke these in-process
+// instead of HTTP fetch — see probeAdapter() below for context.
+import { GET as githubSource } from '@/app/api/empire/sources/github/[slug]/route';
+import { GET as linearSource } from '@/app/api/empire/sources/linear/[slug]/route';
+import { GET as vercelSource } from '@/app/api/empire/sources/vercel/[slug]/route';
+import { GET as railwaySource } from '@/app/api/empire/sources/railway/[slug]/route';
+import { GET as supabaseSource } from '@/app/api/empire/sources/supabase/[slug]/route';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -190,8 +197,8 @@ interface AdapterResp { status: Quad }
 
 type AdapterKind = 'github' | 'linear' | 'vercel' | 'railway' | 'supabase';
 
-// We call adapter route handlers in-process (dynamic import) instead of HTTP
-// fetch. This avoids two failure modes that surfaced in prod on Vercel:
+// We call adapter route handlers in-process (statically imported) instead of
+// HTTP fetch. This avoids two failure modes that surfaced in prod on Vercel:
 //   1. Cross-function HTTP routing through the public alias being SSO-locked
 //      (or treated as untrusted), returning 401/403 even though the alias is
 //      open to the public — Vercel's internal edge can re-route same-deploy
@@ -203,27 +210,26 @@ type SourceHandler = (
   ctx: { params: Promise<{ slug: string }> },
 ) => Promise<Response>;
 
-const _adapterHandlerCache = new Map<AdapterKind, SourceHandler>();
+const ADAPTER_HANDLERS: Record<AdapterKind, SourceHandler> = {
+  github: githubSource as SourceHandler,
+  linear: linearSource as SourceHandler,
+  vercel: vercelSource as SourceHandler,
+  railway: railwaySource as SourceHandler,
+  supabase: supabaseSource as SourceHandler,
+};
 
-async function getAdapterHandler(kind: AdapterKind): Promise<SourceHandler> {
-  const cached = _adapterHandlerCache.get(kind);
-  if (cached) return cached;
-  // Static, finite set of imports — bundlers can tree-shake by literal switch.
-  let mod: { GET: SourceHandler };
-  switch (kind) {
-    case 'github':   mod = await import('@/app/api/empire/sources/github/[slug]/route'); break;
-    case 'linear':   mod = await import('@/app/api/empire/sources/linear/[slug]/route'); break;
-    case 'vercel':   mod = await import('@/app/api/empire/sources/vercel/[slug]/route'); break;
-    case 'railway':  mod = await import('@/app/api/empire/sources/railway/[slug]/route'); break;
-    case 'supabase': mod = await import('@/app/api/empire/sources/supabase/[slug]/route'); break;
-  }
-  _adapterHandlerCache.set(kind, mod.GET);
-  return mod.GET;
-}
+// Per-process debug capture for the most recent probe failure reason.
+// Surfaced in `signals.integrations.summary` to make Vercel-only failures
+// diagnosable without server logs.
+let _lastProbeError: string | null = null;
 
 async function probeAdapter(baseUrl: string, kind: AdapterKind, slug: string): Promise<Quad> {
   try {
-    const handler = await getAdapterHandler(kind);
+    const handler = ADAPTER_HANDLERS[kind];
+    if (!handler) {
+      _lastProbeError = `${kind}: handler not bound`;
+      return 'err';
+    }
     // Synthesize a minimal Request — adapter handlers ignore the req body and
     // read `params` from the second argument, so a plain GET is sufficient.
     const fakeReq = new Request(`${baseUrl}/api/empire/sources/${kind}/${slug}`, { method: 'GET' });
@@ -240,13 +246,19 @@ async function probeAdapter(baseUrl: string, kind: AdapterKind, slug: string): P
     } finally {
       if (timeoutHandle) clearTimeout(timeoutHandle);
     }
-    if (!res.ok) return 'err';
+    if (!res.ok) {
+      _lastProbeError = `${kind}/${slug}: HTTP ${res.status}`;
+      return 'err';
+    }
     const body = (await res.json()) as AdapterResp;
     if (body.status === 'ok' || body.status === 'warn' || body.status === 'err' || body.status === 'unknown') {
       return body.status;
     }
+    _lastProbeError = `${kind}/${slug}: invalid status ${JSON.stringify(body.status)}`;
     return 'err';
-  } catch {
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    _lastProbeError = `${kind}/${slug}: ${msg.slice(0, 120)}`;
     return 'err';
   }
 }
@@ -278,7 +290,13 @@ async function probeIntegrations(baseUrl: string): Promise<SignalIntegrations> {
   const sources = { github, linear, vercel, railway, supabase };
   const okCount = sourceStatuses.filter(v => v === 'ok').length;
   const knownCount = sourceStatuses.filter(v => v !== 'unknown').length;
-  const summary = `${okCount}/${knownCount} sources ok`;
+  let summary = `${okCount}/${knownCount} sources ok`;
+  // Surface the most recent probe failure so /api/empire/system-health is
+  // self-diagnosing — if integrations is err we want to know WHY without
+  // tailing serverless logs.
+  if (status === 'err' && _lastProbeError) {
+    summary += ` · last err: ${_lastProbeError}`;
+  }
   return { status, ...sources, summary };
 }
 
