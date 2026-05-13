@@ -42,3 +42,7 @@ Copy `.env.example` to `.env.local`:
 ## Autonomous Operations
 
 Pi-CEO workspace: `.pi-ceo/<session>/`. Active session state in `STATUS.md` and `PLAN.md`.
+
+## Changelog
+
+- 2026-05-13: Duncan Perkins / ITR Platform onboarding — portal at /clients/dimitri-itr, magic-link via /api/onboarding/send-magic-link
