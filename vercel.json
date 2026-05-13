@@ -82,6 +82,8 @@
     { "path": "/api/cron/integrations/stripe",       "schedule": "5-59/15 * * * *" },
 
     { "path": "/api/cron/integrations/supabase",     "schedule": "0 * * * *" },
-    { "path": "/api/cron/integrations/composio",     "schedule": "30 * * * *" }
+    { "path": "/api/cron/integrations/composio",     "schedule": "30 * * * *" },
+
+    { "path": "/api/cron/process-scan-requests",     "schedule": "*/5 * * * *" }
   ]
 }
