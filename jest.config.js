@@ -15,6 +15,7 @@ module.exports = {
           strict: true,
           esModuleInterop: true,
           moduleResolution: "node",
+          jsx: "react",
           paths: {
             "@/*": ["./src/*", "./*"],
           },

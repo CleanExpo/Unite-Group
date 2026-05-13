@@ -1,6 +1,7 @@
 "use client";
 
 import { BusinessLogo } from '@/components/empire/BusinessLogo';
+import { SystemHealthTile } from '@/components/empire/SystemHealthTile';
 import Link from 'next/link';
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -669,6 +670,9 @@ export default function EmpireCommandCenter() {
 
         {/* SECTION 1: Empire Pulse Bar */}
         <EmpirePulseBar summary={summary} loading={isLoading} exitThesis={exitThesis} />
+
+        {/* SECTION 1b: System Health Command Center */}
+        <SystemHealthTile />
 
         {/* SECTION 2 + 3: Two-column layout */}
         <div style={{
