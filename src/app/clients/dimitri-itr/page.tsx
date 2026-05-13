@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { supabaseClient } from "@/lib/supabase/client";
 import {
@@ -75,9 +75,12 @@ function StatusPill({ status }: { status: keyof typeof STATUS_CONFIG }) {
 
 export default function DimitriItrPortal() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [authed, setAuthed] = useState(false);
   const [sessionEmail, setSessionEmail] = useState<string>("");
   const [mounted, setMounted] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string>("");
 
   // This page is owned by the client whose slug matches the route.
   // The portal always greets the client — never the admin previewing.
@@ -85,7 +88,42 @@ export default function DimitriItrPortal() {
     name: "Duncan Perkins",
     firstName: "Duncan",
     email: "Duncan@homeloanessentials.com.au",
+    slug: "dimitri-itr",
   };
+
+  // Proposal terms — shown in the Approval card.
+  const proposal = {
+    setupFeeAud: 4400,
+    monthlyAud: 2750,
+    termMonths: 12,
+    totalAud: 4400 + 12 * 2750,
+    currencyNote: "All amounts AUD, GST inclusive",
+  };
+
+  const paid = searchParams?.get("paid") === "1";
+  const cancelled = searchParams?.get("paid") === "0";
+
+  async function handleApproveAndPay() {
+    setCheckoutLoading(true);
+    setCheckoutError("");
+    try {
+      const res = await fetch("/api/onboarding/create-checkout-session", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ slug: client.slug }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.checkout_url) {
+        setCheckoutError(data?.error ?? `Checkout error (HTTP ${res.status})`);
+        setCheckoutLoading(false);
+        return;
+      }
+      window.location.href = data.checkout_url;
+    } catch (err) {
+      setCheckoutError(err instanceof Error ? err.message : "Network error");
+      setCheckoutLoading(false);
+    }
+  }
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -204,6 +242,104 @@ export default function DimitriItrPortal() {
               <div style={{ fontFamily: "var(--font-mono)", fontSize: 24, fontWeight: 700, letterSpacing: "-0.03em", color: s.color }}>{s.value}</div>
             </motion.div>
           ))}
+        </div>
+
+        {/* ── Proposal & Approval ────────────────────────────────────────── */}
+        <div>
+          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: DUNCAN.ghost, marginBottom: 12 }}>
+            Proposal & Approval
+          </div>
+
+          {paid && (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+              style={{
+                background: "rgba(22,163,74,0.10)", border: "1px solid rgba(22,163,74,0.35)",
+                borderRadius: 10, padding: "12px 16px", marginBottom: 14,
+                display: "flex", alignItems: "center", gap: 10,
+              }}
+            >
+              <CheckCircleMark size={16} color="#16a34a" />
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#16a34a" }}>Welcome aboard — engagement locked in</div>
+                <div style={{ fontSize: 11, color: DUNCAN.muted, marginTop: 2 }}>
+                  Setup fee charged and monthly retainer active. First written status note Friday afternoon.
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {cancelled && (
+            <div style={{
+              background: "rgba(234,179,8,0.08)", border: "1px solid rgba(234,179,8,0.30)",
+              borderRadius: 10, padding: "10px 14px", marginBottom: 14,
+              fontSize: 12, color: "#a16207",
+            }}>
+              Payment cancelled — no charge made. Try again any time.
+            </div>
+          )}
+
+          <div style={{
+            background: DUNCAN.surface,
+            backgroundImage: "linear-gradient(180deg,rgba(255,255,255,0.025) 0%,transparent 50%)",
+            border: `1px solid ${DUNCAN.border}`, borderRadius: 12, padding: "20px 22px",
+          }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 18 }}>
+              {[
+                { label: "Setup Fee (one-time)",    value: `$${proposal.setupFeeAud.toLocaleString()}`, color: DUNCAN.ink   },
+                { label: "Monthly Retainer",         value: `$${proposal.monthlyAud.toLocaleString()}`,  color: DUNCAN.ink   },
+                { label: "Minimum Term",             value: `${proposal.termMonths} months`,             color: DUNCAN.ink   },
+                { label: "12-Month Commitment",      value: `$${proposal.totalAud.toLocaleString()}`,    color: DUNCAN.blue  },
+              ].map(t => (
+                <div key={t.label} style={{ textAlign: "left" }}>
+                  <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: DUNCAN.ghost, marginBottom: 4 }}>{t.label}</div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 20, fontWeight: 700, letterSpacing: "-0.02em", color: t.color }}>{t.value}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ fontSize: 11, color: DUNCAN.ghost, marginBottom: 16, lineHeight: 1.5 }}>
+              {proposal.currencyNote}. Setup fee charged on signing. Monthly retainer invoiced the 1st of each month from June 2026. Full proposal: <a href="/proposals/duncan-itr-platform-2026-05-13" style={{ color: DUNCAN.blue, textDecoration: "none" }}>read here</a>.
+            </div>
+
+            {!paid && (
+              <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+                <button
+                  onClick={handleApproveAndPay}
+                  disabled={checkoutLoading}
+                  style={{
+                    background: checkoutLoading ? DUNCAN.muted : "#E62128",
+                    color: "#fff",
+                    border: "none",
+                    padding: "12px 22px",
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    letterSpacing: "0.02em",
+                    cursor: checkoutLoading ? "wait" : "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => { if (!checkoutLoading) (e.currentTarget as HTMLButtonElement).style.background = "#c4181f"; }}
+                  onMouseLeave={(e) => { if (!checkoutLoading) (e.currentTarget as HTMLButtonElement).style.background = "#E62128"; }}
+                >
+                  {checkoutLoading ? "Loading Stripe…" : "Approve & pay setup fee →"}
+                </button>
+                <div style={{ fontSize: 11, color: DUNCAN.ghost }}>
+                  Secure checkout via Stripe. Card details never touch our servers.
+                </div>
+              </div>
+            )}
+
+            {checkoutError && (
+              <div style={{
+                marginTop: 12, padding: "10px 14px", borderRadius: 8,
+                background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.30)",
+                fontSize: 12, color: "#b91c1c",
+              }}>
+                {checkoutError}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ── Deliverables table ──────────────────────────────────────────── */}
