@@ -14,7 +14,7 @@ function Clock() {
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, []);
-  return <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "#3f3f46", letterSpacing: "0.1em" }}>{time} AEST</span>;
+  return <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ink-tertiary)", letterSpacing: "0.1em" }}>{time} AEST</span>;
 }
 
 const BUSINESSES = [
@@ -144,7 +144,7 @@ export default function LoginPage() {
             </div>
             <div style={{
               marginTop: 12, fontFamily: "var(--font-mono)", fontSize: 10,
-              color: "#3f3f46", letterSpacing: "0.15em",
+              color: "var(--ink-tertiary)", letterSpacing: "0.15em",
               borderLeft: "2px solid #f59e0b", paddingLeft: 10,
             }}>
               6 BUSINESSES · PI-CEO SWARM · 100% AUTONOMY<br />
@@ -156,7 +156,7 @@ export default function LoginPage() {
           <div style={{ flex: 1 }}>
             <div style={{
               fontSize: 9, fontWeight: 600, letterSpacing: "0.2em",
-              textTransform: "uppercase", color: "#3f3f46",
+              textTransform: "uppercase", color: "var(--ink-tertiary)",
               fontFamily: "var(--font-mono)", marginBottom: 12,
               display: "flex", alignItems: "center", gap: 8,
             }}>
@@ -197,13 +197,13 @@ export default function LoginPage() {
             display: "flex", justifyContent: "space-between", alignItems: "center",
           }}>
             <div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#3f3f46", letterSpacing: "0.1em" }}>TOTAL ARR</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-tertiary)", letterSpacing: "0.1em" }}>TOTAL ARR</div>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: 18, fontWeight: 700, color: "#22c55e", letterSpacing: "-0.02em" }}>
-                ${(totalARR / 1000).toFixed(0)}K<span style={{ fontSize: 10, color: "#3f3f46" }}>/yr</span>
+                ${(totalARR / 1000).toFixed(0)}K<span style={{ fontSize: 10, color: "var(--ink-tertiary)" }}>/yr</span>
               </div>
             </div>
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#3f3f46", letterSpacing: "0.1em" }}>SWARM STATUS</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-tertiary)", letterSpacing: "0.1em" }}>SWARM STATUS</div>
               <div style={{ display: "flex", alignItems: "center", gap: 5, justifyContent: "flex-end" }}>
                 <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#22c55e", display: "inline-block" }} />
                 <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#22c55e" }}>NOMINAL</span>
@@ -236,7 +236,7 @@ export default function LoginPage() {
 
             {/* Auth header */}
             <div style={{ marginBottom: 36 }}>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#3f3f46", letterSpacing: "0.2em", marginBottom: 8 }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-tertiary)", letterSpacing: "0.2em", marginBottom: 8 }}>
                 {'// SECURE ACCESS TERMINAL'}
               </div>
               <h2 style={{
@@ -247,7 +247,7 @@ export default function LoginPage() {
                 AUTHENTICATE
                 <span className="cursor" style={{ color: "#f59e0b", marginLeft: 2 }}>_</span>
               </h2>
-              <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#3f3f46", margin: "8px 0 0", letterSpacing: "0.05em" }}>
+              <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--ink-tertiary)", margin: "8px 0 0", letterSpacing: "0.05em" }}>
                 AUTHORISED PERSONNEL ONLY
               </p>
             </div>
@@ -271,7 +271,7 @@ export default function LoginPage() {
               {/* Email field */}
               <div style={{ marginBottom: 16 }}>
                 <div style={{
-                  fontFamily: "var(--font-mono)", fontSize: 9, color: "#3f3f46",
+                  fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-tertiary)",
                   letterSpacing: "0.2em", marginBottom: 6, textTransform: "uppercase",
                 }}>
                   &gt; EMAIL IDENTIFIER
@@ -298,12 +298,12 @@ export default function LoginPage() {
               {/* Password field */}
               <div style={{ marginBottom: 28 }}>
                 <div style={{
-                  fontFamily: "var(--font-mono)", fontSize: 9, color: "#3f3f46",
+                  fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-tertiary)",
                   letterSpacing: "0.2em", marginBottom: 6, textTransform: "uppercase",
                   display: "flex", justifyContent: "space-between",
                 }}>
                   <span>&gt; ACCESS CODE</span>
-                  <Link href="/reset-password" style={{ color: "#f59e0b", textDecoration: "none" }}>RESET</Link>
+                  <Link href="/en/reset-password" style={{ color: "#f59e0b", textDecoration: "none" }}>RESET</Link>
                 </div>
                 <input
                   type="password" required autoComplete="current-password"
@@ -378,7 +378,7 @@ export default function LoginPage() {
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#22c55e", display: "inline-block" }} />
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "#3f3f46", letterSpacing: "0.1em" }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-tertiary)", letterSpacing: "0.1em" }}>
                   ALL SYSTEMS NOMINAL
                 </span>
               </div>
