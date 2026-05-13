@@ -59,12 +59,11 @@ export interface SystemHealth {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const CACHE_TTL_MS = 30_000;
-// Generous per-probe timeout: when 30 adapter probes (5 sources × 6 brands)
-// run in parallel they share the same outbound connection pool and the
-// downstream APIs (GitHub, Linear, Vercel, Railway, Supabase Management) can
-// take several seconds under contention. Below ~10s we see false-negative
-// 'err' results with no real underlying failure.
-const PROBE_TIMEOUT_MS = 12_000;
+// Per-probe timeout. 30 adapter probes (5 sources × 6 brands) run in parallel
+// and hit external APIs (GitHub, Linear, Vercel, Railway, Supabase Mgmt). 8s
+// fits the slow tail without letting a single hung probe stall the whole
+// roll-up — Promise.all in rollUpAdapter caps total wall time at this value.
+const PROBE_TIMEOUT_MS = 8_000;
 const PORTFOLIO_SLUGS = [
   'synthex',
   'restoreassist',
@@ -195,49 +194,19 @@ interface AdapterResp { status: Quad }
 
 type AdapterKind = 'github' | 'linear' | 'vercel' | 'railway' | 'supabase';
 
-// Per-process debug capture for the most recent probe failure reason.
-// Surfaced in `signals.integrations.summary` to make Vercel-only failures
-// diagnosable without server logs.
-let _lastProbeError: string | null = null;
-let _probeOks = 0;
-let _probeErrs = 0;
-let _probeAttempts = 0;
-let _firstProbeBody: string | null = null;
-
 async function probeAdapter(baseUrl: string, kind: AdapterKind, slug: string): Promise<Quad> {
-  _probeAttempts++;
   try {
     const res = await fetch(`${baseUrl}/api/empire/sources/${kind}/${slug}`, {
       cache: 'no-store',
       signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
     });
-    if (!res.ok) {
-      _lastProbeError = `${kind}/${slug}: HTTP ${res.status}`;
-      _probeErrs++;
-      return 'err';
-    }
-    const text = await res.text();
-    // Capture the first body shape for diagnostics.
-    if (!_firstProbeBody) _firstProbeBody = `${kind}/${slug}: ${text.slice(0, 200)}`;
-    let body: AdapterResp;
-    try {
-      body = JSON.parse(text) as AdapterResp;
-    } catch {
-      _lastProbeError = `${kind}/${slug}: non-JSON body ${text.slice(0, 80)}`;
-      _probeErrs++;
-      return 'err';
-    }
+    if (!res.ok) return 'err';
+    const body = (await res.json()) as AdapterResp;
     if (body.status === 'ok' || body.status === 'warn' || body.status === 'err' || body.status === 'unknown') {
-      _probeOks++;
       return body.status;
     }
-    _lastProbeError = `${kind}/${slug}: invalid status ${JSON.stringify(body.status)}`;
-    _probeErrs++;
     return 'err';
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    _lastProbeError = `${kind}/${slug}: ${msg.slice(0, 120)}`;
-    _probeErrs++;
+  } catch {
     return 'err';
   }
 }
@@ -251,12 +220,6 @@ async function rollUpAdapter(baseUrl: string, kind: AdapterKind): Promise<Quad> 
 }
 
 async function probeIntegrations(baseUrl: string): Promise<SignalIntegrations> {
-  // Reset per-request probe diagnostics.
-  _lastProbeError = null;
-  _probeAttempts = 0;
-  _probeOks = 0;
-  _probeErrs = 0;
-  _firstProbeBody = null;
   const [github, linear, vercel, railway, supabase] = await Promise.all([
     rollUpAdapter(baseUrl, 'github'),
     rollUpAdapter(baseUrl, 'linear'),
@@ -275,16 +238,7 @@ async function probeIntegrations(baseUrl: string): Promise<SignalIntegrations> {
   const sources = { github, linear, vercel, railway, supabase };
   const okCount = sourceStatuses.filter(v => v === 'ok').length;
   const knownCount = sourceStatuses.filter(v => v !== 'unknown').length;
-  let summary = `${okCount}/${knownCount} sources ok`;
-  // Surface probe diagnostics so /api/empire/system-health is self-diagnosing.
-  // If integrations is err we want to know WHY without tailing serverless logs.
-  summary += ` · probes: ${_probeOks} ok · ${_probeErrs} err / ${_probeAttempts} · base=${baseUrl}`;
-  if (_firstProbeBody) {
-    summary += ` · first: ${_firstProbeBody}`;
-  }
-  if (_lastProbeError) {
-    summary += ` · last err: ${_lastProbeError}`;
-  }
+  const summary = `${okCount}/${knownCount} sources ok`;
   return { status, ...sources, summary };
 }
 
