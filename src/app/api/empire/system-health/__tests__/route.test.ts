@@ -36,13 +36,12 @@ jest.mock('@/lib/supabase/admin', () => {
   };
 });
 
-// ---- Adapter route handler mocks ----
+// ---- Adapter response driver ----
 //
-// system-health now calls the adapter GET handlers in-process via dynamic
-// import. We mock each adapter module so tests can drive the per-source
-// response independently. Default = every adapter returns status 'ok' (the
-// happy-path), and individual tests override `adapterResponses` per-source
-// (with an optional per-slug override via a function).
+// system-health probes adapters via HTTP fetch (cross-function call). Tests
+// drive the per-source response by short-circuiting the fetch mock for any
+// URL containing `/api/empire/sources/<kind>/`. Default = every adapter
+// returns status 'ok'. Per-slug overrides via a callable response.
 
 type AdapterStatus = 'ok' | 'warn' | 'err' | 'unknown';
 type AdapterResponse = AdapterStatus | ((slug: string) => AdapterStatus);
@@ -55,23 +54,6 @@ const adapterResponses: Record<'github' | 'linear' | 'vercel' | 'railway' | 'sup
   supabase: 'ok',
 };
 
-function adapterMockFactory(kind: keyof typeof adapterResponses) {
-  return () => ({
-    GET: async (_req: Request, ctx: { params: Promise<{ slug: string }> }) => {
-      const { slug } = await ctx.params;
-      const resp = adapterResponses[kind];
-      const status: AdapterStatus = typeof resp === 'function' ? resp(slug) : resp;
-      return new Response(JSON.stringify({ status }), { status: 200, headers: { 'content-type': 'application/json' } });
-    },
-  });
-}
-
-jest.mock('@/app/api/empire/sources/github/[slug]/route', adapterMockFactory('github'));
-jest.mock('@/app/api/empire/sources/linear/[slug]/route', adapterMockFactory('linear'));
-jest.mock('@/app/api/empire/sources/vercel/[slug]/route', adapterMockFactory('vercel'));
-jest.mock('@/app/api/empire/sources/railway/[slug]/route', adapterMockFactory('railway'));
-jest.mock('@/app/api/empire/sources/supabase/[slug]/route', adapterMockFactory('supabase'));
-
 function setAdapter(kind: keyof typeof adapterResponses, resp: AdapterResponse) {
   adapterResponses[kind] = resp;
 }
@@ -82,6 +64,15 @@ function resetAdapters() {
   adapterResponses.vercel = 'ok';
   adapterResponses.railway = 'ok';
   adapterResponses.supabase = 'ok';
+}
+
+function adapterResponseFor(url: string): AdapterStatus | null {
+  const match = url.match(/\/api\/empire\/sources\/(github|linear|vercel|railway|supabase)\/([^/?#]+)/);
+  if (!match) return null;
+  const kind = match[1] as keyof typeof adapterResponses;
+  const slug = match[2];
+  const resp = adapterResponses[kind];
+  return typeof resp === 'function' ? resp(slug) : resp;
 }
 
 const realFetch = global.fetch;
@@ -156,9 +147,10 @@ function setupFetch(overrides: Record<string, (url: string) => Response | Promis
     for (const [pattern, fn] of Object.entries(overrides)) {
       if (u.includes(pattern)) return fn(u);
     }
-    // Default: ok response with an adapter-shaped body for sources.
-    if (u.includes('/api/empire/sources/')) {
-      return new Response(JSON.stringify({ status: 'ok' }), { status: 200 });
+    // Source adapter probes: honour the setAdapter(...) per-kind driver.
+    const adapterStatus = adapterResponseFor(u);
+    if (adapterStatus !== null) {
+      return new Response(JSON.stringify({ status: adapterStatus }), { status: 200 });
     }
     if (u.includes('/api/empire/businesses')) {
       return new Response(JSON.stringify({ businesses: [{ overall_health: 90 }, { overall_health: 85 }] }), { status: 200 });

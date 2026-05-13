@@ -19,13 +19,6 @@
 
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
-// Static imports of adapter route handlers. We invoke these in-process
-// instead of HTTP fetch — see probeAdapter() below for context.
-import { GET as githubSource } from '@/app/api/empire/sources/github/[slug]/route';
-import { GET as linearSource } from '@/app/api/empire/sources/linear/[slug]/route';
-import { GET as vercelSource } from '@/app/api/empire/sources/vercel/[slug]/route';
-import { GET as railwaySource } from '@/app/api/empire/sources/railway/[slug]/route';
-import { GET as supabaseSource } from '@/app/api/empire/sources/supabase/[slug]/route';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -202,60 +195,21 @@ interface AdapterResp { status: Quad }
 
 type AdapterKind = 'github' | 'linear' | 'vercel' | 'railway' | 'supabase';
 
-// We call adapter route handlers in-process (statically imported) instead of
-// HTTP fetch. This avoids two failure modes that surfaced in prod on Vercel:
-//   1. Cross-function HTTP routing through the public alias being SSO-locked
-//      (or treated as untrusted), returning 401/403 even though the alias is
-//      open to the public — Vercel's internal edge can re-route same-deploy
-//      traffic via the deployment URL, which IS protected.
-//   2. The extra DNS + TLS roundtrip costing ~150ms per probe × 30 probes.
-// In-process invocation is faster, deterministic, and immune to routing.
-type SourceHandler = (
-  req: Request,
-  ctx: { params: Promise<{ slug: string }> },
-) => Promise<Response>;
-
-const ADAPTER_HANDLERS: Record<AdapterKind, SourceHandler> = {
-  github: githubSource as SourceHandler,
-  linear: linearSource as SourceHandler,
-  vercel: vercelSource as SourceHandler,
-  railway: railwaySource as SourceHandler,
-  supabase: supabaseSource as SourceHandler,
-};
-
 // Per-process debug capture for the most recent probe failure reason.
 // Surfaced in `signals.integrations.summary` to make Vercel-only failures
 // diagnosable without server logs.
 let _lastProbeError: string | null = null;
-let _probeAttempts = 0;
 let _probeOks = 0;
 let _probeErrs = 0;
+let _probeAttempts = 0;
 
 async function probeAdapter(baseUrl: string, kind: AdapterKind, slug: string): Promise<Quad> {
   _probeAttempts++;
   try {
-    const handler = ADAPTER_HANDLERS[kind];
-    if (!handler) {
-      _lastProbeError = `${kind}: handler not bound`;
-      _probeErrs++;
-      return 'err';
-    }
-    // Synthesize a minimal Request — adapter handlers ignore the req body and
-    // read `params` from the second argument, so a plain GET is sufficient.
-    const fakeReq = new Request(`${baseUrl}/api/empire/sources/${kind}/${slug}`, { method: 'GET' });
-    const probe = handler(fakeReq, { params: Promise.resolve({ slug }) });
-    // Race against a timeout, but clear the timer when the probe wins so the
-    // jest worker doesn't hang on a pending setTimeout in test envs.
-    let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
-    const timeoutPromise = new Promise<Response>((_, reject) => {
-      timeoutHandle = setTimeout(() => reject(new Error('adapter timeout')), PROBE_TIMEOUT_MS);
+    const res = await fetch(`${baseUrl}/api/empire/sources/${kind}/${slug}`, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
     });
-    let res: Response;
-    try {
-      res = await Promise.race([probe, timeoutPromise]);
-    } finally {
-      if (timeoutHandle) clearTimeout(timeoutHandle);
-    }
     if (!res.ok) {
       _lastProbeError = `${kind}/${slug}: HTTP ${res.status}`;
       _probeErrs++;
