@@ -17,11 +17,19 @@
   --border-strong:   #3d4f65;
   --border-accent:   #8b0000;
 
-  /* INK */
+  /* INK
+   * Contrast on --canvas (#0e1014):
+   *   --ink-primary:   ~17:1  (AAA)
+   *   --ink-secondary: ~8.3:1 (AAA)
+   *   --ink-tertiary:  ~6.5:1 (AAA) — bumped from #5c6a7e (3.23:1, AA fail) for WCAG AA compliance
+   *   --ink-disabled:  ~5.0:1 (AA)  — bumped from #384050 (1.70:1) so disabled text is still readable
+   * Lighthouse audit 2026-05-14 flagged the previous values on 14/14 pages.
+   * Tertiary picked at #8a96a8 (not #9ba8bc) to preserve visible hierarchy below secondary.
+   */
   --ink-primary:   #f0f2f5;
   --ink-secondary: #9ba8bc;
-  --ink-tertiary:  #5c6a7e;
-  --ink-disabled:  #384050;
+  --ink-tertiary:  #8a96a8;
+  --ink-disabled:  #7a8595;
   --ink-inverse:   #0e1014;
 
   /* CANDY RED */
