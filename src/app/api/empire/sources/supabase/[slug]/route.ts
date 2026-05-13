@@ -1,68 +1,17 @@
 // Pillar 3 (UNI-1947) — Supabase Management adapter.
 //
-// Reads `supabase_project_ref` from public.businesses for the slug, then
-// queries the Supabase Management API for the project's runtime status and
-// security + performance advisor lints. Returns a unified BusinessSource with
-// region, status, and the count of actionable (ERROR + WARN) advisor lints.
-//
-// NO MOCK DATA — Supabase API unreachable → status: 'err' + a real error,
-// never a fake "ok".
+// Reads `supabase_project_ref` from public.businesses for the slug and returns
+// a unified BusinessSource describing live project status + actionable lint
+// counts. The actual API calls live in src/lib/scanner/fetchSupabaseAdvisors.ts
+// so the scanner cron and this adapter share one code path. NO MOCK DATA.
 
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import type { BusinessSource } from '@/types/business-source';
+import { fetchSupabaseAdvisors } from '@/lib/scanner/fetchSupabaseAdvisors';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-
-const SUPABASE_MGMT_API = 'https://api.supabase.com';
-const FETCH_TIMEOUT_MS = 10000;
-const USER_AGENT = 'unite-group-empire';
-
-interface SupabaseProjectResponse {
-  id: string;
-  name: string;
-  region: string;
-  status: string; // ACTIVE_HEALTHY, COMING_UP, GOING_DOWN, INACTIVE, INIT_FAILED, PAUSED, etc.
-  created_at?: string;
-}
-
-interface SupabaseLintsResponse {
-  lints?: Array<{
-    level: 'ERROR' | 'WARN' | 'INFO' | string;
-    name?: string;
-    title?: string;
-    categories?: string[];
-  }>;
-  message?: string;
-}
-
-interface MgmtFetchOk<T> { ok: true; data: T }
-interface MgmtFetchErr { ok: false; status: number; body: string }
-type MgmtFetch<T> = MgmtFetchOk<T> | MgmtFetchErr;
-
-async function mgmtFetch<T>(url: string, token: string): Promise<MgmtFetch<T>> {
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'User-Agent': USER_AGENT,
-    },
-    cache: 'no-store',
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-  });
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    return { ok: false, status: res.status, body: body.slice(0, 300) };
-  }
-  const data = (await res.json()) as T;
-  return { ok: true, data };
-}
-
-function countActionableLints(payload: MgmtFetch<SupabaseLintsResponse>): number | null {
-  if (!payload.ok) return null;
-  const lints = payload.data.lints ?? [];
-  return lints.filter((l) => l.level === 'ERROR' || l.level === 'WARN').length;
-}
 
 function deriveStatus(args: {
   projectStatus: string;
@@ -124,40 +73,13 @@ async function fetchSupabase(slug: string): Promise<BusinessSource> {
   const ref = biz.supabase_project_ref as string;
 
   try {
-    const projectRes = await mgmtFetch<SupabaseProjectResponse>(
-      `${SUPABASE_MGMT_API}/v1/projects/${ref}`,
-      token.trim()
-    );
+    const advisors = await fetchSupabaseAdvisors(ref);
 
-    if (!projectRes.ok) {
-      return {
-        source: 'supabase',
-        status: 'err',
-        summary: `Supabase API ${projectRes.status}`,
-        last_update: null,
-        error: projectRes.body,
-      };
-    }
+    const securityActionable = advisors.security_count;
+    const performanceActionable = advisors.performance_count;
 
-    // Advisor lints — best-effort. A 5xx or 4xx here shouldn't poison the project
-    // status, so we degrade to "advisors unknown" rather than failing the whole call.
-    const [secRes, perfRes] = await Promise.all([
-      mgmtFetch<SupabaseLintsResponse>(
-        `${SUPABASE_MGMT_API}/v1/projects/${ref}/advisors/security`,
-        token.trim()
-      ),
-      mgmtFetch<SupabaseLintsResponse>(
-        `${SUPABASE_MGMT_API}/v1/projects/${ref}/advisors/performance`,
-        token.trim()
-      ),
-    ]);
-
-    const securityActionable = countActionableLints(secRes);
-    const performanceActionable = countActionableLints(perfRes);
-
-    const project = projectRes.data;
     const status = deriveStatus({
-      projectStatus: project.status,
+      projectStatus: advisors.project_status,
       securityActionable,
       performanceActionable,
     });
@@ -168,26 +90,37 @@ async function fetchSupabase(slug: string): Promise<BusinessSource> {
       return `${total} advisor${total === 1 ? '' : 's'}`;
     })();
 
-    const summary = `${project.region} · ${project.status} · ${advisorLabel}`;
+    const summary = `${advisors.region} · ${advisors.project_status} · ${advisorLabel}`;
     const dashboardUrl = `https://supabase.com/dashboard/project/${ref}`;
 
     return {
       source: 'supabase',
       status,
       summary,
-      last_update: project.created_at ?? null,
+      last_update: advisors.created_at,
       url: dashboardUrl,
       details: {
         project_ref: ref,
-        project_name: project.name,
-        region: project.region,
-        project_status: project.status,
+        project_name: advisors.project_name,
+        region: advisors.region,
+        project_status: advisors.project_status,
         security_advisors_actionable: securityActionable,
         performance_advisors_actionable: performanceActionable,
       },
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
+    if (msg.startsWith('Supabase project ')) {
+      // Preserve the existing summary contract ("Supabase API 404" etc.)
+      const code = msg.match(/Supabase project (\d+)/)?.[1] ?? 'error';
+      return {
+        source: 'supabase',
+        status: 'err',
+        summary: `Supabase API ${code}`,
+        last_update: null,
+        error: msg.slice(0, 300),
+      };
+    }
     return {
       source: 'supabase',
       status: 'err',
