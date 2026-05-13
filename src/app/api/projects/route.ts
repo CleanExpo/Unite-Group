@@ -38,10 +38,11 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get('page') || '1');
     const offset = (page - 1) * limit;
     
-    // Build query
+    // Build query — no FK embed: projects.client_id has no FK to auth.users
+    // in this schema, so PostgREST cannot resolve the join.
     let query = supabase
       .from('projects')
-      .select('*, client:client_id(id, email)', { count: 'exact' });
+      .select('*', { count: 'exact' });
     
     // Filter by status if provided
     if (status) {
@@ -98,22 +99,34 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { 
-      title, 
-      description, 
+    const {
+      name,
+      title, // backwards-compat: older clients may still send `title`
+      description,
       client_id,
       status,
       start_date,
-      target_completion_date,
+      end_date,
+      target_completion_date, // backwards-compat alias for end_date
       budget,
-      assigned_to,
-      priority
+      priority,
+      org_id,
+      workspace_id,
     } = body;
-    
-    // Validate required fields
-    if (!title) {
+
+    const projectName = name ?? title;
+    const projectEndDate = end_date ?? target_completion_date;
+
+    // Validate required fields against the actual table schema (name + org_id + workspace_id are NOT NULL)
+    if (!projectName) {
       return NextResponse.json(
-        { error: 'Project title is required' },
+        { error: 'Project name is required' },
+        { status: 400 }
+      );
+    }
+    if (!org_id || !workspace_id) {
+      return NextResponse.json(
+        { error: 'org_id and workspace_id are required' },
         { status: 400 }
       );
     }
@@ -146,13 +159,13 @@ export async function POST(request: Request) {
       );
     }
     
-    // Parse dates
-    let parsedStartDate = null;
-    let parsedTargetDate = null;
-    
+    // Parse dates (start_date / end_date columns are DATE type in this schema)
+    let parsedStartDate: string | null = null;
+    let parsedEndDate: string | null = null;
+
     if (start_date) {
       try {
-        parsedStartDate = new Date(start_date).toISOString();
+        parsedStartDate = new Date(start_date).toISOString().slice(0, 10);
       } catch (error) {
         return NextResponse.json(
           { error: 'Invalid start date format' },
@@ -160,33 +173,34 @@ export async function POST(request: Request) {
         );
       }
     }
-    
-    if (target_completion_date) {
+
+    if (projectEndDate) {
       try {
-        parsedTargetDate = new Date(target_completion_date).toISOString();
+        parsedEndDate = new Date(projectEndDate).toISOString().slice(0, 10);
       } catch (error) {
         return NextResponse.json(
-          { error: 'Invalid target completion date format' },
+          { error: 'Invalid end date format' },
           { status: 400 }
         );
       }
     }
-    
-    // Insert project into database
+
+    // Insert project into database — columns must match the existing schema
     const { data, error } = await supabase
       .from('projects')
       .insert([
-        { 
-          title,
+        {
+          name: projectName,
           description: description || null,
           client_id: client_id || null,
-          status: status || 'planning',
+          status: status || 'active',
           start_date: parsedStartDate,
-          target_completion_date: parsedTargetDate,
+          end_date: parsedEndDate,
           budget: budget || null,
           created_by: session.user.id,
-          assigned_to: assigned_to || null,
-          priority: priority || 'medium'
+          priority: priority || 'medium',
+          org_id,
+          workspace_id,
         }
       ])
       .select();

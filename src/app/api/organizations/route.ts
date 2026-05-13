@@ -49,23 +49,23 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description, industry, size } = body;
+    const { name, industry, size } = body;
 
     // Validate required fields
     if (!name) {
       return NextResponse.json({ error: 'Organization name is required' }, { status: 400 });
     }
 
-    // Create organization
+    // Create organization — schema has no `description`/`created_by` column,
+    // and the size field is stored as `team_size`.
     const { data: organization, error } = await supabase
       .from('organizations')
       .insert([
         {
           name,
-          description,
-          industry,
-          size,
-          created_by: user.id
+          industry: industry || null,
+          team_size: size || null,
+          owner_email: user.email ?? null,
         }
       ])
       .select()
