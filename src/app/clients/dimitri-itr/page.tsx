@@ -25,26 +25,24 @@ const DUNCAN = {
 // ─── Static engagement data ──────────────────────────────────────────────────
 
 const DELIVERABLES = [
-  { category: "Agent Doctrine (Karpathy method)",   status: "done",        detail: "8 specialists + 8 sub-agents + 9 skills + 3 always-on rules scaffolded by Phill 18 Apr 2026 in .claude/" },
-  { category: "Prisma schema + role model",          status: "done",        detail: "users / clients / itrs / conversations (dimitri/noah enum) / documents / consent_grants / audit_log — committed by Duncan 22 Apr 2026" },
-  { category: "Anthropic Claude chat route",         status: "done",        detail: "/api/itr/chat — loads PROJECT_BRIEF as system prompt, biases to Y/N/Tell-me-more interactions" },
-  { category: "Hard stops (TASA, TFN, en-AU)",       status: "done",        detail: ".claude/rules/ — TASA s90-5 boundary, TFN custody pattern, deterministic tax calcs, Sydney data residency" },
-  { category: "Role-based portal shells",            status: "in-progress", detail: "tax_agent / practice_admin / client / referred_professional / referring_site — Phase 1 (Weeks 1-6)" },
-  { category: "MyGov OAuth + ATO partner enrolment", status: "in-progress", detail: "Critical path — ATO partner application in flight. Blocks DIMITRI prefill until live." },
-  { category: "DIMITRI interview UI",                status: "planned",     detail: "Y/N/Tell-me-more rendering, one-question-at-a-time, D13 deductions flow. Target: 20 ghost 2025 ITRs by 30 Jun 2026." },
-  { category: "XPM tax-agent packet push",           status: "planned",     detail: "Xero Practice Manager integration. Phase 2 (Weeks 7-14)." },
-  { category: "NOAH post-lodgement flow",            status: "planned",     detail: "NOA trigger → Stripe fee gate → NOA delivery → 11 wealth-planning questions → referral booking → encrypted ZIP. Phase 2." },
-  { category: "Encrypted client envelope",           status: "planned",     detail: "AES-256-GCM, key tied to client email, no platform-side decrypt. Phase 2 critical path." },
-  { category: "Approved-website button (Otto)",      status: "planned",     detail: "1-line script embed for finance brokers / banks / lawyers / financial planners / tax agents. Pilot: Sams Home Loans." },
-  { category: "Brand & button-name finalisation",    status: "in-progress", detail: "Internal agents stay DIMITRI + NOAH. Button label TBD: Otto / Sorted / Beau / Tick / Lodgey." },
+  { category: "Discovery & Architecture Review",     status: "in-progress", detail: "Months 1–2 — scope lock, integration map, ATO partner application kicks off (their queue is the slowest piece)" },
+  { category: "Brand & Button-Name Lock-In",         status: "in-progress", detail: "Working name 'Otto' — finalists: Otto / Sorted / Beau / Tick / Lodgey. Trademark + .com.au sweep included." },
+  { category: "ATO MyGov Partner Application",       status: "in-progress", detail: "Started Month 1 — ATO controls their own timeline. Blocks live pre-fill until approved." },
+  { category: "DIMITRI Pre-fill Agent",              status: "planned",     detail: "One-question-at-a-time interview, Y/N/Tell-me-more responses, D13 deductions, FBT / CGT / crypto curlies. Months 3–4." },
+  { category: "TFN Custody + TASA Compliance Layer", status: "planned",     detail: "TFNs never enter an LLM context window. TASA s90-5 boundary policed in copy + features. Months 3–4." },
+  { category: "XPM Tax-Agent Handoff",               status: "planned",     detail: "Complete packet push to Xero Practice Manager so the tax agent's team can run ID / AML / TFN and lodge. Months 5–6." },
+  { category: "NOAH Post-Lodgement Agent",           status: "planned",     detail: "NOA trigger → Stripe fee gate → NOA delivery → 11 wealth-planning questions → referral booking → encrypted ZIP. Months 5–6." },
+  { category: "Encrypted Client Envelope",           status: "planned",     detail: "AES-256-GCM, key tied to client email, no platform-side decrypt path. Months 5–6." },
+  { category: "Approved-Website Embed Button",       status: "planned",     detail: "1-line script for partner sites — brokers / banks / tax agents / financial planners / lawyers / employers. Per-partner attribution. Months 7–8." },
+  { category: "First Partner Pilot",                 status: "planned",     detail: "Sams Home Loans pilot integration. Months 7–8." },
+  { category: "Production Rollout",                  status: "planned",     detail: "Multi-partner expansion, additional tax-agent partners, marketing engine via Synthex. Months 9–12." },
 ];
 
 const TOUCHPOINTS = [
   { name: "Duncan Perkins Home Loan Essentials", domain: "homeloanessentials.com.au", status: "active" },
-  { name: "GitHub repo (perkoathle-design/itr)",  domain: "github.com/perkoathle-design/itr", status: "active" },
-  { name: "Sams Home Loans (pilot broker site)",   domain: "", status: "planned" },
-  { name: "XPM tax-agent partner (TBD)",           domain: "", status: "planned" },
-  { name: "BLinks tax agency",                      domain: "", status: "planned" },
+  { name: "Sams Home Loans (pilot partner)",      domain: "", status: "planned" },
+  { name: "BLinks tax agency",                    domain: "", status: "planned" },
+  { name: "Xero Practice Manager (handoff)",      domain: "xero.com",   status: "planned" },
 ];
 
 const STATUS_CONFIG = {
@@ -172,17 +170,17 @@ export default function DimitriItrPortal() {
             Welcome, {user.name.split(" ")[0]}
           </div>
           <div style={{ fontSize: 13, color: DUNCAN.muted, lineHeight: 1.6 }}>
-            Welcome, {user.name.split(" ")[0]} — we're four weeks into your ITR Platform build. The .claude/ doctrine and the Next.js / Prisma scaffold are in place. Phase 1 starts 19 May 2026: role-based portal shells, MyGov OAuth, DIMITRI interview UI. Target: 20 ghost 2025 ITRs by 30 June 2026.
+            Welcome, {user.name.split(" ")[0]}. Your ITR Platform engagement with Unite-Group is live. Kick-off Discovery starts the week of 19 May 2026 — first written status note Friday 23 May. Working MVP target lands Month 4–5; production launch around Month 8–10. Quality over rushing.
           </div>
         </motion.div>
 
         {/* ── Stats strip ─────────────────────────────────────────────────── */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
           {[
-            { label: "Deliverables Complete",  value: String(done),         color: "#16a34a"  },
-            { label: "In Progress",             value: String(inProgress),  color: DUNCAN.blue },
-            { label: "Phase",                   value: "1 of 4",            color: DUNCAN.muted },
-            { label: "Weeks to MVP",            value: "7",                 color: DUNCAN.muted },
+            { label: "Engagement Status",       value: "Active",            color: "#16a34a"   },
+            { label: "Deliverables In Flight",  value: String(inProgress),  color: DUNCAN.blue },
+            { label: "Months to MVP",           value: "4–5",               color: DUNCAN.muted },
+            { label: "Retainer",                value: "12-mo",             color: DUNCAN.muted },
           ].map((s, i) => (
             <motion.div
               key={s.label}
@@ -273,11 +271,11 @@ export default function DimitriItrPortal() {
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
             {[
-              { label: "ITR Platform Proposal (13 May 2026)", icon: FileMark,     href: "/proposals/duncan-itr-platform-2026-05-13", note: "Retainer proposal v2 — read this first" },
-              { label: "Your GitHub Repo",                     icon: ExternalMark, href: "https://github.com/perkoathle-design/itr", note: "perkoathle-design/itr — main branch" },
-              { label: "Agent Doctrine (.claude/CLAUDE.md)",   icon: ActivityMark, href: "https://github.com/perkoathle-design/itr/blob/main/.claude/CLAUDE.md", note: "Karpathy method — 8 specialists active" },
-              { label: "Project Brief",                         icon: BarChartMark, href: "https://github.com/perkoathle-design/itr/blob/main/PROJECT_BRIEF.md", note: "DIMITRI + NOAH spec" },
-              { label: "Phill direct",                          icon: TrendUpMark,  href: "mailto:contact@unite-group.in", note: "contact@unite-group.in" },
+              { label: "ITR Platform Proposal",      icon: FileMark,     href: "/proposals/duncan-itr-platform-2026-05-13", note: "Signed retainer terms — read first" },
+              { label: "Weekly Status Notes",         icon: ActivityMark, href: "#", note: "Friday afternoons — live once Discovery starts" },
+              { label: "Engagement Letter",           icon: BarChartMark, href: "#", note: "Signed copy — available after kick-off" },
+              { label: "First Invoice (Setup fee)",   icon: FileMark,     href: "#", note: "AUD $4,400 inc GST — due on signing" },
+              { label: "Phill direct",                icon: TrendUpMark,  href: "mailto:contact@unite-group.in", note: "contact@unite-group.in" },
             ].map((link, i) => {
               const Icon = link.icon;
               return (
