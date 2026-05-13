@@ -33,6 +33,7 @@ export const defaultMetadata: Metadata = {
 export const viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
+  // maximumScale intentionally omitted — forcing maximum-scale=1 blocks pinch-zoom
+  // for users with low vision and fails Lighthouse `meta-viewport` (a11y).
   themeColor: '#09090b',
 };
