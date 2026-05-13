@@ -227,12 +227,17 @@ const ADAPTER_HANDLERS: Record<AdapterKind, SourceHandler> = {
 // Surfaced in `signals.integrations.summary` to make Vercel-only failures
 // diagnosable without server logs.
 let _lastProbeError: string | null = null;
+let _probeAttempts = 0;
+let _probeOks = 0;
+let _probeErrs = 0;
 
 async function probeAdapter(baseUrl: string, kind: AdapterKind, slug: string): Promise<Quad> {
+  _probeAttempts++;
   try {
     const handler = ADAPTER_HANDLERS[kind];
     if (!handler) {
       _lastProbeError = `${kind}: handler not bound`;
+      _probeErrs++;
       return 'err';
     }
     // Synthesize a minimal Request — adapter handlers ignore the req body and
@@ -253,17 +258,21 @@ async function probeAdapter(baseUrl: string, kind: AdapterKind, slug: string): P
     }
     if (!res.ok) {
       _lastProbeError = `${kind}/${slug}: HTTP ${res.status}`;
+      _probeErrs++;
       return 'err';
     }
     const body = (await res.json()) as AdapterResp;
     if (body.status === 'ok' || body.status === 'warn' || body.status === 'err' || body.status === 'unknown') {
+      _probeOks++;
       return body.status;
     }
     _lastProbeError = `${kind}/${slug}: invalid status ${JSON.stringify(body.status)}`;
+    _probeErrs++;
     return 'err';
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     _lastProbeError = `${kind}/${slug}: ${msg.slice(0, 120)}`;
+    _probeErrs++;
     return 'err';
   }
 }
@@ -277,6 +286,11 @@ async function rollUpAdapter(baseUrl: string, kind: AdapterKind): Promise<Quad> 
 }
 
 async function probeIntegrations(baseUrl: string): Promise<SignalIntegrations> {
+  // Reset per-request probe diagnostics.
+  _lastProbeError = null;
+  _probeAttempts = 0;
+  _probeOks = 0;
+  _probeErrs = 0;
   const [github, linear, vercel, railway, supabase] = await Promise.all([
     rollUpAdapter(baseUrl, 'github'),
     rollUpAdapter(baseUrl, 'linear'),
@@ -296,10 +310,10 @@ async function probeIntegrations(baseUrl: string): Promise<SignalIntegrations> {
   const okCount = sourceStatuses.filter(v => v === 'ok').length;
   const knownCount = sourceStatuses.filter(v => v !== 'unknown').length;
   let summary = `${okCount}/${knownCount} sources ok`;
-  // Surface the most recent probe failure so /api/empire/system-health is
-  // self-diagnosing — if integrations is err we want to know WHY without
-  // tailing serverless logs.
-  if (status === 'err' && _lastProbeError) {
+  // Surface probe diagnostics so /api/empire/system-health is self-diagnosing.
+  // If integrations is err we want to know WHY without tailing serverless logs.
+  summary += ` · probes: ${_probeOks} ok · ${_probeErrs} err / ${_probeAttempts}`;
+  if (_lastProbeError) {
     summary += ` · last err: ${_lastProbeError}`;
   }
   return { status, ...sources, summary };
