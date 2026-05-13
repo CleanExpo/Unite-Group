@@ -60,21 +60,37 @@ export async function GET() {
     }
   }
 
-  // Query businesses table — only the 6 portfolio companies by their known slugs
+  // Query businesses table — only the 6 portfolio companies by their canonical slugs.
+  // Historic seed rows left near-duplicates in the table (e.g. two `synthex` rows, two `carsi`
+  // rows, plus aliased rows like `dr` vs `disaster-recovery`). We restrict to the canonical
+  // slug list AND order by `created_at` desc so that — if the same canonical slug appears
+  // more than once — we keep the most recently inserted row and drop the older twin.
   const PORTFOLIO_SLUGS = Object.keys(FALLBACK_BUSINESSES);
-  const { data: bizRows, error: bizError } = await supabase
+  const { data: bizRowsRaw, error: bizError } = await supabase
     .from('businesses')
-    .select('id, slug, name, status, arr_aud, pi_ceo_key')
-    .in('slug', PORTFOLIO_SLUGS);
+    .select('id, slug, name, status, arr_aud, pi_ceo_key, created_at')
+    .in('slug', PORTFOLIO_SLUGS)
+    .order('created_at', { ascending: false });
 
   if (bizError) {
     console.error('[empire/businesses] businesses query error:', bizError.message);
   }
 
+  // Deduplicate by slug — first occurrence wins (newest, given the ordering above).
+  // This kills the pulse-bar "8 tracked" lie: API now emits exactly one row per
+  // canonical portfolio slug, even if the DB still holds twin seed rows.
+  const seenSlugs = new Set<string>();
+  const bizRows = (bizRowsRaw ?? []).filter(row => {
+    const slug = row.slug as string | null;
+    if (!slug || seenSlugs.has(slug)) return false;
+    seenSlugs.add(slug);
+    return true;
+  });
+
   // Build merged result — start from either DB businesses or fallback list
   const results: BusinessHealthRow[] = [];
 
-  if (bizRows && bizRows.length > 0) {
+  if (bizRows.length > 0) {
     for (const biz of bizRows) {
       const piKey = biz.pi_ceo_key ?? biz.slug ?? biz.id;
       const snap = latestByProject.get(piKey) ?? latestByProject.get(biz.id);

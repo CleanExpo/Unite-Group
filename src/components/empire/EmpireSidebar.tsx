@@ -1,5 +1,4 @@
 'use client';
-import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -8,13 +7,17 @@ import {
   ReportsMark, UsersMark, ChevronRightMark,
 } from '@/components/ui/marks';
 
+// Canonical portfolio slugs — these MUST match the slugs returned by
+// /api/empire/businesses and the dynamic segment of /empire/businesses/[slug].
+// Past versions had `dr-platform` and `nrpg` which both 404 — the real routes
+// are `disaster-recovery` and `dr-nrpg`.
 const BUSINESS_SLUGS: Record<string, { slug: string; domain: string }> = {
-  'RestoreAssist': { slug: 'restoreassist', domain: 'restoreassist.app' },
-  'Synthex':       { slug: 'synthex',       domain: 'synthex.social' },
-  'CCW-CRM':       { slug: 'ccw-crm',       domain: 'carpetcleanerswarehouse.com.au' },
-  'DR Platform':   { slug: 'dr-platform',   domain: 'disasterrecovery.com.au' },
-  'NRPG':          { slug: 'nrpg',          domain: 'nrpg.com.au' },
-  'CARSI':         { slug: 'carsi',          domain: 'carsi.com.au' },
+  'RestoreAssist': { slug: 'restoreassist',     domain: 'restoreassist.app' },
+  'Synthex':       { slug: 'synthex',           domain: 'synthex.social' },
+  'CCW-CRM':       { slug: 'ccw-crm',           domain: 'carpetcleanerswarehouse.com.au' },
+  'DR Platform':   { slug: 'disaster-recovery', domain: 'disasterrecovery.com.au' },
+  'NRPG':          { slug: 'dr-nrpg',           domain: 'nrpg.com.au' },
+  'CARSI':         { slug: 'carsi',             domain: 'carsi.com.au' },
 };
 
 const AUTH_ROUTES = ['/login', '/register', '/reset-password', '/update-password'];
@@ -54,7 +57,9 @@ export function EmpireSidebar() {
   const pathname = usePathname();
   const isAuthRoute = AUTH_ROUTES.some(r => pathname.endsWith(r));
   const isClientRoute = CLIENT_ROUTES.some(r => pathname.startsWith(r));
-  const [expandedBiz, setExpandedBiz] = useState<string | null>(null);
+  // Sidebar now always shows the SEO sub-link under each brand — the accordion
+  // toggle was cosmetic (5 of 6 brands revealed nothing). Detail page lives at
+  // /empire/businesses/[slug]; SEO audit lives at /businesses/[slug]/seo.
   if (isAuthRoute || isClientRoute) return null;
 
   return (
@@ -132,48 +137,50 @@ export function EmpireSidebar() {
         </div>
         {BUSINESSES.map(biz => {
           const meta = BUSINESS_SLUGS[biz.label];
-          const isOpen = expandedBiz === biz.label;
+          if (!meta) return null;
+          const detailHref = `/empire/businesses/${meta.slug}`;
+          const seoHref = `/businesses/${meta.slug}/seo`;
+          const localeStrippedPath = pathname.replace(/^\/[a-z]{2}/, '');
+          const detailActive = localeStrippedPath === detailHref || localeStrippedPath.startsWith(detailHref + '/');
+          const seoActive = localeStrippedPath === seoHref || pathname === seoHref;
           return (
             <div key={biz.label}>
-              {/* Header row — click to expand */}
-              <button
-                onClick={() => setExpandedBiz(isOpen ? null : biz.label)}
+              {/* Top-level — real link to the business detail page */}
+              <Link
+                href={detailHref}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px',
-                  width: '100%', background: 'transparent', border: 'none', cursor: 'pointer',
-                  borderRadius: 6, transition: 'background 0.1s ease',
+                  borderRadius: 6, textDecoration: 'none',
+                  background: detailActive ? 'rgba(29,78,216,0.12)' : 'transparent',
+                  borderLeft: detailActive ? '2px solid #f59e0b' : '2px solid transparent',
+                  transition: 'background 0.1s ease',
                 }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                onMouseEnter={e => { if (!detailActive) (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.03)'; }}
+                onMouseLeave={e => { if (!detailActive) (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; }}
               >
                 <span className="status-dot" style={{ width: 6, height: 6, background: STATUS_COLOR[biz.status], color: STATUS_COLOR[biz.status], flexShrink: 0 }} />
-                <span style={{ fontSize: 12, color: '#a1a1aa', flex: 1, textAlign: 'left' }}>{biz.label}</span>
-                <ChevronRightMark
-                  size={10}
-                  color="#52525b"
-                  className={isOpen ? 'rotate-90' : undefined}
-                />
-              </button>
+                <span style={{ fontSize: 12, color: detailActive ? '#fafafa' : '#a1a1aa', flex: 1, textAlign: 'left' }}>{biz.label}</span>
+                {detailActive && <ChevronRightMark size={10} color="#f59e0b" />}
+              </Link>
 
-              {/* Sub-items — only when expanded */}
-              {isOpen && meta && (
-                <div style={{ paddingLeft: 24, paddingBottom: 4, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <Link
-                    href={`/businesses/${meta.slug}/seo`}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 7, padding: '5px 10px',
-                      borderRadius: 6, textDecoration: 'none', fontSize: 11, color: '#52525b',
-                      transition: 'all 0.1s ease',
-                      background: pathname === `/businesses/${meta.slug}/seo` ? 'rgba(29,78,216,0.1)' : 'transparent',
-                    }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.04)'; (e.currentTarget as HTMLAnchorElement).style.color = '#a1a1aa'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = pathname === `/businesses/${meta.slug}/seo` ? 'rgba(29,78,216,0.1)' : 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = '#52525b'; }}
-                  >
-                    <TrendUpMark size={10} color="#52525b" />
-                    SEO Audit
-                  </Link>
-                </div>
-              )}
+              {/* Always-visible SEO sub-link — works for all 6 brands */}
+              <div style={{ paddingLeft: 24, paddingBottom: 4, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Link
+                  href={seoHref}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 7, padding: '4px 10px',
+                    borderRadius: 6, textDecoration: 'none', fontSize: 11,
+                    color: seoActive ? '#a1a1aa' : '#52525b',
+                    transition: 'all 0.1s ease',
+                    background: seoActive ? 'rgba(29,78,216,0.1)' : 'transparent',
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.04)'; (e.currentTarget as HTMLAnchorElement).style.color = '#a1a1aa'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = seoActive ? 'rgba(29,78,216,0.1)' : 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = seoActive ? '#a1a1aa' : '#52525b'; }}
+                >
+                  <TrendUpMark size={10} color="#52525b" />
+                  SEO Audit
+                </Link>
+              </div>
             </div>
           );
         })}

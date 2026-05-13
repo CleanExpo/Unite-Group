@@ -426,32 +426,57 @@ function ActiveTickets({ slug }: { slug: string }) {
 
 // ─── Key Metrics Strip ────────────────────────────────────────────────────────
 
-function MetricsStrip({ biz }: { biz: BusinessDetail | null }) {
+function MetricsStrip({ biz, onRescan }: { biz: BusinessDetail | null; onRescan?: () => void }) {
+  // Truthful UX: distinguish "scanner ran and found zero" from "scanner never ran".
+  // A snapshot older than 30 days — or missing entirely — is treated as stale; we
+  // render "Not yet scanned" rather than a meaningless 0/100 score.
+  const SCAN_FRESHNESS_DAYS = 30;
+  const scannedAt = biz?.snapshot_at ?? null;
+  const isStale = (() => {
+    if (!scannedAt) return true;
+    const ageMs = Date.now() - new Date(scannedAt).getTime();
+    return ageMs > SCAN_FRESHNESS_DAYS * 24 * 60 * 60 * 1000;
+  })();
+
+  const STALE_LABEL = 'Not yet scanned';
+
+  const securityValue = isStale
+    ? STALE_LABEL
+    : biz?.security_score !== null && biz?.security_score !== undefined
+      ? `${biz.security_score}/100`
+      : '—';
+  const findingsValue = isStale
+    ? STALE_LABEL
+    : biz?.security_findings !== null && biz?.security_findings !== undefined
+      ? String(biz.security_findings)
+      : '—';
+  const depsValue = isStale
+    ? STALE_LABEL
+    : biz?.dependencies !== null && biz?.dependencies !== undefined
+      ? `${biz.dependencies}/100`
+      : '—';
+
   const metrics = [
     {
       label: 'Security Score',
-      value: biz?.security_score !== null && biz?.security_score !== undefined
-        ? `${biz.security_score}/100`
-        : '—',
-      color: healthColor(biz?.security_score ?? null),
+      value: securityValue,
+      color: isStale ? 'var(--ink-tertiary)' : healthColor(biz?.security_score ?? null),
     },
     {
       label: 'Findings',
-      value: biz?.security_findings !== null && biz?.security_findings !== undefined
-        ? String(biz.security_findings)
-        : '—',
-      color: (biz?.security_findings ?? 0) > 0 ? 'var(--orange-400)' : 'var(--green-400)',
+      value: findingsValue,
+      color: isStale
+        ? 'var(--ink-tertiary)'
+        : (biz?.security_findings ?? 0) > 0 ? 'var(--orange-400)' : 'var(--green-400)',
     },
     {
       label: 'Dep Score',
-      value: biz?.dependencies !== null && biz?.dependencies !== undefined
-        ? `${biz.dependencies}/100`
-        : '—',
-      color: healthColor(biz?.dependencies ?? null),
+      value: depsValue,
+      color: isStale ? 'var(--ink-tertiary)' : healthColor(biz?.dependencies ?? null),
     },
     {
       label: 'Last Scanned',
-      value: relativeTime(biz?.snapshot_at ?? null),
+      value: scannedAt ? relativeTime(scannedAt) : 'never',
       color: 'var(--ink-secondary)',
     },
   ];
@@ -487,13 +512,37 @@ function MetricsStrip({ biz }: { biz: BusinessDetail | null }) {
             <Shimmer width="60%" height={16} />
           ) : (
             <div style={{
-              fontSize: 16,
+              fontSize: isStale ? 12 : 16,
               fontWeight: 700,
               fontFamily: 'var(--font-mono)',
               color: m.color,
             }}>
               {m.value}
             </div>
+          )}
+          {/* Inline rescan CTA on the Last Scanned cell only, when stale */}
+          {isStale && biz !== null && onRescan && m.label === 'Last Scanned' && (
+            <button
+              type="button"
+              onClick={onRescan}
+              style={{
+                marginTop: 2,
+                alignSelf: 'flex-start',
+                padding: '2px 8px',
+                fontSize: 10,
+                fontWeight: 600,
+                fontFamily: 'var(--font-mono)',
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                background: 'transparent',
+                color: 'var(--orange-400)',
+                border: '1px solid rgba(234,179,8,0.3)',
+                borderRadius: 'var(--radius-sm)',
+                cursor: 'pointer',
+              }}
+            >
+              Re-run scan
+            </button>
           )}
         </div>
       ))}
@@ -560,23 +609,67 @@ function ActionButton({
   );
 }
 
-function QuickActions({ slug }: { slug: string }) {
-  const [scanning, setScanning] = useState(false);
-  const [scanResult, setScanResult] = useState<string | null>(null);
+function QuickActions({ slug, onScanQueued }: { slug: string; onScanQueued?: () => void }) {
+  // Real scan trigger — POSTs to /api/empire/rescan/[slug] which inserts a row
+  // into scan_requests for the Pi-CEO worker to consume. Polls the same
+  // endpoint with GET to surface honest status updates to the operator.
+  const [status, setStatus] = useState<'idle' | 'queued' | 'running' | 'completed' | 'failed'>('idle');
+  const [requestId, setRequestId] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   async function triggerScan() {
-    setScanning(true);
-    setScanResult(null);
+    setStatus('queued');
+    setErrorMsg(null);
     try {
-      await fetch('/api/pi-ceo/health', { method: 'GET' });
-      setScanResult('Scan triggered');
-    } catch {
-      setScanResult('Scan failed');
-    } finally {
-      setScanning(false);
-      setTimeout(() => setScanResult(null), 3000);
+      const res = await fetch(`/api/empire/rescan/${slug}`, { method: 'POST' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setStatus('failed');
+        setErrorMsg(body.error ?? `HTTP ${res.status}`);
+        return;
+      }
+      const json: { request_id: string; status: string } = await res.json();
+      setRequestId(json.request_id);
+      setStatus('queued');
+      onScanQueued?.();
+    } catch (err) {
+      setStatus('failed');
+      setErrorMsg(err instanceof Error ? err.message : 'Network error');
     }
   }
+
+  // Poll for status updates every 10s while a scan is in flight.
+  useEffect(() => {
+    if (!requestId || status === 'completed' || status === 'failed') return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/empire/rescan/${slug}`);
+        if (!res.ok) return;
+        const json: {
+          latest: { id: string; status: string; error: string | null } | null;
+        } = await res.json();
+        if (json.latest?.id === requestId) {
+          const s = json.latest.status;
+          if (s === 'running' || s === 'completed' || s === 'failed') {
+            setStatus(s);
+            if (s === 'failed') setErrorMsg(json.latest.error ?? 'Worker reported failure');
+            if (s === 'completed') clearInterval(interval);
+          }
+        }
+      } catch {
+        // ignore transient poll failures — next tick will retry
+      }
+    }, 10_000);
+    return () => clearInterval(interval);
+  }, [requestId, status, slug]);
+
+  const scanLabel = (() => {
+    if (status === 'queued')    return 'Queued for scan';
+    if (status === 'running')   return 'Scanning…';
+    if (status === 'completed') return 'Scan completed';
+    if (status === 'failed')    return errorMsg ? `Failed: ${errorMsg}` : 'Scan failed';
+    return 'Trigger Pi-CEO Scan';
+  })();
 
   return (
     <div style={{
@@ -598,7 +691,7 @@ function QuickActions({ slug }: { slug: string }) {
           icon={<ExternalMark size={12} />}
         />
         <ActionButton
-          label={scanning ? 'Scanning…' : scanResult ?? 'Trigger Pi-CEO Scan'}
+          label={scanLabel}
           onClick={triggerScan}
           icon={<RefreshMark size={14} />}
         />
@@ -756,7 +849,19 @@ export default function BusinessDetailPage({
       <main style={{ padding: '24px 32px', maxWidth: 1280, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Key Metrics Strip */}
-        <MetricsStrip biz={loading ? null : biz} />
+        <MetricsStrip
+          biz={loading ? null : biz}
+          onRescan={async () => {
+            // Fire-and-forget queue insert; QuickActions below is the
+            // primary surface for follow-up status. We use the same endpoint
+            // so the operator gets one queued request, not two.
+            try {
+              await fetch(`/api/empire/rescan/${slug}`, { method: 'POST' });
+            } catch {
+              // surfaced via the Quick Actions button on retry
+            }
+          }}
+        />
 
         {/* Wiki Context Panel — FROM THE 2ND BRAIN */}
         {wikiContext && (
