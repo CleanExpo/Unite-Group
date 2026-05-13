@@ -189,56 +189,78 @@ async function probeApi(baseUrl: string): Promise<SignalApi> {
 }
 
 // ─── 3. Integrations ──────────────────────────────────────────────────────────
+//
+// THIS SIGNAL ONLY MEASURES ADAPTER HEALTH — i.e. "can our Unite-Group adapter
+// routes talk to GitHub / Linear / Vercel / Railway / Supabase APIs?".
+//
+// It deliberately does NOT measure whether the underlying portfolio brands
+// (Synthex, RestoreAssist, etc.) are themselves healthy — that's what the
+// `businesses` signal covers. Conflating the two ("github adapter says
+// Synthex's repo has stale branches → integrations: err") produced misleading
+// red lights on a green system.
+//
+// Probe strategy: hit each adapter once with the Synthex canary slug.
+//   - Adapter returns ANY status field (ok/warn/err/unknown) without throwing
+//     or 5xx-ing → adapter is working → 'ok' (the connection layer is fine).
+//   - Adapter route 5xx's, times out, or returns a body without a parseable
+//     status field → adapter broken → 'err' (Unite-Group has a bug).
+//
+// After this fix:
+//   integrations: ok   = all 5 adapter routes can reach their upstream APIs
+//   businesses: warn   = some brands have content-level issues
+//   These two collapse to a single overall pill only when there's a real
+//   adapter outage or a real brand failure — never both for the same root cause.
 
-interface AdapterResp { status: Quad }
+interface AdapterResp { status?: Quad }
 
 type AdapterKind = 'github' | 'linear' | 'vercel' | 'railway' | 'supabase';
 
-async function probeAdapter(baseUrl: string, kind: AdapterKind, slug: string): Promise<Quad> {
+// Synthex is the always-configured canary brand. Every adapter has a row for
+// it, so a successful probe proves the adapter route works end-to-end.
+const CANARY_SLUG = 'synthex';
+
+async function probeAdapterHealth(baseUrl: string, kind: AdapterKind): Promise<Quad> {
   try {
-    const res = await fetch(`${baseUrl}/api/empire/sources/${kind}/${slug}`, {
+    const res = await fetch(`${baseUrl}/api/empire/sources/${kind}/${CANARY_SLUG}`, {
       cache: 'no-store',
       signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
     });
+    // 5xx (or any non-2xx) → adapter is broken on our side.
     if (!res.ok) return 'err';
     const body = (await res.json()) as AdapterResp;
+    // Adapter responded with a structured payload → adapter route works.
+    // We don't care whether the brand-level status is ok/warn/err — that's
+    // the `businesses` signal's job, not ours.
     if (body.status === 'ok' || body.status === 'warn' || body.status === 'err' || body.status === 'unknown') {
-      return body.status;
+      return 'ok';
     }
+    // Body is 2xx but missing/garbled status field → adapter contract broken.
     return 'err';
   } catch {
+    // Timeout, network error, JSON parse error → adapter broken.
     return 'err';
   }
 }
 
-async function rollUpAdapter(baseUrl: string, kind: AdapterKind): Promise<Quad> {
-  const probes = await Promise.all(PORTFOLIO_SLUGS.map(s => probeAdapter(baseUrl, kind, s)));
-  // 'unknown' brand probes mean "this source isn't configured for this brand"
-  // (e.g. Railway only powers 1/6 brands). That's neutral — don't let it drag
-  // a source's status into warn/err.
-  return rollupQuad(probes);
-}
-
 async function probeIntegrations(baseUrl: string): Promise<SignalIntegrations> {
   const [github, linear, vercel, railway, supabase] = await Promise.all([
-    rollUpAdapter(baseUrl, 'github'),
-    rollUpAdapter(baseUrl, 'linear'),
-    rollUpAdapter(baseUrl, 'vercel'),
-    rollUpAdapter(baseUrl, 'railway'),
-    rollUpAdapter(baseUrl, 'supabase'),
+    probeAdapterHealth(baseUrl, 'github'),
+    probeAdapterHealth(baseUrl, 'linear'),
+    probeAdapterHealth(baseUrl, 'vercel'),
+    probeAdapterHealth(baseUrl, 'railway'),
+    probeAdapterHealth(baseUrl, 'supabase'),
   ]);
-  // Source-level rollup ignores 'unknown' too — a source that's unknown for
-  // every brand is reported as 'unknown' on its row but doesn't push the
-  // integrations signal off green.
   const sourceStatuses: Quad[] = [github, linear, vercel, railway, supabase];
   const rolled = rollupQuad(sourceStatuses);
-  // SignalIntegrations.status is Tri — collapse the 'unknown' edge case to
-  // 'ok' (nothing is broken; nothing is configured either).
   const status: Tri = rolled === 'unknown' ? 'ok' : rolled;
   const sources = { github, linear, vercel, railway, supabase };
   const okCount = sourceStatuses.filter(v => v === 'ok').length;
-  const knownCount = sourceStatuses.filter(v => v !== 'unknown').length;
-  const summary = `${okCount}/${knownCount} sources ok`;
+  const total = sourceStatuses.length;
+  const downSources = (['github', 'linear', 'vercel', 'railway', 'supabase'] as const)
+    .filter((_, i) => sourceStatuses[i] !== 'ok');
+  const summary = okCount === total
+    ? `${okCount}/${total} source adapters healthy`
+    : `${okCount}/${total} — ${downSources.join(', ')} adapter${downSources.length === 1 ? '' : 's'} down`;
   return { status, ...sources, summary };
 }
 

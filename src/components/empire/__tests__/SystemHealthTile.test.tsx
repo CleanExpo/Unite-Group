@@ -27,7 +27,7 @@ function fixture(overrides: Partial<SystemHealth> = {}): SystemHealth {
         vercel: 'ok',
         railway: 'ok',
         supabase: 'ok',
-        summary: '5/5 sources ok',
+        summary: '5/5 source adapters healthy',
       },
       businesses: { status: 'ok', total: 6, ok_count: 6, warn_count: 0, err_count: 0, summary: '6 brands · 6 ok · 0 warn · 0 err' },
       pi_ceo_scanner: { status: 'ok', last_scan: new Date().toISOString(), stale_brands: 0, summary: 'latest 2m ago · all fresh' },
@@ -43,7 +43,7 @@ describe('SystemHealthTile rendering', () => {
     expect(html).toContain('ALL GREEN');
     expect(html).toContain('Supabase 42ms');
     expect(html).toContain('All 6 routes healthy');
-    expect(html).toContain('5/5 sources ok');
+    expect(html).toContain('5/5 source adapters healthy');
     expect(html).toContain('data-overall="ok"');
     expect(html).toContain(statusColor('ok'));
   });
@@ -138,20 +138,16 @@ describe('SourceRow unknown rendering', () => {
   });
 });
 
-describe('SystemHealthTile unknown summary', () => {
-  it('does not count unknown sources in the n/m summary text', () => {
-    // The route now produces summaries like "1/1 sources ok" when 4 of 5 are unknown.
-    // The tile passes signals.integrations.summary through verbatim, so we just
-    // verify it renders the upstream string.
+describe('SystemHealthTile integrations summary copy', () => {
+  it('renders the new adapter-health summary verbatim from the route', () => {
+    // Post-fix: integrations measures ADAPTER health only. The route emits
+    // "<n>/5 source adapters healthy" on the happy path, or
+    // "<n>/5 — <kinds> adapter(s) down" when one or more routes 5xx.
     const data = fixture();
-    data.signals.integrations.github = 'ok';
-    data.signals.integrations.linear = 'unknown';
-    data.signals.integrations.vercel = 'unknown';
-    data.signals.integrations.railway = 'unknown';
-    data.signals.integrations.supabase = 'unknown';
-    data.signals.integrations.status = 'ok';
-    data.signals.integrations.summary = '1/1 sources ok';
+    data.signals.integrations.summary = '4/5 — vercel adapter down';
+    data.signals.integrations.vercel = 'err';
+    data.signals.integrations.status = 'err';
     const html = renderToStaticMarkup(<SystemHealthTile initialData={data} />);
-    expect(html).toContain('1/1 sources ok');
+    expect(html).toContain('4/5 — vercel adapter down');
   });
 });

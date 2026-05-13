@@ -32,9 +32,36 @@ interface LinearTeamIssuesResponse {
   errors?: Array<{ message: string }>;
 }
 
-function deriveStatus(activeCount: number): BusinessSource['status'] {
-  if (activeCount > 20) return 'err';
-  if (activeCount > 10) return 'warn';
+// Thresholds tuned for the real velocity of Unite-Group portfolio teams (May 2026).
+//
+// Why these numbers:
+//   The original `err > 20 / warn > 10 in_progress` thresholds were calibrated
+//   against a small/early-stage team. They false-positive on high-velocity teams
+//   like RestoreAssist (36 in-progress, 143 done in 7 days) — that's healthy
+//   throughput, not a fire. A team is only *actually* in trouble when WIP piles
+//   up AND nothing is shipping.
+//
+// New rules:
+//   err  if in_progress > 75 (genuine WIP overload)
+//         OR backlog > 500 (debt accumulating faster than capacity)
+//         OR (done_last_7d == 0 && in_progress > 0)  ← "team stuck": work
+//            is in progress but nothing shipped this week. THIS is the real
+//            failure mode worth alerting on.
+//   warn if in_progress > 40 (early signal of WIP creep)
+//         OR backlog > 300 (debt growing, watch it)
+//   ok   otherwise — including healthy high-throughput states like RA's
+//        36-in-progress-but-143-shipped.
+function deriveStatus(
+  inProgress: number,
+  backlog: number,
+  doneLast7d: number,
+): BusinessSource['status'] {
+  // "Team stuck" — work claimed but no completions in 7 days.
+  if (doneLast7d === 0 && inProgress > 0) return 'err';
+  if (inProgress > 75) return 'err';
+  if (backlog > 500) return 'err';
+  if (inProgress > 40) return 'warn';
+  if (backlog > 300) return 'warn';
   return 'ok';
 }
 
@@ -158,7 +185,7 @@ async function fetchLinear(slug: string): Promise<BusinessSource> {
     const backlog = team.backlogIssues?.nodes.length ?? 0;
     const doneThisWeek = team.doneIssues?.nodes.length ?? 0;
 
-    const status = deriveStatus(inProgress);
+    const status = deriveStatus(inProgress, backlog, doneThisWeek);
 
     const workspace = team.organization?.urlKey ?? 'unite-group';
     const url = `https://linear.app/${workspace}/team/${team.key}/active`;

@@ -28,6 +28,38 @@ function makeParams(slug: string) {
   return { params: Promise.resolve({ slug }) };
 }
 
+// Helper: build a fetch mock that returns a Linear GraphQL team payload with
+// the given issue-state counts.
+function mockLinearFetch({
+  inProgress,
+  backlog,
+  done,
+}: {
+  inProgress: number;
+  backlog: number;
+  done: number;
+}) {
+  global.fetch = jest.fn(
+    async () =>
+      new Response(
+        JSON.stringify({
+          data: {
+            team: {
+              id: 'team-uuid',
+              key: 'RA',
+              name: 'RestoreAssist',
+              organization: { urlKey: 'unite-group' },
+              activeIssues: { nodes: Array.from({ length: inProgress }, (_, i) => ({ id: `a${i}` })) },
+              backlogIssues: { nodes: Array.from({ length: backlog }, (_, i) => ({ id: `b${i}` })) },
+              doneIssues: { nodes: Array.from({ length: done }, (_, i) => ({ id: `d${i}` })) },
+            },
+          },
+        }),
+        { status: 200 }
+      )
+  ) as unknown as typeof fetch;
+}
+
 beforeEach(() => {
   supabaseSingle.mockReset();
   process.env.LINEAR_API_KEY = 'lin_test_xxx';
@@ -98,34 +130,86 @@ describe('GET /api/empire/sources/linear/[slug]', () => {
     });
   });
 
-  it('returns warn when in-progress > 10', async () => {
-    supabaseSingle.mockResolvedValue({
-      data: { linear_team_id: 'team-uuid' },
-      error: null,
-    });
-    global.fetch = jest.fn(
-      async () =>
-        new Response(
-          JSON.stringify({
-            data: {
-              team: {
-                id: 'team-uuid',
-                key: 'UNI',
-                name: 'Unite-Group',
-                organization: { urlKey: 'unite-group' },
-                activeIssues: { nodes: Array.from({ length: 15 }, (_, i) => ({ id: `a${i}` })) },
-                backlogIssues: { nodes: [] },
-                doneIssues: { nodes: [] },
-              },
-            },
-          }),
-          { status: 200 }
-        )
-    ) as unknown as typeof fetch;
+  // ── Threshold matrix (re-calibrated May 2026 for high-velocity teams) ──
+  //   err  if in_progress > 75 OR backlog > 500 OR (done_7d == 0 && in_progress > 0)
+  //   warn if in_progress > 40 OR backlog > 300
+  //   ok   otherwise
 
-    const res = await GET(new Request('http://x'), makeParams('ccw-crm'));
+  it('returns ok for healthy high-throughput state (36 in progress, 143 done 7d — RestoreAssist today)', async () => {
+    // The exact false-positive the threshold tune fixes. 36 in-progress is the
+    // RestoreAssist live state; 143 done in 7 days proves the team is shipping.
+    supabaseSingle.mockResolvedValue({ data: { linear_team_id: 'team-uuid' }, error: null });
+    mockLinearFetch({ inProgress: 36, backlog: 250, done: 143 });
+
+    const res = await GET(new Request('http://x'), makeParams('restoreassist'));
+    const body = await res.json();
+    expect(body.status).toBe('ok');
+    expect(body.summary).toBe('36 in progress · 250 backlog · 143 done this week');
+  });
+
+  it('returns err when team is stuck (in_progress > 0 AND done_7d == 0)', async () => {
+    supabaseSingle.mockResolvedValue({ data: { linear_team_id: 'team-uuid' }, error: null });
+    mockLinearFetch({ inProgress: 12, backlog: 80, done: 0 });
+
+    const res = await GET(new Request('http://x'), makeParams('any-brand'));
+    const body = await res.json();
+    expect(body.status).toBe('err');
+  });
+
+  it('returns err when backlog > 500', async () => {
+    supabaseSingle.mockResolvedValue({ data: { linear_team_id: 'team-uuid' }, error: null });
+    mockLinearFetch({ inProgress: 5, backlog: 510, done: 8 });
+
+    const res = await GET(new Request('http://x'), makeParams('any-brand'));
+    const body = await res.json();
+    expect(body.status).toBe('err');
+  });
+
+  it('returns err when in_progress > 75', async () => {
+    supabaseSingle.mockResolvedValue({ data: { linear_team_id: 'team-uuid' }, error: null });
+    mockLinearFetch({ inProgress: 76, backlog: 100, done: 50 });
+
+    const res = await GET(new Request('http://x'), makeParams('any-brand'));
+    const body = await res.json();
+    expect(body.status).toBe('err');
+  });
+
+  it('returns warn when in_progress > 40 (and not in err range)', async () => {
+    supabaseSingle.mockResolvedValue({ data: { linear_team_id: 'team-uuid' }, error: null });
+    mockLinearFetch({ inProgress: 45, backlog: 100, done: 20 });
+
+    const res = await GET(new Request('http://x'), makeParams('any-brand'));
     const body = await res.json();
     expect(body.status).toBe('warn');
+  });
+
+  it('returns warn when backlog > 300 (and not in err range)', async () => {
+    supabaseSingle.mockResolvedValue({ data: { linear_team_id: 'team-uuid' }, error: null });
+    mockLinearFetch({ inProgress: 5, backlog: 350, done: 10 });
+
+    const res = await GET(new Request('http://x'), makeParams('any-brand'));
+    const body = await res.json();
+    expect(body.status).toBe('warn');
+  });
+
+  it('returns ok at modest WIP (15 in progress, 12 done) — old thresholds would have warned', async () => {
+    supabaseSingle.mockResolvedValue({ data: { linear_team_id: 'team-uuid' }, error: null });
+    mockLinearFetch({ inProgress: 15, backlog: 50, done: 12 });
+
+    const res = await GET(new Request('http://x'), makeParams('any-brand'));
+    const body = await res.json();
+    expect(body.status).toBe('ok');
+  });
+
+  it('returns ok at zero activity (in_progress == 0 && done_7d == 0)', async () => {
+    // Brand-new team with nothing in flight is not "stuck" — there's nothing
+    // to be stuck on. Only an active+zero-output team gets the err treatment.
+    supabaseSingle.mockResolvedValue({ data: { linear_team_id: 'team-uuid' }, error: null });
+    mockLinearFetch({ inProgress: 0, backlog: 0, done: 0 });
+
+    const res = await GET(new Request('http://x'), makeParams('any-brand'));
+    const body = await res.json();
+    expect(body.status).toBe('ok');
   });
 
   it('returns err on GraphQL-level error', async () => {

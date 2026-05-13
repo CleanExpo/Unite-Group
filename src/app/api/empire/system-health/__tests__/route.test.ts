@@ -38,15 +38,19 @@ jest.mock('@/lib/supabase/admin', () => {
 
 // ---- Adapter response driver ----
 //
-// system-health probes adapters via HTTP fetch (cross-function call). Tests
-// drive the per-source response by short-circuiting the fetch mock for any
-// URL containing `/api/empire/sources/<kind>/`. Default = every adapter
-// returns status 'ok'. Per-slug overrides via a callable response.
+// system-health now probes each source adapter exactly ONCE (Synthex canary).
+// The `integrations` signal measures adapter health, NOT brand-content health:
+//   - Adapter returns a status field (any of ok/warn/err/unknown) → adapter ok
+//   - Adapter route 5xx/timeout/garbled body                       → adapter err
+//
+// Test driver: each kind gets either an adapter "body status" string (the
+// adapter is alive, returning content with this status) or the literal value
+// 'ROUTE_DOWN' (the adapter route itself 5xx's — adapter is broken).
 
-type AdapterStatus = 'ok' | 'warn' | 'err' | 'unknown';
-type AdapterResponse = AdapterStatus | ((slug: string) => AdapterStatus);
+type AdapterBodyStatus = 'ok' | 'warn' | 'err' | 'unknown';
+type AdapterDriver = AdapterBodyStatus | 'ROUTE_DOWN';
 
-const adapterResponses: Record<'github' | 'linear' | 'vercel' | 'railway' | 'supabase', AdapterResponse> = {
+const adapterResponses: Record<'github' | 'linear' | 'vercel' | 'railway' | 'supabase', AdapterDriver> = {
   github: 'ok',
   linear: 'ok',
   vercel: 'ok',
@@ -54,7 +58,7 @@ const adapterResponses: Record<'github' | 'linear' | 'vercel' | 'railway' | 'sup
   supabase: 'ok',
 };
 
-function setAdapter(kind: keyof typeof adapterResponses, resp: AdapterResponse) {
+function setAdapter(kind: keyof typeof adapterResponses, resp: AdapterDriver) {
   adapterResponses[kind] = resp;
 }
 
@@ -66,13 +70,11 @@ function resetAdapters() {
   adapterResponses.supabase = 'ok';
 }
 
-function adapterResponseFor(url: string): AdapterStatus | null {
+function adapterResponseFor(url: string): AdapterDriver | null {
   const match = url.match(/\/api\/empire\/sources\/(github|linear|vercel|railway|supabase)\/([^/?#]+)/);
   if (!match) return null;
   const kind = match[1] as keyof typeof adapterResponses;
-  const slug = match[2];
-  const resp = adapterResponses[kind];
-  return typeof resp === 'function' ? resp(slug) : resp;
+  return adapterResponses[kind];
 }
 
 const realFetch = global.fetch;
@@ -148,9 +150,13 @@ function setupFetch(overrides: Record<string, (url: string) => Response | Promis
       if (u.includes(pattern)) return fn(u);
     }
     // Source adapter probes: honour the setAdapter(...) per-kind driver.
-    const adapterStatus = adapterResponseFor(u);
-    if (adapterStatus !== null) {
-      return new Response(JSON.stringify({ status: adapterStatus }), { status: 200 });
+    const driver = adapterResponseFor(u);
+    if (driver !== null) {
+      if (driver === 'ROUTE_DOWN') {
+        // Adapter route is broken on our side — simulates 5xx.
+        return new Response('Internal Server Error', { status: 500 });
+      }
+      return new Response(JSON.stringify({ status: driver }), { status: 200 });
     }
     if (u.includes('/api/empire/businesses')) {
       return new Response(JSON.stringify({ businesses: [{ overall_health: 90 }, { overall_health: 85 }] }), { status: 200 });
@@ -238,16 +244,54 @@ describe('computeSystemHealth', () => {
     expect(result.signals.deploys.summary).toContain('deploying now');
   });
 
-  it('rolls up integrations to err when one source adapter fails', async () => {
+  it('rolls up integrations to err when one source adapter ROUTE 5xx fails', async () => {
     happyDatabase();
     happyScanner();
     setupFetch({});
-    // Every github probe across the 6 brands returns err status.
-    setAdapter('github', 'err');
+    // GitHub adapter route returns HTTP 500 → adapter broken.
+    setAdapter('github', 'ROUTE_DOWN');
 
     const result = await computeSystemHealth('http://localhost:3000');
     expect(result.signals.integrations.github).toBe('err');
     expect(result.signals.integrations.status).toBe('err');
+    expect(result.signals.integrations.summary).toContain('github');
+    expect(result.signals.integrations.summary).toContain('down');
+  });
+
+  it('integrations STAYS ok when adapter returns body status=err (brand-content red, adapter alive)', async () => {
+    // The exact misleading-signal bug: every adapter is responding correctly,
+    // but each happens to report a brand-level err inside the JSON body. The
+    // adapters themselves are healthy, so integrations = ok. The business-level
+    // err shows up in `businesses`, not `integrations`.
+    happyDatabase();
+    happyScanner();
+    setupFetch({});
+    setAdapter('github', 'err');
+    setAdapter('linear', 'err');
+    setAdapter('vercel', 'err');
+    setAdapter('railway', 'err');
+    setAdapter('supabase', 'err');
+
+    const result = await computeSystemHealth('http://localhost:3000');
+    expect(result.signals.integrations.status).toBe('ok');
+    expect(result.signals.integrations.github).toBe('ok');
+    expect(result.signals.integrations.linear).toBe('ok');
+    expect(result.signals.integrations.vercel).toBe('ok');
+    expect(result.signals.integrations.railway).toBe('ok');
+    expect(result.signals.integrations.supabase).toBe('ok');
+    expect(result.signals.integrations.summary).toBe('5/5 source adapters healthy');
+  });
+
+  it('integrations summary lists multiple down adapters', async () => {
+    happyDatabase();
+    happyScanner();
+    setupFetch({});
+    setAdapter('vercel', 'ROUTE_DOWN');
+    setAdapter('railway', 'ROUTE_DOWN');
+
+    const result = await computeSystemHealth('http://localhost:3000');
+    expect(result.signals.integrations.status).toBe('err');
+    expect(result.signals.integrations.summary).toMatch(/3\/5.*vercel.*railway.*adapters down/);
   });
 
   it('classifies businesses by health buckets', async () => {
@@ -276,15 +320,17 @@ describe('computeSystemHealth', () => {
     expect(result.signals.businesses.status).toBe('err');
   });
 
-  it('marks an integration unknown when every adapter probe returns unknown', async () => {
-    // Vercel adapter route returns { status: 'unknown' } for every brand → roll-up = unknown.
+  it('marks an integration ok even when the canary brand reports unknown content (adapter still alive)', async () => {
+    // Adapter route returns { status: 'unknown' } — the body status is irrelevant
+    // for the integrations signal. The adapter route worked → adapter is healthy.
     happyDatabase();
     happyScanner();
     setupFetch({});
     setAdapter('vercel', 'unknown');
 
     const result = await computeSystemHealth('http://localhost:3000');
-    expect(result.signals.integrations.vercel).toBe('unknown');
+    expect(result.signals.integrations.vercel).toBe('ok');
+    expect(result.signals.integrations.status).toBe('ok');
   });
 
   it('marks scanner err when snapshots are >7d old', async () => {
@@ -328,8 +374,7 @@ describe('computeSystemHealth', () => {
     expect(result.signals.database.status).toBe('ok');
   });
 
-  it('integrations stays ok when ALL source probes are unknown (nothing configured, nothing broken)', async () => {
-    // Every brand probe for every source returns unknown.
+  it('integrations stays ok when every adapter returns body=unknown (routes alive, nothing configured downstream)', async () => {
     happyDatabase();
     happyScanner();
     setupFetch({});
@@ -340,35 +385,16 @@ describe('computeSystemHealth', () => {
     setAdapter('supabase', 'unknown');
 
     const result = await computeSystemHealth('http://localhost:3000');
-    expect(result.signals.integrations.github).toBe('unknown');
-    expect(result.signals.integrations.linear).toBe('unknown');
-    expect(result.signals.integrations.vercel).toBe('unknown');
-    expect(result.signals.integrations.railway).toBe('unknown');
-    expect(result.signals.integrations.supabase).toBe('unknown');
-    // No source is broken — overall status must NOT be err.
-    expect(result.signals.integrations.status).not.toBe('err');
-    expect(result.signals.integrations.status).not.toBe('warn');
-    // Tri only — unknown collapses to ok at the integrations.status field.
-    expect(result.signals.integrations.status).toBe('ok');
-  });
-
-  it('integrations rolls up to ok when 4 sources are unknown and 1 is ok', async () => {
-    happyDatabase();
-    happyScanner();
-    setupFetch({});
-    setAdapter('github', 'ok');
-    setAdapter('linear', 'unknown');
-    setAdapter('vercel', 'unknown');
-    setAdapter('railway', 'unknown');
-    setAdapter('supabase', 'unknown');
-
-    const result = await computeSystemHealth('http://localhost:3000');
+    // All adapter routes responded — every row = ok regardless of body content.
     expect(result.signals.integrations.github).toBe('ok');
-    expect(result.signals.integrations.linear).toBe('unknown');
+    expect(result.signals.integrations.linear).toBe('ok');
+    expect(result.signals.integrations.vercel).toBe('ok');
+    expect(result.signals.integrations.railway).toBe('ok');
+    expect(result.signals.integrations.supabase).toBe('ok');
     expect(result.signals.integrations.status).toBe('ok');
   });
 
-  it('integrations rolls up to err when 4 sources are unknown and 1 is err', async () => {
+  it('integrations err when one adapter route is down even if the others return body=unknown', async () => {
     happyDatabase();
     happyScanner();
     setupFetch({});
@@ -376,23 +402,12 @@ describe('computeSystemHealth', () => {
     setAdapter('linear', 'unknown');
     setAdapter('vercel', 'unknown');
     setAdapter('railway', 'unknown');
-    setAdapter('supabase', 'err');
+    setAdapter('supabase', 'ROUTE_DOWN');
 
     const result = await computeSystemHealth('http://localhost:3000');
     expect(result.signals.integrations.supabase).toBe('err');
-    expect(result.signals.integrations.github).toBe('unknown');
+    expect(result.signals.integrations.github).toBe('ok');
     expect(result.signals.integrations.status).toBe('err');
-  });
-
-  it('source-level status mixes brand probes correctly (one err among five unknown → err)', async () => {
-    happyDatabase();
-    happyScanner();
-    setupFetch({});
-    // Only one brand's railway probe returns err; the other five return unknown.
-    setAdapter('railway', (slug: string) => (slug === 'synthex' ? 'err' : 'unknown'));
-
-    const result = await computeSystemHealth('http://localhost:3000');
-    expect(result.signals.integrations.railway).toBe('err');
   });
 
   it('overall does NOT flip to err just because integrations is unknown', async () => {
