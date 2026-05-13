@@ -72,19 +72,25 @@ function StatusPill({ status }: { status: keyof typeof STATUS_CONFIG }) {
 
 export default function BulcsHoldingsPortal() {
   const router = useRouter();
-  const [user, setUser] = useState<{ email: string; name: string } | null>(null);
+  const [authed, setAuthed] = useState(false);
+  const [sessionEmail, setSessionEmail] = useState<string>("");
   const [mounted, setMounted] = useState(false);
+
+  // This page is owned by the client whose slug matches the route.
+  // The portal always greets the client — never the admin previewing.
+  const client = {
+    name: "Ivi Sims",
+    firstName: "Ivi",
+    email: "ivi@bulcsholdings.com",
+  };
 
   useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     supabaseClient.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push("/en/login"); return; }
-      const meta = session.user.user_metadata;
-      setUser({
-        email: session.user.email ?? "",
-        name: meta?.name ?? session.user.email ?? "Ivi",
-      });
+      setAuthed(true);
+      setSessionEmail(session.user.email ?? "");
     });
   }, [router]);
 
@@ -93,7 +99,7 @@ export default function BulcsHoldingsPortal() {
     router.push("/en/login");
   };
 
-  if (!mounted || !user) return null;
+  if (!mounted || !authed) return null;
 
   const done = DELIVERABLES.filter(d => d.status === "done").length;
   const inProgress = DELIVERABLES.filter(d => d.status === "in-progress").length;
@@ -133,7 +139,7 @@ export default function BulcsHoldingsPortal() {
 
           <div style={{ flex: 1 }} />
 
-          <span style={{ fontSize: 11, color: BH.ghost, fontFamily: "var(--font-mono)" }}>{user.email}</span>
+          <span style={{ fontSize: 11, color: BH.ghost, fontFamily: "var(--font-mono)" }}>{sessionEmail}</span>
 
           <button
             onClick={handleSignOut}
@@ -164,7 +170,7 @@ export default function BulcsHoldingsPortal() {
           }}
         >
           <div style={{ fontSize: 20, fontWeight: 700, color: BH.ink, letterSpacing: "-0.03em", marginBottom: 6 }}>
-            Welcome, {user.name.split(" ")[0]}
+            Welcome, {client.firstName}
           </div>
           <div style={{ fontSize: 13, color: BH.muted, lineHeight: 1.6 }}>
             Your AI-powered agency engagement is active. Here&apos;s the live status across all deliverables.
