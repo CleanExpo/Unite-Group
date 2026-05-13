@@ -5,8 +5,9 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeftMark, PlusMark, CloseMark, BuildingMark, ExternalMark } from "@/components/ui/marks";
+import { ArrowLeftMark, PlusMark, CloseMark, ExternalMark } from "@/components/ui/marks";
 import { supabaseClient } from "@/lib/supabase/client";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface Client {
   id: string;
@@ -109,24 +110,38 @@ export default function ClientsDirectory() {
 
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: '24px' }}>
 
-        {/* CCW — existing client, always shown first */}
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#52525b', marginBottom: 10 }}>Active Portals</div>
-          <Link href="/clients/ccw" style={{ textDecoration: 'none' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 20px', background: 'var(--surface-1)', backgroundImage: 'linear-gradient(180deg,rgba(255,255,255,0.025) 0%,transparent 50%)', border: '1px solid #27272a', borderRadius: 10, transition: 'border-color 0.1s' }}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--ink-tertiary)')}
-              onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
-            >
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink-primary)', letterSpacing: '-0.02em' }}>Carpet Cleaners Warehouse (CCW)</div>
-                <div style={{ fontSize: 11, color: '#52525b', marginTop: 2 }}>First paying client · $2,400/yr ARR · CCW-CRM portal active</div>
-              </div>
-              <span style={{ fontSize: 10, fontWeight: 600, color: '#16a34a', letterSpacing: '0.04em', textTransform: 'uppercase', padding: '2px 8px', borderRadius: 4, background: 'rgba(22,163,74,0.1)', border: '1px solid rgba(22,163,74,0.2)' }}>Active</span>
-              <ExternalMark size={12} color="#52525b" />
+        {/* Active Portals — split from `clients` by uses_ccw_crm flag.
+            UNI-1947 Pillar 2: the previous hardcoded CCW JSX is gone; the
+            row now comes from unified_customers like every other client. */}
+        {(() => {
+          const activePortals = clients.filter(c => c.uses_ccw_crm);
+          if (activePortals.length === 0) {
+            return null; // nothing to render — skip the section entirely
+          }
+          return (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#52525b', marginBottom: 10 }}>Active Portals</div>
+              {activePortals.map(client => (
+                <Link key={client.id} href="/clients/ccw" style={{ textDecoration: 'none' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 20px', background: 'var(--surface-1)', backgroundImage: 'linear-gradient(180deg,rgba(255,255,255,0.025) 0%,transparent 50%)', border: '1px solid #27272a', borderRadius: 10, transition: 'border-color 0.1s' }}
+                    onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--ink-tertiary)')}
+                    onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
+                  >
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink-primary)', letterSpacing: '-0.02em' }}>{client.company ?? client.name}</div>
+                      <div style={{ fontSize: 11, color: '#52525b', marginTop: 2 }}>
+                        {client.total_arr_aud > 0 ? `$${client.total_arr_aud.toLocaleString()}/yr ARR` : 'CRM portal active'}
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 10, fontWeight: 600, color: '#16a34a', letterSpacing: '0.04em', textTransform: 'uppercase', padding: '2px 8px', borderRadius: 4, background: 'rgba(22,163,74,0.1)', border: '1px solid rgba(22,163,74,0.2)' }}>Active</span>
+                    <ExternalMark size={12} color="#52525b" />
+                  </div>
+                </Link>
+              ))}
             </div>
-          </Link>
-        </div>
+          );
+        })()}
 
         {/* Unified customers from DB */}
         <div style={{ marginTop: 24 }}>
@@ -139,10 +154,10 @@ export default function ClientsDirectory() {
               ))}
             </div>
           ) : clients.length === 0 ? (
-            <div style={{ background: 'var(--surface-1)', border: '1px dashed #27272a', borderRadius: 10, padding: '40px 24px', textAlign: 'center' }}>
-              <BuildingMark size={24} color="var(--ink-tertiary)" className="mx-auto mb-3" />
-              <p style={{ fontSize: 13, color: '#52525b', margin: 0 }}>No clients yet. Add your first client.</p>
-            </div>
+            <EmptyState
+              title="No clients yet"
+              description="Add your first client to start tracking ARR, portals, and engagements."
+            />
           ) : (
             <div style={{ background: 'var(--surface-1)', border: '1px solid #27272a', borderRadius: 10, overflow: 'hidden' }}>
               {clients.map((client, i) => (

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseClient } from "@/lib/supabase/client";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -750,7 +751,16 @@ export default function EmpireCommandCenter() {
             </div>
             {isLoading
               ? <BusinessHealthSkeleton />
-              : businesses.map(biz => <BusinessHealthRow key={biz.id} biz={biz} />)
+              : businesses.length === 0
+                ? (
+                  <div style={{ padding: 16 }}>
+                    <EmptyState
+                      title="No businesses configured yet"
+                      description="Portfolio rows haven't been seeded into the businesses table. Add one to start tracking health and ARR."
+                    />
+                  </div>
+                )
+                : businesses.map(biz => <BusinessHealthRow key={biz.id} biz={biz} />)
             }
           </div>
         </div>
