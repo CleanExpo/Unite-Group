@@ -261,12 +261,12 @@ describe('computeSystemHealth', () => {
     expect(result.overall).toBe('err');
   });
 
-  it('flags database warn at 200-1000ms latency', async () => {
+  it('flags database warn at 300-1000ms latency', async () => {
     // Simulate latency by delaying the mocked supabase response.
     businessesLimitChain.mockImplementation(
       () =>
         new Promise(resolve => {
-          setTimeout(() => resolve({ error: null }), 250);
+          setTimeout(() => resolve({ error: null }), 350);
         }),
     );
     happyScanner();
@@ -274,6 +274,123 @@ describe('computeSystemHealth', () => {
 
     const result = await computeSystemHealth('http://localhost:3000');
     expect(result.signals.database.status).toBe('warn');
-    expect(result.signals.database.latency_ms).toBeGreaterThanOrEqual(200);
+    expect(result.signals.database.latency_ms).toBeGreaterThanOrEqual(300);
+  });
+
+  it('does NOT flag database warn at 201ms latency (real-world fine)', async () => {
+    businessesLimitChain.mockImplementation(
+      () =>
+        new Promise(resolve => {
+          setTimeout(() => resolve({ error: null }), 210);
+        }),
+    );
+    happyScanner();
+    setupFetch({});
+
+    const result = await computeSystemHealth('http://localhost:3000');
+    expect(result.signals.database.status).toBe('ok');
+  });
+
+  it('integrations stays ok when ALL source probes are unknown (nothing configured, nothing broken)', async () => {
+    // Every brand probe for every source returns unknown.
+    happyDatabase();
+    happyScanner();
+    setupFetch({
+      '/api/empire/sources/': () =>
+        new Response(JSON.stringify({ status: 'unknown' }), { status: 200 }),
+    });
+
+    const result = await computeSystemHealth('http://localhost:3000');
+    expect(result.signals.integrations.github).toBe('unknown');
+    expect(result.signals.integrations.linear).toBe('unknown');
+    expect(result.signals.integrations.vercel).toBe('unknown');
+    expect(result.signals.integrations.railway).toBe('unknown');
+    expect(result.signals.integrations.supabase).toBe('unknown');
+    // No source is broken — overall status must NOT be err.
+    expect(result.signals.integrations.status).not.toBe('err');
+    expect(result.signals.integrations.status).not.toBe('warn');
+    // Tri only — unknown collapses to ok at the integrations.status field.
+    expect(result.signals.integrations.status).toBe('ok');
+  });
+
+  it('integrations rolls up to ok when 4 sources are unknown and 1 is ok', async () => {
+    happyDatabase();
+    happyScanner();
+    setupFetch({
+      '/api/empire/sources/github/': () =>
+        new Response(JSON.stringify({ status: 'ok' }), { status: 200 }),
+      '/api/empire/sources/linear/': () =>
+        new Response(JSON.stringify({ status: 'unknown' }), { status: 200 }),
+      '/api/empire/sources/vercel/': () =>
+        new Response(JSON.stringify({ status: 'unknown' }), { status: 200 }),
+      '/api/empire/sources/railway/': () =>
+        new Response(JSON.stringify({ status: 'unknown' }), { status: 200 }),
+      '/api/empire/sources/supabase/': () =>
+        new Response(JSON.stringify({ status: 'unknown' }), { status: 200 }),
+    });
+
+    const result = await computeSystemHealth('http://localhost:3000');
+    expect(result.signals.integrations.github).toBe('ok');
+    expect(result.signals.integrations.linear).toBe('unknown');
+    expect(result.signals.integrations.status).toBe('ok');
+  });
+
+  it('integrations rolls up to err when 4 sources are unknown and 1 is err', async () => {
+    happyDatabase();
+    happyScanner();
+    setupFetch({
+      '/api/empire/sources/github/': () =>
+        new Response(JSON.stringify({ status: 'unknown' }), { status: 200 }),
+      '/api/empire/sources/linear/': () =>
+        new Response(JSON.stringify({ status: 'unknown' }), { status: 200 }),
+      '/api/empire/sources/vercel/': () =>
+        new Response(JSON.stringify({ status: 'unknown' }), { status: 200 }),
+      '/api/empire/sources/railway/': () =>
+        new Response(JSON.stringify({ status: 'unknown' }), { status: 200 }),
+      '/api/empire/sources/supabase/': () =>
+        new Response(JSON.stringify({ status: 'err' }), { status: 200 }),
+    });
+
+    const result = await computeSystemHealth('http://localhost:3000');
+    expect(result.signals.integrations.supabase).toBe('err');
+    expect(result.signals.integrations.github).toBe('unknown');
+    expect(result.signals.integrations.status).toBe('err');
+  });
+
+  it('source-level status mixes brand probes correctly (one err among five unknown → err)', async () => {
+    happyDatabase();
+    happyScanner();
+    // Only one brand's railway probe returns err; the other five return unknown.
+    const railwayResponders: Record<string, string> = {
+      synthex: 'err',
+      restoreassist: 'unknown',
+      'dr-nrpg': 'unknown',
+      carsi: 'unknown',
+      'ccw-crm': 'unknown',
+      'disaster-recovery': 'unknown',
+    };
+    setupFetch({
+      '/api/empire/sources/railway/': (url: string) => {
+        const slug = url.split('/api/empire/sources/railway/')[1].split(/[?#]/)[0];
+        const status = railwayResponders[slug] ?? 'unknown';
+        return new Response(JSON.stringify({ status }), { status: 200 });
+      },
+    });
+
+    const result = await computeSystemHealth('http://localhost:3000');
+    expect(result.signals.integrations.railway).toBe('err');
+  });
+
+  it('overall does NOT flip to err just because integrations is unknown', async () => {
+    // All sources unknown, everything else ok → overall ok (no real failure).
+    happyDatabase();
+    happyScanner();
+    setupFetch({
+      '/api/empire/sources/': () =>
+        new Response(JSON.stringify({ status: 'unknown' }), { status: 200 }),
+    });
+
+    const result = await computeSystemHealth('http://localhost:3000');
+    expect(result.overall).toBe('ok');
   });
 });

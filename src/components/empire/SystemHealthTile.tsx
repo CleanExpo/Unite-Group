@@ -140,9 +140,11 @@ interface SourceRowProps {
   status: Quad;
 }
 
-function SourceRow({ label, status }: SourceRowProps) {
+export function SourceRow({ label, status }: SourceRowProps) {
+  // 'unknown' renders as a grey dash — neutral, not a failure state.
+  const display = status === "unknown" ? "—" : status;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11 }} data-source={label} data-status={status}>
       <span
         style={{
           width: 6,
@@ -156,7 +158,7 @@ function SourceRow({ label, status }: SourceRowProps) {
         {label}
       </span>
       <span style={{ fontFamily: "var(--font-mono)", color: "var(--ink-tertiary)" }}>
-        {status}
+        {display}
       </span>
     </div>
   );

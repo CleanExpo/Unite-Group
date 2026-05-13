@@ -11,7 +11,7 @@
 
 import { renderToStaticMarkup } from 'react-dom/server';
 import React from 'react';
-import { SystemHealthTile, statusColor, type SystemHealth } from '../SystemHealthTile';
+import { SystemHealthTile, SourceRow, statusColor, type SystemHealth } from '../SystemHealthTile';
 
 function fixture(overrides: Partial<SystemHealth> = {}): SystemHealth {
   return {
@@ -103,5 +103,55 @@ describe('statusColor', () => {
     expect(statusColor('warn')).toContain('orange');
     expect(statusColor('err')).toContain('red');
     expect(statusColor('unknown')).toContain('disabled');
+  });
+
+  it('unknown is the disabled (grey) token — NOT red', () => {
+    const grey = statusColor('unknown');
+    expect(grey).not.toContain('red');
+    expect(grey).not.toContain('orange');
+    expect(grey).toContain('disabled');
+  });
+});
+
+describe('SourceRow unknown rendering', () => {
+  it('renders unknown as a grey dot and a dash, not as red/err', () => {
+    const html = renderToStaticMarkup(<SourceRow label="railway" status="unknown" />);
+    expect(html).toMatch(/data-source="railway"[^>]*data-status="unknown"/);
+    // Grey token present, red/orange absent.
+    expect(html).toContain(statusColor('unknown'));
+    expect(html).not.toContain('var(--red-400)');
+    expect(html).not.toContain('var(--orange-400)');
+    // Literal "unknown" text is hidden — replaced by an em-dash.
+    const visible = html.replace(/data-[a-z-]+="[^"]*"/g, '');
+    expect(visible).not.toMatch(/>unknown</);
+    expect(visible).toContain('—');
+  });
+
+  it('renders err source row with the red token, ok with green', () => {
+    const errHtml = renderToStaticMarkup(<SourceRow label="supabase" status="err" />);
+    expect(errHtml).toContain('var(--red-400)');
+    expect(errHtml).toContain('>err<');
+
+    const okHtml = renderToStaticMarkup(<SourceRow label="github" status="ok" />);
+    expect(okHtml).toContain('var(--green-400)');
+    expect(okHtml).toContain('>ok<');
+  });
+});
+
+describe('SystemHealthTile unknown summary', () => {
+  it('does not count unknown sources in the n/m summary text', () => {
+    // The route now produces summaries like "1/1 sources ok" when 4 of 5 are unknown.
+    // The tile passes signals.integrations.summary through verbatim, so we just
+    // verify it renders the upstream string.
+    const data = fixture();
+    data.signals.integrations.github = 'ok';
+    data.signals.integrations.linear = 'unknown';
+    data.signals.integrations.vercel = 'unknown';
+    data.signals.integrations.railway = 'unknown';
+    data.signals.integrations.supabase = 'unknown';
+    data.signals.integrations.status = 'ok';
+    data.signals.integrations.summary = '1/1 sources ok';
+    const html = renderToStaticMarkup(<SystemHealthTile initialData={data} />);
+    expect(html).toContain('1/1 sources ok');
   });
 });

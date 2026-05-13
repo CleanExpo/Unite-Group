@@ -87,11 +87,29 @@ let _cache: { payload: SystemHealth; expires_at: number } | null = null;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function worst(values: Quad[]): Tri {
+// Roll up sibling statuses, treating 'unknown' as neutral (not-configured).
+// Rules:
+//   err  if any value is err
+//   warn if any value is warn (and no err)
+//   ok   if any value is ok (and no err / warn)
+//   unknown only if every value is unknown
+function rollupQuad(values: Quad[]): Quad {
+  if (values.length === 0) return 'unknown';
   if (values.some(v => v === 'err')) return 'err';
   if (values.some(v => v === 'warn')) return 'warn';
-  // 'unknown' is neither ok nor failing — treat as warn at roll-up time.
-  if (values.some(v => v === 'unknown')) return 'warn';
+  if (values.some(v => v === 'ok')) return 'ok';
+  return 'unknown';
+}
+
+// Roll up the top-level overall status across the six signal slots. 'unknown'
+// is treated as neutral — it neither degrades nor flips green to red. If every
+// signal is unknown we still report 'ok' (nothing is broken), but that's not a
+// path the live empire can reach today.
+function rollupOverall(values: Quad[]): Tri {
+  if (values.some(v => v === 'err')) return 'err';
+  if (values.some(v => v === 'warn')) return 'warn';
+  if (values.some(v => v === 'ok')) return 'ok';
+  // All unknown — nothing is failing, just nothing is configured.
   return 'ok';
 }
 
@@ -125,7 +143,7 @@ async function probeDatabase(): Promise<SignalDatabase> {
     }
     let status: Tri = 'ok';
     if (latency > 1000) status = 'err';
-    else if (latency > 200) status = 'warn';
+    else if (latency > 300) status = 'warn';
     return { status, latency_ms: latency, summary: `Supabase ${latency}ms` };
   } catch (err) {
     const latency = Date.now() - t0;
@@ -191,9 +209,10 @@ async function probeAdapter(baseUrl: string, kind: AdapterKind, slug: string): P
 
 async function rollUpAdapter(baseUrl: string, kind: AdapterKind): Promise<Quad> {
   const probes = await Promise.all(PORTFOLIO_SLUGS.map(s => probeAdapter(baseUrl, kind, s)));
-  // If every probe is 'unknown' (e.g. no rows configured), surface as 'unknown'.
-  if (probes.every(p => p === 'unknown')) return 'unknown';
-  return worst(probes);
+  // 'unknown' brand probes mean "this source isn't configured for this brand"
+  // (e.g. Railway only powers 1/6 brands). That's neutral — don't let it drag
+  // a source's status into warn/err.
+  return rollupQuad(probes);
 }
 
 async function probeIntegrations(baseUrl: string): Promise<SignalIntegrations> {
@@ -204,10 +223,18 @@ async function probeIntegrations(baseUrl: string): Promise<SignalIntegrations> {
     rollUpAdapter(baseUrl, 'railway'),
     rollUpAdapter(baseUrl, 'supabase'),
   ]);
-  const status = worst([github, linear, vercel, railway, supabase]);
+  // Source-level rollup ignores 'unknown' too — a source that's unknown for
+  // every brand is reported as 'unknown' on its row but doesn't push the
+  // integrations signal off green.
+  const sourceStatuses: Quad[] = [github, linear, vercel, railway, supabase];
+  const rolled = rollupQuad(sourceStatuses);
+  // SignalIntegrations.status is Tri — collapse the 'unknown' edge case to
+  // 'ok' (nothing is broken; nothing is configured either).
+  const status: Tri = rolled === 'unknown' ? 'ok' : rolled;
   const sources = { github, linear, vercel, railway, supabase };
-  const okCount = Object.values(sources).filter(v => v === 'ok').length;
-  const summary = `${okCount}/5 sources ok`;
+  const okCount = sourceStatuses.filter(v => v === 'ok').length;
+  const knownCount = sourceStatuses.filter(v => v !== 'unknown').length;
+  const summary = `${okCount}/${knownCount} sources ok`;
   return { status, ...sources, summary };
 }
 
@@ -370,7 +397,7 @@ export async function computeSystemHealth(baseUrl: string): Promise<SystemHealth
     probeScanner(),
     probeDeploys(),
   ]);
-  const overall = worst([database.status, api.status, integrations.status, businesses.status, pi_ceo_scanner.status, deploys.status]);
+  const overall = rollupOverall([database.status, api.status, integrations.status, businesses.status, pi_ceo_scanner.status, deploys.status]);
   return {
     overall,
     computed_at: new Date().toISOString(),
