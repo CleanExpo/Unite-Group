@@ -190,12 +190,56 @@ interface AdapterResp { status: Quad }
 
 type AdapterKind = 'github' | 'linear' | 'vercel' | 'railway' | 'supabase';
 
+// We call adapter route handlers in-process (dynamic import) instead of HTTP
+// fetch. This avoids two failure modes that surfaced in prod on Vercel:
+//   1. Cross-function HTTP routing through the public alias being SSO-locked
+//      (or treated as untrusted), returning 401/403 even though the alias is
+//      open to the public — Vercel's internal edge can re-route same-deploy
+//      traffic via the deployment URL, which IS protected.
+//   2. The extra DNS + TLS roundtrip costing ~150ms per probe × 30 probes.
+// In-process invocation is faster, deterministic, and immune to routing.
+type SourceHandler = (
+  req: Request,
+  ctx: { params: Promise<{ slug: string }> },
+) => Promise<Response>;
+
+const _adapterHandlerCache = new Map<AdapterKind, SourceHandler>();
+
+async function getAdapterHandler(kind: AdapterKind): Promise<SourceHandler> {
+  const cached = _adapterHandlerCache.get(kind);
+  if (cached) return cached;
+  // Static, finite set of imports — bundlers can tree-shake by literal switch.
+  let mod: { GET: SourceHandler };
+  switch (kind) {
+    case 'github':   mod = await import('@/app/api/empire/sources/github/[slug]/route'); break;
+    case 'linear':   mod = await import('@/app/api/empire/sources/linear/[slug]/route'); break;
+    case 'vercel':   mod = await import('@/app/api/empire/sources/vercel/[slug]/route'); break;
+    case 'railway':  mod = await import('@/app/api/empire/sources/railway/[slug]/route'); break;
+    case 'supabase': mod = await import('@/app/api/empire/sources/supabase/[slug]/route'); break;
+  }
+  _adapterHandlerCache.set(kind, mod.GET);
+  return mod.GET;
+}
+
 async function probeAdapter(baseUrl: string, kind: AdapterKind, slug: string): Promise<Quad> {
   try {
-    const res = await fetch(`${baseUrl}/api/empire/sources/${kind}/${slug}`, {
-      cache: 'no-store',
-      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+    const handler = await getAdapterHandler(kind);
+    // Synthesize a minimal Request — adapter handlers ignore the req body and
+    // read `params` from the second argument, so a plain GET is sufficient.
+    const fakeReq = new Request(`${baseUrl}/api/empire/sources/${kind}/${slug}`, { method: 'GET' });
+    const probe = handler(fakeReq, { params: Promise.resolve({ slug }) });
+    // Race against a timeout, but clear the timer when the probe wins so the
+    // jest worker doesn't hang on a pending setTimeout in test envs.
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+    const timeoutPromise = new Promise<Response>((_, reject) => {
+      timeoutHandle = setTimeout(() => reject(new Error('adapter timeout')), PROBE_TIMEOUT_MS);
     });
+    let res: Response;
+    try {
+      res = await Promise.race([probe, timeoutPromise]);
+    } finally {
+      if (timeoutHandle) clearTimeout(timeoutHandle);
+    }
     if (!res.ok) return 'err';
     const body = (await res.json()) as AdapterResp;
     if (body.status === 'ok' || body.status === 'warn' || body.status === 'err' || body.status === 'unknown') {

@@ -36,11 +36,60 @@ jest.mock('@/lib/supabase/admin', () => {
   };
 });
 
+// ---- Adapter route handler mocks ----
+//
+// system-health now calls the adapter GET handlers in-process via dynamic
+// import. We mock each adapter module so tests can drive the per-source
+// response independently. Default = every adapter returns status 'ok' (the
+// happy-path), and individual tests override `adapterResponses` per-source
+// (with an optional per-slug override via a function).
+
+type AdapterStatus = 'ok' | 'warn' | 'err' | 'unknown';
+type AdapterResponse = AdapterStatus | ((slug: string) => AdapterStatus);
+
+const adapterResponses: Record<'github' | 'linear' | 'vercel' | 'railway' | 'supabase', AdapterResponse> = {
+  github: 'ok',
+  linear: 'ok',
+  vercel: 'ok',
+  railway: 'ok',
+  supabase: 'ok',
+};
+
+function adapterMockFactory(kind: keyof typeof adapterResponses) {
+  return () => ({
+    GET: async (_req: Request, ctx: { params: Promise<{ slug: string }> }) => {
+      const { slug } = await ctx.params;
+      const resp = adapterResponses[kind];
+      const status: AdapterStatus = typeof resp === 'function' ? resp(slug) : resp;
+      return new Response(JSON.stringify({ status }), { status: 200, headers: { 'content-type': 'application/json' } });
+    },
+  });
+}
+
+jest.mock('@/app/api/empire/sources/github/[slug]/route', adapterMockFactory('github'));
+jest.mock('@/app/api/empire/sources/linear/[slug]/route', adapterMockFactory('linear'));
+jest.mock('@/app/api/empire/sources/vercel/[slug]/route', adapterMockFactory('vercel'));
+jest.mock('@/app/api/empire/sources/railway/[slug]/route', adapterMockFactory('railway'));
+jest.mock('@/app/api/empire/sources/supabase/[slug]/route', adapterMockFactory('supabase'));
+
+function setAdapter(kind: keyof typeof adapterResponses, resp: AdapterResponse) {
+  adapterResponses[kind] = resp;
+}
+
+function resetAdapters() {
+  adapterResponses.github = 'ok';
+  adapterResponses.linear = 'ok';
+  adapterResponses.vercel = 'ok';
+  adapterResponses.railway = 'ok';
+  adapterResponses.supabase = 'ok';
+}
+
 const realFetch = global.fetch;
 
 beforeEach(() => {
   businessesLimitChain.mockReset();
   snapshotsOrderChain.mockReset();
+  resetAdapters();
   // Default: every downstream API call returns a happy response.
   // Individual tests override per-URL.
   global.fetch = jest.fn(async () => new Response('{}', { status: 200 })) as unknown as typeof fetch;
@@ -200,11 +249,9 @@ describe('computeSystemHealth', () => {
   it('rolls up integrations to err when one source adapter fails', async () => {
     happyDatabase();
     happyScanner();
-    setupFetch({
-      // Every github probe across the 6 brands returns err status.
-      '/api/empire/sources/github/': () =>
-        new Response(JSON.stringify({ status: 'err' }), { status: 200 }),
-    });
+    setupFetch({});
+    // Every github probe across the 6 brands returns err status.
+    setAdapter('github', 'err');
 
     const result = await computeSystemHealth('http://localhost:3000');
     expect(result.signals.integrations.github).toBe('err');
@@ -241,10 +288,8 @@ describe('computeSystemHealth', () => {
     // Vercel adapter route returns { status: 'unknown' } for every brand → roll-up = unknown.
     happyDatabase();
     happyScanner();
-    setupFetch({
-      '/api/empire/sources/vercel/': () =>
-        new Response(JSON.stringify({ status: 'unknown' }), { status: 200 }),
-    });
+    setupFetch({});
+    setAdapter('vercel', 'unknown');
 
     const result = await computeSystemHealth('http://localhost:3000');
     expect(result.signals.integrations.vercel).toBe('unknown');
@@ -295,10 +340,12 @@ describe('computeSystemHealth', () => {
     // Every brand probe for every source returns unknown.
     happyDatabase();
     happyScanner();
-    setupFetch({
-      '/api/empire/sources/': () =>
-        new Response(JSON.stringify({ status: 'unknown' }), { status: 200 }),
-    });
+    setupFetch({});
+    setAdapter('github', 'unknown');
+    setAdapter('linear', 'unknown');
+    setAdapter('vercel', 'unknown');
+    setAdapter('railway', 'unknown');
+    setAdapter('supabase', 'unknown');
 
     const result = await computeSystemHealth('http://localhost:3000');
     expect(result.signals.integrations.github).toBe('unknown');
@@ -316,18 +363,12 @@ describe('computeSystemHealth', () => {
   it('integrations rolls up to ok when 4 sources are unknown and 1 is ok', async () => {
     happyDatabase();
     happyScanner();
-    setupFetch({
-      '/api/empire/sources/github/': () =>
-        new Response(JSON.stringify({ status: 'ok' }), { status: 200 }),
-      '/api/empire/sources/linear/': () =>
-        new Response(JSON.stringify({ status: 'unknown' }), { status: 200 }),
-      '/api/empire/sources/vercel/': () =>
-        new Response(JSON.stringify({ status: 'unknown' }), { status: 200 }),
-      '/api/empire/sources/railway/': () =>
-        new Response(JSON.stringify({ status: 'unknown' }), { status: 200 }),
-      '/api/empire/sources/supabase/': () =>
-        new Response(JSON.stringify({ status: 'unknown' }), { status: 200 }),
-    });
+    setupFetch({});
+    setAdapter('github', 'ok');
+    setAdapter('linear', 'unknown');
+    setAdapter('vercel', 'unknown');
+    setAdapter('railway', 'unknown');
+    setAdapter('supabase', 'unknown');
 
     const result = await computeSystemHealth('http://localhost:3000');
     expect(result.signals.integrations.github).toBe('ok');
@@ -338,18 +379,12 @@ describe('computeSystemHealth', () => {
   it('integrations rolls up to err when 4 sources are unknown and 1 is err', async () => {
     happyDatabase();
     happyScanner();
-    setupFetch({
-      '/api/empire/sources/github/': () =>
-        new Response(JSON.stringify({ status: 'unknown' }), { status: 200 }),
-      '/api/empire/sources/linear/': () =>
-        new Response(JSON.stringify({ status: 'unknown' }), { status: 200 }),
-      '/api/empire/sources/vercel/': () =>
-        new Response(JSON.stringify({ status: 'unknown' }), { status: 200 }),
-      '/api/empire/sources/railway/': () =>
-        new Response(JSON.stringify({ status: 'unknown' }), { status: 200 }),
-      '/api/empire/sources/supabase/': () =>
-        new Response(JSON.stringify({ status: 'err' }), { status: 200 }),
-    });
+    setupFetch({});
+    setAdapter('github', 'unknown');
+    setAdapter('linear', 'unknown');
+    setAdapter('vercel', 'unknown');
+    setAdapter('railway', 'unknown');
+    setAdapter('supabase', 'err');
 
     const result = await computeSystemHealth('http://localhost:3000');
     expect(result.signals.integrations.supabase).toBe('err');
@@ -360,22 +395,9 @@ describe('computeSystemHealth', () => {
   it('source-level status mixes brand probes correctly (one err among five unknown → err)', async () => {
     happyDatabase();
     happyScanner();
+    setupFetch({});
     // Only one brand's railway probe returns err; the other five return unknown.
-    const railwayResponders: Record<string, string> = {
-      synthex: 'err',
-      restoreassist: 'unknown',
-      'dr-nrpg': 'unknown',
-      carsi: 'unknown',
-      'ccw-crm': 'unknown',
-      'disaster-recovery': 'unknown',
-    };
-    setupFetch({
-      '/api/empire/sources/railway/': (url: string) => {
-        const slug = url.split('/api/empire/sources/railway/')[1].split(/[?#]/)[0];
-        const status = railwayResponders[slug] ?? 'unknown';
-        return new Response(JSON.stringify({ status }), { status: 200 });
-      },
-    });
+    setAdapter('railway', (slug: string) => (slug === 'synthex' ? 'err' : 'unknown'));
 
     const result = await computeSystemHealth('http://localhost:3000');
     expect(result.signals.integrations.railway).toBe('err');
@@ -385,10 +407,12 @@ describe('computeSystemHealth', () => {
     // All sources unknown, everything else ok → overall ok (no real failure).
     happyDatabase();
     happyScanner();
-    setupFetch({
-      '/api/empire/sources/': () =>
-        new Response(JSON.stringify({ status: 'unknown' }), { status: 200 }),
-    });
+    setupFetch({});
+    setAdapter('github', 'unknown');
+    setAdapter('linear', 'unknown');
+    setAdapter('vercel', 'unknown');
+    setAdapter('railway', 'unknown');
+    setAdapter('supabase', 'unknown');
 
     const result = await computeSystemHealth('http://localhost:3000');
     expect(result.overall).toBe('ok');
