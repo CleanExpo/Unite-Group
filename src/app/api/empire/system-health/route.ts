@@ -66,7 +66,12 @@ export interface SystemHealth {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const CACHE_TTL_MS = 30_000;
-const PROBE_TIMEOUT_MS = 4500;
+// Generous per-probe timeout: when 30 adapter probes (5 sources × 6 brands)
+// run in parallel they share the same outbound connection pool and the
+// downstream APIs (GitHub, Linear, Vercel, Railway, Supabase Management) can
+// take several seconds under contention. Below ~10s we see false-negative
+// 'err' results with no real underlying failure.
+const PROBE_TIMEOUT_MS = 12_000;
 const PORTFOLIO_SLUGS = [
   'synthex',
   'restoreassist',
