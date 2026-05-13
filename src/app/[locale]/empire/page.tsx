@@ -1,6 +1,7 @@
 "use client";
 
 import { BusinessLogo } from '@/components/empire/BusinessLogo';
+import { SourceMatrixGrid } from '@/components/empire/SourceMatrixGrid';
 import { SystemHealthTile } from '@/components/empire/SystemHealthTile';
 import Link from 'next/link';
 import { useEffect, useState, useCallback } from "react";
@@ -673,6 +674,9 @@ export default function EmpireCommandCenter() {
 
         {/* SECTION 1b: System Health Command Center */}
         <SystemHealthTile />
+
+        {/* SECTION 1c: Brand × Source matrix */}
+        <SourceMatrixGrid />
 
         {/* SECTION 2 + 3: Two-column layout */}
         <div style={{
