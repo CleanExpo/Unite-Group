@@ -68,10 +68,15 @@ export async function GET() {
 
   // Restrict to canonical portfolio slugs; order newest-first so the
   // dedupe-by-slug below keeps the freshest row when twin seed rows exist.
+  // Pillar 3: filter sandbox rows at the query level. `is_sandbox IS NOT TRUE`
+  // matches both FALSE and NULL — the column lands NOT NULL DEFAULT FALSE via
+  // migration 20260513170300, but `IS NOT TRUE` keeps the query safe against
+  // any legacy rows inserted before the migration ran.
   const { data: bizRowsRaw, error: bizError } = await supabase
     .from('businesses')
-    .select('id, slug, name, status, arr_aud, pi_ceo_key, created_at')
+    .select('id, slug, name, status, arr_aud, pi_ceo_key, created_at, is_sandbox')
     .in('slug', PORTFOLIO_SLUGS)
+    .not('is_sandbox', 'is', true)
     .order('created_at', { ascending: false });
 
   if (bizError) {
