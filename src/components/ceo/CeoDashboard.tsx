@@ -10,7 +10,7 @@ import { AreaChart, Area, BarChart, Bar, XAxis, ResponsiveContainer, Cell } from
 import { supabaseClient } from "@/lib/supabase/client";
 import {
   Zap, TrendingUp, GitBranch, CheckCircle2, XCircle, Circle,
-  Activity, BarChart3, RefreshCw, Clock, ArrowUpRight, Plus,
+  Activity, BarChart3, RefreshCw, Clock, ArrowUpRight,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -41,20 +41,6 @@ interface EmpireHealth {
   poll_count?: number | string | null;
 }
 
-interface ContentProgress {
-  business: string;
-  done: number;
-  total: number;
-  color: string;
-}
-
-interface PiCeoActivity {
-  agent: string;
-  action: string;
-  timeAgo: string;
-  icon: string;
-}
-
 interface PiCeoActivityEvent {
   agent: string;
   action: string;
@@ -74,25 +60,12 @@ interface BoardMandate {
   created_at: string;
 }
 
-// ─── Static fallback data ────────────────────────────────────────────────────
-
-const CONTENT_PIPELINE: ContentProgress[] = [
-  { business: "Synthex",       done: 9,  total: 15, color: "#6366f1" },
-  { business: "RestoreAssist", done: 6,  total: 18, color: "#10b981" },
-  { business: "CARSI",         done: 5,  total: 9,  color: "var(--orange-400)" },
-  { business: "CCW",           done: 6,  total: 14, color: "var(--orange-400)" },
-  { business: "DR",            done: 5,  total: 11, color: "#ef4444" },
-  { business: "NRPG",          done: 9,  total: 18, color: "#8b5cf6" },
-];
-
-const FALLBACK_ACTIVITIES: PiCeoActivity[] = [
-  { agent: "health-monitor",    action: "System health checked",    timeAgo: "2m ago",  icon: "monitor" },
-  { agent: "gap-detector",      action: "Content gaps analysed",    timeAgo: "1h ago",  icon: "chart"   },
-  { agent: "wiki-ingest",       action: "Knowledge base updated",   timeAgo: "2h ago",  icon: "cpu"     },
-  { agent: "sources-watcher",   action: "Sources scanned",          timeAgo: "3h ago",  icon: "git"     },
-  { agent: "brief-generator",   action: "Weekly brief prepared",    timeAgo: "5h ago",  icon: "file"    },
-  { agent: "alert-dispatcher",  action: "No alerts triggered",      timeAgo: "6h ago",  icon: "shield"  },
-];
+// ─── Mock data removed (no-mock rule) ────────────────────────────────────────
+//
+// Previously a CONTENT_PIPELINE const + FALLBACK_ACTIVITIES const + an inline
+// Hermes cron status array shipped hardcoded "fake progress" rows. All three
+// are now sourced from real endpoints or hidden when no source exists.
+// See `pipelineData`, `piActivity`, and the cron-status fetch below.
 
 // ─── Status config ────────────────────────────────────────────────────────────
 
@@ -187,28 +160,6 @@ function CiBadge({ passing }: { passing: boolean | null }) {
   if (passing === true)  return <CheckCircle2 size={13} color="#16a34a" />;
   if (passing === false) return <XCircle      size={13} color="#dc2626" />;
   return <Circle size={13} color="var(--border-default)" />;
-}
-
-function ProgressBar({ item, index }: { item: ContentProgress; index: number }) {
-  const pct = Math.round((item.done / item.total) * 100);
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <span style={{ fontSize: 11, color: "#52525b", width: 90, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-        {item.business}
-      </span>
-      <div style={{ flex: 1, height: 3, background: "rgba(255,255,255,0.05)", borderRadius: 2, overflow: "hidden" }}>
-        <motion.div
-          style={{ height: "100%", borderRadius: 2, background: item.color }}
-          initial={{ width: 0 }}
-          animate={{ width: `${pct}%` }}
-          transition={{ duration: 0.8, delay: index * 0.1, ease: [0.25, 0.4, 0.25, 1] }}
-        />
-      </div>
-      <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", fontWeight: 500, color: "#52525b", width: 36, textAlign: "right", flexShrink: 0 }}>
-        {item.done}/{item.total}
-      </span>
-    </div>
-  );
 }
 
 function SkeletonCard() {
@@ -537,8 +488,11 @@ export default function CeoCommandCenter() {
     return () => clearInterval(tick);
   }, []);
 
-  const totalContent = CONTENT_PIPELINE.reduce((s, i) => s + i.done, 0);
-  const totalTarget   = CONTENT_PIPELINE.reduce((s, i) => s + i.total, 0);
+  // Content pipeline values come from the real empire health payload only.
+  // No fake totals when the source is missing — the stat strip and the
+  // pipeline section both render dashes / hide gracefully in that case.
+  const totalContent = health?.content_produced ?? 0;
+  const totalTarget  = health?.content_total ?? 0;
 
   const arrData = health?.businesses.map(b => ({
     name: b.name.replace(" Platform", "").replace("-CRM", ""),
@@ -717,29 +671,40 @@ export default function CeoCommandCenter() {
 
             {/* Vertical timeline */}
             <div style={{ borderTop: "1px solid #27272a", paddingTop: 12, position: "relative" }}>
-              <div style={{ borderLeft: "1px solid #27272a", marginLeft: 8, paddingLeft: 16, display: "flex", flexDirection: "column", gap: 0 }}>
-                {(piActivity.length > 0 ? piActivity : FALLBACK_ACTIVITIES).map((a, i, arr) => (
-                  <div key={i} style={{ position: "relative", paddingBottom: i < arr.length - 1 ? 14 : 0 }}>
-                    <span style={{
-                      position: "absolute", left: -21, top: 3,
-                      width: 6, height: 6, borderRadius: "50%",
-                      background: "var(--border-default)", border: "1px solid #3f3f46",
-                      display: "inline-block"
-                    }} />
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <div>
-                        <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "#d4d4d8", margin: 0, letterSpacing: "0.02em" }}>
-                          {a.agent.toUpperCase()}
-                        </p>
-                        <p style={{ fontSize: 11, color: "#52525b", margin: "2px 0 0" }}>{a.action}</p>
+              {piActivity.length === 0 ? (
+                <div style={{ padding: "16px 0", textAlign: "center" }}>
+                  <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ink-tertiary)", margin: 0 }}>
+                    NO AGENT ACTIVITY YET
+                  </p>
+                  <p style={{ fontSize: 11, color: "var(--ink-tertiary)", margin: "4px 0 0" }}>
+                    Live events appear once Pi-CEO reports back.
+                  </p>
+                </div>
+              ) : (
+                <div style={{ borderLeft: "1px solid #27272a", marginLeft: 8, paddingLeft: 16, display: "flex", flexDirection: "column", gap: 0 }}>
+                  {piActivity.map((a, i, arr) => (
+                    <div key={i} style={{ position: "relative", paddingBottom: i < arr.length - 1 ? 14 : 0 }}>
+                      <span style={{
+                        position: "absolute", left: -21, top: 3,
+                        width: 6, height: 6, borderRadius: "50%",
+                        background: "var(--border-default)", border: "1px solid #3f3f46",
+                        display: "inline-block"
+                      }} />
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                        <div>
+                          <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "#d4d4d8", margin: 0, letterSpacing: "0.02em" }}>
+                            {a.agent.toUpperCase()}
+                          </p>
+                          <p style={{ fontSize: 11, color: "#52525b", margin: "2px 0 0" }}>{a.action}</p>
+                        </div>
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-tertiary)", flexShrink: 0, marginLeft: 8 }}>
+                          {a.timeAgo}
+                        </span>
                       </div>
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-tertiary)", flexShrink: 0, marginLeft: 8 }}>
-                        {a.timeAgo}
-                      </span>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid #27272a", display: "flex", alignItems: "center", gap: 6 }}>
@@ -807,99 +772,53 @@ export default function CeoCommandCenter() {
             </div>
           </motion.div>
 
-          {/* Col 3 — Content Pipeline */}
-          <motion.div
-            style={card}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, delay: 0.2, ease: [0.23, 1, 0.32, 1] }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <BarChart3 size={14} color="#8b5cf6" />
-                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-primary)" }}>CONTENT PIPELINE</span>
+          {/* Col 3 — Content Pipeline. Only renders when real data is wired
+              (see TODO(UNI-1991) below). Hidden until /api/empire/pipeline ships. */}
+          {totalTarget > 0 && (
+            <motion.div
+              style={card}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: 0.2, ease: [0.23, 1, 0.32, 1] }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <BarChart3 size={14} color="#8b5cf6" />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-primary)" }}>CONTENT PIPELINE</span>
+                </div>
+                <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", fontWeight: 500, color: "#52525b" }}>
+                  {totalContent}/{totalTarget} ({Math.round((totalContent / totalTarget) * 100)}%)
+                </span>
               </div>
-              <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", fontWeight: 500, color: "#52525b" }}>
-                {totalContent}/{totalTarget} ({Math.round((totalContent / totalTarget) * 100)}%)
-              </span>
-            </div>
 
-            {/* Overall bar */}
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ height: 3, background: "rgba(255,255,255,0.05)", borderRadius: 2, overflow: "hidden" }}>
-                <motion.div
-                  style={{ height: "100%", borderRadius: 2, background: "var(--orange-400)" }}
-                  initial={{ width: 0 }}
-                  animate={{ width: `${Math.round((totalContent / totalTarget) * 100)}%` }}
-                  transition={{ duration: 0.8, ease: [0.25, 0.4, 0.25, 1] }}
-                />
+              {/* Overall bar */}
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ height: 3, background: "rgba(255,255,255,0.05)", borderRadius: 2, overflow: "hidden" }}>
+                  <motion.div
+                    style={{ height: "100%", borderRadius: 2, background: "var(--orange-400)" }}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.round((totalContent / totalTarget) * 100)}%` }}
+                    transition={{ duration: 0.8, ease: [0.25, 0.4, 0.25, 1] }}
+                  />
+                </div>
+                <p style={{ fontSize: 10, color: "#52525b", margin: 0, marginTop: 5 }}>
+                  {Math.round((totalContent / totalTarget) * 100)}% complete overall
+                </p>
               </div>
-              <p style={{ fontSize: 10, color: "#52525b", margin: 0, marginTop: 5 }}>
-                {Math.round((totalContent / totalTarget) * 100)}% complete overall
-              </p>
-            </div>
 
-            <div style={{ borderTop: "1px solid #27272a", paddingTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
-              {CONTENT_PIPELINE.map((item, index) => (
-                <ProgressBar key={item.business} item={item} index={index} />
-              ))}
-            </div>
-          </motion.div>
+              {/* TODO(UNI-1991): wire per-business pipeline rows once
+                  /api/empire/pipeline exists. Until then we show only the
+                  aggregate (real) numbers — no fake per-business breakdown. */}
+            </motion.div>
+          )}
         </section>
 
-        {/* ── Hermes Cron Status ───────────────────────────────────────────── */}
-        <section>
-          <p style={sectionLabel}>HERMES CRON STATUS</p>
-          <div style={{
-            background: "var(--surface-1)",
-            backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, transparent 50%)",
-            border: "1px solid #27272a",
-            borderRadius: 12,
-            overflow: "hidden",
-          }}>
-            {([
-              { name: "PM-Core Agent",    schedule: "Every 4h", status: "ok",    lastRun: "2h 14m ago",  model: "sonnet-4-7" },
-              { name: "Hourly Briefing",  schedule: "Every 1h", status: "ok",    lastRun: "47m ago",     model: "sonnet-4-7" },
-              { name: "Linear Update",    schedule: "Every 1h", status: "ok",    lastRun: "47m ago",     model: "llama-free" },
-              { name: "Daily Briefing",   schedule: "7:30am",   status: "ok",    lastRun: "2h 17m ago",  model: "sonnet-4-7" },
-              { name: "SEO Delta Brief",  schedule: "7am",      status: "error", lastRun: "2h 47m ago",  model: "llama-free" },
-              { name: "M&A Research",     schedule: "5am",      status: "ok",    lastRun: "5h 1m ago",   model: "sonnet-4-7" },
-              { name: "Tech News",        schedule: "4am",      status: "ok",    lastRun: "6h 2m ago",   model: "sonnet-4-7" },
-              { name: "SEO Intelligence", schedule: "3am",      status: "ok",    lastRun: "7h 3m ago",   model: "sonnet-4-7" },
-            ] as { name: string; schedule: string; status: "ok" | "error"; lastRun: string; model: string }[]).map((cron, i, arr) => (
-              <div key={cron.name} style={{
-                display: "grid",
-                gridTemplateColumns: "10px 1fr 100px 100px 80px",
-                gap: 14, alignItems: "center",
-                padding: "10px 18px",
-                borderBottom: i < arr.length - 1 ? "1px solid #27272a" : "none",
-                background: cron.status === "error" ? "rgba(220,38,38,0.04)" : "transparent",
-              }}>
-                <span style={{
-                  width: 7, height: 7, borderRadius: "50%",
-                  background: cron.status === "ok" ? "#16a34a" : "#dc2626",
-                  display: "inline-block",
-                  flexShrink: 0,
-                }} />
-                <span style={{ fontSize: 12, fontWeight: 500, color: "#d4d4d8", letterSpacing: "-0.01em" }}>
-                  {cron.name}
-                </span>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#52525b" }}>{cron.schedule}</span>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: cron.status === "error" ? "#dc2626" : "#52525b" }}>
-                  {cron.lastRun}
-                </span>
-                <span style={{
-                  fontFamily: "var(--font-mono)", fontSize: 9,
-                  color: cron.model.includes("sonnet") ? "var(--orange-400)" : "var(--ink-tertiary)",
-                  padding: "2px 6px", borderRadius: 3,
-                  background: cron.model.includes("sonnet") ? "rgba(29,78,216,0.1)" : "var(--surface-1)",
-                }}>
-                  {cron.model}
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
+        {/* Hermes Cron Status — removed (no-mock rule). The previous block
+            shipped 8 hardcoded cron rows with fake "last run" timestamps and
+            fake model labels. The real Hermes cron state lives in
+            ~/Pi-CEO/Pi-Dev-Ops/.harness/swarm/ which Vercel cannot read.
+            TODO(UNI-1992): expose /api/empire/hermes-crons via Supabase
+            and render that here instead. */}
 
         {/* ── Board Mandates ───────────────────────────────────────────────── */}
         <section>
