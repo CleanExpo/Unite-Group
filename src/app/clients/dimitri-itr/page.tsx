@@ -75,19 +75,25 @@ function StatusPill({ status }: { status: keyof typeof STATUS_CONFIG }) {
 
 export default function DimitriItrPortal() {
   const router = useRouter();
-  const [user, setUser] = useState<{ email: string; name: string } | null>(null);
+  const [authed, setAuthed] = useState(false);
+  const [sessionEmail, setSessionEmail] = useState<string>("");
   const [mounted, setMounted] = useState(false);
+
+  // This page is owned by the client whose slug matches the route.
+  // The portal always greets the client — never the admin previewing.
+  const client = {
+    name: "Duncan Perkins",
+    firstName: "Duncan",
+    email: "Duncan@homeloanessentials.com.au",
+  };
 
   useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     supabaseClient.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push("/en/login"); return; }
-      const meta = session.user.user_metadata;
-      setUser({
-        email: session.user.email ?? "",
-        name: meta?.name ?? session.user.email ?? "Duncan",
-      });
+      setAuthed(true);
+      setSessionEmail(session.user.email ?? "");
     });
   }, [router]);
 
@@ -96,7 +102,7 @@ export default function DimitriItrPortal() {
     router.push("/en/login");
   };
 
-  if (!mounted || !user) return null;
+  if (!mounted || !authed) return null;
 
   const done = DELIVERABLES.filter(d => d.status === "done").length;
   const inProgress = DELIVERABLES.filter(d => d.status === "in-progress").length;
@@ -136,7 +142,7 @@ export default function DimitriItrPortal() {
 
           <div style={{ flex: 1 }} />
 
-          <span style={{ fontSize: 11, color: DUNCAN.ghost, fontFamily: "var(--font-mono)" }}>{user.email}</span>
+          <span style={{ fontSize: 11, color: DUNCAN.ghost, fontFamily: "var(--font-mono)" }}>{sessionEmail}</span>
 
           <button
             onClick={handleSignOut}
@@ -167,10 +173,10 @@ export default function DimitriItrPortal() {
           }}
         >
           <div style={{ fontSize: 20, fontWeight: 700, color: DUNCAN.ink, letterSpacing: "-0.03em", marginBottom: 6 }}>
-            Welcome, {user.name.split(" ")[0]}
+            Welcome, {client.firstName}
           </div>
           <div style={{ fontSize: 13, color: DUNCAN.muted, lineHeight: 1.6 }}>
-            Welcome, {user.name.split(" ")[0]}. Your ITR Platform engagement with Unite-Group is live. Kick-off Discovery starts the week of 19 May 2026 — first written status note Friday 23 May. Working MVP target lands Month 4–5; production launch around Month 8–10. Quality over rushing.
+            Welcome, {client.firstName}. Your ITR Platform engagement with Unite-Group is live. Kick-off Discovery starts the week of 19 May 2026 — first written status note Friday 23 May. Working MVP target lands Month 4–5; production launch around Month 8–10. Quality over rushing.
           </div>
         </motion.div>
 
