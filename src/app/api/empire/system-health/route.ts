@@ -202,6 +202,7 @@ let _lastProbeError: string | null = null;
 let _probeOks = 0;
 let _probeErrs = 0;
 let _probeAttempts = 0;
+let _firstProbeBody: string | null = null;
 
 async function probeAdapter(baseUrl: string, kind: AdapterKind, slug: string): Promise<Quad> {
   _probeAttempts++;
@@ -215,7 +216,17 @@ async function probeAdapter(baseUrl: string, kind: AdapterKind, slug: string): P
       _probeErrs++;
       return 'err';
     }
-    const body = (await res.json()) as AdapterResp;
+    const text = await res.text();
+    // Capture the first body shape for diagnostics.
+    if (!_firstProbeBody) _firstProbeBody = `${kind}/${slug}: ${text.slice(0, 200)}`;
+    let body: AdapterResp;
+    try {
+      body = JSON.parse(text) as AdapterResp;
+    } catch {
+      _lastProbeError = `${kind}/${slug}: non-JSON body ${text.slice(0, 80)}`;
+      _probeErrs++;
+      return 'err';
+    }
     if (body.status === 'ok' || body.status === 'warn' || body.status === 'err' || body.status === 'unknown') {
       _probeOks++;
       return body.status;
@@ -245,6 +256,7 @@ async function probeIntegrations(baseUrl: string): Promise<SignalIntegrations> {
   _probeAttempts = 0;
   _probeOks = 0;
   _probeErrs = 0;
+  _firstProbeBody = null;
   const [github, linear, vercel, railway, supabase] = await Promise.all([
     rollUpAdapter(baseUrl, 'github'),
     rollUpAdapter(baseUrl, 'linear'),
@@ -266,7 +278,10 @@ async function probeIntegrations(baseUrl: string): Promise<SignalIntegrations> {
   let summary = `${okCount}/${knownCount} sources ok`;
   // Surface probe diagnostics so /api/empire/system-health is self-diagnosing.
   // If integrations is err we want to know WHY without tailing serverless logs.
-  summary += ` · probes: ${_probeOks} ok · ${_probeErrs} err / ${_probeAttempts}`;
+  summary += ` · probes: ${_probeOks} ok · ${_probeErrs} err / ${_probeAttempts} · base=${baseUrl}`;
+  if (_firstProbeBody) {
+    summary += ` · first: ${_firstProbeBody}`;
+  }
   if (_lastProbeError) {
     summary += ` · last err: ${_lastProbeError}`;
   }
