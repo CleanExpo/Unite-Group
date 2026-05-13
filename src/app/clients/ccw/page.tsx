@@ -39,7 +39,7 @@ const card: React.CSSProperties = {
 function MetricRow({ label, value }: { label: string; value: string | number }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "8px 0", borderBottom: "1px solid #27272a" }}>
-      <span style={{ fontSize: 13, color: "#475569" }}>{label}</span>
+      <span style={{ fontSize: 13, color: "var(--ink-tertiary)" }}>{label}</span>
       <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 600, color: "#94a3b8" }}>{value}</span>
     </div>
   );
@@ -68,7 +68,7 @@ function CrmCard({ data }: { data: CcwHealth }) {
     <motion.div style={card} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0, ease: [0.23, 1, 0.32, 1] }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
         <ActivityMark size={14} color="#94a3b8" />
-        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#334155", margin: 0 }}>CRM Health</p>
+        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-tertiary)", margin: 0 }}>CRM Health</p>
       </div>
       <div style={{ marginBottom: 14 }}><StatusPill label={data.crm_status} type={type} /></div>
       <MetricRow label="Uptime" value={`${data.crm_uptime_pct.toFixed(2)}%`} />
@@ -83,12 +83,12 @@ function SlaCard({ data }: { data: CcwHealth }) {
     <motion.div style={card} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.05, ease: [0.23, 1, 0.32, 1] }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
         <TrendUpMark size={14} color="#94a3b8" />
-        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#334155", margin: 0 }}>SLA Status</p>
+        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-tertiary)", margin: 0 }}>SLA Status</p>
       </div>
       <div style={{ marginBottom: 14 }}><StatusPill label={data.sla_status} type={type} /></div>
       <MetricRow label="First response" value={data.sla_first_response_minutes != null ? `${data.sla_first_response_minutes} min` : "No open tickets"} />
       <MetricRow label="Open tickets" value={data.open_tickets} />
-      <p style={{ fontSize: 10, color: "#334155", marginTop: 10 }}>Target: 15 min warn · 60 min critical</p>
+      <p style={{ fontSize: 10, color: "var(--ink-tertiary)", marginTop: 10 }}>Target: 15 min warn · 60 min critical</p>
     </motion.div>
   );
 }
@@ -98,11 +98,11 @@ function AgentsCard({ data }: { data: CcwHealth }) {
     <motion.div style={card} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.1, ease: [0.23, 1, 0.32, 1] }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
         <UsersMark size={14} color="#94a3b8" />
-        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#334155", margin: 0 }}>AI Agent Activity</p>
+        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-tertiary)", margin: 0 }}>AI Agent Activity</p>
       </div>
       <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 14 }}>
         <span style={{ fontFamily: "var(--font-mono)", fontSize: 32, fontWeight: 700, color: "#f8fafc", lineHeight: 1 }}>{data.agents_active}</span>
-        <span style={{ fontSize: 13, color: "#475569" }}>agents active</span>
+        <span style={{ fontSize: 13, color: "var(--ink-tertiary)" }}>agents active</span>
       </div>
       <MetricRow label="Last action" value={data.last_agent_action ?? "—"} />
       <MetricRow label="Last active" value={formatRelativeTime(data.last_agent_at)} />
@@ -120,13 +120,13 @@ function CampaignsCard({ data }: { data: CcwHealth }) {
     <motion.div style={card} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.15, ease: [0.23, 1, 0.32, 1] }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
         <BarChartMark size={14} color="#94a3b8" />
-        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#334155", margin: 0 }}>Synthex Campaigns</p>
+        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-tertiary)", margin: 0 }}>Synthex Campaigns</p>
       </div>
       <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 14 }}>
         <span style={{ fontFamily: "var(--font-mono)", fontSize: 32, fontWeight: 700, color: isGood ? "#16a34a" : "#f8fafc", lineHeight: 1 }}>
           {openRate != null ? `${openRate.toFixed(1)}%` : "—"}
         </span>
-        <span style={{ fontSize: 13, color: "#475569" }}>avg open rate</span>
+        <span style={{ fontSize: 13, color: "var(--ink-tertiary)" }}>avg open rate</span>
       </div>
       <MetricRow label="Active campaigns" value={data.active_campaigns} />
       <MetricRow label="Last sent" value={formatDate(data.last_campaign_sent)} />
@@ -169,7 +169,7 @@ export default function CcwPortal() {
   if (loadingAuth) {
     return (
       <div style={{ minHeight: "100vh", background: "var(--canvas)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <p style={{ color: "#334155", fontSize: 14 }}>Authenticating&hellip;</p>
+        <p style={{ color: "var(--ink-tertiary)", fontSize: 14 }}>Authenticating&hellip;</p>
       </div>
     );
   }
@@ -186,12 +186,12 @@ export default function CcwPortal() {
             <div style={{ width: 36, height: 36, borderRadius: 8, background: CCW_RED, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 12, color: "#fff", flexShrink: 0 }}>CCW</div>
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#f8fafc", letterSpacing: "-0.02em" }}>Carpet Cleaners Warehouse</div>
-              <div style={{ fontSize: 10, color: "#334155", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Business Intelligence Portal</div>
+              <div style={{ fontSize: 10, color: "var(--ink-tertiary)", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Business Intelligence Portal</div>
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             {health && (
-              <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", color: "#334155" }}>
+              <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--ink-tertiary)" }}>
                 Updated {formatRelativeTime(health.fetched_at)}
                 {health.source === "pi_ceo_api" ? " · live" : " · cached"}
               </span>
@@ -214,7 +214,7 @@ export default function CcwPortal() {
         {/* Page title */}
         <div style={{ marginBottom: 24 }}>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: "#f8fafc", letterSpacing: "-0.02em", margin: 0 }}>Business Health Dashboard</h1>
-          <p style={{ margin: 0, fontSize: 14, color: "#475569", marginTop: 4 }}>Real-time status for your CRM, SLA, AI agents, and marketing campaigns.</p>
+          <p style={{ margin: 0, fontSize: 14, color: "var(--ink-tertiary)", marginTop: 4 }}>Real-time status for your CRM, SLA, AI agents, and marketing campaigns.</p>
         </div>
 
         {/* Error banner */}
@@ -235,7 +235,7 @@ export default function CcwPortal() {
         </div>
 
         {/* Footer */}
-        <p style={{ marginTop: 32, fontSize: 12, color: "#334155", textAlign: "center" }}>
+        <p style={{ marginTop: 32, fontSize: 12, color: "var(--ink-tertiary)", textAlign: "center" }}>
           Powered by Unite-Hub · Data refreshes every 60 seconds ·{" "}
           <a href="mailto:contact@unite-group.in" style={{ color: "var(--red-400)", textDecoration: "none" }}>contact@unite-group.in</a>
         </p>

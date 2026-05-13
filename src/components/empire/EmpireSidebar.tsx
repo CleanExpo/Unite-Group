@@ -106,7 +106,7 @@ export function EmpireSidebar() {
 
         {/* Intelligence section */}
         <div style={{ marginTop: 16, marginBottom: 6, padding: '0 10px' }}>
-          <span style={{ fontSize: 10, fontWeight: 600, color: '#3f3f46', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Intelligence</span>
+          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--ink-tertiary)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Intelligence</span>
         </div>
         {INTELLIGENCE_NAV.map(({ href, mark: Mark, label }) => {
           const localeStripped = pathname.replace(/^\/[a-z]{2}/, ''); const active = localeStripped === href || localeStripped.startsWith(href + '/') || pathname === href || pathname.startsWith(href + '/');
@@ -133,7 +133,7 @@ export function EmpireSidebar() {
 
         {/* Portfolio section */}
         <div style={{ marginTop: 16, marginBottom: 6, padding: '0 10px' }}>
-          <span style={{ fontSize: 10, fontWeight: 600, color: '#52525b', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Portfolio</span>
+          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--ink-tertiary)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Portfolio</span>
         </div>
         {BUSINESSES.map(biz => {
           const meta = BUSINESS_SLUGS[biz.label];
@@ -170,14 +170,14 @@ export function EmpireSidebar() {
                   style={{
                     display: 'flex', alignItems: 'center', gap: 7, padding: '4px 10px',
                     borderRadius: 6, textDecoration: 'none', fontSize: 11,
-                    color: seoActive ? '#a1a1aa' : '#52525b',
+                    color: seoActive ? '#a1a1aa' : 'var(--ink-tertiary)',
                     transition: 'all 0.1s ease',
                     background: seoActive ? 'rgba(29,78,216,0.1)' : 'transparent',
                   }}
                   onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.04)'; (e.currentTarget as HTMLAnchorElement).style.color = '#a1a1aa'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = seoActive ? 'rgba(29,78,216,0.1)' : 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = seoActive ? '#a1a1aa' : '#52525b'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = seoActive ? 'rgba(29,78,216,0.1)' : 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = seoActive ? '#a1a1aa' : 'var(--ink-tertiary)'; }}
                 >
-                  <TrendUpMark size={10} color="#52525b" />
+                  <TrendUpMark size={10} color="var(--ink-tertiary)" />
                   SEO Audit
                 </Link>
               </div>
@@ -187,7 +187,7 @@ export function EmpireSidebar() {
 
         {/* Clients section */}
         <div style={{ marginTop: 16, marginBottom: 6, padding: '0 10px' }}>
-          <span style={{ fontSize: 10, fontWeight: 600, color: '#52525b', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Clients</span>
+          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--ink-tertiary)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Clients</span>
         </div>
 
         {/* CCW — existing client */}
@@ -217,8 +217,8 @@ export function EmpireSidebar() {
           onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.03)'; }}
           onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = pathname === '/clients' ? 'rgba(29,78,216,0.1)' : 'transparent'; }}
         >
-          <span style={{ fontSize: 14, color: '#3f3f46', lineHeight: 1 }}>+</span>
-          <span style={{ fontSize: 11, color: '#52525b' }}>Add / Manage Clients</span>
+          <span style={{ fontSize: 14, color: 'var(--ink-tertiary)', lineHeight: 1 }}>+</span>
+          <span style={{ fontSize: 11, color: 'var(--ink-tertiary)' }}>Add / Manage Clients</span>
         </Link>
       </nav>
 
@@ -230,8 +230,8 @@ export function EmpireSidebar() {
           onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.03)')}
           onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.background = 'transparent')}
         >
-          <UsersMark size={14} color="#52525b" />
-          <span style={{ fontSize: 12, color: '#52525b' }}>Manage Clients</span>
+          <UsersMark size={14} color="var(--ink-tertiary)" />
+          <span style={{ fontSize: 12, color: 'var(--ink-tertiary)' }}>Manage Clients</span>
         </Link>
       </div>
     </aside>

@@ -23,13 +23,13 @@ const BH = {
   border:  "var(--border-default)",
   ink:     "var(--ink-primary)",
   muted:   "var(--ink-secondary)",
-  ghost:   "#52525b",
+  ghost:   "var(--ink-tertiary)",
 };
 
 const STATUS_CONFIG = {
   done:          { color: "#16a34a", label: "Complete",    icon: CheckCircleMark },
   "in-progress": { color: BH.blue,   label: "In Progress", icon: ClockMark       },
-  planned:       { color: "#52525b", label: "Planned",     icon: PipelineMark    },
+  planned:       { color: "var(--ink-tertiary)", label: "Planned", icon: PipelineMark },
 };
 
 function StatusPill({ status }: { status: keyof typeof STATUS_CONFIG }) {
