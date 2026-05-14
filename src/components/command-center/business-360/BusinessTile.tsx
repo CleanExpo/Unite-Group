@@ -19,6 +19,7 @@
 // KpiTile.tsx so the eye learns it once.
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { Sparkline } from './Sparkline';
 import type { Business360Datum } from './business-360-data';
 
@@ -31,6 +32,11 @@ export function BusinessTile({ data }: BusinessTileProps) {
     data.state === 'signal' ? 'var(--cc-signal)' : 'var(--cc-grid)';
 
   return (
+    <Link
+      href={`/en/empire/businesses/${data.slug}`}
+      style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+      data-testid={`cc-business-tile-${data.slug}`}
+    >
     <article
       className="relative px-4 py-3 flex flex-col gap-2"
       style={{
@@ -118,6 +124,7 @@ export function BusinessTile({ data }: BusinessTileProps) {
         {data.stateLabel}
       </span>
     </article>
+    </Link>
   );
 }
 

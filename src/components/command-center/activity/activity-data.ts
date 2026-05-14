@@ -23,6 +23,9 @@ export interface ActivityDatum {
   verb: string;
   target: string;
   severity: ActivitySeverity;
+  // Optional external link (GitHub commit, Linear ticket, Stripe dashboard).
+  // When present, ActivityRow renders the row as an <a target="_blank">.
+  url?: string;
 }
 
 // Newest first — Zone 5 renders reverse-chrono and shows top 20.

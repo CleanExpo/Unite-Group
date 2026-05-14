@@ -134,4 +134,20 @@ describe('SourceMatrixGrid rendering', () => {
     // Empty state should NOT show when initialData is provided.
     expect(html).not.toContain('No active brands found');
   });
+
+  it('wraps each brand-row label in a Link to /en/empire/businesses/{slug} for drill-in', () => {
+    const html = renderToStaticMarkup(<SourceMatrixGrid initialData={fixture()} />);
+    // Every brand gets a row-link with the canonical slug. Attribute order is
+    // not deterministic across Next/React versions, so match each attribute
+    // independently within a single <a> element.
+    for (const slug of ['synthex', 'restoreassist', 'disaster-recovery', 'dr-nrpg', 'carsi', 'ccw-crm']) {
+      const anchors = html.match(/<a[^>]*>/g) ?? [];
+      const match = anchors.find(
+        (a) =>
+          a.includes(`data-testid="row-link-${slug}"`) &&
+          a.includes(`href="/en/empire/businesses/${slug}"`),
+      );
+      expect(match).toBeTruthy();
+    }
+  });
 });
