@@ -16,6 +16,7 @@
 // webhook URL to https://unite-group.in/api/webhooks/github with that secret.
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { safeError } from '@/lib/safeError';
 import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
@@ -48,12 +49,13 @@ function verifySignature(payload: string, signature: string | null): boolean {
     .createHmac('sha256', WEBHOOK_SECRET)
     .update(payload, 'utf8')
     .digest('hex');
-  // constant-time comparison
-  try {
-    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
-  } catch {
-    return false;
-  }
+  // Length-check pre-empts timingSafeEqual throwing on mismatched buffers
+  // (deepsec P1 — the throw was caught silently which made shape errors
+  // indistinguishable from signature errors).
+  const sigBuf = Buffer.from(signature);
+  const expBuf = Buffer.from(expected);
+  if (sigBuf.length !== expBuf.length) return false;
+  return crypto.timingSafeEqual(sigBuf, expBuf);
 }
 
 function extractLinearIssue(prBody: string | null | undefined): string | null {
@@ -72,9 +74,11 @@ async function findVercelPreviewUrl(repo: string, prNumber: number, token: strin
     );
     if (!r.ok) return null;
     const comments = await r.json();
-    // Vercel bot posts a comment with the preview URL — extract any `*.vercel.app` URL
+    // Vercel bot posts a comment with the preview URL — extract any `*.vercel.app` URL.
+    // Strict equality on `'vercel[bot]'` (deepsec P1): substring `includes('vercel')`
+    // would let `vercel-hater` or `i-spoof-vercel` seed a malicious preview URL.
     for (const c of comments) {
-      if (c.user?.login?.includes('vercel')) {
+      if (c.user?.login === 'vercel[bot]') {
         const m = (c.body as string).match(/https:\/\/[a-z0-9-]+\.vercel\.app[^\s)]*/);
         if (m) return m[0];
       }
@@ -155,6 +159,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ received: true, skipped: 'not-pr-event' }, { status: 200 });
   }
 
+  // 2a. Idempotency pre-check (deepsec P1): the outbound GitHub comments
+  //     fetch below can take up to 30s; under retry, the same delivery_id
+  //     could enqueue twice before the UNIQUE index sees it. Catching the
+  //     duplicate here saves the API call AND the 5xx path.
+  if (deliveryId) {
+    const adminPre = getAdminClient();
+    const { data: dup } = await adminPre
+      .from('video_production_queue')
+      .select('id')
+      .eq('github_delivery_id', deliveryId)
+      .maybeSingle();
+    if (dup) {
+      return NextResponse.json({ received: true, idempotent: true }, { status: 200 });
+    }
+  }
+
   let body: any;
   try {
     body = JSON.parse(rawBody);
@@ -225,7 +245,13 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    // UNIQUE on github_delivery_id (migration 20260514170000) absorbs the
+    // residual race where the pre-check missed but the insert hits a
+    // concurrent retry. Treat as idempotent success.
+    if ((error as any).code === '23505') {
+      return NextResponse.json({ received: true, idempotent: true }, { status: 200 });
+    }
+    return NextResponse.json(safeError('queue_insert_failed', error), { status: 500 });
   }
 
   return NextResponse.json({

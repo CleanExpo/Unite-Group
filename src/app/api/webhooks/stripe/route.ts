@@ -17,6 +17,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { safeError } from '@/lib/safeError';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';            // crypto verify needs Node runtime
@@ -31,7 +32,7 @@ if (!STRIPE_SECRET) {
 }
 
 const stripe = STRIPE_SECRET ? new Stripe(STRIPE_SECRET, {
-  apiVersion: '2026-04-22.dahlia' as any,
+  apiVersion: '2026-04-22.dahlia',
 }) : null;
 
 export async function POST(request: NextRequest) {
@@ -49,24 +50,15 @@ export async function POST(request: NextRequest) {
   let event: Stripe.Event;
   try {
     event = stripe.webhooks.constructEvent(rawBody, signature, WEBHOOK_SECRET);
-  } catch (err: any) {
-    console.error('Stripe webhook signature verify failed:', err.message);
-    return NextResponse.json({ error: 'invalid signature' }, { status: 400 });
+  } catch (err) {
+    return NextResponse.json(safeError('invalid_signature', err), { status: 400 });
   }
 
-  // 2. Idempotency — log the event id so reprocessing is safe
+  // 2. Idempotency — atomic insert against UNIQUE constraint (deepsec P0-1).
+  //    The old "select then insert" pattern raced Stripe retries; the new
+  //    pattern lets Postgres adjudicate. 23505 == unique-violation == duplicate.
   const admin = getAdminClient();
-  const { data: existing } = await admin
-    .from('stripe_events')
-    .select('id')
-    .eq('stripe_event_id', event.id)
-    .maybeSingle();
-  if (existing) {
-    return NextResponse.json({ received: true, idempotent: true }, { status: 200 });
-  }
-
-  // Insert the raw event for audit and downstream replay.
-  await admin.from('stripe_events').insert({
+  const { error: insertErr } = await admin.from('stripe_events').insert({
     stripe_event_id: event.id,
     type: event.type,
     api_version: event.api_version,
@@ -74,7 +66,15 @@ export async function POST(request: NextRequest) {
     payload: event as any,
   });
 
-  // 3. Dispatch
+  if (insertErr) {
+    if ((insertErr as any).code === '23505') {
+      // Duplicate event — another worker already accepted it. Idempotent OK.
+      return NextResponse.json({ received: true, idempotent: true }, { status: 200 });
+    }
+    return NextResponse.json(safeError('event_persist_failed', insertErr), { status: 500 });
+  }
+
+  // 3. Dispatch (only the FIRST inserter reaches here, courtesy of UNIQUE).
   try {
     switch (event.type) {
       case 'checkout.session.completed':
@@ -94,13 +94,12 @@ export async function POST(request: NextRequest) {
         break;
     }
   } catch (err: any) {
-    console.error('Webhook dispatch error:', err);
-    // Stripe will retry 4xx/5xx; mark error so we can inspect.
+    // Stripe will retry 5xx; mark error so we can inspect.
     await admin
       .from('stripe_events')
-      .update({ processing_error: err.message })
+      .update({ processing_error: String(err?.message || err) })
       .eq('stripe_event_id', event.id);
-    return NextResponse.json({ error: 'dispatch failed', detail: err.message }, { status: 500 });
+    return NextResponse.json(safeError('dispatch_failed', err), { status: 500 });
   }
 
   return NextResponse.json({ received: true }, { status: 200 });
@@ -158,39 +157,29 @@ async function activateClientByStripeCustomer(
   admin: any,
   triggerInfo: Record<string, any>,
 ) {
-  // Look up the client by stripe_customer_id
-  const { data: client } = await admin
+  // Atomic "transition onboarding → active" (deepsec P1 race fix).
+  // Two concurrent first-payment events both saw status=onboarding under the
+  // old select-then-update pattern → both enqueued. The conditional update
+  // collapses that race: only the row whose status was still 'onboarding' at
+  // execution time is returned, so only one worker enqueues.
+  const { data: activated } = await admin
     .from('nexus_clients')
-    .select('slug, status')
+    .update({ status: 'active' })
     .eq('stripe_customer_id', customerId)
-    .maybeSingle();
+    .eq('status', 'onboarding')
+    .select('slug');
 
-  if (!client) {
-    console.warn(`No nexus_client found for stripe_customer_id=${customerId}`);
+  if (!activated || activated.length === 0) {
+    // Either no client found, or already active (concurrent payment beat us).
+    // Either way, do NOT enqueue Hour-1 provisioning again.
     return;
   }
 
-  // Only activate from onboarding state — prevents repeated "first deposit"
-  // activations on milestone payments later.
-  const isFirstPayment = client.status === 'onboarding';
-
-  await admin
-    .from('nexus_clients')
-    .update({
-      status: 'active',
-      // Add an activation note in metadata via a separate column update
-      // when we have one; for now we rely on stripe_events as the audit.
-    })
-    .eq('stripe_customer_id', customerId);
-
-  if (isFirstPayment) {
-    // Enqueue Hour-1 portal provisioning: the swarm worker will pick this up.
-    await admin.from('stripe_provisioning_queue').insert({
-      stripe_customer_id: customerId,
-      nexus_slug: client.slug,
-      trigger: 'first-payment',
-      trigger_payload: triggerInfo,
-      status: 'pending',
-    });
-  }
+  await admin.from('stripe_provisioning_queue').insert({
+    stripe_customer_id: customerId,
+    nexus_slug: activated[0].slug,
+    trigger: 'first-payment',
+    trigger_payload: triggerInfo,
+    status: 'pending',
+  });
 }
