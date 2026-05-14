@@ -4,6 +4,7 @@
 // Copy mirrors the Nexus Human Voice Spec v1 (Karen opener, verdict last).
 
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { Hero } from '@/components/marketing/Hero';
 
 export const dynamic = 'force-static';
@@ -164,7 +165,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             the sign-up.
           </p>
           <p style={{ marginTop: 24 }}>
-            <a
+            <Link
               href="/en/contact"
               style={{
                 color: 'var(--red-300)',
@@ -173,7 +174,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               }}
             >
               Book a thirty-minute call with the founder
-            </a>
+            </Link>
           </p>
         </div>
       </section>

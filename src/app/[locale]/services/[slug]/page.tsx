@@ -4,6 +4,7 @@
 // plan's self-review correction (line 1053 of the originating plan).
 
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 export const dynamic = 'force-static';
@@ -157,7 +158,7 @@ export default async function ServicePage({
         </p>
 
         <p style={{ marginTop: 32 }}>
-          <a
+          <Link
             href="/en/contact"
             style={{
               color: 'var(--red-300)',
@@ -166,7 +167,7 @@ export default async function ServicePage({
             }}
           >
             Talk to the operator on the desk
-          </a>
+          </Link>
         </p>
       </article>
     </main>

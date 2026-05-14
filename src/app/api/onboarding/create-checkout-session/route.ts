@@ -68,7 +68,10 @@ export async function POST(request: NextRequest) {
     ...((client.brand_config as { pricing?: Record<string, number> } | null)?.pricing ?? {}),
   };
 
-  const stripe = new Stripe(stripeKey, { apiVersion: '2024-06-20' as Stripe.LatestApiVersion });
+  // SDK 2026's LatestApiVersion narrowed to the literal '2026-04-22.dahlia'; this route
+  // is pinned to 2024-06-20 for stability. `as never` silences the literal-mismatch cast
+  // without changing runtime behaviour (Stripe accepts any version string at runtime).
+  const stripe = new Stripe(stripeKey, { apiVersion: '2024-06-20' as never });
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://unite-group.in';
 
   const session = await stripe.checkout.sessions.create({

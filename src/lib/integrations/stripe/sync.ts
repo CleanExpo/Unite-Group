@@ -2,9 +2,15 @@
 import Stripe from "stripe";
 import { getAdminClient } from "@/lib/supabase/admin";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
-  apiVersion: "2026-04-22.dahlia",
-});
+// Lazy init: constructing Stripe at module load with an empty apiKey throws
+// in the 2026 SDK, which breaks `next build` (page-data collection touches
+// every API route module). Building stays green when STRIPE_SECRET_KEY is
+// unset; the runtime branches that need Stripe surface the missing key.
+function getStripeClient(): Stripe {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) throw new Error("STRIPE_SECRET_KEY missing");
+  return new Stripe(key, { apiVersion: "2026-04-22.dahlia" });
+}
 
 export async function syncStripe(): Promise<{
   rowsUpserted: number;
@@ -12,6 +18,7 @@ export async function syncStripe(): Promise<{
   failed: Array<{ entity: string; error: string }>;
 }> {
   const sb = getAdminClient();
+  const stripe = getStripeClient();
   let total = 0;
   const succeeded: string[] = [];
   const failed: Array<{ entity: string; error: string }> = [];

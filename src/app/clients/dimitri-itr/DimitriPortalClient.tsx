@@ -7,6 +7,7 @@
 // from nexus_clients.portal_content via getPortalContent server-side.
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { supabaseClient } from "@/lib/supabase/client";
@@ -285,7 +286,7 @@ export default function DimitriPortalClient({ initialContent }: DimitriPortalCli
             </div>
 
             <div style={{ fontSize: 11, color: DUNCAN.ghost, marginBottom: 16, lineHeight: 1.5 }}>
-              {proposal.currencyNote}. Setup fee charged on signing. Monthly retainer invoiced the 1st of each month from June 2026. Full proposal: <a href="/proposals/duncan-itr-platform-2026-05-13" style={{ color: DUNCAN.blue, textDecoration: "none" }}>read here</a>.
+              {proposal.currencyNote}. Setup fee charged on signing. Monthly retainer invoiced the 1st of each month from June 2026. Full proposal: <Link href="/proposals/duncan-itr-platform-2026-05-13" style={{ color: DUNCAN.blue, textDecoration: "none" }}>read here</Link>.
             </div>
 
             {!paid && (
