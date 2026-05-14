@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/email/sendEmail';
+import { rateLimit, RATE_LIMITS } from '@/lib/ratelimit';
 import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
@@ -19,6 +20,20 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request: NextRequest) {
   try {
+    // Rate-limit only — this route IS meant to be public. 5/min/IP is the
+    // burn-defense against attackers spamming magic-link emails (Resend $ +
+    // inbox damage). The unsigned-token P0 is fixed in a SEPARATE PR.
+    const gate = await rateLimit(request, {
+      key: 'onboarding-magic-link',
+      ...RATE_LIMITS.onboardingMagicLink,
+    });
+    if (!gate.ok) {
+      return NextResponse.json(
+        { success: false, error: 'rate_limited', retry_after_ms: gate.retryAfterMs },
+        { status: 429 },
+      );
+    }
+
     const body = await request.json();
     const { slug, email, name } = body ?? {};
 
