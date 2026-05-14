@@ -2,18 +2,20 @@
 
 // CommandCenterShell — the five-zone layout container for /command-center.
 //
-// PR-1 ships Zones 1 + 2 LIVE and Zones 3/4/5 as labeled placeholders so
-// the eye can see the target architecture before the next PRs land it.
+// PR-1 shipped Zones 1 + 2 LIVE.
+// PR-2 (this commit) lands Zone 3 — the agent-topology centrepiece.
+// Zones 4/5 remain labeled placeholders until PR-3.
 //
 // Per [[command-center-redesign-proposal-2026-05-14]] layout spec:
 //   Zone 1 — Global Status Bar (top, h-12)
 //   Zone 2 — KPI strip (below banner, grid of 5)
-//   Zone 3 — Working canvas (agent topology) — PR-2
+//   Zone 3 — Working canvas (agent topology) — LIVE (PR-2)
 //   Zone 4 — Business 360 — PR-3
 //   Zone 5 — Live activity log — PR-3
 
 import { GlobalStatusBar } from './GlobalStatusBar';
 import { KpiStrip } from './KpiStrip';
+import { AgentTopology } from './topology/AgentTopology';
 
 export function CommandCenterShell() {
   return (
@@ -28,11 +30,7 @@ export function CommandCenterShell() {
       <KpiStrip />
 
       <main className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_22rem]">
-        <ZonePlaceholder
-          title="Zone 3 — Agent topology"
-          subtitle="Live agent + service graph. Ships PR-2."
-          accentLabel="@xyflow/react · particle backdrop · breathing nodes"
-        />
+        <AgentTopology />
 
         <aside
           className="flex flex-col"
@@ -62,7 +60,7 @@ export function CommandCenterShell() {
         }}
       >
         <span>
-          PR-1 foundations · zones 3/4/5 land in PR-2 + PR-3
+          PR-2 zone 3 topology · zones 4/5 land in PR-3
         </span>
         <span>
           spec ·{' '}
