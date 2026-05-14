@@ -3,19 +3,21 @@
 // CommandCenterShell — the five-zone layout container for /command-center.
 //
 // PR-1 shipped Zones 1 + 2 LIVE.
-// PR-2 (this commit) lands Zone 3 — the agent-topology centrepiece.
-// Zones 4/5 remain labeled placeholders until PR-3.
+// PR-2 shipped Zone 3 — the agent-topology centrepiece.
+// PR-3 (this commit) lands Zones 4 + 5 (Business 360 + Activity Log).
 //
 // Per [[command-center-redesign-proposal-2026-05-14]] layout spec:
 //   Zone 1 — Global Status Bar (top, h-12)
 //   Zone 2 — KPI strip (below banner, grid of 5)
 //   Zone 3 — Working canvas (agent topology) — LIVE (PR-2)
-//   Zone 4 — Business 360 — PR-3
-//   Zone 5 — Live activity log — PR-3
+//   Zone 4 — Business 360 — LIVE (PR-3)
+//   Zone 5 — Live activity log — LIVE (PR-3)
 
 import { GlobalStatusBar } from './GlobalStatusBar';
 import { KpiStrip } from './KpiStrip';
 import { AgentTopology } from './topology/AgentTopology';
+import { Business360Grid } from './business-360/Business360Grid';
+import { ActivityLog } from './activity/ActivityLog';
 
 export function CommandCenterShell() {
   return (
@@ -36,18 +38,8 @@ export function CommandCenterShell() {
           className="flex flex-col"
           style={{ borderLeft: '1px solid var(--cc-grid)' }}
         >
-          <ZonePlaceholder
-            title="Zone 4 — Business 360"
-            subtitle="Sparkline rows per portfolio brand. Ships PR-3."
-            accentLabel="@visx/shape · @visx/scale"
-            compact
-          />
-          <ZonePlaceholder
-            title="Zone 5 — Live activity log"
-            subtitle="Reverse-chron event stream. Ships PR-3."
-            accentLabel="virtualised · typewriter · severity colour"
-            compact
-          />
+          <Business360Grid />
+          <ActivityLog />
         </aside>
       </main>
 
@@ -60,7 +52,7 @@ export function CommandCenterShell() {
         }}
       >
         <span>
-          PR-2 zone 3 topology · zones 4/5 land in PR-3
+          zones 1-5 live · PR-1 + PR-2 + PR-3 shipped
         </span>
         <span>
           spec ·{' '}
