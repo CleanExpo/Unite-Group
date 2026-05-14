@@ -15,6 +15,7 @@
 
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/security/require-admin';
 import type { BusinessSource, SourceKind } from '@/types/business-source';
 
 export const dynamic = 'force-dynamic';
@@ -78,10 +79,16 @@ function unreachable(source: SourceKind, msg: string): BusinessSource {
 
 async function fetchCell(baseUrl: string, kind: SourceKind, slug: string): Promise<BusinessSource> {
   try {
+    // Forward the service-role bearer so the (now-gated) adapter route admits
+    // us — see require-admin.ts. This route runs server-side only and the key
+    // never crosses the wire to the browser.
+    const headers: Record<string, string> = { 'User-Agent': 'unite-group-source-matrix' };
+    const svcKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (svcKey) headers.authorization = `Bearer ${svcKey}`;
     const res = await fetch(`${baseUrl}/api/empire/sources/${kind}/${slug}`, {
       cache: 'no-store',
       signal: AbortSignal.timeout(ADAPTER_TIMEOUT_MS),
-      headers: { 'User-Agent': 'unite-group-source-matrix' },
+      headers,
     });
     if (!res.ok) {
       return unreachable(kind, `HTTP ${res.status}`);
@@ -159,6 +166,8 @@ async function buildMatrix(baseUrl: string): Promise<SourceMatrix> {
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
 export async function GET(req: Request) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
   const url = new URL(req.url);
   const force = url.searchParams.get('force') === '1';
 

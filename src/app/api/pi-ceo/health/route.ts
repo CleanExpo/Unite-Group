@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { readdir, readFile } from 'fs/promises';
 import { join } from 'path';
+import { requireAdmin } from '@/lib/security/require-admin';
 
 const PI_CEO_URL = process.env.PI_CEO_API_URL || 'https://pi-dev-ops-production.up.railway.app';
 const PI_CEO_KEY = process.env.PI_CEO_API_KEY || '';
@@ -44,7 +45,9 @@ async function getPiCeoSession(): Promise<{ cookie: string; ok: true } | { ok: f
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
   const result: PiCeoHealth = {
     session_id: null,
     task_title: null,

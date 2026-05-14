@@ -1,8 +1,11 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/security/require-admin';
 
 export async function GET(req: NextRequest) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
   const project = req.nextUrl.searchParams.get('project');
   const supabase = getAdminClient();
   let query = supabase

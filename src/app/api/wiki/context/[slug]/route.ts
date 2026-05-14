@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/security/require-admin';
 
 function extractSection(content: string, headings: string[]): string {
   for (const h of headings) {
@@ -12,9 +13,11 @@ function extractSection(content: string, headings: string[]): string {
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
   const { slug } = await params;
   const supabase = getAdminClient();
 

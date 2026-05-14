@@ -1,9 +1,10 @@
 export const dynamic = 'force-dynamic';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { readdir, readFile } from 'fs/promises';
 import { join } from 'path';
 import os from 'os';
+import { requireAdmin } from '@/lib/security/require-admin';
 
 async function getHarnessActivity(): Promise<{ label: string; when: string }[]> {
   const pulseDir = join(os.homedir(), 'Pi-CEO/Pi-Dev-Ops/.harness/portfolio-pulse/_synthesis');
@@ -33,7 +34,9 @@ async function getHarnessActivity(): Promise<{ label: string; when: string }[]> 
   return activity;
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
   const supabase = getAdminClient();
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 

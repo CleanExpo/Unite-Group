@@ -1,10 +1,13 @@
 export const dynamic = 'force-dynamic';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { readdir, readFile } from 'fs/promises';
 import { join } from 'path';
 import os from 'os';
+import { requireAdmin } from '@/lib/security/require-admin';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
   const boardDir = join(os.homedir(), 'Pi-CEO/Pi-Dev-Ops/.harness/board-meetings');
 
   try {
