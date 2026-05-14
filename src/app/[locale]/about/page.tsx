@@ -3,6 +3,7 @@
 // Voice spec: Nexus Human Voice Spec v1 — non-negotiable #1 (named-human opener).
 
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { CTABlock } from '@/components/marketing/CTABlock';
 
 export const dynamic = 'force-static';
@@ -61,12 +62,12 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
           >
             Unite-Group is the operating company that runs the CRM, the cert, the leads, and the
             disputes for the five-to-fifty-van firm. The first paying client is{' '}
-            <a
+            <Link
               href="/en/clients/ccw"
               style={{ color: 'var(--red-300)', textDecoration: 'underline' }}
             >
               Carpet Cleaners Warehouse
-            </a>
+            </Link>
             , Toby Aaron&apos;s outfit in Sydney. We onboarded them in March 2026.
           </p>
           <p

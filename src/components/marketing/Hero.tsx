@@ -3,6 +3,8 @@
 // Styled with CSS-var tokens (--canvas, --ink-primary, --red-500, etc.) defined
 // in src/app/globals.css. Same pattern as [locale]/empire/integrations/page.tsx.
 
+import Link from 'next/link';
+
 export function Hero() {
   return (
     <section
@@ -60,7 +62,7 @@ export function Hero() {
           the five-to-fifty-van firm that doesn&apos;t have time to fight on six fronts at once.
         </p>
         <div style={{ marginTop: 32, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-          <a
+          <Link
             href="/en/contact"
             style={{
               background: 'var(--red-500)',
@@ -73,8 +75,8 @@ export function Hero() {
             }}
           >
             Talk to the operator on the desk
-          </a>
-          <a
+          </Link>
+          <Link
             href="/en/services"
             style={{
               border: '1px solid var(--border-default)',
@@ -87,7 +89,7 @@ export function Hero() {
             }}
           >
             What we run for you
-          </a>
+          </Link>
         </div>
       </div>
     </section>
