@@ -54,7 +54,7 @@ async function main() {
       const parent = node.getParent();
       if (parent && parent.getKindName() === "JsxAttribute") {
         // ts-morph v28 JsxAttribute exposes getNameNode().getText() (not getName())
-        const name = (parent as { getNameNode: () => { getText: () => string } }).getNameNode().getText();
+        const name = (parent as unknown as { getNameNode: () => { getText: () => string } }).getNameNode().getText();
         if (IGNORE_RE.test(name)) return;
       }
       const text = node.getLiteralValue();
