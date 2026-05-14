@@ -21,7 +21,7 @@ Both parties are GST-registered. All amounts in this SOW are AUD and **GST-exclu
 
 Home Loan Essentials operates as an established Australian mortgage broker (Active ABN since 2002). It has commissioned Unite-Group to design, build and launch the **Dimitri ITR Platform** — a broker-facing software product that streamlines the Income Tax Return / borrower-financials workflow that mortgage brokers rely on for loan applications.
 
-The product's working name during build is **"Dimitri"**; the final consumer-facing name will be one of five candidates (Otto · Sorted · Beau · Tick · Lodgey), confirmed by the Client during Sprint 1.
+The product's working name during build is **"Dimitri"**; the final consumer-facing name will be confirmed by the Client during Sprint 1 after Unite-Group has completed trademark clearance and domain due-diligence on the candidates. (Unite-Group's preliminary May-2026 sweep narrowed the original 5-name shortlist to **Lodgey** and **BeauHQ** as the viable candidates; final clearance via a TM attorney is included in Milestone 1.)
 
 This SOW governs Phase 1 (Discovery → MVP launch). Subsequent operating-stage retainers are out of scope and will be addressed in a separate agreement.
 
