@@ -38,15 +38,15 @@ export interface Business360Datum {
 // Unite-Group flat baseline.
 export const BUSINESS_360_DATA: Business360Datum[] = [
   {
-    id: 'ccw',
+    id: 'ccw-crm',
     name: 'CCW',
-    slug: 'ccw',
+    slug: 'ccw-crm',
     logoSrc: '/logos/ccw.png',
     kpiLabel: 'Open tickets',
     kpiValue: 14,
     series: [9, 10, 11, 12, 12, 13, 13, 14, 15, 16, 15, 15, 14, 14],
     state: 'signal',
-    stateLabel: 'Toby on holidays · 26 May resume',
+    stateLabel: 'Toby on holidays · 18 May resume',
   },
   {
     id: 'restoreassist',
@@ -71,9 +71,9 @@ export const BUSINESS_360_DATA: Business360Datum[] = [
     stateLabel: 'CORE-modelled positioning · steady',
   },
   {
-    id: 'nrpg',
+    id: 'dr-nrpg',
     name: 'NRPG',
-    slug: 'nrpg',
+    slug: 'dr-nrpg',
     logoSrc: '/logos/nrpg.png',
     kpiLabel: 'Members',
     kpiValue: 8,

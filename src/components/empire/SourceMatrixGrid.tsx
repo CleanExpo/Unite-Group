@@ -10,6 +10,7 @@
 // labels, 4px corners, dense). Australian English. No smart quotes.
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { BusinessLogo } from "@/components/empire/BusinessLogo";
 import type { BusinessSource, SourceKind, SourceStatus } from "@/types/business-source";
 
@@ -348,6 +349,24 @@ function Drawer({ brand, source, onClose }: DrawerProps) {
 
         {/* Actions */}
         <div style={{ display: "flex", gap: 8, marginTop: "auto", flexWrap: "wrap" }}>
+          <Link
+            href={`/en/empire/businesses/${brand.slug}`}
+            data-testid="drawer-open-business"
+            style={{
+              fontSize: 11,
+              fontFamily: "var(--font-mono)",
+              fontWeight: 600,
+              color: "var(--ink-primary)",
+              background: "var(--surface-2)",
+              border: "1px solid var(--border-default)",
+              borderRadius: 4,
+              padding: "6px 12px",
+              textDecoration: "none",
+              letterSpacing: "0.04em",
+            }}
+          >
+            Open business detail →
+          </Link>
           {cell.url && (
             <a
               data-testid="drawer-open-link"
@@ -577,7 +596,17 @@ export function SourceMatrixGrid({
                       borderBottom: "1px solid var(--border-hairline)",
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <Link
+                      href={`/en/empire/businesses/${brand.slug}`}
+                      data-testid={`row-link-${brand.slug}`}
+                      style={{
+                        textDecoration: "none",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        color: "inherit",
+                      }}
+                    >
                       <BusinessLogo slug={brand.slug} size="sm" />
                       <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
                         <span
@@ -602,7 +631,7 @@ export function SourceMatrixGrid({
                           {brand.slug}
                         </span>
                       </div>
-                    </div>
+                    </Link>
                   </td>
                   {SOURCES.map((kind) => {
                     const cell = brand.cells[kind];
