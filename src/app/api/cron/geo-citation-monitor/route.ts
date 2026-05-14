@@ -7,6 +7,7 @@
 
 import { NextResponse } from "next/server"
 import { runWeeklyGEOCitationMonitor } from "@/lib/geo-citation/run-weekly-monitor"
+import { timingSafeBearerMatch } from "@/lib/security/safe-compare"
 
 // Only accept requests from Vercel Cron (internal secret)
 function isAuthorised(request: Request): boolean {
@@ -18,7 +19,7 @@ function isAuthorised(request: Request): boolean {
     return process.env.NODE_ENV === "development"
   }
 
-  return authHeader === `Bearer ${cronSecret}`
+  return timingSafeBearerMatch(authHeader, cronSecret)
 }
 
 export async function GET(request: Request): Promise<NextResponse> {
