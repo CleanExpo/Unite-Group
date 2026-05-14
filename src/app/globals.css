@@ -197,6 +197,45 @@
   --sidebar-accent-foreground:  220 14% 95%;
   --sidebar-border:             220 24% 18%;
   --sidebar-ring:               0 100% 35%;
+
+  /* COMMAND CENTER (cc-*)
+   * Locked palette for the /command-center surface — Gun Metal ground +
+   * Candy Red as SIGNAL ONLY (live / blocked / pulsing). Everything else
+   * is greyscale + monospace. Anti-AI-slop guardrail per
+   * [[command-center-redesign-proposal-2026-05-14]] and
+   * [[feedback-design-preferences]]. */
+  --cc-bg:            #0a0c10;            /* deeper than --canvas; cockpit ground */
+  --cc-bg-soft:       #11141b;            /* tile background, slightly raised */
+  --cc-grid:          #1a2030;            /* hairline grid + tile borders */
+  --cc-grid-strong:   #2a3447;            /* on-hover borders, active zones */
+  --cc-ink:           #d8dee8;            /* primary text, mid-density not full white */
+  --cc-ink-dim:       #6e7a8c;            /* secondary text */
+  --cc-ink-hush:      #3d4654;            /* tertiary / inactive — far below ink-dim */
+  --cc-signal:        #dc143c;            /* Candy Red — SIGNAL ONLY (live, blocked, pulsing) */
+  --cc-signal-soft:   rgba(220, 20, 60, 0.14);  /* glow base */
+  --cc-signal-hush:   rgba(220, 20, 60, 0.04);  /* very subtle backplate when active */
+  --cc-running:       #d8dee8;            /* running state = neutral ink, not green */
+  --cc-done:          #3d4654;            /* completed / archived state = hush ink */
+  --cc-pulse-duration: 1.5s;              /* breathing-pulse animation timing */
+  --cc-flow-duration:  0.3s;              /* edge-flow animation timing on data movement */
+  --cc-mono:          ui-monospace, "JetBrains Mono", "SF Mono", Menlo, monospace;
+}
+
+/* Command Center — breathing pulse for `running` nodes/tiles */
+@keyframes cc-breathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.78; transform: scale(0.98); }
+}
+
+/* Command Center — single-pulse alert when state transitions to blocked */
+@keyframes cc-alert-pulse {
+  0%   { box-shadow: 0 0 0 0 var(--cc-signal-soft); }
+  100% { box-shadow: 0 0 0 12px transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes cc-breathe { 0%,100% { opacity: 1; transform: none; } }
+  @keyframes cc-alert-pulse { 0%,100% { box-shadow: none; } }
 }
 
 * { box-sizing: border-box; }
