@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { processPublishQueue } from '@/lib/publish/publishQueue';
+import { timingSafeTokenMatch } from '@/lib/security/safe-compare';
 
 export async function POST(request: NextRequest) {
   const secret = request.headers.get('x-internal-secret');
-  if (secret !== process.env.INTERNAL_API_SECRET) {
+  if (!timingSafeTokenMatch(secret, process.env.INTERNAL_API_SECRET)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

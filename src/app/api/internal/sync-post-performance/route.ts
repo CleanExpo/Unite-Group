@@ -13,6 +13,7 @@ import { createClient } from '@supabase/supabase-js';
 import { detectFirstWin } from '@/lib/notifications/detectFirstWin';
 import { saveFirstWinNotification } from '@/lib/notifications/saveFirstWinNotification';
 import type { PostPerformanceData } from '@/lib/notifications/detectFirstWin';
+import { timingSafeTokenMatch } from '@/lib/security/safe-compare';
 
 function getServiceClient() {
   return createClient(
@@ -33,7 +34,7 @@ interface SyncPostPerformanceBody {
 export async function POST(request: Request) {
   // Guard: internal secret
   const secret = request.headers.get('x-internal-secret');
-  if (!secret || secret !== process.env.INTERNAL_API_SECRET) {
+  if (!timingSafeTokenMatch(secret, process.env.INTERNAL_API_SECRET)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

@@ -12,6 +12,7 @@
 import { NextResponse } from "next/server";
 import { getAdminClient } from "@/lib/supabase/admin";
 import { syncOnePassword } from "@/lib/integrations/onepassword/sync";
+import { timingSafeBearerMatch } from "@/lib/security/safe-compare";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -19,7 +20,7 @@ export const maxDuration = 60;
 export async function GET(req: Request) {
   // Vercel cron auth — Vercel sends a special header
   const auth = req.headers.get("authorization");
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!timingSafeBearerMatch(auth, process.env.CRON_SECRET)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
