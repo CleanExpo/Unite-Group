@@ -55,7 +55,10 @@ function getContentService(): SmartContentGenerationService {
       providers: [{
         provider: 'openai',
         apiKey: process.env.OPENAI_API_KEY || '',
-        model: 'gpt-4',
+        // gpt-4o-mini is ~95% cheaper than gpt-4 with comparable content-gen
+        // quality (per OpenAI's 2025 benchmark notes). Override via env:
+        // OPENAI_CONTENT_MODEL=gpt-4-turbo for higher-quality runs.
+        model: process.env.OPENAI_CONTENT_MODEL || 'gpt-4o-mini',
         maxTokens: 4000,
         temperature: 0.7
       }],
