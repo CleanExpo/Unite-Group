@@ -1,6 +1,7 @@
 // UNI-1947 Pillar 3 — Brand × Source matrix aggregator tests.
 
-import { GET, __resetCache } from '../route';
+import { GET } from '../route';
+import { resetCache } from '../_helpers';
 
 // ---- Supabase mock ----
 
@@ -44,7 +45,7 @@ function adapterCell(source: string, status: 'ok' | 'warn' | 'err' | 'unknown', 
 let fetchSpy: jest.Mock;
 
 beforeEach(() => {
-  __resetCache();
+  resetCache();
   supabaseOrder.mockReset();
   fetchSpy = jest.fn(async (url: string) => {
     // Parse the kind from the URL — /api/empire/sources/<kind>/<slug>

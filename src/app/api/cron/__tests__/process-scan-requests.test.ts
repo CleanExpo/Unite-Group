@@ -1,6 +1,7 @@
 // UNI-1948 — Tests for the Pi-CEO scanner cron worker.
 
-import { GET, computeSecurityScore, computeOverallHealth } from '../process-scan-requests/route';
+import { GET } from '../process-scan-requests/route';
+import { computeSecurityScore, computeOverallHealth } from '../process-scan-requests/_helpers';
 
 // ---- Mocks ----
 

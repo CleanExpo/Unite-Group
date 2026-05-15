@@ -288,7 +288,7 @@ export async function GET(req: NextRequest) {
   // Return PDF
   const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
   const safeDomain = domain.replace(/[^a-z0-9.-]/gi, '_');
-  return new NextResponse(pdfBuffer, {
+  return new NextResponse(new Uint8Array(pdfBuffer), {
     status: 200,
     headers: {
       'Content-Type': 'application/pdf',

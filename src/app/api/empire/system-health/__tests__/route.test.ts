@@ -5,7 +5,7 @@
 // downstream signal so we can drive each one to ok / warn / err independently
 // and then assert the overall roll-up.
 
-import { computeSystemHealth } from '../route';
+import { computeSystemHealth } from '../_helpers';
 
 // ---- Supabase mock plumbing ----
 
