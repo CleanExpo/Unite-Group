@@ -10,6 +10,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  SpotlightCard,
+  SpotlightCardHeader,
+  SpotlightCardTitle,
+  SpotlightCardContent,
+} from "@/components/ui/spotlight-card";
+import { PortfolioTile, type PortfolioStatus } from "@/components/empire/PortfolioTile";
 
 type ProvisionInput = {
   kind: "portfolio" | "client" | "partner";
@@ -119,8 +126,15 @@ export default function OnboardClientPage() {
           </p>
         </header>
 
-        <section className="bg-[#222] border border-gray-800 rounded-xl p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">New ContextBot</h2>
+        <SpotlightCard
+          spotlightColor="rgba(179, 0, 0, 0.30)"
+          borderRadius={12}
+          style={{ maxWidth: 640, margin: "0 auto 2rem" }}
+        >
+          <SpotlightCardHeader>
+            <SpotlightCardTitle>New ContextBot</SpotlightCardTitle>
+          </SpotlightCardHeader>
+          <SpotlightCardContent>
           <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Kind">
               <select
@@ -224,7 +238,8 @@ export default function OnboardClientPage() {
               {success && <span className="text-green-400 text-sm">{success}</span>}
             </div>
           </form>
-        </section>
+          </SpotlightCardContent>
+        </SpotlightCard>
 
         <section className="bg-[#222] border border-gray-800 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
@@ -236,33 +251,27 @@ export default function OnboardClientPage() {
           {bots.length === 0 ? (
             <p className="text-gray-500">No bots in registry yet.</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="text-gray-400 border-b border-gray-700">
-                  <tr>
-                    <th className="text-left py-2">Status</th>
-                    <th className="text-left py-2">Username</th>
-                    <th className="text-left py-2">Context</th>
-                    <th className="text-left py-2">Kind / Brand</th>
-                    <th className="text-left py-2">Client</th>
-                    <th className="text-left py-2">Provisioned</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bots.map(b => (
-                    <tr key={b.id} className="border-b border-gray-800 hover:bg-[#181818]">
-                      <td className="py-2"><StatusPill status={b.provision_status} /></td>
-                      <td className="py-2 font-mono">@{b.bot_username}</td>
-                      <td className="py-2">{b.context_label} <span className="text-gray-500">({b.context_id})</span></td>
-                      <td className="py-2 text-gray-400">{b.kind} / {b.brand}</td>
-                      <td className="py-2 text-gray-400">{b.client_email || "—"}</td>
-                      <td className="py-2 text-gray-500">
-                        {b.provisioned_at ? new Date(b.provisioned_at).toLocaleString("en-AU") : "—"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {bots.map(b => (
+                <PortfolioTile
+                  key={b.id}
+                  title={b.bot_username ? `@${b.bot_username}` : b.context_label}
+                  description={b.client_email ?? b.context_id}
+                  status={mapStatus(b.provision_status)}
+                  brandSlug={b.brand}
+                >
+                  <div className="text-xs text-gray-400 space-y-1">
+                    <div>{b.context_label} <span className="text-gray-500">({b.context_id})</span></div>
+                    <div>{b.kind} / {b.brand}</div>
+                    <div className="text-gray-500">
+                      {b.provisioned_at ? new Date(b.provisioned_at).toLocaleString("en-AU") : "—"}
+                    </div>
+                    {b.provision_error && (
+                      <div className="text-red-400">{b.provision_error}</div>
+                    )}
+                  </div>
+                </PortfolioTile>
+              ))}
             </div>
           )}
         </section>
@@ -280,16 +289,11 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function StatusPill({ status }: { status: Bot["provision_status"] }) {
-  const styles: Record<Bot["provision_status"], string> = {
-    pending:     "bg-yellow-900 text-yellow-300 border-yellow-700",
-    provisioning:"bg-blue-900 text-blue-300 border-blue-700",
-    live:        "bg-green-900 text-green-300 border-green-700",
-    failed:      "bg-red-900 text-red-300 border-red-700",
-  };
-  return (
-    <span className={`inline-block px-2 py-0.5 text-xs border rounded ${styles[status]}`}>
-      {status}
-    </span>
-  );
+function mapStatus(s: Bot["provision_status"]): PortfolioStatus {
+  switch (s) {
+    case "live": return "operational";
+    case "provisioning": return "building";
+    case "pending": return "degraded";
+    case "failed": return "down";
+  }
 }
