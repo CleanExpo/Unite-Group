@@ -5,7 +5,10 @@
 
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Hero } from '@/components/marketing/Hero';
+import { getBrandConfig } from '@/lib/branding/getBrandConfig';
+import { HomepageHero } from '@/components/marketing/HomepageHero';
+import { PortfolioTile } from '@/components/empire/PortfolioTile';
+import type { BrandConfig } from '@/types/brand-config';
 
 export const dynamic = 'force-static';
 
@@ -18,9 +21,70 @@ export const metadata: Metadata = {
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   await params; // locale unused for now — copy is English-only at launch.
 
+  /**
+   * Resolve the Unite-Group brand server-side. Cached for 5 minutes per Node
+   * process by `getBrandConfig`, and the page itself is `force-static` so this
+   * effectively runs once per deploy. Empty-object fallback keeps the Tier-1
+   * wrappers happy when the row hasn't been seeded yet — they treat
+   * `Partial<BrandConfig>` as best-effort.
+   */
+  const branded = await getBrandConfig('unite-group');
+  const brand: Partial<BrandConfig> = branded?.brand_config ?? {};
+  const brandName = branded?.company_name ?? 'Unite-Group';
+
   return (
     <main style={{ background: 'var(--canvas)', color: 'var(--ink-primary)', minHeight: '100vh' }}>
-      <Hero />
+      {/*
+        ShowcaseCard (the primitive under HeroShowcase) renders its heading as
+        an h2. To preserve the homepage's h1 semantic for SEO + a11y, we mirror
+        the Karen opener into a visually-hidden h1 here. Same string as the
+        showcase heading — kept in sync manually until the Tier-1 primitive
+        exposes a heading-level prop.
+      */}
+      <h1
+        style={{
+          position: 'absolute',
+          width: 1,
+          height: 1,
+          padding: 0,
+          margin: -1,
+          overflow: 'hidden',
+          clip: 'rect(0, 0, 0, 0)',
+          whiteSpace: 'nowrap',
+          border: 0,
+        }}
+      >
+        Karen runs a five-van water-damage crew out of Caboolture. Her scope last March was forty-two hours of structural drying. The desk-based adjuster paid seventeen.
+      </h1>
+
+      <section
+        style={{
+          background: 'var(--canvas)',
+          borderBottom: '1px solid var(--border-default)',
+          padding: '64px 24px',
+        }}
+      >
+        <div style={{ maxWidth: 1024, margin: '0 auto', display: 'flex', justifyContent: 'center' }}>
+          {/*
+            TODO: a real Unite-Group hero photograph belongs at
+            /public/brands/unite-group/hero.jpg (the HeroShowcase convention).
+            Using handshake-gear.png as a stopgap brand asset until that's shot.
+          */}
+          <HomepageHero
+            brandSlug="unite-group"
+            brand={brand}
+            brandName={brandName}
+            tagline="Unite-Group Nexus"
+            heading="Karen runs a five-van water-damage crew out of Caboolture. Her scope last March was forty-two hours of structural drying. The desk-based adjuster paid seventeen."
+            description="You've seen this scope. You've written this scope. You've fought this scope for eleven years. Unite-Group runs the CRM, the cert, the leads, and the disputes — for the five-to-fifty-van firm that doesn't have time to fight on six fronts at once."
+            imageUrl="/images/handshake-gear.png"
+            imageAlt="Unite-Group — operating-side brand mark"
+            ctaText="Talk to the operator on the desk"
+            ctaHref="/en/contact"
+            services={['CRM', 'IICRC cert', 'Leads', 'Disputes']}
+          />
+        </div>
+      </section>
 
       <section style={{ padding: '64px 24px' }}>
         <div style={{ maxWidth: 1024, margin: '0 auto' }}>
@@ -58,75 +122,45 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             }}
           >
             <li>
-              <h3
-                style={{
-                  fontSize: 17,
-                  fontWeight: 600,
-                  color: 'var(--ink-primary)',
-                  margin: 0,
-                }}
+              <PortfolioTile
+                title="A CRM your crew actually opens"
+                status="operational"
+                brandSlug="unite-group"
+                brand={brand}
               >
-                A CRM your crew actually opens
-              </h3>
-              <p
-                style={{
-                  marginTop: 8,
-                  fontSize: 14,
-                  lineHeight: 1.6,
-                  color: 'var(--ink-secondary)',
-                }}
-              >
-                Built around the job, not the lead. Karen&apos;s foreman opens it from a van outside
-                a triplex in Redcliffe. He sees the scope, the photos, the adjuster&apos;s last
-                reply, and the parts list. He doesn&apos;t see seventeen tabs of CRM theory.
-              </p>
+                <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: 'var(--ink-secondary)' }}>
+                  Built around the job, not the lead. Karen&apos;s foreman opens it from a van outside
+                  a triplex in Redcliffe. He sees the scope, the photos, the adjuster&apos;s last
+                  reply, and the parts list. He doesn&apos;t see seventeen tabs of CRM theory.
+                </p>
+              </PortfolioTile>
             </li>
             <li>
-              <h3
-                style={{
-                  fontSize: 17,
-                  fontWeight: 600,
-                  color: 'var(--ink-primary)',
-                  margin: 0,
-                }}
+              <PortfolioTile
+                title="A cert the regulator already recognises"
+                status="operational"
+                brandSlug="unite-group"
+                brand={brand}
               >
-                A cert the regulator already recognises
-              </h3>
-              <p
-                style={{
-                  marginTop: 8,
-                  fontSize: 14,
-                  lineHeight: 1.6,
-                  color: 'var(--ink-secondary)',
-                }}
-              >
-                IICRC pathway, ANZ-aligned. You sit it through CARSI; the file lands in your portal
-                in fourteen days. Documents on-screen, not a marketing brochure.
-              </p>
+                <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: 'var(--ink-secondary)' }}>
+                  IICRC pathway, ANZ-aligned. You sit it through CARSI; the file lands in your portal
+                  in fourteen days. Documents on-screen, not a marketing brochure.
+                </p>
+              </PortfolioTile>
             </li>
             <li>
-              <h3
-                style={{
-                  fontSize: 17,
-                  fontWeight: 600,
-                  color: 'var(--ink-primary)',
-                  margin: 0,
-                }}
+              <PortfolioTile
+                title="A dispute log that survives an audit"
+                status="operational"
+                brandSlug="unite-group"
+                brand={brand}
               >
-                A dispute log that survives an audit
-              </h3>
-              <p
-                style={{
-                  marginTop: 8,
-                  fontSize: 14,
-                  lineHeight: 1.6,
-                  color: 'var(--ink-secondary)',
-                }}
-              >
-                Every back-and-forth with the panel. Every photo. Every revised scope. Stored,
-                exportable, FOI-resistant. The last time Karen needed it, it took four minutes to
-                assemble.
-              </p>
+                <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: 'var(--ink-secondary)' }}>
+                  Every back-and-forth with the panel. Every photo. Every revised scope. Stored,
+                  exportable, FOI-resistant. The last time Karen needed it, it took four minutes to
+                  assemble.
+                </p>
+              </PortfolioTile>
             </li>
           </ul>
         </div>
