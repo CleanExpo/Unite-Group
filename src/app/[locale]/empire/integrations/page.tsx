@@ -1,4 +1,5 @@
 import { IntegrationMatrix } from '@/components/empire/IntegrationMatrix';
+import { PortfolioTile } from '@/components/empire/PortfolioTile';
 import { getIntegrationsState, type IntegrationsState } from '@/lib/integrations/dashboard-state';
 
 // Server component. Calls getIntegrationsState() directly (no fetch round-trip,
@@ -7,56 +8,6 @@ import { getIntegrationsState, type IntegrationsState } from '@/lib/integrations
 // canonical path is /en/empire/integrations.
 
 export const dynamic = 'force-dynamic';
-
-const SECTION_CARD: React.CSSProperties = {
-  background: 'var(--surface-1)',
-  border: '1px solid var(--border-default)',
-  borderRadius: 'var(--radius-md)',
-  padding: '14px 18px',
-};
-
-const SECTION_LABEL: React.CSSProperties = {
-  fontSize: 10,
-  fontWeight: 700,
-  fontFamily: 'var(--font-mono)',
-  letterSpacing: '0.08em',
-  textTransform: 'uppercase',
-  color: 'var(--ink-tertiary)',
-  marginBottom: 6,
-};
-
-const SECTION_VALUE: React.CSSProperties = {
-  fontSize: 18,
-  fontWeight: 700,
-  fontFamily: 'var(--font-mono)',
-  color: 'var(--ink-primary)',
-  letterSpacing: '-0.3px',
-};
-
-const SECTION_DETAIL: React.CSSProperties = {
-  fontSize: 11,
-  color: 'var(--ink-secondary)',
-  marginTop: 4,
-  fontFamily: 'var(--font-mono)',
-};
-
-function CountCard({
-  label,
-  value,
-  detail,
-}: {
-  label: string;
-  value: number | string;
-  detail?: string;
-}) {
-  return (
-    <div style={SECTION_CARD}>
-      <div style={SECTION_LABEL}>{label}</div>
-      <div style={SECTION_VALUE}>{value}</div>
-      {detail ? <div style={SECTION_DETAIL}>{detail}</div> : null}
-    </div>
-  );
-}
 
 export default async function IntegrationsPage() {
   const state: IntegrationsState = await getIntegrationsState();
@@ -67,6 +18,10 @@ export default async function IntegrationsPage() {
   const mtdDetail = mtdRecord
     ? `${mtdRecord.yyyymm ?? '—'} · ${mtdRecord.invoice_count ?? 0} invoices`
     : 'No invoices recorded';
+  const stripeValue =
+    mtdRecord && typeof mtdRecord.total_cents === 'number'
+      ? `$${(mtdRecord.total_cents / 100).toFixed(2)}`
+      : '—';
 
   return (
     <div
@@ -118,54 +73,59 @@ export default async function IntegrationsPage() {
             gap: 12,
           }}
         >
-          <CountCard
-            label="GitHub"
-            value={state.github.repos.length}
-            detail={`${state.github.openPRs.length} open PRs`}
+          <PortfolioTile
+            title="GitHub"
+            description={`${state.github.repos.length} repos · ${state.github.openPRs.length} open PRs`}
+            status={state.github.repos.length > 0 ? 'operational' : 'degraded'}
+            brandSlug="github"
           />
-          <CountCard
-            label="Vercel"
-            value={state.vercel.projects.length}
-            detail="projects"
+          <PortfolioTile
+            title="Vercel"
+            description={`${state.vercel.projects.length} projects`}
+            status={state.vercel.projects.length > 0 ? 'operational' : 'degraded'}
+            brandSlug="vercel"
           />
-          <CountCard
-            label="Railway"
-            value={state.railway.services.length}
-            detail="services"
+          <PortfolioTile
+            title="Railway"
+            description={`${state.railway.services.length} services`}
+            status={state.railway.services.length > 0 ? 'operational' : 'degraded'}
+            brandSlug="railway"
           />
-          <CountCard
-            label="DigitalOcean"
-            value={state.digitalocean.apps.length}
-            detail="apps"
+          <PortfolioTile
+            title="DigitalOcean"
+            description={`${state.digitalocean.apps.length} apps`}
+            status={state.digitalocean.apps.length > 0 ? 'operational' : 'degraded'}
+            brandSlug="digitalocean"
           />
-          <CountCard
-            label="Supabase"
-            value={state.supabase.projects.length}
-            detail="projects"
+          <PortfolioTile
+            title="Supabase"
+            description={`${state.supabase.projects.length} projects`}
+            status={state.supabase.projects.length > 0 ? 'operational' : 'degraded'}
+            brandSlug="supabase"
           />
-          <CountCard
-            label="1Password"
-            value={state.onepassword.index.length}
-            detail="indexed items (names only)"
+          <PortfolioTile
+            title="1Password"
+            description={`${state.onepassword.index.length} indexed items (names only)`}
+            status={state.onepassword.index.length > 0 ? 'operational' : 'degraded'}
+            brandSlug="onepassword"
           />
-          <CountCard
-            label="Linear"
-            value={state.linear.openIssues.length}
-            detail="open issues"
+          <PortfolioTile
+            title="Linear"
+            description={`${state.linear.openIssues.length} open issues`}
+            status="operational"
+            brandSlug="linear"
           />
-          <CountCard
-            label="Stripe MTD"
-            value={
-              mtdRecord && typeof mtdRecord.total_cents === 'number'
-                ? `$${(mtdRecord.total_cents / 100).toFixed(2)}`
-                : '—'
-            }
-            detail={mtdDetail}
+          <PortfolioTile
+            title="Stripe MTD"
+            description={`${stripeValue} · ${mtdDetail}`}
+            status={mtdRecord ? 'operational' : 'degraded'}
+            brandSlug="stripe"
           />
-          <CountCard
-            label="Composio"
-            value={state.composio.connections.length}
-            detail="connections"
+          <PortfolioTile
+            title="Composio"
+            description={`${state.composio.connections.length} connections`}
+            status={state.composio.connections.length > 0 ? 'operational' : 'degraded'}
+            brandSlug="composio"
           />
         </div>
       </main>
