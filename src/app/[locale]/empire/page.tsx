@@ -8,6 +8,17 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseClient } from "@/lib/supabase/client";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { CircuitBoard, type CircuitNodeType, type CircuitConnection } from "@/components/ui/circuit-board";
+import {
+  SpotlightCard,
+  SpotlightCardHeader,
+  SpotlightCardTitle,
+  SpotlightCardDescription,
+  SpotlightCardContent,
+} from "@/components/ui/spotlight-card";
+import { ShowcaseCard } from "@/components/ui/showcase-card";
+import { GithubCalendar } from "@/components/ui/github-calendar";
+import { Search, Users, ClipboardList, Cpu, Rocket } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -142,98 +153,55 @@ function Shimmer({ width, height, radius = 4 }: { width: string | number; height
   );
 }
 
-// ─── Empire Pulse Bar ─────────────────────────────────────────────────────────
+// ─── Empire Hero (ShowcaseCard) ───────────────────────────────────────────────
 
-function EmpirePulseBar({
+// Dark executive command-centre aesthetic: night skyline, no AI-slop / no fake people.
+// Unsplash source: Mike Enerio, dark city skyline at night.
+const EMPIRE_HERO_IMAGE =
+  "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&w=1600&q=80";
+
+function EmpireHero({
   summary,
-  loading,
   exitThesis,
 }: {
   summary: PortfolioSummary | null;
-  loading: boolean;
   exitThesis: ExitThesisData | null;
 }) {
   const fallbackDays = daysToDeadline();
   const days = exitThesis?.daysRemaining ?? fallbackDays;
-  const daysColor = days < 365 ? "var(--red-400)" : days < 548 ? "var(--orange-400)" : "var(--ink-primary)";
-
   const liveArr = exitThesis?.currentArr ?? summary?.total_arr ?? 0;
   const gapToMin = exitThesis?.gapToMin ?? null;
 
-  const pills = [
-    {
-      label: "Total ARR",
-      value: liveArr > 0 ? formatArrFull(liveArr) : (summary ? formatArrFull(summary.total_arr) : "—"),
-      color: liveArr > 0 ? "var(--green-400)" : "var(--ink-secondary)",
-    },
-    {
-      label: "Days to $2B",
-      value: `${days.toLocaleString()} days`,
-      color: daysColor,
-    },
-    {
-      label: "Gap to min ARR",
-      value: gapToMin !== null ? `$${Math.round(gapToMin / 1_000_000)}m to $167M` : "—",
-      color: gapToMin !== null && gapToMin > 0 ? "var(--orange-400)" : "var(--green-400)",
-    },
-    {
-      label: "Portfolio avg",
-      value: summary?.avg_health != null ? `${summary.avg_health}/100` : "—",
-      color: healthColor(summary?.avg_health ?? null),
-    },
-    {
-      label: "System status",
-      value: "● AUTONOMOUS",
-      color: "var(--green-400)",
-    },
-  ];
+  const arrLabel = liveArr > 0 ? formatArrFull(liveArr) : "—";
+  const gapLabel =
+    gapToMin !== null && gapToMin > 0
+      ? `${formatArr(gapToMin)} gap to $167M floor`
+      : gapToMin !== null
+        ? "Above $167M floor"
+        : "Gap pending";
+  const healthLabel =
+    summary?.avg_health != null ? `${summary.avg_health}/100 portfolio health` : "Health pending";
+
+  const description = `Portfolio AUTONOMOUS — ${arrLabel} live, ${days.toLocaleString()} days to $2B target, ${gapLabel}, ${healthLabel}.`;
 
   return (
-    <div style={{
-      display: "flex",
-      gap: 1,
-      background: "var(--border-hairline)",
-      border: "1px solid var(--border-default)",
-      borderRadius: "var(--radius-md)",
-      overflow: "hidden",
-      marginBottom: 20,
-    }}>
-      {pills.map((pill) => (
-        <div
-          key={pill.label}
-          style={{
-            flex: 1,
-            background: "var(--surface-1)",
-            padding: "12px 16px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 3,
-          }}
-        >
-          <div style={{
-            fontSize: 10,
-            color: "var(--ink-tertiary)",
-            fontFamily: "var(--font-mono)",
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-          }}>
-            {pill.label}
-          </div>
-          {loading ? (
-            <Shimmer width="80%" height={18} />
-          ) : (
-            <div style={{
-              fontSize: 15,
-              fontWeight: 700,
-              fontFamily: "var(--font-mono)",
-              color: pill.color,
-              letterSpacing: "-0.3px",
-            }}>
-              {pill.value}
-            </div>
-          )}
-        </div>
-      ))}
+    <div style={{ marginBottom: 20, display: "flex", justifyContent: "center" }}>
+      <ShowcaseCard
+        tagline="Empire Command Center"
+        heading="$66k → $167M by June 2028"
+        description={description}
+        imageUrl={EMPIRE_HERO_IMAGE}
+        imageAlt="Empire command center skyline"
+        ctaText="View KPIs"
+        onCtaClick={() => {
+          if (typeof window !== "undefined") {
+            window.scrollTo({ top: 480, behavior: "smooth" });
+          }
+        }}
+        brandName="Unite Group"
+        services={["6 brands", "$2B thesis", "Autonomous"]}
+        className="!max-w-full w-full"
+      />
     </div>
   );
 }
@@ -365,110 +333,207 @@ function PriorityCardSkeleton() {
   );
 }
 
-// ─── Business Health Row ──────────────────────────────────────────────────────
+// ─── Business Health Card (SpotlightCard) ────────────────────────────────────
 
-function BusinessHealthRow({ biz }: { biz: BusinessHealth }) {
+function BusinessHealthCard({ biz }: { biz: BusinessHealth }) {
   const color = healthColor(biz.overall_health);
   const score = biz.overall_health;
   const atRisk = score !== null && score < 60;
   const arrLabel = formatArr(biz.arr_aud);
 
+  // Spotlight tone: Candy Red for at-risk, green for healthy, neutral default.
+  const spotlightColor = atRisk
+    ? "rgba(179, 0, 0, 0.35)"
+    : score !== null && score >= 80
+      ? "rgba(0, 168, 84, 0.30)"
+      : "rgba(224, 112, 32, 0.28)";
+
   return (
-    <Link href={`/en/empire/businesses/${biz.id}`} style={{ textDecoration: 'none', display: 'contents' }}>
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        padding: "9px 14px",
-        borderBottom: "1px solid var(--border-hairline)",
-        cursor: "pointer",
-        transition: "background 0.12s",
-      }}
-        onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-2)')}
-        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+    <Link
+      href={`/en/empire/businesses/${biz.id}`}
+      style={{ textDecoration: "none", display: "block" }}
+    >
+      <SpotlightCard
+        spotlightColor={spotlightColor}
+        borderRadius={10}
+        className="cursor-pointer h-full"
+        style={{ background: "var(--surface-1)" }}
       >
-        {/* Business logo with mark fallback */}
-        <BusinessLogo slug={biz.id} size="sm" />
-
-        {/* Name */}
-        <span style={{
-          flex: 1,
-          fontSize: 13,
-          fontWeight: 500,
-          color: "var(--ink-primary)",
-          minWidth: 0,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        }}>
-          {biz.name}
-        </span>
-
-        {/* ARR if > 0 */}
-        {arrLabel && (
-          <span style={{
-            fontSize: 11,
-            fontFamily: "var(--font-mono)",
-            color: "var(--green-400)",
-            fontWeight: 600,
-            flexShrink: 0,
-          }}>
-            {arrLabel}
-          </span>
-        )}
-
-        {/* Security score small */}
-        {biz.security_score !== null && (
-          <span style={{
-            fontSize: 10,
-            fontFamily: "var(--font-mono)",
-            color: "var(--ink-tertiary)",
-            flexShrink: 0,
-          }}>
-            sec:{biz.security_score}
-          </span>
-        )}
-
-        {/* Health score */}
-        <span style={{
-          fontSize: 13,
-          fontWeight: 700,
-          fontFamily: "var(--font-mono)",
-          color,
-          flexShrink: 0,
-          minWidth: 28,
-          textAlign: "right",
-        }}>
-          {score !== null ? score : "—"}
-        </span>
-
-        {/* Risk warning */}
-        {atRisk && (
-          <span style={{ fontSize: 12, flexShrink: 0 }}>⚠</span>
-        )}
-      </div>
+        <SpotlightCardHeader>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <BusinessLogo slug={biz.id} size="sm" />
+            <SpotlightCardTitle className="!text-base">{biz.name}</SpotlightCardTitle>
+          </div>
+          <SpotlightCardDescription>
+            {biz.status || "Tracked"}
+            {atRisk ? " · at risk" : ""}
+          </SpotlightCardDescription>
+        </SpotlightCardHeader>
+        <SpotlightCardContent>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 14, flexWrap: "wrap" }}>
+            <div>
+              <div
+                style={{
+                  fontSize: 10,
+                  color: "var(--ink-tertiary)",
+                  fontFamily: "var(--font-mono)",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                }}
+              >
+                Health
+              </div>
+              <div
+                style={{
+                  fontSize: 22,
+                  fontWeight: 700,
+                  fontFamily: "var(--font-mono)",
+                  color,
+                  lineHeight: 1.1,
+                }}
+              >
+                {score !== null ? score : "—"}
+              </div>
+            </div>
+            <div>
+              <div
+                style={{
+                  fontSize: 10,
+                  color: "var(--ink-tertiary)",
+                  fontFamily: "var(--font-mono)",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                }}
+              >
+                Security
+              </div>
+              <div
+                style={{
+                  fontSize: 16,
+                  fontWeight: 600,
+                  fontFamily: "var(--font-mono)",
+                  color:
+                    biz.security_score !== null && biz.security_score < 40
+                      ? "var(--red-400)"
+                      : "var(--ink-secondary)",
+                }}
+              >
+                {biz.security_score !== null ? `${biz.security_score}` : "—"}
+              </div>
+            </div>
+            <div style={{ marginLeft: "auto" }}>
+              <div
+                style={{
+                  fontSize: 10,
+                  color: "var(--ink-tertiary)",
+                  fontFamily: "var(--font-mono)",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  textAlign: "right",
+                }}
+              >
+                ARR
+              </div>
+              <div
+                style={{
+                  fontSize: 16,
+                  fontWeight: 700,
+                  fontFamily: "var(--font-mono)",
+                  color: biz.arr_aud > 0 ? "var(--green-400)" : "var(--ink-disabled)",
+                  textAlign: "right",
+                }}
+              >
+                {arrLabel || "—"}
+              </div>
+            </div>
+          </div>
+        </SpotlightCardContent>
+      </SpotlightCard>
     </Link>
   );
 }
 
-function BusinessHealthSkeleton() {
+function BusinessHealthCardSkeleton() {
   return (
-    <>
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          padding: "9px 14px",
-          borderBottom: "1px solid var(--border-hairline)",
-        }}>
-          <Shimmer width={7} height={7} radius={999} />
-          <Shimmer width="45%" height={13} />
-          <div style={{ flex: 1 }} />
-          <Shimmer width={28} height={13} />
-        </div>
-      ))}
-    </>
+    <div
+      style={{
+        background: "var(--surface-1)",
+        border: "1px solid var(--border-default)",
+        borderRadius: 10,
+        padding: 18,
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+        minHeight: 130,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <Shimmer width={28} height={28} radius={6} />
+        <Shimmer width="45%" height={14} />
+      </div>
+      <Shimmer width="60%" height={11} />
+      <div style={{ display: "flex", gap: 16, marginTop: "auto" }}>
+        <Shimmer width={50} height={26} />
+        <Shimmer width={50} height={26} />
+        <Shimmer width={70} height={26} />
+      </div>
+    </div>
+  );
+}
+
+// ─── Pipeline Circuit (CircuitBoard) ─────────────────────────────────────────
+
+const PIPELINE_STAGE_ICONS: Record<string, React.ReactNode> = {
+  margot: <Search size={16} strokeWidth={1.75} />,
+  board: <Users size={16} strokeWidth={1.75} />,
+  pm: <ClipboardList size={16} strokeWidth={1.75} />,
+  orchestrator: <Cpu size={16} strokeWidth={1.75} />,
+  deployed: <Rocket size={16} strokeWidth={1.75} />,
+};
+
+function PipelineCircuit({ stages }: { stages: PipelineStage[] }) {
+  // Layout: 5 stages, horizontally spaced across a 560×140 board with bottom label clearance.
+  const width = 560;
+  const height = 140;
+  const padX = 56;
+  const stepX = stages.length > 1 ? (width - padX * 2) / (stages.length - 1) : 0;
+  const y = 56;
+
+  const nodes: CircuitNodeType[] = stages.map((s, i) => ({
+    id: s.id,
+    x: padX + stepX * i,
+    y,
+    label: `${s.label} · ${s.count}`,
+    icon: PIPELINE_STAGE_ICONS[s.id] ?? <Cpu size={16} strokeWidth={1.75} />,
+    status: s.active ? "processing" : s.count > 0 ? "active" : "inactive",
+    size: "md",
+  }));
+
+  const connections: CircuitConnection[] = stages.slice(0, -1).map((s, i) => {
+    const next = stages[i + 1];
+    const animated = s.active || s.count > 0;
+    return {
+      from: s.id,
+      to: next.id,
+      animated,
+      // Use Nexus tokens: Candy Red pulse on active, dim trace otherwise.
+      color: "rgba(255,255,255,0.12)",
+      pulseColor: animated ? "rgba(179, 0, 0, 0.85)" : "rgba(255,255,255,0.25)",
+    };
+  });
+
+  return (
+    <div style={{ display: "flex", justifyContent: "center", width: "100%", overflowX: "auto" }}>
+      <CircuitBoard
+        nodes={nodes}
+        connections={connections}
+        width={width}
+        height={height}
+        showGrid={false}
+        variant="dark"
+        pulseSpeed={2.5}
+      />
+    </div>
   );
 }
 
@@ -669,8 +734,8 @@ export default function EmpireCommandCenter() {
       {/* Main content */}
       <main style={{ padding: "24px 32px", maxWidth: 1280, margin: "0 auto" }}>
 
-        {/* SECTION 1: Empire Pulse Bar */}
-        <EmpirePulseBar summary={summary} loading={isLoading} exitThesis={exitThesis} />
+        {/* SECTION 1: Empire Hero (ShowcaseCard) */}
+        <EmpireHero summary={summary} exitThesis={exitThesis} />
 
         {/* SECTION 1b: System Health Command Center */}
         <SystemHealthTile />
@@ -681,7 +746,7 @@ export default function EmpireCommandCenter() {
         {/* SECTION 2 + 3: Two-column layout */}
         <div style={{
           display: "grid",
-          gridTemplateColumns: "60% 1fr",
+          gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.2fr)",
           gap: 16,
           marginBottom: 16,
         }}>
@@ -757,19 +822,27 @@ export default function EmpireCommandCenter() {
                 {businesses.length > 0 ? `${businesses.length} tracked` : "loading..."}
               </div>
             </div>
-            {isLoading
-              ? <BusinessHealthSkeleton />
-              : businesses.length === 0
-                ? (
-                  <div style={{ padding: 16 }}>
-                    <EmptyState
-                      title="No businesses configured yet"
-                      description="Portfolio rows haven't been seeded into the businesses table. Add one to start tracking health and ARR."
-                    />
-                  </div>
-                )
-                : businesses.map(biz => <BusinessHealthRow key={biz.id} biz={biz} />)
-            }
+            <div
+              style={{
+                padding: 14,
+                display: "grid",
+                gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                gap: 12,
+              }}
+            >
+              {isLoading ? (
+                Array.from({ length: 6 }).map((_, i) => <BusinessHealthCardSkeleton key={i} />)
+              ) : businesses.length === 0 ? (
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <EmptyState
+                    title="No businesses configured yet"
+                    description="Portfolio rows haven't been seeded into the businesses table. Add one to start tracking health and ARR."
+                  />
+                </div>
+              ) : (
+                businesses.map(biz => <BusinessHealthCard key={biz.id} biz={biz} />)
+              )}
+            </div>
           </div>
         </div>
 
@@ -833,83 +906,8 @@ export default function EmpireCommandCenter() {
                 </div>
               ) : pipeline.stages ? (
                 <>
-                  {/* Stage nodes */}
-                  <div style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 0,
-                    overflowX: "auto",
-                  }}>
-                    {pipeline.stages.map((stage, i) => (
-                      <div key={stage.id} style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0 }}>
-                        {/* Stage box */}
-                        <div style={{
-                          flex: 1,
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          gap: 4,
-                          padding: "10px 4px",
-                          borderRadius: 6,
-                          background: stage.active
-                            ? "rgba(179,0,0,0.08)"
-                            : stage.count > 0
-                            ? "rgba(0,168,84,0.06)"
-                            : "transparent",
-                          border: stage.active
-                            ? "1px solid rgba(179,0,0,0.25)"
-                            : "1px solid transparent",
-                          minWidth: 0,
-                        }}>
-                          <div style={{
-                            fontSize: 18,
-                            fontWeight: 800,
-                            fontFamily: "var(--font-mono)",
-                            color: stage.active
-                              ? "var(--red-400)"
-                              : stage.count > 0
-                              ? "var(--green-400)"
-                              : "var(--ink-disabled)",
-                            lineHeight: 1,
-                          }}>
-                            {stage.count}
-                          </div>
-                          <div style={{
-                            fontSize: 10,
-                            fontWeight: 700,
-                            color: stage.active ? "var(--ink-primary)" : "var(--ink-secondary)",
-                            textAlign: "center",
-                            letterSpacing: "0.02em",
-                          }}>
-                            {stage.label}
-                          </div>
-                          <div style={{
-                            fontSize: 9,
-                            color: "var(--ink-tertiary)",
-                            textAlign: "center",
-                            fontFamily: "var(--font-mono)",
-                          }}>
-                            {stage.sublabel}
-                          </div>
-                        </div>
-                        {/* Arrow between stages */}
-                        {i < pipeline.stages!.length - 1 && (
-                          <div style={{
-                            width: 16,
-                            flexShrink: 0,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: "var(--border-default)",
-                            fontSize: 10,
-                            paddingBottom: 8,
-                          }}>
-                            →
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                  {/* Stage nodes — CircuitBoard */}
+                  <PipelineCircuit stages={pipeline.stages} />
 
                   {/* Recent activity */}
                   {pipeline.recent_activity && pipeline.recent_activity.length > 0 && (
@@ -1006,6 +1004,66 @@ export default function EmpireCommandCenter() {
             </div>
           </div>
         </div>
+
+        {/* SECTION 6: Developer Activity — GitHub contribution heatmaps */}
+        {/* NOTE: rana-muzamil username sourced from scripts/seed-developer-profiles.ts.
+            If contributions API 404s, verify via `gh api users/rana-muzamil`. */}
+        <section style={{ marginTop: 24 }}>
+          <div
+            style={{
+              fontSize: "var(--text-2xs)",
+              fontWeight: 600,
+              letterSpacing: "var(--tracking-caps)",
+              textTransform: "uppercase",
+              color: "var(--ink-tertiary)",
+              marginBottom: 12,
+            }}
+          >
+            Developer Activity — last 12 months
+          </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))",
+              gap: 16,
+            }}
+          >
+            <div
+              style={{
+                background: "var(--surface-1)",
+                border: "1px solid var(--border-default)",
+                borderRadius: "var(--radius-md)",
+                padding: "16px 18px",
+                overflowX: "auto",
+              }}
+            >
+              <GithubCalendar
+                username="CleanExpo"
+                variant="city-lights"
+                shape="rounded"
+                colorSchema="green"
+                glowIntensity={4}
+              />
+            </div>
+            <div
+              style={{
+                background: "var(--surface-1)",
+                border: "1px solid var(--border-default)",
+                borderRadius: "var(--radius-md)",
+                padding: "16px 18px",
+                overflowX: "auto",
+              }}
+            >
+              <GithubCalendar
+                username="rana-muzamil"
+                variant="city-lights"
+                shape="rounded"
+                colorSchema="orange"
+                glowIntensity={4}
+              />
+            </div>
+          </div>
+        </section>
 
         {/* SECTION 5: Recent Board Directives */}
         {boardMinutes.length > 0 && (
