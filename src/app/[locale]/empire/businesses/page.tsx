@@ -9,6 +9,7 @@
 
 import Link from 'next/link';
 import { BusinessLogo } from '@/components/empire/BusinessLogo';
+import { PortfolioTile } from '@/components/empire/PortfolioTile';
 
 // Canonical slugs — must stay in sync with PORTFOLIO_SLUGS in
 // src/app/api/empire/businesses/route.ts and source-matrix/route.ts.
@@ -102,91 +103,74 @@ export default async function EmpireBusinessesIndex({
               key={brand.slug}
               href={`/${locale}/empire/businesses/${brand.slug}`}
               data-testid={`brand-card-${brand.slug}`}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 12,
-                padding: '16px 18px',
-                background: 'var(--surface-1)',
-                border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-md)',
-                textDecoration: 'none',
-                color: 'inherit',
-                transition: 'border-color 0.15s',
-              }}
+              style={{ textDecoration: 'none', color: 'inherit' }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <BusinessLogo slug={brand.slug} size="md" />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 600,
-                      letterSpacing: '-0.2px',
-                      color: 'var(--ink-primary)',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
-                  >
-                    {brand.name}
-                  </div>
+              <PortfolioTile
+                title={brand.name}
+                description="Click to drill in"
+                status="operational"
+                brandSlug={brand.slug}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <BusinessLogo slug={brand.slug} size="md" />
                   <div
                     style={{
                       fontSize: 10,
                       fontFamily: 'var(--font-mono)',
                       color: 'var(--ink-tertiary)',
-                      marginTop: 2,
                     }}
                   >
                     {brand.slug}
                   </div>
                 </div>
-              </div>
 
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  paddingTop: 10,
-                  borderTop: '1px solid var(--border-hairline)',
-                }}
-              >
-                <span
+                <div
                   style={{
-                    fontSize: 10,
-                    fontFamily: 'var(--font-mono)',
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                    color: 'var(--ink-tertiary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginTop: 12,
+                    paddingTop: 10,
+                    borderTop: '1px solid var(--border-hairline)',
                   }}
                 >
-                  Linear team
-                </span>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontFamily: 'var(--font-mono)',
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                      color: 'var(--ink-tertiary)',
+                    }}
+                  >
+                    Linear team
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 700,
+                      color: 'var(--ink-secondary)',
+                    }}
+                  >
+                    {brand.team}
+                  </span>
+                </div>
+
                 <span
                   style={{
+                    display: 'inline-block',
+                    marginTop: 12,
                     fontSize: 11,
                     fontFamily: 'var(--font-mono)',
-                    fontWeight: 700,
-                    color: 'var(--ink-secondary)',
+                    fontWeight: 600,
+                    color: 'var(--ink-primary)',
+                    letterSpacing: '0.04em',
                   }}
                 >
-                  {brand.team}
+                  Open detail →
                 </span>
-              </div>
-
-              <span
-                style={{
-                  fontSize: 11,
-                  fontFamily: 'var(--font-mono)',
-                  fontWeight: 600,
-                  color: 'var(--ink-primary)',
-                  letterSpacing: '0.04em',
-                }}
-              >
-                Open detail →
-              </span>
+              </PortfolioTile>
             </Link>
           ))}
         </div>
