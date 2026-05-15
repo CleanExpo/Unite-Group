@@ -1,6 +1,6 @@
 ---
 type: index
-updated: 2026-05-12
+updated: 2026-05-15
 ---
 
 # Wiki Index
@@ -29,6 +29,7 @@ Content-oriented catalog of all pages. One line per page. See [[log]] for histor
 
 - [[businesses-overview]] — All 5 portfolio businesses + CCW at a glance
 - [[restore-assist]] — iOS app for restoration industry; TestFlight → App Store
+- [[play-console-account]] — Google Play Console developer account ID 8950300821619026235; restricted-account recovery + DUNS unblock plan (Margot deep research 2026-05-15)
 - [[synthex]] — Marketing-automation SaaS; internal + external (CCW uses it)
 - [[dr-nrpg]] — Disaster Recovery / National Restoration Practitioners Group
 - [[carsi]] — Compliance delivery product
@@ -187,6 +188,7 @@ Content-oriented catalog of all pages. One line per page. See [[log]] for histor
 ## Design & Tooling
 - [[design-system-approach]] — DESIGN.md standard, impeccable skill (22 design commands + absolute bans), open-design 72 brand systems
 - [[mcp-ecosystem]] — GitHub MCP Registry: 97 official servers; tier-1 integrations for Pi-CEO swarm
+- [[artlist-mastery]] — Artlist AI Starter substrate playbook (post 2026-05-14 80% credit reduction): per-model credit table · selection decision tree · per-format budget with 1.5× re-roll target · upgrade math (Starter→Pro+Max $129.99/mo by 2026-05-29) · 15 prompt patterns · Artboard discipline · 7-point AI-slop checklist · browser-harness batch pattern (no public Studio API)
 
 ## Clients (External)
 - [[bulcs-holdings]] — Bulcs Holdings (Ivi Sims, VIC) — IAQ/restoration equipment, inbound 2026-05-08, proposal in progress

@@ -94,3 +94,10 @@ Stripe scaffold built; activation deferred to Q3 2026. See [[unite-crm]] for cod
 ## Cross-refs
 
 [[founder]] · [[ccw]] · [[businesses-overview]] · [[wave-roadmap]] · [[NotebookLM]] · [[sandbox-wizard-2026-05-12]] · [[unite-group-rls-audit-2026-05-12]]
+
+## Board Directives Log
+
+### 2026-05-15 — Senior Briefing Pattern: eliminate ask-the-founder-for-facts
+**Decision:** Effective immediately, AskUserQuestion is banned for any question whose answer is discoverable via available tools in ≤ 3 tool calls. AskUserQuestion reserved for (a) stakeholder preferences between distinct valid options and (b) confirmation gates before irreversible actions. Every dispatched agent returns a 3-component briefing — investigated / decided-with-evidence / shipped-or-blocked-with-reason.
+**Directive to:** Claude (top-of-conversation enforcement) + every dispatched subagent (top-of-brief instruction) + memory system ([[feedback_use_tools_dont_ask_questions]] in MEMORY.md).
+**Condition for revisit:** Investigation-error rate climbs above 1-in-10 actions (agents shipping broken work because over-rotating toward action without evidence). If that happens, soften to "confidence < 70% must surface uncertainty and ask".

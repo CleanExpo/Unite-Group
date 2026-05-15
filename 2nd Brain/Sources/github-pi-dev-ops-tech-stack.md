@@ -18,6 +18,11 @@ tags:
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.metadata]
+# Required to accept the bubus VCS pin (PR #234) — direct references are
+# off by default in hatchling. Without this, `pip install -e .` fails.
+allow-direct-references = true
+
 [project]
 name = "tao"
 version = "1.0.0"
@@ -33,6 +38,7 @@ dependencies = [
     "bcrypt>=4.0",
     "anthropic>=0.90",
     "pyotp>=2.9",   # RA-1839 — TOTP validation for /api/swarm/{kill,resume}
+    "bubus @ git+https://github.com/browser-use/bubus.git@7c09342724feabee7785f99e60e583d54bf6882c",
 ]
 
 [tool.pytest.ini_options]

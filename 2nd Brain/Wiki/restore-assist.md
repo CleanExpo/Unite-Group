@@ -1,6 +1,6 @@
 ---
 type: wiki
-updated: 2026-05-14
+updated: 2026-05-15
 ---
 
 # RestoreAssist (RA)
@@ -10,6 +10,96 @@ iOS app for the restoration industry. Also available as PWA at restoreassist.app
 **GitHub:** CleanExpo/RestoreAssist
 **Linear project:** RA-* tickets
 **Target:** TestFlight → App Store; RA-1842 = App Store release ticket
+
+## Three P0 hotfixes — sign-in loop chain (2026-05-15)
+
+Same-day stabilisation of a 3-day production sign-in loop. All server-side; no mobile rebuild needed because both iOS + web pull live API behaviour.
+
+| PR | Fix | Root cause |
+|---|---|---|
+| **#1081** | Disable Prisma-on-Edge in middleware paywall block (`void isHardPaywallWhitelisted` left in place as one-line restore mechanism) | SP-3 T15 paywall middleware imported `lib/trial-handling` which loads Prisma. Vercel Edge runtime cannot load Prisma's Node-binary engine → crashed every authenticated request → cookie state unreliable → users bounced to /login |
+| **#1082** | Add bare `/dashboard`, `/reports`, `/compliance`, `/sign` paths to both `matcher` AND `LOGIN_GATE_PREFIXES` | **Next.js path-to-regexp does NOT treat `:path*` as zero-or-more for the top-level segment.** `/dashboard/:path*` only matches `/dashboard/x`, NOT bare `/dashboard`. After Google OAuth → callbackUrl=`/dashboard` → middleware skipped → client `useSession()` raced cookie write → bounced to /login. THE 3-day root cause. |
+| **#1083** | Stamp `setupCompletedAt` in iOS `native-token-exchange` JWT payload | Manual JWT payload at lines 275-287 omitted the claim. Once #1082 made setup-wizard gate fire on bare `/dashboard`, every iOS native sign-in dead-ended on `/setup` inside WKWebView. |
+
+**Lesson:** Next.js matcher `:path*` is NOT zero-or-more for the top segment. Always include the bare path AND `:path*` for every protected surface — i.e. `["/dashboard", "/dashboard/:path*"]`. Same trap on `/reports`, `/compliance`, `/sign`. Smoke test post-fix: `curl -sI /dashboard` MUST return 307 → `/login?callbackUrl=%2Fdashboard`.
+
+**Browser-side recovery:** users on regular Chrome had stale `__Secure-next-auth.session-token` cookies from 3 days of failed loops. Fix: DevTools → Application → Storage → "Clear site data" for restoreassist.app. Incognito works immediately (no cookies). Safari path was clean throughout — only Chrome accumulated bad state.
+
+**Sandbox drift fix:** PR #1085 merged main back into sandbox so the 3 hotfixes don't roll back on the next sandbox→main release.
+
+## SP-8 Help Library — 100% green (2026-05-15)
+
+In-app How-To dropdown + ⌘K fuzzy search + 8 MDX articles (one per category) + `/help` public mirror + AI-readable frontmatter (substrate for SP-G AI Setup Agent). Shipped to prod via PR #1080. 21 branded PNG placeholders (8 hero + 13 inline) uploaded to prod Cloudinary cloud `dmaulkthb` via `scripts/sp8-help-placeholders.mjs` (PR #1084). Each placeholder is brand-styled (navy `#1C2E47` base + category accent gradient) with article title baked in via SVG → Sharp. **Same public_ids overwrite cleanly** for real screenshots post-T-day — edit titles in the script and re-run, no MDX changes needed.
+
+Smoke-tested 2026-05-15: all 21 Cloudinary URLs return 200 OK + all 8 `/help/<category>/<slug>` article pages render hero + inline images end-to-end.
+
+## Senior Briefing Pattern — operating posture (2026-05-15)
+
+Pi-CEO Board deliberation 2026-05-15 produced operating standard for all Claude conversations + every dispatched subagent. **AskUserQuestion is banned for any question whose answer is discoverable via available tools in ≤ 3 tool calls.** Only allowed for (a) stakeholder preferences between distinct valid options, (b) confirmation gates before irreversible actions. Every dispatched agent returns a 3-component briefing: *investigated / decided-with-evidence / shipped-or-blocked-with-reason*. Memory: `feedback_use_tools_dont_ask_questions.md`. Board directive logged at [[operational-priorities-q2-2026]] Board Directives Log.
+
+## P0 incident chain — iOS Google native sign-in (2026-05-15 evening)
+
+Three-stage P0 resolution. Phill confirmed first-ever successful native exchange at 10:42:28Z on his CEO account `phill.mcgurk@gmail.com`.
+
+| PR | Fix | Root cause |
+|---|---|---|
+| **#1093** (round 1) | Server accepts EITHER plaintext OR SHA-256 nonce echo | **Wrong theory.** Assumed plugin SHA-256s but server expects plaintext (or vice versa). Round-1 unmerged value: extended error-message diagnostic with truncated value prefixes |
+| **#1094** (round 2) | Skip nonce check entirely when claim is empty | **Actual root cause:** capgo SocialLogin 1.0.4(15) drops `options.nonce` before calling GIDSignIn → Google's idToken has no `nonce` claim. Hardcoded SHA-256 check fails 100%. Round-1 diagnostic unlocked round-2 evidence (`claim=…` empty in SecurityEvent at 10:29:08Z) |
+
+**Evidence:** 9 attempts since 2026-05-08 — **0 successes** before round 2. SecurityEvent table queried via Supabase MCP. Server-side fix, no App Store resubmission needed (iOS app loads web layer live per `capacitor.config.json:5` `server.url: https://restoreassist.app`).
+
+**Lesson locked:** memory `feedback_log_values_before_fixing.md` — before shipping a theory-driven fix to a comparison/validation bug, first ship a DIAGNOSTIC that logs the actual values being compared. Round-1 cost ~30min of latency + Phill's patience ("ridiculous"). Pattern: extended error messages with truncated value prefixes are tier-1 verification debt that pays back the next time the check fails.
+
+**Cleanup:** Pre-existing `lib/oauth-native.ts:181` `window.alert` diagnostic from PR #1012 helped here too — it would have surfaced if `SocialLogin.login()` threw pre-exchange. Since Phill only saw the generic toast (no alert), we knew the failure was post-OAuth-handshake → exchange step → narrowing happened correctly via tools rather than asking him questions.
+
+## Customer Portal + Multi-Seat Licensing — strategic wedge (2026-05-15)
+
+PR #1096 (spec draft) + #1097 (Margot research integration) merged to sandbox. The Customer Portal is the **strategic wedge** that differentiates RestoreAssist from Encircle, DocuSketch, ServiceM8, Ascora, Tristar, Xactimate. Margot deep_research_max confirmed verbatim: *"No vendor currently offers a free, branded, mobile-first portal designed specifically to educate the homeowner, explain technical restoration processes, and decode insurance jargon."*
+
+**Two intertwined deliverables (single architecture project):**
+
+1. **Multi-seat licensing:** $99/mo desktop org subscription + $11/mo per-user mobile seat (one $11 covers iPhone + iPad combined). Customer Portal access is $0.
+2. **Customer Portal explainer hub:** branded iPad/iPhone surface for clients, free, content-rich (process explainers + insurance-claim walkthroughs + policy-terminology glossary + about-the-business + blog posts).
+
+**Strategic positioning:**
+- DR Method (Phill's proprietary restoration approach) seeds platform-default content
+- NRPG (industry network) is the content backbone — Customer Portal becomes deployment vehicle for NRPG-standardized methodology
+- Cross-business synergy: NRPG membership + RA platform fee bundle on same customer
+
+**Margot-validated Apple compliance:** Guideline 4.2.6 (Anti-Templating) confirms "same IPA, multi-mode" is the correct architecture. Per-tradie iOS apps would be rejected. Procore/Jobber/Housecall Pro precedent uses single binary + token-based deep links — same pattern.
+
+**Quantified Margot-validated ROI:**
+- Jobber Client Hub: NRR > 100%, churn ~5-7%/yr, +35% quote-win rate
+- Housecall Pro: customer reviews 50 → 800 via in-app prompts
+- Encircle: 15% annual revenue growth + 2× claim capacity via documentation portal
+- ServiceTitan baseline: 75% of contractors offer portal but only 26% have two-way comms (RA's portal default = two-way + educational = immediate differentiation)
+
+**Timing:** NOT for T-day. 6-week Wave 3 post-launch build. Spec lives at `docs/superpowers/specs/2026-05-15-customer-portal-multi-seat-design.md` (583 lines, research-backed).
+
+**13 open questions still pending Phill review** before implementation plan generation kicks off. Most consequential: Apple IAP 30% cut absorbing vs pass-through; state-by-state AU content variants; NRPG content tier (bundled membership vs separate paid tier).
+
+## SP-8 Help Library tutorial videos shipped (2026-05-15)
+
+PR #1095 — 6 Remotion videos for the SP-8 Help categories without tutorial coverage: inspections, reports, clients-and-portal, billing, team, compliance. ~$10 ElevenLabs cost (50% of $20 budget). 75s each, 7.4-7.9MB MP4 at 1920×1080 with Sarah AU/UK voiceover. Shipped via `localPath` fallback (new optional field on `VIDEO_REGISTRY.RegistryEntry`) because YouTube upload pipeline requires admin OAuth session not available to worktree agents. Post-merge swap to `youtubeId` is a 6-line follow-up PR after running `/api/auth/youtube-consent` flow. Storyboards live off-repo at `Pi-CEO/Pi-Dev-Ops/remotion-studio/src/storyboards/ra-help-{category}-75s-2026-05-15.json`.
+
+**VideoExplainer component extended:** `components/setup/VideoExplainer.tsx:48-66` now branches on `localPath` vs `youtubeId`. Renders native `<video controls preload="metadata" playsInline>` for local fallback. Same brand-matching wrapper.
+
+**MDX integration:** Each of 6 SP-8 articles (`content/help/<category>/*.mdx`) embeds `<VideoExplainer slug="help-{category}" />` after intro paragraph.
+
+## Wave 2 spec drafts + brainstorm-processed (2026-05-15)
+
+Three Wave 2 specs drafted by parallel Explore subagents + processed by parallel research subagents in one session. All four PRs land on sandbox awaiting Phill's section-by-section approval. Wave 2 unlocks the AI-led product surface promised in marketing copy.
+
+| PR | Spec | Net recommendation |
+|---|---|---|
+| #1086 | **SP-G AI Setup Agent** — bottom-sheet Sidekick that consumes SP-8 Help Library AI-readable frontmatter (`aiSummary` + `userIntents` + `successCriteria`) and drives setup/configuration tasks for the user | Approve baseline + extend existing `LiveTeacherSession`/`TeacherUtterance`/`TeacherToolCall` Prisma models (already at schema.prisma:6090-6140) instead of adding new ones. Diverging recommendations from brainstorm-processing: ship Web Speech voice in Wave 1 (vs text-only spec) + queue-and-flush offline pattern per CLAUDE.md rule 24 |
+| #1088 | **SP-6 Email Provider BYOK** — `EmailIntegration` + `EmailSendJob` + provider abstraction mirroring `lib/storage/StorageProvider` | Narrow provider set: Resend + SendGrid v1; **defer SES** (sandbox-approval wall breaks UX promise). DKIM auto-downgrade. Email-class split fallback chain (transactional → platform-primary; business → BYOK-primary). Reply-To split per class |
+| #1089 | **SP-H Knowledge Substrate** — Obsidian wiki → pgvector RAG via per-H2 chunking + `text-embedding-3-small` (1536d) + separate `wiki_chunks` table + Hermes cron host. SP-G's `lookup-iicrc` tool consumes the `retrieve(query, filters?, topK?)` API | **Approve all 7 defaults as drafted.** Strong precedent: `IicrcChunk` schema.prisma:5777-5793 (Q1/Q3) + `text-embedding-3-small` already wired at lib/ai/embeddings.ts:92-115 (Q2). Minor staleness flag: spec says 145 wiki files, actual count is 149 |
+| **#1090** | Brainstorm-processed decision packs for all three (merged to sandbox 09:26:51Z, commit `443738d9`) | Each pack carries 3-line Verification Ledger per `[[quality-first-autonomy]]`. Independence limit: same-vendor Sonnet self-review; `opus-adversary` not triggered (tier-1 spec-doc stake) |
+
+**Cost ceiling locked:** SP-H embedding + cron host budgeted < $50/month. SP-G token cost predicted < $0.04/session if Web Speech voice ships in Wave 1 (vs > $1/session if Whisper STT used — defer Whisper to Wave 3).
+
+**Xcode iOS tier-1 verification (2026-05-15):** Built `App.xcodeproj` Debug for iPhone 17 Pro simulator, installed + launched (`com.restoreassist.app` pid 35761), screenshot confirmed WebView rendered restoreassist.app marketing splash with branding intact. **Independence limit disclosed:** simulator cannot drive Capgo SocialLogin native Google sheet (relies on iOS GIDSignIn which needs real device); PR #1083 `setupCompletedAt` JWT fix is server-side deployed — final verification still requires Phill's iPhone tap.
 
 ## Strategic positioning — RA is the parent-business CRM (2026-05-14)
 

@@ -60,6 +60,8 @@ tags:
     "db:studio": "prisma studio",
     "db:seed:ceo": "npx tsx prisma/seed-ceo.ts",
     "script:grant-trial-credits": "npx tsx scripts/grant-trial-credits.ts",
+    "build:help-index": "tsx scripts/build-help-index.ts",
+    "prebuild": "tsx scripts/build-help-index.ts",
     "test:smoke": "playwright test --grep @smoke",
     "test:smoke:ci": "playwright test --grep @smoke --reporter=line",
     "test:smoke:prod": "CI=true PLAYWRIGHT_BASE_URL=https://restoreassist.app playwright test --grep @smoke --reporter=line",
@@ -92,6 +94,4 @@ tags:
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^5.2.2",
     "@next/bundle-analyzer": "^16.2.6",
-    "@prisma/client": "^6.19.3",
-    "@radix-ui/react-accordion": "1.2.12",
 ```

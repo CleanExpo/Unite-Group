@@ -156,3 +156,20 @@ Practical rules now in effect:
 **Decision:** Wave 1 = vibetest-use MCP install + bubus pilot (gated on Pi-CEO infra/portfolio ruling) + bux 2FA-live-view pattern lift into Pilot Phase 2.
 **Directive to:** pm-core (vibetest-use install), superpowers:writing-plans agent (plan authoring), Phill (Pi-CEO classification ruling).
 **Condition for revisit:** Pi-CEO classified as portfolio (not infra) under the prior [[board-deliberation-browser-harness-2026-05-14]] sequencing lock — bubus moves to Wave 2 automatically.
+
+## Board Directives Log
+
+### 2026-05-15 — Install enforcement discipline across the swarm
+**Decision:** Ship a four-layer enforcement loop by Tue 2026-05-19 EOD: (L1) Decision-Rights Matrix prefix in every agent prompt, (L2) pre-emit founder-voice self-critique on every controller turn, (L3) `~/.claude/hooks/Stop/` mechanical block on "Want me to" / "Should I" / options-without-default-recommendation, (L4) violation log to `~/Pi-CEO/.harness/swarm/controller-violations.jsonl` aggregated into Margot's Monday weekly brief.
+**Directive to:** Technical Architect (controller-agent self) — hooks shipped Mon 2026-05-18 EOD AEST.
+**Condition for revisit:** If after 30 days of operation the violation-log trend is flat or rising rather than declining, the discipline is performative — escalate to model replacement or prompt-scaffolding rewrite at the controller layer.
+
+### 2026-05-15 — Install autonomous-continue mechanism (stops-after-one-task fix)
+**Decision:** Ship Stop-hook chain extension that auto-continues to the next queued task while in armed autonomous mode, with triple-cap (count default 10, wall-clock 2h, ~200k tokens) and Telegram-driven HALT path. Queue is session-scoped at `~/Pi-CEO/.harness/swarm/autonomous-queue.jsonl`; state at `~/.claude/state/autonomous.json`; HALT sentinel at `~/Pi-CEO/.harness/swarm/HALT`.
+**Directive to:** Technical Architect (controller agent self) — hook shipped same turn 2026-05-15.
+**Condition for revisit:** If first 10 autonomous sessions show value-additive task selection <70% (Phill post-hoc review OR violation-log spike), revert to user-gated turn behaviour.
+
+### 2026-05-15 — Install three-tier multi-model quality verification gate (Layer 6 of enforcement loop)
+**Decision:** Ship three-tier quality stack over every controller output. Tier 1: Haiku-3 minority-veto panel (QA Lead / Brand Guardian / Contrarian specialisations) per output, ~$0.0003/output. Tier 2: Sonnet arbiter + Board consult on Tier-1 disagreement or high-stakes filter. Tier 3: human (Phill) only on Tier-2 unresolved or irreversible-action gates. Auto-labelled calibration corpus mined from existing session transcripts (zero founder time); weekly Hermes recalibration cron weights reviewers per Spearman correlation with auto-labels. Targets TNR rise from 25% → 60-70% per research findings Q1.5 + Q5.
+**Directive to:** Technical Architect (controller agent self) — Tier 1 hook + corpus miner shipped same session 2026-05-15; Hermes recalibration cron first firing Mon 2026-05-25 06:00 AEST.
+**Condition for revisit:** If measured aggregate TNR after first 100 controller outputs stays <50%, restructure (Sonnet in Tier 1 at higher cost, or hierarchical cascade replacing minority-veto).
