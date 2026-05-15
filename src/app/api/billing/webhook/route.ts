@@ -52,7 +52,7 @@ function verifyStripeSignature(
   const a = Buffer.from(v1, 'hex');
   const b = Buffer.from(expected, 'hex');
   if (a.length !== b.length) return false;
-  return timingSafeEqual(a, b);
+  return timingSafeEqual(new Uint8Array(a), new Uint8Array(b));
 }
 
 export async function POST(request: NextRequest) {

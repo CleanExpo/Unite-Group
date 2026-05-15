@@ -48,5 +48,5 @@ export function timingSafeTokenMatch(
   const a = Buffer.from(provided);
   const b = Buffer.from(expected);
   if (a.length !== b.length) return false;
-  return crypto.timingSafeEqual(a, b);
+  return crypto.timingSafeEqual(new Uint8Array(a), new Uint8Array(b));
 }

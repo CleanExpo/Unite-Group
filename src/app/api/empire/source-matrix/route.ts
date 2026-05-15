@@ -17,6 +17,12 @@ import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/security/require-admin';
 import type { BusinessSource, SourceKind } from '@/types/business-source';
+import {
+  getCache,
+  setCache,
+  type SourceMatrix,
+  type SourceMatrixBrand,
+} from './_helpers';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -32,26 +38,6 @@ const PORTFOLIO_SLUGS = [
 ];
 const TTL_MS = 60_000;
 const ADAPTER_TIMEOUT_MS = 12_000;
-
-export interface SourceMatrixBrand {
-  slug: string;
-  name: string;
-  cells: Record<SourceKind, BusinessSource>;
-}
-
-export interface SourceMatrix {
-  computed_at: string;
-  brands: SourceMatrixBrand[];
-}
-
-// ─── Module-level TTL cache ───────────────────────────────────────────────────
-
-interface CacheEntry {
-  computed_at: number;
-  payload: SourceMatrix;
-}
-
-let CACHED: CacheEntry | null = null;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -172,8 +158,9 @@ export async function GET(req: Request) {
   const force = url.searchParams.get('force') === '1';
 
   const now = Date.now();
-  if (!force && CACHED && now - CACHED.computed_at < TTL_MS) {
-    return NextResponse.json(CACHED.payload, {
+  const cached = getCache();
+  if (!force && cached && now - cached.computed_at < TTL_MS) {
+    return NextResponse.json(cached.payload, {
       headers: {
         'Cache-Control': 'no-store',
         'X-Source-Matrix-Cache': 'hit',
@@ -184,7 +171,7 @@ export async function GET(req: Request) {
   const baseUrl = getBaseUrl(req);
   const payload = await buildMatrix(baseUrl);
 
-  CACHED = { computed_at: now, payload };
+  setCache({ computed_at: now, payload });
 
   return NextResponse.json(payload, {
     headers: {
@@ -192,9 +179,4 @@ export async function GET(req: Request) {
       'X-Source-Matrix-Cache': force ? 'force' : 'miss',
     },
   });
-}
-
-// Test-only: clear the module cache between cases.
-export function __resetCache() {
-  CACHED = null;
 }
