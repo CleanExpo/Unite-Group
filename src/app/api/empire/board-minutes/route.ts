@@ -1,42 +1,62 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { readdir, readFile } from 'fs/promises';
-import { join } from 'path';
-import os from 'os';
+import { getAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/security/require-admin';
+
+// Reads Pi-CEO Board directives from Supabase `board_directives` table.
+// Replaces the prior implementation that read markdown files from
+// ~/Pi-CEO/Pi-Dev-Ops/.harness/board-meetings/ — that path doesn't exist on
+// Vercel serverless runtime, so the Board Alerts card was permanently empty
+// on production (verified 2026-05-15). The table is populated by the
+// /ceo-board skill's Stage 7 write-back and any direct INSERT from session
+// work; UI reads from it on every page load.
+//
+// Admin-auth gate (requireAdmin) preserved from security batch 2b (PR #49).
+
+type DirectiveRow = {
+  id: string;
+  business_slug: string | null;
+  date: string;
+  topic: string;
+  decision: string;
+  directive_to: string;
+  status: string;
+  created_at: string;
+};
 
 export async function GET(req: NextRequest) {
   const gate = await requireAdmin(req);
   if (gate instanceof NextResponse) return gate;
-  const boardDir = join(os.homedir(), 'Pi-CEO/Pi-Dev-Ops/.harness/board-meetings');
 
   try {
-    const files = (await readdir(boardDir))
-      .filter(f => f.endsWith('-board-minutes.md'))
-      .sort()
-      .reverse()
-      .slice(0, 3);
+    const supabase = getAdminClient();
+    const { data, error } = await supabase
+      .from('board_directives')
+      .select('id, business_slug, date, topic, decision, directive_to, status, created_at')
+      .eq('status', 'active')
+      .order('date', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(5);
 
-    const minutes = await Promise.all(files.map(async (file) => {
-      const content = await readFile(join(boardDir, file), 'utf-8');
-      const date = file.replace('-board-minutes.md', '');
+    if (error) {
+      return NextResponse.json({ minutes: [], error: error.message });
+    }
 
-      // Extract topic and decision from markdown
-      const topicMatch = content.match(/(?:Topic:|Brief:|##?\s+(?:Topic|Brief)):?\s*(.+)/i);
-      const decisionMatch = content.match(/(?:DECISION|Decision|Approved|Directive):?\s*(.{20,200})/i);
-      const directiveMatch = content.match(/(?:DIRECTIVE ISSUED TO|Directive to):?\s*(.+)/i);
-
-      return {
-        date,
-        topic: topicMatch?.[1]?.trim().slice(0, 100) ?? 'Board deliberation',
-        decision: decisionMatch?.[1]?.trim().slice(0, 200) ?? 'See full minutes',
-        directiveTo: directiveMatch?.[1]?.trim().slice(0, 50) ?? null,
-        preview: content.slice(0, 300),
-      };
+    const minutes = (data ?? []).map((row: DirectiveRow) => ({
+      date: row.date,
+      topic: row.topic.slice(0, 100),
+      decision: row.decision.slice(0, 200),
+      directiveTo: row.directive_to?.slice(0, 50) ?? null,
+      preview: `${row.topic}\n\n${row.decision}`.slice(0, 300),
+      business: row.business_slug,
+      status: row.status,
     }));
 
     return NextResponse.json({ minutes });
-  } catch {
-    return NextResponse.json({ minutes: [], error: 'Board minutes directory not accessible' });
+  } catch (err) {
+    return NextResponse.json(
+      { minutes: [], error: err instanceof Error ? err.message : 'unknown error' },
+      { status: 500 }
+    );
   }
 }
