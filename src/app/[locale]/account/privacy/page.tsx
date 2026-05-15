@@ -5,14 +5,39 @@ import { useRouter } from 'next/navigation';
 import { Session } from '@supabase/supabase-js';
 import { supabaseClient } from '@/lib/supabase/client';
 import { CookiePreferencesButton } from '../../../../components/compliance/CookieConsentProvider';
-import { 
-  UserPrivacySettings, 
-  DataExportRequest, 
+import {
+  SpotlightCard,
+  SpotlightCardHeader,
+  SpotlightCardTitle,
+  SpotlightCardDescription,
+  SpotlightCardContent,
+} from '@/components/ui/spotlight-card';
+import { PortfolioTile, type PortfolioStatus } from '@/components/empire/PortfolioTile';
+import {
+  UserPrivacySettings,
+  DataExportRequest,
   DataDeletionRequest,
   ExportFormat,
   RequestStatus,
   DataCategory
 } from '@/lib/compliance/types';
+
+const CANDY_RED_SPOTLIGHT = 'rgba(179, 0, 0, 0.30)';
+
+function mapRequestStatus(status: RequestStatus): PortfolioStatus {
+  switch (status) {
+    case RequestStatus.COMPLETED:
+      return 'operational';
+    case RequestStatus.PROCESSING:
+      return 'building';
+    case RequestStatus.PENDING:
+      return 'degraded';
+    case RequestStatus.FAILED:
+    case RequestStatus.DENIED:
+    default:
+      return 'down';
+  }
+}
 
 interface PrivacyState {
   loading: boolean;
@@ -278,12 +303,18 @@ export default function PrivacyPage() {
         </div>
       )}
 
-      <div style={{ background: "var(--surface-1)", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 12, padding: 24, marginBottom: 20 }}>
-        <h2 className="text-xl font-semibold mb-4">Communication Preferences</h2>
-        <p className="mb-4">
-          Control what types of communications you receive from us. You can change these settings at any time.
-        </p>
-        
+      <SpotlightCard
+        spotlightColor={CANDY_RED_SPOTLIGHT}
+        borderRadius={12}
+        style={{ marginBottom: 20 }}
+      >
+        <SpotlightCardHeader>
+          <SpotlightCardTitle>Communication Preferences</SpotlightCardTitle>
+          <SpotlightCardDescription>
+            Control what types of communications you receive from us. You can change these settings at any time.
+          </SpotlightCardDescription>
+        </SpotlightCardHeader>
+        <SpotlightCardContent>
         <div className="space-y-4 mb-6">
           <div className="flex items-start">
             <div className="flex items-center h-5">
@@ -429,24 +460,37 @@ export default function PrivacyPage() {
             {state.submitting ? 'Saving…' : 'Save Preferences'}
           </button>
         </div>
-      </div>
+        </SpotlightCardContent>
+      </SpotlightCard>
 
-      <div style={{ background: "var(--surface-1)", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 12, padding: 24, marginBottom: 20 }}>
-        <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--ink-primary)", marginBottom: 8 }}>Cookie Preferences</h2>
-        <p style={{ fontSize: 14, color: "#64748b", marginBottom: 16 }}>
-          Manage your cookie preferences to control what information is collected when you visit our website.
-        </p>
-        <div>
+      <SpotlightCard
+        spotlightColor={CANDY_RED_SPOTLIGHT}
+        borderRadius={12}
+        style={{ marginBottom: 20 }}
+      >
+        <SpotlightCardHeader>
+          <SpotlightCardTitle>Cookie Preferences</SpotlightCardTitle>
+          <SpotlightCardDescription>
+            Manage your cookie preferences to control what information is collected when you visit our website.
+          </SpotlightCardDescription>
+        </SpotlightCardHeader>
+        <SpotlightCardContent>
           <CookiePreferencesButton className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" />
-        </div>
-      </div>
+        </SpotlightCardContent>
+      </SpotlightCard>
 
-      <div style={{ background: "var(--surface-1)", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 12, padding: 24, marginBottom: 20 }}>
-        <h2 className="text-xl font-semibold mb-4">Data Export</h2>
-        <p className="mb-4">
-          You can request a copy of your personal data at any time. We will process your request and provide a download link.
-        </p>
-        
+      <SpotlightCard
+        spotlightColor={CANDY_RED_SPOTLIGHT}
+        borderRadius={12}
+        style={{ marginBottom: 20 }}
+      >
+        <SpotlightCardHeader>
+          <SpotlightCardTitle>Data Export</SpotlightCardTitle>
+          <SpotlightCardDescription>
+            You can request a copy of your personal data at any time. We will process your request and provide a download link.
+          </SpotlightCardDescription>
+        </SpotlightCardHeader>
+        <SpotlightCardContent>
         <div className="flex flex-wrap gap-4 mb-6">
           <button
             type="button"
@@ -470,75 +514,45 @@ export default function PrivacyPage() {
         {state.exportRequests.length > 0 && (
           <div>
             <h3 className="text-lg font-medium mb-2">Recent Export Requests</h3>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-800">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Format
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
+              {state.exportRequests.map((request) => (
+                <PortfolioTile
+                  key={request.id}
+                  title={`Export request · ${request.exportFormat}`}
+                  description={new Date(request.createdAt).toLocaleDateString()}
+                  status={mapRequestStatus(request.status)}
+                >
+                  {request.status === RequestStatus.COMPLETED && request.downloadUrl ? (
+                    <a
+                      href={request.downloadUrl}
+                      className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-200"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       Download
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {state.exportRequests.map((request) => (
-                    <tr key={request.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {new Date(request.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {request.exportFormat}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          request.status === RequestStatus.COMPLETED
-                            ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'
-                            : request.status === RequestStatus.PENDING
-                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100'
-                            : request.status === RequestStatus.PROCESSING
-                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100'
-                            : 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'
-                        }`}>
-                          {request.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {request.status === RequestStatus.COMPLETED && request.downloadUrl ? (
-                          <a
-                            href={request.downloadUrl}
-                            className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-200"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            Download
-                          </a>
-                        ) : (
-                          'Not available'
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                    </a>
+                  ) : (
+                    <span style={{ fontSize: 13, color: "#64748b" }}>Not available</span>
+                  )}
+                </PortfolioTile>
+              ))}
             </div>
           </div>
         )}
-      </div>
-      
-      <div style={{ background: "var(--surface-1)", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 12, padding: 24 }}>
-        <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--ink-primary)", marginBottom: 8 }}>Data Deletion</h2>
-        <p className="mb-4">
-          You can request the deletion of your personal data. This process cannot be undone.
-        </p>
-        
+        </SpotlightCardContent>
+      </SpotlightCard>
+
+      <SpotlightCard
+        spotlightColor={CANDY_RED_SPOTLIGHT}
+        borderRadius={12}
+      >
+        <SpotlightCardHeader>
+          <SpotlightCardTitle>Data Deletion</SpotlightCardTitle>
+          <SpotlightCardDescription>
+            You can request the deletion of your personal data. This process cannot be undone.
+          </SpotlightCardDescription>
+        </SpotlightCardHeader>
+        <SpotlightCardContent>
         <div className="mb-6">
           <h3 className="text-lg font-medium mb-2">Delete Account Data</h3>
           <p className="text-gray-500 dark:text-gray-400 mb-4">
@@ -558,51 +572,20 @@ export default function PrivacyPage() {
         {state.deletionRequests.length > 0 && (
           <div>
             <h3 className="text-lg font-medium mb-2">Recent Deletion Requests</h3>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-800">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Type
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {state.deletionRequests.map((request) => (
-                    <tr key={request.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {new Date(request.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {request.requestType === 'full' ? 'Full Account Deletion' : 'Partial Data Deletion'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          request.status === RequestStatus.COMPLETED
-                            ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'
-                            : request.status === RequestStatus.PENDING
-                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100'
-                            : request.status === RequestStatus.PROCESSING
-                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100'
-                            : 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'
-                        }`}>
-                          {request.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
+              {state.deletionRequests.map((request) => (
+                <PortfolioTile
+                  key={request.id}
+                  title={request.requestType === 'full' ? 'Full Account Deletion' : 'Partial Data Deletion'}
+                  description={new Date(request.createdAt).toLocaleDateString()}
+                  status={mapRequestStatus(request.status)}
+                />
+              ))}
             </div>
           </div>
         )}
-      </div>
+        </SpotlightCardContent>
+      </SpotlightCard>
       </div>
     </div>
   );
