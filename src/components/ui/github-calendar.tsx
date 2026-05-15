@@ -214,7 +214,7 @@ export function GithubCalendar({
                                         stiffness: 260,
                                         damping: 20
                                     }}
-                                    onMouseEnter={(e) => {
+                                    onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
                                         setHoveredDate(day.date)
                                         setHoveredCount(day.contributionCount)
                                         const rect = e.currentTarget.getBoundingClientRect()
