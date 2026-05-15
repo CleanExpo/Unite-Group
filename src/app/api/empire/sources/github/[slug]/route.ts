@@ -8,6 +8,7 @@
 
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/security/require-admin';
 import type { BusinessSource } from '@/types/business-source';
 import {
   fetchGithubMetrics,
@@ -149,9 +150,11 @@ async function fetchGithub(slug: string): Promise<BusinessSource> {
 }
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ slug: string }> }
 ) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
   const { slug } = await params;
   const source = await fetchGithub(slug);
   return NextResponse.json(source, { headers: { 'Cache-Control': 'no-store' } });

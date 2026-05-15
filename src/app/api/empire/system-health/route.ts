@@ -19,6 +19,7 @@
 
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/security/require-admin';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -164,6 +165,10 @@ async function probeApiRoute(baseUrl: string, route: { path: string; auth: boole
     if (route.auth && process.env.PI_CEO_API_KEY) {
       headers['x-admin-token'] = process.env.PI_CEO_API_KEY;
     }
+    // P0 batch 2b: every empire route now requires admin auth. Forward the
+    // service-role bearer so the probe doesn't false-positive as down.
+    const svcKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (svcKey) headers.authorization = `Bearer ${svcKey}`;
     const res = await fetch(`${baseUrl}${route.path}`, {
       headers,
       cache: 'no-store',
@@ -221,9 +226,14 @@ const CANARY_SLUG = 'synthex';
 
 async function probeAdapterHealth(baseUrl: string, kind: AdapterKind): Promise<Quad> {
   try {
+    // Adapter routes are now admin-gated (P0 batch 2b). Forward service-role.
+    const headers: Record<string, string> = {};
+    const svcKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (svcKey) headers.authorization = `Bearer ${svcKey}`;
     const res = await fetch(`${baseUrl}/api/empire/sources/${kind}/${CANARY_SLUG}`, {
       cache: 'no-store',
       signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+      headers,
     });
     // 5xx (or any non-2xx) → adapter is broken on our side.
     if (!res.ok) return 'err';
@@ -268,9 +278,14 @@ async function probeIntegrations(baseUrl: string): Promise<SignalIntegrations> {
 
 async function probeBusinesses(baseUrl: string): Promise<SignalBusinesses> {
   try {
+    // businesses route is now admin-gated (P0 batch 2b). Forward service-role.
+    const headers: Record<string, string> = {};
+    const svcKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (svcKey) headers.authorization = `Bearer ${svcKey}`;
     const res = await fetch(`${baseUrl}/api/empire/businesses`, {
       cache: 'no-store',
       signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+      headers,
     });
     if (!res.ok) {
       return { status: 'err', total: 0, ok_count: 0, warn_count: 0, err_count: 0, summary: `businesses API ${res.status}` };
@@ -434,6 +449,8 @@ export async function computeSystemHealth(baseUrl: string): Promise<SystemHealth
 // ─── HTTP handlers ────────────────────────────────────────────────────────────
 
 export async function GET(req: Request) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
   if (_cache && _cache.expires_at > Date.now()) {
     return NextResponse.json(_cache.payload, {
       headers: { 'Cache-Control': 'no-store', 'X-Cache': 'HIT' },
@@ -447,6 +464,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
   // Force refresh — bypasses cache.
   const payload = await computeSystemHealth(getBaseUrl(req));
   _cache = { payload, expires_at: Date.now() + CACHE_TTL_MS };

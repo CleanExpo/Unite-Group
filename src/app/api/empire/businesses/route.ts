@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/security/require-admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,7 +40,9 @@ function healthToStatus(score: number): string {
   return 'down';
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
   const supabase = getAdminClient();
 
   // Latest snapshot per project_id

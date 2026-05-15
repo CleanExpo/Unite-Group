@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/security/require-admin';
 
 const LINEAR_GQL = 'https://api.linear.app/graphql';
 
@@ -32,7 +33,9 @@ function priorityLabel(p: number): 'urgent' | 'high' | 'medium' {
   return 'medium';
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
   const apiKey = process.env.LINEAR_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ priorities: [], error: 'LINEAR_API_KEY not configured' });

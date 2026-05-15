@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/security/require-admin';
 
 // POST /api/empire/rescan/[slug]
 //
@@ -20,6 +21,8 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
   const { slug } = await params;
 
   if (!slug || typeof slug !== 'string') {
@@ -82,9 +85,11 @@ export async function POST(
 // Polling endpoint — returns the most recent scan request for this slug so
 // the UI can show "Scanning…" / "Completed" / "Failed" without lying.
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
   const { slug } = await params;
   if (!slug) return NextResponse.json({ error: 'Invalid slug' }, { status: 400 });
 

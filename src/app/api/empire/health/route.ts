@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/security/require-admin';
 
 const PI_CEO_URL = process.env.PI_CEO_API_URL || 'https://pi-dev-ops-production.up.railway.app';
 const PI_CEO_KEY = process.env.PI_CEO_API_KEY || '';
@@ -63,7 +64,9 @@ function healthToStatus(score: number): 'operational' | 'building' | 'degraded' 
   return 'down';
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
   const piData = PI_CEO_KEY ? await getPiCeoData() : null;
 
   // Build business health from Pi-CEO data or fallback

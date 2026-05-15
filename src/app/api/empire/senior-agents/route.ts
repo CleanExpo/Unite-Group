@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import * as fs from 'fs';
 import * as path from 'path';
+import { requireAdmin } from '@/lib/security/require-admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -107,7 +108,9 @@ function cmoSummary(): AgentBrief {
   };
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
   return NextResponse.json({
     agents: [cfoSummary(), ctoSummary(), cmoSummary()],
     fetched_at: new Date().toISOString(),
