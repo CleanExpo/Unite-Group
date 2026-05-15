@@ -4,6 +4,10 @@ import { useState, useEffect } from "react";
 import Link from 'next/link';
 import { useRouter } from "next/navigation";
 import { supabaseClient } from "@/lib/supabase/client";
+import {
+  SpotlightCard,
+  SpotlightCardContent,
+} from '@/components/ui/spotlight-card';
 
 // Live clock for telemetry panel
 function Clock() {
@@ -232,7 +236,12 @@ export default function LoginPage() {
             <div key={i} style={{ position: "absolute", width: 20, height: 20, ...s }} />
           ))}
 
-          <div style={{ width: "100%", maxWidth: 340 }}>
+          <SpotlightCard
+            spotlightColor="rgba(179, 0, 0, 0.30)"
+            borderRadius={12}
+            style={{ width: "100%", maxWidth: 340 }}
+          >
+            <SpotlightCardContent>
 
             {/* Auth header */}
             <div style={{ marginBottom: 36 }}>
@@ -385,7 +394,8 @@ export default function LoginPage() {
               {mounted && <Clock />}
             </div>
 
-          </div>
+            </SpotlightCardContent>
+          </SpotlightCard>
         </div>
       </div>
     </>

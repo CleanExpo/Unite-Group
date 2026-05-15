@@ -7,6 +7,12 @@ import { supabaseClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { LoaderMark, CheckCircleMark } from "@/components/ui/marks";
 import { motion } from "framer-motion";
+import {
+  SpotlightCard,
+  SpotlightCardHeader,
+  SpotlightCardTitle,
+  SpotlightCardContent,
+} from "@/components/ui/spotlight-card";
 
 const PORTFOLIO = [
   { name: "Synthex",        status: "operational", color: "#16a34a" },
@@ -112,11 +118,16 @@ export default function Register() {
 
       {/* Right form panel */}
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 40 }}>
-        <div style={{ width: "100%", maxWidth: 400 }}>
-          <div style={{ marginBottom: 28 }}>
-            <h2 style={{ fontSize: 22, fontWeight: 700, color: "var(--ink-primary)", letterSpacing: "-0.02em", margin: 0 }}>Create your account</h2>
+        <SpotlightCard
+          spotlightColor="rgba(179, 0, 0, 0.30)"
+          borderRadius={12}
+          style={{ width: "100%", maxWidth: 440 }}
+        >
+          <SpotlightCardHeader>
+            <SpotlightCardTitle style={{ fontSize: 22, color: "var(--ink-primary)", letterSpacing: "-0.02em" }}>Create your account</SpotlightCardTitle>
             <p style={{ fontSize: 14, color: "#52525b", marginTop: 6 }}>Enter your details to request access.</p>
-          </div>
+          </SpotlightCardHeader>
+          <SpotlightCardContent>
 
           {error && (
             <div style={{ marginBottom: 16, padding: "12px 14px", borderRadius: 10, background: "rgba(220,38,38,0.08)", border: "1px solid rgba(220,38,38,0.25)" }}>
@@ -206,7 +217,8 @@ export default function Register() {
             Already have an account?{" "}
             <Link href="/login" style={{ color: "var(--red-400)", textDecoration: "none", fontWeight: 500 }}>Sign in</Link>
           </p>
-        </div>
+          </SpotlightCardContent>
+        </SpotlightCard>
       </div>
     </div>
   );
