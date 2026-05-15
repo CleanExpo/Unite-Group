@@ -6,6 +6,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import {
+  SpotlightCard,
+  SpotlightCardHeader,
+  SpotlightCardTitle,
+  SpotlightCardContent,
+} from '@/components/ui/spotlight-card';
 
 export const dynamic = 'force-static';
 
@@ -140,22 +146,19 @@ export default async function ServicePage({
         <h2 style={sectionH2}>What it doesn&apos;t do</h2>
         <p style={sectionP}>{c.whatItDoesNot}</p>
 
-        <h2 style={sectionH2}>Pricing</h2>
-        <p style={sectionP}>{c.pricing}</p>
-
-        <p
-          style={{
-            marginTop: 40,
-            fontSize: 18,
-            lineHeight: 1.6,
-            fontStyle: 'italic',
-            color: 'var(--ink-primary)',
-            borderLeft: '2px solid var(--red-500)',
-            paddingLeft: 16,
-          }}
+        <SpotlightCard
+          spotlightColor="rgba(179, 0, 0, 0.30)"
+          borderRadius={10}
+          style={{ marginTop: 32 }}
         >
-          {c.verdict}
-        </p>
+          <SpotlightCardHeader>
+            <SpotlightCardTitle>Pricing</SpotlightCardTitle>
+          </SpotlightCardHeader>
+          <SpotlightCardContent>
+            <p>{c.pricing}</p>
+            <p style={{ marginTop: 16, fontStyle: 'italic' }}>{c.verdict}</p>
+          </SpotlightCardContent>
+        </SpotlightCard>
 
         <p style={{ marginTop: 32 }}>
           <Link
