@@ -3,7 +3,11 @@
 // operator in a specific city, then the product paragraph.
 
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { CTABlock } from '@/components/marketing/CTABlock';
+import { getBrandConfig } from '@/lib/branding/getBrandConfig';
+import { PortfolioTile } from '@/components/empire/PortfolioTile';
+import type { BrandConfig } from '@/types/brand-config';
 
 export const dynamic = 'force-static';
 
@@ -55,6 +59,11 @@ export default async function ServicesIndex({
 }) {
   await params;
 
+  // Resolve the Unite-Group brand server-side, same pattern as the homepage
+  // (PR #59). Page is force-static, so this runs once per deploy.
+  const branded = await getBrandConfig('unite-group');
+  const brand: Partial<BrandConfig> = branded?.brand_config ?? {};
+
   return (
     <main
       style={{
@@ -86,34 +95,25 @@ export default async function ServicesIndex({
           Four products. Same operator on the desk for all of them.
         </p>
 
-        <ul style={{ marginTop: 40, listStyle: 'none', padding: 0, marginBottom: 0 }}>
+        <div
+          style={{
+            marginTop: 40,
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: 24,
+          }}
+        >
           {SERVICES.map((s) => (
-            <li
+            <PortfolioTile
               key={s.slug}
-              style={{
-                borderLeft: '2px solid var(--red-500)',
-                paddingLeft: 24,
-                marginBottom: 40,
-              }}
+              title={s.title}
+              status="operational"
+              brandSlug="unite-group"
+              brand={brand}
             >
-              <h2
-                style={{
-                  fontSize: 20,
-                  fontWeight: 600,
-                  margin: 0,
-                  letterSpacing: '-0.01em',
-                }}
-              >
-                <a
-                  href={`/en/services/${s.slug}`}
-                  style={{ color: 'var(--ink-primary)', textDecoration: 'none' }}
-                >
-                  {s.title}
-                </a>
-              </h2>
               <p
                 style={{
-                  marginTop: 8,
+                  margin: 0,
                   fontSize: 14,
                   fontStyle: 'italic',
                   color: 'var(--ink-tertiary)',
@@ -132,9 +132,22 @@ export default async function ServicesIndex({
               >
                 {s.paragraph}
               </p>
-            </li>
+              <Link
+                href={`/en/services/${s.slug}`}
+                style={{
+                  display: 'inline-block',
+                  marginTop: 12,
+                  fontSize: 14,
+                  fontWeight: 500,
+                  color: 'var(--red-500)',
+                  textDecoration: 'none',
+                }}
+              >
+                Read more →
+              </Link>
+            </PortfolioTile>
           ))}
-        </ul>
+        </div>
       </div>
 
       <CTABlock />
