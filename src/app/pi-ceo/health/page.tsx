@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { supabaseClient } from '@/lib/supabase/client';
 import { RefreshMark, BarChartMark, HealthMark } from '@/components/ui/marks';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { PortfolioTile, type PortfolioStatus } from '@/components/empire/PortfolioTile';
 
 interface HealthSnapshot {
   id: string;
@@ -35,6 +36,13 @@ function scoreBg(score: number): string {
   if (score >= 80) return 'color-mix(in srgb, var(--green-400) 15%, transparent)';
   if (score >= 50) return 'color-mix(in srgb, var(--orange-400) 15%, transparent)';
   return 'color-mix(in srgb, var(--red-500) 15%, transparent)';
+}
+
+function scoreStatus(score: number): PortfolioStatus {
+  if (score <= 0) return 'degraded';
+  if (score >= 80) return 'operational';
+  if (score >= 50) return 'degraded';
+  return 'down';
 }
 
 function getTimestamp(snap: HealthSnapshot): string {
@@ -263,13 +271,11 @@ export default function HealthPage() {
 
       {/* Metrics strip */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-        <div style={{
-          background: 'var(--surface-1)', border: '1px solid var(--border-default)',
-          borderRadius: 'var(--radius-md)', padding: '16px 18px',
-        }}>
-          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--ink-tertiary)', textTransform: 'uppercase', marginBottom: 8 }}>
-            Current Health
-          </div>
+        <PortfolioTile
+          title="Current Health"
+          status={scoreStatus(currentHealth)}
+          brandSlug="pi-ceo"
+        >
           <div style={{
             fontSize: 32, fontWeight: 800, fontFamily: 'var(--font-mono)',
             color: currentHealth > 0 ? scoreColor(currentHealth) : 'var(--ink-tertiary)',
@@ -287,15 +293,13 @@ export default function HealthPage() {
               {currentHealth >= 80 ? 'Healthy' : currentHealth >= 50 ? 'Degraded' : 'Critical'}
             </div>
           )}
-        </div>
+        </PortfolioTile>
 
-        <div style={{
-          background: 'var(--surface-1)', border: '1px solid var(--border-default)',
-          borderRadius: 'var(--radius-md)', padding: '16px 18px',
-        }}>
-          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--ink-tertiary)', textTransform: 'uppercase', marginBottom: 8 }}>
-            Security Score
-          </div>
+        <PortfolioTile
+          title="Security Score"
+          status={scoreStatus(currentSecurity)}
+          brandSlug="pi-ceo"
+        >
           <div style={{
             fontSize: 32, fontWeight: 800, fontFamily: 'var(--font-mono)',
             color: currentSecurity > 0 ? scoreColor(currentSecurity) : 'var(--ink-tertiary)',
@@ -303,22 +307,18 @@ export default function HealthPage() {
           }}>
             {currentSecurity > 0 ? currentSecurity : '—'}
           </div>
-        </div>
+        </PortfolioTile>
 
-        <div style={{
-          background: 'var(--surface-1)', border: '1px solid var(--border-default)',
-          borderRadius: 'var(--radius-md)', padding: '16px 18px',
-        }}>
-          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--ink-tertiary)', textTransform: 'uppercase', marginBottom: 8 }}>
-            Snapshots
-          </div>
+        <PortfolioTile
+          title="Snapshots"
+          description={`for ${selectedBiz.label}`}
+          status={bizSnaps.length > 0 ? 'operational' : 'degraded'}
+          brandSlug="pi-ceo"
+        >
           <div style={{ fontSize: 32, fontWeight: 800, fontFamily: 'var(--font-mono)', color: 'var(--ink-primary)', lineHeight: 1 }}>
             {bizSnaps.length}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--ink-tertiary)', marginTop: 8 }}>
-            for {selectedBiz.label}
-          </div>
-        </div>
+        </PortfolioTile>
       </div>
     </div>
   );
