@@ -68,4 +68,13 @@ export const RATE_LIMITS = {
   approvalsGet: { limit: 30, windowMs: 60_000 },
   approvalsPost: { limit: 10, windowMs: 60_000 },
   adminApprovalsCreate: { limit: 10, windowMs: 60_000 },
+  // Batch 2c (deepsec-2026-05-14 cost-amplification surface) —
+  // routes that burn paid third-party APIs per call and were
+  // previously unauthenticated.
+  contentGen: { limit: 10, windowMs: 60_000 },          // OpenAI burn
+  hermesChat: { limit: 20, windowMs: 60_000 },          // Hermes → paid LLMs
+  portalSeoRefresh: { limit: 5, windowMs: 60_000 },     // DataForSEO burn (heavy)
+  seoAuditPdf: { limit: 3, windowMs: 60_000 },          // full audit + PDF render (very heavy)
+  videoPublished: { limit: 30, windowMs: 60_000 },      // legit webhook bursts OK
+  onboardingMagicLink: { limit: 5, windowMs: 60_000 },  // public, burn-defense only
 } as const;

@@ -1,6 +1,30 @@
 export const dynamic = 'force-dynamic';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { rateLimit, RATE_LIMITS } from '@/lib/ratelimit';
+import { createClient } from '@/lib/supabase/server';
+import { timingSafeTokenMatch } from '@/lib/security/safe-compare';
+
+// Inline admin gate — duplicates the pattern in admin/approvals/create.
+// Will be collapsed once security-2b's `requireAdmin` helper lands on main.
+const ALLOWED_ADMINS = new Set<string>([
+  'contact@unite-group.in',
+  'phill.mcgurk@gmail.com',
+]);
+
+async function isAdminRequest(request: NextRequest): Promise<boolean> {
+  const bearer = request.headers.get('authorization')?.replace(/^Bearer\s+/, '');
+  if (timingSafeTokenMatch(bearer, process.env.SUPABASE_SERVICE_ROLE_KEY)) {
+    return true;
+  }
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    return !!user?.email && ALLOWED_ADMINS.has(user.email);
+  } catch {
+    return false;
+  }
+}
 
 const SEMRUSH_BASE = 'https://api.semrush.com/';
 
@@ -22,7 +46,18 @@ function parseSemrushCsv(raw: string): Record<string, string>[] {
   });
 }
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const gate = await rateLimit(request, { key: 'portal-seo-refresh', ...RATE_LIMITS.portalSeoRefresh });
+  if (!gate.ok) {
+    return NextResponse.json(
+      { error: 'rate_limited', retry_after_ms: gate.retryAfterMs },
+      { status: 429 },
+    );
+  }
+  if (!(await isAdminRequest(request))) {
+    return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  }
+
   const apiKey = process.env.SEMRUSH_API_KEY;
   if (!apiKey) return NextResponse.json({ error: 'SEMRUSH_API_KEY not configured' }, { status: 500 });
 

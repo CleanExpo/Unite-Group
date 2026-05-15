@@ -1,6 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { rateLimit, RATE_LIMITS } from '@/lib/ratelimit';
+import { createClient } from '@/lib/supabase/server';
+import { timingSafeTokenMatch } from '@/lib/security/safe-compare';
+
+// Inline admin gate — duplicates the pattern in admin/approvals/create.
+// Will be collapsed once security-2b's `requireAdmin` helper lands on main.
+const ALLOWED_ADMINS = new Set<string>([
+  'contact@unite-group.in',
+  'phill.mcgurk@gmail.com',
+]);
+
+async function isAdminRequest(request: NextRequest): Promise<boolean> {
+  const bearer = request.headers.get('authorization')?.replace(/^Bearer\s+/, '');
+  if (timingSafeTokenMatch(bearer, process.env.SUPABASE_SERVICE_ROLE_KEY)) {
+    return true;
+  }
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    return !!user?.email && ALLOWED_ADMINS.has(user.email);
+  } catch {
+    return false;
+  }
+}
 
 // Run the same audit logic inline (no import cycle)
 async function runAudit(domain: string) {
@@ -72,6 +96,18 @@ function drawScoreGauge(doc: jsPDF, x: number, y: number, score: number) {
 }
 
 export async function GET(req: NextRequest) {
+  // Rate-limit FIRST — full audit + PDF render is heavy; cap at 3/min/IP.
+  const gate = await rateLimit(req, { key: 'seo-audit-pdf', ...RATE_LIMITS.seoAuditPdf });
+  if (!gate.ok) {
+    return NextResponse.json(
+      { error: 'rate_limited', retry_after_ms: gate.retryAfterMs },
+      { status: 429 },
+    );
+  }
+  if (!(await isAdminRequest(req))) {
+    return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  }
+
   const domain = req.nextUrl.searchParams.get('domain');
   if (!domain) return NextResponse.json({ error: 'domain required' }, { status: 400 });
 

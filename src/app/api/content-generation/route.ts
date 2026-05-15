@@ -7,6 +7,32 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SmartContentGenerationService } from '@/lib/ai/content-generation/service';
 import { AIGateway } from '@/lib/ai/gateway/ai-gateway';
 import type { ContentGenerationConfig, ContentType } from '@/lib/ai/content-generation/types';
+import { rateLimit, RATE_LIMITS } from '@/lib/ratelimit';
+import { createClient } from '@/lib/supabase/server';
+import { timingSafeTokenMatch } from '@/lib/security/safe-compare';
+
+// Inline admin gate — duplicates the pattern in admin/approvals/create.
+// Will be collapsed once security-2b's `requireAdmin` helper lands on main.
+const ALLOWED_ADMINS = new Set<string>([
+  'contact@unite-group.in',
+  'phill.mcgurk@gmail.com',
+]);
+
+async function isAdminRequest(request: NextRequest): Promise<boolean> {
+  // Service-role bearer (swarm callers)
+  const bearer = request.headers.get('authorization')?.replace(/^Bearer\s+/, '');
+  if (timingSafeTokenMatch(bearer, process.env.SUPABASE_SERVICE_ROLE_KEY)) {
+    return true;
+  }
+  // Signed-in admin email
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    return !!user?.email && ALLOWED_ADMINS.has(user.email);
+  } catch {
+    return false;
+  }
+}
 
 const config: ContentGenerationConfig = {
   ai: {
@@ -82,6 +108,18 @@ function getContentService(): SmartContentGenerationService {
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate-limit FIRST (defense in depth) — burns OpenAI per call.
+    const gate = await rateLimit(request, { key: 'content-gen', ...RATE_LIMITS.contentGen });
+    if (!gate.ok) {
+      return NextResponse.json(
+        { error: 'rate_limited', retry_after_ms: gate.retryAfterMs },
+        { status: 429 },
+      );
+    }
+    if (!(await isAdminRequest(request))) {
+      return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+    }
+
     const service = getContentService();
     const { action, ...data } = await request.json();
 
@@ -201,6 +239,18 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    // Rate-limit FIRST — GET still hits the service and can burn paid APIs (insights, performance, alerts).
+    const gate = await rateLimit(request, { key: 'content-gen', ...RATE_LIMITS.contentGen });
+    if (!gate.ok) {
+      return NextResponse.json(
+        { error: 'rate_limited', retry_after_ms: gate.retryAfterMs },
+        { status: 429 },
+      );
+    }
+    if (!(await isAdminRequest(request))) {
+      return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+    }
+
     const service = getContentService();
     const url = new URL(request.url);
     const action = url.searchParams.get('action');
