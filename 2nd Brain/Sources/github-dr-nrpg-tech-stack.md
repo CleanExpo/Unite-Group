@@ -3,7 +3,7 @@ title: "dr-nrpg Tech Stack"
 source: "https://github.com/CleanExpo/DR-NRPG"
 repo: "CleanExpo/DR-NRPG"
 file_type: "tech-stack"
-captured: "2026-05-15"
+captured: "2026-05-17"
 tags:
   - clippings
   - github
@@ -52,9 +52,9 @@ tags:
   },
   "devDependencies": {
     "@google/generative-ai": "^0.24.1",
-    "@types/node": "20",
+    "@types/node": "^20.19.41",
     "dotenv": "^17.4.2",
-    "turbo": "^2.9.6"
+    "turbo": "^2.9.14"
   },
   "pnpm": {
     "overrides": {

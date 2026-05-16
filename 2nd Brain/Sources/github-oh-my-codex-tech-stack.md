@@ -3,7 +3,7 @@ title: "oh-my-codex Tech Stack"
 source: "https://github.com/CleanExpo/oh-my-codex"
 repo: "CleanExpo/oh-my-codex"
 file_type: "tech-stack"
-captured: "2026-05-15"
+captured: "2026-05-17"
 tags:
   - clippings
   - github

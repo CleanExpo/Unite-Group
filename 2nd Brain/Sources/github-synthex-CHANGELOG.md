@@ -3,7 +3,7 @@ title: "synthex — CHANGELOG.md"
 source: "https://github.com/CleanExpo/Synthex/blob/main/CHANGELOG.md"
 repo: "CleanExpo/Synthex"
 file_type: "CHANGELOG"
-captured: "2026-05-15"
+captured: "2026-05-17"
 tags:
   - clippings
   - github

@@ -3,7 +3,7 @@ title: "synthex: Marketing Made Easy"
 source: "https://github.com/CleanExpo/Synthex/blob/main/README.md"
 repo: "CleanExpo/Synthex"
 file_type: "README"
-captured: "2026-05-15"
+captured: "2026-05-17"
 tags:
   - clippings
   - github

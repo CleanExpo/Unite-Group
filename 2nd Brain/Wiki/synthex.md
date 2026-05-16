@@ -73,3 +73,10 @@ The `marketing-orchestrator` and `remotion-orchestrator` skill families produce 
 ## Cross-refs
 
 [[businesses-overview]] · [[ccw]] · [[pi-ceo-architecture]] · [[wave-roadmap]] · [[seo-linkable-assets]]
+
+## Board Directives Log
+
+### 2026-05-16 — Synthex finalisation execution sequence
+**Decision:** Phase 1 measure-first (RLS adversarial baseline + Stripe churn mix + Vercel CFR), then Phase 2/3/4 parallel dispatch via Pi-CEO swarm with merge-gate of adversarial-RLS-≥50% before Phase 3 ships, Phase 6 sign-off gated on vibetest-use top-10 journey pass.
+**Directive to:** Senior PM (PM-Core) — Phase 1 starts immediately, single-shot Telegram on completion to surface SOC 2 real-or-aspirational ruling.
+**Condition for revisit:** RLS adversarial baseline reveals <5/131 actually-secure tables (P0 — pause everything, security-only sprint).

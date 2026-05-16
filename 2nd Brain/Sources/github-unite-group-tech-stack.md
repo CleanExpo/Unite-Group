@@ -3,7 +3,7 @@ title: "unite-group Tech Stack"
 source: "https://github.com/CleanExpo/unite-group"
 repo: "CleanExpo/unite-group"
 file_type: "tech-stack"
-captured: "2026-05-15"
+captured: "2026-05-17"
 tags:
   - clippings
   - github
@@ -52,6 +52,7 @@ tags:
     "@radix-ui/react-switch": "^1.2.5",
     "@radix-ui/react-tabs": "^1.1.12",
     "@radix-ui/react-toast": "^1.2.14",
+    "@radix-ui/react-toggle": "^1.1.10",
     "@radix-ui/react-toggle-group": "^1.1.10",
     "@radix-ui/react-tooltip": "^1.2.7",
     "@supabase/ssr": "^0.6.1",
@@ -70,6 +71,7 @@ tags:
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "date-fns": "^4.1.0",
     "framer-motion": "^12.38.0",
     "gray-matter": "^4.0.3",
     "input-otp": "^1.4.2",
@@ -77,6 +79,7 @@ tags:
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "mdast-util-to-string": "^4.0.0",
+    "nanoid": "^5.1.11",
     "next": "^15.5.15",
     "next-intl": "^4.9.1",
     "next-themes": "^0.4.6",
@@ -91,7 +94,4 @@ tags:
     "recharts": "^2.15.3",
     "rehype-autolink-headings": "^7.1.0",
     "rehype-prism-plus": "^2.0.1",
-    "rehype-slug": "^6.0.0",
-    "rehype-stringify": "^10.0.1",
-    "remark-gfm": "^4.0.1",
 ```

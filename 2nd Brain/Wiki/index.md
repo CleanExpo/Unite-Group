@@ -43,6 +43,7 @@ Content-oriented catalog of all pages. One line per page. See [[log]] for histor
 - [[hermes-agent-sprinkle-audit-2026-05-11]] — Audit of 27 Hermes cron jobs (memory said 19, was stale) for Cal Rueb "sprinkle in agent" embedding points; top-5 ranked candidates + jobs that should stay deterministic
 
 - [[pi-ceo-architecture]] — Three-layer system (Margot → Board → Senior Agents)
+- [[margot-conversation-os]] — Margot as conversational operating layer across Telegram, Plaud, Obsidian Sources/Wiki, research, task routing, and founder-voice production rewrites
 - [[autonomy-gap-audit-2026-05-14]] — Where the swarm stops being autonomous and starts needing Phill; 12-domain maturity rubric (current L1.6, target L4.2); top-10 sequenced fixes; Q3 2026 autonomy OKRs; 48-hour Phill-absent test as Week 2 gate
 - [[portfolio-health-snapshot-2026-05-14]] — Vercel + Railway + Supabase status across 10 deployments. 4 GREEN / 2 YELLOW / 4 RED. CCW-CRM rootDirectory fire; Margot DB anon-readable; 6,000+ Supabase WARN lints on Unite-Group + Synthex. Margot Monday-morning briefing source.
 - [[decision-frameworks]] — How decisions get made: rights table, HITL gates, ceo-board
