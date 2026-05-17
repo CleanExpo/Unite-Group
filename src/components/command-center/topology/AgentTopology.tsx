@@ -139,32 +139,94 @@ export function AgentTopology({
         </span>
       </header>
 
-      <ReactFlow
-        nodes={flowNodes}
-        edges={flowEdges}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        fitView
-        fitViewOptions={{ padding: 0.15, includeHiddenNodes: true }}
-        minZoom={0.25}
-        nodesDraggable={false}
-        nodesConnectable={false}
-        elementsSelectable={false}
-        panOnDrag={false}
-        panOnScroll={false}
-        zoomOnScroll={false}
-        zoomOnPinch={false}
-        zoomOnDoubleClick={false}
-        proOptions={{ hideAttribution: true }}
-        style={{ background: 'transparent' }}
+      <div className="hidden h-full sm:block">
+        <ReactFlow
+          nodes={flowNodes}
+          edges={flowEdges}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          fitView
+          fitViewOptions={{ padding: 0.15, includeHiddenNodes: true }}
+          minZoom={0.25}
+          nodesDraggable={false}
+          nodesConnectable={false}
+          elementsSelectable={false}
+          panOnDrag={false}
+          panOnScroll={false}
+          zoomOnScroll={false}
+          zoomOnPinch={false}
+          zoomOnDoubleClick={false}
+          proOptions={{ hideAttribution: true }}
+          style={{ background: 'transparent' }}
+        >
+          <Background
+            variant={BackgroundVariant.Dots}
+            gap={28}
+            size={1}
+            color="var(--cc-grid)"
+          />
+        </ReactFlow>
+      </div>
+
+      <div
+        aria-label="Agent topology list"
+        className="grid h-full grid-cols-2 gap-px px-4 pb-4 pt-24 sm:hidden"
+        style={{ background: 'var(--cc-grid)' }}
       >
-        <Background
-          variant={BackgroundVariant.Dots}
-          gap={28}
-          size={1}
-          color="var(--cc-grid)"
-        />
-      </ReactFlow>
+        {agents.map((agent) => (
+          <MobileAgentCard key={agent.id} agent={agent} />
+        ))}
+      </div>
     </section>
+  );
+}
+
+function MobileAgentCard({ agent }: { agent: AgentNodeData }) {
+  const isBlocked = agent.state === 'blocked-on-you';
+  const isRunning = agent.state === 'running';
+  const borderColor = isBlocked ? 'var(--cc-signal)' : 'var(--cc-grid)';
+  const pipColor = isBlocked
+    ? 'var(--cc-signal)'
+    : isRunning
+      ? 'var(--cc-ink)'
+      : 'var(--cc-ink-hush)';
+
+  return (
+    <article
+      data-cc-state={agent.state}
+      className="min-h-16 p-3"
+      style={{
+        background: 'var(--cc-bg-soft)',
+        borderLeft: `2px solid ${borderColor}`,
+        color: 'var(--cc-ink)',
+        fontFamily: 'var(--cc-mono)',
+      }}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <span
+          className="break-words text-[10px] uppercase leading-tight tracking-[0.16em]"
+          style={{ color: 'var(--cc-ink)' }}
+        >
+          {agent.label}
+        </span>
+        <span
+          aria-hidden
+          className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full"
+          style={{
+            background: pipColor,
+            animation:
+              isBlocked || isRunning
+                ? 'cc-breathe var(--cc-pulse-duration) ease-in-out infinite'
+                : 'none',
+          }}
+        />
+      </div>
+      <span
+        className="mt-2 block break-words text-[9px] uppercase leading-tight tracking-[0.12em]"
+        style={{ color: 'var(--cc-ink-hush)' }}
+      >
+        {agent.role}
+      </span>
+    </article>
   );
 }

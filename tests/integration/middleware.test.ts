@@ -33,6 +33,7 @@ function makeReq(pathname: string): NextRequest {
 // ── Setup ──────────────────────────────────────────────────────────────────
 beforeEach(() => {
   jest.clearAllMocks();
+  delete process.env.COMMAND_CENTER_LOCAL_PREVIEW;
   process.env.NEXT_PUBLIC_SUPABASE_URL      = 'https://test.supabase.co';
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
 });
@@ -80,12 +81,12 @@ describe('Middleware — unauthenticated access', () => {
     expect(res.status).toBe(307);
   });
 
-  test('redirects / (root) to /en/login', async () => {
+  test('redirects unauthenticated / (root) to public /en landing', async () => {
     setNoSession();
     const res = await middleware(makeReq('/'));
 
     expect(res.status).toBe(307);
-    expect(res.headers.get('location')).toContain('/login');
+    expect(res.headers.get('location')).toContain('/en');
   });
 
 });
@@ -176,16 +177,40 @@ describe('Middleware — authenticated user passes through', () => {
     expect(res.status).not.toBe(307);
   });
 
-  test('authenticated user on login page is redirected to /en/ceo', async () => {
+  test('authenticated user on login page is redirected to /en/command-center', async () => {
     setActiveSession();
     const res = await middleware(makeReq('/en/login'));
 
     // Logged-in users hitting login should go to the command center
     if (res.status === 307) {
-      expect(res.headers.get('location')).toContain('/ceo');
+      expect(res.headers.get('location')).toContain('/en/command-center');
     }
     // Some implementations let them through — either is acceptable
     expect([200, 307]).toContain(res.status);
+  });
+
+});
+
+// ── Local Command Center preview ───────────────────────────────────────────
+describe('Middleware — local Command Center preview', () => {
+
+  test('allows /en/command-center only when local preview flag is enabled outside production', async () => {
+    process.env.COMMAND_CENTER_LOCAL_PREVIEW = 'true';
+    setNoSession();
+
+    const res = await middleware(makeReq('/en/command-center'));
+
+    expect(res.status).not.toBe(307);
+    expect(mockGetUser).not.toHaveBeenCalled();
+  });
+
+  test('keeps /en/command-center auth-gated when local preview flag is disabled', async () => {
+    setNoSession();
+
+    const res = await middleware(makeReq('/en/command-center'));
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toContain('/en/login');
   });
 
 });
