@@ -1,7 +1,8 @@
 ---
 type: index
-updated: 2026-05-15
+updated: 2026-05-17
 ---
+
 
 # Wiki Index
 
@@ -44,6 +45,7 @@ Content-oriented catalog of all pages. One line per page. See [[log]] for histor
 
 - [[pi-ceo-architecture]] — Three-layer system (Margot → Board → Senior Agents)
 - [[margot-conversation-os]] — Margot as conversational operating layer across Telegram, Plaud, Obsidian Sources/Wiki, research, task routing, and founder-voice production rewrites
+- [[unite-group-portfolio-ops-board-v1]] — First Unite-Group portfolio operations board (Kanban + update scout + Plaud intake flow + no-code phased build plan)
 - [[autonomy-gap-audit-2026-05-14]] — Where the swarm stops being autonomous and starts needing Phill; 12-domain maturity rubric (current L1.6, target L4.2); top-10 sequenced fixes; Q3 2026 autonomy OKRs; 48-hour Phill-absent test as Week 2 gate
 - [[portfolio-health-snapshot-2026-05-14]] — Vercel + Railway + Supabase status across 10 deployments. 4 GREEN / 2 YELLOW / 4 RED. CCW-CRM rootDirectory fire; Margot DB anon-readable; 6,000+ Supabase WARN lints on Unite-Group + Synthex. Margot Monday-morning briefing source.
 - [[decision-frameworks]] — How decisions get made: rights table, HITL gates, ceo-board
@@ -195,4 +197,8 @@ Content-oriented catalog of all pages. One line per page. See [[log]] for histor
 - [[bulcs-holdings]] — Bulcs Holdings (Ivi Sims, VIC) — IAQ/restoration equipment, inbound 2026-05-08, proposal in progress
 - [[ccw]] — Carpet Cleaners Warehouse — $33,000/yr ARR ($2,750/month), first paying external client
 - [[semrush-api]] — Semrush API reference, unit costs, portfolio business registry, key endpoints
+
+## Live Ingestion
+
+- [[plaud/_index]] — Plaud NotePin S recordings, auto-ingested every 5 min via LaunchAgent. One markdown page per recording with summary + full transcript. See `~/Pi-CEO/Pi-Dev-Ops/docs/superpowers/specs/2026-05-17-plaud-brain-ingestion-design.md` for design.
 
