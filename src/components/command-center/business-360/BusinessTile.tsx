@@ -105,12 +105,13 @@ export function BusinessTile({ data }: BusinessTileProps) {
         </span>
       </div>
 
-      <Sparkline
-        data={data.series}
-        width={220}
-        height={32}
-        hush={data.state === 'hush'}
-      />
+      <div className="min-w-0 overflow-hidden">
+        <Sparkline
+          data={data.series}
+          height={32}
+          hush={data.state === 'hush'}
+        />
+      </div>
 
       <span
         className="font-mono text-[10px] tracking-[0.06em] truncate"

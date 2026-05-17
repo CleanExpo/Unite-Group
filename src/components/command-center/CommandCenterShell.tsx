@@ -33,15 +33,14 @@ export function CommandCenterShell() {
       <GlobalStatusBar />
       <KpiStrip />
 
-      <main className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_22rem]">
+      <main className="flex-1 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="flex min-w-0 flex-col">
           <AgentTopology />
           <HermesControlPanel />
         </div>
 
         <aside
-          className="flex flex-col"
-          style={{ borderLeft: '1px solid var(--cc-grid)' }}
+          className="command-center-side-rail flex flex-col"
         >
           <MargotVoicePanel />
           <Business360Grid />
@@ -50,7 +49,7 @@ export function CommandCenterShell() {
       </main>
 
       <footer
-        className="px-6 h-8 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.22em]"
+        className="flex min-h-8 flex-col gap-1 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.22em] sm:flex-row sm:items-center sm:justify-between sm:px-6"
         style={{
           background: 'var(--cc-bg)',
           borderTop: '1px solid var(--cc-grid)',
@@ -58,7 +57,7 @@ export function CommandCenterShell() {
         }}
       >
         <span>
-          zones 1-5 live · PR-1 + PR-2 + PR-3 shipped
+          zones 1-5 live · CRM control layer active
         </span>
         <span>
           spec ·{' '}

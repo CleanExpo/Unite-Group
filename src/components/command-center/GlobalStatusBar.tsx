@@ -23,14 +23,14 @@ export function GlobalStatusBar({
 }: GlobalStatusBarProps) {
   return (
     <header
-      className="flex items-center justify-between px-6 h-12"
+      className="flex min-h-12 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-0"
       style={{
         background: 'var(--cc-bg)',
         borderBottom: '1px solid var(--cc-grid)',
       }}
       role="banner"
     >
-      <div className="flex items-center gap-6">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-6">
         <span
           className="font-mono text-[11px] uppercase tracking-[0.22em]"
           style={{ color: 'var(--cc-ink)' }}
@@ -42,7 +42,7 @@ export function GlobalStatusBar({
       </div>
 
       <div
-        className="flex items-center gap-5 font-mono text-[11px] uppercase tracking-[0.18em]"
+        className="flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-[11px] uppercase tracking-[0.18em]"
         style={{ color: 'var(--cc-ink-dim)' }}
       >
         <StatusPip

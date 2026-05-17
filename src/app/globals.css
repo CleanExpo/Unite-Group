@@ -258,6 +258,31 @@ body {
 ::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
 ::selection { background: var(--red-a20); color: var(--ink-primary); }
 
+.command-center-side-rail {
+  border-top: 1px solid var(--cc-grid);
+}
+
+.command-center-topology {
+  height: 600px;
+}
+
+@media (min-width: 1280px) {
+  .command-center-side-rail {
+    border-top: none;
+    border-left: 1px solid var(--cc-grid);
+  }
+}
+
+@media (max-width: 767px) {
+  .empire-sidebar-command-center {
+    display: none !important;
+  }
+
+  .command-center-topology {
+    height: 420px;
+  }
+}
+
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; transform: scale(1); }
   50%       { opacity: 0.4; transform: scale(0.85); }

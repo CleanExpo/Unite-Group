@@ -42,7 +42,7 @@ export function KpiStrip({
 
   return (
     <section
-      className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5"
+      className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5"
       style={{
         background: 'var(--cc-bg)',
         borderBottom: '1px solid var(--cc-grid)',
