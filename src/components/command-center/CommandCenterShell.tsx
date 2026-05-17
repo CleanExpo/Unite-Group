@@ -18,6 +18,7 @@ import { KpiStrip } from './KpiStrip';
 import { AgentTopology } from './topology/AgentTopology';
 import { Business360Grid } from './business-360/Business360Grid';
 import { ActivityLog } from './activity/ActivityLog';
+import { MargotVoicePanel } from './voice/MargotVoicePanel';
 
 export function CommandCenterShell() {
   return (
@@ -38,6 +39,7 @@ export function CommandCenterShell() {
           className="flex flex-col"
           style={{ borderLeft: '1px solid var(--cc-grid)' }}
         >
+          <MargotVoicePanel />
           <Business360Grid />
           <ActivityLog />
         </aside>
