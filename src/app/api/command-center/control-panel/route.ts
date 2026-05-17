@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/security/require-admin';
 import {
   ADD_ON_GATES,
   CONTROL_WORKSTREAMS,
+  type AddOnGate,
   type ControlRyg,
   type ControlStatus,
   type ControlWorkstream,
@@ -28,6 +29,12 @@ type LiveWorkstream = ControlWorkstream & {
   crmTaskStatus?: string;
   crmTaskTitle?: string;
   lastUpdated?: string;
+};
+
+type LiveAddOnGate = AddOnGate & {
+  crmTaskId?: string;
+  crmTaskStatus?: string;
+  lastRequestedAt?: string;
 };
 
 const WORKSTREAM_MATCHERS: Record<string, string[]> = {
@@ -95,7 +102,34 @@ function mergeTasks(tasks: TaskRow[]): LiveWorkstream[] {
   });
 }
 
-function responseFor(workstreams: LiveWorkstream[], source: string, taskCount = 0) {
+function mergeAddOns(tasks: TaskRow[]): LiveAddOnGate[] {
+  return ADD_ON_GATES.map((item) => {
+    const task = tasks.find((row) => {
+      const tags = row.tags ?? [];
+      return (
+        row.obsidian_path === `command-center/add-ons/${item.id}` ||
+        (tags.includes('hermes-addon-request') && tags.includes(item.id))
+      );
+    });
+
+    if (!task) return item;
+
+    return {
+      ...item,
+      state: mapStatus(task, item.state),
+      crmTaskId: task.id,
+      crmTaskStatus: task.status,
+      lastRequestedAt: task.updated_at ?? task.created_at ?? undefined,
+    };
+  });
+}
+
+function responseFor(
+  workstreams: LiveWorkstream[],
+  source: string,
+  taskCount = 0,
+  addOns: LiveAddOnGate[] = ADD_ON_GATES,
+) {
   return NextResponse.json(
     {
       source,
@@ -107,7 +141,7 @@ function responseFor(workstreams: LiveWorkstream[], source: string, taskCount = 
         red: workstreams.filter((item) => item.ryg === 'red').length,
       },
       workstreams,
-      addOns: ADD_ON_GATES,
+      addOns,
     },
     { headers: { 'Cache-Control': 'no-store' } },
   );
@@ -136,9 +170,8 @@ export async function GET(req: NextRequest) {
     }
 
     const tasks = (data ?? []) as TaskRow[];
-    return responseFor(mergeTasks(tasks), 'crm:tasks', tasks.length);
+    return responseFor(mergeTasks(tasks), 'crm:tasks', tasks.length, mergeAddOns(tasks));
   } catch {
     return responseFor(CONTROL_WORKSTREAMS, 'fallback:crm_unavailable');
   }
 }
-

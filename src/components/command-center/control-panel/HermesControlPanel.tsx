@@ -47,6 +47,9 @@ function stateLabel(status: ControlStatus, ryg?: ControlRyg) {
 export function HermesControlPanel() {
   const [payload, setPayload] = useState<ControlPanelPayload | null>(null);
   const [sourceState, setSourceState] = useState<'loading' | 'live' | 'fallback'>('loading');
+  const [localAddOns, setLocalAddOns] = useState<AddOnGate[] | null>(null);
+  const [pendingAddOnId, setPendingAddOnId] = useState<string | null>(null);
+  const [addOnNotice, setAddOnNotice] = useState<string>('');
 
   useEffect(() => {
     let cancelled = false;
@@ -58,6 +61,7 @@ export function HermesControlPanel() {
         const body = (await res.json()) as ControlPanelPayload;
         if (cancelled) return;
         setPayload(body);
+        setLocalAddOns(body.addOns);
         setSourceState(body.source.startsWith('crm:') ? 'live' : 'fallback');
       } catch {
         if (cancelled) return;
@@ -73,8 +77,46 @@ export function HermesControlPanel() {
     };
   }, []);
 
+  async function requestAddOnGate(addOn: AddOnGate) {
+    setPendingAddOnId(addOn.id);
+    setAddOnNotice('');
+
+    try {
+      const res = await fetch('/api/command-center/control-panel/add-ons', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ addOnId: addOn.id }),
+      });
+      if (!res.ok) throw new Error('add_on_gate_failed');
+      const body = (await res.json()) as {
+        crm_task_id: string;
+        task_status: string;
+        requested_at?: string;
+      };
+
+      setLocalAddOns((current) =>
+        (current ?? payload?.addOns ?? ADD_ON_GATES).map((item) =>
+          item.id === addOn.id
+            ? {
+                ...item,
+                state: 'gated',
+                crmTaskId: body.crm_task_id,
+                crmTaskStatus: body.task_status,
+                lastRequestedAt: body.requested_at,
+              }
+            : item,
+        ),
+      );
+      setAddOnNotice(`${addOn.label} approval task is now in Unite CRM.`);
+    } catch {
+      setAddOnNotice('Add-on approval task could not be created from this session.');
+    } finally {
+      setPendingAddOnId(null);
+    }
+  }
+
   const workstreams = payload?.workstreams ?? CONTROL_WORKSTREAMS;
-  const addOns = payload?.addOns ?? ADD_ON_GATES;
+  const addOns = localAddOns ?? payload?.addOns ?? ADD_ON_GATES;
   const green = payload?.summary.green ?? workstreams.filter((item) => item.ryg === 'green').length;
   const yellow = payload?.summary.yellow ?? workstreams.filter((item) => item.ryg === 'yellow').length;
   const red = payload?.summary.red ?? workstreams.filter((item) => item.ryg === 'red').length;
@@ -163,10 +205,24 @@ export function HermesControlPanel() {
             >
               Approval first. CRM remains source of truth.
             </p>
+            {addOnNotice && (
+              <p
+                className="mt-3 font-mono text-[11px] leading-relaxed"
+                style={{ color: addOnNotice.includes('could not') ? 'var(--cc-signal)' : 'var(--cc-ink-dim)' }}
+                aria-live="polite"
+              >
+                {addOnNotice}
+              </p>
+            )}
           </div>
 
           {addOns.map((item) => (
-            <AddOnRow key={item.id} item={item} />
+            <AddOnRow
+              key={item.id}
+              item={item}
+              pending={pendingAddOnId === item.id}
+              onRequest={requestAddOnGate}
+            />
           ))}
         </aside>
       </div>
@@ -268,9 +324,19 @@ function WorkstreamRow({ item }: { item: ControlWorkstream }) {
   );
 }
 
-function AddOnRow({ item }: { item: AddOnGate }) {
+function AddOnRow({
+  item,
+  pending,
+  onRequest,
+}: {
+  item: AddOnGate;
+  pending: boolean;
+  onRequest: (item: AddOnGate) => void;
+}) {
   const color = statusColor(item.state);
   const isSignal = item.state === 'gated';
+  const hasTask = !!item.crmTaskId;
+  const canRequest = item.state !== 'live' && !hasTask;
 
   return (
     <div
@@ -313,6 +379,29 @@ function AddOnRow({ item }: { item: AddOnGate }) {
       >
         {item.approval}
       </span>
+      {hasTask && (
+        <span
+          className="font-mono text-[10px] uppercase tracking-[0.14em]"
+          style={{ color: 'var(--cc-ink-dim)' }}
+        >
+          CRM task {item.crmTaskId}
+        </span>
+      )}
+      {canRequest && (
+        <button
+          type="button"
+          onClick={() => onRequest(item)}
+          disabled={pending}
+          className="mt-1 w-fit border px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] transition-opacity disabled:cursor-wait disabled:opacity-60"
+          style={{
+            borderColor: 'var(--cc-grid)',
+            color: 'var(--cc-ink)',
+            background: 'var(--cc-bg)',
+          }}
+        >
+          {pending ? 'creating gate' : 'create approval gate'}
+        </button>
+      )}
     </div>
   );
 }
