@@ -19,6 +19,9 @@ export interface AddOnGate {
   category: string;
   state: ControlStatus;
   approval: string;
+  crmTaskId?: string;
+  crmTaskStatus?: string;
+  lastRequestedAt?: string;
 }
 
 export const CONTROL_WORKSTREAMS: ControlWorkstream[] = [
@@ -131,4 +134,3 @@ export const ADD_ON_GATES: AddOnGate[] = [
     approval: 'CRM task must exist first',
   },
 ];
-
