@@ -54,9 +54,9 @@ export async function middleware(req: NextRequest) {
 
   const isAuthPage = AUTH_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'));
 
-  // Logged in → send auth pages to CEO dashboard
+  // Logged in -> send auth pages to the current operator cockpit.
   if (user && isAuthPage) {
-    return NextResponse.redirect(new URL('/en/empire', req.url));
+    return NextResponse.redirect(new URL('/en/command-center', req.url));
   }
 
   // /empire/* → canonically /en/empire/* — redirect bare path so middleware auth applies
@@ -83,7 +83,7 @@ export async function middleware(req: NextRequest) {
     );
 
   if ((pathname === '/' || pathname === '/en' || pathname === '/es' || pathname === '/fr') && user) {
-    return NextResponse.redirect(new URL('/en/empire', req.url));
+    return NextResponse.redirect(new URL('/en/command-center', req.url));
   }
   if (pathname === '/' && !user) {
     return NextResponse.redirect(new URL('/en', req.url));

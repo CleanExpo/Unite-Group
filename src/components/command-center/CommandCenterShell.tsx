@@ -19,6 +19,7 @@ import { AgentTopology } from './topology/AgentTopology';
 import { Business360Grid } from './business-360/Business360Grid';
 import { ActivityLog } from './activity/ActivityLog';
 import { MargotVoicePanel } from './voice/MargotVoicePanel';
+import { HermesControlPanel } from './control-panel/HermesControlPanel';
 
 export function CommandCenterShell() {
   return (
@@ -33,7 +34,10 @@ export function CommandCenterShell() {
       <KpiStrip />
 
       <main className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_22rem]">
-        <AgentTopology />
+        <div className="flex min-w-0 flex-col">
+          <AgentTopology />
+          <HermesControlPanel />
+        </div>
 
         <aside
           className="flex flex-col"
