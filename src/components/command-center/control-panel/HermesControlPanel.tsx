@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import {
   ADD_ON_GATES,
   CONTROL_WORKSTREAMS,
@@ -8,6 +9,15 @@ import {
   type ControlStatus,
   type ControlWorkstream,
 } from './control-panel-data';
+
+type ControlPanelPayload = {
+  source: string;
+  taskCount: number;
+  generatedAt: string;
+  summary: Record<ControlRyg, number>;
+  workstreams: ControlWorkstream[];
+  addOns: AddOnGate[];
+};
 
 const STATUS_LABELS: Record<ControlStatus, string> = {
   live: 'live',
@@ -35,9 +45,45 @@ function stateLabel(status: ControlStatus, ryg?: ControlRyg) {
 }
 
 export function HermesControlPanel() {
-  const green = CONTROL_WORKSTREAMS.filter((item) => item.ryg === 'green').length;
-  const yellow = CONTROL_WORKSTREAMS.filter((item) => item.ryg === 'yellow').length;
-  const red = CONTROL_WORKSTREAMS.filter((item) => item.ryg === 'red').length;
+  const [payload, setPayload] = useState<ControlPanelPayload | null>(null);
+  const [sourceState, setSourceState] = useState<'loading' | 'live' | 'fallback'>('loading');
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadControlPanel() {
+      try {
+        const res = await fetch('/api/command-center/control-panel', { cache: 'no-store' });
+        if (!res.ok) throw new Error('control_panel_fetch_failed');
+        const body = (await res.json()) as ControlPanelPayload;
+        if (cancelled) return;
+        setPayload(body);
+        setSourceState(body.source.startsWith('crm:') ? 'live' : 'fallback');
+      } catch {
+        if (cancelled) return;
+        setPayload(null);
+        setSourceState('fallback');
+      }
+    }
+
+    void loadControlPanel();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const workstreams = payload?.workstreams ?? CONTROL_WORKSTREAMS;
+  const addOns = payload?.addOns ?? ADD_ON_GATES;
+  const green = payload?.summary.green ?? workstreams.filter((item) => item.ryg === 'green').length;
+  const yellow = payload?.summary.yellow ?? workstreams.filter((item) => item.ryg === 'yellow').length;
+  const red = payload?.summary.red ?? workstreams.filter((item) => item.ryg === 'red').length;
+  const sourceLabel =
+    sourceState === 'live'
+      ? `CRM live · ${payload?.taskCount ?? 0} tasks`
+      : sourceState === 'loading'
+        ? 'loading CRM'
+        : 'fallback plan data';
 
   return (
     <section
@@ -68,6 +114,14 @@ export function HermesControlPanel() {
           >
             Unite CRM operating spine
           </h2>
+          <span
+            className="font-mono text-[10px] uppercase tracking-[0.18em]"
+            style={{
+              color: sourceState === 'live' ? 'var(--cc-ink-dim)' : 'var(--cc-signal)',
+            }}
+          >
+            {sourceLabel}
+          </span>
         </div>
 
         <div
@@ -83,7 +137,7 @@ export function HermesControlPanel() {
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_20rem]" style={{ gap: 1, background: 'var(--cc-grid)' }}>
         <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 1, background: 'var(--cc-grid)' }}>
-          {CONTROL_WORKSTREAMS.map((item) => (
+          {workstreams.map((item) => (
             <WorkstreamRow key={item.id} item={item} />
           ))}
         </div>
@@ -111,7 +165,7 @@ export function HermesControlPanel() {
             </p>
           </div>
 
-          {ADD_ON_GATES.map((item) => (
+          {addOns.map((item) => (
             <AddOnRow key={item.id} item={item} />
           ))}
         </aside>
@@ -284,4 +338,3 @@ function MetaLine({
     </div>
   );
 }
-
