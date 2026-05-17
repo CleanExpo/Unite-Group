@@ -3,6 +3,10 @@ type: log
 updated: 2026-05-17
 ---
 
+2026-05-17 | research | agent-cockpit-current-research-2026-05-17.md, index.md | Live internet-backed research captured for Agent Cockpit v0: managed sessions over raw Terminal typing, Hermes/Codex/Claude/OpenRouter/Qwen/OpenAI transcription/1Password roles, cost notes, local readiness, and build recommendation.
+
+2026-05-17 | setup | agent-cockpit-current-research-2026-05-17.md, ~/.zshrc | tmux 3.6a installed and verified at `/opt/homebrew/bin/tmux`; Agent Cockpit backend recommendation updated to tmux-primary with screen fallback. Fixed zsh startup parse error by removing duplicate `launch` aliases and keeping the `launch()` function.
+
 2026-05-17 | establish-ops-board | unite-group-portfolio-ops-board-v1.md (new), index.md | Created first Unite-Group Portfolio Operations Kanban board (`unite-group-portfolio-ops`) and seeded 4 triage cards: update scout, Plaud intake normalisation, RYG verification cadence, and no-code control-layer build plan. Ran Hermes update scout live (`hermes update --check`, `hermes version`) and verified local v0.14.0 matches latest release v2026.5.16; recommendation = IGNORE (no upgrade action). Locked routing boundaries in flow: Unite CRM first, Synthex only for marketing, other repos as execution assets.
 
 2026-05-15 | ingest | restore-assist.md, play-console-account.md (new), operational-priorities-q2-2026.md, index.md | RA session — **3 P0 hotfixes** chained to fix 3-day sign-in loop: #1081 disable Prisma-on-Edge in middleware paywall, #1082 add bare /dashboard to matcher (Next.js path-to-regexp does NOT zero-or-more the top segment — THE root cause), #1083 stamp setupCompletedAt in iOS native-token-exchange JWT. Sandbox drift fixed via #1085 main→sandbox sync. **SP-8 Help Library 100% green** — shipped via #1080 + 21 branded Cloudinary placeholders via scripts/sp8-help-placeholders.mjs (PR #1084). **Senior Briefing Pattern** ceo-board directive — banned AskUserQuestion on facts discoverable in ≤3 tool calls, every dispatched agent returns 3-component briefing. **Margot deep research** on Play Console verification deadlock — 37 sources cited, documented catch-22 pattern, 4-step unblock plan with 72h security hold. DUNS 775125643 (Unite-Group Nexus Pty Ltd) confirmed in hand from Phill's 2026-04-08 self-note. New wiki page: play-console-account.md captures the full unblock procedure.
@@ -500,3 +504,13 @@ Append-only. Format: `YYYY-MM-DD | operation | pages affected | summary`
 2026-05-16 | finalise | RA Super Bowl 30s spot + project switch | Codex exec hang resolved: 3 of 4 Hollywood Guild specialists (script/storyboard/sound-designer) hung 12+h at agentic tool-permission gate; PIDs 58384/58856/59250 killed, empty artifact files removed. Colorist artifact preserved (11KB Resolve node specs). Comprehensive RESUME.md written next to brief — both Option A (Anthropic Agent, RECOMMENDED) and Option B (Codex re-attempt with verified auto-approve flag) documented with copy-paste prompts. Memory updated: [[incident-codex-exec-hang-2026-05-15]] added to index. Stale [[feedback-botfather-hardwire-2026-05-15]] memory deleted per its self-expiration instruction. NO Artlist credits burned across this entire RA Super Bowl thread. State: brief locked + colorist done + 3 specialists to re-dispatch on resume. Project clean to switch.
 2026-05-17 | ingest | margot-conversation-os.md, index.md, log.md, Sources/2026-05-17 - hermes - margot-conversation-os-directive.md | Phill directive captured: Margot becomes the conversational operating layer across Telegram, Plaud, Obsidian Sources/Wiki, research, task routing, and founder-voice production rewrites. Hermes skill created at ~/.hermes/skills/dogfood/margot-conversation-os/SKILL.md with Plaud extraction + voice rewrite templates. Linear follow-up could not be created because Pi-CEO Linear API key is rejected (401 auth failed).
 2026-05-17 | ingest | index.md, plaud/.gitkeep | Plaud → Brain live ingestion installed: LaunchAgent on 5-min cron, wiki/plaud/ seeded, index Live Ingestion section added
+2026-05-17 | ingest | none | What's competitor X doing? (turn mt-5c74634b8a)
+2026-05-17 | ingest | none | q (turn mt-c05f05656d)
+2026-05-17 | ingest | none | What's competitor X doing? (turn mt-314e13d60f)
+2026-05-17 | ingest | none | q (turn mt-5467308b32)
+2026-05-17 | ingest | none | What's competitor X doing? (turn mt-0364350ca7)
+2026-05-17 | ingest | none | q (turn mt-5c4e370eae)
+2026-05-17 | ingest | none | What's competitor X doing? (turn mt-64df7ceaba)
+2026-05-17 | ingest | none | q (turn mt-4ddaa18ec1)
+2026-05-17 | ingest | none | What's competitor X doing? (turn mt-99f7870518)
+2026-05-18 | ingest | none | q (turn mt-2475fa2d20)

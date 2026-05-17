@@ -25,8 +25,8 @@ tags:
     "setup": "bash scripts/setup.sh",
     "setup:windows": "powershell -ExecutionPolicy Bypass -File scripts/setup.ps1",
     "dev": "prisma generate && next dev --webpack",
-    "build": "next build",
-    "start": "next start",
+    "build": "prisma generate && next build",
+    "start": "prisma migrate deploy && next start",
     "lint": "eslint src",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
@@ -47,10 +47,7 @@ tags:
     "postinstall": "prisma generate"
   },
   "dependencies": {
-    "@composio/core": "^0.6.3",
-    "@composio/openai-agents": "^0.6.3",
     "@hookform/resolvers": "^3.9.1",
-    "@openai/agents": "^0.4.10",
     "@prisma/adapter-pg": "^7.7.0",
     "@prisma/client": "^7.7.0",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -94,4 +91,7 @@ tags:
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@composio/core": "^0.6.3",
+    "@composio/openai-agents": "^0.6.3",
+    "@openai/agents": "^0.1.3",
 ```
