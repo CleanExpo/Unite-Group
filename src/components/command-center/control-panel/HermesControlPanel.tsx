@@ -392,7 +392,7 @@ function AddOnRow({
           type="button"
           onClick={() => onRequest(item)}
           disabled={pending}
-          className="mt-1 w-fit border px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] transition-opacity disabled:cursor-wait disabled:opacity-60"
+          className="mt-1 min-h-11 w-fit border px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] transition-opacity disabled:cursor-wait disabled:opacity-60"
           style={{
             borderColor: 'var(--cc-grid)',
             color: 'var(--cc-ink)',

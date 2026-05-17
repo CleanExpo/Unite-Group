@@ -75,7 +75,7 @@ export function Sparkline({
       viewBox={`0 0 ${width} ${height}`}
       aria-hidden
       role="presentation"
-      style={{ display: 'block' }}
+      style={{ display: 'block', width: '100%', height }}
     >
       <Group>
         <AreaClosed<number>

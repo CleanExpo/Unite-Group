@@ -1,4 +1,5 @@
 'use client';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -53,22 +54,28 @@ const STATUS_COLOR: Record<string, string> = {
   down:        '#dc2626',
 };
 
+const stripLocale = (path: string) => path.replace(/^\/(en|es|fr)(?=\/|$)/, '');
+
 export function EmpireSidebar() {
   const pathname = usePathname();
   const isAuthRoute = AUTH_ROUTES.some(r => pathname.endsWith(r));
   const isClientRoute = CLIENT_ROUTES.some(r => pathname.startsWith(r));
+  const localeStrippedPath = stripLocale(pathname);
+  const isCommandCenterRoute =
+    localeStrippedPath === '/command-center' ||
+    localeStrippedPath.startsWith('/command-center/');
   // Sidebar now always shows the SEO sub-link under each brand — the accordion
   // toggle was cosmetic (5 of 6 brands revealed nothing). Detail page lives at
   // /empire/businesses/[slug]; SEO audit lives at /businesses/[slug]/seo.
   if (isAuthRoute || isClientRoute) return null;
 
   return (
-    <aside style={{ width: 240, minHeight: '100vh', background: '#0c0c0e', border: '1px solid #27272a', borderTop: 'none', borderBottom: 'none', borderLeft: 'none', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+    <aside className={isCommandCenterRoute ? 'empire-sidebar empire-sidebar-command-center' : 'empire-sidebar'} style={{ width: 240, minHeight: '100vh', background: '#0c0c0e', border: '1px solid #27272a', borderTop: 'none', borderBottom: 'none', borderLeft: 'none', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
 
       {/* Wordmark */}
       <div style={{ height: 64, display: 'flex', alignItems: 'center', padding: '0 20px', borderBottom: '1px solid #27272a' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <img src="/logo-mark.svg" width={32} height={32} alt="Unite Group" style={{ flexShrink: 0 }} />
+          <Image src="/logo-mark.svg" width={32} height={32} alt="Unite Group" style={{ flexShrink: 0 }} />
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#fafafa', letterSpacing: '-0.02em', fontFamily: 'var(--font-display)' }}>Unite Group</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 1 }}>
@@ -82,7 +89,7 @@ export function EmpireSidebar() {
       {/* Nav */}
       <nav style={{ flex: 1, padding: '12px 10px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
         {NAV.map(({ href, mark: Mark, label }) => {
-          const localeStripped = pathname.replace(/^\/[a-z]{2}/, ''); const active = localeStripped === href || localeStripped.startsWith(href + '/') || pathname === href || pathname.startsWith(href + '/');
+          const localeStripped = stripLocale(pathname); const active = localeStripped === href || localeStripped.startsWith(href + '/') || pathname === href || pathname.startsWith(href + '/');
           return (
             <Link
               key={href}
@@ -109,7 +116,7 @@ export function EmpireSidebar() {
           <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--ink-tertiary)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Intelligence</span>
         </div>
         {INTELLIGENCE_NAV.map(({ href, mark: Mark, label }) => {
-          const localeStripped = pathname.replace(/^\/[a-z]{2}/, ''); const active = localeStripped === href || localeStripped.startsWith(href + '/') || pathname === href || pathname.startsWith(href + '/');
+          const localeStripped = stripLocale(pathname); const active = localeStripped === href || localeStripped.startsWith(href + '/') || pathname === href || pathname.startsWith(href + '/');
           return (
             <Link
               key={href}
@@ -140,7 +147,6 @@ export function EmpireSidebar() {
           if (!meta) return null;
           const detailHref = `/empire/businesses/${meta.slug}`;
           const seoHref = `/businesses/${meta.slug}/seo`;
-          const localeStrippedPath = pathname.replace(/^\/[a-z]{2}/, '');
           const detailActive = localeStrippedPath === detailHref || localeStrippedPath.startsWith(detailHref + '/');
           const seoActive = localeStrippedPath === seoHref || pathname === seoHref;
           return (

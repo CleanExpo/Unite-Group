@@ -91,7 +91,7 @@ export function MargotVoicePanel() {
         type="button"
         onClick={prepareSession}
         disabled={state === 'loading'}
-        className="h-9 px-3 text-xs font-mono uppercase tracking-[0.18em] disabled:opacity-50"
+        className="min-h-11 px-3 text-xs font-mono uppercase tracking-[0.18em] disabled:opacity-50"
         style={{
           color: 'var(--cc-bg)',
           background: 'var(--cc-signal)',

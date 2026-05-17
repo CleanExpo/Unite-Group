@@ -86,9 +86,9 @@ export function AgentTopology({
   return (
     <section
       aria-label="Agent topology — Pi-CEO swarm"
+      className="command-center-topology"
       style={{
         position: 'relative',
-        height: 600,
         background: 'var(--cc-bg-soft)',
         borderTop: '1px solid var(--cc-grid)',
         borderBottom: '1px solid var(--cc-grid)',
@@ -146,6 +146,7 @@ export function AgentTopology({
         edgeTypes={edgeTypes}
         fitView
         fitViewOptions={{ padding: 0.15, includeHiddenNodes: true }}
+        minZoom={0.25}
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={false}
