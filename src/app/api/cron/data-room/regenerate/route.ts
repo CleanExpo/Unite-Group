@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { timingSafeBearerMatch } from '@/lib/security/safe-compare';
 import { runAllGenerators } from '@/lib/data-room/run-all-generators';
+import { recordRegenerationAction } from '@/lib/data-room/record-cron-action';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -21,11 +22,22 @@ async function handle(req: NextRequest) {
   const supabase = getAdminClient();
   const results = await runAllGenerators({ supabase });
   const allOk = results.every((r) => r.ok);
+  const generatedAt = new Date().toISOString();
+
+  // Emit a single agent_actions row capturing the cron firing — lights up
+  // GlobalStatusBar + ActivityLog so the operator notices when the daily
+  // run stops happening or starts partially failing.
+  await recordRegenerationAction({
+    supabase,
+    trigger: 'cron',
+    results,
+    generatedAt,
+  });
 
   return NextResponse.json(
     {
       ok: allOk,
-      generated_at: new Date().toISOString(),
+      generated_at: generatedAt,
       results,
     },
     { status: allOk ? 200 : 207, headers: { 'Cache-Control': 'no-store' } },
