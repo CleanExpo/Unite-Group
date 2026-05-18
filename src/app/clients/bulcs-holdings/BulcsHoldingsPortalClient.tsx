@@ -16,8 +16,13 @@ import {
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { PortalContent, Deliverable, Touchpoint, QuickLink } from "@/types/portal-content";
 
+// Brand primary lives as a CSS custom property at the page root so future
+// brand_config plumbing (UNI-1994) can override it without touching this file.
+// Simple consumers read BH.blue → var(--brand-primary); opacity variants use
+// color-mix() against the var directly (8-digit hex pattern doesn't work with var()).
+const BH_BRAND_PRIMARY_DEFAULT = "#228FE0";
 const BH = {
-  blue:    "#228FE0",
+  blue:    "var(--brand-primary)",
   dark:    "var(--canvas)",
   surface: "var(--surface-1)",
   border:  "var(--border-default)",
@@ -101,7 +106,7 @@ export default function BulcsHoldingsPortalClient({ initialContent }: BulcsHoldi
   const inProgress = deliverables.filter(d => d.status === "in-progress").length;
 
   return (
-    <div style={{ minHeight: "100vh", background: BH.dark, color: BH.ink, fontFamily: "var(--font-display)" }}>
+    <div style={{ minHeight: "100vh", background: BH.dark, color: BH.ink, fontFamily: "var(--font-display)", ["--brand-primary" as string]: BH_BRAND_PRIMARY_DEFAULT }}>
 
       <header style={{
         height: 64, display: "flex", alignItems: "center", padding: "0 32px",
@@ -121,7 +126,7 @@ export default function BulcsHoldingsPortalClient({ initialContent }: BulcsHoldi
           <span style={{ color: BH.border, fontSize: 16 }}>·</span>
 
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: `${BH.blue}20`, border: `1px solid ${BH.blue}40`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: "color-mix(in srgb, var(--brand-primary) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--brand-primary) 25%, transparent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: BH.blue }}>BH</span>
             </div>
             <div>
@@ -158,8 +163,8 @@ export default function BulcsHoldingsPortalClient({ initialContent }: BulcsHoldi
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
             style={{
-              background: `linear-gradient(135deg, ${BH.blue}14 0%, transparent 100%)`,
-              border: `1px solid ${BH.blue}25`,
+              background: "linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 8%, transparent) 0%, transparent 100%)",
+              border: "1px solid color-mix(in srgb, var(--brand-primary) 15%, transparent)",
               borderRadius: 12, padding: "20px 24px",
             }}
           >

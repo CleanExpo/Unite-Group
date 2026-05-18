@@ -20,8 +20,13 @@ import type { PortalContent, Deliverable, Touchpoint, QuickLink } from "@/types/
 
 // ─── Brand tokens ───────────────────────────────────────────────────────────
 
+// Brand primary lives as a CSS custom property at the page root so future
+// brand_config plumbing (UNI-1994) can override it without touching this file.
+// Simple consumers read DUNCAN.blue → var(--brand-primary); opacity variants
+// use color-mix() against the var directly.
+const DUNCAN_BRAND_PRIMARY_DEFAULT = "#1a73e8";
 const DUNCAN = {
-  blue:    "#1a73e8",
+  blue:    "var(--brand-primary)",
   dark:    "var(--canvas)",
   surface: "var(--surface-1)",
   border:  "var(--border-default)",
@@ -132,7 +137,7 @@ export default function DimitriPortalClient({ initialContent }: DimitriPortalCli
   const inProgress = deliverables.filter(d => d.status === "in-progress").length;
 
   return (
-    <div style={{ minHeight: "100vh", background: DUNCAN.dark, color: DUNCAN.ink, fontFamily: "var(--font-display)" }}>
+    <div style={{ minHeight: "100vh", background: DUNCAN.dark, color: DUNCAN.ink, fontFamily: "var(--font-display)", ["--brand-primary" as string]: DUNCAN_BRAND_PRIMARY_DEFAULT }}>
 
       <header style={{
         height: 64, display: "flex", alignItems: "center", padding: "0 32px",
@@ -152,7 +157,7 @@ export default function DimitriPortalClient({ initialContent }: DimitriPortalCli
           <span style={{ color: DUNCAN.border, fontSize: 16 }}>·</span>
 
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: `${DUNCAN.blue}20`, border: `1px solid ${DUNCAN.blue}40`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: "color-mix(in srgb, var(--brand-primary) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--brand-primary) 25%, transparent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: DUNCAN.blue }}>DP</span>
             </div>
             <div>
@@ -189,8 +194,8 @@ export default function DimitriPortalClient({ initialContent }: DimitriPortalCli
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
             style={{
-              background: `linear-gradient(135deg, ${DUNCAN.blue}14 0%, transparent 100%)`,
-              border: `1px solid ${DUNCAN.blue}25`,
+              background: "linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 8%, transparent) 0%, transparent 100%)",
+              border: "1px solid color-mix(in srgb, var(--brand-primary) 15%, transparent)",
               borderRadius: 12, padding: "20px 24px",
             }}
           >
