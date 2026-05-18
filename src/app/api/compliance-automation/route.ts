@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { AIGateway } from '@/lib/ai/gateway/ai-gateway';
+import { requireAdmin } from '@/lib/security/require-admin';
 
 // Compliance Automation Service
 class ComplianceAutomationService {
@@ -790,6 +791,9 @@ function getComplianceService(): ComplianceAutomationService {
 }
 
 export async function POST(request: NextRequest) {
+  const gate = await requireAdmin(request);
+  if (gate instanceof NextResponse) return gate;
+
   try {
     const service = getComplianceService();
     const { action, ...data } = await request.json();
@@ -838,6 +842,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const gate = await requireAdmin(request);
+  if (gate instanceof NextResponse) return gate;
+
   try {
     const url = new URL(request.url);
     const action = url.searchParams.get('action');
