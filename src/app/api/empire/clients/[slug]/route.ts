@@ -11,6 +11,7 @@ import { isValidBrandConfig, type BrandConfig } from '@/types/brand-config';
 import { isValidPortalContent, type PortalContent } from '@/types/portal-content';
 import { invalidateBrandConfigCache } from '@/lib/branding/getBrandConfig';
 import { invalidatePortalContentCache } from '@/lib/branding/getPortalContent';
+import { parseContactEmail } from '../_validate-email';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,13 +49,9 @@ function parsePatch(body: unknown): PatchInput | { error: string } {
   }
 
   if (obj.contact_email !== undefined) {
-    if (obj.contact_email === null) {
-      out.contact_email = null;
-    } else if (typeof obj.contact_email === 'string') {
-      out.contact_email = obj.contact_email.trim() || null;
-    } else {
-      return { error: 'invalid_contact_email' };
-    }
+    const result = parseContactEmail(obj.contact_email);
+    if (!result.ok) return { error: 'invalid_contact_email' };
+    out.contact_email = result.value;
   }
 
   if (obj.brand_config !== undefined) {
