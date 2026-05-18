@@ -33,6 +33,7 @@ import {
   type AgentNodeData,
   type AgentEdgeData,
 } from './topology-data';
+import { SourceBadge } from '../SourceBadge';
 
 export interface AgentTopologyProps {
   /** Override seed nodes for tests / live wiring. */
@@ -136,6 +137,9 @@ export function AgentTopology({
           >
             {blockedCount} blocked
           </span>
+        </span>
+        <span style={{ marginTop: 6 }}>
+          <SourceBadge mode="seed" label="static · awaits /api/empire/senior-agents" />
         </span>
       </header>
 

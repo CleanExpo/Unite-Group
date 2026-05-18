@@ -10,6 +10,8 @@ import {
   type ControlWorkstream,
 } from './control-panel-data';
 import { mapAddOnResult, type AddOnOutcome } from './add-on-result';
+import { SourceBadge } from '../SourceBadge';
+import { DegradedDataBanner } from '../DegradedDataBanner';
 
 type ControlPanelPayload = {
   source: string;
@@ -48,6 +50,7 @@ function stateLabel(status: ControlStatus, ryg?: ControlRyg) {
 export function HermesControlPanel() {
   const [payload, setPayload] = useState<ControlPanelPayload | null>(null);
   const [sourceState, setSourceState] = useState<'loading' | 'live' | 'fallback'>('loading');
+  const [fallbackReason, setFallbackReason] = useState<string | null>(null);
   const [localAddOns, setLocalAddOns] = useState<AddOnGate[] | null>(null);
   const [pendingAddOnId, setPendingAddOnId] = useState<string | null>(null);
   const [addOnOutcome, setAddOnOutcome] = useState<AddOnOutcome | null>(null);
@@ -58,16 +61,25 @@ export function HermesControlPanel() {
     async function loadControlPanel() {
       try {
         const res = await fetch('/api/command-center/control-panel', { cache: 'no-store' });
-        if (!res.ok) throw new Error('control_panel_fetch_failed');
+        if (!res.ok) throw new Error(`control_panel_http_${res.status}`);
         const body = (await res.json()) as ControlPanelPayload;
         if (cancelled) return;
         setPayload(body);
         setLocalAddOns(body.addOns);
-        setSourceState(body.source.startsWith('crm:') ? 'live' : 'fallback');
-      } catch {
+        if (body.source.startsWith('crm:')) {
+          setSourceState('live');
+          setFallbackReason(null);
+        } else {
+          setSourceState('fallback');
+          setFallbackReason(`server returned source=${body.source}`);
+        }
+      } catch (err) {
         if (cancelled) return;
         setPayload(null);
         setSourceState('fallback');
+        setFallbackReason(
+          err instanceof Error ? err.message : 'control_panel_fetch_failed',
+        );
       }
     }
 
@@ -120,12 +132,18 @@ export function HermesControlPanel() {
   const green = payload?.summary.green ?? workstreams.filter((item) => item.ryg === 'green').length;
   const yellow = payload?.summary.yellow ?? workstreams.filter((item) => item.ryg === 'yellow').length;
   const red = payload?.summary.red ?? workstreams.filter((item) => item.ryg === 'red').length;
-  const sourceLabel =
+  const badgeMode =
     sourceState === 'live'
-      ? `CRM live · ${payload?.taskCount ?? 0} tasks`
+      ? 'live'
       : sourceState === 'loading'
-        ? 'loading CRM'
-        : 'fallback plan data';
+        ? 'loading'
+        : 'degraded';
+  const badgeLabel =
+    sourceState === 'live'
+      ? `CRM · ${payload?.taskCount ?? 0} tasks`
+      : sourceState === 'loading'
+        ? 'CRM · requesting'
+        : 'CRM unreachable · seed plan';
 
   return (
     <section
@@ -156,14 +174,11 @@ export function HermesControlPanel() {
           >
             Unite CRM operating spine
           </h2>
-          <span
-            className="font-mono text-[10px] uppercase tracking-[0.18em]"
-            style={{
-              color: sourceState === 'live' ? 'var(--cc-ink-dim)' : 'var(--cc-signal)',
-            }}
-          >
-            {sourceLabel}
-          </span>
+          <SourceBadge
+            mode={badgeMode}
+            label={badgeLabel}
+            lastUpdatedAt={payload?.generatedAt}
+          />
         </div>
 
         <div
@@ -176,6 +191,13 @@ export function HermesControlPanel() {
           <SummaryCell label="RED" value={red} tone="red" />
         </div>
       </header>
+
+      {sourceState === 'fallback' && (
+        <DegradedDataBanner
+          source="Unite CRM"
+          reason={fallbackReason ?? undefined}
+        />
+      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_20rem]" style={{ gap: 1, background: 'var(--cc-grid)' }}>
         <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 1, background: 'var(--cc-grid)' }}>

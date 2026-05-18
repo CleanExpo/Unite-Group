@@ -14,6 +14,7 @@
 
 import { BusinessTile } from './BusinessTile';
 import { BUSINESS_360_TILES } from './business-360-data';
+import { SourceBadge } from '../SourceBadge';
 
 export function Business360Grid() {
   return (
@@ -35,11 +36,14 @@ export function Business360Grid() {
         >
           Zone 4 · Business 360
         </span>
-        <span
-          className="font-mono text-[10px] uppercase tracking-[0.18em]"
-          style={{ color: 'var(--cc-ink-hush)' }}
-        >
-          {BUSINESS_360_TILES.length} portfolio brands
+        <span className="flex items-center gap-3">
+          <span
+            className="font-mono text-[10px] uppercase tracking-[0.18em]"
+            style={{ color: 'var(--cc-ink-hush)' }}
+          >
+            {BUSINESS_360_TILES.length} portfolio brands
+          </span>
+          <SourceBadge mode="seed" label="static · awaits financial_records aggregate" />
         </span>
       </header>
 
