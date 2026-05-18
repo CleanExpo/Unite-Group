@@ -8,6 +8,7 @@
 // from /api/pi-ceo/health + /api/empire/senior-agents. Per the
 // [[command-center-redesign-proposal-2026-05-14]] data-binding list.
 
+import Link from 'next/link';
 import { MissionClock } from './MissionClock';
 import { SourceBadge } from './SourceBadge';
 
@@ -74,17 +75,24 @@ export function GlobalStatusBar({
         />
         <StatusPip label="Build" value={buildSha.slice(0, 7)} state="hush" />
         {dataRoomHealth && (
-          <StatusPip
-            label="Data room"
-            value={dataRoomHealth}
-            state={
-              dataRoomHealth === 'missing'
-                ? 'signal'
-                : dataRoomHealth === 'stale'
+          <Link
+            href="/en/empire/data-room"
+            style={{ textDecoration: 'none' }}
+            aria-label={`Data room: ${dataRoomHealth}. Open admin page.`}
+            data-data-room-pip-link
+          >
+            <StatusPip
+              label="Data room"
+              value={dataRoomHealth}
+              state={
+                dataRoomHealth === 'missing'
                   ? 'signal'
-                  : 'running'
-            }
-          />
+                  : dataRoomHealth === 'stale'
+                    ? 'signal'
+                    : 'running'
+              }
+            />
+          </Link>
         )}
         {isLive ? (
           <SourceBadge
