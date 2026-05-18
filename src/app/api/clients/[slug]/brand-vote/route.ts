@@ -9,8 +9,17 @@
 // Body: { candidate: string }
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { applyRateLimit, UNKNOWN_IP } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
+
+// Defense-in-depth on top of the existing one-vote-per-IP-per-24h dedupe
+// stored in portal_content.brand_vote.votes_log. The dedupe protects the
+// canonical state; this rate-limit blunts rapid burst attempts (someone
+// hammering many candidate values to probe for accepted strings or to
+// flood the votes_log array). 20 req/min/IP — legit user clicks once.
+const VOTE_RATE_LIMIT = 20;
+const VOTE_RATE_WINDOW_MS = 60_000;
 
 function clientIp(request: NextRequest): string | null {
   const xff = request.headers.get('x-forwarded-for');
@@ -22,6 +31,15 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
+  const ip = clientIp(request) ?? UNKNOWN_IP;
+  const rate = applyRateLimit(ip, VOTE_RATE_LIMIT, VOTE_RATE_WINDOW_MS);
+  if (!rate.ok) {
+    return NextResponse.json(
+      { error: 'rate_limited', resetAt: rate.resetAt },
+      { status: 429 },
+    );
+  }
+
   try {
     const { slug } = await params;
     if (!slug || !/^[a-z0-9][a-z0-9-]{1,40}$/.test(slug)) {

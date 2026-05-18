@@ -17,7 +17,7 @@
 | `/api/calendar/mode` | PUT | ✓ | ✗ | ✗ | ✗ | `src/app/api/calendar/mode/route.ts` |
 | `/api/calendar/posts/[id]/approve` | PATCH | ✓ | ✗ | ✗ | ✗ | `src/app/api/calendar/posts/[id]/approve/route.ts` |
 | `/api/calendar/posts/[id]/reject` | PATCH | ✓ | ✗ | ✗ | ✗ | `src/app/api/calendar/posts/[id]/reject/route.ts` |
-| `/api/clients/[slug]/brand-vote` | POST | ✗ | ✗ | ✗ | ✗ | `src/app/api/clients/[slug]/brand-vote/route.ts` |
+| `/api/clients/[slug]/brand-vote` | POST | ✗ | ✓ | ✗ | ✗ | `src/app/api/clients/[slug]/brand-vote/route.ts` |
 | `/api/clients/ccw/health` | GET | ✗ | ✗ | ✗ | ✗ | `src/app/api/clients/ccw/health/route.ts` |
 | `/api/clients/featured-opt-in` | PATCH | ✗ | ✗ | ✗ | ✗ | `src/app/api/clients/featured-opt-in/route.ts` |
 | `/api/command-center/control-panel` | GET | ✗ | ✗ | ✗ | ✗ | `src/app/api/command-center/control-panel/route.ts` |
@@ -104,7 +104,7 @@
 - Total routes: 91
 - Auth-wrapped (session / JWT / bearer): 31 (34%)
 - Webhook-signature-verified: 3 (3%)
-- Rate-limited: 15 (16%)
+- Rate-limited: 16 (18%)
 - CSRF-protected: 0 (0%)
 - Input-validated: 7 (8%)
 
@@ -114,7 +114,6 @@ Routes that accept mutating methods (POST / PUT / PATCH / DELETE) AND have **no 
 
 | Route | Methods | File |
 | --- | --- | --- |
-| `/api/clients/[slug]/brand-vote` | POST | `src/app/api/clients/[slug]/brand-vote/route.ts` |
 | `/api/clients/featured-opt-in` | PATCH | `src/app/api/clients/featured-opt-in/route.ts` |
 | `/api/command-center/control-panel/add-ons` | POST | `src/app/api/command-center/control-panel/add-ons/route.ts` |
 | `/api/command-center/control-panel/kanban-sync` | GET, POST | `src/app/api/command-center/control-panel/kanban-sync/route.ts` |
