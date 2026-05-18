@@ -106,6 +106,13 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (inserted.error || !inserted.data) {
+    // Race window: another POST snuck a row in between the pre-check above
+    // and this INSERT. Postgres rejects with 23505 (unique_violation) since
+    // nexus_clients.slug is UNIQUE. Map to the same 409 slug_in_use the
+    // pre-check returns so the wizard renders consistent copy.
+    if (inserted.error?.code === '23505') {
+      return NextResponse.json({ error: 'slug_in_use' }, { status: 409 });
+    }
     return NextResponse.json(
       { error: 'client_insert_failed', detail: inserted.error?.message },
       { status: 500 },
