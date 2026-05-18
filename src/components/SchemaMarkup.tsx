@@ -3,6 +3,17 @@
 import { usePathname } from "next/navigation";
 import Script from "next/script";
 
+/**
+ * Encode a JSON-LD payload for embedding inside a `<script type="application/ld+json">`
+ * tag. Standard JSON.stringify is unsafe because a string value containing
+ * `</script>` would close the surrounding tag and let arbitrary markup
+ * through. Escaping `<` → `<` keeps the JSON parser happy and prevents
+ * tag breakout. Exported for regression testing — see SchemaMarkup test.
+ */
+export function encodeJsonLd(payload: unknown): string {
+  return JSON.stringify(payload).replace(/</g, "\\u003c");
+}
+
 export interface SchemaMarkupProps {
   title?: string;
   description?: string;
@@ -146,12 +157,12 @@ export default function SchemaMarkup({
     <Script
       id="schema-markup"
       type="application/ld+json"
-      // Per UNI-1958: this is the canonical Next.js pattern for JSON-LD —
-      // the payload is JSON.stringify of server-constructed schema objects,
-      // never user input. Google's structured-data spec requires raw JSON in
-      // a <script type="application/ld+json"> tag; there is no safer pattern.
+      // Per UNI-1958: this is the canonical Next.js pattern for JSON-LD.
+      // encodeJsonLd JSON.stringifies the payload and escapes `<` to prevent
+      // `</script>` inside a string value from breaking out of the
+      // surrounding script tag.
       // eslint-disable-next-line react/no-danger
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schemas) }}
+      dangerouslySetInnerHTML={{ __html: encodeJsonLd(schemas) }}
       strategy="afterInteractive"
     />
   );
