@@ -19,6 +19,7 @@ interface WizardState {
   company_name: string;
   slug: string;
   website_url: string;
+  contact_email: string;
   primary_color: string;
   accent_color: string;
   tagline: string;
@@ -35,6 +36,7 @@ const DEFAULTS: WizardState = {
   company_name: '',
   slug: '',
   website_url: '',
+  contact_email: '',
   primary_color: '#D62828',
   accent_color: '#D62828',
   tagline: '',
@@ -87,6 +89,7 @@ export function OnboardWizard() {
           company_name: state.company_name.trim(),
           slug: state.slug.trim(),
           website_url: state.website_url.trim() || undefined,
+          contact_email: state.contact_email.trim() || undefined,
           brand_config: {
             primary_color: state.primary_color,
             accent_color: state.accent_color,
@@ -143,6 +146,7 @@ export function OnboardWizard() {
             update('slug', s);
           }}
           onWebsite={(v) => update('website_url', v)}
+          onContactEmail={(v) => update('contact_email', v)}
         />
       )}
       {step === 2 && (
@@ -264,11 +268,13 @@ function Step1({
   onCompanyName,
   onSlug,
   onWebsite,
+  onContactEmail,
 }: {
   state: WizardState;
   onCompanyName: (v: string) => void;
   onSlug: (v: string) => void;
   onWebsite: (v: string) => void;
+  onContactEmail: (v: string) => void;
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -302,6 +308,19 @@ function Step1({
           onChange={(e) => onWebsite(e.target.value)}
           maxLength={500}
           placeholder="https://acmerestoration.com.au"
+          style={inputStyle}
+        />
+      </Field>
+      <Field
+        label="Contact email (optional)"
+        hint="Primary contact at the client. Goes into nexus_clients.contact_email and is editable later."
+      >
+        <input
+          type="email"
+          value={state.contact_email}
+          onChange={(e) => onContactEmail(e.target.value)}
+          maxLength={250}
+          placeholder="founder@acmerestoration.com.au"
           style={inputStyle}
         />
       </Field>
