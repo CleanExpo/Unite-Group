@@ -14,6 +14,7 @@ import { invalidatePortalContentCache } from '@/lib/branding/getPortalContent';
 import { parseContactEmail } from '../_validate-email';
 import { parseWebsiteUrl } from '../_validate-website';
 import { recordClientAction } from '../_record-action';
+import { mapUniqueViolation } from '../_map-unique-violation';
 
 export const dynamic = 'force-dynamic';
 
@@ -112,6 +113,13 @@ export async function PATCH(
     if (code === 'PGRST116') {
       // No rows matched
       return NextResponse.json({ error: 'client_not_found' }, { status: 404 });
+    }
+    // PATCH can't violate slug uniqueness (slug is immutable) but CAN
+    // violate contact_email uniqueness if the founder reassigns one that
+    // belongs to another client.
+    const unique = mapUniqueViolation(res.error);
+    if (unique) {
+      return NextResponse.json(unique.body, { status: unique.status });
     }
     return NextResponse.json(
       { error: 'client_update_failed', detail: res.error?.message },
