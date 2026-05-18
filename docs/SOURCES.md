@@ -5,7 +5,7 @@
 > Some assets stay where they live (Hermes scripts, Vercel envs, Supabase tables);
 > this map tells you where to look and which `scripts/unite` subcommand reaches them.
 
-Last reconciled: 2026-05-18.
+Last reconciled: 2026-05-18 (post-security-sweep wave: PRs #75–#85).
 
 ## 1. This repo (Next.js + Supabase app)
 
@@ -15,11 +15,18 @@ Last reconciled: 2026-05-18.
 | `src/app/api/cron/integrations/` | 9 cron route handlers (github, vercel, railway, linear, digitalocean, stripe, supabase, composio, onepassword) | Cadence in `vercel.json`; 1Password runs from Hermes |
 | `src/app/api/empire/integrations/` | JWT-gated read endpoints feeding the dashboard | |
 | `src/lib/integrations/` | Per-service runtime modules (`composio/`, `digitalocean/`, `github/`, `linear/`, `onepassword/`, `railway/`, `stripe/`, `supabase/`, `vercel/`) plus `ExternalAPIClient.ts` + `dashboard-state.ts` | Already follows the runtime-mechanics-per-service pattern. Runtime Reconciliation builds on this. |
+| `src/lib/runtime/` | `withSyncLifecycle` wrapper + `sync-state-repo` (PR #75) — extracts the repeated cron-route lifecycle (auth, sync-state writes, status classification). All 9 integration crons consume this. | |
+| `src/lib/auth/admin-jwt.ts` | `mintAdminJwt` + `verifyAdminJwt` (PR #83) — HS256 JWT for admin route auth. Lives next to `check-admin-token.ts`. | Needs `ADMIN_JWT_SECRET` env (≥32 chars) |
+| `src/lib/auth/check-admin-token.ts` | Dual-auth bridge (PR #84) — accepts JWT (preferred) OR legacy static `PI_CEO_API_KEY`. Static branch removable after rotation cycle proven. | |
+| `src/lib/turnstile.ts` | Cloudflare Turnstile server-side verifier (PR #82) — for CAPTCHA-gated public intake routes. | Needs `CF_TURNSTILE_SECRET_KEY` env |
 | `src/lib/supabase/` | SSR + service-role Supabase clients | |
 | `database/` | Hand-authored SQL schema (auth, RLS, RBAC, MFA, etc.) | Source of truth for prod schema; sync via `scripts/sandbox-wizard.sh` |
 | `supabase/functions/` | 3 edge functions: `generate-calendar`, `process-publish-queue`, `score-client` | Deploy via Supabase CLI |
 | `supabase/migrations/` | Versioned Postgres migrations | Apply via `sandbox-wizard.sh apply` then `promote` |
-| `scripts/` | Local scripts: `sandbox-wizard.sh`, `safe-migrate.sh`, `pre-build-check.ts`, `brand-guardian-lint.ts`, etc. | `scripts/unite` (this PR) wraps the cockpit |
+| `scripts/` | Local scripts: `sandbox-wizard.sh`, `safe-migrate.sh`, `pre-build-check.ts`, `brand-guardian-lint.ts`, `generate-route-inventory.ts` (PR #76 audit), `check-route-inventory.ts` (PR #80 CI gate), `rotate-admin-jwt.ts` (PR #85), etc. | `scripts/unite` wraps the cockpit |
+| `.github/workflows/` | CI + rotation: `ci.yml` (with `brand:lint` + `security:routes-check` steps), `rotate-admin-jwt.yml` (daily 03:00 UTC, PR #85). | |
+| `docs/security/route-inventory.md` | Generated audit (PR #76) — 91 routes × auth/signature/rate-limit/CSRF/input-validation posture. Regenerate via `npx ts-node scripts/generate-route-inventory.ts`. | |
+| `docs/operations/runbook-1password-vault-permissions.md` | Hermes 1P vault-grant runbook (PR #81). Step-by-step UI fix for the daily 04:00 AEST sync failure. | |
 | `docs/superpowers/plans/` | Implementation plans (9 active as of 2026-05-18) | |
 | `docs/superpowers/specs/` | Design specs (this is where Runtime Reconciliation design lives) | |
 | `docs/integrations/README.md` | Integration mesh operator runbook (cadence, env vars, verification) | Read-first if cron is broken |
@@ -36,6 +43,7 @@ Hermes runs scheduled tasks from Phill's Mac mini. Two jobs touch Unite-Group pr
 | Cron job definitions | `~/.hermes/cron/jobs.json` | — (Hermes-owned) | `scripts/unite hermes-jobs` |
 | `Unite-Group 1Password sync` | Daily 04:00 AEST | `/Users/phill-mac/Pi-CEO/scripts/sync_1password_to_supabase.py` (shim at `~/.hermes/scripts/sync_1password_to_supabase.py`) | `scripts/unite onepassword-sync` |
 | `Unite-Group health check` | Hourly | `~/.hermes/scripts/unite_group_health_check.py` | `scripts/unite health` |
+| Vault visibility check | on-demand | n/a (queries `integration_onepassword_index` directly) | `scripts/unite vault-status` (PR #81) |
 | Hermes env (Supabase service key, etc.) | `~/.hermes/.env` | — (Hermes-owned) | n/a (read-only from outside) |
 
 **Constraint:** Hermes scripts must remain at `~/.hermes/scripts/` because the cron runner pins resolution there. The cockpit CLI shells out — does not move files.
