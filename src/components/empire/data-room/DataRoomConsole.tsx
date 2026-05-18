@@ -5,6 +5,7 @@
 // supersede each row, and triggers the ZIP export endpoint.
 
 import { useCallback, useMemo, useState } from 'react';
+import { computeKindFreshness, type KindFreshness } from '@/lib/data-room/kind-freshness';
 
 interface DocRow {
   id: string;
@@ -56,6 +57,11 @@ export function DataRoomConsole({
     }
     return c;
   }, [docs]);
+
+  const freshness = useMemo(
+    () => computeKindFreshness(docs, new Date().toISOString()),
+    [docs],
+  );
 
   const regenerateAll = useCallback(async () => {
     setRegenerating(true);
@@ -200,6 +206,8 @@ export function DataRoomConsole({
           {notice}
         </div>
       )}
+
+      <FreshnessStrip freshness={freshness} />
 
       {docs.length === 0 ? (
         <p style={{ color: 'var(--ink-secondary)', fontSize: 14 }}>
@@ -353,4 +361,76 @@ function formatDate(iso: string): string {
   } catch {
     return iso;
   }
+}
+
+const FRESHNESS_TONE: Record<KindFreshness['status'], string> = {
+  approved: '#10b981',
+  pending: '#f59e0b',
+  rejected: '#f87171',
+  missing: 'var(--ink-hush, #888)',
+};
+
+function FreshnessStrip({ freshness }: { freshness: KindFreshness[] }) {
+  return (
+    <section
+      aria-label="Per-kind freshness"
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+        gap: 8,
+        padding: '12px 0',
+        borderTop: '1px solid var(--border-hairline)',
+        borderBottom: '1px solid var(--border-hairline)',
+      }}
+    >
+      {freshness.map((f) => {
+        const tone = FRESHNESS_TONE[f.status];
+        const freshnessLabel =
+          f.status === 'missing'
+            ? 'never generated'
+            : f.days_since_generated === 0
+              ? 'today'
+              : f.days_since_generated === 1
+                ? '1 day ago'
+                : `${f.days_since_generated} days ago`;
+        return (
+          <div
+            key={f.kind}
+            data-freshness-kind={f.kind}
+            data-freshness-status={f.status}
+            data-freshness-stale={f.is_stale ? 'true' : 'false'}
+            style={{
+              padding: '10px 12px',
+              border: '1px solid var(--border-default)',
+              borderLeft: `2px solid ${tone}`,
+              borderRadius: 6,
+              background: 'var(--surface-1)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 4,
+              fontFamily: 'var(--font-mono)',
+            }}
+          >
+            <span
+              style={{
+                fontSize: 10,
+                textTransform: 'uppercase',
+                letterSpacing: '0.14em',
+                color: 'var(--ink-secondary)',
+              }}
+            >
+              {KIND_LABELS[f.kind] ?? f.kind}
+            </span>
+            <span style={{ fontSize: 12, color: tone, textTransform: 'uppercase', letterSpacing: '0.10em' }}>
+              {f.status}
+              {f.is_stale ? ' · stale' : ''}
+            </span>
+            <span style={{ fontSize: 10, color: 'var(--ink-hush, #888)' }}>
+              {freshnessLabel}
+            </span>
+          </div>
+        );
+      })}
+    </section>
+  );
 }
