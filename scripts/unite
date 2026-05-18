@@ -28,6 +28,7 @@ Supabase
 Hermes
   hermes-jobs           list Unite-Group cron jobs
   onepassword-sync      run the 1Password → Supabase sync (manual)
+  vault-status          compare expected vaults vs what's indexed in Supabase
   health                run the Unite-Group health check (manual)
 
 GitHub
@@ -109,6 +110,73 @@ cmd_onepassword_sync() {
   python3 "$script"
 }
 
+cmd_vault_status() {
+  # Reads integration_onepassword_index from prod, compares vault coverage
+  # against DEFAULT_VAULTS hardcoded in the Hermes sync script. Surfaces
+  # what's stale or missing without re-running the sync. See docs/operations/
+  # runbook-1password-vault-permissions.md for the fix-action steps.
+  : "${NEXT_PUBLIC_SUPABASE_URL:?set in .env.local}"
+  : "${SUPABASE_SERVICE_ROLE_KEY:?set in .env.local}"
+  python3 - <<PY
+import json, os, urllib.request, urllib.parse, sys, datetime
+EXPECTED = [
+    "Unite-Group-Infrastructure", "RestoreAssist", "Carsi",
+    "CCW-CRM", "Synthex", "Email-Accounts", "Personal",
+]
+url = (
+    f"{os.environ['NEXT_PUBLIC_SUPABASE_URL']}"
+    "/rest/v1/integration_onepassword_index"
+    "?select=vault,fetched_at"
+)
+req = urllib.request.Request(
+    url,
+    headers={
+        "apikey": os.environ["SUPABASE_SERVICE_ROLE_KEY"],
+        "authorization": f"Bearer {os.environ['SUPABASE_SERVICE_ROLE_KEY']}",
+    },
+)
+try:
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        rows = json.loads(resp.read())
+except Exception as exc:
+    print(f"FAILED to query Supabase: {exc}", file=sys.stderr)
+    sys.exit(1)
+
+by_vault = {}
+for r in rows:
+    v = r["vault"]
+    by_vault.setdefault(v, {"count": 0, "newest": ""})
+    by_vault[v]["count"] += 1
+    if r["fetched_at"] > by_vault[v]["newest"]:
+        by_vault[v]["newest"] = r["fetched_at"]
+
+print(f"{'VAULT':<32}{'ITEMS':>8}  LAST FETCHED               STATUS")
+print("-" * 78)
+now = datetime.datetime.now(datetime.timezone.utc)
+ok = True
+for v in EXPECTED:
+    d = by_vault.get(v)
+    if not d:
+        print(f"{v:<32}{0:>8}  —                          MISSING (grant access)")
+        ok = False
+        continue
+    age = now - datetime.datetime.fromisoformat(d["newest"].replace("Z", "+00:00"))
+    status = "STALE (>48h)" if age > datetime.timedelta(hours=48) else "ok"
+    if status.startswith("STALE"):
+        ok = False
+    print(f"{v:<32}{d['count']:>8}  {d['newest'][:19]}  {status}")
+extra = sorted(set(by_vault) - set(EXPECTED))
+for v in extra:
+    print(f"{v:<32}{by_vault[v]['count']:>8}  {by_vault[v]['newest'][:19]}  unexpected (drift?)")
+print()
+if ok:
+    print("✓ all 7 expected vaults present and fresh")
+    sys.exit(0)
+print("✗ vault coverage incomplete — see docs/operations/runbook-1password-vault-permissions.md")
+sys.exit(1)
+PY
+}
+
 cmd_health() {
   local script="$HERMES_HOME/scripts/unite_group_health_check.py"
   [[ -f "$script" ]] || { echo "missing $script"; exit 1; }
@@ -143,6 +211,7 @@ main() {
     sandbox)          cmd_sandbox "$@" ;;
     hermes-jobs)      cmd_hermes_jobs "$@" ;;
     onepassword-sync) cmd_onepassword_sync "$@" ;;
+    vault-status)     cmd_vault_status "$@" ;;
     health)           cmd_health "$@" ;;
     pr-status)        cmd_pr_status "$@" ;;
     ci-status)        cmd_ci_status "$@" ;;
