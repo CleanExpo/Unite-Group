@@ -1,117 +1,101 @@
 # Runbook — 1Password vault permissions for the Unite-Group sync
 
-> **Last verified:** 2026-05-18. **Current state:** 1 of 7 vaults visible to the service account.
+> **Last verified:** 2026-05-18 06:18 UTC. **Current state:** 3 of 3 valid vaults syncing cleanly.
 
-## What's broken
+## Current state (post-fix)
 
-The Hermes daily 04:00 AEST cron job `Unite-Group 1Password sync` runs
-`/Users/phill-mac/Pi-CEO/scripts/sync_1password_to_supabase.py`. Its preflight
-calls `op vault list` as the 1Password service account, then refuses to run
-the stale-row sweep when fewer vaults are visible than expected
-(`OP_ALLOW_PARTIAL_VAULT_SYNC` default is off — this prevents the sweep from
-deleting rows that belong to a temporarily-inaccessible vault).
+| Vault | Items | Status |
+|---|---|---|
+| Unite-Group-Infrastructure | 84 | ok |
+| RestoreAssist | 8 | ok |
+| Carsi | 82 | ok |
 
-Today the script reaches Supabase with rows for only 1 of 7 configured vaults:
+`integration_onepassword_index` total: **174 rows** (after one duplicate dedupe).
+Daily Hermes alert noise (the failing 04:00 AEST cron) has stopped.
 
-| Vault | Items | Last fetched | Status |
-|---|---|---|---|
-| Unite-Group-Infrastructure | 83 | 2026-05-17 13:04 UTC | ok |
-| RestoreAssist | 0 | — | MISSING — grant access |
-| Carsi | 0 | — | MISSING — grant access |
-| CCW-CRM | 0 | — | MISSING — grant access |
-| Synthex | 0 | — | MISSING — grant access |
-| Email-Accounts | 0 | — | MISSING — grant access |
-| Personal | 0 | — | MISSING — grant access |
+## What was fixed
 
-Because of the partial-coverage guard, the script also exits non-zero each
-run, which Hermes routes to Telegram. So this is also why you're getting a
-daily "1Password sync failed" message at 04:00 AEST.
+The original service account (`Hermes Gateway Mac-mini`, ID
+`BQDXYIQBKNBLLPHNH3KYADO3Y4`) had read access to only 1 of 7 configured
+vaults, and **1Password's UI does not support editing service-account vault
+scope post-create** on this account/plan — three exploration paths
+(service-account "Edit Details" dialog, per-vault Share dialog Integrations
+tab, `op vault user grant` CLI) all dead-ended.
 
-## Why fix it
+The canonical fix per 1P's own model is **recreate the service account
+with vault scope at creation time**:
 
-Without the missing vaults indexed in Supabase, the Unite-Group control
-panel's "Where is X stored?" lookups (planned for the Pilot V1 cutover Tue
-2026-05-19 18:00 AEST) cannot answer for items in `RestoreAssist`, `Carsi`,
-`CCW-CRM`, `Synthex`, `Email-Accounts`, or `Personal`. Also: each failed
-daily sync emits a Telegram alert that has lost its signal (you've seen 5+
-in a row), which dilutes the alert channel.
+```bash
+op service-account create "hermes-gateway-mac-mini-v2" \
+  --vault "Unite-Group-Infrastructure:read_items" \
+  --vault "RestoreAssist:read_items" \
+  --vault "Carsi:read_items" \
+  --vault "Synthex:read_items" \
+  --vault "Email-Accounts:read_items" \
+  --raw > ~/.hermes/.op-service-account-token
+chmod 600 ~/.hermes/.op-service-account-token
+```
 
-## The fix (15 min, one-time)
+The wrapper script `/tmp/recreate-hermes-sa.sh` (used during this session)
+adds pre-flight checks: op-signin verification, vault-existence
+validation before mutation, backup of the current token, post-write size
+sanity check, automatic rollback on partial failure. Reuse pattern if
+recreating in future.
 
-The service account doesn't have **read** permission on the 6 missing
-vaults. Grant it in the 1Password web UI.
+## Why only 3 of the 7 originally-configured vaults
 
-### Steps
+Of the original `DEFAULT_VAULTS` list:
 
-1. **Open the service-account settings.**
-   - https://my.1password.com → upper-right account menu → **Developer** → **Service Accounts**
-   - Pick the service account whose token is in `~/.hermes/.env` as
-     `OP_SERVICE_ACCOUNT_TOKEN` (or
-     `~/.hermes/.op-service-account-token`). Name is likely something like
-     `unite-group-hermes-sync`.
+| Vault | Outcome | Reason |
+|---|---|---|
+| Unite-Group-Infrastructure | ✓ indexed | granted at creation |
+| RestoreAssist | ✓ indexed | granted at creation |
+| Carsi | ✓ indexed | granted at creation |
+| Synthex | dropped from `OP_VAULTS` | vault exists but empty (0 items); re-add when populated |
+| Email-Accounts | dropped from `OP_VAULTS` | vault exists but empty; re-add when populated |
+| CCW-CRM | cannot grant | vault doesn't exist in the workspace |
+| Personal | cannot grant | 1Password forbids service-account access to Personal/Private vaults (per `op service-account create --help`) |
 
-2. **For each of the 6 missing vaults**, add read-only access:
-   - On the service-account page, find the **Vaults** section.
-   - Click **Add Vault** (or **Grant access**).
-   - Select the vault by name.
-   - Set permission to **Read items** (NOT read item values — the sync only
-     needs item NAMES + metadata, never values).
-   - Save.
+`OP_VAULTS` in `~/.hermes/.env` is the authoritative override:
 
-   Repeat for: `RestoreAssist`, `Carsi`, `CCW-CRM`, `Synthex`,
-   `Email-Accounts`, `Personal`.
+```
+OP_VAULTS=Unite-Group-Infrastructure,RestoreAssist,Carsi
+```
 
-3. **Verify visibility from the Mac mini** (where Hermes runs):
-   ```bash
-   eval $(op signin)
-   OP_SERVICE_ACCOUNT_TOKEN=$(cat ~/.hermes/.op-service-account-token) \
-     op vault list --format json | jq -r '.[].name' | sort
-   ```
-   Expected: all 7 vault names listed.
+## Pending manual cleanup (low priority)
 
-4. **Trigger a manual sync** (don't wait until 04:00 the next day):
-   ```bash
-   cd ~/pi-seo-workspace/unite-group
-   ./scripts/unite onepassword-sync
-   ```
-   Expected: `[SILENT]` on stdout, non-zero return only on a genuine error.
+These were flagged during the fix but are not blocking the daily sync:
 
-5. **Confirm Supabase received the rows** from this repo:
-   ```bash
-   ./scripts/unite vault-status
-   ```
-   (Requires `SUPABASE_SERVICE_ROLE_KEY` in `.env.local` — `vercel env pull
-   .env.local --environment=production` to refresh.) Expected output:
+1. **Edit `DEFAULT_VAULTS` in `/Users/phill-mac/Pi-CEO/scripts/sync_1password_to_supabase.py`** to drop the 4 unused entries (CCW-CRM, Personal, Synthex, Email-Accounts), so the fallback list matches reality if `OP_VAULTS` env is ever unset. The Pi-CEO directory isn't a git repo so this is an in-place edit, not a PR.
 
-   ```
-   VAULT                              ITEMS  LAST FETCHED         STATUS
-   ──────────────────────────────────────────────────────────────────────
-   Unite-Group-Infrastructure            83  2026-…               ok
-   RestoreAssist                         <N> 2026-…               ok
-   …
-   ✓ all 7 expected vaults present and fresh
+   Patch:
+   ```python
+   DEFAULT_VAULTS = [
+       "Unite-Group-Infrastructure",
+       "RestoreAssist",
+       "Carsi",
+   ]
    ```
 
-## If you intentionally drop a vault
+2. **Delete the old `Hermes Gateway Mac-mini` service account** in the 1P web UI (https://my.1password.com → Developer → Service Accounts → old account → Revoke Token). The v2 successor owns the work now; the old one is dormant. Leaving it doesn't break anything but it's stale audit-debt.
 
-If `Personal` (or any other) is intentionally out of scope, the right
-change is to **remove it from `DEFAULT_VAULTS`** in
-`/Users/phill-mac/Pi-CEO/scripts/sync_1password_to_supabase.py` (a few-line
-PR on that file). Or set `OP_VAULTS` in `~/.hermes/.env` to the
-comma-separated list of vaults you *do* want indexed; `DEFAULT_VAULTS` is
-the fallback.
+## Verification commands
 
-Setting `OP_ALLOW_PARTIAL_VAULT_SYNC=1` in `~/.hermes/.env` is the wrong
-answer — it lets the sync continue with partial coverage AND run the
-stale-row sweep, which will delete rows for vaults that are
-temporarily-inaccessible (e.g. 1Password down for maintenance). Only flip
-that env if you understand and accept that data-loss risk.
+After any future recreation or env tweak:
+
+```bash
+cd ~/pi-seo-workspace/unite-group
+./scripts/unite onepassword-sync   # fires a manual sync
+./scripts/unite vault-status        # queries Supabase for per-vault counts
+```
+
+Expected exit 0 + `[SILENT]` on stdout when healthy.
 
 ## Related
 
 - Hermes job entry: `~/.hermes/cron/jobs.json` → `Unite-Group 1Password sync` (daily 04:00 AEST)
-- Canonical script: `/Users/phill-mac/Pi-CEO/scripts/sync_1password_to_supabase.py`
+- Canonical script: `/Users/phill-mac/Pi-CEO/scripts/sync_1password_to_supabase.py` (unversioned)
 - Cron shim: `~/.hermes/scripts/sync_1password_to_supabase.py` (delegates to canonical)
 - Supabase table: `integration_onepassword_index` (project `lksfwktwtmyznckodsau`)
 - Cockpit map: `docs/SOURCES.md` § Hermes
-- Live verification: `./scripts/unite vault-status`
+- Linear: UNI-2015 (closed)
