@@ -23,6 +23,7 @@ import {
   Testimonial
 } from "@/lib/content/types";
 import { parseMarkdown, calculateReadingTime } from '@/lib/content/markdown';
+import DOMPurify from 'isomorphic-dompurify';
 
 interface ContentEditorProps {
   initialContent?: Partial<BaseContent>;
@@ -642,7 +643,11 @@ export default function ContentEditor({
             <TabsContent value="preview">
               <div className="border rounded-md p-6 min-h-[400px] prose dark:prose-invert max-w-none">
                 {preview ? (
-                  <div dangerouslySetInnerHTML={{ __html: preview }} />
+                  // Per UNI-1961 (Pi-SEO scanner finding): preview content
+                  // comes from parseMarkdown over user-supplied draft text.
+                  // Sanitise before render so authors can't inject script tags
+                  // via the editor.
+                  <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(preview) }} />
                 ) : (
                   <p className="text-muted-foreground">No content to preview</p>
                 )}

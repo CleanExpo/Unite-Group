@@ -78,6 +78,12 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
 
   return (
     <style
+      // Per UNI-1959: shadcn/ui chart theming pattern — generates CSS rules
+      // from THEMES (compile-time constant) and config.color (typed,
+      // component-prop-supplied). No user input crosses this boundary; the
+      // <style> element is necessary because we're computing CSS custom
+      // properties keyed on data-chart=<id> per dynamic chart instance.
+      // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{
         __html: Object.entries(THEMES)
           .map(
