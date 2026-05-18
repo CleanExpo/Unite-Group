@@ -11,7 +11,7 @@
 // On publish: POST /api/empire/clients → redirect to /portal/<slug>.
 
 import { useCallback, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 
 type Step = 1 | 2 | 3;
 
@@ -57,6 +57,11 @@ function slugify(input: string): string {
 
 export function OnboardWizard() {
   const router = useRouter();
+  // Locale-aware redirect — the wizard lives at /[locale]/empire/clients/new,
+  // so the publish target should land at /<currentLocale>/portal/<slug>
+  // instead of hardcoding /en/.
+  const params = useParams<{ locale?: string }>();
+  const locale = typeof params.locale === 'string' ? params.locale : 'en';
   const [step, setStep] = useState<Step>(1);
   const [state, setState] = useState<WizardState>(DEFAULTS);
   const [submitting, setSubmitting] = useState(false);
@@ -103,13 +108,16 @@ export function OnboardWizard() {
         setError(body.error ? mapErrorMessage(body.error) : `HTTP ${res.status}`);
         return;
       }
-      router.push(body.portal_url ?? `/en/portal/${state.slug}`);
+      // Always redirect to the current locale's portal route — the server
+      // route returns a path relative to /en/ as a hint, but the locale of
+      // the wizard's session is the source of truth.
+      router.push(`/${locale}/portal/${state.slug}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Network error');
     } finally {
       setSubmitting(false);
     }
-  }, [state, router]);
+  }, [state, router, locale]);
 
   const styles = useMemo(
     () => ({
