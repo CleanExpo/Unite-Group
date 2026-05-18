@@ -19,6 +19,7 @@
 import { useMemo } from 'react';
 import { ActivityRow } from './ActivityRow';
 import { ACTIVITY_DATA, type ActivityDatum } from './activity-data';
+import { SourceBadge } from '../SourceBadge';
 
 export interface ActivityLogProps {
   /** Override the seed — useful for live wiring later. */
@@ -62,7 +63,7 @@ export function ActivityLog({
           Zone 5 · Activity Log
         </span>
         <span
-          className="font-mono text-[10px] uppercase tracking-[0.18em] flex items-center gap-2"
+          className="font-mono text-[10px] uppercase tracking-[0.18em] flex items-center gap-3"
           style={{ color: 'var(--cc-ink-hush)' }}
         >
           {signalCount > 0 && (
@@ -83,6 +84,7 @@ export function ActivityLog({
             {sorted.length} events
             {signalCount > 0 ? ` · ${signalCount} signal` : ''}
           </span>
+          <SourceBadge mode="seed" label="static · awaits /api/pi-ceo/activity" />
         </span>
       </header>
 

@@ -7,6 +7,7 @@
 // /api/pi-ceo/health per [[command-center-redesign-proposal-2026-05-14]].
 
 import { KpiTile } from './KpiTile';
+import { SourceBadge } from './SourceBadge';
 
 export interface KpiStripProps {
   /** Total ARR across portfolio, in AUD cents. */
@@ -42,14 +43,29 @@ export function KpiStrip({
 
   return (
     <section
-      className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5"
+      className="flex flex-col"
       style={{
         background: 'var(--cc-bg)',
         borderBottom: '1px solid var(--cc-grid)',
-        gap: '1px',
       }}
       aria-label="Top-line operating metrics"
     >
+      <div
+        className="flex items-center justify-between px-5 py-2"
+        style={{ borderBottom: '1px solid var(--cc-grid)' }}
+      >
+        <span
+          className="font-mono text-[10px] uppercase tracking-[0.22em]"
+          style={{ color: 'var(--cc-ink-dim)' }}
+        >
+          Zone 2 · KPI Strip
+        </span>
+        <SourceBadge mode="seed" label="static · awaits /api/empire/* + /api/pi-ceo/health" />
+      </div>
+      <div
+        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5"
+        style={{ gap: '1px', background: 'var(--cc-grid)' }}
+      >
       <KpiTile
         label="ARR"
         prefix="$"
@@ -89,6 +105,7 @@ export function KpiStrip({
         delta="Toby on holidays · resume 26 May"
         state={slaState}
       />
+      </div>
     </section>
   );
 }
