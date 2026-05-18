@@ -13,7 +13,7 @@
 //   Zone 4 — Business 360 — LIVE (PR-3)
 //   Zone 5 — Live activity log — LIVE (PR-3)
 
-import { GlobalStatusBar } from './GlobalStatusBar';
+import { GlobalStatusBar, type GlobalStatusBarProps } from './GlobalStatusBar';
 import { KpiStrip, type KpiStripProps } from './KpiStrip';
 import { AgentTopology } from './topology/AgentTopology';
 import { Business360Grid } from './business-360/Business360Grid';
@@ -27,9 +27,17 @@ export interface CommandCenterShellProps {
    * KpiStrip renders in `live` mode; otherwise it stays in `seed` mode.
    */
   kpiInitial?: KpiStripProps;
+  /**
+   * Optional GlobalStatusBar props injected by the server-rendered page.
+   * When provided, the bar's SourceBadge flips to `live`.
+   */
+  globalStatusInitial?: GlobalStatusBarProps;
 }
 
-export function CommandCenterShell({ kpiInitial }: CommandCenterShellProps = {}) {
+export function CommandCenterShell({
+  kpiInitial,
+  globalStatusInitial,
+}: CommandCenterShellProps = {}) {
   return (
     <div
       className="min-h-screen flex flex-col"
@@ -38,7 +46,7 @@ export function CommandCenterShell({ kpiInitial }: CommandCenterShellProps = {})
         color: 'var(--cc-ink)',
       }}
     >
-      <GlobalStatusBar />
+      <GlobalStatusBar {...globalStatusInitial} />
       <KpiStrip {...kpiInitial} />
 
       <main className="flex-1 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_22rem]">
