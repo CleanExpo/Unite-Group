@@ -1,6 +1,6 @@
 ---
 type: index
-updated: 2026-05-17
+updated: 2026-05-18
 ---
 
 
@@ -44,6 +44,7 @@ Content-oriented catalog of all pages. One line per page. See [[log]] for histor
 - [[hermes-agent-sprinkle-audit-2026-05-11]] — Audit of 27 Hermes cron jobs (memory said 19, was stale) for Cal Rueb "sprinkle in agent" embedding points; top-5 ranked candidates + jobs that should stay deterministic
 
 - [[pi-ceo-architecture]] — Three-layer system (Margot → Board → Senior Agents)
+- [[service-layer-architecture-2026-05-18]] — David Ondrej framing codified as portfolio skill; actions own orchestration, service modules own runtime mechanics + return `ServiceResult<T, E>`; cross-stack (Convex / Next.js / FastAPI / NestJS); 14 service modules live in RA at PR #1117
 - [[margot-conversation-os]] — Margot as conversational operating layer across Telegram, Plaud, Obsidian Sources/Wiki, research, task routing, and founder-voice production rewrites
 - [[unite-group-portfolio-ops-board-v1]] — First Unite-Group portfolio operations board (Kanban + update scout + Plaud intake flow + no-code phased build plan)
 - [[agent-cockpit-current-research-2026-05-17]] — Live May 17 2026 research for Agent Cockpit v0: managed multi-agent sessions, Hermes/Codex/Claude/OpenRouter/Whisper/1Password roles, costs, and safety gates

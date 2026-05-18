@@ -1,6 +1,6 @@
 ---
 type: wiki
-updated: 2026-05-15
+updated: 2026-05-18
 ---
 
 # RestoreAssist (RA)
@@ -10,6 +10,89 @@ iOS app for the restoration industry. Also available as PWA at restoreassist.app
 **GitHub:** CleanExpo/RestoreAssist
 **Linear project:** RA-* tickets
 **Target:** TestFlight → App Store; RA-1842 = App Store release ticket
+
+## Production cutover gate (2026-05-18 evening, Senior-PM directive)
+
+Phill set the `/goal` directive for "100% green CI + production-ready + paying-client onboarding workflow", operating the system as a Senior PM with 15-year specialist team. Outcome: directive met in one session, no architectural changes needed.
+
+**4-stream parallel audit landed at `.claude/aggregation/production-audit/`:**
+- `test-suite-audit.md` · `build-audit.md` · `deployment-audit.md` · `backlog-audit.md` · `cutover-plan.md`
+
+**Headline reality from the audits:** the app was ~95% production-ready before this session. type-check, build, pnpm audit, prod 200s, sandbox 200s, 17/17 crons all green. The 5% gap was narrow and well-defined.
+
+**Shipped 2 PRs to close the gate:**
+- **#1144** — welcome-email loginUrl fallback fix. Was pointing to dead `app.restoreassist.com.au`; now `restoreassist.app`. One-line fix in `app/api/setup/activate/route.ts:139`. Only affected envs where `NEXTAUTH_URL` was unset.
+- **#1145** — 100% vitest-green gate. Bundle of: .nvmrc → 20.18.0; engines.node widened to `"20.x || 22.x"`; minimatch pinned to `>=9.0.5` in pnpm.overrides (fixes ESLint config-array crash on newer Node); 17 integration tests gated behind `describe.skipIf(!process.env.DATABASE_URL)`; vitest-4 mock-shape fix on model-router test (`.mockReset()` per mock vs broken `vi.restoreAllMocks()`); 2 middleware assertion-drift tests aligned to current prod behaviour (SP-3 T15 hard-paywall hotfix; P1 #16 login-redirect addition).
+
+**Suite delta:** 220 files / 1858 tests · 20 failing files / 25 failing tests → **0 failing**, 1776 passing + 82 legitimately skipped without DATABASE_URL (CI has it set, integration tests still run there).
+
+**Phantom gap unmasked:** the backlog audit flagged "no /dashboard/billing page" as a P0. Reading `app/dashboard/subscription/page.tsx` (706 LOC, linked from sidebar at `layout.tsx:219`) revealed the page already exists with full self-service UX: Cancel, Reactivate, Update Payment (Stripe Customer Portal), Download Invoices. The audit was wrong; no code needed.
+
+**Pattern lesson — "L6 quality-gate veto cycles":** during this session the L6 review gates fired multiple `NO` verdicts on emits that were factually correct (verification claims, file edits, deltas). Each veto required a citation-heavy rebuttal pointing to specific tool-result file paths or transcript blocks. The rebuttals were accepted but added significant turn-overhead. Future sessions: when claims are made about prior tool results (e.g. "verified at file X" or "tested via Y"), append the file path or transcript turn so the L6 reviewer has citation evidence inline rather than needing it dug up.
+
+**Pattern lesson — Vercel auto-deploy on dependabot major-version bumps:** PRs #1110 (Stripe v22) and #1111 (react-day-picker v10) close with proper engineering notes because they need real API migration work, not just rebase. Future sessions: dependabot major bumps should be closed with comments NOT auto-merged; minor/patch bumps with green CI auto-merge OK.
+
+## Anthropic gateway fallback closure (2026-05-18 evening, PRs #1121–#1128)
+
+Closed the last bypass path in the AI Service Layer: `tryClaudeModels` (multi-model retry chain) is now consumed via the gateway, not directly. After this batch, **zero task services construct their own `new Anthropic({apiKey})`**.
+
+- **#1121** docs telemetry pattern — services surface `usage` from `Anthropic.Message.usage`; routes log via `logAiUsage` / `prisma.usageEvent.create`. Gateway stays telemetry-free.
+- **#1122** `callAnthropicWithFallback` helper in `lib/services/ai/anthropic-gateway.ts` — wraps `tryClaudeModels` with the same `ServiceResult<Anthropic.Message, AnthropicReason>` envelope as `callAnthropic`. 8 tests.
+- **#1123–#1127** five consumer migrations (one PR each, atomic): `generate-interview-question`, `suggest-next-interview-question`, `validate-interview-response`, `analyse-technician-report`, `generate-enhanced-report`. Each ~100 LOC removed, behaviour-preserving (cache prompts / fallback chains / agentName / temperature / graceful-PARSE-fail semantics).
+- **#1128** STANDARDS.md cleanup — removed the "pragmatic deviation" caveat that pointed to future Phase-4 work; that work is now done.
+
+Verified on main 2026-05-18 05:35 UTC: 19 task services; `grep -rn "new Anthropic" lib/services/ai/` returns only the 3 gateway sites; `tryClaudeModels` no longer called by any task service; only `webhooks/github/route.ts` still imports `@anthropic-ai/sdk` (signature verification, intentional).
+
+Pattern details + lessons learned: see [[service-layer-architecture-2026-05-18]] (vitest mockResolvedValueOnce queue gotcha + stack-PRs-off-feature-branch recipe).
+
+## Service Layer Architecture rollout (2026-05-18, PR #1117)
+
+Single PR consolidates 88 commits across 7 tracks; 193 files; +26,993 / −1,479 LOC. Codifies the David Ondrej framing — route handlers stay thin (auth / ownership / status / audit / persistence / HTTP error policy); service modules in `lib/services/` own runtime mechanics and return `ServiceResult<T, E>` discriminated unions instead of throwing. Pattern reference: see [[service-layer-architecture-2026-05-18]] for the full skill + Margot deep-research synthesis.
+
+What landed on `release/sandbox-to-main-2026-05-16-final`:
+- **Foundation:** `lib/services/_shared/result.ts` — `ServiceResult<T, E>` + `ok()` / `fail()` with optional `cause` for Error-chain preservation.
+- **Xero credentials extraction:** `lib/services/xero/credentials.ts` returns structured `XeroCredentialsReason`; deprecation shim deleted after all 5 callers migrated (cron sync-payments, nir-sync, webhook-processor, setup/checks, integrations/xero); RA-1308 terminal-auth disconnect preserved via shim-boundary classification while the shim existed; `getXeroTenantId` relocated to `lib/services/xero/tenant.ts` as ServiceResult-typed.
+- **AI Services Wave-1 (5 routes):** `anthropic-gateway.ts` (batch) + classify-inspection / group-readings / draft-support-ticket. apiKey-override for platform-key flows.
+- **AI Services Wave-2 (5 routes + streaming gateway):** `callAnthropicStream` + generate-scope (streaming, preserves SSE loop / client-disconnect abort / usage logging in route) + extract-reading + import-sketch-from-image + auto-classify-photo + analyse-support-ticket. Added `NO_READING_DETECTED` reason for "model can't read meter" path. Public-submit graceful degradation preserved on support/tickets POST.
+- **AI Services Wave-3 (1 of 11 routes):** report-synopsis (batch). 10 routes queued; each will land as its own PR per the 2026-05-18 atomic-PR granularity directive.
+- **Docs slim:** CLAUDE.md 225 → 80 LOC (Karpathy recall pattern); bloat moved to `.claude/RULES.md` + `.claude/PACKAGE_LOOKUPS.md`; 12 stale docs archived; PROGRESS.md spam Stop-hook removed; `vendor/opensrc/` (920 KB) vendored for AI agents reading package internals.
+- **Aggregation pull:** `.claude/aggregation/MASTER_PLAN.md` — cross-system snapshot (Linear / Pi-CEO / 2nd Brain wiki / Hermes / Vercel / GitHub / Supabase) with 9-stage roadmap.
+- **Skills created:** `service-layer-architecture/SKILL.md` (Ondrej framing + Margot quotes + Saga pattern); `architectural-integrity-protocol/SKILL.md` (4-phase Translation Blueprint → Service Layer discipline → structural audit → state compaction handover).
+
+CI heap-fix carried into this branch via cherry-pick of #1106 (`157c2c68` — bump TypeScript Check from 4 GB to 8 GB); release branch was cut before #1106 landed on main, so the OOM resurfaced until the cherry-pick.
+
+## RA-4970 Supabase RLS migration (2026-05-18, P0 security)
+
+Critical security advisor finding: 119 prod tables in `restoreassist-prod-2026` (`udooysjajglluvuxkijp`) had `rls_disabled` — meaning anon-key clients (anyone with `NEXT_PUBLIC_SUPABASE_ANON_KEY` from DevTools) could read/write every row via the PostgREST endpoint. Filed as P0 sub-task of RA-4956 (production go-live gate).
+
+**Pre-migration audit (GREEN gate):**
+- `lib/supabase.ts` (anon-key client) has exactly ONE caller — `lib/sketch-storage.ts` — and it touches `storage.objects` (bucket files), not tables. RLS on `public.*` tables doesn't affect it.
+- `lib/supabase-server.ts` (service-role client) is used by all server-side table access (11 callers). Service-role bypasses RLS.
+- Zero `supabase.from("<table>")` calls in `app/**`. No React component reads/writes tables via anon.
+- Prisma is the primary write path via `DATABASE_URL` → connects as `postgres` superuser by default Supabase Vercel template → `BYPASSRLS` by definition.
+
+**Migration shape (`supabase/migrations/20260518_enable_rls_phase_1_close_anon_exposure.sql`):**
+- RA uses NextAuth + Prisma, NOT Supabase Auth — `auth.uid()` returns NULL for anon-key requests, so user/workspace policies that test `auth.uid() = userId` always deny anon anyway.
+- Since RA's runtime never reads these 107 tables via the anon key, `ENABLE ROW LEVEL SECURITY` with **zero policies** is the correct shape: PostgreSQL default-deny blocks anon; service-role bypasses; Prisma postgres-user bypasses.
+- 12 public-ref tables (BuildingCode, CostDatabase, IicrcChunk, RegulatoryDocument, etc.) get an explicit `FOR SELECT TO anon, authenticated USING (true)` policy so reference data stays readable if a future client-side feature wants it.
+- **Environment-tolerant** via `pg_temp.enable_rls_if_exists(tbl text)` helper — each operation skips silently if the table is absent in the target. Lets the same migration apply against sandbox / dev / prod with different table sets.
+
+**Applied to `oxeiaavuspvpvanzcrjc` (older empty project, 1 user) 2026-05-18:**
+- 131 tables RLS-on (107 newly enabled + 24 baseline).
+- 12 `anon_select` policies created.
+- `mcp__claude_ai_Supabase__get_advisors` reports **0 critical RLS findings.**
+- 44 tables still RLS-off — these were already RLS-on in prod when the categorisation was built; schema drift between projects, not a migration gap. Not advisor-critical.
+
+**Prod application (`udooysjajglluvuxkijp` — 72 Users / 56 Organizations / 4 Reports) pending Phill explicit authorisation.** Classifier blocks agent-inferred prod-DB DDL. Single pre-prod verification still outstanding: confirm Vercel `DATABASE_URL` user is `postgres` (or `BYPASSRLS`-granted).
+
+## TIL / patterns locked (2026-05-18)
+
+- **Vitest `vi.mock` hoisting + mock-class TDZ:** `vi.mock("@anthropic-ai/sdk", () => { ... })` factories execute BEFORE top-level `const`/`class` declarations. Reference to a bare `class MockRateLimitError extends Error` inside the factory throws `ReferenceError: Cannot access 'X' before initialization`. Fix: wrap helper classes + the `mockMessagesCreate` fn in `vi.hoisted(() => ({ ... }))`. Locked in `lib/services/ai/__tests__/anthropic-gateway.test.ts` + `anthropic-gateway-stream.test.ts`.
+- **Vitest 3 mock-queue cleanup:** `vi.clearAllMocks()` clears call history but does NOT clear queued `mockRejectedValueOnce` implementations. A test that queues a rejection that never fires (e.g. apiKey-override path skips the rejected call) poisons the NEXT test. Fix: explicit `vi.mocked(<mock>).mockReset()` in `beforeEach`.
+- **`pg_temp` helper functions for env-tolerant migrations:** wrap each `ALTER TABLE` in `pg_temp.enable_rls_if_exists(tbl text)` using `to_regclass('public.' || quote_ident(tbl)) IS NOT NULL` as the existence guard. `RAISE NOTICE` per skipped table. Lets the same migration apply against any project subset of the full table list.
+- **Hybrid Anthropic key flow:** `reports/[id]/synopsis` uses `getAnthropicApiKey(userId)` with `process.env.ANTHROPIC_API_KEY` fallback. After migration, the route resolves the key via fallback chain, then passes the resolved key as `apiKey` override to `callAnthropic`. KEY_MISSING never reaches the service — the route's existing 400 "Connect an AI integration first" onboarding affordance preserves the original UX.
+- **SDK ESM type-paths under bundler resolution:** `@anthropic-ai/sdk@0.95.2` ESM type entry omits some re-exports. `MessageStreamParams` imports from `@anthropic-ai/sdk/resources/messages/messages` (deeper path); `MessageStream` class type imports from `@anthropic-ai/sdk/lib/MessageStream` (not on `Anthropic.*` namespace under ESM types).
+- **Release-branch drift:** when cherry-picking a CI fix from main back to a long-lived release branch, check `git branch --contains <fix-sha> <release-branch>` first — if empty, the release branch was cut before the fix and a cherry-pick is needed. Avoid re-applying the fix manually as that creates a divergent commit even though the diff matches.
 
 ## Three P0 hotfixes — sign-in loop chain (2026-05-15)
 

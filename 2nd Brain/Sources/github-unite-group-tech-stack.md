@@ -3,7 +3,7 @@ title: "unite-group Tech Stack"
 source: "https://github.com/CleanExpo/unite-group"
 repo: "CleanExpo/unite-group"
 file_type: "tech-stack"
-captured: "2026-05-17"
+captured: "2026-05-18"
 tags:
   - clippings
   - github
@@ -76,8 +76,11 @@ tags:
     "gray-matter": "^4.0.3",
     "input-otp": "^1.4.2",
     "ioredis": "^5.6.1",
+    "isomorphic-dompurify": "^3.13.0",
+    "jose": "^4.15.9",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
+    "jszip": "^3.10.1",
     "mdast-util-to-string": "^4.0.0",
     "nanoid": "^5.1.11",
     "next": "^15.5.15",
@@ -91,7 +94,4 @@ tags:
     "react-hook-form": "^7.56.4",
     "react-resizable-panels": "^3.0.2",
     "reading-time": "^1.5.0",
-    "recharts": "^2.15.3",
-    "rehype-autolink-headings": "^7.1.0",
-    "rehype-prism-plus": "^2.0.1",
 ```

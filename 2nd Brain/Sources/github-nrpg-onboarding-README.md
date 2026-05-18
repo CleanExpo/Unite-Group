@@ -3,7 +3,7 @@ title: "nrpg-onboarding: Training and Onboarding framework"
 source: "https://github.com/CleanExpo/NRPG-Onboarding-Framework/blob/master/README.md"
 repo: "CleanExpo/NRPG-Onboarding-Framework"
 file_type: "README"
-captured: "2026-05-17"
+captured: "2026-05-18"
 tags:
   - clippings
   - github

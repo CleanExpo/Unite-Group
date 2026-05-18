@@ -1,6 +1,6 @@
 ---
 type: wiki
-updated: 2026-05-08
+updated: 2026-05-18
 ---
 
 # Semrush API — Professional Reference
@@ -64,5 +64,9 @@ Units remaining: ~49,280 (checked 2026-05-08)
 ## Skill Location
 `~/.claude/skills/semrush/SKILL.md` — invoke as `/semrush` in Claude Code
 
+## Operational Plan (active)
+Execution and ingestion runbook:
+- [[semrush-health-check-and-nexus-ingestion-plan-2026-05-18]]
+
 ## Cross-refs
-[[design-system-approach]] · [[mcp-ecosystem]] · [[operational-priorities-q2-2026]]
+[[design-system-approach]] · [[mcp-ecosystem]] · [[operational-priorities-q2-2026]] · [[synthex-seo-aeo-geo-master-generator-2026-05-18]]

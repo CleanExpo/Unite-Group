@@ -3,7 +3,7 @@ title: "disaster-recovery: Safe experimentation space - isolated from disasterre
 source: "https://github.com/CleanExpo/DR-Sandbox/blob/main/README.md"
 repo: "CleanExpo/DR-Sandbox"
 file_type: "README"
-captured: "2026-05-17"
+captured: "2026-05-18"
 tags:
   - clippings
   - github

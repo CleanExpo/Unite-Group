@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Sources/OpenAI Developers 3.md",
+                "file": "Untitled 1.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "OpenAI Developers 3"
+              "title": "Untitled 1"
             }
           }
         ]
@@ -182,33 +182,36 @@
   },
   "active": "4e2514561c1dd3d4",
   "lastOpenFiles": [
+    "Sources/I Built an AI Cybersecurity Research Factory (for CTFs & Vulnerabilities).md",
+    "Untitled 1.md",
+    "Sources/Pi to Pi Two-Way Agent Orchestration with the Pi Coding Agent.md",
+    "Untitled 1.base",
+    "Untitled.canvas",
+    "2026-05-18.md",
+    "Templates/web-clip.md",
+    "Welcome.md",
+    "Untitled.base",
+    "Untitled.md",
+    "CLAUDE.md",
+    "Sources/Google Says GEO Doesn’t Exist… Here’s What They’re Not Telling You.md",
+    "Sources/Completed/Google-Bing-Official-Documentation-Evidence-Pass-2026-05-18.md",
+    "Wiki/semrush-health-check-and-nexus-ingestion-plan-2026-05-18.md",
+    "Wiki/synthex-search-growth-management-index-2026-05-18.md",
+    "Wiki/synthex-seo-aeo-geo-master-generator-2026-05-18.md",
+    "Sources/Completed/Google-Bing-Official-AEO-GEO-Signals-2026-05-18.md",
+    "Sources/Completed/Do LLMs Actually Use Schema - The Duck Test That Broke SEO (E956).md",
+    "Sources/Completed/Edward-Sturm-Latest-Source-Extraction-2026-05-18.md",
+    "Wiki/service-layer-architecture-2026-05-18.md",
+    "Sources/5 Skills to Build an AI Operating System Like The 1% (Full Guide).md",
+    "Sources/How to Use goal to Build a Self-Improving OS.md",
+    "Sources/3 Claude Memory Systems to Get You Ahead of 99% of People.md",
+    "Sources/Hermes Agent OS Rank 1 on Google FREE With AI.md",
+    "Sources/Stop Vibe Coding, Start Agentic Engineering – Micky.md",
+    "Sources/OpenAI Developers 3.md",
     "Wiki/play-console-account.md",
     "Sources/Generative AI Tools & Digital Assets for Creators.md",
     "Sources/_archived-2026-05-15/Generative AI Tools & Digital Assets for Creators.md",
     "Sources/_archived-2026-05-15",
-    "Wiki/artlist-mastery.md",
-    "Sources/OpenAI Developers 3.md",
-    "Sources/OpenAI Developers 2.md",
-    "Sources/OpenAI API Platform Documentation.md",
-    "Sources/OpenAI Developers 1.md",
-    "Sources/OpenAI Developers.md",
-    "Sources/GPT-5.5 Model  OpenAI API.md",
-    "Sources/Dashboard – Unite-Hub – Google Cloud console.md",
-    "Wiki/gemini-spark-watchlist-2026-05-15.md",
-    "Sources/Managed Service for Apache Spark.md",
-    "Sources/Google's NEW AI Agent LEAKS are WILD!.md",
-    "Sources/I stopped using grill-me for coding. Here’s what I use instead.md",
-    "Wiki/spec-karpathy-pipeline-audit-2026-05-15.md",
-    "Wiki/spec-brain2-sync-infra-2026-05-15.md",
-    "Wiki/grill-output-pilot-bot-pilot-2026-05-15.md",
-    "Wiki/research-grill-with-docs-2026-05-15.md",
-    "Sources/mattpocock - Overview.md",
-    "Wiki/pi-dev-ops-tree-triage-2026-05-15.md",
-    "Wiki/board-deliberation-code-patterns-2026-05-15.md",
-    "Wiki/pm-synthesis-code-patterns-2026-05-15.md",
-    "Wiki/research-browser-use-code-patterns-2026-05-15.md",
-    "Wiki/research-mattpocock-code-patterns-2026-05-15.md",
-    "Sources/Browser Use.md",
     "Wiki/atia-research-2026-05-14",
     "Wiki/screenshots/2026-05-13-plan4-marketing-landing.png",
     "Wiki/screenshots/2026-05-13-plan3-wave-c-developer-drilldown.png",
@@ -217,7 +220,6 @@
     "Wiki/marketing-wave0-association-2026-05-11",
     "Wiki/decisions",
     "Sources/Completed",
-    "Templates",
-    "Untitled.base"
+    "Templates"
   ]
 }

@@ -3,7 +3,7 @@ title: "restoreassist Tech Stack"
 source: "https://github.com/CleanExpo/RestoreAssist"
 repo: "CleanExpo/RestoreAssist"
 file_type: "tech-stack"
-captured: "2026-05-17"
+captured: "2026-05-18"
 tags:
   - clippings
   - github
@@ -19,13 +19,13 @@ tags:
   "version": "1.0.0",
   "private": true,
   "engines": {
-    "node": "20.x",
+    "node": "20.x || 22.x",
     "npm": ">=10.0.0"
   },
   "type": "module",
   "pnpm": {
     "overrides": {
-      "dompurify": "^3.4.2",
+      "dompurify": "^3.4.4",
       "loader-utils": "^2.0.4",
       "tar": "^7.5.13",
       "effect": ">=3.20.0",
@@ -35,12 +35,14 @@ tags:
       "uuid": ">=11.1.1",
       "ip-address": ">=10.1.1",
       "brace-expansion": ">=2.0.3",
+      "minimatch": ">=9.0.5",
       "@tootallnate/once": ">=3.0.1",
       "fast-xml-builder": ">=1.1.7",
       "fast-uri": ">=3.1.2",
       "basic-ftp": ">=5.3.1",
       "esbuild": ">=0.25.0",
-      "vite": ">=6.4.2"
+      "vite": ">=6.4.2",
+      "mermaid": ">=11.15.0"
     },
     "auditConfig": {
       "ignoreGhsas": [
@@ -68,30 +70,28 @@ tags:
     "test:smoke:sandbox": "CI=true PLAYWRIGHT_BASE_URL=https://restoreassist-sandbox.vercel.app playwright test --grep @smoke --reporter=line"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.77",
-    "@ai-sdk/react": "^3.0.180",
-    "@anthropic-ai/sdk": "^0.95.2",
+    "@ai-sdk/anthropic": "^3.0.78",
+    "@ai-sdk/react": "^3.0.186",
+    "@anthropic-ai/sdk": "^0.96.0",
     "@aparajita/capacitor-biometric-auth": "^10.0.0",
     "@auth/prisma-adapter": "^2.11.2",
     "@capacitor-community/bluetooth-le": "^8.1.3",
-    "@capacitor/android": "^8.3.3",
+    "@capacitor/android": "^8.3.4",
     "@capacitor/browser": "^8.0.1",
     "@capacitor/camera": "^8.2.0",
-    "@capacitor/cli": "^8.3.3",
-    "@capacitor/core": "^8.3.3",
+    "@capacitor/cli": "^8.3.4",
+    "@capacitor/core": "^8.3.4",
     "@capacitor/filesystem": "^8.1.2",
     "@capacitor/geolocation": "^8.2.0",
     "@capacitor/haptics": "^8.0.2",
-    "@capacitor/ios": "^8.3.3",
-    "@capacitor/local-notifications": "^8.1.0",
+    "@capacitor/ios": "^8.3.4",
+    "@capacitor/local-notifications": "^8.2.0",
     "@capacitor/network": "^8.0.1",
-    "@capacitor/push-notifications": "^8.0.4",
+    "@capacitor/push-notifications": "^8.1.1",
     "@capacitor/share": "^8.0.1",
     "@capacitor/splash-screen": "^8.0.1",
     "@capacitor/status-bar": "^8.0.2",
     "@capgo/capacitor-social-login": "^8.3.22",
-    "@google/genai": "^2.2.0",
+    "@google/genai": "^2.4.0",
     "@google/generative-ai": "^0.24.1",
-    "@hookform/resolvers": "^5.2.2",
-    "@next/bundle-analyzer": "^16.2.6",
 ```

@@ -3,7 +3,7 @@ title: "carsi Tech Stack"
 source: "https://github.com/CleanExpo/carsi"
 repo: "CleanExpo/carsi"
 file_type: "tech-stack"
-captured: "2026-05-17"
+captured: "2026-05-18"
 tags:
   - clippings
   - github
@@ -17,7 +17,7 @@ tags:
 {
   "name": "CARSI",
   "version": "1.0.0",
-  "description": "CARSI \u2014 learning platform for courses, enrollments, and progress. Next.js, Prisma, PostgreSQL, and Stripe.",
+  "description": "CARSI — learning platform for courses, enrollments, and progress. Next.js, Prisma, PostgreSQL, and Stripe.",
   "author": "Philip McGurk",
   "contributors": [
     "Rana Muzamil (Technical Lead & Manager)"
@@ -53,12 +53,16 @@ tags:
     "db:seed-technology-inspection-tools-txt": "npx tsx scripts/seed-technology-inspection-tools-txt.ts",
     "db:seed-odour-smoke-psychro-drying-docx": "npx tsx scripts/seed-odour-smoke-psychro-drying-docx.ts",
     "lint": "eslint .",
+    "type-check": "tsc --noEmit",
+    "db:seed-phase2": "npx tsx scripts/seed-phase2-pathways-quizzes.ts",
+    "test:a11y": "playwright test tests/accessibility",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "db:set-user-password": "npx tsx --tsconfig tsconfig.json scripts/ensure-lms-user-password.ts"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
     "@eslint/eslintrc": "^3.3.3",
     "@playwright/test": "^1.49.1",
     "@surma/rollup-plugin-off-main-thread": "^2.2.3",
@@ -90,8 +94,4 @@ tags:
       "eslint --fix",
       "prettier --write"
     ],
-    "*.{json,md,yml,yaml}": [
-      "prettier --write"
-    ]
-  },
 ```

@@ -72,7 +72,7 @@ The `marketing-orchestrator` and `remotion-orchestrator` skill families produce 
 
 ## Cross-refs
 
-[[businesses-overview]] · [[ccw]] · [[pi-ceo-architecture]] · [[wave-roadmap]] · [[seo-linkable-assets]]
+[[businesses-overview]] · [[ccw]] · [[pi-ceo-architecture]] · [[wave-roadmap]] · [[seo-linkable-assets]] · [[synthex-seo-aeo-geo-master-generator-2026-05-18]] · [[semrush-health-check-and-nexus-ingestion-plan-2026-05-18]] · [[synthex-search-growth-management-index-2026-05-18]]
 
 ## Board Directives Log
 

@@ -3,7 +3,7 @@ title: "pi-dev-ops Tech Stack"
 source: "https://github.com/CleanExpo/Pi-Dev-Ops"
 repo: "CleanExpo/Pi-Dev-Ops"
 file_type: "tech-stack"
-captured: "2026-05-17"
+captured: "2026-05-18"
 tags:
   - clippings
   - github
@@ -37,7 +37,9 @@ dependencies = [
     "pyyaml>=6",
     "bcrypt>=4.0",
     "anthropic>=0.90",
+    "elevenlabs>=2.0",
     "pyotp>=2.9",   # RA-1839 — TOTP validation for /api/swarm/{kill,resume}
+    "mcp>=1.0.0",
     "bubus @ git+https://github.com/browser-use/bubus.git@7c09342724feabee7785f99e60e583d54bf6882c",
 ]
 

@@ -1,6 +1,6 @@
 ---
 type: wiki
-updated: 2026-05-12
+updated: 2026-05-18
 ---
 
 # Unite-Group Nexus — Product Architecture Blueprint
@@ -82,4 +82,4 @@ The dominant white-label agency CRM. Nexus competes directly on the agency-platf
 
 **Action.** Treat HighLevel as the reference horizontal baseline. Nexus must match their integration breadth (Contacts/Conversations/Calendar/Opportunities/Payments/Webhooks/Marketplace) but win on vertical depth + agent autonomy. Quote their pricing in Nexus sales decks: "HighLevel charges $497/mo for generic SaaS-Mode resale; we deliver vertical AI-agency capability per industry."
 
-Cross-refs: [[marketing-agency-blueprint-2026]] · [[unite-hub-vision]] · [[aip-architecture]] · [[swot-saas-cluster-2026]]
+Cross-refs: [[marketing-agency-blueprint-2026]] · [[unite-hub-vision]] · [[aip-architecture]] · [[swot-saas-cluster-2026]] · [[semrush-health-check-and-nexus-ingestion-plan-2026-05-18]] · [[synthex-seo-aeo-geo-master-generator-2026-05-18]]

@@ -1,7 +1,11 @@
 ---
 type: log
-updated: 2026-05-17
+updated: 2026-05-18
 ---
+
+2026-05-18 | production-cutover | restore-assist.md, .claude/aggregation/production-audit/ (5 docs) | RA production cutover directive met. Senior-PM-led 4-stream parallel audit confirmed app ~95% production-ready before session. Shipped PR #1144 (welcome-email URL fallback fix to restoreassist.app) + PR #1145 (.nvmrc, engines.node widened to 20.x||22.x, minimatch >=9.0.5, 17 integration tests gated behind describe.skipIf(!DATABASE_URL), vitest-4 mock-shape fix on model-router, 2 middleware assertion-drift fixes for SP-3 T15 + P1 #16). Suite delta 20 failing → 0 failing; 1776 passing + 82 legitimately gated. Phantom gap unmasked: backlog audit flagged "no /dashboard/billing" — page actually exists at /dashboard/subscription with full self-service UX. Patterns added to restore-assist.md: L6 quality-gate citation discipline; dependabot major-bump close-with-engineering-note vs auto-merge.
+
+2026-05-18 | ingest | service-layer-architecture-2026-05-18.md, restore-assist.md | RA Anthropic gateway fallback closed — 8 PRs (#1121-#1128): #1122 callAnthropicWithFallback wrapper + #1123-#1127 five consumer migrations (generate-interview-question / suggest-next-interview-question / validate-interview-response / analyse-technician-report / generate-enhanced-report) + #1121 telemetry-pattern docs + #1128 STANDARDS.md cleanup. 19 task services now go through the gateway; zero `new Anthropic({apiKey})` outside the gateway file; only webhooks/github keeps direct SDK import (signature verification). Two new patterns captured: vitest `mockResolvedValueOnce` queue is NOT cleared by `vi.clearAllMocks()` — must call `vi.mocked(<fn>).mockReset()` explicitly; stack consumer PRs off the WIP feature branch and rebase onto main the moment the dependency lands.
 
 2026-05-17 | research | agent-cockpit-current-research-2026-05-17.md, index.md | Live internet-backed research captured for Agent Cockpit v0: managed sessions over raw Terminal typing, Hermes/Codex/Claude/OpenRouter/Qwen/OpenAI transcription/1Password roles, cost notes, local readiness, and build recommendation.
 
@@ -514,3 +518,4 @@ Append-only. Format: `YYYY-MM-DD | operation | pages affected | summary`
 2026-05-17 | ingest | none | q (turn mt-4ddaa18ec1)
 2026-05-17 | ingest | none | What's competitor X doing? (turn mt-99f7870518)
 2026-05-18 | ingest | none | q (turn mt-2475fa2d20)
+2026-05-18 | ingest | restore-assist.md, service-layer-architecture-2026-05-18.md (new), index.md | Service Layer Architecture rollout + RA-4970 RLS migration applied to oxeiaavuspvpvanzcrjc (PR #1117 in flight)

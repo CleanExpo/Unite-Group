@@ -3,7 +3,7 @@ title: "pi-dev-ops — README.md"
 source: "https://github.com/CleanExpo/Pi-Dev-Ops/blob/main/README.md"
 repo: "CleanExpo/Pi-Dev-Ops"
 file_type: "README"
-captured: "2026-05-17"
+captured: "2026-05-18"
 tags:
   - clippings
   - github

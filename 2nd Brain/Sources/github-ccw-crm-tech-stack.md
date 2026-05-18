@@ -3,7 +3,7 @@ title: "ccw-crm Tech Stack"
 source: "https://github.com/CleanExpo/CCW-CRM"
 repo: "CleanExpo/CCW-CRM"
 file_type: "tech-stack"
-captured: "2026-05-17"
+captured: "2026-05-18"
 tags:
   - clippings
   - github
@@ -22,34 +22,19 @@ tags:
   "author": "CCW",
   "license": "MIT",
   "scripts": {
-    "setup": "bash scripts/setup.sh",
-    "setup:windows": "powershell -ExecutionPolicy Bypass -File scripts/setup.ps1",
-    "dev": "prisma generate && next dev --webpack",
-    "build": "prisma generate && next build",
-    "start": "prisma migrate deploy && next start",
+    "dev": "next dev --webpack",
+    "build": "next build",
+    "start": "node scripts/production-start.mjs",
+    "postinstall": "prisma generate",
     "lint": "eslint src",
-    "type-check": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test",
-    "test:lighthouse": "lhci autorun",
-    "check": "npm run type-check && npm run lint",
-    "check:all": "npm run type-check && npm run lint && npm run test",
-    "clean": "rm -rf node_modules .next",
-    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
-    "verify": "bash scripts/verify.sh",
-    "deps:check": "npm install --package-lock-only --ignore-scripts --no-audit --no-fund",
-    "deps:clean": "npm run clean && npm install",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:push": "prisma db push",
-    "postinstall": "prisma generate"
+    "db:migrate": "prisma migrate dev"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
     "@prisma/adapter-pg": "^7.7.0",
     "@prisma/client": "^7.7.0",
+    "prisma": "^7.7.0",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-avatar": "^1.1.2",
     "@radix-ui/react-checkbox": "^1.3.3",
@@ -94,4 +79,19 @@ tags:
     "@composio/core": "^0.6.3",
     "@composio/openai-agents": "^0.6.3",
     "@openai/agents": "^0.1.3",
+    "@axe-core/playwright": "^4.11.0",
+    "@eslint/eslintrc": "^3.2.0",
+    "@eslint/js": "^9.17.0",
+    "@lhci/cli": "^0.15.1",
+    "@percy/playwright": "^1.0.10",
+    "@playwright/test": "^1.49.1",
+    "@tailwindcss/postcss": "^4.1.18",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^22.10.0",
+    "@types/pg": "^8.15.0",
+    "@types/react": "^19.0.1",
 ```
