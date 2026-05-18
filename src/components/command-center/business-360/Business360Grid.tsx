@@ -13,10 +13,24 @@
 //   - Section label up top, hush-ink, mono caps
 
 import { BusinessTile } from './BusinessTile';
-import { BUSINESS_360_TILES } from './business-360-data';
+import { BUSINESS_360_TILES, type Business360Datum } from './business-360-data';
 import { SourceBadge } from '../SourceBadge';
 
-export function Business360Grid() {
+export interface Business360GridProps {
+  /** Override tiles — used by the server-rendered page for live wiring. */
+  tiles?: Business360Datum[];
+  /**
+   * When set, the SourceBadge flips from `seed` to `live`. Comes from the
+   * server-rendered page after reading pi_ceo_health_snapshots.
+   */
+  sourceLiveAt?: string;
+}
+
+export function Business360Grid({
+  tiles = BUSINESS_360_TILES,
+  sourceLiveAt,
+}: Business360GridProps = {}) {
+  const isLive = !!sourceLiveAt;
   return (
     <section
       className="flex flex-col"
@@ -41,9 +55,17 @@ export function Business360Grid() {
             className="font-mono text-[10px] uppercase tracking-[0.18em]"
             style={{ color: 'var(--cc-ink-hush)' }}
           >
-            {BUSINESS_360_TILES.length} portfolio brands
+            {tiles.length} portfolio brands
           </span>
-          <SourceBadge mode="seed" label="static · awaits financial_records aggregate" />
+          {isLive ? (
+            <SourceBadge
+              mode="live"
+              label="health_snapshots · 90d"
+              lastUpdatedAt={sourceLiveAt}
+            />
+          ) : (
+            <SourceBadge mode="seed" label="static · awaits financial_records aggregate" />
+          )}
         </span>
       </header>
 
@@ -51,7 +73,7 @@ export function Business360Grid() {
         className="grid grid-cols-1 lg:grid-cols-2"
         style={{ gap: '1px', background: 'var(--cc-grid)' }}
       >
-        {BUSINESS_360_TILES.map((b) => (
+        {tiles.map((b) => (
           <BusinessTile key={b.id} data={b} />
         ))}
       </div>
