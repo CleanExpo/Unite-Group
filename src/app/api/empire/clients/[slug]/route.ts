@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/security/require-admin';
 import { isValidBrandConfig, type BrandConfig } from '@/types/brand-config';
+import { isValidPortalContent, type PortalContent } from '@/types/portal-content';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,7 @@ interface PatchInput {
   website_url?: string | null;
   contact_email?: string | null;
   brand_config?: BrandConfig;
+  portal_content?: PortalContent;
   status?: string;
 }
 
@@ -58,6 +60,13 @@ function parsePatch(body: unknown): PatchInput | { error: string } {
       return { error: 'invalid_brand_config' };
     }
     out.brand_config = obj.brand_config;
+  }
+
+  if (obj.portal_content !== undefined) {
+    if (!isValidPortalContent(obj.portal_content)) {
+      return { error: 'invalid_portal_content' };
+    }
+    out.portal_content = obj.portal_content;
   }
 
   if (obj.status !== undefined) {

@@ -6,6 +6,17 @@
 import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { BrandConfig } from '@/types/brand-config';
+import type {
+  Deliverable,
+  DeliverableStatus,
+  PortalContent,
+  Touchpoint,
+  TouchpointStatus,
+  QuickLink,
+} from '@/types/portal-content';
+
+const DELIVERABLE_STATUSES = ['done', 'in-progress', 'planned'] as const;
+const TOUCHPOINT_STATUSES = ['active', 'planned'] as const;
 
 interface EditClientFormProps {
   slug: string;
@@ -15,6 +26,7 @@ interface EditClientFormProps {
     contact_email: string | null;
     status: string;
     brand_config: BrandConfig;
+    portal_content: PortalContent;
   };
 }
 
@@ -31,6 +43,16 @@ export function EditClientForm({ slug, initial }: EditClientFormProps) {
   const [tagline, setTagline] = useState(initial.brand_config.tagline ?? '');
   const [logoUrl, setLogoUrl] = useState(initial.brand_config.logo_url ?? '');
   const [status, setStatus] = useState(initial.status);
+  const [welcomeText, setWelcomeText] = useState(initial.portal_content.welcome_text ?? '');
+  const [deliverables, setDeliverables] = useState<Deliverable[]>(
+    initial.portal_content.deliverables ?? [],
+  );
+  const [touchpoints, setTouchpoints] = useState<Touchpoint[]>(
+    initial.portal_content.touchpoints ?? [],
+  );
+  const [quickLinks, setQuickLinks] = useState<QuickLink[]>(
+    initial.portal_content.quick_links ?? [],
+  );
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +66,12 @@ export function EditClientForm({ slug, initial }: EditClientFormProps) {
     setError(null);
     setNotice(null);
     try {
+      const portal_content: PortalContent = {};
+      if (welcomeText.trim()) portal_content.welcome_text = welcomeText.trim();
+      if (deliverables.length > 0) portal_content.deliverables = deliverables;
+      if (touchpoints.length > 0) portal_content.touchpoints = touchpoints;
+      if (quickLinks.length > 0) portal_content.quick_links = quickLinks;
+
       const res = await fetch(`/api/empire/clients/${slug}`, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
@@ -58,6 +86,7 @@ export function EditClientForm({ slug, initial }: EditClientFormProps) {
             tagline: tagline.trim() || null,
             logo_url: logoUrl.trim() || null,
           },
+          portal_content,
         }),
       });
       const body = await res.json().catch(() => ({}));
@@ -82,6 +111,10 @@ export function EditClientForm({ slug, initial }: EditClientFormProps) {
     accent,
     tagline,
     logoUrl,
+    welcomeText,
+    deliverables,
+    touchpoints,
+    quickLinks,
     router,
   ]);
 
@@ -202,6 +235,125 @@ export function EditClientForm({ slug, initial }: EditClientFormProps) {
         />
       </Field>
 
+      <SectionHeader>Portal content</SectionHeader>
+
+      <Field label="Welcome text" hint="Top-of-portal paragraph. ≤2000 chars.">
+        <textarea
+          value={welcomeText}
+          onChange={(e) => setWelcomeText(e.target.value)}
+          maxLength={2000}
+          rows={3}
+          style={{ ...inputStyle, fontFamily: 'system-ui, sans-serif' }}
+        />
+      </Field>
+
+      <RepeatingList
+        label="Deliverables"
+        items={deliverables}
+        onChange={setDeliverables}
+        empty={{ category: '', status: 'planned', detail: '' }}
+        render={(item, update) => (
+          <>
+            <input
+              type="text"
+              value={item.category}
+              onChange={(e) => update({ ...item, category: e.target.value })}
+              maxLength={200}
+              placeholder="Category (e.g. SEO audit)"
+              style={inputStyle}
+            />
+            <select
+              value={item.status}
+              onChange={(e) => update({ ...item, status: e.target.value as DeliverableStatus })}
+              style={inputStyle}
+            >
+              {DELIVERABLE_STATUSES.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <textarea
+              value={item.detail}
+              onChange={(e) => update({ ...item, detail: e.target.value })}
+              maxLength={1000}
+              rows={2}
+              placeholder="Detail"
+              style={{ ...inputStyle, fontFamily: 'system-ui, sans-serif' }}
+            />
+          </>
+        )}
+      />
+
+      <RepeatingList
+        label="Touchpoints"
+        items={touchpoints}
+        onChange={setTouchpoints}
+        empty={{ name: '', status: 'planned' }}
+        render={(item, update) => (
+          <>
+            <input
+              type="text"
+              value={item.name}
+              onChange={(e) => update({ ...item, name: e.target.value })}
+              maxLength={200}
+              placeholder="Name (e.g. Booking widget)"
+              style={inputStyle}
+            />
+            <input
+              type="text"
+              value={item.domain ?? ''}
+              onChange={(e) => update({ ...item, domain: e.target.value || undefined })}
+              maxLength={253}
+              placeholder="Domain (optional)"
+              style={inputStyle}
+            />
+            <select
+              value={item.status}
+              onChange={(e) => update({ ...item, status: e.target.value as TouchpointStatus })}
+              style={inputStyle}
+            >
+              {TOUCHPOINT_STATUSES.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </>
+        )}
+      />
+
+      <RepeatingList
+        label="Quick links"
+        items={quickLinks}
+        onChange={setQuickLinks}
+        empty={{ label: '', href: '', note: '' }}
+        render={(item, update) => (
+          <>
+            <input
+              type="text"
+              value={item.label}
+              onChange={(e) => update({ ...item, label: e.target.value })}
+              maxLength={200}
+              placeholder="Label"
+              style={inputStyle}
+            />
+            <input
+              type="url"
+              value={item.href}
+              onChange={(e) => update({ ...item, href: e.target.value })}
+              maxLength={500}
+              placeholder="https://…"
+              style={inputStyle}
+            />
+            <input
+              type="text"
+              value={item.note}
+              onChange={(e) => update({ ...item, note: e.target.value })}
+              maxLength={500}
+              placeholder="Note"
+              style={inputStyle}
+            />
+          </>
+        )}
+      />
+
       {error && (
         <div
           role="alert"
@@ -259,6 +411,8 @@ function mapError(code: string | undefined, status: number): string {
       return 'Company name is required (1-200 chars).';
     case 'invalid_brand_config':
       return 'Brand colours must be 6-digit hex (#RRGGBB).';
+    case 'invalid_portal_content':
+      return 'Portal content has an invalid field — check status enums + length caps.';
     case 'invalid_status':
       return 'Status must be active, paused, churned, or onboarding.';
     case 'invalid_website_url':
@@ -274,6 +428,111 @@ function mapError(code: string | undefined, status: number): string {
     default:
       return code ? `Save failed: ${code}.` : `Save failed (HTTP ${status}).`;
   }
+}
+
+function SectionHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <h2
+      style={{
+        margin: '24px 0 4px',
+        fontSize: 11,
+        fontWeight: 700,
+        textTransform: 'uppercase',
+        letterSpacing: '0.18em',
+        color: 'var(--ink-secondary, #94a3b8)',
+        fontFamily: 'var(--font-mono, monospace)',
+        borderTop: '1px solid var(--border-hairline, #1f1f23)',
+        paddingTop: 18,
+      }}
+    >
+      {children}
+    </h2>
+  );
+}
+
+function RepeatingList<T>({
+  label,
+  items,
+  onChange,
+  empty,
+  render,
+}: {
+  label: string;
+  items: T[];
+  onChange: (next: T[]) => void;
+  empty: T;
+  render: (item: T, update: (next: T) => void) => React.ReactNode;
+}) {
+  return (
+    <Field label={label}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {items.length === 0 && (
+          <p style={{ margin: 0, fontSize: 12, color: 'var(--ink-hush, #888)' }}>
+            No {label.toLowerCase()} yet.
+          </p>
+        )}
+        {items.map((item, idx) => (
+          <div
+            key={idx}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 6,
+              padding: 10,
+              borderLeft: '2px solid var(--border-default, #27272a)',
+              background: 'var(--surface-2, #0f0f10)',
+              borderRadius: 4,
+            }}
+          >
+            {render(item, (next) => {
+              const copy = [...items];
+              copy[idx] = next;
+              onChange(copy);
+            })}
+            <button
+              type="button"
+              onClick={() => onChange(items.filter((_, i) => i !== idx))}
+              style={{
+                alignSelf: 'flex-start',
+                marginTop: 4,
+                padding: '4px 8px',
+                border: '1px solid var(--border-default, #27272a)',
+                borderRadius: 4,
+                background: 'transparent',
+                color: '#f87171',
+                fontFamily: 'var(--font-mono, monospace)',
+                fontSize: 10,
+                textTransform: 'uppercase',
+                letterSpacing: '0.10em',
+                cursor: 'pointer',
+              }}
+            >
+              Remove
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={() => onChange([...items, empty])}
+          style={{
+            alignSelf: 'flex-start',
+            padding: '6px 10px',
+            border: '1px solid var(--border-default, #27272a)',
+            borderRadius: 4,
+            background: 'var(--surface-1, #18181b)',
+            color: 'var(--ink-primary, #f5f5f5)',
+            fontFamily: 'var(--font-mono, monospace)',
+            fontSize: 11,
+            textTransform: 'uppercase',
+            letterSpacing: '0.12em',
+            cursor: 'pointer',
+          }}
+        >
+          + Add
+        </button>
+      </div>
+    </Field>
+  );
 }
 
 function Field({
