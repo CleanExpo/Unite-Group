@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/security/require-admin';
 import { ADD_ON_GATES } from '@/components/command-center/control-panel/control-panel-data';
+import { ADD_ON_ASSIGNEE_TYPE } from './_assignee-type';
 
 export const dynamic = 'force-dynamic';
 
@@ -105,7 +106,7 @@ export async function POST(req: NextRequest) {
         description: taskDescription(addOn, gate.actorEmail),
         status: 'blocked',
         priority: 'high',
-        assignee_type: 'human',
+        assignee_type: ADD_ON_ASSIGNEE_TYPE,
         assignee_name: 'Phill approval',
         tags,
         position: 0,
@@ -115,6 +116,10 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (inserted.error || !inserted.data?.id) {
+      // Surface the Postgres error in Vercel runtime logs so the operator
+      // doesn't need a Supabase-dashboard round-trip — the action-contract
+      // message already tells them to check logs.
+      console.error('[add-ons] tasks insert failed:', inserted.error);
       return NextResponse.json({ error: 'crm_task_insert_failed' }, { status: 500 });
     }
 
