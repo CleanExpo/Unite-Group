@@ -3,6 +3,16 @@
 import { GET } from '../route';
 import { resetCache } from '../_helpers';
 
+// ---- Auth mock ----
+// requireAdmin calls createClient() → cookies(), which throws outside a
+// Next.js request scope. Short-circuit it to "always authorized" so the
+// route's real logic is what gets exercised.
+jest.mock('@/lib/security/require-admin', () => ({
+  requireAdmin: jest
+    .fn()
+    .mockResolvedValue({ ok: true, actorEmail: 'test@unite-group.com' }),
+}));
+
 // ---- Supabase mock ----
 
 const supabaseOrder = jest.fn();
