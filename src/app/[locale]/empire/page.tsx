@@ -89,6 +89,42 @@ type BoardMinute = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+// Stale-while-revalidate cache for empireData. Back-nav from /empire/* to
+// /empire used to show 6 skeleton cards for the full data-fetch window
+// (~500-1500ms). Skeletons are plain divs with no <Link> wrap — clicks
+// during the skeleton phase did nothing. Caching the last response in
+// sessionStorage lets the mount paint the previous cards instantly; the
+// background fetch still fires to refresh.
+const EMPIRE_CACHE_KEY = "unite:empire:lastFetch";
+const EMPIRE_CACHE_TTL_MS = 5 * 60 * 1000;
+
+function readEmpireCache(): EmpireData | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(EMPIRE_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { cachedAt?: number; data?: EmpireData };
+    if (!parsed?.data || typeof parsed.cachedAt !== "number") return null;
+    if (Date.now() - parsed.cachedAt > EMPIRE_CACHE_TTL_MS) return null;
+    return parsed.data;
+  } catch {
+    return null;
+  }
+}
+
+function writeEmpireCache(data: EmpireData): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(
+      EMPIRE_CACHE_KEY,
+      JSON.stringify({ cachedAt: Date.now(), data }),
+    );
+  } catch {
+    // sessionStorage may be unavailable (private browsing quotas, etc.)
+    // — fail silently; the only loss is the back-nav optimisation.
+  }
+}
+
 function healthColor(score: number | null): string {
   if (score === null) return "var(--ink-disabled)";
   if (score >= 80) return "var(--green-400)";
@@ -587,7 +623,12 @@ export default function EmpireCommandCenter() {
   const routeParams = useParams<{ locale?: string }>();
   const locale = typeof routeParams.locale === 'string' ? routeParams.locale : 'en';
   const [checking, setChecking] = useState(true);
-  const [empireData, setEmpireData] = useState<EmpireData | null>(null);
+  // Lazy initializer hydrates from sessionStorage cache on mount — back-nav
+  // paints the prior cards instantly; fetchBusinesses still fires below to
+  // refresh the data. Cold-load remains skeleton-then-data.
+  const [empireData, setEmpireData] = useState<EmpireData | null>(() =>
+    readEmpireCache(),
+  );
   const [priorities, setPriorities] = useState<Priority[] | null>(null);
   const [pipeline, setPipeline] = useState<PipelineCounts | null>(null);
   const [exitThesis, setExitThesis] = useState<ExitThesisData | null>(null);
@@ -603,6 +644,7 @@ export default function EmpireCommandCenter() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json: EmpireData = await res.json();
       setEmpireData(json);
+      writeEmpireCache(json);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load data");
     } finally {
