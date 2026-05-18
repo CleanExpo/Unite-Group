@@ -17,8 +17,8 @@ interface RouteEntry {
 // wrapper helpers, inline supabase session checks, and cryptographic webhook
 // signature verification. The audit treats any of these as authenticated.
 const AUTH_PATTERNS = [
-  /withAuth|requireAuth|verifyAdminJwt|getServerSession|getAdminSession/,
-  /timingSafeBearerMatch|withSyncLifecycle/,
+  /withAuth|requireAuth|requireAdmin|verifyAdminJwt|getServerSession|getAdminSession/,
+  /timingSafe(Bearer|Token)Match|withSyncLifecycle/,
   /supabase\.auth\.(getSession|getUser)/,
 ];
 const WEBHOOK_SIGNATURE_PATTERNS = [
