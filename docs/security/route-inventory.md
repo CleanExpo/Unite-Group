@@ -68,10 +68,10 @@
 | `/api/linear/issue` | GET, POST | ✗ | ✗ | ✗ | ✗ | `src/app/api/linear/issue/route.ts` |
 | `/api/logo-fetch` | GET | ✗ | ✓ | ✗ | ✗ | `src/app/api/logo-fetch/route.ts` |
 | `/api/mandates` | GET | ✗ | ✗ | ✗ | ✗ | `src/app/api/mandates/route.ts` |
-| `/api/marketing/leads` | POST | ✗ | ✗ | ✗ | ✓ | `src/app/api/marketing/leads/route.ts` |
+| `/api/marketing/leads` | POST | ✗ | ✓ | ✗ | ✓ | `src/app/api/marketing/leads/route.ts` |
 | `/api/notifications` | GET | ✓ | ✗ | ✗ | ✗ | `src/app/api/notifications/route.ts` |
 | `/api/notifications/[id]/read` | PATCH | ✓ | ✗ | ✗ | ✗ | `src/app/api/notifications/[id]/read/route.ts` |
-| `/api/onboarding/create-checkout-session` | POST | ✗ | ✗ | ✗ | ✗ | `src/app/api/onboarding/create-checkout-session/route.ts` |
+| `/api/onboarding/create-checkout-session` | POST | ✗ | ✓ | ✗ | ✗ | `src/app/api/onboarding/create-checkout-session/route.ts` |
 | `/api/onboarding/send-magic-link` | POST | ✗ | ✓ | ✗ | ✗ | `src/app/api/onboarding/send-magic-link/route.ts` |
 | `/api/organizations` | GET, POST | ✓ | ✗ | ✗ | ✗ | `src/app/api/organizations/route.ts` |
 | `/api/payment/create-intent` | POST | ✓ | ✗ | ✗ | ✓ | `src/app/api/payment/create-intent/route.ts` |
@@ -104,7 +104,7 @@
 - Total routes: 91
 - Auth-wrapped (session / JWT / bearer): 31 (34%)
 - Webhook-signature-verified: 3 (3%)
-- Rate-limited: 12 (13%)
+- Rate-limited: 14 (15%)
 - CSRF-protected: 0 (0%)
 - Input-validated: 7 (8%)
 
@@ -124,7 +124,5 @@ Routes that accept mutating methods (POST / PUT / PATCH / DELETE) AND have **no 
 | `/api/internal/process-publish-queue` | POST | `src/app/api/internal/process-publish-queue/route.ts` |
 | `/api/internal/sync-post-performance` | POST | `src/app/api/internal/sync-post-performance/route.ts` |
 | `/api/linear/issue` | GET, POST | `src/app/api/linear/issue/route.ts` |
-| `/api/marketing/leads` | POST | `src/app/api/marketing/leads/route.ts` |
-| `/api/onboarding/create-checkout-session` | POST | `src/app/api/onboarding/create-checkout-session/route.ts` |
 | `/api/portal/request` | POST | `src/app/api/portal/request/route.ts` |
 | `/api/telegram/send` | POST | `src/app/api/telegram/send/route.ts` |

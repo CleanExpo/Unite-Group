@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { applyRateLimit, UNKNOWN_IP } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
+
+// Public Stripe Checkout creation — clients hit this from their portal
+// approval page without a logged-in session. No auth wrapper applies.
+// Rate-limit is the right defense: legitimate flow is 1 click per
+// approval (usually one per client engagement, ever). 5 req/min/IP is
+// far above legit usage and prevents spam Checkout sessions that would
+// pollute the Stripe Customer namespace.
+const CHECKOUT_RATE_LIMIT = 5;
+const CHECKOUT_RATE_WINDOW_MS = 60_000;
 
 /**
  * POST /api/onboarding/create-checkout-session
@@ -32,6 +42,18 @@ const DEFAULT_PRICING = {
 };
 
 export async function POST(request: NextRequest) {
+  const ip =
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+    request.headers.get('x-real-ip') ??
+    UNKNOWN_IP;
+  const rate = applyRateLimit(ip, CHECKOUT_RATE_LIMIT, CHECKOUT_RATE_WINDOW_MS);
+  if (!rate.ok) {
+    return NextResponse.json(
+      { error: 'rate_limited', resetAt: rate.resetAt },
+      { status: 429 },
+    );
+  }
+
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   if (!stripeKey) {
     return NextResponse.json(
