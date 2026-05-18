@@ -62,7 +62,7 @@
     "node_modules",
     "backups",
     "src-backup",
-    "vercel-export-2025-05-23-0456",
+    "vercel-export-*",
     "**/*.test.ts",
     "**/*.test.tsx",
     "**/*.spec.ts",

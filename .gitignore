@@ -56,3 +56,6 @@ frontend-minimal/node_modules/
 
 # Sandbox wizard cache (schema dumps + sync state)
 .sandbox-cache/
+
+# Vercel exports (transient pulls — never canonical)
+vercel-export-*/
