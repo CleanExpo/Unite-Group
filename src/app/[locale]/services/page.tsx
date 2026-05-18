@@ -57,7 +57,7 @@ export default async function ServicesIndex({
 }: {
   params: Promise<{ locale: string }>;
 }) {
-  await params;
+  const { locale } = await params;
 
   // Resolve the Unite-Group brand server-side, same pattern as the homepage
   // (PR #59). Page is force-static, so this runs once per deploy.
@@ -133,7 +133,7 @@ export default async function ServicesIndex({
                 {s.paragraph}
               </p>
               <Link
-                href={`/en/services/${s.slug}`}
+                href={`/${locale}/services/${s.slug}`}
                 style={{
                   display: 'inline-block',
                   marginTop: 12,

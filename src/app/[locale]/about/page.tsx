@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AboutPage({ params }: { params: Promise<{ locale: string }> }) {
-  await params;
+  const { locale } = await params;
 
   return (
     <main
@@ -63,7 +63,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
             Unite-Group is the operating company that runs the CRM, the cert, the leads, and the
             disputes for the five-to-fifty-van firm. The first paying client is{' '}
             <Link
-              href="/en/clients/ccw"
+              href={`/${locale}/clients/ccw`}
               style={{ color: 'var(--red-300)', textDecoration: 'underline' }}
             >
               Carpet Cleaners Warehouse
