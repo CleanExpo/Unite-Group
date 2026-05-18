@@ -3,6 +3,8 @@
 // authenticated non-admin users must see an unambiguous "you cannot access
 // this" — never the partially-interactive shell behind a wall of 401s.
 
+import Link from 'next/link';
+
 export function AccessDenied({ actorEmail }: { actorEmail: string }) {
   return (
     <main
@@ -31,13 +33,13 @@ export function AccessDenied({ actorEmail }: { actorEmail: string }) {
         not on the operator allow-list. Sign in with an admin account to
         continue.
       </p>
-      <a
+      <Link
         href="/en/login?next=/en/command-center"
         className="mt-6 font-mono text-[11px] uppercase tracking-[0.22em] underline"
         style={{ color: 'var(--cc-ink)' }}
       >
         switch account →
-      </a>
+      </Link>
     </main>
   );
 }
