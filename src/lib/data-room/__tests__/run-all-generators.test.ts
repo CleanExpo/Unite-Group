@@ -13,6 +13,12 @@ interface InsertCall {
   row: Record<string, unknown>;
 }
 
+interface UpdateCall {
+  table: string;
+  values: Record<string, unknown>;
+  filters: { column: string; op: 'eq' | 'in'; value: unknown }[];
+}
+
 interface MockState {
   /** Rows to return per table for SELECT chains. */
   rows: Record<string, unknown[]>;
@@ -22,6 +28,8 @@ interface MockState {
   insertErrors: Set<string>;
   /** Captured INSERTs for assertions. */
   inserts: InsertCall[];
+  /** Captured UPDATEs for assertions. */
+  updates: UpdateCall[];
   /** Counter for ID minting on successful INSERTs. */
   inserted_id_seq: number;
 }
@@ -44,15 +52,10 @@ function makeMockSupabase(state: MockState) {
     return chain;
   }
 
-  function insertChain(table: string) {
+  function makeInsertSubChain(table: string) {
     let captured: Record<string, unknown> | null = null;
-    const chain = {
-      insert: (row: Record<string, unknown>) => {
-        captured = row;
-        state.inserts.push({ table, row });
-        return chain;
-      },
-      select: () => chain,
+    const sub = {
+      select: () => sub,
       single: () => {
         if (!captured) {
           return Promise.resolve({ data: null, error: { message: 'no_row' } });
@@ -67,13 +70,54 @@ function makeMockSupabase(state: MockState) {
           error: null,
         });
       },
+      _capture: (row: Record<string, unknown>) => {
+        captured = row;
+        state.inserts.push({ table, row });
+      },
     };
-    return chain;
+    return sub;
+  }
+
+  function makeUpdateSubChain(table: string, values: Record<string, unknown>) {
+    const filters: UpdateCall['filters'] = [];
+    const recordOnce = () => {
+      if (!sub._recorded) {
+        state.updates.push({ table, values, filters });
+        sub._recorded = true;
+      }
+    };
+    const sub = {
+      _recorded: false,
+      eq: (column: string, value: unknown) => {
+        filters.push({ column, op: 'eq', value });
+        return sub;
+      },
+      in: (column: string, value: unknown) => {
+        filters.push({ column, op: 'in', value });
+        return sub;
+      },
+      then: (onFulfilled: (v: { data: null; error: null }) => unknown) => {
+        recordOnce();
+        return Promise.resolve(onFulfilled({ data: null, error: null }));
+      },
+    };
+    return sub;
+  }
+
+  function dataRoomBuilder(table: string) {
+    return {
+      insert: (row: Record<string, unknown>) => {
+        const sub = makeInsertSubChain(table);
+        sub._capture(row);
+        return sub;
+      },
+      update: (values: Record<string, unknown>) => makeUpdateSubChain(table, values),
+    };
   }
 
   return {
     from: (table: string) => {
-      if (table === 'data_room_documents') return insertChain(table);
+      if (table === 'data_room_documents') return dataRoomBuilder(table);
       return selectChain(table);
     },
   } as unknown as Parameters<typeof runAllGenerators>[0]['supabase'];
@@ -85,6 +129,7 @@ function newState(): MockState {
     selectErrors: new Set(),
     insertErrors: new Set(),
     inserts: [],
+    updates: [],
     inserted_id_seq: 0,
   };
 }
@@ -158,6 +203,46 @@ describe('runAllGenerators', () => {
     const vendorResult = results.find((r) => r.kind === 'vendor_contracts');
     expect(plResult?.ok).toBe(true);
     expect(vendorResult?.ok).toBe(true);
+  });
+
+  it('supersedes older pending+approved docs of the same kind before inserting', async () => {
+    const state = newState();
+    const supabase = makeMockSupabase(state);
+
+    await runAllGenerators({ supabase, asOf: AS_OF });
+
+    // One UPDATE per generated kind.
+    expect(state.updates).toHaveLength(5);
+
+    // Every UPDATE targets data_room_documents, sets audit_status='superseded',
+    // and filters by (kind=<X>, audit_status IN ['pending','approved']).
+    for (const update of state.updates) {
+      expect(update.table).toBe('data_room_documents');
+      expect(update.values).toEqual({ audit_status: 'superseded' });
+      const eqFilter = update.filters.find((f) => f.op === 'eq');
+      const inFilter = update.filters.find((f) => f.op === 'in');
+      expect(eqFilter?.column).toBe('kind');
+      expect(inFilter?.column).toBe('audit_status');
+      expect(inFilter?.value).toEqual(['pending', 'approved']);
+    }
+
+    // Every recognised kind got its own supersede pass.
+    const supersededKinds = state.updates
+      .map((u) => u.filters.find((f) => f.op === 'eq')?.value)
+      .sort();
+    expect(supersededKinds).toEqual([...ALL_GENERATOR_KINDS].sort());
+  });
+
+  it('does not touch the rejected status when superseding (rejections are historical)', async () => {
+    const state = newState();
+    const supabase = makeMockSupabase(state);
+    await runAllGenerators({ supabase, asOf: AS_OF });
+
+    for (const update of state.updates) {
+      const inFilter = update.filters.find((f) => f.op === 'in');
+      expect(inFilter?.value).not.toContain('rejected');
+      expect(inFilter?.value).not.toContain('superseded');
+    }
   });
 
   it('produces a stable asOf timestamp across all 5 payloads', async () => {
