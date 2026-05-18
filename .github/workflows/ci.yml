@@ -83,7 +83,7 @@ jobs:
         # Do not add continue-on-error: true here.
 
   unit-tests:
-    name: src/ Unit Tests
+    name: Unit + Integration Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -92,11 +92,12 @@ jobs:
           node-version: "22"
           cache: "npm"
       - run: npm ci
-      - name: Run src/ jest suite
-        run: npx jest --testPathPattern=src/ --ci --runInBand
+      - name: Run full jest suite
+        run: npm run test:all -- --ci --runInBand
         # No bypass — same discipline as smoke-tests above. Gates on the
-        # full src/ suite (64 suites, 524 tests as of PR #148). Tests under
-        # tests/integration/* are not in this gate yet (see follow-up).
+        # full repo jest suite (84 suites / 684 tests as of PR #151). Both
+        # src/ unit tests and tests/integration/* run here; the scoped
+        # smoke-tests job above continues to run tests/pipelines/ on its own.
 
   lint:
     name: Lint
