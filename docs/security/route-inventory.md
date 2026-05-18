@@ -81,7 +81,7 @@
 | `/api/pi-ceo/margot-voice/signed-url` | GET | ✗ | ✓ | ✗ | ✗ | `src/app/api/pi-ceo/margot-voice/signed-url/route.ts` |
 | `/api/pi-ceo/margot-voice/task` | POST | ✗ | ✓ | ✗ | ✗ | `src/app/api/pi-ceo/margot-voice/task/route.ts` |
 | `/api/portal/artefacts` | GET | ✗ | ✗ | ✗ | ✗ | `src/app/api/portal/artefacts/route.ts` |
-| `/api/portal/request` | POST | ✗ | ✗ | ✗ | ✗ | `src/app/api/portal/request/route.ts` |
+| `/api/portal/request` | POST | ✗ | ✓ | ✗ | ✗ | `src/app/api/portal/request/route.ts` |
 | `/api/portal/seo-refresh` | POST | ✓ | ✓ | ✗ | ✗ | `src/app/api/portal/seo-refresh/route.ts` |
 | `/api/portal/summary` | GET | ✓ | ✗ | ✗ | ✗ | `src/app/api/portal/summary/route.ts` |
 | `/api/projects` | GET, POST | ✓ | ✗ | ✗ | ✗ | `src/app/api/projects/route.ts` |
@@ -104,7 +104,7 @@
 - Total routes: 91
 - Auth-wrapped (session / JWT / bearer): 31 (34%)
 - Webhook-signature-verified: 3 (3%)
-- Rate-limited: 14 (15%)
+- Rate-limited: 15 (16%)
 - CSRF-protected: 0 (0%)
 - Input-validated: 7 (8%)
 
@@ -124,5 +124,4 @@ Routes that accept mutating methods (POST / PUT / PATCH / DELETE) AND have **no 
 | `/api/internal/process-publish-queue` | POST | `src/app/api/internal/process-publish-queue/route.ts` |
 | `/api/internal/sync-post-performance` | POST | `src/app/api/internal/sync-post-performance/route.ts` |
 | `/api/linear/issue` | GET, POST | `src/app/api/linear/issue/route.ts` |
-| `/api/portal/request` | POST | `src/app/api/portal/request/route.ts` |
 | `/api/telegram/send` | POST | `src/app/api/telegram/send/route.ts` |
