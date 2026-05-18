@@ -20,11 +20,16 @@ import type { PortalContent, Deliverable, Touchpoint, QuickLink } from "@/types/
 
 // ─── Brand tokens ───────────────────────────────────────────────────────────
 
-// Brand primary lives as a CSS custom property at the page root so future
-// brand_config plumbing (UNI-1994) can override it without touching this file.
-// Simple consumers read DUNCAN.blue → var(--brand-primary); opacity variants
-// use color-mix() against the var directly.
+// Brand primary + accent live as CSS custom properties at the page root so
+// future brand_config plumbing (UNI-1994) can override them without touching
+// this file. Simple consumers read DUNCAN.blue → var(--brand-primary);
+// opacity variants use color-mix() against the var directly. The accent pair
+// (--brand-accent + --brand-accent-hover) drives the checkout CTA; hover
+// stored as a separate var rather than computed because the previous design
+// shipped both shades explicitly (#E62128 / #c4181f).
 const DUNCAN_BRAND_PRIMARY_DEFAULT = "#1a73e8";
+const DUNCAN_BRAND_ACCENT_DEFAULT = "#E62128";
+const DUNCAN_BRAND_ACCENT_HOVER_DEFAULT = "#c4181f";
 const DUNCAN = {
   blue:    "var(--brand-primary)",
   dark:    "var(--canvas)",
@@ -137,7 +142,7 @@ export default function DimitriPortalClient({ initialContent }: DimitriPortalCli
   const inProgress = deliverables.filter(d => d.status === "in-progress").length;
 
   return (
-    <div style={{ minHeight: "100vh", background: DUNCAN.dark, color: DUNCAN.ink, fontFamily: "var(--font-display)", ["--brand-primary" as string]: DUNCAN_BRAND_PRIMARY_DEFAULT }}>
+    <div style={{ minHeight: "100vh", background: DUNCAN.dark, color: DUNCAN.ink, fontFamily: "var(--font-display)", ["--brand-primary" as string]: DUNCAN_BRAND_PRIMARY_DEFAULT, ["--brand-accent" as string]: DUNCAN_BRAND_ACCENT_DEFAULT, ["--brand-accent-hover" as string]: DUNCAN_BRAND_ACCENT_HOVER_DEFAULT }}>
 
       <header style={{
         height: 64, display: "flex", alignItems: "center", padding: "0 32px",
@@ -300,7 +305,7 @@ export default function DimitriPortalClient({ initialContent }: DimitriPortalCli
                   onClick={handleApproveAndPay}
                   disabled={checkoutLoading}
                   style={{
-                    background: checkoutLoading ? DUNCAN.muted : "#E62128",
+                    background: checkoutLoading ? DUNCAN.muted : "var(--brand-accent)",
                     color: "#fff",
                     border: "none",
                     padding: "12px 22px",
@@ -311,8 +316,8 @@ export default function DimitriPortalClient({ initialContent }: DimitriPortalCli
                     cursor: checkoutLoading ? "wait" : "pointer",
                     transition: "all 0.15s ease",
                   }}
-                  onMouseEnter={(e) => { if (!checkoutLoading) (e.currentTarget as HTMLButtonElement).style.background = "#c4181f"; }}
-                  onMouseLeave={(e) => { if (!checkoutLoading) (e.currentTarget as HTMLButtonElement).style.background = "#E62128"; }}
+                  onMouseEnter={(e) => { if (!checkoutLoading) (e.currentTarget as HTMLButtonElement).style.background = "var(--brand-accent-hover)"; }}
+                  onMouseLeave={(e) => { if (!checkoutLoading) (e.currentTarget as HTMLButtonElement).style.background = "var(--brand-accent)"; }}
                 >
                   {checkoutLoading ? "Loading Stripe…" : "Approve & pay setup fee →"}
                 </button>
