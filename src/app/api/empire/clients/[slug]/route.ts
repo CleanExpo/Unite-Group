@@ -13,6 +13,7 @@ import { invalidateBrandConfigCache } from '@/lib/branding/getBrandConfig';
 import { invalidatePortalContentCache } from '@/lib/branding/getPortalContent';
 import { parseContactEmail } from '../_validate-email';
 import { parseWebsiteUrl } from '../_validate-website';
+import { recordClientAction } from '../_record-action';
 
 export const dynamic = 'force-dynamic';
 
@@ -124,6 +125,18 @@ export async function PATCH(
   // 5 minutes after every PATCH.
   invalidateBrandConfigCache(slug);
   invalidatePortalContentCache(slug);
+
+  // Audit signal (#137 follow-up). Records which fields were touched in
+  // the payload so the ActivityLog row reads e.g.:
+  //   "Client updated: Acme (brand_config, status)"
+  await recordClientAction({
+    supabase,
+    kind: 'updated',
+    slug,
+    actorEmail: gate.actorEmail,
+    companyName: (res.data as { company_name?: string }).company_name,
+    fields: Object.keys(parsed),
+  });
 
   return NextResponse.json(
     { ok: true, client: res.data },
