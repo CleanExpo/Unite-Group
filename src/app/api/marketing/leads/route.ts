@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { SendGridClient } from '@/lib/marketing/email/sendgrid-client';
+import { applyRateLimit, UNKNOWN_IP } from '@/lib/rate-limit';
+
+// Public lead intake — anonymous form submissions from marketing pages.
+// No auth wrapper because legitimate users aren't logged in. Rate-limit
+// protects against spam-bot list-bombing of the SendGrid integration and
+// (when the TODO below lands) the Supabase leads table. 10/min/IP is
+// generous for a real prospect (typical form-fill is one submission per
+// visit) and tight enough that an attacker can't generate meaningful
+// volume per IP.
+const LEADS_RATE_LIMIT = 10;
+const LEADS_RATE_WINDOW_MS = 60_000;
 
 // Basic lead validation schema
 const leadSchema = z.object({
@@ -24,6 +35,18 @@ const leadSchema = z.object({
  */
 export async function POST(request: NextRequest) {
   try {
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+      request.headers.get('x-real-ip') ??
+      UNKNOWN_IP;
+    const rate = applyRateLimit(ip, LEADS_RATE_LIMIT, LEADS_RATE_WINDOW_MS);
+    if (!rate.ok) {
+      return NextResponse.json(
+        { error: 'rate_limited', resetAt: rate.resetAt },
+        { status: 429 },
+      );
+    }
+
     // Parse request data
     const data = await request.json();
     
