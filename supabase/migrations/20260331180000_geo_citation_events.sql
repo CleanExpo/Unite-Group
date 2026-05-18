@@ -10,7 +10,7 @@ BEGIN;
 
 CREATE TABLE IF NOT EXISTS public.geo_citation_events (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id           UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  user_id           UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   query_text        TEXT NOT NULL,
   search_engine     TEXT NOT NULL CHECK (search_engine IN ('google_ai_overview', 'chatgpt', 'perplexity')),
   query_date        DATE NOT NULL DEFAULT CURRENT_DATE,

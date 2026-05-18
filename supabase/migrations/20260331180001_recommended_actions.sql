@@ -11,7 +11,7 @@ BEGIN;
 
 CREATE TABLE IF NOT EXISTS public.recommended_actions (
   id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id               UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  user_id               UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   generated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   week_of               DATE NOT NULL,       -- Monday of target week
 

@@ -52,7 +52,8 @@ jobs:
       - name: Install Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned: `latest` started 404ing on 2026-05-18 (upstream release-resolution flake).
+          version: 2.20.0
       - name: Check for schema drift
         continue-on-error: true
         env:
