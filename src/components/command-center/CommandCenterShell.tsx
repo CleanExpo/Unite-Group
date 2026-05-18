@@ -14,14 +14,22 @@
 //   Zone 5 — Live activity log — LIVE (PR-3)
 
 import { GlobalStatusBar } from './GlobalStatusBar';
-import { KpiStrip } from './KpiStrip';
+import { KpiStrip, type KpiStripProps } from './KpiStrip';
 import { AgentTopology } from './topology/AgentTopology';
 import { Business360Grid } from './business-360/Business360Grid';
 import { ActivityLog } from './activity/ActivityLog';
 import { MargotVoicePanel } from './voice/MargotVoicePanel';
 import { HermesControlPanel } from './control-panel/HermesControlPanel';
 
-export function CommandCenterShell() {
+export interface CommandCenterShellProps {
+  /**
+   * Optional KPI props injected by the server-rendered page. When provided,
+   * KpiStrip renders in `live` mode; otherwise it stays in `seed` mode.
+   */
+  kpiInitial?: KpiStripProps;
+}
+
+export function CommandCenterShell({ kpiInitial }: CommandCenterShellProps = {}) {
   return (
     <div
       className="min-h-screen flex flex-col"
@@ -31,7 +39,7 @@ export function CommandCenterShell() {
       }}
     >
       <GlobalStatusBar />
-      <KpiStrip />
+      <KpiStrip {...kpiInitial} />
 
       <main className="flex-1 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="flex min-w-0 flex-col">

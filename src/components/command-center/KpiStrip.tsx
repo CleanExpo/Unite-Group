@@ -20,6 +20,13 @@ export interface KpiStripProps {
   blockedMandates?: number;
   /** CCW client SLA state — 'green' | 'amber' | 'red'. */
   ccwSla?: 'green' | 'amber' | 'red';
+  /**
+   * When set, the SourceBadge flips from `seed` to `live`. The server-rendered
+   * Command Center page passes this after reading the businesses table.
+   */
+  arrSourceLiveAt?: string;
+  /** Count of portfolio businesses with overall_health < 60. Live when set. */
+  atRiskCount?: number;
 }
 
 const toAud = (cents: number) =>
@@ -36,10 +43,13 @@ export function KpiStrip({
   costUsdToday = 0.05,
   blockedMandates = 0,
   ccwSla = 'green',
+  arrSourceLiveAt,
+  atRiskCount,
 }: KpiStripProps) {
   const slaLabel = ccwSla === 'green' ? 'GREEN' : ccwSla === 'amber' ? 'AMBER' : 'RED';
   const slaState: 'running' | 'signal' = ccwSla === 'red' ? 'signal' : 'running';
   const mandatesState: 'running' | 'signal' = blockedMandates > 0 ? 'signal' : 'running';
+  const arrIsLive = !!arrSourceLiveAt;
 
   return (
     <section
@@ -60,7 +70,19 @@ export function KpiStrip({
         >
           Zone 2 · KPI Strip
         </span>
-        <SourceBadge mode="seed" label="static · awaits /api/empire/* + /api/pi-ceo/health" />
+        {arrIsLive ? (
+          <SourceBadge
+            mode="live"
+            label={
+              typeof atRiskCount === 'number'
+                ? `businesses · ${atRiskCount} at risk`
+                : 'businesses'
+            }
+            lastUpdatedAt={arrSourceLiveAt}
+          />
+        ) : (
+          <SourceBadge mode="seed" label="static · awaits /api/empire/* + /api/pi-ceo/health" />
+        )}
       </div>
       <div
         className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5"
@@ -71,7 +93,13 @@ export function KpiStrip({
         prefix="$"
         value={arrCents / 100}
         format={(n) => toAud(n * 100)}
-        delta="open · no paying client yet"
+        delta={
+          arrIsLive
+            ? typeof atRiskCount === 'number' && atRiskCount > 0
+              ? `live · ${atRiskCount} at risk`
+              : 'live · portfolio total'
+            : 'open · no paying client yet'
+        }
         state={arrCents > 0 ? 'running' : 'hush'}
       />
       <KpiTile
