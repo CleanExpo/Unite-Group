@@ -94,6 +94,8 @@ jobs:
       - run: npm run lint
       - name: Brand Guardian (voice compliance)
         run: npm run brand:lint
+      - name: Route inventory regression-gate (UNI-2015 follow-up)
+        run: npm run security:routes-check
 
   audit:
     name: npm audit (high+)
