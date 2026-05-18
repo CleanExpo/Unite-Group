@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { checkAdminSession } from '@/lib/security/require-admin';
 import { getBrandConfig } from '@/lib/branding/getBrandConfig';
+import { getPortalContent } from '@/lib/branding/getPortalContent';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { EditClientForm } from '@/components/empire/clients-edit/EditClientForm';
 
@@ -28,7 +29,10 @@ export default async function EditClientPage({
     redirect(`/${locale}/empire`);
   }
 
-  const branded = await getBrandConfig(slug);
+  const [branded, portal] = await Promise.all([
+    getBrandConfig(slug),
+    getPortalContent(slug),
+  ]);
   if (!branded) notFound();
 
   // Fetch the extra columns the edit form needs (status / website / email)
@@ -109,6 +113,7 @@ export default async function EditClientPage({
           contact_email: contactEmail,
           status,
           brand_config: branded.brand_config,
+          portal_content: portal?.portal_content ?? {},
         }}
       />
     </div>
