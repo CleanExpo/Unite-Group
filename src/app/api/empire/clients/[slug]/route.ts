@@ -9,6 +9,8 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/security/require-admin';
 import { isValidBrandConfig, type BrandConfig } from '@/types/brand-config';
 import { isValidPortalContent, type PortalContent } from '@/types/portal-content';
+import { invalidateBrandConfigCache } from '@/lib/branding/getBrandConfig';
+import { invalidatePortalContentCache } from '@/lib/branding/getPortalContent';
 
 export const dynamic = 'force-dynamic';
 
@@ -121,6 +123,13 @@ export async function PATCH(
       { status: 500 },
     );
   }
+
+  // Bust the per-slug caches so /portal/[slug] reflects the edit on the
+  // next request. Without this, the 5-min in-memory cache in
+  // getBrandConfig + getPortalContent would serve stale data for up to
+  // 5 minutes after every PATCH.
+  invalidateBrandConfigCache(slug);
+  invalidatePortalContentCache(slug);
 
   return NextResponse.json(
     { ok: true, client: res.data },
