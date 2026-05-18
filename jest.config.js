@@ -26,7 +26,10 @@ module.exports = {
       },
     ],
   },
-  testPathIgnorePatterns: ["/node_modules/", "/.next/"],
+  // Default jest discovery picks up every `.ts` file inside `__tests__/`.
+  // Leading-underscore files there are helpers (fixtures, shared mocks, etc.)
+  // imported by real tests — ignore them as discovered test files.
+  testPathIgnorePatterns: ["/node_modules/", "/.next/", "/__tests__/_"],
   // Smoke test failures block CI — no skip mechanisms
   bail: false,
 };
