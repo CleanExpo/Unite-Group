@@ -709,7 +709,24 @@ export default function EmpireCommandCenter() {
           </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <Link
+            href="/en/empire/data-room"
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              fontFamily: "var(--font-mono)",
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              color: "var(--ink-secondary)",
+              textDecoration: "none",
+              padding: "6px 10px",
+              border: "1px solid var(--border-default)",
+              borderRadius: "var(--radius-md)",
+            }}
+          >
+            Data Room →
+          </Link>
           {loading && (
             <div style={{
               width: 6,
