@@ -8,22 +8,12 @@
 
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { applyRateLimit, UNKNOWN_IP } from '@/lib/rate-limit';
+import { rateLimit, RATE_LIMITS } from '@/lib/ratelimit';
 import { checkUrlForSsrf } from '@/lib/ssrf-guard';
 
 // RA-3013 — 5 fetches/min/IP. Anyone hitting the public URL was
 // previously able to weaponise our server as an outbound HTTP scanner
 // (and was directly susceptible to SSRF — see checkUrlForSsrf below).
-const LOGO_LIMIT = 5;
-const LOGO_WINDOW_MS = 60 * 1000;
-
-function getClientIp(req: NextRequest): string {
-  return (
-    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
-    req.headers.get('x-real-ip') ??
-    UNKNOWN_IP
-  );
-}
 
 interface LogoCandidate {
   url: string;
@@ -65,15 +55,14 @@ function scoreCandidate(url: string, alt: string, context: string): number {
 
 export async function GET(req: NextRequest) {
   // RA-3013 — rate limit FIRST so SSRF-probing bots cost less per request.
-  const ip = getClientIp(req);
-  const rl = applyRateLimit(`logo-fetch:${ip}`, LOGO_LIMIT, LOGO_WINDOW_MS);
+  const rl = await rateLimit(req, { key: 'logo-fetch', ...RATE_LIMITS.logoFetch });
   if (!rl.ok) {
     return NextResponse.json(
       { error: 'Too many requests' },
       {
         status: 429,
         headers: {
-          'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
+          'Retry-After': String(Math.ceil(rl.retryAfterMs / 1000)),
         },
       },
     );

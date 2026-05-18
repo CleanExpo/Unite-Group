@@ -32,12 +32,10 @@ const WEBHOOK_SIGNATURE_PATTERNS = [
   /verifyStripeSignature|webhooks\.constructEvent/,
   /verifyWebhookSignature|verifySignature/,
 ];
-// Two rate-limit modules coexist in this repo: @/lib/rate-limit exports
-// applyRateLimit (newer, IP-keyed, in-memory LRU); @/lib/ratelimit exports
-// rateLimit + RATE_LIMITS (older, request-shape-keyed). Both count as
-// protection — match either. Tech debt to consolidate, tracked separately.
-const RATE_LIMIT_PATTERN =
-  /applyRateLimit|withRateLimit|\brateLimit\s*\(|RATE_LIMITS\./;
+// Canonical rate-limit module is @/lib/ratelimit (exports `rateLimit` +
+// `RATE_LIMITS`). The `withRateLimit` alias is reserved for a future
+// wrapper variant. Detector matches both names.
+const RATE_LIMIT_PATTERN = /withRateLimit|\brateLimit\s*\(|RATE_LIMITS\./;
 
 const MUTATING_VERBS = ["POST", "PUT", "PATCH", "DELETE"] as const;
 
@@ -114,7 +112,7 @@ console.error("  • auth wrapper (requireAuth / requireAdmin / withAuth / etc.)
 console.error("  • inline supabase.auth.getSession() / getUser() check");
 console.error("  • timingSafeBearerMatch / timingSafeTokenMatch");
 console.error("  • webhook signature verification (Stripe HMAC etc.)");
-console.error("  • applyRateLimit / withRateLimit");
+console.error("  • rateLimit() / RATE_LIMITS.* (@/lib/ratelimit)");
 console.error("");
 for (const v of violations) {
   console.error(`  ${v.path}  [${v.methods.join(", ")}]  ${v.file}`);

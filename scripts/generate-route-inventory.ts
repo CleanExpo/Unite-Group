@@ -44,7 +44,7 @@ function walk(dir: string, baseUrl = ""): RouteEntry[] {
         methods: ["GET","POST","PUT","PATCH","DELETE"].filter((m) =>
           new RegExp(`export\\s+(async\\s+)?function\\s+${m}\\b|export\\s+const\\s+${m}\\s*=`).test(content)),
         authWrapped,
-        rateLimitWrapped: /applyRateLimit|withRateLimit|rate-?limit/i.test(content),
+        rateLimitWrapped: /withRateLimit|\brateLimit\s*\(|RATE_LIMITS\./i.test(content),
         csrfWrapped: /validateCsrf|csrfToken/.test(content),
         inputValidated: /\.safeParse\(|\.parse\(|zod|\bSchema\./.test(content),
         webhookSignature,
