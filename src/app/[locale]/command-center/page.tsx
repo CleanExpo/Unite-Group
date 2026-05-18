@@ -30,7 +30,7 @@ export default async function CommandCenterPage({
     redirect(`/${locale}/login?next=/${locale}/command-center`);
   }
   if (!session.ok && session.reason === 'forbidden') {
-    return <AccessDenied actorEmail={session.actorEmail} />;
+    return <AccessDenied actorEmail={session.actorEmail} locale={locale} />;
   }
 
   // Server-fetch summaries in parallel. The page is already admin-gated, so
@@ -46,6 +46,7 @@ export default async function CommandCenterPage({
 
   return (
     <CommandCenterShell
+      locale={locale}
       kpiInitial={
         summary
           ? {

@@ -31,13 +31,23 @@ export interface GlobalStatusBarProps {
   dataRoomHealth?: DataRoomHealthState;
 }
 
+interface GlobalStatusBarInternalProps extends GlobalStatusBarProps {
+  /**
+   * Active route locale. The shell injects this so the DataRoom pip points
+   * at `/<locale>/empire/data-room` instead of hard-stamped `/en/`. Falls
+   * back to 'en' so isolated unit tests can render without props.
+   */
+  locale?: string;
+}
+
 export function GlobalStatusBar({
+  locale = 'en',
   agentsAlive = 12,
   alerts = 0,
   buildSha = 'main',
   sourceLiveAt,
   dataRoomHealth,
-}: GlobalStatusBarProps) {
+}: GlobalStatusBarInternalProps) {
   const isLive = !!sourceLiveAt;
   return (
     <header
@@ -76,7 +86,7 @@ export function GlobalStatusBar({
         <StatusPip label="Build" value={buildSha.slice(0, 7)} state="hush" />
         {dataRoomHealth && (
           <Link
-            href="/en/empire/data-room"
+            href={`/${locale}/empire/data-room`}
             style={{ textDecoration: 'none' }}
             aria-label={`Data room: ${dataRoomHealth}. Open admin page.`}
             data-data-room-pip-link

@@ -23,6 +23,12 @@ import { HermesControlPanel } from './control-panel/HermesControlPanel';
 
 export interface CommandCenterShellProps {
   /**
+   * Active route locale (e.g. 'en', 'fr'). Threaded down to client-side
+   * CTAs that point at other locale-scoped routes (DataRoom pip, etc.)
+   * so the founder never gets dropped out of their locale.
+   */
+  locale: string;
+  /**
    * Optional KPI props injected by the server-rendered page. When provided,
    * KpiStrip renders in `live` mode; otherwise it stays in `seed` mode.
    */
@@ -52,12 +58,13 @@ export interface CommandCenterShellProps {
 }
 
 export function CommandCenterShell({
+  locale,
   kpiInitial,
   globalStatusInitial,
   activityInitial,
   business360Initial,
   topologyInitial,
-}: CommandCenterShellProps = {}) {
+}: CommandCenterShellProps) {
   return (
     <div
       className="min-h-screen flex flex-col"
@@ -66,7 +73,7 @@ export function CommandCenterShell({
         color: 'var(--cc-ink)',
       }}
     >
-      <GlobalStatusBar {...globalStatusInitial} />
+      <GlobalStatusBar locale={locale} {...globalStatusInitial} />
       <KpiStrip {...kpiInitial} />
 
       <main className="flex-1 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_22rem]">
@@ -106,42 +113,3 @@ export function CommandCenterShell({
   );
 }
 
-function ZonePlaceholder({
-  title,
-  subtitle,
-  accentLabel,
-  compact,
-}: {
-  title: string;
-  subtitle: string;
-  accentLabel: string;
-  compact?: boolean;
-}) {
-  return (
-    <section
-      className={`flex flex-col gap-3 ${compact ? 'p-5' : 'p-8'} flex-1`}
-      style={{
-        background: 'var(--cc-bg-soft)',
-        borderTop: compact ? '1px solid var(--cc-grid)' : 'none',
-        minHeight: compact ? '14rem' : '24rem',
-      }}
-      aria-label={title}
-    >
-      <span
-        className="font-mono text-[11px] uppercase tracking-[0.22em]"
-        style={{ color: 'var(--cc-ink-dim)' }}
-      >
-        {title}
-      </span>
-      <p className="text-sm" style={{ color: 'var(--cc-ink)' }}>
-        {subtitle}
-      </p>
-      <span
-        className="font-mono text-[10px] uppercase tracking-[0.18em] mt-auto"
-        style={{ color: 'var(--cc-ink-hush)' }}
-      >
-        {accentLabel}
-      </span>
-    </section>
-  );
-}
