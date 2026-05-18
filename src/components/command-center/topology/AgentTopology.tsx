@@ -40,6 +40,11 @@ export interface AgentTopologyProps {
   agents?: AgentNodeData[];
   /** Override seed edges for tests / live wiring. */
   edges?: AgentEdgeData[];
+  /**
+   * When set, the SourceBadge flips from `seed` to `live`. Comes from the
+   * server-rendered page after reading agent_actions.
+   */
+  sourceLiveAt?: string;
 }
 
 const nodeTypes = {
@@ -53,7 +58,9 @@ const edgeTypes = {
 export function AgentTopology({
   agents = seedAgents,
   edges = seedEdges,
+  sourceLiveAt,
 }: AgentTopologyProps) {
+  const isLive = !!sourceLiveAt;
   const flowNodes = useMemo<Node[]>(
     () =>
       agents.map((a) => ({
@@ -139,7 +146,15 @@ export function AgentTopology({
           </span>
         </span>
         <span style={{ marginTop: 6 }}>
-          <SourceBadge mode="seed" label="static · awaits /api/empire/senior-agents" />
+          {isLive ? (
+            <SourceBadge
+              mode="live"
+              label="agent_actions · last 24h"
+              lastUpdatedAt={sourceLiveAt}
+            />
+          ) : (
+            <SourceBadge mode="seed" label="static · awaits /api/empire/senior-agents" />
+          )}
         </span>
       </header>
 
