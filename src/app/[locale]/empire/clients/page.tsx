@@ -23,12 +23,26 @@ const STATUS_TONES: Record<string, string> = {
   churned: '#f87171',
 };
 
+const STATUS_FILTERS = ['active', 'onboarding', 'paused', 'churned'] as const;
+type StatusFilter = typeof STATUS_FILTERS[number];
+
+function parseStatusFilter(value: string | string[] | undefined): StatusFilter | null {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (raw && (STATUS_FILTERS as readonly string[]).includes(raw)) {
+    return raw as StatusFilter;
+  }
+  return null;
+}
+
 export default async function EmpireClientsIndex({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ status?: string | string[] }>;
 }) {
   const { locale } = await params;
+  const { status: statusParam } = await searchParams;
   const session = await checkAdminSession();
   if (!session.ok && session.reason === 'anonymous') {
     redirect(`/${locale}/login?next=/${locale}/empire/clients`);
@@ -37,8 +51,23 @@ export default async function EmpireClientsIndex({
     redirect(`/${locale}/empire`);
   }
 
+  const statusFilter = parseStatusFilter(statusParam);
   const result = await listNexusClients();
-  const clients = result?.clients ?? [];
+  const allClients = result?.clients ?? [];
+  const clients = statusFilter
+    ? allClients.filter((c) => c.status === statusFilter)
+    : allClients;
+
+  // Per-status counts off the unfiltered set so the strip stays stable.
+  const counts: Record<StatusFilter, number> = {
+    active: 0,
+    onboarding: 0,
+    paused: 0,
+    churned: 0,
+  };
+  for (const c of allClients) {
+    if (c.status in counts) counts[c.status as StatusFilter] += 1;
+  }
 
   return (
     <div
@@ -92,6 +121,13 @@ export default async function EmpireClientsIndex({
           }}
         >
           {clients.length} {clients.length === 1 ? 'client' : 'clients'}
+          {statusFilter && (
+            <>
+              {' '}<span style={{ color: 'var(--ink-hush, #888)' }}>
+                of {allClients.length}
+              </span>
+            </>
+          )}
         </span>
         <Link
           href={`/${locale}/empire/clients/new`}
@@ -113,6 +149,33 @@ export default async function EmpireClientsIndex({
       </header>
 
       <main style={{ padding: 32, maxWidth: 960, margin: '0 auto' }}>
+        <nav
+          aria-label="Filter by status"
+          data-status-filter
+          style={{
+            display: 'flex',
+            gap: 8,
+            marginBottom: 20,
+            flexWrap: 'wrap',
+          }}
+        >
+          <FilterChip
+            href={`/${locale}/empire/clients`}
+            label={`All · ${allClients.length}`}
+            active={statusFilter === null}
+            tone="var(--ink-primary, #f5f5f5)"
+          />
+          {STATUS_FILTERS.map((s) => (
+            <FilterChip
+              key={s}
+              href={`/${locale}/empire/clients?status=${s}`}
+              label={`${s} · ${counts[s]}`}
+              active={statusFilter === s}
+              tone={STATUS_TONES[s]}
+            />
+          ))}
+        </nav>
+
         {result === null && (
           <p
             role="alert"
@@ -239,4 +302,37 @@ function formatDate(iso: string): string {
   } catch {
     return iso;
   }
+}
+
+function FilterChip({
+  href,
+  label,
+  active,
+  tone,
+}: {
+  href: string;
+  label: string;
+  active: boolean;
+  tone: string;
+}) {
+  return (
+    <Link
+      href={href}
+      data-filter-active={active}
+      style={{
+        padding: '4px 10px',
+        borderRadius: 4,
+        border: `1px solid ${active ? tone : 'var(--border-default, #27272a)'}`,
+        background: active ? 'var(--surface-1, #18181b)' : 'transparent',
+        color: active ? tone : 'var(--ink-secondary, #94a3b8)',
+        fontFamily: 'var(--font-mono, monospace)',
+        fontSize: 11,
+        textTransform: 'uppercase',
+        letterSpacing: '0.10em',
+        textDecoration: 'none',
+      }}
+    >
+      {label}
+    </Link>
+  );
 }
