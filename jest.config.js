@@ -5,6 +5,9 @@ module.exports = {
   roots: ["<rootDir>/src", "<rootDir>/tests"],
   moduleNameMapper: {
     "^@/(.*)$": ["<rootDir>/src/$1", "<rootDir>/$1"],
+    // CSS imports in components → empty module. Tests render via
+    // react-dom/server which doesn't need stylesheets.
+    "\\.(css|less|scss|sass)$": "<rootDir>/tests/__mocks__/style.js",
   },
   transform: {
     "^.+\\.tsx?$": [

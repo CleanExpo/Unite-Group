@@ -14,6 +14,7 @@ import { readPortfolioSummary } from '@/lib/empire/read-portfolio-summary';
 import { readGlobalStatus } from '@/lib/empire/read-global-status';
 import { readActivityFeed } from '@/lib/empire/read-activity-feed';
 import { readBusiness360 } from '@/lib/empire/read-business-360';
+import { readAgentTopology } from '@/lib/empire/read-agent-topology';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,11 +34,12 @@ export default async function CommandCenterPage({
 
   // Server-fetch summaries in parallel. The page is already admin-gated, so
   // we skip requireAdmin (which is an API-route concern) and read directly.
-  const [summary, globalStatus, activity, business360] = await Promise.all([
+  const [summary, globalStatus, activity, business360, topology] = await Promise.all([
     readPortfolioSummary(),
     readGlobalStatus(),
     readActivityFeed(),
     readBusiness360(),
+    readAgentTopology(),
   ]);
 
   return (
@@ -74,6 +76,15 @@ export default async function CommandCenterPage({
           ? {
               tiles: business360.tiles,
               sourceLiveAt: business360.fetchedAt,
+            }
+          : undefined
+      }
+      topologyInitial={
+        topology && topology.liveNodeCount > 0
+          ? {
+              agents: topology.nodes,
+              edges: topology.edges,
+              sourceLiveAt: topology.fetchedAt,
             }
           : undefined
       }

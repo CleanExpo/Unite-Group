@@ -15,7 +15,7 @@
 
 import { GlobalStatusBar, type GlobalStatusBarProps } from './GlobalStatusBar';
 import { KpiStrip, type KpiStripProps } from './KpiStrip';
-import { AgentTopology } from './topology/AgentTopology';
+import { AgentTopology, type AgentTopologyProps } from './topology/AgentTopology';
 import { Business360Grid, type Business360GridProps } from './business-360/Business360Grid';
 import { ActivityLog, type ActivityLogProps } from './activity/ActivityLog';
 import { MargotVoicePanel } from './voice/MargotVoicePanel';
@@ -43,6 +43,12 @@ export interface CommandCenterShellProps {
    * to `live`.
    */
   business360Initial?: Business360GridProps;
+  /**
+   * Optional AgentTopology props injected by the server-rendered page.
+   * When provided, node states reflect the latest agent_actions; positions
+   * + edges stay seed (intentional layout).
+   */
+  topologyInitial?: AgentTopologyProps;
 }
 
 export function CommandCenterShell({
@@ -50,6 +56,7 @@ export function CommandCenterShell({
   globalStatusInitial,
   activityInitial,
   business360Initial,
+  topologyInitial,
 }: CommandCenterShellProps = {}) {
   return (
     <div
@@ -64,7 +71,7 @@ export function CommandCenterShell({
 
       <main className="flex-1 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="flex min-w-0 flex-col">
-          <AgentTopology />
+          <AgentTopology {...topologyInitial} />
           <HermesControlPanel />
         </div>
 
