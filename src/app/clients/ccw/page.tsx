@@ -7,8 +7,11 @@ import { supabaseClient } from "@/lib/supabase/client";
 import type { CcwHealth } from "@/app/api/clients/ccw/health/route";
 import { RefreshMark, ActivityMark, TrendUpMark, UsersMark, BarChartMark } from "@/components/ui/marks";
 
-// CCW accent — red is used only in the header/logo area
-const CCW_RED = "#D62828";
+// CCW accent — exposed as a CSS custom property at the page root so future
+// brand_config plumbing (UNI-1992/1994) can override it without touching this
+// file. Consumers in this file read `var(--brand-primary)`; the literal lives
+// here as the CCW default.
+const BRAND_PRIMARY_DEFAULT = "#D62828";
 
 function formatRelativeTime(isoString: string | null): string {
   if (!isoString) return "—";
@@ -175,15 +178,15 @@ export default function CcwPortal() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--canvas)", color: "#f8fafc" }}>
+    <div style={{ minHeight: "100vh", background: "var(--canvas)", color: "#f8fafc", ["--brand-primary" as string]: BRAND_PRIMARY_DEFAULT }}>
 
-      {/* Portal header — CCW red accent confined to header only */}
+      {/* Portal header — brand-primary accent confined to header only */}
       <header style={{ background: "var(--surface-1)", borderBottom: "1px solid #27272a", padding: "0 24px" }}>
-        {/* CCW red accent bar at very top */}
-        <div style={{ height: 3, background: CCW_RED, marginLeft: -24, marginRight: -24 }} />
+        {/* Brand accent bar at very top */}
+        <div style={{ height: 3, background: "var(--brand-primary)", marginLeft: -24, marginRight: -24 }} />
         <div style={{ maxWidth: 1100, margin: "0 auto", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: CCW_RED, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 12, color: "#fff", flexShrink: 0 }}>CCW</div>
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: "var(--brand-primary)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 12, color: "#fff", flexShrink: 0 }}>CCW</div>
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#f8fafc", letterSpacing: "-0.02em" }}>Carpet Cleaners Warehouse</div>
               <div style={{ fontSize: 10, color: "var(--ink-tertiary)", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Business Intelligence Portal</div>
@@ -221,7 +224,7 @@ export default function CcwPortal() {
         {error && (
           <div style={{ marginBottom: 20, padding: "12px 16px", borderRadius: 10, background: "rgba(220,38,38,0.08)", border: "1px solid rgba(220,38,38,0.25)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <span style={{ fontSize: 14, color: "#f87171" }}>{error}</span>
-            <button onClick={fetchHealth} style={{ background: CCW_RED, color: "#fff", border: "none", borderRadius: 6, padding: "4px 12px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Retry</button>
+            <button onClick={fetchHealth} style={{ background: "var(--brand-primary)", color: "#fff", border: "none", borderRadius: 6, padding: "4px 12px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Retry</button>
           </div>
         )}
 
