@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+// jest globals (describe/expect/it) are auto-available — no explicit import.
 import { timingSafeBearerMatch, timingSafeTokenMatch } from '../safe-compare';
 
 describe('timingSafeBearerMatch', () => {
