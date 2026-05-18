@@ -6,6 +6,8 @@
 // The DB constraint only validates top-level shape; per-element validation
 // (status enums, length caps) lives here and in the zod schema next door.
 
+import { isSafeUrl } from '@/lib/security/http-url';
+
 export const DELIVERABLE_STATUSES = ['done', 'in-progress', 'planned'] as const;
 export const TOUCHPOINT_STATUSES = ['active', 'planned'] as const;
 
@@ -72,6 +74,11 @@ function isValidQuickLink(v: unknown): v is QuickLink {
   if (!isPlainObject(v)) return false;
   if (typeof v.label !== 'string' || v.label.length === 0 || v.label.length > LABEL_MAX) return false;
   if (typeof v.href !== 'string' || v.href.length === 0 || v.href.length > HREF_MAX) return false;
+  // Block javascript:/data:/file: schemes — quick_link.href renders as an
+  // <a href> on /portal/[slug]. Allows absolute http(s) URLs AND
+  // root-relative paths like '/proposals/123' for internal portal
+  // navigation; rejects protocol-relative `//evil.com` and other vectors.
+  if (!isSafeUrl(v.href)) return false;
   if (typeof v.note !== 'string' || v.note.length > NOTE_MAX) return false;
   return true;
 }
