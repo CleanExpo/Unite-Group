@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { checkAdminSession } from '@/lib/security/require-admin';
 import { listNexusClients } from '@/lib/empire/list-nexus-clients';
+import { ActivateButton } from '@/components/empire/clients-edit/ActivateButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -182,9 +183,12 @@ export default async function EmpireClientsIndex({
                     <td style={{ ...td, fontWeight: 600 }}>{c.company_name}</td>
                     <td style={{ ...td, color: 'var(--ink-secondary, #94a3b8)' }}>{c.slug}</td>
                     <td style={td}>
-                      <span style={{ color: statusTone, textTransform: 'uppercase', letterSpacing: '0.10em' }}>
-                        {c.status}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ color: statusTone, textTransform: 'uppercase', letterSpacing: '0.10em' }}>
+                          {c.status}
+                        </span>
+                        {c.status === 'onboarding' && <ActivateButton slug={c.slug} />}
+                      </div>
                     </td>
                     <td style={{ ...td, color: 'var(--ink-secondary, #94a3b8)' }}>
                       {formatDate(c.created_at)}
