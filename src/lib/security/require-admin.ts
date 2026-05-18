@@ -31,6 +31,30 @@ export interface RequireAdminOk {
   actorEmail: string;
 }
 
+export type AdminSessionResult =
+  | { ok: true; actorEmail: string }
+  | { ok: false; reason: 'anonymous' }
+  | { ok: false; reason: 'forbidden'; actorEmail: string };
+
+/**
+ * Inspect the caller's Supabase session and classify it against the admin
+ * allow-list. Shared by API routes (via requireAdmin) and server-rendered
+ * page gates (which need to choose between redirect / explicit denied UX
+ * rather than returning a NextResponse). Per UNI-2022 — the route gate and
+ * the API gate must agree on who counts as admin.
+ */
+export async function checkAdminSession(): Promise<AdminSessionResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user?.email) {
+    return { ok: false, reason: 'anonymous' };
+  }
+  if (!ALLOWED_ADMINS.has(user.email)) {
+    return { ok: false, reason: 'forbidden', actorEmail: user.email };
+  }
+  return { ok: true, actorEmail: user.email };
+}
+
 /**
  * Gate an API route to admin callers only.
  *
@@ -57,16 +81,14 @@ export async function requireAdmin(
     return { ok: true, actorEmail: 'service-role' };
   }
 
-  // 2. Admin-email Supabase session. If no auth header was present and no
-  //    Supabase session resolves, this is a 401 (anonymous request). If a
-  //    session resolves but the email isn't on the allow-list, it's a 403.
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user?.email) {
+  // 2. Admin-email Supabase session. checkAdminSession does the classification;
+  //    we map its result to HTTP status codes here. 401 when no credential at
+  //    all; 403 when a credential was supplied but the email isn't on the
+  //    allow-list. The distinction matters for client retries.
+  const session = await checkAdminSession();
+  if (session.ok) return session;
+  if (session.reason === 'anonymous') {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
-  if (!ALLOWED_ADMINS.has(user.email)) {
-    return NextResponse.json({ error: 'forbidden' }, { status: 403 });
-  }
-  return { ok: true, actorEmail: user.email };
+  return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 }

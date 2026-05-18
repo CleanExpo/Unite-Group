@@ -1,13 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '../require-admin';
+import { checkAdminSession, requireAdmin } from '../require-admin';
 
 // Mock the supabase server client so we can drive the session-auth path
 // without spinning up Supabase. The default mock returns "no user"; individual
 // tests override it via `mockGetUser.mockResolvedValueOnce`.
-const mockGetUser = vi.fn(async () => ({ data: { user: null }, error: null }));
+const mockGetUser = jest.fn(async () => ({ data: { user: null }, error: null }));
 
-vi.mock('@/lib/supabase/server', () => ({
+jest.mock('@/lib/supabase/server', () => ({
   createClient: async () => ({
     auth: { getUser: mockGetUser },
   }),
@@ -90,5 +89,39 @@ describe('requireAdmin', () => {
     );
     expect(result).toBeInstanceOf(NextResponse);
     expect((result as NextResponse).status).toBe(401);
+  });
+});
+
+describe('checkAdminSession', () => {
+  beforeEach(() => {
+    mockGetUser.mockReset();
+    mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
+  });
+
+  it("returns 'anonymous' when no Supabase session is present", async () => {
+    const result = await checkAdminSession();
+    expect(result).toEqual({ ok: false, reason: 'anonymous' });
+  });
+
+  it('returns ok for an allow-listed admin email', async () => {
+    mockGetUser.mockResolvedValueOnce({
+      data: { user: { email: 'phill.mcgurk@gmail.com' } },
+      error: null,
+    });
+    const result = await checkAdminSession();
+    expect(result).toEqual({ ok: true, actorEmail: 'phill.mcgurk@gmail.com' });
+  });
+
+  it("returns 'forbidden' with the actor email for a non-allow-listed session", async () => {
+    mockGetUser.mockResolvedValueOnce({
+      data: { user: { email: 'intruder@example.com' } },
+      error: null,
+    });
+    const result = await checkAdminSession();
+    expect(result).toEqual({
+      ok: false,
+      reason: 'forbidden',
+      actorEmail: 'intruder@example.com',
+    });
   });
 });
