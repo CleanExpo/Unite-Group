@@ -15,7 +15,7 @@ The prior handoff is not acceptable as evidence.
 - Claimed audit path: `/Users/phill-mac/2nd Brain/2nd Brain/Wiki/unite-command-center-senior-pm-walkthrough-2026-05-18.md`
 - Local verification result: the file was missing before this corrective write.
 - Claimed Linear IDs: `UNI-2022`, `UNI-2023`, `UNI-2024`, `UNI-2025`
-- Local verification result: not verified. `linear_search_issues` returned `LINEAR_API_KEY not set`, so these IDs must be treated as claimed-only until re-queried from Linear.
+- Verification result (2026-05-18): verified via active Linear MCP lookup. All four issues exist in Unite-Group and map to this audit scope.
 
 ## Executive Verdict
 
@@ -163,14 +163,18 @@ Claimed mandates/issues from the incomplete handoff:
 - `UNI-2024`
 - `UNI-2025`
 
-Status: unverified. Linear access was unavailable locally because `LINEAR_API_KEY` is not set.
+Status: verified (2026-05-18).
 
-Required reconciliation:
-- Re-query Linear once credentials are available.
-- Confirm each issue exists.
-- Update each issue with this audit path.
-- Delete or close duplicates if Hermes created issues before the evidence artifact existed.
-- Ensure the first issue is the P0 slice above, not broad UI polish.
+Verified issue map:
+- `UNI-2022` — P0 Command Center access model parity (route + API) and no visible-but-unusable states
+- `UNI-2023` — P0 Margot voice failure-state repair (401/403/503/502 + ElevenLabs config evidence)
+- `UNI-2024` — P1 credible data bindings across Command Center panels
+- `UNI-2025` — P1 repair dead/unclear action surfaces in Command Center
+
+Required reconciliation now:
+- Ensure each issue body links this audit path.
+- Confirm `UNI-2022` + `UNI-2023` remain the first PR-ready slice before any P1/P2 work.
+- De-duplicate only if parallel tickets exist outside UNI-2022..UNI-2025.
 
 ## Production Gate
 
