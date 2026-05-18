@@ -22,6 +22,14 @@ describe('GlobalStatusBar — data-room pip', () => {
     expect(html).toMatch(/ok/);
   });
 
+  it('wraps the pip in a next/link to /en/empire/data-room', () => {
+    const html = renderToStaticMarkup(
+      <GlobalStatusBar dataRoomHealth="stale" />,
+    );
+    expect(html).toMatch(/href="\/en\/empire\/data-room"/);
+    expect(html).toMatch(/data-data-room-pip-link/);
+  });
+
   it('renders signal state when data-room is stale', () => {
     const html = renderToStaticMarkup(
       <GlobalStatusBar dataRoomHealth="stale" />,
