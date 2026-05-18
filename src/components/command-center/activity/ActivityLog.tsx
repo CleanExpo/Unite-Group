@@ -26,12 +26,19 @@ export interface ActivityLogProps {
   events?: ActivityDatum[];
   /** Max rows to render. Defaults to 20 per spec. */
   maxRows?: number;
+  /**
+   * When set, the SourceBadge flips from `seed` to `live`. The server-rendered
+   * Command Center page passes this after reading agent_actions.
+   */
+  sourceLiveAt?: string;
 }
 
 export function ActivityLog({
   events = ACTIVITY_DATA,
   maxRows = 20,
+  sourceLiveAt,
 }: ActivityLogProps) {
+  const isLive = !!sourceLiveAt;
   const sorted = useMemo(() => {
     return [...events]
       .sort((a, b) => (a.ts < b.ts ? 1 : -1))
@@ -84,7 +91,15 @@ export function ActivityLog({
             {sorted.length} events
             {signalCount > 0 ? ` · ${signalCount} signal` : ''}
           </span>
-          <SourceBadge mode="seed" label="static · awaits /api/pi-ceo/activity" />
+          {isLive ? (
+            <SourceBadge
+              mode="live"
+              label="agent_actions"
+              lastUpdatedAt={sourceLiveAt}
+            />
+          ) : (
+            <SourceBadge mode="seed" label="static · awaits /api/pi-ceo/activity" />
+          )}
         </span>
       </header>
 

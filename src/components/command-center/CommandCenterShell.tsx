@@ -17,7 +17,7 @@ import { GlobalStatusBar, type GlobalStatusBarProps } from './GlobalStatusBar';
 import { KpiStrip, type KpiStripProps } from './KpiStrip';
 import { AgentTopology } from './topology/AgentTopology';
 import { Business360Grid } from './business-360/Business360Grid';
-import { ActivityLog } from './activity/ActivityLog';
+import { ActivityLog, type ActivityLogProps } from './activity/ActivityLog';
 import { MargotVoicePanel } from './voice/MargotVoicePanel';
 import { HermesControlPanel } from './control-panel/HermesControlPanel';
 
@@ -32,11 +32,17 @@ export interface CommandCenterShellProps {
    * When provided, the bar's SourceBadge flips to `live`.
    */
   globalStatusInitial?: GlobalStatusBarProps;
+  /**
+   * Optional ActivityLog props injected by the server-rendered page. When
+   * provided, the activity feed renders agent_actions instead of the seed.
+   */
+  activityInitial?: ActivityLogProps;
 }
 
 export function CommandCenterShell({
   kpiInitial,
   globalStatusInitial,
+  activityInitial,
 }: CommandCenterShellProps = {}) {
   return (
     <div
@@ -60,7 +66,7 @@ export function CommandCenterShell({
         >
           <MargotVoicePanel />
           <Business360Grid />
-          <ActivityLog />
+          <ActivityLog {...activityInitial} />
         </aside>
       </main>
 
