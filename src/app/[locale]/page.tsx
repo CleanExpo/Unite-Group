@@ -19,7 +19,10 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
-  await params; // locale unused for now — copy is English-only at launch.
+  // Copy is English-only at launch, but CTAs still need to stay in the
+  // active locale — a /fr/ visitor clicking the contact link should land
+  // on /fr/contact, not get bounced to /en/.
+  const { locale } = await params;
 
   /**
    * Resolve the Unite-Group brand server-side. Cached for 5 minutes per Node
@@ -80,7 +83,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             imageUrl="/images/handshake-gear.png"
             imageAlt="Unite-Group — operating-side brand mark"
             ctaText="Talk to the operator on the desk"
-            ctaHref="/en/contact"
+            ctaHref={`/${locale}/contact`}
             services={['CRM', 'IICRC cert', 'Leads', 'Disputes']}
           />
         </div>
@@ -200,7 +203,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           </p>
           <p style={{ marginTop: 24 }}>
             <Link
-              href="/en/contact"
+              href={`/${locale}/contact`}
               style={{
                 color: 'var(--red-300)',
                 textDecoration: 'underline',

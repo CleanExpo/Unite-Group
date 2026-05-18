@@ -98,7 +98,7 @@ export default async function ServicePage({
 }: {
   params: Promise<{ slug: string; locale: string }>;
 }) {
-  const { slug } = await params;
+  const { slug, locale } = await params;
   const c = CONTENT[slug];
   if (!c) notFound();
 
@@ -162,7 +162,7 @@ export default async function ServicePage({
 
         <p style={{ marginTop: 32 }}>
           <Link
-            href="/en/contact"
+            href={`/${locale}/contact`}
             style={{
               color: 'var(--red-300)',
               textDecoration: 'underline',
