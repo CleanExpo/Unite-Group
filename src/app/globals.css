@@ -263,7 +263,10 @@ body {
 }
 
 .command-center-topology {
-  height: 600px;
+  /* Viewport-relative so the topology grows on 1440p/4K displays and stays
+   * legible on smaller laptops. Without this the xyflow canvas was pinned
+   * to 600px regardless of available height. */
+  height: clamp(420px, 55vh, 880px);
 }
 
 @media (min-width: 1280px) {
@@ -279,6 +282,8 @@ body {
   }
 
   .command-center-topology {
+    /* Fixed shorter ceiling on phones — saves vertical real-estate for the
+     * mobile-card fallback below xyflow's sm:block container. */
     height: 420px;
   }
 }
