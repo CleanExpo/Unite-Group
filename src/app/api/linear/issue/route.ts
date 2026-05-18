@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/security/require-admin';
 
 const LINEAR_API = 'https://api.linear.app/graphql';
 
@@ -18,6 +19,9 @@ async function linearRequest(query: string, variables: Record<string, unknown>) 
 // POST /api/linear/issue — create or update issue
 
 export async function GET(req: NextRequest) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
+
   const action = req.nextUrl.searchParams.get('action');
 
   if (action === 'teams') {
@@ -34,6 +38,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
+
   const body = await req.json();
   const { action, issueId, title, teamId, description, priority, state } = body;
 

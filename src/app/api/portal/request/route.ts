@@ -1,7 +1,29 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
+import { applyRateLimit, UNKNOWN_IP } from '@/lib/rate-limit';
+
+// Client-facing portal intake — clients submit without a Supabase session
+// (they're hitting this from a magic-link portal page, not a logged-in flow),
+// so the defense is rate-limit + outbound-payload constraints. 5 requests per
+// minute per IP is generous for legitimate clients (a portal user typically
+// submits 1-2 messages per session) and tight enough to make automated abuse
+// against the LINEAR_API_KEY-backed proxy uneconomical.
+const PORTAL_RATE_LIMIT = 5;
+const PORTAL_RATE_WINDOW_MS = 60_000;
 
 export async function POST(req: NextRequest) {
+  const ip =
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+    req.headers.get('x-real-ip') ??
+    UNKNOWN_IP;
+  const rate = applyRateLimit(ip, PORTAL_RATE_LIMIT, PORTAL_RATE_WINDOW_MS);
+  if (!rate.ok) {
+    return NextResponse.json(
+      { error: 'rate_limited', resetAt: rate.resetAt },
+      { status: 429 },
+    );
+  }
+
   const { message, clientSlug } = await req.json();
   if (!message?.trim()) return NextResponse.json({ error: 'message required' }, { status: 400 });
 
