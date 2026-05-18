@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { applyRateLimit, UNKNOWN_IP } from '@/lib/rate-limit';
+import { rateLimit, RATE_LIMITS } from '@/lib/ratelimit';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,8 +11,6 @@ export const dynamic = 'force-dynamic';
 // approval (usually one per client engagement, ever). 5 req/min/IP is
 // far above legit usage and prevents spam Checkout sessions that would
 // pollute the Stripe Customer namespace.
-const CHECKOUT_RATE_LIMIT = 5;
-const CHECKOUT_RATE_WINDOW_MS = 60_000;
 
 /**
  * POST /api/onboarding/create-checkout-session
@@ -42,14 +40,10 @@ const DEFAULT_PRICING = {
 };
 
 export async function POST(request: NextRequest) {
-  const ip =
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
-    request.headers.get('x-real-ip') ??
-    UNKNOWN_IP;
-  const rate = applyRateLimit(ip, CHECKOUT_RATE_LIMIT, CHECKOUT_RATE_WINDOW_MS);
+  const rate = await rateLimit(request, { key: 'onboarding-checkout-session', ...RATE_LIMITS.onboardingCheckoutSession });
   if (!rate.ok) {
     return NextResponse.json(
-      { error: 'rate_limited', resetAt: rate.resetAt },
+      { error: 'rate_limited', retry_after_ms: rate.retryAfterMs },
       { status: 429 },
     );
   }

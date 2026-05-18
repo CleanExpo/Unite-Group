@@ -79,4 +79,11 @@ export const RATE_LIMITS = {
   seoAuditPdf: { limit: 3, windowMs: 60_000 },          // full audit + PDF render (very heavy)
   videoPublished: { limit: 30, windowMs: 60_000 },      // legit webhook bursts OK
   onboardingMagicLink: { limit: 5, windowMs: 60_000 },  // public, burn-defense only
+  // Migrated from the deprecated @/lib/rate-limit module (UNI-2015 wave).
+  clientBrandVote:            { limit: 20, windowMs: 60_000 },  // public vote; defense-in-depth over the 24h IP dedupe in portal_content
+  portalRequest:              { limit: 5,  windowMs: 60_000 },  // public client-portal intake (creates Linear ticket)
+  marketingLeads:             { limit: 10, windowMs: 60_000 },  // public lead form (SendGrid burn)
+  logoFetch:                  { limit: 5,  windowMs: 60_000 },  // SSRF-guarded outbound image fetch
+  billingSubscribe:           { limit: 30, windowMs: 60_000 },  // admin-gated; rate-limit on top of admin auth
+  onboardingCheckoutSession:  { limit: 5,  windowMs: 60_000 },  // public Stripe checkout creation
 } as const;
