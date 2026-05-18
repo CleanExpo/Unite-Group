@@ -7,6 +7,8 @@
 // on Duncan Perkins' row) are preserved by the index signature and by
 // normalizeBrandConfig.
 
+import { isHttpUrlOrNullish } from '@/lib/security/http-url';
+
 export const FONT_FAMILIES = ['Inter', 'Syne', 'JetBrains'] as const;
 export const VOICE_TONES = ['formal', 'casual', 'technical'] as const;
 
@@ -63,7 +65,7 @@ export function isValidBrandConfig(input: unknown): input is BrandConfig {
   if (input === null || input === undefined) return false;
   if (!isPlainObject(input)) return false;
 
-  if ('logo_url' in input && !isNullableString(input.logo_url)) return false;
+  if ('logo_url' in input && !isHttpUrlOrNullish(input.logo_url)) return false;
 
   if ('primary_color' in input && !isHexOrNullish(input.primary_color)) return false;
   if ('accent_color' in input && !isHexOrNullish(input.accent_color)) return false;
