@@ -7,7 +7,9 @@ import { checkAdminSession } from '@/lib/security/require-admin';
 import { getBrandConfig } from '@/lib/branding/getBrandConfig';
 import { getPortalContent } from '@/lib/branding/getPortalContent';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { readClientActivity } from '@/lib/empire/read-client-activity';
 import { EditClientForm } from '@/components/empire/clients-edit/EditClientForm';
+import { ClientActivityPanel } from '@/components/empire/clients-edit/ClientActivityPanel';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,9 +31,10 @@ export default async function EditClientPage({
     redirect(`/${locale}/empire`);
   }
 
-  const [branded, portal] = await Promise.all([
+  const [branded, portal, activity] = await Promise.all([
     getBrandConfig(slug),
     getPortalContent(slug),
+    readClientActivity(slug),
   ]);
   if (!branded) notFound();
 
@@ -115,6 +118,11 @@ export default async function EditClientPage({
           brand_config: branded.brand_config,
           portal_content: portal?.portal_content ?? {},
         }}
+      />
+
+      <ClientActivityPanel
+        rows={activity?.rows ?? []}
+        fetchError={activity === null}
       />
     </div>
   );
