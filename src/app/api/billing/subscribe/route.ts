@@ -5,7 +5,7 @@ import { StripeApiClient } from '@/lib/api/stripe/client';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { resolvePriceId } from '@/lib/billing/tiers';
 import { applyRateLimit, UNKNOWN_IP } from '@/lib/rate-limit';
-import { timingSafeTokenMatch } from '@/lib/security/safe-compare';
+import { checkAdminToken } from '@/lib/auth/check-admin-token';
 
 const subscribeSchema = z.object({
   business_id: z.string().uuid(),
@@ -44,7 +44,8 @@ export async function POST(request: NextRequest) {
   }
 
   const adminToken = request.headers.get('x-admin-token');
-  if (!timingSafeTokenMatch(adminToken, process.env.PI_CEO_API_KEY)) {
+  const auth = await checkAdminToken(adminToken);
+  if (!auth.ok) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
