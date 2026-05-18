@@ -1,64 +1,17 @@
-// src/app/api/cron/integrations/github/route.ts
-import { NextResponse } from "next/server";
-import { getAdminClient } from "@/lib/supabase/admin";
+import { withSyncLifecycle } from "@/lib/runtime/sync-lifecycle";
 import { syncGitHub } from "@/lib/integrations/github/sync";
-import { timingSafeBearerMatch } from "@/lib/security/safe-compare";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-export async function GET(req: Request) {
-  // Vercel cron auth — Vercel sends a special header
-  const auth = req.headers.get("authorization");
-  if (!timingSafeBearerMatch(auth, process.env.CRON_SECRET)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+type GitHubFailure = { repo: string; error: string };
 
-  const sb = getAdminClient();
-  const start = new Date().toISOString();
-
-  // Seed the row on first run only — ignoreDuplicates means existing columns
-  // (last_sync_completed_at, rows_upserted, ...) are preserved across cron ticks.
-  await sb
-    .from("integration_sync_state")
-    .upsert(
-      { integration: "github" },
-      { onConflict: "integration", ignoreDuplicates: true }
-    );
-
-  await sb
-    .from("integration_sync_state")
-    .update({
-      last_sync_started_at: start,
-      last_sync_status: "running",
-    })
-    .eq("integration", "github");
-
-  try {
-    const { rowsUpserted, succeeded, failed } = await syncGitHub();
-    await sb
-      .from("integration_sync_state")
-      .update({
-        last_sync_completed_at: new Date().toISOString(),
-        last_sync_status: failed.length > 0 ? "partial" : "ok",
-        rows_upserted: rowsUpserted,
-        last_sync_error:
-          failed.length > 0
-            ? failed.map((f) => `${f.repo}: ${f.error}`).join("; ")
-            : null,
-        next_sync_due_at: new Date(Date.now() + 5 * 60_000).toISOString(),
-      })
-      .eq("integration", "github");
-    return NextResponse.json({ ok: true, rowsUpserted, succeeded, failed });
-  } catch (e) {
-    await sb
-      .from("integration_sync_state")
-      .update({
-        last_sync_completed_at: new Date().toISOString(),
-        last_sync_status: "error",
-        last_sync_error: e instanceof Error ? e.message : String(e),
-      })
-      .eq("integration", "github");
-    return NextResponse.json({ ok: false, error: String(e) }, { status: 500 });
-  }
-}
+export const GET = withSyncLifecycle<GitHubFailure>(
+  {
+    integration: "github",
+    cadenceMs: 5 * 60_000,
+    partialIfFailed: true,
+    formatFailure: (f) => `${f.repo}: ${f.error}`,
+  },
+  syncGitHub,
+);
