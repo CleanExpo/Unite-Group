@@ -139,12 +139,12 @@ export async function POST(req: NextRequest) {
     companyName: parsed.company_name,
   });
 
+  // No portal_url in the response: the wizard owns the redirect target
+  // because only the wizard knows the current locale. Returning a
+  // locale-stamped URL from the server was the bug — see the wizard's
+  // useParams<{ locale }>() lookup.
   return NextResponse.json(
-    {
-      ok: true,
-      client: inserted.data,
-      portal_url: `/en/portal/${inserted.data.slug}`,
-    },
+    { ok: true, client: inserted.data },
     { status: 201, headers: { 'Cache-Control': 'no-store' } },
   );
 }
