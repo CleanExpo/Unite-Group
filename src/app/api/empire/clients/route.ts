@@ -13,6 +13,7 @@ import { isValidBrandConfig, type BrandConfig } from '@/types/brand-config';
 import { invalidateBrandConfigCache } from '@/lib/branding/getBrandConfig';
 import { invalidatePortalContentCache } from '@/lib/branding/getPortalContent';
 import { parseContactEmail } from './_validate-email';
+import { parseWebsiteUrl } from './_validate-website';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,9 +35,9 @@ function parseInput(body: unknown): CreateClientInput | { error: string } {
   if (!company_name || company_name.length > 200) return { error: 'invalid_company_name' };
   if (!SLUG_RE.test(slug)) return { error: 'invalid_slug' };
 
-  const website_url = typeof obj.website_url === 'string' && obj.website_url.length > 0
-    ? obj.website_url.trim()
-    : undefined;
+  const websiteResult = parseWebsiteUrl(obj.website_url);
+  if (!websiteResult.ok) return { error: 'invalid_website_url' };
+  const website_url = websiteResult.value ?? undefined;
 
   const emailResult = parseContactEmail(obj.contact_email);
   if (!emailResult.ok) return { error: 'invalid_contact_email' };
