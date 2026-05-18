@@ -82,6 +82,22 @@ jobs:
         # No bypass: smoke test failures ALWAYS block PR merge.
         # Do not add continue-on-error: true here.
 
+  unit-tests:
+    name: src/ Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm ci
+      - name: Run src/ jest suite
+        run: npx jest --testPathPattern=src/ --ci --runInBand
+        # No bypass — same discipline as smoke-tests above. Gates on the
+        # full src/ suite (64 suites, 524 tests as of PR #148). Tests under
+        # tests/integration/* are not in this gate yet (see follow-up).
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
