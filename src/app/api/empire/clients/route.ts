@@ -14,6 +14,7 @@ import { invalidateBrandConfigCache } from '@/lib/branding/getBrandConfig';
 import { invalidatePortalContentCache } from '@/lib/branding/getPortalContent';
 import { parseContactEmail } from './_validate-email';
 import { parseWebsiteUrl } from './_validate-website';
+import { recordClientAction } from './_record-action';
 
 export const dynamic = 'force-dynamic';
 
@@ -117,6 +118,16 @@ export async function POST(req: NextRequest) {
   // after a successful POST.
   invalidateBrandConfigCache(parsed.slug);
   invalidatePortalContentCache(parsed.slug);
+
+  // Audit signal (#137 follow-up). Lights up ActivityLog + GlobalStatusBar
+  // so the founder sees the create event surfaced on the Command Center.
+  await recordClientAction({
+    supabase,
+    kind: 'created',
+    slug: parsed.slug,
+    actorEmail: gate.actorEmail,
+    companyName: parsed.company_name,
+  });
 
   return NextResponse.json(
     {
