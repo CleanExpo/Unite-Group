@@ -1,0 +1,120 @@
+// PATCH /api/empire/clients/[slug] — update an existing nexus_clients row.
+//
+// Founder-only. Same validation contract as POST /api/empire/clients
+// (UNI-1995): non-null fields are validated; brand_config goes through
+// isValidBrandConfig. Status changes go through CHECK constraint.
+
+import { NextRequest, NextResponse } from 'next/server';
+import { getAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/security/require-admin';
+import { isValidBrandConfig, type BrandConfig } from '@/types/brand-config';
+
+export const dynamic = 'force-dynamic';
+
+const ALLOWED_STATUSES = new Set(['active', 'paused', 'churned', 'onboarding']);
+
+interface PatchInput {
+  company_name?: string;
+  website_url?: string | null;
+  contact_email?: string | null;
+  brand_config?: BrandConfig;
+  status?: string;
+}
+
+function parsePatch(body: unknown): PatchInput | { error: string } {
+  if (!body || typeof body !== 'object') return { error: 'invalid_json' };
+  const obj = body as Record<string, unknown>;
+  const out: PatchInput = {};
+
+  if (obj.company_name !== undefined) {
+    if (typeof obj.company_name !== 'string') return { error: 'invalid_company_name' };
+    const trimmed = obj.company_name.trim();
+    if (!trimmed || trimmed.length > 200) return { error: 'invalid_company_name' };
+    out.company_name = trimmed;
+  }
+
+  if (obj.website_url !== undefined) {
+    if (obj.website_url === null) {
+      out.website_url = null;
+    } else if (typeof obj.website_url === 'string') {
+      out.website_url = obj.website_url.trim() || null;
+    } else {
+      return { error: 'invalid_website_url' };
+    }
+  }
+
+  if (obj.contact_email !== undefined) {
+    if (obj.contact_email === null) {
+      out.contact_email = null;
+    } else if (typeof obj.contact_email === 'string') {
+      out.contact_email = obj.contact_email.trim() || null;
+    } else {
+      return { error: 'invalid_contact_email' };
+    }
+  }
+
+  if (obj.brand_config !== undefined) {
+    if (!isValidBrandConfig(obj.brand_config)) {
+      return { error: 'invalid_brand_config' };
+    }
+    out.brand_config = obj.brand_config;
+  }
+
+  if (obj.status !== undefined) {
+    if (typeof obj.status !== 'string' || !ALLOWED_STATUSES.has(obj.status)) {
+      return { error: 'invalid_status' };
+    }
+    out.status = obj.status;
+  }
+
+  if (Object.keys(out).length === 0) {
+    return { error: 'empty_patch' };
+  }
+  return out;
+}
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ slug: string }> },
+) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
+
+  let raw: unknown;
+  try {
+    raw = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'invalid_json' }, { status: 400 });
+  }
+
+  const parsed = parsePatch(raw);
+  if ('error' in parsed) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
+  }
+
+  const { slug } = await params;
+  const supabase = getAdminClient();
+  const res = await supabase
+    .from('nexus_clients')
+    .update(parsed)
+    .eq('slug', slug)
+    .select('id, slug, company_name, status, brand_config')
+    .single();
+
+  if (res.error || !res.data) {
+    const code = res.error?.code;
+    if (code === 'PGRST116') {
+      // No rows matched
+      return NextResponse.json({ error: 'client_not_found' }, { status: 404 });
+    }
+    return NextResponse.json(
+      { error: 'client_update_failed', detail: res.error?.message },
+      { status: 500 },
+    );
+  }
+
+  return NextResponse.json(
+    { ok: true, client: res.data },
+    { headers: { 'Cache-Control': 'no-store' } },
+  );
+}
