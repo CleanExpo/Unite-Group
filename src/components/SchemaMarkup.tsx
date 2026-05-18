@@ -146,6 +146,11 @@ export default function SchemaMarkup({
     <Script
       id="schema-markup"
       type="application/ld+json"
+      // Per UNI-1958: this is the canonical Next.js pattern for JSON-LD —
+      // the payload is JSON.stringify of server-constructed schema objects,
+      // never user input. Google's structured-data spec requires raw JSON in
+      // a <script type="application/ld+json"> tag; there is no safer pattern.
+      // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{ __html: JSON.stringify(schemas) }}
       strategy="afterInteractive"
     />

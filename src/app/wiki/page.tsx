@@ -37,6 +37,8 @@ function getCategory(tags: string[]): string {
 
 // ── Markdown renderer ────────────────────────────────────────────────────────
 
+import DOMPurify from 'isomorphic-dompurify';
+
 function renderMarkdown(md: string, highlight?: string): string {
   let html = md
     .replace(/^#### (.+)$/gm, '<h4>$1</h4>')
@@ -70,7 +72,13 @@ function renderMarkdown(md: string, highlight?: string): string {
     html = html.replace(new RegExp(`(${escaped})`, 'gi'), '<mark>$1</mark>');
   }
 
-  return html;
+  // Per UNI-1958 (Pi-SEO scanner finding): wiki content comes from a Supabase
+  // table that crosses a trust boundary on render. Even though the renderer
+  // only emits tags it constructs from markdown, the input string passes
+  // through unchanged — raw `<script>` or `<img onerror=>` in `md` would
+  // survive. DOMPurify strips dangerous elements/attrs after our markdown
+  // substitutions have produced HTML.
+  return DOMPurify.sanitize(html);
 }
 
 function relativeDate(iso: string): string {
