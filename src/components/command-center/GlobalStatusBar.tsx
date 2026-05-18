@@ -11,6 +11,8 @@
 import { MissionClock } from './MissionClock';
 import { SourceBadge } from './SourceBadge';
 
+export type DataRoomHealthState = 'ok' | 'stale' | 'missing';
+
 export interface GlobalStatusBarProps {
   agentsAlive?: number;
   alerts?: number;
@@ -20,6 +22,12 @@ export interface GlobalStatusBarProps {
    * Command Center page passes this after reading agent_actions.
    */
   sourceLiveAt?: string;
+  /**
+   * Condensed DataRoom freshness signal. When set, a "Data room" pip joins
+   * the status strip; signal state escalates the alerts pulse without forcing
+   * the founder to open /empire/data-room.
+   */
+  dataRoomHealth?: DataRoomHealthState;
 }
 
 export function GlobalStatusBar({
@@ -27,6 +35,7 @@ export function GlobalStatusBar({
   alerts = 0,
   buildSha = 'main',
   sourceLiveAt,
+  dataRoomHealth,
 }: GlobalStatusBarProps) {
   const isLive = !!sourceLiveAt;
   return (
@@ -64,6 +73,19 @@ export function GlobalStatusBar({
           state={alerts > 0 ? 'signal' : 'hush'}
         />
         <StatusPip label="Build" value={buildSha.slice(0, 7)} state="hush" />
+        {dataRoomHealth && (
+          <StatusPip
+            label="Data room"
+            value={dataRoomHealth}
+            state={
+              dataRoomHealth === 'missing'
+                ? 'signal'
+                : dataRoomHealth === 'stale'
+                  ? 'signal'
+                  : 'running'
+            }
+          />
+        )}
         {isLive ? (
           <SourceBadge
             mode="live"
