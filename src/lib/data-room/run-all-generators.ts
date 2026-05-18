@@ -176,6 +176,17 @@ export async function runAllGenerators({
 
   const results: RunAllResult[] = await Promise.all(
     inserts.map(async ({ kind, period_start, period_end, payload }) => {
+      // Mark any earlier pending OR approved doc of this kind as superseded.
+      // The fresh insert below is the new source of truth; older approvals
+      // are stale by definition. 'rejected' is preserved as a historical
+      // record — the founder explicitly rejected those for a reason.
+      // Per-row failures here aren't fatal: we still attempt the insert.
+      await supabase
+        .from('data_room_documents')
+        .update({ audit_status: 'superseded' })
+        .eq('kind', kind)
+        .in('audit_status', ['pending', 'approved']);
+
       const res = await supabase
         .from('data_room_documents')
         .insert({
