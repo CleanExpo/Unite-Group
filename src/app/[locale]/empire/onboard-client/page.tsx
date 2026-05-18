@@ -60,18 +60,31 @@ export default function OnboardClientPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  // UNI-1947: the Refresh button was a silent-fail surface — errors were
+  // swallowed into `setBots([])`, leaving the operator unable to distinguish
+  // "no bots in registry yet" from "API returned 500" or "auth expired".
+  // botsLoading + botsError now back the registry section with explicit state.
+  const [botsLoading, setBotsLoading] = useState(false);
+  const [botsError, setBotsError] = useState<string | null>(null);
 
   async function loadBots() {
+    setBotsLoading(true);
+    setBotsError(null);
     try {
       const r = await fetch("/api/admin/bots/provision");
       if (!r.ok) {
+        const body = await r.json().catch(() => ({}));
         setBots([]);
+        setBotsError(body.error || `HTTP ${r.status}`);
         return;
       }
       const j = await r.json();
       setBots(j.bots ?? []);
-    } catch {
+    } catch (err) {
       setBots([]);
+      setBotsError(err instanceof Error ? err.message : "Network error");
+    } finally {
+      setBotsLoading(false);
     }
   }
 
@@ -244,12 +257,31 @@ export default function OnboardClientPage() {
         <section className="bg-[#222] border border-gray-800 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Registry — last 50</h2>
-            <button onClick={loadBots} className="text-sm text-gray-400 hover:text-white">
-              Refresh
+            <button
+              onClick={loadBots}
+              disabled={botsLoading}
+              className="text-sm text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-wait"
+            >
+              {botsLoading ? "Refreshing…" : "Refresh"}
             </button>
           </div>
+          {botsError && (
+            <p
+              role="alert"
+              className="mb-3 text-sm text-red-400 font-mono"
+              data-bots-error="true"
+            >
+              Failed to load registry: {botsError}. Try again or check server logs.
+            </p>
+          )}
           {bots.length === 0 ? (
-            <p className="text-gray-500">No bots in registry yet.</p>
+            <p className="text-gray-500">
+              {botsLoading
+                ? "Loading registry…"
+                : botsError
+                  ? "Registry unavailable — see error above."
+                  : "No bots in registry yet."}
+            </p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {bots.map(b => (
