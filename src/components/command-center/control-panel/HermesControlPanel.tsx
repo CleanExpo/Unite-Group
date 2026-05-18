@@ -9,6 +9,7 @@ import {
   type ControlStatus,
   type ControlWorkstream,
 } from './control-panel-data';
+import { mapAddOnResult, type AddOnOutcome } from './add-on-result';
 
 type ControlPanelPayload = {
   source: string;
@@ -49,7 +50,7 @@ export function HermesControlPanel() {
   const [sourceState, setSourceState] = useState<'loading' | 'live' | 'fallback'>('loading');
   const [localAddOns, setLocalAddOns] = useState<AddOnGate[] | null>(null);
   const [pendingAddOnId, setPendingAddOnId] = useState<string | null>(null);
-  const [addOnNotice, setAddOnNotice] = useState<string>('');
+  const [addOnOutcome, setAddOnOutcome] = useState<AddOnOutcome | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -79,40 +80,39 @@ export function HermesControlPanel() {
 
   async function requestAddOnGate(addOn: AddOnGate) {
     setPendingAddOnId(addOn.id);
-    setAddOnNotice('');
+    setAddOnOutcome(null);
 
+    let status: number | null = null;
+    let body: unknown = null;
     try {
       const res = await fetch('/api/command-center/control-panel/add-ons', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ addOnId: addOn.id }),
       });
-      if (!res.ok) throw new Error('add_on_gate_failed');
-      const body = (await res.json()) as {
-        crm_task_id: string;
-        task_status: string;
-        requested_at?: string;
-      };
+      status = res.status;
+      body = await res.json().catch(() => null);
+    } catch {
+      // fetch() threw — status stays null → taxonomy classifies as network.
+    }
 
+    const outcome = mapAddOnResult(status, body, addOn.label);
+    setAddOnOutcome(outcome);
+    if (outcome.ok && outcome.crmTaskId) {
       setLocalAddOns((current) =>
         (current ?? payload?.addOns ?? ADD_ON_GATES).map((item) =>
           item.id === addOn.id
             ? {
                 ...item,
                 state: 'gated',
-                crmTaskId: body.crm_task_id,
-                crmTaskStatus: body.task_status,
-                lastRequestedAt: body.requested_at,
+                crmTaskId: outcome.crmTaskId,
+                crmTaskStatus: outcome.crmTaskStatus,
               }
             : item,
         ),
       );
-      setAddOnNotice(`${addOn.label} approval task is now in Unite CRM.`);
-    } catch {
-      setAddOnNotice('Add-on approval task could not be created from this session.');
-    } finally {
-      setPendingAddOnId(null);
     }
+    setPendingAddOnId(null);
   }
 
   const workstreams = payload?.workstreams ?? CONTROL_WORKSTREAMS;
@@ -205,14 +205,26 @@ export function HermesControlPanel() {
             >
               Approval first. CRM remains source of truth.
             </p>
-            {addOnNotice && (
-              <p
-                className="mt-3 font-mono text-[11px] leading-relaxed"
-                style={{ color: addOnNotice.includes('could not') ? 'var(--cc-signal)' : 'var(--cc-ink-dim)' }}
+            {addOnOutcome && (
+              <div
+                role={addOnOutcome.ok ? 'status' : 'alert'}
+                data-outcome-kind={addOnOutcome.kind}
+                className="mt-3 flex flex-col gap-1 font-mono text-[11px] leading-relaxed"
                 aria-live="polite"
               >
-                {addOnNotice}
-              </p>
+                <span
+                  className="font-semibold"
+                  style={{ color: addOnOutcome.ok ? 'var(--cc-ink)' : 'var(--cc-signal)' }}
+                >
+                  {addOnOutcome.title}
+                </span>
+                <span style={{ color: 'var(--cc-ink-dim)' }}>
+                  {addOnOutcome.message}
+                </span>
+                <span style={{ color: 'var(--cc-ink)' }}>
+                  {addOnOutcome.nextAction}
+                </span>
+              </div>
             )}
           </div>
 
@@ -399,7 +411,7 @@ function AddOnRow({
             background: 'var(--cc-bg)',
           }}
         >
-          {pending ? 'creating gate' : 'create approval gate'}
+          {pending ? 'Filing CRM task…' : 'Request approval task in Unite CRM'}
         </button>
       )}
     </div>
