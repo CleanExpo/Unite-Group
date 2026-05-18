@@ -98,8 +98,16 @@ export function DataRoomConsole({
         <CountTile label="Approved" value={counts.approved} tone="#10b981" />
         <CountTile label="Rejected" value={counts.rejected} tone="#f87171" />
         <CountTile label="Superseded" value={counts.superseded} tone="var(--ink-hush, #888)" />
+        {/*
+          File-download anchor — the export endpoint returns a binary ZIP
+          with Content-Disposition: attachment. next/link is the wrong
+          primitive here because it triggers client-side navigation; the
+          `download` attribute keeps the browser's native download flow
+          and silences @next/next/no-html-link-for-pages.
+        */}
         <a
           href="/api/empire/data-room/export"
+          download
           style={{
             marginLeft: 'auto',
             padding: '8px 14px',
