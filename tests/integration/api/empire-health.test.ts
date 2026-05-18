@@ -8,6 +8,15 @@
 
 import { NextRequest } from 'next/server';
 
+// requireAdmin calls createClient() → cookies(), which throws outside a
+// Next.js request scope. Short-circuit it to "always authorized" so the
+// route's real logic is what gets exercised.
+jest.mock('@/lib/security/require-admin', () => ({
+  requireAdmin: jest
+    .fn()
+    .mockResolvedValue({ ok: true, actorEmail: 'test@unite-group.com' }),
+}));
+
 // ── Mock global fetch ──────────────────────────────────────────────────────
 beforeEach(() => {
   jest.clearAllMocks();
