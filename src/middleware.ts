@@ -10,6 +10,15 @@ const AUTH_PATHS = [
   '/auth',
 ];
 
+function isCommandCenterPath(pathname: string) {
+  return (
+    pathname === '/command-center' ||
+    pathname.startsWith('/command-center/') ||
+    pathname === '/en/command-center' ||
+    pathname.startsWith('/en/command-center/')
+  );
+}
+
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
   // Expose pathname to server components (root layout uses it to decide
@@ -24,6 +33,16 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith('/api') ||
     pathname.match(/\.(ico|png|jpg|jpeg|svg|webp|woff2?|ttf|css|js|json|txt|xml)$/)
   ) return res;
+
+  // Local visual QA only. Production and preview deployments still require
+  // a real Supabase-authenticated CRM session.
+  if (
+    process.env.NODE_ENV !== 'production' &&
+    process.env.COMMAND_CENTER_LOCAL_PREVIEW === 'true' &&
+    isCommandCenterPath(pathname)
+  ) {
+    return res;
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

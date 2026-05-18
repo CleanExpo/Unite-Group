@@ -38,7 +38,7 @@ export function ActivityRow({ data }: ActivityRowProps) {
   })();
 
   const rowStyle: React.CSSProperties = {
-    gridTemplateColumns: '3.5rem 6rem 5.5rem 1fr 0.75rem',
+    gridTemplateColumns: '3.25rem minmax(4.5rem, 0.9fr) minmax(4.75rem, 0.85fr) minmax(7rem, 1.7fr) 0.75rem',
     background: 'transparent',
     borderBottom: '1px solid var(--cc-grid)',
     color: isHush ? 'var(--cc-ink-hush)' : 'var(--cc-ink)',
@@ -89,7 +89,7 @@ export function ActivityRow({ data }: ActivityRowProps) {
         href={data.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="grid items-center gap-3 px-4 py-1.5 font-mono text-[11px]"
+        className="grid items-center gap-2 px-3 py-1.5 font-mono text-[11px] sm:gap-3 sm:px-4"
         style={{ ...rowStyle, textDecoration: 'none' }}
         data-cc-severity={data.severity}
         data-testid={`activity-row-link-${data.id}`}
@@ -102,7 +102,7 @@ export function ActivityRow({ data }: ActivityRowProps) {
 
   return (
     <div
-      className="grid items-center gap-3 px-4 py-1.5 font-mono text-[11px]"
+      className="grid items-center gap-2 px-3 py-1.5 font-mono text-[11px] sm:gap-3 sm:px-4"
       style={rowStyle}
       data-cc-severity={data.severity}
       aria-label={`${tsLabel} ${data.agent} ${data.verb} ${data.target}`}

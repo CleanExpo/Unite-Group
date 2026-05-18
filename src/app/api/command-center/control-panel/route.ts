@@ -147,7 +147,18 @@ function responseFor(
   );
 }
 
+function isLocalPreview() {
+  return (
+    process.env.NODE_ENV !== 'production' &&
+    process.env.COMMAND_CENTER_LOCAL_PREVIEW === 'true'
+  );
+}
+
 export async function GET(req: NextRequest) {
+  if (isLocalPreview()) {
+    return responseFor(CONTROL_WORKSTREAMS, 'fallback:local_preview');
+  }
+
   const gate = await requireAdmin(req);
   if (gate instanceof NextResponse) return gate;
 

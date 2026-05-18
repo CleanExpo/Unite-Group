@@ -27,7 +27,6 @@ export const defaultMetadata: Metadata = {
     card: 'summary_large_image',
   },
   robots: { index: false, follow: false }, // Marketing-public soft-launch — flip to true after Phill approves copy
-  themeColor: '#09090b',
 };
 
 export const viewport = {
