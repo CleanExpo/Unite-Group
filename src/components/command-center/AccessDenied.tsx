@@ -5,7 +5,14 @@
 
 import Link from 'next/link';
 
-export function AccessDenied({ actorEmail }: { actorEmail: string }) {
+export function AccessDenied({
+  actorEmail,
+  locale,
+}: {
+  actorEmail: string;
+  /** Active route locale, so the "switch account" link stays in-locale. */
+  locale: string;
+}) {
   return (
     <main
       role="alert"
@@ -34,7 +41,7 @@ export function AccessDenied({ actorEmail }: { actorEmail: string }) {
         continue.
       </p>
       <Link
-        href="/en/login?next=/en/command-center"
+        href={`/${locale}/login?next=/${locale}/command-center`}
         className="mt-6 font-mono text-[11px] uppercase tracking-[0.22em] underline"
         style={{ color: 'var(--cc-ink)' }}
       >

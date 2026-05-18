@@ -22,12 +22,21 @@ describe('GlobalStatusBar — data-room pip', () => {
     expect(html).toMatch(/ok/);
   });
 
-  it('wraps the pip in a next/link to /en/empire/data-room', () => {
+  it('wraps the pip in a next/link to /en/empire/data-room by default', () => {
     const html = renderToStaticMarkup(
       <GlobalStatusBar dataRoomHealth="stale" />,
     );
     expect(html).toMatch(/href="\/en\/empire\/data-room"/);
     expect(html).toMatch(/data-data-room-pip-link/);
+  });
+
+  it('honours the active locale on the DataRoom pip href (UNI-2025)', () => {
+    // Without this, a /fr/ founder clicking the pip lands on /en/.
+    const html = renderToStaticMarkup(
+      <GlobalStatusBar locale="fr" dataRoomHealth="ok" />,
+    );
+    expect(html).toMatch(/href="\/fr\/empire\/data-room"/);
+    expect(html).not.toMatch(/href="\/en\/empire\/data-room"/);
   });
 
   it('renders signal state when data-room is stale', () => {
