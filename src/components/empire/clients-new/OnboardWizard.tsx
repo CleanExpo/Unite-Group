@@ -22,6 +22,13 @@ interface WizardState {
   primary_color: string;
   accent_color: string;
   tagline: string;
+  logo_url: string;
+}
+
+interface LogoCandidate {
+  url: string;
+  source: string;
+  score: number;
 }
 
 const DEFAULTS: WizardState = {
@@ -31,6 +38,7 @@ const DEFAULTS: WizardState = {
   primary_color: '#D62828',
   accent_color: '#D62828',
   tagline: '',
+  logo_url: '',
 };
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
@@ -83,6 +91,7 @@ export function OnboardWizard() {
             primary_color: state.primary_color,
             accent_color: state.accent_color,
             tagline: state.tagline.trim() || null,
+            logo_url: state.logo_url.trim() || null,
           },
         }),
       });
@@ -140,6 +149,7 @@ export function OnboardWizard() {
         <Step2
           state={state}
           onChange={(k, v) => update(k, v)}
+          onLogoSelect={(url) => update('logo_url', url)}
         />
       )}
       {step === 3 && (
@@ -302,12 +312,19 @@ function Step1({
 function Step2({
   state,
   onChange,
+  onLogoSelect,
 }: {
   state: WizardState;
   onChange: <K extends keyof WizardState>(key: K, value: WizardState[K]) => void;
+  onLogoSelect: (url: string) => void;
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <LogoFetchPanel
+        websiteUrl={state.website_url}
+        selectedLogoUrl={state.logo_url}
+        onSelect={onLogoSelect}
+      />
       <Field
         label="Primary colour"
         hint="6-digit hex (#RRGGBB). Drives --brand-primary on the portal."
@@ -355,12 +372,145 @@ function Step2({
           style={inputStyle}
         />
       </Field>
-      <p style={{ fontSize: 12, color: 'var(--ink-secondary, #94a3b8)', fontFamily: 'var(--font-mono, monospace)' }}>
-        Logo auto-fetch from the website lands in UNI-1996. For now the
-        portal renders a 2-char monogram in the primary colour.
-      </p>
     </div>
   );
+}
+
+function LogoFetchPanel({
+  websiteUrl,
+  selectedLogoUrl,
+  onSelect,
+}: {
+  websiteUrl: string;
+  selectedLogoUrl: string;
+  onSelect: (url: string) => void;
+}) {
+  const [candidates, setCandidates] = useState<LogoCandidate[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchCandidates = useCallback(async () => {
+    if (!websiteUrl.trim()) {
+      setError('Set a website URL in step 1 first.');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setCandidates([]);
+    try {
+      let domain: string;
+      try {
+        domain = new URL(websiteUrl.includes('://') ? websiteUrl : `https://${websiteUrl}`).hostname;
+      } catch {
+        setError('Website URL is malformed.');
+        setLoading(false);
+        return;
+      }
+      const res = await fetch(`/api/logo-fetch?domain=${encodeURIComponent(domain)}`);
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(mapLogoError(body.error, res.status));
+        return;
+      }
+      const list: LogoCandidate[] = Array.isArray(body.allCandidates) ? body.allCandidates : [];
+      setCandidates(list);
+      if (list.length > 0 && !selectedLogoUrl) {
+        onSelect(list[0].url);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Network error');
+    } finally {
+      setLoading(false);
+    }
+  }, [websiteUrl, selectedLogoUrl, onSelect]);
+
+  return (
+    <Field label="Logo" hint="Auto-fetched from the website URL. Founder picks one — top 5 candidates by heuristic score.">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <button
+          type="button"
+          onClick={fetchCandidates}
+          disabled={loading || !websiteUrl.trim()}
+          style={{
+            alignSelf: 'flex-start',
+            padding: '6px 12px',
+            border: '1px solid var(--border-default, #27272a)',
+            borderRadius: 4,
+            background: 'var(--surface-1, #18181b)',
+            color: 'var(--ink-primary, #f5f5f5)',
+            fontFamily: 'var(--font-mono, monospace)',
+            fontSize: 11,
+            textTransform: 'uppercase',
+            letterSpacing: '0.12em',
+            cursor: loading ? 'wait' : !websiteUrl.trim() ? 'not-allowed' : 'pointer',
+            opacity: loading || !websiteUrl.trim() ? 0.5 : 1,
+          }}
+        >
+          {loading ? 'Fetching…' : candidates.length > 0 ? 'Re-fetch' : 'Auto-fetch logo'}
+        </button>
+        {error && (
+          <p
+            role="alert"
+            data-logo-fetch-error
+            style={{ margin: 0, fontSize: 12, color: '#f87171', fontFamily: 'var(--font-mono, monospace)' }}
+          >
+            {error}
+          </p>
+        )}
+        {candidates.length > 0 && (
+          <div
+            role="radiogroup"
+            aria-label="Logo candidate"
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8 }}
+          >
+            {candidates.map((c) => {
+              const selected = c.url === selectedLogoUrl;
+              return (
+                <button
+                  type="button"
+                  key={c.url}
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => onSelect(c.url)}
+                  data-logo-candidate
+                  data-selected={selected}
+                  style={{
+                    padding: 8,
+                    borderRadius: 6,
+                    border: `2px solid ${selected ? 'var(--brand-primary)' : 'var(--border-default, #27272a)'}`,
+                    background: 'var(--surface-2, #0f0f10)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 4,
+                    alignItems: 'center',
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- arbitrary user-supplied URLs; same justification as portal/[slug] */}
+                  <img
+                    src={c.url}
+                    alt={c.source}
+                    style={{ maxWidth: '100%', maxHeight: 48, objectFit: 'contain', background: '#fff', padding: 4, borderRadius: 3 }}
+                  />
+                  <span style={{ fontSize: 9, fontFamily: 'var(--font-mono, monospace)', color: 'var(--ink-secondary, #94a3b8)', textTransform: 'uppercase', letterSpacing: '0.10em' }}>
+                    {c.source} · {c.score}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </Field>
+  );
+}
+
+function mapLogoError(code: string | undefined, status: number): string {
+  if (status === 429) return 'Logo fetch rate-limited. Wait a minute and retry.';
+  if (status === 400) return 'Website URL is invalid (SSRF-blocked or malformed). Edit step 1.';
+  if (status === 422) return 'Could not load that site — wrong URL or the site is down.';
+  if (status === 404) return 'No logo candidates found on the page. Drop the URL manually below.';
+  return code ? `Logo fetch failed: ${code}.` : `Logo fetch failed (HTTP ${status}).`;
 }
 
 function Step3({ state }: { state: WizardState }) {
