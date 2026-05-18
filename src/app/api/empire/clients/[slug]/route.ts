@@ -12,6 +12,7 @@ import { isValidPortalContent, type PortalContent } from '@/types/portal-content
 import { invalidateBrandConfigCache } from '@/lib/branding/getBrandConfig';
 import { invalidatePortalContentCache } from '@/lib/branding/getPortalContent';
 import { parseContactEmail } from '../_validate-email';
+import { parseWebsiteUrl } from '../_validate-website';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,13 +40,9 @@ function parsePatch(body: unknown): PatchInput | { error: string } {
   }
 
   if (obj.website_url !== undefined) {
-    if (obj.website_url === null) {
-      out.website_url = null;
-    } else if (typeof obj.website_url === 'string') {
-      out.website_url = obj.website_url.trim() || null;
-    } else {
-      return { error: 'invalid_website_url' };
-    }
+    const result = parseWebsiteUrl(obj.website_url);
+    if (!result.ok) return { error: 'invalid_website_url' };
+    out.website_url = result.value;
   }
 
   if (obj.contact_email !== undefined) {
