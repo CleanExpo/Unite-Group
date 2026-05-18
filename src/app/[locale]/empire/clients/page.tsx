@@ -157,6 +157,7 @@ export default async function EmpireClientsIndex({
                 <th style={th}>Status</th>
                 <th style={th}>Created</th>
                 <th style={th}>Portal</th>
+                <th style={th}>Edit</th>
               </tr>
             </thead>
             <tbody>
@@ -194,6 +195,14 @@ export default async function EmpireClientsIndex({
                         style={{ color: 'var(--brand-primary, #D62828)', textDecoration: 'underline' }}
                       >
                         /portal/{c.slug} →
+                      </Link>
+                    </td>
+                    <td style={td}>
+                      <Link
+                        href={`/${locale}/empire/clients/${c.slug}/edit`}
+                        style={{ color: 'var(--ink-secondary, #94a3b8)', textDecoration: 'underline' }}
+                      >
+                        Edit
                       </Link>
                     </td>
                   </tr>
