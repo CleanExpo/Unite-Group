@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { supabaseClient } from '@/lib/supabase/client';
 import type { PortalSummary } from '@/app/api/portal/summary/route';
 
@@ -108,6 +108,10 @@ function PlaceholderCard({ message }: { message: string }) {
 
 export default function ClientDashboardPage() {
   const router = useRouter();
+  // Preserve the active locale on the unauth bounce — a /fr/ visitor should
+  // land back on /fr/login, not get dropped to /en/.
+  const params = useParams<{ locale?: string }>();
+  const locale = typeof params.locale === 'string' ? params.locale : 'en';
   const [data, setData] = useState<PortalSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [requestText, setRequestText] = useState('');
@@ -131,7 +135,7 @@ export default function ClientDashboardPage() {
   useEffect(() => {
     supabaseClient.auth.getUser().then(({ data: { user } }) => {
       if (!user) {
-        router.replace('/en/login');
+        router.replace(`/${locale}/login`);
         return;
       }
       fetchSummary();

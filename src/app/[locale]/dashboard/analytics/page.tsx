@@ -1,5 +1,10 @@
 import { redirect } from 'next/navigation';
 
-export default function AnalyticsPage() {
-  redirect('/en/empire');
+export default async function AnalyticsPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  redirect(`/${locale}/empire`);
 }

@@ -1,18 +1,23 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 
+// Path suffixes — composed with the active locale at render time so a /fr/
+// client portal user keeps their locale on every sidebar nav click.
 const NAV_ITEMS = [
-  { label: 'Dashboard',    href: '/en/client',           icon: '⬡' },
-  { label: 'SEO Rankings', href: '/en/client/rankings',  icon: '↑' },
-  { label: 'Content',      href: '/en/client/content',   icon: '✦' },
-  { label: 'Reports',      href: '/en/client/reports',   icon: '◫' },
-  { label: 'Billing',      href: '/en/client/billing',   icon: '◈' },
+  { label: 'Dashboard',    path: '/client',           icon: '⬡' },
+  { label: 'SEO Rankings', path: '/client/rankings',  icon: '↑' },
+  { label: 'Content',      path: '/client/content',   icon: '✦' },
+  { label: 'Reports',      path: '/client/reports',   icon: '◫' },
+  { label: 'Billing',      path: '/client/billing',   icon: '◈' },
 ];
 
 export default function ClientSidebar() {
   const pathname = usePathname();
+  const params = useParams<{ locale?: string }>();
+  const locale = typeof params.locale === 'string' ? params.locale : 'en';
+  const dashboardHref = `/${locale}/client`;
 
   return (
     <aside
@@ -94,15 +99,16 @@ export default function ClientSidebar() {
       {/* Nav items */}
       <nav style={{ flex: 1, padding: '12px 8px' }}>
         {NAV_ITEMS.map((item) => {
+          const href = `/${locale}${item.path}`;
           const isActive =
-            item.href === '/en/client'
-              ? pathname === '/en/client' || pathname === '/en/client/'
-              : pathname.startsWith(item.href);
+            href === dashboardHref
+              ? pathname === dashboardHref || pathname === `${dashboardHref}/`
+              : pathname.startsWith(href);
 
           return (
             <Link
-              key={item.href}
-              href={item.href}
+              key={item.path}
+              href={href}
               style={{
                 display: 'flex',
                 alignItems: 'center',

@@ -4,14 +4,17 @@ import ClientSidebar from './ClientSidebar';
 
 export default async function ClientPortalLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<{ locale: string }>;
 }) {
+  const { locale } = await params;
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
 
   if (!data.user) {
-    redirect('/en/login');
+    redirect(`/${locale}/login`);
   }
 
   return (

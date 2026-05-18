@@ -707,7 +707,7 @@ export default function BusinessDetailPage({
 }: {
   params: Promise<{ slug: string; locale: string }>;
 }) {
-  const { slug } = use(params);
+  const { slug, locale } = use(params);
 
   const [biz, setBiz] = useState<BusinessDetail | null>(null);
   const [snapshots, setSnapshots] = useState<HealthSnapshot[]>([]);
@@ -775,7 +775,7 @@ export default function BusinessDetailPage({
       }}>
         {/* Back link */}
         <Link
-          href="/en/empire"
+          href={`/${locale}/empire`}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
