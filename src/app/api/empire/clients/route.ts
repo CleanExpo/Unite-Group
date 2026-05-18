@@ -10,6 +10,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/security/require-admin';
 import { isValidBrandConfig, type BrandConfig } from '@/types/brand-config';
+import { invalidateBrandConfigCache } from '@/lib/branding/getBrandConfig';
+import { invalidatePortalContentCache } from '@/lib/branding/getPortalContent';
 
 export const dynamic = 'force-dynamic';
 
@@ -105,6 +107,13 @@ export async function POST(req: NextRequest) {
       { status: 500 },
     );
   }
+
+  // Sister of #131. Bust the negative cache entry that would exist if anyone
+  // hit /portal/<slug> before the client was created — the 5-min TTL on
+  // negative results would otherwise keep serving 404 for up to 5 minutes
+  // after a successful POST.
+  invalidateBrandConfigCache(parsed.slug);
+  invalidatePortalContentCache(parsed.slug);
 
   return NextResponse.json(
     {

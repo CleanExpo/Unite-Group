@@ -93,3 +93,26 @@ describe('cache invalidation — portal_content', () => {
     expect(queryCount.current).toBe(2);
   });
 });
+
+describe('cache invalidation — negative cache busts after POST', () => {
+  it('caches null results too, but invalidate clears them', async () => {
+    // First call: row absent → null cached
+    supabaseRows.nexus_clients = [];
+    const before = await getBrandConfig('newcomer');
+    expect(before).toBeNull();
+
+    // Pretend the founder POSTed and the row now exists
+    supabaseRows.nexus_clients = [
+      row({ slug: 'newcomer', company_name: 'Newcomer Co' }),
+    ];
+
+    // Without invalidate, the null is still cached
+    const stillNull = await getBrandConfig('newcomer');
+    expect(stillNull).toBeNull();
+
+    // After invalidate, the next read fetches the row
+    invalidateBrandConfigCache('newcomer');
+    const fresh = await getBrandConfig('newcomer');
+    expect(fresh?.company_name).toBe('Newcomer Co');
+  });
+});
