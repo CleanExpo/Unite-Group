@@ -711,7 +711,7 @@ export default function EmpireCommandCenter() {
 
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <Link
-            href="/en/empire/clients/new"
+            href="/en/empire/clients"
             style={{
               fontSize: 11,
               fontWeight: 600,
@@ -725,7 +725,7 @@ export default function EmpireCommandCenter() {
               borderRadius: "var(--radius-md)",
             }}
           >
-            Onboard Client →
+            Clients →
           </Link>
           <Link
             href="/en/empire/data-room"
