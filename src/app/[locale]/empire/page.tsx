@@ -711,6 +711,23 @@ export default function EmpireCommandCenter() {
 
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <Link
+            href="/en/empire/clients/new"
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              fontFamily: "var(--font-mono)",
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              color: "var(--ink-secondary)",
+              textDecoration: "none",
+              padding: "6px 10px",
+              border: "1px solid var(--border-default)",
+              borderRadius: "var(--radius-md)",
+            }}
+          >
+            Onboard Client →
+          </Link>
+          <Link
             href="/en/empire/data-room"
             style={{
               fontSize: 11,
