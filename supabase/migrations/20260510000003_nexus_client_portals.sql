@@ -21,9 +21,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_client_portals_client_id ON public.client_
 
 ALTER TABLE public.client_portals ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Service role full access on client_portals" ON public.client_portals;
 CREATE POLICY "Service role full access on client_portals" ON public.client_portals
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Authenticated read client_portals" ON public.client_portals;
 CREATE POLICY "Authenticated read client_portals" ON public.client_portals
   FOR SELECT TO authenticated USING (true);
 

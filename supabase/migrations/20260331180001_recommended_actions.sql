@@ -60,12 +60,14 @@ CREATE INDEX IF NOT EXISTS idx_rec_actions_week
 ALTER TABLE public.recommended_actions ENABLE ROW LEVEL SECURITY;
 
 -- Service role: full access (inference engine)
+DROP POLICY IF EXISTS "service_role_all_recommended_actions" ON public.recommended_actions;
 CREATE POLICY "service_role_all_recommended_actions" ON public.recommended_actions
   FOR ALL TO service_role
   USING (true)
   WITH CHECK (true);
 
 -- Authenticated users: read own rows only
+DROP POLICY IF EXISTS "users_read_own_recommended_actions" ON public.recommended_actions;
 CREATE POLICY "users_read_own_recommended_actions" ON public.recommended_actions
   FOR SELECT TO authenticated
   USING (user_id = auth.uid());

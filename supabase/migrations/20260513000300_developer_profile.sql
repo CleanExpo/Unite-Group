@@ -45,13 +45,16 @@ CREATE INDEX IF NOT EXISTS idx_branch_map_developer ON public.developer_branch_m
 ALTER TABLE public.developer_profile ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.developer_branch_map ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS admin_read ON public.developer_profile;
 CREATE POLICY admin_read ON public.developer_profile FOR SELECT TO authenticated USING (
   (current_setting('request.jwt.claims', true)::jsonb->>'role') = 'admin'
 );
+DROP POLICY IF EXISTS admin_write ON public.developer_profile;
 CREATE POLICY admin_write ON public.developer_profile FOR ALL TO authenticated
   USING ((current_setting('request.jwt.claims', true)::jsonb->>'role') = 'admin')
   WITH CHECK ((current_setting('request.jwt.claims', true)::jsonb->>'role') = 'admin');
 
+DROP POLICY IF EXISTS admin_all ON public.developer_branch_map;
 CREATE POLICY admin_all ON public.developer_branch_map FOR ALL TO authenticated
   USING ((current_setting('request.jwt.claims', true)::jsonb->>'role') = 'admin')
   WITH CHECK ((current_setting('request.jwt.claims', true)::jsonb->>'role') = 'admin');
