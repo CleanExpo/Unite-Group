@@ -9,6 +9,7 @@
 // [[command-center-redesign-proposal-2026-05-14]] data-binding list.
 
 import { MissionClock } from './MissionClock';
+import { SourceBadge } from './SourceBadge';
 
 export interface GlobalStatusBarProps {
   agentsAlive?: number;
@@ -56,6 +57,7 @@ export function GlobalStatusBar({
           state={alerts > 0 ? 'signal' : 'hush'}
         />
         <StatusPip label="Build" value={buildSha.slice(0, 7)} state="hush" />
+        <SourceBadge mode="seed" label="static · PR-1 placeholders" />
       </div>
     </header>
   );
