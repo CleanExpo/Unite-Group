@@ -25,15 +25,21 @@ import type { Business360Datum } from './business-360-data';
 
 export interface BusinessTileProps {
   data: Business360Datum;
+  /**
+   * Active route locale. Threaded from CommandCenterShell so a /fr/ founder
+   * clicking a tile lands on /fr/empire/businesses/... — not /en/. Falls back
+   * to 'en' so isolated unit tests render without props.
+   */
+  locale?: string;
 }
 
-export function BusinessTile({ data }: BusinessTileProps) {
+export function BusinessTile({ data, locale = 'en' }: BusinessTileProps) {
   const borderColor =
     data.state === 'signal' ? 'var(--cc-signal)' : 'var(--cc-grid)';
 
   return (
     <Link
-      href={`/en/empire/businesses/${data.slug}`}
+      href={`/${locale}/empire/businesses/${data.slug}`}
       style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
       data-testid={`cc-business-tile-${data.slug}`}
     >

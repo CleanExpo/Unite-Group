@@ -5,7 +5,7 @@ import { SourceMatrixGrid } from '@/components/empire/SourceMatrixGrid';
 import { SystemHealthTile } from '@/components/empire/SystemHealthTile';
 import Link from 'next/link';
 import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { supabaseClient } from "@/lib/supabase/client";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { CircuitBoard, type CircuitNodeType, type CircuitConnection } from "@/components/ui/circuit-board";
@@ -335,7 +335,7 @@ function PriorityCardSkeleton() {
 
 // ─── Business Health Card (SpotlightCard) ────────────────────────────────────
 
-function BusinessHealthCard({ biz }: { biz: BusinessHealth }) {
+function BusinessHealthCard({ biz, locale }: { biz: BusinessHealth; locale: string }) {
   const color = healthColor(biz.overall_health);
   const score = biz.overall_health;
   const atRisk = score !== null && score < 60;
@@ -350,7 +350,7 @@ function BusinessHealthCard({ biz }: { biz: BusinessHealth }) {
 
   return (
     <Link
-      href={`/en/empire/businesses/${biz.id}`}
+      href={`/${locale}/empire/businesses/${biz.id}`}
       style={{ textDecoration: "none", display: "block" }}
     >
       <SpotlightCard
@@ -582,6 +582,10 @@ function BoardAlerts({ businesses }: { businesses: BusinessHealth[] }) {
 
 export default function EmpireCommandCenter() {
   const router = useRouter();
+  // Preserve the active locale on every nav target — empire is the operator
+  // dashboard; clicking a child link should never drop /fr/ → /en/.
+  const routeParams = useParams<{ locale?: string }>();
+  const locale = typeof routeParams.locale === 'string' ? routeParams.locale : 'en';
   const [checking, setChecking] = useState(true);
   const [empireData, setEmpireData] = useState<EmpireData | null>(null);
   const [priorities, setPriorities] = useState<Priority[] | null>(null);
@@ -610,12 +614,12 @@ export default function EmpireCommandCenter() {
   useEffect(() => {
     supabaseClient.auth.getUser().then(({ data: authData }) => {
       if (!authData.user) {
-        router.replace("/en/login");
+        router.replace(`/${locale}/login`);
       } else {
         setChecking(false);
       }
     });
-  }, [router]);
+  }, [router, locale]);
 
   // On auth resolved: fetch all three endpoints
   useEffect(() => {
@@ -711,7 +715,7 @@ export default function EmpireCommandCenter() {
 
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <Link
-            href="/en/empire/clients"
+            href={`/${locale}/empire/clients`}
             style={{
               fontSize: 11,
               fontWeight: 600,
@@ -728,7 +732,7 @@ export default function EmpireCommandCenter() {
             Clients →
           </Link>
           <Link
-            href="/en/empire/data-room"
+            href={`/${locale}/empire/data-room`}
             style={{
               fontSize: 11,
               fontWeight: 600,
@@ -772,10 +776,10 @@ export default function EmpireCommandCenter() {
         <EmpireHero summary={summary} exitThesis={exitThesis} />
 
         {/* SECTION 1b: System Health Command Center */}
-        <SystemHealthTile />
+        <SystemHealthTile locale={locale} />
 
         {/* SECTION 1c: Brand × Source matrix */}
-        <SourceMatrixGrid />
+        <SourceMatrixGrid locale={locale} />
 
         {/* SECTION 2 + 3: Two-column layout */}
         <div style={{
@@ -874,7 +878,7 @@ export default function EmpireCommandCenter() {
                   />
                 </div>
               ) : (
-                businesses.map(biz => <BusinessHealthCard key={biz.id} biz={biz} />)
+                businesses.map(biz => <BusinessHealthCard key={biz.id} biz={biz} locale={locale} />)
               )}
             </div>
           </div>

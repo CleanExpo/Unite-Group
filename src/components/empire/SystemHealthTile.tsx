@@ -171,9 +171,14 @@ export interface SystemHealthTileProps {
   initialData?: SystemHealth | null;
   /** Override the API base for testing. Defaults to relative path. */
   apiPath?: string;
+  /**
+   * Active route locale. Threaded from /[locale]/empire so SubTile drill-down
+   * hrefs preserve the founder's locale. Defaults to 'en' for unit tests.
+   */
+  locale?: string;
 }
 
-export function SystemHealthTile({ initialData = null, apiPath = "/api/empire/system-health" }: SystemHealthTileProps) {
+export function SystemHealthTile({ initialData = null, apiPath = "/api/empire/system-health", locale = "en" }: SystemHealthTileProps) {
   const [data, setData] = useState<SystemHealth | null>(initialData);
   const [loading, setLoading] = useState(initialData === null);
   const [error, setError] = useState<string | null>(null);
@@ -320,7 +325,7 @@ export function SystemHealthTile({ initialData = null, apiPath = "/api/empire/sy
               name="API"
               status={data.signals.api.status}
               summary={data.signals.api.summary}
-              drillHref="/en/empire/integrations"
+              drillHref={`/${locale}/empire/integrations`}
             />
             <SubTile
               name="Integrations"
@@ -342,13 +347,13 @@ export function SystemHealthTile({ initialData = null, apiPath = "/api/empire/sy
               name="Businesses"
               status={data.signals.businesses.status}
               summary={data.signals.businesses.summary}
-              drillHref="/en/empire/businesses"
+              drillHref={`/${locale}/empire/businesses`}
             />
             <SubTile
               name="Pi-CEO Scanner"
               status={data.signals.pi_ceo_scanner.status}
               summary={data.signals.pi_ceo_scanner.summary}
-              drillHref="/en/empire/businesses"
+              drillHref={`/${locale}/empire/businesses`}
             />
             <SubTile
               name="Deploys"

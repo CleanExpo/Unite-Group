@@ -26,10 +26,19 @@ export interface Business360GridProps {
   sourceLiveAt?: string;
 }
 
+interface Business360GridInternalProps extends Business360GridProps {
+  /**
+   * Active route locale, threaded from CommandCenterShell so tile hrefs
+   * preserve the founder's locale. Falls back to 'en' for unit tests.
+   */
+  locale?: string;
+}
+
 export function Business360Grid({
   tiles = BUSINESS_360_TILES,
   sourceLiveAt,
-}: Business360GridProps = {}) {
+  locale = 'en',
+}: Business360GridInternalProps = {}) {
   const isLive = !!sourceLiveAt;
   return (
     <section
@@ -74,7 +83,7 @@ export function Business360Grid({
         style={{ gap: '1px', background: 'var(--cc-grid)' }}
       >
         {tiles.map((b) => (
-          <BusinessTile key={b.id} data={b} />
+          <BusinessTile key={b.id} data={b} locale={locale} />
         ))}
       </div>
     </section>

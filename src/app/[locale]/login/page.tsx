@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from 'next/link';
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { supabaseClient } from "@/lib/supabase/client";
 import {
   SpotlightCard,
@@ -49,6 +49,10 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
+  // Preserve the active locale on post-login redirect — a /fr/login submitter
+  // should land on /fr/command-center, not get bounced to /en/.
+  const params = useParams<{ locale?: string }>();
+  const locale = typeof params.locale === 'string' ? params.locale : 'en';
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -59,7 +63,7 @@ export default function LoginPage() {
     try {
       const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      router.push("/en/command-center");
+      router.push(`/${locale}/command-center`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication failed");
     } finally {
@@ -312,7 +316,7 @@ export default function LoginPage() {
                   display: "flex", justifyContent: "space-between",
                 }}>
                   <span>&gt; ACCESS CODE</span>
-                  <Link href="/en/reset-password" style={{ color: "#f59e0b", textDecoration: "none" }}>RESET</Link>
+                  <Link href={`/${locale}/reset-password`} style={{ color: "#f59e0b", textDecoration: "none" }}>RESET</Link>
                 </div>
                 <input
                   type="password" required autoComplete="current-password"

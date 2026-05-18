@@ -32,6 +32,11 @@ interface SourceMatrixGridProps {
   initialData?: SourceMatrix | null;
   /** Override API path for tests. */
   apiPath?: string;
+  /**
+   * Active route locale. Threaded from /[locale]/empire so brand-link hrefs
+   * preserve the founder's locale on click. Defaults to 'en' for unit tests.
+   */
+  locale?: string;
 }
 
 interface DrawerSelection {
@@ -169,9 +174,10 @@ interface DrawerProps {
   brand: SourceMatrixBrand;
   source: SourceKind;
   onClose: () => void;
+  locale: string;
 }
 
-function Drawer({ brand, source, onClose }: DrawerProps) {
+function Drawer({ brand, source, onClose, locale }: DrawerProps) {
   const cell = brand.cells[source];
 
   useEffect(() => {
@@ -350,7 +356,7 @@ function Drawer({ brand, source, onClose }: DrawerProps) {
         {/* Actions */}
         <div style={{ display: "flex", gap: 8, marginTop: "auto", flexWrap: "wrap" }}>
           <Link
-            href={`/en/empire/businesses/${brand.slug}`}
+            href={`/${locale}/empire/businesses/${brand.slug}`}
             data-testid="drawer-open-business"
             style={{
               fontSize: 11,
@@ -418,6 +424,7 @@ function Drawer({ brand, source, onClose }: DrawerProps) {
 export function SourceMatrixGrid({
   initialData = null,
   apiPath = "/api/empire/source-matrix",
+  locale = "en",
 }: SourceMatrixGridProps) {
   const [data, setData] = useState<SourceMatrix | null>(initialData);
   const [loading, setLoading] = useState(initialData === null);
@@ -597,7 +604,7 @@ export function SourceMatrixGrid({
                     }}
                   >
                     <Link
-                      href={`/en/empire/businesses/${brand.slug}`}
+                      href={`/${locale}/empire/businesses/${brand.slug}`}
                       data-testid={`row-link-${brand.slug}`}
                       style={{
                         textDecoration: "none",
@@ -671,6 +678,7 @@ export function SourceMatrixGrid({
           brand={selection.brand}
           source={selection.source}
           onClose={() => setSelection(null)}
+          locale={locale}
         />
       )}
     </section>

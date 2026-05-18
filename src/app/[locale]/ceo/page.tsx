@@ -1,6 +1,12 @@
 import { redirect } from 'next/navigation';
 
-// /en/ceo is superseded by the new Empire Command Center at /en/empire
-export default function CeoPage() {
-  redirect('/en/empire');
+// /[locale]/ceo is superseded by the Empire Command Center at /[locale]/empire.
+// Preserve the caller's locale instead of hard-stamping /en/.
+export default async function CeoPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  redirect(`/${locale}/empire`);
 }

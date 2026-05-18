@@ -150,4 +150,13 @@ describe('SourceMatrixGrid rendering', () => {
       expect(match).toBeTruthy();
     }
   });
+
+  it('honours the active locale on brand-row hrefs (UNI-2025 follow-up)', () => {
+    // Without locale threading, a /fr/ founder clicking a row got dropped to /en/.
+    const html = renderToStaticMarkup(
+      <SourceMatrixGrid initialData={fixture()} locale="fr" />,
+    );
+    expect(html).toContain('href="/fr/empire/businesses/synthex"');
+    expect(html).not.toContain('href="/en/empire/businesses/synthex"');
+  });
 });

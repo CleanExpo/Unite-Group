@@ -86,7 +86,7 @@ export function CommandCenterShell({
           className="command-center-side-rail flex flex-col"
         >
           <MargotVoicePanel />
-          <Business360Grid {...business360Initial} />
+          <Business360Grid locale={locale} {...business360Initial} />
           <ActivityLog {...activityInitial} />
         </aside>
       </main>
