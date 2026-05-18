@@ -1,0 +1,54 @@
+name: rotate-admin-jwt
+
+# Daily 03:00 UTC — mint a fresh 24h JWT and push to Vercel (+ Railway if
+# configured). See scripts/rotate-admin-jwt.ts.
+#
+# Required GitHub Actions secrets:
+#   ADMIN_JWT_SECRET    ≥32-char random; same value as in Vercel prod env
+#   VERCEL_TOKEN        scope: project:env write
+#   VERCEL_PROJECT_ID   e.g. prj_IfUuJNLjXTE8VXqEGwLAleIGhiA0
+#   VERCEL_TEAM_ID      e.g. team_KMZACI5rIltoCRhAtGCXlxUf
+# Optional (Railway):
+#   RAILWAY_TOKEN
+#   RAILWAY_PROJECT_ID
+#   RAILWAY_ENV_ID
+#   RAILWAY_SERVICE_ID
+
+on:
+  schedule:
+    - cron: '0 3 * * *'  # 03:00 UTC daily
+  workflow_dispatch:      # manual trigger
+    inputs:
+      dry-run:
+        description: 'Dry-run (no env writes)'
+        required: false
+        default: 'false'
+        type: choice
+        options: ['false', 'true']
+
+jobs:
+  rotate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - name: Rotate admin JWT
+        env:
+          ADMIN_JWT_SECRET:    ${{ secrets.ADMIN_JWT_SECRET }}
+          VERCEL_TOKEN:        ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID:   ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TEAM_ID:      ${{ secrets.VERCEL_TEAM_ID }}
+          RAILWAY_TOKEN:       ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID:  ${{ secrets.RAILWAY_PROJECT_ID }}
+          RAILWAY_ENV_ID:      ${{ secrets.RAILWAY_ENV_ID }}
+          RAILWAY_SERVICE_ID:  ${{ secrets.RAILWAY_SERVICE_ID }}
+        run: |
+          if [[ "${{ github.event.inputs.dry-run }}" == "true" ]]; then
+            npx ts-node --transpile-only -O '{"module":"commonjs","moduleResolution":"node"}' scripts/rotate-admin-jwt.ts --dry-run
+          else
+            npx ts-node --transpile-only -O '{"module":"commonjs","moduleResolution":"node"}' scripts/rotate-admin-jwt.ts
+          fi
