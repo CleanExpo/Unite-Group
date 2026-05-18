@@ -15,13 +15,20 @@ export interface GlobalStatusBarProps {
   agentsAlive?: number;
   alerts?: number;
   buildSha?: string;
+  /**
+   * When set, the SourceBadge flips from `seed` to `live`. The server-rendered
+   * Command Center page passes this after reading agent_actions.
+   */
+  sourceLiveAt?: string;
 }
 
 export function GlobalStatusBar({
   agentsAlive = 12,
   alerts = 0,
   buildSha = 'main',
+  sourceLiveAt,
 }: GlobalStatusBarProps) {
+  const isLive = !!sourceLiveAt;
   return (
     <header
       className="flex min-h-12 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-0"
@@ -57,7 +64,15 @@ export function GlobalStatusBar({
           state={alerts > 0 ? 'signal' : 'hush'}
         />
         <StatusPip label="Build" value={buildSha.slice(0, 7)} state="hush" />
-        <SourceBadge mode="seed" label="static · PR-1 placeholders" />
+        {isLive ? (
+          <SourceBadge
+            mode="live"
+            label="agent_actions · last 24h"
+            lastUpdatedAt={sourceLiveAt}
+          />
+        ) : (
+          <SourceBadge mode="seed" label="static · PR-1 placeholders" />
+        )}
       </div>
     </header>
   );

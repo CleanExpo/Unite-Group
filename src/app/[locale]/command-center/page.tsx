@@ -11,6 +11,7 @@ import { CommandCenterShell } from '@/components/command-center/CommandCenterShe
 import { AccessDenied } from '@/components/command-center/AccessDenied';
 import { checkAdminSession } from '@/lib/security/require-admin';
 import { readPortfolioSummary } from '@/lib/empire/read-portfolio-summary';
+import { readGlobalStatus } from '@/lib/empire/read-global-status';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,9 +29,12 @@ export default async function CommandCenterPage({
     return <AccessDenied actorEmail={session.actorEmail} />;
   }
 
-  // Server-fetch the portfolio summary. The page is already admin-gated, so
+  // Server-fetch summaries in parallel. The page is already admin-gated, so
   // we skip requireAdmin (which is an API-route concern) and read directly.
-  const summary = await readPortfolioSummary();
+  const [summary, globalStatus] = await Promise.all([
+    readPortfolioSummary(),
+    readGlobalStatus(),
+  ]);
 
   return (
     <CommandCenterShell
@@ -40,6 +44,16 @@ export default async function CommandCenterPage({
               arrCents: summary.total_arr_cents,
               atRiskCount: summary.at_risk_count,
               arrSourceLiveAt: summary.fetched_at,
+            }
+          : undefined
+      }
+      globalStatusInitial={
+        globalStatus
+          ? {
+              agentsAlive: globalStatus.agentsAlive,
+              alerts: globalStatus.alerts,
+              buildSha: globalStatus.buildSha,
+              sourceLiveAt: globalStatus.fetchedAt,
             }
           : undefined
       }
