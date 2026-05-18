@@ -1,6 +1,7 @@
 'use client';
 
 import { createElement, useCallback, useEffect, useMemo, useState } from 'react';
+import { mapMargotFailure, type FailureRender } from './failure-taxonomy';
 
 type VoiceState = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -9,7 +10,7 @@ const WIDGET_SRC = 'https://unpkg.com/@elevenlabs/convai-widget-embed';
 export function MargotVoicePanel() {
   const [state, setState] = useState<VoiceState>('idle');
   const [signedUrl, setSignedUrl] = useState('');
-  const [error, setError] = useState('');
+  const [failure, setFailure] = useState<FailureRender | null>(null);
 
   const statusLabel = useMemo(() => {
     if (state === 'ready') return 'secure voice ready';
@@ -30,19 +31,27 @@ export function MargotVoicePanel() {
 
   const prepareSession = useCallback(async () => {
     setState('loading');
-    setError('');
+    setFailure(null);
     setSignedUrl('');
 
+    let status: number | null = null;
+    let code: string | null = null;
     try {
       const res = await fetch('/api/pi-ceo/margot-voice/signed-url', { cache: 'no-store' });
-      const body = await res.json();
+      status = res.status;
+      const body = await res.json().catch(() => ({}));
+      code = typeof body?.error === 'string' ? body.error : null;
       if (!res.ok || !body.signed_url) {
-        throw new Error(body.error || 'signed_url_failed');
+        setFailure(mapMargotFailure(status, code));
+        setState('error');
+        return;
       }
       setSignedUrl(body.signed_url);
       setState('ready');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'voice_session_failed');
+    } catch {
+      // fetch() threw (network failure, CORS, abort). status stays null →
+      // the taxonomy classifies this as a network failure.
+      setFailure(mapMargotFailure(null, null));
       setState('error');
     }
   }, []);
@@ -101,10 +110,17 @@ export function MargotVoicePanel() {
         {state === 'loading' ? 'Preparing' : 'Start secure voice'}
       </button>
 
-      {state === 'error' ? (
-        <p className="text-xs" style={{ color: '#f87171' }}>
-          {error}
-        </p>
+      {state === 'error' && failure ? (
+        <div
+          role="alert"
+          data-failure-category={failure.category}
+          className="flex flex-col gap-1 text-xs"
+          style={{ color: '#f87171' }}
+        >
+          <p className="font-semibold">{failure.title}</p>
+          <p style={{ color: 'var(--cc-ink-dim)' }}>{failure.message}</p>
+          <p style={{ color: 'var(--cc-ink)' }}>{failure.nextAction}</p>
+        </div>
       ) : null}
 
       {signedUrl ? (
