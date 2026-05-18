@@ -18,13 +18,13 @@ export async function syncStripe(): Promise<{
   failed: Array<{ entity: string; error: string }>;
 }> {
   const sb = getAdminClient();
-  const stripe = getStripeClient();
   let total = 0;
   const succeeded: string[] = [];
   const failed: Array<{ entity: string; error: string }> = [];
 
   // Section 1 — subscriptions list (paginated).
   try {
+    const stripe = getStripeClient();
     for await (const sub of stripe.subscriptions.list({
       status: "all",
       limit: 100,
@@ -68,6 +68,7 @@ export async function syncStripe(): Promise<{
 
   // Section 2 — month-to-date invoice roll-up (single row keyed on yyyymm).
   try {
+    const stripe = getStripeClient();
     const now = new Date();
     const yyyymm = `${now.getUTCFullYear()}${String(
       now.getUTCMonth() + 1
