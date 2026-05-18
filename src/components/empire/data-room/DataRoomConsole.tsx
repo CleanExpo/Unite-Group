@@ -45,6 +45,7 @@ export function DataRoomConsole({
   const [docs, setDocs] = useState<DocRow[]>(initialDocuments);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string>('');
+  const [regenerating, setRegenerating] = useState(false);
 
   const counts = useMemo(() => {
     const c = { pending: 0, approved: 0, rejected: 0, superseded: 0 };
@@ -55,6 +56,34 @@ export function DataRoomConsole({
     }
     return c;
   }, [docs]);
+
+  const regenerateAll = useCallback(async () => {
+    setRegenerating(true);
+    setNotice('');
+    try {
+      const res = await fetch('/api/empire/data-room/regenerate', { method: 'POST' });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok && res.status !== 207) {
+        throw new Error(body.error || `http_${res.status}`);
+      }
+      const okCount = (body.results ?? []).filter((r: { ok: boolean }) => r.ok).length;
+      const failCount = (body.results ?? []).length - okCount;
+      setNotice(
+        failCount === 0
+          ? `Regenerated ${okCount} document${okCount === 1 ? '' : 's'}. Reloading…`
+          : `Regenerated ${okCount} OK, ${failCount} failed. Check server logs.`,
+      );
+      // Trigger a soft refresh so the new docs appear without a full page reload.
+      if (typeof window !== 'undefined') {
+        setTimeout(() => window.location.reload(), 600);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'regenerate_failed';
+      setNotice(`Regenerate failed: ${msg}.`);
+    } finally {
+      setRegenerating(false);
+    }
+  }, []);
 
   const setAuditStatus = useCallback(
     async (id: string, audit_status: AuditAction) => {
@@ -98,6 +127,27 @@ export function DataRoomConsole({
         <CountTile label="Approved" value={counts.approved} tone="#10b981" />
         <CountTile label="Rejected" value={counts.rejected} tone="#f87171" />
         <CountTile label="Superseded" value={counts.superseded} tone="var(--ink-hush, #888)" />
+        <button
+          type="button"
+          onClick={regenerateAll}
+          disabled={regenerating}
+          style={{
+            marginLeft: 'auto',
+            padding: '8px 14px',
+            border: '1px solid var(--border-default)',
+            borderRadius: 6,
+            background: 'var(--surface-1)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 12,
+            textTransform: 'uppercase',
+            letterSpacing: '0.14em',
+            color: 'var(--ink-primary)',
+            cursor: regenerating ? 'wait' : 'pointer',
+            opacity: regenerating ? 0.6 : 1,
+          }}
+        >
+          {regenerating ? 'Regenerating…' : 'Regenerate all'}
+        </button>
         {/*
           File-download anchor — the export endpoint returns a binary ZIP
           with Content-Disposition: attachment. next/link is the wrong
@@ -109,7 +159,6 @@ export function DataRoomConsole({
           href="/api/empire/data-room/export"
           download
           style={{
-            marginLeft: 'auto',
             padding: '8px 14px',
             border: '1px solid var(--border-default)',
             borderRadius: 6,
