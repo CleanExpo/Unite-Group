@@ -28,9 +28,13 @@ CREATE INDEX IF NOT EXISTS idx_nexus_clients_plan   ON public.nexus_clients (pla
 
 ALTER TABLE public.nexus_clients ENABLE ROW LEVEL SECURITY;
 
+-- Postgres does not support CREATE POLICY IF NOT EXISTS — drop first so the
+-- migration is idempotent when re-applied to an already-seeded sandbox/prod.
+DROP POLICY IF EXISTS "Service role full access on nexus_clients" ON public.nexus_clients;
 CREATE POLICY "Service role full access on nexus_clients" ON public.nexus_clients
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Authenticated read nexus_clients" ON public.nexus_clients;
 CREATE POLICY "Authenticated read nexus_clients" ON public.nexus_clients
   FOR SELECT TO authenticated USING (true);
 

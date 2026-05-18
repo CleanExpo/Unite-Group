@@ -32,6 +32,7 @@ CREATE INDEX IF NOT EXISTS scan_requests_slug_idx
 ALTER TABLE public.scan_requests ENABLE ROW LEVEL SECURITY;
 
 -- Service-role (server) full access. The API route uses the service key.
+DROP POLICY IF EXISTS scan_requests_service_role_all ON public.scan_requests;
 CREATE POLICY scan_requests_service_role_all
   ON public.scan_requests
   FOR ALL

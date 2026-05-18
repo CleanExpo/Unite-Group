@@ -34,6 +34,7 @@ CREATE INDEX IF NOT EXISTS idx_ccw_tickets_received ON public.ccw_support_ticket
 ALTER TABLE public.ccw_support_tickets ENABLE ROW LEVEL SECURITY;
 
 -- Service-role only (matches developer_profile pattern; no end-user RLS surface yet)
+DROP POLICY IF EXISTS "service_role_full_access" ON public.ccw_support_tickets;
 CREATE POLICY "service_role_full_access" ON public.ccw_support_tickets
   FOR ALL TO service_role
   USING (true) WITH CHECK (true);

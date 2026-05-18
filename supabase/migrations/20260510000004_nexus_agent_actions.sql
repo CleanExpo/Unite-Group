@@ -28,9 +28,11 @@ CREATE INDEX IF NOT EXISTS idx_agent_actions_created_at  ON public.agent_actions
 
 ALTER TABLE public.agent_actions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Service role full access on agent_actions" ON public.agent_actions;
 CREATE POLICY "Service role full access on agent_actions" ON public.agent_actions
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Authenticated read agent_actions" ON public.agent_actions;
 CREATE POLICY "Authenticated read agent_actions" ON public.agent_actions
   FOR SELECT TO authenticated USING (true);
 

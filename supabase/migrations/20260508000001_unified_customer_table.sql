@@ -72,8 +72,10 @@ CREATE UNIQUE INDEX idx_unified_customers_email ON unified_customers (email);
 
 -- Row-level security
 ALTER TABLE unified_customers ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Service role full access" ON unified_customers;
 CREATE POLICY "Service role full access" ON unified_customers
   USING (auth.role() = 'service_role');
+DROP POLICY IF EXISTS "Authenticated read own org" ON unified_customers;
 CREATE POLICY "Authenticated read own org" ON unified_customers
   FOR SELECT USING (auth.role() = 'authenticated');
 

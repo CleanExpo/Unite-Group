@@ -36,6 +36,7 @@ CREATE INDEX IF NOT EXISTS idx_geo_citation_mentioned
 -- RLS: Sprint 4 — service role only. No authenticated user policy until Sprint 6.
 ALTER TABLE public.geo_citation_events ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "service_role_all_geo_citations" ON public.geo_citation_events;
 CREATE POLICY "service_role_all_geo_citations" ON public.geo_citation_events
   FOR ALL TO service_role
   USING (true)
