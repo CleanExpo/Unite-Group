@@ -12,6 +12,7 @@ import { requireAdmin } from '@/lib/security/require-admin';
 import { isValidBrandConfig, type BrandConfig } from '@/types/brand-config';
 import { invalidateBrandConfigCache } from '@/lib/branding/getBrandConfig';
 import { invalidatePortalContentCache } from '@/lib/branding/getPortalContent';
+import { parseContactEmail } from './_validate-email';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,9 +37,10 @@ function parseInput(body: unknown): CreateClientInput | { error: string } {
   const website_url = typeof obj.website_url === 'string' && obj.website_url.length > 0
     ? obj.website_url.trim()
     : undefined;
-  const contact_email = typeof obj.contact_email === 'string' && obj.contact_email.length > 0
-    ? obj.contact_email.trim()
-    : undefined;
+
+  const emailResult = parseContactEmail(obj.contact_email);
+  if (!emailResult.ok) return { error: 'invalid_contact_email' };
+  const contact_email = emailResult.value ?? undefined;
 
   let brand_config: BrandConfig | undefined;
   if (obj.brand_config !== undefined) {
