@@ -15,6 +15,7 @@ import { invalidatePortalContentCache } from '@/lib/branding/getPortalContent';
 import { parseContactEmail } from './_validate-email';
 import { parseWebsiteUrl } from './_validate-website';
 import { recordClientAction } from './_record-action';
+import { mapUniqueViolation } from './_map-unique-violation';
 
 export const dynamic = 'force-dynamic';
 
@@ -107,11 +108,13 @@ export async function POST(req: NextRequest) {
 
   if (inserted.error || !inserted.data) {
     // Race window: another POST snuck a row in between the pre-check above
-    // and this INSERT. Postgres rejects with 23505 (unique_violation) since
-    // nexus_clients.slug is UNIQUE. Map to the same 409 slug_in_use the
-    // pre-check returns so the wizard renders consistent copy.
-    if (inserted.error?.code === '23505') {
-      return NextResponse.json({ error: 'slug_in_use' }, { status: 409 });
+    // and this INSERT. Postgres rejects with 23505 (unique_violation) on
+    // either slug (pre-check race) or contact_email (no pre-check on this
+    // column today). Map to a column-aware 409 so the wizard renders the
+    // right copy.
+    const unique = mapUniqueViolation(inserted.error);
+    if (unique) {
+      return NextResponse.json(unique.body, { status: unique.status });
     }
     return NextResponse.json(
       { error: 'client_insert_failed', detail: inserted.error?.message },

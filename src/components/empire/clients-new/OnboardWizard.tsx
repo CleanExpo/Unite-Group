@@ -203,12 +203,18 @@ function mapErrorMessage(code: string): string {
   switch (code) {
     case 'slug_in_use':
       return 'That slug is already taken. Pick another.';
+    case 'contact_email_in_use':
+      return 'That contact email is already used by another client.';
     case 'invalid_slug':
       return 'Slug must be lowercase letters, numbers, and hyphens (2-64 chars).';
     case 'invalid_company_name':
       return 'Company name is required (1-200 chars).';
     case 'invalid_brand_config':
       return 'Brand colours must be 6-digit hex (#RRGGBB).';
+    case 'invalid_contact_email':
+      return 'Contact email must be a valid address.';
+    case 'invalid_website_url':
+      return 'Website URL must be http(s) and parseable.';
     case 'invalid_json':
       return 'Form submission was malformed. Reload and try again.';
     case 'slug_check_failed':

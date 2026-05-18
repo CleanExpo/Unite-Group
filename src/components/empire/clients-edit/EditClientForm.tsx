@@ -419,6 +419,8 @@ function mapError(code: string | undefined, status: number): string {
       return 'Website URL is malformed.';
     case 'invalid_contact_email':
       return 'Contact email is malformed.';
+    case 'contact_email_in_use':
+      return 'That contact email is already used by another client.';
     case 'empty_patch':
       return 'Nothing to save — change a field first.';
     case 'client_not_found':
