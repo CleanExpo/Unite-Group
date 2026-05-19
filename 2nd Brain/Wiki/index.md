@@ -35,6 +35,7 @@ Content-oriented catalog of all pages. One line per page. See [[log]] for histor
 - [[dr-nrpg]] — Disaster Recovery / National Restoration Practitioners Group
 - [[carsi]] — Compliance delivery product
 - [[unite-crm]] — Unite-Group CRM; ccw-crm is first external deployment
+- [[unite-autonomous-command-center-authority-2026-05-19]] — Authority and implementation mandate for Unite-Group CRM to become the autonomous Command Center: Telegram/Plaud/future WhatsApp intake, Margot queue, `@team` routing, HITL gates, presentation QA, and Linear replay packets
 - [[ccw]] — Carpet Cleaners Warehouse; first paying client; SLA critical
 - [[4plan-designer]] — Conceptual home interior design / renovation app; not yet a portfolio business
 
