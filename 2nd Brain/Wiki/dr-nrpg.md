@@ -18,6 +18,8 @@ Priority onboarding surfaces:
 - Authority layer: NRPG standards, contractor requirements, restoration education, safety guidance, and industry-association pathway.
 - Synthex automation: drafts local pages, GBP/service-area updates where eligible, posts, review replies, contractor nurture, and reporting packets; live publishing remains evidence/QA gated.
 
+Implementation packet: `/Users/phill-mac/DR-NRPG/docs/service-area-search-onboarding-implementation-2026-05-20.md`. Cross-repo orchestration packet: `/Users/phill-mac/Documents/Marketing Team/docs/dr-nrpg-service-area-search-onboarding-cross-repo-plan-2026-05-20.md`. Unite-Group command-center packet: `/Users/phill-mac/pi-seo-workspace/unite-group/docs/dr-nrpg-service-area-command-center-2026-05-20.md`.
+
 Two live products sharing the same monorepo (Turborepo). Production site: disasterrecovery.com.au.
 
 ## DR/NRPG ↔ RestoreAssist relationship (2026-05-14)

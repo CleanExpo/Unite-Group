@@ -72,6 +72,8 @@ Goal: make Disaster Recovery / NRPG the authority layer for client and contracto
 - Use Search Console, GBP insights where available, reviews, calls/forms, contractor applications, and client onboarding completions as the learning loop.
 - Synthex should generate drafts for service-area pages, GBP posts, review replies, contractor onboarding content, and local SEO reports, then route through evidence/brand/QA approval before publishing.
 
+Active implementation packet: `/Users/phill-mac/DR-NRPG/docs/service-area-search-onboarding-implementation-2026-05-20.md`. This packet supersedes phone-first or storefront-location assumptions in older contractor GBP/checklist material.
+
 ## Synthex Automation Rule
 
 Synthex should generate profile audits, draft updates, post calendars, review responses, and competitor gap reports before it writes anything. Live writes require:
