@@ -3,7 +3,7 @@ title: "oh-my-codex — CHANGELOG.md"
 source: "https://github.com/CleanExpo/oh-my-codex/blob/main/CHANGELOG.md"
 repo: "CleanExpo/oh-my-codex"
 file_type: "CHANGELOG"
-captured: "2026-05-18"
+captured: "2026-05-19"
 tags:
   - clippings
   - github

@@ -3,7 +3,7 @@ title: "synthex — docs/README.md"
 source: "https://github.com/CleanExpo/Synthex/blob/main/docs/README.md"
 repo: "CleanExpo/Synthex"
 file_type: "docs-README"
-captured: "2026-05-18"
+captured: "2026-05-19"
 tags:
   - clippings
   - github

@@ -3,7 +3,7 @@ title: "unite-group: Unite Group — Synthex Authority Hub"
 source: "https://github.com/CleanExpo/unite-group/blob/main/README.md"
 repo: "CleanExpo/unite-group"
 file_type: "README"
-captured: "2026-05-18"
+captured: "2026-05-19"
 tags:
   - clippings
   - github
