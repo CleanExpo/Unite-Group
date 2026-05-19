@@ -111,3 +111,14 @@ back into the wiki at lifecycle boundaries.
 **Directive to:** PM-Synthex + Technical Architect + QA Lead.
 **Condition for revisit:** Synthex migrates away from Next.js/Prisma/Supabase/Vercel
 or an explicit Convex migration plan is approved.
+
+### 2026-05-19 — Command Center Campaign Studio
+**Decision:** The next Synthex Dashboard direction is Campaign Command Studio:
+a client-facing operating room where Toby/CCW can send a voice brief, Synthex
+grounds it in Shopify/product data and current channel research, then shows a
+branded campaign Kanban, storyboard, approval gates, production meter, and
+learning loop before any paid production or publishing.
+**Directive to:** PM-Synthex + Product Strategist + Technical Architect + Creative
+Director + QA Lead.
+**Condition for revisit:** A live platform connection or commercial policy changes
+the no-publish/no-spend/default-draft boundary.
