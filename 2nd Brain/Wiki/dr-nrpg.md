@@ -5,6 +5,19 @@ updated: 2026-05-14
 
 # DR-NRPG — Disaster Recovery / National Restoration Practitioners Group
 
+## Online-First Search + Onboarding Mandate (2026-05-20)
+
+Disaster Recovery / NRPG is not a storefront-location business. Treat it as an online-first service-area and marketplace/onboarding operation: clients submit disaster/restoration needs digitally, contractors apply and are vetted digitally, and Synthex/Unite-Group routes demand, proof, content, and automation through the correct business context.
+
+Search goal: rank #1 in the real locations where the network can serve clients, without creating fake offices or keyword-stuffed Google Business Profiles. GBP is only used where eligible as a service-area profile with a hidden public address if customers are not served at that address. Location dominance should be built through service-area pages, Search Console learning, real contractor/service coverage, reviews, structured data, local citations, and evidence-backed content.
+
+Priority onboarding surfaces:
+
+- Client intake: emergency restoration request, insurance/job context, location, urgency, photos/documents, consent, and contact path.
+- Contractor intake: trade/service coverage, certifications, insurance, equipment, response capacity, service areas, licences, and onboarding status.
+- Authority layer: NRPG standards, contractor requirements, restoration education, safety guidance, and industry-association pathway.
+- Synthex automation: drafts local pages, GBP/service-area updates where eligible, posts, review replies, contractor nurture, and reporting packets; live publishing remains evidence/QA gated.
+
 Two live products sharing the same monorepo (Turborepo). Production site: disasterrecovery.com.au.
 
 ## DR/NRPG ↔ RestoreAssist relationship (2026-05-14)
