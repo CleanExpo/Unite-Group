@@ -29,6 +29,16 @@ Verification:
 - Desktop screenshot: `/Users/phill-mac/Documents/Synthex/.harness/synthex-landing-ui-2026-05-20-desktop.png`
 - Mobile screenshot: `/Users/phill-mac/Documents/Synthex/.harness/synthex-landing-ui-2026-05-20-mobile.png`
 
+### 2026-05-20 Simplicity Correction
+
+Phill flagged the page as too busy and hard to navigate. The public landing model was corrected toward cards:
+
+- Hero copy now says the product in one sentence: give Synthex the idea and get a clear campaign plan back.
+- The visible model is now three cards: input the idea, review the plan, approve production.
+- Dense ADLC/client-journey/feature sections were removed from the homepage flow.
+- Mobile spacing was tightened so the first card appears immediately after the CTA.
+- Verification repeated with type-check, targeted ESLint, and Playwright screenshots.
+
 ## Technical Translation Blueprint
 
 **User Intent:** Upgrade the Synthex Dashboard / Command Center from a status dashboard into a client-facing campaign operating room where a client can speak an idea through Telegram or WhatsApp and watch Synthex turn it into a researched, brand-aligned, approval-gated campaign.
