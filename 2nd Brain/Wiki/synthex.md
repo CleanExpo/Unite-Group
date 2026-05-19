@@ -1,6 +1,6 @@
 ---
 type: wiki
-updated: 2026-05-10
+updated: 2026-05-19
 ---
 
 # Synthex
@@ -63,6 +63,20 @@ PR#218 merged: HSTS header added.
 
 The `marketing-orchestrator` and `remotion-orchestrator` skill families produce marketing artefacts *for* Synthex clients (including [[ccw]]). Synthex-as-automation-platform is distinct from Synthex-as-marketing-target.
 
+## Marketing Agency Runtime
+
+The Synthex Marketing Agency environment now has a wiki-level runtime lifecycle:
+[[synthex-marketing-agency-runtime-lifecycle-2026-05-19]]. It adapts the
+[[service-layer-architecture-2026-05-18]] pattern to Synthex's actual stack:
+Next.js App Router, Prisma, Supabase/Postgres, Vercel, `lib/marketing-agency/*`
+service modules, and provider adapters. Convex language in prompts maps to this
+service-layer boundary unless a future migration plan explicitly changes the
+substrate.
+
+The live link capture page is
+[[synthex-marketing-agency-wikilinks-2026-05-19]]. It is the first place to add
+new Synthex Marketing Agency pages so future agents do not re-discover the graph.
+
 ## External Resources
 
 - **GitHub:** [CleanExpo/Synthex](https://github.com/CleanExpo/Synthex)
@@ -72,7 +86,7 @@ The `marketing-orchestrator` and `remotion-orchestrator` skill families produce 
 
 ## Cross-refs
 
-[[businesses-overview]] · [[ccw]] · [[pi-ceo-architecture]] · [[wave-roadmap]] · [[seo-linkable-assets]] · [[synthex-seo-aeo-geo-master-generator-2026-05-18]] · [[semrush-health-check-and-nexus-ingestion-plan-2026-05-18]] · [[synthex-search-growth-management-index-2026-05-18]]
+[[businesses-overview]] · [[ccw]] · [[pi-ceo-architecture]] · [[wave-roadmap]] · [[seo-linkable-assets]] · [[synthex-seo-aeo-geo-master-generator-2026-05-18]] · [[semrush-health-check-and-nexus-ingestion-plan-2026-05-18]] · [[synthex-search-growth-management-index-2026-05-18]] · [[synthex-marketing-agency-runtime-lifecycle-2026-05-19]] · [[synthex-marketing-agency-wikilinks-2026-05-19]]
 
 ## Board Directives Log
 
@@ -80,3 +94,13 @@ The `marketing-orchestrator` and `remotion-orchestrator` skill families produce 
 **Decision:** Phase 1 measure-first (RLS adversarial baseline + Stripe churn mix + Vercel CFR), then Phase 2/3/4 parallel dispatch via Pi-CEO swarm with merge-gate of adversarial-RLS-≥50% before Phase 3 ships, Phase 6 sign-off gated on vibetest-use top-10 journey pass.
 **Directive to:** Senior PM (PM-Core) — Phase 1 starts immediately, single-shot Telegram on completion to surface SOC 2 real-or-aspirational ruling.
 **Condition for revisit:** RLS adversarial baseline reveals <5/131 actually-secure tables (P0 — pause everything, security-only sprint).
+
+### 2026-05-19 — Marketing Agency runtime lifecycle
+**Decision:** The `/Users/phill-mac/Documents/Marketing Team` sandbox is a command
+center, not a duplicate application repo. Synthex Marketing Agency work uses
+runtime reconciliation before edits, keeps provider mechanics behind adapters,
+keeps domain policy in Synthex service/orchestration layers, and compacts state
+back into the wiki at lifecycle boundaries.
+**Directive to:** PM-Synthex + Technical Architect + QA Lead.
+**Condition for revisit:** Synthex migrates away from Next.js/Prisma/Supabase/Vercel
+or an explicit Convex migration plan is approved.

@@ -1,8 +1,14 @@
 ---
-updated: 2026-05-11
+updated: 2026-05-19
 ---
 
 > **Association Cross-Link (2026-05-11):** This blueprint feeds the **member-services Marketing-as-a-Service layer** of the [[industry-association-vision-2026|ANZ Industry Association]] (the uncopyable layer). [[association-launch-plan-2026]] Wave 2 launches marketing-services packages to members. The agency's three sub-tiers (Done-for-You / Done-with-You / Audit-only) become the association member-tier offer.
+
+> **Runtime Cross-Link (2026-05-19):** Implementation now runs through
+> [[synthex-marketing-agency-runtime-lifecycle-2026-05-19]]. The agency is a
+> service-layer product surface inside [[synthex]], not a copied repo or
+> Convex-specific runtime. New pages enter the graph through
+> [[synthex-marketing-agency-wikilinks-2026-05-19]].
 
 This is an incredibly comprehensive and well-structured strategic plan. It moves beyond mere service offerings and defines a *market position*—that of a technologically advanced, results-oriented partner that fundamentally changes the economics of digital marketing. The firm's status as Australia’s largest B2B Publisher and provider of integrated communications platforms reinforces this authoritative market position.
 
