@@ -15,6 +15,12 @@ updated: 2026-05-19
 > and iOS build agents. Treat it as an external workspace, not Synthex runtime
 > policy. Details: [[chorus-agent-platform-2026-05-19]].
 
+> **Research Cross-Link (2026-05-19):** The agency now has a dedicated
+> [[social-media-researcher-platform-stack-2026-05-19|Social Media Researcher]]
+> lens. Every platform-dependent recommendation must refresh current developer
+> docs, platform docs, terms, access rules, and primary 2026 research before it
+> becomes a client-facing or build-facing output.
+
 This is an incredibly comprehensive and well-structured strategic plan. It moves beyond mere service offerings and defines a *market position*—that of a technologically advanced, results-oriented partner that fundamentally changes the economics of digital marketing. The firm's status as Australia’s largest B2B Publisher and provider of integrated communications platforms reinforces this authoritative market position.
 
 To synthesize this into actionable, high-impact takeaways for different stakeholders (Sales, Marketing, Operations), I've organized the core strengths and identified the key narratives you must control.

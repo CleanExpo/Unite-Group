@@ -175,6 +175,7 @@ Content-oriented catalog of all pages. One line per page. See [[log]] for histor
 - [[synthex-marketing-agency-runtime-lifecycle-2026-05-19]] — Synthex Marketing Agency runtime reconciliation + ADLC deployment lifecycle; maps Convex-style prompts to Synthex Next.js/Prisma/Supabase/Vercel service-layer boundaries
 - [[synthex-marketing-agency-wikilinks-2026-05-19]] — Captured wiki link graph for Synthex Marketing Agency pages, source backlinks, portfolio surfaces, quality gates, and industry-association channel
 - [[chorus-agent-platform-2026-05-19]] — Chorus source capture and verified docs research for Synthex operator-cockpit use: engineering, marketing, research, creative, diagramming, iOS agents; MCP/API wiring blocked until URL/auth contract is verified
+- [[social-media-researcher-platform-stack-2026-05-19]] — Social Media Researcher lens and current-docs platform stack for Synthex: audience intelligence, social listening, platform APIs, panel validation, ethnography, and 2026 research signals
 - [[marketing-insights-2026]] — Distilled intelligence from May 2026 Source batch: campaign patterns, app marketing landscape, UA tactics, web monetisation
 - [[marketing-brain-system]] — Obsidian + Claude Code SEO operating system; 6-step DataForSEO pipeline → 30/60/90 BEAST plan; Unichannel SEO + $325M exit validation
 

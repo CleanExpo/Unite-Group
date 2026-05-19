@@ -1,5 +1,6 @@
 ---
-updated: 2026-05-11
+updated: 2026-05-19
+---
 
 # The Modern Relevance Playbook: Mastering Attention in the Social Economy
 
@@ -38,6 +39,10 @@ The channel must feel native to the platform.
 *   **Seamless Journeys:** The transition from discovery (e.g., TikTok) to consideration (e.g., website) to purchase (e.g., e-commerce) must feel like a natural extension of the initial experience, not a jarring detour.
 *   **Micro-Moments:** Optimize for the "micro-moment"—the instant a user has a specific need or question. Being the immediate, helpful answer wins.
 *   **B2B Credibility Integration:** For professional audiences, leverage trusted, niche media brands to lend authority and credibility to the message. This approach connects the brand with influential decision-makers who can move the business forward.
+
+### D. Social Media Researcher Gate
+
+Use [[social-media-researcher-platform-stack-2026-05-19]] before treating social signals as strategy. Platform-dependent insights must separate owned analytics, public conversation listening, panel validation, network analysis, and digital ethnography. Current developer docs and platform terms are mandatory before any API, listening, publishing, or paid-media recommendation is finalized.
 
 ## 3. The Measurement of Relevance
 

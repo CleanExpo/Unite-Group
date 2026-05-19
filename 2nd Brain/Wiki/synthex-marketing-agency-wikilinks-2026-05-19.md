@@ -23,6 +23,8 @@ future agents can enter through one page instead of re-discovering the system.
 - [[service-layer-architecture-2026-05-18]] - action/service boundary.
 - [[chorus-agent-platform-2026-05-19]] - Chorus agent/tool research and
   Synthex operator-cockpit rules.
+- [[social-media-researcher-platform-stack-2026-05-19]] - Social Media
+  Researcher platform-docs gate and research tool stack.
 
 ## Execution And Governance
 
@@ -94,6 +96,7 @@ future agents can enter through one page instead of re-discovering the system.
 - `Sources/Top App Marketing Companies (2026).md`
 - `Sources/AI agents that do real work.md`
 - `Sources/AI agents that do real work 1.md`
+- `Sources/Social Media Researcher.md`
 
 ## Capture Rule
 
