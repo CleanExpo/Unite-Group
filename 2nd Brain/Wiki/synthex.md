@@ -136,3 +136,14 @@ and Asset Ledger.
 **Condition for revisit:** Artlist exposes and verifies a public Studio AI media
 API, HyperFrames access/docs change materially, or Remotion licensing/render
 volume changes the production economics.
+
+### 2026-05-19 — Gen Media Command Center Build
+**Decision:** Build the next Synthex Command Center around Gen Media mini-apps:
+voice brief intake, source grounding, campaign cards, shared human/agent asset
+grid, Remotion/HyperFrames overlay lane, production meter, licence/QA gates and
+exportable state. Riley Brown's FAL/Buffer/Paper examples are pattern references
+only; this slice uses Synthex's approved providers and existing API surfaces.
+**Directive to:** PM-Synthex + Technical Architect + Creative Director + QA Lead.
+**Condition for revisit:** The sandbox cockpit fails to create a clearer client
+approval path than the existing campaign package page, or service-layer tests
+cannot validate the command-center state contract.
