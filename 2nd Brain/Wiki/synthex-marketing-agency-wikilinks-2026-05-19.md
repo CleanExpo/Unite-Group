@@ -21,6 +21,8 @@ future agents can enter through one page instead of re-discovering the system.
 - [[marketing-brain-system]] - Obsidian + DataForSEO SEO operating system.
 - [[marketing-insights-2026]] - social relevance and attention playbook.
 - [[service-layer-architecture-2026-05-18]] - action/service boundary.
+- [[chorus-agent-platform-2026-05-19]] - Chorus agent/tool research and
+  Synthex operator-cockpit rules.
 
 ## Execution And Governance
 
@@ -90,6 +92,8 @@ future agents can enter through one page instead of re-discovering the system.
 - `Sources/5 AI CEOs Said the Same Thing About 2026 (Marketing Changes
   Forever).md`
 - `Sources/Top App Marketing Companies (2026).md`
+- `Sources/AI agents that do real work.md`
+- `Sources/AI agents that do real work 1.md`
 
 ## Capture Rule
 

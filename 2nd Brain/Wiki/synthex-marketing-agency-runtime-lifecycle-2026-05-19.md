@@ -42,6 +42,9 @@ Current Obsidian `Sources/` material pulled into this note:
 - `Sources/Top App Marketing Companies (2026).md` reinforces full-funnel app
   growth: ASO, user acquisition, creative testing, lifecycle retention, CRM, and
   privacy-ready measurement.
+- `Sources/AI agents that do real work.md` and `Sources/AI agents that do real
+  work 1.md` introduce Chorus as an external operator cockpit for engineering
+  and marketing agents. See [[chorus-agent-platform-2026-05-19]].
 
 ## Runtime Reconciliation
 
@@ -101,6 +104,11 @@ Provider adapters own mechanics only. Artlist, HeyGen, Meta, Apify, OpenAI,
 Supabase, Vercel, Linear, GitHub, Telegram, Chrome, and browser harnesses do not
 own domain policy.
 
+Chorus is classified as an external operator cockpit, not an in-app runtime.
+Use it for research, planning, diagrams, campaign drafts, and supervised agent
+work. Do not wire Chorus MCP/API calls into Synthex until `CHORUS_URL`, auth
+prefix, and endpoint contract are verified.
+
 ## Provider Gates
 
 - Artlist: music/licence workflow only unless official docs prove more.
@@ -146,4 +154,4 @@ Core linked system:
 [[service-layer-architecture-2026-05-18]] · [[brand-guardian]] · [[qa-lead]] ·
 [[mcp-ecosystem]] · [[artlist-mastery]] · [[pathway-to-2b-2026-2028]] ·
 [[industry-association-vision-2026]] · [[association-launch-plan-2026]] ·
-[[ccw]] · [[restore-assist]]
+[[chorus-agent-platform-2026-05-19]] · [[ccw]] · [[restore-assist]]

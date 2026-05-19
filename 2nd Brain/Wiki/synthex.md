@@ -14,6 +14,13 @@ Marketing-automation SaaS and AI-powered social media management platform (MIT l
 
 Synthex automation delivers a 2.2x average engagement boost and 87% time savings.
 
+## Operator Cockpits
+
+- [[chorus-agent-platform-2026-05-19]] - candidate external cockpit for Synthex
+  Marketing Agency research, engineering support, campaign drafting, diagrams,
+  and creative ideation. Integration remains adapter-gated until the Chorus
+  URL/auth contract is verified.
+
 ## Targets
 
 - NRR ≥ 100%

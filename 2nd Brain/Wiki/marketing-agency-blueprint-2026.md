@@ -10,6 +10,11 @@ updated: 2026-05-19
 > Convex-specific runtime. New pages enter the graph through
 > [[synthex-marketing-agency-wikilinks-2026-05-19]].
 
+> **Chorus Cross-Link (2026-05-19):** Chorus is useful as a supervised
+> operator cockpit for engineering, marketing, research, creative, diagramming,
+> and iOS build agents. Treat it as an external workspace, not Synthex runtime
+> policy. Details: [[chorus-agent-platform-2026-05-19]].
+
 This is an incredibly comprehensive and well-structured strategic plan. It moves beyond mere service offerings and defines a *market position*—that of a technologically advanced, results-oriented partner that fundamentally changes the economics of digital marketing. The firm's status as Australia’s largest B2B Publisher and provider of integrated communications platforms reinforces this authoritative market position.
 
 To synthesize this into actionable, high-impact takeaways for different stakeholders (Sales, Marketing, Operations), I've organized the core strengths and identified the key narratives you must control.
