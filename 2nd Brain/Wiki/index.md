@@ -181,6 +181,7 @@ Content-oriented catalog of all pages. One line per page. See [[log]] for histor
 - [[synthex-command-center-campaign-studio-2026-05-19]] — CEO Board directive for upgrading Synthex Command Center into a Campaign Command Studio: voice brief intake, Shopify grounding, research, Kanban/storyboard approval, production meter, and no-publish/no-spend gates
 - [[synthex-media-assets-production-stack-2026-05-19]] — Media assets production stack for Synthex: Remotion deterministic overlays, HyperFrames HTML-to-video, Artlist licensed music/source media, Gen Media mini apps, asset licence ledger, and YouTube performance grounding
 - [[synthex-command-center-gen-media-build-2026-05-19]] — Riley Brown transcript applied to Synthex: Gen Media mini-app command center, approved-provider mapping, sandbox cockpit, service-layer backlog, and CEO Board memo
+- [[synthex-karpathy-research-council-2026-05-19]] — Karpathy `llm-council` + `autoresearch` + Andrej coding guidelines adapted into Synthex research-council service packets: source-backed findings, contrarian review, chair synthesis, Hermes always-on operator role, and Unite-Group visible command linkage
 - [[marketing-insights-2026]] — Distilled intelligence from May 2026 Source batch: campaign patterns, app marketing landscape, UA tactics, web monetisation
 - [[marketing-brain-system]] — Obsidian + Claude Code SEO operating system; 6-step DataForSEO pipeline → 30/60/90 BEAST plan; Unichannel SEO + $325M exit validation
 

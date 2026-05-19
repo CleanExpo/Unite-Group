@@ -3,9 +3,8 @@ title: "Marketing Brain: My AI SEO System Walkthrough (Claude Code + Obsidian)"
 source: "https://www.youtube.com/watch?v=1ZDwzDKtyo0"
 author:
   - "[[Agrici Daniel]]"
-channel: "Agrici Daniel"
 published: 2026-05-08
-created: 2026-05-08
+created: 2026-05-11
 description: "I built Marketing Brain, an Obsidian vault + Claude Code/Codex skill that turns DataForSEO research into a working 30/60/90-day SEO strategy. This is the live walkthrough I gave the AI Marketing Hub P"
 tags:
   - "clippings"
@@ -18,11 +17,9 @@ In this video I run it against two real client sites: Christopher's Minneapolis 
   
 Marketing Brain is a Claude Code SEO skill. It scaffolds an Obsidian strategy vault, mines People Also Ask, builds a deduplicated keyword workbook, and synthesizes the ULTIMATE BEAST plan: a practical execution map for AI search, AI Overviews, and Google SERP. Pure white-hat. No fluff.  
   
-📝 RANKING CASE STUDIES IN THE COMMUNITY:  
-► claude-seo.md ranked using this exact system. Pure white-hat, one run.  
-  
 🎯 GET MARKETING BRAIN:  
 ► AI Marketing Hub Pro (theory to action, paid): https://www.skool.com/ai-marketing-hub-pro  
+or here if you don't like skool: https://erniseth.gumroad.com/l/ai-marketing-brain  
   
 🛠️ WHAT YOU NEED TO RUN IT:  
 ► Obsidian (free): https://obsidian.md  
@@ -58,11 +55,14 @@ Join our free hub:
 ► Claude Code Docs: https://code.claude.com/docs  
 ► VS Code Download: https://code.visualstudio.com/  
   
+📝 RANKING CASE STUDIES IN THE COMMUNITY:  
+► claude-seo.md ranked using this exact system. Pure white-hat, one run.  
+  
 🌐 WEBSITES IN THIS VIDEO:  
 ► Rankenstein Pro: https://rankenstein.pro (the engine that ships these skills)  
   
 👨‍💻 ABOUT ME:  
-I'm Daniel, host of AI Marketing Hub. I help 2,000+ members learn AI tools for marketing and automation. I build open-source tools because everyone deserves access to the good stuff.  
+I'm Daniel, host of AI Marketing Hub. I help people learn AI tools for marketing and automation. I build open-source tools because everyone deserves access to the good stuff.  
   
 🌐 Website: https://agricidaniel.com  
 📺 Subscribe: /@AgriciDaniel  

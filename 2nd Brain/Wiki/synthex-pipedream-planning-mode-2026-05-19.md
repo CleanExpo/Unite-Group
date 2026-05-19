@@ -54,6 +54,24 @@ Telegram / Plaud / Meeting Notes / Command Centre Input
 2nd Brain/Wiki/linear-packets/synthex-pipedream-command-center-2026-05-19.json
 ```
 
+## Research Council Upgrade
+
+The current Synthex sandbox now treats Karpathy-style research as a first-class
+command-center packet:
+
+```text
+Obsidian Source -> Wiki evidence -> Research Council -> Chair synthesis -> Human review
+```
+
+References:
+
+- [[synthex-karpathy-research-council-2026-05-19]]
+- [[spec-karpathy-pipeline-audit-2026-05-15]]
+- [[margot-conversation-os]]
+
+Hermes stays always-on as an operator and researcher. Publishing, spend,
+deployment, and public output remain behind Synthex/Unite-Group approval gates.
+
 ## Linked pages
 
-[[synthex]] · [[unite-crm]] · [[margot-conversation-os]] · [[unite-autonomous-command-center-authority-2026-05-19]] · [[aip-architecture]] · [[service-layer-architecture-2026-05-18]]
+[[synthex]] · [[unite-crm]] · [[margot-conversation-os]] · [[unite-autonomous-command-center-authority-2026-05-19]] · [[aip-architecture]] · [[service-layer-architecture-2026-05-18]] · [[synthex-karpathy-research-council-2026-05-19]]
