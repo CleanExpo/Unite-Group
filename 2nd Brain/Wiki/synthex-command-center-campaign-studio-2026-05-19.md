@@ -8,6 +8,27 @@ status: decided
 
 # Synthex Command Center Campaign Studio 2026-05-19
 
+## 2026-05-20 UI/UX Implementation Update
+
+Synthex landing-page UI now includes the first public-facing Campaign Command Studio experience slice. The new section makes the client journey explicit:
+
+`Voice brief captured -> Business context linked -> Market signal checked -> Agency council decides -> Assets move to production -> Gated distribution`
+
+It also introduces the ideation package deliverables as visible client value: website creation, lead magnets, thumbnail systems, brand planning, email campaigns, and video storyboards. This keeps the public experience aligned with the Command Center direction without referencing example-only client products.
+
+Implementation files:
+
+- `/Users/phill-mac/Documents/Synthex/app/page.tsx`
+- `/Users/phill-mac/Documents/Synthex/components/landing/public-v2.tsx`
+
+Verification:
+
+- `npm run type-check`
+- `npx eslint app/page.tsx components/landing/public-v2.tsx --max-warnings 0`
+- Browser smoke at `http://localhost:3008`
+- Desktop screenshot: `/Users/phill-mac/Documents/Synthex/.harness/synthex-landing-ui-2026-05-20-desktop.png`
+- Mobile screenshot: `/Users/phill-mac/Documents/Synthex/.harness/synthex-landing-ui-2026-05-20-mobile.png`
+
 ## Technical Translation Blueprint
 
 **User Intent:** Upgrade the Synthex Dashboard / Command Center from a status dashboard into a client-facing campaign operating room where a client can speak an idea through Telegram or WhatsApp and watch Synthex turn it into a researched, brand-aligned, approval-gated campaign.
