@@ -122,3 +122,17 @@ learning loop before any paid production or publishing.
 Director + QA Lead.
 **Condition for revisit:** A live platform connection or commercial policy changes
 the no-publish/no-spend/default-draft boundary.
+
+### 2026-05-19 — Media Assets Production Stack
+**Decision:** The Synthex media stack uses Remotion and HyperFrames for
+deterministic branded overlays, launch videos, captions, diagrams, thumbnails
+and source-to-video demos. Artlist is reserved for licensed music and high-value
+source media behind credential, budget, consent and licence gates. The first
+mini-app backlog is Storyboard Builder, Overlay Pack Generator, Thumbnail Lab,
+Lead Magnet Preview, Website Ideation Preview, Production Meter, Media QA Review
+and Asset Ledger.
+**Directive to:** PM-Synthex + Creative Director + Technical Architect + QA Lead
++ Compliance.
+**Condition for revisit:** Artlist exposes and verifies a public Studio AI media
+API, HyperFrames access/docs change materially, or Remotion licensing/render
+volume changes the production economics.
