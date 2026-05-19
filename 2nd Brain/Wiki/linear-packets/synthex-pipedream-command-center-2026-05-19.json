@@ -1,0 +1,42 @@
+[
+  {
+    "project_key": "synthex",
+    "title": "Build Synthex Pipedream command-center control plane",
+    "priority": 1,
+    "status": "todo",
+    "labels": ["command-centre", "autonomy", "planning", "hitl"],
+    "description": "Build the service-layer control plane for the Synthex Pipedream: Board input intake, Margot conversation pass, Nexus ontology linking, @team routing, scenario drafts, presentation QA, provider readiness, and outcome learning."
+  },
+  {
+    "project_key": "synthex",
+    "title": "Add draft-only command-centre intake route",
+    "priority": 2,
+    "status": "todo",
+    "labels": ["api", "command-centre", "supabase-auth", "org-scope"],
+    "description": "Add POST /api/command-centre/intake as a thin route with Zod validation, Supabase auth, organisation scoping, and a draft-only CommandPacket response."
+  },
+  {
+    "project_key": "synthex",
+    "title": "Add @team and Margot queue panel to Command Centre",
+    "priority": 2,
+    "status": "todo",
+    "labels": ["ui", "command-centre", "margot", "team"],
+    "description": "Extend the existing Command Centre UI with Board input queue, Margot queue, @team dispatch cards, evidence/risk/approval/provider badges, and failure-state visibility."
+  },
+  {
+    "project_key": "synthex",
+    "title": "Add presentation QA gate for live-event and Gen Media packets",
+    "priority": 2,
+    "status": "todo",
+    "labels": ["presentation", "qa", "gen-media", "accessibility"],
+    "description": "Build a presentation QA service and UI gate for generated board packets, live-event decks, visual boards, and Gen Media briefs."
+  },
+  {
+    "project_key": "synthex",
+    "title": "Wire Hermes continuous-ops observation into Synthex sandbox plan",
+    "priority": 3,
+    "status": "todo",
+    "labels": ["hermes", "telegram", "continuous-ops", "sandbox"],
+    "description": "Use Hermes as the local continuous-ops assistant for status observation, morning briefs, Telegram intake support, and handoff packets."
+  }
+]

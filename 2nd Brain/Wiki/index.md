@@ -32,6 +32,7 @@ Content-oriented catalog of all pages. One line per page. See [[log]] for histor
 - [[restore-assist]] — iOS app for restoration industry; TestFlight → App Store
 - [[play-console-account]] — Google Play Console developer account ID 8950300821619026235; restricted-account recovery + DUNS unblock plan (Margot deep research 2026-05-15)
 - [[synthex]] — Marketing-automation SaaS; internal + external (CCW uses it)
+- [[synthex-pipedream-planning-mode-2026-05-19]] — Sandbox-to-live plan for the Synthex autonomous operating pipeline: Brain-1/Wiki, Hermes/Margot, Command Centre, `@team`, Gen Media, provider adapters, presentation QA, and human approval gates
 - [[dr-nrpg]] — Disaster Recovery / National Restoration Practitioners Group
 - [[carsi]] — Compliance delivery product
 - [[unite-crm]] — Unite-Group CRM; ccw-crm is first external deployment
