@@ -216,3 +216,5 @@ Content-oriented catalog of all pages. One line per page. See [[log]] for histor
 
 - [[plaud/_index]] — Plaud NotePin S recordings, auto-ingested every 5 min via LaunchAgent. One markdown page per recording with summary + full transcript. See `~/Pi-CEO/Pi-Dev-Ops/docs/superpowers/specs/2026-05-17-plaud-brain-ingestion-design.md` for design.
 - [[client-user-journey]] — End-to-end client and internal agent journey. Must be protected when adding new tools or automation (2026-05-20).
+- [[production-readiness-checklist]] — Mandatory checklist before any Nexus or gamification feature is considered production-ready.
+- [[mandatory-close-the-loop-protocol]] — Mandatory idea-to-production protocol from Linear UNI-2046; prevents partial delivery by requiring capture, grounding, integration, verification, registration, observation, and Linear/Wiki closure.
