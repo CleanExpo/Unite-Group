@@ -215,3 +215,4 @@ Content-oriented catalog of all pages. One line per page. See [[log]] for histor
 ## Live Ingestion
 
 - [[plaud/_index]] — Plaud NotePin S recordings, auto-ingested every 5 min via LaunchAgent. One markdown page per recording with summary + full transcript. See `~/Pi-CEO/Pi-Dev-Ops/docs/superpowers/specs/2026-05-17-plaud-brain-ingestion-design.md` for design.
+- [[client-user-journey]] — End-to-end client and internal agent journey. Must be protected when adding new tools or automation (2026-05-20).
