@@ -157,3 +157,12 @@ they can become campaign recommendations.
 **Condition for revisit:** The service contract fails to map live Apify, Google,
 social, or Wiki research output into ranked opportunities without losing
 evidence, confidence, risk, and approval state.
+
+### 2026-05-22 — Governed Signal Ledger M12 Slice 3
+**Decision:** Persist governed Marketing Agency signals before UI exposure. The
+durable store now carries source evidence, signal score, risk state, approval
+gate, linked opportunities, and outcome-learning events.
+**Directive to:** PM-Synthex + Technical Architect + QA Lead.
+**Condition for revisit:** Command Centre or Health Loop consumers cannot query
+persisted signal/opportunity state by organization without bypassing approval
+or evidence gates.

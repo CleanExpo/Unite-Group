@@ -27,7 +27,10 @@ Source Data -> Ontology Object -> Linked Evidence -> Signal Score -> Agent Actio
 - Synthex Apify adapter: `lib/marketing-agency/intelligence/apify-signal-adapter.ts`
 - Synthex test file: `tests/unit/marketing-agency/signal-ledger.test.ts`
 - Synthex Apify test file: `tests/unit/marketing-agency/apify-signal-adapter.test.ts`
+- Synthex persistence service: `lib/marketing-agency/intelligence/signal-persistence.ts`
+- Synthex persistence test file: `tests/unit/marketing-agency/signal-persistence.test.ts`
 - Synthex script: `scripts/marketing-agency-apify-intelligence.ts`
+- Synthex migration: `prisma/migrations/20260522_add_marketing_agency_signal_persistence/migration.sql`
 
 ## What Changed
 
@@ -37,7 +40,9 @@ Source Data -> Ontology Object -> Linked Evidence -> Signal Score -> Agent Actio
 - Added opportunity conversion that only promotes governed, evidence-backed signals.
 - Added an Apify-to-governed-signal adapter for Google/search and social records.
 - Updated `marketing-agency:apify-intel` so stdout is parseable JSON and live output includes `governedSignals`, `rankedSignals`, and `opportunities`.
-- Kept the slice service-only: no route, UI, database, provider, publishing, or ad-spend changes.
+- Added organization-scoped persistence for governed signals, opportunities, and outcome-learning events.
+- Added opt-in Apify persistence via `MARKETING_AGENCY_SIGNAL_ORGANIZATION_ID`; JSON-only runs remain the default when this is unset.
+- Kept the slice out of UI/publishing: no route, UI, provider endpoint, publishing, or ad-spend changes.
 
 ## Verification
 
@@ -46,16 +51,27 @@ Source Data -> Ontology Object -> Linked Evidence -> Signal Score -> Agent Actio
 - `npm run type-check` - pass
 - `npx eslint lib/marketing-agency/intelligence/apify-signal-adapter.ts lib/marketing-agency/intelligence/signal-ledger.ts tests/unit/marketing-agency/apify-signal-adapter.test.ts tests/unit/marketing-agency/signal-ledger.test.ts tests/unit/marketing-agency/apify-intelligence.test.ts --max-warnings=0` - pass
 - `npm run --silent marketing-agency:apify-intel > /tmp/restoreassist-apify-intel-slice2.json` - pass, stdout JSON parsed cleanly with no ANSI codes
+- `npx prisma validate` - pass
+- `npx prisma generate` - pass
+- `npx jest tests/unit/marketing-agency/signal-persistence.test.ts tests/unit/marketing-agency/signal-ledger.test.ts tests/unit/marketing-agency/apify-signal-adapter.test.ts tests/unit/marketing-agency/apify-intelligence.test.ts --runInBand` - pass, 14 tests
+- `npm run type-check` - pass
+- `npx eslint lib/marketing-agency/intelligence/signal-persistence.ts tests/unit/marketing-agency/signal-persistence.test.ts --max-warnings=0 && npx eslint scripts/marketing-agency-apify-intelligence.ts --no-warn-ignored --max-warnings=0` - pass
+- `npm run --silent marketing-agency:apify-intel > /tmp/restoreassist-apify-intel-slice3-lazy.json` - pass, stdout JSON parsed cleanly with no ANSI codes; persistence skipped because `MARKETING_AGENCY_SIGNAL_ORGANIZATION_ID` was not configured
 
 ## Current State
 
 State: Verified
 
-Live Apify verification on 2026-05-22 produced four Google-derived governed signals and zero opportunity promotions because the returned Google records lacked enough extracted content/metrics to pass the governed opportunity gate. This is correct: partial provider evidence is retained as signals, but weak records do not become recommendations.
+Live Apify verification on 2026-05-22 produced Google-derived governed signals and zero opportunity promotions because the returned Google records lacked enough extracted content/metrics to pass the governed opportunity gate. This is correct: partial provider evidence is retained as signals, but weak records do not become recommendations.
+
+Slice 3 adds the durable store for this loop:
+
+- `marketing_agency_signals` stores source, evidence, score, risk, approval gate, raw signal, and campaign/org scope.
+- `marketing_agency_opportunities` stores promoted recommendations linked back to persisted signal rows.
+- `marketing_agency_outcome_events` stores observed approval/performance/learning events for Health Loop feedback.
 
 This is the contract foundation for the next M12 slices:
 
-- add persistence once the contract is stable
 - expose ranked opportunities in the Command Centre or Marketing Agency route
 - feed usage and outcome learning back into the Health Loop
 
