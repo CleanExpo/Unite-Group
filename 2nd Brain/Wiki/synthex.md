@@ -166,3 +166,11 @@ gate, linked opportunities, and outcome-learning events.
 **Condition for revisit:** Command Centre or Health Loop consumers cannot query
 persisted signal/opportunity state by organization without bypassing approval
 or evidence gates.
+
+### 2026-05-22 — Governed Signal Ledger M12 Slice 4
+**Decision:** Expose the persisted opportunity ledger through a read-only
+Marketing Agency API and dashboard panel before adding any execution controls.
+**Directive to:** PM-Synthex + Technical Architect + QA Lead.
+**Condition for revisit:** The dashboard cannot show evidence, confidence, risk,
+approval state, next action, and outcome metric from persisted organization
+records without falling back to fixtures.

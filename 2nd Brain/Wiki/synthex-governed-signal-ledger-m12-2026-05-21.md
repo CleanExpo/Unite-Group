@@ -22,13 +22,17 @@ Source Data -> Ontology Object -> Linked Evidence -> Signal Score -> Agent Actio
 ## Implemented Slices
 
 - Linear issue: SYN-968
-- Branch: `feat/syn-968-governed-signal-ledger`
+- Branch: `feat/syn-968-signal-persistence`
 - Synthex service file: `lib/marketing-agency/intelligence/signal-ledger.ts`
 - Synthex Apify adapter: `lib/marketing-agency/intelligence/apify-signal-adapter.ts`
 - Synthex test file: `tests/unit/marketing-agency/signal-ledger.test.ts`
 - Synthex Apify test file: `tests/unit/marketing-agency/apify-signal-adapter.test.ts`
 - Synthex persistence service: `lib/marketing-agency/intelligence/signal-persistence.ts`
 - Synthex persistence test file: `tests/unit/marketing-agency/signal-persistence.test.ts`
+- Synthex opportunity reader: `lib/marketing-agency/intelligence/opportunity-reader.ts`
+- Synthex opportunity API: `app/api/marketing-agency/opportunities/route.ts`
+- Synthex dashboard panel: `components/marketing-agency/GovernedOpportunitiesPanel.tsx`
+- Synthex opportunity tests: `tests/unit/marketing-agency/opportunity-reader.test.ts`, `tests/unit/api/marketing-agency-opportunities.test.ts`
 - Synthex script: `scripts/marketing-agency-apify-intelligence.ts`
 - Synthex migration: `prisma/migrations/20260522_add_marketing_agency_signal_persistence/migration.sql`
 
@@ -42,7 +46,8 @@ Source Data -> Ontology Object -> Linked Evidence -> Signal Score -> Agent Actio
 - Updated `marketing-agency:apify-intel` so stdout is parseable JSON and live output includes `governedSignals`, `rankedSignals`, and `opportunities`.
 - Added organization-scoped persistence for governed signals, opportunities, and outcome-learning events.
 - Added opt-in Apify persistence via `MARKETING_AGENCY_SIGNAL_ORGANIZATION_ID`; JSON-only runs remain the default when this is unset.
-- Kept the slice out of UI/publishing: no route, UI, provider endpoint, publishing, or ad-spend changes.
+- Added an authenticated, organization-scoped opportunities read API and Marketing Agency dashboard panel.
+- Kept the slice out of execution/publishing: no provider endpoint, action button, publishing, or ad-spend changes.
 
 ## Verification
 
@@ -57,6 +62,12 @@ Source Data -> Ontology Object -> Linked Evidence -> Signal Score -> Agent Actio
 - `npm run type-check` - pass
 - `npx eslint lib/marketing-agency/intelligence/signal-persistence.ts tests/unit/marketing-agency/signal-persistence.test.ts --max-warnings=0 && npx eslint scripts/marketing-agency-apify-intelligence.ts --no-warn-ignored --max-warnings=0` - pass
 - `npm run --silent marketing-agency:apify-intel > /tmp/restoreassist-apify-intel-slice3-lazy.json` - pass, stdout JSON parsed cleanly with no ANSI codes; persistence skipped because `MARKETING_AGENCY_SIGNAL_ORGANIZATION_ID` was not configured
+- `npx jest tests/unit/api/marketing-agency-opportunities.test.ts tests/unit/marketing-agency/opportunity-reader.test.ts tests/unit/api/command-centre-provider-readiness.test.ts tests/unit/marketing-agency/signal-persistence.test.ts tests/unit/marketing-agency/signal-ledger.test.ts tests/unit/marketing-agency/apify-signal-adapter.test.ts --runInBand` - pass, 20 tests
+- `npm run type-check` - pass
+- `npm run lint` - pass
+- `npm test -- --runInBand` - pass, 220 suites and 3,557 tests
+- `npm run build` - pass, includes `/api/marketing-agency/opportunities`
+- Playwright smoke against `next start -p 3011` - pass for `/dashboard/marketing-agency` rendering `Ranked Opportunities` and `Open Package`; unauthenticated/invalid local cookie produced expected API 400/401 console fetch errors because local DB/auth env was not configured
 
 ## Current State
 
@@ -70,9 +81,14 @@ Slice 3 adds the durable store for this loop:
 - `marketing_agency_opportunities` stores promoted recommendations linked back to persisted signal rows.
 - `marketing_agency_outcome_events` stores observed approval/performance/learning events for Health Loop feedback.
 
-This is the contract foundation for the next M12 slices:
+Slice 4 exposes the durable opportunity ledger:
 
-- expose ranked opportunities in the Command Centre or Marketing Agency route
+- `GET /api/marketing-agency/opportunities` returns active-organization opportunities with signal source, score, risk, evidence, approval, next action, and outcome metric.
+- `/dashboard/marketing-agency` now renders a passive `Ranked Opportunities` panel backed by that API.
+- The panel is review-only; it does not create provider execution, publish, or spend controls.
+
+This is the contract foundation for the next M12 slice:
+
 - feed usage and outcome learning back into the Health Loop
 
 ## Related
