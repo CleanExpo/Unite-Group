@@ -147,3 +147,13 @@ only; this slice uses Synthex's approved providers and existing API surfaces.
 **Condition for revisit:** The sandbox cockpit fails to create a clearer client
 approval path than the existing campaign package page, or service-layer tests
 cannot validate the command-center state contract.
+
+### 2026-05-21 — Governed Signal Ledger M12
+**Decision:** Start M12 with the governed signal contract before UI, persistence,
+or provider work. Synthex Marketing Agency signals now need typed source,
+evidence, score, risk, approval, opportunity, and outcome-learning objects before
+they can become campaign recommendations.
+**Directive to:** PM-Synthex + Technical Architect + QA Lead.
+**Condition for revisit:** The service contract fails to map live Apify, Google,
+social, or Wiki research output into ranked opportunities without losing
+evidence, confidence, risk, and approval state.
