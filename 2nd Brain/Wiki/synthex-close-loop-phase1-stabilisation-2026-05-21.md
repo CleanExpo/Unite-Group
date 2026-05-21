@@ -35,9 +35,23 @@ Synthex Phase 1 now has a concrete implementation path for the [[mandatory-close
 
 ## Current State
 
-State: Preview Ready
+State: Closed
 
-The implementation is waiting on GitHub CI and Vercel preview from PR #282. Once green, merge to Synthex `main`, sync local main, and update Linear `UNI-2046` with the PR and CI evidence.
+PR #282 is merged to Synthex `main` and local `main` is synced to `origin/main`.
+
+Final merge commit on main: `50994dd8`
+
+GitHub/Vercel evidence:
+
+- Build — pass
+- Type Check — pass
+- Lint — pass
+- Unit Tests — pass
+- Security Scan — pass
+- Snyk Vulnerability Scan — pass
+- Trivy Security Scan — pass
+- CodeQL — pass
+- Vercel preview — pass
 
 ## Related
 
