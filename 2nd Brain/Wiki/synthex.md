@@ -182,3 +182,12 @@ Health Loop as optional learning signals, not required pipeline health.
 **Condition for revisit:** Outcome learning starts blocking core Health Loop
 status for new organizations, or the Command Centre cannot display recent
 Marketing Agency outcome events without bypassing organization scope.
+
+### 2026-05-22 — Governed Signal Ledger M12 PR #285 Review Gate
+**Decision:** Treat CodeRabbit's PR #285 review as a merge gate and harden the
+M12 ledger before merge. Outcome events now require matching signal/opportunity
+ownership, historical outcomes can surface stale learning, malformed capture
+timestamps fail fast, and Prisma/RLS boundaries include tenant-scoped relations.
+**Directive to:** PM-Synthex + Technical Architect + QA Lead.
+**Condition for revisit:** Hosted review or branch protection continues to block
+merge after `ca417ea0` and all local verification remains green.

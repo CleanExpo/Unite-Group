@@ -54,6 +54,7 @@ Source Data -> Ontology Object -> Linked Evidence -> Signal Score -> Agent Actio
 - Added an authenticated, organization-scoped opportunities read API and Marketing Agency dashboard panel.
 - Added Marketing Agency outcome events to the Command Centre Health Loop as optional learning signals.
 - Kept missing or stale outcome events separate from required CI/Wiki/semantic pipeline health so new organizations do not fail the core loop before campaigns have outcomes.
+- Addressed PR #285 review gates: malformed signal timestamps now fail fast, outcome events reject missing or cross-signal opportunities, stale outcome learning is observable, composite tenant-scoped signal/opportunity relations are enforced, Apify persistence failures stay structured JSON, and the opportunity panel uses the shared API hook.
 - Kept the slice out of execution/publishing: no provider endpoint, action button, publishing, or ad-spend changes.
 
 ## Verification
@@ -82,6 +83,14 @@ Source Data -> Ontology Object -> Linked Evidence -> Signal Score -> Agent Actio
 - `npm test -- --runInBand` - pass, 220 suites and 3,559 tests
 - `npm run build` - pass, includes `/api/command-centre/status` and `/dashboard`
 - `git diff --check` - pass
+- `npx prisma validate` - pass after review-gate schema changes
+- `npx prisma generate` - pass after review-gate schema changes
+- `npx jest tests/unit/marketing-agency/signal-persistence.test.ts __tests__/unit/close-loop/health.test.ts --runInBand` - pass, 12 tests
+- `npm run --silent marketing-agency:apify-intel > /tmp/restoreassist-apify-intel-review-fix.json` - pass, stdout JSON parsed cleanly; persistence skipped because `MARKETING_AGENCY_SIGNAL_ORGANIZATION_ID` was not configured
+- `npm run lint` - pass
+- `npm test -- --runInBand` - pass, 220 suites and 3,563 tests
+- `npm run build` - pass after review-gate fixes
+- `git diff --check` - pass
 
 ## Current State
 
@@ -108,7 +117,15 @@ Slice 5 closes the M12 visibility loop:
 - `HealthLoopCard` displays outcome learning beside required pipeline health.
 - Outcome learning is passive observability only; no campaign execution, provider publishing, or ad-spend controls were added.
 
-Remaining handoff gate: PR #285 still needs normal review/merge, migration application, and live authenticated smoke verification against production data.
+Review-gate fix `ca417ea0` hardens the slice before merge:
+
+- Outcome events are only created when the supplied opportunity belongs to the same persisted signal.
+- Historical outcome events are fetched so the Health Loop can report `stale` instead of collapsing old data into `no_data`.
+- Signal capture timestamps no longer fall back to current time when upstream data is malformed.
+- Prisma and SQL migration relations include `organizationId` in signal/opportunity foreign keys.
+- RLS policies include active business ownerships and accepted team members.
+
+Remaining handoff gate: PR #285 still needs hosted checks/review to settle after `ca417ea0`, then merge, migration application, and live authenticated smoke verification against production data.
 
 ## Related
 
