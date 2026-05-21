@@ -191,3 +191,15 @@ timestamps fail fast, and Prisma/RLS boundaries include tenant-scoped relations.
 **Directive to:** PM-Synthex + Technical Architect + QA Lead.
 **Condition for revisit:** Hosted review or branch protection continues to block
 merge after `ca417ea0` and all local verification remains green.
+
+### 2026-05-22 — Governed Signal Ledger M12 Production Migration Closure
+**Decision:** PR #285 is merged and production is not considered closed until
+the database schema is verified live, because the deploy workflow does not apply
+Prisma migrations. PR #286 adds the missing `marketing_agency_campaigns`
+prerequisite table to the M12 migration source after production execution exposed
+the gap. Production now has the campaign, signal, opportunity, and outcome-event
+tables with org-isolation RLS policies and composite tenant foreign keys.
+**Directive to:** PM-Synthex + Technical Architect + QA Lead.
+**Condition for revisit:** A future deploy workflow starts applying migrations
+automatically, or live schema verification shows drift from the committed Prisma
+migration source.

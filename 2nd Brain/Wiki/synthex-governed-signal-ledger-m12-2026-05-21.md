@@ -94,7 +94,7 @@ Source Data -> Ontology Object -> Linked Evidence -> Signal Score -> Agent Actio
 
 ## Current State
 
-State: Verified
+State: Production-verified
 
 Live Apify verification on 2026-05-22 produced Google-derived governed signals and zero opportunity promotions because the returned Google records lacked enough extracted content/metrics to pass the governed opportunity gate. This is correct: partial provider evidence is retained as signals, but weak records do not become recommendations.
 
@@ -125,7 +125,15 @@ Review-gate fix `ca417ea0` hardens the slice before merge:
 - Prisma and SQL migration relations include `organizationId` in signal/opportunity foreign keys.
 - RLS policies include active business ownerships and accepted team members.
 
-Remaining handoff gate: PR #285 still needs hosted checks/review to settle after `ca417ea0`, then merge, migration application, and live authenticated smoke verification against production data.
+Merge and production closure:
+
+- PR #285 merged on 2026-05-21 as `3b455501`.
+- Production migration prerequisite gap found after merge: the deploy workflow does not apply Prisma migrations, and production was missing `marketing_agency_campaigns`.
+- PR #286 merged on 2026-05-21 as `e033ab1a` to add the missing campaign prerequisite table, campaign RLS policy, indexes, and trigger to the M12 migration source.
+- The M12 migration was applied manually to production using trimmed `DIRECT_URL` from ignored local env, with no secret values written to tracked files or chat.
+- Production DB verification confirmed `marketing_agency_campaigns`, `marketing_agency_signals`, `marketing_agency_opportunities`, and `marketing_agency_outcome_events` exist with org-isolation RLS policies and composite tenant foreign keys.
+- Main commit `e033ab1a` is green across CI, Security, DESIGN.md lint, Deploy, deploy-workflow Lighthouse, and standalone Lighthouse Audit.
+- Public smoke check for `https://synthex.social` returned HTTP 200 from Vercel.
 
 ## Related
 
