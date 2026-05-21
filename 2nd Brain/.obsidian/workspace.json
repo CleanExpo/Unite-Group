@@ -11,10 +11,14 @@
             "id": "4e2514561c1dd3d4",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
+              "type": "markdown",
+              "state": {
+                "file": "Sources/Your Coding Agent Should Do AI System Engineering — Ben Burtenshaw, Hugging Face.md",
+                "mode": "source",
+                "source": false
+              },
               "icon": "lucide-file",
-              "title": "New tab"
+              "title": "Your Coding Agent Should Do AI System Engineering — Ben Burtenshaw, Hugging Face"
             }
           }
         ]
@@ -178,6 +182,17 @@
   },
   "active": "4e2514561c1dd3d4",
   "lastOpenFiles": [
+    "Sources/5 FREE Upgrades to Makes Herme Agent 10X Better!.md",
+    "Sources/Your Coding Agent Should Do AI System Engineering — Ben Burtenshaw, Hugging Face.md",
+    "Wiki/synthex-governed-signal-ledger-m12-2026-05-21.md",
+    "Sources/Claude Code for FREE + Hermes AI Browser Agent.md",
+    "Sources/handoff is my new favourite skill.md",
+    "Sources/Master Hermes Agent in 41 mins.md",
+    "Sources/This AI Tool Maps Any Codebase Before You Touch It (Understand-Anything).md",
+    "Sources/How I'd Rank a Brand-New Website in 2026 (Claude Code).md",
+    "Sources/Do THIS To Save Your Pages Now!  Major Google SEO Update.md",
+    "Sources/The Old SEO System Is Collapsing. Here's What Replaces It..md",
+    "Sources/This AI Just Replaced Financial Advisors.md",
     "Sources/Omni 2    Gemini API Developer Competition.md",
     "Sources/Completed/Omni 2    Gemini API Developer Competition.md",
     "Sources/Completed/Welcome to the Omni docs!.md",
@@ -193,17 +208,6 @@
     "Sources/Science.md",
     "Sources/Models.md",
     "Sources/Research.md",
-    "Sources/Gemini Omni.md",
-    "Sources/Using Excel-style functions to create table calculations.md",
-    "Sources/From workbook to modeling Setting up Omni.md",
-    "Sources/Completed/Gemini API    Google AI for Developers.md",
-    "Sources/Completed/Set up your coding assistant with Gemini MCP and Skills    Gemini API    Google AI for Developers.md",
-    "Sources/Completed/Gemini Interactions API    Google AI for Developers.md",
-    "Sources/Completed/Gemini API    Google AI for Developers 1.md",
-    "Sources/AI in Omni.md",
-    "Sources/Welcome to the Omni docs!.md",
-    "Sources/AlloyDB Omni documentation.md",
-    "Sources/Gemini Interactions API    Google AI for Developers.md",
     "Untitled 1.base",
     "Untitled.canvas",
     "Untitled.base",

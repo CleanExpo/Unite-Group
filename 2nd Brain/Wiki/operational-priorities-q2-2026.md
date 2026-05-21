@@ -54,7 +54,7 @@ PR #203 merged — 4 swarm dedup invariants enforced (see [[pi-ceo-architecture]
 - 73 duplicate `[CI FAILURE]` tickets, 25 duplicate `[SCOUT]` tickets resolved as Duplicate state
 - Unite-Group main CI: red 3 days → **green** (TS interface fix)
 
-Of the remaining 43, only ~4 are real product items: RA-2026 (Hermes deploy, in progress), RA-2141 (CASHE remediation), RA-2142 (hourly status), RA-2162 (daily briefing). Rest are auto-generated stubs the dedup rules will keep from regrowing.
+Of the remaining 43, only ~4 are real product items: RA-2026 (Hermes deploy, in progress), RA-2141 (Task Completion Gate — CASHE eliminated per founder directive for 100% green verified handoff), RA-2142 (hourly status), RA-2162 (daily briefing). Rest are auto-generated stubs the dedup rules will keep from regrowing.
 
 ## Billing Model (updated 2026-05-10)
 

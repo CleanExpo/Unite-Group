@@ -3,7 +3,7 @@ title: "dr-nrpg Tech Stack"
 source: "https://github.com/CleanExpo/DR-NRPG"
 repo: "CleanExpo/DR-NRPG"
 file_type: "tech-stack"
-captured: "2026-05-19"
+captured: "2026-05-21"
 tags:
   - clippings
   - github
@@ -46,7 +46,7 @@ tags:
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:reset": "docker compose down -v && docker compose up -d",
-    "test:smoke": "jest --config jest.smoke.config.js --verbose --forceExit",
+    "test:smoke": "pnpm --filter nrpg-web exec jest --config ../../jest.smoke.config.js --verbose --forceExit",
     "training:generate-images": "tsx scripts/generate-training-images.ts",
     "training:integrate-images": "tsx scripts/integrate-training-images.ts"
   },

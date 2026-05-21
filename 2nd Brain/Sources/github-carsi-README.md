@@ -3,7 +3,7 @@ title: "carsi: Online Training LMS"
 source: "https://github.com/CleanExpo/carsi/blob/main/README.md"
 repo: "CleanExpo/carsi"
 file_type: "README"
-captured: "2026-05-19"
+captured: "2026-05-21"
 tags:
   - clippings
   - github

@@ -3,7 +3,7 @@ title: "ccw-crm — README.md"
 source: "https://github.com/CleanExpo/CCW-CRM/blob/main/README.md"
 repo: "CleanExpo/CCW-CRM"
 file_type: "README"
-captured: "2026-05-19"
+captured: "2026-05-21"
 tags:
   - clippings
   - github

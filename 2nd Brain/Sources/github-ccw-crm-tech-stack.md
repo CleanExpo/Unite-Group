@@ -3,7 +3,7 @@ title: "ccw-crm Tech Stack"
 source: "https://github.com/CleanExpo/CCW-CRM"
 repo: "CleanExpo/CCW-CRM"
 file_type: "tech-stack"
-captured: "2026-05-19"
+captured: "2026-05-21"
 tags:
   - clippings
   - github

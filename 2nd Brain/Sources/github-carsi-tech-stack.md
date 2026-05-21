@@ -3,7 +3,7 @@ title: "carsi Tech Stack"
 source: "https://github.com/CleanExpo/carsi"
 repo: "CleanExpo/carsi"
 file_type: "tech-stack"
-captured: "2026-05-19"
+captured: "2026-05-21"
 tags:
   - clippings
   - github
@@ -59,7 +59,11 @@ tags:
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
     "db:studio": "prisma studio",
-    "db:set-user-password": "npx tsx --tsconfig tsconfig.json scripts/ensure-lms-user-password.ts"
+    "db:set-user-password": "npx tsx --tsconfig tsconfig.json scripts/ensure-lms-user-password.ts",
+    "db:list-low-module-courses": "npx tsx scripts/list-courses-under-module-count.ts",
+    "db:analyze-module-mismatch": "npx tsx scripts/analyze-module-title-mismatch.ts",
+    "db:sync-specialty-modules": "npx tsx scripts/sync-specialty-modules-from-collection-txt.ts",
+    "db:seed-specialty-collection-txt": "npx tsx scripts/seed-carsi-specialty-courses-collection-txt.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",
@@ -90,8 +94,4 @@ tags:
     "react-dom": "19.2.4"
   },
   "lint-staged": {
-    "*.{js,jsx,ts,tsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
 ```

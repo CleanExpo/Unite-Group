@@ -48,6 +48,8 @@ Content-oriented catalog of all pages. One line per page. See [[log]] for histor
 - [[claude-code-guide]] — 27 essential Claude Code concepts, permissions, and best practices for non-technical users
 - [[hermes-agent]] — 7-level setup guide for Hermes agent, including VPS hosting, token-saving curator, and MCP server backend
 - [[hermes-agent-sprinkle-audit-2026-05-11]] — Audit of 27 Hermes cron jobs (memory said 19, was stale) for Cal Rueb "sprinkle in agent" embedding points; top-5 ranked candidates + jobs that should stay deterministic
+- [[agent-memory-patterns-2026-05-21]] — Hermes vs MemArch hybrid: Store/Inject/Recall three-function framework; recommended hybrid for Unite-Group; drives knowledge-substrate wrapper mandate
+- [[knowledge-substrate-wrapper-protocol]] — Mandatory wrapper for every project: first 3 tool calls attempt brain lookup (Obsidian + Supabase wiki_pages + Hermes memory) before external research or generation; cuts LLM staleness and AI slop; tracked via hit-rate logs
 
 - [[pi-ceo-architecture]] — Three-layer system (Margot → Board → Senior Agents)
 - [[service-layer-architecture-2026-05-18]] — David Ondrej framing codified as portfolio skill; actions own orchestration, service modules own runtime mechanics + return `ServiceResult<T, E>`; cross-stack (Convex / Next.js / FastAPI / NestJS); 14 service modules live in RA at PR #1117

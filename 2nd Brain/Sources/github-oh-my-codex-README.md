@@ -3,7 +3,7 @@ title: "oh-my-codex: OmX - Oh My codeX: Your codex is not alone. Add hooks, agen
 source: "https://github.com/CleanExpo/oh-my-codex/blob/main/README.md"
 repo: "CleanExpo/oh-my-codex"
 file_type: "README"
-captured: "2026-05-19"
+captured: "2026-05-21"
 tags:
   - clippings
   - github

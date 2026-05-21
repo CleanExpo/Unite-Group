@@ -3,7 +3,7 @@ title: "synthex Tech Stack"
 source: "https://github.com/CleanExpo/Synthex"
 repo: "CleanExpo/Synthex"
 file_type: "tech-stack"
-captured: "2026-05-19"
+captured: "2026-05-21"
 tags:
   - clippings
   - github

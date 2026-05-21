@@ -3,7 +3,7 @@ title: "nodejs-starter: Start a new project with NodeJS Starter V1"
 source: "https://github.com/CleanExpo/NodeJS-Starter-V1/blob/main/README.md"
 repo: "CleanExpo/NodeJS-Starter-V1"
 file_type: "README"
-captured: "2026-05-19"
+captured: "2026-05-21"
 tags:
   - clippings
   - github
