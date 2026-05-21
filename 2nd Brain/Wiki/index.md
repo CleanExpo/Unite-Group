@@ -34,6 +34,7 @@ Content-oriented catalog of all pages. One line per page. See [[log]] for histor
 - [[synthex]] — Marketing-automation SaaS; internal + external (CCW uses it)
 - [[synthex-pipedream-planning-mode-2026-05-19]] — Sandbox-to-live plan for the Synthex autonomous operating pipeline: Brain-1/Wiki, Hermes/Margot, Command Centre, `@team`, Gen Media, provider adapters, presentation QA, and human approval gates
 - [[synthex-close-loop-phase1-stabilisation-2026-05-21]] — Synthex UNI-2046 Phase 1 implementation note: semantic_search callable registration, secured internal route, weekly Close the Loop health cron, and PR #282 evidence
+- [[synthex-health-loop-command-centre-2026-05-21]] — Synthex UNI-2046 Health Loop note: Command Center card for Close Loop runtime health, evidence freshness, and per-pipeline state in PR #283
 - [[dr-nrpg]] — Disaster Recovery / National Restoration Practitioners Group
 - [[carsi]] — Compliance delivery product
 - [[unite-crm]] — Unite-Group CRM; ccw-crm is first external deployment
