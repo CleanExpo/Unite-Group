@@ -151,6 +151,18 @@ Minimum v0:
 - Plaud packet: transcript -> Margot brief -> CRM task -> Kanban task.
 - RYG dashboard: active agents, blocked agents, approvals, evidence, Hermes update scout.
 
+## 2026-05-21 Source Update
+
+The new agent-harness Source batch reinforces the same architecture: the cockpit is only useful if the AI layer behind it is disciplined. Add [[agentic-engineering-harness-2026-05-21]] as the engineering standard for cockpit-driven repo work.
+
+Implementation implications:
+
+- Cockpit sessions should start with a repo map, current git state, recent commits, and the relevant Wiki pages.
+- Stop-session reflection should propose instruction or skill updates, but never silently mutate governance.
+- Large repo work needs symbol-aware navigation where available; `rg` remains the fallback.
+- Goal-driven execution is now a first-class cockpit control: each task needs a completion condition, checks, and close-loop evidence.
+- Voice/phone intake belongs in the same evidence trail as Plaud and Telegram, not in a separate assistant silo.
+
 Approval gates:
 - Phill approves production deploys, spend, publishing, credential changes, endpoint changes, and strategic pivots.
 - Board/Margot can review and recommend, but not override those gates.

@@ -74,6 +74,8 @@ Content-oriented catalog of all pages. One line per page. See [[log]] for histor
 - [[computer-use-integration-2026-05-13]] — Wires Hermes v0.13.0 computer_use toolset into Pi-CEO swarm so Margot + Board + senior agents drive macOS GUI autonomously
 - [[hermes-update-finalisation-2026-05-14]] — Hermes v0.13.0 upgrade finalisation report; hermes doctor green; env migrated
 - [[hermes-v0.13.0-survey-2026-05-14]] — Hermes v0.13.0 (Tenacity Release) feature delta from v0.12.0 + integration plan for Pi-CEO swarm
+- [[agentic-engineering-harness-2026-05-21]] — AI-layer operating standard from latest Source batch: lean rules, scoped skills, hooks, MCP/LSP navigation, subagents, goal loops, and close-loop evidence
+- [[gemini-api-platform-notes-2026-05-21]] — Current Gemini API notes: stable `generateContent`, beta Interactions API, server-side state, retention, background tasks, and production gating
 
 ## Audits
 - [[spec-brain2-sync-infra-2026-05-15]] — Brain-2 Margot sync infra spec: 3 locked decisions (README-as-is, wiki_pages.brain column, recursive walker). One PR <=150 lines. Earliest fire Wed 20 May.
@@ -150,6 +152,7 @@ Content-oriented catalog of all pages. One line per page. See [[log]] for histor
 - [[duncan-proposal-partnership-addendum-2026-05-14]] — Phase B partnership framework companion to SOW; aspirational framework, crystallises into SHA post-launch
 - [[duncan-tm-sweep-2026-05-14]] — Dimitri ITR Platform TM clearance sweep; 5 candidate names × AU/US/EU; Nice classes 9/36/42/35; domain reality check
 - [[proposal-duncan-itr-platform-2026-05-13]] — Written proposal to Duncan for Dimitri ITR Platform build; apples-to-apples vs Lumine pack; 12-month terms
+- [[duncan-fitr-venture-brief-2026-05-21]] — Plaud-derived venture brief for Duncan FITR, ITR Button, DIY Home Loan, referral economics, AI rule enforcement, and compliance gates
 - [[command-center-current-state-2026-05-14]] — Brutal diagnostic of live /en/empire surface + dead /en/ceo + /en/dashboard/ceo redirect routes
 - [[command-center-reference-2026-05-14]] — 29 large-org C2 / FUI visual references; brand-constrained to Gun Metal + Candy Red; no AI-slop gradients
 - [[command-center-componentry-2026-05-14]] — 22 libraries + 10 demos componentry hunt; brand-fit assessed against Gun Metal + Candy Red monochrome+single-accent
@@ -194,6 +197,7 @@ Content-oriented catalog of all pages. One line per page. See [[log]] for histor
 - [[swot-restoration-cluster-2026]] — Full SWOT + 10x opportunity analysis for DR, NRPG, RestoreAssist, CARSI; top 10 priority actions ROI-ranked (May 2026)
 - [[swot-infrastructure-2026]] — Full SWOT + 10x opportunity analysis for Pi-Dev-Ops, NodeJS-Starter, ATO integration; top 10 priority actions ROI-ranked (May 2026)
 - [[autonomous-operations-2026]] — State of autonomous AI ops in 2H 2026: competitive landscape, key frameworks, security risks, Pi-Dev-Ops moat analysis
+- [[omni-governed-analytics-model-2026-05-21]] — Omni/AlloyDB/Gemini model research distilled into Nexus governed analytics, semantic-model, and Gen Media architecture rules
 - [[seo-linkable-assets]] — Playbook and AI prompts for vibe-coding micro-apps, calculators, and tools to generate organic backlinks
 - [[gdbs]] — GDBS: Geometric computing solution for physics, pharma, and cosmology using adaptive geometric representation.
 - [[creator-radar]] — Who Phill watches, by cluster, mapped to each business
@@ -217,6 +221,7 @@ Content-oriented catalog of all pages. One line per page. See [[log]] for histor
 ## Live Ingestion
 
 - [[plaud/_index]] — Plaud NotePin S recordings, auto-ingested every 5 min via LaunchAgent. One markdown page per recording with summary + full transcript. See `~/Pi-CEO/Pi-Dev-Ops/docs/superpowers/specs/2026-05-17-plaud-brain-ingestion-design.md` for design.
+- [[portfolio-voice-intake-2026-05-21]] — Durable synthesis of new Plaud packets: live meeting cockpit, RestoreAssist dictation, NRPG member value, and personalized content dashboard
 - [[client-user-journey]] — End-to-end client and internal agent journey. Must be protected when adding new tools or automation (2026-05-20).
 - [[production-readiness-checklist]] — Mandatory checklist before any Nexus or gamification feature is considered production-ready.
 - [[mandatory-close-the-loop-protocol]] — Mandatory idea-to-production protocol from Linear UNI-2046; prevents partial delivery by requiring capture, grounding, integration, verification, registration, observation, and Linear/Wiki closure.

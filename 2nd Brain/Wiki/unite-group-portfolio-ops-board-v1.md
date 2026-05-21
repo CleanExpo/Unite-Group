@@ -67,6 +67,22 @@ Scope: Plaud NotePin S as mobile voice intake only. Routing authority remains [[
   - production claim => deployment/check output
   - revenue/client claim => CRM-linked source
 
+## 2026-05-21 Intake Expansion
+
+New Plaud packets added three durable workstreams:
+
+- [[portfolio-voice-intake-2026-05-21]] — meeting cockpit, RestoreAssist dictation, NRPG member-value dashboard, and personalized learning feed.
+- [[duncan-fitr-venture-brief-2026-05-21]] — FITR / ITR Button / DIY Home Loan venture brief from the 2026-05-20 discussion.
+- [[agentic-engineering-harness-2026-05-21]] — AI-layer operating standard from the new Source batch.
+
+Routing decision:
+
+- Founder voice notes enter Plaud/Wiki first.
+- Margot normalizes into a short brief and assigns business context.
+- Unite-Group CRM becomes the operating record.
+- Synthex receives only marketing, search, campaign, proposal, and presentation tasks.
+- Product and engineering tasks go to their owning repo and must close through [[mandatory-close-the-loop-protocol]].
+
 ## Build Plan (no-code phase)
 Phase 0 — Control surface and governance (now)
 - Board created
