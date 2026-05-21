@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+// OpenAI client is only instantiated if the key exists.
+// This prevents build-time crashes when the key is not set in the current environment.
+const openai = process.env.OPENAI_API_KEY 
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -37,10 +39,16 @@ export async function POST(request: NextRequest) {
     }
 
     // 1. Embed the incoming query
+    if (!openai) {
+      return NextResponse.json(
+        { error: 'Semantic search is not configured (OPENAI_API_KEY missing)' },
+        { status: 503 }
+      );
+    }
+
     const embeddingResponse = await openai.embeddings.create({
-      model: 'text-embedding-3-large',
-      input: query,
-      dimensions: 1536,
+      model: 'text-embedding-3-small',
+      input: query.trim(),
     });
     const queryEmbedding = embeddingResponse.data[0].embedding;
 
