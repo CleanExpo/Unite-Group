@@ -17,7 +17,7 @@ Make the Close the Loop health signal visible in the Synthex Command Center so o
 
 - Synthex PR: https://github.com/CleanExpo/Synthex/pull/283
 - Branch: `feat/health-loop-command-centre`
-- Commit: `4f8a4bc8`
+- Main commit: `9b3c8b8c`
 
 ## What Changed
 
@@ -34,12 +34,16 @@ Make the Close the Loop health signal visible in the Synthex Command Center so o
 - `npm run type-check` — pass
 - `npx eslint app/api/command-centre/status/route.ts components/command-centre/AICommandCentre.tsx components/command-centre/HealthLoopCard.tsx components/command-centre/types.ts --max-warnings=0` — pass
 - `npm test -- --runInBand __tests__/unit/close-loop/health.test.ts` — pass
+- `bash .github/scripts/design-md-lint.sh` — pass, with pre-existing non-blocking content warnings
+- GitHub PR #283 checks — pass: Build, Lint, Type Check, Unit Tests, Security Scan, Snyk, Trivy, CodeQL, Dependency Review, npm Audit, DESIGN lint, CodeRabbit, Vercel preview
 
 ## Current State
 
-State: Preview Ready
+State: Closed
 
-PR #283 is waiting for GitHub CI and Vercel preview. Once green, merge to Synthex `main`, sync local main, and update Linear `UNI-2046`.
+PR #283 was merged into Synthex `main` and local main was synced to `origin/main` at `9b3c8b8c`.
+
+The Health Loop now gives operators a Command Center surface for Close the Loop runtime evidence, while keeping domain health calculation inside the existing service layer and the route as orchestration.
 
 ## Related
 
