@@ -1,6 +1,6 @@
 ---
 type: wiki
-updated: 2026-05-19
+updated: 2026-05-22
 ---
 
 # Synthex
@@ -174,3 +174,11 @@ Marketing Agency API and dashboard panel before adding any execution controls.
 **Condition for revisit:** The dashboard cannot show evidence, confidence, risk,
 approval state, next action, and outcome metric from persisted organization
 records without falling back to fixtures.
+
+### 2026-05-22 — Governed Signal Ledger M12 Slice 5
+**Decision:** Feed Marketing Agency outcome events into the Command Centre
+Health Loop as optional learning signals, not required pipeline health.
+**Directive to:** PM-Synthex + Technical Architect + QA Lead.
+**Condition for revisit:** Outcome learning starts blocking core Health Loop
+status for new organizations, or the Command Centre cannot display recent
+Marketing Agency outcome events without bypassing organization scope.

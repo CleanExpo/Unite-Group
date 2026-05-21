@@ -33,6 +33,11 @@ Source Data -> Ontology Object -> Linked Evidence -> Signal Score -> Agent Actio
 - Synthex opportunity API: `app/api/marketing-agency/opportunities/route.ts`
 - Synthex dashboard panel: `components/marketing-agency/GovernedOpportunitiesPanel.tsx`
 - Synthex opportunity tests: `tests/unit/marketing-agency/opportunity-reader.test.ts`, `tests/unit/api/marketing-agency-opportunities.test.ts`
+- Synthex Health Loop service: `lib/close-loop/health.ts`
+- Synthex Command Centre status API: `app/api/command-centre/status/route.ts`
+- Synthex Health Loop UI: `components/command-centre/HealthLoopCard.tsx`
+- Synthex Health Loop types: `components/command-centre/types.ts`
+- Synthex Health Loop test file: `__tests__/unit/close-loop/health.test.ts`
 - Synthex script: `scripts/marketing-agency-apify-intelligence.ts`
 - Synthex migration: `prisma/migrations/20260522_add_marketing_agency_signal_persistence/migration.sql`
 
@@ -47,6 +52,8 @@ Source Data -> Ontology Object -> Linked Evidence -> Signal Score -> Agent Actio
 - Added organization-scoped persistence for governed signals, opportunities, and outcome-learning events.
 - Added opt-in Apify persistence via `MARKETING_AGENCY_SIGNAL_ORGANIZATION_ID`; JSON-only runs remain the default when this is unset.
 - Added an authenticated, organization-scoped opportunities read API and Marketing Agency dashboard panel.
+- Added Marketing Agency outcome events to the Command Centre Health Loop as optional learning signals.
+- Kept missing or stale outcome events separate from required CI/Wiki/semantic pipeline health so new organizations do not fail the core loop before campaigns have outcomes.
 - Kept the slice out of execution/publishing: no provider endpoint, action button, publishing, or ad-spend changes.
 
 ## Verification
@@ -68,6 +75,13 @@ Source Data -> Ontology Object -> Linked Evidence -> Signal Score -> Agent Actio
 - `npm test -- --runInBand` - pass, 220 suites and 3,557 tests
 - `npm run build` - pass, includes `/api/marketing-agency/opportunities`
 - Playwright smoke against `next start -p 3011` - pass for `/dashboard/marketing-agency` rendering `Ranked Opportunities` and `Open Package`; unauthenticated/invalid local cookie produced expected API 400/401 console fetch errors because local DB/auth env was not configured
+- `npx jest __tests__/unit/close-loop/health.test.ts tests/unit/api/command-centre-provider-readiness.test.ts --runInBand` - pass, 7 tests
+- `npm run type-check` - pass
+- `npx eslint lib/close-loop/health.ts app/api/command-centre/status/route.ts components/command-centre/types.ts components/command-centre/HealthLoopCard.tsx __tests__/unit/close-loop/health.test.ts --max-warnings=0` - pass
+- `npm run lint` - pass
+- `npm test -- --runInBand` - pass, 220 suites and 3,559 tests
+- `npm run build` - pass, includes `/api/command-centre/status` and `/dashboard`
+- `git diff --check` - pass
 
 ## Current State
 
@@ -87,9 +101,14 @@ Slice 4 exposes the durable opportunity ledger:
 - `/dashboard/marketing-agency` now renders a passive `Ranked Opportunities` panel backed by that API.
 - The panel is review-only; it does not create provider execution, publish, or spend controls.
 
-This is the contract foundation for the next M12 slice:
+Slice 5 closes the M12 visibility loop:
 
-- feed usage and outcome learning back into the Health Loop
+- `GET /api/command-centre/status` now passes the active organization into `fetchCloseLoopHealth`.
+- `fetchCloseLoopHealth` reads recent `marketingAgencyOutcomeEvent` rows and emits a `marketing-agency-outcomes` learning snapshot.
+- `HealthLoopCard` displays outcome learning beside required pipeline health.
+- Outcome learning is passive observability only; no campaign execution, provider publishing, or ad-spend controls were added.
+
+Remaining handoff gate: PR #285 still needs normal review/merge, migration application, and live authenticated smoke verification against production data.
 
 ## Related
 
