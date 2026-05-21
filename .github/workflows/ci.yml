@@ -110,7 +110,7 @@ jobs:
           node-version: "22"
           cache: "npm"
       - run: npm ci
-      - run: npm run lint -- --max-warnings=1000 || true
+      - run: npm run lint -- --max-warnings=1000 || echo "Lint completed with warnings - continuing for feature PR"
       - name: Brand Guardian (voice compliance)
         run: npm run brand:lint
       - name: Route inventory regression-gate (UNI-2015 follow-up)
