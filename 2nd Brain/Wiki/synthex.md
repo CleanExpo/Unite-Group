@@ -215,3 +215,13 @@ Lighthouse, standalone Lighthouse Audit, and live production HTTP smoke.
 **Directive to:** PM-Synthex + Technical Architect + QA Lead.
 **Condition for revisit:** Dependabot or branch protection reopens a dependency
 or build blocker on the M12 surface, or production smoke stops returning HTTP 200.
+
+### 2026-05-22 — Governed Signal Ledger M12 Slice 6
+**Decision:** Add passive Board/Margot/@team routing visibility to the Command
+Centre before any execution controls. Draft packets now show Board source,
+Margot pass, evidence, risk, approval gate, and @team route in the dashboard,
+while provider execution, persistence, publishing, approvals, and ad spend stay
+blocked.
+**Directive to:** PM-Synthex + Technical Architect + QA Lead.
+**Condition for revisit:** Operators need durable queue history or action
+controls after the review contract is proven by draft-only usage.

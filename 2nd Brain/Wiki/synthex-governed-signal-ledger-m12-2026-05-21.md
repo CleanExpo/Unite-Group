@@ -137,6 +137,23 @@ Merge and production closure:
 - Main commit `642258b3` is green across CI, Security, DESIGN.md lint, Deploy, deploy-workflow Lighthouse, standalone Lighthouse Audit, and live production smoke.
 - Public smoke check for `https://synthex.social` returned HTTP/2 200 from Vercel.
 
+Slice 6 resumes M12 after the merged green gate:
+
+- `/dashboard` now includes a passive Command Centre routing queue beside the existing draft intake.
+- The queue maps each draft packet through Board input, Margot pass, evidence count, risk state, approval gate, and @team dispatch lanes.
+- The panel consumes the existing in-memory draft packet only; it does not persist queue rows, call providers, publish, approve, or create ad-spend controls.
+- Next 16 route contract cleanup continued while validating the branch: `withAuth` now returns handlers with the required route context, content wrapper routes pass an explicit empty context, and `storyIsDeliveryDue` is internal to its route module.
+
+Slice 6 local verification:
+
+- `npm run type-check` - pass
+- `npx eslint ... --max-warnings=0` focused queue/auth/monthly-story routes - pass
+- `npm run lint` - pass
+- `npx jest tests/unit/components/CommandRoutingQueuePanel.test.tsx tests/unit/components/DraftCommandIntakePanel.test.tsx tests/unit/components/SandboxCampaignStudio.test.tsx --runInBand` - pass, 8 tests
+- `npx jest tests/unit/api/monthly-story.test.ts tests/unit/components/CommandRoutingQueuePanel.test.tsx --runInBand` - pass, 20 tests
+- `npm test -- --runInBand` - pass, 221 suites and 3,566 tests
+- `CI=1 NEXT_TELEMETRY_DISABLED=1 NEXT_ALT_BUILD=.next-command-routing-queue npm run build` - pass
+
 ## Related
 
 - [[mandatory-close-the-loop-protocol]]
