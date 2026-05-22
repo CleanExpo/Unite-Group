@@ -132,8 +132,10 @@ Merge and production closure:
 - PR #286 merged on 2026-05-21 as `e033ab1a` to add the missing campaign prerequisite table, campaign RLS policy, indexes, and trigger to the M12 migration source.
 - The M12 migration was applied manually to production using trimmed `DIRECT_URL` from ignored local env, with no secret values written to tracked files or chat.
 - Production DB verification confirmed `marketing_agency_campaigns`, `marketing_agency_signals`, `marketing_agency_opportunities`, and `marketing_agency_outcome_events` exist with org-isolation RLS policies and composite tenant foreign keys.
-- Main commit `e033ab1a` is green across CI, Security, DESIGN.md lint, Deploy, deploy-workflow Lighthouse, and standalone Lighthouse Audit.
-- Public smoke check for `https://synthex.social` returned HTTP 200 from Vercel.
+- Post-merge dependency security gate found a Dependabot blocker: `react-use@17.6.0` pinned vulnerable `js-cookie@2.2.1` while the fixed line is `js-cookie@3.0.7`.
+- PR #287 merged on 2026-05-22 as main commit `642258b3`; it removed the `react-use` dependency path, replaced `SearchBar` debounce with local React timer logic, and moved `hasZipMagic` out of a Next route module export.
+- Main commit `642258b3` is green across CI, Security, DESIGN.md lint, Deploy, deploy-workflow Lighthouse, standalone Lighthouse Audit, and live production smoke.
+- Public smoke check for `https://synthex.social` returned HTTP/2 200 from Vercel.
 
 ## Related
 

@@ -203,3 +203,15 @@ tables with org-isolation RLS policies and composite tenant foreign keys.
 **Condition for revisit:** A future deploy workflow starts applying migrations
 automatically, or live schema verification shows drift from the committed Prisma
 migration source.
+
+### 2026-05-22 — Governed Signal Ledger M12 Final Green Gate
+**Decision:** Treat the post-merge dependency security failure as part of the M12
+closure, not a separate backlog item. PR #287 removed the vulnerable
+`react-use` -> `js-cookie@2.2.1` dependency path, kept `SearchBar` debounce local
+to React, and moved vault ZIP magic validation out of the route module export so
+the production build remains valid under Next route export rules. Main commit
+`642258b3` is green across CI, Security, DESIGN.md lint, Deploy, deploy-workflow
+Lighthouse, standalone Lighthouse Audit, and live production HTTP smoke.
+**Directive to:** PM-Synthex + Technical Architect + QA Lead.
+**Condition for revisit:** Dependabot or branch protection reopens a dependency
+or build blocker on the M12 surface, or production smoke stops returning HTTP 200.
