@@ -102,6 +102,17 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest contacts/opportunities migration-draft verification at `2026-05-23 08:27 AEST`:
+
+- Created sandbox-first draft migration `supabase/migrations/20260523103000_crm_contacts_opportunities.sql` for `crm_contacts` and `crm_opportunities`; it was not applied to sandbox or production.
+- Added guard test `tests/unit/margot-crm-contacts-opportunities-migration.test.ts` to assert core contact fields, opportunity forecast/approval fields, RLS/service-role policies, and sandbox-first / no-secrets / no-billing-truth safety comments.
+- Updated `docs/margot/crm-schema-inventory.md` and `docs/margot/crm-contacts-opportunities-model.md` so docs now describe the draft migration state instead of saying no migration exists.
+- TDD evidence: focused test first failed RED because the migration file was missing; after implementation it passed GREEN.
+- Focused CRM regression passed: `npx jest tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts --runInBand` returned 5 suites passed / 22 tests passed.
+- `npm run type-check` passed.
+- `npm run security:routes-check` passed with `0 unprotected mutating routes`.
+- No production DB write, migration application, deploy, Vercel mutation, GitHub push, secret access/printing, or client-facing send was performed.
+
 Latest contacts/opportunities proposal verification at `2026-05-23 08:17 AEST`:
 
 - `docs/margot/crm-contacts-opportunities-model.md` was created as a local-only source-of-truth proposal for canonical contacts and commercial opportunities.
@@ -198,14 +209,14 @@ Active multi-day plan:
 1. Use `docs/margot/crm-schema-inventory.md` and the refreshed `docs/margot/crm-operating-model.md` as the current schema/source-of-truth map.
 2. Use `docs/margot/lead-to-client-conversion-plan.md` as the current guarded conversion contract; keep the 4-suite / 19-test CRM lead gate green.
 3. Use `docs/margot/crm-contacts-opportunities-model.md` as the local proposal for canonical contacts and commercial opportunities before broader conversion automation.
-4. Draft the sandbox-only `crm_contacts` migration if identity/contact normalization is the next code lane.
-5. Draft the sandbox-only `crm_opportunities` migration if commercial pipeline visibility is the next code lane.
+4. Draft contact/opportunity create/link route tests now that `supabase/migrations/20260523103000_crm_contacts_opportunities.sql` exists locally, but keep actual schema application sandbox-first through `./scripts/sandbox-wizard.sh` and never promote without explicit Board approval.
+5. Apply/diff the draft migration against the sandbox when credentials are available and safe to use; do not touch production.
 6. Create a daily CRM digest template if schema work should remain draft-only for the next tick.
 7. Use the new portfolio, client 2nd Brain, marketing strategy, and AI enhancement docs as Senior PM control surfaces while code lanes continue.
 8. Continue Mac Mini recovery when an authenticated share or SSH is available.
 9. Keep cron/project logs as the official evidence channel until user-visible delivery is configured.
 10. Keep the verified local CRM lead gate green:
-   `npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts --runInBand && npm run type-check`
+   `npx jest tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts --runInBand && npm run type-check`
 11. For Margot voice regressions, run:
    `npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts --runInBand`
 
