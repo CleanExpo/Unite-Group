@@ -190,7 +190,7 @@ Safe destination when recovered:
 ## Health Check Snapshot
 
 Timestamp:
-`2026-05-23 07:36 AEST`
+`2026-05-23 08:51 AEST`
 
 Git status includes existing local Margot/test work:
 - modified `tests/integration/api/margot-voice-signed-url.test.ts`
@@ -210,6 +210,7 @@ Verification:
 - `npm run type-check` passed after the CRM lead visibility / qualification verification lane.
 - `npm run type-check` passed after the guarded lead-to-client conversion approval-gate lane.
 - `npm run type-check` passed after the documentation lane: `tsc --noEmit` completed.
+- Daily CRM digest helper/template verification passed at 2026-05-23 08:51 AEST: focused digest test passed (1 suite / 2 tests), CRM digest regression passed (4 suites / 17 tests), and `npm run type-check` passed.
 
 Mac Mini recovery probe:
 - `/Volumes` only contains `Macintosh HD`; no authenticated Mac Mini share is mounted.

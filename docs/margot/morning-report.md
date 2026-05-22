@@ -102,6 +102,16 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest daily CRM digest lane at `2026-05-23 08:51 AEST`:
+
+- Added pure local helper `src/lib/crm/daily-digest.ts` to produce structured daily CRM digest counts, operator priorities, approvals, blockers, verification lines, and markdown output.
+- Added TDD test `tests/unit/lib/crm/daily-digest.test.ts`; RED failed because the helper did not exist, then GREEN passed after implementation.
+- Added `docs/margot/daily-crm-digest-template.md` as the Senior PM daily digest contract for leads, opportunities, tasks, approvals, blockers, verification, and safety notes.
+- Focused verification passed: `npx jest tests/unit/lib/crm/daily-digest.test.ts --runInBand` returned 1 suite passed / 2 tests passed.
+- CRM digest regression passed: `npx jest tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-leads-list.test.ts tests/integration/api/crm-lead-conversion.test.ts --runInBand` returned 4 suites passed / 17 tests passed.
+- `npm run type-check` passed.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+
 Latest CRM contacts create API hardening at `2026-05-23 08:39 AEST`:
 
 - Continued the active branch `feat/margot-crm-contacts-api` at `5fc6459` rather than starting a new lane.
@@ -225,7 +235,7 @@ Active multi-day plan:
 3. Use `docs/margot/crm-contacts-opportunities-model.md` as the local proposal for canonical contacts and commercial opportunities before broader conversion automation.
 4. Draft contact/opportunity create/link route tests now that `supabase/migrations/20260523103000_crm_contacts_opportunities.sql` exists locally, but keep actual schema application sandbox-first through `./scripts/sandbox-wizard.sh` and never promote without explicit Board approval.
 5. Apply/diff the draft migration against the sandbox when credentials are available and safe to use; do not touch production.
-6. Create a daily CRM digest template if schema work should remain draft-only for the next tick.
+6. Wire the new pure daily CRM digest helper/template to a mocked server/admin route or command-center loader if the next tick stays local-only.
 7. Use the new portfolio, client 2nd Brain, marketing strategy, and AI enhancement docs as Senior PM control surfaces while code lanes continue.
 8. Continue Mac Mini recovery when an authenticated share or SSH is available.
 9. Keep cron/project logs as the official evidence channel until user-visible delivery is configured.

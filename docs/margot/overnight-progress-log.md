@@ -1161,3 +1161,59 @@ Next slice:
 
 - Restore GitHub auth/transport or use an available runner to push `feat/margot-crm-contacts-api`; then inspect PR/check state. If git transport remains blocked, continue safe local work by drafting the opportunity create route contract or daily CRM digest template.
 
+## 2026-05-23 08:51:53 AEST
+
+### Lane executed — daily CRM digest helper and template
+
+Continued the active multi-day CRM build using the existing-assets-first rule, Senior PM operating model, CRM operating model, and current morning-report next-lane recommendation. Chose the safe documentation/code lane because production schema application, GitHub push, Vercel deployment, and Mac Mini recovery are still outside current verified access.
+
+Preflight / repo state:
+
+```text
+Branch before work: main...origin/main
+HEAD before work: e0b5f88
+node_modules=present
+Read-first Margot docs present under docs/margot/
+```
+
+Slice completed:
+
+- Added pure local CRM digest helper `src/lib/crm/daily-digest.ts`.
+- Added TDD coverage `tests/unit/lib/crm/daily-digest.test.ts`.
+- RED evidence: the focused test initially failed because `@/lib/crm/daily-digest` did not exist.
+- GREEN evidence: after implementation, the focused digest test passed with 1 suite / 2 tests.
+- Added `docs/margot/daily-crm-digest-template.md` defining daily digest inputs, output sections, safety note, and future server-side wiring path.
+- The helper is pure TypeScript: no network calls, no Supabase calls, no production writes, no external delivery, and no client-facing sends.
+
+Verification commands/results:
+
+```bash
+npx jest tests/unit/lib/crm/daily-digest.test.ts --runInBand
+# PASS: 1 suite passed, 2 tests passed
+
+npx jest tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-leads-list.test.ts tests/integration/api/crm-lead-conversion.test.ts --runInBand && npm run type-check
+# PASS: 4 suites passed, 17 tests passed
+# PASS: tsc --noEmit
+```
+
+Safety / blockers:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+- Mac Mini recovery remains blocked until authenticated SMB mount, SSH, or approved export exists.
+- GitHub push/PR state remains blocked by unavailable credentials/transport in this session.
+- Vercel production readiness remains blocked by missing local link/token.
+- Contacts/opportunities migration remains draft-only until sandbox wizard apply/diff and explicit Board approval for any promotion.
+
+Next slice:
+
+- Wire the pure digest helper to a mocked server/admin route or command-center loader, or continue the guarded opportunities create route contract while keeping CRM lead/conversion/type-check gates green.
+
+
+## 2026-05-23 08:53:46 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+
