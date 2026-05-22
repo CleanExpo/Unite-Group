@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
+import { requireAdmin } from '@/lib/security/require-admin';
 
 // OpenAI client is only instantiated if the key exists.
 // This prevents build-time crashes when the key is not set in the current environment.
@@ -27,6 +28,9 @@ interface SearchResult {
  * Natural language semantic search over Nexus document_embeddings
  */
 export async function POST(request: NextRequest) {
+  const gate = await requireAdmin(request);
+  if (gate instanceof NextResponse) return gate;
+
   try {
     const body = await request.json();
     const { query, limit = 10, min_similarity = 0.75 } = body;

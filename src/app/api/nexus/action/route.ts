@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/security/require-admin';
 
 export async function POST(request: NextRequest) {
+  const gate = await requireAdmin(request);
+  if (gate instanceof NextResponse) return gate;
+
   try {
     const body = await request.json();
     const { cardId, action, data } = body;
