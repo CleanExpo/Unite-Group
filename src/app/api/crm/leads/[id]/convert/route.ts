@@ -50,6 +50,14 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: 'invalid_conversion_request' }, { status: 400 });
   }
 
+  const boardApprovalId =
+    body && typeof body === 'object' && !Array.isArray(body)
+      ? (body as Record<string, unknown>).boardApprovalId
+      : undefined;
+  if (typeof boardApprovalId === 'undefined' || (typeof boardApprovalId === 'string' && !boardApprovalId.trim())) {
+    return NextResponse.json({ error: 'operator_approval_required' }, { status: 403 });
+  }
+
   const parsed = conversionSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(

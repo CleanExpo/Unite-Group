@@ -48,6 +48,13 @@ Created the CRM operating model:
 - Adds core CRM objects, source-of-truth matrix, identity resolution policy, Margot decision classes, lead persistence plan, lead qualification/conversion guardrails, and CRM test matrix seed.
 - Confirms the local CRM lead spine now includes `crm_leads` migration draft, marketing lead persistence, admin/service-role lead listing, and deterministic recommendation-only qualification; production schema application remains sandbox-first and Board-bounded.
 
+Created the contacts/opportunities model proposal:
+
+- `docs/margot/crm-contacts-opportunities-model.md`
+- Defines why canonical contacts and opportunities should come before broader CRM automation and unguarded lead-to-client conversion.
+- Proposes local-only `crm_contacts` and `crm_opportunities` field models, lifecycle flows, identity/dedupe rules, cross-client abort rules, source-of-truth rules, Stripe separation rules, Board approval gates, sandbox-first migration handling, future mocked test matrix, and next implementation steps.
+- Tightens privacy and safety defaults: narrowest-scope contact privacy, no default global PII scope, no direct browser/client PII reads/writes without server route or restricted RLS, no JSONB secrets/payment details/unapproved sensitive PII/cross-client notes, and a future junction-table requirement before multi-scope contacts.
+
 Added focused, verified Margot voice test coverage:
 
 - `tests/integration/api/margot-voice-signed-url.test.ts`
@@ -95,6 +102,16 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest contacts/opportunities proposal verification at `2026-05-23 08:17 AEST`:
+
+- `docs/margot/crm-contacts-opportunities-model.md` was created as a local-only source-of-truth proposal for canonical contacts and commercial opportunities.
+- Health check confirmed `node_modules=present`; Mac Mini SMB `445` and SSH `22` were unreachable in this probe, and no authenticated share was mounted under `/Volumes`.
+- Document verification passed: `test -f docs/margot/crm-contacts-opportunities-model.md`.
+- Spec compliance review: PASS after adding explicit grounding in `docs/margot/lead-to-client-conversion-plan.md`.
+- Quality review: APPROVED after tightening privacy scope defaults, multi-scope contact caveat, direct read/write RLS caveats, and JSONB safety language.
+- `npm run type-check` passed (`tsc --noEmit`).
+- No production DB write, migration application, deploy, Vercel mutation, GitHub push, secret access/printing, or client-facing send was performed.
+
 Latest CRM lead visibility / qualification verification at `2026-05-23 07:35 AEST`:
 
 - Health check confirmed `node_modules=present`, `src/app/api/crm/leads/route.ts` present, `tests/integration/api/crm-leads-list.test.ts` present, `/Volumes` only contains `Macintosh HD`, Mac Mini SMB `445` is reachable, SSH `22` is unreachable, and the Mac Mini recovery directory still contains only `.gitkeep`.
@@ -102,6 +119,16 @@ Latest CRM lead visibility / qualification verification at `2026-05-23 07:35 AES
 - Focused verification passed: `npx jest tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts --runInBand` returned 2 suites passed / 9 tests passed.
 - `npm run type-check` passed.
 - No production DB write, migration application, deploy, Vercel mutation, GitHub push, or client-facing send was performed.
+
+Latest guarded lead-to-client conversion verification at `2026-05-23 08:07 AEST`:
+
+- Lane D from the active multi-day CRM build plan is now a local guarded route/test contract, not a production-promoted conversion system.
+- `tests/integration/api/crm-lead-conversion.test.ts` added the missing-operator-approval guard using TDD: RED failed with expected `403` vs received `400`; GREEN passed after the route change.
+- `src/app/api/crm/leads/[id]/convert/route.ts` now returns `403` with `{ error: 'operator_approval_required' }` for missing or blank `boardApprovalId` before Supabase conversion/update is attempted.
+- `docs/margot/lead-to-client-conversion-plan.md` was updated so it no longer says no route exists; it now qualifies the state as local-only, guarded, and not production-promoted.
+- Focused verification passed: `npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts --runInBand` returned 4 suites passed / 19 tests passed.
+- `npm run type-check` passed.
+- Spec compliance review: PASS. Code/doc quality review: APPROVED.
 
 Latest UNI-2054 draft refinement verification at `2026-05-23 07:04 AEST`:
 
@@ -169,17 +196,19 @@ Active multi-day plan:
 `docs/plans/2026-05-23-margot-multi-day-crm-build-plan.md`
 
 1. Use `docs/margot/crm-schema-inventory.md` and the refreshed `docs/margot/crm-operating-model.md` as the current schema/source-of-truth map.
-2. Build the guarded lead-to-client conversion route behind mocked tests from `docs/margot/lead-to-client-conversion-plan.md`.
-3. Draft the `crm_contacts` proposal if conversion needs more identity-model groundwork.
-4. Draft the `crm_opportunities` proposal for qualified commercial work before client conversion.
-5. Use the new portfolio, client 2nd Brain, marketing strategy, and AI enhancement docs as Senior PM control surfaces while code lanes continue.
-6. Continue Mac Mini recovery when an authenticated share or SSH is available.
-7. Keep cron/project logs as the official evidence channel until user-visible delivery is configured.
-8. Keep the verified local lead quality gate green:
-   `npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts --runInBand && npm run type-check`
-9. For Margot voice regressions, run:
+2. Use `docs/margot/lead-to-client-conversion-plan.md` as the current guarded conversion contract; keep the 4-suite / 19-test CRM lead gate green.
+3. Use `docs/margot/crm-contacts-opportunities-model.md` as the local proposal for canonical contacts and commercial opportunities before broader conversion automation.
+4. Draft the sandbox-only `crm_contacts` migration if identity/contact normalization is the next code lane.
+5. Draft the sandbox-only `crm_opportunities` migration if commercial pipeline visibility is the next code lane.
+6. Create a daily CRM digest template if schema work should remain draft-only for the next tick.
+7. Use the new portfolio, client 2nd Brain, marketing strategy, and AI enhancement docs as Senior PM control surfaces while code lanes continue.
+8. Continue Mac Mini recovery when an authenticated share or SSH is available.
+9. Keep cron/project logs as the official evidence channel until user-visible delivery is configured.
+10. Keep the verified local CRM lead gate green:
+   `npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts --runInBand && npm run type-check`
+11. For Margot voice regressions, run:
    `npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts --runInBand`
 
 ## Bottom line
 
-Margot’s command-center foundation, retrieval rules, Linear update draft, test gap analysis, progress log, morning report, forward-readiness gap analysis, high-level CRM 25-step forecast, 2nd Brain carry-forward directive, Senior Project Manager operating model, CRM operating model, active multi-day CRM build plan, CRM schema inventory, project portfolio index, client 2nd Brain model, marketing strategy operating model, and AI enhancement pipeline are in place. The schema inventory (`docs/margot/crm-schema-inventory.md`) maps CRM-adjacent migrations, writers/readers, source-of-truth rules, integration mirror columns, `src/lib/empire/*` helper readers, and gap queue items; it passed spec compliance review and code/doc quality review after fixes. The local CRM lead spine now includes website lead persistence, admin/service-role lead list visibility, and deterministic recommendation-only lead qualification, with focused lead-list/qualification tests passing at 07:35 AEST plus `npm run type-check` green. Documentation lanes E-H provide the Senior PM control surfaces for project oversight, durable client memory, marketing strategy, and safe AI improvement. The next strategic code lane is guarded lead-to-client conversion behind mocked tests, then contacts/opportunities. The remaining infrastructure blockers are authenticated Mac Mini file access or approved export for original artifacts, missing local `RESTOREASSIST-CONTENT-INDEX.md`, Vercel linking/env verification, and configuring a real user-visible delivery target if project-file logs are not enough.
+Margot’s command-center foundation, retrieval rules, Linear update draft, test gap analysis, progress log, morning report, forward-readiness gap analysis, high-level CRM 25-step forecast, 2nd Brain carry-forward directive, Senior Project Manager operating model, CRM operating model, active multi-day CRM build plan, CRM schema inventory, project portfolio index, client 2nd Brain model, marketing strategy operating model, and AI enhancement pipeline are in place. The schema inventory (`docs/margot/crm-schema-inventory.md`) maps CRM-adjacent migrations, writers/readers, source-of-truth rules, integration mirror columns, `src/lib/empire/*` helper readers, and gap queue items; it passed spec compliance review and code/doc quality review after fixes. The local CRM lead spine now includes website lead persistence, admin/service-role lead list visibility, deterministic recommendation-only lead qualification, and a guarded local lead-to-client conversion route contract that requires operator approval and blocks missing approval with `403 operator_approval_required`. The new contacts/opportunities proposal (`docs/margot/crm-contacts-opportunities-model.md`) now defines the next identity and commercial pipeline layer with local-only `crm_contacts` / `crm_opportunities` field models, lifecycle flows, cross-client abort rules, Stripe separation, privacy/RLS caveats, Board approval gates, sandbox-first handling, and a future mocked test matrix; it passed spec compliance review and quality review after tightening safety language. The focused CRM lead gate passed at 08:07 AEST with 4 suites / 19 tests plus `npm run type-check` green. Documentation lanes E-H provide the Senior PM control surfaces for project oversight, durable client memory, marketing strategy, and safe AI improvement. The next strategic lanes are sandbox-only contacts/opportunities migration/test drafts or the daily CRM digest template. The remaining infrastructure blockers are authenticated Mac Mini file access or approved export for original artifacts, missing local `RESTOREASSIST-CONTENT-INDEX.md`, Vercel linking/env verification, and configuring a real user-visible delivery target if project-file logs are not enough.
