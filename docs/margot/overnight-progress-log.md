@@ -1046,3 +1046,60 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 
+
+## 2026-05-23 08:27:47 AEST
+
+### Lane executed — sandbox-first CRM contacts/opportunities migration draft
+
+Continued the active multi-day CRM build from `docs/plans/2026-05-23-margot-multi-day-crm-build-plan.md` using the Connected Teams existing-assets-first rule, the Senior PM operating model, the CRM schema inventory, and the contacts/opportunities proposal.
+
+Preflight / auth state:
+
+```text
+Branch before work: main...origin/main, clean
+Working branch created: feat/margot-crm-contacts-opportunities-migration
+GitHub auth: unavailable
+Vercel CLI/auth: unavailable
+Open PR state: not retrievable locally because GitHub auth is unavailable
+node_modules=present from prior readiness work
+```
+
+Slice completed:
+
+- Added TDD guard test `tests/unit/margot-crm-contacts-opportunities-migration.test.ts`.
+- RED evidence: the focused test failed because `supabase/migrations/20260523103000_crm_contacts_opportunities.sql` did not exist yet.
+- Added draft-only, sandbox-first migration `supabase/migrations/20260523103000_crm_contacts_opportunities.sql` for:
+  - `public.crm_contacts` with identity, lead/client/business links, consent/source, owner/status, dedupe keys, privacy scope, retention/privacy notes, timestamps, checks, indexes, RLS, and service-role-only policy.
+  - `public.crm_opportunities` with forecast-only stage/status/value/probability, source/owner, lead/contact/client/business links, next action, decision/risk, campaign fields, close/lost metadata, approval fields, timestamps, checks, indexes, RLS, and service-role-only policy.
+- Updated `docs/margot/crm-schema-inventory.md` and `docs/margot/crm-contacts-opportunities-model.md` so they now reflect the local draft migration state rather than saying no migration exists.
+- Updated `docs/margot/morning-report.md` with the new verification status and next-lane recommendation.
+
+Verification commands/results:
+
+```bash
+npx jest tests/unit/margot-crm-contacts-opportunities-migration.test.ts --runInBand
+# GREEN after migration implementation: 1 suite passed, 3 tests passed
+
+npx jest tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts --runInBand
+# PASS: 5 suites passed, 22 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Safety / blockers:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, or client-facing send was performed.
+- GitHub auth is unavailable, so no PR could be opened/pushed from this tick.
+- Vercel CLI/auth is unavailable, so no deployment state could be verified locally.
+- The draft migration must still go through `./scripts/sandbox-wizard.sh apply supabase/migrations/20260523103000_crm_contacts_opportunities.sql` and `./scripts/sandbox-wizard.sh diff` before any promotion is considered.
+- Production promotion remains forbidden without explicit Board approval.
+
+Next slice:
+
+- If safe sandbox credentials are available in a later run, apply/diff this migration through the sandbox wizard only.
+- Otherwise continue safe local work by adding mocked server-route tests for contact draft creation/linking or creating the daily CRM digest template.
+

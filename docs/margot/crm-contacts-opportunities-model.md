@@ -3,7 +3,7 @@
 Date: 2026-05-23
 Owner: Margot
 Project: Unite-Group
-Status: Local proposal only. No migration has been applied from this document. No production database write, production schema change, deployment, GitHub push, or client-facing action is authorized by this proposal.
+Status: Local proposal plus sandbox-only migration draft. `supabase/migrations/20260523103000_crm_contacts_opportunities.sql` now drafts the schema, guarded by `tests/unit/margot-crm-contacts-opportunities-migration.test.ts`. No migration has been applied. No production database write, production schema change, deployment, GitHub push, or client-facing action is authorized by this proposal.
 
 ## 1. Purpose
 
@@ -59,7 +59,7 @@ Lead captured
 
 Target role: canonical person/contact map for leads, clients, businesses, stakeholders, and future relationship memory.
 
-Target source-of-truth status: proposed Supabase CRM table. No migration exists yet in this lane.
+Target source-of-truth status: proposed Supabase CRM table with local draft migration `supabase/migrations/20260523103000_crm_contacts_opportunities.sql`. It remains unapplied and sandbox-first.
 
 | Field | Type / shape | Required? | Grounded reason / rule |
 | --- | --- | --- | --- |
@@ -109,7 +109,7 @@ blocked_review
 
 Target role: qualified commercial possibility with stage, value, probability, source, owner, next action, and linked lead/contact/client/business context.
 
-Target source-of-truth status: proposed Supabase CRM table. No migration exists yet in this lane.
+Target source-of-truth status: proposed Supabase CRM table with local draft migration `supabase/migrations/20260523103000_crm_contacts_opportunities.sql`. It remains unapplied and sandbox-first.
 
 | Field | Type / shape | Required? | Grounded reason / rule |
 | --- | --- | --- | --- |
