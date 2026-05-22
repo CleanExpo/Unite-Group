@@ -59,3 +59,6 @@ frontend-minimal/node_modules/
 
 # Vercel exports (transient pulls — never canonical)
 vercel-export-*/
+
+# Local automation logs
+/docs/margot/automation-logs/*.log

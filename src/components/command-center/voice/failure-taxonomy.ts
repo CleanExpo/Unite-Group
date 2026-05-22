@@ -12,8 +12,8 @@
 //   - `elevenlabs_signed_url_failed` (502, upstream non-ok)
 //   - `elevenlabs_unreachable`    (502, fetch threw / 8s timeout)
 //
-// Anything outside that table — including a fetch that throws before a
-// response is parsed — is classified as `network`.
+// Fetch failures before a response is parsed are classified as `network`.
+// Unexpected response status/code pairs with an API response are `unknown`.
 
 export type FailureCategory =
   | 'unauthorized'
