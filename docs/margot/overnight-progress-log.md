@@ -918,3 +918,131 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 
+## 2026-05-23 08:07:09 AEST
+
+### Lane D executed — guarded lead-to-client conversion approval gate
+
+Continued the active multi-day CRM build from `docs/plans/2026-05-23-margot-multi-day-crm-build-plan.md` using the existing-assets-first rule and Board-bounded authority.
+
+Preflight / current state:
+
+```text
+node_modules=present
+git status showed only the expected Lane D files modified after the implementer pass
+no production DB write, migration application, deploy, GitHub push, Vercel mutation, or client-facing send was performed
+```
+
+Files changed:
+
+- `src/app/api/crm/leads/[id]/convert/route.ts`
+- `tests/integration/api/crm-lead-conversion.test.ts`
+- `docs/margot/lead-to-client-conversion-plan.md`
+
+Behavior completed:
+
+- Added a RED/GREEN test for missing operator approval before conversion.
+- Missing or blank `boardApprovalId` now returns `403` with `{ "error": "operator_approval_required" }` before Supabase conversion/update is attempted.
+- Existing guarded behaviors remain covered: exact lead ID required, already-converted guard, identity-conflict guard, and successful mock conversion-field update.
+- Updated the conversion plan so it no longer says no route exists; it now qualifies the state as a local guarded route/test contract only, with no production promotion/application verified.
+
+TDD evidence:
+
+```text
+RED: npx jest tests/integration/api/crm-lead-conversion.test.ts --runInBand
+Result before route change: 1 failed, 4 passed; expected HTTP 403, received 400 for missing operator approval.
+
+GREEN: npx jest tests/integration/api/crm-lead-conversion.test.ts --runInBand
+Result after route change: 1 suite passed, 5 tests passed.
+```
+
+Review status:
+
+- Spec compliance review: PASS.
+- Code/doc quality review: APPROVED.
+- Minor optional review note: add explicit blank-string/null approval tests later if the contract should treat all falsey values identically.
+
+Verification:
+
+```bash
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts --runInBand
+npm run type-check
+```
+
+Result:
+
+```text
+PASS tests/integration/api/crm-lead-conversion.test.ts
+PASS tests/integration/api/crm-leads-list.test.ts
+PASS tests/integration/api/marketing-leads.test.ts
+PASS tests/unit/lib/crm/qualify-lead.test.ts
+Test Suites: 4 passed, 4 total
+Tests: 19 passed, 19 total
+tsc --noEmit passed
+```
+
+Blockers carried forward:
+
+- Production CRM schema/application remains sandbox-first and Board-bounded; no production conversion write path was exercised.
+- Contact/opportunity models are still proposals, so conversion currently updates lead conversion fields rather than creating full contact/opportunity/client graph records.
+- Mac Mini artifacts remain unrecovered until authenticated SMB, SSH, or approved export is available.
+
+Next lane:
+
+- Draft the `crm_contacts` and `crm_opportunities` proposals, then decide whether the next safe code lane is contact/opportunity schema drafting through sandbox-first workflow or daily CRM digest template creation.
+
+## 2026-05-23 08:17:03 AEST
+
+### Lane executed — CRM contacts/opportunities operating model proposal
+
+Continued the active multi-day CRM build using the read-first Margot docs, the Senior PM model, the High-Level CRM forecast, the current schema inventory, and the guarded lead-to-client conversion plan.
+
+Safe health check evidence:
+
+```text
+git status showed existing local Margot/CRM modifications plus the new contacts/opportunities proposal
+node_modules=present
+crm_contacts_opportunities_model=present, 385 lines before final review patches
+/Volumes=Macintosh HD only
+mac_mini_445=unreachable in this probe
+mac_mini_22=unreachable in this probe
+```
+
+Safe improvement completed:
+
+- Created `docs/margot/crm-contacts-opportunities-model.md` as a local-only proposal for the next CRM identity/pipeline lane.
+- The proposal is grounded in current repo evidence: `crm-operating-model.md`, `crm-schema-inventory.md`, `lead-to-client-conversion-plan.md`, and the `nexus_clients` / `crm_leads` migrations.
+- It defines proposed `crm_contacts` and `crm_opportunities` fields, lifecycle flows, identity/dedupe policy, cross-client abort rules, source-of-truth and Stripe separation rules, Board approval gates, sandbox-first migration handling, future mocked test matrix, and next implementation steps.
+- Tightened review findings before handoff: explicit lead conversion plan grounding, narrowest-scope contact privacy defaults, multi-scope contact junction-table caveat, direct read/write route/RLS caveats, and JSONB allowlist/denylist warnings.
+
+Review / verification:
+
+```text
+test -f docs/margot/crm-contacts-opportunities-model.md
+Spec compliance review: PASS
+Quality review after patches: APPROVED
+npm run type-check: passed (`tsc --noEmit`)
+```
+
+Safety:
+
+- No production DB write, migration application, deployment, Vercel mutation, GitHub push, secret access/printing, or client-facing communication was performed.
+- This is a local planning/source-of-truth document only; future schema work remains sandbox-first through `./scripts/sandbox-wizard.sh apply <migration.sql>`.
+
+Blockers carried forward:
+
+- Mac Mini approved artifacts remain unrecovered; no authenticated SMB share is mounted, and both SMB/SSH were unreachable in this probe.
+- Production CRM contacts/opportunities schema requires a future sandbox migration/test lane and explicit promotion approval before production.
+
+Next lane:
+
+- Draft sandbox-only `crm_contacts` / `crm_opportunities` migrations and mocked route tests, or create the daily CRM digest template if schema work should stay draft-only for another tick.
+
+
+## 2026-05-23 08:19:37 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+

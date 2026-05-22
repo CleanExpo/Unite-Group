@@ -2,7 +2,7 @@
 
 Date: 2026-05-23
 Owner: Margot
-Status: Draft contract / no production conversion route implemented
+Status: Local guarded route/test contract exists; production conversion is not promoted/applied and no production DB write has been verified
 
 ## Non-negotiable rule
 
@@ -67,13 +67,24 @@ Conversion must fail closed unless all required gates pass:
 
 ## Expected API contract seed
 
-A future mock-first conversion endpoint should prefer safe failures:
+The local guarded conversion endpoint (`src/app/api/crm/leads/[id]/convert/route.ts`) is covered by mock-first tests and should prefer safe failures:
 
 - Missing exact lead ID -> `400` with `exact_lead_id_required`; no conversion.
 - Lead not found -> `404` with `lead_not_found`; no conversion.
 - Lead already converted -> `409` with `lead_already_converted`; no duplicate client.
 - Identity conflict -> `409` with `identity_conflict`; no conversion.
 - Missing operator approval -> `403` with `operator_approval_required`; no conversion.
+
+## Current local evidence
+
+- Local route/test contract exists for exact lead ID, already-converted guard, identity conflict, required operator approval, and guarded conversion-field update.
+- Missing or blank `boardApprovalId` returns `403` with `{ error: 'operator_approval_required' }` before Supabase conversion/update is attempted.
+- Production qualification remains precise: this is a local guarded route/test contract only; no production conversion promotion, migration, deploy, or production DB write/application has been verified from this plan.
+- Verification on 2026-05-23:
+  - RED before route change: `npx jest tests/integration/api/crm-lead-conversion.test.ts --runInBand` failed only the new missing-approval expectation: expected HTTP `403`, received `400`.
+  - GREEN after route change: `npx jest tests/integration/api/crm-lead-conversion.test.ts --runInBand` passed, 1 suite / 5 tests.
+  - Focused CRM lead suite: `npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts --runInBand` passed, 4 suites / 19 tests.
+  - Type check: `npm run type-check` passed (`tsc --noEmit`).
 
 ## Implementation notes
 

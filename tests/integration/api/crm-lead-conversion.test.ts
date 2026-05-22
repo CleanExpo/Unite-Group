@@ -92,6 +92,14 @@ describe('POST /api/crm/leads/[id]/convert', () => {
     expect(mockFrom).not.toHaveBeenCalled();
   });
 
+  it('returns 403 operator_approval_required and performs no conversion when board approval is missing', async () => {
+    const res = await POST(request({ boardApprovalId: undefined }), context());
+
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ error: 'operator_approval_required' });
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
   it('returns 409 identity_conflict and performs no conversion when strong identifiers disagree', async () => {
     const { updateBuilder } = mockLeadConversion({
       id: leadId,

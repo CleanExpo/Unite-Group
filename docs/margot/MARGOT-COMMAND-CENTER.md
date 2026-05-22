@@ -206,7 +206,9 @@ Verification:
 - `docs/margot/crm-schema-inventory.md` passed spec compliance and code/doc quality review.
 - `test -f` verification passed for the four Senior PM docs: `docs/margot/project-portfolio-index.md`, `docs/margot/client-second-brain-model.md`, `docs/margot/marketing-strategy-operating-model.md`, and `docs/margot/ai-enhancement-pipeline.md`.
 - `npx jest tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts --runInBand` passed at 2026-05-23 07:35 AEST: 2 suites, 9 tests.
+- `npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts --runInBand` passed at 2026-05-23 08:07 AEST: 4 suites, 19 tests.
 - `npm run type-check` passed after the CRM lead visibility / qualification verification lane.
+- `npm run type-check` passed after the guarded lead-to-client conversion approval-gate lane.
 - `npm run type-check` passed after the documentation lane: `tsc --noEmit` completed.
 
 Mac Mini recovery probe:
@@ -251,13 +253,24 @@ The remaining local documentation lanes from the multi-day CRM build plan are no
 
 These docs provide the repo-local control surfaces for project oversight, durable client/business memory, CRM-connected marketing strategy, and safe AI/LLM/integration evaluation. They mark live/external status unknown where this doc lane did not verify providers.
 
+## CRM Contacts / Opportunities Proposal
+
+The next identity and commercial pipeline layer is now drafted locally:
+
+- Contacts/opportunities model: `docs/margot/crm-contacts-opportunities-model.md`
+
+Current state:
+- Local proposal only; no migration has been applied and no production write has been performed.
+- Defines `crm_contacts` and `crm_opportunities` candidate fields, lifecycle flows, identity/dedupe rules, cross-client aborts, Stripe separation, privacy/RLS caveats, Board approval gates, sandbox-first migration handling, future mocked test matrix, and next implementation steps.
+- Spec compliance review passed and quality review approved after safety-language patches at `2026-05-23 08:17 AEST`.
+
 ## Immediate Next Moves
 
 1. Continue from `docs/plans/2026-05-23-margot-multi-day-crm-build-plan.md` as the active multi-day build queue.
 2. Use `docs/margot/crm-schema-inventory.md` and the refreshed `docs/margot/crm-operating-model.md` as the current schema/source-of-truth map.
-3. Build the guarded lead-to-client conversion route behind mocked tests from `docs/margot/lead-to-client-conversion-plan.md`.
-4. Draft the `crm_contacts` proposal if conversion needs more identity-model groundwork.
-5. Draft the `crm_opportunities` proposal for qualified commercial work before client conversion.
+3. Use `docs/margot/lead-to-client-conversion-plan.md` as the current local guarded conversion contract; missing operator approval now returns `403 operator_approval_required` and the focused CRM lead suite is green.
+4. Use `docs/margot/crm-contacts-opportunities-model.md` as the current local proposal before broader contact/opportunity automation.
+5. Draft sandbox-only contacts/opportunities migrations and mocked route tests, or create the daily CRM digest template if schema work should remain draft-only.
 6. Use the portfolio, client 2nd Brain, marketing strategy, and AI enhancement docs as Senior PM control surfaces while code lanes continue.
 7. Continue Mac Mini recovery when an authenticated SMB share is mounted or SSH is enabled.
 8. Keep focused CRM/Margot tests and `npm run type-check` green before handoff or merge.
