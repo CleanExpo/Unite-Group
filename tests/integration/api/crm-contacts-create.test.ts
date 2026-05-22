@@ -125,6 +125,23 @@ describe('POST /api/crm/contacts', () => {
     ]);
   });
 
+  it('applies source and relationship owner defaults when explicit blank strings are supplied', async () => {
+    const calls: InsertCall[] = [];
+    mockContactInsert(calls);
+
+    const res = await POST(request({
+      displayName: 'Ada Lovelace',
+      source: '   ',
+      relationshipOwner: '',
+    }));
+
+    expect(res.status).toBe(201);
+    expect(calls[0].row).toEqual(expect.objectContaining({
+      source: 'manual',
+      relationship_owner: 'Margot',
+    }));
+  });
+
   it('returns 400 contact_identity_required and does not insert when no identity fields are present', async () => {
     const res = await POST(request({ source: 'manual' }));
 
@@ -163,6 +180,19 @@ describe('POST /api/crm/contacts', () => {
     }));
     expect(calls[0].row).not.toHaveProperty('boardApprovalId');
     expect(calls[0].row).not.toHaveProperty('board_approval_id');
+  });
+
+  it('returns 400 invalid_contact_payload and does not insert when multiple links have a too-short board approval id', async () => {
+    const res = await POST(request({
+      displayName: 'Ada Lovelace',
+      linkedClientId: clientId,
+      linkedBusinessId: businessId,
+      boardApprovalId: '12345',
+    }));
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'invalid_contact_payload' });
+    expect(mockFrom).not.toHaveBeenCalled();
   });
 
   it('returns 503 crm_not_configured before Supabase access if env is missing', async () => {

@@ -102,6 +102,20 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest CRM contacts create API hardening at `2026-05-23 08:39 AEST`:
+
+- Continued the active branch `feat/margot-crm-contacts-api` at `5fc6459` rather than starting a new lane.
+- Re-verified local-only guarded contact creation route `src/app/api/crm/contacts/route.ts` and test contract `tests/integration/api/crm-contacts-create.test.ts`.
+- Spec compliance review: PASS.
+- Code quality review initially requested stronger blank-default and approval-ID validation; the follow-up patch added regressions and final quality re-review was APPROVED.
+- Focused CRM contact test passed: `npx jest tests/integration/api/crm-contacts-create.test.ts --runInBand` returned 1 suite passed / 9 tests passed.
+- Focused CRM regression passed: `npx jest tests/integration/api/crm-contacts-create.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts --runInBand` returned 6 suites passed / 31 tests passed.
+- `npm run type-check` passed.
+- `npm run security:routes-check` passed with `0 unprotected mutating routes`.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, secret access/printing, or client-facing send was performed.
+- Local commit created on `feat/margot-crm-contacts-api` with message `test: harden CRM contacts approval defaults`; push failed because HTTPS GitHub credentials are unavailable in this session (`could not read Username for 'https://github.com': Device not configured`).
+- `gh` is unavailable locally, so GitHub PR/check state could not be inspected via GitHub CLI in this tick.
+
 Latest contacts/opportunities migration-draft verification at `2026-05-23 08:27 AEST`:
 
 - Created sandbox-first draft migration `supabase/migrations/20260523103000_crm_contacts_opportunities.sql` for `crm_contacts` and `crm_opportunities`; it was not applied to sandbox or production.

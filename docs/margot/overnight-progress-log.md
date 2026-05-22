@@ -1103,3 +1103,61 @@ Next slice:
 - If safe sandbox credentials are available in a later run, apply/diff this migration through the sandbox wizard only.
 - Otherwise continue safe local work by adding mocked server-route tests for contact draft creation/linking or creating the daily CRM digest template.
 
+## 2026-05-23 08:39:23 AEST
+
+### Lane executed — CRM contacts create API hardening on active branch
+
+Continued the in-progress branch `feat/margot-crm-contacts-api` rather than starting a new lane.
+
+Preflight / auth state:
+
+```text
+Branch before work: feat/margot-crm-contacts-api...origin/feat/margot-crm-contacts-api
+HEAD before work: 5fc6459 feat: add guarded CRM contacts create API
+GitHub CLI: unavailable locally (`gh: command not found`)
+Open PR/check state: not retrievable via gh in this session
+node_modules=present
+```
+
+Slice completed:
+
+- Re-read the active plan, CRM schema inventory, contacts/opportunities proposal, and current branch state.
+- Verified the existing local-only guarded contact creation route and tests:
+  - `src/app/api/crm/contacts/route.ts`
+  - `tests/integration/api/crm-contacts-create.test.ts`
+- Two-stage review loop:
+  - Spec compliance review: PASS.
+  - Code quality review initially requested stronger default/approval validation.
+  - Patch pass added focused regressions and hardening.
+  - Final code quality re-review: APPROVED.
+- Hardened the contact create test contract so blank `source` / `relationshipOwner` values apply safe defaults and too-short `boardApprovalId` is rejected before insert.
+
+Verification commands/results:
+
+```bash
+npx jest tests/integration/api/crm-contacts-create.test.ts --runInBand
+# PASS: 1 suite passed, 9 tests passed
+
+npx jest tests/integration/api/crm-contacts-create.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts --runInBand
+# PASS: 6 suites passed, 31 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Safety / blockers:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, secret access/printing, or client-facing send was performed.
+- Local commit created on `feat/margot-crm-contacts-api` with message `test: harden CRM contacts approval defaults`.
+- Push attempt failed: `fatal: could not read Username for 'https://github.com': Device not configured`.
+- `gh` is not installed/available in this session, so PR/check state could not be inspected via GitHub CLI.
+- Vercel state was not verified locally in this tick.
+- Production promotion remains forbidden without explicit Board approval.
+
+Next slice:
+
+- Restore GitHub auth/transport or use an available runner to push `feat/margot-crm-contacts-api`; then inspect PR/check state. If git transport remains blocked, continue safe local work by drafting the opportunity create route contract or daily CRM digest template.
+
