@@ -1,6 +1,6 @@
 # Linear Watch — Margot Today Queue
 
-Last synced: 2026-05-23 07:48:15 AEST
+Last synced: 2026-05-23 09:06:55 AEST
 Source: Linear team `UNI` / Unite-Group
 Purpose: Make parent-Hermes-pushed Linear work visible to Margot for today's task list.
 
@@ -15,11 +15,11 @@ Purpose: Make parent-Hermes-pushed Linear work visible to Margot for today's tas
 
 ### UNI-2055 — CCW EOFY organic campaign — stock, service bookings, purchase-before-EOFY urgency
 
-- State: In Progress (started)
+- State: In Review (started)
 - Priority: Urgent
 - Project: CCW CRM
 - Assignee: Unassigned
-- Updated: 2026-05-21T22:22:49.641Z
+- Updated: 2026-05-22T23:06:47.564Z
 - Labels: none
 - Linear: https://linear.app/unite-group/issue/UNI-2055/ccw-eofy-organic-campaign-stock-service-bookings-purchase-before-eofy
 
@@ -61,7 +61,7 @@ Summary / Linear description excerpt:
 - Priority: None
 - Project: Brand OS Production Board
 - Assignee: Unassigned
-- Updated: 2026-05-21T21:36:07.273Z
+- Updated: 2026-05-22T23:01:48.725Z
 - Labels: none
 - Linear: https://linear.app/unite-group/issue/UNI-2054/maintain-margot-command-center-and-restoreassist-content-index
 
@@ -317,8 +317,8 @@ Summary / Linear description excerpt:
 
 | Issue | State | Priority | Project | Updated | Title |
 | --- | --- | --- | --- | --- | --- |
-| [UNI-2055](https://linear.app/unite-group/issue/UNI-2055/ccw-eofy-organic-campaign-stock-service-bookings-purchase-before-eofy) | In Progress | Urgent | CCW CRM | 2026-05-21T22:22:49.641Z | CCW EOFY organic campaign — stock, service bookings, purchase-before-EOFY urgency |
-| [UNI-2054](https://linear.app/unite-group/issue/UNI-2054/maintain-margot-command-center-and-restoreassist-content-index) | In Progress | None | Brand OS Production Board | 2026-05-21T21:36:07.273Z | Maintain Margot Command Center and RestoreAssist Content Index |
+| [UNI-2055](https://linear.app/unite-group/issue/UNI-2055/ccw-eofy-organic-campaign-stock-service-bookings-purchase-before-eofy) | In Review | Urgent | CCW CRM | 2026-05-22T23:06:47.564Z | CCW EOFY organic campaign — stock, service bookings, purchase-before-EOFY urgency |
+| [UNI-2054](https://linear.app/unite-group/issue/UNI-2054/maintain-margot-command-center-and-restoreassist-content-index) | In Progress | None | Brand OS Production Board | 2026-05-22T23:01:48.725Z | Maintain Margot Command Center and RestoreAssist Content Index |
 | [UNI-2053](https://linear.app/unite-group/issue/UNI-2053/create-ccw-product-category-copy) | Todo | None | Brand OS Production Board | 2026-05-21T21:36:05.878Z | Create CCW product category copy |
 | [UNI-2012](https://linear.app/unite-group/issue/UNI-2012/atia-w16-trademark-search-domain-acquisition-buy-best-atia-domain) | Backlog | Urgent | ATIA | 2026-05-16T14:45:03.066Z | [ATIA] W1.6 — Trademark search + domain acquisition: buy best ATIA domain |
 | [UNI-2010](https://linear.app/unite-group/issue/UNI-2010/atia-w14-pm-carpet-recon-read-ccw-state-draft-accpa-charter-using-ccw) | Backlog | Urgent | ATIA | 2026-05-14T00:54:33.369Z | [ATIA] W1.4 — PM-Carpet recon: read CCW state, draft ACCPA charter using CCW as wedge |
