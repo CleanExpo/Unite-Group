@@ -1217,3 +1217,57 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 
+## 2026-05-23 09:21:02 AEST
+
+### Lane executed — CRM daily digest admin route
+
+Continued the active multi-day CRM build from the existing-assets-first Margot/Senior PM plan. Chose the local-only digest wiring lane because GitHub/Vercel CLIs remain unavailable locally and production DB/schema/deploy work remains forbidden without explicit Board approval.
+
+Preflight / repo state:
+
+```text
+Branch before work: main...origin/main, clean
+Working branch: feat/margot-crm-daily-digest-route
+Local commit message: feat: add CRM daily digest route
+GitHub CLI/auth: unavailable locally (`gh` not found)
+Vercel CLI/auth: unavailable locally (`vercel` not found)
+node_modules=present
+```
+
+Slice completed:
+
+- Added read-only admin route `src/app/api/crm/daily-digest/route.ts`.
+- Added TDD integration coverage `tests/integration/api/crm-daily-digest.test.ts`.
+- RED evidence: focused test initially failed because `@/app/api/crm/daily-digest/route` did not exist.
+- GREEN evidence: route now validates `limit`, handles missing Supabase config safely, requires admin before CRM data reads when configured, reads recent `crm_leads`, maps lead rows into the pure `createCrmDailyDigest` helper, and returns structured digest JSON.
+- Two-stage review loop:
+  - Spec review found exact-response/config-order gaps; patch pass fixed invalid-query response shape and missing service-role config behavior.
+  - Final quality review: APPROVED with minor optional coverage notes only.
+
+Verification commands/results:
+
+```bash
+npx jest tests/integration/api/crm-daily-digest.test.ts --runInBand
+# PASS after implementation/fix pass: 1 suite passed, 5 tests passed
+
+npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-leads-list.test.ts --runInBand
+# PASS: 3 suites passed, 12 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Safety / blockers:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+- GitHub push/PR/check state remains blocked in this local session: `git push -u origin feat/margot-crm-daily-digest-route` failed with `fatal: could not read Username for 'https://github.com': Device not configured`; `gh` is also unavailable. Use `git log -1 --oneline` for the final local commit hash because this evidence entry was amended after recording push failure.
+- Vercel deployment status remains blocked because Vercel CLI/auth is unavailable locally.
+- Contacts/opportunities migration remains draft-only until sandbox wizard apply/diff and explicit Board approval for any production promotion.
+
+Next slice:
+
+- Continue local CRM spine work by adding a command-center loader/fixture for the digest route, or start the guarded opportunities create route contract while keeping the daily-digest/lead-list/type-check/security gates green.
+

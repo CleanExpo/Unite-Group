@@ -102,7 +102,18 @@ Target recovery files remain:
 
 ## Verification status
 
-Latest daily CRM digest lane at `2026-05-23 08:51 AEST`:
+Latest CRM daily digest route lane at `2026-05-23 09:21 AEST`:
+
+- Added read-only admin digest route `src/app/api/crm/daily-digest/route.ts` and TDD coverage `tests/integration/api/crm-daily-digest.test.ts`.
+- RED failed because the route module did not exist; GREEN passed after implementing the route and fixing spec-review findings.
+- The route validates `limit`, handles missing Supabase config safely, requires admin before CRM data reads when configured, reads recent `crm_leads`, maps lead rows into `createCrmDailyDigest`, and returns structured digest JSON.
+- Focused verification passed: `npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-leads-list.test.ts --runInBand` returned 3 suites passed / 12 tests passed.
+- `npm run type-check` passed.
+- `npm run security:routes-check` passed with `0 unprotected mutating routes`.
+- Local commit created on `feat/margot-crm-daily-digest-route` with message `feat: add CRM daily digest route`; push failed because HTTPS GitHub credentials are unavailable in this session (`could not read Username for 'https://github.com': Device not configured`). Use `git log -1 --oneline` for the final local hash because this report was amended after recording push failure.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+
+Previous daily CRM digest helper lane at `2026-05-23 08:51 AEST`:
 
 - Added pure local helper `src/lib/crm/daily-digest.ts` to produce structured daily CRM digest counts, operator priorities, approvals, blockers, verification lines, and markdown output.
 - Added TDD test `tests/unit/lib/crm/daily-digest.test.ts`; RED failed because the helper did not exist, then GREEN passed after implementation.
@@ -235,7 +246,7 @@ Active multi-day plan:
 3. Use `docs/margot/crm-contacts-opportunities-model.md` as the local proposal for canonical contacts and commercial opportunities before broader conversion automation.
 4. Draft contact/opportunity create/link route tests now that `supabase/migrations/20260523103000_crm_contacts_opportunities.sql` exists locally, but keep actual schema application sandbox-first through `./scripts/sandbox-wizard.sh` and never promote without explicit Board approval.
 5. Apply/diff the draft migration against the sandbox when credentials are available and safe to use; do not touch production.
-6. Wire the new pure daily CRM digest helper/template to a mocked server/admin route or command-center loader if the next tick stays local-only.
+6. Use the new `src/app/api/crm/daily-digest/route.ts` read-only admin route as the local digest wiring point; next local-only digest work should be a command-center loader/fixture rather than another route.
 7. Use the new portfolio, client 2nd Brain, marketing strategy, and AI enhancement docs as Senior PM control surfaces while code lanes continue.
 8. Continue Mac Mini recovery when an authenticated share or SSH is available.
 9. Keep cron/project logs as the official evidence channel until user-visible delivery is configured.
