@@ -3496,3 +3496,118 @@ Safety:
 Next safe slice:
 
 - Merge PR #179 if checks remain clean, then verify main branch CI/Vercel for the merge commit. Otherwise continue route-level CRM event-write tests or command-center digest rendering in a fresh lane.
+
+## 2026-05-24 00:45:40 AEST
+
+### Merge/deploy verification — PR #179
+
+Merged artifact:
+
+- PR: https://github.com/CleanExpo/Unite-Group/pull/179
+- Merge commit: `b1eb4dbc6f0414da3a519226296a9c9615f8caf4` (`test: cover live control panel payload rendering`).
+- Local `main` fast-forwarded to `origin/main` at `b1eb4db` after merge.
+
+Post-merge verification:
+
+- Main CI run `26335519729` completed successfully: https://github.com/CleanExpo/Unite-Group/actions/runs/26335519729
+- Main DESIGN.md lint run `26335519719` completed successfully: https://github.com/CleanExpo/Unite-Group/actions/runs/26335519719
+- Vercel status for merge commit is success: https://vercel.com/unite-group/unite-group/99ELVo3DC86HDkGA6STQu1us7vom
+
+Scope shipped:
+
+- `HermesControlPanel` has a local/server-render `initialPayload` seam for live CRM payload rendering coverage.
+- Component coverage now proves live task count, approval-required count, and live workstream label render without seed/loading fallback.
+- Margot coverage/evidence docs record the command-center read-surface gap as narrowed to client-side fetched hydration, leads, opportunities, and digest rendering.
+
+Local note:
+
+- This merge/deploy evidence was appended locally after PR #179 merged; no follow-up PR was opened solely to publish evidence-of-evidence.
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git on main, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
+
+Next safe slice:
+
+- Continue command-center digest rendering or route-level CRM event-write tests in a fresh TDD lane; keep Mac Mini recovery limited to safe authenticated transport checks.
+
+## 2026-05-24 00:59 AEST
+
+### Safe health check + command-center degraded-source coverage
+
+Read-first/control context:
+
+- Re-read the requested Margot operating docs and current handoff state before selecting the lane.
+- Current branch: `main` at `b1eb4db`.
+- Starting working tree already had local report-only edits in `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`.
+- Safe health check: `node_modules=present`, `package-lock.json=present`, `/Volumes` contains `Claude` and `Macintosh HD`, `docs/margot/recovered-from-mac-mini/` contains only `.gitkeep`, `phills-mac-mini.local:445` is reachable, and `phills-mac-mini.local:22` is unreachable.
+
+Safe improvement completed:
+
+- Added a local component regression in `tests/unit/components/command-center/HermesControlPanel.test.tsx` proving an injected non-CRM payload with `source='seed:static-plan'` is rendered as degraded data, shows `CRM unreachable · seed plan`, includes the degraded banner reason, and does not present `CRM · 0 tasks` as live CRM truth.
+- Updated `docs/margot/crm-test-coverage-matrix.md` so the command-center read-surface row records non-CRM degraded-source rendering coverage in addition to seed and injected-live-payload rendering.
+
+Verification:
+
+```bash
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand
+# PASS: 2 suites / 6 tests
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Blockers / unchanged constraints:
+
+- Mac Mini artifact recovery remains blocked on authenticated SMB mount containing the approved target files or SSH availability; no noninteractive credential attempt was made.
+- No GitHub push, Vercel deploy/env mutation, production DB write, migration application, sandbox apply, secret access/printing/storage, client-facing communication, billing/payment action, destructive git, cross-client merge, or unrelated context mixing was performed.
+
+Next safe slice:
+
+- Continue command-center digest rendering or route-level CRM event-write tests; keep Mac Mini recovery checks safe and limited to approved target files.
+
+## 2026-05-24 01:31 AEST
+
+### Review/verification refresh — command-center degraded-source coverage
+
+Slice completed:
+
+- Continued the already-started local command-center CRM read-surface slice rather than opening a new lane.
+- Fixed the progress-log EOF hygiene issue flagged by both reviewers so the documented `git diff --check` evidence is accurate.
+- Re-ran spec and code-quality/security reviews after the fix; both passed/approved.
+
+Verification:
+
+```bash
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand
+# PASS: 2 suites / 6 tests
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Review evidence:
+
+- Spec compliance re-review: PASS.
+- Code quality/security re-review: APPROVED.
+
+Blockers / unchanged constraints:
+
+- Mac Mini artifact recovery remains blocked on authenticated SMB mount containing the approved target files or SSH availability.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
+
+Next safe slice:
+
+- Publish this verified local slice through GitHub if CI remains available, then continue command-center digest rendering or route-level CRM event-write tests.
