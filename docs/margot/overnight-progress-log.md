@@ -2701,3 +2701,55 @@ State boundary:
 - The verified lead conversion timeline-write slice is committed locally on `feat/crm-approval-lifecycle-helper`.
 - No PR, CI, merge, or Vercel deployment was created or verified in this cron shell.
 - Follow-up docs were updated after the code commit to record commit/push evidence; these evidence-only docs may need a small follow-up commit if git transport becomes available.
+
+
+## 2026-05-23 19:22 AEST
+
+### Voice task schema provenance lane
+
+Completed the next safe CRM/voice documentation slice to close the local schema provenance gap for the Margot voice-to-task path without touching production data or applying migrations.
+
+Read/inspected:
+
+- Margot connected-team operating docs and current morning/progress evidence.
+- Current git branch/status and recent local commits.
+- `src/app/api/pi-ceo/margot-voice/task/route.ts`.
+- `types/supabase.ts` generated entries for `tasks` and `voice_command_sessions`.
+- `supabase/migrations/` search for `tasks` / `voice_command_sessions` definitions.
+- Mac Mini recovery state under `/Volumes` and `docs/margot/recovered-from-mac-mini/`.
+
+Changed:
+
+- Created `docs/margot/voice-task-schema-provenance.md`.
+- Updated `docs/margot/crm-test-coverage-matrix.md`.
+- Updated `docs/margot/crm-operating-model.md`.
+- Updated `docs/margot/MARGOT-COMMAND-CENTER.md`.
+- Updated `docs/margot/mac-mini-recovery-status.md`.
+- Updated `docs/margot/morning-report.md`.
+
+Evidence:
+
+- `voice-task-schema-provenance.md` documents the route write shape for `voice_command_sessions` and `tasks`, generated type fields/relationships, current mocked test coverage, and the key limitation: no repo-local defining migration was found in `supabase/migrations/`, so generated types are schema evidence but not migration authority.
+- CRM matrix now marks local schema provenance for `tasks` and `voice_command_sessions` as documented and moves the remaining gap to digest/read linkage tests plus migration recovery or sandbox-only reconstruction.
+- Mac Mini probe at this pass: `/Volumes` only contains `Macintosh HD`; `phills-mac-mini.local:445` reachable; `phills-mac-mini.local:22` unreachable; recovered target directory still contains only `.gitkeep`.
+
+Verification:
+
+```bash
+npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts --runInBand
+# PASS: 3 suites passed, 28 tests passed
+```
+
+Safety:
+
+- No production DB write, sandbox apply, migration application, deployment, Vercel env mutation, GitHub push, Mac Mini write, client-facing communication, billing/payment action, destructive git, cross-client merge, or secret printing/storage was performed.
+
+Blockers:
+
+- GitHub push/PR remains blocked in this shell because HTTPS GitHub auth is unavailable and `gh` is not installed.
+- Mac Mini artifact copy remains blocked on authenticated SMB mount or SSH availability.
+- Original SQL migration provenance for `tasks` and `voice_command_sessions` remains missing from repo-local migrations; any reconstruction must be sandbox-first.
+
+Next safe slice:
+
+- Add command-center CRM UI read-surface tests for leads/approvals/daily digest, or add a digest reader linkage test for voice-created `tasks` once the read surface is wired.

@@ -226,10 +226,11 @@ npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration
 2. Decide the approval persistence shape (`crm_approvals` vs task subtype) before route writes; the pure local approval lifecycle helper/test now covers requested, approved, rejected, expired/cancelled, and executed states.
 3. Add command-center CRM UI read-surface tests for leads, approvals, opportunities, and daily digest.
 4. Add integration stale-sync threshold tests for Linear/GitHub/Vercel/Supabase mirrors.
-5. Establish local schema provenance for `tasks` and `voice_command_sessions`.
+5. Add a digest reader linkage test for voice-created `tasks` once the command-center read surface is wired.
 6. Run wider existing client route regression before any `nexus_clients` conversion work.
-7. Keep the focused CRM matrix gate, Margot voice gate when touched, `npm run type-check`, and `npm run security:routes-check` green.
-8. Continue Mac Mini recovery only through authenticated SMB/SSH or manual approved export.
+7. Recover original migrations or reconstruct sandbox-only migration proposals for `tasks` and `voice_command_sessions` before schema-affecting work.
+8. Keep the focused CRM matrix gate, Margot voice gate when touched, `npm run type-check`, and `npm run security:routes-check` green.
+9. Continue Mac Mini recovery only through authenticated SMB/SSH or manual approved export.
 
 ## Evidence From This Pass
 

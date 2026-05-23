@@ -85,7 +85,7 @@ Margot has:
 Mac Mini recovery remains blocked by current connectivity/auth state:
 
 - Host: `phills-mac-mini.local`
-- Latest probe at `2026-05-23 18:32 AEST`: SMB/File Sharing port 445 is reachable; SSH/Remote Login port 22 is unreachable; no authenticated SMB share is mounted under `/Volumes`.
+- Latest probe at `2026-05-23 19:22 AEST`: SMB/File Sharing port 445 is reachable; SSH/Remote Login port 22 is unreachable; no authenticated SMB share is mounted under `/Volumes`.
 
 Still blocked:
 
@@ -102,7 +102,16 @@ Target recovery files remain:
 
 ## Verification status
 
-Latest verification refresh at `2026-05-23 18:54 AEST`:
+Latest verification refresh at `2026-05-23 19:22 AEST`:
+
+- Re-read Margot operating docs, current progress/morning evidence, CRM matrix, command-center state, Mac Mini recovery status, and voice/task route schema evidence before selecting the next safe lane.
+- Health check: branch `feat/crm-approval-lifecycle-helper`, `node_modules=present`, package scripts available, `/Volumes` contains only `Macintosh HD`, `phills-mac-mini.local:445` reachable, `phills-mac-mini.local:22` unreachable, and no recovered Mac Mini artifacts are present locally.
+- Documentation improvement: created `docs/margot/voice-task-schema-provenance.md` to document repo-local generated type evidence for `tasks` and `voice_command_sessions`, the current voice route write shape, mocked test coverage, and the limitation that no defining migration was found in `supabase/migrations/`.
+- Updated `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/crm-operating-model.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/mac-mini-recovery-status.md`, `docs/margot/overnight-progress-log.md`, and this report with the latest evidence.
+- Verification passed: focused voice gate returned 3 suites / 28 tests passed with `npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts --runInBand`.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, client-facing communication, billing/payment action, merge, destructive git, or unrelated context mixing was performed.
+
+Prior verification refresh at `2026-05-23 18:54 AEST`:
 
 - Re-read Margot operating docs, current Linear mirror, CRM matrix, approval persistence plan, command-center state, Mac Mini recovery status, and latest progress evidence before selecting the next safe lane.
 - Health check: branch `feat/crm-approval-lifecycle-helper`, local code commit `0799860 feat: record lead conversion timeline action` plus an evidence-only follow-up docs commit, `node_modules=present`, `package-lock.json=present`, `/Volumes` contains only `Macintosh HD`, `phills-mac-mini.local:445` reachable, `phills-mac-mini.local:22` unreachable, and no recovered Mac Mini artifacts are present locally.
