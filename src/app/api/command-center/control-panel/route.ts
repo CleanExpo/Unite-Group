@@ -84,6 +84,19 @@ function mapRyg(task: TaskRow | undefined, fallback: ControlRyg): ControlRyg {
   return 'yellow';
 }
 
+function isApprovalRequiredTask(task: TaskRow) {
+  const status = task.status.toLowerCase();
+  const assignee = task.assignee_name?.toLowerCase() ?? '';
+  return (
+    ['blocked', 'needs_approval', 'approval'].includes(status) ||
+    assignee.includes('phill approval')
+  );
+}
+
+function countApprovalRequired(tasks: TaskRow[]) {
+  return tasks.filter(isApprovalRequiredTask).length;
+}
+
 function mergeTasks(tasks: TaskRow[]): LiveWorkstream[] {
   return CONTROL_WORKSTREAMS.map((item) => {
     const task = findTaskForWorkstream(item.id, tasks);
@@ -129,6 +142,7 @@ function responseFor(
   source: string,
   taskCount = 0,
   addOns: LiveAddOnGate[] = ADD_ON_GATES,
+  approvalRequired = 0,
 ) {
   return NextResponse.json(
     {
@@ -139,6 +153,7 @@ function responseFor(
         green: workstreams.filter((item) => item.ryg === 'green').length,
         yellow: workstreams.filter((item) => item.ryg === 'yellow').length,
         red: workstreams.filter((item) => item.ryg === 'red').length,
+        approvalRequired,
       },
       workstreams,
       addOns,
@@ -181,7 +196,13 @@ export async function GET(req: NextRequest) {
     }
 
     const tasks = (data ?? []) as TaskRow[];
-    return responseFor(mergeTasks(tasks), 'crm:tasks', tasks.length, mergeAddOns(tasks));
+    return responseFor(
+      mergeTasks(tasks),
+      'crm:tasks',
+      tasks.length,
+      mergeAddOns(tasks),
+      countApprovalRequired(tasks),
+    );
   } catch {
     return responseFor(CONTROL_WORKSTREAMS, 'fallback:crm_unavailable');
   }

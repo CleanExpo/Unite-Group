@@ -3007,3 +3007,139 @@ Safety:
 Next safe slice:
 
 - Continue with command-center CRM UI/read-surface tests for daily digest/approvals visibility, or add route-level approval event-write tests before wiring additional CRM mutation routes to `agent_actions`.
+
+## 2026-05-23 21:37 AEST
+
+### PR #176 evidence handoff merged and verified
+
+Completed the evidence-only follow-up for PR #175 and verified the current `main` state after fast-forwarding local `main` to `origin/main`.
+
+GitHub/PR/deploy evidence:
+
+- PR #176 merged: https://github.com/CleanExpo/Unite-Group/pull/176
+- Merge commit: `49b50465e5f8790f70638993d6bfea3993c574e3` (`Record Margot PR 175 merge evidence`).
+- Main branch CI after PR #176: CI run `26331577196` completed successfully.
+- DESIGN.md lint run `26331577198` completed successfully.
+- Vercel status on merge commit: commit status `Vercel=success`, deployment URL https://vercel.com/unite-group/unite-group/Fzw9QMptvK7NtVDqy26pQeN18z6d
+- Local branch state after verification: `main...origin/main` clean at `49b5046`.
+
+Verification:
+
+```bash
+gh run watch 26331577196 --interval 10 --exit-status
+# PASS: main CI completed successfully
+
+gh run watch 26331577198 --interval 10 --exit-status
+# PASS: DESIGN.md lint had already completed successfully
+
+gh api repos/CleanExpo/Unite-Group/commits/49b50465e5f8790f70638993d6bfea3993c574e3/status
+# PASS: combined status success, Vercel success
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, or secret printing/storage was performed.
+
+Next safe slice:
+
+- Continue with command-center CRM UI/read-surface tests for daily digest/approvals visibility, or add route-level approval event-write tests before wiring additional CRM mutation routes to `agent_actions`.
+
+## 2026-05-23 21:54 AEST
+
+### Autonomous Margot tick — repo/docs inspection and local health gate
+
+Re-read the requested Margot operating context and inspected the current repository state before selecting the safe lane.
+
+State observed:
+
+- Branch: `main`.
+- Latest local commit: `49b5046 Record Margot PR 175 merge evidence`.
+- Existing uncommitted changes before this tick were report-only updates in `docs/margot/overnight-progress-log.md` and `docs/margot/morning-report.md` from the PR #176 evidence handoff.
+- `node_modules=present` and `package-lock=present`.
+- `/Volumes` contains `Claude` and `Macintosh HD`.
+- `docs/margot/recovered-from-mac-mini/` contains only `.gitkeep`.
+- `phills-mac-mini.local:445` is reachable; `phills-mac-mini.local:22` is unreachable.
+
+Lane executed:
+
+- Safe local health check and report refresh.
+- No app code, database migration, schema, deployment, GitHub, Vercel, Linear, Stripe, or client-facing write lane was opened.
+- Mac Mini artifact recovery was checked safely and remains blocked on an authenticated SMB mount containing the approved target files or SSH availability.
+
+Verification:
+
+```bash
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
+
+Next safe slice:
+
+- Continue with command-center CRM UI/read-surface tests for daily digest/approvals visibility, or add route-level approval event-write tests before wiring additional CRM mutation routes to `agent_actions`.
+
+## 2026-05-23 22:11:46 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed. The LaunchAgent log path was not recorded in this handoff entry before the next cron tick began; leaving this as a scheduler heartbeat only.
+
+## 2026-05-23 22:24 AEST
+
+### Autonomous Margot tick — command-center approval summary read surface
+
+Completed the next safe command-center CRM read-surface slice from existing repo/docs/tests: the control-panel API now exposes a numeric `summary.approvalRequired` count for workspace-scoped CRM task rows needing Phill/Board/operator approval.
+
+Changed:
+
+- `src/app/api/command-center/control-panel/route.ts`
+- `tests/integration/api/control-panel.test.ts`
+- `docs/margot/crm-test-coverage-matrix.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Implementation evidence:
+
+- RED-first test added in `tests/integration/api/control-panel.test.ts`; initial focused run failed because `summary.approvalRequired` was `undefined`.
+- Route now counts fetched CRM `tasks` rows as approval-required when status is `blocked`, `needs_approval`, or `approval`, or assignee includes `phill approval`, case-insensitive.
+- Fallback/local preview summaries return `approvalRequired: 0`.
+- The live CRM count uses all fetched task rows, including rows that do not map to static command-center workstreams.
+- Spec compliance review: PASS.
+- Code quality/security review: APPROVED; minor environment-sensitive test setup note was fixed by clearing `COMMAND_CENTER_LOCAL_PREVIEW` in `beforeEach`.
+
+Verification:
+
+```bash
+npx jest tests/integration/api/control-panel.test.ts --runInBand
+# PASS: 1 suite / 3 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Current blocker / cleanup note:
+
+- `git diff --check` initially reported `docs/margot/overnight-progress-log.md:3100: new blank line at EOF` from the prior incomplete LaunchAgent handoff; this tick replaced that trailing blank/incomplete log marker while appending evidence.
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
+
+Next safe slice:
+
+- Add command-center UI component/rendering tests for the new approval-required summary and then wire daily digest/lead/opportunity sections into the browser surface when the component contract is clear.
