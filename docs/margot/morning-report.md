@@ -569,4 +569,3 @@ Latest publish refresh at `2026-05-23 23:27 AEST`:
 - Branch commit `ffa4a3e` (`feat: expose approval summary in control panel UI`) passed GitHub PR checks cleanly, including TypeScript, Unit + Integration Tests, Pipeline Smoke Tests, Supabase Schema Drift, JSON-LD Schema Validation, npm audit, specialist reviews, Chief Reviewer final verdict, CodeRabbit, and DESIGN.md validation.
 - Vercel preview deployment completed successfully: https://vercel.com/unite-group/unite-group/7WXqfEkaxeHEEc4KkpJ7SVyUvmxf
 - This entry is an evidence-only follow-up so the handoff contains the PR/check/deploy URLs before merge.
-
