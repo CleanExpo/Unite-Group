@@ -102,6 +102,17 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest opportunity digest integration finalize at `2026-05-23 12:08 AEST`:
+
+- Created local commit `6ae1b31 feat: add opportunity digest reads` on `feat/margot-crm-daily-digest-route`.
+- Spec compliance review: PASS. Code quality review: APPROVED.
+- Re-ran focused daily digest route verification: `npx jest tests/integration/api/crm-daily-digest.test.ts --runInBand` returned 1 suite / 10 tests passed.
+- Re-ran expanded CRM matrix gate: `npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts --runInBand` returned 9 suites / 57 tests passed.
+- Re-ran `npm run type-check`; `tsc --noEmit` passed.
+- Re-ran `npm run security:routes-check`; route inventory returned `0 unprotected mutating routes`.
+- Push/PR remains blocked: `GIT_TERMINAL_PROMPT=0 git push -u origin feat/margot-crm-daily-digest-route` failed with `fatal: could not read Username for 'https://github.com': terminal prompts disabled`.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, secret access/printing, Mac Mini write, or client-facing send was performed.
+
 Latest opportunity digest integration lane at `2026-05-23 11:42 AEST`:
 
 - Continued active branch `feat/margot-crm-daily-digest-route` from local head `9456ab1 docs: refresh CRM operating model next lanes`.

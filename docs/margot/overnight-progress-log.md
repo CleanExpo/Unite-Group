@@ -1765,3 +1765,60 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 
+## 2026-05-23 12:08 AEST
+
+### Lane finalized — opportunity digest integration review/commit
+
+Preflight / repo state:
+
+```text
+branch=feat/margot-crm-daily-digest-route
+head before finalize=9456ab1 docs: refresh CRM operating model next lanes
+gh=missing
+push transport=https origin, unauthenticated in this session
+node_modules=present
+package-lock.json=present
+```
+
+Slice finalized:
+
+- Continued the existing CRM daily digest branch rather than starting a new lane.
+- Verified and committed the feature-flagged opportunity read/digest integration.
+- Local commit created: `6ae1b31 feat: add opportunity digest reads`.
+- Spec compliance review: PASS.
+- Code quality review: APPROVED, with only a minor optional note that the default-off opportunity flag path could be named more explicitly in tests; current behavior is already covered by no-`crm_opportunities` read when the flag is absent.
+
+Verification commands/results:
+
+```bash
+npx jest tests/integration/api/crm-daily-digest.test.ts --runInBand
+# PASS: 1 suite passed, 10 tests passed
+
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts --runInBand
+# PASS: 9 suites passed, 57 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Push/PR state:
+
+```text
+GIT_TERMINAL_PROMPT=0 git push -u origin feat/margot-crm-daily-digest-route
+fatal: could not read Username for 'https://github.com': terminal prompts disabled
+```
+
+Safety / blockers:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, secret access/printing, Mac Mini write, or client-facing send was performed.
+- GitHub push/PR remains blocked until authenticated GitHub HTTPS or `gh` transport is available.
+- Opportunity digest reads remain feature-flagged behind `UNITE_CRM_OPPORTUNITIES_DIGEST_ENABLED=true` because `crm_opportunities` is still draft/sandbox-first and not production-promoted.
+
+Next slice:
+
+- If GitHub auth is restored, push/open/monitor the existing branch first.
+- Otherwise continue safe local fallback with activity/timeline event taxonomy or command-center CRM digest UI consumption.
+
