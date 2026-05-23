@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/security/require-admin';
+import {
+  buildCrmActivityTimelineEvent,
+  buildCrmTimelineAgentActionInsert,
+} from '@/lib/crm/activity-timeline';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,6 +36,42 @@ async function resolveLeadId(context: RouteContext) {
 
 function isUuid(value: string) {
   return z.string().uuid().safeParse(value).success;
+}
+
+async function recordLeadConversionTimelineEvent(
+  supabase: ReturnType<typeof createClient<any>>,
+  lead: CrmLeadConversionRow,
+  targetClientId: string,
+) {
+  const subjectLabel = lead.company?.trim() || lead.id;
+  const event = buildCrmActivityTimelineEvent({
+    type: 'lead_converted',
+    actor: 'Margot',
+    subjectId: lead.id,
+    subjectLabel,
+    occurredAt: new Date().toISOString(),
+    source: 'crm_lead_conversion_route',
+    requiresApproval: true,
+    metadata: {
+      priorStatus: lead.status,
+      hadMatchedClient: Boolean(lead.matched_client_id),
+      targetClientLinked: Boolean(targetClientId),
+    },
+  });
+
+  try {
+    const { error } = await supabase
+      .from('agent_actions')
+      .insert(buildCrmTimelineAgentActionInsert(event))
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error('Error recording CRM lead conversion timeline event:', error);
+    }
+  } catch (error) {
+    console.error('Error recording CRM lead conversion timeline event:', error);
+  }
 }
 
 export async function POST(request: NextRequest, context: RouteContext) {
@@ -128,6 +168,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
   if (updateError || !updatedLead) {
     return NextResponse.json({ error: 'lead_conversion_failed' }, { status: 500 });
   }
+
+  await recordLeadConversionTimelineEvent(supabase, lead, parsed.data.targetClientId);
 
   return NextResponse.json(
     {

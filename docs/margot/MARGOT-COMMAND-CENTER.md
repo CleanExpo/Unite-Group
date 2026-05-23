@@ -194,18 +194,22 @@ Safe destination when recovered:
 ## Health Check Snapshot
 
 Timestamp:
-`2026-05-23 18:06 AEST`
+`2026-05-23 18:54 AEST`
 
 Git state:
 - branch: `feat/crm-approval-lifecycle-helper`
-- latest local code commit: `db79b53 fix: keep CRM approval timeline inserts pending`
-- Margot handoff docs were committed as an evidence-only follow-up after the code commits; GitHub push/PR/deploy was not completed.
+- latest local commit before this working-tree slice: `0667ba0 docs: record approval timeline evidence`
+- Current working tree now includes uncommitted local route/test/doc updates for the lead conversion timeline-write slice; GitHub push/PR/deploy was not attempted.
 
 Dependency state:
 - `node_modules=present`
 - `package-lock.json=present`
 
 Verification:
+- Lead conversion route timeline-write lane completed at 2026-05-23 18:45 AEST: `src/app/api/crm/leads/[id]/convert/route.ts` now records a best-effort sanitized `crm_timeline_lead_converted` `agent_actions` row after the primary lead conversion update succeeds.
+- Lead conversion safety evidence: the new mocked route coverage verifies the persisted timeline action stays `pending`, `requiresApproval=true`, uses the existing sanitizer/mapping helper, stores no Board approval ID, does not use raw lead email as the timeline subject label when company is blank, and does not fail the conversion response if the timeline insert throws after primary success.
+- Fresh verification passed at 2026-05-23 18:54 AEST: `npx jest tests/integration/api/crm-lead-conversion.test.ts --runInBand` returned 1 suite / 7 tests passed; expanded CRM matrix returned 11 suites / 101 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
+- Safe health check passed at 2026-05-23 18:32 AEST: `node_modules=present`, `package-lock.json=present`, `/Volumes` contains only `Macintosh HD`, `phills-mac-mini.local:445` reachable, `phills-mac-mini.local:22` unreachable, and no recovered Mac Mini artifacts are present locally.
 - Approval decision timeline mapping lane completed at 2026-05-23 18:06 AEST: `src/lib/crm/activity-timeline.ts` recognizes `approval_approved` and `approval_rejected` as high-severity, approval-required CRM timeline events and maps them to pending `agent_actions` insert payloads.
 - Sanitization evidence: the new tests verify approval decision events strip approval references, Board IDs, rejection reasons, tokens, auth values, client secrets, API keys, IPs, and other sensitive metadata before event/insert mapping while preserving benign decision labels.
 - Review fix evidence: `db79b53` adds a regression test and defensive mapper logic so structurally constructed approval decision events remain `pending` and `requiresApproval=true` even if the supplied event action class is inconsistent.
@@ -261,8 +265,8 @@ Verification:
 
 Mac Mini recovery probe:
 - `/Volumes` only contains `Macintosh HD`; no authenticated Mac Mini share is mounted.
-- Latest 2026-05-23 17:13 AEST probe: `phills-mac-mini.local:445` is reachable.
-- Latest 2026-05-23 17:13 AEST probe: `phills-mac-mini.local:22` is unreachable.
+- Latest 2026-05-23 18:32 AEST probe: `phills-mac-mini.local:445` is reachable.
+- Latest 2026-05-23 18:32 AEST probe: `phills-mac-mini.local:22` is unreachable.
 - `docs/margot/recovered-from-mac-mini/` exists with only `.gitkeep`; no recovered artifacts yet.
 
 ## High-Level CRM Forecast
@@ -315,10 +319,10 @@ Current state:
 
 1. Continue from `docs/plans/2026-05-23-margot-multi-day-crm-build-plan.md` as the active multi-day build queue.
 2. Use `docs/margot/crm-schema-inventory.md`, `docs/margot/crm-operating-model.md`, and `docs/margot/crm-test-coverage-matrix.md` as the current schema/source-of-truth/verification map.
-3. Use `docs/margot/lead-to-client-conversion-plan.md` as the current local guarded conversion contract; missing operator approval now returns `403 operator_approval_required` and the focused CRM lead suite is green.
+3. Use `docs/margot/lead-to-client-conversion-plan.md` as the current local guarded conversion contract; missing operator approval returns `403 operator_approval_required`, successful conversion now writes a best-effort sanitized pending `crm_timeline_lead_converted` action, and the focused CRM lead suite is green.
 4. Use `docs/margot/crm-contacts-opportunities-model.md` as the current local proposal before broader contact/opportunity automation.
 5. Use `src/app/api/crm/daily-digest/route.ts` and `src/lib/crm/daily-digest.ts` as the current local read-only daily CRM digest wiring; the route now reads recent leads, workspace-scoped blocked/todo CRM task rows, and feature-flagged open/won/blocked opportunities when `UNITE_CRM_OPPORTUNITIES_DIGEST_ENABLED=true`.
-6. Next safe build lane: route-level event-write tests using the local `agent_actions` mapping in `src/lib/crm/activity-timeline.ts`, or command-center CRM digest UI consumption if UI is higher leverage.
+6. Next safe build lane: remaining CRM mutation route timeline coverage, stale integration threshold tests, or command-center CRM digest UI consumption if UI visibility is higher leverage.
 7. Continue sandbox-only contacts/opportunities route/migration drafts only through local tests and the sandbox wizard; do not apply to production without explicit Board approval.
 8. Use the portfolio, client 2nd Brain, marketing strategy, and AI enhancement docs as Senior PM control surfaces while code lanes continue.
 9. Continue Mac Mini recovery when an authenticated SMB share is mounted or SSH is enabled.

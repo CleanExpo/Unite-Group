@@ -2548,3 +2548,132 @@ Next safe slice:
 
 - Review whether approval decision events should be wired into route-level mocked timeline writes, keeping writes best-effort and sanitizer-tested before any Supabase sandbox/prod action.
 
+## 2026-05-23 18:45 AEST
+
+### Health check
+
+Observed in `/Users/phillmcgurk/Unite-Group`:
+
+```text
+branch=feat/crm-approval-lifecycle-helper
+head=0667ba0 docs: record approval timeline evidence
+node_modules=present
+package-lock.json=present
+/Volumes=Macintosh HD only
+phills-mac-mini.local:445=reachable
+phills-mac-mini.local:22=unreachable
+recovered_mac_mini_artifacts=none present locally
+```
+
+### Lane executed — lead conversion route timeline write
+
+Completed the next safe route-level CRM event-write slice using mocked/local tests only.
+
+Changed:
+
+- `src/app/api/crm/leads/[id]/convert/route.ts`
+- `tests/integration/api/crm-lead-conversion.test.ts`
+
+Evidence:
+
+- `POST /api/crm/leads/[id]/convert` now records a best-effort `crm_timeline_lead_converted` `agent_actions` row after the primary `crm_leads` conversion update succeeds.
+- The timeline event uses the existing `buildCrmActivityTimelineEvent` and `buildCrmTimelineAgentActionInsert` helpers, so the persisted action stays `pending`, `requiresApproval=true`, and does not persist Board approval IDs.
+- The timeline metadata is intentionally narrow: prior lead status, whether a matched client existed, and whether a target client was linked. It does not include raw email, Board approval reference, token, secret, payment, or cross-client notes.
+- Added mocked route coverage proving the conversion writes the sanitized pending timeline action and still returns success if the timeline insert throws after the primary conversion succeeds.
+- The lane performed no production DB write, sandbox apply, migration application, deployment, GitHub push, Vercel env mutation, Mac Mini write, client-facing communication, billing/payment action, destructive git, or unrelated context mixing.
+
+Verification:
+
+```bash
+npx jest tests/integration/api/crm-lead-conversion.test.ts --runInBand
+# PASS: 1 suite passed, 6 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/activity-timeline.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand
+# PASS: 11 suites passed, 100 tests passed
+```
+
+Blockers:
+
+- GitHub push/PR remains blocked by unauthenticated GitHub transport in this shell; `gh` is not installed.
+- Mac Mini artifact copy remains blocked: SMB/File Sharing port 445 is reachable, but no authenticated SMB volume is mounted and SSH port 22 is unreachable.
+
+Next safe slice:
+
+- Add route-level timeline write coverage for any remaining CRM mutation route that does not yet emit `agent_actions`, or move to command-center CRM digest UI consumption if UI visibility is higher leverage.
+
+
+## 2026-05-23 18:51:53 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+
+
+
+## 2026-05-23 18:54 AEST
+
+### Review fix — lead conversion timeline PII fallback
+
+Completed the review loop for the lead conversion route timeline-write slice after quality review found that a blank company could fall back to raw lead email as the persisted timeline `subjectLabel`.
+
+Changed:
+
+- `src/app/api/crm/leads/[id]/convert/route.ts`
+- `tests/integration/api/crm-lead-conversion.test.ts`
+- `docs/margot/crm-test-coverage-matrix.md`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/morning-report.md`
+
+Evidence:
+
+- Added a RED test proving a blank-company lead with `email='ada@example.com'` must persist the lead UUID, not raw email, as the timeline `subjectLabel` and must not include the email anywhere in the inserted `agent_actions` row.
+- GREEN fix: `recordLeadConversionTimelineEvent` now uses `lead.company?.trim() || lead.id` for the persisted subject label.
+- Spec compliance re-review: PASS.
+- Quality review initially requested changes for the raw-email fallback; fixed with the regression test above. The remaining minor notes were optional future tests for returned insert-error and no-write blocked paths.
+- The lane remains local mocked route/test evidence only; no sandbox/prod migration or live deployment is claimed.
+
+Verification:
+
+```bash
+npx jest tests/integration/api/crm-lead-conversion.test.ts --runInBand -t 'does not use raw email'
+# RED before fix, then PASS after fix: 1 passed, 6 skipped
+
+npx jest tests/integration/api/crm-lead-conversion.test.ts --runInBand
+# PASS: 1 suite passed, 7 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/activity-timeline.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand
+# PASS: 11 suites passed, 101 tests passed
+```
+
+Safety:
+
+- No production DB write, sandbox apply, migration application, deployment, Vercel env mutation, GitHub push, Mac Mini write, client-facing communication, billing/payment action, destructive git, cross-client merge, or secret printing/storage was performed.
+
+Blockers:
+
+- GitHub push/PR remains blocked in this cron shell because `gh` is not installed and HTTPS GitHub auth is unavailable.
+- Mac Mini artifact copy remains blocked: SMB/File Sharing port 445 is reachable, but no authenticated SMB volume is mounted and SSH port 22 is unreachable.
+
+Next safe slice:
+
+- Add route-level event-write coverage for the next CRM mutation route, or switch to command-center CRM digest UI read surface tests if operator visibility is higher leverage.

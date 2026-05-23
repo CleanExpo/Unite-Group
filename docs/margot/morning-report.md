@@ -85,7 +85,7 @@ Margot has:
 Mac Mini recovery remains blocked by current connectivity/auth state:
 
 - Host: `phills-mac-mini.local`
-- Latest probe at `2026-05-23 07:01 AEST`: hostname resolves to IPv4 addresses including `169.254.28.74`, `169.254.37.78`, and `192.168.2.77`; SMB/File Sharing port 445 is reachable; SSH/Remote Login port 22 is unreachable.
+- Latest probe at `2026-05-23 18:32 AEST`: SMB/File Sharing port 445 is reachable; SSH/Remote Login port 22 is unreachable; no authenticated SMB share is mounted under `/Volumes`.
 
 Still blocked:
 
@@ -102,7 +102,17 @@ Target recovery files remain:
 
 ## Verification status
 
-Latest verification refresh at `2026-05-23 18:06 AEST`:
+Latest verification refresh at `2026-05-23 18:54 AEST`:
+
+- Re-read Margot operating docs, current Linear mirror, CRM matrix, approval persistence plan, command-center state, Mac Mini recovery status, and latest progress evidence before selecting the next safe lane.
+- Health check: branch `feat/crm-approval-lifecycle-helper`, head before this working-tree slice `0667ba0 docs: record approval timeline evidence`, `node_modules=present`, `package-lock.json=present`, `/Volumes` contains only `Macintosh HD`, `phills-mac-mini.local:445` reachable, `phills-mac-mini.local:22` unreachable, and no recovered Mac Mini artifacts are present locally.
+- Code/test improvement: `src/app/api/crm/leads/[id]/convert/route.ts` now writes a best-effort sanitized `crm_timeline_lead_converted` `agent_actions` event after the primary lead conversion update succeeds.
+- Safety evidence: new mocked route coverage in `tests/integration/api/crm-lead-conversion.test.ts` verifies the timeline action remains `pending`, `requiresApproval=true`, contains no Board approval ID, does not use raw lead email as the timeline subject label when company is blank, and conversion success still returns if the timeline insert throws after the primary update succeeds.
+- Verification passed: focused lead conversion suite returned 1 suite / 7 tests passed; expanded CRM matrix returned 11 suites / 101 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed.
+- Updated `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/mac-mini-recovery-status.md`, `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/overnight-progress-log.md`, and this report with the latest evidence.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, client-facing communication, billing/payment action, merge, destructive git, or unrelated context mixing was performed.
+
+Prior approval decision timeline mapping lane at `2026-05-23 18:06 AEST`:
 
 - Re-read Margot operating docs and current approval handoff state, inspected repo state, checked Mac Mini recovery availability, and completed the next safe approval decision timeline mapping slice.
 - Code/test improvement: `src/lib/crm/activity-timeline.ts` now recognizes `approval_approved` and `approval_rejected` events and maps them to sanitized pending `agent_actions` insert payloads; `tests/unit/lib/crm/activity-timeline.test.ts` now covers approved/rejected decision event sanitization and a structural-event hardening regression.
