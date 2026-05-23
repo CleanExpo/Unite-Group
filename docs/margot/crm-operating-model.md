@@ -1,6 +1,6 @@
 # Margot CRM Operating Model
 
-Date: 2026-05-23 07:00 AEST
+Date: 2026-05-23 11:29 AEST
 Owner: Margot
 Project: Unite-Group
 Strategic lens: build the CRM into Phill's daily operating cockpit for a $2B Unite-Group business.
@@ -58,14 +58,14 @@ Domains:
 | --- | --- | --- | --- |
 | Business | Unite-Group portfolio business or operating unit | `businesses` table extended by `20260510000001_nexus_businesses.sql`; Business 360 helper | Supabase `businesses` |
 | Client | Paying/active/onboarding external client | `nexus_clients`; client create/update APIs | Supabase `nexus_clients` |
-| Contact | Person tied to a business/client/lead | `nexus_clients.contact_name/contact_email` only; no canonical contact table yet | Proposed `crm_contacts` |
+| Contact | Person tied to a business/client/lead | Draft `crm_contacts` migration exists locally; `src/app/api/crm/contacts/route.ts` and `tests/integration/api/crm-contacts-create.test.ts` cover guarded local contact creation with mocks | Proposed Supabase `crm_contacts` after sandbox-first application; local route/test contract exists now |
 | Lead | Prospect or inbound form submission before qualification | `src/app/api/marketing/leads/route.ts` validates, optionally subscribes to SendGrid, and writes `crm_leads`; `src/app/api/crm/leads/route.ts` lists recent leads for command-center visibility; `src/lib/crm/qualify-lead.ts` provides recommendation-only scoring | Supabase `crm_leads` once the local migration is applied to the target environment; SendGrid remains a side integration |
-| Opportunity | Qualified commercial possibility with value/stage/probability | Not yet modeled locally | Proposed `crm_opportunities` |
+| Opportunity | Qualified commercial possibility with value/stage/probability | Draft `crm_opportunities` migration exists locally; `src/app/api/crm/opportunities/route.ts` and `tests/integration/api/crm-opportunities-create.test.ts` cover guarded local forecast-only creation with mocks | Proposed Supabase `crm_opportunities` after sandbox-first application; local route/test contract exists now |
 | Task | Work item for Margot, Phill, agent, or human owner | Margot voice route writes `tasks`; Linear mirror exists | Supabase `tasks` for app tasks, Linear for execution queue |
 | Approval | Human decision or permission gate | Voice route blocks approval-required work by assignee/status; no dedicated approval table yet | Proposed `crm_approvals` or task subtype |
 | Project | Delivery initiative connected to client/business/revenue | Linear mirror tables; local project docs | Linear for execution status, Supabase mirror for cockpit |
 | Ticket | Execution issue / engineering work item | `integration_linear_issues`; GitHub PR/issue mirrors | Linear/GitHub, mirrored into Supabase |
-| Activity/Event | Timeline record of something that happened | `agent_actions` for client create/update and agent events | Supabase `agent_actions` now; proposed `crm_activity_timeline` later if needed |
+| Activity/Event | Timeline record of something that happened | `agent_actions` for client create/update and agent events; `src/lib/crm/activity-timeline.ts` now maps sanitized CRM timeline events to `agent_actions` insert payloads | Supabase `agent_actions` is the local next persistence target; a dedicated timeline table remains out of scope unless later query/RLS needs justify a separately reviewed migration |
 | Integration Account | External-system identity or sync state | `integration_*` tables and `integration_sync_state` | Supabase integration mirrors |
 | Voice Command | Spoken operator request converted to CRM task | `voice_command_sessions`, `tasks` writes in Margot route | Supabase voice/task tables |
 | Document/Artifact | Durable file, report, plan, recovered file, client doc | `docs/margot/*`; recovered Mac Mini destination | Repo docs now; future Drive/Docs integration when scoped |
@@ -76,7 +76,7 @@ Domains:
 | --- | --- | --- | --- |
 | Client identity and CRM client lifecycle | Supabase `nexus_clients` | Command Center, client portal, daily digest | Supabase wins over derived UI state; manual changes require audit event |
 | Portfolio business identity | Supabase `businesses` | Business 360 / command-center tiles | Supabase wins; integrations enrich but do not overwrite identity |
-| Lead intake | Proposed Supabase `crm_leads` | SendGrid subscription and command-center queue | CRM lead record must exist even if marketing email sync fails |
+| Lead intake | Proposed Supabase `crm_leads` | SendGrid subscription and command-center queue | CRM lead record must exist even if marketing email sync fails; migration remains sandbox-first before target-environment truth |
 | Billing/revenue truth | Stripe | `integration_stripe_*` mirror | Stripe wins; CRM stores links/status summaries only |
 | Engineering/project execution | Linear and GitHub | `integration_linear_*`, `integration_github_*` | Execution system wins for state; CRM stores operator interpretation and next action |
 | Deployment/runtime health | Vercel/Railway/DigitalOcean/Supabase | `integration_vercel_*`, `integration_railway_*`, `integration_do_*`, `integration_supabase_*` | Provider wins; CRM surfaces risk and owner action |
@@ -198,31 +198,38 @@ Conversion guardrails:
 - Keep original lead record immutable enough for attribution; use status/conversion fields instead of deleting.
 - Record failed SendGrid sync as a non-fatal integration issue if CRM persistence succeeds.
 
-## CRM Test Matrix Seed
+## CRM Test Matrix
 
-| Area | Test focus | Current status |
-| --- | --- | --- |
-| Marketing lead route | Rate limit, invalid schema, SendGrid success/failure, CRM persistence success/failure | Implemented and covered by `tests/integration/api/marketing-leads.test.ts`; last known focused pass recorded in progress log |
-| CRM leads list route | Admin/service-role listing, filters, missing Supabase env, read failure | Implemented and verified 2026-05-23: `tests/integration/api/crm-leads-list.test.ts` passed |
-| Lead qualification helper | Deterministic pure scoring, business/free/disposable email cases, spam risk, operator notes | Implemented and verified 2026-05-23: `tests/unit/lib/crm/qualify-lead.test.ts` passed |
-| Client create route | Validation, duplicate slug/email, insert failure, audit action, cache invalidation | Existing route and tests present under `src/app/api/empire/clients/__tests__` |
-| Client update route | Validation, not found, audit action, cache invalidation | Existing route/tests present; not re-audited this pass |
-| Margot voice task route | Auth, rate limit, env missing, invalid packet, Supabase insert failures, success | Verified 2026-05-23: 28 focused Margot voice tests passed |
-| Failure taxonomy | Operator-safe user messages | Verified 2026-05-23 |
-| Integration mirrors | Read-only surface and source health | Existing routes/tests under `src/app/api/empire/sources/*`; not re-run this pass |
-| Activity timeline | `agent_actions` writes and digest surfacing | Client audit helper exists; broader CRM event policy needed |
+The detailed CRM coverage map now lives in:
+
+`docs/margot/crm-test-coverage-matrix.md`
+
+Use that matrix as the current local verification contract for lead capture, lead listing, qualification, guarded conversion, contacts, opportunities, daily digest, voice ingress, client audit, approvals, integration mirrors, command-center UI gaps, and Mac Mini recovery evidence.
+
+Current focused CRM verification gate from the matrix:
+
+```bash
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+npm run type-check
+npm run security:routes-check
+```
+
+Voice ingress focused gate remains:
+
+```bash
+npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts --runInBand
+```
 
 ## Next Implementation Lanes
 
-1. Build out the guarded lead-to-client conversion route behind failing mocked tests from `docs/margot/lead-to-client-conversion-plan.md`.
-2. Draft the `crm_contacts` proposal so leads/clients stop overloading email fields.
-3. Draft the `crm_opportunities` proposal for qualified commercial work before client conversion.
-4. Draft `docs/margot/project-portfolio-index.md`.
-5. Draft `docs/margot/client-second-brain-model.md`.
-6. Draft `docs/margot/marketing-strategy-operating-model.md`.
-7. Draft `docs/margot/ai-enhancement-pipeline.md`.
-8. Keep lead, qualification, Margot voice focused tests and `npm run type-check` green.
-9. Continue Mac Mini recovery only through authenticated SMB/SSH or manual approved export.
+1. Add route-level event-write tests for lead/contact/opportunity/approval events using the local `agent_actions` mapping in `src/lib/crm/activity-timeline.ts`.
+2. Decide and test the CRM approvals lifecycle: requested, approved, rejected, expired/cancelled, executed.
+3. Add command-center CRM UI read-surface tests for leads, approvals, opportunities, and daily digest.
+4. Add integration stale-sync threshold tests for Linear/GitHub/Vercel/Supabase mirrors.
+5. Establish local schema provenance for `tasks` and `voice_command_sessions`.
+6. Run wider existing client route regression before any `nexus_clients` conversion work.
+7. Keep the focused CRM matrix gate, Margot voice gate when touched, `npm run type-check`, and `npm run security:routes-check` green.
+8. Continue Mac Mini recovery only through authenticated SMB/SSH or manual approved export.
 
 ## Evidence From This Pass
 

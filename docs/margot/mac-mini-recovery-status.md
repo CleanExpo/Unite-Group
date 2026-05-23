@@ -28,7 +28,10 @@ Connectivity:
 - Earlier probe: SSH/Remote Login port 22 timed out on `phills-mac-mini.local`.
 - Probe at `2026-05-23 05:49:39 AEST`: both `phills-mac-mini.local:445` and `phills-mac-mini.local:22` were unreachable from this MacBook session.
 - Probe at `2026-05-23 05:57 AEST`: `phills-mac-mini.local` resolves, SMB/File Sharing port `445` is reachable, SSH/Remote Login port `22` still times out.
-- Latest probe at `2026-05-23 07:35 AEST`: `/Volumes` only contains `Macintosh HD`; `phills-mac-mini.local` SMB/File Sharing port `445` is reachable; SSH/Remote Login port `22` is unreachable.
+- Latest probe at `2026-05-23 13:25 AEST`: `/Volumes` still has no authenticated Mac Mini share mounted; `phills-mac-mini.local` SMB/File Sharing port `445` is reachable; SSH/Remote Login port `22` is unreachable; `docs/margot/recovered-from-mac-mini/` still contains only `.gitkeep`.
+- Prior probe at `2026-05-23 12:18 AEST`: `/Volumes` still has no authenticated Mac Mini share mounted; `phills-mac-mini.local` SMB/File Sharing port `445` is reachable; SSH/Remote Login port `22` is unreachable; `docs/margot/recovered-from-mac-mini/` still contains only `.gitkeep`.
+- Prior probe at `2026-05-23 10:30 AEST`: `/Volumes` still has no authenticated Mac Mini share mounted; `phills-mac-mini.local` SMB/File Sharing port `445` is reachable; SSH/Remote Login port `22` is unreachable; `docs/margot/recovered-from-mac-mini/` still contains only `.gitkeep`.
+- Prior probe at `2026-05-23 09:58 AEST`: `/Volumes` still had no authenticated Mac Mini share mounted; `phills-mac-mini.local` SMB/File Sharing port `445` was reachable; SSH/Remote Login port `22` was unreachable; `docs/margot/recovered-from-mac-mini/` still contained only `.gitkeep`.
 - No SMB share is currently mounted under `/Volumes`; only `Macintosh HD` is present.
 - Noninteractive SMB share listing previously failed or hung without usable authentication; recovery still needs Finder-mounted SMB, Keychain-backed auth, SSH, or an exported archive.
 

@@ -102,6 +102,7 @@ Purpose:
 
 Current verification state:
 - `node_modules` is present from the prior `npm ci` readiness pass.
+- CRM daily digest workspace-scope fix passed at `2026-05-23 10:41 AEST`: `tasks` reads are skipped unless `UNITE_CRM_WORKSPACE_ID` is configured, scoped with `.eq('workspace_id', process.env.UNITE_CRM_WORKSPACE_ID)` when present, and covered by the focused 3-suite gate returning 15 tests passed.
 - Focused Margot voice tests passed again at `2026-05-23 06:29 AEST`: 3 suites passed, 28 tests passed.
 - CRM schema inventory lane verification passed at `2026-05-23 07:36 AEST`: `docs/margot/crm-schema-inventory.md` exists, spec compliance review PASS, code/doc quality review APPROVED, and `npm run type-check` passed.
 - Senior PM documentation lanes E-H verification passed at `2026-05-23 07:33 AEST`: `project-portfolio-index.md`, `client-second-brain-model.md`, `marketing-strategy-operating-model.md`, and `ai-enhancement-pipeline.md` exist with repo-local evidence and explicit unknowns.
@@ -190,18 +191,48 @@ Safe destination when recovered:
 ## Health Check Snapshot
 
 Timestamp:
-`2026-05-23 08:51 AEST`
+`2026-05-23 13:25 AEST`
 
-Git status includes existing local Margot/test work:
-- modified `tests/integration/api/margot-voice-signed-url.test.ts`
-- modified `tests/integration/api/margot-voice-task.test.ts`
-- untracked `.linear/`, `.vercel-context.json`, `docs/margot/`, `docs/plans/`, and `tests/unit/margot-voice-failure-taxonomy.test.ts`
+Git state:
+- branch: `feat/margot-crm-daily-digest-route`
+- head during this tick: `c03b953 docs: record Margot health check refresh`
+- working tree changed locally for CRM activity/timeline `agent_actions` insert mapping and Margot handoff docs; no destructive git action taken.
 
 Dependency state:
 - `node_modules=present`
 - `package-lock.json=present`
 
 Verification:
+- CRM timeline mapping lane passed at 2026-05-23 13:25 AEST: local policy pins existing `agent_actions` as the first CRM timeline persistence target, defers any new dedicated timeline-table migration until query/RLS needs are proven, and keeps route-write follow-up scoped to sanitized audit events.
+- `src/lib/crm/activity-timeline.ts` now maps defensively sanitized CRM timeline events to `agent_actions` insert payloads with `crm_timeline_<event_type>` action types, `done` vs `pending` status semantics, null UUID link fields unless explicitly resolved, and no Board approval ID, contact PII, token, API-key, bearer-token, IP, address, or secret-like metadata persistence.
+- Focused activity timeline verification passed at 2026-05-23 13:25 AEST and was re-run after sanitizer hardening: `npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 1 suite, 5 tests passed.
+- `npm run type-check` passed at 2026-05-23 13:25 AEST.
+- Activity/timeline taxonomy lane passed at 2026-05-23 12:42 AEST: `src/lib/crm/activity-timeline.ts` now normalizes lead captured, lead qualified, lead converted, contact created, opportunity created, approval requested, task completed, and integration stale events into safe CRM timeline entries, rejects unknown event types/missing identity, and redacts token/secret/password/authorization/API-key/Board-approval-id metadata variants.
+- Focused activity taxonomy TDD evidence: `npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand` failed RED before implementation because the module did not exist; reviewer-requested sanitizer hardening then failed RED on sensitive key variants before passing GREEN with 1 suite / 3 tests passed.
+- Expanded CRM matrix gate passed at 2026-05-23 12:42 AEST: `npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 10 suites, 60 tests passed.
+- `npm run type-check` passed at 2026-05-23 12:42 AEST.
+- `npm run security:routes-check` passed at 2026-05-23 12:42 AEST: route inventory found 0 unprotected mutating routes.
+- Opportunity digest integration passed at 2026-05-23 11:42 AEST: `src/app/api/crm/daily-digest/route.ts` can now include open/won/blocked `crm_opportunities` rows in the daily digest only when `UNITE_CRM_OPPORTUNITIES_DIGEST_ENABLED=true`, maps safe select columns into opportunity priorities/approvals, and returns `crm_digest_opportunities_read_failed` on enabled read failure.
+- Focused daily digest route verification passed at 2026-05-23 11:42 AEST: `npx jest tests/integration/api/crm-daily-digest.test.ts --runInBand` returned 1 suite, 10 tests passed.
+- Expanded focused CRM matrix gate passed at 2026-05-23 11:42 AEST: `npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts --runInBand` returned 9 suites, 57 tests passed.
+- `npm run type-check` passed at 2026-05-23 11:42 AEST.
+- `npm run security:routes-check` passed at 2026-05-23 11:42 AEST: route inventory found 0 unprotected mutating routes.
+- Guarded opportunities create route passed TDD/review at 2026-05-23 11:29 AEST: `src/app/api/crm/opportunities/route.ts` inserts forecast-only `crm_opportunities` rows behind admin auth, approval guards for won/conversion-like states, explicit safe select columns, value-currency defaults, and hardened `additionalData` validation.
+- Expanded focused CRM matrix gate passed at 2026-05-23 11:29 AEST: `npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts --runInBand` returned 9 suites, 55 tests passed.
+- `npm run type-check` passed at 2026-05-23 11:29 AEST.
+- `npm run security:routes-check` passed at 2026-05-23 11:29 AEST: route inventory found 0 unprotected mutating routes.
+- `docs/margot/crm-test-coverage-matrix.md` now records the opportunities create API coverage and next safe gaps.
+- `npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-leads-list.test.ts --runInBand` passed at 2026-05-23 10:30 AEST: 3 suites, 14 tests. This re-verifies the current read-only daily digest route after the latest local doc commit.
+- `npm run type-check` passed at 2026-05-23 10:30 AEST.
+- `npm run security:routes-check` passed at 2026-05-23 10:30 AEST: route inventory found 0 unprotected mutating routes.
+- `npx jest tests/integration/api/crm-daily-digest.test.ts --runInBand` passed at 2026-05-23 10:01 AEST: 1 suite, 7 tests. This includes the new blocked/high CRM task inclusion and safe task-read failure coverage.
+- `npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-leads-list.test.ts --runInBand` passed at 2026-05-23 10:01 AEST: 3 suites, 14 tests. This verifies the current daily digest route now includes blocked/todo CRM task rows as well as recent leads.
+- `npm run type-check` passed at 2026-05-23 10:01 AEST.
+- `npm run security:routes-check` passed at 2026-05-23 10:01 AEST: route inventory found 0 unprotected mutating routes.
+- `npm run build` remains blocked in this local cron environment after successful compilation because existing `/api/search/nexus` page-data collection requires configured Supabase URL/env.
+- `npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-leads-list.test.ts --runInBand` passed at 2026-05-23 09:24 AEST: 3 suites, 12 tests.
+- `npm run type-check` passed at 2026-05-23 09:24 AEST.
+- `npm run security:routes-check` passed at 2026-05-23 09:24 AEST: route inventory found 0 unprotected mutating routes.
 - `npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts --runInBand` passed: 3 suites, 28 tests.
 - `docs/margot/crm-schema-inventory.md` passed spec compliance and code/doc quality review.
 - `test -f` verification passed for the four Senior PM docs: `docs/margot/project-portfolio-index.md`, `docs/margot/client-second-brain-model.md`, `docs/margot/marketing-strategy-operating-model.md`, and `docs/margot/ai-enhancement-pipeline.md`.
@@ -214,9 +245,8 @@ Verification:
 
 Mac Mini recovery probe:
 - `/Volumes` only contains `Macintosh HD`; no authenticated Mac Mini share is mounted.
-- `phills-mac-mini.local` resolves to IPv4 addresses including `169.254.28.74`, `169.254.37.78`, and `192.168.2.77`.
-- `phills-mac-mini.local:445` is reachable.
-- `phills-mac-mini.local:22` still times out.
+- Latest 2026-05-23 13:25 AEST probe: `phills-mac-mini.local:445` is reachable.
+- Latest 2026-05-23 13:25 AEST probe: `phills-mac-mini.local:22` is unreachable.
 - `docs/margot/recovered-from-mac-mini/` exists with only `.gitkeep`; no recovered artifacts yet.
 
 ## High-Level CRM Forecast
@@ -268,10 +298,12 @@ Current state:
 ## Immediate Next Moves
 
 1. Continue from `docs/plans/2026-05-23-margot-multi-day-crm-build-plan.md` as the active multi-day build queue.
-2. Use `docs/margot/crm-schema-inventory.md` and the refreshed `docs/margot/crm-operating-model.md` as the current schema/source-of-truth map.
+2. Use `docs/margot/crm-schema-inventory.md`, `docs/margot/crm-operating-model.md`, and `docs/margot/crm-test-coverage-matrix.md` as the current schema/source-of-truth/verification map.
 3. Use `docs/margot/lead-to-client-conversion-plan.md` as the current local guarded conversion contract; missing operator approval now returns `403 operator_approval_required` and the focused CRM lead suite is green.
 4. Use `docs/margot/crm-contacts-opportunities-model.md` as the current local proposal before broader contact/opportunity automation.
-5. Draft sandbox-only contacts/opportunities migrations and mocked route tests, or create the daily CRM digest template if schema work should remain draft-only.
-6. Use the portfolio, client 2nd Brain, marketing strategy, and AI enhancement docs as Senior PM control surfaces while code lanes continue.
-7. Continue Mac Mini recovery when an authenticated SMB share is mounted or SSH is enabled.
-8. Keep focused CRM/Margot tests and `npm run type-check` green before handoff or merge.
+5. Use `src/app/api/crm/daily-digest/route.ts` and `src/lib/crm/daily-digest.ts` as the current local read-only daily CRM digest wiring; the route now reads recent leads, workspace-scoped blocked/todo CRM task rows, and feature-flagged open/won/blocked opportunities when `UNITE_CRM_OPPORTUNITIES_DIGEST_ENABLED=true`.
+6. Next safe build lane: route-level event-write tests using the local `agent_actions` mapping in `src/lib/crm/activity-timeline.ts`, or command-center CRM digest UI consumption if UI is higher leverage.
+7. Continue sandbox-only contacts/opportunities route/migration drafts only through local tests and the sandbox wizard; do not apply to production without explicit Board approval.
+8. Use the portfolio, client 2nd Brain, marketing strategy, and AI enhancement docs as Senior PM control surfaces while code lanes continue.
+9. Continue Mac Mini recovery when an authenticated SMB share is mounted or SSH is enabled.
+10. Keep the expanded CRM matrix gate, `npm run type-check`, and `npm run security:routes-check` green before handoff or merge.

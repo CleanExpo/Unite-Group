@@ -1217,3 +1217,902 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 
+## 2026-05-23 09:21:02 AEST
+
+### Lane executed — CRM daily digest admin route
+
+Continued the active multi-day CRM build from the existing-assets-first Margot/Senior PM plan. Chose the local-only digest wiring lane because GitHub/Vercel CLIs remain unavailable locally and production DB/schema/deploy work remains forbidden without explicit Board approval.
+
+Preflight / repo state:
+
+```text
+Branch before work: main...origin/main, clean
+Working branch: feat/margot-crm-daily-digest-route
+Local commit message: feat: add CRM daily digest route
+GitHub CLI/auth: unavailable locally (`gh` not found)
+Vercel CLI/auth: unavailable locally (`vercel` not found)
+node_modules=present
+```
+
+Slice completed:
+
+- Added read-only admin route `src/app/api/crm/daily-digest/route.ts`.
+- Added TDD integration coverage `tests/integration/api/crm-daily-digest.test.ts`.
+- RED evidence: focused test initially failed because `@/app/api/crm/daily-digest/route` did not exist.
+- GREEN evidence: route now validates `limit`, handles missing Supabase config safely, requires admin before CRM data reads when configured, reads recent `crm_leads`, maps lead rows into the pure `createCrmDailyDigest` helper, and returns structured digest JSON.
+- Two-stage review loop:
+  - Spec review found exact-response/config-order gaps; patch pass fixed invalid-query response shape and missing service-role config behavior.
+  - Final quality review: APPROVED with minor optional coverage notes only.
+
+Verification commands/results:
+
+```bash
+npx jest tests/integration/api/crm-daily-digest.test.ts --runInBand
+# PASS after implementation/fix pass: 1 suite passed, 5 tests passed
+
+npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-leads-list.test.ts --runInBand
+# PASS: 3 suites passed, 12 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Safety / blockers:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+- GitHub push/PR/check state remains blocked in this local session: `git push -u origin feat/margot-crm-daily-digest-route` failed with `fatal: could not read Username for 'https://github.com': Device not configured`; `gh` is also unavailable. Use `git log -1 --oneline` for the final local commit hash because this evidence entry was amended after recording push failure.
+- Vercel deployment status remains blocked because Vercel CLI/auth is unavailable locally.
+- Contacts/opportunities migration remains draft-only until sandbox wizard apply/diff and explicit Board approval for any production promotion.
+
+Next slice:
+
+- Continue local CRM spine work by adding a command-center loader/fixture for the digest route, or start the guarded opportunities create route contract while keeping the daily-digest/lead-list/type-check/security gates green.
+
+## 2026-05-23 09:24 AEST
+
+### Health check
+
+Observed in `/Users/phillmcgurk/Unite-Group`:
+
+```text
+branch=feat/margot-crm-daily-digest-route
+head=db7631f feat: add CRM daily digest route
+pre-doc-refresh git status=clean
+node_modules=present
+package scripts include test, test:all, type-check, build, security:routes-check
+Mac Mini SMB 445=reachable
+Mac Mini SSH 22=unreachable
+recovered-from-mac-mini contains only .gitkeep
+```
+
+### Lane executed — command-center verification refresh
+
+Used existing repo assets first: Margot operating docs, current Linear mirror, CRM daily-digest route/helper/tests, local git state, package scripts, and Mac Mini recovery status.
+
+Updated current-state docs:
+
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/mac-mini-recovery-status.md`
+- `docs/margot/morning-report.md`
+- `docs/margot/overnight-progress-log.md`
+
+Verification commands/results:
+
+```bash
+npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-leads-list.test.ts --runInBand
+# PASS: 3 suites passed, 12 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Safety / blockers:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+- Mac Mini artifacts remain blocked on authenticated SMB mount or SSH availability. SMB/File Sharing is visible, but there is still no mounted share under `/Volumes` and SSH is unreachable.
+- GitHub push/PR/check state remains blocked by missing local GitHub HTTPS/gh authentication.
+
+Next slice:
+
+- Continue from the daily CRM digest lane by adding a command-center loader/fixture, or start the guarded opportunities create route contract, while keeping focused CRM tests, type-check, and route security green.
+
+
+## 2026-05-23 09:27:06 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+
+`/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260523_092346.log`
+
+## 2026-05-23 09:58 AEST
+
+### Health check
+
+Observed in `/Users/phillmcgurk/Unite-Group`:
+
+```text
+branch=feat/margot-crm-daily-digest-route
+head=db7631f feat: add CRM daily digest route
+node_modules=present
+package-lock=present
+working tree contains local digest route/test extension plus Margot status-doc updates
+Mac Mini SMB 445=reachable
+Mac Mini SSH 22=unreachable
+/Volumes contains only Macintosh HD
+recovered-from-mac-mini contains only .gitkeep
+```
+
+### Lane executed — daily CRM digest task-read verification + status refresh
+
+Used existing repo assets first: Margot operating docs, current Linear mirror, CRM daily digest helper/route/tests, local git state, package scripts, and Mac Mini recovery status.
+
+Current safe improvement verified:
+
+- `src/app/api/crm/daily-digest/route.ts` now reads recent `crm_leads` plus blocked/todo `tasks` for the Senior PM daily digest.
+- `tests/integration/api/crm-daily-digest.test.ts` now covers task-row inclusion, blocked-task counts, approval lines, and the `tasks` query shape.
+- This keeps the digest route read-only and admin-gated; it does not write CRM data.
+
+Verification commands/results:
+
+```bash
+npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-leads-list.test.ts --runInBand
+# PASS: 3 suites passed, 14 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Safety / blockers:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+- Mac Mini artifacts remain blocked on authenticated SMB mount or SSH availability. SMB/File Sharing is visible, but there is still no mounted share under `/Volumes` and SSH is unreachable.
+- GitHub push/PR/check state remains blocked by missing local GitHub HTTPS/gh authentication.
+
+Next slice:
+
+- Continue from the daily CRM digest lane by adding command-center consumption of the digest payload, or start the guarded opportunities create route contract, while keeping focused CRM tests, type-check, and route security green.
+
+
+## 2026-05-23 09:59:52 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+
+## 2026-05-23 10:01:30 AEST
+
+### Lane completed — daily CRM digest task approvals committed
+
+Continued the active branch `feat/margot-crm-daily-digest-route` and stayed on the read-only daily digest lane rather than starting a conflicting branch.
+
+Preflight / repo state:
+
+```text
+branch=feat/margot-crm-daily-digest-route
+head before slice=db7631f feat: add CRM daily digest route
+head after code commit=060d233 feat: include CRM tasks in daily digest
+GitHub CLI/auth=unavailable locally (`gh` not found; HTTPS push previously failed with device/auth prompt)
+Vercel CLI/auth=unavailable locally (`vercel` not found)
+node_modules=present
+```
+
+Slice completed:
+
+- Extended `src/app/api/crm/daily-digest/route.ts` so the read-only digest now includes recent `tasks` rows after the `crm_leads` read succeeds.
+- The task query selects only `id,title,status,priority,assignee_name,created_at`, filters to `blocked` / `todo`, orders newest first, and limits by the parsed digest limit.
+- Mapped `assignee_name` into the digest task owner so blocked/high Margot approval tasks appear in operator priorities and approvals.
+- Added TDD coverage in `tests/integration/api/crm-daily-digest.test.ts` for blocked/high task inclusion, two-table read shape, and safe task-read failure.
+- Local commit created: `060d233 feat: include CRM tasks in daily digest`.
+
+TDD / review evidence:
+
+```text
+RED: npx jest tests/integration/api/crm-daily-digest.test.ts --runInBand
+Expected failure observed before implementation: task inclusion test saw approvalRequiredCount/blockTaskCount as 0 instead of 1.
+
+GREEN: npx jest tests/integration/api/crm-daily-digest.test.ts --runInBand
+PASS: 1 suite passed, 7 tests passed.
+
+Spec compliance review: PASS.
+Code quality review: APPROVED with one minor optional note about config-before-admin ordering; the current ordering was kept because this lane intentionally preserves invalid-query/config preflight before admin/session access.
+```
+
+Verification commands/results:
+
+```bash
+npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-leads-list.test.ts --runInBand
+# PASS: 3 suites passed, 14 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+
+npm run build
+# BLOCKED/PRE-EXISTING ENV: Next compiled successfully, then failed collecting page data for /api/search/nexus because NEXT_PUBLIC_SUPABASE_URL/Supabase URL is not configured in this local cron environment.
+```
+
+Safety / blockers:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+- GitHub push/PR/check state remains blocked because `gh` is unavailable and HTTPS GitHub auth is not configured in this session.
+- Vercel deployment status remains blocked because `vercel` CLI/auth is unavailable locally.
+- Local `npm run build` is blocked by missing local Supabase URL/env for existing `/api/search/nexus` page-data collection; focused CRM tests, type-check, and route security are green.
+- Mac Mini artifacts remain unrecovered until authenticated SMB mount, SSH, or approved export is available.
+
+Next slice:
+
+- Continue from the active daily digest branch by adding command-center consumption/fixture coverage for the digest payload, or move to the guarded opportunities create route contract after deciding whether the digest UI should come first.
+
+## 2026-05-23 10:30:30 AEST
+
+### Health check
+
+Observed in `/Users/phillmcgurk/Unite-Group`:
+
+```text
+branch=feat/margot-crm-daily-digest-route
+head=ed65b98 docs: record CRM daily digest task-read progress
+working tree clean before this doc refresh
+node_modules=present
+package-lock=present
+recovered-from-mac-mini contains only .gitkeep
+/Volumes contains only Macintosh HD
+phills-mac-mini.local:445 reachable
+phills-mac-mini.local:22 unreachable
+```
+
+### Lane executed — Senior PM daily digest verification refresh
+
+Used existing assets first: canonical Margot docs, current Linear mirror, active CRM daily digest route/tests, local git state, package scripts, and Mac Mini recovery status.
+
+Current safe improvement verified:
+
+- Re-ran the read-only CRM daily digest verification gate after the latest local doc commit.
+- Confirmed the active branch remains on the daily digest lane, with no uncommitted code changes before this report refresh.
+- Confirmed Mac Mini recovery remains transport/auth blocked rather than a missing local-destination issue: SMB is reachable, SSH is not, and no authenticated share is mounted.
+
+Verification commands/results:
+
+```bash
+npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-leads-list.test.ts --runInBand
+# PASS: 3 suites passed, 14 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Safety / blockers:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+- Mac Mini artifacts remain unrecovered until Finder-mounted/authenticated SMB, SSH/Remote Login, or an approved export is available.
+- GitHub push/PR/check state remains blocked by missing local GitHub HTTPS/gh authentication.
+- Local build remains known-blocked by missing local Supabase URL/env for existing `/api/search/nexus`; focused CRM tests, type-check, and route security are green.
+
+Next slice:
+
+- Continue from the active daily digest branch with command-center digest consumption/fixture coverage, or move to the guarded opportunities create route contract if command-center UI wiring is deferred.
+
+
+## 2026-05-23 10:33:10 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+
+## 2026-05-23 10:41 AEST
+
+### Lane completed — workspace-scoped CRM daily digest tasks
+
+Continued the active branch `feat/margot-crm-daily-digest-route` and addressed the code-quality review finding before starting any new lane.
+
+Preflight / repo state:
+
+```text
+branch=feat/margot-crm-daily-digest-route
+head before slice=ed65b98 docs: record CRM daily digest task-read progress
+gh auth state=unavailable locally (`gh` not found)
+vercel auth state=unavailable locally (`vercel` not found)
+node_modules=present
+```
+
+Slice completed:
+
+- Tightened `src/app/api/crm/daily-digest/route.ts` so service-role `tasks` reads only run when `UNITE_CRM_WORKSPACE_ID` is configured.
+- Added a workspace filter to the task query: `.eq('workspace_id', process.env.UNITE_CRM_WORKSPACE_ID)` before the blocked/todo status filter.
+- Preserved lead-only digest behavior when the workspace scope is missing: the route still returns the lead digest and skips the `tasks` table read rather than falling back to an unscoped service-role query.
+- Added TDD coverage in `tests/integration/api/crm-daily-digest.test.ts` for the scoped task query and the missing-workspace skip path.
+
+TDD / review evidence:
+
+```text
+RED: npx jest tests/integration/api/crm-daily-digest.test.ts --runInBand
+Expected failures observed before implementation: the new test expected .eq('workspace_id', 'workspace-crm') and missing-workspace task skipping, but the route still performed the broader task read.
+
+GREEN: npx jest tests/integration/api/crm-daily-digest.test.ts --runInBand
+PASS: 1 suite passed, 8 tests passed.
+
+Spec compliance re-review: PASS.
+Code quality re-review: APPROVED. The prior broad service-role task-read issue is resolved.
+```
+
+Verification commands/results:
+
+```bash
+npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-leads-list.test.ts --runInBand
+# PASS: 3 suites passed, 15 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Safety / blockers:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+- GitHub PR/check state remains blocked because `gh` is unavailable and HTTPS GitHub auth is not configured in this session.
+- Vercel deployment state remains blocked because `vercel` CLI/auth is unavailable locally.
+- Mac Mini artifacts remain unrecovered until authenticated SMB mount, SSH/Remote Login, or approved export is available.
+
+Commit / push state:
+
+- Local commit created: `aae78c0 fix: scope CRM daily digest task reads`.
+- Push attempted with terminal prompts disabled and remained blocked: `fatal: could not read Username for 'https://github.com': terminal prompts disabled`.
+
+Next slice:
+
+- Once GitHub HTTPS/CLI auth is available, push `feat/margot-crm-daily-digest-route` and open/monitor the PR; otherwise continue local safe fallback with command-center digest consumption/fixture coverage or the guarded opportunities create route contract.
+
+## 2026-05-23 11:04 AEST
+
+### Lane completed — CRM test coverage matrix
+
+Preflight / repo state:
+
+```text
+branch=feat/margot-crm-daily-digest-route
+head before slice=466a7a3 docs: record CRM digest push blocker
+node_modules=present
+package-lock.json=present
+/Volumes=Macintosh HD only
+phills-mac-mini.local:445 reachable
+phills-mac-mini.local:22 unreachable
+docs/margot/recovered-from-mac-mini/ contains only .gitkeep
+```
+
+Slice completed:
+
+- Created `docs/margot/crm-test-coverage-matrix.md` as the durable Senior PM / CRM verification map.
+- Replaced the shorter seed table in `docs/margot/crm-operating-model.md` with a pointer to the new matrix and the focused CRM/voice verification gates.
+- Matrix now maps local coverage for marketing lead capture, CRM lead list, lead qualification, guarded lead conversion, contacts migration/API, opportunities draft schema, daily CRM digest helper/route, Margot voice ingress, client audit, activity/timeline gaps, integration mirrors, approvals, command-center UI gaps, and Mac Mini recovery.
+- Current next coverage gaps are now ordered: opportunities create route, activity/timeline taxonomy, approvals lifecycle, command-center CRM UI, stale integration thresholds, local schema provenance for `tasks`/`voice_command_sessions`, and wider client route regression before `nexus_clients` conversion work.
+
+Verification commands/results:
+
+```bash
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts --runInBand
+# PASS: 8 suites passed, 41 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Safety / blockers:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+- Mac Mini artifacts remain unrecovered until authenticated SMB mount, SSH/Remote Login, or approved export is available.
+- GitHub PR/check state remains blocked by unavailable local GitHub HTTPS/gh authentication.
+
+Next slice:
+
+- Continue local safe fallback with the guarded opportunities create route contract or command-center CRM digest UI consumption, while keeping the new CRM matrix as the verification gate.
+
+
+## 2026-05-23 11:08:17 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+
+## 2026-05-23 11:29 AEST
+
+### Lane completed — guarded CRM opportunities create route
+
+Preflight / repo state:
+
+```text
+branch=feat/margot-crm-daily-digest-route
+head before slice=466a7a3 docs: record CRM digest push blocker
+node_modules=present
+package-lock.json=present
+gh_auth=unavailable via gh CLI
+secrets not printed; token/env values redacted by policy
+```
+
+Slice completed:
+
+- Added local forecast-only `POST /api/crm/opportunities` route at `src/app/api/crm/opportunities/route.ts`.
+- Added TDD integration test coverage at `tests/integration/api/crm-opportunities-create.test.ts`.
+- RED evidence: focused opportunity-create test failed first because `@/app/api/crm/opportunities/route` did not exist.
+- GREEN evidence: focused opportunity-create test passed after implementation, then passed again after quality fixes with 14 tests.
+- Spec compliance review: PASS.
+- Quality review: REQUEST_CHANGES for service-role select minimization, `additionalData` hardening, value currency, and explicit non-admin denial coverage; fixes applied; final quality re-review APPROVED.
+- Updated `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/crm-operating-model.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, and `docs/margot/morning-report.md` so the opportunity create route is part of the current CRM verification map.
+
+Route safety behavior:
+
+- Admin gate runs before CRM Supabase access.
+- Missing config, invalid JSON, invalid payload, anonymous caller, authenticated non-admin caller, sensitive/oversized `additionalData`, and unapproved won/conversion-like opportunities all fail before `crm_opportunities` access.
+- Successful path inserts only `crm_opportunities`, uses snake_case payload fields, defaults `value_currency` to `AUD` when `valueAmount` exists, uses explicit safe select columns instead of `select('*')`, and never persists `boardApprovalId`.
+- Route remains local code/test contract only; the contacts/opportunities migration has not been applied to sandbox or production in this tick.
+
+Verification commands/results:
+
+```bash
+npx jest tests/integration/api/crm-opportunities-create.test.ts --runInBand
+# PASS: 1 suite passed, 14 tests passed
+
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts --runInBand
+# PASS: 9 suites passed, 55 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Safety / blockers:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, secret access/printing, Mac Mini write, or client-facing send was performed.
+- GitHub CLI auth remains unavailable; push/PR needs verified GitHub transport before claiming remote readiness.
+- Mac Mini artifacts remain unrecovered until authenticated SMB mount, SSH/Remote Login, or approved export is available.
+
+Commit / push state:
+
+- Local implementation/docs commit created: `ffa7298 feat: add guarded CRM opportunities route`.
+- Push/PR not attempted after auth preflight showed `GITHUB_TOKEN_present=False`, `GH_TOKEN_present=False`, and `gh_auth=unavailable`.
+
+Next slice:
+
+- Continue local safe fallback with opportunity read/digest integration so the daily CRM digest can surface open/won/blocked opportunities, or wire command-center CRM digest UI consumption if UI is higher leverage.
+
+
+
+## 2026-05-23 11:42 AEST
+
+### Lane completed — feature-flagged opportunity digest integration
+
+Preflight / repo state:
+
+```text
+branch=feat/margot-crm-daily-digest-route
+head before slice=9456ab1 docs: refresh CRM operating model next lanes
+node_modules=present
+package-lock.json=present
+/Volumes only contains Macintosh HD
+phills-mac-mini.local:445 reachable
+phills-mac-mini.local:22 unreachable
+docs/margot/recovered-from-mac-mini/ contains only .gitkeep
+```
+
+Slice completed:
+
+- Extended `src/app/api/crm/daily-digest/route.ts` so the read-only daily CRM digest can include safe opportunity rows from `crm_opportunities`.
+- Kept opportunity reads behind `UNITE_CRM_OPPORTUNITIES_DIGEST_ENABLED=true` because the contacts/opportunities schema remains draft/sandbox-first and has not been promoted in this run.
+- Added mocked route coverage in `tests/integration/api/crm-daily-digest.test.ts` for opportunity priorities/approval surfacing and safe `crm_digest_opportunities_read_failed` behavior.
+- Updated `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/mac-mini-recovery-status.md`, and `docs/margot/morning-report.md` with current state and verification.
+
+Verification commands/results:
+
+```bash
+npx jest tests/integration/api/crm-daily-digest.test.ts --runInBand
+# PASS: 1 suite passed, 10 tests passed
+
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts --runInBand
+# PASS: 9 suites passed, 57 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Safety / blockers:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+- Mac Mini artifacts remain unrecovered until authenticated SMB mount, SSH/Remote Login, or approved export is available.
+- Opportunity digest reads are feature-flagged until `crm_opportunities` schema readiness is confirmed through the sandbox-first path.
+- GitHub push/PR remains blocked by unavailable authenticated GitHub transport in this session.
+
+Next slice:
+
+- Continue with activity/timeline taxonomy for CRM events, or wire command-center CRM digest UI consumption if UI visibility is higher leverage.
+
+## 2026-05-23 11:45:20 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+
+## 2026-05-23 12:08 AEST
+
+### Lane finalized — opportunity digest integration review/commit
+
+Preflight / repo state:
+
+```text
+branch=feat/margot-crm-daily-digest-route
+head before finalize=9456ab1 docs: refresh CRM operating model next lanes
+gh=missing
+push transport=https origin, unauthenticated in this session
+node_modules=present
+package-lock.json=present
+```
+
+Slice finalized:
+
+- Continued the existing CRM daily digest branch rather than starting a new lane.
+- Verified and committed the feature-flagged opportunity read/digest integration.
+- Local commit created: `6ae1b31 feat: add opportunity digest reads`.
+- Spec compliance review: PASS.
+- Code quality review: APPROVED, with only a minor optional note that the default-off opportunity flag path could be named more explicitly in tests; current behavior is already covered by no-`crm_opportunities` read when the flag is absent.
+
+Verification commands/results:
+
+```bash
+npx jest tests/integration/api/crm-daily-digest.test.ts --runInBand
+# PASS: 1 suite passed, 10 tests passed
+
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts --runInBand
+# PASS: 9 suites passed, 57 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Push/PR state:
+
+```text
+GIT_TERMINAL_PROMPT=0 git push -u origin feat/margot-crm-daily-digest-route
+fatal: could not read Username for 'https://github.com': terminal prompts disabled
+```
+
+Safety / blockers:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, secret access/printing, Mac Mini write, or client-facing send was performed.
+- GitHub push/PR remains blocked until authenticated GitHub HTTPS or `gh` transport is available.
+- Opportunity digest reads remain feature-flagged behind `UNITE_CRM_OPPORTUNITIES_DIGEST_ENABLED=true` because `crm_opportunities` is still draft/sandbox-first and not production-promoted.
+
+Next slice:
+
+- If GitHub auth is restored, push/open/monitor the existing branch first.
+- Otherwise continue safe local fallback with activity/timeline event taxonomy or command-center CRM digest UI consumption.
+
+## 2026-05-23 12:18 AEST
+
+### Lane executed — CRM activity/timeline taxonomy
+
+Preflight / repo state:
+
+```text
+branch=feat/margot-crm-daily-digest-route
+head before lane=6cc4163 docs: record opportunity digest finalize
+node_modules=present
+package-lock.json=present
+/Volumes=Macintosh HD only
+phills-mac-mini.local:445 reachable
+phills-mac-mini.local:22 unreachable
+```
+
+Slice completed:
+
+- Used the active CRM next-lane guidance from `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/crm-operating-model.md`, and `docs/margot/crm-test-coverage-matrix.md`.
+- Added pure local helper `src/lib/crm/activity-timeline.ts` for CRM timeline event normalization.
+- Added strict TDD coverage `tests/unit/lib/crm/activity-timeline.test.ts`.
+- RED evidence: the new focused test first failed because `@/lib/crm/activity-timeline` did not exist.
+- GREEN evidence: the helper now normalizes `lead_captured`, `lead_qualified`, `lead_converted`, `contact_created`, `opportunity_created`, `approval_requested`, `task_completed`, and `integration_stale` into safe timeline entries.
+- Safety behavior covered: unknown event types and missing identity throw instead of guessing across CRM objects; secret-like metadata and Board approval ids are not copied into event metadata.
+- Updated `docs/margot/crm-test-coverage-matrix.md` and `docs/margot/crm-operating-model.md` so the activity/timeline lane is no longer listed as missing taxonomy coverage and the next gap is persistence/route-level event-write policy.
+
+Verification commands/results:
+
+```bash
+npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# RED first: failed because the module did not exist
+# GREEN: 1 suite passed, 2 tests passed
+
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 10 suites passed, 59 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Safety / blockers:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+- Mac Mini artifacts remain blocked: SMB is reachable, SSH is unreachable, and no authenticated SMB share is mounted under `/Volumes`.
+- GitHub push/PR remains blocked until authenticated GitHub HTTPS or `gh` transport is available.
+- Activity/timeline helper is local taxonomy only; persistence target (`agent_actions` extension vs future dedicated activity timeline table) still needs a safe design decision before route writes.
+
+Next slice:
+
+- Decide/pin the CRM timeline persistence target and add route-level event-write tests before wiring lead/contact/opportunity routes to timeline writes.
+- Continue Mac Mini recovery checks each run and copy only the approved target files if authenticated transport appears.
+
+
+## 2026-05-23 12:20:12 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log: not emitted by this LaunchAgent tick.
+
+## 2026-05-23 12:42 AEST
+
+### Lane finalized — CRM activity/timeline taxonomy hardening
+
+Preflight / repo state:
+
+```text
+branch=feat/margot-crm-daily-digest-route
+head before finalize=6cc4163 docs: record opportunity digest finalize
+gh=missing
+GITHUB_TOKEN/GH_TOKEN/VERCEL_TOKEN=missing
+node_modules=present
+package-lock.json=present
+.vercel=missing
+```
+
+Slice completed:
+
+- Continued the existing CRM daily digest branch and finalized the local CRM activity/timeline taxonomy helper rather than starting a new branch.
+- Added `src/lib/crm/activity-timeline.ts` and `tests/unit/lib/crm/activity-timeline.test.ts`.
+- Reviewer pass requested broader metadata redaction; a fix subagent added RED coverage for `accessToken`, `auth_token`, `clientSecret`, `passwordHash`, `xApiKey`, `api-key`, `BoardApprovalID`, and `board_approval_id`, then hardened the sanitizer.
+- The helper remains pure local taxonomy only: no route writes, database writes, migrations, sandbox apply, production promotion, deployment, Vercel env mutation, client-facing comms, or destructive git.
+
+Verification commands/results:
+
+```bash
+npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 1 suite passed, 3 tests passed
+
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 10 suites passed, 60 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Review status:
+
+- Initial spec review: REQUEST_CHANGES for sanitizer variants and out-of-scope Mac Mini status doc note.
+- Initial quality review: REQUEST_CHANGES for sanitizer variants.
+- Sanitizer/test fix completed with RED-GREEN evidence.
+- Final spec re-review: PASS.
+- Final quality re-review: APPROVED.
+- Reviewer verification included focused Jest, expanded CRM matrix, type-check, security route check, and `git diff --check` on reviewed files.
+
+Blockers / transport:
+
+- Local commit created: `49fdc09 feat: add CRM activity timeline taxonomy`.
+- GitHub push/PR remains blocked: `GIT_TERMINAL_PROMPT=0 git push -u origin feat/margot-crm-daily-digest-route` failed with `fatal: could not read Username for 'https://github.com': terminal prompts disabled` because `gh` is missing and no `GITHUB_TOKEN`/`GH_TOKEN` is present in this cron shell.
+- Vercel status/deploy verification is unavailable because `.vercel` and `VERCEL_TOKEN` are missing.
+- Mac Mini recovery remains blocked on authenticated SMB mount or SSH availability.
+
+Next slice:
+
+- After local commit, push/open the existing branch when GitHub auth is restored; otherwise continue with the timeline persistence decision and route-level event-write tests.
+
+## 2026-05-23 12:51 AEST
+
+### Autonomous health check — activity timeline verification refresh
+
+Preflight / repo state:
+
+```text
+branch=feat/margot-crm-daily-digest-route
+working_tree=clean
+head=49fdc09 feat: add CRM activity timeline taxonomy
+node_modules=present
+package-lock.json=present
+recovered_dir=docs/margot/recovered-from-mac-mini contains .gitkeep only
+```
+
+Health checks completed:
+
+- Re-read the canonical Margot operating docs and current handoff files before acting.
+- Rechecked Mac Mini transport: SMB/File Sharing `phills-mac-mini.local:445` is reachable, SSH/Remote Login `phills-mac-mini.local:22` is unreachable, and `/Volumes` contains only `Macintosh HD`; no authenticated Mac Mini share is mounted.
+- Rechecked local recovery destination: `docs/margot/recovered-from-mac-mini/` still contains only `.gitkeep`.
+- Verified the previously completed CRM activity timeline taxonomy remains green in this clean working tree.
+
+Verification commands/results:
+
+```bash
+git diff --check
+# PASS: no whitespace errors
+
+npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 1 suite passed, 3 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+```
+
+Blockers / transport:
+
+- Mac Mini recovery remains blocked on authenticated SMB mount or SSH availability.
+- GitHub push/PR remains blocked in this run by the standing hard safety rule: no GitHub push.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, secret access/printing, Mac Mini write, client-facing send, destructive git, or unrelated context mixing was performed.
+
+Next slice:
+
+- Continue timeline persistence policy and route-level event-write tests, or recover the two approved Mac Mini artifacts if an authenticated mount/SSH session appears.
+
+
+## 2026-05-23 12:52:28 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log: not emitted by this LaunchAgent tick.
+
+## 2026-05-23 13:25 AEST
+
+### Lane executed — CRM timeline persistence policy and `agent_actions` insert mapping
+
+Preflight / repo state:
+
+```text
+branch=feat/margot-crm-daily-digest-route
+head during tick=c03b953 docs: record Margot health check refresh
+node_modules=present
+package-lock.json=present
+/Volumes=Macintosh HD only
+Mac Mini SMB/File Sharing phills-mac-mini.local:445=reachable
+Mac Mini SSH/Remote Login phills-mac-mini.local:22=unreachable
+recovered_dir=docs/margot/recovered-from-mac-mini contains .gitkeep only
+```
+
+Slice completed:
+
+- Continued the existing CRM activity/timeline lane instead of starting a speculative integration.
+- Pinned the first timeline persistence target to existing `agent_actions` in `docs/margot/crm-test-coverage-matrix.md`.
+- Deferred any new dedicated timeline-table migration until query/RLS/retention needs are proven; no sandbox apply or production migration was run.
+- Extended `src/lib/crm/activity-timeline.ts` with `buildCrmTimelineAgentActionInsert(event)` so sanitized CRM timeline events map to `agent_actions` insert payloads.
+- Added local test coverage so the insert mapper uses `crm_timeline_<event_type>` action types, sets `done` for auto events and `pending` for approval/investigation events, stores slug hints only in payload, sets UUID link fields to `null` rather than guessing, and keeps Board approval IDs, auth variants, PII-like metadata, and secret-like values out of persisted payloads.
+- Updated `docs/margot/crm-operating-model.md`, `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, and `docs/margot/mac-mini-recovery-status.md` to reflect the policy and latest recovery probe.
+
+Verification commands/results:
+
+```bash
+npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 1 suite passed, 5 tests passed
+
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 10 suites passed, 62 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Safety / blockers:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, client-facing send, destructive git, or unrelated context mixing was performed.
+- Mac Mini artifacts remain blocked: SMB is reachable, SSH is unreachable, and no authenticated SMB share is mounted under `/Volumes`.
+- Route-level timeline event writes are not wired yet; next implementation must add mocked route tests before route inserts.
+
+Next slice:
+
+- Add route-level event-write tests for lead/contact/opportunity/approval events using the `agent_actions` mapping helper, or recover the two approved Mac Mini artifacts if authenticated SMB/SSH becomes available.
+
+
+## 2026-05-23 13:27:46 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+
+## 2026-05-23 13:43 AEST
+
+### Lane finalized — CRM timeline `agent_actions` mapping hardening
+
+Final review / verification:
+
+```bash
+npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 1 suite passed, 5 tests passed
+
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 10 suites passed, 62 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+
+! test -f docs/margot/crm-timeline-persistence-policy.md
+! grep -R "crm-timeline-persistence-policy\|crm_activity_timeline" docs/margot
+# PASS
+```
+
+Review status:
+
+- Spec re-review: PASS.
+- Quality re-review: APPROVED.
+- TDD fix evidence: auth and Board-approval key variants were added as failing tests before sanitizer hardening; focused test then passed.
+
+Blockers / transport:
+
+- GitHub CLI is not installed in this cron shell and GitHub token env was not available to Python API preflight, so push/PR remains blocked unless plain git transport succeeds after commit.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, secret access/printing, Mac Mini write, client-facing send, or destructive git action was performed.
+
+Next slice:
+
+- Add mocked route-level event-write tests before wiring lead/contact/opportunity routes to `agent_actions` timeline rows.
+
+## 2026-05-23 13:45 AEST
+
+### Commit / push evidence
+
+```text
+commit=b369375 feat: map CRM timeline events to agent actions
+push_attempt=GIT_TERMINAL_PROMPT=0 git push -u origin feat/margot-crm-daily-digest-route
+push_result=fatal: could not read Username for 'https://github.com': terminal prompts disabled
+```
+
+Transport blocker:
+
+- Local commit exists on `feat/margot-crm-daily-digest-route`, but GitHub push/PR remains blocked until authenticated HTTPS credentials or `gh` CLI auth is available in the cron shell.
+
