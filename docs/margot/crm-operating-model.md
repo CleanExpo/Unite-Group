@@ -222,15 +222,14 @@ npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration
 
 ## Next Implementation Lanes
 
-1. Add opportunity read/digest integration so open/won/blocked forecast-only opportunities surface in the daily CRM digest without broad service-role reads.
-2. Add activity/timeline event taxonomy tests for lead captured, qualified, converted, contact created, opportunity created, approval requested, task completed, and integration stale.
-3. Decide and test the CRM approvals lifecycle: requested, approved, rejected, expired/cancelled, executed.
-4. Add command-center CRM UI read-surface tests for leads, approvals, opportunities, and daily digest.
-5. Add integration stale-sync threshold tests for Linear/GitHub/Vercel/Supabase mirrors.
-6. Establish local schema provenance for `tasks` and `voice_command_sessions`.
-7. Run wider existing client route regression before any `nexus_clients` conversion work.
-8. Keep the focused CRM matrix gate, Margot voice gate when touched, `npm run type-check`, and `npm run security:routes-check` green.
-9. Continue Mac Mini recovery only through authenticated SMB/SSH or manual approved export.
+1. Add activity/timeline persistence decision and route-level event-write tests for lead/contact/opportunity/approval events.
+2. Decide and test the CRM approvals lifecycle: requested, approved, rejected, expired/cancelled, executed.
+3. Add command-center CRM UI read-surface tests for leads, approvals, opportunities, and daily digest.
+4. Add integration stale-sync threshold tests for Linear/GitHub/Vercel/Supabase mirrors.
+5. Establish local schema provenance for `tasks` and `voice_command_sessions`.
+6. Run wider existing client route regression before any `nexus_clients` conversion work.
+7. Keep the focused CRM matrix gate, Margot voice gate when touched, `npm run type-check`, and `npm run security:routes-check` green.
+8. Continue Mac Mini recovery only through authenticated SMB/SSH or manual approved export.
 
 ## Evidence From This Pass
 

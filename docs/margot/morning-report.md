@@ -102,6 +102,19 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest activity/timeline taxonomy lane at `2026-05-23 12:42 AEST`:
+
+- Added pure local CRM timeline helper `src/lib/crm/activity-timeline.ts`.
+- Added TDD coverage `tests/unit/lib/crm/activity-timeline.test.ts`; RED failed first because the module did not exist, then reviewer-requested sanitizer hardening failed RED on sensitive key variants before passing GREEN.
+- The taxonomy normalizes lead captured, lead qualified, lead converted, contact created, opportunity created, approval requested, task completed, and integration stale events into safe CRM timeline entries.
+- Safety coverage rejects unknown event types and missing identity instead of guessing across CRM objects, redacts token/secret/password/authorization/API-key/Board-approval-id metadata variants, and does not copy Board approval ids into event metadata.
+- Updated `docs/margot/crm-test-coverage-matrix.md` and `docs/margot/crm-operating-model.md`; next gap is persistence policy and route-level event-write tests, not taxonomy definition.
+- Re-ran expanded CRM matrix with the new test: `npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 10 suites / 60 tests passed.
+- Re-ran `npm run type-check`; `tsc --noEmit` passed.
+- Re-ran `npm run security:routes-check`; route inventory returned `0 unprotected mutating routes`.
+- Mac Mini probe during this lane: `/Volumes` contains only `Macintosh HD`; SMB/File Sharing port `445` is reachable; SSH/Remote Login port `22` is unreachable.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+
 Latest opportunity digest integration finalize at `2026-05-23 12:08 AEST`:
 
 - Created local commit `6ae1b31 feat: add opportunity digest reads` on `feat/margot-crm-daily-digest-route`.

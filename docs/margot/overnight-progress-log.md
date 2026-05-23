@@ -1822,3 +1822,125 @@ Next slice:
 - If GitHub auth is restored, push/open/monitor the existing branch first.
 - Otherwise continue safe local fallback with activity/timeline event taxonomy or command-center CRM digest UI consumption.
 
+## 2026-05-23 12:18 AEST
+
+### Lane executed — CRM activity/timeline taxonomy
+
+Preflight / repo state:
+
+```text
+branch=feat/margot-crm-daily-digest-route
+head before lane=6cc4163 docs: record opportunity digest finalize
+node_modules=present
+package-lock.json=present
+/Volumes=Macintosh HD only
+phills-mac-mini.local:445 reachable
+phills-mac-mini.local:22 unreachable
+```
+
+Slice completed:
+
+- Used the active CRM next-lane guidance from `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/crm-operating-model.md`, and `docs/margot/crm-test-coverage-matrix.md`.
+- Added pure local helper `src/lib/crm/activity-timeline.ts` for CRM timeline event normalization.
+- Added strict TDD coverage `tests/unit/lib/crm/activity-timeline.test.ts`.
+- RED evidence: the new focused test first failed because `@/lib/crm/activity-timeline` did not exist.
+- GREEN evidence: the helper now normalizes `lead_captured`, `lead_qualified`, `lead_converted`, `contact_created`, `opportunity_created`, `approval_requested`, `task_completed`, and `integration_stale` into safe timeline entries.
+- Safety behavior covered: unknown event types and missing identity throw instead of guessing across CRM objects; secret-like metadata and Board approval ids are not copied into event metadata.
+- Updated `docs/margot/crm-test-coverage-matrix.md` and `docs/margot/crm-operating-model.md` so the activity/timeline lane is no longer listed as missing taxonomy coverage and the next gap is persistence/route-level event-write policy.
+
+Verification commands/results:
+
+```bash
+npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# RED first: failed because the module did not exist
+# GREEN: 1 suite passed, 2 tests passed
+
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 10 suites passed, 59 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Safety / blockers:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+- Mac Mini artifacts remain blocked: SMB is reachable, SSH is unreachable, and no authenticated SMB share is mounted under `/Volumes`.
+- GitHub push/PR remains blocked until authenticated GitHub HTTPS or `gh` transport is available.
+- Activity/timeline helper is local taxonomy only; persistence target (`agent_actions` extension vs future `crm_activity_timeline`) still needs a safe design decision before route writes.
+
+Next slice:
+
+- Decide/pin the CRM timeline persistence target and add route-level event-write tests before wiring lead/contact/opportunity routes to timeline writes.
+- Continue Mac Mini recovery checks each run and copy only the approved target files if authenticated transport appears.
+
+
+## 2026-05-23 12:20:12 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log: not emitted by this LaunchAgent tick.
+
+## 2026-05-23 12:42 AEST
+
+### Lane finalized — CRM activity/timeline taxonomy hardening
+
+Preflight / repo state:
+
+```text
+branch=feat/margot-crm-daily-digest-route
+head before finalize=6cc4163 docs: record opportunity digest finalize
+gh=missing
+GITHUB_TOKEN/GH_TOKEN/VERCEL_TOKEN=missing
+node_modules=present
+package-lock.json=present
+.vercel=missing
+```
+
+Slice completed:
+
+- Continued the existing CRM daily digest branch and finalized the local CRM activity/timeline taxonomy helper rather than starting a new branch.
+- Added `src/lib/crm/activity-timeline.ts` and `tests/unit/lib/crm/activity-timeline.test.ts`.
+- Reviewer pass requested broader metadata redaction; a fix subagent added RED coverage for `accessToken`, `auth_token`, `clientSecret`, `passwordHash`, `xApiKey`, `api-key`, `BoardApprovalID`, and `board_approval_id`, then hardened the sanitizer.
+- The helper remains pure local taxonomy only: no route writes, database writes, migrations, sandbox apply, production promotion, deployment, Vercel env mutation, client-facing comms, or destructive git.
+
+Verification commands/results:
+
+```bash
+npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 1 suite passed, 3 tests passed
+
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 10 suites passed, 60 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Review status:
+
+- Initial spec review: REQUEST_CHANGES for sanitizer variants and out-of-scope Mac Mini status doc note.
+- Initial quality review: REQUEST_CHANGES for sanitizer variants.
+- Sanitizer/test fix completed with RED-GREEN evidence.
+- Final spec re-review: PASS.
+- Final quality re-review: APPROVED.
+- Reviewer verification included focused Jest, expanded CRM matrix, type-check, security route check, and `git diff --check` on reviewed files.
+
+Blockers / transport:
+
+- GitHub push/PR remains blocked because `gh` is missing and no `GITHUB_TOKEN`/`GH_TOKEN` is present in this cron shell.
+- Vercel status/deploy verification is unavailable because `.vercel` and `VERCEL_TOKEN` are missing.
+- Mac Mini recovery remains blocked on authenticated SMB mount or SSH availability.
+
+Next slice:
+
+- After local commit, push/open the existing branch when GitHub auth is restored; otherwise continue with the timeline persistence decision and route-level event-write tests.
+
