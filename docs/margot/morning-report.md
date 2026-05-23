@@ -85,11 +85,11 @@ Margot has:
 Mac Mini recovery remains blocked by current connectivity/auth state:
 
 - Host: `phills-mac-mini.local`
-- Latest probe at `2026-05-23 07:01 AEST`: hostname resolves to IPv4 addresses including `169.254.28.74`, `169.254.37.78`, and `192.168.2.77`; SMB/File Sharing port 445 is reachable; SSH/Remote Login port 22 is unreachable.
+- Latest probe at `2026-05-23 20:49 AEST`: SMB/File Sharing port 445 is reachable; SSH/Remote Login port 22 is unreachable; `/Volumes` contains `Claude` and `Macintosh HD`, but neither mounted volume contains the approved target artifact names.
 
 Still blocked:
 
-- No authenticated SMB share is mounted under `/Volumes`; `/Volumes` only contains `Macintosh HD`.
+- No authenticated SMB share containing the approved target files is mounted under `/Volumes`; the latest checked volumes were `Claude` and `Macintosh HD`.
 - Recovery destination `docs/margot/recovered-from-mac-mini/` contains only `.gitkeep`.
 - Original `RESTOREASSIST-CONTENT-INDEX.md` is not present locally yet.
 - SSH is not available from this MacBook session.
@@ -101,6 +101,109 @@ Target recovery files remain:
 - `/Users/phill-mac/hermes-agent-enhancement-report/restoreassist-content-packs/RESTOREASSIST-CONTENT-INDEX.md`
 
 ## Verification status
+
+Latest verification refresh at `2026-05-23 21:01 AEST`:
+
+- Continued branch `feat/crm-approval-lifecycle-helper` and completed a pure local daily digest privacy hardening slice.
+- Code/test improvement: `src/lib/crm/daily-digest.ts` now uses stable `lead <id>` fallback labels instead of raw lead email when rendering operator-facing priorities/markdown for leads without a name; `tests/unit/lib/crm/daily-digest.test.ts` proves email-only leads do not expose `private.contact@example.com` in sections or markdown.
+- Review loop: TDD RED reproduced the leak first, spec review PASS, code quality/security review APPROVED.
+- Verification passed: focused daily digest/approval/timeline gate returned 3 suites / 43 tests passed; expanded CRM matrix returned 11 suites / 102 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
+- Updated `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/overnight-progress-log.md`, and this report with the latest evidence.
+- GitHub push/PR remains blocked because `gh auth status` reports no GitHub hosts logged in; no push was attempted.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, client-facing communication, billing/payment action, merge, destructive git, or unrelated context mixing was performed.
+
+Latest verification refresh at `2026-05-23 20:49 AEST`:
+
+- Re-read the requested Margot operating docs and inspected current repo state before making changes.
+- Current branch: `feat/crm-approval-lifecycle-helper`; head at health-check time: `fbb434e`; working tree was clean before report updates.
+- Safe health check passed: `node_modules=present`, `package-lock.json=present`, `/Volumes` contains `Claude` and `Macintosh HD`, `phills-mac-mini.local:445` is reachable, `phills-mac-mini.local:22` is unreachable, and no recovered Mac Mini artifacts are present locally.
+- Approved target artifact search under `/Volumes` returned no `MARGOT-COMMAND-CENTER.md` or `RESTOREASSIST-CONTENT-INDEX.md` files.
+- Verification passed: approval timeline/approval lifecycle focused gate returned 2 suites / 40 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
+- Quick local search found no existing command-center CRM UI/read-surface test files, so command-center CRM UI coverage remains the next safe improvement lane.
+- Updated `docs/margot/overnight-progress-log.md` and this report with the latest evidence.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, client-facing communication, billing/payment action, merge, destructive git, or unrelated context mixing was performed.
+
+Latest verification refresh at `2026-05-23 20:16 AEST`:
+
+- Re-read Margot operating docs, inspected repo state, and continued the already-open approval timeline branch without creating a new production-affecting lane.
+- Current branch: `feat/crm-approval-lifecycle-helper`; latest local code commit is `87c185f feat: add approval cancelled timeline events`. GitHub push/PR remains blocked because `gh` is not installed and HTTPS GitHub auth is unavailable in this shell.
+- Code/test improvement now verified: `src/lib/crm/activity-timeline.ts` recognizes `approval_cancelled` and `approval_expired` as high-severity, approval-required CRM timeline events and maps approval approved/rejected/cancelled/expired events to pending sanitized `agent_actions` insert payloads.
+- Safety evidence: `tests/unit/lib/crm/activity-timeline.test.ts` proves approval timeline metadata strips approval references, Board IDs, benign `rejectionReason` / `rejection_reason`, tokens, auth values, client secrets, API keys, IPs, and sensitive-looking values before both event and insert payload mapping.
+- Documentation improvement: `docs/margot/crm-test-coverage-matrix.md` now records approval cancelled/expired timeline coverage under Activity/timeline and Approvals.
+- Verification passed: approval timeline/approval lifecycle focused gate returned 2 suites / 40 tests passed; expanded CRM matrix returned 11 suites / 101 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
+- Health/blocker check: `phills-mac-mini.local:445` is reachable, `phills-mac-mini.local:22` is unreachable, no authenticated Mac Mini share is mounted, and `docs/margot/recovered-from-mac-mini/` still contains only `.gitkeep`.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, successful GitHub push, secret access/printing, Mac Mini write, client-facing communication, billing/payment action, merge, destructive git, or unrelated context mixing was performed.
+
+Prior verification refresh at `2026-05-23 20:14 AEST`:
+
+- Continued branch `feat/crm-approval-lifecycle-helper`; local commit `87c185f feat: add approval cancelled timeline events` was created. GitHub push/PR remains blocked because `gh` is not installed and `GIT_TERMINAL_PROMPT=0 git push -u origin feat/crm-approval-lifecycle-helper` failed with `fatal: could not read Username for 'https://github.com': terminal prompts disabled`.
+- Code/test improvement: `src/lib/crm/activity-timeline.ts` now recognizes `approval_cancelled` and `approval_expired` as high-severity, approval-required CRM timeline events and maps them to pending sanitized `agent_actions` insert payloads.
+- Safety evidence: `tests/unit/lib/crm/activity-timeline.test.ts` now proves approval decision timeline metadata strips approval references, Board IDs, benign `rejectionReason` / `rejection_reason`, tokens, auth values, client secrets, API keys, IPs, and sensitive-looking values before both event and insert payload mapping.
+- Review loop: first spec review caught the benign `rejectionReason` leak; a TDD fix added the failing regression before adding normalized `rejectionreason` key blocking. Spec re-review PASS. Quality/security re-review APPROVED.
+- Verification passed: `npx jest tests/unit/lib/crm/activity-timeline.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand` returned 2 suites / 40 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, successful GitHub push, secret access/printing, Mac Mini write, client-facing communication, billing/payment action, merge, destructive git, or unrelated context mixing was performed.
+
+Latest verification refresh at `2026-05-23 19:22 AEST`:
+
+- Re-read Margot operating docs, current progress/morning evidence, CRM matrix, command-center state, Mac Mini recovery status, and voice/task route schema evidence before selecting the next safe lane.
+- Health check: branch `feat/crm-approval-lifecycle-helper`, `node_modules=present`, package scripts available, `/Volumes` contains only `Macintosh HD`, `phills-mac-mini.local:445` reachable, `phills-mac-mini.local:22` unreachable, and no recovered Mac Mini artifacts are present locally.
+- Documentation improvement: created `docs/margot/voice-task-schema-provenance.md` to document repo-local generated type evidence for `tasks` and `voice_command_sessions`, the current voice route write shape, mocked test coverage, and the limitation that no defining migration was found in `supabase/migrations/`.
+- Updated `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/crm-operating-model.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/mac-mini-recovery-status.md`, `docs/margot/overnight-progress-log.md`, and this report with the latest evidence.
+- Verification passed: focused voice gate returned 3 suites / 28 tests passed with `npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts --runInBand`.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, client-facing communication, billing/payment action, merge, destructive git, or unrelated context mixing was performed.
+
+Prior verification refresh at `2026-05-23 18:54 AEST`:
+
+- Re-read Margot operating docs, current Linear mirror, CRM matrix, approval persistence plan, command-center state, Mac Mini recovery status, and latest progress evidence before selecting the next safe lane.
+- Health check: branch `feat/crm-approval-lifecycle-helper`, local code commit `0799860 feat: record lead conversion timeline action` plus an evidence-only follow-up docs commit, `node_modules=present`, `package-lock.json=present`, `/Volumes` contains only `Macintosh HD`, `phills-mac-mini.local:445` reachable, `phills-mac-mini.local:22` unreachable, and no recovered Mac Mini artifacts are present locally.
+- Code/test improvement: `src/app/api/crm/leads/[id]/convert/route.ts` now writes a best-effort sanitized `crm_timeline_lead_converted` `agent_actions` event after the primary lead conversion update succeeds.
+- Safety evidence: new mocked route coverage in `tests/integration/api/crm-lead-conversion.test.ts` verifies the timeline action remains `pending`, `requiresApproval=true`, contains no Board approval ID, does not use raw lead email as the timeline subject label when company is blank, and conversion success still returns if the timeline insert throws after the primary update succeeds.
+- Verification passed: focused lead conversion suite returned 1 suite / 7 tests passed; expanded CRM matrix returned 11 suites / 101 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed.
+- Updated `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/mac-mini-recovery-status.md`, `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/overnight-progress-log.md`, and this report with the latest evidence.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, successful GitHub push, secret access/printing, Mac Mini write, client-facing communication, billing/payment action, merge, destructive git, or unrelated context mixing was performed. Local commit `0799860 feat: record lead conversion timeline action` was created; push failed with unauthenticated HTTPS GitHub transport.
+
+Prior approval decision timeline mapping lane at `2026-05-23 18:06 AEST`:
+
+- Re-read Margot operating docs and current approval handoff state, inspected repo state, checked Mac Mini recovery availability, and completed the next safe approval decision timeline mapping slice.
+- Code/test improvement: `src/lib/crm/activity-timeline.ts` now recognizes `approval_approved` and `approval_rejected` events and maps them to sanitized pending `agent_actions` insert payloads; `tests/unit/lib/crm/activity-timeline.test.ts` now covers approved/rejected decision event sanitization and a structural-event hardening regression.
+- Review fix included: quality review requested changes because structurally constructed approval decision events could have become `done`; `db79b53 fix: keep CRM approval timeline inserts pending` now forces configured approval-required event types to remain `pending` and `requiresApproval=true`.
+- Verification passed: `npx jest tests/unit/lib/crm/approval-lifecycle.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 2 suites / 40 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed.
+- Health check: branch `feat/crm-approval-lifecycle-helper`, latest local code commit `db79b53 fix: keep CRM approval timeline inserts pending`, Margot handoff docs committed as an evidence-only follow-up, `node_modules=present`, `package-lock.json=present`, `/Volumes` contains only `Macintosh HD`, `phills-mac-mini.local:445` reachable, `phills-mac-mini.local:22` unreachable, and no recovered Mac Mini artifacts are present locally.
+- Push/PR remains blocked: `GIT_TERMINAL_PROMPT=0 git push -u origin feat/crm-approval-lifecycle-helper` failed with `fatal: could not read Username for 'https://github.com': terminal prompts disabled`; `gh` is not installed in this cron shell.
+- Updated `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/mac-mini-recovery-status.md`, `docs/margot/overnight-progress-log.md`, and this report with the latest evidence.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, successful GitHub push, secret access/printing, Mac Mini write, client-facing communication, billing/payment action, merge, or destructive git action was performed.
+
+Prior approval task evidence mapper lane at `2026-05-23 17:11 AEST`:
+
+- Continued branch `feat/crm-approval-lifecycle-helper`; local code commit is `14061be feat: map CRM approval task evidence`.
+- Added pure local `buildCrmApprovalLifecycleInputFromTaskEvidence` in `src/lib/crm/approval-lifecycle.ts` and expanded `tests/unit/lib/crm/approval-lifecycle.test.ts` to 33 tests.
+- The mapper converts Stage 1 approval task evidence into lifecycle input without Supabase writes, without treating completed tasks as executed, and without granting auto-execution authority.
+- Security fixes from review are included: returned operator-facing reasons no longer echo raw approval references, Board IDs, approver values, rejection reasons, unknown statuses, or unknown subject types.
+- Spec review: PASS. Quality/security re-review: APPROVED. Final integration review: READY.
+- Verification passed: `npx jest tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand` returned 1 suite / 33 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed.
+- Push/PR remains blocked because `gh` is not installed and HTTPS GitHub transport is unauthenticated in this cron shell.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, successful GitHub push, secret access/printing, Mac Mini write, client-facing communication, billing/payment action, merge, or destructive git action was performed.
+
+Latest approval persistence planning lane at `2026-05-23 16:38 AEST`:
+
+- Created `docs/margot/crm-approval-persistence-plan.md` as the current approval persistence operating decision.
+- Decision: keep existing `tasks` approval subtype as Stage 1 for the operational queue (`blocked`, `high`, `Phill approval`, `approval-required`) and defer a dedicated `crm_approvals` table until structured approval history/query needs are proven.
+- Updated `docs/margot/crm-schema-inventory.md` and `docs/margot/crm-test-coverage-matrix.md` so approvals are no longer an undecided current persistence shape; the next safe gap is a local approval evidence mapper and sanitized event-write tests.
+- Updated `docs/margot/MARGOT-COMMAND-CENTER.md` and `docs/margot/overnight-progress-log.md` with health-check and evidence.
+- Verification passed: `npx jest tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand` returned 1 suite / 20 tests passed; `git diff --check` passed.
+- Health check: `node_modules=present`, `package-lock.json=present`, `/Volumes` contains only `Macintosh HD`, `phills-mac-mini.local:445` unreachable, `phills-mac-mini.local:22` unreachable.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, client-facing communication, billing/payment action, merge, or destructive git action was performed.
+
+Latest approval lifecycle helper verification at `2026-05-23 16:11 AEST`:
+
+- Current branch is `feat/crm-approval-lifecycle-helper`; local implementation commit is `ee642c3 feat: add CRM approval lifecycle helper`. Handoff docs were updated after the implementation commit to record evidence.
+- Added/verified pure local decision-support helper `src/lib/crm/approval-lifecycle.ts` and `tests/unit/lib/crm/approval-lifecycle.test.ts` for requested, approved, rejected, cancelled, expired, executed, invalid, and high-risk approval states.
+- Safety posture is explicit: the helper always returns `safeToAutoExecute: false`, does not echo approval references or Board IDs in operator-facing reasons, and does not perform any Supabase/Linear/GitHub/Vercel/Stripe write.
+- Updated CRM operating/model matrix evidence so approvals are covered as pure local decision support while persistence remains undecided (`crm_approvals` vs task subtype) before route writes.
+- Verification passed: focused approval lifecycle test returned 1 suite / 20 tests passed; expanded CRM matrix returned 11 suites / 84 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed.
+- Push/PR remains blocked: `GIT_TERMINAL_PROMPT=0 git push -u origin feat/crm-approval-lifecycle-helper` failed with `fatal: could not read Username for 'https://github.com': terminal prompts disabled`; `gh` is not installed.
+- Mac Mini probe remains blocked for artifact copy: `/Volumes` contains only `Macintosh HD`, `phills-mac-mini.local:445` is currently unreachable, `phills-mac-mini.local:22` is unreachable, and `docs/margot/recovered-from-mac-mini/` still contains only `.gitkeep`.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, successful GitHub push, secret access/printing, Mac Mini write, client-facing send, merge, or destructive git action was performed.
 
 Latest CRM create timeline write-hook fix at `2026-05-23 14:33 AEST`:
 

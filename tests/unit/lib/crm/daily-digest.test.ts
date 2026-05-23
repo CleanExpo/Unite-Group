@@ -69,6 +69,26 @@ describe('createCrmDailyDigest', () => {
     expect(digest.markdown).toContain('No production DB writes, deploys, env mutations, secret printing, GitHub push, or client-facing sends are implied by this digest.');
   });
 
+  it('does not expose raw lead email as fallback label in operator-facing digest copy', () => {
+    const digest = createCrmDailyDigest({
+      generatedAt: '2026-05-23T09:05:00+10:00',
+      leads: [
+        {
+          id: 'lead-email-only',
+          email: 'private.contact@example.com',
+          status: 'new',
+          nextAction: 'Review inbound enquiry',
+        },
+      ],
+    });
+
+    expect(digest.sections.operatorPriorities).toHaveLength(1);
+    expect(digest.sections.operatorPriorities[0]).toContain('Lead lead-email-only (lead lead-email-only)');
+    expect(digest.sections.operatorPriorities[0]).not.toContain('private.contact@example.com');
+    expect(digest.markdown).toContain('Lead lead-email-only (lead lead-email-only)');
+    expect(digest.markdown).not.toContain('private.contact@example.com');
+  });
+
   it('uses explicit empty-state copy when no CRM inputs exist', () => {
     const digest = createCrmDailyDigest({ generatedAt: '2026-05-23T09:10:00+10:00' });
 

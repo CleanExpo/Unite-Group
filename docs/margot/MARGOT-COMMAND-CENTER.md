@@ -99,9 +99,15 @@ Purpose:
 
 - `tests/integration/api/margot-voice-signed-url.test.ts`
 - `tests/integration/api/margot-voice-task.test.ts`
+- `tests/unit/margot-voice-failure-taxonomy.test.ts`
 
 Current verification state:
 - `node_modules` is present from the prior `npm ci` readiness pass.
+- CRM daily digest privacy hardening passed at `2026-05-23 21:01 AEST`: `src/lib/crm/daily-digest.ts` now renders email-only lead fallback labels as stable `lead <id>` copy instead of raw email in operator priorities/markdown. TDD RED reproduced the leak first; spec review PASS; quality/security review APPROVED. Verification passed: focused daily digest/approval/timeline gate returned 3 suites / 43 tests passed; expanded CRM matrix returned 11 suites / 102 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
+- CRM approval decision timeline mapping refreshed at `2026-05-23 20:14 AEST`: `src/lib/crm/activity-timeline.ts` now also recognizes `approval_cancelled` and `approval_expired` events and maps approval approved/rejected/cancelled/expired events to sanitized pending `agent_actions` inserts. The review-requested sanitizer hardening blocks benign `rejectionReason` / `rejection_reason` metadata by key, not only sensitive-looking values. Verification passed: focused approval timeline/approval lifecycle gate returned 2 suites / 40 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed. Spec re-review PASS and quality/security re-review APPROVED.
+- Voice task schema provenance refreshed at `2026-05-23 19:22 AEST`: `docs/margot/voice-task-schema-provenance.md` now documents repo-local generated type evidence for `tasks` and `voice_command_sessions`, confirms no defining migration was found in `supabase/migrations/`, and keeps generated types as evidence rather than migration authority. Focused voice gate passed: 3 suites / 28 tests.
+- CRM approval decision timeline mapping passed at `2026-05-23 18:06 AEST`: `src/lib/crm/activity-timeline.ts` now recognizes `approval_approved` and `approval_rejected` events and maps them to sanitized pending `agent_actions` inserts without approval references, Board IDs, rejection reasons, tokens, auth data, secrets, API keys, IPs, emails, phone numbers, or addresses. A review-blocking gap was fixed so structurally constructed approval decision events cannot become `done` even if supplied with an inconsistent `actionClass`. Verification passed: `npx jest tests/unit/lib/crm/approval-lifecycle.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 2 suites / 40 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
+- CRM approval task evidence mapper passed at `2026-05-23 17:11 AEST`: `buildCrmApprovalLifecycleInputFromTaskEvidence` now maps Stage 1 approval tasks into lifecycle input without Supabase writes, without treating completed tasks as executed, and without echoing approval references, Board IDs, approver values, rejection reasons, or malformed enum values in returned operator-facing reasons. Verification passed: approval lifecycle Jest suite 33 tests, `npm run type-check`, `npm run security:routes-check`, and `git diff --check`.
 - CRM create timeline write-hook fix passed at `2026-05-23 14:33 AEST`: contact/opportunity create routes now treat `agent_actions` timeline writes as best-effort, contact create uses explicit service-role select columns, approved/won opportunity tests assert both timeline inserts, focused tests returned 2 suites / 25 tests passed, expanded CRM matrix returned 10 suites / 64 tests passed, `npm run type-check` passed, and `npm run security:routes-check` returned 0 unprotected mutating routes. The local fix commit and docs evidence commit are not pushed because GitHub transport is unauthenticated in the cron shell.
 - CRM daily digest workspace-scope fix passed at `2026-05-23 10:41 AEST`: `tasks` reads are skipped unless `UNITE_CRM_WORKSPACE_ID` is configured, scoped with `.eq('workspace_id', process.env.UNITE_CRM_WORKSPACE_ID)` when present, and covered by the focused 3-suite gate returning 15 tests passed.
 - Focused Margot voice tests passed again at `2026-05-23 06:29 AEST`: 3 suites passed, 28 tests passed.
@@ -192,18 +198,43 @@ Safe destination when recovered:
 ## Health Check Snapshot
 
 Timestamp:
-`2026-05-23 13:25 AEST`
+`2026-05-23 21:01 AEST`
 
 Git state:
-- branch: `feat/margot-crm-daily-digest-route`
-- head during this tick: `c03b953 docs: record Margot health check refresh`
-- working tree changed locally for CRM activity/timeline `agent_actions` insert mapping and Margot handoff docs; no destructive git action taken.
+- branch: `feat/crm-approval-lifecycle-helper`
+- latest local code/doc commit before this uncommitted digest privacy slice: `fbb434e docs: close wrapper tick log marker`
+- GitHub push/PR remains blocked because `gh auth status` reports no GitHub hosts logged in; no PR/deploy was verified for the current local slice.
 
 Dependency state:
 - `node_modules=present`
 - `package-lock.json=present`
 
 Verification:
+- Daily digest lead-label privacy hardening passed at 2026-05-23 21:01 AEST: `src/lib/crm/daily-digest.ts` now falls back to stable `lead <id>` labels instead of raw lead email for email-only leads, and `tests/unit/lib/crm/daily-digest.test.ts` proves operator-facing sections and markdown do not expose `private.contact@example.com`.
+- Fresh verification after the digest hardening passed: `npx jest tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 3 suites / 43 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
+- Safe health check at 2026-05-23 20:49 AEST found `/Volumes` contains `Claude` and `Macintosh HD`, no approved target artifacts under `/Volumes`, `phills-mac-mini.local:445` reachable, `phills-mac-mini.local:22` unreachable, and no recovered Mac Mini artifacts present locally.
+- Focused digest/approval/timeline verification passed at 2026-05-23 21:01 AEST: `npx jest tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 3 suites / 43 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
+- Expanded CRM matrix verification passed at 2026-05-23 21:01 AEST: 11 suites / 102 tests passed.
+- Approval cancelled/expired timeline lane completed at 2026-05-23 20:14 AEST: `src/lib/crm/activity-timeline.ts` now recognizes `approval_cancelled` and `approval_expired` as high-severity, approval-required CRM timeline events and maps them to pending `agent_actions` insert payloads.
+- Sanitization evidence: tests now prove approval decision events strip approval references, Board IDs, rejection reasons including benign `rejectionReason` / `rejection_reason`, tokens, auth values, client secrets, API keys, IPs, and sensitive-looking values before event/insert mapping while preserving benign decision labels and safe generic notes.
+- Fresh verification passed at 2026-05-23 20:14 AEST: `npx jest tests/unit/lib/crm/activity-timeline.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand` returned 2 suites / 40 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
+- Lead conversion route timeline-write lane completed at 2026-05-23 18:45 AEST: `src/app/api/crm/leads/[id]/convert/route.ts` now records a best-effort sanitized `crm_timeline_lead_converted` `agent_actions` row after the primary lead conversion update succeeds.
+- Lead conversion safety evidence: the new mocked route coverage verifies the persisted timeline action stays `pending`, `requiresApproval=true`, uses the existing sanitizer/mapping helper, stores no Board approval ID, does not use raw lead email as the timeline subject label when company is blank, and does not fail the conversion response if the timeline insert throws after primary success.
+- Fresh verification passed at 2026-05-23 18:54 AEST: `npx jest tests/integration/api/crm-lead-conversion.test.ts --runInBand` returned 1 suite / 7 tests passed; expanded CRM matrix returned 11 suites / 101 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
+- Safe health check passed at 2026-05-23 18:32 AEST: `node_modules=present`, `package-lock.json=present`, `/Volumes` contains only `Macintosh HD`, `phills-mac-mini.local:445` reachable, `phills-mac-mini.local:22` unreachable, and no recovered Mac Mini artifacts are present locally.
+- Approval decision timeline mapping lane completed at 2026-05-23 18:06 AEST: `src/lib/crm/activity-timeline.ts` recognizes `approval_approved` and `approval_rejected` as high-severity, approval-required CRM timeline events and maps them to pending `agent_actions` insert payloads.
+- Sanitization evidence: the new tests verify approval decision events strip approval references, Board IDs, rejection reasons, tokens, auth values, client secrets, API keys, IPs, and other sensitive metadata before event/insert mapping while preserving benign decision labels.
+- Review fix evidence: `db79b53` adds a regression test and defensive mapper logic so structurally constructed approval decision events remain `pending` and `requiresApproval=true` even if the supplied event action class is inconsistent.
+- Fresh verification passed at 2026-05-23 18:06 AEST: `npx jest tests/unit/lib/crm/approval-lifecycle.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 2 suites / 40 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
+- Safe health check passed at 2026-05-23 18:06 AEST: `node_modules=present`, `package-lock.json=present`, `/Volumes` contains only `Macintosh HD`, `phills-mac-mini.local:445` reachable, `phills-mac-mini.local:22` unreachable, and no recovered Mac Mini artifacts are present locally.
+- Approval persistence planning lane completed at 2026-05-23 16:38 AEST: `docs/margot/crm-approval-persistence-plan.md` now chooses current `tasks` approval subtype as Stage 1, defers a dedicated `crm_approvals` table until structured history/query needs are proven, and defines future sandbox-first table shape, lifecycle, route wiring order, and test plan.
+- Updated `docs/margot/crm-schema-inventory.md` and `docs/margot/crm-test-coverage-matrix.md` so approvals are no longer an undecided persistence shape for the current lane: current decision is task-subtype queue now, future `crm_approvals` only after Stage 2 triggers and sandbox review.
+- Focused approval lifecycle verification passed at 2026-05-23 16:38 AEST: `npx jest tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand` returned 1 suite, 20 tests passed.
+- Safe health check passed at 2026-05-23 16:38 AEST: `node_modules=present`, `package-lock.json=present`, `/Volumes` contains only `Macintosh HD`, `phills-mac-mini.local:445` unreachable, `phills-mac-mini.local:22` unreachable, and `git diff --check` returned no whitespace errors.
+- Approval lifecycle helper verification remains current: `src/lib/crm/approval-lifecycle.ts` classifies requested, approved, rejected, cancelled, expired, executed, invalid, and high-risk approval states as pure local decision support, always keeps `safeToAutoExecute: false`, and avoids echoing approval references/Board IDs in returned reasons.
+- Prior expanded CRM matrix gate passed at 2026-05-23 16:11 AEST: `npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/activity-timeline.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand` returned 11 suites, 84 tests passed.
+- Prior `npm run type-check` and `npm run security:routes-check` passed at 2026-05-23 16:11 AEST; no code was changed in this pass.
+- Push/PR remains blocked for this branch: `GIT_TERMINAL_PROMPT=0 git push -u origin feat/crm-approval-lifecycle-helper` failed with `fatal: could not read Username for 'https://github.com': terminal prompts disabled`; `gh` is not installed.
 - CRM timeline mapping lane passed at 2026-05-23 13:25 AEST: local policy pins existing `agent_actions` as the first CRM timeline persistence target, defers any new dedicated timeline-table migration until query/RLS needs are proven, and keeps route-write follow-up scoped to sanitized audit events.
 - `src/lib/crm/activity-timeline.ts` now maps defensively sanitized CRM timeline events to `agent_actions` insert payloads with `crm_timeline_<event_type>` action types, `done` vs `pending` status semantics, null UUID link fields unless explicitly resolved, and no Board approval ID, contact PII, token, API-key, bearer-token, IP, address, or secret-like metadata persistence.
 - Focused activity timeline verification passed at 2026-05-23 13:25 AEST and was re-run after sanitizer hardening: `npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 1 suite, 5 tests passed.
@@ -246,8 +277,8 @@ Verification:
 
 Mac Mini recovery probe:
 - `/Volumes` only contains `Macintosh HD`; no authenticated Mac Mini share is mounted.
-- Latest 2026-05-23 13:25 AEST probe: `phills-mac-mini.local:445` is reachable.
-- Latest 2026-05-23 13:25 AEST probe: `phills-mac-mini.local:22` is unreachable.
+- Latest 2026-05-23 18:32 AEST probe: `phills-mac-mini.local:445` is reachable.
+- Latest 2026-05-23 18:32 AEST probe: `phills-mac-mini.local:22` is unreachable.
 - `docs/margot/recovered-from-mac-mini/` exists with only `.gitkeep`; no recovered artifacts yet.
 
 ## High-Level CRM Forecast
@@ -300,10 +331,10 @@ Current state:
 
 1. Continue from `docs/plans/2026-05-23-margot-multi-day-crm-build-plan.md` as the active multi-day build queue.
 2. Use `docs/margot/crm-schema-inventory.md`, `docs/margot/crm-operating-model.md`, and `docs/margot/crm-test-coverage-matrix.md` as the current schema/source-of-truth/verification map.
-3. Use `docs/margot/lead-to-client-conversion-plan.md` as the current local guarded conversion contract; missing operator approval now returns `403 operator_approval_required` and the focused CRM lead suite is green.
+3. Use `docs/margot/lead-to-client-conversion-plan.md` as the current local guarded conversion contract; missing operator approval returns `403 operator_approval_required`, successful conversion now writes a best-effort sanitized pending `crm_timeline_lead_converted` action, and the focused CRM lead suite is green.
 4. Use `docs/margot/crm-contacts-opportunities-model.md` as the current local proposal before broader contact/opportunity automation.
 5. Use `src/app/api/crm/daily-digest/route.ts` and `src/lib/crm/daily-digest.ts` as the current local read-only daily CRM digest wiring; the route now reads recent leads, workspace-scoped blocked/todo CRM task rows, and feature-flagged open/won/blocked opportunities when `UNITE_CRM_OPPORTUNITIES_DIGEST_ENABLED=true`.
-6. Next safe build lane: route-level event-write tests using the local `agent_actions` mapping in `src/lib/crm/activity-timeline.ts`, or command-center CRM digest UI consumption if UI is higher leverage.
+6. Next safe build lane: remaining CRM mutation route timeline coverage, stale integration threshold tests, or command-center CRM digest UI consumption if UI visibility is higher leverage.
 7. Continue sandbox-only contacts/opportunities route/migration drafts only through local tests and the sandbox wizard; do not apply to production without explicit Board approval.
 8. Use the portfolio, client 2nd Brain, marketing strategy, and AI enhancement docs as Senior PM control surfaces while code lanes continue.
 9. Continue Mac Mini recovery when an authenticated SMB share is mounted or SSH is enabled.

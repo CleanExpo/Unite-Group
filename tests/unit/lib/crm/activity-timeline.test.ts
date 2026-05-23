@@ -201,6 +201,27 @@ describe('buildCrmActivityTimelineEvent', () => {
     expect(insert.payload.metadata).toEqual({ safeCount: 1, stage: 'captured' });
   });
 
+  it('keeps structurally constructed approval decision inserts pending even with inconsistent auto actionClass', () => {
+    const structurallyConstructedDecisionEvent: CrmActivityTimelineEvent = {
+      type: 'approval_approved',
+      category: 'approval',
+      severity: 'high',
+      actionClass: 'auto',
+      actor: 'operator',
+      subjectId: 'opp-structural-1',
+      subjectLabel: 'Structurally constructed approval',
+      occurredAt: '2026-05-23T12:38:00+10:00',
+      source: 'manual_test',
+      summary: 'Approval approved: Structurally constructed approval via manual_test.',
+      metadata: { decision: 'approved' },
+    };
+
+    const insert = buildCrmTimelineAgentActionInsert(structurallyConstructedDecisionEvent);
+
+    expect(insert.status).toBe('pending');
+    expect(insert.payload.requiresApproval).toBe(true);
+  });
+
   it('maps sanitized CRM timeline events to agent_actions insert payloads without guessing UUID links', () => {
     const approvalEvent = buildCrmActivityTimelineEvent({
       type: 'approval_requested',
@@ -287,6 +308,208 @@ describe('buildCrmActivityTimelineEvent', () => {
       action_type: 'crm_timeline_integration_stale',
       status: 'pending',
     });
+  });
+
+  it('maps approval decision events to safe pending agent_actions inserts with sensitive metadata stripped', () => {
+    const decisionInputs: CrmActivityTimelineEventInput[] = [
+      {
+        type: 'approval_approved',
+        actor: 'operator',
+        subjectId: 'opp-2',
+        subjectLabel: 'Expansion approval',
+        occurredAt: '2026-05-23T12:40:00+10:00',
+        source: 'crm_approval_lifecycle_helper',
+        metadata: {
+          decision: 'approved',
+          approvalReference: 'BOARD-100',
+          BoardApprovalID: 'BOARD-101',
+          board_approval_id: 'BOARD-102',
+          accessToken: 'token',
+          auth_token: 'auth token',
+          clientSecret: 'secret',
+          xApiKey: 'api key',
+          ipAddress: '203.0.113.40',
+        },
+      },
+      {
+        type: 'approval_rejected',
+        actor: 'operator',
+        subjectId: 'opp-3',
+        subjectLabel: 'At-risk approval',
+        occurredAt: '2026-05-23T12:45:00+10:00',
+        source: 'crm_approval_lifecycle_helper',
+        metadata: {
+          decision: 'rejected',
+          rejectionReason: 'Not enough budget',
+          rejection_reason: 'Customer deferred purchase',
+          approvalReference: 'BOARD-104',
+          BoardApprovalID: 'BOARD-105',
+          board_approval_id: 'BOARD-106',
+          accessToken: 'token',
+          auth_token: 'auth token',
+          clientSecret: 'secret',
+          xApiKey: 'api key',
+          ipAddress: '203.0.113.45',
+        },
+      },
+      {
+        type: 'approval_cancelled',
+        actor: 'operator',
+        subjectId: 'opp-4',
+        subjectLabel: 'Cancelled approval',
+        occurredAt: '2026-05-23T12:50:00+10:00',
+        source: 'crm_approval_lifecycle_helper',
+        metadata: {
+          decision: 'cancelled',
+          approvalReference: 'BOARD-107',
+          BoardApprovalID: 'BOARD-108',
+          board_approval_id: 'BOARD-109',
+          accessToken: 'token',
+          auth_token: 'auth token',
+          clientSecret: 'secret',
+          xApiKey: 'api key',
+          ipAddress: '203.0.113.50',
+          operatorNote: 'Cancelled after customer requested changes',
+        },
+      },
+      {
+        type: 'approval_expired',
+        actor: 'system',
+        subjectId: 'opp-5',
+        subjectLabel: 'Expired approval',
+        occurredAt: '2026-05-23T12:55:00+10:00',
+        source: 'crm_approval_lifecycle_helper',
+        metadata: {
+          decision: 'expired',
+          rejectionReason: 'Expired with sensitive BOARD-110 value',
+          approvalReference: 'BOARD-111',
+          BoardApprovalID: 'BOARD-112',
+          board_approval_id: 'BOARD-113',
+          accessToken: 'token',
+          auth_token: 'auth token',
+          clientSecret: 'secret',
+          xApiKey: 'api key',
+          ipAddress: '203.0.113.55',
+          elapsedHours: 72,
+        },
+      },
+    ];
+
+    const [approvedEvent, rejectedEvent, cancelledEvent, expiredEvent] = decisionInputs.map(buildCrmActivityTimelineEvent);
+
+    expect(approvedEvent).toMatchObject({
+      type: 'approval_approved',
+      category: 'approval',
+      severity: 'high',
+      actionClass: 'approval_required',
+      summary: 'Approval approved: Expansion approval via crm_approval_lifecycle_helper.',
+      requiresApproval: true,
+      metadata: { decision: 'approved' },
+    });
+    expect(rejectedEvent).toMatchObject({
+      type: 'approval_rejected',
+      category: 'approval',
+      severity: 'high',
+      actionClass: 'approval_required',
+      summary: 'Approval rejected: At-risk approval via crm_approval_lifecycle_helper.',
+      requiresApproval: true,
+      metadata: { decision: 'rejected' },
+    });
+    expect(cancelledEvent).toMatchObject({
+      type: 'approval_cancelled',
+      category: 'approval',
+      severity: 'high',
+      actionClass: 'approval_required',
+      summary: 'Approval cancelled: Cancelled approval via crm_approval_lifecycle_helper.',
+      requiresApproval: true,
+      metadata: { decision: 'cancelled', operatorNote: 'Cancelled after customer requested changes' },
+    });
+    expect(expiredEvent).toMatchObject({
+      type: 'approval_expired',
+      category: 'approval',
+      severity: 'high',
+      actionClass: 'approval_required',
+      summary: 'Approval expired: Expired approval via crm_approval_lifecycle_helper.',
+      requiresApproval: true,
+      metadata: { decision: 'expired', elapsedHours: 72 },
+    });
+
+    const approvedInsert = buildCrmTimelineAgentActionInsert(approvedEvent);
+    const rejectedInsert = buildCrmTimelineAgentActionInsert(rejectedEvent);
+    const cancelledInsert = buildCrmTimelineAgentActionInsert(cancelledEvent);
+    const expiredInsert = buildCrmTimelineAgentActionInsert(expiredEvent);
+
+    expect(approvedInsert).toMatchObject({
+      action_type: 'crm_timeline_approval_approved',
+      status: 'pending',
+      payload: {
+        type: 'approval_approved',
+        category: 'approval',
+        severity: 'high',
+        actionClass: 'approval_required',
+        requiresApproval: true,
+        metadata: { decision: 'approved' },
+      },
+    });
+    expect(rejectedInsert).toMatchObject({
+      action_type: 'crm_timeline_approval_rejected',
+      status: 'pending',
+      payload: {
+        type: 'approval_rejected',
+        category: 'approval',
+        severity: 'high',
+        actionClass: 'approval_required',
+        requiresApproval: true,
+        metadata: { decision: 'rejected' },
+      },
+    });
+    expect(cancelledInsert).toMatchObject({
+      action_type: 'crm_timeline_approval_cancelled',
+      status: 'pending',
+      payload: {
+        type: 'approval_cancelled',
+        category: 'approval',
+        severity: 'high',
+        actionClass: 'approval_required',
+        requiresApproval: true,
+        metadata: { decision: 'cancelled', operatorNote: 'Cancelled after customer requested changes' },
+      },
+    });
+    expect(expiredInsert).toMatchObject({
+      action_type: 'crm_timeline_approval_expired',
+      status: 'pending',
+      payload: {
+        type: 'approval_expired',
+        category: 'approval',
+        severity: 'high',
+        actionClass: 'approval_required',
+        requiresApproval: true,
+        metadata: { decision: 'expired', elapsedHours: 72 },
+      },
+    });
+
+    [
+      approvedEvent.metadata,
+      rejectedEvent.metadata,
+      cancelledEvent.metadata,
+      expiredEvent.metadata,
+      approvedInsert.payload.metadata,
+      rejectedInsert.payload.metadata,
+      cancelledInsert.payload.metadata,
+      expiredInsert.payload.metadata,
+    ]
+      .forEach((metadata) => {
+        expect(metadata).not.toHaveProperty('approvalReference');
+        expect(metadata).not.toHaveProperty('BoardApprovalID');
+        expect(metadata).not.toHaveProperty('board_approval_id');
+        expect(metadata).not.toHaveProperty('accessToken');
+        expect(metadata).not.toHaveProperty('auth_token');
+        expect(metadata).not.toHaveProperty('clientSecret');
+        expect(metadata).not.toHaveProperty('xApiKey');
+        expect(metadata).not.toHaveProperty('ipAddress');
+        expect(metadata).not.toHaveProperty('rejectionReason');
+        expect(metadata).not.toHaveProperty('rejection_reason');
+      });
   });
 
   it('rejects unknown event types and missing identity instead of guessing across CRM objects', () => {

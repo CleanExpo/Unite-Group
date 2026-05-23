@@ -5,6 +5,10 @@ export type CrmActivityTimelineEventType =
   | 'contact_created'
   | 'opportunity_created'
   | 'approval_requested'
+  | 'approval_approved'
+  | 'approval_rejected'
+  | 'approval_cancelled'
+  | 'approval_expired'
   | 'task_completed'
   | 'integration_stale';
 
@@ -82,6 +86,10 @@ const TYPE_CONFIG: Record<CrmActivityTimelineEventType, {
   contact_created: { category: 'contact', severity: 'normal', actionClass: 'auto', label: 'Contact created' },
   opportunity_created: { category: 'opportunity', severity: 'normal', actionClass: 'auto', label: 'Opportunity created' },
   approval_requested: { category: 'approval', severity: 'high', actionClass: 'approval_required', label: 'Approval requested' },
+  approval_approved: { category: 'approval', severity: 'high', actionClass: 'approval_required', label: 'Approval approved' },
+  approval_rejected: { category: 'approval', severity: 'high', actionClass: 'approval_required', label: 'Approval rejected' },
+  approval_cancelled: { category: 'approval', severity: 'high', actionClass: 'approval_required', label: 'Approval cancelled' },
+  approval_expired: { category: 'approval', severity: 'high', actionClass: 'approval_required', label: 'Approval expired' },
   task_completed: { category: 'task', severity: 'normal', actionClass: 'auto', label: 'Task completed' },
   integration_stale: { category: 'integration', severity: 'warning', actionClass: 'investigate', label: 'Integration stale' },
 };
@@ -96,6 +104,7 @@ const BLOCKED_METADATA_KEY_PARTS = [
   'boardapproval',
   'boardapprovalid',
   'approvalref',
+  'rejectionreason',
   'email',
   'phone',
   'ipaddress',
@@ -190,8 +199,15 @@ export function buildCrmActivityTimelineEvent(input: CrmActivityTimelineEventInp
 export function buildCrmTimelineAgentActionInsert(
   event: CrmActivityTimelineEvent,
 ): CrmTimelineAgentActionInsert {
-  const status: CrmTimelineAgentActionInsert['status'] =
-    event.actionClass === 'approval_required' || event.actionClass === 'investigate' ? 'pending' : 'done';
+  const configuredActionClass = TYPE_CONFIG[event.type].actionClass;
+  const requiresApproval = event.requiresApproval === true
+    || event.actionClass === 'approval_required'
+    || configuredActionClass === 'approval_required';
+  const status: CrmTimelineAgentActionInsert['status'] = requiresApproval
+    || event.actionClass === 'investigate'
+    || configuredActionClass === 'investigate'
+    ? 'pending'
+    : 'done';
 
   return {
     source: 'margot',
@@ -213,7 +229,7 @@ export function buildCrmTimelineAgentActionInsert(
       occurredAt: event.occurredAt,
       source: event.source,
       summary: event.summary,
-      requiresApproval: event.requiresApproval === true,
+      requiresApproval,
       clientSlug: event.clientSlug ?? null,
       businessSlug: event.businessSlug ?? null,
       metadata: sanitizeMetadata(event.metadata),

@@ -48,7 +48,33 @@ function makeUpdateBuilder(updatedLead: Record<string, unknown>) {
   return builder;
 }
 
-function mockLeadConversion(lead: Record<string, unknown>, updatedLead = {}) {
+function makeInsertBuilder(
+  calls: Array<{ table: string; row: Record<string, unknown> }>,
+  options: { throwTimelineInsert?: boolean } = {},
+) {
+  return {
+    insert: jest.fn((row: Record<string, unknown>) => {
+      calls.push({ table: 'agent_actions', row });
+      return {
+        select: jest.fn(() => ({
+          single: jest.fn(() => {
+            if (options.throwTimelineInsert) {
+              throw new Error('timeline insert exploded');
+            }
+            return Promise.resolve({ data: { id: 'timeline-1' }, error: null });
+          }),
+        })),
+      };
+    }),
+  };
+}
+
+function mockLeadConversion(
+  lead: Record<string, unknown>,
+  updatedLead = {},
+  calls: Array<{ table: string; row: Record<string, unknown> }> = [],
+  options: { throwTimelineInsert?: boolean } = {},
+) {
   const selectBuilder = makeSelectBuilder(lead);
   const updateBuilder = makeUpdateBuilder({
     id: leadId,
@@ -57,17 +83,22 @@ function mockLeadConversion(lead: Record<string, unknown>, updatedLead = {}) {
     converted_at: '2026-05-23T00:00:00.000Z',
     ...updatedLead,
   });
+  const timelineBuilder = makeInsertBuilder(calls, options);
+  let crmLeadsReads = 0;
 
   mockFrom.mockImplementation((table: string) => {
+    if (table === 'agent_actions') return timelineBuilder;
     if (table !== 'crm_leads') throw new Error(`Unexpected table ${table}`);
-    return mockFrom.mock.calls.length === 1 ? selectBuilder : updateBuilder;
+    crmLeadsReads += 1;
+    return crmLeadsReads === 1 ? selectBuilder : updateBuilder;
   });
 
-  return { selectBuilder, updateBuilder };
+  return { selectBuilder, updateBuilder, timelineBuilder, calls };
 }
 
 describe('POST /api/crm/leads/[id]/convert', () => {
   const oldEnv = process.env;
+  let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -77,9 +108,11 @@ describe('POST /api/crm/leads/[id]/convert', () => {
       NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co',
       SUPABASE_SERVICE_ROLE_KEY: 'service-role-test',
     };
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
   });
 
   afterEach(() => {
+    consoleErrorSpy.mockRestore();
     jest.useRealTimers();
     process.env = oldEnv;
   });
@@ -136,7 +169,8 @@ describe('POST /api/crm/leads/[id]/convert', () => {
     expect(updateBuilder.update).not.toHaveBeenCalled();
   });
 
-  it('updates the exact lead conversion fields when identity gates and Board approval pass', async () => {
+  it('updates the exact lead conversion fields and writes a sanitized pending timeline action when identity gates and Board approval pass', async () => {
+    const timelineCalls: Array<{ table: string; row: Record<string, unknown> }> = [];
     const { updateBuilder } = mockLeadConversion({
       id: leadId,
       email: 'ada@example.com',
@@ -145,7 +179,7 @@ describe('POST /api/crm/leads/[id]/convert', () => {
       matched_client_id: targetClientId,
       converted_client_id: null,
       converted_at: null,
-    });
+    }, {}, timelineCalls);
 
     const res = await POST(request(), context());
 
@@ -170,5 +204,86 @@ describe('POST /api/crm/leads/[id]/convert', () => {
     });
     expect(updateBuilder.eq).toHaveBeenCalledWith('id', leadId);
     expect(updateBuilder.is).toHaveBeenCalledWith('converted_client_id', null);
+    expect(timelineCalls).toEqual([
+      {
+        table: 'agent_actions',
+        row: expect.objectContaining({
+          source: 'margot',
+          action_type: 'crm_timeline_lead_converted',
+          status: 'pending',
+          client_id: null,
+          business_id: null,
+          linear_ticket_id: null,
+          parent_id: null,
+          payload: expect.objectContaining({
+            type: 'lead_converted',
+            category: 'lead',
+            actionClass: 'approval_required',
+            requiresApproval: true,
+            subjectId: leadId,
+            subjectLabel: 'Analytical Engines Pty Ltd',
+            source: 'crm_lead_conversion_route',
+            metadata: {
+              priorStatus: 'qualified',
+              hadMatchedClient: true,
+              targetClientLinked: true,
+            },
+          }),
+        }),
+      },
+    ]);
+    expect(timelineCalls[0].row.payload).not.toHaveProperty('boardApprovalId');
+    expect(timelineCalls[0].row.payload).not.toHaveProperty('board_approval_id');
+  });
+
+  it('does not use raw email as the persisted timeline subject label when company is blank', async () => {
+    const timelineCalls: Array<{ table: string; row: Record<string, unknown> }> = [];
+    mockLeadConversion({
+      id: leadId,
+      email: 'ada@example.com',
+      company: '   ',
+      status: 'qualified',
+      matched_client_id: targetClientId,
+      converted_client_id: null,
+      converted_at: null,
+    }, {}, timelineCalls);
+
+    const res = await POST(request(), context());
+
+    expect(res.status).toBe(200);
+    expect(timelineCalls).toHaveLength(1);
+    expect(timelineCalls[0].row.payload).toEqual(expect.objectContaining({
+      subjectId: leadId,
+      subjectLabel: leadId,
+    }));
+    expect(JSON.stringify(timelineCalls[0].row)).not.toContain('ada@example.com');
+  });
+
+  it('still returns 200 when lead conversion timeline insert throws after primary conversion succeeds', async () => {
+    const timelineCalls: Array<{ table: string; row: Record<string, unknown> }> = [];
+    mockLeadConversion({
+      id: leadId,
+      email: 'ada@example.com',
+      company: 'Analytical Engines Pty Ltd',
+      status: 'qualified',
+      matched_client_id: targetClientId,
+      converted_client_id: null,
+      converted_at: null,
+    }, {}, timelineCalls, { throwTimelineInsert: true });
+
+    const res = await POST(request(), context());
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({
+      success: true,
+      lead_id: leadId,
+      target_client_id: targetClientId,
+    });
+    expect(timelineCalls).toHaveLength(1);
+    expect(timelineCalls[0].table).toBe('agent_actions');
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Error recording CRM lead conversion timeline event:',
+      expect.any(Error),
+    );
   });
 });

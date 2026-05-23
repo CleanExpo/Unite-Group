@@ -62,7 +62,7 @@ Domains:
 | Lead | Prospect or inbound form submission before qualification | `src/app/api/marketing/leads/route.ts` validates, optionally subscribes to SendGrid, and writes `crm_leads`; `src/app/api/crm/leads/route.ts` lists recent leads for command-center visibility; `src/lib/crm/qualify-lead.ts` provides recommendation-only scoring | Supabase `crm_leads` once the local migration is applied to the target environment; SendGrid remains a side integration |
 | Opportunity | Qualified commercial possibility with value/stage/probability | Draft `crm_opportunities` migration exists locally; `src/app/api/crm/opportunities/route.ts` and `tests/integration/api/crm-opportunities-create.test.ts` cover guarded local forecast-only creation with mocks | Proposed Supabase `crm_opportunities` after sandbox-first application; local route/test contract exists now |
 | Task | Work item for Margot, Phill, agent, or human owner | Margot voice route writes `tasks`; Linear mirror exists | Supabase `tasks` for app tasks, Linear for execution queue |
-| Approval | Human decision or permission gate | Voice route blocks approval-required work by assignee/status; no dedicated approval table yet | Proposed `crm_approvals` or task subtype |
+| Approval | Human decision or permission gate | Voice route blocks approval-required work by assignee/status; `src/lib/crm/approval-lifecycle.ts` provides pure local classification/recommendation for requested, approved, rejected, cancelled, expired, and executed states; no dedicated approval table yet | Proposed `crm_approvals` or task subtype |
 | Project | Delivery initiative connected to client/business/revenue | Linear mirror tables; local project docs | Linear for execution status, Supabase mirror for cockpit |
 | Ticket | Execution issue / engineering work item | `integration_linear_issues`; GitHub PR/issue mirrors | Linear/GitHub, mirrored into Supabase |
 | Activity/Event | Timeline record of something that happened | `agent_actions` for client create/update and agent events; `src/lib/crm/activity-timeline.ts` now maps sanitized CRM timeline events to `agent_actions` insert payloads | Supabase `agent_actions` is the local next persistence target; a dedicated timeline table remains out of scope unless later query/RLS needs justify a separately reviewed migration |
@@ -209,7 +209,7 @@ Use that matrix as the current local verification contract for lead capture, lea
 Current focused CRM verification gate from the matrix:
 
 ```bash
-npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/activity-timeline.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand
 npm run type-check
 npm run security:routes-check
 ```
@@ -223,13 +223,14 @@ npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration
 ## Next Implementation Lanes
 
 1. Add route-level event-write tests for lead/contact/opportunity/approval events using the local `agent_actions` mapping in `src/lib/crm/activity-timeline.ts`.
-2. Decide and test the CRM approvals lifecycle: requested, approved, rejected, expired/cancelled, executed.
+2. Decide the approval persistence shape (`crm_approvals` vs task subtype) before route writes; the pure local approval lifecycle helper/test now covers requested, approved, rejected, expired/cancelled, and executed states.
 3. Add command-center CRM UI read-surface tests for leads, approvals, opportunities, and daily digest.
 4. Add integration stale-sync threshold tests for Linear/GitHub/Vercel/Supabase mirrors.
-5. Establish local schema provenance for `tasks` and `voice_command_sessions`.
+5. Add a digest reader linkage test for voice-created `tasks` once the command-center read surface is wired.
 6. Run wider existing client route regression before any `nexus_clients` conversion work.
-7. Keep the focused CRM matrix gate, Margot voice gate when touched, `npm run type-check`, and `npm run security:routes-check` green.
-8. Continue Mac Mini recovery only through authenticated SMB/SSH or manual approved export.
+7. Recover original migrations or reconstruct sandbox-only migration proposals for `tasks` and `voice_command_sessions` before schema-affecting work.
+8. Keep the focused CRM matrix gate, Margot voice gate when touched, `npm run type-check`, and `npm run security:routes-check` green.
+9. Continue Mac Mini recovery only through authenticated SMB/SSH or manual approved export.
 
 ## Evidence From This Pass
 
