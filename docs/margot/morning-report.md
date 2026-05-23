@@ -102,6 +102,24 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest verification refresh at `2026-05-24 01:31 AEST`:
+
+- Continued the already-started command-center degraded-source coverage slice and fixed the progress-log EOF hygiene issue flagged by spec/quality reviewers.
+- Review evidence: spec compliance re-review PASS; code quality/security re-review APPROVED.
+- Verification passed: `npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand` returned 2 suites / 6 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed.
+- Updated `docs/margot/overnight-progress-log.md` with this review/verification evidence.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
+
+Latest verification refresh at `2026-05-24 00:59 AEST`:
+
+- Re-read the requested Margot operating docs and current handoff state, inspected repo state, and continued the command-center CRM read-surface lane from existing local assets.
+- Current branch is `main` at `b1eb4db`; working tree already had report-only edits in this report and the overnight progress log when the tick started.
+- Safe health check passed: `node_modules=present`, `package-lock=present`, `/Volumes` contains `Claude` and `Macintosh HD`, `phills-mac-mini.local:445` is reachable, `phills-mac-mini.local:22` is unreachable, and recovered Mac Mini artifacts still contain only `.gitkeep`.
+- Safe improvement: `tests/unit/components/command-center/HermesControlPanel.test.tsx` now covers injected non-CRM payloads, proving `source='seed:static-plan'` renders as degraded data with `CRM unreachable · seed plan` and does not present `CRM · 0 tasks` as live CRM truth.
+- Updated `docs/margot/crm-test-coverage-matrix.md` and `docs/margot/overnight-progress-log.md` with this evidence.
+- Verification passed: `npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand` returned 2 suites / 6 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
+
 Latest verification refresh at `2026-05-24 00:16 AEST`:
 
 - Continued the command-center CRM read-surface lane on branch `margot-control-panel-live-payload-test` at `742f49f`; the working tree already contained this local slice when the tick started.
@@ -605,5 +623,14 @@ Latest PR publication refresh at `2026-05-24 00:35 AEST`:
 - Branch commit: `69bf2ab530a5d3711f0a67e788626e09f942964e` (`test: cover live control panel payload rendering`).
 - Vercel preview completed successfully: https://vercel.com/unite-group/unite-group/CvGbEBH8bNXqKFi8BitrNY9NdzR2
 - Initial GitHub TypeScript check failed during `actions/checkout` with a GitHub credential prompt error, not a TypeScript/code error; reran failed CI jobs.
-- PR #179 checks then passed cleanly: TypeScript, Unit + Integration Tests, Pipeline Smoke Tests, Supabase Schema Drift, JSON-LD Schema Validation, npm audit, lint, specialist reviews, Chief Reviewer final verdict, CodeRabbit, DESIGN.md lint, and Vercel preview.
 - No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
+
+Latest merge/deploy refresh at `2026-05-24 00:45 AEST`:
+
+- PR #179 merged: https://github.com/CleanExpo/Unite-Group/pull/179
+- Merge commit: `b1eb4dbc6f0414da3a519226296a9c9615f8caf4` (`test: cover live control panel payload rendering`).
+- Main CI after merge passed: CI run `26335519729` completed successfully; DESIGN.md lint run `26335519719` completed successfully.
+- Vercel status for the merge commit is success: https://vercel.com/unite-group/unite-group/99ELVo3DC86HDkGA6STQu1us7vom
+- Scope shipped: command-center control-panel component now has local/server-render live CRM payload coverage via `initialPayload`, proving live task count, approval-required count, and live workstream label render without seed/loading fallback.
+- This merge/deploy evidence was appended locally only; no follow-up PR was opened solely to publish evidence-of-evidence.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git on main, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.

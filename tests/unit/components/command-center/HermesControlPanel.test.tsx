@@ -47,4 +47,29 @@ describe('HermesControlPanel', () => {
     expect(html).toContain('Margot voice to CRM task');
     expect(html).not.toContain('CRM · requesting');
   });
+
+  it('marks injected non-CRM payloads as degraded instead of presenting them as live CRM truth', () => {
+    const html = renderToStaticMarkup(
+      <HermesControlPanel
+        initialPayload={{
+          source: 'seed:static-plan',
+          taskCount: 0,
+          generatedAt: '2026-05-23T13:45:00.000Z',
+          summary: {
+            green: 4,
+            yellow: 2,
+            red: 1,
+            approvalRequired: 0,
+          },
+          workstreams: [],
+          addOns: [],
+        }}
+      />,
+    );
+
+    expect(html).toContain('CRM unreachable · seed plan');
+    expect(html).toContain('Degraded data · Unite CRM');
+    expect(html).toContain('server returned source=seed:static-plan');
+    expect(html).not.toContain('CRM · 0 tasks');
+  });
 });
