@@ -2965,3 +2965,45 @@ Next safe slice:
 Native macOS Margot orchestrator tick completed.
 
 Log: controller completed the 21:01 daily digest privacy slice above; final evidence cleanup and verification continued after this wrapper marker.
+
+## 2026-05-23 21:31 AEST
+
+### PR #175 merge and deployment evidence
+
+Completed the external handoff for the active approval/digest privacy branch.
+
+GitHub/PR/deploy evidence:
+
+- Local commit before PR: `7455812 fix: avoid email fallback in CRM daily digest`.
+- PR opened: https://github.com/CleanExpo/Unite-Group/pull/175
+- PR merged: merge commit `b4c1f7bc9d1cee7faf3de6d53ad67ff65365c7ef`.
+- PR checks before merge: all required PR checks passed, including TypeScript, Unit + Integration Tests, Supabase Schema Drift, JSON-LD Schema Validation, npm audit, route/security lint gate, Review Board specialist checks, Chief Reviewer final verdict, CodeRabbit, and Vercel preview.
+- Main branch CI after merge: `gh run watch 26331487851 --exit-status` completed successfully for CI; DESIGN.md lint run `26331487850` also completed successfully.
+- Vercel status on merge commit: commit status `Vercel=success`, deployment URL https://vercel.com/unite-group/unite-group/tun5mwN1kAvLrJVe1BtRHTLyG1Hq
+
+Local verification retained from the implementation slice:
+
+```bash
+npx jest tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 3 suites passed, 43 tests passed
+
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/activity-timeline.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand
+# PASS: 11 suites passed, 102 tests passed
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, or secret printing/storage was performed.
+
+Next safe slice:
+
+- Continue with command-center CRM UI/read-surface tests for daily digest/approvals visibility, or add route-level approval event-write tests before wiring additional CRM mutation routes to `agent_actions`.
