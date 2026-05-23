@@ -340,7 +340,8 @@ describe('buildCrmActivityTimelineEvent', () => {
         source: 'crm_approval_lifecycle_helper',
         metadata: {
           decision: 'rejected',
-          rejectionReason: 'Rejected for Board-like reference BOARD-103 in raw operator note',
+          rejectionReason: 'Not enough budget',
+          rejection_reason: 'Customer deferred purchase',
           approvalReference: 'BOARD-104',
           BoardApprovalID: 'BOARD-105',
           board_approval_id: 'BOARD-106',
@@ -351,9 +352,50 @@ describe('buildCrmActivityTimelineEvent', () => {
           ipAddress: '203.0.113.45',
         },
       },
+      {
+        type: 'approval_cancelled',
+        actor: 'operator',
+        subjectId: 'opp-4',
+        subjectLabel: 'Cancelled approval',
+        occurredAt: '2026-05-23T12:50:00+10:00',
+        source: 'crm_approval_lifecycle_helper',
+        metadata: {
+          decision: 'cancelled',
+          approvalReference: 'BOARD-107',
+          BoardApprovalID: 'BOARD-108',
+          board_approval_id: 'BOARD-109',
+          accessToken: 'token',
+          auth_token: 'auth token',
+          clientSecret: 'secret',
+          xApiKey: 'api key',
+          ipAddress: '203.0.113.50',
+          operatorNote: 'Cancelled after customer requested changes',
+        },
+      },
+      {
+        type: 'approval_expired',
+        actor: 'system',
+        subjectId: 'opp-5',
+        subjectLabel: 'Expired approval',
+        occurredAt: '2026-05-23T12:55:00+10:00',
+        source: 'crm_approval_lifecycle_helper',
+        metadata: {
+          decision: 'expired',
+          rejectionReason: 'Expired with sensitive BOARD-110 value',
+          approvalReference: 'BOARD-111',
+          BoardApprovalID: 'BOARD-112',
+          board_approval_id: 'BOARD-113',
+          accessToken: 'token',
+          auth_token: 'auth token',
+          clientSecret: 'secret',
+          xApiKey: 'api key',
+          ipAddress: '203.0.113.55',
+          elapsedHours: 72,
+        },
+      },
     ];
 
-    const [approvedEvent, rejectedEvent] = decisionInputs.map(buildCrmActivityTimelineEvent);
+    const [approvedEvent, rejectedEvent, cancelledEvent, expiredEvent] = decisionInputs.map(buildCrmActivityTimelineEvent);
 
     expect(approvedEvent).toMatchObject({
       type: 'approval_approved',
@@ -373,9 +415,29 @@ describe('buildCrmActivityTimelineEvent', () => {
       requiresApproval: true,
       metadata: { decision: 'rejected' },
     });
+    expect(cancelledEvent).toMatchObject({
+      type: 'approval_cancelled',
+      category: 'approval',
+      severity: 'high',
+      actionClass: 'approval_required',
+      summary: 'Approval cancelled: Cancelled approval via crm_approval_lifecycle_helper.',
+      requiresApproval: true,
+      metadata: { decision: 'cancelled', operatorNote: 'Cancelled after customer requested changes' },
+    });
+    expect(expiredEvent).toMatchObject({
+      type: 'approval_expired',
+      category: 'approval',
+      severity: 'high',
+      actionClass: 'approval_required',
+      summary: 'Approval expired: Expired approval via crm_approval_lifecycle_helper.',
+      requiresApproval: true,
+      metadata: { decision: 'expired', elapsedHours: 72 },
+    });
 
     const approvedInsert = buildCrmTimelineAgentActionInsert(approvedEvent);
     const rejectedInsert = buildCrmTimelineAgentActionInsert(rejectedEvent);
+    const cancelledInsert = buildCrmTimelineAgentActionInsert(cancelledEvent);
+    const expiredInsert = buildCrmTimelineAgentActionInsert(expiredEvent);
 
     expect(approvedInsert).toMatchObject({
       action_type: 'crm_timeline_approval_approved',
@@ -401,8 +463,41 @@ describe('buildCrmActivityTimelineEvent', () => {
         metadata: { decision: 'rejected' },
       },
     });
+    expect(cancelledInsert).toMatchObject({
+      action_type: 'crm_timeline_approval_cancelled',
+      status: 'pending',
+      payload: {
+        type: 'approval_cancelled',
+        category: 'approval',
+        severity: 'high',
+        actionClass: 'approval_required',
+        requiresApproval: true,
+        metadata: { decision: 'cancelled', operatorNote: 'Cancelled after customer requested changes' },
+      },
+    });
+    expect(expiredInsert).toMatchObject({
+      action_type: 'crm_timeline_approval_expired',
+      status: 'pending',
+      payload: {
+        type: 'approval_expired',
+        category: 'approval',
+        severity: 'high',
+        actionClass: 'approval_required',
+        requiresApproval: true,
+        metadata: { decision: 'expired', elapsedHours: 72 },
+      },
+    });
 
-    [approvedEvent.metadata, rejectedEvent.metadata, approvedInsert.payload.metadata, rejectedInsert.payload.metadata]
+    [
+      approvedEvent.metadata,
+      rejectedEvent.metadata,
+      cancelledEvent.metadata,
+      expiredEvent.metadata,
+      approvedInsert.payload.metadata,
+      rejectedInsert.payload.metadata,
+      cancelledInsert.payload.metadata,
+      expiredInsert.payload.metadata,
+    ]
       .forEach((metadata) => {
         expect(metadata).not.toHaveProperty('approvalReference');
         expect(metadata).not.toHaveProperty('BoardApprovalID');
@@ -413,6 +508,7 @@ describe('buildCrmActivityTimelineEvent', () => {
         expect(metadata).not.toHaveProperty('xApiKey');
         expect(metadata).not.toHaveProperty('ipAddress');
         expect(metadata).not.toHaveProperty('rejectionReason');
+        expect(metadata).not.toHaveProperty('rejection_reason');
       });
   });
 

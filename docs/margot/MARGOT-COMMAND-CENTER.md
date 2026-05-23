@@ -103,6 +103,7 @@ Purpose:
 
 Current verification state:
 - `node_modules` is present from the prior `npm ci` readiness pass.
+- CRM approval decision timeline mapping refreshed at `2026-05-23 20:14 AEST`: `src/lib/crm/activity-timeline.ts` now also recognizes `approval_cancelled` and `approval_expired` events and maps them to sanitized pending `agent_actions` inserts. The review-requested sanitizer hardening blocks benign `rejectionReason` / `rejection_reason` metadata by key, not only sensitive-looking values. Verification passed: `npx jest tests/unit/lib/crm/activity-timeline.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand` returned 2 suites / 40 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes. Spec re-review PASS and quality/security re-review APPROVED.
 - Voice task schema provenance refreshed at `2026-05-23 19:22 AEST`: `docs/margot/voice-task-schema-provenance.md` now documents repo-local generated type evidence for `tasks` and `voice_command_sessions`, confirms no defining migration was found in `supabase/migrations/`, and keeps generated types as evidence rather than migration authority. Focused voice gate passed: 3 suites / 28 tests.
 - CRM approval decision timeline mapping passed at `2026-05-23 18:06 AEST`: `src/lib/crm/activity-timeline.ts` now recognizes `approval_approved` and `approval_rejected` events and maps them to sanitized pending `agent_actions` inserts without approval references, Board IDs, rejection reasons, tokens, auth data, secrets, API keys, IPs, emails, phone numbers, or addresses. A review-blocking gap was fixed so structurally constructed approval decision events cannot become `done` even if supplied with an inconsistent `actionClass`. Verification passed: `npx jest tests/unit/lib/crm/approval-lifecycle.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 2 suites / 40 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
 - CRM approval task evidence mapper passed at `2026-05-23 17:11 AEST`: `buildCrmApprovalLifecycleInputFromTaskEvidence` now maps Stage 1 approval tasks into lifecycle input without Supabase writes, without treating completed tasks as executed, and without echoing approval references, Board IDs, approver values, rejection reasons, or malformed enum values in returned operator-facing reasons. Verification passed: approval lifecycle Jest suite 33 tests, `npm run type-check`, `npm run security:routes-check`, and `git diff --check`.
@@ -196,18 +197,21 @@ Safe destination when recovered:
 ## Health Check Snapshot
 
 Timestamp:
-`2026-05-23 18:54 AEST`
+`2026-05-23 20:14 AEST`
 
 Git state:
 - branch: `feat/crm-approval-lifecycle-helper`
-- latest local code commit for this slice: `0799860 feat: record lead conversion timeline action`
-- An evidence-only follow-up docs commit records the push blocker; GitHub push/PR/deploy was attempted after local verification but remains blocked by unauthenticated HTTPS GitHub transport in this cron shell.
+- latest local commit before this slice: `d8c800a docs: record voice task schema provenance`
+- This tick has uncommitted local activity timeline/code-test-doc evidence pending final verification/commit; GitHub push/PR/deploy remains blocked by unauthenticated HTTPS GitHub transport in this cron shell and missing `gh`.
 
 Dependency state:
 - `node_modules=present`
 - `package-lock.json=present`
 
 Verification:
+- Approval cancelled/expired timeline lane completed at 2026-05-23 20:14 AEST: `src/lib/crm/activity-timeline.ts` now recognizes `approval_cancelled` and `approval_expired` as high-severity, approval-required CRM timeline events and maps them to pending `agent_actions` insert payloads.
+- Sanitization evidence: tests now prove approval decision events strip approval references, Board IDs, rejection reasons including benign `rejectionReason` / `rejection_reason`, tokens, auth values, client secrets, API keys, IPs, and sensitive-looking values before event/insert mapping while preserving benign decision labels and safe generic notes.
+- Fresh verification passed at 2026-05-23 20:14 AEST: `npx jest tests/unit/lib/crm/activity-timeline.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand` returned 2 suites / 40 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes. Spec re-review PASS and quality/security re-review APPROVED.
 - Lead conversion route timeline-write lane completed at 2026-05-23 18:45 AEST: `src/app/api/crm/leads/[id]/convert/route.ts` now records a best-effort sanitized `crm_timeline_lead_converted` `agent_actions` row after the primary lead conversion update succeeds.
 - Lead conversion safety evidence: the new mocked route coverage verifies the persisted timeline action stays `pending`, `requiresApproval=true`, uses the existing sanitizer/mapping helper, stores no Board approval ID, does not use raw lead email as the timeline subject label when company is blank, and does not fail the conversion response if the timeline insert throws after primary success.
 - Fresh verification passed at 2026-05-23 18:54 AEST: `npx jest tests/integration/api/crm-lead-conversion.test.ts --runInBand` returned 1 suite / 7 tests passed; expanded CRM matrix returned 11 suites / 101 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.

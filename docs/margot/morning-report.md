@@ -102,6 +102,15 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest verification refresh at `2026-05-23 20:14 AEST`:
+
+- Continued branch `feat/crm-approval-lifecycle-helper`; GitHub push/PR remains blocked because `gh` is not installed and HTTPS GitHub transport is unauthenticated in this cron shell.
+- Code/test improvement: `src/lib/crm/activity-timeline.ts` now recognizes `approval_cancelled` and `approval_expired` as high-severity, approval-required CRM timeline events and maps them to pending sanitized `agent_actions` insert payloads.
+- Safety evidence: `tests/unit/lib/crm/activity-timeline.test.ts` now proves approval decision timeline metadata strips approval references, Board IDs, benign `rejectionReason` / `rejection_reason`, tokens, auth values, client secrets, API keys, IPs, and sensitive-looking values before both event and insert payload mapping.
+- Review loop: first spec review caught the benign `rejectionReason` leak; a TDD fix added the failing regression before adding normalized `rejectionreason` key blocking. Spec re-review PASS. Quality/security re-review APPROVED.
+- Verification passed: `npx jest tests/unit/lib/crm/activity-timeline.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand` returned 2 suites / 40 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, successful GitHub push, secret access/printing, Mac Mini write, client-facing communication, billing/payment action, merge, destructive git, or unrelated context mixing was performed.
+
 Latest verification refresh at `2026-05-23 19:22 AEST`:
 
 - Re-read Margot operating docs, current progress/morning evidence, CRM matrix, command-center state, Mac Mini recovery status, and voice/task route schema evidence before selecting the next safe lane.

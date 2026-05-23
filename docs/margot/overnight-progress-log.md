@@ -2753,3 +2753,54 @@ Blockers:
 Next safe slice:
 
 - Add command-center CRM UI read-surface tests for leads/approvals/daily digest, or add a digest reader linkage test for voice-created `tasks` once the read surface is wired.
+
+## 2026-05-23 19:37:49 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log: not populated by wrapper; next cron controller tick continued safe local CRM work below.
+
+## 2026-05-23 20:14:47 AEST
+
+### CRM approval cancelled/expired timeline mapping
+
+Completed:
+
+- Continued branch `feat/crm-approval-lifecycle-helper` rather than starting a new lane.
+- Added pure local `approval_cancelled` and `approval_expired` CRM activity timeline event types in `src/lib/crm/activity-timeline.ts`.
+- Extended `tests/unit/lib/crm/activity-timeline.test.ts` so cancelled/expired approval decision events map to high-severity approval timeline entries, pending `agent_actions` inserts, and sanitized payload metadata.
+- Closed a spec-review gap with TDD: benign `rejectionReason` / `rejection_reason` metadata now strips by normalized key, not only when the value looks sensitive.
+- Updated `docs/margot/MARGOT-COMMAND-CENTER.md` and `docs/margot/morning-report.md` with the new evidence.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/crm/activity-timeline.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand
+# PASS: 2 suites passed, 40 tests passed
+npm run type-check
+# PASS: tsc --noEmit
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes
+```
+
+Review:
+
+- Spec review initially found benign `rejectionReason` would survive sanitization; fixed with a failing regression and re-ran review.
+- Spec re-review: PASS.
+- Quality/security re-review: APPROVED.
+
+Safety:
+
+- No production DB write, sandbox apply, migration application, deployment, Vercel env mutation, successful GitHub push, Mac Mini write, client-facing communication, billing/payment action, destructive git, cross-client merge, or secret printing/storage was performed.
+
+Blockers:
+
+- GitHub push/PR remains blocked in this shell because HTTPS GitHub auth is unavailable and `gh` is not installed.
+- Vercel CLI is not installed in this shell, so no Vercel status/deploy verification was available.
+- Mac Mini artifact copy remains blocked on authenticated SMB mount or SSH availability.
+
+Next safe slice:
+
+- Add command-center CRM UI read-surface tests for approval lifecycle/timeline entries, or add a digest reader linkage test for voice-created `tasks` once the read surface is wired.
