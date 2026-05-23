@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/security/require-admin';
+import {
+  buildCrmActivityTimelineEvent,
+  buildCrmTimelineAgentActionInsert,
+} from '@/lib/crm/activity-timeline';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,6 +58,41 @@ function deriveDisplayName(payload: z.infer<typeof contactCreateSchema>) {
     .trim();
 
   return fromName || payload.primaryEmail || '';
+}
+
+async function recordContactCreatedTimelineEvent(
+  supabase: ReturnType<typeof createClient<any>>,
+  contactRow: Record<string, unknown>,
+) {
+  const subjectId = typeof contactRow.id === 'string' ? contactRow.id : '';
+  const subjectLabel = typeof contactRow.display_name === 'string' ? contactRow.display_name : '';
+  if (!subjectId || !subjectLabel) return;
+
+  const event = buildCrmActivityTimelineEvent({
+    type: 'contact_created',
+    actor: 'Margot',
+    subjectId,
+    subjectLabel,
+    occurredAt: new Date().toISOString(),
+    source: 'crm_contacts_route',
+    metadata: {
+      status: typeof contactRow.status === 'string' ? contactRow.status : undefined,
+      privacyScope: typeof contactRow.privacy_scope === 'string' ? contactRow.privacy_scope : undefined,
+      linkedLead: Boolean(contactRow.linked_lead_id),
+      linkedClient: Boolean(contactRow.linked_client_id),
+      linkedBusiness: Boolean(contactRow.linked_business_id),
+    },
+  });
+
+  const { error } = await supabase
+    .from('agent_actions')
+    .insert(buildCrmTimelineAgentActionInsert(event))
+    .select('id')
+    .single();
+
+  if (error) {
+    console.error('Error recording CRM contact timeline event:', error);
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -135,6 +174,8 @@ export async function POST(request: NextRequest) {
       console.error('Error creating CRM contact:', error);
       return NextResponse.json({ error: 'crm_contact_create_failed' }, { status: 500 });
     }
+
+    await recordContactCreatedTimelineEvent(supabase, data as Record<string, unknown>);
 
     return NextResponse.json({ success: true, contact: data }, { status: 201 });
   } catch (error) {

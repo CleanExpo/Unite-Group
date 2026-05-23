@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/security/require-admin';
+import {
+  buildCrmActivityTimelineEvent,
+  buildCrmTimelineAgentActionInsert,
+} from '@/lib/crm/activity-timeline';
 
 export const dynamic = 'force-dynamic';
 
@@ -130,6 +134,57 @@ function hasRequiredOperatorApproval(opportunity: z.infer<typeof opportunityCrea
   );
 }
 
+async function recordOpportunityTimelineEvents(
+  supabase: ReturnType<typeof createClient<any>>,
+  opportunityRow: Record<string, unknown>,
+) {
+  const subjectId = typeof opportunityRow.id === 'string' ? opportunityRow.id : '';
+  const subjectLabel = typeof opportunityRow.name === 'string' ? opportunityRow.name : '';
+  if (!subjectId || !subjectLabel) return;
+
+  const baseInput = {
+    actor: 'Margot',
+    subjectId,
+    subjectLabel,
+    occurredAt: new Date().toISOString(),
+    source: 'crm_opportunities_route',
+    metadata: {
+      stage: typeof opportunityRow.stage === 'string' ? opportunityRow.stage : undefined,
+      status: typeof opportunityRow.status === 'string' ? opportunityRow.status : undefined,
+      valueCurrency: typeof opportunityRow.value_currency === 'string' ? opportunityRow.value_currency : undefined,
+      hasValueAmount: typeof opportunityRow.value_amount === 'number',
+      linkedLead: Boolean(opportunityRow.linked_lead_id),
+      linkedContact: Boolean(opportunityRow.linked_contact_id),
+      linkedClient: Boolean(opportunityRow.linked_client_id),
+      linkedBusiness: Boolean(opportunityRow.linked_business_id),
+    },
+  };
+
+  const events = [
+    buildCrmActivityTimelineEvent({ type: 'opportunity_created', ...baseInput }),
+  ];
+
+  if (opportunityRow.approval_required === true || opportunityRow.approval_status === 'approved') {
+    events.push(buildCrmActivityTimelineEvent({
+      type: 'approval_requested',
+      requiresApproval: true,
+      ...baseInput,
+    }));
+  }
+
+  for (const event of events) {
+    const { error } = await supabase
+      .from('agent_actions')
+      .insert(buildCrmTimelineAgentActionInsert(event))
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error('Error recording CRM opportunity timeline event:', error);
+    }
+  }
+}
+
 export async function POST(request: NextRequest) {
   const gate = await requireAdmin(request);
   if (gate instanceof NextResponse) return gate;
@@ -200,6 +255,8 @@ export async function POST(request: NextRequest) {
       console.error('Error creating CRM opportunity:', error);
       return NextResponse.json({ error: 'crm_opportunity_create_failed' }, { status: 500 });
     }
+
+    await recordOpportunityTimelineEvents(supabase, data as Record<string, unknown>);
 
     return NextResponse.json({ success: true, opportunity: data }, { status: 201 });
   } catch (error) {

@@ -134,7 +134,7 @@ describe('POST /api/crm/opportunities', () => {
       { auth: { persistSession: false } },
     );
     expect(mockFrom).toHaveBeenCalledWith('crm_opportunities');
-    expect(calls).toEqual([
+    expect(calls[0]).toEqual(
       {
         table: 'crm_opportunities',
         row: {
@@ -165,10 +165,43 @@ describe('POST /api/crm/opportunities', () => {
           additional_data: { priority: 'high' },
         },
       },
-    ]);
+    );
+    expect(calls[1]).toEqual({
+      table: 'agent_actions',
+      row: expect.objectContaining({
+        source: 'margot',
+        action_type: 'crm_timeline_opportunity_created',
+        status: 'done',
+        client_id: null,
+        business_id: null,
+        linear_ticket_id: null,
+        parent_id: null,
+        payload: expect.objectContaining({
+          type: 'opportunity_created',
+          category: 'opportunity',
+          actionClass: 'auto',
+          subjectId: 'opportunity-1',
+          subjectLabel: 'Margot CRM Buildout',
+          source: 'crm_opportunities_route',
+          metadata: {
+            stage: 'new_signal',
+            status: 'open',
+            valueCurrency: 'AUD',
+            hasValueAmount: true,
+            linkedLead: true,
+            linkedContact: true,
+            linkedClient: true,
+            linkedBusiness: true,
+          },
+        }),
+      }),
+    });
     expect(calls[0].row).not.toHaveProperty('boardApprovalId');
     expect(calls[0].row).not.toHaveProperty('board_approval_id');
-    expect(selectCalls).toEqual([{ table: 'crm_opportunities', columns: OPPORTUNITY_SELECT_COLUMNS }]);
+    expect(selectCalls).toEqual([
+      { table: 'crm_opportunities', columns: OPPORTUNITY_SELECT_COLUMNS },
+      { table: 'agent_actions', columns: 'id' },
+    ]);
     expect(selectCalls[0].columns).not.toBe('*');
   });
 
