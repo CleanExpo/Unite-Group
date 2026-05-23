@@ -598,3 +598,12 @@ Latest local verification refresh at `2026-05-23 23:43 AEST`:
 - Local stashes were inspected by name only and left untouched: `stash@{0}` post-merge dirty worktree snapshot, `stash@{1}` unreviewed `HermesControlPanel initialPayload` experiment, and older `stash@{2}` timeline work snapshot.
 - Verification passed on merged main: `npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand` returned 2 suites / 4 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed.
 - This verification tick did not push, deploy, mutate Vercel env, write/migrate any database, apply stashes, run destructive git, print/store secrets, or attempt noninteractive credentials.
+
+Latest PR publication refresh at `2026-05-24 00:35 AEST`:
+
+- Opened PR #179 for command-center live payload component coverage: https://github.com/CleanExpo/Unite-Group/pull/179
+- Branch commit: `69bf2ab530a5d3711f0a67e788626e09f942964e` (`test: cover live control panel payload rendering`).
+- Vercel preview completed successfully: https://vercel.com/unite-group/unite-group/CvGbEBH8bNXqKFi8BitrNY9NdzR2
+- Initial GitHub TypeScript check failed during `actions/checkout` with a GitHub credential prompt error, not a TypeScript/code error; reran failed CI jobs.
+- PR #179 checks then passed cleanly: TypeScript, Unit + Integration Tests, Pipeline Smoke Tests, Supabase Schema Drift, JSON-LD Schema Validation, npm audit, lint, specialist reviews, Chief Reviewer final verdict, CodeRabbit, DESIGN.md lint, and Vercel preview.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
