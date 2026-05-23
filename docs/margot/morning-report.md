@@ -102,6 +102,29 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest CRM daily digest task-read verification at `2026-05-23 10:01 AEST`:
+
+- Continued active branch `feat/margot-crm-daily-digest-route` and created local commit `060d233 feat: include CRM tasks in daily digest`.
+- Verified the read-only daily CRM digest route now queries recent `crm_leads` and blocked/todo `tasks`, maps `assignee_name` into digest task owner, and surfaces high-priority blocked approval tasks in operator priorities/approvals.
+- TDD evidence: RED failed before implementation because the new task inclusion test expected blocked/approval counts of `1` and received `0`; GREEN passed after implementation with `tests/integration/api/crm-daily-digest.test.ts` returning 1 suite / 7 tests passed.
+- Spec compliance review: PASS. Code quality review: APPROVED with one minor optional note about config-before-admin ordering; current invalid-query/config preflight ordering was kept intentionally.
+- Re-ran the focused daily CRM digest / lead-list gate: `npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-leads-list.test.ts --runInBand` returned 3 suites passed / 14 tests passed.
+- Re-ran `npm run type-check`; `tsc --noEmit` passed.
+- Re-ran `npm run security:routes-check`; route inventory returned `0 unprotected mutating routes`.
+- Ran `npm run build`; Next compiled successfully but build remains blocked during page-data collection for existing `/api/search/nexus` because local Supabase URL/env is not configured in this cron environment.
+- GitHub push/PR/check state remains blocked because `gh` is unavailable and HTTPS GitHub auth is not configured; Vercel deploy state remains blocked because `vercel` CLI/auth is unavailable.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+
+Latest command-center verification refresh at `2026-05-23 09:24 AEST`:
+
+- Inspected current repo state on branch `feat/margot-crm-daily-digest-route`; head is `db7631f feat: add CRM daily digest route`; working tree was clean before this report/doc refresh.
+- Re-ran the daily CRM digest / lead-list gate: `npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-leads-list.test.ts --runInBand` returned 3 suites passed / 12 tests passed.
+- Re-ran `npm run type-check`; `tsc --noEmit` passed.
+- Re-ran `npm run security:routes-check`; route inventory returned `0 unprotected mutating routes`.
+- Mac Mini probe: SMB/File Sharing port `445` is reachable, SSH/Remote Login port `22` is unreachable, and no authenticated Mac Mini share is mounted under `/Volumes`; recovery directory still contains only `.gitkeep`.
+- Updated current-state docs: `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/mac-mini-recovery-status.md`, `docs/margot/overnight-progress-log.md`, and this report.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+
 Latest CRM daily digest route lane at `2026-05-23 09:21 AEST`:
 
 - Added read-only admin digest route `src/app/api/crm/daily-digest/route.ts` and TDD coverage `tests/integration/api/crm-daily-digest.test.ts`.

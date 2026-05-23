@@ -1271,3 +1271,191 @@ Next slice:
 
 - Continue local CRM spine work by adding a command-center loader/fixture for the digest route, or start the guarded opportunities create route contract while keeping the daily-digest/lead-list/type-check/security gates green.
 
+## 2026-05-23 09:24 AEST
+
+### Health check
+
+Observed in `/Users/phillmcgurk/Unite-Group`:
+
+```text
+branch=feat/margot-crm-daily-digest-route
+head=db7631f feat: add CRM daily digest route
+pre-doc-refresh git status=clean
+node_modules=present
+package scripts include test, test:all, type-check, build, security:routes-check
+Mac Mini SMB 445=reachable
+Mac Mini SSH 22=unreachable
+recovered-from-mac-mini contains only .gitkeep
+```
+
+### Lane executed — command-center verification refresh
+
+Used existing repo assets first: Margot operating docs, current Linear mirror, CRM daily-digest route/helper/tests, local git state, package scripts, and Mac Mini recovery status.
+
+Updated current-state docs:
+
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/mac-mini-recovery-status.md`
+- `docs/margot/morning-report.md`
+- `docs/margot/overnight-progress-log.md`
+
+Verification commands/results:
+
+```bash
+npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-leads-list.test.ts --runInBand
+# PASS: 3 suites passed, 12 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Safety / blockers:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+- Mac Mini artifacts remain blocked on authenticated SMB mount or SSH availability. SMB/File Sharing is visible, but there is still no mounted share under `/Volumes` and SSH is unreachable.
+- GitHub push/PR/check state remains blocked by missing local GitHub HTTPS/gh authentication.
+
+Next slice:
+
+- Continue from the daily CRM digest lane by adding a command-center loader/fixture, or start the guarded opportunities create route contract, while keeping focused CRM tests, type-check, and route security green.
+
+
+## 2026-05-23 09:27:06 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+
+`/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260523_092346.log`
+
+## 2026-05-23 09:58 AEST
+
+### Health check
+
+Observed in `/Users/phillmcgurk/Unite-Group`:
+
+```text
+branch=feat/margot-crm-daily-digest-route
+head=db7631f feat: add CRM daily digest route
+node_modules=present
+package-lock=present
+working tree contains local digest route/test extension plus Margot status-doc updates
+Mac Mini SMB 445=reachable
+Mac Mini SSH 22=unreachable
+/Volumes contains only Macintosh HD
+recovered-from-mac-mini contains only .gitkeep
+```
+
+### Lane executed — daily CRM digest task-read verification + status refresh
+
+Used existing repo assets first: Margot operating docs, current Linear mirror, CRM daily digest helper/route/tests, local git state, package scripts, and Mac Mini recovery status.
+
+Current safe improvement verified:
+
+- `src/app/api/crm/daily-digest/route.ts` now reads recent `crm_leads` plus blocked/todo `tasks` for the Senior PM daily digest.
+- `tests/integration/api/crm-daily-digest.test.ts` now covers task-row inclusion, blocked-task counts, approval lines, and the `tasks` query shape.
+- This keeps the digest route read-only and admin-gated; it does not write CRM data.
+
+Verification commands/results:
+
+```bash
+npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-leads-list.test.ts --runInBand
+# PASS: 3 suites passed, 14 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Safety / blockers:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+- Mac Mini artifacts remain blocked on authenticated SMB mount or SSH availability. SMB/File Sharing is visible, but there is still no mounted share under `/Volumes` and SSH is unreachable.
+- GitHub push/PR/check state remains blocked by missing local GitHub HTTPS/gh authentication.
+
+Next slice:
+
+- Continue from the daily CRM digest lane by adding command-center consumption of the digest payload, or start the guarded opportunities create route contract, while keeping focused CRM tests, type-check, and route security green.
+
+
+## 2026-05-23 09:59:52 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+
+## 2026-05-23 10:01:30 AEST
+
+### Lane completed — daily CRM digest task approvals committed
+
+Continued the active branch `feat/margot-crm-daily-digest-route` and stayed on the read-only daily digest lane rather than starting a conflicting branch.
+
+Preflight / repo state:
+
+```text
+branch=feat/margot-crm-daily-digest-route
+head before slice=db7631f feat: add CRM daily digest route
+head after code commit=060d233 feat: include CRM tasks in daily digest
+GitHub CLI/auth=unavailable locally (`gh` not found; HTTPS push previously failed with device/auth prompt)
+Vercel CLI/auth=unavailable locally (`vercel` not found)
+node_modules=present
+```
+
+Slice completed:
+
+- Extended `src/app/api/crm/daily-digest/route.ts` so the read-only digest now includes recent `tasks` rows after the `crm_leads` read succeeds.
+- The task query selects only `id,title,status,priority,assignee_name,created_at`, filters to `blocked` / `todo`, orders newest first, and limits by the parsed digest limit.
+- Mapped `assignee_name` into the digest task owner so blocked/high Margot approval tasks appear in operator priorities and approvals.
+- Added TDD coverage in `tests/integration/api/crm-daily-digest.test.ts` for blocked/high task inclusion, two-table read shape, and safe task-read failure.
+- Local commit created: `060d233 feat: include CRM tasks in daily digest`.
+
+TDD / review evidence:
+
+```text
+RED: npx jest tests/integration/api/crm-daily-digest.test.ts --runInBand
+Expected failure observed before implementation: task inclusion test saw approvalRequiredCount/blockTaskCount as 0 instead of 1.
+
+GREEN: npx jest tests/integration/api/crm-daily-digest.test.ts --runInBand
+PASS: 1 suite passed, 7 tests passed.
+
+Spec compliance review: PASS.
+Code quality review: APPROVED with one minor optional note about config-before-admin ordering; the current ordering was kept because this lane intentionally preserves invalid-query/config preflight before admin/session access.
+```
+
+Verification commands/results:
+
+```bash
+npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-leads-list.test.ts --runInBand
+# PASS: 3 suites passed, 14 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+
+npm run build
+# BLOCKED/PRE-EXISTING ENV: Next compiled successfully, then failed collecting page data for /api/search/nexus because NEXT_PUBLIC_SUPABASE_URL/Supabase URL is not configured in this local cron environment.
+```
+
+Safety / blockers:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+- GitHub push/PR/check state remains blocked because `gh` is unavailable and HTTPS GitHub auth is not configured in this session.
+- Vercel deployment status remains blocked because `vercel` CLI/auth is unavailable locally.
+- Local `npm run build` is blocked by missing local Supabase URL/env for existing `/api/search/nexus` page-data collection; focused CRM tests, type-check, and route security are green.
+- Mac Mini artifacts remain unrecovered until authenticated SMB mount, SSH, or approved export is available.
+
+Next slice:
+
+- Continue from the active daily digest branch by adding command-center consumption/fixture coverage for the digest payload, or move to the guarded opportunities create route contract after deciding whether the digest UI should come first.
+

@@ -190,18 +190,26 @@ Safe destination when recovered:
 ## Health Check Snapshot
 
 Timestamp:
-`2026-05-23 08:51 AEST`
+`2026-05-23 10:01 AEST`
 
-Git status includes existing local Margot/test work:
-- modified `tests/integration/api/margot-voice-signed-url.test.ts`
-- modified `tests/integration/api/margot-voice-task.test.ts`
-- untracked `.linear/`, `.vercel-context.json`, `docs/margot/`, `docs/plans/`, and `tests/unit/margot-voice-failure-taxonomy.test.ts`
+Git state:
+- branch: `feat/margot-crm-daily-digest-route`
+- head: `060d233 feat: include CRM tasks in daily digest`
+- working tree currently has Margot status-doc updates only; no destructive git action taken.
 
 Dependency state:
 - `node_modules=present`
 - `package-lock.json=present`
 
 Verification:
+- `npx jest tests/integration/api/crm-daily-digest.test.ts --runInBand` passed at 2026-05-23 10:01 AEST: 1 suite, 7 tests. This includes the new blocked/high CRM task inclusion and safe task-read failure coverage.
+- `npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-leads-list.test.ts --runInBand` passed at 2026-05-23 10:01 AEST: 3 suites, 14 tests. This verifies the current daily digest route now includes blocked/todo CRM task rows as well as recent leads.
+- `npm run type-check` passed at 2026-05-23 10:01 AEST.
+- `npm run security:routes-check` passed at 2026-05-23 10:01 AEST: route inventory found 0 unprotected mutating routes.
+- `npm run build` remains blocked in this local cron environment after successful compilation because existing `/api/search/nexus` page-data collection requires configured Supabase URL/env.
+- `npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-leads-list.test.ts --runInBand` passed at 2026-05-23 09:24 AEST: 3 suites, 12 tests.
+- `npm run type-check` passed at 2026-05-23 09:24 AEST.
+- `npm run security:routes-check` passed at 2026-05-23 09:24 AEST: route inventory found 0 unprotected mutating routes.
 - `npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts --runInBand` passed: 3 suites, 28 tests.
 - `docs/margot/crm-schema-inventory.md` passed spec compliance and code/doc quality review.
 - `test -f` verification passed for the four Senior PM docs: `docs/margot/project-portfolio-index.md`, `docs/margot/client-second-brain-model.md`, `docs/margot/marketing-strategy-operating-model.md`, and `docs/margot/ai-enhancement-pipeline.md`.
@@ -215,8 +223,8 @@ Verification:
 Mac Mini recovery probe:
 - `/Volumes` only contains `Macintosh HD`; no authenticated Mac Mini share is mounted.
 - `phills-mac-mini.local` resolves to IPv4 addresses including `169.254.28.74`, `169.254.37.78`, and `192.168.2.77`.
-- `phills-mac-mini.local:445` is reachable.
-- `phills-mac-mini.local:22` still times out.
+- Latest 2026-05-23 09:58 AEST probe: `phills-mac-mini.local:445` is reachable.
+- Latest 2026-05-23 09:58 AEST probe: `phills-mac-mini.local:22` is unreachable.
 - `docs/margot/recovered-from-mac-mini/` exists with only `.gitkeep`; no recovered artifacts yet.
 
 ## High-Level CRM Forecast
@@ -271,7 +279,8 @@ Current state:
 2. Use `docs/margot/crm-schema-inventory.md` and the refreshed `docs/margot/crm-operating-model.md` as the current schema/source-of-truth map.
 3. Use `docs/margot/lead-to-client-conversion-plan.md` as the current local guarded conversion contract; missing operator approval now returns `403 operator_approval_required` and the focused CRM lead suite is green.
 4. Use `docs/margot/crm-contacts-opportunities-model.md` as the current local proposal before broader contact/opportunity automation.
-5. Draft sandbox-only contacts/opportunities migrations and mocked route tests, or create the daily CRM digest template if schema work should remain draft-only.
-6. Use the portfolio, client 2nd Brain, marketing strategy, and AI enhancement docs as Senior PM control surfaces while code lanes continue.
-7. Continue Mac Mini recovery when an authenticated SMB share is mounted or SSH is enabled.
-8. Keep focused CRM/Margot tests and `npm run type-check` green before handoff or merge.
+5. Use `src/app/api/crm/daily-digest/route.ts` and `src/lib/crm/daily-digest.ts` as the current local read-only daily CRM digest wiring; the route now reads recent leads plus blocked/todo CRM task rows for approval/blocker visibility.
+6. Continue sandbox-only contacts/opportunities route/migration drafts only through local tests and the sandbox wizard; do not apply to production without explicit Board approval.
+7. Use the portfolio, client 2nd Brain, marketing strategy, and AI enhancement docs as Senior PM control surfaces while code lanes continue.
+8. Continue Mac Mini recovery when an authenticated SMB share is mounted or SSH is enabled.
+9. Keep focused CRM/Margot tests, `npm run type-check`, and `npm run security:routes-check` green before handoff or merge.
