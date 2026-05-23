@@ -289,6 +289,112 @@ describe('buildCrmActivityTimelineEvent', () => {
     });
   });
 
+  it('maps approval decision events to safe pending agent_actions inserts with sensitive metadata stripped', () => {
+    const decisionInputs: CrmActivityTimelineEventInput[] = [
+      {
+        type: 'approval_approved',
+        actor: 'operator',
+        subjectId: 'opp-2',
+        subjectLabel: 'Expansion approval',
+        occurredAt: '2026-05-23T12:40:00+10:00',
+        source: 'crm_approval_lifecycle_helper',
+        metadata: {
+          decision: 'approved',
+          approvalReference: 'BOARD-100',
+          BoardApprovalID: 'BOARD-101',
+          board_approval_id: 'BOARD-102',
+          accessToken: 'token',
+          auth_token: 'auth token',
+          clientSecret: 'secret',
+          xApiKey: 'api key',
+          ipAddress: '203.0.113.40',
+        },
+      },
+      {
+        type: 'approval_rejected',
+        actor: 'operator',
+        subjectId: 'opp-3',
+        subjectLabel: 'At-risk approval',
+        occurredAt: '2026-05-23T12:45:00+10:00',
+        source: 'crm_approval_lifecycle_helper',
+        metadata: {
+          decision: 'rejected',
+          rejectionReason: 'Rejected for Board-like reference BOARD-103 in raw operator note',
+          approvalReference: 'BOARD-104',
+          BoardApprovalID: 'BOARD-105',
+          board_approval_id: 'BOARD-106',
+          accessToken: 'token',
+          auth_token: 'auth token',
+          clientSecret: 'secret',
+          xApiKey: 'api key',
+          ipAddress: '203.0.113.45',
+        },
+      },
+    ];
+
+    const [approvedEvent, rejectedEvent] = decisionInputs.map(buildCrmActivityTimelineEvent);
+
+    expect(approvedEvent).toMatchObject({
+      type: 'approval_approved',
+      category: 'approval',
+      severity: 'high',
+      actionClass: 'approval_required',
+      summary: 'Approval approved: Expansion approval via crm_approval_lifecycle_helper.',
+      requiresApproval: true,
+      metadata: { decision: 'approved' },
+    });
+    expect(rejectedEvent).toMatchObject({
+      type: 'approval_rejected',
+      category: 'approval',
+      severity: 'high',
+      actionClass: 'approval_required',
+      summary: 'Approval rejected: At-risk approval via crm_approval_lifecycle_helper.',
+      requiresApproval: true,
+      metadata: { decision: 'rejected' },
+    });
+
+    const approvedInsert = buildCrmTimelineAgentActionInsert(approvedEvent);
+    const rejectedInsert = buildCrmTimelineAgentActionInsert(rejectedEvent);
+
+    expect(approvedInsert).toMatchObject({
+      action_type: 'crm_timeline_approval_approved',
+      status: 'pending',
+      payload: {
+        type: 'approval_approved',
+        category: 'approval',
+        severity: 'high',
+        actionClass: 'approval_required',
+        requiresApproval: true,
+        metadata: { decision: 'approved' },
+      },
+    });
+    expect(rejectedInsert).toMatchObject({
+      action_type: 'crm_timeline_approval_rejected',
+      status: 'pending',
+      payload: {
+        type: 'approval_rejected',
+        category: 'approval',
+        severity: 'high',
+        actionClass: 'approval_required',
+        requiresApproval: true,
+        metadata: { decision: 'rejected' },
+      },
+    });
+
+    [approvedEvent.metadata, rejectedEvent.metadata, approvedInsert.payload.metadata, rejectedInsert.payload.metadata]
+      .forEach((metadata) => {
+        expect(metadata).not.toHaveProperty('approvalReference');
+        expect(metadata).not.toHaveProperty('BoardApprovalID');
+        expect(metadata).not.toHaveProperty('board_approval_id');
+        expect(metadata).not.toHaveProperty('accessToken');
+        expect(metadata).not.toHaveProperty('auth_token');
+        expect(metadata).not.toHaveProperty('clientSecret');
+        expect(metadata).not.toHaveProperty('xApiKey');
+        expect(metadata).not.toHaveProperty('ipAddress');
+        expect(metadata).not.toHaveProperty('rejectionReason');
+      });
+  });
+
   it('rejects unknown event types and missing identity instead of guessing across CRM objects', () => {
     expect(() => buildCrmActivityTimelineEvent({
       type: 'unknown' as CrmActivityTimelineEventInput['type'],

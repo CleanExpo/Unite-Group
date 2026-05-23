@@ -5,6 +5,8 @@ export type CrmActivityTimelineEventType =
   | 'contact_created'
   | 'opportunity_created'
   | 'approval_requested'
+  | 'approval_approved'
+  | 'approval_rejected'
   | 'task_completed'
   | 'integration_stale';
 
@@ -82,6 +84,8 @@ const TYPE_CONFIG: Record<CrmActivityTimelineEventType, {
   contact_created: { category: 'contact', severity: 'normal', actionClass: 'auto', label: 'Contact created' },
   opportunity_created: { category: 'opportunity', severity: 'normal', actionClass: 'auto', label: 'Opportunity created' },
   approval_requested: { category: 'approval', severity: 'high', actionClass: 'approval_required', label: 'Approval requested' },
+  approval_approved: { category: 'approval', severity: 'high', actionClass: 'approval_required', label: 'Approval approved' },
+  approval_rejected: { category: 'approval', severity: 'high', actionClass: 'approval_required', label: 'Approval rejected' },
   task_completed: { category: 'task', severity: 'normal', actionClass: 'auto', label: 'Task completed' },
   integration_stale: { category: 'integration', severity: 'warning', actionClass: 'investigate', label: 'Integration stale' },
 };
