@@ -2116,3 +2116,78 @@ Transport blocker:
 
 - Local commit exists on `feat/margot-crm-daily-digest-route`, but GitHub push/PR remains blocked until authenticated HTTPS credentials or `gh` CLI auth is available in the cron shell.
 
+## 2026-05-23 14:33 AEST
+
+### Lane completed — CRM create routes write best-effort activity timeline events
+
+Preflight:
+
+```text
+branch=feat/crm-timeline-write-hooks-clean
+base=origin/main
+starting_head=e7d6c45 feat: record CRM create activity timeline events
+final_head=17b46be fix: make CRM timeline writes best-effort
+node_modules=present
+gh_cli=missing
+vercel_cli=no verified session output
+```
+
+Work completed:
+
+- Continued the in-progress CRM timeline write-hook branch instead of starting a new lane.
+- Fixed reviewer-blocking gaps from the activity timeline write-hook commit:
+  - contact/opportunity timeline writes are now best-effort and no longer turn a successful CRM create into a `500` if the `agent_actions` timeline insert throws;
+  - contact create now uses explicit service-role select columns instead of `select('*')`;
+  - approved/won opportunity tests now assert both `crm_timeline_opportunity_created` and `crm_timeline_approval_requested` inserts;
+  - tests assert timeline insert counts, explicit select columns, and no Board approval id persistence in CRM/timeline payloads.
+- Rebased the fix onto updated `origin/main`, where the earlier timeline-write feature commit had already landed as PR #170, so the active branch now contains only the new fix commit.
+
+TDD / review evidence:
+
+```text
+RED evidence from implementer:
+- contact timeline throw test initially returned 500 instead of expected 201
+- opportunity timeline throw test initially returned 500 instead of expected 201
+- contact select allowlist test initially observed select('*') instead of explicit columns
+
+Spec re-review: PASS
+Quality/security re-review: APPROVED
+```
+
+Verification:
+
+```bash
+npx jest tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts --runInBand
+# PASS: 2 suites passed, 25 tests passed
+
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 10 suites passed, 64 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Git / PR / deploy:
+
+```text
+local_commits=17b46be fix: make CRM timeline writes best-effort; docs evidence commit on same branch
+branch_status=feat/crm-timeline-write-hooks-clean ahead of origin/main by 2 commits
+push_attempt=GIT_TERMINAL_PROMPT=0 git push -u origin feat/crm-timeline-write-hooks-clean
+push_result=fatal: could not read Username for 'https://github.com': terminal prompts disabled
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, secret access/printing, Mac Mini write, client-facing communication, merge, or destructive git action was performed.
+
+Blockers:
+
+- GitHub CLI is not installed and HTTPS git push is not authenticated in the cron shell, so PR/open/CI/Vercel verification is blocked on GitHub transport.
+
+Next safe slice:
+
+- Add contact-route unauthenticated/authenticated non-admin coverage and recursive no-sensitive-field assertions for timeline payloads, or push/open PR once GitHub auth is available.
+

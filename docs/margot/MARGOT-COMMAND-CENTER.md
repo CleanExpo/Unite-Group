@@ -102,6 +102,7 @@ Purpose:
 
 Current verification state:
 - `node_modules` is present from the prior `npm ci` readiness pass.
+- CRM create timeline write-hook fix passed at `2026-05-23 14:33 AEST`: contact/opportunity create routes now treat `agent_actions` timeline writes as best-effort, contact create uses explicit service-role select columns, approved/won opportunity tests assert both timeline inserts, focused tests returned 2 suites / 25 tests passed, expanded CRM matrix returned 10 suites / 64 tests passed, `npm run type-check` passed, and `npm run security:routes-check` returned 0 unprotected mutating routes. The local fix commit and docs evidence commit are not pushed because GitHub transport is unauthenticated in the cron shell.
 - CRM daily digest workspace-scope fix passed at `2026-05-23 10:41 AEST`: `tasks` reads are skipped unless `UNITE_CRM_WORKSPACE_ID` is configured, scoped with `.eq('workspace_id', process.env.UNITE_CRM_WORKSPACE_ID)` when present, and covered by the focused 3-suite gate returning 15 tests passed.
 - Focused Margot voice tests passed again at `2026-05-23 06:29 AEST`: 3 suites passed, 28 tests passed.
 - CRM schema inventory lane verification passed at `2026-05-23 07:36 AEST`: `docs/margot/crm-schema-inventory.md` exists, spec compliance review PASS, code/doc quality review APPROVED, and `npm run type-check` passed.
