@@ -86,7 +86,7 @@ function percent(value: number | null | undefined): string | null {
 }
 
 function leadLabel(lead: CrmDigestLead): string {
-  const name = clean(lead.name) || clean(lead.email) || 'unnamed lead';
+  const name = clean(lead.name) || `lead ${lead.id}`;
   const company = clean(lead.company);
   return company ? `${name} / ${company}` : name;
 }

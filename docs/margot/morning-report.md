@@ -85,11 +85,11 @@ Margot has:
 Mac Mini recovery remains blocked by current connectivity/auth state:
 
 - Host: `phills-mac-mini.local`
-- Latest probe at `2026-05-23 19:22 AEST`: SMB/File Sharing port 445 is reachable; SSH/Remote Login port 22 is unreachable; no authenticated SMB share is mounted under `/Volumes`.
+- Latest probe at `2026-05-23 20:49 AEST`: SMB/File Sharing port 445 is reachable; SSH/Remote Login port 22 is unreachable; `/Volumes` contains `Claude` and `Macintosh HD`, but neither mounted volume contains the approved target artifact names.
 
 Still blocked:
 
-- No authenticated SMB share is mounted under `/Volumes`; `/Volumes` only contains `Macintosh HD`.
+- No authenticated SMB share containing the approved target files is mounted under `/Volumes`; the latest checked volumes were `Claude` and `Macintosh HD`.
 - Recovery destination `docs/margot/recovered-from-mac-mini/` contains only `.gitkeep`.
 - Original `RESTOREASSIST-CONTENT-INDEX.md` is not present locally yet.
 - SSH is not available from this MacBook session.
@@ -101,6 +101,27 @@ Target recovery files remain:
 - `/Users/phill-mac/hermes-agent-enhancement-report/restoreassist-content-packs/RESTOREASSIST-CONTENT-INDEX.md`
 
 ## Verification status
+
+Latest verification refresh at `2026-05-23 21:01 AEST`:
+
+- Continued branch `feat/crm-approval-lifecycle-helper` and completed a pure local daily digest privacy hardening slice.
+- Code/test improvement: `src/lib/crm/daily-digest.ts` now uses stable `lead <id>` fallback labels instead of raw lead email when rendering operator-facing priorities/markdown for leads without a name; `tests/unit/lib/crm/daily-digest.test.ts` proves email-only leads do not expose `private.contact@example.com` in sections or markdown.
+- Review loop: TDD RED reproduced the leak first, spec review PASS, code quality/security review APPROVED.
+- Verification passed: focused daily digest/approval/timeline gate returned 3 suites / 43 tests passed; expanded CRM matrix returned 11 suites / 102 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
+- Updated `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/overnight-progress-log.md`, and this report with the latest evidence.
+- GitHub push/PR remains blocked because `gh auth status` reports no GitHub hosts logged in; no push was attempted.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, client-facing communication, billing/payment action, merge, destructive git, or unrelated context mixing was performed.
+
+Latest verification refresh at `2026-05-23 20:49 AEST`:
+
+- Re-read the requested Margot operating docs and inspected current repo state before making changes.
+- Current branch: `feat/crm-approval-lifecycle-helper`; head at health-check time: `fbb434e`; working tree was clean before report updates.
+- Safe health check passed: `node_modules=present`, `package-lock.json=present`, `/Volumes` contains `Claude` and `Macintosh HD`, `phills-mac-mini.local:445` is reachable, `phills-mac-mini.local:22` is unreachable, and no recovered Mac Mini artifacts are present locally.
+- Approved target artifact search under `/Volumes` returned no `MARGOT-COMMAND-CENTER.md` or `RESTOREASSIST-CONTENT-INDEX.md` files.
+- Verification passed: approval timeline/approval lifecycle focused gate returned 2 suites / 40 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
+- Quick local search found no existing command-center CRM UI/read-surface test files, so command-center CRM UI coverage remains the next safe improvement lane.
+- Updated `docs/margot/overnight-progress-log.md` and this report with the latest evidence.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, client-facing communication, billing/payment action, merge, destructive git, or unrelated context mixing was performed.
 
 Latest verification refresh at `2026-05-23 20:16 AEST`:
 

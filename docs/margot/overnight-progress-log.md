@@ -2838,3 +2838,130 @@ Health/blocker confirmation:
 Native macOS Margot orchestrator tick completed.
 
 Log: wrapper-only tick marker; no additional controller work beyond the 20:14/20:16 evidence entries above.
+
+## 2026-05-23 20:49 AEST
+
+### Safe health check and verification refresh
+
+Completed the required per-run health check and verification refresh before selecting any new production-affecting work.
+
+Read/inspected:
+
+- Connected Teams / Senior PM / access / 2nd Brain / CRM forecast / orchestrator / command-center / retrieval / Mac Mini / progress / morning-report docs.
+- Current repo state on branch `feat/crm-approval-lifecycle-helper`.
+- Mounted volume surface for the approved Mac Mini recovery target.
+- Existing command-center/UI test surface search for the next safe lane.
+
+Health check evidence:
+
+```text
+timestamp=2026-05-23 20:49:35 AEST
+branch=feat/crm-approval-lifecycle-helper
+head=fbb434e
+status_short=0
+node_modules=present
+package-lock=present
+volumes=Claude,Macintosh HD
+phills-mac-mini.local:445=reachable
+phills-mac-mini.local:22=unreachable
+recovered_files=0
+target file search under /Volumes for MARGOT-COMMAND-CENTER.md=0
+target file search under /Volumes for RESTOREASSIST-CONTENT-INDEX.md=0
+```
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/crm/activity-timeline.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand
+# PASS: 2 suites passed, 40 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Notes:
+
+- Working tree was clean before this report update.
+- `/Volumes/Claude` is mounted, but it does not contain either approved Mac Mini target artifact path/name.
+- No command-center CRM UI/read-surface test files were found by the quick local search, so that remains the next safe improvement lane rather than an already-covered area.
+
+Safety:
+
+- No production DB write, sandbox apply, migration application, deployment, Vercel env mutation, GitHub push, Mac Mini write, client-facing communication, billing/payment action, destructive git, cross-client merge, or secret printing/storage was performed.
+
+Blockers:
+
+- Mac Mini artifact copy remains blocked: SMB/File Sharing port 445 is reachable, but no authenticated Mac Mini share containing the target files is mounted and SSH port 22 remains unreachable.
+- GitHub push/PR remains blocked in this shell unless GitHub auth/`gh` becomes available; no push was attempted in this pass.
+- Vercel deploy/status verification remains out of scope and unavailable in this safe local lane.
+
+Next safe slice:
+
+- Add command-center CRM UI/read-surface tests for approval lifecycle/timeline/daily digest visibility, or add digest reader linkage tests for voice-created `tasks` once the read surface is wired.
+
+## 2026-05-23 21:01 AEST
+
+### Daily digest lead-label privacy hardening
+
+Completed the next small safe CRM slice on the active branch `feat/crm-approval-lifecycle-helper`: hardened the pure local daily CRM digest helper so an email-only lead no longer displays raw contact email as the fallback operator label.
+
+Files changed in this slice:
+
+- `src/lib/crm/daily-digest.ts`
+- `tests/unit/lib/crm/daily-digest.test.ts`
+- `docs/margot/crm-test-coverage-matrix.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+TDD/review evidence:
+
+- RED: added `does not expose raw lead email as fallback label in operator-facing digest copy`; the focused digest test failed because the output still contained `private.contact@example.com`.
+- GREEN: changed `leadLabel()` fallback from raw `lead.email` to stable `lead <id>` copy.
+- Spec review: PASS.
+- Code quality/security review: APPROVED, with only minor non-blocking notes about empty IDs/case-sensitive status filters.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 3 suites passed, 43 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/activity-timeline.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand
+# PASS: 11 suites passed, 102 tests passed
+```
+
+Safety:
+
+- No production DB write, sandbox apply, migration application, deployment, Vercel env mutation, GitHub push, Mac Mini write, client-facing communication, billing/payment action, destructive git, cross-client merge, or secret printing/storage was performed.
+
+Blockers:
+
+- GitHub push/PR remains blocked in this shell: `gh auth status` reports no GitHub hosts logged in.
+- Mac Mini artifact copy remains blocked on authenticated mounted share or SSH availability; 20:49 health check remains the latest transport evidence.
+
+Next safe slice:
+
+- Add command-center CRM UI/read-surface tests for daily digest / approvals visibility once the UI read surface is identified, or add a route-level approval event-write test before wiring additional CRM mutation routes to `agent_actions`.
+
+## 2026-05-23 21:13:28 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log: controller completed the 21:01 daily digest privacy slice above; final evidence cleanup and verification continued after this wrapper marker.

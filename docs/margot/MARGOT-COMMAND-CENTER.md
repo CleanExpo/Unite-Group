@@ -103,6 +103,7 @@ Purpose:
 
 Current verification state:
 - `node_modules` is present from the prior `npm ci` readiness pass.
+- CRM daily digest privacy hardening passed at `2026-05-23 21:01 AEST`: `src/lib/crm/daily-digest.ts` now renders email-only lead fallback labels as stable `lead <id>` copy instead of raw email in operator priorities/markdown. TDD RED reproduced the leak first; spec review PASS; quality/security review APPROVED. Verification passed: focused daily digest/approval/timeline gate returned 3 suites / 43 tests passed; expanded CRM matrix returned 11 suites / 102 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
 - CRM approval decision timeline mapping refreshed at `2026-05-23 20:14 AEST`: `src/lib/crm/activity-timeline.ts` now also recognizes `approval_cancelled` and `approval_expired` events and maps approval approved/rejected/cancelled/expired events to sanitized pending `agent_actions` inserts. The review-requested sanitizer hardening blocks benign `rejectionReason` / `rejection_reason` metadata by key, not only sensitive-looking values. Verification passed: focused approval timeline/approval lifecycle gate returned 2 suites / 40 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed. Spec re-review PASS and quality/security re-review APPROVED.
 - Voice task schema provenance refreshed at `2026-05-23 19:22 AEST`: `docs/margot/voice-task-schema-provenance.md` now documents repo-local generated type evidence for `tasks` and `voice_command_sessions`, confirms no defining migration was found in `supabase/migrations/`, and keeps generated types as evidence rather than migration authority. Focused voice gate passed: 3 suites / 28 tests.
 - CRM approval decision timeline mapping passed at `2026-05-23 18:06 AEST`: `src/lib/crm/activity-timeline.ts` now recognizes `approval_approved` and `approval_rejected` events and maps them to sanitized pending `agent_actions` inserts without approval references, Board IDs, rejection reasons, tokens, auth data, secrets, API keys, IPs, emails, phone numbers, or addresses. A review-blocking gap was fixed so structurally constructed approval decision events cannot become `done` even if supplied with an inconsistent `actionClass`. Verification passed: `npx jest tests/unit/lib/crm/approval-lifecycle.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 2 suites / 40 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
@@ -197,18 +198,23 @@ Safe destination when recovered:
 ## Health Check Snapshot
 
 Timestamp:
-`2026-05-23 20:14 AEST`
+`2026-05-23 21:01 AEST`
 
 Git state:
 - branch: `feat/crm-approval-lifecycle-helper`
-- latest local code/doc commit for this slice: `87c185f feat: add approval cancelled timeline events`
-- Push attempt after the commit failed with unauthenticated HTTPS GitHub transport: `fatal: could not read Username for 'https://github.com': terminal prompts disabled`; `gh` is not installed, so no PR/deploy was verified.
+- latest local code/doc commit before this uncommitted digest privacy slice: `fbb434e docs: close wrapper tick log marker`
+- GitHub push/PR remains blocked because `gh auth status` reports no GitHub hosts logged in; no PR/deploy was verified for the current local slice.
 
 Dependency state:
 - `node_modules=present`
 - `package-lock.json=present`
 
 Verification:
+- Daily digest lead-label privacy hardening passed at 2026-05-23 21:01 AEST: `src/lib/crm/daily-digest.ts` now falls back to stable `lead <id>` labels instead of raw lead email for email-only leads, and `tests/unit/lib/crm/daily-digest.test.ts` proves operator-facing sections and markdown do not expose `private.contact@example.com`.
+- Fresh verification after the digest hardening passed: `npx jest tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 3 suites / 43 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
+- Safe health check at 2026-05-23 20:49 AEST found `/Volumes` contains `Claude` and `Macintosh HD`, no approved target artifacts under `/Volumes`, `phills-mac-mini.local:445` reachable, `phills-mac-mini.local:22` unreachable, and no recovered Mac Mini artifacts present locally.
+- Focused digest/approval/timeline verification passed at 2026-05-23 21:01 AEST: `npx jest tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 3 suites / 43 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
+- Expanded CRM matrix verification passed at 2026-05-23 21:01 AEST: 11 suites / 102 tests passed.
 - Approval cancelled/expired timeline lane completed at 2026-05-23 20:14 AEST: `src/lib/crm/activity-timeline.ts` now recognizes `approval_cancelled` and `approval_expired` as high-severity, approval-required CRM timeline events and maps them to pending `agent_actions` insert payloads.
 - Sanitization evidence: tests now prove approval decision events strip approval references, Board IDs, rejection reasons including benign `rejectionReason` / `rejection_reason`, tokens, auth values, client secrets, API keys, IPs, and sensitive-looking values before event/insert mapping while preserving benign decision labels and safe generic notes.
 - Fresh verification passed at 2026-05-23 20:14 AEST: `npx jest tests/unit/lib/crm/activity-timeline.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand` returned 2 suites / 40 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
