@@ -102,6 +102,17 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest verification refresh at `2026-05-24 02:28 AEST`:
+
+- Re-read the requested Margot operating docs and current command-center/CRM handoff state, then continued the command-center CRM read-surface lane from existing local assets.
+- Safe health check passed: branch `margot-control-panel-approval-tags`, base head `63782cd`, `node_modules=present`, `package-lock=present`, `/Volumes` contains `Claude` and `Macintosh HD`, `phills-mac-mini.local:445` is reachable, `phills-mac-mini.local:22` is unreachable, GitHub auth is available via `gh` without printing the token value, open PR list is empty, latest `main` CI is green, and recovered Mac Mini artifacts still contain only `.gitkeep`.
+- Safe improvement: `src/app/api/command-center/control-panel/route.ts` now counts `approval`, `approval-required`, and `needs-approval` task tags in `summary.approvalRequired`, in addition to blocked/approval statuses and Phill/Board/operator approval assignee markers.
+- TDD evidence: the new integration regression in `tests/integration/api/control-panel.test.ts` failed RED first because an `approval-required` tagged task expected 4 approval-required rows and received 3; it passed after the route fix.
+- Review evidence: spec compliance review PASS; code quality/security review APPROVED, with minor future-only notes to consider tag whitespace trimming and isolated `approval` / `needs-approval` tag-only regressions in a later micro-slice.
+- Updated `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/mac-mini-recovery-status.md`, and `docs/margot/overnight-progress-log.md` with this evidence.
+- Verification passed: `npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand` returned 2 suites / 7 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
+
 Latest verification refresh at `2026-05-24 01:49 AEST`:
 
 - Re-read the requested Margot operating docs and current command-center/CRM handoff state, then continued the command-center CRM read-surface lane from existing local assets.

@@ -3667,3 +3667,105 @@ Blockers / unchanged constraints:
 Next safe slice:
 
 - Continue command-center client-side fetch hydration coverage or digest rendering once the current local command-center branch is ready for review/publish.
+
+## 2026-05-24 02:22 AEST
+
+### Safe improvement — command-center approval tag recognition
+
+Health/readiness check:
+
+```text
+timestamp=2026-05-24 02:21:23 AEST
+branch=main
+head=63782cd test: count command-center approval markers (#181)
+working_tree_clean_at_start=yes
+node_modules=present
+package_lock=present
+/Volumes=Claude,Macintosh HD
+phills-mac-mini.local:445=reachable
+phills-mac-mini.local:22=unreachable
+recovered-from-mac-mini=.gitkeep only
+```
+
+Slice completed:
+
+- Re-read the requested Margot operating docs, command-center state, CRM matrix, Mac Mini blocker state, and current control-panel route/component tests before choosing a lane.
+- Continued the command-center CRM read-surface lane from existing local assets.
+- Added a RED integration regression proving `summary.approvalRequired` missed an approval-governance shape: a task tagged `approval-required` with otherwise running status and normal assignee returned 3 instead of the expected 4 approval-required rows.
+- Updated `src/app/api/command-center/control-panel/route.ts` so approval-required counting covers `approval`, `approval-required`, and `needs-approval` tags, in addition to blocked/approval statuses and Phill/Board/operator approval assignee markers.
+- Updated `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/mac-mini-recovery-status.md`, and this progress log with the evidence.
+
+Verification:
+
+```bash
+npx jest tests/integration/api/control-panel.test.ts --runInBand
+# RED first: expected 4 approval-required rows, received 3
+
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand
+# PASS: 2 suites / 7 tests
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Blockers / unchanged constraints:
+
+- Mac Mini artifact recovery remains blocked on authenticated SMB mount containing the approved target files or SSH availability; SMB is reachable and SSH is unreachable in this probe.
+- No GitHub push, Vercel deploy/env mutation, production DB write, migration application, sandbox apply, secret access/printing/storage, client-facing communication, billing/payment action, destructive git, cross-client merge, or unrelated context mixing was performed.
+
+Next safe slice:
+
+- Continue command-center client-side fetch hydration coverage or digest rendering, or move to route-level CRM event-write tests before wiring more mutation routes into `agent_actions` timeline rows.
+
+## 2026-05-24 02:28 AEST
+
+### Review and publication prep — command-center approval tag recognition
+
+Health/readiness check:
+
+```text
+branch=margot-control-panel-approval-tags
+base_head=63782cd test: count command-center approval markers (#181)
+node_modules=present
+package_lock=present
+github_auth=available via gh; token value not printed
+open_prs=[]
+latest_main_ci=success
+```
+
+Review evidence:
+
+- Spec compliance review: PASS.
+- Code quality/security review: APPROVED.
+- Reviewer minor future-only notes: consider trimming tag whitespace and isolating tag-only coverage for `approval` and `needs-approval` in a later micro-slice.
+
+Controller verification:
+
+```bash
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand
+# PASS: 2 suites / 7 tests
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Blockers / unchanged constraints:
+
+- Mac Mini artifact recovery remains blocked on authenticated SMB mount containing the approved target files or SSH availability.
+- No Vercel env mutation, production DB write, migration application, sandbox apply, secret printing/storage, client-facing communication, billing/payment action, destructive git, cross-client merge, or unrelated context mixing was performed.
+
+Next safe slice:
+
+- Publish this verified branch through GitHub if transport/checks remain available; after that, continue the reviewer-noted tag-only/trim regression or command-center client-side fetch hydration coverage.

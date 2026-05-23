@@ -87,8 +87,10 @@ function mapRyg(task: TaskRow | undefined, fallback: ControlRyg): ControlRyg {
 function isApprovalRequiredTask(task: TaskRow) {
   const status = task.status.toLowerCase();
   const assignee = task.assignee_name?.toLowerCase() ?? '';
+  const tags = (task.tags ?? []).map((tag) => tag.toLowerCase());
   return (
     ['blocked', 'blocked-on-you', 'needs_approval', 'approval'].includes(status) ||
+    tags.some((tag) => ['approval', 'approval-required', 'needs-approval'].includes(tag)) ||
     assignee.includes('phill approval') ||
     assignee.includes('board approval') ||
     assignee.includes('operator approval')
