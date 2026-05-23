@@ -97,32 +97,58 @@ describe('POST /api/crm/contacts', () => {
       { auth: { persistSession: false } },
     );
     expect(mockFrom).toHaveBeenCalledWith('crm_contacts');
-    expect(calls).toEqual([
-      {
-        table: 'crm_contacts',
-        row: {
-          display_name: 'Ada Lovelace',
-          first_name: 'Ada',
-          last_name: 'Lovelace',
-          primary_email: 'Ada@Example.COM',
-          primary_phone: '+61400000000',
-          role_title: 'Founder',
-          company_name: 'Analytical Engines Pty Ltd',
-          linked_lead_id: leadId,
-          linked_client_id: null,
-          linked_business_id: null,
-          source: 'manual',
-          source_detail: null,
-          marketing_consent: false,
-          relationship_owner: 'Margot',
-          status: 'lead_only',
-          privacy_scope: 'lead_scoped',
-          dedupe_email_key: 'ada@example.com',
-          dedupe_domain_key: 'example.com',
-          additional_data: {},
-        },
-      },
-    ]);
+    expect(mockFrom).toHaveBeenCalledWith('agent_actions');
+    expect(calls[0]).toEqual({
+      table: 'crm_contacts',
+      row: expect.objectContaining({
+        display_name: 'Ada Lovelace',
+        first_name: 'Ada',
+        last_name: 'Lovelace',
+        primary_email: 'Ada@Example.COM',
+        role_title: 'Founder',
+        company_name: 'Analytical Engines Pty Ltd',
+        linked_lead_id: leadId,
+        linked_client_id: null,
+        linked_business_id: null,
+        source: 'manual',
+        source_detail: null,
+        marketing_consent: false,
+        relationship_owner: 'Margot',
+        status: 'lead_only',
+        privacy_scope: 'lead_scoped',
+        dedupe_email_key: 'ada@example.com',
+        dedupe_domain_key: 'example.com',
+        additional_data: {},
+      }),
+    });
+    expect(calls[1]).toEqual({
+      table: 'agent_actions',
+      row: expect.objectContaining({
+        source: 'margot',
+        action_type: 'crm_timeline_contact_created',
+        status: 'done',
+        client_id: null,
+        business_id: null,
+        linear_ticket_id: null,
+        parent_id: null,
+        payload: expect.objectContaining({
+          type: 'contact_created',
+          category: 'contact',
+          actionClass: 'auto',
+          subjectId: 'contact-1',
+          subjectLabel: 'Ada Lovelace',
+          source: 'crm_contacts_route',
+          metadata: {
+            status: 'lead_only',
+            privacyScope: 'lead_scoped',
+            linkedLead: true,
+            linkedClient: false,
+            linkedBusiness: false,
+          },
+        }),
+      }),
+    });
+    expect(calls[1].row.payload).not.toHaveProperty('boardApprovalId');
   });
 
   it('applies source and relationship owner defaults when explicit blank strings are supplied', async () => {
