@@ -102,9 +102,20 @@ Target recovery files remain:
 
 ## Verification status
 
-Latest verification refresh at `2026-05-23 20:14 AEST`:
+Latest verification refresh at `2026-05-23 20:16 AEST`:
 
-- Continued branch `feat/crm-approval-lifecycle-helper`; GitHub push/PR remains blocked because `gh` is not installed and HTTPS GitHub transport is unauthenticated in this cron shell.
+- Re-read Margot operating docs, inspected repo state, and continued the already-open approval timeline branch without creating a new production-affecting lane.
+- Current branch: `feat/crm-approval-lifecycle-helper`; latest local code commit is `87c185f feat: add approval cancelled timeline events`. GitHub push/PR remains blocked because `gh` is not installed and HTTPS GitHub auth is unavailable in this shell.
+- Code/test improvement now verified: `src/lib/crm/activity-timeline.ts` recognizes `approval_cancelled` and `approval_expired` as high-severity, approval-required CRM timeline events and maps approval approved/rejected/cancelled/expired events to pending sanitized `agent_actions` insert payloads.
+- Safety evidence: `tests/unit/lib/crm/activity-timeline.test.ts` proves approval timeline metadata strips approval references, Board IDs, benign `rejectionReason` / `rejection_reason`, tokens, auth values, client secrets, API keys, IPs, and sensitive-looking values before both event and insert payload mapping.
+- Documentation improvement: `docs/margot/crm-test-coverage-matrix.md` now records approval cancelled/expired timeline coverage under Activity/timeline and Approvals.
+- Verification passed: approval timeline/approval lifecycle focused gate returned 2 suites / 40 tests passed; expanded CRM matrix returned 11 suites / 101 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
+- Health/blocker check: `phills-mac-mini.local:445` is reachable, `phills-mac-mini.local:22` is unreachable, no authenticated Mac Mini share is mounted, and `docs/margot/recovered-from-mac-mini/` still contains only `.gitkeep`.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, successful GitHub push, secret access/printing, Mac Mini write, client-facing communication, billing/payment action, merge, destructive git, or unrelated context mixing was performed.
+
+Prior verification refresh at `2026-05-23 20:14 AEST`:
+
+- Continued branch `feat/crm-approval-lifecycle-helper`; local commit `87c185f feat: add approval cancelled timeline events` was created. GitHub push/PR remains blocked because `gh` is not installed and `GIT_TERMINAL_PROMPT=0 git push -u origin feat/crm-approval-lifecycle-helper` failed with `fatal: could not read Username for 'https://github.com': terminal prompts disabled`.
 - Code/test improvement: `src/lib/crm/activity-timeline.ts` now recognizes `approval_cancelled` and `approval_expired` as high-severity, approval-required CRM timeline events and maps them to pending sanitized `agent_actions` insert payloads.
 - Safety evidence: `tests/unit/lib/crm/activity-timeline.test.ts` now proves approval decision timeline metadata strips approval references, Board IDs, benign `rejectionReason` / `rejection_reason`, tokens, auth values, client secrets, API keys, IPs, and sensitive-looking values before both event and insert payload mapping.
 - Review loop: first spec review caught the benign `rejectionReason` leak; a TDD fix added the failing regression before adding normalized `rejectionreason` key blocking. Spec re-review PASS. Quality/security re-review APPROVED.

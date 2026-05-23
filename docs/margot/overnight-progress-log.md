@@ -2760,7 +2760,7 @@ Next safe slice:
 
 Native macOS Margot orchestrator tick completed.
 
-Log: not populated by wrapper; next cron controller tick continued safe local CRM work below.
+Log:
 
 ## 2026-05-23 20:14:47 AEST
 
@@ -2769,6 +2769,7 @@ Log: not populated by wrapper; next cron controller tick continued safe local CR
 Completed:
 
 - Continued branch `feat/crm-approval-lifecycle-helper` rather than starting a new lane.
+- Created local commit `87c185f feat: add approval cancelled timeline events`; push/PR was not verified.
 - Added pure local `approval_cancelled` and `approval_expired` CRM activity timeline event types in `src/lib/crm/activity-timeline.ts`.
 - Extended `tests/unit/lib/crm/activity-timeline.test.ts` so cancelled/expired approval decision events map to high-severity approval timeline entries, pending `agent_actions` inserts, and sanitized payload metadata.
 - Closed a spec-review gap with TDD: benign `rejectionReason` / `rejection_reason` metadata now strips by normalized key, not only when the value looks sensitive.
@@ -2797,10 +2798,35 @@ Safety:
 
 Blockers:
 
-- GitHub push/PR remains blocked in this shell because HTTPS GitHub auth is unavailable and `gh` is not installed.
+- GitHub push/PR remains blocked in this shell because `GIT_TERMINAL_PROMPT=0 git push -u origin feat/crm-approval-lifecycle-helper` failed with `fatal: could not read Username for 'https://github.com': terminal prompts disabled`; `gh` is not installed.
 - Vercel CLI is not installed in this shell, so no Vercel status/deploy verification was available.
 - Mac Mini artifact copy remains blocked on authenticated SMB mount or SSH availability.
 
 Next safe slice:
 
 - Add command-center CRM UI read-surface tests for approval lifecycle/timeline entries, or add a digest reader linkage test for voice-created `tasks` once the read surface is wired.
+
+## 2026-05-23 20:16 AEST
+
+### Verification expansion and matrix update
+
+Extended the 20:14 approval cancelled/expired timeline lane with the broader CRM gate and updated the durable CRM coverage matrix.
+
+Additional verification:
+
+```bash
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/activity-timeline.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand
+# PASS: 11 suites passed, 101 tests passed
+
+git diff --check
+# PASS
+```
+
+Docs updated:
+
+- `docs/margot/crm-test-coverage-matrix.md` now records approval cancelled/expired timeline mapping coverage under both Activity/timeline and Approvals.
+
+Health/blocker confirmation:
+
+- `phills-mac-mini.local:445` remains reachable, `phills-mac-mini.local:22` remains unreachable, and no authenticated Mac Mini share or recovered target artifact is present locally.
+- GitHub push/PR remains blocked by unauthenticated HTTPS transport in this shell and missing `gh`.

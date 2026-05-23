@@ -201,8 +201,8 @@ Timestamp:
 
 Git state:
 - branch: `feat/crm-approval-lifecycle-helper`
-- latest local commit before this slice: `d8c800a docs: record voice task schema provenance`
-- This tick has uncommitted local activity timeline/code-test-doc evidence pending final verification/commit; GitHub push/PR/deploy remains blocked by unauthenticated HTTPS GitHub transport in this cron shell and missing `gh`.
+- latest local code/doc commit for this slice: `87c185f feat: add approval cancelled timeline events`
+- Push attempt after the commit failed with unauthenticated HTTPS GitHub transport: `fatal: could not read Username for 'https://github.com': terminal prompts disabled`; `gh` is not installed, so no PR/deploy was verified.
 
 Dependency state:
 - `node_modules=present`
