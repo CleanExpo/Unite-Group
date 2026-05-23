@@ -23,7 +23,7 @@ This matrix carries forward:
 Use this local, no-production-effects gate when CRM lead/contact/conversion/digest behavior changes:
 
 ```bash
-npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/activity-timeline.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand
 npm run type-check
 npm run security:routes-check
 ```
@@ -53,7 +53,7 @@ npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration
 | Client create/update | `src/app/api/empire/clients/route.ts`; `src/app/api/empire/clients/[slug]/route.ts`; `_record-action.ts` | `src/app/api/empire/clients/__tests__/`; `src/app/api/empire/clients/[slug]/__tests__/` | Existing route unit tests cover validation, slug race, email/website validation, unique violation mapping, audit action behavior, and PATCH validation. | Present but not re-run in this matrix lane. | Include client route suites in a wider CRM regression before touching `nexus_clients` conversion. |
 | Activity/timeline | `src/lib/crm/activity-timeline.ts`; `supabase/migrations/20260510000004_nexus_agent_actions.sql`; `src/lib/empire/read-client-activity.ts`; `_record-action.ts` | `tests/unit/lib/crm/activity-timeline.test.ts`; `src/app/api/empire/clients/__tests__/record-action.test.ts` plus client route tests | Local CRM timeline taxonomy now normalizes lead captured, lead qualified, lead converted, contact created, opportunity created, approval requested, task completed, and integration stale events; rejects unknown event types/missing identity; redacts secret-like metadata/values and Board approval ids; defensively re-sanitizes manually constructed events; maps sanitized events to the existing `agent_actions` insert payload without guessing UUID links. Local policy pins existing `agent_actions` as the next persistence target; no new dedicated timeline table or migration is in scope for this slice. | Covered as a pure local taxonomy/insert-mapping helper; not yet wired to route writes. | Add route-level event-write tests before wiring lead/contact/opportunity routes to `agent_actions` timeline rows. |
 | Integration mirrors | `supabase/migrations/20260513000200_integration_schema.sql`; `src/app/api/empire/sources/*`; `src/lib/empire/*` readers | Existing integration/source tests not audited in this lane. | Mirror schema exists for Linear/GitHub/Vercel/Railway/DO/Supabase/1Password/Stripe/Composio. | Partial; source-of-truth labels documented but not fully tested here. | Add stale-sync threshold tests and command-center/digest rollup tests; never store secret values. |
-| Approvals | Voice task convention: `tasks.status='blocked'`, assignee `Phill approval`; opportunity draft fields | Voice task tests; daily digest route/helper tests; migration draft tests | Approval-required voice tasks become blocked; daily digest surfaces blocked/high tasks; opportunities include approval fields in draft schema. | Partial via task convention and opportunity draft. | Decide dedicated `crm_approvals` vs task subtype; test approved/rejected/expired lifecycle before automation. |
+| Approvals | Voice task convention: `tasks.status='blocked'`, assignee `Phill approval`; opportunity draft fields; `src/lib/crm/approval-lifecycle.ts` | Voice task tests; daily digest route/helper tests; migration draft tests; `tests/unit/lib/crm/approval-lifecycle.test.ts` | Approval-required voice tasks become blocked; daily digest surfaces blocked/high tasks; opportunities include approval fields in draft schema; local helper classifies requested, approved, rejected, cancelled, expired, and executed lifecycle states without writes or auto-execution authority. | Covered as pure local decision support; persistence shape still undecided. | Decide dedicated `crm_approvals` vs task subtype before persistence or route writes. |
 | Command-center CRM UI | Command-center components/routes to be mapped in later lane | Not currently matrixed | N/A | Gap. | Add component/API tests once CRM lead/digest surfaces are wired into UI. |
 | Mac Mini recovery artifacts | `docs/margot/recovered-from-mac-mini/` | Health-check/progress-log evidence only | Directory exists; currently only `.gitkeep`; SMB reachable, SSH unavailable, no mounted share. | Blocked on authenticated transport. | Retry safe mount/SSH checks each run; copy only approved target files when authenticated access exists. |
 
@@ -72,11 +72,10 @@ npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration
 ## Ordered next coverage gaps
 
 1. Add route-level event-write tests before wiring lead/contact/opportunity routes to `agent_actions` timeline writes.
-2. CRM approvals lifecycle decision and tests: requested, approved, rejected, expired/cancelled, executed.
-3. Command-center CRM UI read surface tests for leads, approvals, opportunities, and daily digest.
-4. Integration stale-sync threshold tests for Linear/GitHub/Vercel/Supabase mirrors.
-5. Local schema provenance for `tasks` and `voice_command_sessions`.
-6. Wider regression including existing `src/app/api/empire/clients/**/__tests__` before any `nexus_clients` conversion work.
+2. Command-center CRM UI read surface tests for leads, approvals, opportunities, and daily digest.
+3. Integration stale-sync threshold tests for Linear/GitHub/Vercel/Supabase mirrors.
+4. Local schema provenance for `tasks` and `voice_command_sessions`.
+5. Wider regression including existing `src/app/api/empire/clients/**/__tests__` before any `nexus_clients` conversion work.
 
 ## Safety notes
 
