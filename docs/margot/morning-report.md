@@ -102,6 +102,43 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest verification refresh at `2026-05-24 05:38 AEST`:
+
+- PR #185 is open and green after CI recovery: https://github.com/CleanExpo/Unite-Group/pull/185
+- Branch `margot-contact-opportunity-timeline-events` includes `f3f08ac` (`test: harden crm timeline failure logging`) and `703f8bd` (`test: stabilize developer snapshot dates`).
+- Safe improvement remains the contact/opportunity generic best-effort `agent_actions` timeline failure logging hardening; the follow-up CI-only fix freezes `tests/developers/snapshot-e2e.spec.ts` away from Asia/Karachi local midnight so time-relative commit aggregates are deterministic.
+- Review evidence: CRM logging spec/quality reviews PASS/APPROVED; CI-fix minimality/spec review PASS; CI-fix quality/security review APPROVED.
+- Local verification passed: `npx jest tests/developers/snapshot-e2e.spec.ts --runInBand` returned 1 suite / 3 tests; `npm run test:all -- --ci --runInBand` returned 101 suites passed / 1 skipped and 828 tests passed / 1 skipped; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed.
+- GitHub PR checks passed after push: Unit + Integration Tests, TypeScript, JSON-LD Schema Validation, Lint, Pipeline Smoke Tests, Supabase Schema Drift, npm audit, specialist reviews, Chief Reviewer, CodeRabbit, Vercel Preview Comments, and Vercel deployment. Vercel preview: https://vercel.com/unite-group/unite-group/3eLeu3vJWgCssUcspi8QYvCAEEtA
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, unrelated context mixing, noninteractive credential attempt, or secret printing/storage was performed.
+
+Latest verification refresh at `2026-05-24 05:26 AEST`:
+
+- Continued route-level CRM event-write safety on branch `margot-contact-opportunity-timeline-events` from `main` at `347397e`.
+- Safe improvement: contact and opportunity create routes now log generic messages only for best-effort `agent_actions` timeline returned errors and thrown insert failures, without passing raw Error objects/messages to `console.error`.
+- TDD evidence: strengthened contact/opportunity timeline failure tests failed RED before route changes because raw `Error: timeline insert exploded` objects were logged; they passed after generic logging. Added returned-error regressions as well as thrown-error regressions.
+- Review evidence: spec re-review PASS; code quality/security re-review APPROVED. Reviewer noted the same raw-error pattern still exists in lead conversion timeline logging and should be the next safe follow-up.
+- Verification passed: `npx jest tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 3 suites / 34 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, unrelated context mixing, noninteractive credential attempt, or secret printing/storage was performed.
+
+Latest verification refresh at `2026-05-24 05:19 AEST`:
+
+- Re-read the requested Margot operating docs and continued the Senior PM/CRM operating-model lane from existing local assets.
+- Safe health check passed: `node_modules=present`, `package-lock=present`, `/Volumes` contains `Claude` and `Macintosh HD`, `phills-mac-mini.local:445` is reachable, `phills-mac-mini.local:22` is unreachable, and recovered Mac Mini artifacts still contain only `.gitkeep`.
+- Safe improvement: `docs/margot/crm-test-coverage-matrix.md` now reflects current contact/opportunity route-level timeline coverage, including best-effort sanitized `agent_actions` writes for contact creation, opportunity creation, and approved won/conversion-like opportunity approval-request events.
+- Verification passed: `npx jest tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 3 suites / 32 tests passed.
+- Updated `docs/margot/crm-test-coverage-matrix.md` and `docs/margot/overnight-progress-log.md` with this evidence.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, unrelated context mixing, noninteractive credential attempt, or secret printing/storage was performed.
+
+Latest verification refresh at `2026-05-24 04:47 AEST`:
+
+- Re-read the requested Margot operating docs and completed a post-merge verification pass for PR #184 on `main` at `347397e` / `347397ee37d27dc0e49ebf63c272cabcdbecf9fb`.
+- PR #184 is merged: https://github.com/CleanExpo/Unite-Group/pull/184; GitHub PR checks reported success for TypeScript, JSON-LD, pipeline smoke, unit/integration tests, lint, npm audit, Supabase schema drift, specialist reviews, and Chief Reviewer final verdict. Post-merge `main` CI also completed successfully: https://github.com/CleanExpo/Unite-Group/actions/runs/26340672743. Vercel reported deployment success: https://vercel.com/unite-group/unite-group/284R2EvXzZziYd1j1UqSuhTzYzKb.
+- Safe health check passed: `node_modules=present`, `package-lock=present`, `/Volumes` contains `Claude` and `Macintosh HD`, `phills-mac-mini.local:445` is reachable, `phills-mac-mini.local:22` is unreachable, and recovered Mac Mini artifacts still contain only `.gitkeep`.
+- Local verification passed: `npx jest tests/integration/api/control-panel-add-ons.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 2 suites / 15 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed.
+- Updated `docs/margot/mac-mini-recovery-status.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, and `docs/margot/overnight-progress-log.md` with this evidence.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, unrelated context mixing, noninteractive credential attempt, or secret printing/storage was performed.
+
 Latest verification refresh at `2026-05-24 03:41 AEST`:
 
 - Re-read the requested Margot operating docs and current command-center/CRM handoff state, then continued the command-center CRM read-surface lane from existing local assets.

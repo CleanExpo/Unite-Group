@@ -18,7 +18,7 @@
 // Pattern adapted from tests/integrations/sync-contract.spec.ts but
 // extended with per-table routing.
 
-import { describe, it, expect, beforeEach, jest } from "@jest/globals";
+import { describe, it, expect, beforeEach, afterEach, jest } from "@jest/globals";
 
 type FixtureRow = Record<string, unknown>;
 const REJECT = Symbol("REJECT");
@@ -91,6 +91,10 @@ const RANA: DeveloperProfile = {
   active: true,
 };
 
+// Anchor Date.now away from the developer's local midnight so "today"
+// fixtures stay in the same Asia/Karachi calendar day in both CI and local runs.
+const FIXED_NOW_MS = Date.parse("2026-05-20T12:00:00.000Z");
+
 // Build a commit fixture: N commits at the given ms-offset from now.
 function commit(offsetMs: number, repo = "CleanExpo/CCW-CRM"): FixtureRow {
   return {
@@ -105,6 +109,11 @@ function commit(offsetMs: number, repo = "CleanExpo/CCW-CRM"): FixtureRow {
 describe("buildSnapshot — E2E", () => {
   beforeEach(() => {
     tableFixtures = {};
+    jest.useFakeTimers().setSystemTime(new Date(FIXED_NOW_MS));
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it("computes rolling-window aggregates, branchTicketMap, and open PRs", async () => {

@@ -32,7 +32,7 @@ function mockContactInsert(
   calls: InsertCall[] = [],
   selectCalls: SelectCall[] = [],
   result: { data?: Record<string, unknown> | null; error?: Error | null } = {},
-  options: { throwTimelineInsert?: boolean } = {},
+  options: { timelineError?: Error | null; throwTimelineInsert?: boolean } = {},
 ) {
   mockFrom.mockImplementation((table: string) => ({
     insert: jest.fn((row: Record<string, unknown>) => {
@@ -46,6 +46,13 @@ function mockContactInsert(
                 throw new Error('timeline insert exploded');
               }
 
+              if (table === 'agent_actions') {
+                return {
+                  data: result.data === undefined ? { id: 'timeline-1', ...row } : result.data,
+                  error: options.timelineError ?? null,
+                };
+              }
+
               return {
                 data: result.data === undefined ? { id: 'contact-1', ...row } : result.data,
                 error: result.error ?? null,
@@ -56,6 +63,15 @@ function mockContactInsert(
       };
     }),
   }));
+}
+
+function expectGenericTimelineLogOnly(spy: jest.SpyInstance, message: string) {
+  expect(spy).toHaveBeenCalledWith(message);
+  for (const call of spy.mock.calls) {
+    expect(call).toEqual([expect.any(String)]);
+    expect(call[0]).not.toContain('timeline insert exploded');
+    expect(call[0]).not.toContain('returned timeline failure');
+  }
 }
 
 describe('POST /api/crm/contacts', () => {
@@ -190,10 +206,29 @@ describe('POST /api/crm/contacts', () => {
     expect(calls[0].table).toBe('crm_contacts');
     expect(calls[1].table).toBe('agent_actions');
     expect(selectCalls[0]).toEqual({ table: 'crm_contacts', columns: CONTACT_SELECT_COLUMNS });
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'Error recording CRM contact timeline event:',
-      expect.any(Error),
-    );
+    expectGenericTimelineLogOnly(consoleErrorSpy, 'Error recording CRM contact timeline event');
+  });
+
+  it('still returns 201 and logs generically when contact timeline insert returns an error after primary contact insert succeeds', async () => {
+    const calls: InsertCall[] = [];
+    const selectCalls: SelectCall[] = [];
+    mockContactInsert(calls, selectCalls, {}, { timelineError: new Error('returned timeline failure') });
+
+    const res = await POST(request({ displayName: 'Ada Lovelace' }));
+
+    expect(res.status).toBe(201);
+    expect(await res.json()).toEqual({
+      success: true,
+      contact: expect.objectContaining({
+        id: 'contact-1',
+        display_name: 'Ada Lovelace',
+      }),
+    });
+    expect(calls).toHaveLength(2);
+    expect(calls[0].table).toBe('crm_contacts');
+    expect(calls[1].table).toBe('agent_actions');
+    expect(selectCalls[0]).toEqual({ table: 'crm_contacts', columns: CONTACT_SELECT_COLUMNS });
+    expectGenericTimelineLogOnly(consoleErrorSpy, 'Error recording CRM contact timeline event');
   });
 
   it('applies source and relationship owner defaults when explicit blank strings are supplied', async () => {

@@ -53,7 +53,7 @@ function mockOpportunityInsert(
   calls: InsertCall[] = [],
   selectCalls: SelectCall[] = [],
   result: { data?: Record<string, unknown> | null; error?: Error | null } = {},
-  options: { throwTimelineInsert?: boolean } = {},
+  options: { timelineError?: Error | null; throwTimelineInsert?: boolean } = {},
 ) {
   mockFrom.mockImplementation((table: string) => ({
     insert: jest.fn((row: Record<string, unknown>) => {
@@ -67,6 +67,13 @@ function mockOpportunityInsert(
                 throw new Error('timeline insert exploded');
               }
 
+              if (table === 'agent_actions') {
+                return {
+                  data: result.data === undefined ? { id: 'timeline-1', ...row } : result.data,
+                  error: options.timelineError ?? null,
+                };
+              }
+
               return {
                 data: result.data === undefined ? { id: 'opportunity-1', ...row } : result.data,
                 error: result.error ?? null,
@@ -77,6 +84,15 @@ function mockOpportunityInsert(
       };
     }),
   }));
+}
+
+function expectGenericTimelineLogOnly(spy: jest.SpyInstance, message: string) {
+  expect(spy).toHaveBeenCalledWith(message);
+  for (const call of spy.mock.calls) {
+    expect(call).toEqual([expect.any(String)]);
+    expect(call[0]).not.toContain('timeline insert exploded');
+    expect(call[0]).not.toContain('returned timeline failure');
+  }
 }
 
 describe('POST /api/crm/opportunities', () => {
@@ -231,10 +247,29 @@ describe('POST /api/crm/opportunities', () => {
     expect(calls[0].table).toBe('crm_opportunities');
     expect(calls[1].table).toBe('agent_actions');
     expect(selectCalls[0]).toEqual({ table: 'crm_opportunities', columns: OPPORTUNITY_SELECT_COLUMNS });
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'Error recording CRM opportunity timeline event:',
-      expect.any(Error),
-    );
+    expectGenericTimelineLogOnly(consoleErrorSpy, 'Error recording CRM opportunity timeline event');
+  });
+
+  it('still returns 201 and logs generically when opportunity timeline insert returns an error after primary opportunity insert succeeds', async () => {
+    const calls: InsertCall[] = [];
+    const selectCalls: SelectCall[] = [];
+    mockOpportunityInsert(calls, selectCalls, {}, { timelineError: new Error('returned timeline failure') });
+
+    const res = await POST(request({ name: 'Margot CRM Buildout' }));
+
+    expect(res.status).toBe(201);
+    expect(await res.json()).toEqual({
+      success: true,
+      opportunity: expect.objectContaining({
+        id: 'opportunity-1',
+        name: 'Margot CRM Buildout',
+      }),
+    });
+    expect(calls).toHaveLength(2);
+    expect(calls[0].table).toBe('crm_opportunities');
+    expect(calls[1].table).toBe('agent_actions');
+    expect(selectCalls[0]).toEqual({ table: 'crm_opportunities', columns: OPPORTUNITY_SELECT_COLUMNS });
+    expectGenericTimelineLogOnly(consoleErrorSpy, 'Error recording CRM opportunity timeline event');
   });
 
   it('stores an explicit safe valueCurrency when valueAmount is provided', async () => {
