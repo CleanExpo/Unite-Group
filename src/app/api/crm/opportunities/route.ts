@@ -198,6 +198,37 @@ async function recordOpportunityTimelineEvents(
   }
 }
 
+async function existingOpportunityConflict(
+  supabase: ReturnType<typeof createClient<any>>,
+  opportunity: z.infer<typeof opportunityCreateSchema>,
+) {
+  const linkChecks = [
+    ['linked_lead_id', opportunity.linkedLeadId],
+    ['linked_contact_id', opportunity.linkedContactId],
+    ['linked_client_id', opportunity.linkedClientId],
+    ['linked_business_id', opportunity.linkedBusinessId],
+  ] as const;
+
+  const firstScopedLink = linkChecks.find(([, value]) => typeof value === 'string' && value.length > 0);
+  if (!firstScopedLink) return false;
+
+  const [linkColumn, linkValue] = firstScopedLink;
+  const { data, error } = await supabase
+    .from('crm_opportunities')
+    .select('id')
+    .eq('name', opportunity.name)
+    .eq(linkColumn, linkValue)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error checking CRM opportunity duplicate');
+    throw new Error('crm_opportunity_duplicate_check_failed');
+  }
+
+  return Boolean(data && typeof data === 'object' && 'id' in data);
+}
+
 export async function POST(request: NextRequest) {
   const gate = await requireAdmin(request);
   if (gate instanceof NextResponse) return gate;
@@ -258,6 +289,10 @@ export async function POST(request: NextRequest) {
   );
 
   try {
+    if (await existingOpportunityConflict(supabase, opportunity)) {
+      return NextResponse.json({ error: 'crm_opportunity_conflict' }, { status: 409 });
+    }
+
     const { data, error } = await supabase
       .from('crm_opportunities')
       .insert(insertPayload)
@@ -279,6 +314,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (isUniqueViolation(error)) {
       return NextResponse.json({ error: 'crm_opportunity_conflict' }, { status: 409 });
+    }
+
+    if (error instanceof Error && error.message === 'crm_opportunity_duplicate_check_failed') {
+      return NextResponse.json({ error: 'crm_opportunity_duplicate_check_failed' }, { status: 500 });
     }
 
     console.error('Unexpected CRM opportunity create error');

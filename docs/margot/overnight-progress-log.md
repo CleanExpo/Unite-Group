@@ -1,5 +1,69 @@
 # Margot Overnight Progress Log
 
+## 2026-05-24 07:38 AEST
+
+### Health check
+
+Observed in `/Users/phillmcgurk/Unite-Group`:
+
+```text
+timestamp=2026-05-24 07:38:02 AEST
+branch=main
+head=92f3451
+node_modules=present
+package_lock=present
+/Volumes=Claude,Macintosh HD
+recovered_files=docs/margot/recovered-from-mac-mini/.gitkeep
+phills-mac-mini.local:445=reachable
+phills-mac-mini.local:22=reachable via nc probe; authenticated BatchMode ssh still timed out
+```
+
+Pre-existing uncommitted report/log edits were present at the start of this slice. I preserved them and continued the next safe Senior PM / CRM lane from the existing coverage matrix.
+
+### Lane executed — read-before-write duplicate lookup for CRM contact/opportunity create routes
+
+Safe improvement:
+
+- `src/app/api/crm/contacts/route.ts` now performs a service-role duplicate lookup by normalized `dedupe_email_key` before insert when a contact email is supplied.
+- Contact duplicate lookup hits return `409 crm_contact_conflict` before any contact insert or `agent_actions` timeline write.
+- `src/app/api/crm/opportunities/route.ts` now performs a scoped duplicate lookup by exact Zod-trimmed opportunity name plus the first supplied lead/contact/client/business link before insert.
+- Opportunity duplicate lookup hits return `409 crm_opportunity_conflict` before any opportunity insert or `agent_actions` timeline write.
+- The existing PostgreSQL/Supabase `23505` fallback mapping remains in place for insert-time race/conflict protection.
+- `tests/integration/api/crm-contacts-create.test.ts` and `tests/integration/api/crm-opportunities-create.test.ts` now cover read-before-write duplicate conflicts with no primary insert, no timeline write, and no raw duplicate logging.
+- `docs/margot/crm-test-coverage-matrix.md` was refreshed so the previous read-before-write duplicate lookup gap is now marked covered locally, with remaining gaps narrowed to cross-client leakage abort fixtures and duplicate-lookup failure-path assertions.
+- `docs/margot/mac-mini-recovery-status.md` was refreshed with the 07:38 AEST safe recovery probe.
+
+Verification passed:
+
+```bash
+npx jest tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 3 suites / 40 tests
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, unrelated context mixing, credential prompt, secret read, noninteractive auth attempt beyond safe BatchMode SSH, or secret printing/storage was performed.
+
+### Blockers
+
+- Mac Mini recovery remains blocked. SMB/File Sharing is reachable and one short port probe saw SSH reachable, but the approved BatchMode SSH file-presence command timed out and no authenticated SMB share containing the approved target files is mounted. The recovery destination still contains only `.gitkeep`.
+- This is still a local mocked route/test contract. It does not apply schema, promote migrations, or prove database/RLS behavior against sandbox.
+
+### Next lane
+
+1. Add cross-client leakage abort fixtures for contact/opportunity create flows.
+2. Add duplicate-lookup failure-path assertions for contact/opportunity create routes.
+3. Continue safe Mac Mini recovery probes each run.
+
 ## 2026-05-24 07:01 AEST
 
 ### Health check
@@ -4689,3 +4753,79 @@ Safety:
 Next safe slice:
 
 - Commit/push/open PR for `margot/crm-duplicate-conflict-409`, monitor checks/Vercel, then add read-before-write duplicate lookup policy tests for contact/opportunity create routes.
+
+## 2026-05-24 07:11 AEST
+
+### PR #187 merged — CRM duplicate-conflict safety hardening
+
+Result:
+
+- PR #187 merged: https://github.com/CleanExpo/Unite-Group/pull/187
+- Merge commit on `main`: `92f3451ffbd6d2745ffb060650961e74ded0896e` (`test: harden crm duplicate conflict handling`).
+- Scope shipped: contact/opportunity create routes map returned and thrown PostgreSQL/Supabase `23505` errors to operator-safe 409 conflict responses without `agent_actions` timeline writes or raw duplicate Error logging.
+
+Verification:
+
+```bash
+gh pr checks 187 --watch --fail-fast
+# PASS: CodeRabbit, Vercel, Vercel Preview Comments, Review Board specialist checks, Chief Reviewer, TypeScript, Unit + Integration Tests, JSON-LD Schema Validation, Lint, Pipeline Smoke Tests, Supabase Schema Drift, npm audit, and DESIGN.md lint passed.
+
+gh run watch 26343621867 --exit-status
+# PASS: post-merge main CI passed for commit 92f3451ffbd6d2745ffb060650961e74ded0896e.
+
+gh api repos/CleanExpo/Unite-Group/commits/92f3451ffbd6d2745ffb060650961e74ded0896e/status
+# PASS: combined commit status success; Vercel deployment success: https://vercel.com/unite-group/unite-group/7bxUiANwX7Jt4Bh7L2nKLYux7jes
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, noninteractive credential attempt, or secret printing/storage was performed.
+- This post-merge evidence block is local-only in the workspace to avoid an evidence-only PR chain after the verified merge.
+
+Next safe slice:
+
+- Add read-before-write duplicate lookup policy tests for contact/opportunity create routes, keeping the current `23505` conflict mapping as fallback behavior.
+
+## 2026-05-24 07:40:14 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick started a safe local CRM read-before-write duplicate lookup lane from existing repo assets. The useful work is recorded in the 07:54 evidence block below; no separate LaunchAgent log payload was available in this file.
+
+## 2026-05-24 07:54 AEST
+
+### CRM contact/opportunity read-before-write duplicate lookup
+
+Result:
+
+- Continued the next safe duplicate-policy slice after PR #187 merged its insert-time `23505` fallback hardening.
+- Created branch `margot/crm-read-before-write-duplicates` from current `main` and kept the work inside CRM route/tests/docs.
+- Contact create now checks `crm_contacts.select('id').eq('dedupe_email_key', <normalized email key>).limit(1).maybeSingle()` before insert when a dedupe email key exists.
+- Opportunity create now checks `crm_opportunities.select('id').eq('name', <exact Zod-trimmed opportunity name>).eq(<first supplied scoped link>, <id>).limit(1).maybeSingle()` before insert.
+- Duplicate lookup hits return safe `409 crm_contact_conflict` / `409 crm_opportunity_conflict` before primary inserts or `agent_actions` timeline writes; insert-time `23505` conflict handling remains as the race fallback.
+- Strengthened mocked route regressions to assert lookup query shape and blocked side effects, not just response codes.
+- Review loop completed: spec compliance `PASS`; initial quality review requested query-shape/doc/whitespace fixes; re-review `APPROVED`; final integration review `READY`.
+
+Verification passed:
+
+```bash
+npx jest tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 3 suites / 40 tests
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, unrelated context mixing, credential prompt, secret read, or secret printing/storage was performed.
+
+Next safe slice:
+
+- Commit/push/open PR for `margot/crm-read-before-write-duplicates`, monitor checks/Vercel, and then add duplicate-lookup failure-path assertions or cross-client leakage abort fixtures.

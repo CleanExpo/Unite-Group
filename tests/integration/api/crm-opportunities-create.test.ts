@@ -20,6 +20,16 @@ import { createClient } from '@supabase/supabase-js';
 
 type InsertCall = { table: string; row: Record<string, unknown> };
 type SelectCall = { table: string; columns?: string };
+type QueryCall =
+  | { table: string; method: 'select'; columns?: string }
+  | { table: string; method: 'eq'; column: string; value: unknown }
+  | { table: string; method: 'limit'; count: number }
+  | { table: string; method: 'maybeSingle' };
+type SupabaseQueryMock = {
+  eq: jest.Mock;
+  limit: jest.Mock;
+  maybeSingle: jest.Mock;
+};
 
 const leadId = '11111111-1111-4111-8111-111111111111';
 const contactId = '22222222-2222-4222-8222-222222222222';
@@ -53,9 +63,39 @@ function mockOpportunityInsert(
   calls: InsertCall[] = [],
   selectCalls: SelectCall[] = [],
   result: { data?: Record<string, unknown> | null; error?: Error | null } = {},
-  options: { timelineError?: Error | null; throwTimelineInsert?: boolean; throwPrimaryInsert?: Error } = {},
+  options: {
+    timelineError?: Error | null;
+    throwTimelineInsert?: boolean;
+    throwPrimaryInsert?: Error;
+    existingOpportunity?: Record<string, unknown> | null;
+    lookupError?: Error | null;
+    queryCalls?: QueryCall[];
+  } = {},
 ) {
   mockFrom.mockImplementation((table: string) => ({
+    select: jest.fn((columns?: string) => {
+      selectCalls.push({ table, columns });
+      options.queryCalls?.push({ table, method: 'select', columns });
+      let query: SupabaseQueryMock;
+      query = {
+        eq: jest.fn((column: string, value: unknown) => {
+          options.queryCalls?.push({ table, method: 'eq', column, value });
+          return query;
+        }),
+        limit: jest.fn((count: number) => {
+          options.queryCalls?.push({ table, method: 'limit', count });
+          return query;
+        }),
+        maybeSingle: jest.fn(async () => {
+          options.queryCalls?.push({ table, method: 'maybeSingle' });
+          return {
+            data: options.existingOpportunity ?? null,
+            error: options.lookupError ?? null,
+          };
+        }),
+      };
+      return query;
+    }),
     insert: jest.fn((row: Record<string, unknown>) => {
       calls.push({ table, row });
       return {
@@ -226,10 +266,12 @@ describe('POST /api/crm/opportunities', () => {
     expect(calls[0].row).not.toHaveProperty('boardApprovalId');
     expect(calls[0].row).not.toHaveProperty('board_approval_id');
     expect(selectCalls).toEqual([
+      { table: 'crm_opportunities', columns: 'id' },
       { table: 'crm_opportunities', columns: OPPORTUNITY_SELECT_COLUMNS },
       { table: 'agent_actions', columns: 'id' },
     ]);
     expect(selectCalls[0].columns).not.toBe('*');
+    expect(selectCalls[1].columns).not.toBe('*');
   });
 
   it('still returns 201 when opportunity timeline insert throws after primary opportunity insert succeeds', async () => {
@@ -305,7 +347,7 @@ describe('POST /api/crm/opportunities', () => {
   it('returns 403 before CRM Supabase access for authenticated non-admin callers', async () => {
     mockServerSupabaseUser.mockResolvedValue({
       data: { user: { email: 'not-admin@example.com' } },
-    });
+    } as any);
 
     const res = await POST(unauthenticatedRequest({ name: 'Margot CRM Buildout' }));
 
@@ -483,6 +525,35 @@ describe('POST /api/crm/opportunities', () => {
 
     expect(res.status).toBe(500);
     expect(await res.json()).toEqual({ error: 'crm_opportunity_create_failed' });
+  });
+
+  it('returns 409 crm_opportunity_conflict before insert when scoped duplicate lookup finds an existing opportunity', async () => {
+    const calls: InsertCall[] = [];
+    const selectCalls: SelectCall[] = [];
+    const queryCalls: QueryCall[] = [];
+    mockOpportunityInsert(calls, selectCalls, {}, {
+      existingOpportunity: { id: 'existing-opportunity-1' },
+      queryCalls,
+    });
+
+    const res = await POST(request({
+      name: 'Margot CRM Buildout',
+      linkedLeadId: leadId,
+    }));
+
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: 'crm_opportunity_conflict' });
+    expect(calls).toHaveLength(0);
+    expect(selectCalls).toEqual([{ table: 'crm_opportunities', columns: 'id' }]);
+    expect(queryCalls).toEqual([
+      { table: 'crm_opportunities', method: 'select', columns: 'id' },
+      { table: 'crm_opportunities', method: 'eq', column: 'name', value: 'Margot CRM Buildout' },
+      { table: 'crm_opportunities', method: 'eq', column: 'linked_lead_id', value: leadId },
+      { table: 'crm_opportunities', method: 'limit', count: 1 },
+      { table: 'crm_opportunities', method: 'maybeSingle' },
+    ]);
+    expect(mockFrom).not.toHaveBeenCalledWith('agent_actions');
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
 
   it('returns 409 crm_opportunity_conflict on duplicate opportunity unique-constraint errors without timeline insert', async () => {

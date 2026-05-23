@@ -109,6 +109,27 @@ async function recordContactCreatedTimelineEvent(
   }
 }
 
+async function existingContactConflictByEmail(
+  supabase: ReturnType<typeof createClient<any>>,
+  dedupeEmailKey: string | null,
+) {
+  if (!dedupeEmailKey) return false;
+
+  const { data, error } = await supabase
+    .from('crm_contacts')
+    .select('id')
+    .eq('dedupe_email_key', dedupeEmailKey)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error checking CRM contact duplicate');
+    throw new Error('crm_contact_duplicate_check_failed');
+  }
+
+  return Boolean(data && typeof data === 'object' && 'id' in data);
+}
+
 export async function POST(request: NextRequest) {
   const gate = await requireAdmin(request);
   if (gate instanceof NextResponse) return gate;
@@ -178,6 +199,10 @@ export async function POST(request: NextRequest) {
   );
 
   try {
+    if (await existingContactConflictByEmail(supabase, dedupeEmailKey)) {
+      return NextResponse.json({ error: 'crm_contact_conflict' }, { status: 409 });
+    }
+
     const { data, error } = await supabase
       .from('crm_contacts')
       .insert(insertPayload)
@@ -199,6 +224,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (isUniqueViolation(error)) {
       return NextResponse.json({ error: 'crm_contact_conflict' }, { status: 409 });
+    }
+
+    if (error instanceof Error && error.message === 'crm_contact_duplicate_check_failed') {
+      return NextResponse.json({ error: 'crm_contact_duplicate_check_failed' }, { status: 500 });
     }
 
     console.error('Unexpected CRM contact create error');

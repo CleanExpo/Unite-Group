@@ -85,7 +85,7 @@ Margot has:
 Mac Mini recovery remains blocked by current connectivity/auth state:
 
 - Host: `phills-mac-mini.local`
-- Latest probe at `2026-05-24 07:00 AEST`: SMB/File Sharing port 445 is reachable; SSH/Remote Login port 22 is unreachable; `/Volumes` contains `Claude` and `Macintosh HD`; the local recovery destination still contains only `.gitkeep`.
+- Latest probe at `2026-05-24 07:38 AEST`: SMB/File Sharing port 445 is reachable; a short `nc` probe saw SSH/Remote Login port 22 reachable, but authenticated BatchMode SSH still timed out before file listing; `/Volumes` contains `Claude` and `Macintosh HD`; the local recovery destination still contains only `.gitkeep`.
 
 Still blocked:
 
@@ -101,6 +101,16 @@ Target recovery files remain:
 - `/Users/phill-mac/hermes-agent-enhancement-report/restoreassist-content-packs/RESTOREASSIST-CONTENT-INDEX.md`
 
 ## Verification status
+
+Latest verification refresh at `2026-05-24 07:38 AEST`:
+
+- Re-read the requested Margot operating docs, inspected current repo state, and continued the Senior PM / CRM duplicate-safety lane from existing local assets.
+- Safe health check passed: branch `main`, head `92f3451`, `node_modules=present`, `package-lock=present`, `/Volumes` contains `Claude` and `Macintosh HD`, recovered Mac Mini artifacts still contain only `.gitkeep`, `phills-mac-mini.local:445` is reachable, and a short port probe saw `phills-mac-mini.local:22` reachable but BatchMode SSH still timed out before listing approved target files.
+- Safe local route/test contract improvement: contact create now does a read-before-write duplicate lookup by normalized `dedupe_email_key`; opportunity create now does a scoped read-before-write duplicate lookup by exact Zod-trimmed opportunity name plus the first supplied lead/contact/client/business link.
+- Duplicate lookup hits return `409 crm_contact_conflict` / `409 crm_opportunity_conflict` before primary insert and before any `agent_actions` timeline write; insert-time `23505` fallback conflict mapping remains for races.
+- Updated `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/mac-mini-recovery-status.md`, and `docs/margot/overnight-progress-log.md` with evidence. The previous read-before-write duplicate lookup gap is now locally covered; remaining next gaps are cross-client leakage abort fixtures and duplicate-lookup failure-path assertions.
+- Verification passed: `npx jest tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 3 suites / 40 tests; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, unrelated context mixing, credential prompt, secret read, noninteractive auth attempt beyond safe BatchMode SSH, or secret printing/storage was performed.
 
 Latest verification refresh at `2026-05-24 07:01 AEST`:
 
@@ -806,4 +816,24 @@ Latest CRM duplicate-conflict refresh at `2026-05-24 07:03 AEST`:
 - Verification passed: focused contact/opportunity/activity-timeline Jest gate returned 3 suites / 38 tests; `npm run type-check` passed; `npm run security:routes-check` passed with `0 unprotected mutating routes`; `git diff --check` passed.
 - Re-review passed: spec compliance `PASS`; code quality `APPROVED`.
 - Mac Mini recovery remains blocked on authenticated SMB mount or SSH availability; no credential prompt, secret read, or noninteractive auth attempt was made.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
+
+Latest merge/deploy refresh at `2026-05-24 07:11 AEST`:
+
+- PR #187 merged: https://github.com/CleanExpo/Unite-Group/pull/187
+- Merge commit on `main`: `92f3451ffbd6d2745ffb060650961e74ded0896e` (`test: harden crm duplicate conflict handling`).
+- Main CI after merge passed: https://github.com/CleanExpo/Unite-Group/actions/runs/26343621867
+- Vercel status for the merge commit is success: https://vercel.com/unite-group/unite-group/7bxUiANwX7Jt4Bh7L2nKLYux7jes
+- Scope shipped: contact/opportunity create routes now map returned and thrown PostgreSQL/Supabase `23505` duplicate-conflict errors to operator-safe 409 responses without raw duplicate logging or `agent_actions` timeline writes.
+- This post-merge evidence is local-only in the workspace to avoid an evidence-only PR chain after the verified merge.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
+
+Latest CRM duplicate-lookup refresh at `2026-05-24 07:54 AEST`:
+
+- Branch `margot/crm-read-before-write-duplicates` contains local route/test/doc hardening for contact and opportunity read-before-write duplicate lookup.
+- Contact create now checks `dedupe_email_key` before insert; opportunity create now checks exact Zod-trimmed opportunity name plus first supplied scoped lead/contact/client/business link before insert.
+- Duplicate lookup hits return `409 crm_contact_conflict` / `409 crm_opportunity_conflict` before primary insert or `agent_actions` timeline writes; insert-time `23505` fallback handling remains for races.
+- Tests now assert duplicate lookup query shape (`select('id')`, exact `.eq(...)` filters, `limit(1)`, `maybeSingle()`) plus blocked insert/timeline side effects.
+- Verification passed: focused contact/opportunity/activity-timeline Jest gate returned 3 suites / 40 tests; `npm run type-check` passed; `npm run security:routes-check` passed with `0 unprotected mutating routes`; `git diff --check` passed.
+- Review loop passed: spec compliance `PASS`; quality re-review `APPROVED`; final integration review `READY`.
 - No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
