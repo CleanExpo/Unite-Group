@@ -194,8 +194,15 @@ export function buildCrmActivityTimelineEvent(input: CrmActivityTimelineEventInp
 export function buildCrmTimelineAgentActionInsert(
   event: CrmActivityTimelineEvent,
 ): CrmTimelineAgentActionInsert {
-  const status: CrmTimelineAgentActionInsert['status'] =
-    event.actionClass === 'approval_required' || event.actionClass === 'investigate' ? 'pending' : 'done';
+  const configuredActionClass = TYPE_CONFIG[event.type].actionClass;
+  const requiresApproval = event.requiresApproval === true
+    || event.actionClass === 'approval_required'
+    || configuredActionClass === 'approval_required';
+  const status: CrmTimelineAgentActionInsert['status'] = requiresApproval
+    || event.actionClass === 'investigate'
+    || configuredActionClass === 'investigate'
+    ? 'pending'
+    : 'done';
 
   return {
     source: 'margot',
@@ -217,7 +224,7 @@ export function buildCrmTimelineAgentActionInsert(
       occurredAt: event.occurredAt,
       source: event.source,
       summary: event.summary,
-      requiresApproval: event.requiresApproval === true,
+      requiresApproval,
       clientSlug: event.clientSlug ?? null,
       businessSlug: event.businessSlug ?? null,
       metadata: sanitizeMetadata(event.metadata),

@@ -201,6 +201,27 @@ describe('buildCrmActivityTimelineEvent', () => {
     expect(insert.payload.metadata).toEqual({ safeCount: 1, stage: 'captured' });
   });
 
+  it('keeps structurally constructed approval decision inserts pending even with inconsistent auto actionClass', () => {
+    const structurallyConstructedDecisionEvent: CrmActivityTimelineEvent = {
+      type: 'approval_approved',
+      category: 'approval',
+      severity: 'high',
+      actionClass: 'auto',
+      actor: 'operator',
+      subjectId: 'opp-structural-1',
+      subjectLabel: 'Structurally constructed approval',
+      occurredAt: '2026-05-23T12:38:00+10:00',
+      source: 'manual_test',
+      summary: 'Approval approved: Structurally constructed approval via manual_test.',
+      metadata: { decision: 'approved' },
+    };
+
+    const insert = buildCrmTimelineAgentActionInsert(structurallyConstructedDecisionEvent);
+
+    expect(insert.status).toBe('pending');
+    expect(insert.payload.requiresApproval).toBe(true);
+  });
+
   it('maps sanitized CRM timeline events to agent_actions insert payloads without guessing UUID links', () => {
     const approvalEvent = buildCrmActivityTimelineEvent({
       type: 'approval_requested',
