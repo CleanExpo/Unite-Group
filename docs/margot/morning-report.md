@@ -102,6 +102,15 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest CRM timeline mapping lane at `2026-05-23 13:25 AEST`:
+
+- Continued the activity/timeline lane and pinned existing `agent_actions` as the first persistence target in the local matrix/operating handoff; no separate policy doc, new dedicated timeline table, or migration was created or applied.
+- Added `buildCrmTimelineAgentActionInsert(event)` in `src/lib/crm/activity-timeline.ts` to map defensively sanitized CRM timeline events into safe `agent_actions` insert payloads with `crm_timeline_<event_type>` action types, `done`/`pending` status semantics, null UUID link fields unless explicitly resolved, and no Board approval ID, contact PII, token, API-key, bearer-token, IP, address, or secret-like metadata persistence.
+- Updated the local CRM coverage and operating docs: `docs/margot/crm-operating-model.md`, `docs/margot/crm-test-coverage-matrix.md`, and `docs/margot/MARGOT-COMMAND-CENTER.md`.
+- Verification passed and was re-run after sanitizer hardening: `npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 1 suite / 5 tests passed, and `npm run type-check` passed.
+- Mac Mini probe: SMB/File Sharing `phills-mac-mini.local:445` is reachable, SSH/Remote Login `phills-mac-mini.local:22` is unreachable, `/Volumes` contains only `Macintosh HD`, and `docs/margot/recovered-from-mac-mini/` still contains only `.gitkeep`.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, client-facing send, destructive git, or unrelated context mixing was performed.
+
 Latest autonomous health check at `2026-05-23 12:51 AEST`:
 
 - Re-read Margot operating docs and handoff state, then ran a safe verification refresh without starting a new lane.

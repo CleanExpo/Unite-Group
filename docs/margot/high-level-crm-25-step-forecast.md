@@ -236,7 +236,7 @@ Likely missing or incomplete:
 - `crm_leads`
 - `crm_opportunities`
 - `crm_tasks` or canonical task mapping
-- `crm_activity_timeline`
+- dedicated CRM activity timeline table
 - `crm_relationships`
 - `crm_data_quality_issues`
 - `crm_sync_events`

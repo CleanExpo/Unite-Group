@@ -1870,7 +1870,7 @@ Safety / blockers:
 - No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
 - Mac Mini artifacts remain blocked: SMB is reachable, SSH is unreachable, and no authenticated SMB share is mounted under `/Volumes`.
 - GitHub push/PR remains blocked until authenticated GitHub HTTPS or `gh` transport is available.
-- Activity/timeline helper is local taxonomy only; persistence target (`agent_actions` extension vs future `crm_activity_timeline`) still needs a safe design decision before route writes.
+- Activity/timeline helper is local taxonomy only; persistence target (`agent_actions` extension vs future dedicated activity timeline table) still needs a safe design decision before route writes.
 
 Next slice:
 
@@ -1989,4 +1989,116 @@ Blockers / transport:
 Next slice:
 
 - Continue timeline persistence policy and route-level event-write tests, or recover the two approved Mac Mini artifacts if an authenticated mount/SSH session appears.
+
+
+## 2026-05-23 12:52:28 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log: not emitted by this LaunchAgent tick.
+
+## 2026-05-23 13:25 AEST
+
+### Lane executed — CRM timeline persistence policy and `agent_actions` insert mapping
+
+Preflight / repo state:
+
+```text
+branch=feat/margot-crm-daily-digest-route
+head during tick=c03b953 docs: record Margot health check refresh
+node_modules=present
+package-lock.json=present
+/Volumes=Macintosh HD only
+Mac Mini SMB/File Sharing phills-mac-mini.local:445=reachable
+Mac Mini SSH/Remote Login phills-mac-mini.local:22=unreachable
+recovered_dir=docs/margot/recovered-from-mac-mini contains .gitkeep only
+```
+
+Slice completed:
+
+- Continued the existing CRM activity/timeline lane instead of starting a speculative integration.
+- Pinned the first timeline persistence target to existing `agent_actions` in `docs/margot/crm-test-coverage-matrix.md`.
+- Deferred any new dedicated timeline-table migration until query/RLS/retention needs are proven; no sandbox apply or production migration was run.
+- Extended `src/lib/crm/activity-timeline.ts` with `buildCrmTimelineAgentActionInsert(event)` so sanitized CRM timeline events map to `agent_actions` insert payloads.
+- Added local test coverage so the insert mapper uses `crm_timeline_<event_type>` action types, sets `done` for auto events and `pending` for approval/investigation events, stores slug hints only in payload, sets UUID link fields to `null` rather than guessing, and keeps Board approval IDs, auth variants, PII-like metadata, and secret-like values out of persisted payloads.
+- Updated `docs/margot/crm-operating-model.md`, `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, and `docs/margot/mac-mini-recovery-status.md` to reflect the policy and latest recovery probe.
+
+Verification commands/results:
+
+```bash
+npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 1 suite passed, 5 tests passed
+
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 10 suites passed, 62 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Safety / blockers:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, client-facing send, destructive git, or unrelated context mixing was performed.
+- Mac Mini artifacts remain blocked: SMB is reachable, SSH is unreachable, and no authenticated SMB share is mounted under `/Volumes`.
+- Route-level timeline event writes are not wired yet; next implementation must add mocked route tests before route inserts.
+
+Next slice:
+
+- Add route-level event-write tests for lead/contact/opportunity/approval events using the `agent_actions` mapping helper, or recover the two approved Mac Mini artifacts if authenticated SMB/SSH becomes available.
+
+
+## 2026-05-23 13:27:46 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+
+## 2026-05-23 13:43 AEST
+
+### Lane finalized — CRM timeline `agent_actions` mapping hardening
+
+Final review / verification:
+
+```bash
+npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 1 suite passed, 5 tests passed
+
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 10 suites passed, 62 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+
+! test -f docs/margot/crm-timeline-persistence-policy.md
+! grep -R "crm-timeline-persistence-policy\|crm_activity_timeline" docs/margot
+# PASS
+```
+
+Review status:
+
+- Spec re-review: PASS.
+- Quality re-review: APPROVED.
+- TDD fix evidence: auth and Board-approval key variants were added as failing tests before sanitizer hardening; focused test then passed.
+
+Blockers / transport:
+
+- GitHub CLI is not installed in this cron shell and GitHub token env was not available to Python API preflight, so push/PR remains blocked unless plain git transport succeeds after commit.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, secret access/printing, Mac Mini write, client-facing send, or destructive git action was performed.
+
+Next slice:
+
+- Add mocked route-level event-write tests before wiring lead/contact/opportunity routes to `agent_actions` timeline rows.
 

@@ -43,6 +43,33 @@ export interface CrmActivityTimelineEvent {
   metadata: Record<string, unknown>;
 }
 
+export interface CrmTimelineAgentActionInsert {
+  source: 'margot';
+  action_type: `crm_timeline_${CrmActivityTimelineEventType}`;
+  status: 'pending' | 'done';
+  idea_text: string;
+  client_id: null;
+  business_id: null;
+  linear_ticket_id: null;
+  parent_id: null;
+  payload: {
+    type: CrmActivityTimelineEventType;
+    category: CrmActivityTimelineCategory;
+    severity: CrmActivityTimelineSeverity;
+    actionClass: CrmActivityTimelineActionClass;
+    actor: string;
+    subjectId: string;
+    subjectLabel: string;
+    occurredAt: string;
+    source: string;
+    summary: string;
+    requiresApproval: boolean;
+    clientSlug: string | null;
+    businessSlug: string | null;
+    metadata: Record<string, unknown>;
+  };
+}
+
 const TYPE_CONFIG: Record<CrmActivityTimelineEventType, {
   category: CrmActivityTimelineCategory;
   severity: CrmActivityTimelineSeverity;
@@ -59,7 +86,27 @@ const TYPE_CONFIG: Record<CrmActivityTimelineEventType, {
   integration_stale: { category: 'integration', severity: 'warning', actionClass: 'investigate', label: 'Integration stale' },
 };
 
-const BLOCKED_METADATA_KEY_PARTS = ['token', 'secret', 'password', 'authorization', 'apikey', 'boardapprovalid'];
+const BLOCKED_METADATA_KEY_PARTS = [
+  'token',
+  'secret',
+  'password',
+  'authorization',
+  'auth',
+  'apikey',
+  'boardapproval',
+  'boardapprovalid',
+  'approvalref',
+  'email',
+  'phone',
+  'ipaddress',
+  'address',
+];
+const BLOCKED_METADATA_KEYS = ['ip'];
+const BOARD_APPROVAL_REF_PATTERN = /\bBOARD-\d+\b/i;
+const BEARER_TOKEN_PATTERN = /\bbearer\s+[a-z0-9._~+/=-]+\b/i;
+const API_KEY_PATTERN = /\bapi[_ -]?key[_ :=-]*[a-z0-9._-]+\b/i;
+const EMAIL_PATTERN = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
+const PHONE_PATTERN = /(?:\+?\d[\d ().-]{7,}\d)/;
 
 function clean(value: string | null | undefined): string {
   return typeof value === 'string' && value.trim() ? value.trim() : '';
@@ -71,7 +118,16 @@ function isSupportedType(type: string): type is CrmActivityTimelineEventType {
 
 function isSensitiveMetadataKey(key: string): boolean {
   const normalizedKey = key.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-  return BLOCKED_METADATA_KEY_PARTS.some((blockedPart) => normalizedKey.includes(blockedPart));
+  return BLOCKED_METADATA_KEYS.includes(normalizedKey)
+    || BLOCKED_METADATA_KEY_PARTS.some((blockedPart) => normalizedKey.includes(blockedPart));
+}
+
+function isSensitiveMetadataValue(value: string): boolean {
+  return BOARD_APPROVAL_REF_PATTERN.test(value)
+    || BEARER_TOKEN_PATTERN.test(value)
+    || API_KEY_PATTERN.test(value)
+    || EMAIL_PATTERN.test(value)
+    || PHONE_PATTERN.test(value);
 }
 
 function sanitizeMetadata(metadata: Record<string, unknown> | null | undefined): Record<string, unknown> {
@@ -80,6 +136,7 @@ function sanitizeMetadata(metadata: Record<string, unknown> | null | undefined):
   Object.entries(metadata ?? {}).forEach(([key, value]) => {
     if (isSensitiveMetadataKey(key)) return;
     if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      if (typeof value === 'string' && isSensitiveMetadataValue(value)) return;
       sanitized[key] = value;
     }
   });
@@ -128,4 +185,38 @@ export function buildCrmActivityTimelineEvent(input: CrmActivityTimelineEventInp
   if (requiresApproval) event.requiresApproval = true;
 
   return event;
+}
+
+export function buildCrmTimelineAgentActionInsert(
+  event: CrmActivityTimelineEvent,
+): CrmTimelineAgentActionInsert {
+  const status: CrmTimelineAgentActionInsert['status'] =
+    event.actionClass === 'approval_required' || event.actionClass === 'investigate' ? 'pending' : 'done';
+
+  return {
+    source: 'margot',
+    action_type: `crm_timeline_${event.type}`,
+    status,
+    idea_text: event.summary,
+    client_id: null,
+    business_id: null,
+    linear_ticket_id: null,
+    parent_id: null,
+    payload: {
+      type: event.type,
+      category: event.category,
+      severity: event.severity,
+      actionClass: event.actionClass,
+      actor: event.actor,
+      subjectId: event.subjectId,
+      subjectLabel: event.subjectLabel,
+      occurredAt: event.occurredAt,
+      source: event.source,
+      summary: event.summary,
+      requiresApproval: event.requiresApproval === true,
+      clientSlug: event.clientSlug ?? null,
+      businessSlug: event.businessSlug ?? null,
+      metadata: sanitizeMetadata(event.metadata),
+    },
+  };
 }

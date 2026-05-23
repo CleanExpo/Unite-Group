@@ -65,7 +65,7 @@ Domains:
 | Approval | Human decision or permission gate | Voice route blocks approval-required work by assignee/status; no dedicated approval table yet | Proposed `crm_approvals` or task subtype |
 | Project | Delivery initiative connected to client/business/revenue | Linear mirror tables; local project docs | Linear for execution status, Supabase mirror for cockpit |
 | Ticket | Execution issue / engineering work item | `integration_linear_issues`; GitHub PR/issue mirrors | Linear/GitHub, mirrored into Supabase |
-| Activity/Event | Timeline record of something that happened | `agent_actions` for client create/update and agent events | Supabase `agent_actions` now; proposed `crm_activity_timeline` later if needed |
+| Activity/Event | Timeline record of something that happened | `agent_actions` for client create/update and agent events; `src/lib/crm/activity-timeline.ts` now maps sanitized CRM timeline events to `agent_actions` insert payloads | Supabase `agent_actions` is the local next persistence target; a dedicated timeline table remains out of scope unless later query/RLS needs justify a separately reviewed migration |
 | Integration Account | External-system identity or sync state | `integration_*` tables and `integration_sync_state` | Supabase integration mirrors |
 | Voice Command | Spoken operator request converted to CRM task | `voice_command_sessions`, `tasks` writes in Margot route | Supabase voice/task tables |
 | Document/Artifact | Durable file, report, plan, recovered file, client doc | `docs/margot/*`; recovered Mac Mini destination | Repo docs now; future Drive/Docs integration when scoped |
@@ -209,7 +209,7 @@ Use that matrix as the current local verification contract for lead capture, lea
 Current focused CRM verification gate from the matrix:
 
 ```bash
-npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts --runInBand
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand
 npm run type-check
 npm run security:routes-check
 ```
@@ -222,7 +222,7 @@ npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration
 
 ## Next Implementation Lanes
 
-1. Add activity/timeline persistence decision and route-level event-write tests for lead/contact/opportunity/approval events.
+1. Add route-level event-write tests for lead/contact/opportunity/approval events using the local `agent_actions` mapping in `src/lib/crm/activity-timeline.ts`.
 2. Decide and test the CRM approvals lifecycle: requested, approved, rejected, expired/cancelled, executed.
 3. Add command-center CRM UI read-surface tests for leads, approvals, opportunities, and daily digest.
 4. Add integration stale-sync threshold tests for Linear/GitHub/Vercel/Supabase mirrors.
