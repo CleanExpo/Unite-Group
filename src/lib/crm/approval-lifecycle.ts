@@ -25,6 +25,21 @@ export interface CrmApprovalLifecycleInput {
   rejectionReason?: string | null;
 }
 
+export interface CrmApprovalTaskEvidence {
+  id: string;
+  status?: string | null;
+  priority?: string | null;
+  assignee_name?: string | null;
+  tags?: string[] | null;
+  description?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  due_at?: string | null;
+  completed_at?: string | null;
+  metadata?: Record<string, unknown> | null;
+  now: string;
+}
+
 export interface CrmApprovalLifecycleEvaluation {
   id: string;
   subjectType: CrmApprovalLifecycleSubjectType;
@@ -41,6 +56,11 @@ const HIGH_RISK_SUBJECT_TYPES: CrmApprovalSubjectType[] = ['client_merge', 'data
 
 function clean(value: string | null | undefined): string {
   return typeof value === 'string' && value.trim() ? value.trim() : '';
+}
+
+function cleanMetadataString(metadata: Record<string, unknown> | null | undefined, key: string): string {
+  const value = metadata?.[key];
+  return typeof value === 'string' ? clean(value) : '';
 }
 
 function invalidResult(
@@ -63,6 +83,42 @@ function isKnownStatus(status: string): status is CrmApprovalKnownStatus {
   return KNOWN_STATUSES.includes(status as CrmApprovalKnownStatus);
 }
 
+function normalizeTaskEvidenceStatus(task: CrmApprovalTaskEvidence): string {
+  const metadataStatus = (cleanMetadataString(task.metadata, 'approvalStatus') || cleanMetadataString(task.metadata, 'status')).toLowerCase();
+  if (metadataStatus) return metadataStatus;
+
+  if (cleanMetadataString(task.metadata, 'executedAt')) return 'executed';
+
+  const taskStatus = clean(task.status).toLowerCase();
+  if (isKnownStatus(taskStatus) && taskStatus !== 'executed') return taskStatus;
+
+  return 'requested';
+}
+
+function buildTaskEvidenceRejectionReason(metadata: Record<string, unknown> | null | undefined): string | null {
+  return cleanMetadataString(metadata, 'rejectionReason') ? 'Rejection reason recorded in task metadata.' : null;
+}
+
+export function buildCrmApprovalLifecycleInputFromTaskEvidence(task: CrmApprovalTaskEvidence): CrmApprovalLifecycleInput {
+  const metadata = task.metadata ?? null;
+  const status = normalizeTaskEvidenceStatus(task);
+  const subjectType = cleanMetadataString(metadata, 'subjectType') || cleanMetadataString(metadata, 'approvalSubjectType') || 'other';
+
+  return {
+    id: clean(task.id),
+    subjectType,
+    requestedBy: 'crm_approval_task',
+    requestedAt: clean(task.created_at) || clean(task.updated_at),
+    now: clean(task.now),
+    expiresAt: cleanMetadataString(metadata, 'expiresAt') || clean(task.due_at) || null,
+    status,
+    approvedBy: cleanMetadataString(metadata, 'approvedBy') || null,
+    approvalReference: cleanMetadataString(metadata, 'approvalReference') || null,
+    executedAt: cleanMetadataString(metadata, 'executedAt') || null,
+    rejectionReason: status === 'rejected' ? buildTaskEvidenceRejectionReason(metadata) : null,
+  };
+}
+
 function isKnownSubjectType(subjectType: string): subjectType is CrmApprovalSubjectType {
   return KNOWN_SUBJECT_TYPES.includes(subjectType as CrmApprovalSubjectType);
 }
@@ -83,7 +139,6 @@ function highRiskReason(subjectType: CrmApprovalSubjectType): string | null {
 }
 
 export function evaluateCrmApprovalLifecycle(input: CrmApprovalLifecycleInput): CrmApprovalLifecycleEvaluation {
-  const rawSubjectType = clean(input.subjectType);
   const outputSubjectType = normalizedSubjectType(input.subjectType);
   const missingRequired = [
     clean(input.id) ? null : 'id',
@@ -97,12 +152,12 @@ export function evaluateCrmApprovalLifecycle(input: CrmApprovalLifecycleInput): 
   }
 
   if (outputSubjectType === 'invalid') {
-    return invalidResult(input, [`Unknown approval subjectType: ${rawSubjectType || '(blank)'}.`], 'invalid');
+    return invalidResult(input, ['Unknown approval subjectType supplied.'], 'invalid');
   }
 
-  const rawStatus = clean(input.status) || 'requested';
+  const rawStatus = (clean(input.status) || 'requested').toLowerCase();
   if (!isKnownStatus(rawStatus)) {
-    return invalidResult(input, [`Unknown approval status: ${rawStatus}.`], outputSubjectType);
+    return invalidResult(input, ['Unknown approval status supplied.'], outputSubjectType);
   }
 
   const requestedAtTime = parseTime(input.requestedAt);
@@ -162,7 +217,7 @@ export function evaluateCrmApprovalLifecycle(input: CrmApprovalLifecycleInput): 
       decision: 'may_execute',
       requiresPhillReview: riskReason !== null,
       reasons: [
-        `Approval was approved by ${clean(input.approvedBy)} with approval reference recorded; manual execution may proceed within scope.`,
+        'Approval was approved by recorded approver with approval reference recorded; manual execution may proceed within scope.',
         ...highRiskReasons,
       ],
       safeToAutoExecute: false,
@@ -170,7 +225,7 @@ export function evaluateCrmApprovalLifecycle(input: CrmApprovalLifecycleInput): 
   }
 
   if (rawStatus === 'rejected') {
-    const rejectionDetail = clean(input.rejectionReason) ? ` Rejection reason: ${clean(input.rejectionReason)}.` : '';
+    const rejectionDetail = clean(input.rejectionReason) ? ' Rejection reason recorded.' : '';
     return {
       id: input.id,
       subjectType: outputSubjectType,
