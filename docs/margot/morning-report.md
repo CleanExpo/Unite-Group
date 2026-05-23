@@ -102,6 +102,34 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest verification refresh at `2026-05-24 06:18 AEST`:
+
+- Continued the already-in-progress guarded lead-conversion timeline logging slice and fixed review findings before commit/publish.
+- Strengthened `tests/integration/api/crm-lead-conversion.test.ts` so returned-error and thrown-error best-effort timeline insert failures assert no raw Error objects and no sensitive timeline error message strings are present in `console.error` arguments.
+- Cleaned `docs/margot/overnight-progress-log.md` by removing an incomplete trailing LaunchAgent stub and clarifying that this slice is a local guarded route/test contract only; no sandbox or production schema action was attempted.
+- Review evidence: spec re-review PASS; quality/security re-review APPROVED, with the console-error helper minor note fixed before final verification.
+- Verification passed: `npx jest tests/integration/api/crm-lead-conversion.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 2 suites / 15 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, noninteractive credential attempt, or secret printing/storage was performed.
+
+Latest verification refresh at `2026-05-24 05:54 AEST`:
+
+- Re-read the requested Margot operating docs and continued the CRM operating-model / activity-timeline safety lane from existing local assets.
+- Safe health check passed: branch `main`, head `2a424fb`, `node_modules=present`, `package-lock=present`, `/Volumes` contains `Claude` and `Macintosh HD`, `phills-mac-mini.local:445` is reachable, `phills-mac-mini.local:22` is unreachable, and recovered Mac Mini artifacts still contain only `.gitkeep`.
+- Safe improvement: `src/app/api/crm/leads/[id]/convert/route.ts` now logs generic messages only when best-effort lead-conversion `agent_actions` timeline inserts return or throw errors after the primary conversion succeeds.
+- TDD evidence: `tests/integration/api/crm-lead-conversion.test.ts` first failed RED because the route logged `Error recording CRM lead conversion timeline event:` with the raw Error object; after the route fix it covers both returned-error and thrown-error timeline failures without raw Error logging.
+- Verification passed: `npx jest tests/integration/api/crm-lead-conversion.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 2 suites / 15 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed.
+- Updated `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/mac-mini-recovery-status.md`, and `docs/margot/overnight-progress-log.md` with this evidence.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, unrelated context mixing, noninteractive credential attempt, or secret printing/storage was performed.
+
+Latest verification refresh at `2026-05-24 05:43 AEST`:
+
+- PR #185 is merged: https://github.com/CleanExpo/Unite-Group/pull/185
+- Merge commit on `main`: `2a424fb385ae80c3cf41e5b04a39a754806a4783` (`test: harden CRM timeline failure logging`).
+- Post-merge main CI passed: https://github.com/CleanExpo/Unite-Group/actions/runs/26341779359
+- GitHub commit status reports Vercel success: https://vercel.com/unite-group/unite-group/6sdYCuWnLZSvvZQ37sastsjejMLi
+- Shipped scope: contact/opportunity create routes preserve primary success when best-effort `agent_actions` timeline inserts return or throw errors, and those timeline failures now log generic messages only; developer snapshot E2E fixtures are stabilized against timezone-midnight CI flakes.
+- This post-merge evidence is local-only in the workspace; no evidence-only PR/commit chain was opened after the verified merge.
+
 Latest verification refresh at `2026-05-24 05:38 AEST`:
 
 - PR #185 is open and green after CI recovery: https://github.com/CleanExpo/Unite-Group/pull/185

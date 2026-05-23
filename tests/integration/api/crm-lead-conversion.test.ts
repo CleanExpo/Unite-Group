@@ -28,6 +28,18 @@ function context(id = leadId) {
   return { params: Promise.resolve({ id }) };
 }
 
+function expectConsoleErrorNotToExposeTimelineDetails(consoleErrorSpy: jest.SpyInstance) {
+  const loggedArguments = consoleErrorSpy.mock.calls.flat();
+
+  expect(loggedArguments).not.toEqual(expect.arrayContaining([expect.any(Error)]));
+  expect(loggedArguments).not.toEqual(
+    expect.arrayContaining([expect.stringContaining('timeline returned sensitive detail')]),
+  );
+  expect(loggedArguments).not.toEqual(
+    expect.arrayContaining([expect.stringContaining('timeline insert exploded')]),
+  );
+}
+
 function makeSelectBuilder(lead: Record<string, unknown> | null) {
   const builder: any = {
     select: jest.fn(() => builder),
@@ -50,7 +62,7 @@ function makeUpdateBuilder(updatedLead: Record<string, unknown>) {
 
 function makeInsertBuilder(
   calls: Array<{ table: string; row: Record<string, unknown> }>,
-  options: { throwTimelineInsert?: boolean } = {},
+  options: { returnedTimelineError?: boolean; throwTimelineInsert?: boolean } = {},
 ) {
   return {
     insert: jest.fn((row: Record<string, unknown>) => {
@@ -60,6 +72,9 @@ function makeInsertBuilder(
           single: jest.fn(() => {
             if (options.throwTimelineInsert) {
               throw new Error('timeline insert exploded');
+            }
+            if (options.returnedTimelineError) {
+              return Promise.resolve({ data: null, error: new Error('timeline returned sensitive detail') });
             }
             return Promise.resolve({ data: { id: 'timeline-1' }, error: null });
           }),
@@ -73,7 +88,7 @@ function mockLeadConversion(
   lead: Record<string, unknown>,
   updatedLead = {},
   calls: Array<{ table: string; row: Record<string, unknown> }> = [],
-  options: { throwTimelineInsert?: boolean } = {},
+  options: { returnedTimelineError?: boolean; throwTimelineInsert?: boolean } = {},
 ) {
   const selectBuilder = makeSelectBuilder(lead);
   const updateBuilder = makeUpdateBuilder({
@@ -259,7 +274,39 @@ describe('POST /api/crm/leads/[id]/convert', () => {
     expect(JSON.stringify(timelineCalls[0].row)).not.toContain('ada@example.com');
   });
 
-  it('still returns 200 when lead conversion timeline insert throws after primary conversion succeeds', async () => {
+  it('logs a generic message and still returns 200 when lead conversion timeline insert returns an error after primary conversion succeeds', async () => {
+    const timelineCalls: Array<{ table: string; row: Record<string, unknown> }> = [];
+    mockLeadConversion({
+      id: leadId,
+      email: 'ada@example.com',
+      company: 'Analytical Engines Pty Ltd',
+      status: 'qualified',
+      matched_client_id: targetClientId,
+      converted_client_id: null,
+      converted_at: null,
+    }, {}, timelineCalls, { returnedTimelineError: true });
+
+    const res = await POST(request(), context());
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({
+      success: true,
+      lead_id: leadId,
+      target_client_id: targetClientId,
+    });
+    expect(timelineCalls).toHaveLength(1);
+    expect(timelineCalls[0].table).toBe('agent_actions');
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Error recording CRM lead conversion timeline event',
+    );
+    expect(consoleErrorSpy).not.toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(Error),
+    );
+    expectConsoleErrorNotToExposeTimelineDetails(consoleErrorSpy);
+  });
+
+  it('logs a generic message and still returns 200 when lead conversion timeline insert throws after primary conversion succeeds', async () => {
     const timelineCalls: Array<{ table: string; row: Record<string, unknown> }> = [];
     mockLeadConversion({
       id: leadId,
@@ -282,8 +329,12 @@ describe('POST /api/crm/leads/[id]/convert', () => {
     expect(timelineCalls).toHaveLength(1);
     expect(timelineCalls[0].table).toBe('agent_actions');
     expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'Error recording CRM lead conversion timeline event:',
+      'Error recording CRM lead conversion timeline event',
+    );
+    expect(consoleErrorSpy).not.toHaveBeenCalledWith(
+      expect.any(String),
       expect.any(Error),
     );
+    expectConsoleErrorNotToExposeTimelineDetails(consoleErrorSpy);
   });
 });

@@ -67,10 +67,10 @@ async function recordLeadConversionTimelineEvent(
       .single();
 
     if (error) {
-      console.error('Error recording CRM lead conversion timeline event:', error);
+      console.error('Error recording CRM lead conversion timeline event');
     }
-  } catch (error) {
-    console.error('Error recording CRM lead conversion timeline event:', error);
+  } catch {
+    console.error('Error recording CRM lead conversion timeline event');
   }
 }
 

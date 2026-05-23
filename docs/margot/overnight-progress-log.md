@@ -1,5 +1,72 @@
 # Margot Overnight Progress Log
 
+## 2026-05-24 05:54 AEST
+
+### Health check
+
+Observed in `/Users/phillmcgurk/Unite-Group`:
+
+```text
+timestamp=2026-05-24 05:52:59 AEST
+branch=main
+head=2a424fb
+node_modules=present
+package_lock=present
+/Volumes=Claude,Macintosh HD
+recovered_files=docs/margot/recovered-from-mac-mini/.gitkeep
+phills-mac-mini.local:445=reachable
+phills-mac-mini.local:22=unreachable
+package scripts include lint, build, dev, start, test, test:all, type-check, gen:types, check:schema-drift, validate:jsonld, brand:lint, security:routes-check, prepare
+```
+
+Pre-existing uncommitted doc evidence was present in `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md` before this slice.
+
+### Lane executed — guarded lead conversion timeline logging hardening
+
+Continued the CRM operating-model / activity-timeline lane from existing repo evidence and the previous reviewer note that lead conversion timeline failure logging still passed raw Error objects to `console.error`.
+
+Safe improvement:
+
+- `src/app/api/crm/leads/[id]/convert/route.ts` now logs a generic message only when best-effort `agent_actions` lead-conversion timeline writes return an error or throw after the primary lead conversion succeeds.
+- `tests/integration/api/crm-lead-conversion.test.ts` now covers both returned-error and thrown-error timeline write failures and asserts the route still returns primary conversion success without logging raw Error objects.
+- `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, and `docs/margot/mac-mini-recovery-status.md` were refreshed with this evidence.
+
+TDD evidence:
+
+- The focused lead-conversion test failed RED first because the route logged `Error recording CRM lead conversion timeline event:` with the raw Error object.
+- After the route fix, the focused gate passed.
+
+Verification passed:
+
+```bash
+npx jest tests/integration/api/crm-lead-conversion.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 2 suites / 15 tests
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, noninteractive credential attempt, or secret printing/storage was performed.
+
+### Blockers
+
+- Mac Mini recovery remains blocked on authenticated SMB mount containing the approved target files or SSH availability. SMB/File Sharing is reachable, but SSH remains unreachable and only `.gitkeep` is present locally.
+- This slice is a local guarded route/test contract only; no sandbox or production schema action was attempted.
+
+### Next lane
+
+1. Add route-level approval decision event-write tests before any approval mutation route is introduced.
+2. Add duplicate/conflict policy tests for contact/opportunity create routes before production use.
+3. Continue safe Mac Mini recovery probes each run.
+
 ## 2026-05-23 05:33:42 AEST
 
 ### Scheduler status
@@ -4373,3 +4440,84 @@ Blockers / unchanged constraints:
 Next safe slice:
 
 - Merge PR #185 if checks remain green, verify post-merge main CI/Vercel, then continue the next route-level generic timeline logging follow-up for lead conversion.
+
+## 2026-05-24 05:43 AEST
+
+### PR #185 merged — post-merge main verification
+
+Result:
+
+- PR #185 merged: https://github.com/CleanExpo/Unite-Group/pull/185
+- Merge commit on `main`: `2a424fb385ae80c3cf41e5b04a39a754806a4783` (`test: harden CRM timeline failure logging`)
+- Post-merge main CI passed: https://github.com/CleanExpo/Unite-Group/actions/runs/26341779359
+- GitHub commit status reports Vercel success: https://vercel.com/unite-group/unite-group/6sdYCuWnLZSvvZQ37sastsjejMLi
+
+Verification:
+
+```bash
+gh run watch 26341779359 --exit-status
+# PASS: JSON-LD Schema Validation, Supabase Schema Drift, Pipeline Smoke Tests, TypeScript, Unit + Integration Tests, npm audit, and Lint completed successfully on main.
+
+gh api repos/CleanExpo/Unite-Group/commits/2a424fb385ae80c3cf41e5b04a39a754806a4783/status
+# PASS: combined status success; Vercel status success.
+
+git status --short --branch
+# main tracks origin/main at 2a424fb before this local-only evidence append.
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, unrelated context mixing, noninteractive credential attempt, or secret printing/storage was performed.
+- This post-merge evidence block is local-only in the workspace to avoid an evidence-only PR/commit chain after the feature PR was already merged and verified.
+
+Next safe slice:
+
+- Continue the next route-level generic timeline logging follow-up for lead conversion, starting with RED tests for returned/thrown best-effort timeline insert failures.
+
+## 2026-05-24 06:18 AEST
+
+### Review cleanup and verification refresh
+
+Continued the already-in-progress guarded lead-conversion timeline logging slice rather than starting a new lane, because the working tree already contained local route/test/doc changes on `main`.
+
+Changes made after review:
+
+- Strengthened `tests/integration/api/crm-lead-conversion.test.ts` so returned-error and thrown-error timeline failure regressions also assert sensitive timeline error message strings are absent from all `console.error` arguments.
+- Cleaned `docs/margot/overnight-progress-log.md` by removing an incomplete trailing LaunchAgent stub and rewording the slice blocker to state the local guarded route/test contract without implying any sandbox or production schema action.
+
+Review evidence:
+
+- Spec re-review: PASS.
+- Quality/security re-review: APPROVED. The minor note about the console-error helper was fixed before this verification refresh.
+
+Verification passed:
+
+```bash
+npx jest tests/integration/api/crm-lead-conversion.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 2 suites / 15 tests
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Current state before commit/publish attempt:
+
+```text
+branch=margot-lead-conversion-timeline-logging
+base_head=2a424fb
+working_tree=7 modified files
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, noninteractive credential attempt, or secret printing/storage was performed.
+
+Next safe slice:
+
+- Commit this reviewed local slice on a feature branch, push/open PR if GitHub transport remains available, then monitor CI/Vercel before merging.
