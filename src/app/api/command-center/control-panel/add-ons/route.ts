@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/security/require-admin';
 import { ADD_ON_GATES } from '@/components/command-center/control-panel/control-panel-data';
+import {
+  buildCrmActivityTimelineEvent,
+  buildCrmTimelineAgentActionInsert,
+} from '@/lib/crm/activity-timeline';
 import { ADD_ON_ASSIGNEE_TYPE } from './_assignee-type';
 
 export const dynamic = 'force-dynamic';
@@ -116,11 +120,29 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (inserted.error || !inserted.data?.id) {
-      // Surface the Postgres error in Vercel runtime logs so the operator
-      // doesn't need a Supabase-dashboard round-trip — the action-contract
-      // message already tells them to check logs.
-      console.error('[add-ons] tasks insert failed:', inserted.error);
+      console.error('[add-ons] tasks insert failed');
       return NextResponse.json({ error: 'crm_task_insert_failed' }, { status: 500 });
+    }
+
+    try {
+      const timelineInsert = buildCrmTimelineAgentActionInsert(buildCrmActivityTimelineEvent({
+        type: 'approval_requested',
+        actor: 'Margot',
+        subjectId: inserted.data.id,
+        subjectLabel: addOn.label,
+        occurredAt: inserted.data.created_at ?? new Date().toISOString(),
+        source: 'command_center_add_on_request',
+        requiresApproval: true,
+        metadata: {
+          addOnId: addOn.id,
+          category: addOn.category,
+          taskStatus: inserted.data.status,
+        },
+      }));
+      const timelineResult = await admin.from('agent_actions').insert(timelineInsert);
+      if (timelineResult.error) console.error('[add-ons] CRM timeline insert failed');
+    } catch {
+      console.error('[add-ons] CRM timeline insert failed');
     }
 
     return NextResponse.json(
