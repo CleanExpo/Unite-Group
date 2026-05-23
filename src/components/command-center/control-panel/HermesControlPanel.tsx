@@ -49,15 +49,27 @@ function stateLabel(status: ControlStatus, ryg?: ControlRyg) {
   return STATUS_LABELS[status];
 }
 
-export function HermesControlPanel() {
-  const [payload, setPayload] = useState<ControlPanelPayload | null>(null);
-  const [sourceState, setSourceState] = useState<'loading' | 'live' | 'fallback'>('loading');
-  const [fallbackReason, setFallbackReason] = useState<string | null>(null);
-  const [localAddOns, setLocalAddOns] = useState<AddOnGate[] | null>(null);
+type HermesControlPanelProps = {
+  initialPayload?: ControlPanelPayload;
+};
+
+export function HermesControlPanel({ initialPayload }: HermesControlPanelProps = {}) {
+  const [payload, setPayload] = useState<ControlPanelPayload | null>(initialPayload ?? null);
+  const [sourceState, setSourceState] = useState<'loading' | 'live' | 'fallback'>(
+    initialPayload?.source.startsWith('crm:') ? 'live' : initialPayload ? 'fallback' : 'loading',
+  );
+  const [fallbackReason, setFallbackReason] = useState<string | null>(
+    initialPayload && !initialPayload.source.startsWith('crm:')
+      ? `server returned source=${initialPayload.source}`
+      : null,
+  );
+  const [localAddOns, setLocalAddOns] = useState<AddOnGate[] | null>(initialPayload?.addOns ?? null);
   const [pendingAddOnId, setPendingAddOnId] = useState<string | null>(null);
   const [addOnOutcome, setAddOnOutcome] = useState<AddOnOutcome | null>(null);
 
   useEffect(() => {
+    if (initialPayload) return;
+
     let cancelled = false;
 
     async function loadControlPanel() {
@@ -90,7 +102,7 @@ export function HermesControlPanel() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialPayload]);
 
   async function requestAddOnGate(addOn: AddOnGate) {
     setPendingAddOnId(addOn.id);
