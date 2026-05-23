@@ -102,6 +102,37 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest verification refresh at `2026-05-23 22:24 AEST`:
+
+- Completed a small command-center CRM read-surface slice: `src/app/api/command-center/control-panel/route.ts` now returns `summary.approvalRequired` for workspace-scoped CRM task rows needing Phill/Board/operator approval.
+- TDD evidence: the new focused control-panel test failed RED first because `summary.approvalRequired` was missing, then passed after the route counted statuses `blocked`, `needs_approval`, `approval`, or assignee `Phill approval` case-insensitively.
+- Review evidence: spec compliance review PASS; code quality/security review APPROVED. The one minor test-hygiene note was fixed by clearing `COMMAND_CENTER_LOCAL_PREVIEW` in the test `beforeEach`.
+- Documentation evidence: `docs/margot/crm-test-coverage-matrix.md` now marks the command-center CRM API read surface as covered for approval-summary visibility and leaves UI component rendering as the next gap.
+- Verification passed: `npx jest tests/integration/api/control-panel.test.ts --runInBand` returned 1 suite / 3 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`.
+- `docs/margot/overnight-progress-log.md` had an incomplete prior LaunchAgent `Log:` marker/trailing blank; this tick cleaned that handoff marker while appending evidence.
+- Current branch remains `main` with local uncommitted changes; no PR/deploy was opened in this tick.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, or secret printing/storage was performed.
+
+Latest verification refresh at `2026-05-23 21:54 AEST`:
+
+- Re-read the Margot operating docs requested for this tick, inspected repo state, and respected the existing-assets-first / sandbox-first operating boundaries.
+- Current branch is `main`; latest local commit is `49b5046 Record Margot PR 175 merge evidence`.
+- Working tree already had report-only updates in `docs/margot/overnight-progress-log.md` and `docs/margot/morning-report.md`; this tick appended new evidence without touching app code, schema, migrations, Vercel, GitHub, or production data.
+- Safe health check passed: `node_modules=present`, `package-lock=present`, `/Volumes` contains `Claude` and `Macintosh HD`, `phills-mac-mini.local:445` is reachable, `phills-mac-mini.local:22` is unreachable, and `docs/margot/recovered-from-mac-mini/` still contains only `.gitkeep`.
+- Local verification passed: `npm run type-check`; `npm run security:routes-check` returned `0 unprotected mutating routes`.
+- Mac Mini recovery remains blocked on authenticated SMB mount containing the approved target files or SSH availability; no noninteractive credential attempt was made and no secrets were printed.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, or secret printing/storage was performed.
+
+Latest verification refresh at `2026-05-23 21:37 AEST`:
+
+- PR #176 is merged: https://github.com/CleanExpo/Unite-Group/pull/176
+- Merge commit: `49b50465e5f8790f70638993d6bfea3993c574e3`.
+- Main branch CI after PR #176 passed: CI run `26331577196` completed successfully; DESIGN.md lint run `26331577198` completed successfully.
+- Local verification also passed: `npm run type-check`; `npm run security:routes-check` returned `0 unprotected mutating routes`.
+- Vercel status for the PR #176 merge commit is success: https://vercel.com/unite-group/unite-group/Fzw9QMptvK7NtVDqy26pQeN18z6d
+- Scope shipped: evidence-only handoff recording PR #175 merge/deploy verification; local `main` was fast-forwarded cleanly to `origin/main` at `49b5046`.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, or secret printing/storage was performed.
+
 Latest verification refresh at `2026-05-23 21:31 AEST`:
 
 - PR #175 is merged: https://github.com/CleanExpo/Unite-Group/pull/175

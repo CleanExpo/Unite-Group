@@ -28,6 +28,7 @@ describe('GET /api/command-center/control-panel', () => {
       ...oldEnv,
       UNITE_CRM_WORKSPACE_ID: 'workspace-1',
     };
+    delete process.env.COMMAND_CENTER_LOCAL_PREVIEW;
     mockedRequireAdmin.mockResolvedValue({ ok: true, actorEmail: 'service-role' });
   });
 
@@ -43,9 +44,60 @@ describe('GET /api/command-center/control-panel', () => {
 
     expect(res.status).toBe(200);
     expect(body.source).toBe('fallback:local_preview');
+    expect(body.summary.approvalRequired).toBe(0);
     expect(body.workstreams).toHaveLength(7);
     expect(mockedRequireAdmin).not.toHaveBeenCalled();
     expect(mockedGetAdminClient).not.toHaveBeenCalled();
+  });
+
+  it('counts approval-required CRM task rows in the summary', async () => {
+    const limit = jest.fn().mockResolvedValue({
+      data: [
+        {
+          id: 'task-approval-1',
+          title: 'Unmapped Phill decision',
+          status: 'blocked',
+          priority: 'high',
+          tags: ['unmapped'],
+          assignee_name: 'Phill approval',
+          obsidian_path: null,
+          updated_at: '2026-05-23T08:00:00.000Z',
+          created_at: '2026-05-23T07:00:00.000Z',
+        },
+        {
+          id: 'task-normal-1',
+          title: 'Normal CRM hygiene task',
+          status: 'running',
+          priority: 'normal',
+          tags: [],
+          assignee_name: 'Operator',
+          obsidian_path: null,
+          updated_at: '2026-05-23T08:05:00.000Z',
+          created_at: '2026-05-23T07:05:00.000Z',
+        },
+      ],
+      error: null,
+    });
+    const order = jest.fn().mockReturnValue({ limit });
+    const eq = jest.fn().mockReturnValue({ order });
+    const select = jest.fn().mockReturnValue({ eq });
+    const from = jest.fn().mockReturnValue({ select });
+    mockedGetAdminClient.mockReturnValue({ from });
+
+    const res = await GET(req());
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.source).toBe('crm:tasks');
+    expect(body.taskCount).toBe(2);
+    expect(body.summary.approvalRequired).toBe(1);
+    expect(from).toHaveBeenCalledWith('tasks');
+    expect(select).toHaveBeenCalledWith(
+      'id,title,status,priority,tags,assignee_name,obsidian_path,updated_at,created_at',
+    );
+    expect(eq).toHaveBeenCalledWith('workspace_id', 'workspace-1');
+    expect(order).toHaveBeenCalledWith('updated_at', { ascending: false, nullsFirst: false });
+    expect(limit).toHaveBeenCalledWith(100);
   });
 
   it('keeps the route admin-gated when local preview is disabled', async () => {
