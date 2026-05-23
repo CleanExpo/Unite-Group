@@ -3769,3 +3769,164 @@ Blockers / unchanged constraints:
 Next safe slice:
 
 - Publish this verified branch through GitHub if transport/checks remain available; after that, continue the reviewer-noted tag-only/trim regression or command-center client-side fetch hydration coverage.
+
+## 2026-05-24 03:06 AEST
+
+### Lane executed — command-center approval tag trim hardening
+
+Health/readiness check:
+
+```text
+timestamp=2026-05-24 03:06:08 AEST
+branch=main
+head=b7a2943
+working_tree_at_start=clean
+node_modules=present
+package_lock=present
+/Volumes=Claude, Macintosh HD
+phills-mac-mini.local:445=reachable
+phills-mac-mini.local:22=unreachable
+recovered_files=docs/margot/recovered-from-mac-mini/.gitkeep only
+```
+
+Safe improvement:
+
+- Closed the reviewer-noted micro-slice for incidental approval tag whitespace.
+- `src/app/api/command-center/control-panel/route.ts` now trims task `status`, `tags`, and `assignee_name` strings before approval-required classification.
+- `tests/integration/api/control-panel.test.ts` now includes a spaced ` needs-approval ` tag fixture in the Board/operator approval marker regression.
+- Updated `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/mac-mini-recovery-status.md`, and `docs/margot/morning-report.md` with this evidence.
+
+TDD evidence:
+
+```text
+RED: npx jest tests/integration/api/control-panel.test.ts --runInBand
+Expected approvalRequired=5, received 4 for the spaced ` needs-approval ` tag fixture.
+```
+
+Verification:
+
+```bash
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand
+# PASS: 2 suites / 7 tests
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Blockers / unchanged constraints:
+
+- Mac Mini artifact recovery remains blocked on authenticated SMB mount containing the approved target files or SSH availability.
+- No GitHub push, Vercel deploy/env mutation, production DB write, migration application, sandbox apply, secret access/printing/storage, client-facing communication, billing/payment action, destructive git, cross-client merge, or unrelated context mixing was performed.
+
+Next safe slice:
+
+- Continue command-center client-side fetch hydration coverage, or move to route-level CRM event-write tests before wiring more CRM mutation routes into `agent_actions` timeline rows.
+
+## 2026-05-24 03:44 AEST
+
+### Lane completed — approval tag whitespace hardening review + publish prep
+
+Health/readiness check:
+
+```text
+branch=main at start with intended local slice changes
+open_prs=[]
+github_auth=available via gh; token value not printed
+node_modules=present
+package_lock=present
+```
+
+Review evidence:
+
+- Spec compliance re-review: PASS after EOF/progress-log cleanup.
+- Code quality/security re-review: APPROVED.
+- Fixed the stale incomplete LaunchAgent tail marker in this progress log and reran the whitespace gate.
+
+Verification:
+
+```bash
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand
+# PASS: 2 suites / 7 tests
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Blockers / unchanged constraints:
+
+- Mac Mini artifact recovery remains blocked on authenticated SMB mount containing the approved target files or SSH availability.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, secret printing/storage, or unrelated context mixing was performed.
+
+Next safe slice:
+
+- Publish this reviewed command-center whitespace branch if GitHub transport remains available, then continue command-center client-side fetch hydration coverage or route-level CRM event-write tests.
+
+## 2026-05-24 03:41 AEST
+
+### Lane executed — command-center status trim hardening
+
+Health/readiness check:
+
+```text
+timestamp=2026-05-24 03:40:17 AEST
+branch=main
+head=b7a2943
+node_modules=present
+package_lock=present
+/Volumes=Claude, Macintosh HD
+phills-mac-mini.local:445=unreachable
+phills-mac-mini.local:22=unreachable
+recovered_files=0 approved artifacts; only .gitkeep remains locally
+```
+
+Safe improvement:
+
+- Continued the command-center CRM read-surface lane from local repo assets only.
+- `src/app/api/command-center/control-panel/route.ts` now trims CRM task `status` and `priority` before workstream status/RYG mapping, matching the already-trimmed approval-required classifier path.
+- `tests/integration/api/control-panel.test.ts` now covers a whitespace-padded ` blocked ` task mapped to the Margot voice/CRM workstream and asserts it becomes `status=gated`, `ryg=red`, and remains counted in `summary.approvalRequired`.
+- Updated `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/mac-mini-recovery-status.md`, and `docs/margot/morning-report.md` with this evidence.
+
+TDD evidence:
+
+```text
+RED: npx jest tests/integration/api/control-panel.test.ts --runInBand
+Expected mapped ug-v0-02 workstream status=gated / ryg=red for spaced ` blocked ` status.
+Received status=live / ryg=yellow before route trim hardening.
+```
+
+Verification:
+
+```bash
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand
+# PASS: 2 suites / 7 tests
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Blockers / unchanged constraints:
+
+- Mac Mini artifact recovery remains blocked on authenticated SMB mount containing the approved target files or SSH availability; the latest probe had both SMB and SSH unreachable.
+- No GitHub push, Vercel deploy/env mutation, production DB write, migration application, sandbox apply, secret access/printing/storage, client-facing communication, billing/payment action, destructive git, cross-client merge, or unrelated context mixing was performed.
+
+Next safe slice:
+
+- Continue command-center client-side fetch hydration coverage, or add route-level CRM event-write tests before wiring more CRM mutation routes into `agent_actions` timeline rows.

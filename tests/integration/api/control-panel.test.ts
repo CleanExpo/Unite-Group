@@ -148,6 +148,28 @@ describe('GET /api/command-center/control-panel', () => {
           created_at: '2026-05-23T07:12:00.000Z',
         },
         {
+          id: 'task-tag-needs-approval-spaced',
+          title: 'Review CRM automation policy whitespace tag',
+          status: 'running',
+          priority: 'normal',
+          tags: [' needs-approval '],
+          assignee_name: 'Operator',
+          obsidian_path: null,
+          updated_at: '2026-05-23T08:13:00.000Z',
+          created_at: '2026-05-23T07:13:00.000Z',
+        },
+        {
+          id: 'task-status-blocked-spaced',
+          title: 'Margot voice to CRM task waiting on approval',
+          status: ' blocked ',
+          priority: 'normal',
+          tags: [],
+          assignee_name: 'Operator',
+          obsidian_path: null,
+          updated_at: '2026-05-23T08:14:00.000Z',
+          created_at: '2026-05-23T07:14:00.000Z',
+        },
+        {
           id: 'task-normal-2',
           title: 'Normal CRM hygiene task',
           status: 'running',
@@ -172,7 +194,17 @@ describe('GET /api/command-center/control-panel', () => {
 
     expect(res.status).toBe(200);
     expect(body.source).toBe('crm:tasks');
-    expect(body.summary.approvalRequired).toBe(4);
+    expect(body.summary.approvalRequired).toBe(6);
+    expect(body.workstreams).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'ug-v0-02',
+          status: 'gated',
+          ryg: 'red',
+          crmTaskId: 'task-status-blocked-spaced',
+        }),
+      ]),
+    );
   });
 
   it('keeps the route admin-gated when local preview is disabled', async () => {

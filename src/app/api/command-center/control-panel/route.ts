@@ -68,7 +68,7 @@ function findTaskForWorkstream(id: string, tasks: TaskRow[]) {
 
 function mapStatus(task: TaskRow | undefined, fallback: ControlStatus): ControlStatus {
   if (!task) return fallback;
-  const status = task.status.toLowerCase();
+  const status = task.status.trim().toLowerCase();
   if (['done', 'closed', 'complete', 'completed'].includes(status)) return 'live';
   if (['blocked', 'needs_approval', 'approval', 'blocked-on-you'].includes(status)) return 'gated';
   if (['todo', 'ready', 'running', 'in_progress', 'in-progress'].includes(status)) return 'building';
@@ -77,17 +77,17 @@ function mapStatus(task: TaskRow | undefined, fallback: ControlStatus): ControlS
 
 function mapRyg(task: TaskRow | undefined, fallback: ControlRyg): ControlRyg {
   if (!task) return fallback;
-  const status = task.status.toLowerCase();
-  const priority = task.priority?.toLowerCase() ?? '';
+  const status = task.status.trim().toLowerCase();
+  const priority = task.priority?.trim().toLowerCase() ?? '';
   if (['blocked', 'failed', 'red'].includes(status) || priority === 'urgent') return 'red';
   if (['done', 'closed', 'complete', 'completed'].includes(status)) return 'green';
   return 'yellow';
 }
 
 function isApprovalRequiredTask(task: TaskRow) {
-  const status = task.status.toLowerCase();
-  const assignee = task.assignee_name?.toLowerCase() ?? '';
-  const tags = (task.tags ?? []).map((tag) => tag.toLowerCase());
+  const status = task.status.trim().toLowerCase();
+  const assignee = task.assignee_name?.trim().toLowerCase() ?? '';
+  const tags = (task.tags ?? []).map((tag) => tag.trim().toLowerCase());
   return (
     ['blocked', 'blocked-on-you', 'needs_approval', 'approval'].includes(status) ||
     tags.some((tag) => ['approval', 'approval-required', 'needs-approval'].includes(tag)) ||
