@@ -1,0 +1,209 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { z } from 'zod';
+import { requireAdmin } from '@/lib/security/require-admin';
+
+export const dynamic = 'force-dynamic';
+
+const opportunityStages = [
+  'new_signal',
+  'qualified',
+  'discovery',
+  'proposal_needed',
+  'proposal_sent',
+  'negotiation',
+  'decision_needed',
+  'won_pending_client_conversion',
+  'won_converted',
+  'lost',
+  'paused',
+  'blocked_review',
+] as const;
+
+const opportunityStatuses = ['open', 'won', 'lost', 'paused', 'blocked_review', 'cancelled'] as const;
+const approvalStatuses = ['not_required', 'requested', 'approved', 'rejected', 'expired'] as const;
+const safeValueCurrencies = ['AUD', 'USD', 'NZD', 'GBP', 'EUR'] as const;
+const ADDITIONAL_DATA_MAX_BYTES = 4096;
+const OPPORTUNITY_SELECT_COLUMNS = 'id,name,stage,status,value_amount,value_currency,probability,expected_close_at,next_action_due_at,next_action,decision_needed,risk,source,owner,campaign_source,campaign_medium,campaign_name,source_detail,lost_reason,linked_lead_id,linked_contact_id,linked_client_id,linked_business_id,approval_required,approval_status,additional_data,created_at,updated_at';
+
+const sensitiveAdditionalDataKeyPattern = /(?:secret|token|password|passphrase|api[_-]?key|private[_-]?key|credential|authorization|cookie|session|stripe|payment|card|cvc|cvv|bank|iban|bsb|account[_-]?number|passport|driver'?s?[_\s-]?licen[cs]e|tax[_\s-]?file|tfn|medicare|ssn|dob|birth[_\s-]?date|email|phone|mobile|address|cross[_\s-]?client|client[_\s-]?notes?)/i;
+const sensitiveAdditionalDataStringPatterns = [
+  /(?:secret|token|password|passphrase|api[_-]?key|private[_-]?key|credential|authorization|bearer\s+[a-z0-9._-]+)/i,
+  /(?:stripe|payment|card|cvc|cvv|bank|iban|bsb|account\s*number|passport|driver'?s?\s*licen[cs]e|tax\s*file|tfn|medicare|ssn)/i,
+  /(?:cross\s*client|client\s*notes?)/i,
+  /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i,
+];
+
+const blankStringToUndefined = (value: unknown) =>
+  typeof value === 'string' && value.trim().length === 0 ? undefined : value;
+
+const optionalTrimmed = (max: number) =>
+  z.preprocess(blankStringToUndefined, z.string().trim().max(max).optional());
+const optionalTrimmedDefault = (max: number, defaultValue: string) =>
+  z.preprocess(blankStringToUndefined, z.string().trim().max(max).default(defaultValue));
+const optionalBoardApprovalId = z.preprocess(
+  blankStringToUndefined,
+  z.string().trim().max(120).optional(),
+);
+const optionalValueCurrency = z.preprocess(
+  (value) => (typeof value === 'string' ? value.trim().toUpperCase() : value),
+  z.enum(safeValueCurrencies).optional(),
+);
+
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function containsUnsafeAdditionalData(value: unknown): boolean {
+  if (typeof value === 'string') {
+    return sensitiveAdditionalDataStringPatterns.some((pattern) => pattern.test(value));
+  }
+
+  if (Array.isArray(value)) {
+    return value.some(containsUnsafeAdditionalData);
+  }
+
+  if (isJsonObject(value)) {
+    return Object.entries(value).some(([key, nestedValue]) => (
+      sensitiveAdditionalDataKeyPattern.test(key) || containsUnsafeAdditionalData(nestedValue)
+    ));
+  }
+
+  return false;
+}
+
+const safeAdditionalData = z.record(z.unknown()).superRefine((value, ctx) => {
+  const serialized = JSON.stringify(value);
+  if (serialized === undefined || Buffer.byteLength(serialized, 'utf8') > ADDITIONAL_DATA_MAX_BYTES) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'additionalData is too large' });
+    return;
+  }
+
+  if (containsUnsafeAdditionalData(value)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'additionalData contains sensitive data' });
+  }
+});
+
+const opportunityCreateSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  stage: z.enum(opportunityStages).default('new_signal'),
+  status: z.enum(opportunityStatuses).default('open'),
+  valueAmount: z.number().nonnegative().optional(),
+  valueCurrency: optionalValueCurrency,
+  probability: z.number().int().min(0).max(100).optional(),
+  expectedCloseAt: z.string().datetime().optional(),
+  nextActionDueAt: z.string().datetime().optional(),
+  source: optionalTrimmedDefault(120, 'manual'),
+  owner: optionalTrimmedDefault(120, 'Margot'),
+  linkedLeadId: z.string().uuid().optional(),
+  linkedContactId: z.string().uuid().optional(),
+  linkedClientId: z.string().uuid().optional(),
+  linkedBusinessId: z.string().uuid().optional(),
+  nextAction: optionalTrimmed(2000),
+  decisionNeeded: optionalTrimmed(2000),
+  risk: optionalTrimmed(2000),
+  campaignSource: optionalTrimmed(200),
+  campaignMedium: optionalTrimmed(200),
+  campaignName: optionalTrimmed(200),
+  sourceDetail: optionalTrimmed(500),
+  lostReason: optionalTrimmed(1000),
+  approvalRequired: z.boolean().default(false),
+  approvalStatus: z.enum(approvalStatuses).default('not_required'),
+  boardApprovalId: optionalBoardApprovalId,
+  additionalData: safeAdditionalData.default({}),
+});
+
+function requiresOperatorApproval(opportunity: z.infer<typeof opportunityCreateSchema>) {
+  return (
+    opportunity.status === 'won'
+      || opportunity.stage === 'won_pending_client_conversion'
+      || opportunity.stage === 'won_converted'
+  );
+}
+
+function hasRequiredOperatorApproval(opportunity: z.infer<typeof opportunityCreateSchema>) {
+  return (
+    opportunity.approvalRequired === true
+      && opportunity.approvalStatus === 'approved'
+      && typeof opportunity.boardApprovalId === 'string'
+      && opportunity.boardApprovalId.trim().length >= 6
+  );
+}
+
+export async function POST(request: NextRequest) {
+  const gate = await requireAdmin(request);
+  if (gate instanceof NextResponse) return gate;
+
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return NextResponse.json({ error: 'crm_not_configured' }, { status: 503 });
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'invalid_opportunity_payload' }, { status: 400 });
+  }
+
+  const parsed = opportunityCreateSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'invalid_opportunity_payload' }, { status: 400 });
+  }
+
+  const opportunity = parsed.data;
+  if (requiresOperatorApproval(opportunity) && !hasRequiredOperatorApproval(opportunity)) {
+    return NextResponse.json({ error: 'operator_approval_required' }, { status: 403 });
+  }
+
+  const insertPayload = {
+    name: opportunity.name,
+    stage: opportunity.stage,
+    status: opportunity.status,
+    value_amount: opportunity.valueAmount ?? null,
+    value_currency: opportunity.valueAmount === undefined ? null : opportunity.valueCurrency ?? 'AUD',
+    probability: opportunity.probability ?? null,
+    expected_close_at: opportunity.expectedCloseAt ?? null,
+    next_action_due_at: opportunity.nextActionDueAt ?? null,
+    next_action: opportunity.nextAction ?? null,
+    decision_needed: opportunity.decisionNeeded ?? null,
+    risk: opportunity.risk ?? null,
+    source: opportunity.source,
+    owner: opportunity.owner,
+    campaign_source: opportunity.campaignSource ?? null,
+    campaign_medium: opportunity.campaignMedium ?? null,
+    campaign_name: opportunity.campaignName ?? null,
+    source_detail: opportunity.sourceDetail ?? null,
+    lost_reason: opportunity.lostReason ?? null,
+    linked_lead_id: opportunity.linkedLeadId ?? null,
+    linked_contact_id: opportunity.linkedContactId ?? null,
+    linked_client_id: opportunity.linkedClientId ?? null,
+    linked_business_id: opportunity.linkedBusinessId ?? null,
+    approval_required: opportunity.approvalRequired,
+    approval_status: opportunity.approvalStatus,
+    additional_data: opportunity.additionalData,
+  };
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    { auth: { persistSession: false } },
+  );
+
+  try {
+    const { data, error } = await supabase
+      .from('crm_opportunities')
+      .insert(insertPayload)
+      .select(OPPORTUNITY_SELECT_COLUMNS)
+      .single();
+
+    if (error) {
+      console.error('Error creating CRM opportunity:', error);
+      return NextResponse.json({ error: 'crm_opportunity_create_failed' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, opportunity: data }, { status: 201 });
+  } catch (error) {
+    console.error('Unexpected CRM opportunity create error:', error);
+    return NextResponse.json({ error: 'crm_opportunity_create_failed' }, { status: 500 });
+  }
+}

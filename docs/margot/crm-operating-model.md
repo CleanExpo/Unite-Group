@@ -198,19 +198,27 @@ Conversion guardrails:
 - Keep original lead record immutable enough for attribution; use status/conversion fields instead of deleting.
 - Record failed SendGrid sync as a non-fatal integration issue if CRM persistence succeeds.
 
-## CRM Test Matrix Seed
+## CRM Test Matrix
 
-| Area | Test focus | Current status |
-| --- | --- | --- |
-| Marketing lead route | Rate limit, invalid schema, SendGrid success/failure, CRM persistence success/failure | Implemented and covered by `tests/integration/api/marketing-leads.test.ts`; last known focused pass recorded in progress log |
-| CRM leads list route | Admin/service-role listing, filters, missing Supabase env, read failure | Implemented and verified 2026-05-23: `tests/integration/api/crm-leads-list.test.ts` passed |
-| Lead qualification helper | Deterministic pure scoring, business/free/disposable email cases, spam risk, operator notes | Implemented and verified 2026-05-23: `tests/unit/lib/crm/qualify-lead.test.ts` passed |
-| Client create route | Validation, duplicate slug/email, insert failure, audit action, cache invalidation | Existing route and tests present under `src/app/api/empire/clients/__tests__` |
-| Client update route | Validation, not found, audit action, cache invalidation | Existing route/tests present; not re-audited this pass |
-| Margot voice task route | Auth, rate limit, env missing, invalid packet, Supabase insert failures, success | Verified 2026-05-23: 28 focused Margot voice tests passed |
-| Failure taxonomy | Operator-safe user messages | Verified 2026-05-23 |
-| Integration mirrors | Read-only surface and source health | Existing routes/tests under `src/app/api/empire/sources/*`; not re-run this pass |
-| Activity timeline | `agent_actions` writes and digest surfacing | Client audit helper exists; broader CRM event policy needed |
+The detailed CRM coverage map now lives in:
+
+`docs/margot/crm-test-coverage-matrix.md`
+
+Use that matrix as the current local verification contract for lead capture, lead listing, qualification, guarded conversion, contacts, opportunities, daily digest, voice ingress, client audit, approvals, integration mirrors, command-center UI gaps, and Mac Mini recovery evidence.
+
+Current focused CRM verification gate from the matrix:
+
+```bash
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts --runInBand
+npm run type-check
+npm run security:routes-check
+```
+
+Voice ingress focused gate remains:
+
+```bash
+npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts --runInBand
+```
 
 ## Next Implementation Lanes
 

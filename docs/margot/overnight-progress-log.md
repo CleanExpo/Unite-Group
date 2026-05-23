@@ -1585,3 +1585,117 @@ Next slice:
 
 - Once GitHub HTTPS/CLI auth is available, push `feat/margot-crm-daily-digest-route` and open/monitor the PR; otherwise continue local safe fallback with command-center digest consumption/fixture coverage or the guarded opportunities create route contract.
 
+## 2026-05-23 11:04 AEST
+
+### Lane completed — CRM test coverage matrix
+
+Preflight / repo state:
+
+```text
+branch=feat/margot-crm-daily-digest-route
+head before slice=466a7a3 docs: record CRM digest push blocker
+node_modules=present
+package-lock.json=present
+/Volumes=Macintosh HD only
+phills-mac-mini.local:445 reachable
+phills-mac-mini.local:22 unreachable
+docs/margot/recovered-from-mac-mini/ contains only .gitkeep
+```
+
+Slice completed:
+
+- Created `docs/margot/crm-test-coverage-matrix.md` as the durable Senior PM / CRM verification map.
+- Replaced the shorter seed table in `docs/margot/crm-operating-model.md` with a pointer to the new matrix and the focused CRM/voice verification gates.
+- Matrix now maps local coverage for marketing lead capture, CRM lead list, lead qualification, guarded lead conversion, contacts migration/API, opportunities draft schema, daily CRM digest helper/route, Margot voice ingress, client audit, activity/timeline gaps, integration mirrors, approvals, command-center UI gaps, and Mac Mini recovery.
+- Current next coverage gaps are now ordered: opportunities create route, activity/timeline taxonomy, approvals lifecycle, command-center CRM UI, stale integration thresholds, local schema provenance for `tasks`/`voice_command_sessions`, and wider client route regression before `nexus_clients` conversion work.
+
+Verification commands/results:
+
+```bash
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts --runInBand
+# PASS: 8 suites passed, 41 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Safety / blockers:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+- Mac Mini artifacts remain unrecovered until authenticated SMB mount, SSH/Remote Login, or approved export is available.
+- GitHub PR/check state remains blocked by unavailable local GitHub HTTPS/gh authentication.
+
+Next slice:
+
+- Continue local safe fallback with the guarded opportunities create route contract or command-center CRM digest UI consumption, while keeping the new CRM matrix as the verification gate.
+
+
+## 2026-05-23 11:08:17 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+
+## 2026-05-23 11:29 AEST
+
+### Lane completed — guarded CRM opportunities create route
+
+Preflight / repo state:
+
+```text
+branch=feat/margot-crm-daily-digest-route
+head before slice=466a7a3 docs: record CRM digest push blocker
+node_modules=present
+package-lock.json=present
+gh_auth=unavailable via gh CLI
+secrets not printed; token/env values redacted by policy
+```
+
+Slice completed:
+
+- Added local forecast-only `POST /api/crm/opportunities` route at `src/app/api/crm/opportunities/route.ts`.
+- Added TDD integration test coverage at `tests/integration/api/crm-opportunities-create.test.ts`.
+- RED evidence: focused opportunity-create test failed first because `@/app/api/crm/opportunities/route` did not exist.
+- GREEN evidence: focused opportunity-create test passed after implementation, then passed again after quality fixes with 14 tests.
+- Spec compliance review: PASS.
+- Quality review: REQUEST_CHANGES for service-role select minimization, `additionalData` hardening, value currency, and explicit non-admin denial coverage; fixes applied; final quality re-review APPROVED.
+- Updated `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/crm-operating-model.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, and `docs/margot/morning-report.md` so the opportunity create route is part of the current CRM verification map.
+
+Route safety behavior:
+
+- Admin gate runs before CRM Supabase access.
+- Missing config, invalid JSON, invalid payload, anonymous caller, authenticated non-admin caller, sensitive/oversized `additionalData`, and unapproved won/conversion-like opportunities all fail before `crm_opportunities` access.
+- Successful path inserts only `crm_opportunities`, uses snake_case payload fields, defaults `value_currency` to `AUD` when `valueAmount` exists, uses explicit safe select columns instead of `select('*')`, and never persists `boardApprovalId`.
+- Route remains local code/test contract only; the contacts/opportunities migration has not been applied to sandbox or production in this tick.
+
+Verification commands/results:
+
+```bash
+npx jest tests/integration/api/crm-opportunities-create.test.ts --runInBand
+# PASS: 1 suite passed, 14 tests passed
+
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts --runInBand
+# PASS: 9 suites passed, 55 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Safety / blockers:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, secret access/printing, Mac Mini write, or client-facing send was performed.
+- GitHub CLI auth remains unavailable; push/PR needs verified GitHub transport before claiming remote readiness.
+- Mac Mini artifacts remain unrecovered until authenticated SMB mount, SSH/Remote Login, or approved export is available.
+
+Next slice:
+
+- Continue local safe fallback with opportunity read/digest integration so the daily CRM digest can surface open/won/blocked opportunities, or wire command-center CRM digest UI consumption if UI is higher leverage.
+

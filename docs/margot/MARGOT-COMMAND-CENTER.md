@@ -191,18 +191,23 @@ Safe destination when recovered:
 ## Health Check Snapshot
 
 Timestamp:
-`2026-05-23 10:30 AEST`
+`2026-05-23 11:29 AEST`
 
 Git state:
 - branch: `feat/margot-crm-daily-digest-route`
-- head: `ed65b98 docs: record CRM daily digest task-read progress`
-- working tree was clean before the 10:30 status-doc refresh; no destructive git action taken.
+- head before this tick: `466a7a3 docs: record CRM digest push blocker`
+- working tree changed locally for the CRM test matrix and guarded opportunities create route; no destructive git action taken.
 
 Dependency state:
 - `node_modules=present`
 - `package-lock.json=present`
 
 Verification:
+- Guarded opportunities create route passed TDD/review at 2026-05-23 11:29 AEST: `src/app/api/crm/opportunities/route.ts` inserts forecast-only `crm_opportunities` rows behind admin auth, approval guards for won/conversion-like states, explicit safe select columns, value-currency defaults, and hardened `additionalData` validation.
+- Expanded focused CRM matrix gate passed at 2026-05-23 11:29 AEST: `npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts --runInBand` returned 9 suites, 55 tests passed.
+- `npm run type-check` passed at 2026-05-23 11:29 AEST.
+- `npm run security:routes-check` passed at 2026-05-23 11:29 AEST: route inventory found 0 unprotected mutating routes.
+- `docs/margot/crm-test-coverage-matrix.md` now records the opportunities create API coverage and next safe gaps.
 - `npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-leads-list.test.ts --runInBand` passed at 2026-05-23 10:30 AEST: 3 suites, 14 tests. This re-verifies the current read-only daily digest route after the latest local doc commit.
 - `npm run type-check` passed at 2026-05-23 10:30 AEST.
 - `npm run security:routes-check` passed at 2026-05-23 10:30 AEST: route inventory found 0 unprotected mutating routes.
@@ -226,11 +231,8 @@ Verification:
 
 Mac Mini recovery probe:
 - `/Volumes` only contains `Macintosh HD`; no authenticated Mac Mini share is mounted.
-- `phills-mac-mini.local` resolves to IPv4 addresses including `169.254.28.74` and `169.254.37.78` in the latest local probe.
-- Latest 2026-05-23 10:30 AEST probe: `phills-mac-mini.local:445` is reachable.
-- Latest 2026-05-23 10:30 AEST probe: `phills-mac-mini.local:22` is unreachable.
-- Latest 2026-05-23 09:58 AEST probe: `phills-mac-mini.local:445` is reachable.
-- Latest 2026-05-23 09:58 AEST probe: `phills-mac-mini.local:22` is unreachable.
+- Latest 2026-05-23 11:04 AEST probe: `phills-mac-mini.local:445` is reachable.
+- Latest 2026-05-23 11:04 AEST probe: `phills-mac-mini.local:22` is unreachable.
 - `docs/margot/recovered-from-mac-mini/` exists with only `.gitkeep`; no recovered artifacts yet.
 
 ## High-Level CRM Forecast
@@ -282,11 +284,12 @@ Current state:
 ## Immediate Next Moves
 
 1. Continue from `docs/plans/2026-05-23-margot-multi-day-crm-build-plan.md` as the active multi-day build queue.
-2. Use `docs/margot/crm-schema-inventory.md` and the refreshed `docs/margot/crm-operating-model.md` as the current schema/source-of-truth map.
+2. Use `docs/margot/crm-schema-inventory.md`, `docs/margot/crm-operating-model.md`, and `docs/margot/crm-test-coverage-matrix.md` as the current schema/source-of-truth/verification map.
 3. Use `docs/margot/lead-to-client-conversion-plan.md` as the current local guarded conversion contract; missing operator approval now returns `403 operator_approval_required` and the focused CRM lead suite is green.
 4. Use `docs/margot/crm-contacts-opportunities-model.md` as the current local proposal before broader contact/opportunity automation.
-5. Use `src/app/api/crm/daily-digest/route.ts` and `src/lib/crm/daily-digest.ts` as the current local read-only daily CRM digest wiring; the route now reads recent leads plus blocked/todo CRM task rows for approval/blocker visibility.
-6. Continue sandbox-only contacts/opportunities route/migration drafts only through local tests and the sandbox wizard; do not apply to production without explicit Board approval.
-7. Use the portfolio, client 2nd Brain, marketing strategy, and AI enhancement docs as Senior PM control surfaces while code lanes continue.
-8. Continue Mac Mini recovery when an authenticated SMB share is mounted or SSH is enabled.
-9. Keep focused CRM/Margot tests, `npm run type-check`, and `npm run security:routes-check` green before handoff or merge.
+5. Use `src/app/api/crm/daily-digest/route.ts` and `src/lib/crm/daily-digest.ts` as the current local read-only daily CRM digest wiring; the route now reads recent leads plus workspace-scoped blocked/todo CRM task rows for approval/blocker visibility.
+6. Next safe build lane: opportunity read/digest integration so the daily CRM digest can surface open/won/blocked opportunities safely, or command-center CRM digest UI consumption if UI wiring is preferred.
+7. Continue sandbox-only contacts/opportunities route/migration drafts only through local tests and the sandbox wizard; do not apply to production without explicit Board approval.
+8. Use the portfolio, client 2nd Brain, marketing strategy, and AI enhancement docs as Senior PM control surfaces while code lanes continue.
+9. Continue Mac Mini recovery when an authenticated SMB share is mounted or SSH is enabled.
+10. Keep the expanded CRM matrix gate, `npm run type-check`, and `npm run security:routes-check` green before handoff or merge.

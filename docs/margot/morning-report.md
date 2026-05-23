@@ -102,6 +102,28 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest guarded opportunities create route lane at `2026-05-23 11:29 AEST`:
+
+- Added local forecast-only `POST /api/crm/opportunities` route at `src/app/api/crm/opportunities/route.ts`.
+- Added TDD integration coverage at `tests/integration/api/crm-opportunities-create.test.ts`; RED failed first because the route module did not exist, GREEN passed after implementation, and quality re-review approved after adding explicit authenticated non-admin denial coverage.
+- Route behavior: admin gate before CRM Supabase access; config/invalid JSON/invalid payload safe failures; `crm_opportunities` insert only; explicit safe select columns; value currency default/support; sensitive/oversized `additionalData` rejection; won/conversion-like opportunities require approval flags and a Board approval id; Board approval id is never persisted.
+- Updated `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/crm-operating-model.md`, and `docs/margot/MARGOT-COMMAND-CENTER.md` so the opportunities create API is now part of the focused CRM verification gate.
+- Re-ran the expanded focused CRM gate: `npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts --runInBand` returned 9 suites passed / 55 tests passed.
+- Re-ran `npm run type-check`; `tsc --noEmit` passed.
+- Re-ran `npm run security:routes-check`; route inventory returned `0 unprotected mutating routes`.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, secret access/printing, Mac Mini write, or client-facing send was performed.
+
+Latest CRM test matrix lane at `2026-05-23 11:04 AEST`:
+
+- Created `docs/margot/crm-test-coverage-matrix.md` as the durable coverage/verification map for the current CRM operating loop.
+- Updated `docs/margot/crm-operating-model.md` so the CRM Test Matrix section points to the new detailed matrix and focused verification gates instead of the older seed table.
+- Matrix covers lead capture/list/qualification/conversion, contacts schema/API, opportunities draft schema, daily digest helper/route, Margot voice ingress, client audit/activity gaps, integration mirrors, approvals, command-center UI gaps, and Mac Mini recovery evidence.
+- Re-ran the expanded focused CRM gate: `npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts --runInBand` returned 8 suites passed / 41 tests passed.
+- Re-ran `npm run type-check`; `tsc --noEmit` passed.
+- Re-ran `npm run security:routes-check`; route inventory returned `0 unprotected mutating routes`.
+- Mac Mini probe during this lane: `/Volumes` only contains `Macintosh HD`; SMB/File Sharing port `445` is reachable; SSH/Remote Login port `22` is unreachable; recovery directory still contains only `.gitkeep`.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+
 Latest CRM daily digest workspace-scope fix at `2026-05-23 10:41 AEST`:
 
 - Continued active branch `feat/margot-crm-daily-digest-route` and fixed the broad service-role `tasks` read flagged by code-quality review.
