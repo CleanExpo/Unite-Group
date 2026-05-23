@@ -1,6 +1,6 @@
 # Linear Watch — Margot Today Queue
 
-Last synced: 2026-05-23 09:06:55 AEST
+Last synced: 2026-05-23 14:56:55 AEST
 Source: Linear team `UNI` / Unite-Group
 Purpose: Make parent-Hermes-pushed Linear work visible to Margot for today's task list.
 
@@ -55,13 +55,39 @@ Summary / Linear description excerpt:
 > * Any missing stock/product inputs clearly listed.
 > * No paid ad spend unless separately approved.
 
+### UNI-2053 — Create CCW product category copy
+
+- State: In Review (started)
+- Priority: None
+- Project: Brand OS Production Board
+- Assignee: Unassigned
+- Updated: 2026-05-23T04:56:45.921Z
+- Labels: none
+- Linear: https://linear.app/unite-group/issue/UNI-2053/create-ccw-product-category-copy
+
+Summary / Linear description excerpt:
+
+> Status: QUEUED
+> Owner: Margot
+> Route: Unite-Group / CCW CRM
+> Skills: client-identity-lock, business-brand-voice, ai-seo-content-brief
+
+> Decision needed:
+
+> * First product category topic.
+
+> Governance:
+
+> * Do not mix CCW with RestoreAssist/Synthex/DR-NRPG/CARSI contexts.
+> * Source client identity from registry before drafting.
+
 ### UNI-2054 — Maintain Margot Command Center and RestoreAssist Content Index
 
 - State: In Progress (started)
 - Priority: None
 - Project: Brand OS Production Board
 - Assignee: Unassigned
-- Updated: 2026-05-22T23:01:48.725Z
+- Updated: 2026-05-23T04:46:35.401Z
 - Labels: none
 - Linear: https://linear.app/unite-group/issue/UNI-2054/maintain-margot-command-center-and-restoreassist-content-index
 
@@ -81,32 +107,6 @@ Summary / Linear description excerpt:
 > * Keep statuses current.
 > * Record missing files and blocked decisions.
 > * Keep parked Toby/Duncan work out of this RestoreAssist / Brand OS workflow.
-
-### UNI-2053 — Create CCW product category copy
-
-- State: Todo (unstarted)
-- Priority: None
-- Project: Brand OS Production Board
-- Assignee: Unassigned
-- Updated: 2026-05-21T21:36:05.878Z
-- Labels: none
-- Linear: https://linear.app/unite-group/issue/UNI-2053/create-ccw-product-category-copy
-
-Summary / Linear description excerpt:
-
-> Status: QUEUED
-> Owner: Margot
-> Route: Unite-Group / CCW CRM
-> Skills: client-identity-lock, business-brand-voice, ai-seo-content-brief
-
-> Decision needed:
-
-> * First product category topic.
-
-> Governance:
-
-> * Do not mix CCW with RestoreAssist/Synthex/DR-NRPG/CARSI contexts.
-> * Source client identity from registry before drafting.
 
 ### UNI-2012 — [ATIA] W1.6 — Trademark search + domain acquisition: buy best ATIA domain
 
@@ -318,8 +318,8 @@ Summary / Linear description excerpt:
 | Issue | State | Priority | Project | Updated | Title |
 | --- | --- | --- | --- | --- | --- |
 | [UNI-2055](https://linear.app/unite-group/issue/UNI-2055/ccw-eofy-organic-campaign-stock-service-bookings-purchase-before-eofy) | In Review | Urgent | CCW CRM | 2026-05-22T23:06:47.564Z | CCW EOFY organic campaign — stock, service bookings, purchase-before-EOFY urgency |
-| [UNI-2054](https://linear.app/unite-group/issue/UNI-2054/maintain-margot-command-center-and-restoreassist-content-index) | In Progress | None | Brand OS Production Board | 2026-05-22T23:01:48.725Z | Maintain Margot Command Center and RestoreAssist Content Index |
-| [UNI-2053](https://linear.app/unite-group/issue/UNI-2053/create-ccw-product-category-copy) | Todo | None | Brand OS Production Board | 2026-05-21T21:36:05.878Z | Create CCW product category copy |
+| [UNI-2053](https://linear.app/unite-group/issue/UNI-2053/create-ccw-product-category-copy) | In Review | None | Brand OS Production Board | 2026-05-23T04:56:45.921Z | Create CCW product category copy |
+| [UNI-2054](https://linear.app/unite-group/issue/UNI-2054/maintain-margot-command-center-and-restoreassist-content-index) | In Progress | None | Brand OS Production Board | 2026-05-23T04:46:35.401Z | Maintain Margot Command Center and RestoreAssist Content Index |
 | [UNI-2012](https://linear.app/unite-group/issue/UNI-2012/atia-w16-trademark-search-domain-acquisition-buy-best-atia-domain) | Backlog | Urgent | ATIA | 2026-05-16T14:45:03.066Z | [ATIA] W1.6 — Trademark search + domain acquisition: buy best ATIA domain |
 | [UNI-2010](https://linear.app/unite-group/issue/UNI-2010/atia-w14-pm-carpet-recon-read-ccw-state-draft-accpa-charter-using-ccw) | Backlog | Urgent | ATIA | 2026-05-14T00:54:33.369Z | [ATIA] W1.4 — PM-Carpet recon: read CCW state, draft ACCPA charter using CCW as wedge |
 | [UNI-2009](https://linear.app/unite-group/issue/UNI-2009/atia-w13-pm-restoration-recon-read-ra-dr-state-plan-post-ios-launch) | Backlog | Urgent | ATIA | 2026-05-14T00:54:32.829Z | [ATIA] W1.3 — PM-Restoration recon: read RA + DR state, plan post-iOS-launch quarter |
