@@ -1936,7 +1936,8 @@ Review status:
 
 Blockers / transport:
 
-- GitHub push/PR remains blocked because `gh` is missing and no `GITHUB_TOKEN`/`GH_TOKEN` is present in this cron shell.
+- Local commit created: `49fdc09 feat: add CRM activity timeline taxonomy`.
+- GitHub push/PR remains blocked: `GIT_TERMINAL_PROMPT=0 git push -u origin feat/margot-crm-daily-digest-route` failed with `fatal: could not read Username for 'https://github.com': terminal prompts disabled` because `gh` is missing and no `GITHUB_TOKEN`/`GH_TOKEN` is present in this cron shell.
 - Vercel status/deploy verification is unavailable because `.vercel` and `VERCEL_TOKEN` are missing.
 - Mac Mini recovery remains blocked on authenticated SMB mount or SSH availability.
 

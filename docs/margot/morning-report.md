@@ -114,6 +114,8 @@ Latest activity/timeline taxonomy lane at `2026-05-23 12:42 AEST`:
 - Re-ran `npm run security:routes-check`; route inventory returned `0 unprotected mutating routes`.
 - Mac Mini probe during this lane: `/Volumes` contains only `Macintosh HD`; SMB/File Sharing port `445` is reachable; SSH/Remote Login port `22` is unreachable.
 - No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+- Local commit created: `49fdc09 feat: add CRM activity timeline taxonomy`.
+- Push/PR remains blocked: `GIT_TERMINAL_PROMPT=0 git push -u origin feat/margot-crm-daily-digest-route` failed with `fatal: could not read Username for 'https://github.com': terminal prompts disabled`.
 
 Latest opportunity digest integration finalize at `2026-05-23 12:08 AEST`:
 
