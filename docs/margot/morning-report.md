@@ -102,6 +102,27 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest approval task evidence mapper lane at `2026-05-23 17:11 AEST`:
+
+- Continued branch `feat/crm-approval-lifecycle-helper`; local code commit is `14061be feat: map CRM approval task evidence`.
+- Added pure local `buildCrmApprovalLifecycleInputFromTaskEvidence` in `src/lib/crm/approval-lifecycle.ts` and expanded `tests/unit/lib/crm/approval-lifecycle.test.ts` to 33 tests.
+- The mapper converts Stage 1 approval task evidence into lifecycle input without Supabase writes, without treating completed tasks as executed, and without granting auto-execution authority.
+- Security fixes from review are included: returned operator-facing reasons no longer echo raw approval references, Board IDs, approver values, rejection reasons, unknown statuses, or unknown subject types.
+- Spec review: PASS. Quality/security re-review: APPROVED. Final integration review: READY.
+- Verification passed: `npx jest tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand` returned 1 suite / 33 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed.
+- Push/PR remains blocked because `gh` is not installed and HTTPS GitHub transport is unauthenticated in this cron shell.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, successful GitHub push, secret access/printing, Mac Mini write, client-facing communication, billing/payment action, merge, or destructive git action was performed.
+
+Latest approval persistence planning lane at `2026-05-23 16:38 AEST`:
+
+- Created `docs/margot/crm-approval-persistence-plan.md` as the current approval persistence operating decision.
+- Decision: keep existing `tasks` approval subtype as Stage 1 for the operational queue (`blocked`, `high`, `Phill approval`, `approval-required`) and defer a dedicated `crm_approvals` table until structured approval history/query needs are proven.
+- Updated `docs/margot/crm-schema-inventory.md` and `docs/margot/crm-test-coverage-matrix.md` so approvals are no longer an undecided current persistence shape; the next safe gap is a local approval evidence mapper and sanitized event-write tests.
+- Updated `docs/margot/MARGOT-COMMAND-CENTER.md` and `docs/margot/overnight-progress-log.md` with health-check and evidence.
+- Verification passed: `npx jest tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand` returned 1 suite / 20 tests passed; `git diff --check` passed.
+- Health check: `node_modules=present`, `package-lock.json=present`, `/Volumes` contains only `Macintosh HD`, `phills-mac-mini.local:445` unreachable, `phills-mac-mini.local:22` unreachable.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, client-facing communication, billing/payment action, merge, or destructive git action was performed.
+
 Latest approval lifecycle helper verification at `2026-05-23 16:11 AEST`:
 
 - Current branch is `feat/crm-approval-lifecycle-helper`; local implementation commit is `ee642c3 feat: add CRM approval lifecycle helper`. Handoff docs were updated after the implementation commit to record evidence.
