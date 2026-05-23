@@ -181,10 +181,10 @@ async function recordOpportunityTimelineEvents(
         .single();
 
       if (error) {
-        console.error('Error recording CRM opportunity timeline event:', error);
+        console.error('Error recording CRM opportunity timeline event');
       }
-    } catch (error) {
-      console.error('Error recording CRM opportunity timeline event:', error);
+    } catch {
+      console.error('Error recording CRM opportunity timeline event');
     }
   }
 }

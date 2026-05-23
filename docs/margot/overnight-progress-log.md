@@ -4074,3 +4074,246 @@ Blockers / unchanged constraints:
 Next safe slice:
 
 - Push/open PR for this branch if auth remains available, monitor checks, and merge only after CI is clean; otherwise continue route-level event-write tests for the next CRM mutation route locally.
+
+## 2026-05-24 04:47 AEST
+
+### Lane executed — post-merge add-on approval timeline verification
+
+Readiness / current state:
+
+```text
+branch=main
+head=347397e
+origin/main=347397e
+node_modules=present
+package_lock=present
+/Volumes=Claude, Macintosh HD
+phills-mac-mini.local:445=reachable
+phills-mac-mini.local:22=unreachable
+recovered_files=only docs/margot/recovered-from-mac-mini/.gitkeep
+working_tree_at_start=clean
+```
+
+Remote / shipped evidence:
+
+```text
+pr=https://github.com/CleanExpo/Unite-Group/pull/184
+state=MERGED
+merged_at=2026-05-23T18:46:56Z
+merge_commit=347397ee37d27dc0e49ebf63c272cabcdbecf9fb
+github_checks=success for TypeScript, JSON-LD, pipeline smoke, unit/integration tests, lint, npm audit, Supabase schema drift, specialist reviews, and Chief Reviewer final verdict
+```
+
+Safe lane:
+
+- Re-read the requested Margot operating docs, current command-center handoff, Mac Mini status, latest progress log, and morning report state.
+- Verified that the add-on approval timeline lane from PR #184 is now on `main`.
+- Ran the focused local post-merge verification gate for the shipped add-on approval timeline/event-write behavior.
+- Updated `docs/margot/mac-mini-recovery-status.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/overnight-progress-log.md`, and `docs/margot/morning-report.md` with current evidence.
+
+Verification:
+
+```bash
+npx jest tests/integration/api/control-panel-add-ons.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 2 suites / 15 tests
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Blockers / unchanged constraints:
+
+- Mac Mini artifact recovery remains blocked on an authenticated SMB mount containing the approved target files or SSH availability; SMB port 445 is reachable in this probe, but no approved target file is mounted locally and SSH port 22 is unreachable.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, unrelated context mixing, noninteractive credential attempt, or secret printing/storage was performed.
+
+Next safe slice:
+
+- Continue route-level CRM event-write tests for the next CRM mutation route, or use the live Linear watch and CRM forecast to select the next independently verifiable Senior PM/CRM operating-model slice.
+
+## 2026-05-24 04:48 AEST
+
+### Lane completed — PR #184 merge and post-merge verification
+
+Shipped evidence:
+
+```text
+pr=https://github.com/CleanExpo/Unite-Group/pull/184
+state=MERGED
+merge_commit=347397ee37d27dc0e49ebf63c272cabcdbecf9fb
+main_ci=https://github.com/CleanExpo/Unite-Group/actions/runs/26340672743
+main_ci_status=success
+vercel_status=success
+vercel_deployment=https://vercel.com/unite-group/unite-group/284R2EvXzZziYd1j1UqSuhTzYzKb
+```
+
+Completed:
+
+- Fixed PR #184 CI by updating the legacy add-ons happy-path test to distinguish the primary `tasks` insert from the new best-effort `agent_actions` timeline insert.
+- Preserved the original regression contract by asserting exactly one `tasks` insert with `assignee_type='self'`, workspace id, blocked status, and high priority.
+- Re-ran spec review and quality/security review after the fix; both passed/approved.
+- Pushed commit `a6d5dc3` to `margot-addon-approval-timeline`; PR #184 checks passed; merged PR #184 into `main` at `347397e`.
+- Verified post-merge `main` CI completed successfully and Vercel reported a successful deployment.
+
+Verification:
+
+```bash
+npx jest src/app/api/command-center/control-panel/__tests__/add-ons-post-happy-path.test.ts tests/integration/api/control-panel-add-ons.test.ts --runInBand
+# PASS: 2 suites / 11 tests
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+
+git diff --check
+# PASS before push/merge and for the tracked evidence diff
+
+gh pr checks 184 --watch --fail-fast
+# PASS: all PR checks, specialist reviews, Chief Reviewer, and Vercel
+
+gh run view 26340672743 --json conclusion,status,url,headSha
+# completed / success for main CI at 347397ee37d27dc0e49ebf63c272cabcdbecf9fb
+```
+
+Blockers / unchanged constraints:
+
+- The current evidence updates in `docs/margot/*` are local tracked changes after the code PR merge; no second evidence-only PR was opened solely to publish that evidence.
+- Mac Mini artifact recovery remains blocked on an authenticated SMB mount containing the approved target files or SSH availability.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, unrelated context mixing, noninteractive credential attempt, or secret printing/storage was performed.
+
+Next safe slice:
+
+- Continue route-level CRM event-write tests for the next CRM mutation route, using the same RED/GREEN/review pattern and keeping timeline writes best-effort and sanitized.
+
+## 2026-05-24 04:48:49 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log: not captured in this progress-log entry.
+
+## 2026-05-24 05:19 AEST
+
+### Lane executed — CRM test matrix timeline coverage refresh
+
+Readiness / current state:
+
+```text
+branch=main
+node_modules=present
+package_lock=present
+/Volumes=Claude, Macintosh HD
+phills-mac-mini.local:445=reachable
+phills-mac-mini.local:22=unreachable
+recovered_files=only docs/margot/recovered-from-mac-mini/.gitkeep
+working_tree_at_start=existing local report-only docs edits from the prior PR #184 evidence tick
+```
+
+Safe lane:
+
+- Re-read the requested Margot operating docs, current command-center handoff, Mac Mini recovery status, morning report, and progress-log tail.
+- Ran the focused contact/opportunity/timeline verification gate to confirm current route-level CRM timeline evidence before changing the matrix.
+- Refined `docs/margot/crm-test-coverage-matrix.md` so it no longer lists contact/opportunity timeline event-write tests as a future gap now that those mocked route contracts exist and pass.
+- Updated next coverage gaps toward duplicate/conflict policy and future update/close/reopen timeline routes rather than already-covered create/convert timeline writes.
+
+Verification:
+
+```bash
+npx jest tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 3 suites / 32 tests
+```
+
+Health check:
+
+```text
+2026-05-24 05:19:28 AEST
+branch=main
+node_modules=present
+package_lock=present
+/Volumes=Claude, Macintosh HD
+phills-mac-mini.local:445=reachable
+phills-mac-mini.local:22=unreachable
+recovered_files=only docs/margot/recovered-from-mac-mini/.gitkeep
+```
+
+Blockers / unchanged constraints:
+
+- Mac Mini artifact recovery remains blocked on an authenticated SMB mount containing the approved target files or SSH availability; SMB port 445 is reachable in this probe, but no approved target file is mounted locally and SSH port 22 is unreachable.
+- This was a local docs/test-matrix refinement and focused verification pass only; no production DB write, migration application, sandbox apply, Vercel env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, unrelated context mixing, noninteractive credential attempt, or secret printing/storage was performed.
+
+Next safe slice:
+
+- Add duplicate/conflict policy tests for contact/opportunity create routes, or add command-center client-side fetched payload hydration coverage once a suitable local harness is selected.
+
+## 2026-05-24 05:22:31 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log: not captured in this progress-log entry.
+
+## 2026-05-24 05:26 AEST
+
+### Lane executed — contact/opportunity timeline logging hardening
+
+Readiness / current state:
+
+```text
+branch=margot-contact-opportunity-timeline-events
+base_head=347397e
+node_modules=present
+package_lock=present
+github_auth=available via gh without printing token value
+open_prs=[]
+working_tree_at_start=local docs/evidence updates from prior ticks plus this code/test slice
+```
+
+Safe lane:
+
+- Continued the route-level CRM event-write safety lane from existing local assets.
+- Hardened best-effort contact/opportunity timeline insert failure logging so `agent_actions` returned errors and thrown timeline insert failures log generic messages only:
+  - `Error recording CRM contact timeline event`
+  - `Error recording CRM opportunity timeline event`
+- Added focused regressions proving returned and thrown timeline failures still preserve the primary `201` contact/opportunity create response and that timeline failure console calls contain only one generic string argument without raw error objects/messages.
+- Kept primary CRM create error logging unchanged; scope was best-effort timeline logging only.
+
+TDD / review evidence:
+
+- RED: updated timeline failure tests failed before route changes because the routes passed raw `Error: timeline insert exploded` objects to `console.error`.
+- GREEN: contact/opportunity routes now log generic timeline failure messages only.
+- Review loop: spec re-review PASS; code quality/security re-review APPROVED. Reviewer noted unrelated lead conversion timeline logging still logs raw errors in `src/app/api/crm/leads/[id]/convert/route.ts`; that is outside this slice and is the next safe follow-up.
+
+Verification:
+
+```bash
+npx jest tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 3 suites / 34 tests
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Blockers / unchanged constraints:
+
+- This is local branch code/test/doc evidence on `margot-contact-opportunity-timeline-events`; no PR/deploy has been opened or verified yet in this tick.
+- Mac Mini artifact recovery remains blocked on an authenticated SMB mount containing the approved target files or SSH availability.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, unrelated context mixing, noninteractive credential attempt, or secret printing/storage was performed.
+
+Next safe slice:
+
+- Apply the same generic best-effort timeline failure logging pattern to `src/app/api/crm/leads/[id]/convert/route.ts`, then push/open PR for the timeline logging hardening branch if checks remain green.

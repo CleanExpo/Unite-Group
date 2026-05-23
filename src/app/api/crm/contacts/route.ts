@@ -93,10 +93,10 @@ async function recordContactCreatedTimelineEvent(
       .single();
 
     if (error) {
-      console.error('Error recording CRM contact timeline event:', error);
+      console.error('Error recording CRM contact timeline event');
     }
-  } catch (error) {
-    console.error('Error recording CRM contact timeline event:', error);
+  } catch {
+    console.error('Error recording CRM contact timeline event');
   }
 }
 
