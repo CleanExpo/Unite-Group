@@ -102,6 +102,25 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest verification refresh at `2026-05-23 22:48 AEST`:
+
+- Completed a small command-center UI/read-surface slice: `src/components/command-center/control-panel/HermesControlPanel.tsx` now renders an `APPROVAL REQUIRED` summary cell beside GREEN/YELLOW/RED, using the existing `summary.approvalRequired` API contract with a zero fallback for seed/loading render.
+- Added local component coverage: `tests/unit/components/command-center/HermesControlPanel.test.tsx` server-renders the seed control panel and verifies the approval summary region/label is present.
+- Updated `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/mac-mini-recovery-status.md`, and `docs/margot/overnight-progress-log.md` with current evidence.
+- Safe health check passed: `node_modules=present`, `package-lock=present`, `/Volumes` contains `Claude` and `Macintosh HD`, `phills-mac-mini.local:445` is reachable, `phills-mac-mini.local:22` is unreachable, and recovered Mac Mini artifacts still contain only `.gitkeep`.
+- Verification passed: `npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand` returned 2 suites / 4 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
+
+Latest verification refresh at `2026-05-23 22:38 AEST`:
+
+- PR #177 is merged: https://github.com/CleanExpo/Unite-Group/pull/177
+- Merge commit: `7a61b4eebf017fc05e451605db87b1525d79d1ad` (`feat: expose command-center approval summary (#177)`).
+- Main branch CI after PR #177 passed: CI run `26332857946` completed successfully; DESIGN.md lint run `26332857952` completed successfully.
+- Vercel status for the PR #177 merge commit is success: https://vercel.com/unite-group/unite-group/Bniwu2JDJ3px1MT8MpStrf3DnmmF
+- Scope shipped: command-center control-panel API now returns `summary.approvalRequired` for workspace-scoped CRM task rows needing approval; tests/docs updated in the shipped PR.
+- Post-merge evidence was appended locally to `docs/margot/overnight-progress-log.md` and this report after the merge; per evidence discipline, no follow-up PR was opened solely to publish this evidence-of-evidence.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, or secret printing/storage was performed.
+
 Latest verification refresh at `2026-05-23 22:24 AEST`:
 
 - Completed a small command-center CRM read-surface slice: `src/app/api/command-center/control-panel/route.ts` now returns `summary.approvalRequired` for workspace-scoped CRM task rows needing Phill/Board/operator approval.
@@ -535,3 +554,11 @@ Active multi-day plan:
 ## Bottom line
 
 Margot’s command-center foundation, retrieval rules, Linear update draft, test gap analysis, progress log, morning report, forward-readiness gap analysis, high-level CRM 25-step forecast, 2nd Brain carry-forward directive, Senior Project Manager operating model, CRM operating model, active multi-day CRM build plan, CRM schema inventory, project portfolio index, client 2nd Brain model, marketing strategy operating model, and AI enhancement pipeline are in place. The schema inventory (`docs/margot/crm-schema-inventory.md`) maps CRM-adjacent migrations, writers/readers, source-of-truth rules, integration mirror columns, `src/lib/empire/*` helper readers, and gap queue items; it passed spec compliance review and code/doc quality review after fixes. The local CRM lead spine now includes website lead persistence, admin/service-role lead list visibility, deterministic recommendation-only lead qualification, and a guarded local lead-to-client conversion route contract that requires operator approval and blocks missing approval with `403 operator_approval_required`. The new contacts/opportunities proposal (`docs/margot/crm-contacts-opportunities-model.md`) now defines the next identity and commercial pipeline layer with local-only `crm_contacts` / `crm_opportunities` field models, lifecycle flows, cross-client abort rules, Stripe separation, privacy/RLS caveats, Board approval gates, sandbox-first handling, and a future mocked test matrix; it passed spec compliance review and quality review after tightening safety language. The focused CRM lead gate passed at 08:07 AEST with 4 suites / 19 tests plus `npm run type-check` green. Documentation lanes E-H provide the Senior PM control surfaces for project oversight, durable client memory, marketing strategy, and safe AI improvement. The next strategic lanes are sandbox-only contacts/opportunities migration/test drafts or the daily CRM digest template. The remaining infrastructure blockers are authenticated Mac Mini file access or approved export for original artifacts, missing local `RESTOREASSIST-CONTENT-INDEX.md`, Vercel linking/env verification, and configuring a real user-visible delivery target if project-file logs are not enough.
+
+Latest verification refresh at `2026-05-23 23:24 AEST`:
+
+- Continued the existing command-center UI approval-summary slice on branch `margot-command-center-approval-ui`.
+- Review fix completed: the component test now asserts the seed/fallback approval-required value renders as `0`, and the stale incomplete progress-log `Log:` marker was removed.
+- Spec compliance re-review passed; code quality/security re-review approved.
+- Verification passed: `npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand` returned 2 suites / 4 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.

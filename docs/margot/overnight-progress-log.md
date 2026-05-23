@@ -3143,3 +3143,153 @@ Safety:
 Next safe slice:
 
 - Add command-center UI component/rendering tests for the new approval-required summary and then wire daily digest/lead/opportunity sections into the browser surface when the component contract is clear.
+
+## 2026-05-23 22:38 AEST
+
+### PR #177 merged and post-merge checks verified
+
+Published and verified the command-center approval summary slice.
+
+GitHub/PR/deploy evidence:
+
+- Branch: `feat/command-center-approval-summary`.
+- Implementation commit before squash merge: `d830a8f feat: expose command-center approval summary`.
+- PR: https://github.com/CleanExpo/Unite-Group/pull/177
+- Merge commit on `main`: `7a61b4eebf017fc05e451605db87b1525d79d1ad` (`feat: expose command-center approval summary (#177)`).
+- PR #177 checks passed before merge, including CI, Review Board specialist checks, CodeRabbit skipped/pass, and Vercel preview success.
+- Main post-merge CI run `26332857946` completed successfully.
+- Main DESIGN.md lint run `26332857952` completed successfully.
+- Vercel status on merge commit is success: https://vercel.com/unite-group/unite-group/Bniwu2JDJ3px1MT8MpStrf3DnmmF
+
+Verification:
+
+```bash
+gh pr view 177 --json url,state,mergeCommit,mergedAt
+# PASS: state MERGED, merge commit 7a61b4eebf017fc05e451605db87b1525d79d1ad
+
+gh run watch 26332857946 --interval 10 --exit-status
+# PASS: main CI completed successfully
+
+gh run watch 26332857952 --interval 10 --exit-status
+# PASS: DESIGN.md lint completed successfully
+
+gh api repos/CleanExpo/Unite-Group/commits/7a61b4eebf017fc05e451605db87b1525d79d1ad/status
+# PASS: combined status success, Vercel success
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, or secret printing/storage was performed.
+- Post-merge evidence was appended locally after the merge; per evidence-discipline, do not open a follow-up PR solely to publish that this evidence was appended.
+
+Next safe slice:
+
+- Add command-center UI component/rendering tests for the new approval-required summary and daily digest sections, starting with a RED test against the browser-facing component contract.
+
+## 2026-05-23 22:48 AEST
+
+### Autonomous Margot tick — command-center approval-required UI summary
+
+Re-read the requested Margot operating docs, inspected repo state, and executed the next safe command-center CRM UI/read-surface slice from existing local assets.
+
+State observed:
+
+- Branch: `main` tracking `origin/main` at `7a61b4e feat: expose command-center approval summary (#177)` before this local slice.
+- Existing uncommitted changes before this tick were report-only updates in `docs/margot/overnight-progress-log.md` and `docs/margot/morning-report.md`.
+- `node_modules=present`; `package-lock=present`.
+- `/Volumes` contains `Claude` and `Macintosh HD`.
+- `phills-mac-mini.local:445` is reachable; `phills-mac-mini.local:22` is unreachable.
+- `docs/margot/recovered-from-mac-mini/` still contains only `.gitkeep`.
+
+Changed:
+
+- `src/components/command-center/control-panel/HermesControlPanel.tsx`
+- `tests/unit/components/command-center/HermesControlPanel.test.tsx`
+- `docs/margot/crm-test-coverage-matrix.md`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/mac-mini-recovery-status.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Implementation evidence:
+
+- The control-panel browser summary now renders an `APPROVAL REQUIRED` cell beside GREEN/YELLOW/RED.
+- The component payload type now accepts the existing route contract `summary.approvalRequired` while keeping a zero fallback for seed/loading render.
+- Added a server-rendered component regression proving the seed control panel contains the new approval summary region and label.
+- Updated the CRM test matrix so command-center CRM read surface is no longer only API-covered; it now has first component-render coverage.
+
+Verification:
+
+```bash
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand
+# PASS: 2 suites / 4 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
+
+Blockers:
+
+- Mac Mini recovery remains blocked on authenticated SMB mount containing the approved target files or SSH availability.
+- Rich live-payload browser tests remain limited by the current node/server-render test harness; no new dependency was added.
+
+Next safe slice:
+
+- Add richer command-center UI tests for live fetched payload rendering, leads, opportunities, and daily digest once the browser component contract/test harness is clear; otherwise continue route-level CRM event-write tests.
+
+## 2026-05-23 23:24:44 AEST
+
+### Lane completed — command-center UI approval summary review/fix
+
+Branch: `margot-command-center-approval-ui`
+
+Slice:
+
+- Continued the existing in-progress command-center UI approval summary lane instead of starting a new lane.
+- `src/components/command-center/control-panel/HermesControlPanel.tsx` renders `summary.approvalRequired` as an `APPROVAL REQUIRED` summary cell beside GREEN/YELLOW/RED with a zero fallback for seed/loading render.
+- `tests/unit/components/command-center/HermesControlPanel.test.tsx` now asserts the approval summary region, label, and fallback `0` value.
+- Removed a trailing incomplete LaunchAgent `Log:` marker from this progress log after review found it made `git diff --check` fail.
+
+Review:
+
+- Spec compliance re-review: PASS.
+- Code quality/security re-review: APPROVED.
+
+Verification:
+
+```bash
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand
+# PASS: 2 suites / 4 tests
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
+
+Blockers:
+
+- Mac Mini recovery remains blocked on authenticated SMB mount containing the approved target files or SSH availability.
+- Vercel CLI is unavailable locally; GitHub PR checks can still be used after push.
+
+Next safe slice:
+
+- Push/open the reviewed UI approval-summary branch if GitHub transport succeeds; then monitor CI and Vercel from GitHub/checks. If publish is blocked, continue route-level CRM event-write tests locally.
