@@ -102,6 +102,15 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest verification refresh at `2026-05-23 21:31 AEST`:
+
+- PR #175 is merged: https://github.com/CleanExpo/Unite-Group/pull/175
+- Merge commit: `b4c1f7bc9d1cee7faf3de6d53ad67ff65365c7ef`.
+- Main branch CI after merge passed: CI run `26331487851` completed successfully; DESIGN.md lint run `26331487850` completed successfully.
+- Vercel status for the merge commit is success: https://vercel.com/unite-group/unite-group/tun5mwN1kAvLrJVe1BtRHTLyG1Hq
+- Scope shipped: CRM approval lifecycle/timeline hardening plus daily digest privacy hardening so email-only leads render stable `lead <id>` labels instead of raw email in operator-facing digest copy.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, or secret printing/storage was performed.
+
 Latest verification refresh at `2026-05-23 21:01 AEST`:
 
 - Continued branch `feat/crm-approval-lifecycle-helper` and completed a pure local daily digest privacy hardening slice.
