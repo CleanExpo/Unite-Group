@@ -105,12 +105,12 @@ Target recovery files remain:
 Latest verification refresh at `2026-05-23 18:54 AEST`:
 
 - Re-read Margot operating docs, current Linear mirror, CRM matrix, approval persistence plan, command-center state, Mac Mini recovery status, and latest progress evidence before selecting the next safe lane.
-- Health check: branch `feat/crm-approval-lifecycle-helper`, head before this working-tree slice `0667ba0 docs: record approval timeline evidence`, `node_modules=present`, `package-lock.json=present`, `/Volumes` contains only `Macintosh HD`, `phills-mac-mini.local:445` reachable, `phills-mac-mini.local:22` unreachable, and no recovered Mac Mini artifacts are present locally.
+- Health check: branch `feat/crm-approval-lifecycle-helper`, local slice commit `0799860 feat: record lead conversion timeline action`, `node_modules=present`, `package-lock.json=present`, `/Volumes` contains only `Macintosh HD`, `phills-mac-mini.local:445` reachable, `phills-mac-mini.local:22` unreachable, and no recovered Mac Mini artifacts are present locally.
 - Code/test improvement: `src/app/api/crm/leads/[id]/convert/route.ts` now writes a best-effort sanitized `crm_timeline_lead_converted` `agent_actions` event after the primary lead conversion update succeeds.
 - Safety evidence: new mocked route coverage in `tests/integration/api/crm-lead-conversion.test.ts` verifies the timeline action remains `pending`, `requiresApproval=true`, contains no Board approval ID, does not use raw lead email as the timeline subject label when company is blank, and conversion success still returns if the timeline insert throws after the primary update succeeds.
 - Verification passed: focused lead conversion suite returned 1 suite / 7 tests passed; expanded CRM matrix returned 11 suites / 101 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed.
 - Updated `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/mac-mini-recovery-status.md`, `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/overnight-progress-log.md`, and this report with the latest evidence.
-- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, client-facing communication, billing/payment action, merge, destructive git, or unrelated context mixing was performed.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, successful GitHub push, secret access/printing, Mac Mini write, client-facing communication, billing/payment action, merge, destructive git, or unrelated context mixing was performed. Local commit `0799860 feat: record lead conversion timeline action` was created; push failed with unauthenticated HTTPS GitHub transport.
 
 Prior approval decision timeline mapping lane at `2026-05-23 18:06 AEST`:
 
