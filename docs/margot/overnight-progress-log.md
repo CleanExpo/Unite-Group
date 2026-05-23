@@ -2462,3 +2462,89 @@ Next safe slice:
 
 - Add sanitized approval event-write tests for approval requested/approved/rejected timeline mapping before wiring any route writes, or create a docs evidence commit if this handoff state should be preserved before the next code slice.
 
+
+## 2026-05-23 18:06 AEST
+
+### Health check / recovery probe
+
+Observed in `/Users/phillmcgurk/Unite-Group`:
+
+```text
+branch=feat/crm-approval-lifecycle-helper
+latest_local_code_commit=db79b53 fix: keep CRM approval timeline inserts pending
+handoff_docs=evidence-only follow-up commit after code commits
+node_modules=present
+package-lock.json=present
+/Volumes=Macintosh HD only
+phills-mac-mini.local:445=reachable
+phills-mac-mini.local:22=unreachable
+recovered_mac_mini_artifacts=none present locally except .gitkeep
+```
+
+### Lane executed — approval decision timeline mapping
+
+Completed the next safe local CRM approval slice before any route write wiring.
+
+Changed:
+
+- `src/lib/crm/activity-timeline.ts`
+- `tests/unit/lib/crm/activity-timeline.test.ts`
+
+Evidence:
+
+- Added `approval_approved` and `approval_rejected` to the CRM activity timeline event taxonomy.
+- Both decision events map to approval category, high severity, `approval_required` action class, and pending `agent_actions` insert status.
+- Added regression coverage proving approval decision metadata is sanitized before event and insert mapping, including stripping approval references, Board approval IDs, rejection reasons, tokens, auth values, client secrets, API keys, and IP addresses.
+- Fixed the quality-review blocker with a second TDD cycle: structurally constructed approval decision events now remain `pending` and `requiresApproval=true` even if supplied with an inconsistent `actionClass: 'auto'`.
+- The lane is pure local TypeScript/test work; it performed no Supabase, Linear, GitHub, Vercel, Stripe, production DB, migration, deployment, Mac Mini write, or client-facing write.
+
+Commits:
+
+```text
+38258ae feat: map CRM approval decision timeline events
+db79b53 fix: keep CRM approval timeline inserts pending
+```
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/crm/approval-lifecycle.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 2 suites passed, 40 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Review:
+
+- Spec compliance review: PASS.
+- Initial quality review: REQUEST_CHANGES for the structural event pending-status gap.
+- Quality re-review after `db79b53`: APPROVED.
+- Final integration review: READY.
+
+Docs updated in this pass:
+
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/mac-mini-recovery-status.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, successful GitHub push, secret access/printing, Mac Mini write, client-facing communication, billing/payment action, merge, destructive git, or unrelated context mixing was performed.
+
+Blockers:
+
+- GitHub push/PR remains blocked by unauthenticated GitHub transport in this shell; `gh` is not installed and `GIT_TERMINAL_PROMPT=0 git push -u origin feat/crm-approval-lifecycle-helper` failed with `fatal: could not read Username for 'https://github.com': terminal prompts disabled`.
+- Mac Mini artifact copy remains blocked because no authenticated SMB volume is mounted and SSH is unreachable, even though SMB/File Sharing port 445 is reachable.
+
+Next safe slice:
+
+- Review whether approval decision events should be wired into route-level mocked timeline writes, keeping writes best-effort and sanitizer-tested before any Supabase sandbox/prod action.
+

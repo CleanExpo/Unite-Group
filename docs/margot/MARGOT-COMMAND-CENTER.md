@@ -102,6 +102,7 @@ Purpose:
 
 Current verification state:
 - `node_modules` is present from the prior `npm ci` readiness pass.
+- CRM approval decision timeline mapping passed at `2026-05-23 18:06 AEST`: `src/lib/crm/activity-timeline.ts` now recognizes `approval_approved` and `approval_rejected` events and maps them to sanitized pending `agent_actions` inserts without approval references, Board IDs, rejection reasons, tokens, auth data, secrets, API keys, IPs, emails, phone numbers, or addresses. A review-blocking gap was fixed so structurally constructed approval decision events cannot become `done` even if supplied with an inconsistent `actionClass`. Verification passed: `npx jest tests/unit/lib/crm/approval-lifecycle.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 2 suites / 40 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
 - CRM approval task evidence mapper passed at `2026-05-23 17:11 AEST`: `buildCrmApprovalLifecycleInputFromTaskEvidence` now maps Stage 1 approval tasks into lifecycle input without Supabase writes, without treating completed tasks as executed, and without echoing approval references, Board IDs, approver values, rejection reasons, or malformed enum values in returned operator-facing reasons. Verification passed: approval lifecycle Jest suite 33 tests, `npm run type-check`, `npm run security:routes-check`, and `git diff --check`.
 - CRM create timeline write-hook fix passed at `2026-05-23 14:33 AEST`: contact/opportunity create routes now treat `agent_actions` timeline writes as best-effort, contact create uses explicit service-role select columns, approved/won opportunity tests assert both timeline inserts, focused tests returned 2 suites / 25 tests passed, expanded CRM matrix returned 10 suites / 64 tests passed, `npm run type-check` passed, and `npm run security:routes-check` returned 0 unprotected mutating routes. The local fix commit and docs evidence commit are not pushed because GitHub transport is unauthenticated in the cron shell.
 - CRM daily digest workspace-scope fix passed at `2026-05-23 10:41 AEST`: `tasks` reads are skipped unless `UNITE_CRM_WORKSPACE_ID` is configured, scoped with `.eq('workspace_id', process.env.UNITE_CRM_WORKSPACE_ID)` when present, and covered by the focused 3-suite gate returning 15 tests passed.
@@ -193,21 +194,23 @@ Safe destination when recovered:
 ## Health Check Snapshot
 
 Timestamp:
-`2026-05-23 17:13 AEST`
+`2026-05-23 18:06 AEST`
 
 Git state:
 - branch: `feat/crm-approval-lifecycle-helper`
-- latest local code commit: `14061be feat: map CRM approval task evidence`
-- current handoff docs remain locally modified after the code commit; no GitHub push/PR/deploy was performed.
+- latest local code commit: `db79b53 fix: keep CRM approval timeline inserts pending`
+- Margot handoff docs were committed as an evidence-only follow-up after the code commits; GitHub push/PR/deploy was not completed.
 
 Dependency state:
 - `node_modules=present`
 - `package-lock.json=present`
 
 Verification:
-- Approval task evidence mapper lane completed at 2026-05-23 17:11 AEST: `src/lib/crm/approval-lifecycle.ts` now includes `buildCrmApprovalLifecycleInputFromTaskEvidence`, a pure local mapper from Stage 1 approval task evidence into lifecycle input. The mapper performs no writes, does not treat completed tasks as executed without explicit execution metadata, preserves unknown explicit statuses for invalid-request handling, and avoids echoing approval references, Board IDs, approvers, rejection reasons, or malformed enum values in returned operator-facing reasons.
-- Fresh verification refresh passed at 2026-05-23 17:13 AEST: `npx jest tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand` returned 1 suite / 33 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
-- Safe health check passed at 2026-05-23 17:13 AEST: `node_modules=present`, `package-lock.json=present`, `/Volumes` contains only `Macintosh HD`, `phills-mac-mini.local:445` reachable, `phills-mac-mini.local:22` unreachable, and no recovered Mac Mini artifacts are present locally.
+- Approval decision timeline mapping lane completed at 2026-05-23 18:06 AEST: `src/lib/crm/activity-timeline.ts` recognizes `approval_approved` and `approval_rejected` as high-severity, approval-required CRM timeline events and maps them to pending `agent_actions` insert payloads.
+- Sanitization evidence: the new tests verify approval decision events strip approval references, Board IDs, rejection reasons, tokens, auth values, client secrets, API keys, IPs, and other sensitive metadata before event/insert mapping while preserving benign decision labels.
+- Review fix evidence: `db79b53` adds a regression test and defensive mapper logic so structurally constructed approval decision events remain `pending` and `requiresApproval=true` even if the supplied event action class is inconsistent.
+- Fresh verification passed at 2026-05-23 18:06 AEST: `npx jest tests/unit/lib/crm/approval-lifecycle.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 2 suites / 40 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
+- Safe health check passed at 2026-05-23 18:06 AEST: `node_modules=present`, `package-lock.json=present`, `/Volumes` contains only `Macintosh HD`, `phills-mac-mini.local:445` reachable, `phills-mac-mini.local:22` unreachable, and no recovered Mac Mini artifacts are present locally.
 - Approval persistence planning lane completed at 2026-05-23 16:38 AEST: `docs/margot/crm-approval-persistence-plan.md` now chooses current `tasks` approval subtype as Stage 1, defers a dedicated `crm_approvals` table until structured history/query needs are proven, and defines future sandbox-first table shape, lifecycle, route wiring order, and test plan.
 - Updated `docs/margot/crm-schema-inventory.md` and `docs/margot/crm-test-coverage-matrix.md` so approvals are no longer an undecided persistence shape for the current lane: current decision is task-subtype queue now, future `crm_approvals` only after Stage 2 triggers and sandbox review.
 - Focused approval lifecycle verification passed at 2026-05-23 16:38 AEST: `npx jest tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand` returned 1 suite, 20 tests passed.
