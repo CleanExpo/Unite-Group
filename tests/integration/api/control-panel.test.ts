@@ -100,6 +100,70 @@ describe('GET /api/command-center/control-panel', () => {
     expect(limit).toHaveBeenCalledWith(100);
   });
 
+  it('counts Board/operator approval markers as approval-required CRM task rows', async () => {
+    const limit = jest.fn().mockResolvedValue({
+      data: [
+        {
+          id: 'task-blocked-on-you',
+          title: 'Phill sign-off for CRM automation',
+          status: 'blocked-on-you',
+          priority: 'high',
+          tags: ['approval'],
+          assignee_name: 'Operator',
+          obsidian_path: null,
+          updated_at: '2026-05-23T08:00:00.000Z',
+          created_at: '2026-05-23T07:00:00.000Z',
+        },
+        {
+          id: 'task-board-approval',
+          title: 'Board review for command-center gate',
+          status: 'running',
+          priority: 'normal',
+          tags: [],
+          assignee_name: 'Board approval',
+          obsidian_path: null,
+          updated_at: '2026-05-23T08:05:00.000Z',
+          created_at: '2026-05-23T07:05:00.000Z',
+        },
+        {
+          id: 'task-operator-approval',
+          title: 'Operator review for command-center gate',
+          status: 'todo',
+          priority: 'normal',
+          tags: [],
+          assignee_name: 'Operator approval',
+          obsidian_path: null,
+          updated_at: '2026-05-23T08:10:00.000Z',
+          created_at: '2026-05-23T07:10:00.000Z',
+        },
+        {
+          id: 'task-normal-2',
+          title: 'Normal CRM hygiene task',
+          status: 'running',
+          priority: 'normal',
+          tags: [],
+          assignee_name: 'Operator',
+          obsidian_path: null,
+          updated_at: '2026-05-23T08:15:00.000Z',
+          created_at: '2026-05-23T07:15:00.000Z',
+        },
+      ],
+      error: null,
+    });
+    const order = jest.fn().mockReturnValue({ limit });
+    const eq = jest.fn().mockReturnValue({ order });
+    const select = jest.fn().mockReturnValue({ eq });
+    const from = jest.fn().mockReturnValue({ select });
+    mockedGetAdminClient.mockReturnValue({ from });
+
+    const res = await GET(req());
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.source).toBe('crm:tasks');
+    expect(body.summary.approvalRequired).toBe(3);
+  });
+
   it('keeps the route admin-gated when local preview is disabled', async () => {
     mockedRequireAdmin.mockResolvedValue(
       NextResponse.json({ error: 'unauthorized' }, { status: 401 }),

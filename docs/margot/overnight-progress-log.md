@@ -3611,3 +3611,59 @@ Blockers / unchanged constraints:
 Next safe slice:
 
 - Publish this verified local slice through GitHub if CI remains available, then continue command-center digest rendering or route-level CRM event-write tests.
+
+## 2026-05-24 01:49 AEST
+
+### Safe improvement — command-center approval marker coverage
+
+Health/readiness check:
+
+```text
+branch=margot-control-panel-degraded-source-test
+head=5768bca
+node_modules=present
+package_lock=present
+/Volumes=Claude,Macintosh HD
+phills-mac-mini.local:445=reachable
+phills-mac-mini.local:22=unreachable
+recovered-from-mac-mini=.gitkeep only
+```
+
+Slice completed:
+
+- Re-read the requested Margot operating docs, command-center state, CRM matrix, Mac Mini blocker state, and current route/component tests before choosing a lane.
+- Continued the command-center CRM read-surface lane from existing local assets.
+- Added a RED integration regression proving `summary.approvalRequired` missed one approval-governance shape: `blocked-on-you` with Board/operator approval markers.
+- Updated `src/app/api/command-center/control-panel/route.ts` so approval-required counting covers `blocked`, `blocked-on-you`, `needs_approval`, `approval`, and Phill/Board/operator approval assignee markers.
+- Updated `docs/margot/crm-test-coverage-matrix.md` with the new Board/operator approval marker coverage.
+
+Verification:
+
+```bash
+npx jest tests/integration/api/control-panel.test.ts --runInBand
+# RED first: expected 2 approval-required rows, received 1
+
+npx jest tests/integration/api/control-panel.test.ts --runInBand
+# PASS after fix: 1 suite / 4 tests
+
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand
+# PASS: 2 suites / 7 tests
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Blockers / unchanged constraints:
+
+- Mac Mini artifact recovery remains blocked on authenticated SMB mount containing the approved target files or SSH availability; SMB is reachable and SSH is unreachable in this probe.
+- No GitHub push, Vercel deploy/env mutation, production DB write, migration application, sandbox apply, secret access/printing/storage, client-facing communication, billing/payment action, destructive git, cross-client merge, or unrelated context mixing was performed.
+
+Next safe slice:
+
+- Continue command-center client-side fetch hydration coverage or digest rendering once the current local command-center branch is ready for review/publish.
