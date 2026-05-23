@@ -102,6 +102,17 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest verification refresh at `2026-05-24 00:16 AEST`:
+
+- Continued the command-center CRM read-surface lane on branch `margot-control-panel-live-payload-test` at `742f49f`; the working tree already contained this local slice when the tick started.
+- Safe improvement: `src/components/command-center/control-panel/HermesControlPanel.tsx` now accepts an optional `initialPayload`, allowing local/server-rendered verification of live CRM control-panel payload behavior without invoking the client fetch effect.
+- Added component regression coverage: `tests/unit/components/command-center/HermesControlPanel.test.tsx` now verifies an injected live CRM payload renders `CRM · 2 tasks`, displays `APPROVAL REQUIRED` count `3`, includes the live task label, and does not fall back to seed `CRM · requesting` copy.
+- Updated `docs/margot/crm-test-coverage-matrix.md` and `docs/margot/overnight-progress-log.md` with this evidence; cleaned the prior empty LaunchAgent `Log:` marker in the progress log.
+- Safe health check passed: `node_modules=present`, `package-lock=present`, `/Volumes` contains `Claude` and `Macintosh HD`, `phills-mac-mini.local:445` is reachable, `phills-mac-mini.local:22` is unreachable, and recovered Mac Mini artifacts still contain only `.gitkeep`.
+- Verification passed: `git diff --check`; `npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand` returned 2 suites / 5 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`. The first `git diff --check` attempt found a stale blank EOF marker in `docs/margot/overnight-progress-log.md`; that marker was cleaned and the final rerun passed.
+- TDD/review evidence: the focused component test failed RED before implementation because `CRM · 2 tasks` was missing and seed/loading values rendered instead; spec compliance re-review passed and code quality/security review approved with minor future-only notes.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
+
 Latest verification refresh at `2026-05-23 22:48 AEST`:
 
 - Completed a small command-center UI/read-surface slice: `src/components/command-center/control-panel/HermesControlPanel.tsx` now renders an `APPROVAL REQUIRED` summary cell beside GREEN/YELLOW/RED, using the existing `summary.approvalRequired` API contract with a zero fallback for seed/loading render.
@@ -569,3 +580,21 @@ Latest publish refresh at `2026-05-23 23:27 AEST`:
 - Branch commit `ffa4a3e` (`feat: expose approval summary in control panel UI`) passed GitHub PR checks cleanly, including TypeScript, Unit + Integration Tests, Pipeline Smoke Tests, Supabase Schema Drift, JSON-LD Schema Validation, npm audit, specialist reviews, Chief Reviewer final verdict, CodeRabbit, and DESIGN.md validation.
 - Vercel preview deployment completed successfully: https://vercel.com/unite-group/unite-group/7WXqfEkaxeHEEc4KkpJ7SVyUvmxf
 - This entry is an evidence-only follow-up so the handoff contains the PR/check/deploy URLs before merge.
+
+Latest merge/deploy refresh at `2026-05-23 23:41 AEST`:
+
+- PR #178 merged: https://github.com/CleanExpo/Unite-Group/pull/178
+- Merge commit: `742f49f3aa6541df4a3704416449575c13fd7713` (`feat: expose approval summary in control panel UI`).
+- Main branch CI after merge passed: CI run `26334100399` completed successfully; DESIGN.md lint run `26334100407` completed successfully.
+- Vercel status for the merge commit is success: https://vercel.com/unite-group/unite-group/4dXJzf1LwK1kPLdFT5vP2RsoWWqQ
+- Scope shipped: browser-facing command-center control panel now renders the approval-required summary cell backed by `summary.approvalRequired`, with seed/fallback component coverage and updated Margot evidence docs.
+- Two local stashes remain from the merge checkout cleanup and were not shipped: `stash@{0}` post-merge dirty worktree snapshot and `stash@{1}` unreviewed `HermesControlPanel` `initialPayload` experiment.
+- This merge/deploy evidence was appended locally only; no follow-up PR was opened solely to publish evidence-of-evidence.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git on main, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
+
+Latest local verification refresh at `2026-05-23 23:43 AEST`:
+
+- Current branch is `main` tracking `origin/main` at `742f49f`; working tree contains only local evidence edits to this report and `docs/margot/overnight-progress-log.md`.
+- Local stashes were inspected by name only and left untouched: `stash@{0}` post-merge dirty worktree snapshot, `stash@{1}` unreviewed `HermesControlPanel initialPayload` experiment, and older `stash@{2}` timeline work snapshot.
+- Verification passed on merged main: `npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand` returned 2 suites / 4 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed.
+- This verification tick did not push, deploy, mutate Vercel env, write/migrate any database, apply stashes, run destructive git, print/store secrets, or attempt noninteractive credentials.

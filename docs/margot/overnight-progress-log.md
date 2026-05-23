@@ -3325,3 +3325,149 @@ Safety:
 Next safe slice:
 
 - Merge PR #178 if the evidence-only update checks remain clean; then verify main branch CI/Vercel for the merge commit.
+
+## 2026-05-23 23:41:21 AEST
+
+### Merge/deploy verification — PR #178
+
+Merged artifact:
+
+- PR: https://github.com/CleanExpo/Unite-Group/pull/178
+- Merge commit: `742f49f3aa6541df4a3704416449575c13fd7713` (`feat: expose approval summary in control panel UI`)
+- Local `main` fast-forwarded to `origin/main` at `742f49f` after merge.
+
+Post-merge verification:
+
+- GitHub main CI run `26334100399` completed successfully: https://github.com/CleanExpo/Unite-Group/actions/runs/26334100399
+- GitHub main DESIGN.md lint run `26334100407` completed successfully: https://github.com/CleanExpo/Unite-Group/actions/runs/26334100407
+- Vercel status for merge commit is success: https://vercel.com/unite-group/unite-group/4dXJzf1LwK1kPLdFT5vP2RsoWWqQ
+
+Local note:
+
+- Two local stashes remain from the `gh pr merge` checkout cleanup: `stash@{0}` post-merge dirty worktree snapshot and `stash@{1}` unreviewed `HermesControlPanel` `initialPayload` experiment. They were not applied or shipped in PR #178.
+- This merge/deploy evidence is local-only; no follow-up PR was opened solely to publish evidence-of-evidence.
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git on main, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
+
+Next safe slice:
+
+- Either review the stashed `initialPayload` experiment as a fresh TDD browser/live-payload component-test lane, or continue route-level CRM event-write tests. Keep Mac Mini recovery limited to safe authenticated transport checks.
+
+## 2026-05-23 23:43 AEST
+
+### Post-merge local verification refresh
+
+Current repo state:
+
+- Branch: `main` tracking `origin/main` at `742f49f`.
+- Working tree contains local evidence-only edits to `docs/margot/overnight-progress-log.md` and `docs/margot/morning-report.md`.
+- Stashes retained and not applied: `stash@{0}` post-merge dirty worktree snapshot, `stash@{1}` unreviewed `HermesControlPanel initialPayload` experiment, and older `stash@{2}` timeline work snapshot.
+
+Verification:
+
+```bash
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand
+# PASS: 2 suites / 4 tests on merged main
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Safety:
+
+- This verification tick did not push, deploy, mutate Vercel env, write/migrate any database, apply stashes, run destructive git, print/store secrets, or attempt noninteractive credentials.
+
+## 2026-05-23 23:45:18 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log: LaunchAgent emitted an empty trailing log marker; cleaned during the 2026-05-24 00:16 AEST verification tick.
+
+## 2026-05-24 00:16:57 AEST
+
+### Command-center live payload component coverage
+
+Current repo state:
+
+- Branch: `margot-control-panel-live-payload-test` at `742f49f`.
+- Working tree already contained the live-payload component slice plus report edits when this tick started.
+- `node_modules=present`; `package-lock.json=present`.
+- `/Volumes` contains `Claude` and `Macintosh HD`.
+- `docs/margot/recovered-from-mac-mini/` still contains only `.gitkeep`.
+- `phills-mac-mini.local:445` is reachable; `phills-mac-mini.local:22` is unreachable.
+
+Safe improvement completed:
+
+- `src/components/command-center/control-panel/HermesControlPanel.tsx` now accepts an optional `initialPayload` for server-rendered/local test rendering of a live CRM control-panel payload without triggering the client fetch effect.
+- `tests/unit/components/command-center/HermesControlPanel.test.tsx` now verifies a live CRM payload renders `CRM · 2 tasks`, uses `summary.approvalRequired=3`, and does not fall back to the seed `CRM · requesting` state.
+- `docs/margot/crm-test-coverage-matrix.md` now records the command-center read-surface coverage as API summary visibility plus seed and injected-live-payload component rendering.
+- Cleaned the prior empty LaunchAgent `Log:` marker at the end of this file while appending evidence.
+
+TDD evidence:
+
+```bash
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx --runInBand
+# RED: failed before implementation because the component did not render the injected live payload (`CRM · 2 tasks` was missing and seed/loading values rendered instead).
+```
+
+Verification:
+
+```bash
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand
+# PASS: 2 suites / 5 tests
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Review:
+
+- Spec compliance re-review: PASS.
+- Code quality/security review: APPROVED; only minor future notes about documenting `initialPayload` if it becomes production-facing and adding a client-render fetch-skip test if a jsdom/client harness is introduced.
+
+`git diff --check` initially reported the prior progress-log blank EOF marker at line 3395. The marker was cleaned in this evidence append; final rerun passed.
+
+Final verification rerun:
+
+```bash
+git diff --check
+# PASS
+
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand
+# PASS: 2 suites / 5 tests
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Safety:
+
+- No GitHub push, Vercel deploy/env mutation, production DB write, migration application, sandbox apply, secret access/printing/storage, client-facing communication, billing/payment action, destructive git, cross-client merge, or noninteractive credential attempt was performed.
+
+Next safe slice:
+
+- Either commit/open PR for this local component-test lane when authorized by the existing PR workflow, or continue a route-level CRM event-write test lane. Continue Mac Mini recovery only via safe mounted-share/SSH checks.
+
+## 2026-05-24 00:18:42 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log: LaunchAgent emitted an empty trailing log marker; cleaned during the 2026-05-24 00:22 AEST verification tick.
