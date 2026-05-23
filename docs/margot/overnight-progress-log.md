@@ -1704,3 +1704,64 @@ Next slice:
 
 - Continue local safe fallback with opportunity read/digest integration so the daily CRM digest can surface open/won/blocked opportunities, or wire command-center CRM digest UI consumption if UI is higher leverage.
 
+
+
+## 2026-05-23 11:42 AEST
+
+### Lane completed — feature-flagged opportunity digest integration
+
+Preflight / repo state:
+
+```text
+branch=feat/margot-crm-daily-digest-route
+head before slice=9456ab1 docs: refresh CRM operating model next lanes
+node_modules=present
+package-lock.json=present
+/Volumes only contains Macintosh HD
+phills-mac-mini.local:445 reachable
+phills-mac-mini.local:22 unreachable
+docs/margot/recovered-from-mac-mini/ contains only .gitkeep
+```
+
+Slice completed:
+
+- Extended `src/app/api/crm/daily-digest/route.ts` so the read-only daily CRM digest can include safe opportunity rows from `crm_opportunities`.
+- Kept opportunity reads behind `UNITE_CRM_OPPORTUNITIES_DIGEST_ENABLED=true` because the contacts/opportunities schema remains draft/sandbox-first and has not been promoted in this run.
+- Added mocked route coverage in `tests/integration/api/crm-daily-digest.test.ts` for opportunity priorities/approval surfacing and safe `crm_digest_opportunities_read_failed` behavior.
+- Updated `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/mac-mini-recovery-status.md`, and `docs/margot/morning-report.md` with current state and verification.
+
+Verification commands/results:
+
+```bash
+npx jest tests/integration/api/crm-daily-digest.test.ts --runInBand
+# PASS: 1 suite passed, 10 tests passed
+
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts --runInBand
+# PASS: 9 suites passed, 57 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Safety / blockers:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+- Mac Mini artifacts remain unrecovered until authenticated SMB mount, SSH/Remote Login, or approved export is available.
+- Opportunity digest reads are feature-flagged until `crm_opportunities` schema readiness is confirmed through the sandbox-first path.
+- GitHub push/PR remains blocked by unavailable authenticated GitHub transport in this session.
+
+Next slice:
+
+- Continue with activity/timeline taxonomy for CRM events, or wire command-center CRM digest UI consumption if UI visibility is higher leverage.
+
+## 2026-05-23 11:45:20 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+

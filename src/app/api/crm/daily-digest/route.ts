@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/security/require-admin';
-import { createCrmDailyDigest, type CrmDigestLead, type CrmDigestTask } from '@/lib/crm/daily-digest';
+import {
+  createCrmDailyDigest,
+  type CrmDigestLead,
+  type CrmDigestOpportunity,
+  type CrmDigestTask,
+} from '@/lib/crm/daily-digest';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +31,18 @@ type CrmTaskDigestRow = {
   created_at: string;
 };
 
+type CrmOpportunityDigestRow = {
+  id: string;
+  name: string | null;
+  stage: string | null;
+  status: string | null;
+  value_amount: number | string | null;
+  probability: number | null;
+  approval_required: boolean | null;
+  next_action: string | null;
+  updated_at: string;
+};
+
 const DIGEST_SELECT_COLUMNS = [
   'id',
   'first_name',
@@ -44,6 +61,18 @@ const TASK_DIGEST_SELECT_COLUMNS = [
   'priority',
   'assignee_name',
   'created_at',
+].join(',');
+
+const OPPORTUNITY_DIGEST_SELECT_COLUMNS = [
+  'id',
+  'name',
+  'stage',
+  'status',
+  'value_amount',
+  'probability',
+  'approval_required',
+  'next_action',
+  'updated_at',
 ].join(',');
 
 const digestQuerySchema = z.object({
@@ -87,6 +116,28 @@ function mapTask(row: CrmTaskDigestRow): CrmDigestTask {
     owner: clean(row.assignee_name) || null,
     status: clean(row.status) || null,
     priority: clean(row.priority) || null,
+  };
+}
+
+function valueEstimate(value: number | string | null): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
+}
+
+function mapOpportunity(row: CrmOpportunityDigestRow): CrmDigestOpportunity {
+  return {
+    id: row.id,
+    name: clean(row.name) || 'Untitled opportunity',
+    stage: clean(row.stage) || clean(row.status) || null,
+    valueEstimate: valueEstimate(row.value_amount),
+    probability: typeof row.probability === 'number' ? row.probability / 100 : null,
+    requiresApproval: row.approval_required === true,
+    nextAction: clean(row.next_action) || null,
   };
 }
 
@@ -136,11 +187,28 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'crm_digest_tasks_read_failed' }, { status: 500 });
     }
 
+    const opportunitiesEnabled = process.env.UNITE_CRM_OPPORTUNITIES_DIGEST_ENABLED === 'true';
+    const { data: opportunityData, error: opportunityError } = opportunitiesEnabled
+      ? await supabase
+          .from('crm_opportunities')
+          .select(OPPORTUNITY_DIGEST_SELECT_COLUMNS)
+          .in('status', ['open', 'won', 'blocked_review'])
+          .order('updated_at', { ascending: false })
+          .limit(parsed.data.limit)
+      : { data: [], error: null };
+
+    if (opportunityError) {
+      console.error('Error reading CRM daily digest opportunities:', opportunityError);
+      return NextResponse.json({ error: 'crm_digest_opportunities_read_failed' }, { status: 500 });
+    }
+
     const leads = (((data ?? []) as unknown) as CrmLeadDigestRow[]).map(mapLead);
     const tasks = (((taskData ?? []) as unknown) as CrmTaskDigestRow[]).map(mapTask);
+    const opportunities = (((opportunityData ?? []) as unknown) as CrmOpportunityDigestRow[]).map(mapOpportunity);
     const digest = createCrmDailyDigest({
       generatedAt: new Date().toISOString(),
       leads,
+      opportunities,
       tasks,
       verification: [{ command: 'GET /api/crm/daily-digest', status: 'passed' }],
     });
@@ -150,6 +218,7 @@ export async function GET(request: NextRequest) {
         success: true,
         digest,
         leadCount: leads.length,
+        opportunityCount: opportunities.length,
         filters: { limit: parsed.data.limit },
       },
       { status: 200 },

@@ -41,6 +41,18 @@ const taskRow = {
   created_at: '2026-05-23T01:00:00.000Z',
 };
 
+const opportunityRow = {
+  id: 'opp-forecast-1',
+  name: 'EOFY CRM follow-up package',
+  stage: 'proposal_needed',
+  status: 'open',
+  value_amount: 18000,
+  probability: 40,
+  approval_required: true,
+  next_action: 'Draft proposal for Phill approval',
+  updated_at: '2026-05-23T02:00:00.000Z',
+};
+
 function request(query = ''): NextRequest {
   return new NextRequest(`https://unite-group.in/api/crm/daily-digest${query}`, {
     method: 'GET',
@@ -88,24 +100,30 @@ function mockLeadRead(calls: QueryCall[], result: QueryResult = { data: [leadRow
 function mockDigestReads({
   leadCalls,
   taskCalls,
+  opportunityCalls,
   leadResult = { data: [leadRow], error: null },
   taskResult = { data: [], error: null },
+  opportunityResult = { data: [], error: null },
 }: {
   leadCalls: QueryCall[];
   taskCalls: QueryCall[];
+  opportunityCalls?: QueryCall[];
   leadResult?: QueryResult;
   taskResult?: QueryResult;
+  opportunityResult?: QueryResult;
 }) {
   const leadBuilder = createReadBuilder(leadCalls, leadResult);
   const taskBuilder = createReadBuilder(taskCalls, taskResult);
+  const opportunityBuilder = createReadBuilder(opportunityCalls ?? [], opportunityResult);
 
   mockFrom.mockImplementation((table: string) => {
     if (table === 'crm_leads') return leadBuilder;
     if (table === 'tasks') return taskBuilder;
+    if (table === 'crm_opportunities') return opportunityBuilder;
     throw new Error(`Unexpected table read: ${table}`);
   });
 
-  return { leadBuilder, taskBuilder };
+  return { leadBuilder, taskBuilder, opportunityBuilder };
 }
 
 describe('GET /api/crm/daily-digest', () => {
@@ -197,6 +215,7 @@ describe('GET /api/crm/daily-digest', () => {
     );
     expect(mockFrom).toHaveBeenNthCalledWith(1, 'crm_leads');
     expect(mockFrom).toHaveBeenNthCalledWith(2, 'tasks');
+    expect(mockFrom).toHaveBeenCalledTimes(2);
     expect(leadCalls).toEqual([
       {
         method: 'select',
@@ -210,6 +229,49 @@ describe('GET /api/crm/daily-digest', () => {
       { method: 'eq', column: 'workspace_id', value: 'workspace-crm' },
       { method: 'in', column: 'status', values: ['blocked', 'todo'] },
       { method: 'order', column: 'created_at', options: { ascending: false } },
+      { method: 'limit', value: 5 },
+    ]);
+  });
+
+  it('includes opportunity rows in the digest only when the opportunity digest flag is enabled', async () => {
+    process.env.UNITE_CRM_OPPORTUNITIES_DIGEST_ENABLED = 'true';
+    const leadCalls: QueryCall[] = [];
+    const taskCalls: QueryCall[] = [];
+    const opportunityCalls: QueryCall[] = [];
+    mockDigestReads({
+      leadCalls,
+      taskCalls,
+      opportunityCalls,
+      opportunityResult: { data: [opportunityRow], error: null },
+    });
+
+    const res = await GET(request('?limit=5'));
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.digest.summary).toMatchObject({
+      leadCount: 1,
+      qualifiedLeadCount: 1,
+      opportunityCount: 1,
+      approvalRequiredCount: 1,
+    });
+    expect(body.opportunityCount).toBe(1);
+    expect(body.digest.sections.operatorPriorities).toContain(
+      'Opportunity opp-forecast-1 (EOFY CRM follow-up package): stage proposal_needed, $18,000, 40%. Next: Draft proposal for Phill approval',
+    );
+    expect(body.digest.sections.approvals).toContain(
+      'Opportunity opp-forecast-1 (EOFY CRM follow-up package): approval required before commercial commitment. Next: Draft proposal for Phill approval',
+    );
+    expect(mockFrom).toHaveBeenNthCalledWith(1, 'crm_leads');
+    expect(mockFrom).toHaveBeenNthCalledWith(2, 'tasks');
+    expect(mockFrom).toHaveBeenNthCalledWith(3, 'crm_opportunities');
+    expect(opportunityCalls).toEqual([
+      {
+        method: 'select',
+        columns: 'id,name,stage,status,value_amount,probability,approval_required,next_action,updated_at',
+      },
+      { method: 'in', column: 'status', values: ['open', 'won', 'blocked_review'] },
+      { method: 'order', column: 'updated_at', options: { ascending: false } },
       { method: 'limit', value: 5 },
     ]);
   });
@@ -307,5 +369,26 @@ describe('GET /api/crm/daily-digest', () => {
     expect(await res.json()).toEqual({ error: 'crm_digest_tasks_read_failed' });
     expect(mockFrom).toHaveBeenNthCalledWith(1, 'crm_leads');
     expect(mockFrom).toHaveBeenNthCalledWith(2, 'tasks');
+  });
+
+  it('returns a safe read error when enabled opportunity reads fail after leads and tasks succeed', async () => {
+    process.env.UNITE_CRM_OPPORTUNITIES_DIGEST_ENABLED = 'true';
+    const leadCalls: QueryCall[] = [];
+    const taskCalls: QueryCall[] = [];
+    const opportunityCalls: QueryCall[] = [];
+    mockDigestReads({
+      leadCalls,
+      taskCalls,
+      opportunityCalls,
+      opportunityResult: { data: null, error: new Error('opportunity read failed') },
+    });
+
+    const res = await GET(request());
+
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ error: 'crm_digest_opportunities_read_failed' });
+    expect(mockFrom).toHaveBeenNthCalledWith(1, 'crm_leads');
+    expect(mockFrom).toHaveBeenNthCalledWith(2, 'tasks');
+    expect(mockFrom).toHaveBeenNthCalledWith(3, 'crm_opportunities');
   });
 });

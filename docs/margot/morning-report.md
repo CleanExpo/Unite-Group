@@ -102,6 +102,19 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest opportunity digest integration lane at `2026-05-23 11:42 AEST`:
+
+- Continued active branch `feat/margot-crm-daily-digest-route` from local head `9456ab1 docs: refresh CRM operating model next lanes`.
+- Extended read-only `src/app/api/crm/daily-digest/route.ts` so open/won/blocked `crm_opportunities` can be included in the daily CRM digest when `UNITE_CRM_OPPORTUNITIES_DIGEST_ENABLED=true`.
+- Kept the read feature-flagged because `crm_opportunities` is still a draft/sandbox-first table and should not be touched by deployed digest reads until schema readiness/promotion is explicit.
+- Added mocked integration coverage in `tests/integration/api/crm-daily-digest.test.ts` for opportunity priorities/approval surfacing and safe `crm_digest_opportunities_read_failed` handling.
+- Focused daily digest route verification passed: `npx jest tests/integration/api/crm-daily-digest.test.ts --runInBand` returned 1 suite / 10 tests passed.
+- Expanded CRM matrix gate passed: `npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts --runInBand` returned 9 suites / 57 tests passed.
+- Re-ran `npm run type-check`; `tsc --noEmit` passed.
+- Re-ran `npm run security:routes-check`; route inventory returned `0 unprotected mutating routes`.
+- Mac Mini probe during this lane: `/Volumes` only contains `Macintosh HD`; SMB/File Sharing port `445` is reachable; SSH/Remote Login port `22` is unreachable; recovery directory still contains only `.gitkeep`.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+
 Latest guarded opportunities create route lane at `2026-05-23 11:29 AEST`:
 
 - Added local forecast-only `POST /api/crm/opportunities` route at `src/app/api/crm/opportunities/route.ts`.
