@@ -109,7 +109,9 @@ Latest CRM timeline mapping lane at `2026-05-23 13:25 AEST`:
 - Updated the local CRM coverage and operating docs: `docs/margot/crm-operating-model.md`, `docs/margot/crm-test-coverage-matrix.md`, and `docs/margot/MARGOT-COMMAND-CENTER.md`.
 - Verification passed and was re-run after sanitizer hardening: `npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 1 suite / 5 tests passed, and `npm run type-check` passed.
 - Mac Mini probe: SMB/File Sharing `phills-mac-mini.local:445` is reachable, SSH/Remote Login `phills-mac-mini.local:22` is unreachable, `/Volumes` contains only `Macintosh HD`, and `docs/margot/recovered-from-mac-mini/` still contains only `.gitkeep`.
-- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, client-facing send, destructive git, or unrelated context mixing was performed.
+- Local commit created: `b369375 feat: map CRM timeline events to agent actions`.
+- Push/PR remains blocked: `GIT_TERMINAL_PROMPT=0 git push -u origin feat/margot-crm-daily-digest-route` failed with `fatal: could not read Username for 'https://github.com': terminal prompts disabled`.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, successful GitHub push, secret access/printing, Mac Mini write, client-facing send, destructive git, or unrelated context mixing was performed.
 
 Latest autonomous health check at `2026-05-23 12:51 AEST`:
 

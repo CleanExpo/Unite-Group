@@ -2102,3 +2102,17 @@ Next slice:
 
 - Add mocked route-level event-write tests before wiring lead/contact/opportunity routes to `agent_actions` timeline rows.
 
+## 2026-05-23 13:45 AEST
+
+### Commit / push evidence
+
+```text
+commit=b369375 feat: map CRM timeline events to agent actions
+push_attempt=GIT_TERMINAL_PROMPT=0 git push -u origin feat/margot-crm-daily-digest-route
+push_result=fatal: could not read Username for 'https://github.com': terminal prompts disabled
+```
+
+Transport blocker:
+
+- Local commit exists on `feat/margot-crm-daily-digest-route`, but GitHub push/PR remains blocked until authenticated HTTPS credentials or `gh` CLI auth is available in the cron shell.
+
