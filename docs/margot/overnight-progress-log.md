@@ -1695,6 +1695,11 @@ Safety / blockers:
 - GitHub CLI auth remains unavailable; push/PR needs verified GitHub transport before claiming remote readiness.
 - Mac Mini artifacts remain unrecovered until authenticated SMB mount, SSH/Remote Login, or approved export is available.
 
+Commit / push state:
+
+- Local implementation/docs commit created: `ffa7298 feat: add guarded CRM opportunities route`.
+- Push/PR not attempted after auth preflight showed `GITHUB_TOKEN_present=False`, `GH_TOKEN_present=False`, and `gh_auth=unavailable`.
+
 Next slice:
 
 - Continue local safe fallback with opportunity read/digest integration so the daily CRM digest can surface open/won/blocked opportunities, or wire command-center CRM digest UI consumption if UI is higher leverage.
