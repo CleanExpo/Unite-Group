@@ -1576,7 +1576,12 @@ Safety / blockers:
 - Vercel deployment state remains blocked because `vercel` CLI/auth is unavailable locally.
 - Mac Mini artifacts remain unrecovered until authenticated SMB mount, SSH/Remote Login, or approved export is available.
 
+Commit / push state:
+
+- Local commit created: `aae78c0 fix: scope CRM daily digest task reads`.
+- Push attempted with terminal prompts disabled and remained blocked: `fatal: could not read Username for 'https://github.com': terminal prompts disabled`.
+
 Next slice:
 
-- Commit the workspace-scoped daily-digest fix locally if the working tree remains stable, then continue with command-center digest consumption/fixture coverage or the guarded opportunities create route contract.
+- Once GitHub HTTPS/CLI auth is available, push `feat/margot-crm-daily-digest-route` and open/monitor the PR; otherwise continue local safe fallback with command-center digest consumption/fixture coverage or the guarded opportunities create route contract.
 
