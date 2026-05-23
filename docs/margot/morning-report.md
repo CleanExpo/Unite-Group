@@ -85,7 +85,7 @@ Margot has:
 Mac Mini recovery remains blocked by current connectivity/auth state:
 
 - Host: `phills-mac-mini.local`
-- Latest probe at `2026-05-24 08:10 AEST`: SMB/File Sharing port 445 is reachable; SSH/Remote Login port 22 is currently unreachable; `/Volumes` contains `Claude` and `Macintosh HD`; the local recovery destination still contains only `.gitkeep`.
+- Latest probe at `2026-05-24 09:19 AEST`: SMB/File Sharing port 445 is reachable; SSH/Remote Login port 22 is currently unreachable; `/Volumes` contains `Claude` and `Macintosh HD`; the local recovery destination still contains only `.gitkeep`.
 
 Still blocked:
 
@@ -101,6 +101,37 @@ Target recovery files remain:
 - `/Users/phill-mac/hermes-agent-enhancement-report/restoreassist-content-packs/RESTOREASSIST-CONTENT-INDEX.md`
 
 ## Verification status
+
+Latest verification refresh at `2026-05-24 09:25 AEST`:
+
+- Re-read the requested Margot operating docs, inspected current repo state, and continued a safe Senior PM / CRM planning lane from existing local assets while preserving the pre-existing uncommitted CRM opportunity multi-link guard slice.
+- Safe health check passed: branch `margot/opportunity-multilink-approval-guard`, head `635d7a0`; `node_modules=present`, `package-lock=present`, `/Volumes` contains `Claude` and `Macintosh HD`, recovered Mac Mini artifacts still contain only `.gitkeep`, `phills-mac-mini.local:445` is reachable, and `phills-mac-mini.local:22` is unreachable.
+- Safe local documentation improvement: added `docs/margot/crm-mutation-timeline-contract.md`, defining the required route/test contract before contact update/merge or opportunity update/close/reopen routes are introduced.
+- Updated `docs/margot/crm-test-coverage-matrix.md` so the activity/timeline row references the new contract and the next gap is explicit RED unit coverage for future mutation event types (`contact_updated`, `opportunity_updated`, `opportunity_closed`, `opportunity_reopened`) before route work.
+- Updated `docs/margot/mac-mini-recovery-status.md` and `docs/margot/overnight-progress-log.md` with evidence.
+- Verification passed: `git diff --check`; `npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 1 suite / 7 tests.
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, unrelated context mixing, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Latest verification refresh at `2026-05-24 08:47 AEST`:
+
+- Re-read the requested Margot operating docs, inspected current repo state, and continued the Senior PM / CRM production-readiness lane from existing local assets.
+- Safe health check passed: started from branch `main`, head `635d7a0`; current work is isolated on branch `margot/opportunity-multilink-approval-guard`; `node_modules=present`, `package-lock=present`, `/Volumes` contains `Claude` and `Macintosh HD`, recovered Mac Mini artifacts still contain only `.gitkeep`, `phills-mac-mini.local:445` is reachable, and `phills-mac-mini.local:22` is unreachable.
+- Safe local route/test improvement: `src/app/api/crm/opportunities/route.ts` now blocks opportunity creates that provide more than one linked CRM entity scope unless a Board approval id is present, avoiding unapproved cross-client/context linkage before Supabase access.
+- Updated `tests/integration/api/crm-opportunities-create.test.ts` with a regression proving the multi-link abort returns `403 operator_approval_required` before Supabase client creation, `.from` access, inserts, duplicate lookup, or `agent_actions` timeline writes; tightened the existing contact multi-link regression to prove no Supabase client creation on the blocked path.
+- Updated `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/mac-mini-recovery-status.md`, and `docs/margot/overnight-progress-log.md` with evidence. Contact/opportunity cross-client multi-link abort coverage is now locally covered; next safe CRM gap is route-level update/close/reopen timeline event-write tests.
+- Verification passed: `npx jest tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 3 suites / 43 tests; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed; spec re-review passed and quality review approved.
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, unrelated context mixing, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Latest merge/deploy refresh at `2026-05-24 08:45 AEST`:
+
+- PR #189 merged: https://github.com/CleanExpo/Unite-Group/pull/189
+- Merge commit on `main`: `635d7a0bab3ad65366a7954a6c7dcee6e6ba6970` (`test: cover crm duplicate lookup failures (#189)`).
+- Main CI after merge passed: https://github.com/CleanExpo/Unite-Group/actions/runs/26345505866
+- DESIGN.md lint after merge passed: https://github.com/CleanExpo/Unite-Group/actions/runs/26345505876
+- Vercel status for the merge commit is success: https://vercel.com/unite-group/unite-group/Bj8VG181RXbqA1aqyx5dc5kC4acB
+- Scope shipped: CRM contact/opportunity duplicate lookup failure paths now have mocked regressions proving safe 500 responses before primary inserts or timeline writes, with generic logging only.
+- This post-merge evidence is local-only in the workspace to avoid an evidence-only PR chain after the verified merge.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
 
 Latest verification refresh at `2026-05-24 08:37 AEST`:
 

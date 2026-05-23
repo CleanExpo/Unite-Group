@@ -412,6 +412,19 @@ describe('POST /api/crm/opportunities', () => {
     expect(mockFrom).not.toHaveBeenCalled();
   });
 
+  it('returns 403 operator_approval_required and does not access Supabase when multiple entity links are supplied without Board approval', async () => {
+    const res = await POST(request({
+      name: 'Margot CRM Buildout',
+      linkedLeadId: leadId,
+      linkedClientId: clientId,
+    }));
+
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ error: 'operator_approval_required' });
+    expect(createClient).not.toHaveBeenCalled();
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
   it('returns 403 operator_approval_required and does not insert for won status without approval', async () => {
     const res = await POST(request({
       name: 'Margot CRM Buildout',
