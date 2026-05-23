@@ -102,6 +102,26 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest verification refresh at `2026-05-24 03:41 AEST`:
+
+- Re-read the requested Margot operating docs and current command-center/CRM handoff state, then continued the command-center CRM read-surface lane from existing local assets.
+- Safe health check passed: branch `main`, head `b7a2943`, `node_modules=present`, `package-lock=present`, `/Volumes` contains `Claude` and `Macintosh HD`, both `phills-mac-mini.local:445` and `phills-mac-mini.local:22` are currently unreachable, and recovered Mac Mini artifacts still contain only `.gitkeep`.
+- Safe improvement: `src/app/api/command-center/control-panel/route.ts` now trims CRM task `status` and `priority` before live workstream status/RYG mapping, so a whitespace-padded blocked CRM row no longer leaves a mapped command-center workstream falsely green/live.
+- TDD evidence: the new spaced ` blocked ` status fixture in `tests/integration/api/control-panel.test.ts` failed RED first because the mapped Margot voice workstream stayed `status=live` and `ryg=yellow`; it passed after the route fix with `status=gated` and `ryg=red`.
+- Updated `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/mac-mini-recovery-status.md`, and `docs/margot/overnight-progress-log.md` with this evidence.
+- Verification passed: `npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand` returned 2 suites / 7 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
+
+Latest verification refresh at `2026-05-24 03:06 AEST`:
+
+- Re-read the requested Margot operating docs and current command-center/CRM handoff state, then continued the command-center CRM read-surface lane from existing local assets.
+- Safe health check passed: branch `main`, head `b7a2943`, `node_modules=present`, `package-lock=present`, `/Volumes` contains `Claude` and `Macintosh HD`, `phills-mac-mini.local:445` is reachable, `phills-mac-mini.local:22` is unreachable, and recovered Mac Mini artifacts still contain only `.gitkeep`.
+- Safe improvement: `src/app/api/command-center/control-panel/route.ts` now trims task status, tag, and assignee strings before approval-required classification, hardening `summary.approvalRequired` against incidental CRM whitespace.
+- TDD evidence: the new spaced ` needs-approval ` tag fixture in `tests/integration/api/control-panel.test.ts` failed RED first because expected approval-required count 5 received 4; it passed after the route fix.
+- Updated `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/mac-mini-recovery-status.md`, and `docs/margot/overnight-progress-log.md` with this evidence.
+- Verification passed: `npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand` returned 2 suites / 7 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
+
 Latest verification refresh at `2026-05-24 02:28 AEST`:
 
 - Re-read the requested Margot operating docs and current command-center/CRM handoff state, then continued the command-center CRM read-surface lane from existing local assets.
