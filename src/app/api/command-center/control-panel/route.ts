@@ -88,8 +88,10 @@ function isApprovalRequiredTask(task: TaskRow) {
   const status = task.status.toLowerCase();
   const assignee = task.assignee_name?.toLowerCase() ?? '';
   return (
-    ['blocked', 'needs_approval', 'approval'].includes(status) ||
-    assignee.includes('phill approval')
+    ['blocked', 'blocked-on-you', 'needs_approval', 'approval'].includes(status) ||
+    assignee.includes('phill approval') ||
+    assignee.includes('board approval') ||
+    assignee.includes('operator approval')
   );
 }
 

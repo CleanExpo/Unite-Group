@@ -102,6 +102,16 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest verification refresh at `2026-05-24 01:49 AEST`:
+
+- Re-read the requested Margot operating docs and current command-center/CRM handoff state, then continued the command-center CRM read-surface lane from existing local assets.
+- Safe health check passed: branch `margot-control-panel-degraded-source-test`, head `5768bca`, `node_modules=present`, `package-lock=present`, `/Volumes` contains `Claude` and `Macintosh HD`, `phills-mac-mini.local:445` is reachable, `phills-mac-mini.local:22` is unreachable, and recovered Mac Mini artifacts still contain only `.gitkeep`.
+- Safe improvement: `src/app/api/command-center/control-panel/route.ts` now counts approval-required control-panel tasks across `blocked`, `blocked-on-you`, `needs_approval`, `approval`, and Phill/Board/operator approval assignee markers.
+- TDD evidence: the new integration regression in `tests/integration/api/control-panel.test.ts` failed RED first because the Board/operator approval marker fixture expected 2 approval-required rows and received 1; it passed after the route fix.
+- Updated `docs/margot/crm-test-coverage-matrix.md` and `docs/margot/overnight-progress-log.md` with this evidence.
+- Verification passed: `npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand` returned 2 suites / 7 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
+
 Latest verification refresh at `2026-05-24 01:31 AEST`:
 
 - Continued the already-started command-center degraded-source coverage slice and fixed the progress-log EOF hygiene issue flagged by spec/quality reviewers.
