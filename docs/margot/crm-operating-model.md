@@ -1,6 +1,6 @@
 # Margot CRM Operating Model
 
-Date: 2026-05-23 07:00 AEST
+Date: 2026-05-23 11:29 AEST
 Owner: Margot
 Project: Unite-Group
 Strategic lens: build the CRM into Phill's daily operating cockpit for a $2B Unite-Group business.
@@ -58,9 +58,9 @@ Domains:
 | --- | --- | --- | --- |
 | Business | Unite-Group portfolio business or operating unit | `businesses` table extended by `20260510000001_nexus_businesses.sql`; Business 360 helper | Supabase `businesses` |
 | Client | Paying/active/onboarding external client | `nexus_clients`; client create/update APIs | Supabase `nexus_clients` |
-| Contact | Person tied to a business/client/lead | `nexus_clients.contact_name/contact_email` only; no canonical contact table yet | Proposed `crm_contacts` |
+| Contact | Person tied to a business/client/lead | Draft `crm_contacts` migration exists locally; `src/app/api/crm/contacts/route.ts` and `tests/integration/api/crm-contacts-create.test.ts` cover guarded local contact creation with mocks | Proposed Supabase `crm_contacts` after sandbox-first application; local route/test contract exists now |
 | Lead | Prospect or inbound form submission before qualification | `src/app/api/marketing/leads/route.ts` validates, optionally subscribes to SendGrid, and writes `crm_leads`; `src/app/api/crm/leads/route.ts` lists recent leads for command-center visibility; `src/lib/crm/qualify-lead.ts` provides recommendation-only scoring | Supabase `crm_leads` once the local migration is applied to the target environment; SendGrid remains a side integration |
-| Opportunity | Qualified commercial possibility with value/stage/probability | Not yet modeled locally | Proposed `crm_opportunities` |
+| Opportunity | Qualified commercial possibility with value/stage/probability | Draft `crm_opportunities` migration exists locally; `src/app/api/crm/opportunities/route.ts` and `tests/integration/api/crm-opportunities-create.test.ts` cover guarded local forecast-only creation with mocks | Proposed Supabase `crm_opportunities` after sandbox-first application; local route/test contract exists now |
 | Task | Work item for Margot, Phill, agent, or human owner | Margot voice route writes `tasks`; Linear mirror exists | Supabase `tasks` for app tasks, Linear for execution queue |
 | Approval | Human decision or permission gate | Voice route blocks approval-required work by assignee/status; no dedicated approval table yet | Proposed `crm_approvals` or task subtype |
 | Project | Delivery initiative connected to client/business/revenue | Linear mirror tables; local project docs | Linear for execution status, Supabase mirror for cockpit |
@@ -76,7 +76,7 @@ Domains:
 | --- | --- | --- | --- |
 | Client identity and CRM client lifecycle | Supabase `nexus_clients` | Command Center, client portal, daily digest | Supabase wins over derived UI state; manual changes require audit event |
 | Portfolio business identity | Supabase `businesses` | Business 360 / command-center tiles | Supabase wins; integrations enrich but do not overwrite identity |
-| Lead intake | Proposed Supabase `crm_leads` | SendGrid subscription and command-center queue | CRM lead record must exist even if marketing email sync fails |
+| Lead intake | Proposed Supabase `crm_leads` | SendGrid subscription and command-center queue | CRM lead record must exist even if marketing email sync fails; migration remains sandbox-first before target-environment truth |
 | Billing/revenue truth | Stripe | `integration_stripe_*` mirror | Stripe wins; CRM stores links/status summaries only |
 | Engineering/project execution | Linear and GitHub | `integration_linear_*`, `integration_github_*` | Execution system wins for state; CRM stores operator interpretation and next action |
 | Deployment/runtime health | Vercel/Railway/DigitalOcean/Supabase | `integration_vercel_*`, `integration_railway_*`, `integration_do_*`, `integration_supabase_*` | Provider wins; CRM surfaces risk and owner action |
@@ -222,14 +222,14 @@ npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration
 
 ## Next Implementation Lanes
 
-1. Build out the guarded lead-to-client conversion route behind failing mocked tests from `docs/margot/lead-to-client-conversion-plan.md`.
-2. Draft the `crm_contacts` proposal so leads/clients stop overloading email fields.
-3. Draft the `crm_opportunities` proposal for qualified commercial work before client conversion.
-4. Draft `docs/margot/project-portfolio-index.md`.
-5. Draft `docs/margot/client-second-brain-model.md`.
-6. Draft `docs/margot/marketing-strategy-operating-model.md`.
-7. Draft `docs/margot/ai-enhancement-pipeline.md`.
-8. Keep lead, qualification, Margot voice focused tests and `npm run type-check` green.
+1. Add opportunity read/digest integration so open/won/blocked forecast-only opportunities surface in the daily CRM digest without broad service-role reads.
+2. Add activity/timeline event taxonomy tests for lead captured, qualified, converted, contact created, opportunity created, approval requested, task completed, and integration stale.
+3. Decide and test the CRM approvals lifecycle: requested, approved, rejected, expired/cancelled, executed.
+4. Add command-center CRM UI read-surface tests for leads, approvals, opportunities, and daily digest.
+5. Add integration stale-sync threshold tests for Linear/GitHub/Vercel/Supabase mirrors.
+6. Establish local schema provenance for `tasks` and `voice_command_sessions`.
+7. Run wider existing client route regression before any `nexus_clients` conversion work.
+8. Keep the focused CRM matrix gate, Margot voice gate when touched, `npm run type-check`, and `npm run security:routes-check` green.
 9. Continue Mac Mini recovery only through authenticated SMB/SSH or manual approved export.
 
 ## Evidence From This Pass
