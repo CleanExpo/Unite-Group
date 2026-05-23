@@ -85,7 +85,7 @@ Margot has:
 Mac Mini recovery remains blocked by current connectivity/auth state:
 
 - Host: `phills-mac-mini.local`
-- Latest probe at `2026-05-24 07:38 AEST`: SMB/File Sharing port 445 is reachable; a short `nc` probe saw SSH/Remote Login port 22 reachable, but authenticated BatchMode SSH still timed out before file listing; `/Volumes` contains `Claude` and `Macintosh HD`; the local recovery destination still contains only `.gitkeep`.
+- Latest probe at `2026-05-24 08:10 AEST`: SMB/File Sharing port 445 is reachable; SSH/Remote Login port 22 is currently unreachable; `/Volumes` contains `Claude` and `Macintosh HD`; the local recovery destination still contains only `.gitkeep`.
 
 Still blocked:
 
@@ -101,6 +101,22 @@ Target recovery files remain:
 - `/Users/phill-mac/hermes-agent-enhancement-report/restoreassist-content-packs/RESTOREASSIST-CONTENT-INDEX.md`
 
 ## Verification status
+
+Latest verification refresh at `2026-05-24 08:37 AEST`:
+
+- Continued the CRM duplicate lookup failure-path slice on branch `margot/crm-duplicate-lookup-failure-paths` and fixed review-noted handoff precision gaps before publishing.
+- Review loop passed: spec re-review `PASS`; quality review `APPROVED`; final integration review `READY`.
+- Verification passed: `git diff --check`; `npx jest tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 3 suites / 42 tests; `npm run type-check`; `npm run security:routes-check` returned 0 unprotected mutating routes.
+- Current state before publish: local branch/test/docs changes are ready for commit/PR; no production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Latest verification refresh at `2026-05-24 08:12 AEST`:
+
+- Re-read the requested Margot operating docs, inspected current repo state, and continued the Senior PM / CRM duplicate-safety coverage lane from existing local assets.
+- Safe health check passed: started from branch `main` at head `07545aa`; current work is isolated on branch `margot/crm-duplicate-lookup-failure-paths`; `node_modules=present`, `package-lock=present`, `/Volumes` contains `Claude` and `Macintosh HD`, recovered Mac Mini artifacts still contain only `.gitkeep`, `phills-mac-mini.local:445` is reachable, and `phills-mac-mini.local:22` is unreachable.
+- Safe local test improvement: contact create duplicate lookup errors now have a mocked regression proving `500 crm_contact_duplicate_check_failed` is returned before primary insert/timeline writes with generic logging only; opportunity create duplicate lookup errors now have the matching `500 crm_opportunity_duplicate_check_failed` regression.
+- Updated `docs/margot/crm-test-coverage-matrix.md` and `docs/margot/overnight-progress-log.md` with evidence. The duplicate-lookup failure-path gap is now locally covered; the next contact/opportunity production-readiness gap is cross-client leakage abort fixtures.
+- Verification passed: `npx jest tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 3 suites / 42 tests; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes.
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, unrelated context mixing, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
 
 Latest verification refresh at `2026-05-24 07:38 AEST`:
 
@@ -836,4 +852,15 @@ Latest CRM duplicate-lookup refresh at `2026-05-24 07:54 AEST`:
 - Tests now assert duplicate lookup query shape (`select('id')`, exact `.eq(...)` filters, `limit(1)`, `maybeSingle()`) plus blocked insert/timeline side effects.
 - Verification passed: focused contact/opportunity/activity-timeline Jest gate returned 3 suites / 40 tests; `npm run type-check` passed; `npm run security:routes-check` passed with `0 unprotected mutating routes`; `git diff --check` passed.
 - Review loop passed: spec compliance `PASS`; quality re-review `APPROVED`; final integration review `READY`.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
+
+Latest merge/deploy refresh at `2026-05-24 07:59 AEST`:
+
+- PR #188 merged: https://github.com/CleanExpo/Unite-Group/pull/188
+- Merge commit on `main`: `07545aa70dca2ca7a79c1201c45954119545e279` (`test: add crm duplicate lookup guards`).
+- Main CI after merge passed: https://github.com/CleanExpo/Unite-Group/actions/runs/26344599521
+- DESIGN.md lint after merge passed: https://github.com/CleanExpo/Unite-Group/actions/runs/26344599528
+- Vercel status for the merge commit is success: https://vercel.com/unite-group/unite-group/BZnEzUa88vJSHLGzW6PydUQPMK7T
+- Scope shipped: contact/opportunity create routes now perform read-before-write duplicate lookups before primary inserts/timeline writes, while preserving insert-time `23505` conflict fallback handling.
+- This post-merge evidence is local-only in the workspace to avoid an evidence-only PR chain after the verified merge.
 - No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
