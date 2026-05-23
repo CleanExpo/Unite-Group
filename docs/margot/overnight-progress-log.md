@@ -1945,3 +1945,48 @@ Next slice:
 
 - After local commit, push/open the existing branch when GitHub auth is restored; otherwise continue with the timeline persistence decision and route-level event-write tests.
 
+## 2026-05-23 12:51 AEST
+
+### Autonomous health check — activity timeline verification refresh
+
+Preflight / repo state:
+
+```text
+branch=feat/margot-crm-daily-digest-route
+working_tree=clean
+head=49fdc09 feat: add CRM activity timeline taxonomy
+node_modules=present
+package-lock.json=present
+recovered_dir=docs/margot/recovered-from-mac-mini contains .gitkeep only
+```
+
+Health checks completed:
+
+- Re-read the canonical Margot operating docs and current handoff files before acting.
+- Rechecked Mac Mini transport: SMB/File Sharing `phills-mac-mini.local:445` is reachable, SSH/Remote Login `phills-mac-mini.local:22` is unreachable, and `/Volumes` contains only `Macintosh HD`; no authenticated Mac Mini share is mounted.
+- Rechecked local recovery destination: `docs/margot/recovered-from-mac-mini/` still contains only `.gitkeep`.
+- Verified the previously completed CRM activity timeline taxonomy remains green in this clean working tree.
+
+Verification commands/results:
+
+```bash
+git diff --check
+# PASS: no whitespace errors
+
+npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 1 suite passed, 3 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+```
+
+Blockers / transport:
+
+- Mac Mini recovery remains blocked on authenticated SMB mount or SSH availability.
+- GitHub push/PR remains blocked in this run by the standing hard safety rule: no GitHub push.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, secret access/printing, Mac Mini write, client-facing send, destructive git, or unrelated context mixing was performed.
+
+Next slice:
+
+- Continue timeline persistence policy and route-level event-write tests, or recover the two approved Mac Mini artifacts if an authenticated mount/SSH session appears.
+

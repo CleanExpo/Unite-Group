@@ -102,6 +102,14 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest autonomous health check at `2026-05-23 12:51 AEST`:
+
+- Re-read Margot operating docs and handoff state, then ran a safe verification refresh without starting a new lane.
+- Repo state before the report update was clean on `feat/margot-crm-daily-digest-route` at `49fdc09 feat: add CRM activity timeline taxonomy`.
+- Mac Mini probe: SMB/File Sharing `phills-mac-mini.local:445` is reachable, SSH/Remote Login `phills-mac-mini.local:22` is unreachable, `/Volumes` contains only `Macintosh HD`, and `docs/margot/recovered-from-mac-mini/` still contains only `.gitkeep`.
+- Verification passed: `git diff --check`, `npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 1 suite / 3 tests passed, and `npm run type-check` passed.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, client-facing send, destructive git, or unrelated context mixing was performed.
+
 Latest activity/timeline taxonomy lane at `2026-05-23 12:42 AEST`:
 
 - Added pure local CRM timeline helper `src/lib/crm/activity-timeline.ts`.
