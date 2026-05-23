@@ -17,7 +17,9 @@ type ControlPanelPayload = {
   source: string;
   taskCount: number;
   generatedAt: string;
-  summary: Record<ControlRyg, number>;
+  summary: Record<ControlRyg, number> & {
+    approvalRequired?: number;
+  };
   workstreams: ControlWorkstream[];
   addOns: AddOnGate[];
 };
@@ -132,6 +134,7 @@ export function HermesControlPanel() {
   const green = payload?.summary.green ?? workstreams.filter((item) => item.ryg === 'green').length;
   const yellow = payload?.summary.yellow ?? workstreams.filter((item) => item.ryg === 'yellow').length;
   const red = payload?.summary.red ?? workstreams.filter((item) => item.ryg === 'red').length;
+  const approvalRequired = payload?.summary.approvalRequired ?? 0;
   const badgeMode =
     sourceState === 'live'
       ? 'live'
@@ -182,13 +185,14 @@ export function HermesControlPanel() {
         </div>
 
         <div
-          className="grid grid-cols-3 gap-px overflow-hidden border"
+          className="grid grid-cols-2 gap-px overflow-hidden border sm:grid-cols-4"
           style={{ borderColor: 'var(--cc-grid)', background: 'var(--cc-grid)' }}
-          aria-label="Portfolio RYG summary"
+          aria-label="Portfolio RYG and approval summary"
         >
           <SummaryCell label="GREEN" value={green} tone="green" />
           <SummaryCell label="YELLOW" value={yellow} tone="yellow" />
           <SummaryCell label="RED" value={red} tone="red" />
+          <SummaryCell label="APPROVAL REQUIRED" value={approvalRequired} tone="red" />
         </div>
       </header>
 
