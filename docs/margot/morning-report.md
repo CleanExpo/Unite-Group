@@ -85,7 +85,7 @@ Margot has:
 Mac Mini recovery remains blocked by current connectivity/auth state:
 
 - Host: `phills-mac-mini.local`
-- Latest probe at `2026-05-23 20:49 AEST`: SMB/File Sharing port 445 is reachable; SSH/Remote Login port 22 is unreachable; `/Volumes` contains `Claude` and `Macintosh HD`, but neither mounted volume contains the approved target artifact names.
+- Latest probe at `2026-05-24 07:00 AEST`: SMB/File Sharing port 445 is reachable; SSH/Remote Login port 22 is unreachable; `/Volumes` contains `Claude` and `Macintosh HD`; the local recovery destination still contains only `.gitkeep`.
 
 Still blocked:
 
@@ -101,6 +101,36 @@ Target recovery files remain:
 - `/Users/phill-mac/hermes-agent-enhancement-report/restoreassist-content-packs/RESTOREASSIST-CONTENT-INDEX.md`
 
 ## Verification status
+
+Latest verification refresh at `2026-05-24 07:01 AEST`:
+
+- Re-read the requested Margot operating docs, inspected the current repo state, and continued the already-started Senior PM / CRM duplicate-conflict hardening lane on branch `margot/crm-duplicate-conflict-409` rather than starting a conflicting lane.
+- Safe health check passed: branch `margot/crm-duplicate-conflict-409`, head `1e19394`, `node_modules=present`, `package-lock=present`, `/Volumes` contains `Claude` and `Macintosh HD`, recovered Mac Mini artifacts still contain only `.gitkeep`, `phills-mac-mini.local:445` is reachable, and `phills-mac-mini.local:22` is unreachable.
+- Safe local route/test contract improvement: contact and opportunity create routes map PostgreSQL/Supabase unique-constraint errors (`23505`) returned or thrown by the mocked insert path to operator-safe `409 crm_contact_conflict` / `409 crm_opportunity_conflict` responses.
+- Duplicate-conflict paths now return before best-effort `agent_actions` timeline writes and avoid raw duplicate error logging; this remains local 23505 conflict mapping only, not a full read-before-write duplicate lookup policy.
+- Updated `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/mac-mini-recovery-status.md`, and `docs/margot/overnight-progress-log.md` with this evidence.
+- Verification passed: `npx jest tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 3 suites / 38 tests; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, unrelated context mixing, noninteractive credential attempt, or secret printing/storage was performed.
+
+Latest verification refresh at `2026-05-24 06:29 AEST`:
+
+- Re-read the requested Margot operating docs and continued the Senior PM / CRM operating-model lane from existing local assets.
+- Safe health check passed: branch `main`, head `1e19394`, `node_modules=present`, `package-lock=present`, `/Volumes` contains `Claude` and `Macintosh HD`, recovered Mac Mini artifacts still contain only `.gitkeep`, `phills-mac-mini.local:445` is reachable, and `phills-mac-mini.local:22` is unreachable.
+- Local route/test contract improvement only: `src/app/api/crm/contacts/route.ts` and `src/app/api/crm/opportunities/route.ts` map PostgreSQL/Supabase unique-constraint errors (`23505`) returned or thrown by the mocked insert path to operator-safe `409 crm_contact_conflict` / `409 crm_opportunity_conflict` responses instead of generic create failures.
+- Added local mocked regressions proving thrown duplicate conflicts do not attempt `agent_actions` timeline writes and do not log raw duplicate error objects/messages; read-before-write business-key duplicate lookup remains a future gap.
+- Updated `docs/margot/crm-test-coverage-matrix.md` and `docs/margot/overnight-progress-log.md` with local-only evidence.
+- Verification passed: `npx jest tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 3 suites / 38 tests; `git diff --check` passed.
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, unrelated context mixing, noninteractive credential attempt, or secret printing/storage was performed.
+
+Latest verification refresh at `2026-05-24 06:23 AEST`:
+
+- PR #186 merged: https://github.com/CleanExpo/Unite-Group/pull/186
+- Merge commit on `main`: `1e193946defd1efb6d9203c9c479d76528f19b15` (`test: harden lead conversion timeline logging`).
+- Post-merge main CI passed: https://github.com/CleanExpo/Unite-Group/actions/runs/26342606272
+- Post-merge DESIGN.md lint passed: https://github.com/CleanExpo/Unite-Group/actions/runs/26342606219
+- GitHub commit status reports Vercel success: https://vercel.com/unite-group/unite-group/ChhpjYfBNtUjXXhQD5BtYTRKghST
+- Shipped scope: guarded lead conversion preserves primary success when best-effort `agent_actions` timeline inserts return or throw errors, logs generic timeline-failure messages only, and tests assert no raw Error objects or sensitive timeline error strings are logged.
+- This post-merge evidence is local-only in the workspace; no evidence-only PR/commit chain was opened after the verified merge.
 
 Latest verification refresh at `2026-05-24 06:18 AEST`:
 
@@ -767,3 +797,13 @@ Latest merge/deploy refresh at `2026-05-24 00:45 AEST`:
 - Scope shipped: command-center control-panel component now has local/server-render live CRM payload coverage via `initialPayload`, proving live task count, approval-required count, and live workstream label render without seed/loading fallback.
 - This merge/deploy evidence was appended locally only; no follow-up PR was opened solely to publish evidence-of-evidence.
 - No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git on main, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
+
+Latest CRM duplicate-conflict refresh at `2026-05-24 07:03 AEST`:
+
+- Branch `margot/crm-duplicate-conflict-409` contains local route/test/doc hardening for contact and opportunity duplicate conflict handling.
+- Contact/opportunity create routes now map PostgreSQL/Supabase `23505` errors returned or thrown by the insert path to `409 crm_contact_conflict` / `409 crm_opportunity_conflict` without raw duplicate logging or `agent_actions` timeline writes.
+- Added RED-first regressions for thrown duplicate errors plus returned-error conflict assertions; current coverage remains local route/mock coverage, not sandbox-applied or production-promoted behavior.
+- Verification passed: focused contact/opportunity/activity-timeline Jest gate returned 3 suites / 38 tests; `npm run type-check` passed; `npm run security:routes-check` passed with `0 unprotected mutating routes`; `git diff --check` passed.
+- Re-review passed: spec compliance `PASS`; code quality `APPROVED`.
+- Mac Mini recovery remains blocked on authenticated SMB mount or SSH availability; no credential prompt, secret read, or noninteractive auth attempt was made.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.

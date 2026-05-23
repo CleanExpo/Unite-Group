@@ -53,7 +53,7 @@ function mockOpportunityInsert(
   calls: InsertCall[] = [],
   selectCalls: SelectCall[] = [],
   result: { data?: Record<string, unknown> | null; error?: Error | null } = {},
-  options: { timelineError?: Error | null; throwTimelineInsert?: boolean } = {},
+  options: { timelineError?: Error | null; throwTimelineInsert?: boolean; throwPrimaryInsert?: Error } = {},
 ) {
   mockFrom.mockImplementation((table: string) => ({
     insert: jest.fn((row: Record<string, unknown>) => {
@@ -63,6 +63,10 @@ function mockOpportunityInsert(
           selectCalls.push({ table, columns });
           return {
             single: jest.fn(async () => {
+              if (table === 'crm_opportunities' && options.throwPrimaryInsert) {
+                throw options.throwPrimaryInsert;
+              }
+
               if (table === 'agent_actions' && options.throwTimelineInsert) {
                 throw new Error('timeline insert exploded');
               }
@@ -479,5 +483,41 @@ describe('POST /api/crm/opportunities', () => {
 
     expect(res.status).toBe(500);
     expect(await res.json()).toEqual({ error: 'crm_opportunity_create_failed' });
+  });
+
+  it('returns 409 crm_opportunity_conflict on duplicate opportunity unique-constraint errors without timeline insert', async () => {
+    const calls: InsertCall[] = [];
+    const duplicateError = Object.assign(new Error('duplicate opportunity'), { code: '23505' });
+    mockOpportunityInsert(calls, [], { data: null, error: duplicateError });
+
+    const res = await POST(request({
+      name: 'Margot CRM Buildout',
+      linkedLeadId: leadId,
+    }));
+
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: 'crm_opportunity_conflict' });
+    expect(calls).toHaveLength(1);
+    expect(calls[0].table).toBe('crm_opportunities');
+    expect(mockFrom).not.toHaveBeenCalledWith('agent_actions');
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  it('returns 409 crm_opportunity_conflict when Supabase throws a duplicate opportunity unique-constraint error without timeline insert or raw duplicate logging', async () => {
+    const calls: InsertCall[] = [];
+    const duplicateError = Object.assign(new Error('raw duplicate opportunity should not be logged'), { code: '23505' });
+    mockOpportunityInsert(calls, [], {}, { throwPrimaryInsert: duplicateError });
+
+    const res = await POST(request({
+      name: 'Margot CRM Buildout',
+      linkedLeadId: leadId,
+    }));
+
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: 'crm_opportunity_conflict' });
+    expect(calls).toHaveLength(1);
+    expect(calls[0].table).toBe('crm_opportunities');
+    expect(mockFrom).not.toHaveBeenCalledWith('agent_actions');
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
 });
