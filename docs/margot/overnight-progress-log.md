@@ -1459,3 +1459,124 @@ Next slice:
 
 - Continue from the active daily digest branch by adding command-center consumption/fixture coverage for the digest payload, or move to the guarded opportunities create route contract after deciding whether the digest UI should come first.
 
+## 2026-05-23 10:30:30 AEST
+
+### Health check
+
+Observed in `/Users/phillmcgurk/Unite-Group`:
+
+```text
+branch=feat/margot-crm-daily-digest-route
+head=ed65b98 docs: record CRM daily digest task-read progress
+working tree clean before this doc refresh
+node_modules=present
+package-lock=present
+recovered-from-mac-mini contains only .gitkeep
+/Volumes contains only Macintosh HD
+phills-mac-mini.local:445 reachable
+phills-mac-mini.local:22 unreachable
+```
+
+### Lane executed — Senior PM daily digest verification refresh
+
+Used existing assets first: canonical Margot docs, current Linear mirror, active CRM daily digest route/tests, local git state, package scripts, and Mac Mini recovery status.
+
+Current safe improvement verified:
+
+- Re-ran the read-only CRM daily digest verification gate after the latest local doc commit.
+- Confirmed the active branch remains on the daily digest lane, with no uncommitted code changes before this report refresh.
+- Confirmed Mac Mini recovery remains transport/auth blocked rather than a missing local-destination issue: SMB is reachable, SSH is not, and no authenticated share is mounted.
+
+Verification commands/results:
+
+```bash
+npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-leads-list.test.ts --runInBand
+# PASS: 3 suites passed, 14 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Safety / blockers:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+- Mac Mini artifacts remain unrecovered until Finder-mounted/authenticated SMB, SSH/Remote Login, or an approved export is available.
+- GitHub push/PR/check state remains blocked by missing local GitHub HTTPS/gh authentication.
+- Local build remains known-blocked by missing local Supabase URL/env for existing `/api/search/nexus`; focused CRM tests, type-check, and route security are green.
+
+Next slice:
+
+- Continue from the active daily digest branch with command-center digest consumption/fixture coverage, or move to the guarded opportunities create route contract if command-center UI wiring is deferred.
+
+
+## 2026-05-23 10:33:10 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+
+## 2026-05-23 10:41 AEST
+
+### Lane completed — workspace-scoped CRM daily digest tasks
+
+Continued the active branch `feat/margot-crm-daily-digest-route` and addressed the code-quality review finding before starting any new lane.
+
+Preflight / repo state:
+
+```text
+branch=feat/margot-crm-daily-digest-route
+head before slice=ed65b98 docs: record CRM daily digest task-read progress
+gh auth state=unavailable locally (`gh` not found)
+vercel auth state=unavailable locally (`vercel` not found)
+node_modules=present
+```
+
+Slice completed:
+
+- Tightened `src/app/api/crm/daily-digest/route.ts` so service-role `tasks` reads only run when `UNITE_CRM_WORKSPACE_ID` is configured.
+- Added a workspace filter to the task query: `.eq('workspace_id', process.env.UNITE_CRM_WORKSPACE_ID)` before the blocked/todo status filter.
+- Preserved lead-only digest behavior when the workspace scope is missing: the route still returns the lead digest and skips the `tasks` table read rather than falling back to an unscoped service-role query.
+- Added TDD coverage in `tests/integration/api/crm-daily-digest.test.ts` for the scoped task query and the missing-workspace skip path.
+
+TDD / review evidence:
+
+```text
+RED: npx jest tests/integration/api/crm-daily-digest.test.ts --runInBand
+Expected failures observed before implementation: the new test expected .eq('workspace_id', 'workspace-crm') and missing-workspace task skipping, but the route still performed the broader task read.
+
+GREEN: npx jest tests/integration/api/crm-daily-digest.test.ts --runInBand
+PASS: 1 suite passed, 8 tests passed.
+
+Spec compliance re-review: PASS.
+Code quality re-review: APPROVED. The prior broad service-role task-read issue is resolved.
+```
+
+Verification commands/results:
+
+```bash
+npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-leads-list.test.ts --runInBand
+# PASS: 3 suites passed, 15 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Safety / blockers:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+- GitHub PR/check state remains blocked because `gh` is unavailable and HTTPS GitHub auth is not configured in this session.
+- Vercel deployment state remains blocked because `vercel` CLI/auth is unavailable locally.
+- Mac Mini artifacts remain unrecovered until authenticated SMB mount, SSH/Remote Login, or approved export is available.
+
+Next slice:
+
+- Commit the workspace-scoped daily-digest fix locally if the working tree remains stable, then continue with command-center digest consumption/fixture coverage or the guarded opportunities create route contract.
+

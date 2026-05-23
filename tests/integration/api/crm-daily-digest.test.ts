@@ -11,6 +11,7 @@ import { createClient } from '@supabase/supabase-js';
 
 type QueryCall =
   | { method: 'select'; columns: string }
+  | { method: 'eq'; column: string; value: string }
   | { method: 'in'; column: string; values: string[] }
   | { method: 'order'; column: string; options: { ascending: boolean } }
   | { method: 'limit'; value: number };
@@ -51,6 +52,10 @@ function createReadBuilder(calls: QueryCall[], result: QueryResult) {
   const builder: any = {
     select: jest.fn((columns: string) => {
       calls.push({ method: 'select', columns });
+      return builder;
+    }),
+    eq: jest.fn((column: string, value: string) => {
+      calls.push({ method: 'eq', column, value });
       return builder;
     }),
     in: jest.fn((column: string, values: string[]) => {
@@ -114,6 +119,7 @@ describe('GET /api/crm/daily-digest', () => {
       ...oldEnv,
       NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co',
       SUPABASE_SERVICE_ROLE_KEY: 'service-role-test',
+      UNITE_CRM_WORKSPACE_ID: 'workspace-crm',
     };
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
   });
@@ -201,10 +207,48 @@ describe('GET /api/crm/daily-digest', () => {
     ]);
     expect(taskCalls).toEqual([
       { method: 'select', columns: 'id,title,status,priority,assignee_name,created_at' },
+      { method: 'eq', column: 'workspace_id', value: 'workspace-crm' },
       { method: 'in', column: 'status', values: ['blocked', 'todo'] },
       { method: 'order', column: 'created_at', options: { ascending: false } },
       { method: 'limit', value: 5 },
     ]);
+  });
+
+  it('returns the lead digest and skips task reads when CRM workspace scope is missing', async () => {
+    delete process.env.UNITE_CRM_WORKSPACE_ID;
+    const leadCalls: QueryCall[] = [];
+    const taskCalls: QueryCall[] = [];
+    mockDigestReads({
+      leadCalls,
+      taskCalls,
+      taskResult: { data: [taskRow], error: null },
+    });
+
+    const res = await GET(request('?limit=5'));
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toMatchObject({
+      success: true,
+      leadCount: 1,
+      digest: {
+        summary: {
+          leadCount: 1,
+          qualifiedLeadCount: 1,
+          approvalRequiredCount: 0,
+          blockedTaskCount: 0,
+        },
+      },
+    });
+    expect(body.digest.sections.operatorPriorities).toEqual([
+      'Lead lead-1 (Ada Lovelace / Analytical Engines Pty Ltd): qualified score 91. Next: Review and decide next CRM action',
+    ]);
+    expect(body.digest.sections.approvals).not.toContain(
+      'Task task-approval-1 (Approve Margot escalation for qualified lead follow-up): blocked for Phill approval. Priority: high',
+    );
+    expect(mockFrom).toHaveBeenCalledTimes(1);
+    expect(mockFrom).toHaveBeenCalledWith('crm_leads');
+    expect(taskCalls).toEqual([]);
   });
 
   it('returns a safe configuration error without Supabase access when Supabase URL is missing', async () => {

@@ -121,12 +121,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'crm_digest_read_failed' }, { status: 500 });
     }
 
-    const { data: taskData, error: taskError } = await supabase
-      .from('tasks')
-      .select(TASK_DIGEST_SELECT_COLUMNS)
-      .in('status', ['blocked', 'todo'])
-      .order('created_at', { ascending: false })
-      .limit(parsed.data.limit);
+    const { data: taskData, error: taskError } = process.env.UNITE_CRM_WORKSPACE_ID
+      ? await supabase
+          .from('tasks')
+          .select(TASK_DIGEST_SELECT_COLUMNS)
+          .eq('workspace_id', process.env.UNITE_CRM_WORKSPACE_ID)
+          .in('status', ['blocked', 'todo'])
+          .order('created_at', { ascending: false })
+          .limit(parsed.data.limit)
+      : { data: [], error: null };
 
     if (taskError) {
       console.error('Error reading CRM daily digest tasks:', taskError);

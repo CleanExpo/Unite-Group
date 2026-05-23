@@ -102,6 +102,27 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest CRM daily digest workspace-scope fix at `2026-05-23 10:41 AEST`:
+
+- Continued active branch `feat/margot-crm-daily-digest-route` and fixed the broad service-role `tasks` read flagged by code-quality review.
+- `src/app/api/crm/daily-digest/route.ts` now reads `tasks` only when `UNITE_CRM_WORKSPACE_ID` is configured, filters by `.eq('workspace_id', process.env.UNITE_CRM_WORKSPACE_ID)` before blocked/todo status filtering, and otherwise returns a lead-only digest without reading the `tasks` table.
+- TDD evidence: RED failed before implementation because the new scoped-query/missing-workspace tests expected workspace filtering and task-read skipping; GREEN passed after implementation with `tests/integration/api/crm-daily-digest.test.ts` returning 1 suite / 8 tests passed.
+- Spec compliance re-review: PASS. Code quality re-review: APPROVED.
+- Re-ran the focused daily CRM digest / lead-list gate: `npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-leads-list.test.ts --runInBand` returned 3 suites passed / 15 tests passed.
+- Re-ran `npm run type-check`; `tsc --noEmit` passed.
+- Re-ran `npm run security:routes-check`; route inventory returned `0 unprotected mutating routes`.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+
+Latest Senior PM daily digest verification refresh at `2026-05-23 10:30 AEST`:
+
+- Inspected current repo state on branch `feat/margot-crm-daily-digest-route`; head is `ed65b98 docs: record CRM daily digest task-read progress` and the working tree was clean before this report refresh.
+- Re-ran the focused daily CRM digest / lead-list gate: `npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-leads-list.test.ts --runInBand` returned 3 suites passed / 14 tests passed.
+- Re-ran `npm run type-check`; `tsc --noEmit` passed.
+- Re-ran `npm run security:routes-check`; route inventory returned `0 unprotected mutating routes`.
+- Mac Mini probe: SMB/File Sharing port `445` is reachable, SSH/Remote Login port `22` is unreachable, no authenticated Mac Mini share is mounted under `/Volumes`, and the recovery directory still contains only `.gitkeep`.
+- Updated current-state docs: `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/mac-mini-recovery-status.md`, `docs/margot/overnight-progress-log.md`, and this report.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, GitHub push, secret access/printing, Mac Mini write, or client-facing send was performed.
+
 Latest CRM daily digest task-read verification at `2026-05-23 10:01 AEST`:
 
 - Continued active branch `feat/margot-crm-daily-digest-route` and created local commit `060d233 feat: include CRM tasks in daily digest`.

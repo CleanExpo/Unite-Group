@@ -102,6 +102,7 @@ Purpose:
 
 Current verification state:
 - `node_modules` is present from the prior `npm ci` readiness pass.
+- CRM daily digest workspace-scope fix passed at `2026-05-23 10:41 AEST`: `tasks` reads are skipped unless `UNITE_CRM_WORKSPACE_ID` is configured, scoped with `.eq('workspace_id', process.env.UNITE_CRM_WORKSPACE_ID)` when present, and covered by the focused 3-suite gate returning 15 tests passed.
 - Focused Margot voice tests passed again at `2026-05-23 06:29 AEST`: 3 suites passed, 28 tests passed.
 - CRM schema inventory lane verification passed at `2026-05-23 07:36 AEST`: `docs/margot/crm-schema-inventory.md` exists, spec compliance review PASS, code/doc quality review APPROVED, and `npm run type-check` passed.
 - Senior PM documentation lanes E-H verification passed at `2026-05-23 07:33 AEST`: `project-portfolio-index.md`, `client-second-brain-model.md`, `marketing-strategy-operating-model.md`, and `ai-enhancement-pipeline.md` exist with repo-local evidence and explicit unknowns.
@@ -190,18 +191,21 @@ Safe destination when recovered:
 ## Health Check Snapshot
 
 Timestamp:
-`2026-05-23 10:01 AEST`
+`2026-05-23 10:30 AEST`
 
 Git state:
 - branch: `feat/margot-crm-daily-digest-route`
-- head: `060d233 feat: include CRM tasks in daily digest`
-- working tree currently has Margot status-doc updates only; no destructive git action taken.
+- head: `ed65b98 docs: record CRM daily digest task-read progress`
+- working tree was clean before the 10:30 status-doc refresh; no destructive git action taken.
 
 Dependency state:
 - `node_modules=present`
 - `package-lock.json=present`
 
 Verification:
+- `npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-leads-list.test.ts --runInBand` passed at 2026-05-23 10:30 AEST: 3 suites, 14 tests. This re-verifies the current read-only daily digest route after the latest local doc commit.
+- `npm run type-check` passed at 2026-05-23 10:30 AEST.
+- `npm run security:routes-check` passed at 2026-05-23 10:30 AEST: route inventory found 0 unprotected mutating routes.
 - `npx jest tests/integration/api/crm-daily-digest.test.ts --runInBand` passed at 2026-05-23 10:01 AEST: 1 suite, 7 tests. This includes the new blocked/high CRM task inclusion and safe task-read failure coverage.
 - `npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-leads-list.test.ts --runInBand` passed at 2026-05-23 10:01 AEST: 3 suites, 14 tests. This verifies the current daily digest route now includes blocked/todo CRM task rows as well as recent leads.
 - `npm run type-check` passed at 2026-05-23 10:01 AEST.
@@ -222,7 +226,9 @@ Verification:
 
 Mac Mini recovery probe:
 - `/Volumes` only contains `Macintosh HD`; no authenticated Mac Mini share is mounted.
-- `phills-mac-mini.local` resolves to IPv4 addresses including `169.254.28.74`, `169.254.37.78`, and `192.168.2.77`.
+- `phills-mac-mini.local` resolves to IPv4 addresses including `169.254.28.74` and `169.254.37.78` in the latest local probe.
+- Latest 2026-05-23 10:30 AEST probe: `phills-mac-mini.local:445` is reachable.
+- Latest 2026-05-23 10:30 AEST probe: `phills-mac-mini.local:22` is unreachable.
 - Latest 2026-05-23 09:58 AEST probe: `phills-mac-mini.local:445` is reachable.
 - Latest 2026-05-23 09:58 AEST probe: `phills-mac-mini.local:22` is unreachable.
 - `docs/margot/recovered-from-mac-mini/` exists with only `.gitkeep`; no recovered artifacts yet.
