@@ -112,6 +112,33 @@ Latest verification refresh at `2026-05-24 03:41 AEST`:
 - Verification passed: `npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand` returned 2 suites / 7 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed.
 - No production DB write, migration application, sandbox apply, Vercel env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
 
+Latest verification refresh at `2026-05-24 04:32 AEST`:
+
+- Continued the command-center approval/event persistence lane on branch `margot-addon-approval-timeline`.
+- Safe improvement: `src/app/api/command-center/control-panel/add-ons/route.ts` now writes a best-effort sanitized `crm_timeline_approval_requested` row to `agent_actions` after a new blocked add-on approval task is created; existing open approval tasks do not duplicate the event.
+- TDD evidence: `tests/integration/api/control-panel-add-ons.test.ts` first failed RED for missing timeline insert and non-generic task insert logging, then passed after the route wrote the sanitized timeline row and logged generic failure messages only.
+- Verification passed: `npx jest tests/integration/api/control-panel-add-ons.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 2 suites / 15 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed.
+- Review evidence: spec re-review PASS; quality/security re-review APPROVED.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, or secret printing/storage was performed.
+
+Latest verification refresh at `2026-05-24 03:52 AEST`:
+
+- PR #183 is merged: https://github.com/CleanExpo/Unite-Group/pull/183
+- Merge commit: `8b52ebfb69ef0ee6b1f029ce3631b40f05eff60b` (`test: harden command-center CRM trim mapping`).
+- Main branch CI after PR #183 passed: https://github.com/CleanExpo/Unite-Group/actions/runs/26339508197
+- Vercel status for the PR #183 merge commit is success: https://vercel.com/unite-group/unite-group/Gzuv2tcp4ruSBPDtQcpxTfeUYibV
+- Scope shipped: command-center CRM control-panel mapping trims CRM task `status`, nullable `priority`, approval tags, and approval assignee strings before local classification; tests cover spaced ` needs-approval ` tags and spaced ` blocked ` statuses.
+- Local pre-merge verification passed: focused command-center Jest gate returned 2 suites / 7 tests; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed; spec review PASS; quality/security review APPROVED.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, or secret printing/storage was performed.
+
+Latest verification refresh at `2026-05-24 04:14 AEST`:
+
+- Re-read the requested Margot operating docs and performed a post-merge local command-center health verification on `main` at `8b52ebf`.
+- Safe health check passed: `node_modules=present`, `package-lock=present`, `/Volumes` contains `Claude` and `Macintosh HD`, both `phills-mac-mini.local:445` and `phills-mac-mini.local:22` are currently unreachable, and recovered Mac Mini artifacts still contain only `.gitkeep`.
+- Verification passed: `npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand` returned 2 suites / 7 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed.
+- Updated `docs/margot/mac-mini-recovery-status.md` and `docs/margot/overnight-progress-log.md` with the latest health and blocker evidence.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, unrelated context mixing, noninteractive credential attempt, or secret printing/storage was performed.
+
 Latest verification refresh at `2026-05-24 03:06 AEST`:
 
 - Re-read the requested Margot operating docs and current command-center/CRM handoff state, then continued the command-center CRM read-surface lane from existing local assets.

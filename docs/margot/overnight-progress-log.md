@@ -3930,3 +3930,147 @@ Blockers / unchanged constraints:
 Next safe slice:
 
 - Continue command-center client-side fetch hydration coverage, or add route-level CRM event-write tests before wiring more CRM mutation routes into `agent_actions` timeline rows.
+
+## 2026-05-24 03:52 AEST
+
+### Publish evidence — PR 183 merged and deployed
+
+Remote state verified:
+
+```text
+pr=https://github.com/CleanExpo/Unite-Group/pull/183
+merge_commit=8b52ebfb69ef0ee6b1f029ce3631b40f05eff60b
+main_ci=https://github.com/CleanExpo/Unite-Group/actions/runs/26339508197
+main_ci_status=success
+vercel_status=success
+vercel_url=https://vercel.com/unite-group/unite-group/Gzuv2tcp4ruSBPDtQcpxTfeUYibV
+```
+
+Shipped scope:
+
+- Command-center CRM control-panel mapping now trims CRM task `status`, nullable `priority`, approval tags, and approval assignee strings before local classification.
+- Tests cover spaced ` needs-approval ` tags and spaced ` blocked ` statuses so approval-required count, workstream status, and RYG mapping do not drift on incidental CRM whitespace.
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, or secret printing/storage was performed.
+- The Vercel verification above is deployment status from GitHub/Vercel checks only; no environment was mutated.
+
+Next safe slice:
+
+- Continue command-center client-side fetch hydration coverage, or add route-level CRM event-write tests before wiring more CRM mutation routes into `agent_actions` timeline rows.
+
+## 2026-05-24 04:14 AEST
+
+### Lane executed — post-merge command-center health verification
+
+Readiness / current state:
+
+```text
+branch=main
+head=8b52ebf
+node_modules=present
+package_lock=present
+/Volumes=Claude, Macintosh HD
+phills-mac-mini.local:445=unreachable
+phills-mac-mini.local:22=unreachable
+recovered_files=only docs/margot/recovered-from-mac-mini/.gitkeep
+working_tree_at_start=report-only edits in docs/margot/morning-report.md and docs/margot/overnight-progress-log.md
+```
+
+Safe lane:
+
+- Re-read the requested Margot operating docs, command-center handoff, Mac Mini status, and latest progress/morning report state.
+- Performed a post-merge local verification refresh for the command-center CRM read-surface lane after PR #183 landed on `main`.
+- Updated `docs/margot/mac-mini-recovery-status.md` with the latest safe transport probe; no credential attempt was made.
+
+Verification:
+
+```bash
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand
+# PASS: 2 suites / 7 tests
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Blockers / unchanged constraints:
+
+- Mac Mini artifact recovery remains blocked on authenticated SMB mount containing the approved target files or SSH availability; both probed ports are currently unreachable from this session.
+- Only report/status docs were updated in this tick. No production DB write, migration application, sandbox apply, Vercel env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, unrelated context mixing, or secret printing/storage was performed.
+
+Next safe slice:
+
+- Continue command-center client-side fetch hydration coverage if a DOM-capable local test harness is added, or proceed with route-level CRM event-write tests before wiring more CRM mutation routes into `agent_actions` timeline rows.
+
+## 2026-05-24 04:16:21 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log: not captured in this progress-log entry.
+
+## 2026-05-24 04:32 AEST
+
+### Lane executed — command-center add-on approval timeline event
+
+Readiness / current state:
+
+```text
+branch=margot-addon-approval-timeline
+base_head=8b52ebf
+node_modules=present
+package_lock=present
+github_auth=available via gh without printing token value
+open_prs=[]
+working_tree_at_start=report-only docs from prior evidence plus this code slice
+```
+
+Safe lane:
+
+- Continued the CRM approval/event-write lane from existing local assets.
+- Added a best-effort `agent_actions` timeline write when `/api/command-center/control-panel/add-ons` creates a new blocked add-on approval task.
+- The timeline event is built via `buildCrmActivityTimelineEvent` and `buildCrmTimelineAgentActionInsert` with `approval_requested`, actor `Margot`, subject id as the inserted task id, subject label as the add-on label, source `command_center_add_on_request`, and safe metadata only (`addOnId`, `category`, `taskStatus`).
+- Existing open approval tasks return without writing duplicate timeline events.
+- Task insert failures and timeline insert failures log generic messages only; raw database error objects are not logged.
+
+TDD / review evidence:
+
+- RED: add-on route tests failed before implementation because the new `agent_actions` insert was missing.
+- RED: generic task-insert logging test failed before the logging fix because the raw sentinel error object was passed to `console.error`.
+- GREEN: focused add-on route suite passed after implementation and logging fix.
+- Spec re-review: PASS.
+- Quality/security re-review: APPROVED.
+
+Verification:
+
+```bash
+npx jest tests/integration/api/control-panel-add-ons.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 2 suites / 15 tests
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Blockers / unchanged constraints:
+
+- This is local code/test/doc evidence on branch `margot-addon-approval-timeline`; no PR/deploy has been verified yet at this log point.
+- Mac Mini artifact recovery remains blocked on authenticated SMB mount containing the approved target files or SSH availability.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, or secret printing/storage was performed.
+
+Next safe slice:
+
+- Push/open PR for this branch if auth remains available, monitor checks, and merge only after CI is clean; otherwise continue route-level event-write tests for the next CRM mutation route locally.
