@@ -102,6 +102,16 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest verification refresh at `2026-05-24 05:38 AEST`:
+
+- PR #185 is open and green after CI recovery: https://github.com/CleanExpo/Unite-Group/pull/185
+- Branch `margot-contact-opportunity-timeline-events` includes `f3f08ac` (`test: harden crm timeline failure logging`) and `703f8bd` (`test: stabilize developer snapshot dates`).
+- Safe improvement remains the contact/opportunity generic best-effort `agent_actions` timeline failure logging hardening; the follow-up CI-only fix freezes `tests/developers/snapshot-e2e.spec.ts` away from Asia/Karachi local midnight so time-relative commit aggregates are deterministic.
+- Review evidence: CRM logging spec/quality reviews PASS/APPROVED; CI-fix minimality/spec review PASS; CI-fix quality/security review APPROVED.
+- Local verification passed: `npx jest tests/developers/snapshot-e2e.spec.ts --runInBand` returned 1 suite / 3 tests; `npm run test:all -- --ci --runInBand` returned 101 suites passed / 1 skipped and 828 tests passed / 1 skipped; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed.
+- GitHub PR checks passed after push: Unit + Integration Tests, TypeScript, JSON-LD Schema Validation, Lint, Pipeline Smoke Tests, Supabase Schema Drift, npm audit, specialist reviews, Chief Reviewer, CodeRabbit, Vercel Preview Comments, and Vercel deployment. Vercel preview: https://vercel.com/unite-group/unite-group/3eLeu3vJWgCssUcspi8QYvCAEEtA
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, unrelated context mixing, noninteractive credential attempt, or secret printing/storage was performed.
+
 Latest verification refresh at `2026-05-24 05:26 AEST`:
 
 - Continued route-level CRM event-write safety on branch `margot-contact-opportunity-timeline-events` from `main` at `347397e`.

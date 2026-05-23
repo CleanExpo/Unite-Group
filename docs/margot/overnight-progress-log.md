@@ -4317,3 +4317,59 @@ Blockers / unchanged constraints:
 Next safe slice:
 
 - Apply the same generic best-effort timeline failure logging pattern to `src/app/api/crm/leads/[id]/convert/route.ts`, then push/open PR for the timeline logging hardening branch if checks remain green.
+
+## 2026-05-24 05:38 AEST
+
+### PR #185 CI recovery — developer snapshot date flake stabilized
+
+Readiness / current state:
+
+```text
+branch=margot-contact-opportunity-timeline-events
+pr=https://github.com/CleanExpo/Unite-Group/pull/185
+commits=f3f08ac test: harden crm timeline failure logging; 703f8bd test: stabilize developer snapshot dates
+github_auth=available via gh without printing token value
+vercel_preview=https://vercel.com/unite-group/unite-group/3eLeu3vJWgCssUcspi8QYvCAEEtA
+```
+
+Safe lane:
+
+- Continued PR #185 rather than opening a new lane.
+- Triaged the failed GitHub `Unit + Integration Tests` job: `tests/developers/snapshot-e2e.spec.ts` failed because time-relative commit fixtures crossed the developer timezone's local midnight, so `commitsToday` was nondeterministic.
+- Reproduced the failure locally with the full Jest gate, then stabilized only the test fixture by freezing Jest system time to `2026-05-20T12:00:00.000Z` and restoring real timers after each test.
+- No production code, schema, environment, or business rule changed in the CI fix.
+
+Review evidence:
+
+- Spec/minimality review: PASS.
+- Code quality/security review: APPROVED.
+
+Verification:
+
+```bash
+npx jest tests/developers/snapshot-e2e.spec.ts --runInBand
+# PASS: 1 suite / 3 tests
+
+npm run test:all -- --ci --runInBand
+# PASS: 101 suites passed, 1 skipped; 828 tests passed, 1 skipped
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+
+gh pr checks 185 --watch --fail-fast
+# PASS: Unit + Integration Tests, TypeScript, JSON-LD Schema Validation, Lint, Pipeline Smoke Tests, Supabase Schema Drift, npm audit, specialist reviews, Chief Reviewer, CodeRabbit, Vercel Preview Comments, and Vercel deployment
+```
+
+Blockers / unchanged constraints:
+
+- PR #185 is green and ready to merge; no production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, unrelated context mixing, noninteractive credential attempt, or secret printing/storage was performed.
+
+Next safe slice:
+
+- Merge PR #185 if checks remain green, verify post-merge main CI/Vercel, then continue the next route-level generic timeline logging follow-up for lead conversion.
