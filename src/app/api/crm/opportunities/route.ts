@@ -134,6 +134,15 @@ function hasRequiredOperatorApproval(opportunity: z.infer<typeof opportunityCrea
   );
 }
 
+function isUniqueViolation(error: unknown) {
+  return Boolean(
+    error
+      && typeof error === 'object'
+      && 'code' in error
+      && (error as { code?: unknown }).code === '23505',
+  );
+}
+
 async function recordOpportunityTimelineEvents(
   supabase: ReturnType<typeof createClient<any>>,
   opportunityRow: Record<string, unknown>,
@@ -256,7 +265,11 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error creating CRM opportunity:', error);
+      if (isUniqueViolation(error)) {
+        return NextResponse.json({ error: 'crm_opportunity_conflict' }, { status: 409 });
+      }
+
+      console.error('Error creating CRM opportunity');
       return NextResponse.json({ error: 'crm_opportunity_create_failed' }, { status: 500 });
     }
 
@@ -264,7 +277,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, opportunity: data }, { status: 201 });
   } catch (error) {
-    console.error('Unexpected CRM opportunity create error:', error);
+    if (isUniqueViolation(error)) {
+      return NextResponse.json({ error: 'crm_opportunity_conflict' }, { status: 409 });
+    }
+
+    console.error('Unexpected CRM opportunity create error');
     return NextResponse.json({ error: 'crm_opportunity_create_failed' }, { status: 500 });
   }
 }

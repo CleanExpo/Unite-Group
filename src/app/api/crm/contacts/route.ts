@@ -50,6 +50,15 @@ function hasText(value?: string) {
   return Boolean(value && value.trim().length > 0);
 }
 
+function isUniqueViolation(error: unknown) {
+  return Boolean(
+    error
+      && typeof error === 'object'
+      && 'code' in error
+      && (error as { code?: unknown }).code === '23505',
+  );
+}
+
 function deriveDisplayName(payload: z.infer<typeof contactCreateSchema>) {
   if (hasText(payload.displayName)) return payload.displayName as string;
 
@@ -176,7 +185,11 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error creating CRM contact:', error);
+      if (isUniqueViolation(error)) {
+        return NextResponse.json({ error: 'crm_contact_conflict' }, { status: 409 });
+      }
+
+      console.error('Error creating CRM contact');
       return NextResponse.json({ error: 'crm_contact_create_failed' }, { status: 500 });
     }
 
@@ -184,7 +197,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, contact: data }, { status: 201 });
   } catch (error) {
-    console.error('Unexpected CRM contact create error:', error);
+    if (isUniqueViolation(error)) {
+      return NextResponse.json({ error: 'crm_contact_conflict' }, { status: 409 });
+    }
+
+    console.error('Unexpected CRM contact create error');
     return NextResponse.json({ error: 'crm_contact_create_failed' }, { status: 500 });
   }
 }
