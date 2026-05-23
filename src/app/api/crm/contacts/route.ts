@@ -20,6 +20,7 @@ const optionalBoardApprovalId = z.preprocess(
   blankStringToUndefined,
   z.string().trim().min(6).max(120).optional(),
 );
+const CONTACT_SELECT_COLUMNS = 'id,display_name,first_name,last_name,primary_email,primary_phone,role_title,company_name,linked_lead_id,linked_client_id,linked_business_id,source,source_detail,marketing_consent,relationship_owner,status,privacy_scope,dedupe_email_key,dedupe_domain_key,additional_data,created_at,updated_at';
 
 const contactCreateSchema = z.object({
   displayName: optionalTrimmed(200),
@@ -84,13 +85,17 @@ async function recordContactCreatedTimelineEvent(
     },
   });
 
-  const { error } = await supabase
-    .from('agent_actions')
-    .insert(buildCrmTimelineAgentActionInsert(event))
-    .select('id')
-    .single();
+  try {
+    const { error } = await supabase
+      .from('agent_actions')
+      .insert(buildCrmTimelineAgentActionInsert(event))
+      .select('id')
+      .single();
 
-  if (error) {
+    if (error) {
+      console.error('Error recording CRM contact timeline event:', error);
+    }
+  } catch (error) {
     console.error('Error recording CRM contact timeline event:', error);
   }
 }
@@ -167,7 +172,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase
       .from('crm_contacts')
       .insert(insertPayload)
-      .select('*')
+      .select(CONTACT_SELECT_COLUMNS)
       .single();
 
     if (error) {

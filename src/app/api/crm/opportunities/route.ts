@@ -173,13 +173,17 @@ async function recordOpportunityTimelineEvents(
   }
 
   for (const event of events) {
-    const { error } = await supabase
-      .from('agent_actions')
-      .insert(buildCrmTimelineAgentActionInsert(event))
-      .select('id')
-      .single();
+    try {
+      const { error } = await supabase
+        .from('agent_actions')
+        .insert(buildCrmTimelineAgentActionInsert(event))
+        .select('id')
+        .single();
 
-    if (error) {
+      if (error) {
+        console.error('Error recording CRM opportunity timeline event:', error);
+      }
+    } catch (error) {
       console.error('Error recording CRM opportunity timeline event:', error);
     }
   }
