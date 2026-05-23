@@ -302,7 +302,7 @@ describe('POST /api/crm/contacts', () => {
     expect(mockFrom).not.toHaveBeenCalled();
   });
 
-  it('returns 403 operator_approval_required and does not insert when client and business links are supplied without approval', async () => {
+  it('returns 403 operator_approval_required and does not access Supabase when client and business links are supplied without approval', async () => {
     const res = await POST(request({
       displayName: 'Ada Lovelace',
       linkedClientId: clientId,
@@ -311,6 +311,7 @@ describe('POST /api/crm/contacts', () => {
 
     expect(res.status).toBe(403);
     expect(await res.json()).toEqual({ error: 'operator_approval_required' });
+    expect(createClient).not.toHaveBeenCalled();
     expect(mockFrom).not.toHaveBeenCalled();
   });
 

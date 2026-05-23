@@ -125,13 +125,25 @@ function requiresOperatorApproval(opportunity: z.infer<typeof opportunityCreateS
   );
 }
 
+function hasBoardApprovalId(opportunity: z.infer<typeof opportunityCreateSchema>) {
+  return typeof opportunity.boardApprovalId === 'string' && opportunity.boardApprovalId.trim().length >= 6;
+}
+
 function hasRequiredOperatorApproval(opportunity: z.infer<typeof opportunityCreateSchema>) {
   return (
     opportunity.approvalRequired === true
       && opportunity.approvalStatus === 'approved'
-      && typeof opportunity.boardApprovalId === 'string'
-      && opportunity.boardApprovalId.trim().length >= 6
+      && hasBoardApprovalId(opportunity)
   );
+}
+
+function linkedScopeCount(opportunity: z.infer<typeof opportunityCreateSchema>) {
+  return [
+    opportunity.linkedLeadId,
+    opportunity.linkedContactId,
+    opportunity.linkedClientId,
+    opportunity.linkedBusinessId,
+  ].filter(Boolean).length;
 }
 
 function isUniqueViolation(error: unknown) {
@@ -250,6 +262,10 @@ export async function POST(request: NextRequest) {
   }
 
   const opportunity = parsed.data;
+  if (linkedScopeCount(opportunity) > 1 && !hasBoardApprovalId(opportunity)) {
+    return NextResponse.json({ error: 'operator_approval_required' }, { status: 403 });
+  }
+
   if (requiresOperatorApproval(opportunity) && !hasRequiredOperatorApproval(opportunity)) {
     return NextResponse.json({ error: 'operator_approval_required' }, { status: 403 });
   }
