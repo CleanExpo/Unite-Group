@@ -1,5 +1,63 @@
 # Margot Overnight Progress Log
 
+## 2026-05-24 08:12 AEST
+
+### Health check
+
+Observed in `/Users/phillmcgurk/Unite-Group`:
+
+```text
+timestamp=2026-05-24 08:10:56 AEST
+branch_at_start=main
+current_branch=margot/crm-duplicate-lookup-failure-paths
+head=07545aa
+node_modules=present
+package_lock=present
+/Volumes=Claude,Macintosh HD
+recovered_files=.gitkeep
+phills-mac-mini.local:445=reachable
+phills-mac-mini.local:22=unreachable
+```
+
+Pre-existing local-only merge/deploy evidence edits were present in `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md` at the start of this slice. I preserved those edits and continued the next safe Senior PM / CRM coverage lane.
+
+### Lane executed — CRM duplicate lookup failure-path assertions
+
+Safe improvement:
+
+- `tests/integration/api/crm-contacts-create.test.ts` now covers `crm_contacts` read-before-write duplicate lookup errors returning `500 crm_contact_duplicate_check_failed` before any contact insert or `agent_actions` timeline write.
+- `tests/integration/api/crm-opportunities-create.test.ts` now covers scoped `crm_opportunities` duplicate lookup errors returning `500 crm_opportunity_duplicate_check_failed` before any opportunity insert or `agent_actions` timeline write.
+- Both new assertions prove duplicate lookup failures log generic messages only and do not expose the raw mocked lookup error string.
+- `docs/margot/crm-test-coverage-matrix.md` was refreshed so the duplicate-lookup failure-path gap is now marked covered locally, with cross-client leakage abort fixtures remaining as the next contact/opportunity production-readiness gap.
+
+Verification passed:
+
+```bash
+npx jest tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 3 suites / 42 tests
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, unrelated context mixing, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+### Blockers
+
+- Mac Mini recovery remains blocked on authenticated SMB mount containing the approved target files or SSH availability. SMB/File Sharing is reachable, SSH/Remote Login is currently unreachable, and the local recovery destination still contains only `.gitkeep`.
+- This slice is a local mocked route/test contract only; it does not apply schema, promote migrations, or prove database/RLS behavior against sandbox.
+
+### Next lane
+
+1. Add cross-client leakage abort fixtures for contact/opportunity create flows.
+2. Add route-level update/close/reopen timeline event-write tests before introducing new CRM mutation routes.
+3. Continue safe Mac Mini recovery probes each run.
+
 ## 2026-05-24 07:38 AEST
 
 ### Health check
@@ -4829,3 +4887,79 @@ Safety:
 Next safe slice:
 
 - Commit/push/open PR for `margot/crm-read-before-write-duplicates`, monitor checks/Vercel, and then add duplicate-lookup failure-path assertions or cross-client leakage abort fixtures.
+
+## 2026-05-24 07:59 AEST
+
+### PR #188 merged — CRM read-before-write duplicate lookup guards
+
+Result:
+
+- PR #188 merged: https://github.com/CleanExpo/Unite-Group/pull/188
+- Merge commit on `main`: `07545aa70dca2ca7a79c1201c45954119545e279` (`test: add crm duplicate lookup guards`).
+- Scope shipped: contact/opportunity create routes now perform read-before-write duplicate lookups before primary inserts/timeline writes, while preserving insert-time `23505` conflict fallback handling.
+
+Verification:
+
+```bash
+gh pr checks 188 --watch --fail-fast
+# PASS: CodeRabbit, Vercel, Vercel Preview Comments, Review Board specialist checks, Chief Reviewer, TypeScript, Unit + Integration Tests, JSON-LD Schema Validation, Lint, Pipeline Smoke Tests, Supabase Schema Drift, npm audit, and DESIGN.md lint passed.
+
+gh run watch 26344599528 --exit-status
+# PASS: post-merge DESIGN.md lint passed for commit 07545aa70dca2ca7a79c1201c45954119545e279.
+
+gh run watch 26344599521 --exit-status
+# PASS: post-merge main CI passed for commit 07545aa70dca2ca7a79c1201c45954119545e279.
+
+gh api repos/CleanExpo/Unite-Group/commits/07545aa70dca2ca7a79c1201c45954119545e279/status
+# PASS: combined commit status success; Vercel deployment success: https://vercel.com/unite-group/unite-group/BZnEzUa88vJSHLGzW6PydUQPMK7T
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, credential prompt, secret read, or secret printing/storage was performed.
+- This post-merge evidence block is local-only in the workspace to avoid an evidence-only PR chain after the verified merge.
+
+Next safe slice:
+
+- Add duplicate-lookup failure-path assertions for contact/opportunity create routes, then add cross-client leakage abort fixtures before broader production use.
+
+## 2026-05-24 08:14:38 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed. No separate LaunchAgent log content was captured in this tracked file.
+
+## 2026-05-24 08:37 AEST
+
+### Review and PR-ready checkpoint — CRM duplicate lookup failure paths
+
+Result:
+
+- Continued the existing local CRM duplicate-safety slice on branch `margot/crm-duplicate-lookup-failure-paths` rather than starting a broader lane.
+- Fixed review-noted handoff precision gaps: current branch state is now explicit in the 08:12 evidence, and the Mac Mini recovery status no longer says `/Volumes` only contains `Macintosh HD`.
+- Spec re-review returned `PASS`; quality review returned `APPROVED`; final integration review returned `READY`.
+
+Verification passed:
+
+```bash
+git diff --check
+# PASS
+
+npx jest tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 3 suites / 42 tests
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+- This remains a local mocked route/test contract plus documentation update until pushed/PR-verified.
+
+Next safe slice:
+
+- Commit, push, open PR, monitor required checks/Vercel, then merge only if checks pass cleanly.

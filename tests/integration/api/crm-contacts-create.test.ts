@@ -394,6 +394,38 @@ describe('POST /api/crm/contacts', () => {
     expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
 
+  it('returns 500 crm_contact_duplicate_check_failed when duplicate lookup errors before insert without raw error logging', async () => {
+    const calls: InsertCall[] = [];
+    const selectCalls: SelectCall[] = [];
+    const queryCalls: QueryCall[] = [];
+    mockContactInsert(calls, selectCalls, {}, {
+      lookupError: new Error('raw duplicate lookup failure should not be logged'),
+      queryCalls,
+    });
+
+    const res = await POST(request({
+      displayName: 'Ada Lovelace',
+      primaryEmail: 'ada@example.com',
+    }));
+
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ error: 'crm_contact_duplicate_check_failed' });
+    expect(calls).toHaveLength(0);
+    expect(selectCalls).toEqual([{ table: 'crm_contacts', columns: 'id' }]);
+    expect(queryCalls).toEqual([
+      { table: 'crm_contacts', method: 'select', columns: 'id' },
+      { table: 'crm_contacts', method: 'eq', column: 'dedupe_email_key', value: 'ada@example.com' },
+      { table: 'crm_contacts', method: 'limit', count: 1 },
+      { table: 'crm_contacts', method: 'maybeSingle' },
+    ]);
+    expect(mockFrom).not.toHaveBeenCalledWith('agent_actions');
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Error checking CRM contact duplicate');
+    for (const call of consoleErrorSpy.mock.calls) {
+      expect(call).toEqual([expect.any(String)]);
+      expect(call[0]).not.toContain('raw duplicate lookup failure');
+    }
+  });
+
   it('returns 409 crm_contact_conflict on duplicate contact unique-constraint errors without timeline insert', async () => {
     const calls: InsertCall[] = [];
     const duplicateError = Object.assign(new Error('duplicate contact'), { code: '23505' });

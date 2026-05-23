@@ -556,6 +556,39 @@ describe('POST /api/crm/opportunities', () => {
     expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
 
+  it('returns 500 crm_opportunity_duplicate_check_failed when duplicate lookup errors before insert without raw error logging', async () => {
+    const calls: InsertCall[] = [];
+    const selectCalls: SelectCall[] = [];
+    const queryCalls: QueryCall[] = [];
+    mockOpportunityInsert(calls, selectCalls, {}, {
+      lookupError: new Error('raw opportunity duplicate lookup failure should not be logged'),
+      queryCalls,
+    });
+
+    const res = await POST(request({
+      name: '  Margot CRM Buildout  ',
+      linkedLeadId: leadId,
+    }));
+
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ error: 'crm_opportunity_duplicate_check_failed' });
+    expect(calls).toHaveLength(0);
+    expect(selectCalls).toEqual([{ table: 'crm_opportunities', columns: 'id' }]);
+    expect(queryCalls).toEqual([
+      { table: 'crm_opportunities', method: 'select', columns: 'id' },
+      { table: 'crm_opportunities', method: 'eq', column: 'name', value: 'Margot CRM Buildout' },
+      { table: 'crm_opportunities', method: 'eq', column: 'linked_lead_id', value: leadId },
+      { table: 'crm_opportunities', method: 'limit', count: 1 },
+      { table: 'crm_opportunities', method: 'maybeSingle' },
+    ]);
+    expect(mockFrom).not.toHaveBeenCalledWith('agent_actions');
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Error checking CRM opportunity duplicate');
+    for (const call of consoleErrorSpy.mock.calls) {
+      expect(call).toEqual([expect.any(String)]);
+      expect(call[0]).not.toContain('raw opportunity duplicate lookup failure');
+    }
+  });
+
   it('returns 409 crm_opportunity_conflict on duplicate opportunity unique-constraint errors without timeline insert', async () => {
     const calls: InsertCall[] = [];
     const duplicateError = Object.assign(new Error('duplicate opportunity'), { code: '23505' });
