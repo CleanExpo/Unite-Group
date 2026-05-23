@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/security/require-admin';
-import { createCrmDailyDigest, type CrmDigestLead } from '@/lib/crm/daily-digest';
+import { createCrmDailyDigest, type CrmDigestLead, type CrmDigestTask } from '@/lib/crm/daily-digest';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +17,15 @@ type CrmLeadDigestRow = {
   captured_at: string;
 };
 
+type CrmTaskDigestRow = {
+  id: string;
+  title: string | null;
+  status: string | null;
+  priority: string | null;
+  assignee_name: string | null;
+  created_at: string;
+};
+
 const DIGEST_SELECT_COLUMNS = [
   'id',
   'first_name',
@@ -26,6 +35,15 @@ const DIGEST_SELECT_COLUMNS = [
   'status',
   'qualification_score',
   'captured_at',
+].join(',');
+
+const TASK_DIGEST_SELECT_COLUMNS = [
+  'id',
+  'title',
+  'status',
+  'priority',
+  'assignee_name',
+  'created_at',
 ].join(',');
 
 const digestQuerySchema = z.object({
@@ -62,6 +80,16 @@ function mapLead(row: CrmLeadDigestRow): CrmDigestLead {
   };
 }
 
+function mapTask(row: CrmTaskDigestRow): CrmDigestTask {
+  return {
+    id: row.id,
+    title: clean(row.title) || 'Untitled task',
+    owner: clean(row.assignee_name) || null,
+    status: clean(row.status) || null,
+    priority: clean(row.priority) || null,
+  };
+}
+
 export async function GET(request: NextRequest) {
   const parsed = parseQuery(request);
   if (!parsed.success) {
@@ -93,10 +121,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'crm_digest_read_failed' }, { status: 500 });
     }
 
+    const { data: taskData, error: taskError } = await supabase
+      .from('tasks')
+      .select(TASK_DIGEST_SELECT_COLUMNS)
+      .in('status', ['blocked', 'todo'])
+      .order('created_at', { ascending: false })
+      .limit(parsed.data.limit);
+
+    if (taskError) {
+      console.error('Error reading CRM daily digest tasks:', taskError);
+      return NextResponse.json({ error: 'crm_digest_tasks_read_failed' }, { status: 500 });
+    }
+
     const leads = (((data ?? []) as unknown) as CrmLeadDigestRow[]).map(mapLead);
+    const tasks = (((taskData ?? []) as unknown) as CrmTaskDigestRow[]).map(mapTask);
     const digest = createCrmDailyDigest({
       generatedAt: new Date().toISOString(),
       leads,
+      tasks,
       verification: [{ command: 'GET /api/crm/daily-digest', status: 'passed' }],
     });
 

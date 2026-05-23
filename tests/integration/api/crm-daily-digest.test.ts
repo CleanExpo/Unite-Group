@@ -11,6 +11,7 @@ import { createClient } from '@supabase/supabase-js';
 
 type QueryCall =
   | { method: 'select'; columns: string }
+  | { method: 'in'; column: string; values: string[] }
   | { method: 'order'; column: string; options: { ascending: boolean } }
   | { method: 'limit'; value: number };
 
@@ -30,6 +31,15 @@ const leadRow = {
   captured_at: '2026-05-23T00:00:00.000Z',
 };
 
+const taskRow = {
+  id: 'task-approval-1',
+  title: 'Approve Margot escalation for qualified lead follow-up',
+  status: 'blocked',
+  priority: 'high',
+  assignee_name: 'Phill approval',
+  created_at: '2026-05-23T01:00:00.000Z',
+};
+
 function request(query = ''): NextRequest {
   return new NextRequest(`https://unite-group.in/api/crm/daily-digest${query}`, {
     method: 'GET',
@@ -37,10 +47,14 @@ function request(query = ''): NextRequest {
   });
 }
 
-function mockLeadRead(calls: QueryCall[], result: QueryResult = { data: [leadRow], error: null }) {
+function createReadBuilder(calls: QueryCall[], result: QueryResult) {
   const builder: any = {
     select: jest.fn((columns: string) => {
       calls.push({ method: 'select', columns });
+      return builder;
+    }),
+    in: jest.fn((column: string, values: string[]) => {
+      calls.push({ method: 'in', column, values });
       return builder;
     }),
     order: jest.fn((column: string, options: { ascending: boolean }) => {
@@ -56,8 +70,37 @@ function mockLeadRead(calls: QueryCall[], result: QueryResult = { data: [leadRow
     ),
   };
 
+  return builder;
+}
+
+function mockLeadRead(calls: QueryCall[], result: QueryResult = { data: [leadRow], error: null }) {
+  const builder = createReadBuilder(calls, result);
+
   mockFrom.mockReturnValue(builder);
   return builder;
+}
+
+function mockDigestReads({
+  leadCalls,
+  taskCalls,
+  leadResult = { data: [leadRow], error: null },
+  taskResult = { data: [], error: null },
+}: {
+  leadCalls: QueryCall[];
+  taskCalls: QueryCall[];
+  leadResult?: QueryResult;
+  taskResult?: QueryResult;
+}) {
+  const leadBuilder = createReadBuilder(leadCalls, leadResult);
+  const taskBuilder = createReadBuilder(taskCalls, taskResult);
+
+  mockFrom.mockImplementation((table: string) => {
+    if (table === 'crm_leads') return leadBuilder;
+    if (table === 'tasks') return taskBuilder;
+    throw new Error(`Unexpected table read: ${table}`);
+  });
+
+  return { leadBuilder, taskBuilder };
 }
 
 describe('GET /api/crm/daily-digest', () => {
@@ -83,7 +126,8 @@ describe('GET /api/crm/daily-digest', () => {
 
   it('returns a daily CRM digest from recent lead rows for an admin/service-role caller', async () => {
     const calls: QueryCall[] = [];
-    mockLeadRead(calls);
+    const taskCalls: QueryCall[] = [];
+    mockDigestReads({ leadCalls: calls, taskCalls });
 
     const res = await GET(request('?limit=5'));
 
@@ -116,6 +160,49 @@ describe('GET /api/crm/daily-digest', () => {
         columns: 'id,first_name,last_name,email,company,status,qualification_score,captured_at',
       },
       { method: 'order', column: 'captured_at', options: { ascending: false } },
+      { method: 'limit', value: 5 },
+    ]);
+  });
+
+  it('includes blocked high Margot task rows in the digest after reading leads and tasks', async () => {
+    const leadCalls: QueryCall[] = [];
+    const taskCalls: QueryCall[] = [];
+    mockDigestReads({
+      leadCalls,
+      taskCalls,
+      taskResult: { data: [taskRow], error: null },
+    });
+
+    const res = await GET(request('?limit=5'));
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.digest.summary).toMatchObject({
+      leadCount: 1,
+      qualifiedLeadCount: 1,
+      approvalRequiredCount: 1,
+      blockedTaskCount: 1,
+    });
+    expect(body.digest.sections.operatorPriorities).toContain(
+      'Task task-approval-1 (Approve Margot escalation for qualified lead follow-up): owner Phill approval, status blocked, priority high.',
+    );
+    expect(body.digest.sections.approvals).toContain(
+      'Task task-approval-1 (Approve Margot escalation for qualified lead follow-up): blocked for Phill approval. Priority: high',
+    );
+    expect(mockFrom).toHaveBeenNthCalledWith(1, 'crm_leads');
+    expect(mockFrom).toHaveBeenNthCalledWith(2, 'tasks');
+    expect(leadCalls).toEqual([
+      {
+        method: 'select',
+        columns: 'id,first_name,last_name,email,company,status,qualification_score,captured_at',
+      },
+      { method: 'order', column: 'captured_at', options: { ascending: false } },
+      { method: 'limit', value: 5 },
+    ]);
+    expect(taskCalls).toEqual([
+      { method: 'select', columns: 'id,title,status,priority,assignee_name,created_at' },
+      { method: 'in', column: 'status', values: ['blocked', 'todo'] },
+      { method: 'order', column: 'created_at', options: { ascending: false } },
       { method: 'limit', value: 5 },
     ]);
   });
@@ -159,5 +246,22 @@ describe('GET /api/crm/daily-digest', () => {
 
     expect(res.status).toBe(500);
     expect(await res.json()).toEqual({ error: 'crm_digest_read_failed' });
+  });
+
+  it('returns a safe read error when Supabase task query fails after leads succeed', async () => {
+    const leadCalls: QueryCall[] = [];
+    const taskCalls: QueryCall[] = [];
+    mockDigestReads({
+      leadCalls,
+      taskCalls,
+      taskResult: { data: null, error: new Error('task read failed') },
+    });
+
+    const res = await GET(request());
+
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ error: 'crm_digest_tasks_read_failed' });
+    expect(mockFrom).toHaveBeenNthCalledWith(1, 'crm_leads');
+    expect(mockFrom).toHaveBeenNthCalledWith(2, 'tasks');
   });
 });
