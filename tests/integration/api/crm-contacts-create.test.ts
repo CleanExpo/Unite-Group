@@ -10,10 +10,12 @@ import { POST } from '@/app/api/crm/contacts/route';
 import { createClient } from '@supabase/supabase-js';
 
 type InsertCall = { table: string; row: Record<string, unknown> };
+type SelectCall = { table: string; columns?: string };
 
 const leadId = '11111111-1111-4111-8111-111111111111';
 const clientId = '22222222-2222-4222-8222-222222222222';
 const businessId = '33333333-3333-4333-8333-333333333333';
+const CONTACT_SELECT_COLUMNS = 'id,display_name,first_name,last_name,primary_email,primary_phone,role_title,company_name,linked_lead_id,linked_client_id,linked_business_id,source,source_detail,marketing_consent,relationship_owner,status,privacy_scope,dedupe_email_key,dedupe_domain_key,additional_data,created_at,updated_at';
 
 function request(body: unknown, rawBody?: string): NextRequest {
   return new NextRequest('https://unite-group.in/api/crm/contacts', {
@@ -28,17 +30,28 @@ function request(body: unknown, rawBody?: string): NextRequest {
 
 function mockContactInsert(
   calls: InsertCall[] = [],
+  selectCalls: SelectCall[] = [],
   result: { data?: Record<string, unknown> | null; error?: Error | null } = {},
+  options: { throwTimelineInsert?: boolean } = {},
 ) {
   mockFrom.mockImplementation((table: string) => ({
     insert: jest.fn((row: Record<string, unknown>) => {
       calls.push({ table, row });
       return {
-        select: jest.fn().mockReturnValue({
-          single: jest.fn().mockResolvedValue({
-            data: result.data === undefined ? { id: 'contact-1', ...row } : result.data,
-            error: result.error ?? null,
-          }),
+        select: jest.fn((columns?: string) => {
+          selectCalls.push({ table, columns });
+          return {
+            single: jest.fn(async () => {
+              if (table === 'agent_actions' && options.throwTimelineInsert) {
+                throw new Error('timeline insert exploded');
+              }
+
+              return {
+                data: result.data === undefined ? { id: 'contact-1', ...row } : result.data,
+                error: result.error ?? null,
+              };
+            }),
+          };
         }),
       };
     }),
@@ -66,7 +79,8 @@ describe('POST /api/crm/contacts', () => {
 
   it('creates a lead-scoped contact for an admin caller with derived identity, dedupe keys, and safe defaults', async () => {
     const calls: InsertCall[] = [];
-    mockContactInsert(calls);
+    const selectCalls: SelectCall[] = [];
+    mockContactInsert(calls, selectCalls);
 
     const res = await POST(request({
       firstName: ' Ada ',
@@ -149,6 +163,37 @@ describe('POST /api/crm/contacts', () => {
       }),
     });
     expect(calls[1].row.payload).not.toHaveProperty('boardApprovalId');
+    expect(calls).toHaveLength(2);
+    expect(selectCalls).toEqual([
+      { table: 'crm_contacts', columns: CONTACT_SELECT_COLUMNS },
+      { table: 'agent_actions', columns: 'id' },
+    ]);
+    expect(selectCalls[0].columns).not.toBe('*');
+  });
+
+  it('still returns 201 when contact timeline insert throws after primary contact insert succeeds', async () => {
+    const calls: InsertCall[] = [];
+    const selectCalls: SelectCall[] = [];
+    mockContactInsert(calls, selectCalls, {}, { throwTimelineInsert: true });
+
+    const res = await POST(request({ displayName: 'Ada Lovelace' }));
+
+    expect(res.status).toBe(201);
+    expect(await res.json()).toEqual({
+      success: true,
+      contact: expect.objectContaining({
+        id: 'contact-1',
+        display_name: 'Ada Lovelace',
+      }),
+    });
+    expect(calls).toHaveLength(2);
+    expect(calls[0].table).toBe('crm_contacts');
+    expect(calls[1].table).toBe('agent_actions');
+    expect(selectCalls[0]).toEqual({ table: 'crm_contacts', columns: CONTACT_SELECT_COLUMNS });
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Error recording CRM contact timeline event:',
+      expect.any(Error),
+    );
   });
 
   it('applies source and relationship owner defaults when explicit blank strings are supplied', async () => {
@@ -232,7 +277,7 @@ describe('POST /api/crm/contacts', () => {
   });
 
   it('returns 500 crm_contact_create_failed on Supabase insert error', async () => {
-    mockContactInsert([], { data: null, error: new Error('insert failed') });
+    mockContactInsert([], [], { data: null, error: new Error('insert failed') });
 
     const res = await POST(request({ displayName: 'Ada Lovelace' }));
 

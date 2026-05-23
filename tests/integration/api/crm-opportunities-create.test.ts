@@ -53,6 +53,7 @@ function mockOpportunityInsert(
   calls: InsertCall[] = [],
   selectCalls: SelectCall[] = [],
   result: { data?: Record<string, unknown> | null; error?: Error | null } = {},
+  options: { throwTimelineInsert?: boolean } = {},
 ) {
   mockFrom.mockImplementation((table: string) => ({
     insert: jest.fn((row: Record<string, unknown>) => {
@@ -61,9 +62,15 @@ function mockOpportunityInsert(
         select: jest.fn((columns?: string) => {
           selectCalls.push({ table, columns });
           return {
-            single: jest.fn().mockResolvedValue({
-              data: result.data === undefined ? { id: 'opportunity-1', ...row } : result.data,
-              error: result.error ?? null,
+            single: jest.fn(async () => {
+              if (table === 'agent_actions' && options.throwTimelineInsert) {
+                throw new Error('timeline insert exploded');
+              }
+
+              return {
+                data: result.data === undefined ? { id: 'opportunity-1', ...row } : result.data,
+                error: result.error ?? null,
+              };
             }),
           };
         }),
@@ -205,6 +212,31 @@ describe('POST /api/crm/opportunities', () => {
     expect(selectCalls[0].columns).not.toBe('*');
   });
 
+  it('still returns 201 when opportunity timeline insert throws after primary opportunity insert succeeds', async () => {
+    const calls: InsertCall[] = [];
+    const selectCalls: SelectCall[] = [];
+    mockOpportunityInsert(calls, selectCalls, {}, { throwTimelineInsert: true });
+
+    const res = await POST(request({ name: 'Margot CRM Buildout' }));
+
+    expect(res.status).toBe(201);
+    expect(await res.json()).toEqual({
+      success: true,
+      opportunity: expect.objectContaining({
+        id: 'opportunity-1',
+        name: 'Margot CRM Buildout',
+      }),
+    });
+    expect(calls).toHaveLength(2);
+    expect(calls[0].table).toBe('crm_opportunities');
+    expect(calls[1].table).toBe('agent_actions');
+    expect(selectCalls[0]).toEqual({ table: 'crm_opportunities', columns: OPPORTUNITY_SELECT_COLUMNS });
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Error recording CRM opportunity timeline event:',
+      expect.any(Error),
+    );
+  });
+
   it('stores an explicit safe valueCurrency when valueAmount is provided', async () => {
     const calls: InsertCall[] = [];
     mockOpportunityInsert(calls);
@@ -337,9 +369,10 @@ describe('POST /api/crm/opportunities', () => {
     expect(mockFrom).not.toHaveBeenCalled();
   });
 
-  it('inserts an approved won/convert-like opportunity with approval flags but no boardApprovalId', async () => {
+  it('inserts an approved won/convert-like opportunity with approval flags and both timeline actions but no boardApprovalId', async () => {
     const calls: InsertCall[] = [];
-    mockOpportunityInsert(calls);
+    const selectCalls: SelectCall[] = [];
+    mockOpportunityInsert(calls, selectCalls);
 
     const res = await POST(request({
       name: 'Margot CRM Buildout',
@@ -351,6 +384,7 @@ describe('POST /api/crm/opportunities', () => {
     }));
 
     expect(res.status).toBe(201);
+    expect(calls).toHaveLength(3);
     expect(calls[0].row).toEqual(expect.objectContaining({
       stage: 'won_pending_client_conversion',
       status: 'won',
@@ -359,6 +393,48 @@ describe('POST /api/crm/opportunities', () => {
     }));
     expect(calls[0].row).not.toHaveProperty('boardApprovalId');
     expect(calls[0].row).not.toHaveProperty('board_approval_id');
+
+    expect(calls[1]).toEqual({
+      table: 'agent_actions',
+      row: expect.objectContaining({
+        action_type: 'crm_timeline_opportunity_created',
+        payload: expect.objectContaining({
+          type: 'opportunity_created',
+          category: 'opportunity',
+          subjectId: 'opportunity-1',
+          subjectLabel: 'Margot CRM Buildout',
+          metadata: expect.objectContaining({
+            stage: 'won_pending_client_conversion',
+            status: 'won',
+          }),
+        }),
+      }),
+    });
+    expect(calls[2]).toEqual({
+      table: 'agent_actions',
+      row: expect.objectContaining({
+        action_type: 'crm_timeline_approval_requested',
+        payload: expect.objectContaining({
+          type: 'approval_requested',
+          category: 'approval',
+          actionClass: 'approval_required',
+          requiresApproval: true,
+          subjectId: 'opportunity-1',
+          subjectLabel: 'Margot CRM Buildout',
+          metadata: expect.objectContaining({
+            stage: 'won_pending_client_conversion',
+            status: 'won',
+          }),
+        }),
+      }),
+    });
+    expect(calls[1].row.payload).not.toHaveProperty('boardApprovalId');
+    expect(calls[2].row.payload).not.toHaveProperty('boardApprovalId');
+    expect(selectCalls).toEqual([
+      { table: 'crm_opportunities', columns: OPPORTUNITY_SELECT_COLUMNS },
+      { table: 'agent_actions', columns: 'id' },
+      { table: 'agent_actions', columns: 'id' },
+    ]);
   });
 
   it('returns 500 crm_opportunity_create_failed on Supabase insert error', async () => {

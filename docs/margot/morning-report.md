@@ -102,6 +102,16 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest CRM create timeline write-hook fix at `2026-05-23 14:33 AEST`:
+
+- Continued active branch `feat/crm-timeline-write-hooks-clean` after the prior activity timeline write-hook feature landed on `origin/main` as PR #170.
+- Added local fix commit `17b46be fix: make CRM timeline writes best-effort` plus a follow-up docs evidence commit on top of updated `origin/main`.
+- Fixed reviewer-blocking gaps: contact/opportunity timeline writes are best-effort when `agent_actions` insert throws, contact create uses explicit service-role select columns instead of `select('*')`, and approved/won opportunity tests assert both `opportunity_created` and `approval_requested` timeline inserts without Board approval id persistence.
+- Spec re-review: PASS. Code quality/security re-review: APPROVED.
+- Verification passed after rebase: focused contact/opportunity create tests returned 2 suites / 25 tests passed; expanded CRM matrix returned 10 suites / 64 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`.
+- Push/PR remains blocked: `gh` is not installed and `GIT_TERMINAL_PROMPT=0 git push -u origin feat/crm-timeline-write-hooks-clean` failed with `fatal: could not read Username for 'https://github.com': terminal prompts disabled`.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, successful GitHub push, secret access/printing, Mac Mini write, client-facing send, merge, or destructive git action was performed.
+
 Latest CRM timeline mapping lane at `2026-05-23 13:25 AEST`:
 
 - Continued the activity/timeline lane and pinned existing `agent_actions` as the first persistence target in the local matrix/operating handoff; no separate policy doc, new dedicated timeline table, or migration was created or applied.
