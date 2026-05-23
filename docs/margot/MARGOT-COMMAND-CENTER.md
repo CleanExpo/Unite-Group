@@ -192,18 +192,24 @@ Safe destination when recovered:
 ## Health Check Snapshot
 
 Timestamp:
-`2026-05-23 13:25 AEST`
+`2026-05-23 16:11 AEST`
 
 Git state:
-- branch: `feat/margot-crm-daily-digest-route`
-- head during this tick: `c03b953 docs: record Margot health check refresh`
-- working tree changed locally for CRM activity/timeline `agent_actions` insert mapping and Margot handoff docs; no destructive git action taken.
+- branch: `feat/crm-approval-lifecycle-helper`
+- implementation commit: `ee642c3 feat: add CRM approval lifecycle helper`
+- handoff docs changed after the implementation commit to record verification/push/Mac Mini evidence; no destructive git action taken.
 
 Dependency state:
 - `node_modules=present`
 - `package-lock.json=present`
 
 Verification:
+- Approval lifecycle helper verification passed at 2026-05-23 16:11 AEST: `src/lib/crm/approval-lifecycle.ts` classifies requested, approved, rejected, cancelled, expired, executed, invalid, and high-risk approval states as pure local decision support, always keeps `safeToAutoExecute: false`, and avoids echoing approval references/Board IDs in returned reasons.
+- Focused approval lifecycle verification passed: `npx jest tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand` returned 1 suite, 20 tests passed.
+- Expanded CRM matrix gate passed: `npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/activity-timeline.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand` returned 11 suites, 84 tests passed.
+- `npm run type-check` passed at 2026-05-23 16:11 AEST.
+- `npm run security:routes-check` passed at 2026-05-23 16:11 AEST: route inventory found 0 unprotected mutating routes.
+- Push/PR remains blocked for this branch: `GIT_TERMINAL_PROMPT=0 git push -u origin feat/crm-approval-lifecycle-helper` failed with `fatal: could not read Username for 'https://github.com': terminal prompts disabled`; `gh` is not installed.
 - CRM timeline mapping lane passed at 2026-05-23 13:25 AEST: local policy pins existing `agent_actions` as the first CRM timeline persistence target, defers any new dedicated timeline-table migration until query/RLS needs are proven, and keeps route-write follow-up scoped to sanitized audit events.
 - `src/lib/crm/activity-timeline.ts` now maps defensively sanitized CRM timeline events to `agent_actions` insert payloads with `crm_timeline_<event_type>` action types, `done` vs `pending` status semantics, null UUID link fields unless explicitly resolved, and no Board approval ID, contact PII, token, API-key, bearer-token, IP, address, or secret-like metadata persistence.
 - Focused activity timeline verification passed at 2026-05-23 13:25 AEST and was re-run after sanitizer hardening: `npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 1 suite, 5 tests passed.

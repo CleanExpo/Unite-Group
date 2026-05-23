@@ -102,6 +102,17 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest approval lifecycle helper verification at `2026-05-23 16:11 AEST`:
+
+- Current branch is `feat/crm-approval-lifecycle-helper`; local implementation commit is `ee642c3 feat: add CRM approval lifecycle helper`. Handoff docs were updated after the implementation commit to record evidence.
+- Added/verified pure local decision-support helper `src/lib/crm/approval-lifecycle.ts` and `tests/unit/lib/crm/approval-lifecycle.test.ts` for requested, approved, rejected, cancelled, expired, executed, invalid, and high-risk approval states.
+- Safety posture is explicit: the helper always returns `safeToAutoExecute: false`, does not echo approval references or Board IDs in operator-facing reasons, and does not perform any Supabase/Linear/GitHub/Vercel/Stripe write.
+- Updated CRM operating/model matrix evidence so approvals are covered as pure local decision support while persistence remains undecided (`crm_approvals` vs task subtype) before route writes.
+- Verification passed: focused approval lifecycle test returned 1 suite / 20 tests passed; expanded CRM matrix returned 11 suites / 84 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed.
+- Push/PR remains blocked: `GIT_TERMINAL_PROMPT=0 git push -u origin feat/crm-approval-lifecycle-helper` failed with `fatal: could not read Username for 'https://github.com': terminal prompts disabled`; `gh` is not installed.
+- Mac Mini probe remains blocked for artifact copy: `/Volumes` contains only `Macintosh HD`, `phills-mac-mini.local:445` is currently unreachable, `phills-mac-mini.local:22` is unreachable, and `docs/margot/recovered-from-mac-mini/` still contains only `.gitkeep`.
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, successful GitHub push, secret access/printing, Mac Mini write, client-facing send, merge, or destructive git action was performed.
+
 Latest CRM create timeline write-hook fix at `2026-05-23 14:33 AEST`:
 
 - Continued active branch `feat/crm-timeline-write-hooks-clean` after the prior activity timeline write-hook feature landed on `origin/main` as PR #170.

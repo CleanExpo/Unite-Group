@@ -2191,3 +2191,76 @@ Next safe slice:
 
 - Add contact-route unauthenticated/authenticated non-admin coverage and recursive no-sensitive-field assertions for timeline payloads, or push/open PR once GitHub auth is available.
 
+## 2026-05-23 16:11:45 AEST
+
+### Health check
+
+Observed in `/Users/phillmcgurk/Unite-Group`:
+
+```text
+branch=feat/crm-approval-lifecycle-helper
+local_commit=ee642c3 feat: add CRM approval lifecycle helper
+origin=https://github.com/CleanExpo/Unite-Group.git
+working_tree=handoff docs modified after implementation commit
+node_modules=present
+package_lock=present
+/Volumes=Macintosh HD only
+phills-mac-mini.local:445=unreachable
+phills-mac-mini.local:22=unreachable
+recovered_from_mac_mini=.gitkeep only
+```
+
+### Lane executed — approval lifecycle helper verification
+
+Completed the safe CRM approvals lifecycle helper slice on `feat/crm-approval-lifecycle-helper`.
+
+Evidence:
+
+- Created pure local helper `src/lib/crm/approval-lifecycle.ts` and unit test `tests/unit/lib/crm/approval-lifecycle.test.ts`.
+- Confirmed the helper is decision-support only: it classifies requested, approved, rejected, cancelled, expired, executed, invalid, and high-risk approval states; it always returns `safeToAutoExecute: false`; it does not write to Supabase, Linear, Vercel, GitHub, Stripe, or any production system.
+- Fixed review-blocking safety gaps before approval: returned reasons no longer echo approval references/Board IDs, invalid runtime subject types return `subjectType: 'invalid'`, lifecycle timestamps are parse-validated, and whitespace-padded subject types are normalized before high-risk checks.
+- Updated `docs/margot/crm-test-coverage-matrix.md` and `docs/margot/crm-operating-model.md` so the focused CRM gate includes the new approval lifecycle test and the remaining approval gap is persistence shape (`crm_approvals` vs task subtype), not lifecycle classification.
+- Spec review: PASS. Code quality/security re-review: APPROVED. Final integration re-review: READY.
+
+Verification:
+
+```bash
+git diff --check
+# PASS
+
+npx jest tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand
+# PASS: 1 suite passed, 20 tests passed
+
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/activity-timeline.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand
+# PASS: 11 suites passed, 84 tests passed
+
+npm run type-check
+# PASS: tsc --noEmit
+
+npm run security:routes-check
+# PASS: route-inventory check: 0 unprotected mutating routes
+```
+
+Git / PR / deploy:
+
+```text
+local_commit=ee642c3 feat: add CRM approval lifecycle helper
+push_attempt=GIT_TERMINAL_PROMPT=0 git push -u origin feat/crm-approval-lifecycle-helper
+push_result=fatal: could not read Username for 'https://github.com': terminal prompts disabled
+pr_status=not opened; GitHub CLI is not installed and HTTPS git transport is unauthenticated in this cron shell
+vercel_status=not checked; no pushed branch/PR/deployment exists from this tick
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, deployment, Vercel env mutation, successful GitHub push, secret access/printing, Mac Mini write, client-facing communication, merge, or destructive git action was performed.
+
+Blockers:
+
+- GitHub push/PR remains blocked by unauthenticated GitHub transport in this shell.
+- Mac Mini artifacts remain blocked by missing authenticated SMB mount and currently unreachable SMB/SSH probes.
+
+Next safe slice:
+
+- Decide approval persistence shape in a draft-only model (`crm_approvals` vs task subtype), then add route-level approval event-write tests only after the persistence contract is explicit.
+
