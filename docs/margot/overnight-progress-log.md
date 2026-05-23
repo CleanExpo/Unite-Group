@@ -3293,3 +3293,36 @@ Blockers:
 Next safe slice:
 
 - Push/open the reviewed UI approval-summary branch if GitHub transport succeeds; then monitor CI and Vercel from GitHub/checks. If publish is blocked, continue route-level CRM event-write tests locally.
+
+## 2026-05-23 23:27:43 AEST
+
+### Publish evidence — PR #178
+
+Branch/commit:
+
+- Branch: `margot-command-center-approval-ui`
+- Commit: `ffa4a3e` (`feat: expose approval summary in control panel UI`)
+- PR: https://github.com/CleanExpo/Unite-Group/pull/178
+
+Remote verification:
+
+- GitHub PR checks passed cleanly for PR #178, including TypeScript, Unit + Integration Tests, Pipeline Smoke Tests, Supabase Schema Drift, JSON-LD Schema Validation, npm audit, specialist reviews, Chief Reviewer final verdict, CodeRabbit, and DESIGN.md validation.
+- Vercel preview deployment completed successfully: https://vercel.com/unite-group/unite-group/7WXqfEkaxeHEEc4KkpJ7SVyUvmxf
+
+Local verification retained:
+
+```bash
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand
+npm run type-check
+npm run security:routes-check
+git diff --check
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
+
+Next safe slice:
+
+- Merge PR #178 if the evidence-only update checks remain clean; then verify main branch CI/Vercel for the merge commit.
+

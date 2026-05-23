@@ -562,3 +562,11 @@ Latest verification refresh at `2026-05-23 23:24 AEST`:
 - Spec compliance re-review passed; code quality/security re-review approved.
 - Verification passed: `npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand` returned 2 suites / 4 tests passed; `npm run type-check` passed; `npm run security:routes-check` returned `0 unprotected mutating routes`; `git diff --check` passed.
 - No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
+
+Latest publish refresh at `2026-05-23 23:27 AEST`:
+
+- Opened PR #178 for the command-center UI approval summary: https://github.com/CleanExpo/Unite-Group/pull/178
+- Branch commit `ffa4a3e` (`feat: expose approval summary in control panel UI`) passed GitHub PR checks cleanly, including TypeScript, Unit + Integration Tests, Pipeline Smoke Tests, Supabase Schema Drift, JSON-LD Schema Validation, npm audit, specialist reviews, Chief Reviewer final verdict, CodeRabbit, and DESIGN.md validation.
+- Vercel preview deployment completed successfully: https://vercel.com/unite-group/unite-group/7WXqfEkaxeHEEc4KkpJ7SVyUvmxf
+- This entry is an evidence-only follow-up so the handoff contains the PR/check/deploy URLs before merge.
+
