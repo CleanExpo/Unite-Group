@@ -19,15 +19,17 @@ jest.mock('@/lib/security/require-admin', () => ({
     .mockResolvedValue({ ok: true, actorEmail: 'test@unite-group.com' }),
 }));
 
-// Capture the insert payload by exposing the .insert() arg through this spy.
+// Capture insert payloads by table so task assertions stay stable when the
+// route also writes best-effort CRM timeline rows to agent_actions.
 const insertSpy = jest.fn();
 
 // Build a chainable mock that mirrors the route's call shapes:
-//   - existing lookup: from().select().eq().eq().neq().limit().maybeSingle()
-//   - insert: from().insert().select().single()
+//   - existing lookup: from('tasks').select().eq().eq().neq().limit().maybeSingle()
+//   - task insert: from('tasks').insert().select().single()
+//   - timeline insert: from('agent_actions').insert()
 function buildMockAdmin() {
   return {
-    from: () => ({
+    from: (tableName: string) => ({
       select: () => ({
         eq: () => ({
           eq: () => ({
@@ -40,7 +42,8 @@ function buildMockAdmin() {
         }),
       }),
       insert: (payload: Record<string, unknown>) => {
-        insertSpy(payload);
+        insertSpy(tableName, payload);
+        if (tableName === 'agent_actions') return Promise.resolve({ data: null, error: null });
         return {
           select: () => ({
             single: async () => ({
@@ -110,8 +113,9 @@ describe('POST /api/command-center/control-panel/add-ons — happy path', () => 
 
     // The actual fix verification — the inserted payload's assignee_type
     // must be 'self' (the post-#156 value), not 'human' (the bug pre-fix).
-    expect(insertSpy).toHaveBeenCalledTimes(1);
-    const insertedPayload = insertSpy.mock.calls[0][0];
+    const taskInsertCalls = insertSpy.mock.calls.filter(([tableName]) => tableName === 'tasks');
+    expect(taskInsertCalls).toHaveLength(1);
+    const insertedPayload = taskInsertCalls[0][1] as Record<string, unknown>;
     expect(insertedPayload.assignee_type).toBe('self');
     expect(insertedPayload.workspace_id).toBe('adedf006-ca69-47d4-adbf-fc91bd7f225d');
     expect(insertedPayload.status).toBe('blocked');
