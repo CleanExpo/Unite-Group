@@ -122,7 +122,7 @@ function mergeTasks(tasks: TaskRow[]): LiveWorkstream[] {
 function mergeAddOns(tasks: TaskRow[]): LiveAddOnGate[] {
   return ADD_ON_GATES.map((item) => {
     const task = tasks.find((row) => {
-      const tags = row.tags ?? [];
+      const tags = (row.tags ?? []).map((tag) => tag.trim().toLowerCase());
       return (
         row.obsidian_path === `command-center/add-ons/${item.id}` ||
         (tags.includes('hermes-addon-request') && tags.includes(item.id))

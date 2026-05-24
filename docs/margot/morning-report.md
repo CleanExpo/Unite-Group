@@ -85,7 +85,7 @@ Margot has:
 Mac Mini recovery remains blocked by current connectivity/auth state:
 
 - Host: `phills-mac-mini.local`
-- Latest probe at `2026-05-24 13:01 AEST`: SMB/File Sharing port 445 is unreachable; SSH/Remote Login port 22 is unreachable; `/Volumes` contains `Claude` and `Macintosh HD`; the local recovery destination still contains only `.gitkeep`.
+- Latest probe at `2026-05-24 13:33 AEST`: SMB/File Sharing port 445 is unreachable; SSH/Remote Login port 22 is unreachable; `/Volumes` contains `Claude` and `Macintosh HD`; the local recovery destination still contains only `.gitkeep`/no recovered target artifacts.
 
 Still blocked:
 
@@ -101,6 +101,33 @@ Target recovery files remain:
 - `/Users/phill-mac/hermes-agent-enhancement-report/restoreassist-content-packs/RESTOREASSIST-CONTENT-INDEX.md`
 
 ## Verification status
+
+Latest verification refresh at `2026-05-24 13:54 AEST`:
+
+- Continued the existing command-center add-on tag normalization slice on branch `margot/control-panel-addon-tag-normalization` after confirming GitHub auth is available and no open PR was in progress.
+- Fixed the progress-log whitespace hygiene issue found by review; `git diff --check` is now clean.
+- Two-stage review passed after the fix: spec compliance `PASS`; quality/security `APPROVED`.
+- Verification passed: `npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand` returned 2 suites / 9 tests; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client identity merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Latest verification refresh at `2026-05-24 13:33 AEST`:
+
+- Re-read the requested Margot operating docs, inspected current repo state, and continued the command-center CRM UI/API coverage lane on `main` at `2901e51`.
+- Safe health check passed for local readiness (`node_modules=present`, `package-lock.json=present`) and confirmed Mac Mini recovery remains blocked: `/Volumes` has `Claude` and `Macintosh HD`, recovered artifacts still contain only `.gitkeep`/no recovered target artifacts, and both `phills-mac-mini.local:445` and `:22` were unreachable from this session.
+- Safe local route/test improvement: `src/app/api/command-center/control-panel/route.ts` now trims/lowercases add-on task tags before matching `hermes-addon-request` and add-on IDs, so live CRM add-on hydration survives whitespace/case drift.
+- Added RED/GREEN coverage in `tests/integration/api/control-panel.test.ts`; the new test failed before the route fix and passes after it.
+- Verification passed: `npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand` returned 2 suites / 9 tests; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
+- Updated `docs/margot/mac-mini-recovery-status.md`, `docs/margot/overnight-progress-log.md`, and this morning report with evidence.
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Post-merge checkpoint at `2026-05-24 13:20 AEST`:
+
+- PR #194 merged: https://github.com/CleanExpo/Unite-Group/pull/194
+- Merge commit on `main`: `2901e516b08896c57fe7fa9f99fe88935d19915e` (`Merge pull request #194 from CleanExpo/margot/control-panel-addon-hydration-test`).
+- Scope shipped: command-center component regression for live CRM add-on task hydration, ensuring existing `crmTaskId` evidence renders and suppresses duplicate approval-task request UI.
+- PR checks passed before merge; post-merge `main` CI run `26350606826` passed; post-merge DESIGN.md lint run `26350606825` passed; combined commit status reports Vercel deployment success at https://vercel.com/unite-group/unite-group/82E1o5yjTkKCb2Via5ShWekCYYQz.
+- This post-merge evidence is local-only in the workspace to avoid an evidence-only PR chain after the verified merge.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client identity merge, permanent auto-conversion/auto-approval rule, secret printing/storage, or noninteractive credential attempt was performed.
 
 Latest verification refresh at `2026-05-24 13:15 AEST`:
 
