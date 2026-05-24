@@ -160,11 +160,23 @@ describe('buildCrmActivityTimelineEvent', () => {
         neutralCredential: 'api_key_123456789abcdef',
         benignEmail: 'grace@example.com',
         benignPhone: '+61 400 111 222',
+        note: 'billing card 4242',
+        reason: 'payment method visa',
+        neutralVisaEnding: 'visa ending 4242',
+        neutralMastercardEnding: 'mastercard ending 4444',
+        neutralAmexLastFour: 'amex 1234',
+        neutralDiscoverCard: 'discover card',
         safeCount: 3,
         stage: 'captured',
       },
     });
 
+    expect(event.metadata).not.toHaveProperty('note');
+    expect(event.metadata).not.toHaveProperty('reason');
+    expect(event.metadata).not.toHaveProperty('neutralVisaEnding');
+    expect(event.metadata).not.toHaveProperty('neutralMastercardEnding');
+    expect(event.metadata).not.toHaveProperty('neutralAmexLastFour');
+    expect(event.metadata).not.toHaveProperty('neutralDiscoverCard');
     expect(event.metadata).toEqual({ safeCount: 3, stage: 'captured' });
   });
 
@@ -193,6 +205,10 @@ describe('buildCrmActivityTimelineEvent', () => {
         neutralCredential: 'api_key_123456789abcdef',
         benignEmail: 'katherine@example.com',
         benignPhone: '+61 411 222 333',
+        neutralVisaEnding: 'visa ending 4242',
+        neutralMastercardEnding: 'mastercard ending 4444',
+        neutralAmexLastFour: 'amex 1234',
+        neutralDiscoverCard: 'discover card',
       },
     };
 
@@ -308,6 +324,205 @@ describe('buildCrmActivityTimelineEvent', () => {
       action_type: 'crm_timeline_integration_stale',
       status: 'pending',
     });
+  });
+
+  it('maps CRM mutation events to safe agent_actions inserts with sensitive metadata stripped', () => {
+    const mutationInputs: CrmActivityTimelineEventInput[] = [
+      {
+        type: 'contact_updated',
+        actor: 'Margot',
+        subjectId: 'contact-2',
+        subjectLabel: 'Ada Lovelace',
+        occurredAt: '2026-05-24T09:55:00+10:00',
+        source: 'crm_contacts_update_route',
+        clientSlug: 'analytical-engines',
+        metadata: {
+          changedFields: 'role,notes',
+          beforeEmail: 'ada@example.com',
+          afterPhone: '+61 400 222 333',
+          boardApprovalId: 'BOARD-200',
+          safeChangeCount: 2,
+        },
+      },
+      {
+        type: 'opportunity_updated',
+        actor: 'Margot',
+        subjectId: 'opp-10',
+        subjectLabel: 'CRM automation buildout',
+        occurredAt: '2026-05-24T09:56:00+10:00',
+        source: 'crm_opportunities_update_route',
+        businessSlug: 'unite-group',
+        metadata: {
+          changedFields: 'stage,probability',
+          valueAmount: 25000,
+          paymentDetails: 'card 4242',
+          billingDetails: 'invoice card ending 4242',
+          cardLast4: '4242',
+          approvalReference: 'BOARD-201',
+        },
+      },
+      {
+        type: 'opportunity_closed',
+        actor: 'Margot',
+        subjectId: 'opp-11',
+        subjectLabel: 'Closed CRM pilot',
+        occurredAt: '2026-05-24T09:57:00+10:00',
+        source: 'crm_opportunities_close_route',
+        requiresApproval: true,
+        metadata: {
+          fromStage: 'proposal',
+          toStage: 'won_pending_client_conversion',
+          reasonCode: 'operator_approved',
+          closeNote: 'billing card 4242',
+          closeNoteEmail: 'client@example.com',
+          closeNotePhone: '+61 400 333 444',
+        },
+      },
+      {
+        type: 'opportunity_reopened',
+        actor: 'Margot',
+        subjectId: 'opp-12',
+        subjectLabel: 'Reopened CRM pilot',
+        occurredAt: '2026-05-24T09:58:00+10:00',
+        source: 'crm_opportunities_reopen_route',
+        requiresApproval: true,
+        metadata: {
+          fromStatus: 'closed',
+          toStatus: 'open',
+          reasonCode: 'scope_changed',
+          reopenReason: 'payment method visa',
+          privateAddress: '1 Private Street',
+        },
+      },
+    ];
+
+    const [contactUpdatedEvent, opportunityUpdatedEvent, opportunityClosedEvent, opportunityReopenedEvent] = mutationInputs.map(buildCrmActivityTimelineEvent);
+
+    expect(contactUpdatedEvent).toMatchObject({
+      type: 'contact_updated',
+      category: 'contact',
+      severity: 'normal',
+      actionClass: 'auto',
+      summary: 'Contact updated: Ada Lovelace via crm_contacts_update_route.',
+      clientSlug: 'analytical-engines',
+      metadata: { changedFields: 'role,notes', safeChangeCount: 2 },
+    });
+    expect(opportunityUpdatedEvent).toMatchObject({
+      type: 'opportunity_updated',
+      category: 'opportunity',
+      severity: 'normal',
+      actionClass: 'auto',
+      summary: 'Opportunity updated: CRM automation buildout via crm_opportunities_update_route.',
+      businessSlug: 'unite-group',
+      metadata: { changedFields: 'stage,probability', valueAmount: 25000 },
+    });
+    expect(opportunityClosedEvent).toMatchObject({
+      type: 'opportunity_closed',
+      category: 'opportunity',
+      severity: 'high',
+      actionClass: 'approval_required',
+      summary: 'Opportunity closed: Closed CRM pilot via crm_opportunities_close_route.',
+      requiresApproval: true,
+      metadata: { fromStage: 'proposal', toStage: 'won_pending_client_conversion', reasonCode: 'operator_approved' },
+    });
+    expect(opportunityReopenedEvent).toMatchObject({
+      type: 'opportunity_reopened',
+      category: 'opportunity',
+      severity: 'high',
+      actionClass: 'approval_required',
+      summary: 'Opportunity reopened: Reopened CRM pilot via crm_opportunities_reopen_route.',
+      requiresApproval: true,
+      metadata: { fromStatus: 'closed', toStatus: 'open', reasonCode: 'scope_changed' },
+    });
+
+    const contactUpdatedInsert = buildCrmTimelineAgentActionInsert(contactUpdatedEvent);
+    const opportunityUpdatedInsert = buildCrmTimelineAgentActionInsert(opportunityUpdatedEvent);
+    const opportunityClosedInsert = buildCrmTimelineAgentActionInsert(opportunityClosedEvent);
+    const opportunityReopenedInsert = buildCrmTimelineAgentActionInsert(opportunityReopenedEvent);
+
+    expect(contactUpdatedInsert).toMatchObject({
+      action_type: 'crm_timeline_contact_updated',
+      status: 'done',
+      payload: {
+        type: 'contact_updated',
+        category: 'contact',
+        severity: 'normal',
+        actionClass: 'auto',
+        requiresApproval: false,
+        metadata: { changedFields: 'role,notes', safeChangeCount: 2 },
+      },
+    });
+    expect(opportunityUpdatedInsert).toMatchObject({
+      action_type: 'crm_timeline_opportunity_updated',
+      status: 'done',
+      payload: {
+        type: 'opportunity_updated',
+        category: 'opportunity',
+        severity: 'normal',
+        actionClass: 'auto',
+        requiresApproval: false,
+        metadata: { changedFields: 'stage,probability', valueAmount: 25000 },
+      },
+    });
+    expect(opportunityClosedInsert).toMatchObject({
+      action_type: 'crm_timeline_opportunity_closed',
+      status: 'pending',
+      payload: {
+        type: 'opportunity_closed',
+        category: 'opportunity',
+        severity: 'high',
+        actionClass: 'approval_required',
+        requiresApproval: true,
+        metadata: { fromStage: 'proposal', toStage: 'won_pending_client_conversion', reasonCode: 'operator_approved' },
+      },
+    });
+    expect(opportunityReopenedInsert).toMatchObject({
+      action_type: 'crm_timeline_opportunity_reopened',
+      status: 'pending',
+      payload: {
+        type: 'opportunity_reopened',
+        category: 'opportunity',
+        severity: 'high',
+        actionClass: 'approval_required',
+        requiresApproval: true,
+        metadata: { fromStatus: 'closed', toStatus: 'open', reasonCode: 'scope_changed' },
+      },
+    });
+
+    [
+      contactUpdatedEvent.metadata,
+      opportunityUpdatedEvent.metadata,
+      opportunityClosedEvent.metadata,
+      opportunityReopenedEvent.metadata,
+      contactUpdatedInsert.payload.metadata,
+      opportunityUpdatedInsert.payload.metadata,
+      opportunityClosedInsert.payload.metadata,
+      opportunityReopenedInsert.payload.metadata,
+    ].forEach((metadata) => {
+      expect(metadata).not.toHaveProperty('beforeEmail');
+      expect(metadata).not.toHaveProperty('afterPhone');
+      expect(metadata).not.toHaveProperty('boardApprovalId');
+      expect(metadata).not.toHaveProperty('approvalReference');
+      expect(metadata).not.toHaveProperty('paymentDetails');
+      expect(metadata).not.toHaveProperty('billingDetails');
+      expect(metadata).not.toHaveProperty('cardLast4');
+      expect(metadata).not.toHaveProperty('closeNote');
+      expect(metadata).not.toHaveProperty('reopenReason');
+      expect(metadata).not.toHaveProperty('closeNoteEmail');
+      expect(metadata).not.toHaveProperty('closeNotePhone');
+      expect(metadata).not.toHaveProperty('privateAddress');
+    });
+
+    expect(opportunityUpdatedEvent.metadata).not.toHaveProperty('paymentDetails');
+    expect(opportunityUpdatedEvent.metadata).not.toHaveProperty('billingDetails');
+    expect(opportunityUpdatedEvent.metadata).not.toHaveProperty('cardLast4');
+    expect(opportunityUpdatedInsert.payload.metadata).not.toHaveProperty('paymentDetails');
+    expect(opportunityUpdatedInsert.payload.metadata).not.toHaveProperty('billingDetails');
+    expect(opportunityUpdatedInsert.payload.metadata).not.toHaveProperty('cardLast4');
+    expect(opportunityClosedEvent.metadata).not.toHaveProperty('closeNote');
+    expect(opportunityClosedInsert.payload.metadata).not.toHaveProperty('closeNote');
+    expect(opportunityReopenedEvent.metadata).not.toHaveProperty('reopenReason');
+    expect(opportunityReopenedInsert.payload.metadata).not.toHaveProperty('reopenReason');
   });
 
   it('maps approval decision events to safe pending agent_actions inserts with sensitive metadata stripped', () => {
