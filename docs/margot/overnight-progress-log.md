@@ -6359,3 +6359,168 @@ Blockers:
 Next safe slice:
 
 - Inspect and, if safe, reduce the control-panel API workstream task payload by removing unused raw `crmTaskTitle` from responses, or continue command-center CRM UI/API coverage for lead/opportunity/daily-digest rendering surfaces.
+
+## 2026-05-24 15:38 AEST
+
+### PR #198 check checkpoint and stale draft cleanup
+
+Observed in `/Users/phillmcgurk/Unite-Group`:
+
+```text
+timestamp=2026-05-24 15:38:45 AEST
+branch=margot/addon-task-status-evidence
+head=febb6c1
+pr=https://github.com/CleanExpo/Unite-Group/pull/198
+/Volumes=Claude,Macintosh HD,Telegram
+recovered_markdown_artifacts=0
+phills-mac-mini.local:445=reachable
+phills-mac-mini.local:22=unreachable
+```
+
+Lane executed:
+
+- Published PR #198 for the completed add-on CRM task status evidence slice.
+- Verified PR #198 checks passed for GitHub/Review Board/CI/Vercel production preview, but left it open and unmerged because `Vercel – unite-group-sandbox` failed.
+- Attempted `npx vercel inspect dpl_3L8TwoZRGiz2jZkfJ3GYDyEEh31T --logs`; inspection was blocked locally by missing Vercel CLI credentials, and no token was requested or printed.
+- Reverted an overlapping local draft for future `crmTaskTitle` response minimization so the working source/test tree matches PR #198's reviewed scope. That follow-up remains the next safe lane, not part of this PR.
+- Rechecked Mac Mini recovery status: SMB/File Sharing is reachable, SSH is not, no recovered Markdown artifacts are present locally, and recovery remains blocked on a usable authenticated SMB mount or SSH session.
+
+Verification:
+
+```bash
+gh pr checks 198
+# PASS: CodeRabbit, Review Board, TypeScript, Unit + Integration Tests, JSON-LD Schema Validation, Lint, Pipeline Smoke Tests, Supabase Schema Drift, npm audit, DESIGN.md lint, Vercel production preview.
+# BLOCKED: Vercel – unite-group-sandbox failed.
+
+git diff --check
+# PASS after correcting this local-only evidence block.
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Blockers:
+
+- PR #198 is open/unmerged on the failed Vercel sandbox status: https://vercel.com/unite-group/unite-group-sandbox/3L8TwoZRGiz2jZkfJ3GYDyEEh31T
+- Mac Mini recovery remains blocked on an authenticated SMB mount containing the approved target files or reachable authenticated SSH.
+
+Next safe slice:
+
+- Inspect and, if safe, implement the `crmTaskTitle` response-minimization follow-up with a fresh RED/GREEN cycle after PR #198 is resolved, or continue command-center CRM UI/API coverage for lead/opportunity/daily-digest rendering surfaces.
+
+## 2026-05-24 15:52 AEST
+
+### Command-center workstream task payload minimization verified
+
+Observed in `/Users/phillmcgurk/Unite-Group`:
+
+```text
+timestamp=2026-05-24 15:51:57 AEST
+branch=margot/addon-task-status-evidence
+head=febb6c1
+```
+
+Lane executed:
+
+- Continued the safe command-center CRM UI/API data-minimization lane on the existing branch.
+- Added integration coverage proving `GET /api/command-center/control-panel` does not return raw `crmTaskTitle` in workstream payloads.
+- Updated `src/app/api/command-center/control-panel/route.ts` so live workstreams retain minimized task evidence (`crmTaskId`, `crmTaskStatus`, `lastUpdated`) without echoing the raw CRM task title.
+- Kept Mac Mini recovery state unchanged from the same tick: SMB/File Sharing reachable, SSH unreachable, and no recovered Markdown artifacts under `docs/margot/recovered-from-mac-mini/`.
+
+Verification:
+
+```bash
+npx jest tests/integration/api/control-panel.test.ts --runInBand
+# RED first before route minimization: failed while crmTaskTitle was still present.
+
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand
+# PASS: 2 suites / 10 tests.
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, GitHub push by this follow-on, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Blockers:
+
+- PR #198 remains open/unmerged due to the existing `Vercel – unite-group-sandbox` failed status recorded above.
+- Mac Mini recovery remains blocked on an authenticated SMB mount containing the approved target files or reachable authenticated SSH.
+
+Next safe slice:
+
+- Run focused two-stage review on this local payload-minimization follow-on before any PR update, or continue command-center CRM UI/API coverage for lead/opportunity/daily-digest rendering surfaces.
+
+## 2026-05-24 15:52:49 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log: local LaunchAgent wrapper emitted no additional structured log payload for this tick.
+
+## 2026-05-24 16:22 AEST
+
+### Command-center workstream payload minimization review closed
+
+Observed in `/Users/phillmcgurk/Unite-Group`:
+
+```text
+timestamp=2026-05-24 16:22:30 AEST
+branch=margot/addon-task-status-evidence
+head=febb6c1
+pr=https://github.com/CleanExpo/Unite-Group/pull/198
+pr_state=OPEN
+pr_merge_state=UNSTABLE
+pr_blocker=Vercel – unite-group-sandbox failed
+```
+
+Lane executed:
+
+- Continued the already-open PR #198 branch instead of starting a new lane.
+- Ran the required two-stage review for the local `crmTaskTitle` response-minimization follow-on: spec compliance returned `PASS`; quality review returned `REQUEST_CHANGES` for evidence drift/trailing EOF hygiene and missing retained-contract assertions, then `APPROVED` after fixes.
+- Strengthened `tests/integration/api/control-panel.test.ts` so the workstream mapping test proves the minimized response retains `crmTaskId`, `crmTaskStatus`, and `lastUpdated` while still omitting raw `crmTaskTitle`.
+- Fixed the dangling LaunchAgent `Log:` stub at the end of this progress log so `git diff --check` passes and the evidence no longer claims a stale result.
+- Rechecked PR #198 state: GitHub/CI checks are green except `Vercel – unite-group-sandbox`, which remains failed; the PR is open, mergeable, and unstable due to that status.
+
+Verification:
+
+```bash
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand
+# PASS: 2 suites / 10 tests.
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+
+gh pr view 198 --json number,title,state,url,headRefName,headRefOid,mergeable,mergeStateStatus,statusCheckRollup
+# OPEN / MERGEABLE / UNSTABLE; blocker remains Vercel – unite-group-sandbox failure.
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, GitHub push by this follow-on, PR merge, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Blockers:
+
+- PR #198 remains open/unmerged on failed `Vercel – unite-group-sandbox`: https://vercel.com/unite-group/unite-group-sandbox/3L8TwoZRGiz2jZkfJ3GYDyEEh31T
+- Vercel CLI inspect remains unavailable from this runner without Vercel credentials; no token was requested or printed.
+- Mac Mini recovery remains blocked on an authenticated SMB mount containing the approved target files or reachable authenticated SSH.
+
+Next safe slice:
+
+- If `Vercel – unite-group-sandbox` clears after rerun or external fix, push/update/merge PR #198 only after all checks are clean; otherwise keep work local and continue a small command-center CRM UI/API coverage slice that does not widen production or Vercel scope.

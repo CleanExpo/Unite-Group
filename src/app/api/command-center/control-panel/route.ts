@@ -27,7 +27,6 @@ type TaskRow = {
 type LiveWorkstream = ControlWorkstream & {
   crmTaskId?: string;
   crmTaskStatus?: string;
-  crmTaskTitle?: string;
   lastUpdated?: string;
 };
 
@@ -113,7 +112,6 @@ function mergeTasks(tasks: TaskRow[]): LiveWorkstream[] {
       owner: task.assignee_name || item.owner,
       crmTaskId: task.id,
       crmTaskStatus: task.status,
-      crmTaskTitle: task.title,
       lastUpdated: task.updated_at ?? task.created_at ?? undefined,
     };
   });
