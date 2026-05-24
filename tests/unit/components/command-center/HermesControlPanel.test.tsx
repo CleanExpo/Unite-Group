@@ -109,4 +109,59 @@ describe('HermesControlPanel', () => {
     expect(html).not.toContain('Request approval task in Unite CRM');
     expect(html).not.toContain('CRM unreachable · seed plan');
   });
+
+  it('renders live CRM workstream task evidence surfaced by the control-panel API', () => {
+    const html = renderToStaticMarkup(
+      <HermesControlPanel
+        initialPayload={{
+          source: 'crm:tasks',
+          taskCount: 1,
+          generatedAt: '2026-05-24T04:15:00.000Z',
+          summary: {
+            green: 0,
+            yellow: 0,
+            red: 1,
+            approvalRequired: 1,
+          },
+          workstreams: [
+            {
+              id: 'ug-v0-02',
+              label: 'Margot brief to Unite CRM task',
+              lane: 'crm write',
+              owner: 'Phill approval',
+              status: 'gated',
+              ryg: 'red',
+              dependency: 'Live CRM task payload',
+              gate: 'Phill approval required',
+              nextAction: 'Resolve approval',
+              crmTaskId: 'task-workstream-001',
+              crmTaskStatus: 'blocked',
+              crmTaskTitle: 'RAW CRM TASK TITLE SHOULD NOT RENDER',
+              crmTaskBody: 'RAW CRM TASK BODY SHOULD NOT RENDER',
+            } as any,
+            {
+              id: 'ug-v0-03',
+              label: 'CRM task without status evidence',
+              lane: 'crm review',
+              owner: 'Margot',
+              status: 'live',
+              ryg: 'yellow',
+              dependency: 'Live CRM task payload',
+              gate: 'Monitor next action',
+              nextAction: 'Review task evidence',
+              crmTaskId: 'task-workstream-no-status',
+            },
+          ],
+          addOns: [],
+        }}
+      />,
+    );
+
+    expect(html).toContain('CRM task task-workstream-001 · blocked');
+    expect(html).toContain('CRM task task-workstream-no-status');
+    expect(html).not.toContain('CRM task task-workstream-no-status ·');
+    expect(html).not.toContain('RAW CRM TASK TITLE SHOULD NOT RENDER');
+    expect(html).not.toContain('RAW CRM TASK BODY SHOULD NOT RENDER');
+    expect(html).not.toContain('CRM unreachable · seed plan');
+  });
 });
