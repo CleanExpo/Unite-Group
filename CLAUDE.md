@@ -1,5 +1,22 @@
 # Scoped Pi-CEO workspace
 
+@../Unite-Hub/.portfolio/PORTFOLIO.yaml
+
+## Identity (SSOT)
+**Canonical name:** Authority-Site
+**Aliases this project answers to:** "Empire Command Center", "CEO Dashboard", "Synthex Authority Hub", "Unite-Group Dashboard", "Empire", "Authority Site"
+**Canonical local path:** `D:\Authority-Site`
+**Access via:** `D:\Unite-Group\Authority-Site` (junction)
+**GitHub:** `CleanExpo/Unite-Group`
+
+> **Sibling product:** Unite-Hub (the CRM at `D:\Unite-Hub`) is a SEPARATE product.
+> If the user says "Unite-Group" or "Unite Group" generically, they MOST LIKELY mean Unite-Hub (the CRM).
+> Only operate in THIS project if the user references Empire, CEO dashboard, Pi-CEO, or portfolio metrics.
+>
+> Registry: see `D:\Unite-Hub\.portfolio\PORTFOLIO.yaml` (the single source of truth for both products).
+
+---
+
 This is an isolated autonomous workspace. Only read and edit files
 inside this directory. Do not walk upward into parent directories.
 
