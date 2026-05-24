@@ -1,5 +1,145 @@
 # Margot Overnight Progress Log
 
+## 2026-05-24 13:15 AEST
+
+### Command-center add-on hydration slice reviewed for PR
+
+Observed in `/Users/phillmcgurk/Unite-Group`:
+
+```text
+timestamp=2026-05-24 13:14:57 AEST
+branch=margot/control-panel-addon-hydration-test
+base=origin/main
+head_before_commit=547590b
+open_prs=[]
+github_auth=available
+```
+
+Lane executed:
+
+- Continued the in-progress local command-center CRM UI coverage slice rather than starting a conflicting lane.
+- Fixed the reviewer-found markdown diff hygiene issue in `docs/margot/overnight-progress-log.md` by removing the trailing blank line at EOF.
+- Ran two-stage review after the fix: spec compliance returned `PASS`; code quality/security returned `APPROVED`.
+- Prepared the reviewed local changes for branch/PR publication: `tests/unit/components/command-center/HermesControlPanel.test.tsx`, `docs/margot/mac-mini-recovery-status.md`, `docs/margot/morning-report.md`, and this progress log.
+
+Verification:
+
+```bash
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand
+# PASS: 2 suites / 8 tests.
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Blockers:
+
+- Mac Mini recovery remains blocked on an authenticated SMB mount containing the approved target files or reachable authenticated SSH.
+
+Next safe slice:
+
+- Push/open the reviewed PR if local commit succeeds, then monitor checks and merge only if all checks pass cleanly.
+
+## 2026-05-24 13:01 AEST
+
+### Command-center add-on hydration test hardening
+
+Observed in `/Users/phillmcgurk/Unite-Group`:
+
+```text
+timestamp=2026-05-24 13:01:46 AEST
+branch=main
+head=547590b
+node_modules=present
+package_lock=present
+/Volumes=Claude,Macintosh HD
+recovered_files=.gitkeep
+phills-mac-mini.local:445=unreachable
+phills-mac-mini.local:22=unreachable
+```
+
+Lane executed:
+
+- Re-read the requested Margot operating docs, inspected current repo state, and used the existing post-PR #193 next lane: command-center CRM UI component/rendering tests.
+- Added a safe local regression in `tests/unit/components/command-center/HermesControlPanel.test.tsx` covering live CRM add-on task hydration: a CRM-sourced gated add-on with `crmTaskId` renders the task evidence, stays live (not degraded), and does not offer a duplicate “Request approval task in Unite CRM” button.
+- Refreshed Mac Mini recovery evidence: no authenticated SMB mount or SSH path is available, and both probed ports were unreachable in this tick, so recovery remains blocked while local CRM/command-center work continues.
+
+Verification:
+
+```bash
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand
+# PASS: 2 suites / 8 tests.
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Blockers:
+
+- Mac Mini recovery remains blocked on an authenticated SMB mount containing the approved target files or reachable authenticated SSH.
+
+Next safe slice:
+
+- Continue command-center CRM UI coverage for live fetched payload hydration and/or lead/opportunity/daily-digest rendering surfaces, or add contact merge safeguards if mutation semantics expand.
+
+## 2026-05-24 12:39 AEST
+
+### PR #193 merged — guarded opportunity PATCH timeline route
+
+Result:
+
+- PR #193 merged: https://github.com/CleanExpo/Unite-Group/pull/193
+- Merge commit on `main`: `547590b5f0a1a03be0560ee5103abbf5bcce8c7d` (`feat: guard opportunity update timeline route (#193)`).
+- Scope shipped: guarded local `PATCH /api/crm/opportunities` route contract for forecast/pipeline updates, strict no-link/no-name mutation allow-list, approval-gated won/conversion-like updates, best-effort sanitized opportunity update/close/reopen timeline persistence, and PATCH response redaction for selected free-text fields.
+
+Verification:
+
+```bash
+gh pr checks 193 --watch --fail-fast
+# PASS: CodeRabbit, Vercel, Vercel Preview Comments, Review Board specialist checks, Chief Reviewer, TypeScript, Unit + Integration Tests, JSON-LD Schema Validation, Lint, Pipeline Smoke Tests, Supabase Schema Drift, npm audit, and DESIGN.md lint passed.
+
+gh pr view 193 --json state,mergedAt,mergeCommit,url
+# PASS: state MERGED, merge commit 547590b5f0a1a03be0560ee5103abbf5bcce8c7d.
+
+gh run watch 26349856641 --exit-status
+# PASS: post-merge main CI passed for commit 547590b5f0a1a03be0560ee5103abbf5bcce8c7d.
+
+gh run watch 26349856632 --exit-status
+# PASS: post-merge main DESIGN.md lint passed for commit 547590b5f0a1a03be0560ee5103abbf5bcce8c7d.
+
+gh api repos/CleanExpo/Unite-Group/commits/547590b5f0a1a03be0560ee5103abbf5bcce8c7d/status
+# PASS: combined commit status success; Vercel deployment success: https://vercel.com/unite-group/unite-group/6NdE7EPHczJ3Xqv3YNLXxWBoxzPk
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client identity merge, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+- This post-merge evidence block is local-only in the workspace to avoid an evidence-only PR chain after the verified merge.
+
+Next safe slice:
+
+- Add command-center CRM UI component/rendering tests for client-side fetched payload hydration, leads, opportunities, and daily digest, or add contact merge safeguards if mutation semantics expand.
+
 ## 2026-05-24 12:25 AEST
 
 ### Opportunity PATCH verification and review closure
@@ -5732,6 +5872,14 @@ Next safe slice:
 - Add the next CRM mutation route timeline contract with RED tests first: either opportunity update/close/reopen timeline persistence or contact merge/update conflict safeguards.
 
 ## 2026-05-24 12:29:35 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+
+## 2026-05-24 13:02:50 AEST
 
 ### LaunchAgent tick
 

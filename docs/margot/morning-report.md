@@ -85,7 +85,7 @@ Margot has:
 Mac Mini recovery remains blocked by current connectivity/auth state:
 
 - Host: `phills-mac-mini.local`
-- Latest probe at `2026-05-24 12:25 AEST`: SMB/File Sharing port 445 is reachable; SSH/Remote Login port 22 is currently unreachable; `/Volumes` contains `Claude` and `Macintosh HD`; the local recovery destination still contains only `.gitkeep`.
+- Latest probe at `2026-05-24 13:01 AEST`: SMB/File Sharing port 445 is unreachable; SSH/Remote Login port 22 is unreachable; `/Volumes` contains `Claude` and `Macintosh HD`; the local recovery destination still contains only `.gitkeep`.
 
 Still blocked:
 
@@ -101,6 +101,32 @@ Target recovery files remain:
 - `/Users/phill-mac/hermes-agent-enhancement-report/restoreassist-content-packs/RESTOREASSIST-CONTENT-INDEX.md`
 
 ## Verification status
+
+Latest verification refresh at `2026-05-24 13:15 AEST`:
+
+- Continued the reviewed command-center CRM UI coverage slice on branch `margot/control-panel-addon-hydration-test`.
+- Fixed the progress-log markdown hygiene issue found by review, then reran the focused gate.
+- Two-stage review passed after the fix: spec compliance `PASS`; quality/security `APPROVED`.
+- Verification passed: `npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand` returned 2 suites / 8 tests; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Latest verification refresh at `2026-05-24 13:01 AEST`:
+
+- Re-read the requested Margot operating docs, inspected current repo state, and executed the command-center CRM UI coverage lane from existing local assets.
+- Safe health check passed for local readiness (`node_modules=present`, `package-lock.json=present`) and confirmed Mac Mini recovery remains blocked: `/Volumes` has `Claude` and `Macintosh HD`, recovered artifacts still contain only `.gitkeep`, and both `phills-mac-mini.local:445` and `:22` were unreachable from this session.
+- Safe local test improvement: `tests/unit/components/command-center/HermesControlPanel.test.tsx` now covers live CRM add-on task hydration so a gated add-on with an existing CRM task renders task evidence, remains live/not degraded, and does not offer a duplicate approval-task request.
+- Verification passed: `npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand` returned 2 suites / 8 tests; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
+- Updated `docs/margot/mac-mini-recovery-status.md`, `docs/margot/overnight-progress-log.md`, and this morning report with evidence.
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Latest merge/deploy refresh at `2026-05-24 12:39 AEST`:
+
+- PR #193 merged: https://github.com/CleanExpo/Unite-Group/pull/193
+- Merge commit on `main`: `547590b5f0a1a03be0560ee5103abbf5bcce8c7d` (`feat: guard opportunity update timeline route (#193)`).
+- Scope shipped: guarded local `PATCH /api/crm/opportunities` route contract for forecast/pipeline updates, strict no-link/no-name mutation allow-list, approval-gated won/conversion-like updates, best-effort sanitized opportunity update/close/reopen timeline persistence, and PATCH response redaction for selected free-text fields.
+- PR checks passed before merge; post-merge `main` CI run `26349856641` passed; post-merge DESIGN.md lint run `26349856632` passed; combined commit status reports Vercel deployment success at https://vercel.com/unite-group/unite-group/6NdE7EPHczJ3Xqv3YNLXxWBoxzPk.
+- This post-merge evidence is local-only in the workspace to avoid an evidence-only PR chain after the verified merge.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client identity merge, secret printing/storage, or noninteractive credential attempt was performed.
 
 Latest verification refresh at `2026-05-24 12:25 AEST`:
 

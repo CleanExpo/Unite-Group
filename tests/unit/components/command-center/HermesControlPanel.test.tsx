@@ -72,4 +72,41 @@ describe('HermesControlPanel', () => {
     expect(html).toContain('server returned source=seed:static-plan');
     expect(html).not.toContain('CRM · 0 tasks');
   });
+
+  it('renders live CRM add-on task hydration without offering a duplicate approval request', () => {
+    const html = renderToStaticMarkup(
+      <HermesControlPanel
+        initialPayload={{
+          source: 'crm:tasks',
+          taskCount: 1,
+          generatedAt: '2026-05-24T02:45:00.000Z',
+          summary: {
+            green: 0,
+            yellow: 0,
+            red: 1,
+            approvalRequired: 1,
+          },
+          workstreams: [],
+          addOns: [
+            {
+              id: 'computer-use',
+              label: 'Computer-use operator',
+              category: 'desktop',
+              state: 'gated',
+              approval: 'Human approval for external writes',
+              crmTaskId: 'task-addon-001',
+              crmTaskStatus: 'blocked',
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(html).toContain('CRM · 1 tasks');
+    expect(html).toContain('Computer-use operator');
+    expect(html).toContain('CRM task task-addon-001');
+    expect(html).toContain('desktop / gated');
+    expect(html).not.toContain('Request approval task in Unite CRM');
+    expect(html).not.toContain('CRM unreachable · seed plan');
+  });
 });
