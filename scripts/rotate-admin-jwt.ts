@@ -84,7 +84,14 @@ export async function rotateVercel(jwt: string, dryRun: boolean): Promise<void> 
           authorization: `Bearer ${token}`,
           'content-type': 'application/json',
         },
-        body: JSON.stringify({ value: jwt, type: 'encrypted' }),
+        // PATCH only sends `value`. We deliberately omit `type` because
+        // Vercel refuses to mutate the type of an existing env var when it
+        // is marked `sensitive` (HTTP 400 BAD_REQUEST: "You cannot change
+        // the type of a Sensitive Environment Variable"). The type was set
+        // when the var was originally created (POST below) — leaving it
+        // alone here keeps the rotation working whether the var is stored
+        // as `encrypted`, `sensitive`, or `secret`.
+        body: JSON.stringify({ value: jwt }),
       },
     );
     if (!patchRes.ok) {
