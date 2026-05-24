@@ -102,6 +102,15 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest local verification refresh at `2026-05-25 03:09 AEST`:
+
+- Continued PR #198 (`margot/addon-task-status-evidence`) instead of starting a new feature lane because the PR was already open and blocked by `Vercel – unite-group-sandbox`.
+- Added the `/api/search/nexus` Vercel sandbox root-cause fix: Supabase service-client construction is no longer performed at module import/build time, missing Supabase env returns a safe admin-gated 503, and config validation now happens before OpenAI embeddings are called.
+- Added RED/GREEN coverage in `tests/integration/api/search-nexus.test.ts` proving missing Supabase env with `OPENAI_API_KEY` present returns `Semantic search is not configured (Supabase env missing)` and does not call OpenAI embeddings.
+- Verification passed: `npx jest tests/integration/api/search-nexus.test.ts --runInBand` returned 1 suite / 2 tests; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `npm run build` exited 0; `git diff --check` passed.
+- Review passed: spec review `PASS`, code quality/security review `APPROVED`.
+- No production DB write, Supabase migration application, Vercel env mutation, manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, or secret printing/storage was performed.
+
 Latest local verification refresh at `2026-05-24 16:22 AEST`:
 
 - Completed review/fix loop for the local command-center CRM UI/API data-minimization follow-on on branch `margot/addon-task-status-evidence` at `febb6c1`.

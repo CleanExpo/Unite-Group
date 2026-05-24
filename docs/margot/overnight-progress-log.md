@@ -1,5 +1,56 @@
 # Margot Overnight Progress Log
 
+## 2026-05-25 03:09 AEST
+
+### PR #198 Vercel sandbox `/api/search/nexus` env guard
+
+Continued the already-open PR #198 lane rather than starting a new feature lane. A WIP from another local branch was stashed as `margot-cron-wip-before-pr198-search-nexus-fix`, then the minimal `/api/search/nexus` fix was applied on `margot/addon-task-status-evidence`.
+
+Slice completed:
+
+- Added a focused RED/GREEN regression in `tests/integration/api/search-nexus.test.ts` for missing Supabase env while `OPENAI_API_KEY` is present.
+- Updated `src/app/api/search/nexus/route.ts` so Supabase service-client creation is request-time only and semantic-search configuration is validated before any OpenAI embedding call.
+- Preserved the admin gate as the first route operation; no unauthenticated request can probe config state or trigger downstream work.
+- Fixed the current tracked progress-log hygiene issue (`git diff --check` trailing EOF blank line) before final verification.
+
+Verification:
+
+```bash
+npx jest tests/integration/api/search-nexus.test.ts --runInBand
+# PASS: 1 suite / 2 tests; RED was observed before the route ordering fix.
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes
+
+npm run build
+# PASS: build completes; /api/search/nexus no longer crashes page-data collection without Supabase env.
+# NOTE: unrelated existing static-generation logs still mention missing NEXT_PUBLIC_SUPABASE_URL in getBrandConfig for locale service pages, but the build exits 0.
+
+git diff --check
+# PASS
+```
+
+Review:
+
+- Spec review: PASS.
+- Code quality/security review: APPROVED.
+
+Safety:
+
+- No production DB write, Supabase migration application, Vercel env mutation, manual deploy, client-facing communication, billing/payment action, cross-client merge, destructive git, permanent auto-approval/auto-conversion rule, or secret printing/storage.
+
+Blockers / current PR state:
+
+- PR #198 remains open and previously blocked by `Vercel – unite-group-sandbox` until this fix is committed/pushed and the external status reruns.
+- Vercel token is not present in the shell; GitHub CLI auth is available.
+
+Next safe slice:
+
+- Commit/push the PR #198 fix, watch checks, and merge only if all required GitHub/Vercel statuses pass cleanly.
+
 ## 2026-05-24 13:33 AEST
 
 ### Command-center add-on tag normalization hardening
