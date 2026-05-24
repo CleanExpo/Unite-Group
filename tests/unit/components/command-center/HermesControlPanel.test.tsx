@@ -97,6 +97,14 @@ describe('HermesControlPanel', () => {
               crmTaskId: 'task-addon-001',
               crmTaskStatus: 'blocked',
             },
+            {
+              id: 'crm-kanban-sync',
+              label: 'CRM to Kanban sync',
+              category: 'execution',
+              state: 'gated',
+              approval: 'CRM task must exist first',
+              crmTaskId: 'task-addon-no-status',
+            },
           ],
         }}
       />,
@@ -104,7 +112,9 @@ describe('HermesControlPanel', () => {
 
     expect(html).toContain('CRM · 1 tasks');
     expect(html).toContain('Computer-use operator');
-    expect(html).toContain('CRM task task-addon-001');
+    expect(html).toContain('CRM task task-addon-001 · blocked');
+    expect(html).toContain('CRM task task-addon-no-status');
+    expect(html).not.toContain('CRM task task-addon-no-status ·');
     expect(html).toContain('desktop / gated');
     expect(html).not.toContain('Request approval task in Unite CRM');
     expect(html).not.toContain('CRM unreachable · seed plan');

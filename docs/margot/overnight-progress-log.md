@@ -6136,3 +6136,226 @@ Next safe slice:
 
 Native macOS Margot orchestrator tick completed.
 Log: local scheduler marker did not include additional output.
+
+## 2026-05-24 14:41 AEST
+
+### Command-center workstream task evidence UI review closure
+
+Observed in `/Users/phillmcgurk/Unite-Group`:
+
+```text
+timestamp=2026-05-24 14:41:30 AEST
+branch=main
+head=83b1cd7
+node_modules=present
+package_lock=present
+/Volumes=Claude,Macintosh HD
+recovered_markdown_artifacts=0
+phills-mac-mini.local:445=unreachable
+phills-mac-mini.local:22=unreachable
+```
+
+Lane executed:
+
+- Re-read the requested Margot operating docs, inspected current repo state, and continued the existing command-center CRM UI/API coverage lane rather than starting a conflicting lane.
+- Ran a safe local health check confirming dependencies are present and Mac Mini recovery remains blocked by missing authenticated SMB/SSH access.
+- Closed the spec-review gap on the workstream CRM task evidence UI: `tests/unit/components/command-center/HermesControlPanel.test.tsx` now also covers a workstream with `crmTaskId` and no `crmTaskStatus`, proving the UI renders `CRM task <id>` without a dangling separator.
+- Re-ran two-stage review after the test fix: spec compliance returned `PASS`; quality/security returned `APPROVED` with no blocking issues. Reviewer noted a future non-blocking data-minimization follow-up: consider removing pre-existing `crmTaskTitle` from the API payload, since the UI intentionally does not render it.
+
+Verification:
+
+```bash
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand
+# PASS: 2 suites / 10 tests.
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Blockers:
+
+- Mac Mini recovery remains blocked on an authenticated SMB mount containing the approved target files or reachable authenticated SSH.
+
+Next safe slice:
+
+- Consider the API data-minimization follow-up for workstream CRM task payloads by removing unused raw `crmTaskTitle` from responses if the route contract allows it, or continue command-center CRM UI/API coverage for lead/opportunity/daily-digest rendering surfaces.
+
+## 2026-05-24 14:53 AEST
+
+### PR #197 merged — command-center workstream task evidence
+
+Result:
+
+- PR #197 merged: https://github.com/CleanExpo/Unite-Group/pull/197
+- Merge commit on `main`: `e4e1313cdd7a125a8f63f67cddd220c1930d2172` (`Merge pull request #197 from CleanExpo/margot/control-panel-workstream-task-evidence`).
+- Scope shipped: `HermesControlPanel` renders concise live CRM task evidence on workstream cards and test coverage verifies raw CRM task title/body sentinel fields do not render.
+
+Verification:
+
+```bash
+git diff --check
+# PASS before commit and after local-only evidence append
+
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand
+# PASS: 2 suites / 10 tests before commit
+
+npm run type-check
+# PASS before commit and in pre-push hook
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes before commit
+
+gh pr checks 197 --watch --fail-fast
+# PASS: CodeRabbit, Vercel preview, Vercel Preview Comments, Review Board specialist/final checks, TypeScript, Unit + Integration Tests, JSON-LD Schema Validation, Lint, Pipeline Smoke Tests, Supabase Schema Drift, npm audit, and DESIGN.md lint.
+
+gh run watch 26352278816 --exit-status
+# PASS: post-merge main DESIGN.md lint passed for e4e1313.
+
+gh run watch 26352278811 --exit-status
+# PASS: post-merge main CI passed for e4e1313.
+
+gh api repos/CleanExpo/Unite-Group/commits/e4e1313cdd7a125a8f63f67cddd220c1930d2172/status
+# MIXED: `Vercel – unite-group` success at https://vercel.com/unite-group/unite-group/9y8H5EStfwCbxWAhKqJDMaDrdpuw; `Vercel – unite-group-sandbox` failed at https://vercel.com/unite-group/unite-group-sandbox/J6U2bKiVLznYpUir1XjF8iWAAj79.
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+- The post-merge evidence append is local-only in this workspace to avoid an evidence-only PR chain after the verified merge.
+
+Blockers:
+
+- Combined commit status is mixed only because the sandbox Vercel target failed after merge; GitHub CI and production Vercel status succeeded.
+- Mac Mini recovery remains blocked on an authenticated SMB mount containing the approved target files or reachable authenticated SSH.
+
+Next safe slice:
+
+- Inspect and, if safe, reduce the control-panel API workstream task payload by removing unused raw `crmTaskTitle` from responses, or continue command-center CRM UI/API coverage for lead/opportunity/daily-digest rendering surfaces.
+
+## 2026-05-24 14:58 AEST
+
+### Post-merge local verification and Mac Mini health refresh
+
+Observed in `/Users/phillmcgurk/Unite-Group`:
+
+```text
+timestamp=2026-05-24 14:58:32 AEST
+branch=main
+head=e4e1313
+merge_commit=e4e1313cdd7a125a8f63f67cddd220c1930d2172
+/Volumes=Claude,Macintosh HD
+recovered_markdown_artifacts=0
+phills-mac-mini.local:445=reachable
+phills-mac-mini.local:22=unreachable
+```
+
+Lane executed:
+
+- Verified local `main` is now at the PR #197 merge commit for command-center workstream task evidence.
+- Re-ran the focused command-center gate, type-check, route-inventory security check, and diff hygiene after the merge.
+- Rechecked Mac Mini recovery: SMB/File Sharing port `445` is reachable, SSH/Remote Login port `22` is unreachable, and no recovered Markdown artifacts are present locally. Recovery remains blocked on a usable authenticated SMB mount or authenticated SSH session.
+- Updated Mac Mini recovery status, progress log, and morning report evidence only.
+
+Verification:
+
+```bash
+gh pr view 197 --json state,mergedAt,mergeCommit,url
+# PASS: state MERGED, merge commit e4e1313cdd7a125a8f63f67cddd220c1930d2172.
+
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand
+# PASS: 2 suites / 10 tests.
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, GitHub push by this run, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Blockers:
+
+- Mac Mini recovery remains blocked on an authenticated SMB mount containing the approved target files or reachable authenticated SSH.
+
+Next safe slice:
+
+- Inspect and, if safe, reduce the control-panel API workstream task payload by removing unused raw `crmTaskTitle` from responses, or continue command-center CRM UI/API coverage for lead/opportunity/daily-digest rendering surfaces.
+
+## 2026-05-24 15:01:37 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log: `docs/margot/automation-logs/margot-tick-20260524_153137.log`
+
+## 2026-05-24 15:34 AEST
+
+### Command-center add-on task status evidence
+
+Observed in `/Users/phillmcgurk/Unite-Group`:
+
+```text
+timestamp=2026-05-24 15:34:13 AEST
+branch=margot/addon-task-status-evidence
+base=origin/main
+head_at_start=e4e1313
+open_prs=[]
+github_auth=available
+```
+
+Lane executed:
+
+- Continued the command-center CRM UI/API coverage lane from existing local assets after confirming no open PR was in progress.
+- Added RED/GREEN coverage for live CRM add-on task evidence with `crmTaskStatus`, plus no-status coverage proving there is no dangling separator.
+- Updated `src/components/command-center/control-panel/HermesControlPanel.tsx` so add-on cards render `CRM task <id> · <status>` when status exists and `CRM task <id>` when it does not, matching existing workstream evidence behavior.
+- Fixed the pre-existing progress-log hygiene issue by giving the 15:01 LaunchAgent `Log:` line a concrete local log path and removing the trailing blank line at EOF.
+- Two-stage review completed: spec compliance `PASS`; quality/security `APPROVED`.
+
+Verification:
+
+```bash
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx --runInBand
+# RED first after test edit: 1 failed / 4 passed because AddOnRow rendered only `CRM task task-addon-001`.
+# GREEN after implementation: 1 suite / 5 tests passed.
+
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand
+# PASS: 2 suites / 10 tests.
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes
+
+git diff --check
+# PASS after progress-log hygiene fix
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Blockers:
+
+- Mac Mini recovery remains blocked on an authenticated SMB mount containing the approved target files or reachable authenticated SSH.
+
+Next safe slice:
+
+- Inspect and, if safe, reduce the control-panel API workstream task payload by removing unused raw `crmTaskTitle` from responses, or continue command-center CRM UI/API coverage for lead/opportunity/daily-digest rendering surfaces.

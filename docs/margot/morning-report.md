@@ -102,6 +102,41 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest verification refresh at `2026-05-24 15:34 AEST`:
+
+- Continued the command-center CRM UI evidence lane on branch `margot/addon-task-status-evidence` after confirming GitHub auth is available and no open PR was in progress.
+- Safe local UI/test improvement: add-on rows in `src/components/command-center/control-panel/HermesControlPanel.tsx` now render concise CRM task evidence with status (`CRM task <id> · <status>`) and omit the dangling separator when `crmTaskStatus` is absent.
+- Added RED/GREEN coverage in `tests/unit/components/command-center/HermesControlPanel.test.tsx`; the new expectation failed before the component fix and passed after it. Two-stage review returned spec `PASS` and quality/security `APPROVED`.
+- Verification passed after fixing the pre-existing progress-log trailing blank/orphan `Log:` hygiene issue: `npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand` returned 2 suites / 10 tests; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Latest verification refresh at `2026-05-24 14:58 AEST`:
+
+- Re-read the requested Margot operating docs, inspected current repo state on `main` at `e4e1313`, and verified local `main` is now at PR #197 merge commit `e4e1313cdd7a125a8f63f67cddd220c1930d2172` for command-center workstream task evidence.
+- Safe health check passed for local readiness and confirmed Mac Mini recovery remains blocked despite SMB visibility: `/Volumes` has `Claude` and `Macintosh HD`, no recovered Markdown artifacts are present under `docs/margot/recovered-from-mac-mini/`, `phills-mac-mini.local:445` is reachable, and `phills-mac-mini.local:22` is unreachable.
+- Post-merge verification passed: `gh pr view 197 --json state,mergedAt,mergeCommit,url` returned `MERGED`; `npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand` returned 2 suites / 10 tests; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
+- Updated `docs/margot/mac-mini-recovery-status.md`, `docs/margot/overnight-progress-log.md`, and this morning report with evidence only.
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, GitHub push by this run, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Post-merge checkpoint at `2026-05-24 14:53 AEST`:
+
+- PR #197 merged: https://github.com/CleanExpo/Unite-Group/pull/197
+- Merge commit on `main`: `e4e1313cdd7a125a8f63f67cddd220c1930d2172` (`Merge pull request #197 from CleanExpo/margot/control-panel-workstream-task-evidence`).
+- Scope shipped: command-center workstream cards now show concise live CRM task evidence (`CRM task <id> · <status>`) and the regression test proves raw task title/body sentinel fields do not render.
+- PR checks passed before merge, including CodeRabbit, Vercel preview, Review Board specialist/final checks, TypeScript, Unit + Integration Tests, JSON-LD Schema Validation, Lint, Pipeline Smoke Tests, Supabase Schema Drift, npm audit, and DESIGN.md lint.
+- Post-merge `main` CI run `26352278811` passed and DESIGN.md lint run `26352278816` passed for `e4e1313`. Combined commit status is not fully green because `Vercel – unite-group-sandbox` failed, while `Vercel – unite-group` succeeded at https://vercel.com/unite-group/unite-group/9y8H5EStfwCbxWAhKqJDMaDrdpuw. No Vercel env mutation was attempted.
+- Local evidence append remains uncommitted/local-only to avoid an evidence-only PR chain after the verified merge.
+
+Latest verification refresh at `2026-05-24 14:41 AEST`:
+
+- Re-read the requested Margot operating docs, inspected current repo state on `main` at `83b1cd7`, and continued the command-center CRM UI/API coverage lane from existing local assets.
+- Safe health check passed for local readiness (`node_modules=present`, `package-lock.json=present`) and confirmed Mac Mini recovery remains blocked: `/Volumes` has `Claude` and `Macintosh HD`, no recovered Markdown artifacts are present under `docs/margot/recovered-from-mac-mini/`, and both `phills-mac-mini.local:445` and `:22` were unreachable from this session.
+- Safe local test improvement: the workstream CRM task evidence UI coverage now includes a `crmTaskId` with no `crmTaskStatus`, proving `HermesControlPanel` renders `CRM task <id>` without a dangling separator while continuing not to render raw task title/body strings.
+- Two-stage review closed after the test fix: spec compliance `PASS`; quality/security `APPROVED`. A non-blocking future data-minimization follow-up was identified: consider removing pre-existing raw `crmTaskTitle` from the API response if the route contract allows it, since the UI intentionally does not render it.
+- Verification passed: `npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand` returned 2 suites / 10 tests; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
+- Updated `docs/margot/mac-mini-recovery-status.md`, `docs/margot/overnight-progress-log.md`, and this morning report with evidence.
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
 Latest verification refresh at `2026-05-24 14:08 AEST`:
 
 - Re-read the requested Margot operating docs, inspected current repo state on `main` at `83b1cd7`, and continued the command-center CRM UI/API coverage lane from existing local assets.

@@ -402,8 +402,10 @@ function AddOnRow({
 }) {
   const color = statusColor(item.state);
   const isSignal = item.state === 'gated';
-  const hasTask = !!item.crmTaskId;
-  const canRequest = item.state !== 'live' && !hasTask;
+  const crmTaskEvidence = item.crmTaskId
+    ? `CRM task ${item.crmTaskId}${item.crmTaskStatus ? ` · ${item.crmTaskStatus}` : ''}`
+    : null;
+  const canRequest = item.state !== 'live' && !crmTaskEvidence;
 
   return (
     <div
@@ -446,12 +448,12 @@ function AddOnRow({
       >
         {item.approval}
       </span>
-      {hasTask && (
+      {crmTaskEvidence && (
         <span
           className="font-mono text-[10px] uppercase tracking-[0.14em]"
           style={{ color: 'var(--cc-ink-dim)' }}
         >
-          CRM task {item.crmTaskId}
+          {crmTaskEvidence}
         </span>
       )}
       {canRequest && (
