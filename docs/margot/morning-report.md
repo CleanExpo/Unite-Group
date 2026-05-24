@@ -85,7 +85,7 @@ Margot has:
 Mac Mini recovery remains blocked by current connectivity/auth state:
 
 - Host: `phills-mac-mini.local`
-- Latest probe at `2026-05-24 09:19 AEST`: SMB/File Sharing port 445 is reachable; SSH/Remote Login port 22 is currently unreachable; `/Volumes` contains `Claude` and `Macintosh HD`; the local recovery destination still contains only `.gitkeep`.
+- Latest probe at `2026-05-24 09:53 AEST`: SMB/File Sharing port 445 is reachable; SSH/Remote Login port 22 is currently unreachable; `/Volumes` contains `Claude` and `Macintosh HD`; the local recovery destination still contains only `.gitkeep`.
 
 Still blocked:
 
@@ -101,6 +101,39 @@ Target recovery files remain:
 - `/Users/phill-mac/hermes-agent-enhancement-report/restoreassist-content-packs/RESTOREASSIST-CONTENT-INDEX.md`
 
 ## Verification status
+
+Latest verification refresh at `2026-05-24 10:13 AEST`:
+
+- Continued the local CRM mutation timeline taxonomy slice and moved the dirty `main` workspace changes onto branch `margot/crm-timeline-mutation-taxonomy`.
+- Safe health check passed: branch at start `main`, current branch `margot/crm-timeline-mutation-taxonomy`, head `5e00957`, `node_modules=present`, `package-lock=present`, `/Volumes` contains `Claude` and `Macintosh HD`, recovered Mac Mini artifacts still contain only `.gitkeep`, `phills-mac-mini.local:445` is reachable, and `phills-mac-mini.local:22` is unreachable.
+- Safe helper/test improvement: `src/lib/crm/activity-timeline.ts` now supports explicit mutation timeline event types `contact_updated`, `opportunity_updated`, `opportunity_closed`, and `opportunity_reopened` and strips payment/billing/card key variants plus payment/card value variants under neutral keys.
+- RED/GREEN unit coverage in `tests/unit/lib/crm/activity-timeline.test.ts` now proves the mutation event mappings, approval-required pending status for close/reopen events, defensive insert re-sanitization, and sensitive value removal for examples including `billing card 4242`, `payment method visa`, `visa ending 4242`, `mastercard ending 4444`, `amex 1234`, and `discover card`.
+- Updated `docs/margot/crm-mutation-timeline-contract.md`, `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/mac-mini-recovery-status.md`, and `docs/margot/overnight-progress-log.md` with the local-only environment state and next safe lane.
+- Subagent reviews passed: spec compliance `PASS`; code quality `APPROVED` after payment/card sanitizer variant fixes and dangling progress-log marker cleanup.
+- Verification passed: `git diff --check`; `npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 1 suite / 8 tests; `npm run type-check`; `npm run security:routes-check` returned 0 unprotected mutating routes.
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Latest verification refresh at `2026-05-24 09:58 AEST`:
+
+- Re-read the requested Margot operating docs, inspected current repo state, and continued the Senior PM / CRM mutation timeline readiness lane from existing local assets.
+- Safe health check passed: branch `main`, head `5e00957`, `node_modules=present`, `package-lock=present`, `/Volumes` contains `Claude` and `Macintosh HD`, recovered Mac Mini artifacts still contain only `.gitkeep`, `phills-mac-mini.local:445` is reachable, and `phills-mac-mini.local:22` is unreachable.
+- Safe local helper/test improvement: `src/lib/crm/activity-timeline.ts` now supports explicit mutation event types `contact_updated`, `opportunity_updated`, `opportunity_closed`, and `opportunity_reopened`, with payment/billing/card metadata key variants blocked by the sanitizer.
+- Added RED/GREEN unit coverage in `tests/unit/lib/crm/activity-timeline.test.ts` proving the new mutation events map to sanitized `agent_actions` payloads with done/pending status semantics before any mutation routes are added.
+- Updated `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/mac-mini-recovery-status.md`, and `docs/margot/overnight-progress-log.md` with evidence.
+- Verification passed: `npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 1 suite / 8 tests after the intentional RED unsupported-type failure; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes.
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, unrelated context mixing, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Latest merge/deploy refresh at `2026-05-24 09:29 AEST`:
+
+- PR #190 merged: https://github.com/CleanExpo/Unite-Group/pull/190
+- Merge commit on `main`: `5e0095719a10ac3d6721dc84acfabed62f7707c5` (`test: guard crm multi-link creates`).
+- PR checks passed before merge: Review Board, CodeRabbit, Vercel preview, TypeScript, Unit + Integration Tests, JSON-LD Schema Validation, Lint, Pipeline Smoke Tests, Supabase Schema Drift, npm audit, and DESIGN.md lint.
+- Post-merge main CI passed: https://github.com/CleanExpo/Unite-Group/actions/runs/26346367962
+- Post-merge DESIGN.md lint passed: https://github.com/CleanExpo/Unite-Group/actions/runs/26346367969
+- Vercel status for the merge commit is success: https://vercel.com/unite-group/unite-group/GAfFZEGFq2AG2cm8UDHjHd6CGm1Z
+- Scope shipped: CRM contact/opportunity multi-link create guards now have local regressions proving blocked cross-client/context link attempts return `403 operator_approval_required` before Supabase client creation or `.from` access; `docs/margot/crm-mutation-timeline-contract.md` defines the next mutation-route timeline contract.
+- This post-merge evidence is local-only in the workspace to avoid an evidence-only PR chain after the verified merge.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client identity merge, secret printing/storage, or noninteractive credential attempt was performed.
 
 Latest verification refresh at `2026-05-24 09:25 AEST`:
 

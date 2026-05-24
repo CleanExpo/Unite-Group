@@ -3,7 +3,11 @@ export type CrmActivityTimelineEventType =
   | 'lead_qualified'
   | 'lead_converted'
   | 'contact_created'
+  | 'contact_updated'
   | 'opportunity_created'
+  | 'opportunity_updated'
+  | 'opportunity_closed'
+  | 'opportunity_reopened'
   | 'approval_requested'
   | 'approval_approved'
   | 'approval_rejected'
@@ -84,7 +88,11 @@ const TYPE_CONFIG: Record<CrmActivityTimelineEventType, {
   lead_qualified: { category: 'lead', severity: 'normal', actionClass: 'auto', label: 'Lead qualified' },
   lead_converted: { category: 'lead', severity: 'high', actionClass: 'approval_required', label: 'Lead converted' },
   contact_created: { category: 'contact', severity: 'normal', actionClass: 'auto', label: 'Contact created' },
+  contact_updated: { category: 'contact', severity: 'normal', actionClass: 'auto', label: 'Contact updated' },
   opportunity_created: { category: 'opportunity', severity: 'normal', actionClass: 'auto', label: 'Opportunity created' },
+  opportunity_updated: { category: 'opportunity', severity: 'normal', actionClass: 'auto', label: 'Opportunity updated' },
+  opportunity_closed: { category: 'opportunity', severity: 'high', actionClass: 'approval_required', label: 'Opportunity closed' },
+  opportunity_reopened: { category: 'opportunity', severity: 'high', actionClass: 'approval_required', label: 'Opportunity reopened' },
   approval_requested: { category: 'approval', severity: 'high', actionClass: 'approval_required', label: 'Approval requested' },
   approval_approved: { category: 'approval', severity: 'high', actionClass: 'approval_required', label: 'Approval approved' },
   approval_rejected: { category: 'approval', severity: 'high', actionClass: 'approval_required', label: 'Approval rejected' },
@@ -105,6 +113,9 @@ const BLOCKED_METADATA_KEY_PARTS = [
   'boardapprovalid',
   'approvalref',
   'rejectionreason',
+  'payment',
+  'billing',
+  'card',
   'email',
   'phone',
   'ipaddress',
@@ -116,6 +127,7 @@ const BEARER_TOKEN_PATTERN = /\bbearer\s+[a-z0-9._~+/=-]+\b/i;
 const API_KEY_PATTERN = /\bapi[_ -]?key[_ :=-]*[a-z0-9._-]+\b/i;
 const EMAIL_PATTERN = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
 const PHONE_PATTERN = /(?:\+?\d[\d ().-]{7,}\d)/;
+const PAYMENT_VALUE_PATTERN = /(?:\b(?:billing|payment)\b.*\b(?:card|method|visa|mastercard|amex|discover|\d{4})\b|\bcard\b.*\b(?:visa|mastercard|amex|discover|\d{4})\b|\b(?:visa|mastercard|amex|discover)\b\s+(?:card|ending\s+\d{4}|\d{4})\b)/i;
 
 function clean(value: string | null | undefined): string {
   return typeof value === 'string' && value.trim() ? value.trim() : '';
@@ -136,7 +148,8 @@ function isSensitiveMetadataValue(value: string): boolean {
     || BEARER_TOKEN_PATTERN.test(value)
     || API_KEY_PATTERN.test(value)
     || EMAIL_PATTERN.test(value)
-    || PHONE_PATTERN.test(value);
+    || PHONE_PATTERN.test(value)
+    || PAYMENT_VALUE_PATTERN.test(value);
 }
 
 function sanitizeMetadata(metadata: Record<string, unknown> | null | undefined): Record<string, unknown> {

@@ -1,5 +1,138 @@
 # Margot Overnight Progress Log
 
+## 2026-05-24 10:13 AEST
+
+### Health check
+
+Observed in `/Users/phillmcgurk/Unite-Group`:
+
+```text
+timestamp=2026-05-24 10:12:58 AEST
+branch_at_start=main
+current_branch=margot/crm-timeline-mutation-taxonomy
+head=5e00957
+node_modules=present
+package_lock=present
+/Volumes=Claude,Macintosh HD
+recovered_files=.gitkeep
+phills-mac-mini.local:445=reachable
+phills-mac-mini.local:22=unreachable
+```
+
+I continued the existing local CRM mutation timeline taxonomy slice, moved the dirty main work onto `margot/crm-timeline-mutation-taxonomy`, and kept the scope to helper/test/docs only.
+
+### Lane executed — CRM mutation timeline sanitizer hardening
+
+Safe improvement:
+
+- Added explicit local taxonomy support for `contact_updated`, `opportunity_updated`, `opportunity_closed`, and `opportunity_reopened` in `src/lib/crm/activity-timeline.ts`.
+- Added RED/GREEN unit coverage in `tests/unit/lib/crm/activity-timeline.test.ts` proving update events map to `done`, close/reopen approval-required events map to `pending`, and sanitized `agent_actions` payloads do not guess UUID links.
+- Hardened metadata sanitization for payment/billing/card key variants and payment/card value variants under neutral keys, including `billing card 4242`, `payment method visa`, `visa ending 4242`, `mastercard ending 4444`, `amex 1234`, and `discover card`.
+- Updated `docs/margot/crm-mutation-timeline-contract.md`, `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/mac-mini-recovery-status.md`, and `docs/margot/morning-report.md` to reflect local helper/test/docs state and the next safe route-level test lane.
+
+Review and verification passed:
+
+```bash
+# Implementer RED checks
+npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# RED first on unsupported mutation event types, then RED again on missing payment/card value variants before fixes.
+
+# Final focused gate
+npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# PASS: 1 suite / 8 tests.
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+
+# Subagent reviews
+spec compliance review
+# PASS
+
+code quality review
+# APPROVED after sanitizer variant fixes and dangling log cleanup
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+- No contact update/merge route, opportunity update/close/reopen route, schema migration, sandbox write, production write, or deploy was introduced.
+
+### Blockers
+
+- Mac Mini recovery remains blocked on authenticated SMB mount containing the approved target files or SSH availability. SMB/File Sharing is reachable, SSH/Remote Login is currently unreachable, and the local recovery destination still contains only `.gitkeep`.
+
+### Next lane
+
+1. Commit, push, open PR, monitor checks/Vercel, and merge only if checks pass cleanly.
+2. Add a single mocked route-level test for contact update or opportunity close/reopen timeline write ordering before implementing any mutation route.
+3. Continue safe Mac Mini recovery probes each run.
+
+## 2026-05-24 09:58 AEST
+
+### Health check
+
+Observed in `/Users/phillmcgurk/Unite-Group`:
+
+```text
+timestamp=2026-05-24 09:53:28 AEST
+branch=main
+head=5e00957
+status_short=pre-existing local morning/progress evidence plus this CRM timeline taxonomy slice
+node_modules=present
+package_lock=present
+/Volumes=Claude,Macintosh HD
+recovered_files=.gitkeep
+phills-mac-mini.local:445=reachable
+phills-mac-mini.local:22=unreachable
+```
+
+I preserved the pre-existing local-only PR #190 merge/deploy evidence edits and continued the next safe Senior PM / CRM route-readiness lane from the mutation timeline contract.
+
+### Lane executed — CRM mutation timeline taxonomy
+
+Safe improvement:
+
+- Extended `src/lib/crm/activity-timeline.ts` with explicit mutation event types required before future CRM mutation routes: `contact_updated`, `opportunity_updated`, `opportunity_closed`, and `opportunity_reopened`.
+- Added RED/GREEN unit coverage in `tests/unit/lib/crm/activity-timeline.test.ts` proving the new event types map to safe `agent_actions` action types, expected status (`done` for ordinary update events, `pending` for approval-required close/reopen events), category/severity/action class, summaries, and sanitized payload metadata.
+- Hardened timeline metadata sanitization to block payment/billing/card key variants in addition to the existing secret/auth/approval/PII filters.
+- Refreshed `docs/margot/crm-test-coverage-matrix.md` and `docs/margot/mac-mini-recovery-status.md` with the updated coverage and 09:53 AEST recovery probe.
+
+Verification passed:
+
+```bash
+npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand
+# RED first: failed on unsupported contact_updated before helper extension.
+# GREEN after helper extension: PASS, 1 suite / 8 tests.
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, unrelated context mixing, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+- This slice is a local helper/test/docs change only; no contact update/merge route, opportunity update/close/reopen route, schema migration, sandbox/prod write, or production behavior was introduced.
+
+### Blockers
+
+- Mac Mini recovery remains blocked on authenticated SMB mount containing the approved target files or SSH availability. SMB/File Sharing is reachable, SSH/Remote Login is currently unreachable, and the local recovery destination still contains only `.gitkeep`.
+- Route-level CRM update/close/reopen behavior remains intentionally blocked until mocked route tests are written RED first against the now-supported mutation timeline event types.
+
+### Next lane
+
+1. Add mocked route-level tests for contact update or opportunity close/reopen timeline write ordering before implementing any mutation route.
+2. Add command-center CRM UI component/rendering tests for client-side fetched payload hydration, leads, opportunities, and daily digest.
+3. Continue safe Mac Mini recovery probes each run.
+
 ## 2026-05-24 09:25 AEST
 
 ### Health check
@@ -5159,6 +5292,47 @@ Next safe slice:
 - Commit/push/open PR for `margot/opportunity-multilink-approval-guard`, monitor checks/Vercel, merge only if checks pass cleanly, then move to route-level update/close/reopen timeline event-write tests.
 
 ## 2026-05-24 09:22:54 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed. No separate LaunchAgent log content was captured in this tracked file.
+
+## 2026-05-24 09:29 AEST
+
+### PR #190 merged — CRM multi-link create guard coverage
+
+Result:
+
+- PR #190 merged: https://github.com/CleanExpo/Unite-Group/pull/190
+- Merge commit on `main`: `5e0095719a10ac3d6721dc84acfabed62f7707c5` (`test: guard crm multi-link creates`).
+- Scope shipped: CRM contact/opportunity create paths now have local regressions proving unapproved multi-link/cross-context attempts return `403 operator_approval_required` before Supabase client creation, `.from` access, inserts, duplicate lookup, or timeline writes; `docs/margot/crm-mutation-timeline-contract.md` captures the next update/merge/close/reopen timeline contract.
+
+Verification:
+
+```bash
+gh pr checks 190 --watch --fail-fast
+# PASS: CodeRabbit, Vercel, Vercel Preview Comments, Review Board specialist checks, Chief Reviewer, TypeScript, Unit + Integration Tests, JSON-LD Schema Validation, Lint, Pipeline Smoke Tests, Supabase Schema Drift, npm audit, and DESIGN.md lint passed.
+
+gh pr view 190 --json state,mergedAt,mergeCommit,url
+# PASS: state MERGED, merge commit 5e0095719a10ac3d6721dc84acfabed62f7707c5.
+
+gh run watch 26346367962 --exit-status
+# PASS: post-merge main CI passed for commit 5e0095719a10ac3d6721dc84acfabed62f7707c5.
+
+gh api repos/CleanExpo/Unite-Group/commits/5e0095719a10ac3d6721dc84acfabed62f7707c5/status
+# PASS: combined commit status success; Vercel deployment success: https://vercel.com/unite-group/unite-group/GAfFZEGFq2AG2cm8UDHjHd6CGm1Z
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client identity merge, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+- This post-merge evidence block is local-only in the workspace to avoid an evidence-only PR chain after the verified merge.
+
+Next safe slice:
+
+- Extend CRM activity timeline taxonomy with RED unit coverage for the first future mutation event type before adding contact update/merge or opportunity update/close/reopen routes.
+
+## 2026-05-24 09:57:02 AEST
 
 ### LaunchAgent tick
 

@@ -3,7 +3,7 @@
 Date: 2026-05-24 09:25 AEST
 Owner: Margot
 Project: Unite-Group
-Status: Local planning/test contract only. No route has been added by this document. No production database write, migration application, sandbox apply, deployment, GitHub push, client-facing communication, billing/payment action, or permanent business-rule approval is implied.
+Status: Local helper/test/docs contract only. The local timeline helper and unit tests now define the first mutation event types listed below; no route has been added by this document. No production database write, migration application, sandbox apply, deployment, GitHub push, client-facing communication, billing/payment action, or permanent business-rule approval is implied.
 
 ## Purpose
 
@@ -27,7 +27,11 @@ Current local baseline from repo evidence:
    - `lead_qualified`
    - `lead_converted`
    - `contact_created`
+   - `contact_updated`
    - `opportunity_created`
+   - `opportunity_updated`
+   - `opportunity_closed`
+   - `opportunity_reopened`
    - `approval_requested`
    - `approval_approved`
    - `approval_rejected`
@@ -60,7 +64,7 @@ Minimum local route-test contract before implementation is considered covered:
 4. Identity-changing fields (`primaryEmail`, `primaryPhone`, `linkedClientId`, `linkedBusinessId`, `privacyScope`) require either a safe same-scope proof or Board approval id.
 5. Multi-scope link changes without approval return `403 operator_approval_required` before Supabase access.
 6. Primary contact update succeeds before any timeline write is attempted.
-7. After primary success, route writes one sanitized timeline row with a future explicit `contact_updated` event type, or uses a documented fallback only if the timeline taxonomy has not yet been extended.
+7. After primary success, route writes one sanitized timeline row with the explicit local `contact_updated` event type.
 8. Timeline metadata contains only safe change flags, not raw before/after PII values.
 9. Timeline insert returned/thrown failures preserve the primary update response and log a generic message only.
 10. No Board approval id is persisted or returned.
@@ -99,7 +103,7 @@ Minimum local route-test contract before implementation is considered covered:
 4. Stage/status transitions that imply won, conversion, external commitment, or client mutation require approval flags and Board approval id.
 5. Multi-scope link changes without approval return `403 operator_approval_required` before Supabase access.
 6. Primary opportunity update succeeds before timeline write.
-7. After primary success, route writes one sanitized timeline row with a future explicit `opportunity_updated` event type, or uses a documented fallback only if the timeline taxonomy has not yet been extended.
+7. After primary success, route writes one sanitized timeline row with the explicit local `opportunity_updated` event type.
 8. Timeline metadata contains safe changed-field names/classes only; no raw proposal terms, PII, billing/payment data, Board approval id, or client-private notes.
 9. Timeline insert returned/thrown failures preserve the primary update response and log a generic message only.
 
@@ -118,18 +122,18 @@ Minimum local route-test contract before implementation is considered covered:
 2. Closing as `lost`, `paused`, or `cancelled` can be draft/local CRM state only and must not send client-facing communication.
 3. Reopening after `won_converted` requires Board approval id because it can contradict client/billing state.
 4. Primary status/stage transition succeeds before timeline write.
-5. Close/reopen timeline writes should use future explicit event types:
+5. Close/reopen timeline writes should use the explicit local event types:
    - `opportunity_closed`
    - `opportunity_reopened`
    - optionally `opportunity_won` / `opportunity_lost` if the taxonomy needs business-specific summaries.
 6. Timeline metadata records safe transition labels such as `fromStage`, `toStage`, `fromStatus`, `toStatus`, and `reasonCode`; it must not store raw private close notes, emails, phone numbers, payment details, or approval references.
 7. Timeline insert returned/thrown failures preserve the primary transition response and log a generic message only.
 
-## Timeline taxonomy extension needed before mutation routes
+## Timeline taxonomy extension status before mutation routes
 
-The current timeline helper does not yet define explicit update/merge/close/reopen event types. Before implementing mutation routes, extend `CrmActivityTimelineEventType` and tests with the smallest set needed for the route being added.
+The current local timeline helper now defines explicit update/close/reopen event types for the first mutation-route slice, and `tests/unit/lib/crm/activity-timeline.test.ts` covers their `agent_actions` mapping and metadata sanitization. This remains local helper/test/docs state only: no contact update/merge route, opportunity update/close/reopen route, schema migration, or production write has been added.
 
-Recommended first extension:
+Implemented local first extension:
 
 ```text
 contact_updated
@@ -182,4 +186,4 @@ If new route test files are created, include those files in the focused Jest com
 
 ## Current decision
 
-Do not add update/merge/close/reopen routes in the same step as this contract. The safe next implementation slice is to extend the timeline taxonomy with one or two explicit mutation event types and write RED unit tests first, then add a single narrow mocked route test only after the taxonomy contract is green.
+Do not add update/merge/close/reopen routes in the same step as this contract. The safe next implementation slice is a single narrow mocked route-level test for contact update or opportunity close/reopen timeline write ordering, using the now-green local taxonomy contract before any route implementation.
