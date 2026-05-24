@@ -6034,3 +6034,105 @@ Safety:
 Next safe slice:
 
 - Commit and publish this reviewed branch if local verification remains clean, then monitor PR checks and Vercel status.
+
+## 2026-05-24 14:01 AEST
+
+### PR #195 merged — command-center add-on tag normalization
+
+Result:
+
+- PR #195 merged: https://github.com/CleanExpo/Unite-Group/pull/195
+- Merge commit on `main`: `83b1cd7598a599d39fe03899ff03ef8e98c9d042` (`Merge pull request #195 from CleanExpo/margot/control-panel-addon-tag-normalization`).
+- Scope shipped: command-center API add-on CRM task tag normalization plus integration coverage for whitespace/case drift in add-on task tags.
+
+Verification:
+
+```bash
+gh pr checks 195 --watch --fail-fast
+# PASS: CodeRabbit, Vercel, Vercel Preview Comments, Review Board specialist checks, Chief Reviewer, TypeScript, Unit + Integration Tests, JSON-LD Schema Validation, Lint, Pipeline Smoke Tests, Supabase Schema Drift, npm audit, and DESIGN.md lint passed.
+
+gh pr view 195 --json state,mergedAt,mergeCommit,url
+# PASS: state MERGED, merge commit 83b1cd7598a599d39fe03899ff03ef8e98c9d042.
+
+gh run watch 26351348575 --exit-status
+# PASS: post-merge main DESIGN.md lint passed for commit 83b1cd7598a599d39fe03899ff03ef8e98c9d042.
+
+gh run watch 26351348574 --exit-status
+# PASS: post-merge main CI passed for commit 83b1cd7598a599d39fe03899ff03ef8e98c9d042.
+
+gh api repos/CleanExpo/Unite-Group/commits/83b1cd7598a599d39fe03899ff03ef8e98c9d042/status
+# PASS: combined commit status success; Vercel status check success: https://vercel.com/unite-group/unite-group/BNqh8C9xQ6vRVCBmB8qxaFsUmyfH
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client identity merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+- This post-merge evidence block is local-only in the workspace to avoid an evidence-only PR chain after the verified merge.
+
+Next safe slice:
+
+- Continue command-center CRM UI/API coverage for lead/opportunity/daily-digest rendering surfaces, or add contact merge safeguards if mutation semantics expand.
+
+## 2026-05-24 14:08 AEST
+
+### Command-center workstream task evidence UI
+
+Observed in `/Users/phillmcgurk/Unite-Group`:
+
+```text
+timestamp=2026-05-24 14:08:44 AEST
+branch=main
+head=83b1cd7
+node_modules=present
+package_lock=present
+/Volumes=Claude,Macintosh HD
+recovered_markdown_artifacts=0
+phills-mac-mini.local:445=unreachable
+phills-mac-mini.local:22=unreachable
+```
+
+Lane executed:
+
+- Re-read the requested Margot operating docs, inspected current repo state, and stayed on the command-center CRM UI/API coverage lane from existing local assets.
+- Added a RED/GREEN component regression proving the Hermes Control Panel renders CRM workstream task evidence returned by the control-panel API.
+- Updated `src/components/command-center/control-panel/HermesControlPanel.tsx` so live workstreams can render non-sensitive CRM task evidence (`CRM task <id> · <status>`) without exposing raw task title/body content.
+- Refreshed Mac Mini evidence: no authenticated SMB mount or SSH path is available from this session, so recovery remains blocked while local command-center coverage continues.
+
+Verification:
+
+```bash
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx --runInBand
+# RED first: workstream CRM task evidence was absent before the component fix.
+# PASS after fix: 1 suite / 5 tests.
+
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand
+# PASS: 2 suites / 10 tests.
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Blockers:
+
+- Mac Mini recovery remains blocked on an authenticated SMB mount containing the approved target files or reachable authenticated SSH.
+
+Next safe slice:
+
+- Continue command-center CRM UI/API coverage for lead/opportunity/daily-digest rendering surfaces, or add contact merge safeguards if mutation semantics expand.
+
+## 2026-05-24 14:10:36 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+Log: local scheduler marker did not include additional output.

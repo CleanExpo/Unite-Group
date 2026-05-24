@@ -102,6 +102,25 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest verification refresh at `2026-05-24 14:08 AEST`:
+
+- Re-read the requested Margot operating docs, inspected current repo state on `main` at `83b1cd7`, and continued the command-center CRM UI/API coverage lane from existing local assets.
+- Safe health check passed for local readiness (`node_modules=present`, `package-lock.json=present`) and confirmed Mac Mini recovery remains blocked: `/Volumes` has `Claude` and `Macintosh HD`, no recovered Markdown artifacts are present under `docs/margot/recovered-from-mac-mini/`, and both `phills-mac-mini.local:445` and `:22` were unreachable from this session.
+- Safe local UI/test improvement: `src/components/command-center/control-panel/HermesControlPanel.tsx` now renders live workstream CRM task evidence as `CRM task <id> · <status>` when returned by the control-panel API, keeping raw task title/body content out of the display.
+- Added RED/GREEN coverage in `tests/unit/components/command-center/HermesControlPanel.test.tsx`; the new test failed before the component fix and passes after it.
+- Verification passed: `npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand` returned 2 suites / 10 tests; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
+- Updated `docs/margot/mac-mini-recovery-status.md`, `docs/margot/overnight-progress-log.md`, and this morning report with evidence.
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Post-merge checkpoint at `2026-05-24 14:01 AEST`:
+
+- PR #195 merged: https://github.com/CleanExpo/Unite-Group/pull/195
+- Merge commit on `main`: `83b1cd7598a599d39fe03899ff03ef8e98c9d042` (`Merge pull request #195 from CleanExpo/margot/control-panel-addon-tag-normalization`).
+- Scope shipped: command-center API add-on CRM task tag normalization plus integration coverage for whitespace/case drift in add-on task tags.
+- PR checks passed before merge; post-merge `main` CI run `26351348574` passed; post-merge DESIGN.md lint run `26351348575` passed; combined commit status included a successful Vercel status check at https://vercel.com/unite-group/unite-group/BNqh8C9xQ6vRVCBmB8qxaFsUmyfH.
+- This post-merge evidence is local-only in the workspace to avoid an evidence-only PR chain after the verified merge.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client identity merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
 Latest verification refresh at `2026-05-24 13:54 AEST`:
 
 - Continued the existing command-center add-on tag normalization slice on branch `margot/control-panel-addon-tag-normalization` after confirming GitHub auth is available and no open PR was in progress.

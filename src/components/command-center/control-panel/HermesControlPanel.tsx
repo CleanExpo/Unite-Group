@@ -13,6 +13,12 @@ import { mapAddOnResult, type AddOnOutcome } from './add-on-result';
 import { SourceBadge } from '../SourceBadge';
 import { DegradedDataBanner } from '../DegradedDataBanner';
 
+type LiveControlWorkstream = ControlWorkstream & {
+  crmTaskId?: string;
+  crmTaskStatus?: string;
+  lastUpdated?: string;
+};
+
 type ControlPanelPayload = {
   source: string;
   taskCount: number;
@@ -20,7 +26,7 @@ type ControlPanelPayload = {
   summary: Record<ControlRyg, number> & {
     approvalRequired?: number;
   };
-  workstreams: ControlWorkstream[];
+  workstreams: LiveControlWorkstream[];
   addOns: AddOnGate[];
 };
 
@@ -312,9 +318,12 @@ function SummaryCell({
   );
 }
 
-function WorkstreamRow({ item }: { item: ControlWorkstream }) {
+function WorkstreamRow({ item }: { item: LiveControlWorkstream }) {
   const color = statusColor(item.status, item.ryg);
   const isSignal = item.ryg === 'red' || item.status === 'gated';
+  const crmTaskEvidence = item.crmTaskId
+    ? `CRM task ${item.crmTaskId}${item.crmTaskStatus ? ` · ${item.crmTaskStatus}` : ''}`
+    : null;
 
   return (
     <article
@@ -370,6 +379,14 @@ function WorkstreamRow({ item }: { item: ControlWorkstream }) {
       >
         {item.nextAction}
       </p>
+      {crmTaskEvidence && (
+        <span
+          className="font-mono text-[10px] uppercase tracking-[0.14em]"
+          style={{ color: 'var(--cc-ink-dim)' }}
+        >
+          {crmTaskEvidence}
+        </span>
+      )}
     </article>
   );
 }
