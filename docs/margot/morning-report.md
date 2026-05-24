@@ -85,7 +85,7 @@ Margot has:
 Mac Mini recovery remains blocked by current connectivity/auth state:
 
 - Host: `phills-mac-mini.local`
-- Latest probe at `2026-05-24 11:01 AEST`: SMB/File Sharing port 445 is reachable; SSH/Remote Login port 22 is currently unreachable; `/Volumes` contains `Claude` and `Macintosh HD`; the local recovery destination still contains only `.gitkeep`.
+- Latest probe at `2026-05-24 12:25 AEST`: SMB/File Sharing port 445 is reachable; SSH/Remote Login port 22 is currently unreachable; `/Volumes` contains `Claude` and `Macintosh HD`; the local recovery destination still contains only `.gitkeep`.
 
 Still blocked:
 
@@ -102,6 +102,25 @@ Target recovery files remain:
 
 ## Verification status
 
+Latest verification refresh at `2026-05-24 12:25 AEST`:
+
+- Re-read the requested Margot operating docs, inspected current repo state, and stayed on branch `margot/opportunity-update-timeline-route`.
+- Safe health check passed: head `6ac0e86`; `node_modules=present`, `package-lock=present`, `/Volumes` contains `Claude` and `Macintosh HD`, recovered Mac Mini artifacts still contain only `.gitkeep`, `phills-mac-mini.local:445` is reachable, and `phills-mac-mini.local:22` is unreachable.
+- Safe local route/test improvement remains the opportunity `PATCH` response privacy fix in `src/app/api/crm/opportunities/route.ts` and `tests/integration/api/crm-opportunities-create.test.ts`; no new code path was added in this verification tick.
+- Verification passed: focused opportunity/update/timeline gate returned 2 suites / 38 tests; expanded contact/opportunity/timeline gate returned 3 suites / 69 tests; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; targeted ESLint returned 0 errors / 4 existing `no-explicit-any` warnings in route/test helper typings; `git diff --check` passed.
+- Controller reviews closed: spec compliance returned `PASS`; quality/security returned `APPROVED`, with caveats that Board approval evidence remains syntactic/self-attested like existing POST behavior and sensitive redaction remains best-effort DLP.
+- Updated `docs/margot/mac-mini-recovery-status.md`, `docs/margot/overnight-progress-log.md`, and this morning report with evidence.
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Previous verification refresh at `2026-05-24 12:21 AEST`:
+
+- Re-read the requested Margot operating docs, inspected current repo state, and continued the Senior PM / CRM mutation timeline readiness lane on branch `margot/opportunity-update-timeline-route`.
+- Safe local route/test improvement: `src/app/api/crm/opportunities/route.ts` now sanitizes the opportunity `PATCH` response for selected free-text columns (`next_action`, `decision_needed`, `risk`, `lost_reason`, `owner`) by returning `[REDACTED]` for any non-empty selected value, while leaving DB update payloads and value-minimized timeline payloads unchanged.
+- Updated `tests/integration/api/crm-opportunities-create.test.ts` with a RED/GREEN regression covering email, token/password, Board approval id, and payment/card fragments in mocked update rows.
+- Updated `docs/margot/crm-test-coverage-matrix.md` and `docs/margot/overnight-progress-log.md` with evidence.
+- Verification passed: focused opportunity/update/timeline gate returned 2 suites / 38 tests; expanded contact/opportunity/timeline gate returned 3 suites / 69 tests; `git diff --check` passed; spec review returned PASS; quality review initially requested response sanitization, then controller re-review closed at `2026-05-24 12:25 AEST` with `APPROVED`.
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
 Latest verification refresh at `2026-05-24 11:09 AEST`:
 
 - Re-read the requested Margot operating docs, inspected current repo state, and continued the Senior PM / CRM mutation timeline readiness lane from existing local assets.
@@ -112,6 +131,13 @@ Latest verification refresh at `2026-05-24 11:09 AEST`:
 - Updated `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/mac-mini-recovery-status.md`, and `docs/margot/overnight-progress-log.md` with evidence.
 - Verification passed: `npx jest tests/integration/api/crm-contacts-create.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 2 suites / 39 tests; expanded CRM matrix (`marketing-leads`, `crm-leads-list`, `qualify-lead`, `crm-lead-conversion`, contacts/opportunities create, daily digest, migration unit coverage) returned 9 suites / 90 tests; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; targeted ESLint returned 0 errors / 3 existing `no-explicit-any` warnings in the contacts route Supabase helper typings; `git diff --check` passed; spec re-review returned PASS and quality re-review returned APPROVED.
 - No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Post-merge checkpoint at `2026-05-24 11:38 AEST`:
+
+- PR #192 merged: https://github.com/CleanExpo/Unite-Group/pull/192
+- Merge commit on `main`: `6ac0e866c759bc8ea8ff0034c4298735ac79b9da` (`feat: guard contact update timeline route (#192)`).
+- PR checks passed before merge; post-merge `main` CI run `26348713266` passed; post-merge DESIGN.md lint run `26348713273` passed; combined commit status reports Vercel deployment success at https://vercel.com/unite-group/unite-group/Fs2vMa2vSqirCLcYwPvHrJgJTLqM.
+- This post-merge evidence is local-only in the workspace to avoid an evidence-only PR chain after the verified merge.
 
 Previous verification refresh at `2026-05-24 10:31 AEST`:
 

@@ -15,10 +15,11 @@ jest.mock('@/lib/supabase/server', () => ({
   })),
 }));
 
-import { POST } from '@/app/api/crm/opportunities/route';
+import { POST, PATCH } from '@/app/api/crm/opportunities/route';
 import { createClient } from '@supabase/supabase-js';
 
 type InsertCall = { table: string; row: Record<string, unknown> };
+type UpdateCall = { table: string; row: Record<string, unknown>; eq?: { column: string; value: unknown } };
 type SelectCall = { table: string; columns?: string };
 type QueryCall =
   | { table: string; method: 'select'; columns?: string }
@@ -37,10 +38,22 @@ const clientId = '33333333-3333-4333-8333-333333333333';
 const businessId = '44444444-4444-4444-8444-444444444444';
 
 const OPPORTUNITY_SELECT_COLUMNS = 'id,name,stage,status,value_amount,value_currency,probability,expected_close_at,next_action_due_at,next_action,decision_needed,risk,source,owner,campaign_source,campaign_medium,campaign_name,source_detail,lost_reason,linked_lead_id,linked_contact_id,linked_client_id,linked_business_id,approval_required,approval_status,additional_data,created_at,updated_at';
+const OPPORTUNITY_PATCH_SELECT_COLUMNS = 'id,name,stage,status,value_amount,value_currency,probability,expected_close_at,next_action_due_at,next_action,decision_needed,risk,owner,lost_reason,approval_required,approval_status,updated_at';
 
 function request(body: unknown, rawBody?: string): NextRequest {
   return new NextRequest('https://unite-group.in/api/crm/opportunities', {
     method: 'POST',
+    headers: {
+      authorization: 'Bearer service-role-test',
+      'content-type': 'application/json',
+    },
+    body: rawBody ?? JSON.stringify(body),
+  });
+}
+
+function patchRequest(body: unknown, rawBody?: string): NextRequest {
+  return new NextRequest('https://unite-group.in/api/crm/opportunities', {
+    method: 'PATCH',
     headers: {
       authorization: 'Bearer service-role-test',
       'content-type': 'application/json',
@@ -121,6 +134,67 @@ function mockOpportunityInsert(
               return {
                 data: result.data === undefined ? { id: 'opportunity-1', ...row } : result.data,
                 error: result.error ?? null,
+              };
+            }),
+          };
+        }),
+      };
+    }),
+  }));
+}
+
+function mockOpportunityUpdate(
+  updateCalls: UpdateCall[] = [],
+  insertCalls: InsertCall[] = [],
+  selectCalls: SelectCall[] = [],
+  result: { data?: Record<string, unknown> | null; error?: Error | null } = {},
+  options: {
+    timelineError?: Error | null;
+    throwTimelineInsert?: boolean;
+    throwPrimaryUpdate?: Error;
+  } = {},
+) {
+  mockFrom.mockImplementation((table: string) => ({
+    update: jest.fn((row: Record<string, unknown>) => {
+      const updateCall: UpdateCall = { table, row };
+      updateCalls.push(updateCall);
+      return {
+        eq: jest.fn((column: string, value: unknown) => {
+          updateCall.eq = { column, value };
+          return {
+            select: jest.fn((columns?: string) => {
+              selectCalls.push({ table, columns });
+              return {
+                single: jest.fn(async () => {
+                  if (options.throwPrimaryUpdate) {
+                    throw options.throwPrimaryUpdate;
+                  }
+
+                  return {
+                    data: result.data === undefined ? { id: 'opportunity-1', name: 'Margot CRM Buildout', ...row } : result.data,
+                    error: result.error ?? null,
+                  };
+                }),
+              };
+            }),
+          };
+        }),
+      };
+    }),
+    insert: jest.fn((row: Record<string, unknown>) => {
+      insertCalls.push({ table, row });
+      return {
+        select: jest.fn((columns?: string) => {
+          selectCalls.push({ table, columns });
+          return {
+            single: jest.fn(async () => {
+              if (options.throwTimelineInsert) {
+                throw new Error('timeline insert exploded');
+              }
+
+              return {
+                data: { id: 'timeline-1', ...row },
+                error: options.timelineError ?? null,
               };
             }),
           };
@@ -636,5 +710,304 @@ describe('POST /api/crm/opportunities', () => {
     expect(calls[0].table).toBe('crm_opportunities');
     expect(mockFrom).not.toHaveBeenCalledWith('agent_actions');
     expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  it('updates an opportunity and writes a sanitized close timeline event only after the primary update succeeds', async () => {
+    const updateCalls: UpdateCall[] = [];
+    const insertCalls: InsertCall[] = [];
+    const selectCalls: SelectCall[] = [];
+    mockOpportunityUpdate(updateCalls, insertCalls, selectCalls, {
+      data: {
+        id: '55555555-5555-4555-8555-555555555555',
+        name: 'Website CRM Retainer',
+        stage: 'decision_needed',
+        status: 'lost',
+        lost_reason: 'Timing mismatch',
+      },
+      error: null,
+    });
+
+    const res = await PATCH(patchRequest({
+      id: '55555555-5555-4555-8555-555555555555',
+      status: 'lost',
+      lostReason: ' Timing mismatch ',
+    }));
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      success: true,
+      opportunity: expect.objectContaining({
+        id: '55555555-5555-4555-8555-555555555555',
+        status: 'lost',
+      }),
+    });
+    expect(updateCalls).toHaveLength(1);
+    expect(updateCalls[0]).toEqual({
+      table: 'crm_opportunities',
+      row: expect.objectContaining({
+        status: 'lost',
+        lost_reason: 'Timing mismatch',
+        updated_at: expect.any(String),
+      }),
+      eq: { column: 'id', value: '55555555-5555-4555-8555-555555555555' },
+    });
+    expect(selectCalls).toEqual([
+      { table: 'crm_opportunities', columns: OPPORTUNITY_PATCH_SELECT_COLUMNS },
+      { table: 'agent_actions', columns: 'id' },
+    ]);
+    expect(insertCalls).toHaveLength(1);
+    expect(insertCalls[0]).toEqual({
+      table: 'agent_actions',
+      row: expect.objectContaining({
+        action_type: 'crm_timeline_opportunity_closed',
+        status: 'pending',
+        payload: expect.objectContaining({
+          type: 'opportunity_closed',
+          category: 'opportunity',
+          actionClass: 'approval_required',
+          requiresApproval: true,
+          subjectId: '55555555-5555-4555-8555-555555555555',
+          subjectLabel: 'Website CRM Retainer',
+          metadata: expect.objectContaining({
+            changedStatus: true,
+            changedLostReason: true,
+            status: 'lost',
+          }),
+        }),
+      }),
+    });
+    expect(insertCalls[0].row.payload).not.toHaveProperty('boardApprovalId');
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 for unknown opportunity update fields before CRM Supabase access', async () => {
+    const res = await PATCH(patchRequest({
+      id: '55555555-5555-4555-8555-555555555555',
+      linkedClientId: clientId,
+    }));
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'invalid_opportunity_update_payload' });
+    expect(createClient).not.toHaveBeenCalled();
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 for client-supplied opportunity update name before CRM Supabase access', async () => {
+    const res = await PATCH(patchRequest({
+      id: '55555555-5555-4555-8555-555555555555',
+      name: 'Client supplied rename',
+    }));
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'invalid_opportunity_update_payload' });
+    expect(createClient).not.toHaveBeenCalled();
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 for approval-only opportunity updates before CRM Supabase access', async () => {
+    const res = await PATCH(patchRequest({
+      id: '55555555-5555-4555-8555-555555555555',
+      approvalRequired: true,
+    }));
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'invalid_opportunity_update_payload' });
+    expect(createClient).not.toHaveBeenCalled();
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it('does not write an opportunity update timeline event when the primary update fails', async () => {
+    const updateCalls: UpdateCall[] = [];
+    const insertCalls: InsertCall[] = [];
+    mockOpportunityUpdate(updateCalls, insertCalls, [], {
+      data: null,
+      error: new Error('raw primary update failure should not be logged'),
+    });
+
+    const res = await PATCH(patchRequest({
+      id: '55555555-5555-4555-8555-555555555555',
+      stage: 'proposal_sent',
+    }));
+
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ error: 'crm_opportunity_update_failed' });
+    expect(updateCalls).toHaveLength(1);
+    expect(insertCalls).toHaveLength(0);
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Error updating CRM opportunity');
+    for (const call of consoleErrorSpy.mock.calls) {
+      expect(call).toEqual([expect.any(String)]);
+      expect(call[0]).not.toContain('raw primary update failure');
+    }
+  });
+
+  it('still returns 200 and logs generically when opportunity update timeline insert fails after primary success', async () => {
+    const updateCalls: UpdateCall[] = [];
+    const insertCalls: InsertCall[] = [];
+    mockOpportunityUpdate(updateCalls, insertCalls, [], {}, { throwTimelineInsert: true });
+
+    const res = await PATCH(patchRequest({
+      id: '55555555-5555-4555-8555-555555555555',
+      stage: 'proposal_sent',
+    }));
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      success: true,
+      opportunity: expect.objectContaining({
+        id: 'opportunity-1',
+        stage: 'proposal_sent',
+      }),
+    });
+    expect(updateCalls).toHaveLength(1);
+    expect(insertCalls).toHaveLength(1);
+    expectGenericTimelineLogOnly(consoleErrorSpy, 'Error recording CRM opportunity timeline event');
+  });
+
+  it('rejects won opportunity updates without explicit Board approval before CRM Supabase access', async () => {
+    const res = await PATCH(patchRequest({
+      id: '55555555-5555-4555-8555-555555555555',
+      status: 'won',
+    }));
+
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ error: 'operator_approval_required' });
+    expect(createClient).not.toHaveBeenCalled();
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it('allows approved won opportunity updates without persisting or emitting the Board approval id', async () => {
+    const updateCalls: UpdateCall[] = [];
+    const insertCalls: InsertCall[] = [];
+    mockOpportunityUpdate(updateCalls, insertCalls, [], {
+      data: {
+        id: '55555555-5555-4555-8555-555555555555',
+        name: 'Approved CRM Retainer',
+        stage: 'won_pending_client_conversion',
+        status: 'won',
+        approval_required: true,
+        approval_status: 'approved',
+      },
+      error: null,
+    });
+
+    const res = await PATCH(patchRequest({
+      id: '55555555-5555-4555-8555-555555555555',
+      stage: 'won_pending_client_conversion',
+      status: 'won',
+      approvalRequired: true,
+      approvalStatus: 'approved',
+      boardApprovalId: 'BOARD-CRM-APPROVED',
+    }));
+
+    expect(res.status).toBe(200);
+    expect(updateCalls[0].row).toEqual(expect.objectContaining({
+      stage: 'won_pending_client_conversion',
+      status: 'won',
+      approval_required: true,
+      approval_status: 'approved',
+    }));
+    expect(updateCalls[0].row).not.toHaveProperty('boardApprovalId');
+    expect(updateCalls[0].row).not.toHaveProperty('board_approval_id');
+    expect(insertCalls).toHaveLength(1);
+    expect(insertCalls[0].row).toEqual(expect.objectContaining({
+      action_type: 'crm_timeline_opportunity_closed',
+      status: 'pending',
+    }));
+    const serializedTimeline = JSON.stringify(insertCalls[0].row);
+    expect(serializedTimeline).not.toContain('BOARD-CRM-APPROVED');
+    expect(serializedTimeline).not.toContain('boardApprovalId');
+    expect(serializedTimeline).not.toContain('board_approval_id');
+  });
+
+  it('redacts all selected free-text opportunity update response columns and keeps timeline metadata value-minimized', async () => {
+    const updateCalls: UpdateCall[] = [];
+    const insertCalls: InsertCall[] = [];
+    const sensitiveNextAction = 'passport number X1234567 needs renewal';
+    const sensitiveDecision = 'TFN needs verification before Medicare card follow-up';
+    const sensitiveRisk = 'IBAN/account number collection blocked';
+    const sensitiveLostReason = 'DOB 1990-01-02 and birth date mismatch';
+    const sensitiveOwner = 'owner stripe sk_live_1234567890abcdef';
+    mockOpportunityUpdate(updateCalls, insertCalls, [], {
+      data: {
+        id: '55555555-5555-4555-8555-555555555555',
+        name: 'password hunter2 for client@example.com',
+        stage: 'proposal_sent',
+        status: 'open',
+        next_action: sensitiveNextAction,
+        decision_needed: sensitiveDecision,
+        risk: sensitiveRisk,
+        lost_reason: sensitiveLostReason,
+        owner: sensitiveOwner,
+      },
+      error: null,
+    });
+
+    const res = await PATCH(patchRequest({
+      id: '55555555-5555-4555-8555-555555555555',
+      status: 'open',
+      nextAction: sensitiveNextAction,
+      decisionNeeded: sensitiveDecision,
+      risk: sensitiveRisk,
+      lostReason: sensitiveLostReason,
+      owner: sensitiveOwner,
+      valueAmount: 12345,
+    }));
+
+    expect(res.status).toBe(200);
+    const responseJson = await res.json();
+    expect(responseJson).toEqual({
+      success: true,
+      opportunity: expect.objectContaining({
+        id: '55555555-5555-4555-8555-555555555555',
+        name: 'opportunity 55555555-5555-4555-8555-555555555555',
+        next_action: '[REDACTED]',
+        decision_needed: '[REDACTED]',
+        risk: '[REDACTED]',
+        lost_reason: '[REDACTED]',
+        owner: '[REDACTED]',
+      }),
+    });
+    expect(updateCalls[0].row).toEqual(expect.objectContaining({
+      next_action: sensitiveNextAction,
+      decision_needed: sensitiveDecision,
+      risk: sensitiveRisk,
+      lost_reason: sensitiveLostReason,
+      owner: sensitiveOwner,
+    }));
+    const serializedResponse = JSON.stringify(responseJson);
+    expect(serializedResponse).not.toContain('passport number X1234567');
+    expect(serializedResponse).not.toContain('TFN needs verification');
+    expect(serializedResponse).not.toContain('Medicare card');
+    expect(serializedResponse).not.toContain('IBAN/account number');
+    expect(serializedResponse).not.toContain('DOB 1990-01-02');
+    expect(serializedResponse).not.toContain('birth date');
+    expect(serializedResponse).not.toContain('sk_live_1234567890abcdef');
+    expect(insertCalls).toHaveLength(1);
+    expect(insertCalls[0].row).toEqual(expect.objectContaining({
+      action_type: 'crm_timeline_opportunity_reopened',
+      payload: expect.objectContaining({
+        subjectLabel: 'opportunity 55555555-5555-4555-8555-555555555555',
+        metadata: {
+          changedStatus: true,
+          changedValue: true,
+          changedNextAction: true,
+          changedDecisionNeeded: true,
+          changedRisk: true,
+          changedOwner: true,
+          changedLostReason: true,
+          stage: 'proposal_sent',
+          status: 'open',
+        },
+      }),
+    }));
+    const serializedTimeline = JSON.stringify(insertCalls[0].row);
+    expect(serializedTimeline).not.toContain('password hunter2');
+    expect(serializedTimeline).not.toContain('client@example.com');
+    expect(serializedTimeline).not.toContain(sensitiveNextAction);
+    expect(serializedTimeline).not.toContain(sensitiveDecision);
+    expect(serializedTimeline).not.toContain(sensitiveRisk);
+    expect(serializedTimeline).not.toContain(sensitiveLostReason);
+    expect(serializedTimeline).not.toContain(sensitiveOwner);
+    expect(serializedTimeline).not.toContain('12345');
   });
 });

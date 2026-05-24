@@ -29,6 +29,7 @@ const approvalStatuses = ['not_required', 'requested', 'approved', 'rejected', '
 const safeValueCurrencies = ['AUD', 'USD', 'NZD', 'GBP', 'EUR'] as const;
 const ADDITIONAL_DATA_MAX_BYTES = 4096;
 const OPPORTUNITY_SELECT_COLUMNS = 'id,name,stage,status,value_amount,value_currency,probability,expected_close_at,next_action_due_at,next_action,decision_needed,risk,source,owner,campaign_source,campaign_medium,campaign_name,source_detail,lost_reason,linked_lead_id,linked_contact_id,linked_client_id,linked_business_id,approval_required,approval_status,additional_data,created_at,updated_at';
+const OPPORTUNITY_PATCH_SELECT_COLUMNS = 'id,name,stage,status,value_amount,value_currency,probability,expected_close_at,next_action_due_at,next_action,decision_needed,risk,owner,lost_reason,approval_required,approval_status,updated_at';
 
 const sensitiveAdditionalDataKeyPattern = /(?:secret|token|password|passphrase|api[_-]?key|private[_-]?key|credential|authorization|cookie|session|stripe|payment|card|cvc|cvv|bank|iban|bsb|account[_-]?number|passport|driver'?s?[_\s-]?licen[cs]e|tax[_\s-]?file|tfn|medicare|ssn|dob|birth[_\s-]?date|email|phone|mobile|address|cross[_\s-]?client|client[_\s-]?notes?)/i;
 const sensitiveAdditionalDataStringPatterns = [
@@ -117,6 +118,25 @@ const opportunityCreateSchema = z.object({
   additionalData: safeAdditionalData.default({}),
 });
 
+const opportunityUpdateSchema = z.object({
+  id: z.string().uuid(),
+  stage: z.enum(opportunityStages).optional(),
+  status: z.enum(opportunityStatuses).optional(),
+  valueAmount: z.number().nonnegative().optional(),
+  valueCurrency: optionalValueCurrency,
+  probability: z.number().int().min(0).max(100).optional(),
+  expectedCloseAt: z.string().datetime().optional(),
+  nextActionDueAt: z.string().datetime().optional(),
+  nextAction: optionalTrimmed(2000),
+  decisionNeeded: optionalTrimmed(2000),
+  risk: optionalTrimmed(2000),
+  owner: z.preprocess(blankStringToUndefined, z.string().trim().min(1).max(120).optional()),
+  lostReason: optionalTrimmed(1000),
+  approvalRequired: z.boolean().optional(),
+  approvalStatus: z.enum(approvalStatuses).optional(),
+  boardApprovalId: optionalBoardApprovalId,
+}).strict();
+
 function requiresOperatorApproval(opportunity: z.infer<typeof opportunityCreateSchema>) {
   return (
     opportunity.status === 'won'
@@ -135,6 +155,85 @@ function hasRequiredOperatorApproval(opportunity: z.infer<typeof opportunityCrea
       && opportunity.approvalStatus === 'approved'
       && hasBoardApprovalId(opportunity)
   );
+}
+
+function updateRequiresOperatorApproval(opportunity: z.infer<typeof opportunityUpdateSchema>) {
+  return (
+    opportunity.status === 'won'
+      || opportunity.stage === 'won_pending_client_conversion'
+      || opportunity.stage === 'won_converted'
+  );
+}
+
+function updateHasRequiredOperatorApproval(opportunity: z.infer<typeof opportunityUpdateSchema>) {
+  return (
+    opportunity.approvalRequired === true
+      && opportunity.approvalStatus === 'approved'
+      && typeof opportunity.boardApprovalId === 'string'
+      && opportunity.boardApprovalId.trim().length >= 6
+  );
+}
+
+const SENSITIVE_TIMELINE_LABEL_PATTERNS = [
+  /\bBOARD-[A-Z0-9-]+\b/i,
+  /\b(?:secret|token|password|passphrase|private[_ -]?key|credential|authorization)\b/i,
+  /\bbearer\s+[a-z0-9._~+/=-]+\b/i,
+  /\bapi[_ -]?key[_ :=-]*[a-z0-9._-]+\b/i,
+  /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i,
+  /(?:\+?\d[\d ().-]{7,}\d)/,
+  /(?:\b(?:billing|payment)\b.*\b(?:card|method|visa|mastercard|amex|discover|\d{4})\b|\bcard\b.*\b(?:visa|mastercard|amex|discover|\d{4})\b|\b(?:visa|mastercard|amex|discover)\b\s+(?:card|ending\s+\d{4}|\d{4})\b)/i,
+];
+
+function safeOpportunityTimelineSubjectLabel(opportunityRow: Record<string, unknown>) {
+  const subjectId = typeof opportunityRow.id === 'string' ? opportunityRow.id : '';
+  const label = typeof opportunityRow.name === 'string' ? opportunityRow.name.trim() : '';
+  if (!subjectId) return '';
+  if (!label) return `opportunity ${subjectId}`;
+
+  if (SENSITIVE_TIMELINE_LABEL_PATTERNS.some((pattern) => pattern.test(label))) {
+    return `opportunity ${subjectId}`;
+  }
+
+  return label;
+}
+
+const PATCH_RESPONSE_FREE_TEXT_COLUMNS = [
+  'next_action',
+  'decision_needed',
+  'risk',
+  'lost_reason',
+  'owner',
+] as const;
+
+function sanitizePatchOpportunityResponse(opportunityRow: Record<string, unknown>) {
+  const safeRow = { ...opportunityRow };
+  const safeLabel = safeOpportunityTimelineSubjectLabel(opportunityRow);
+  const rawName = typeof opportunityRow.name === 'string' ? opportunityRow.name : undefined;
+
+  if (rawName !== undefined && safeLabel && safeLabel !== rawName.trim()) {
+    safeRow.name = safeLabel;
+  }
+
+  for (const column of PATCH_RESPONSE_FREE_TEXT_COLUMNS) {
+    const value = opportunityRow[column];
+    if (typeof value === 'string' && value.trim().length > 0) {
+      safeRow[column] = '[REDACTED]';
+    }
+  }
+
+  return safeRow;
+}
+
+function opportunityMutationTimelineType(updatePayload: Record<string, unknown>) {
+  if (updatePayload.status === 'won' || updatePayload.status === 'lost' || updatePayload.status === 'cancelled') {
+    return 'opportunity_closed' as const;
+  }
+
+  if (updatePayload.status === 'open') {
+    return 'opportunity_reopened' as const;
+  }
+
+  return 'opportunity_updated' as const;
 }
 
 function linkedScopeCount(opportunity: z.infer<typeof opportunityCreateSchema>) {
@@ -160,7 +259,7 @@ async function recordOpportunityTimelineEvents(
   opportunityRow: Record<string, unknown>,
 ) {
   const subjectId = typeof opportunityRow.id === 'string' ? opportunityRow.id : '';
-  const subjectLabel = typeof opportunityRow.name === 'string' ? opportunityRow.name : '';
+  const subjectLabel = safeOpportunityTimelineSubjectLabel(opportunityRow);
   if (!subjectId || !subjectLabel) return;
 
   const baseInput = {
@@ -207,6 +306,46 @@ async function recordOpportunityTimelineEvents(
     } catch {
       console.error('Error recording CRM opportunity timeline event');
     }
+  }
+}
+
+async function recordOpportunityMutationTimelineEvent(
+  supabase: ReturnType<typeof createClient<any>>,
+  opportunityRow: Record<string, unknown>,
+  changedFields: Record<string, boolean>,
+  eventType: 'opportunity_updated' | 'opportunity_closed' | 'opportunity_reopened',
+) {
+  const subjectId = typeof opportunityRow.id === 'string' ? opportunityRow.id : '';
+  const subjectLabel = safeOpportunityTimelineSubjectLabel(opportunityRow);
+  if (!subjectId || !subjectLabel) return;
+
+  const event = buildCrmActivityTimelineEvent({
+    type: eventType,
+    actor: 'Margot',
+    subjectId,
+    subjectLabel,
+    occurredAt: new Date().toISOString(),
+    source: 'crm_opportunities_route',
+    requiresApproval: eventType !== 'opportunity_updated',
+    metadata: {
+      ...changedFields,
+      stage: typeof opportunityRow.stage === 'string' ? opportunityRow.stage : undefined,
+      status: typeof opportunityRow.status === 'string' ? opportunityRow.status : undefined,
+    },
+  });
+
+  try {
+    const { error } = await supabase
+      .from('agent_actions')
+      .insert(buildCrmTimelineAgentActionInsert(event))
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error('Error recording CRM opportunity timeline event');
+    }
+  } catch {
+    console.error('Error recording CRM opportunity timeline event');
   }
 }
 
@@ -338,5 +477,135 @@ export async function POST(request: NextRequest) {
 
     console.error('Unexpected CRM opportunity create error');
     return NextResponse.json({ error: 'crm_opportunity_create_failed' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  const gate = await requireAdmin(request);
+  if (gate instanceof NextResponse) return gate;
+
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return NextResponse.json({ error: 'crm_not_configured' }, { status: 503 });
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'invalid_opportunity_update_payload' }, { status: 400 });
+  }
+
+  const parsed = opportunityUpdateSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'invalid_opportunity_update_payload' }, { status: 400 });
+  }
+
+  const opportunity = parsed.data;
+  if (updateRequiresOperatorApproval(opportunity) && !updateHasRequiredOperatorApproval(opportunity)) {
+    return NextResponse.json({ error: 'operator_approval_required' }, { status: 403 });
+  }
+
+  const updatePayload: Record<string, unknown> = {};
+  const changedFields: Record<string, boolean> = {};
+
+  if (opportunity.stage !== undefined) {
+    updatePayload.stage = opportunity.stage;
+    changedFields.changedStage = true;
+  }
+  if (opportunity.status !== undefined) {
+    updatePayload.status = opportunity.status;
+    changedFields.changedStatus = true;
+  }
+  if (opportunity.valueAmount !== undefined) {
+    updatePayload.value_amount = opportunity.valueAmount;
+    updatePayload.value_currency = opportunity.valueCurrency ?? 'AUD';
+    changedFields.changedValue = true;
+  } else if (opportunity.valueCurrency !== undefined) {
+    updatePayload.value_currency = opportunity.valueCurrency;
+    changedFields.changedValueCurrency = true;
+  }
+  if (opportunity.probability !== undefined) {
+    updatePayload.probability = opportunity.probability;
+    changedFields.changedProbability = true;
+  }
+  if (opportunity.expectedCloseAt !== undefined) {
+    updatePayload.expected_close_at = opportunity.expectedCloseAt;
+    changedFields.changedExpectedCloseAt = true;
+  }
+  if (opportunity.nextActionDueAt !== undefined) {
+    updatePayload.next_action_due_at = opportunity.nextActionDueAt;
+    changedFields.changedNextActionDueAt = true;
+  }
+  if (opportunity.nextAction !== undefined) {
+    updatePayload.next_action = opportunity.nextAction;
+    changedFields.changedNextAction = true;
+  }
+  if (opportunity.decisionNeeded !== undefined) {
+    updatePayload.decision_needed = opportunity.decisionNeeded;
+    changedFields.changedDecisionNeeded = true;
+  }
+  if (opportunity.risk !== undefined) {
+    updatePayload.risk = opportunity.risk;
+    changedFields.changedRisk = true;
+  }
+  if (opportunity.owner !== undefined) {
+    updatePayload.owner = opportunity.owner;
+    changedFields.changedOwner = true;
+  }
+  if (opportunity.lostReason !== undefined) {
+    updatePayload.lost_reason = opportunity.lostReason;
+    changedFields.changedLostReason = true;
+  }
+  if (updateRequiresOperatorApproval(opportunity)) {
+    if (opportunity.approvalRequired !== undefined) {
+      updatePayload.approval_required = opportunity.approvalRequired;
+      changedFields.changedApprovalRequired = true;
+    }
+    if (opportunity.approvalStatus !== undefined) {
+      updatePayload.approval_status = opportunity.approvalStatus;
+      changedFields.changedApprovalStatus = true;
+    }
+  }
+
+  if (Object.keys(updatePayload).length === 0) {
+    return NextResponse.json({ error: 'invalid_opportunity_update_payload' }, { status: 400 });
+  }
+
+  const eventType = opportunityMutationTimelineType(updatePayload);
+  updatePayload.updated_at = new Date().toISOString();
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    { auth: { persistSession: false } },
+  );
+
+  try {
+    const { data, error } = await supabase
+      .from('crm_opportunities')
+      .update(updatePayload)
+      .eq('id', opportunity.id)
+      .select(OPPORTUNITY_PATCH_SELECT_COLUMNS)
+      .single();
+
+    if (error) {
+      console.error('Error updating CRM opportunity');
+      return NextResponse.json({ error: 'crm_opportunity_update_failed' }, { status: 500 });
+    }
+
+    await recordOpportunityMutationTimelineEvent(
+      supabase,
+      data as Record<string, unknown>,
+      changedFields,
+      eventType,
+    );
+
+    return NextResponse.json({
+      success: true,
+      opportunity: sanitizePatchOpportunityResponse(data as Record<string, unknown>),
+    }, { status: 200 });
+  } catch {
+    console.error('Unexpected CRM opportunity update error');
+    return NextResponse.json({ error: 'crm_opportunity_update_failed' }, { status: 500 });
   }
 }
