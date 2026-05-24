@@ -1,21 +1,33 @@
 import { NextRequest } from 'next/server';
 
 const mockFrom = jest.fn();
+const mockServerGetUser = jest.fn();
 
 jest.mock('@supabase/supabase-js', () => ({
   createClient: jest.fn(() => ({ from: mockFrom })),
 }));
 
-import { POST } from '@/app/api/crm/contacts/route';
+jest.mock('@/lib/supabase/server', () => ({
+  createClient: jest.fn(async () => ({
+    auth: {
+      getUser: mockServerGetUser,
+    },
+  })),
+}));
+
+import { PATCH, POST } from '@/app/api/crm/contacts/route';
 import { createClient } from '@supabase/supabase-js';
 
 type InsertCall = { table: string; row: Record<string, unknown> };
+type UpdateCall = { table: string; row: Record<string, unknown> };
 type SelectCall = { table: string; columns?: string };
 type QueryCall =
   | { table: string; method: 'select'; columns?: string }
+  | { table: string; method: 'update'; row: Record<string, unknown> }
   | { table: string; method: 'eq'; column: string; value: unknown }
   | { table: string; method: 'limit'; count: number }
-  | { table: string; method: 'maybeSingle' };
+  | { table: string; method: 'maybeSingle' }
+  | { table: string; method: 'single' };
 type SupabaseQueryMock = {
   eq: jest.Mock;
   limit: jest.Mock;
@@ -26,12 +38,34 @@ const leadId = '11111111-1111-4111-8111-111111111111';
 const clientId = '22222222-2222-4222-8222-222222222222';
 const businessId = '33333333-3333-4333-8333-333333333333';
 const CONTACT_SELECT_COLUMNS = 'id,display_name,first_name,last_name,primary_email,primary_phone,role_title,company_name,linked_lead_id,linked_client_id,linked_business_id,source,source_detail,marketing_consent,relationship_owner,status,privacy_scope,dedupe_email_key,dedupe_domain_key,additional_data,created_at,updated_at';
+const CONTACT_PATCH_SELECT_COLUMNS = 'id,display_name,role_title,primary_email,primary_phone,relationship_owner,source,updated_at';
 
 function request(body: unknown, rawBody?: string): NextRequest {
   return new NextRequest('https://unite-group.in/api/crm/contacts', {
     method: 'POST',
     headers: {
       authorization: 'Bearer service-role-test',
+      'content-type': 'application/json',
+    },
+    body: rawBody ?? JSON.stringify(body),
+  });
+}
+
+function patchRequest(body: unknown, rawBody?: string): NextRequest {
+  return new NextRequest('https://unite-group.in/api/crm/contacts', {
+    method: 'PATCH',
+    headers: {
+      authorization: 'Bearer service-role-test',
+      'content-type': 'application/json',
+    },
+    body: rawBody ?? JSON.stringify(body),
+  });
+}
+
+function unauthenticatedPatchRequest(body: unknown, rawBody?: string): NextRequest {
+  return new NextRequest('https://unite-group.in/api/crm/contacts', {
+    method: 'PATCH',
+    headers: {
       'content-type': 'application/json',
     },
     body: rawBody ?? JSON.stringify(body),
@@ -100,6 +134,70 @@ function mockContactInsert(
               return {
                 data: result.data === undefined ? { id: 'contact-1', ...row } : result.data,
                 error: result.error ?? null,
+              };
+            }),
+          };
+        }),
+      };
+    }),
+  }));
+}
+
+function mockContactUpdate(
+  updateCalls: UpdateCall[] = [],
+  insertCalls: InsertCall[] = [],
+  selectCalls: SelectCall[] = [],
+  result: { data?: Record<string, unknown> | null; error?: Error | null } = {},
+  options: {
+    timelineError?: Error | null;
+    throwTimelineInsert?: boolean;
+    throwPrimaryUpdate?: Error;
+    queryCalls?: QueryCall[];
+  } = {},
+) {
+  mockFrom.mockImplementation((table: string) => ({
+    update: jest.fn((row: Record<string, unknown>) => {
+      updateCalls.push({ table, row });
+      options.queryCalls?.push({ table, method: 'update', row });
+      let updateQuery: {
+        eq: jest.Mock;
+        select: jest.Mock;
+      };
+      updateQuery = {
+        eq: jest.fn((column: string, value: unknown) => {
+          options.queryCalls?.push({ table, method: 'eq', column, value });
+          return updateQuery;
+        }),
+        select: jest.fn((columns?: string) => {
+          selectCalls.push({ table, columns });
+          options.queryCalls?.push({ table, method: 'select', columns });
+          return {
+            single: jest.fn(async () => {
+              options.queryCalls?.push({ table, method: 'single' });
+              if (options.throwPrimaryUpdate) throw options.throwPrimaryUpdate;
+
+              return {
+                data: result.data === undefined ? { id: '44444444-4444-4444-8444-444444444444', ...row } : result.data,
+                error: result.error ?? null,
+              };
+            }),
+          };
+        }),
+      };
+      return updateQuery;
+    }),
+    insert: jest.fn((row: Record<string, unknown>) => {
+      insertCalls.push({ table, row });
+      return {
+        select: jest.fn((columns?: string) => {
+          selectCalls.push({ table, columns });
+          return {
+            single: jest.fn(async () => {
+              if (options.throwTimelineInsert) throw new Error('timeline insert exploded');
+
+              return {
+                data: { id: 'timeline-1', ...row },
+                error: options.timelineError ?? null,
               };
             }),
           };
@@ -469,5 +567,383 @@ describe('POST /api/crm/contacts', () => {
     expect(res.status).toBe(400);
     expect(await res.json()).toEqual({ error: 'invalid_contact_payload' });
     expect(mockFrom).not.toHaveBeenCalled();
+  });
+});
+
+describe('PATCH /api/crm/contacts', () => {
+  const oldEnv = process.env;
+  let consoleErrorSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    process.env = {
+      ...oldEnv,
+      NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co',
+      SUPABASE_SERVICE_ROLE_KEY: 'service-role-test',
+    };
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore();
+    process.env = oldEnv;
+  });
+
+  it('updates the spec PATCH fields for an admin caller and writes exactly one sanitized contact_updated timeline action after the primary update', async () => {
+    const updateCalls: UpdateCall[] = [];
+    const insertCalls: InsertCall[] = [];
+    const selectCalls: SelectCall[] = [];
+    const queryCalls: QueryCall[] = [];
+    const contactId = '44444444-4444-4444-8444-444444444444';
+    mockContactUpdate(updateCalls, insertCalls, selectCalls, {
+      data: {
+        id: contactId,
+        display_name: 'Ada Byron',
+        role_title: 'Chief Analyst',
+        primary_email: 'ada@example.com',
+        primary_phone: '+61400000000',
+        relationship_owner: 'Margot',
+        source: 'referral',
+        updated_at: '2026-05-24T00:00:00.000Z',
+      },
+    }, { queryCalls });
+
+    const res = await PATCH(patchRequest({
+      id: contactId,
+      displayName: ' Ada Byron ',
+      roleTitle: ' Chief Analyst ',
+      email: ' ada@example.com ',
+      phone: ' +61400000000 ',
+      relationshipOwner: ' Margot ',
+      source: ' referral ',
+    }));
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      success: true,
+      contact: expect.objectContaining({
+        id: contactId,
+        display_name: 'Ada Byron',
+        role_title: 'Chief Analyst',
+        primary_email: 'ada@example.com',
+        primary_phone: '+61400000000',
+        relationship_owner: 'Margot',
+        source: 'referral',
+      }),
+    });
+    expect(updateCalls).toEqual([{
+      table: 'crm_contacts',
+      row: expect.objectContaining({
+        display_name: 'Ada Byron',
+        role_title: 'Chief Analyst',
+        primary_email: 'ada@example.com',
+        primary_phone: '+61400000000',
+        relationship_owner: 'Margot',
+        source: 'referral',
+        updated_at: expect.any(String),
+      }),
+    }]);
+    expect(insertCalls).toHaveLength(1);
+    expect(insertCalls[0]).toEqual({
+      table: 'agent_actions',
+      row: expect.objectContaining({
+        source: 'margot',
+        action_type: 'crm_timeline_contact_updated',
+        status: 'done',
+        payload: expect.objectContaining({
+          type: 'contact_updated',
+          category: 'contact',
+          actionClass: 'auto',
+          subjectId: contactId,
+          subjectLabel: 'Ada Byron',
+          source: 'crm_contacts_route',
+          metadata: {
+            changedDisplayName: true,
+            changedRoleTitle: true,
+            changedEmail: true,
+            changedPhone: true,
+            changedRelationshipOwner: true,
+            changedSource: true,
+          },
+        }),
+      }),
+    });
+    expect(insertCalls[0].row.payload).not.toHaveProperty('boardApprovalId');
+    expect(insertCalls[0].row.payload).not.toHaveProperty('email');
+    expect(insertCalls[0].row.payload).not.toHaveProperty('phone');
+    expect(selectCalls).toEqual([
+      { table: 'crm_contacts', columns: CONTACT_PATCH_SELECT_COLUMNS },
+      { table: 'agent_actions', columns: 'id' },
+    ]);
+    expect(queryCalls).toEqual([
+      { table: 'crm_contacts', method: 'update', row: expect.any(Object) },
+      { table: 'crm_contacts', method: 'eq', column: 'id', value: contactId },
+      { table: 'crm_contacts', method: 'select', columns: CONTACT_PATCH_SELECT_COLUMNS },
+      { table: 'crm_contacts', method: 'single' },
+    ]);
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  it('rejects out-of-scope PATCH fields mixed with valid spec fields before CRM Supabase access', async () => {
+    const res = await PATCH(patchRequest({
+      id: '44444444-4444-4444-8444-444444444444',
+      displayName: 'Ada Byron',
+      status: 'active',
+      sourceDetail: 'legacy unsafe patch field',
+      firstName: 'Ada',
+      linkedClientId: clientId,
+      linkedBusinessId: businessId,
+      privacyScope: 'client_scoped',
+      companyName: 'Analytical Engines',
+      boardApprovalId: 'BOARD-CRM-APPROVED',
+    }));
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'invalid_contact_update_payload' });
+    expect(createClient).not.toHaveBeenCalled();
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it('writes exactly one timeline action with an opaque label when the updated row has an id but blank display_name', async () => {
+    const updateCalls: UpdateCall[] = [];
+    const insertCalls: InsertCall[] = [];
+    const contactId = '44444444-4444-4444-8444-444444444444';
+    mockContactUpdate(updateCalls, insertCalls, [], {
+      data: {
+        id: contactId,
+        display_name: '   ',
+        relationship_owner: 'Margot',
+        updated_at: '2026-05-24T00:00:00.000Z',
+      },
+    });
+
+    const res = await PATCH(patchRequest({
+      id: contactId,
+      relationshipOwner: 'Margot',
+    }));
+
+    expect(res.status).toBe(200);
+    expect(updateCalls).toHaveLength(1);
+    expect(insertCalls).toHaveLength(1);
+    expect(insertCalls[0].row).toEqual(expect.objectContaining({
+      action_type: 'crm_timeline_contact_updated',
+      idea_text: `Contact updated: contact ${contactId} via crm_contacts_route.`,
+      payload: expect.objectContaining({
+        subjectId: contactId,
+        subjectLabel: `contact ${contactId}`,
+        summary: `Contact updated: contact ${contactId} via crm_contacts_route.`,
+        metadata: { changedRelationshipOwner: true },
+      }),
+    }));
+  });
+
+  it('uses an opaque contact label in timeline payloads when updated displayName is sensitive-looking', async () => {
+    const updateCalls: UpdateCall[] = [];
+    const insertCalls: InsertCall[] = [];
+    const contactId = '44444444-4444-4444-8444-444444444444';
+    mockContactUpdate(updateCalls, insertCalls, [], {
+      data: {
+        id: contactId,
+        display_name: 'ada@example.com bearer secret-token',
+        status: 'active',
+        updated_at: '2026-05-24T00:00:00.000Z',
+      },
+    });
+
+    const res = await PATCH(patchRequest({
+      id: contactId,
+      displayName: 'ada@example.com bearer secret-token',
+    }));
+
+    expect(res.status).toBe(200);
+    expect(updateCalls).toHaveLength(1);
+    expect(insertCalls).toHaveLength(1);
+    expect(insertCalls[0].row).toEqual(expect.objectContaining({
+      action_type: 'crm_timeline_contact_updated',
+      idea_text: `Contact updated: contact ${contactId} via crm_contacts_route.`,
+      payload: expect.objectContaining({
+        subjectLabel: `contact ${contactId}`,
+        summary: `Contact updated: contact ${contactId} via crm_contacts_route.`,
+      }),
+    }));
+    expect(JSON.stringify(insertCalls[0].row)).not.toContain('ada@example.com');
+    expect(JSON.stringify(insertCalls[0].row)).not.toContain('secret-token');
+  });
+
+  it('returns 401 from the admin gate before env, body parsing, or CRM Supabase access', async () => {
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    mockServerGetUser.mockResolvedValue({ data: { user: null } });
+
+    const res = await PATCH(unauthenticatedPatchRequest({}, '{bad json'));
+
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: 'unauthorized' });
+    expect(createClient).not.toHaveBeenCalled();
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it('returns 503 crm_not_configured before CRM Supabase access if env is missing', async () => {
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+    const res = await PATCH(patchRequest({
+      id: '44444444-4444-4444-8444-444444444444',
+      displayName: 'Ada Byron',
+    }));
+
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({ error: 'crm_not_configured' });
+    expect(createClient).not.toHaveBeenCalled();
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 invalid_contact_update_payload for invalid JSON before CRM Supabase access', async () => {
+    const res = await PATCH(patchRequest({}, '{bad json'));
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'invalid_contact_update_payload' });
+    expect(createClient).not.toHaveBeenCalled();
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['missing id', { displayName: 'Ada Byron' }],
+    ['invalid id', { id: 'not-a-uuid', displayName: 'Ada Byron' }],
+  ])('returns 400 invalid_contact_update_payload for %s before CRM Supabase access', async (_label, body) => {
+    const res = await PATCH(patchRequest(body));
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'invalid_contact_update_payload' });
+    expect(createClient).not.toHaveBeenCalled();
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 invalid_contact_update_payload and does not access Supabase when mutable text fields are blank', async () => {
+    const res = await PATCH(patchRequest({
+      id: '44444444-4444-4444-8444-444444444444',
+      displayName: '   ',
+      relationshipOwner: '   ',
+      roleTitle: '   ',
+      email: '   ',
+      phone: '   ',
+      source: '   ',
+    }));
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'invalid_contact_update_payload' });
+    expect(createClient).not.toHaveBeenCalled();
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 invalid_contact_update_payload when blank displayName is mixed with another valid update field', async () => {
+    const res = await PATCH(patchRequest({
+      id: '44444444-4444-4444-8444-444444444444',
+      displayName: '   ',
+      source: 'manual',
+    }));
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'invalid_contact_update_payload' });
+    expect(createClient).not.toHaveBeenCalled();
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 invalid_contact_update_payload when no safe mutable update fields are supplied', async () => {
+    const res = await PATCH(patchRequest({
+      id: '44444444-4444-4444-8444-444444444444',
+      boardApprovalId: 'BOARD-CRM-APPROVED',
+    }));
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'invalid_contact_update_payload' });
+    expect(createClient).not.toHaveBeenCalled();
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it('returns 500 crm_contact_update_failed and does not insert a timeline action when the primary update fails', async () => {
+    const updateCalls: UpdateCall[] = [];
+    const insertCalls: InsertCall[] = [];
+    mockContactUpdate(updateCalls, insertCalls, [], {
+      data: null,
+      error: new Error('update failed'),
+    });
+
+    const res = await PATCH(patchRequest({
+      id: '44444444-4444-4444-8444-444444444444',
+      displayName: 'Ada Byron',
+    }));
+
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ error: 'crm_contact_update_failed' });
+    expect(updateCalls).toHaveLength(1);
+    expect(insertCalls).toHaveLength(0);
+    expect(mockFrom).not.toHaveBeenCalledWith('agent_actions');
+  });
+
+  it('returns 500 crm_contact_update_failed and does not insert a timeline action when the primary update throws', async () => {
+    const updateCalls: UpdateCall[] = [];
+    const insertCalls: InsertCall[] = [];
+    mockContactUpdate(updateCalls, insertCalls, [], {}, {
+      throwPrimaryUpdate: new Error('update exploded'),
+    });
+
+    const res = await PATCH(patchRequest({
+      id: '44444444-4444-4444-8444-444444444444',
+      displayName: 'Ada Byron',
+    }));
+
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ error: 'crm_contact_update_failed' });
+    expect(updateCalls).toHaveLength(1);
+    expect(insertCalls).toHaveLength(0);
+    expect(mockFrom).not.toHaveBeenCalledWith('agent_actions');
+  });
+
+  it('still returns 200 and logs generically when update timeline insert returns an error after primary update succeeds', async () => {
+    const updateCalls: UpdateCall[] = [];
+    const insertCalls: InsertCall[] = [];
+    mockContactUpdate(updateCalls, insertCalls, [], {}, {
+      timelineError: new Error('returned timeline failure'),
+    });
+
+    const res = await PATCH(patchRequest({
+      id: '44444444-4444-4444-8444-444444444444',
+      displayName: 'Ada Byron',
+    }));
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      success: true,
+      contact: expect.objectContaining({
+        id: '44444444-4444-4444-8444-444444444444',
+        display_name: 'Ada Byron',
+      }),
+    });
+    expect(updateCalls).toHaveLength(1);
+    expect(insertCalls).toHaveLength(1);
+    expectGenericTimelineLogOnly(consoleErrorSpy, 'Error recording CRM contact timeline event');
+  });
+
+  it('still returns 200 and logs generically when update timeline insert throws after primary update succeeds', async () => {
+    const updateCalls: UpdateCall[] = [];
+    const insertCalls: InsertCall[] = [];
+    mockContactUpdate(updateCalls, insertCalls, [], {}, { throwTimelineInsert: true });
+
+    const res = await PATCH(patchRequest({
+      id: '44444444-4444-4444-8444-444444444444',
+      displayName: 'Ada Byron',
+    }));
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      success: true,
+      contact: expect.objectContaining({
+        id: '44444444-4444-4444-8444-444444444444',
+        display_name: 'Ada Byron',
+      }),
+    });
+    expect(updateCalls).toHaveLength(1);
+    expect(insertCalls).toHaveLength(1);
+    expectGenericTimelineLogOnly(consoleErrorSpy, 'Error recording CRM contact timeline event');
   });
 });

@@ -85,7 +85,7 @@ Margot has:
 Mac Mini recovery remains blocked by current connectivity/auth state:
 
 - Host: `phills-mac-mini.local`
-- Latest probe at `2026-05-24 09:53 AEST`: SMB/File Sharing port 445 is reachable; SSH/Remote Login port 22 is currently unreachable; `/Volumes` contains `Claude` and `Macintosh HD`; the local recovery destination still contains only `.gitkeep`.
+- Latest probe at `2026-05-24 11:01 AEST`: SMB/File Sharing port 445 is reachable; SSH/Remote Login port 22 is currently unreachable; `/Volumes` contains `Claude` and `Macintosh HD`; the local recovery destination still contains only `.gitkeep`.
 
 Still blocked:
 
@@ -101,6 +101,37 @@ Target recovery files remain:
 - `/Users/phill-mac/hermes-agent-enhancement-report/restoreassist-content-packs/RESTOREASSIST-CONTENT-INDEX.md`
 
 ## Verification status
+
+Latest verification refresh at `2026-05-24 11:09 AEST`:
+
+- Re-read the requested Margot operating docs, inspected current repo state, and continued the Senior PM / CRM mutation timeline readiness lane from existing local assets.
+- Safe health check passed: branch `margot/contact-update-timeline-route-test`, head `145152a`; `node_modules=present`, `package-lock=present`, `/Volumes` contains `Claude` and `Macintosh HD`, recovered Mac Mini artifacts still contain only `.gitkeep`, `phills-mac-mini.local:445` is reachable, and `phills-mac-mini.local:22` is unreachable.
+- Safe local route/test improvement: `src/app/api/crm/contacts/route.ts` now exposes a guarded `PATCH` contract for contact updates limited to `displayName`, `roleTitle`, `email`, `phone`, `relationshipOwner`, and `source` plus required `id`, with admin/env/payload/no-op guards before CRM Supabase access and unknown/out-of-scope fields rejected.
+- Contact update now writes one best-effort sanitized `crm_timeline_contact_updated` `agent_actions` row only after the primary update succeeds; primary update returned/thrown failures do not write timeline actions, timeline returned/thrown failures preserve the primary 200 success, timeline logging remains generic, and sensitive/blank returned display names fall back to opaque `contact <id>` timeline labels.
+- Updated `tests/integration/api/crm-contacts-create.test.ts` with mocked route regressions for the PATCH success path, admin/env/body/no-op guards, primary update failure isolation, thrown update failure isolation, returned/thrown timeline failure isolation, Board approval ID non-persistence, blank mutable field no-op rejection, and sensitive display-name non-leakage in `agent_actions` payload/summary/idea_text.
+- Updated `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/mac-mini-recovery-status.md`, and `docs/margot/overnight-progress-log.md` with evidence.
+- Verification passed: `npx jest tests/integration/api/crm-contacts-create.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 2 suites / 39 tests; expanded CRM matrix (`marketing-leads`, `crm-leads-list`, `qualify-lead`, `crm-lead-conversion`, contacts/opportunities create, daily digest, migration unit coverage) returned 9 suites / 90 tests; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; targeted ESLint returned 0 errors / 3 existing `no-explicit-any` warnings in the contacts route Supabase helper typings; `git diff --check` passed; spec re-review returned PASS and quality re-review returned APPROVED.
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Previous verification refresh at `2026-05-24 10:31 AEST`:
+
+- Re-read the requested Margot operating docs, inspected current repo state, and continued the Senior PM / CRM production-readiness lane from existing local assets.
+- Safe health check passed: branch `main`, head `145152a`; `node_modules=present`, `package-lock=present`, `/Volumes` contains `Claude` and `Macintosh HD`, recovered Mac Mini artifacts still contain only `.gitkeep`, `phills-mac-mini.local:445` is reachable, and `phills-mac-mini.local:22` is unreachable.
+- Safe documentation improvement: `docs/margot/crm-test-coverage-matrix.md` now reflects the current post-merge focused contact/opportunity/timeline gate at 3 suites / 44 tests and moves route-level update/close/reopen timeline write tests to the top ordered coverage gap before any new CRM mutation routes.
+- Updated `docs/margot/mac-mini-recovery-status.md` and `docs/margot/overnight-progress-log.md` with the current health-check evidence and blocker state.
+- Verification passed: `npx jest tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` returned 3 suites / 44 tests; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed.
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Latest merge/deploy refresh at `2026-05-24 10:19 AEST`:
+
+- PR #191 merged: https://github.com/CleanExpo/Unite-Group/pull/191
+- Merge commit on `main`: `145152ae317b21901a3c5ac5a175e12997eb2151` (`test: extend crm timeline mutation taxonomy`).
+- PR checks passed before merge: Review Board, CodeRabbit, Vercel preview, TypeScript, Unit + Integration Tests, JSON-LD Schema Validation, Lint, Pipeline Smoke Tests, Supabase Schema Drift, npm audit, and DESIGN.md lint.
+- Post-merge main CI passed: https://github.com/CleanExpo/Unite-Group/actions/runs/26347268782
+- Vercel status for the merge commit is success: https://vercel.com/unite-group/unite-group/HaCbh9bFq29QYABRn4r9CvRReVbW
+- Scope shipped: local CRM activity timeline taxonomy now includes contact/opportunity update/close/reopen event types plus payment/billing/card key and value sanitization coverage before any mutation route implementation.
+- This post-merge evidence is local-only in the workspace to avoid an evidence-only PR chain after the verified merge.
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client identity merge, secret printing/storage, or noninteractive credential attempt was performed.
 
 Latest verification refresh at `2026-05-24 10:13 AEST`:
 

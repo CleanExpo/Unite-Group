@@ -156,6 +156,11 @@ function sanitizeMetadata(metadata: Record<string, unknown> | null | undefined):
   const sanitized: Record<string, unknown> = {};
 
   Object.entries(metadata ?? {}).forEach(([key, value]) => {
+    if (/^changed[A-Z]/.test(key) && typeof value === 'boolean') {
+      sanitized[key] = value;
+      return;
+    }
+
     if (isSensitiveMetadataKey(key)) return;
     if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
       if (typeof value === 'string' && isSensitiveMetadataValue(value)) return;
