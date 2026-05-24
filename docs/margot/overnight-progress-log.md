@@ -1,5 +1,99 @@
 # Margot Overnight Progress Log
 
+## 2026-05-24 13:33 AEST
+
+### Command-center add-on tag normalization hardening
+
+Observed in `/Users/phillmcgurk/Unite-Group`:
+
+```text
+timestamp=2026-05-24 13:33:20 AEST
+branch=main
+head=2901e51
+node_modules=present
+package_lock=present
+/Volumes=Claude,Macintosh HD
+recovered_files=.gitkeep/no recovered target artifacts
+phills-mac-mini.local:445=unreachable
+phills-mac-mini.local:22=unreachable
+```
+
+Lane executed:
+
+- Re-read the requested Margot operating docs, inspected current repo state, and continued the command-center CRM UI/API coverage lane from existing local assets.
+- Added a RED/GREEN regression for `GET /api/command-center/control-panel` proving add-on CRM task hydration survives whitespace/case drift in `tasks.tags` (` hermes-addon-request ` plus ` COMPUTER-USE `).
+- Fixed `src/app/api/command-center/control-panel/route.ts` so add-on task matching trims/lowercases task tags before matching, aligning add-on hydration with the existing approval/tag normalization behavior.
+- Refreshed Mac Mini evidence: no authenticated SMB mount or SSH path is available from this session, so recovery remains blocked while local CRM/command-center work continues.
+
+Verification:
+
+```bash
+npx jest tests/integration/api/control-panel.test.ts --runInBand
+# RED first: normalized add-on tag hydration test failed before the route fix.
+
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand
+# PASS: 2 suites / 9 tests.
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes
+
+git diff --check
+# PASS
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Blockers:
+
+- Mac Mini recovery remains blocked on an authenticated SMB mount containing the approved target files or reachable authenticated SSH.
+
+Next safe slice:
+
+- Continue command-center CRM UI/API coverage for lead/opportunity/daily-digest rendering surfaces, or add contact merge safeguards if mutation semantics expand.
+
+## 2026-05-24 13:20 AEST
+
+### PR #194 merged — command-center add-on hydration coverage
+
+Result:
+
+- PR #194 merged: https://github.com/CleanExpo/Unite-Group/pull/194
+- Merge commit on `main`: `2901e516b08896c57fe7fa9f99fe88935d19915e` (`Merge pull request #194 from CleanExpo/margot/control-panel-addon-hydration-test`).
+- Scope shipped: command-center component regression for live CRM add-on task hydration, ensuring existing `crmTaskId` evidence renders and suppresses duplicate approval-task request UI.
+
+Verification:
+
+```bash
+gh pr checks 194 --watch --fail-fast
+# PASS: CodeRabbit, Vercel, Vercel Preview Comments, Review Board specialist checks, Chief Reviewer, TypeScript, Unit + Integration Tests, JSON-LD Schema Validation, Lint, Pipeline Smoke Tests, Supabase Schema Drift, npm audit, and DESIGN.md lint passed.
+
+gh pr view 194 --json state,mergedAt,mergeCommit,url
+# PASS: state MERGED, merge commit 2901e516b08896c57fe7fa9f99fe88935d19915e.
+
+gh run watch 26350606826 --exit-status
+# PASS: post-merge main CI passed for commit 2901e516b08896c57fe7fa9f99fe88935d19915e.
+
+gh run watch 26350606825 --exit-status
+# PASS: post-merge main DESIGN.md lint passed for commit 2901e516b08896c57fe7fa9f99fe88935d19915e.
+
+gh api repos/CleanExpo/Unite-Group/commits/2901e516b08896c57fe7fa9f99fe88935d19915e/status
+# PASS: combined commit status success; Vercel deployment success: https://vercel.com/unite-group/unite-group/82E1o5yjTkKCb2Via5ShWekCYYQz
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client identity merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+- This post-merge evidence block is local-only in the workspace to avoid an evidence-only PR chain after the verified merge.
+
+Next safe slice:
+
+- Continue command-center CRM UI coverage for lead/opportunity/daily-digest rendering surfaces, or add contact merge safeguards if mutation semantics expand.
+
 ## 2026-05-24 13:15 AEST
 
 ### Command-center add-on hydration slice reviewed for PR
@@ -5886,3 +5980,57 @@ Log:
 Native macOS Margot orchestrator tick completed.
 
 Log:
+
+## 2026-05-24 13:35:52 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+
+## 2026-05-24 13:54 AEST
+
+### Command-center add-on tag normalization reviewed and branch-prepped
+
+Observed in `/Users/phillmcgurk/Unite-Group`:
+
+```text
+branch=margot/control-panel-addon-tag-normalization
+base_head=2901e51
+github_auth=available (token value not printed)
+open_prs=none at preflight
+node_modules=present
+package_lock=present
+```
+
+Lane executed:
+
+- Continued the existing command-center CRM add-on hydration hardening slice rather than starting a new lane.
+- Repaired the progress-log whitespace hygiene issue found by review (`git diff --check` had flagged a trailing blank line at EOF).
+- Re-ran two-stage review after the fix: spec compliance returned `PASS`; quality/security returned `APPROVED`.
+- Kept the implementation scope narrow: normalize add-on task tags before matching `hermes-addon-request` and add-on IDs, with coverage for whitespace/case drift.
+
+Verification:
+
+```bash
+git diff --check
+# PASS
+
+npx jest tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/control-panel.test.ts --runInBand
+# PASS: 2 suites / 9 tests
+
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes
+```
+
+Safety:
+
+- No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git, cross-client identity merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Next safe slice:
+
+- Commit and publish this reviewed branch if local verification remains clean, then monitor PR checks and Vercel status.

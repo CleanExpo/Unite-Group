@@ -207,6 +207,47 @@ describe('GET /api/command-center/control-panel', () => {
     );
   });
 
+  it('hydrates add-on CRM task links from normalized tags', async () => {
+    const limit = jest.fn().mockResolvedValue({
+      data: [
+        {
+          id: 'task-addon-normalized',
+          title: 'Approve computer-use operator',
+          status: ' blocked ',
+          priority: 'high',
+          tags: [' hermes-addon-request ', ' COMPUTER-USE '],
+          assignee_name: 'Phill approval',
+          obsidian_path: null,
+          updated_at: '2026-05-24T03:00:00.000Z',
+          created_at: '2026-05-24T02:55:00.000Z',
+        },
+      ],
+      error: null,
+    });
+    const order = jest.fn().mockReturnValue({ limit });
+    const eq = jest.fn().mockReturnValue({ order });
+    const select = jest.fn().mockReturnValue({ eq });
+    const from = jest.fn().mockReturnValue({ select });
+    mockedGetAdminClient.mockReturnValue({ from });
+
+    const res = await GET(req());
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.source).toBe('crm:tasks');
+    expect(body.addOns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'computer-use',
+          state: 'gated',
+          crmTaskId: 'task-addon-normalized',
+          crmTaskStatus: ' blocked ',
+          lastRequestedAt: '2026-05-24T03:00:00.000Z',
+        }),
+      ]),
+    );
+  });
+
   it('keeps the route admin-gated when local preview is disabled', async () => {
     mockedRequireAdmin.mockResolvedValue(
       NextResponse.json({ error: 'unauthorized' }, { status: 401 }),
