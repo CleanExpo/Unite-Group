@@ -1,9 +1,9 @@
 # CRM Mutation Timeline Contract
 
-Date: 2026-05-24 09:25 AEST
+Date: 2026-05-24 11:10 AEST
 Owner: Margot
 Project: Unite-Group
-Status: Local helper/test/docs contract only. The local timeline helper and unit tests now define the first mutation event types listed below; no route has been added by this document. No production database write, migration application, sandbox apply, deployment, GitHub push, client-facing communication, billing/payment action, or permanent business-rule approval is implied.
+Status: Local helper/test/route contract only. The local timeline helper, unit tests, and guarded contact `PATCH` route now cover the first contact update mutation slice. No production database write, migration application, sandbox apply, deployment, GitHub push, client-facing communication, billing/payment action, or permanent business-rule approval is implied.
 
 ## Purpose
 
@@ -39,7 +39,7 @@ Current local baseline from repo evidence:
    - `approval_expired`
    - `task_completed`
    - `integration_stale`
-2. Contact create and opportunity create routes already write best-effort sanitized `agent_actions` timeline events after the primary mutation succeeds.
+2. Contact create, contact update, and opportunity create routes already write best-effort sanitized `agent_actions` timeline events after the primary mutation succeeds.
 3. Timeline write failures must not fail the primary mutation after it succeeds.
 4. Timeline write failures must log generic messages only and must not log raw database error objects or sensitive strings.
 5. Board approval IDs, approval references, rejection reasons, secrets, tokens, auth data, API keys, emails, phone numbers, addresses, and IPs must not survive in timeline metadata.
@@ -50,24 +50,25 @@ Current local baseline from repo evidence:
 
 ### Contact update
 
-Candidate route shape:
+Implemented local route shape:
 
 ```text
-PATCH /api/crm/contacts/[id]
+PATCH /api/crm/contacts
 ```
 
-Minimum local route-test contract before implementation is considered covered:
+Current local route-test contract covered in `tests/integration/api/crm-contacts-create.test.ts`:
 
 1. Admin/service-role gate runs before CRM Supabase access.
 2. Invalid UUID or invalid payload returns a safe 400 before Supabase write.
 3. Missing CRM env returns `503 crm_not_configured` before Supabase write.
-4. Identity-changing fields (`primaryEmail`, `primaryPhone`, `linkedClientId`, `linkedBusinessId`, `privacyScope`) require either a safe same-scope proof or Board approval id.
-5. Multi-scope link changes without approval return `403 operator_approval_required` before Supabase access.
+4. This first slice only permits the spec PATCH fields: `displayName`, `roleTitle`, `email`, `phone`, `relationshipOwner`, and `source`, plus required `id`.
+5. Unknown/out-of-scope fields, blank mutable text fields, and a blank display name mixed with another valid field return `400 invalid_contact_update_payload` before CRM Supabase access.
 6. Primary contact update succeeds before any timeline write is attempted.
 7. After primary success, route writes one sanitized timeline row with the explicit local `contact_updated` event type.
 8. Timeline metadata contains only safe change flags, not raw before/after PII values.
 9. Timeline insert returned/thrown failures preserve the primary update response and log a generic message only.
-10. No Board approval id is persisted or returned.
+10. Timeline labels use the returned display name when safe, or opaque non-PII `contact <id>` fallback copy when the returned row has an id but no safe display name.
+11. No Board approval id is accepted, persisted, or returned; link/business/privacy/status/source-detail fields remain out of scope for this local route/test slice.
 
 ### Contact merge
 
@@ -131,7 +132,7 @@ Minimum local route-test contract before implementation is considered covered:
 
 ## Timeline taxonomy extension status before mutation routes
 
-The current local timeline helper now defines explicit update/close/reopen event types for the first mutation-route slice, and `tests/unit/lib/crm/activity-timeline.test.ts` covers their `agent_actions` mapping and metadata sanitization. This remains local helper/test/docs state only: no contact update/merge route, opportunity update/close/reopen route, schema migration, or production write has been added.
+The current local timeline helper now defines explicit update/close/reopen event types for the first mutation-route slice, and `tests/unit/lib/crm/activity-timeline.test.ts` covers their `agent_actions` mapping and metadata sanitization. The contact update route is locally implemented and mocked-tested as a local route/test contract only; no contact merge route, opportunity update/close/reopen route, schema migration, deployment, or external environment claim is included in this slice.
 
 Implemented local first extension:
 
@@ -186,4 +187,4 @@ If new route test files are created, include those files in the focused Jest com
 
 ## Current decision
 
-Do not add update/merge/close/reopen routes in the same step as this contract. The safe next implementation slice is a single narrow mocked route-level test for contact update or opportunity close/reopen timeline write ordering, using the now-green local taxonomy contract before any route implementation.
+Do not add more mutation routes in the same step as this contract. Contact update is now covered as a local mocked route/test contract; the safe next implementation slice is a single narrow mocked route-level test for opportunity update/close/reopen timeline write ordering, using the now-green local taxonomy contract before any opportunity mutation route implementation.

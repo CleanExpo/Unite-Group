@@ -13,6 +13,7 @@ const blankStringToUndefined = (value: unknown) =>
   typeof value === 'string' && value.trim().length === 0 ? undefined : value;
 
 const optionalTrimmed = (max: number) => z.string().trim().max(max).optional();
+const optionalNonBlankTrimmed = (max: number) => z.string().trim().min(1).max(max).optional();
 const optionalTrimmedDefault = (max: number, defaultValue: string) =>
   z.preprocess(blankStringToUndefined, z.string().trim().max(max).default(defaultValue));
 const optionalTrimmedEmail = z.string().trim().email().max(320).optional();
@@ -21,6 +22,7 @@ const optionalBoardApprovalId = z.preprocess(
   z.string().trim().min(6).max(120).optional(),
 );
 const CONTACT_SELECT_COLUMNS = 'id,display_name,first_name,last_name,primary_email,primary_phone,role_title,company_name,linked_lead_id,linked_client_id,linked_business_id,source,source_detail,marketing_consent,relationship_owner,status,privacy_scope,dedupe_email_key,dedupe_domain_key,additional_data,created_at,updated_at';
+const CONTACT_PATCH_SELECT_COLUMNS = 'id,display_name,role_title,primary_email,primary_phone,relationship_owner,source,updated_at';
 
 const contactCreateSchema = z.object({
   displayName: optionalTrimmed(200),
@@ -46,8 +48,40 @@ const contactCreateSchema = z.object({
   boardApprovalId: optionalBoardApprovalId,
 });
 
+const contactUpdateSchema = z.object({
+  id: z.string().uuid(),
+  displayName: optionalNonBlankTrimmed(200),
+  roleTitle: optionalNonBlankTrimmed(160),
+  email: optionalTrimmedEmail,
+  phone: optionalNonBlankTrimmed(80),
+  relationshipOwner: optionalNonBlankTrimmed(120),
+  source: optionalNonBlankTrimmed(120),
+}).strict();
+
 function hasText(value?: string) {
   return Boolean(value && value.trim().length > 0);
+}
+
+const SENSITIVE_TIMELINE_LABEL_PATTERNS = [
+  /\bBOARD-[A-Z0-9-]+\b/i,
+  /\bbearer\s+[a-z0-9._~+/=-]+\b/i,
+  /\bapi[_ -]?key[_ :=-]*[a-z0-9._-]+\b/i,
+  /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i,
+  /(?:\+?\d[\d ().-]{7,}\d)/,
+  /(?:\b(?:billing|payment)\b.*\b(?:card|method|visa|mastercard|amex|discover|\d{4})\b|\bcard\b.*\b(?:visa|mastercard|amex|discover|\d{4})\b|\b(?:visa|mastercard|amex|discover)\b\s+(?:card|ending\s+\d{4}|\d{4})\b)/i,
+];
+
+function safeTimelineSubjectLabel(contactRow: Record<string, unknown>) {
+  const subjectId = typeof contactRow.id === 'string' ? contactRow.id : '';
+  const label = typeof contactRow.display_name === 'string' ? contactRow.display_name.trim() : '';
+  if (!subjectId) return '';
+  if (!label) return `contact ${subjectId}`;
+
+  if (SENSITIVE_TIMELINE_LABEL_PATTERNS.some((pattern) => pattern.test(label))) {
+    return `contact ${subjectId}`;
+  }
+
+  return label;
 }
 
 function isUniqueViolation(error: unknown) {
@@ -75,7 +109,7 @@ async function recordContactCreatedTimelineEvent(
   contactRow: Record<string, unknown>,
 ) {
   const subjectId = typeof contactRow.id === 'string' ? contactRow.id : '';
-  const subjectLabel = typeof contactRow.display_name === 'string' ? contactRow.display_name : '';
+  const subjectLabel = safeTimelineSubjectLabel(contactRow);
   if (!subjectId || !subjectLabel) return;
 
   const event = buildCrmActivityTimelineEvent({
@@ -92,6 +126,40 @@ async function recordContactCreatedTimelineEvent(
       linkedClient: Boolean(contactRow.linked_client_id),
       linkedBusiness: Boolean(contactRow.linked_business_id),
     },
+  });
+
+  try {
+    const { error } = await supabase
+      .from('agent_actions')
+      .insert(buildCrmTimelineAgentActionInsert(event))
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error('Error recording CRM contact timeline event');
+    }
+  } catch {
+    console.error('Error recording CRM contact timeline event');
+  }
+}
+
+async function recordContactUpdatedTimelineEvent(
+  supabase: ReturnType<typeof createClient<any>>,
+  contactRow: Record<string, unknown>,
+  changedFields: Record<string, boolean>,
+) {
+  const subjectId = typeof contactRow.id === 'string' ? contactRow.id : '';
+  const subjectLabel = safeTimelineSubjectLabel(contactRow);
+  if (!subjectId || !subjectLabel) return;
+
+  const event = buildCrmActivityTimelineEvent({
+    type: 'contact_updated',
+    actor: 'Margot',
+    subjectId,
+    subjectLabel,
+    occurredAt: new Date().toISOString(),
+    source: 'crm_contacts_route',
+    metadata: changedFields,
   });
 
   try {
@@ -232,5 +300,92 @@ export async function POST(request: NextRequest) {
 
     console.error('Unexpected CRM contact create error');
     return NextResponse.json({ error: 'crm_contact_create_failed' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  const gate = await requireAdmin(request);
+  if (gate instanceof NextResponse) return gate;
+
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return NextResponse.json({ error: 'crm_not_configured' }, { status: 503 });
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'invalid_contact_update_payload' }, { status: 400 });
+  }
+
+  const parsed = contactUpdateSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'invalid_contact_update_payload' }, { status: 400 });
+  }
+
+  const contact = parsed.data;
+  const updatePayload: Record<string, unknown> = {};
+  const changedFields: Record<string, boolean> = {};
+
+  if (contact.displayName !== undefined) {
+    updatePayload.display_name = contact.displayName;
+    changedFields.changedDisplayName = true;
+  }
+  if (contact.roleTitle !== undefined) {
+    updatePayload.role_title = contact.roleTitle;
+    changedFields.changedRoleTitle = true;
+  }
+  if (contact.email !== undefined) {
+    updatePayload.primary_email = contact.email;
+    changedFields.changedEmail = true;
+  }
+  if (contact.phone !== undefined) {
+    updatePayload.primary_phone = contact.phone;
+    changedFields.changedPhone = true;
+  }
+  if (contact.relationshipOwner !== undefined) {
+    updatePayload.relationship_owner = contact.relationshipOwner;
+    changedFields.changedRelationshipOwner = true;
+  }
+  if (contact.source !== undefined) {
+    updatePayload.source = contact.source;
+    changedFields.changedSource = true;
+  }
+
+  if (Object.keys(updatePayload).length === 0) {
+    return NextResponse.json({ error: 'invalid_contact_update_payload' }, { status: 400 });
+  }
+
+  updatePayload.updated_at = new Date().toISOString();
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    { auth: { persistSession: false } },
+  );
+
+  try {
+    const { data, error } = await supabase
+      .from('crm_contacts')
+      .update(updatePayload)
+      .eq('id', contact.id)
+      .select(CONTACT_PATCH_SELECT_COLUMNS)
+      .single();
+
+    if (error) {
+      console.error('Error updating CRM contact');
+      return NextResponse.json({ error: 'crm_contact_update_failed' }, { status: 500 });
+    }
+
+    await recordContactUpdatedTimelineEvent(
+      supabase,
+      data as Record<string, unknown>,
+      changedFields,
+    );
+
+    return NextResponse.json({ success: true, contact: data }, { status: 200 });
+  } catch {
+    console.error('Unexpected CRM contact update error');
+    return NextResponse.json({ error: 'crm_contact_update_failed' }, { status: 500 });
   }
 }
