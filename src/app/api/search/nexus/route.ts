@@ -5,7 +5,7 @@ import { requireAdmin } from '@/lib/security/require-admin';
 
 // OpenAI client is only instantiated if the key exists.
 // This prevents build-time crashes when the key is not set in the current environment.
-const openai = process.env.OPENAI_API_KEY 
+const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
@@ -17,7 +17,12 @@ function getSupabaseClient() {
     return null;
   }
 
-  return createClient(supabaseUrl, serviceRoleKey);
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
 }
 
 interface SearchResult {
