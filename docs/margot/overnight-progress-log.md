@@ -10,7 +10,7 @@ Current checkpoint:
 - Added explicit route-level `PATCH /api/crm/opportunities` assertions for generic update and reopen timeline events in `tests/integration/api/crm-opportunities-create.test.ts`. The generic update test verifies `crm_timeline_opportunity_updated`, minimized changed metadata, `actionClass: auto`, and no Board approval leakage. The reopen test verifies `crm_timeline_opportunity_reopened`, safe opaque response/timeline labels, selected free-text redaction, and no sensitive returned free-text leakage.
 - Updated `docs/margot/crm-test-coverage-matrix.md` row 50 and the ordered next gaps so the opportunity generic/reopen assertion gap is marked covered as a local mocked route/test contract only. The next safe gap is now command-center CRM UI hydration/leads/opportunities/daily digest coverage.
 - Reproduced the post-rebase `npm run security:routes-check` failure for `/api/telegram/approval-callback`, added RED/GREEN coverage in `tests/unit/scripts/check-route-inventory.test.ts`, and updated `scripts/check-route-inventory.ts` to recognize the existing `verifyDecisionCallbackData` HMAC callback verifier as a targeted cryptographic protection pattern. No allowlist bypass was added.
-- Spec compliance review returned PASS and quality/security review returned APPROVED after the route-inventory fix. No migrations, sandbox/prod DB writes, Vercel env mutation, deploy, client-facing communication, billing/payment action, destructive git, or secret printing/storage occurred.
+- Spec compliance review returned PASS and quality/security review returned APPROVED after the route-inventory fix. I committed and pushed the branch, opened PR #201 (`https://github.com/CleanExpo/Unite-Group/pull/201`), and observed all PR checks pass for commit `1d800e0f956a0196bb481c953f8477305817ef6c` (`CodeRabbit`, `Vercel Preview Comments`, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`). No migrations, sandbox/prod DB writes, Vercel env mutation, manual deploy, client-facing communication, billing/payment action, destructive git, or secret printing/storage occurred.
 
 Verification:
 
@@ -36,11 +36,11 @@ Blockers / notes:
 
 - The primary worktree concurrently moved to `margot/personal-intelligence-fallback` with many staged/uncommitted Personal Intelligence files; I did not overwrite, stash, reset, rebase, or commit that work.
 - This clean branch now includes the CRM assertion/docs slice plus the narrow route-inventory detector regression/fix required to keep the rebased security gate green.
-- This clean branch still needs commit/push/PR creation after final evidence read-back and verification.
+- PR #201 is open at `https://github.com/CleanExpo/Unite-Group/pull/201`; checks for commit `1d800e0f956a0196bb481c953f8477305817ef6c` passed before this local evidence update.
 
 Next safe slice:
 
-- Commit the isolated CRM assertion/docs and route-inventory detector fix from `/tmp/unite-opportunity-update`, push `margot/opportunity-update-assertions-pr`, open a PR, then watch/re-query checks. Keep the separate Personal Intelligence fallback lane isolated.
+- Push this evidence-only update if we need the PR docs to include the PR/check handle, then merge PR #201 only if the refreshed checks remain clean. Keep the separate Personal Intelligence fallback lane isolated.
 
 ## 2026-05-25 03:09 AEST
 
