@@ -20,7 +20,8 @@ import { Business360Grid, type Business360GridProps } from './business-360/Busin
 import { ActivityLog, type ActivityLogProps } from './activity/ActivityLog';
 import { MargotVoicePanel } from './voice/MargotVoicePanel';
 import { HermesControlPanel } from './control-panel/HermesControlPanel';
-import { DailyCrmDigestPanel, type DailyCrmDigestPanelProps } from './digest/DailyCrmDigestPanel';
+import { DailyCrmDigestPanel } from './digest/DailyCrmDigestPanel';
+import type { CommandCenterDailyDigestInitial } from './daily-digest-initial';
 
 export interface CommandCenterShellProps {
   /**
@@ -51,16 +52,16 @@ export interface CommandCenterShellProps {
    */
   business360Initial?: Business360GridProps;
   /**
-   * Optional Daily CRM Digest props injected by the server-rendered page.
-   * This read-surface only renders an already-created digest; no fetching.
-   */
-  dailyDigestInitial?: DailyCrmDigestPanelProps;
-  /**
    * Optional AgentTopology props injected by the server-rendered page.
    * When provided, node states reflect the latest agent_actions; positions
    * + edges stay seed (intentional layout).
    */
   topologyInitial?: AgentTopologyProps;
+  /**
+   * Optional minimized CRM daily digest injected by the server-rendered page.
+   * Full digest markdown must stay server-only.
+   */
+  dailyDigestInitial?: CommandCenterDailyDigestInitial;
 }
 
 export function CommandCenterShell({
@@ -86,7 +87,7 @@ export function CommandCenterShell({
       <main className="flex-1 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="flex min-w-0 flex-col">
           <AgentTopology {...topologyInitial} />
-          <HermesControlPanel />
+          <HermesControlPanel dailyDigestInitial={dailyDigestInitial} />
         </div>
 
         <aside

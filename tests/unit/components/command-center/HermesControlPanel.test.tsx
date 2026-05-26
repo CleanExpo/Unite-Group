@@ -120,6 +120,40 @@ describe('HermesControlPanel', () => {
     expect(html).not.toContain('CRM unreachable · seed plan');
   });
 
+  it('renders a minimized daily CRM digest DTO without raw markdown or hidden sections', () => {
+    const html = renderToStaticMarkup(
+      <HermesControlPanel
+        dailyDigestInitial={{
+          summary: {
+            leadCount: 2,
+            qualifiedLeadCount: 1,
+            opportunityCount: 0,
+            approvalRequiredCount: 1,
+            blockedTaskCount: 1,
+            blockerCount: 0,
+          },
+          operatorPriorities: [
+            'Task task-1 (Approve follow-up): owner Phill, status blocked, priority high.',
+            'Lead lead-1 (Ada / Example Co): qualified score 91. Next: Review CRM action',
+          ],
+          approvals: ['Task task-1 (Approve follow-up): blocked for Phill. Priority: high'],
+          blockers: [],
+        }}
+      />,
+    );
+
+    expect(html).toContain('aria-label="Daily CRM digest summary"');
+    expect(html).toContain('Daily CRM digest · operator priorities');
+    expect(html).toContain('LEADS');
+    expect(html).toContain('QUALIFIED');
+    expect(html).toContain('APPROVALS');
+    expect(html).toContain('BLOCKED');
+    expect(html).toContain('Task task-1 (Approve follow-up): owner Phill, status blocked, priority high.');
+    expect(html).not.toContain('ada@example.com');
+    expect(html).not.toContain('RAW MARKDOWN');
+    expect(html).not.toContain('No blockers supplied');
+  });
+
   it('renders live CRM workstream task evidence surfaced by the control-panel API', () => {
     const html = renderToStaticMarkup(
       <HermesControlPanel

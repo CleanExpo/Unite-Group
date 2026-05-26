@@ -50,6 +50,7 @@ export interface CrmDailyDigestInput {
 }
 
 export interface CrmDailyDigest {
+  generatedAt: string;
   summary: {
     leadCount: number;
     qualifiedLeadCount: number;
@@ -214,5 +215,5 @@ export function createCrmDailyDigest(input: CrmDailyDigestInput): CrmDailyDigest
     'No production DB writes, deploys, env mutations, secret printing, GitHub push, or client-facing sends are implied by this digest.',
   ].join('\n');
 
-  return { summary, sections, markdown };
+  return { generatedAt: input.generatedAt, summary, sections, markdown };
 }
