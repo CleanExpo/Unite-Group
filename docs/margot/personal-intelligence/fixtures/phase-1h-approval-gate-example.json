@@ -1,0 +1,147 @@
+{
+  "gateName": "2026-05-25-phase-1h-approval-gate-example",
+  "generatedAt": "2026-05-25T19:00:00.000Z",
+  "preparedBy": "Margot",
+  "approvalDryRunPath": "docs/margot/personal-intelligence/approval-dry-run/2026-05-25-phase-1g-approval-dry-run-example.json",
+  "dryRun": {
+    "dryRunName": "2026-05-25-phase-1g-approval-dry-run-example",
+    "generatedAt": "2026-05-25T18:00:00.000Z",
+    "preparedBy": "Margot",
+    "approvalHandoffPath": "docs/margot/personal-intelligence/approval-handoff/2026-05-25-phase-1f-approval-handoff-example.json",
+    "approvalLedgerPath": "docs/margot/personal-intelligence/approval-ledger/2026-05-25-phase-1e-candidate-approval-ledger-example.json",
+    "sourceRegisterPath": "docs/margot/personal-intelligence/candidate-register/2026-05-25-phase-1c-nexus-mapping-note-example.json",
+    "sourceNotePath": "docs/margot/personal-intelligence/nexus-mapping-notes/2026-05-25-phase-1c-nexus-mapping-note-example.md",
+    "dryRunItems": [
+      {
+        "dryRunItemId": "phase-1c001-memory-1-memory-write-proposal-2026-05-25t17-00-00-000z-dry-run-memo",
+        "actionPackId": "phase-1c001-memory-1-memory-write-proposal-2026-05-25t17-00-00-000z",
+        "candidateId": "phase-1c001-memory-1",
+        "candidateType": "memory",
+        "sourceActionType": "memory_write_proposal",
+        "sourceReviewStatus": "approved",
+        "dryRunAction": "dry_run_memory_write_request",
+        "executionStatus": "not_executed",
+        "nexusDestination": "memory_candidate",
+        "title": "Memory proposal: user_preference",
+        "wouldDo": "Would draft a separate durable-memory write request for human approval: Memory write proposal only: Phill values long-horizon strategic intelligence that converts learning into Nexus execution leverage.",
+        "mustNotDo": [
+          "Must not write durable memory.",
+          "Must not create tasks or experiments.",
+          "Must not execute the dry-run item.",
+          "Must not mutate external integrations, production data, deployments, or client-facing outputs."
+        ],
+        "verificationStep": "Confirm the memory is distilled, durable, non-raw, and explicitly approved before saving.",
+        "sourceNotePath": "docs/margot/personal-intelligence/nexus-mapping-notes/2026-05-25-phase-1c-nexus-mapping-note-example.md",
+        "approvalLedgerPath": "docs/margot/personal-intelligence/approval-ledger/2026-05-25-phase-1e-candidate-approval-ledger-example.json",
+        "approvalHandoffPath": "docs/margot/personal-intelligence/approval-handoff/2026-05-25-phase-1f-approval-handoff-example.json",
+        "sideEffectBoundary": "dry-run-only-no-execution",
+        "generatedAt": "2026-05-25T18:00:00.000Z"
+      },
+      {
+        "dryRunItemId": "phase-1c001-task-1-task-draft-proposal-2026-05-25t17-00-00-000z-dry-run-task-dra",
+        "actionPackId": "phase-1c001-task-1-task-draft-proposal-2026-05-25t17-00-00-000z",
+        "candidateId": "phase-1c001-task-1",
+        "candidateType": "task",
+        "sourceActionType": "task_draft_proposal",
+        "sourceReviewStatus": "approved",
+        "dryRunAction": "dry_run_task_draft",
+        "executionStatus": "not_executed",
+        "nexusDestination": "task_candidate",
+        "title": "Review Nexus application of: AI agents for SEO GEO AEO CRM and 25 steps ahead planning",
+        "wouldDo": "Would draft a separate local task proposal for human approval: Task draft proposal only: Review Nexus application of: AI agents for SEO GEO AEO CRM and 25 steps ahead planning. Signal: Practical workflow for converting AI agent, SEO, GEO, AEO, CRM, and 25 steps ahead scenario planning into tested Nexus experiments.",
+        "mustNotDo": [
+          "Must not create or execute tasks.",
+          "Must not write durable memory.",
+          "Must not execute the dry-run item.",
+          "Must not mutate external integrations, production data, deployments, or client-facing outputs."
+        ],
+        "verificationStep": "Read back the mapping note and confirm source, signal, waste decision, and destination.",
+        "sourceNotePath": "docs/margot/personal-intelligence/nexus-mapping-notes/2026-05-25-phase-1c-nexus-mapping-note-example.md",
+        "approvalLedgerPath": "docs/margot/personal-intelligence/approval-ledger/2026-05-25-phase-1e-candidate-approval-ledger-example.json",
+        "approvalHandoffPath": "docs/margot/personal-intelligence/approval-handoff/2026-05-25-phase-1f-approval-handoff-example.json",
+        "sideEffectBoundary": "dry-run-only-no-execution",
+        "generatedAt": "2026-05-25T18:00:00.000Z"
+      },
+      {
+        "dryRunItemId": "phase-1c001-experiment-1-future-review-proposal-2026-05-25t17-00-00-000z-dry-run",
+        "actionPackId": "phase-1c001-experiment-1-future-review-proposal-2026-05-25t17-00-00-000z",
+        "candidateId": "phase-1c001-experiment-1",
+        "candidateType": "experiment",
+        "sourceActionType": "future_review_proposal",
+        "sourceReviewStatus": "parked",
+        "dryRunAction": "dry_run_future_review_queue_item",
+        "executionStatus": "not_executed",
+        "nexusDestination": "marketing_strategy",
+        "title": "Local Nexus experiment: AI agents for SEO GEO AEO CRM and 25 steps ahead planning",
+        "wouldDo": "Would preserve as a future review queue item only: Future review proposal only: Local Nexus experiment: AI agents for SEO GEO AEO CRM and 25 steps ahead planning. Preserve signal without execution.",
+        "mustNotDo": [
+          "Must not create experiments or route work.",
+          "Must not publish output.",
+          "Must not execute the dry-run item.",
+          "Must not mutate external integrations, production data, deployments, or client-facing outputs."
+        ],
+        "verificationStep": "Read back the draft and confirm source, useful signal, waste decision, and approval state.",
+        "sourceNotePath": "docs/margot/personal-intelligence/nexus-mapping-notes/2026-05-25-phase-1c-nexus-mapping-note-example.md",
+        "approvalLedgerPath": "docs/margot/personal-intelligence/approval-ledger/2026-05-25-phase-1e-candidate-approval-ledger-example.json",
+        "approvalHandoffPath": "docs/margot/personal-intelligence/approval-handoff/2026-05-25-phase-1f-approval-handoff-example.json",
+        "sideEffectBoundary": "dry-run-only-no-execution",
+        "generatedAt": "2026-05-25T18:00:00.000Z"
+      },
+      {
+        "dryRunItemId": "phase-1c001-waste-1-evidence-only-2026-05-25t17-00-00-000z-dry-run-archive-evide",
+        "actionPackId": "phase-1c001-waste-1-evidence-only-2026-05-25t17-00-00-000z",
+        "candidateId": "phase-1c001-waste-1",
+        "candidateType": "waste",
+        "sourceActionType": "evidence_only",
+        "sourceReviewStatus": "rejected",
+        "dryRunAction": "dry_run_archive_evidence_marker",
+        "executionStatus": "not_executed",
+        "nexusDestination": "waste_register",
+        "title": "Waste-register evidence: repeated model-release hype",
+        "wouldDo": "Would mark as local archive/evidence only: Evidence-only record: Waste-register evidence: repeated model-release hype. Keep closed unless separately re-approved.",
+        "mustNotDo": [
+          "Must not operationalize evidence-only items.",
+          "Must not resurrect rejected/waste items without new explicit approval.",
+          "Must not execute the dry-run item.",
+          "Must not mutate external integrations, production data, deployments, or client-facing outputs."
+        ],
+        "verificationStep": "Confirm no operational Nexus destination is used.",
+        "sourceNotePath": "docs/margot/personal-intelligence/nexus-mapping-notes/2026-05-25-phase-1c-nexus-mapping-note-example.md",
+        "approvalLedgerPath": "docs/margot/personal-intelligence/approval-ledger/2026-05-25-phase-1e-candidate-approval-ledger-example.json",
+        "approvalHandoffPath": "docs/margot/personal-intelligence/approval-handoff/2026-05-25-phase-1f-approval-handoff-example.json",
+        "sideEffectBoundary": "dry-run-only-no-execution",
+        "generatedAt": "2026-05-25T18:00:00.000Z"
+      },
+      {
+        "dryRunItemId": "phase-1c001-memory-2-pending-review-hold-2026-05-25t17-00-00-000z-dry-run-no-op-",
+        "actionPackId": "phase-1c001-memory-2-pending-review-hold-2026-05-25t17-00-00-000z",
+        "candidateId": "phase-1c001-memory-2",
+        "candidateType": "memory",
+        "sourceActionType": "pending_review_hold",
+        "sourceReviewStatus": "pending_review",
+        "dryRunAction": "dry_run_no_op_hold",
+        "executionStatus": "not_executed",
+        "nexusDestination": "memory_candidate",
+        "title": "Pending memory proposal: founder filter preference",
+        "wouldDo": "Would hold as a no-op pending decision: Pending review hold: Pending memory proposal: founder filter preference. Await explicit ledger decision.",
+        "mustNotDo": [
+          "Must not create memory, tasks, experiments, routes, or production changes.",
+          "Must not execute the dry-run item.",
+          "Must not mutate external integrations, production data, deployments, or client-facing outputs."
+        ],
+        "verificationStep": "Confirm whether the memory is durable before any future approval.",
+        "sourceNotePath": "docs/margot/personal-intelligence/nexus-mapping-notes/2026-05-25-phase-1c-nexus-mapping-note-example.md",
+        "approvalLedgerPath": "docs/margot/personal-intelligence/approval-ledger/2026-05-25-phase-1e-candidate-approval-ledger-example.json",
+        "approvalHandoffPath": "docs/margot/personal-intelligence/approval-handoff/2026-05-25-phase-1f-approval-handoff-example.json",
+        "sideEffectBoundary": "dry-run-only-no-execution",
+        "generatedAt": "2026-05-25T18:00:00.000Z"
+      }
+    ],
+    "sideEffectBoundaries": [
+      "No durable memory writes occurred.",
+      "No task creation, task execution, experiment creation, routing, external mutation, production writes, deployments, or client-facing actions occurred.",
+      "Dry-run items describe what would happen next only and still require separate explicit human approval before any downstream side effect.",
+      "Evidence-only, waste, rejected, parked, and pending items remain local non-executing dry-run state only."
+    ]
+  }
+}

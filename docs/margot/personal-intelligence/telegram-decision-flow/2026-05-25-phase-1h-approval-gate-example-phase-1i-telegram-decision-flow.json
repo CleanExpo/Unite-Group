@@ -1,0 +1,249 @@
+{
+  "phase": "1I",
+  "generatedAt": "2026-05-25T19:00:00.000Z",
+  "sourceApprovalGatePath": "docs/margot/personal-intelligence/approval-gate/2026-05-25-phase-1h-approval-gate-example.json",
+  "callbackSchema": "h1|<a>|<r>|<n>|<s>",
+  "safetyBoundary": "Telegram message handling plus local-only append ledger only; no apply execution path.",
+  "examples": [
+    {
+      "applyRequestId": "phase-1c001-memory-1-memory-apply-request-2026-05-25t19-00-00-000z",
+      "applyRequestShortId": "QpC0a3Q-sP",
+      "title": "Memory proposal: user_preference",
+      "requestedActionType": "memory_apply_request",
+      "telegramMessage": {
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✅ Approve",
+                "callback_data": "h1|A|QpC0a3Q-sP|n00001|AyCxVSw7hN"
+              },
+              {
+                "text": "❌ Reject",
+                "callback_data": "h1|R|QpC0a3Q-sP|n00002|vrk49aPsHi"
+              }
+            ],
+            [
+              {
+                "text": "⏸ Defer",
+                "callback_data": "h1|D|QpC0a3Q-sP|n00003|g-U2Fo2XKd"
+              },
+              {
+                "text": "📝 Request Changes",
+                "callback_data": "h1|C|QpC0a3Q-sP|n00004|7qG7VTx3bl"
+              }
+            ],
+            [
+              {
+                "text": "🔍 View Evidence",
+                "callback_data": "h1|V|QpC0a3Q-sP|n00005|05UMGXUi7q"
+              }
+            ]
+          ]
+        }
+      },
+      "evidencePreview": [
+        "Evidence for phase-1c001-memory-1-memory-apply-request-2026-05-25t19-00-00-000z",
+        "Title: Memory proposal: user_preference",
+        "Requested action: memory_apply_request",
+        "Risk: high",
+        "Evidence refs:",
+        "- docs/margot/personal-intelligence/approval-dry-run/2026-05-25-phase-1g-approval-dry-run-example.json",
+        "- docs/margot/personal-intelligence/approval-handoff/2026-05-25-phase-1f-approval-handoff-example.json",
+        "- docs/margot/personal-intelligence/approval-ledger/2026-05-25-phase-1e-candidate-approval-ledger-example.json"
+      ]
+    },
+    {
+      "applyRequestId": "phase-1c001-task-1-task-apply-request-2026-05-25t19-00-00-000z",
+      "applyRequestShortId": "oCgweKm-d7",
+      "title": "Review Nexus application of: AI agents for SEO GEO AEO CRM and 25 steps ahead planning",
+      "requestedActionType": "task_apply_request",
+      "telegramMessage": {
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✅ Approve",
+                "callback_data": "h1|A|oCgweKm-d7|n00006|sOEO7mw1eR"
+              },
+              {
+                "text": "❌ Reject",
+                "callback_data": "h1|R|oCgweKm-d7|n00007|Q85O-gtnsM"
+              }
+            ],
+            [
+              {
+                "text": "⏸ Defer",
+                "callback_data": "h1|D|oCgweKm-d7|n00008|MDG5sRkvoo"
+              },
+              {
+                "text": "📝 Request Changes",
+                "callback_data": "h1|C|oCgweKm-d7|n00009|aysFzB6HEP"
+              }
+            ],
+            [
+              {
+                "text": "🔍 View Evidence",
+                "callback_data": "h1|V|oCgweKm-d7|n00010|VPIBe_6mer"
+              }
+            ]
+          ]
+        }
+      },
+      "evidencePreview": [
+        "Evidence for phase-1c001-task-1-task-apply-request-2026-05-25t19-00-00-000z",
+        "Title: Review Nexus application of: AI agents for SEO GEO AEO CRM and 25 steps ahead planning",
+        "Requested action: task_apply_request",
+        "Risk: high",
+        "Evidence refs:",
+        "- docs/margot/personal-intelligence/approval-dry-run/2026-05-25-phase-1g-approval-dry-run-example.json",
+        "- docs/margot/personal-intelligence/approval-handoff/2026-05-25-phase-1f-approval-handoff-example.json",
+        "- docs/margot/personal-intelligence/approval-ledger/2026-05-25-phase-1e-candidate-approval-ledger-example.json"
+      ]
+    },
+    {
+      "applyRequestId": "phase-1c001-experiment-1-future-queue-apply-request-2026-05-25t19-00-00-000z",
+      "applyRequestShortId": "KlJNdHJGnJ",
+      "title": "Local Nexus experiment: AI agents for SEO GEO AEO CRM and 25 steps ahead planning",
+      "requestedActionType": "future_queue_apply_request",
+      "telegramMessage": {
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✅ Approve",
+                "callback_data": "h1|A|KlJNdHJGnJ|n00011|GFOEvVjP5e"
+              },
+              {
+                "text": "❌ Reject",
+                "callback_data": "h1|R|KlJNdHJGnJ|n00012|OSZLB0nVB3"
+              }
+            ],
+            [
+              {
+                "text": "⏸ Defer",
+                "callback_data": "h1|D|KlJNdHJGnJ|n00013|ZTTUBJxai-"
+              },
+              {
+                "text": "📝 Request Changes",
+                "callback_data": "h1|C|KlJNdHJGnJ|n00014|8B8eo2RC4Y"
+              }
+            ],
+            [
+              {
+                "text": "🔍 View Evidence",
+                "callback_data": "h1|V|KlJNdHJGnJ|n00015|jzoGQ3RfLQ"
+              }
+            ]
+          ]
+        }
+      },
+      "evidencePreview": [
+        "Evidence for phase-1c001-experiment-1-future-queue-apply-request-2026-05-25t19-00-00-000z",
+        "Title: Local Nexus experiment: AI agents for SEO GEO AEO CRM and 25 steps ahead planning",
+        "Requested action: future_queue_apply_request",
+        "Risk: medium",
+        "Evidence refs:",
+        "- docs/margot/personal-intelligence/approval-dry-run/2026-05-25-phase-1g-approval-dry-run-example.json",
+        "- docs/margot/personal-intelligence/approval-handoff/2026-05-25-phase-1f-approval-handoff-example.json",
+        "- docs/margot/personal-intelligence/approval-ledger/2026-05-25-phase-1e-candidate-approval-ledger-example.json"
+      ]
+    },
+    {
+      "applyRequestId": "phase-1c001-waste-1-archive-marker-apply-request-2026-05-25t19-00-00-000z",
+      "applyRequestShortId": "AiWzG1tU7p",
+      "title": "Waste-register evidence: repeated model-release hype",
+      "requestedActionType": "archive_marker_apply_request",
+      "telegramMessage": {
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✅ Approve",
+                "callback_data": "h1|A|AiWzG1tU7p|n00016|hoScsqkfiO"
+              },
+              {
+                "text": "❌ Reject",
+                "callback_data": "h1|R|AiWzG1tU7p|n00017|iaUL3U-hDn"
+              }
+            ],
+            [
+              {
+                "text": "⏸ Defer",
+                "callback_data": "h1|D|AiWzG1tU7p|n00018|tqXG9KBn_j"
+              },
+              {
+                "text": "📝 Request Changes",
+                "callback_data": "h1|C|AiWzG1tU7p|n00019|HC0PWsI-AO"
+              }
+            ],
+            [
+              {
+                "text": "🔍 View Evidence",
+                "callback_data": "h1|V|AiWzG1tU7p|n00020|lq7Yp4MPlD"
+              }
+            ]
+          ]
+        }
+      },
+      "evidencePreview": [
+        "Evidence for phase-1c001-waste-1-archive-marker-apply-request-2026-05-25t19-00-00-000z",
+        "Title: Waste-register evidence: repeated model-release hype",
+        "Requested action: archive_marker_apply_request",
+        "Risk: low",
+        "Evidence refs:",
+        "- docs/margot/personal-intelligence/approval-dry-run/2026-05-25-phase-1g-approval-dry-run-example.json",
+        "- docs/margot/personal-intelligence/approval-handoff/2026-05-25-phase-1f-approval-handoff-example.json",
+        "- docs/margot/personal-intelligence/approval-ledger/2026-05-25-phase-1e-candidate-approval-ledger-example.json"
+      ]
+    },
+    {
+      "applyRequestId": "phase-1c001-memory-2-hold-apply-request-2026-05-25t19-00-00-000z",
+      "applyRequestShortId": "pvg6wOriW6",
+      "title": "Pending memory proposal: founder filter preference",
+      "requestedActionType": "hold_apply_request",
+      "telegramMessage": {
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✅ Approve",
+                "callback_data": "h1|A|pvg6wOriW6|n00021|SdFB705UVA"
+              },
+              {
+                "text": "❌ Reject",
+                "callback_data": "h1|R|pvg6wOriW6|n00022|q4XGR7_KW2"
+              }
+            ],
+            [
+              {
+                "text": "⏸ Defer",
+                "callback_data": "h1|D|pvg6wOriW6|n00023|0genMyJa43"
+              },
+              {
+                "text": "📝 Request Changes",
+                "callback_data": "h1|C|pvg6wOriW6|n00024|Y_hHmxkRSv"
+              }
+            ],
+            [
+              {
+                "text": "🔍 View Evidence",
+                "callback_data": "h1|V|pvg6wOriW6|n00025|yiGfYeSsxC"
+              }
+            ]
+          ]
+        }
+      },
+      "evidencePreview": [
+        "Evidence for phase-1c001-memory-2-hold-apply-request-2026-05-25t19-00-00-000z",
+        "Title: Pending memory proposal: founder filter preference",
+        "Requested action: hold_apply_request",
+        "Risk: low",
+        "Evidence refs:",
+        "- docs/margot/personal-intelligence/approval-dry-run/2026-05-25-phase-1g-approval-dry-run-example.json",
+        "- docs/margot/personal-intelligence/approval-handoff/2026-05-25-phase-1f-approval-handoff-example.json",
+        "- docs/margot/personal-intelligence/approval-ledger/2026-05-25-phase-1e-candidate-approval-ledger-example.json"
+      ]
+    }
+  ]
+}
