@@ -1,5 +1,164 @@
 # Margot Overnight Progress Log
 
+## 2026-05-26 22:53 AEST
+
+### Evidence-hygiene repair for concurrent LaunchAgent stub
+
+Current checkpoint:
+
+- Continued the existing `chore/post-pr200-cleanup` evidence branch from starting head `ae0c204` because tracked Margot status/report docs were already dirty and no open GitHub PR exists for `CleanExpo/Unite-Group`; this entry is intended to be captured by a follow-up evidence-only commit.
+- Repaired the concurrent LaunchAgent wrapper stub at `2026-05-26 22:38:37 AEST` and normalized historical bare `LaunchAgent log:` labels so the progress log no longer contains bare `LaunchAgent log:` entries or trailing blank EOF.
+- No new CRM source implementation lane was started in this dirty evidence branch; this tick stayed on local report/evidence hygiene and health verification only.
+
+Verification:
+
+```bash
+npx jest tests/integration/api/search-nexus.test.ts --runInBand
+# PASS: 1 suite / 3 tests.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm run type-check
+# PASS.
+
+git diff --check
+# PASS after the 2026-05-26 22:38:37 AEST LaunchAgent stub repair, historical bare-Log normalization, and this evidence entry.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel deploy/env mutation, manual deploy, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Blockers / notes:
+
+- Mac Mini artifact recovery remains blocked on an authenticated SMB mount containing the approved target files or reachable authenticated SSH.
+- The next implementation lane should start from a clean branch/worktree after these evidence-only docs are committed/published or otherwise parked.
+
+Next safe slice:
+
+- Start the smallest command-center CRM UI/API coverage slice for lead/opportunity/daily-digest rendering surfaces, using TDD and local mocks, from a clean branch/worktree.
+
+## 2026-05-26 22:36 AEST
+
+### Safe health refresh and Mac Mini target probe
+
+Current checkpoint:
+
+- Re-read the requested Margot operating docs, inspected the current repo state, and stayed on the existing `chore/post-pr200-cleanup` evidence branch rather than opening a new implementation lane while Margot report docs remain locally modified.
+- Repo state before that evidence update: branch `chore/post-pr200-cleanup`, head `ae0c204`, remote `https://github.com/CleanExpo/Unite-Group.git`, with only Margot evidence docs modified before this update. GitHub CLI auth is available for `CleanExpo`; open PR list for `CleanExpo/Unite-Group` is empty.
+- Dependency readiness remains good: `node_modules=present`, `package-lock=present`.
+- Mac Mini recovery probe: `/Volumes` contains `Claude`, `Codex Installer`, `Google Chrome`, `Macintosh HD`, and `Telegram`; `phills-mac-mini.local:445` is reachable; `phills-mac-mini.local:22` is unreachable; bounded approved-target search under `/Volumes` found no `MARGOT-COMMAND-CENTER.md` or `RESTOREASSIST-CONTENT-INDEX.md`; `docs/margot/recovered-from-mac-mini/` contains `0` recovered Markdown artifacts.
+- Chosen safe lane: refreshed the existing `/api/search/nexus` sandbox/env guard test plus route-security/type/diff hygiene gates from current local assets. No source code, migration, production, Vercel, or client-facing changes were made.
+
+Verification:
+
+```bash
+npx jest tests/integration/api/search-nexus.test.ts --runInBand
+# PASS: 1 suite / 3 tests.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm run type-check
+# PASS.
+
+git diff --check
+# PASS.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel deploy/env mutation, manual deploy, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Blockers / notes:
+
+- Mac Mini artifact recovery remains blocked on an authenticated SMB mount containing the approved target files or reachable authenticated SSH.
+- This tick is a verified health/evidence refresh only; the next implementation lane should start from a clean branch/worktree before touching command-center CRM UI/API code.
+
+Next safe slice:
+
+- Start the smallest command-center CRM UI/API coverage slice for lead/opportunity/daily-digest rendering surfaces, using TDD and local mocks, once the evidence-only report changes are clean.
+
+## 2026-05-26 22:11 AEST
+
+### Evidence hygiene repair and clean health refresh
+
+Current checkpoint:
+
+- Continued the existing `chore/post-pr200-cleanup` branch rather than starting a new implementation lane while tracked Margot evidence docs were already dirty from the prior health refresh.
+- Preflight: GitHub CLI auth is available for `CleanExpo`; there are no open GitHub PRs for `CleanExpo/Unite-Group`; current branch is `chore/post-pr200-cleanup` at `ae0c204` before this evidence-only cleanup.
+- Repaired the concurrent LaunchAgent wrapper stub at `2026-05-26 22:05:14 AEST` so the progress log no longer ends with a bare `LaunchAgent log:` label/trailing blank EOF.
+- Mac Mini recovery probe remains unchanged in substance: `/Volumes` contains `Claude`, `Codex Installer`, `Google Chrome`, `Macintosh HD`, and `Telegram`; `phills-mac-mini.local:445` is reachable; `phills-mac-mini.local:22` is unreachable; `docs/margot/recovered-from-mac-mini/` contains `0` recovered Markdown artifacts.
+- Chosen safe lane: local evidence/status hygiene plus focused route health verification only; no source code, migration, production, Vercel, or client-facing changes were made.
+
+Verification:
+
+```bash
+npx jest tests/integration/api/search-nexus.test.ts --runInBand
+# PASS: 1 suite / 3 tests.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm run type-check
+# PASS.
+
+git diff --check
+# PASS after the LaunchAgent stub repair and final report updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel deploy/env mutation, manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Blockers / notes:
+
+- Mac Mini artifact recovery remains blocked on an authenticated SMB mount containing the approved target files or reachable authenticated SSH.
+- This tick produced evidence/report hygiene only; implementation remains frozen until the next clean CRM command-center UI/API slice.
+
+Next safe slice:
+
+- Start the smallest command-center CRM UI/API coverage slice for lead/opportunity/daily-digest rendering surfaces, using TDD and local mocks, once the evidence-only branch is clean.
+
+## 2026-05-26 21:57 AEST
+
+### Clean post-PR health refresh and Mac Mini recovery probe
+
+Current checkpoint:
+
+- Re-read the requested Margot operating docs and inspected the current repo state in `/Users/phillmcgurk/Unite-Group`.
+- Current branch is `chore/post-pr200-cleanup` at `ae0c204`; `git status --short` is clean; remote is `https://github.com/CleanExpo/Unite-Group.git`.
+- Local dependency readiness remains good: `node_modules=present` and `package-lock=present`.
+- Mac Mini recovery probe: `/Volumes` contains `Claude`, `Codex Installer`, `Google Chrome`, `Macintosh HD`, and `Telegram`; `phills-mac-mini.local:445` is reachable; `phills-mac-mini.local:22` is unreachable; bounded approved-target search under `/Volumes` found no `MARGOT-COMMAND-CENTER.md` or `RESTOREASSIST-CONTENT-INDEX.md`; `docs/margot/recovered-from-mac-mini/` contains `0` recovered Markdown artifacts.
+- Chosen safe health lane: refreshed the `/api/search/nexus` sandbox/env guard test plus route-security gate from existing local assets, without starting a new implementation branch or touching production systems.
+
+Verification:
+
+```bash
+npx jest tests/integration/api/search-nexus.test.ts --runInBand
+# PASS: 1 suite / 3 tests.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel deploy/env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Blockers / notes:
+
+- Mac Mini artifact recovery remains blocked on authenticated SMB mount containing the approved target files or reachable authenticated SSH.
+- No code changes were needed for this tick; this is an evidence/report refresh on a clean local branch.
+
+Next safe slice:
+
+- Continue command-center CRM UI/API coverage for lead/opportunity/daily-digest rendering surfaces, or keep PR/check evidence fresh if an active review lane needs status updates.
+
 ## 2026-05-26 21:28 AEST
 
 ### Opportunity PATCH timeline assertion coverage and route-inventory detector fix prepared on clean follow-up branch
@@ -1353,8 +1512,7 @@ Updated the local handoff docs to reflect the latest health check and reviewed t
 
 Native macOS Margot orchestrator tick completed.
 
-Log:
-`/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260523_054907.log`
+LaunchAgent log: `/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260523_054907.log`
 
 ## 2026-05-23 05:57:03 AEST
 
@@ -1547,8 +1705,7 @@ tsc --noEmit passed
 
 Native macOS Margot orchestrator tick completed.
 
-Log:
-`/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260523_062139.log`
+LaunchAgent log: `/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260523_062139.log`
 
 ## 2026-05-23 06:40:08 AEST
 
@@ -1723,7 +1880,7 @@ Next lane:
 
 Native macOS Margot orchestrator tick completed.
 
-Log:
+LaunchAgent log: (no LaunchAgent payload path was recorded by the wrapper; entry normalized during the 2026-05-26 22:53 AEST evidence-hygiene repair)
 
 ## 2026-05-23 07:04:46 AEST
 
@@ -2046,7 +2203,7 @@ Next lane:
 
 Native macOS Margot orchestrator tick completed.
 
-Log:
+LaunchAgent log: (no LaunchAgent payload path was recorded by the wrapper; entry normalized during the 2026-05-26 22:53 AEST evidence-hygiene repair)
 
 ## 2026-05-23 08:07:09 AEST
 
@@ -2174,7 +2331,7 @@ Next lane:
 
 Native macOS Margot orchestrator tick completed.
 
-Log:
+LaunchAgent log: (no LaunchAgent payload path was recorded by the wrapper; entry normalized during the 2026-05-26 22:53 AEST evidence-hygiene repair)
 
 
 ## 2026-05-23 08:27:47 AEST
@@ -2345,7 +2502,7 @@ Next slice:
 
 Native macOS Margot orchestrator tick completed.
 
-Log:
+LaunchAgent log: (no LaunchAgent payload path was recorded by the wrapper; entry normalized during the 2026-05-26 22:53 AEST evidence-hygiene repair)
 
 ## 2026-05-23 09:21:02 AEST
 
@@ -2459,7 +2616,7 @@ Next slice:
 
 Native macOS Margot orchestrator tick completed.
 
-Log:
+LaunchAgent log: (no LaunchAgent payload path was recorded by the wrapper; entry normalized during the 2026-05-26 22:53 AEST evidence-hygiene repair)
 
 `/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260523_092346.log`
 
@@ -2521,7 +2678,7 @@ Next slice:
 
 Native macOS Margot orchestrator tick completed.
 
-Log:
+LaunchAgent log: (no LaunchAgent payload path was recorded by the wrapper; entry normalized during the 2026-05-26 22:53 AEST evidence-hygiene repair)
 
 ## 2026-05-23 10:01:30 AEST
 
@@ -2648,7 +2805,7 @@ Next slice:
 
 Native macOS Margot orchestrator tick completed.
 
-Log:
+LaunchAgent log: (no LaunchAgent payload path was recorded by the wrapper; entry normalized during the 2026-05-26 22:53 AEST evidence-hygiene repair)
 
 ## 2026-05-23 10:41 AEST
 
@@ -2769,7 +2926,7 @@ Next slice:
 
 Native macOS Margot orchestrator tick completed.
 
-Log:
+LaunchAgent log: (no LaunchAgent payload path was recorded by the wrapper; entry normalized during the 2026-05-26 22:53 AEST evidence-hygiene repair)
 
 ## 2026-05-23 11:29 AEST
 
@@ -2893,7 +3050,7 @@ Next slice:
 
 Native macOS Margot orchestrator tick completed.
 
-Log:
+LaunchAgent log: (no LaunchAgent payload path was recorded by the wrapper; entry normalized during the 2026-05-26 22:53 AEST evidence-hygiene repair)
 
 ## 2026-05-23 12:08 AEST
 
@@ -3014,7 +3171,7 @@ Next slice:
 
 Native macOS Margot orchestrator tick completed.
 
-Log: not emitted by this LaunchAgent tick.
+LaunchAgent log: not emitted by this LaunchAgent tick.
 
 ## 2026-05-23 12:42 AEST
 
@@ -3127,7 +3284,7 @@ Next slice:
 
 Native macOS Margot orchestrator tick completed.
 
-Log: not emitted by this LaunchAgent tick.
+LaunchAgent log: not emitted by this LaunchAgent tick.
 
 ## 2026-05-23 13:25 AEST
 
@@ -3188,7 +3345,7 @@ Next slice:
 
 Native macOS Margot orchestrator tick completed.
 
-Log:
+LaunchAgent log: (no LaunchAgent payload path was recorded by the wrapper; entry normalized during the 2026-05-26 22:53 AEST evidence-hygiene repair)
 
 ## 2026-05-23 13:43 AEST
 
@@ -3464,7 +3621,7 @@ Next safe slice:
 
 Native macOS Margot orchestrator tick completed.
 
-Log:
+LaunchAgent log: (no LaunchAgent payload path was recorded by the wrapper; entry normalized during the 2026-05-26 22:53 AEST evidence-hygiene repair)
 
 ## 2026-05-23 17:11 AEST
 
@@ -3747,7 +3904,7 @@ Next safe slice:
 
 Native macOS Margot orchestrator tick completed.
 
-Log:
+LaunchAgent log: (no LaunchAgent payload path was recorded by the wrapper; entry normalized during the 2026-05-26 22:53 AEST evidence-hygiene repair)
 
 
 
@@ -3890,7 +4047,7 @@ Next safe slice:
 
 Native macOS Margot orchestrator tick completed.
 
-Log:
+LaunchAgent log: (no LaunchAgent payload path was recorded by the wrapper; entry normalized during the 2026-05-26 22:53 AEST evidence-hygiene repair)
 
 ## 2026-05-23 20:14:47 AEST
 
@@ -3967,7 +4124,7 @@ Health/blocker confirmation:
 
 Native macOS Margot orchestrator tick completed.
 
-Log: wrapper-only tick marker; no additional controller work beyond the 20:14/20:16 evidence entries above.
+LaunchAgent log: wrapper-only tick marker; no additional controller work beyond the 20:14/20:16 evidence entries above.
 
 ## 2026-05-23 20:49 AEST
 
@@ -4094,7 +4251,7 @@ Next safe slice:
 
 Native macOS Margot orchestrator tick completed.
 
-Log: controller completed the 21:01 daily digest privacy slice above; final evidence cleanup and verification continued after this wrapper marker.
+LaunchAgent log: controller completed the 21:01 daily digest privacy slice above; final evidence cleanup and verification continued after this wrapper marker.
 
 ## 2026-05-23 21:31 AEST
 
@@ -4388,7 +4545,7 @@ Slice:
 - Continued the existing in-progress command-center UI approval summary lane instead of starting a new lane.
 - `src/components/command-center/control-panel/HermesControlPanel.tsx` renders `summary.approvalRequired` as an `APPROVAL REQUIRED` summary cell beside GREEN/YELLOW/RED with a zero fallback for seed/loading render.
 - `tests/unit/components/command-center/HermesControlPanel.test.tsx` now asserts the approval summary region, label, and fallback `0` value.
-- Removed a trailing incomplete LaunchAgent `Log:` marker from this progress log after review found it made `git diff --check` fail.
+- Removed a trailing incomplete LaunchAgent `LaunchAgent log:` marker from this progress log after review found it made `git diff --check` fail.
 
 Review:
 
@@ -4521,7 +4678,7 @@ Safety:
 
 Native macOS Margot orchestrator tick completed.
 
-Log: LaunchAgent emitted an empty trailing log marker; cleaned during the 2026-05-24 00:16 AEST verification tick.
+LaunchAgent log: LaunchAgent emitted an empty trailing log marker; cleaned during the 2026-05-24 00:16 AEST verification tick.
 
 ## 2026-05-24 00:16:57 AEST
 
@@ -4541,7 +4698,7 @@ Safe improvement completed:
 - `src/components/command-center/control-panel/HermesControlPanel.tsx` now accepts an optional `initialPayload` for server-rendered/local test rendering of a live CRM control-panel payload without triggering the client fetch effect.
 - `tests/unit/components/command-center/HermesControlPanel.test.tsx` now verifies a live CRM payload renders `CRM · 2 tasks`, uses `summary.approvalRequired=3`, and does not fall back to the seed `CRM · requesting` state.
 - `docs/margot/crm-test-coverage-matrix.md` now records the command-center read-surface coverage as API summary visibility plus seed and injected-live-payload component rendering.
-- Cleaned the prior empty LaunchAgent `Log:` marker at the end of this file while appending evidence.
+- Cleaned the prior empty LaunchAgent `LaunchAgent log:` marker at the end of this file while appending evidence.
 
 TDD evidence:
 
@@ -4600,7 +4757,7 @@ Next safe slice:
 
 Native macOS Margot orchestrator tick completed.
 
-Log: LaunchAgent emitted an empty trailing log marker; cleaned during the 2026-05-24 00:22 AEST verification tick.
+LaunchAgent log: LaunchAgent emitted an empty trailing log marker; cleaned during the 2026-05-24 00:22 AEST verification tick.
 
 ## 2026-05-24 00:35:08 AEST
 
@@ -5145,7 +5302,7 @@ Next safe slice:
 
 Native macOS Margot orchestrator tick completed.
 
-Log: not captured in this progress-log entry.
+LaunchAgent log: not captured in this progress-log entry.
 
 ## 2026-05-24 04:32 AEST
 
@@ -5328,7 +5485,7 @@ Next safe slice:
 
 Native macOS Margot orchestrator tick completed.
 
-Log: not captured in this progress-log entry.
+LaunchAgent log: not captured in this progress-log entry.
 
 ## 2026-05-24 05:19 AEST
 
@@ -5389,7 +5546,7 @@ Next safe slice:
 
 Native macOS Margot orchestrator tick completed.
 
-Log: not captured in this progress-log entry.
+LaunchAgent log: not captured in this progress-log entry.
 
 ## 2026-05-24 05:26 AEST
 
@@ -6064,7 +6221,7 @@ Next safe slice:
 
 Native macOS Margot orchestrator tick completed.
 
-Log:
+LaunchAgent log: (no LaunchAgent payload path was recorded by the wrapper; entry normalized during the 2026-05-26 22:53 AEST evidence-hygiene repair)
 
 ## 2026-05-24 13:02:50 AEST
 
@@ -6072,7 +6229,7 @@ Log:
 
 Native macOS Margot orchestrator tick completed.
 
-Log:
+LaunchAgent log: (no LaunchAgent payload path was recorded by the wrapper; entry normalized during the 2026-05-26 22:53 AEST evidence-hygiene repair)
 
 ## 2026-05-24 13:35:52 AEST
 
@@ -6080,7 +6237,7 @@ Log:
 
 Native macOS Margot orchestrator tick completed.
 
-Log:
+LaunchAgent log: (no LaunchAgent payload path was recorded by the wrapper; entry normalized during the 2026-05-26 22:53 AEST evidence-hygiene repair)
 
 ## 2026-05-24 13:54 AEST
 
@@ -6228,7 +6385,7 @@ Next safe slice:
 ### LaunchAgent tick
 
 Native macOS Margot orchestrator tick completed.
-Log: local scheduler marker did not include additional output.
+LaunchAgent log: local scheduler marker did not include additional output.
 
 ## 2026-05-24 14:41 AEST
 
@@ -6396,7 +6553,7 @@ Next safe slice:
 
 Native macOS Margot orchestrator tick completed.
 
-Log: `docs/margot/automation-logs/margot-tick-20260524_153137.log`
+LaunchAgent log: `docs/margot/automation-logs/margot-tick-20260524_153137.log`
 
 ## 2026-05-24 15:34 AEST
 
@@ -6418,7 +6575,7 @@ Lane executed:
 - Continued the command-center CRM UI/API coverage lane from existing local assets after confirming no open PR was in progress.
 - Added RED/GREEN coverage for live CRM add-on task evidence with `crmTaskStatus`, plus no-status coverage proving there is no dangling separator.
 - Updated `src/components/command-center/control-panel/HermesControlPanel.tsx` so add-on cards render `CRM task <id> · <status>` when status exists and `CRM task <id>` when it does not, matching existing workstream evidence behavior.
-- Fixed the pre-existing progress-log hygiene issue by giving the 15:01 LaunchAgent `Log:` line a concrete local log path and removing the trailing blank line at EOF.
+- Fixed the pre-existing progress-log hygiene issue by giving the 15:01 LaunchAgent `LaunchAgent log:` line a concrete local log path and removing the trailing blank line at EOF.
 - Two-stage review completed: spec compliance `PASS`; quality/security `APPROVED`.
 
 Verification:
@@ -6559,7 +6716,7 @@ Next safe slice:
 
 Native macOS Margot orchestrator tick completed.
 
-Log: local LaunchAgent wrapper emitted no additional structured log payload for this tick.
+LaunchAgent log: local LaunchAgent wrapper emitted no additional structured log payload for this tick.
 
 ## 2026-05-24 16:22 AEST
 
@@ -6582,7 +6739,7 @@ Lane executed:
 - Continued the already-open PR #198 branch instead of starting a new lane.
 - Ran the required two-stage review for the local `crmTaskTitle` response-minimization follow-on: spec compliance returned `PASS`; quality review returned `REQUEST_CHANGES` for evidence drift/trailing EOF hygiene and missing retained-contract assertions, then `APPROVED` after fixes.
 - Strengthened `tests/integration/api/control-panel.test.ts` so the workstream mapping test proves the minimized response retains `crmTaskId`, `crmTaskStatus`, and `lastUpdated` while still omitting raw `crmTaskTitle`.
-- Fixed the dangling LaunchAgent `Log:` stub at the end of this progress log so `git diff --check` passes and the evidence no longer claims a stale result.
+- Fixed the dangling LaunchAgent `LaunchAgent log:` stub at the end of this progress log so `git diff --check` passes and the evidence no longer claims a stale result.
 - Rechecked PR #198 state: GitHub/CI checks are green except `Vercel – unite-group-sandbox`, which remains failed; the PR is open, mergeable, and unstable due to that status.
 
 Verification:
@@ -6617,3 +6774,19 @@ Blockers:
 Next safe slice:
 
 - If `Vercel – unite-group-sandbox` clears after rerun or external fix, push/update/merge PR #198 only after all checks are clean; otherwise keep work local and continue a small command-center CRM UI/API coverage slice that does not widen production or Vercel scope.
+
+## 2026-05-26 22:05:14 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+LaunchAgent log: (no LaunchAgent payload path was recorded by the wrapper; entry normalized during the 2026-05-26 22:11 AEST evidence-hygiene repair)
+
+## 2026-05-26 22:38:37 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+LaunchAgent log: (no LaunchAgent payload path was recorded by the wrapper; entry normalized during the 2026-05-26 22:53 AEST evidence-hygiene repair)
