@@ -1,5 +1,52 @@
 # Margot Overnight Progress Log
 
+## 2026-05-26 23:57 AEST
+
+### Command-center Daily CRM Digest read-surface slice
+
+Current checkpoint:
+
+- Preflighted the primary repo and found local-only Margot evidence/report edits on `chore/post-pr200-cleanup`; GitHub CLI auth was available for `CleanExpo`, and no open GitHub PRs existed for `CleanExpo/Unite-Group`.
+- Created isolated worktree `/private/tmp/unite-crm-digest-ui` on branch `margot/digest-read-surface` from `origin/main` so the source slice did not disturb the dirty evidence branch.
+- Implemented a local browser-facing Daily CRM Digest panel for the command-center side rail. The slice renders an already-created digest only; it does not fetch, read Supabase, apply migrations, mutate env, deploy, or send client-facing messages.
+- Spec review: PASS. Quality review: APPROVED, with only optional minor notes about more targeted numeric assertions and fractional count normalization.
+
+Changed:
+
+- Created `src/components/command-center/digest/DailyCrmDigestPanel.tsx`.
+- Created `src/components/command-center/digest/__tests__/DailyCrmDigestPanel.test.tsx`.
+- Updated `src/components/command-center/CommandCenterShell.tsx` to accept optional `dailyDigestInitial` and render the digest panel in the side rail.
+- Updated `docs/margot/crm-test-coverage-matrix.md` and `docs/margot/morning-report.md` with this local read-surface evidence.
+
+Verification:
+
+```bash
+npx jest src/components/command-center/digest/__tests__/DailyCrmDigestPanel.test.tsx src/components/command-center/__tests__/source-contract.test.tsx tests/unit/components/command-center/HermesControlPanel.test.tsx --runInBand
+# PASS: 3 suites / 12 tests.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after final evidence/report updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel deploy/env mutation, manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Blockers / notes:
+
+- Primary checkout still has local-only Margot evidence/report edits on `chore/post-pr200-cleanup`; this implementation used the isolated `/private/tmp/unite-crm-digest-ui` worktree.
+- The new panel is not wired to the `/api/crm/daily-digest` route yet; it renders only injected digest props in this slice.
+
+Next safe slice:
+
+- Wire the command-center page/server read path to pass a scoped daily CRM digest into `dailyDigestInitial`, after adding route/page tests that prove no UI-side service-role access and safe missing-config behavior.
+
 ## 2026-05-26 22:53 AEST
 
 ### Evidence-hygiene repair for concurrent LaunchAgent stub
