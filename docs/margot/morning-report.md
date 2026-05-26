@@ -5,6 +5,10 @@ Project: Unite-Group
 
 ## Honest status
 
+Current as of `2026-05-26 21:35 AEST`: PR #198 is already merged on `main`, so I continued a clean follow-up CRM assertion branch/worktree (`margot/opportunity-update-assertions-pr` rebased onto `4601de7045202412ce0cb04d9f33f3e784eba8ec`) instead of touching the concurrently dirty primary worktree, which now contains separate Personal Intelligence fallback changes. This slice adds explicit local route-level opportunity PATCH assertions for generic update (`crm_timeline_opportunity_updated`) and reopen (`crm_timeline_opportunity_reopened`) timeline behavior, updates the CRM test coverage matrix, and remains local mocked/test evidence only. The post-rebase route-inventory blocker from `/api/telegram/approval-callback` was reproduced with a RED test, then fixed by teaching `scripts/check-route-inventory.ts` to recognize the existing `verifyDecisionCallbackData` signed HMAC callback verifier; no allowlist bypass was added. I opened PR #201 (`https://github.com/CleanExpo/Unite-Group/pull/201`) and observed all checks pass for commit `1d800e0f956a0196bb481c953f8477305817ef6c` before this evidence update. Verification passed: focused opportunity/timeline/script Jest 3 suites / 41 tests during review, `npm run type-check` after clearing local `.next`, `npm run security:routes-check` with 0 unprotected mutating routes, and `git diff --check`. No production DB write, Supabase migration application, Vercel env mutation, manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, or secret printing/storage occurred.
+
+Historical initial status:
+
 The overnight cron job was configured and enabled, but it did not record a completed run before the morning update. I triggered it again and then completed the first recovery/update pass manually so the repo has useful Margot artifacts now.
 
 ## Completed

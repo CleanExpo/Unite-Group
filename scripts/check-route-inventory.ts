@@ -31,6 +31,9 @@ const AUTH_PATTERNS = [
 const WEBHOOK_SIGNATURE_PATTERNS = [
   /verifyStripeSignature|webhooks\.constructEvent/,
   /verifyWebhookSignature|verifySignature/,
+  // Telegram inline approval callbacks are signed with compact HMAC payloads
+  // and verified before any ledger append or Telegram side effect.
+  /verifyDecisionCallbackData/,
 ];
 // Canonical rate-limit module is @/lib/ratelimit (exports `rateLimit` +
 // `RATE_LIMITS`). The `withRateLimit` alias is reserved for a future

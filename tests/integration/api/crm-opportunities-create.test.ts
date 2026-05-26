@@ -780,6 +780,74 @@ describe('POST /api/crm/opportunities', () => {
     expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
 
+  it('updates an opportunity and writes a sanitized generic update timeline event with minimal changed metadata', async () => {
+    const updateCalls: UpdateCall[] = [];
+    const insertCalls: InsertCall[] = [];
+    const selectCalls: SelectCall[] = [];
+    mockOpportunityUpdate(updateCalls, insertCalls, selectCalls, {
+      data: {
+        id: '55555555-5555-4555-8555-555555555555',
+        name: 'Website CRM Retainer',
+        stage: 'qualified',
+        status: 'open',
+        probability: 65,
+      },
+      error: null,
+    });
+
+    const res = await PATCH(patchRequest({
+      id: '55555555-5555-4555-8555-555555555555',
+      probability: 65,
+    }));
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      success: true,
+      opportunity: expect.objectContaining({
+        id: '55555555-5555-4555-8555-555555555555',
+        probability: 65,
+      }),
+    });
+    expect(updateCalls).toHaveLength(1);
+    expect(updateCalls[0]).toEqual({
+      table: 'crm_opportunities',
+      row: expect.objectContaining({
+        probability: 65,
+        updated_at: expect.any(String),
+      }),
+      eq: { column: 'id', value: '55555555-5555-4555-8555-555555555555' },
+    });
+    expect(selectCalls).toEqual([
+      { table: 'crm_opportunities', columns: OPPORTUNITY_PATCH_SELECT_COLUMNS },
+      { table: 'agent_actions', columns: 'id' },
+    ]);
+    expect(insertCalls).toHaveLength(1);
+    expect(insertCalls[0]).toEqual({
+      table: 'agent_actions',
+      row: expect.objectContaining({
+        action_type: 'crm_timeline_opportunity_updated',
+        status: 'done',
+        payload: expect.objectContaining({
+          type: 'opportunity_updated',
+          category: 'opportunity',
+          actionClass: 'auto',
+          requiresApproval: false,
+          subjectId: '55555555-5555-4555-8555-555555555555',
+          subjectLabel: 'Website CRM Retainer',
+          metadata: {
+            changedProbability: true,
+            stage: 'qualified',
+            status: 'open',
+          },
+        }),
+      }),
+    });
+    const serializedTimeline = JSON.stringify(insertCalls[0].row);
+    expect(serializedTimeline).not.toContain('boardApprovalId');
+    expect(serializedTimeline).not.toContain('board_approval_id');
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
   it('returns 400 for unknown opportunity update fields before CRM Supabase access', async () => {
     const res = await PATCH(patchRequest({
       id: '55555555-5555-4555-8555-555555555555',
@@ -917,6 +985,76 @@ describe('POST /api/crm/opportunities', () => {
     expect(serializedTimeline).not.toContain('BOARD-CRM-APPROVED');
     expect(serializedTimeline).not.toContain('boardApprovalId');
     expect(serializedTimeline).not.toContain('board_approval_id');
+  });
+
+  it('reopens an opportunity with a sanitized reopen timeline event and safe response payload', async () => {
+    const updateCalls: UpdateCall[] = [];
+    const insertCalls: InsertCall[] = [];
+    const sensitiveReturnedName = 'password hunter2 for client@example.com';
+    mockOpportunityUpdate(updateCalls, insertCalls, [], {
+      data: {
+        id: '55555555-5555-4555-8555-555555555555',
+        name: sensitiveReturnedName,
+        stage: 'qualified',
+        status: 'open',
+        next_action: 'Call +61 400 000 000 about billing card ending 4242',
+      },
+      error: null,
+    });
+
+    const res = await PATCH(patchRequest({
+      id: '55555555-5555-4555-8555-555555555555',
+      status: 'open',
+    }));
+
+    expect(res.status).toBe(200);
+    const responseJson = await res.json();
+    expect(responseJson).toEqual({
+      success: true,
+      opportunity: expect.objectContaining({
+        id: '55555555-5555-4555-8555-555555555555',
+        name: 'opportunity 55555555-5555-4555-8555-555555555555',
+        status: 'open',
+        next_action: '[REDACTED]',
+      }),
+    });
+    expect(updateCalls).toHaveLength(1);
+    expect(updateCalls[0].row).toEqual(expect.objectContaining({
+      status: 'open',
+      updated_at: expect.any(String),
+    }));
+    expect(insertCalls).toHaveLength(1);
+    expect(insertCalls[0]).toEqual({
+      table: 'agent_actions',
+      row: expect.objectContaining({
+        action_type: 'crm_timeline_opportunity_reopened',
+        status: 'pending',
+        payload: expect.objectContaining({
+          type: 'opportunity_reopened',
+          category: 'opportunity',
+          actionClass: 'approval_required',
+          requiresApproval: true,
+          subjectId: '55555555-5555-4555-8555-555555555555',
+          subjectLabel: 'opportunity 55555555-5555-4555-8555-555555555555',
+          metadata: {
+            changedStatus: true,
+            stage: 'qualified',
+            status: 'open',
+          },
+        }),
+      }),
+    });
+    const serializedResponse = JSON.stringify(responseJson);
+    expect(serializedResponse).not.toContain('password hunter2');
+    expect(serializedResponse).not.toContain('client@example.com');
+    expect(serializedResponse).not.toContain('+61 400 000 000');
+    expect(serializedResponse).not.toContain('billing card ending 4242');
+    const serializedTimeline = JSON.stringify(insertCalls[0].row);
+    expect(serializedTimeline).not.toContain('password hunter2');
+    expect(serializedTimeline).not.toContain('client@example.com');
+    expect(serializedTimeline).not.toContain('+61 400 000 000');
+    expect(serializedTimeline).not.toContain('billing card ending 4242');
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
 
   it('redacts all selected free-text opportunity update response columns and keeps timeline metadata value-minimized', async () => {
