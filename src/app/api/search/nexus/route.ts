@@ -5,14 +5,25 @@ import { requireAdmin } from '@/lib/security/require-admin';
 
 // OpenAI client is only instantiated if the key exists.
 // This prevents build-time crashes when the key is not set in the current environment.
-const openai = process.env.OPENAI_API_KEY 
+const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    return null;
+  }
+
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+}
 
 interface SearchResult {
   document_id: string;
@@ -42,7 +53,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. Embed the incoming query
+    // Validate semantic search configuration before making external calls.
     if (!openai) {
       return NextResponse.json(
         { error: 'Semantic search is not configured (OPENAI_API_KEY missing)' },
@@ -50,6 +61,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Semantic search is not configured (Supabase env missing)' },
+        { status: 503 }
+      );
+    }
+
+    // 1. Embed the incoming query
     const embeddingResponse = await openai.embeddings.create({
       model: 'text-embedding-3-small',
       input: query.trim(),

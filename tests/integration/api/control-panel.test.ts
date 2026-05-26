@@ -202,6 +202,15 @@ describe('GET /api/command-center/control-panel', () => {
           status: 'gated',
           ryg: 'red',
           crmTaskId: 'task-status-blocked-spaced',
+          crmTaskStatus: ' blocked ',
+          lastUpdated: '2026-05-23T08:14:00.000Z',
+        }),
+      ]),
+    );
+    expect(body.workstreams).toEqual(
+      expect.not.arrayContaining([
+        expect.objectContaining({
+          crmTaskTitle: expect.any(String),
         }),
       ]),
     );
