@@ -1,0 +1,128 @@
+{
+  "handoffName": "2026-05-25-phase-1f-approval-handoff-example",
+  "generatedAt": "2026-05-25T17:00:00.000Z",
+  "preparedBy": "Margot",
+  "approvalLedgerPath": "docs/margot/personal-intelligence/approval-ledger/2026-05-25-phase-1e-candidate-approval-ledger-example.json",
+  "ledger": {
+    "generatedAt": "2026-05-25T15:00:00.000Z",
+    "reviewer": "Phill",
+    "registerPath": "docs/margot/personal-intelligence/candidate-register/2026-05-25-phase-1c-nexus-mapping-note-example.json",
+    "sourceNotePath": "docs/margot/personal-intelligence/nexus-mapping-notes/2026-05-25-phase-1c-nexus-mapping-note-example.md",
+    "currentStatuses": [
+      {
+        "candidateId": "phase-1c001-memory-1",
+        "candidateType": "memory",
+        "sourceApprovalStatus": "needs_approval",
+        "currentStatus": "approved",
+        "nexusDestination": "memory_candidate",
+        "title": "Memory proposal: user_preference",
+        "usefulSignal": "Phill values long-horizon strategic intelligence that converts learning into Nexus execution leverage.",
+        "allowedNextAction": "Eligible for a separate explicit durable-memory write approval; this ledger does not write memory.",
+        "verificationStep": "Confirm the memory is distilled, durable, non-raw, and explicitly approved before saving.",
+        "sideEffectBoundary": "no-execution",
+        "sourceNotePath": "docs/margot/personal-intelligence/nexus-mapping-notes/2026-05-25-phase-1c-nexus-mapping-note-example.md",
+        "registerPath": "docs/margot/personal-intelligence/candidate-register/2026-05-25-phase-1c-nexus-mapping-note-example.json",
+        "updatedAt": "2026-05-25T15:01:00.000Z"
+      },
+      {
+        "candidateId": "phase-1c001-task-1",
+        "candidateType": "task",
+        "sourceApprovalStatus": "draft",
+        "currentStatus": "approved",
+        "nexusDestination": "task_candidate",
+        "title": "Review Nexus application of: AI agents for SEO GEO AEO CRM and 25 steps ahead planning",
+        "usefulSignal": "Practical workflow for converting AI agent, SEO, GEO, AEO, CRM, and 25 steps ahead scenario planning into tested Nexus experiments.",
+        "allowedNextAction": "Eligible for a separate implementation plan; this ledger does not execute tasks.",
+        "verificationStep": "Read back the mapping note and confirm source, signal, waste decision, and destination.",
+        "sideEffectBoundary": "no-execution",
+        "sourceNotePath": "docs/margot/personal-intelligence/nexus-mapping-notes/2026-05-25-phase-1c-nexus-mapping-note-example.md",
+        "registerPath": "docs/margot/personal-intelligence/candidate-register/2026-05-25-phase-1c-nexus-mapping-note-example.json",
+        "updatedAt": "2026-05-25T15:02:00.000Z"
+      },
+      {
+        "candidateId": "phase-1c001-experiment-1",
+        "candidateType": "experiment",
+        "sourceApprovalStatus": "needs_approval",
+        "currentStatus": "parked",
+        "nexusDestination": "marketing_strategy",
+        "title": "Local Nexus experiment: AI agents for SEO GEO AEO CRM and 25 steps ahead planning",
+        "usefulSignal": "Practical workflow for converting AI agent, SEO, GEO, AEO, CRM, and 25 steps ahead scenario planning into tested Nexus experiments.",
+        "allowedNextAction": "Keep parked for later review; do not execute or route.",
+        "verificationStep": "Read back the draft and confirm source, useful signal, waste decision, and approval state.",
+        "sideEffectBoundary": "no-execution",
+        "sourceNotePath": "docs/margot/personal-intelligence/nexus-mapping-notes/2026-05-25-phase-1c-nexus-mapping-note-example.md",
+        "registerPath": "docs/margot/personal-intelligence/candidate-register/2026-05-25-phase-1c-nexus-mapping-note-example.json",
+        "updatedAt": "2026-05-25T15:03:00.000Z"
+      },
+      {
+        "candidateId": "phase-1c001-waste-1",
+        "candidateType": "waste",
+        "sourceApprovalStatus": "rejected",
+        "currentStatus": "rejected",
+        "nexusDestination": "waste_register",
+        "title": "Waste-register evidence: repeated model-release hype",
+        "usefulSignal": "Hype-like content retained only as waste-register evidence.",
+        "allowedNextAction": "Retain as rejected evidence only; do not operationalize.",
+        "verificationStep": "Confirm no operational Nexus destination is used.",
+        "sideEffectBoundary": "no-execution",
+        "sourceNotePath": "docs/margot/personal-intelligence/nexus-mapping-notes/2026-05-25-phase-1c-nexus-mapping-note-example.md",
+        "registerPath": "docs/margot/personal-intelligence/candidate-register/2026-05-25-phase-1c-nexus-mapping-note-example.json",
+        "updatedAt": "2026-05-25T15:04:00.000Z"
+      },
+      {
+        "candidateId": "phase-1c001-memory-2",
+        "candidateType": "memory",
+        "sourceApprovalStatus": "needs_approval",
+        "currentStatus": "pending_review",
+        "nexusDestination": "memory_candidate",
+        "title": "Pending memory proposal: founder filter preference",
+        "usefulSignal": "Potentially durable but not yet reviewed.",
+        "allowedNextAction": "Do not execute, store, route, or deploy until an explicit ledger decision is recorded.",
+        "verificationStep": "Confirm whether the memory is durable before any future approval.",
+        "sideEffectBoundary": "no-execution",
+        "sourceNotePath": "docs/margot/personal-intelligence/nexus-mapping-notes/2026-05-25-phase-1c-nexus-mapping-note-example.md",
+        "registerPath": "docs/margot/personal-intelligence/candidate-register/2026-05-25-phase-1c-nexus-mapping-note-example.json",
+        "updatedAt": "2026-05-25T15:00:00.000Z"
+      }
+    ],
+    "auditTrail": [
+      {
+        "eventId": "phase-1c001-memory-1-approved-2026-05-25t15-01-00-000z",
+        "candidateId": "phase-1c001-memory-1",
+        "decision": "approved",
+        "decidedAt": "2026-05-25T15:01:00.000Z",
+        "decidedBy": "Phill",
+        "rationale": "Approved only for a separate durable-memory write request; no memory write occurs from this ledger.",
+        "immutable": true,
+        "sideEffectBoundary": "local-ledger-only"
+      },
+      {
+        "eventId": "phase-1c001-task-1-approved-2026-05-25t15-02-00-000z",
+        "candidateId": "phase-1c001-task-1",
+        "decision": "approved",
+        "decidedAt": "2026-05-25T15:02:00.000Z",
+        "decidedBy": "Phill",
+        "rationale": "Approved only for a separate local implementation plan; no task execution occurs from this ledger.",
+        "immutable": true,
+        "sideEffectBoundary": "local-ledger-only"
+      },
+      {
+        "eventId": "phase-1c001-experiment-1-parked-2026-05-25t15-03-00-000z",
+        "candidateId": "phase-1c001-experiment-1",
+        "decision": "parked",
+        "decidedAt": "2026-05-25T15:03:00.000Z",
+        "decidedBy": "Phill",
+        "rationale": "Potentially useful but should remain parked until a separately scoped Nexus experiment lane exists.",
+        "immutable": true,
+        "sideEffectBoundary": "local-ledger-only"
+      }
+    ],
+    "sideEffectBoundaries": [
+      "No durable memory writes occurred.",
+      "No task execution occurred.",
+      "No production database writes occurred.",
+      "No deployment, publishing, or client-facing action occurred.",
+      "Ledger is local evidence state only and requires separate explicit approval for any downstream side effect."
+    ]
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "noteName": "phase-1c-nexus-mapping-note-example",
+  "generatedAt": "2026-05-25T13:00:00.000Z",
+  "classification": {
+    "id": "youtube:https://www.youtube.com/watch?v=phase1c001",
+    "sourceType": "youtube",
+    "sourceUrl": "https://www.youtube.com/watch?v=phase1c001",
+    "creatorOrAuthor": "Practical AI Operator",
+    "title": "AI agents for SEO GEO AEO CRM and 25 steps ahead planning",
+    "summary": "Practical workflow for converting AI agent, SEO, GEO, AEO, CRM, and 25 steps ahead scenario planning into tested Nexus experiments.",
+    "privacyClass": "public",
+    "topicTags": ["ai_agents", "agentic_thinking", "seo", "geo", "aeo", "crm_sales", "automation_integration"],
+    "wasteLabel": "useful",
+    "wasteRatio": "low",
+    "relevanceScores": {
+      "revenue": 3,
+      "operating": 3,
+      "data": 2,
+      "client": 3,
+      "strategic": 3,
+      "actionability": 3,
+      "confidence": 3,
+      "total": 20
+    },
+    "nexusMappings": ["marketing_strategy", "ai_enhancement_pipeline", "agentic_thinking", "crm", "client_2nd_brain"],
+    "insights": [
+      {
+        "claim": "Practical workflow for converting AI agent, SEO, GEO, AEO, CRM, and 25 steps ahead scenario planning into tested Nexus experiments.",
+        "whyItMatters": "Useful for turning personal learning into local-first Nexus execution leverage.",
+        "confidence": "high",
+        "nexusMappings": ["marketing_strategy", "ai_enhancement_pipeline", "agentic_thinking"]
+      }
+    ],
+    "memoryCandidates": [
+      {
+        "proposedMemory": "Phill values long-horizon strategic intelligence that converts learning into Nexus execution leverage.",
+        "memoryType": "user_preference",
+        "durabilityReason": "Stable founder operating preference.",
+        "approvalRequired": true
+      }
+    ],
+    "taskCandidates": [
+      {
+        "title": "Review Nexus application of: AI agents for SEO GEO AEO CRM and 25 steps ahead planning",
+        "lane": "marketing",
+        "smallestNextAction": "Create a short Nexus mapping note with one experiment, one risk, and one verification step.",
+        "verification": "Read back the mapping note and confirm source, signal, waste decision, and destination.",
+        "approvalRequired": false
+      }
+    ],
+    "approvalRequiredBeforeStorage": false,
+    "rawTranscriptStored": false,
+    "operatorNotes": ["Public or explicitly supplied content may be processed locally."]
+  }
+}
