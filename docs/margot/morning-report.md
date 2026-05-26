@@ -5,7 +5,9 @@ Project: Unite-Group
 
 ## Honest status
 
-Current as of `2026-05-26 21:35 AEST`: PR #198 is already merged on `main`, so I continued a clean follow-up CRM assertion branch/worktree (`margot/opportunity-update-assertions-pr` rebased onto `4601de7045202412ce0cb04d9f33f3e784eba8ec`) instead of touching the concurrently dirty primary worktree, which now contains separate Personal Intelligence fallback changes. This slice adds explicit local route-level opportunity PATCH assertions for generic update (`crm_timeline_opportunity_updated`) and reopen (`crm_timeline_opportunity_reopened`) timeline behavior, updates the CRM test coverage matrix, and remains local mocked/test evidence only. The post-rebase route-inventory blocker from `/api/telegram/approval-callback` was reproduced with a RED test, then fixed by teaching `scripts/check-route-inventory.ts` to recognize the existing `verifyDecisionCallbackData` signed HMAC callback verifier; no allowlist bypass was added. I opened PR #201 (`https://github.com/CleanExpo/Unite-Group/pull/201`) and observed all checks pass for commit `1d800e0f956a0196bb481c953f8477305817ef6c` before this evidence update. Verification passed: focused opportunity/timeline/script Jest 3 suites / 41 tests during review, `npm run type-check` after clearing local `.next`, `npm run security:routes-check` with 0 unprotected mutating routes, and `git diff --check`. No production DB write, Supabase migration application, Vercel env mutation, manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, or secret printing/storage occurred.
+Current as of `2026-05-26 22:53 AEST`: continued the safe `chore/post-pr200-cleanup` evidence branch from starting head `ae0c204` because tracked Margot evidence docs were already dirty from prior health/report refreshes. Re-read the current status, confirmed GitHub CLI auth is available for `CleanExpo` and there are no open GitHub PRs for `CleanExpo/Unite-Group`, repaired the concurrent LaunchAgent progress-log stub from `2026-05-26 22:38:37 AEST`, normalized historical bare `Log:` labels in the progress log, and ran focused local health gates. Verification passed: `npx jest tests/integration/api/search-nexus.test.ts --runInBand` returned 1 suite / 3 tests, `npm run security:routes-check` returned 0 unprotected mutating routes, `npm run type-check` passed, and `git diff --check` passed after the final evidence/report updates. Mac Mini recovery remains blocked at the latest `2026-05-26 22:36 AEST` probe: SMB/File Sharing `:445` is reachable, SSH `:22` is unreachable, `/Volumes` contains `Claude`, `Codex Installer`, `Google Chrome`, `Macintosh HD`, and `Telegram`, the bounded approved-target search found no target files, and `docs/margot/recovered-from-mac-mini/` has 0 recovered Markdown artifacts. No source code, production DB write, Supabase migration application, Vercel env mutation, manual deploy, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, or secret printing/storage occurred.
+
+Current next safe slice: start the smallest command-center CRM UI/API coverage slice for lead/opportunity/daily-digest rendering surfaces, using TDD and local mocks, from a clean branch/worktree after these evidence-only docs are committed/published or parked.
 
 Historical initial status:
 
@@ -89,12 +91,12 @@ Margot has:
 Mac Mini recovery remains blocked by current connectivity/auth state:
 
 - Host: `phills-mac-mini.local`
-- Latest probe at `2026-05-24 15:38 AEST`: SMB/File Sharing port 445 is reachable; SSH/Remote Login port 22 is unreachable; `/Volumes` contains `Claude`, `Macintosh HD`, and `Telegram`; the local recovery destination still contains no recovered Markdown artifacts.
+- Latest probe at `2026-05-26 22:36 AEST`: SMB/File Sharing port 445 is reachable; SSH/Remote Login port 22 is unreachable; `/Volumes` contains `Claude`, `Codex Installer`, `Google Chrome`, `Macintosh HD`, and `Telegram`; bounded approved-target search under `/Volumes` found no `MARGOT-COMMAND-CENTER.md` or `RESTOREASSIST-CONTENT-INDEX.md`; the local recovery destination still contains 0 recovered Markdown artifacts.
 
 Still blocked:
 
-- No authenticated SMB share containing the approved target files is mounted under `/Volumes`; the latest checked volumes were `Claude` and `Macintosh HD`.
-- Recovery destination `docs/margot/recovered-from-mac-mini/` contains only `.gitkeep`.
+- No authenticated SMB share containing the approved target files is mounted under `/Volumes`; the latest checked volumes were `Claude`, `Codex Installer`, `Google Chrome`, `Macintosh HD`, and `Telegram`.
+- Recovery destination `docs/margot/recovered-from-mac-mini/` contains 0 recovered Markdown artifacts.
 - Original `RESTOREASSIST-CONTENT-INDEX.md` is not present locally yet.
 - SSH is not available from this MacBook session.
 - Noninteractive SMB auth failed in prior probes.
@@ -106,7 +108,34 @@ Target recovery files remain:
 
 ## Verification status
 
-Latest local verification refresh at `2026-05-25 03:09 AEST`:
+Latest local verification refresh at `2026-05-26 22:53 AEST`:
+
+- Evidence-hygiene refresh on `chore/post-pr200-cleanup` from starting head `ae0c204`; repaired the concurrent LaunchAgent wrapper stub at `2026-05-26 22:38:37 AEST`, normalized historical bare `Log:` labels in the progress log, kept the branch evidence/report-only work, and did not start a new source implementation lane.
+- Existing `/api/search/nexus` sandbox/env guard remains healthy: `npx jest tests/integration/api/search-nexus.test.ts --runInBand` returned 1 suite / 3 tests.
+- Route security gate remains healthy: `npm run security:routes-check` returned 0 unprotected mutating routes.
+- Type-check remains healthy: `npm run type-check` passed.
+- Diff hygiene passed after final evidence/report updates: `git diff --check` passed.
+- No source code, production DB write, Supabase migration application, sandbox apply, Vercel deploy/env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Previous local verification refresh at `2026-05-26 22:36 AEST`:
+
+- Evidence/health refresh on `chore/post-pr200-cleanup` at `ae0c204`; only Margot evidence docs were modified before this update, and no new implementation lane was started.
+- Existing `/api/search/nexus` sandbox/env guard remains healthy: `npx jest tests/integration/api/search-nexus.test.ts --runInBand` returned 1 suite / 3 tests.
+- Route security gate remains healthy: `npm run security:routes-check` returned 0 unprotected mutating routes.
+- Type-check remains healthy: `npm run type-check` passed.
+- Diff hygiene passed after final evidence/report updates: `git diff --check` passed.
+- No source code, production DB write, Supabase migration application, sandbox apply, Vercel deploy/env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Previous local verification refresh at `2026-05-26 22:11 AEST`:
+
+- Evidence-hygiene refresh on `chore/post-pr200-cleanup` at `ae0c204`; repaired the `2026-05-26 22:05:14 AEST` LaunchAgent progress-log stub and kept the branch as local evidence/report-only work.
+- Existing `/api/search/nexus` sandbox/env guard remains healthy: `npx jest tests/integration/api/search-nexus.test.ts --runInBand` returned 1 suite / 3 tests.
+- Route security gate remains healthy: `npm run security:routes-check` returned 0 unprotected mutating routes.
+- Type-check remains healthy: `npm run type-check` passed.
+- Diff hygiene passed after final evidence/report updates: `git diff --check` passed.
+- No source code, production DB write, Supabase migration application, sandbox apply, Vercel deploy/env mutation, GitHub push, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
+
+Previous local verification refresh at `2026-05-25 03:09 AEST`:
 
 - Continued PR #198 (`margot/addon-task-status-evidence`) instead of starting a new feature lane because the PR was already open and blocked by `Vercel – unite-group-sandbox`.
 - Added the `/api/search/nexus` Vercel sandbox root-cause fix: Supabase service-client construction is no longer performed at module import/build time, missing Supabase env returns a safe admin-gated 503, and config validation now happens before OpenAI embeddings are called.
@@ -115,7 +144,7 @@ Latest local verification refresh at `2026-05-25 03:09 AEST`:
 - Review passed: spec review `PASS`, code quality/security review `APPROVED`.
 - No production DB write, Supabase migration application, Vercel env mutation, manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, or secret printing/storage was performed.
 
-Latest local verification refresh at `2026-05-24 16:22 AEST`:
+Previous local verification refresh at `2026-05-24 16:22 AEST`:
 
 - Completed review/fix loop for the local command-center CRM UI/API data-minimization follow-on on branch `margot/addon-task-status-evidence` at `febb6c1`.
 - Spec review returned `PASS`; quality review first requested changes for `git diff --check` evidence drift/trailing EOF hygiene and a retained-contract assertion gap, then returned `APPROVED` after fixes.
@@ -124,7 +153,7 @@ Latest local verification refresh at `2026-05-24 16:22 AEST`:
 - PR #198 remains open/unmerged because the existing `Vercel – unite-group-sandbox` status is failed; no merge or production/Vercel mutation was attempted.
 - No production DB write, migration application, sandbox apply, Vercel deploy/env mutation, GitHub push by this follow-on, client-facing communication, billing/payment action, destructive git, cross-client merge, permanent auto-conversion/auto-approval rule, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage was performed.
 
-Latest local verification refresh at `2026-05-24 15:52 AEST`:
+Previous local verification refresh at `2026-05-24 15:52 AEST`:
 
 - Continued the command-center CRM UI/API data-minimization follow-on on branch `margot/addon-task-status-evidence` at `febb6c1`.
 - Safe local API/test improvement: `src/app/api/command-center/control-panel/route.ts` no longer returns raw `crmTaskTitle` in live workstream payloads; minimized evidence remains available through `crmTaskId`, `crmTaskStatus`, and `lastUpdated`.
@@ -1065,7 +1094,7 @@ Latest merge/deploy refresh at `2026-05-23 23:41 AEST`:
 - This merge/deploy evidence was appended locally only; no follow-up PR was opened solely to publish evidence-of-evidence.
 - No production DB write, migration application, sandbox apply, Vercel env mutation, client-facing communication, billing/payment action, destructive git on main, cross-client merge, secret printing/storage, or noninteractive credential attempt was performed.
 
-Latest local verification refresh at `2026-05-23 23:43 AEST`:
+Previous local verification refresh at `2026-05-23 23:43 AEST`:
 
 - Current branch is `main` tracking `origin/main` at `742f49f`; working tree contains only local evidence edits to this report and `docs/margot/overnight-progress-log.md`.
 - Local stashes were inspected by name only and left untouched: `stash@{0}` post-merge dirty worktree snapshot, `stash@{1}` unreviewed `HermesControlPanel initialPayload` experiment, and older `stash@{2}` timeline work snapshot.
