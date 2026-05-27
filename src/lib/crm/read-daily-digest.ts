@@ -141,19 +141,14 @@ export async function readCrmDailyDigestForCommandCenter(limit = 10): Promise<Cr
     });
     const digestOwner = readDigestOwner();
 
-    const { data, error } = await supabase
+    const leadRead = supabase
       .from('crm_leads')
       .select(DIGEST_SELECT_COLUMNS)
       .eq('assigned_owner', digestOwner)
       .order('captured_at', { ascending: false })
       .limit(limit);
 
-    if (error) {
-      console.error('Error reading command-center CRM daily digest leads:', error);
-      return undefined;
-    }
-
-    const { data: taskData, error: taskError } = await supabase
+    const taskRead = supabase
       .from('tasks')
       .select(TASK_DIGEST_SELECT_COLUMNS)
       .eq('workspace_id', workspaceId)
@@ -161,21 +156,29 @@ export async function readCrmDailyDigestForCommandCenter(limit = 10): Promise<Cr
       .order('created_at', { ascending: false })
       .limit(limit);
 
-    if (taskError) {
-      console.error('Error reading command-center CRM daily digest tasks:', taskError);
-      return undefined;
-    }
-
     const opportunitiesEnabled = process.env.UNITE_CRM_OPPORTUNITIES_DIGEST_ENABLED === 'true';
-    const { data: opportunityData, error: opportunityError } = opportunitiesEnabled
-      ? await supabase
+    const opportunityRead = opportunitiesEnabled
+      ? supabase
           .from('crm_opportunities')
           .select(OPPORTUNITY_DIGEST_SELECT_COLUMNS)
           .eq('owner', digestOwner)
           .in('status', ['open', 'won', 'blocked_review'])
           .order('updated_at', { ascending: false })
           .limit(limit)
-      : { data: [], error: null };
+      : Promise.resolve({ data: [], error: null });
+
+    const [{ data, error }, { data: taskData, error: taskError }, { data: opportunityData, error: opportunityError }] =
+      await Promise.all([leadRead, taskRead, opportunityRead]);
+
+    if (error) {
+      console.error('Error reading command-center CRM daily digest leads:', error);
+      return undefined;
+    }
+
+    if (taskError) {
+      console.error('Error reading command-center CRM daily digest tasks:', taskError);
+      return undefined;
+    }
 
     if (opportunityError) {
       console.error('Error reading command-center CRM daily digest opportunities:', opportunityError);

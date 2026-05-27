@@ -48,6 +48,49 @@ function createReadBuilder(calls: QueryCall[], result: QueryResult) {
   return builder;
 }
 
+function createDeferredReadBuilder(calls: QueryCall[]) {
+  let resolveRead: (value: Required<QueryResult>) => void = () => undefined;
+  const promise = new Promise<Required<QueryResult>>((resolve) => {
+    resolveRead = resolve;
+  });
+  const builder: any = {
+    select: jest.fn((columns: string) => {
+      calls.push({ method: 'select', columns });
+      return builder;
+    }),
+    eq: jest.fn((column: string, value: string) => {
+      calls.push({ method: 'eq', column, value });
+      return builder;
+    }),
+    in: jest.fn((column: string, values: string[]) => {
+      calls.push({ method: 'in', column, values });
+      return builder;
+    }),
+    order: jest.fn((column: string, options: { ascending: boolean }) => {
+      calls.push({ method: 'order', column, options });
+      return builder;
+    }),
+    limit: jest.fn((value: number) => {
+      calls.push({ method: 'limit', value });
+      return builder;
+    }),
+    then: jest.fn((resolve: (value: Required<QueryResult>) => unknown, reject: (reason?: unknown) => unknown) =>
+      promise.then(resolve, reject),
+    ),
+  };
+
+  return {
+    builder,
+    resolve: (result: QueryResult = { data: [], error: null }) =>
+      resolveRead({ data: result.data ?? null, error: result.error ?? null }),
+  };
+}
+
+async function flushMicrotasks() {
+  await Promise.resolve();
+  await Promise.resolve();
+}
+
 import { readCrmDailyDigestForCommandCenter } from '@/lib/crm/read-daily-digest';
 
 describe('readCrmDailyDigestForCommandCenter', () => {
@@ -198,5 +241,40 @@ describe('readCrmDailyDigestForCommandCenter', () => {
       { method: 'order', column: 'updated_at', options: { ascending: false } },
       { method: 'limit', value: 5 },
     ]);
+  });
+
+  it('launches enabled lead, task, and opportunity reads before the first read promise resolves', async () => {
+    process.env.UNITE_CRM_OPPORTUNITIES_DIGEST_ENABLED = 'true';
+    const leadCalls: QueryCall[] = [];
+    const taskCalls: QueryCall[] = [];
+    const opportunityCalls: QueryCall[] = [];
+    const leadRead = createDeferredReadBuilder(leadCalls);
+    const taskRead = createDeferredReadBuilder(taskCalls);
+    const opportunityRead = createDeferredReadBuilder(opportunityCalls);
+
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'crm_leads') return leadRead.builder;
+      if (table === 'tasks') return taskRead.builder;
+      if (table === 'crm_opportunities') return opportunityRead.builder;
+      throw new Error(`Unexpected table read: ${table}`);
+    });
+
+    const digestPromise = readCrmDailyDigestForCommandCenter(3);
+    await flushMicrotasks();
+
+    expect(mockFrom).toHaveBeenCalledWith('crm_leads');
+    expect(mockFrom).toHaveBeenCalledWith('tasks');
+    expect(mockFrom).toHaveBeenCalledWith('crm_opportunities');
+    expect(leadRead.builder.then).toHaveBeenCalledTimes(1);
+    expect(taskRead.builder.then).toHaveBeenCalledTimes(1);
+    expect(opportunityRead.builder.then).toHaveBeenCalledTimes(1);
+
+    leadRead.resolve();
+    taskRead.resolve();
+    opportunityRead.resolve();
+
+    await expect(digestPromise).resolves.toMatchObject({
+      summary: { leadCount: 0, opportunityCount: 0, blockedTaskCount: 0 },
+    });
   });
 });
