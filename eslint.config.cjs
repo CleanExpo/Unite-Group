@@ -54,4 +54,24 @@ module.exports = [
       '@typescript-eslint/no-unused-vars': 'off',
     },
   },
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: [
+      'src/lib/supabase/service.ts',
+      'src/instrumentation.ts',
+      'src/lib/ai/features/mcp.ts',
+      'src/app/api/**/*',
+    ],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "MemberExpression[object.object.name='process'][object.property.name='env'][property.name='SUPABASE_SERVICE_ROLE_KEY']",
+          message:
+            'SUPABASE_SERVICE_ROLE_KEY must only be accessed via src/lib/supabase/service.ts or documented server-only exceptions.',
+        },
+      ],
+    },
+  },
 ]
