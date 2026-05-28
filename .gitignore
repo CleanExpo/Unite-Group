@@ -277,3 +277,5 @@ scripts/_archive/
 
 # Raw Lighthouse audit output
 .claude/audits/*.json
+
+.vercel

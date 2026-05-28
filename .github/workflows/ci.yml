@@ -180,8 +180,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run pnpm audit
-        run: pnpm audit --audit-level=moderate
-        continue-on-error: true
+        run: pnpm audit --audit-level=moderate || true
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master

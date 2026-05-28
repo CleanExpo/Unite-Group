@@ -1,8 +1,22 @@
 // src/lib/integrations/google-oauth.ts
 // Google OAuth token management and account listing
 
+const PLACEHOLDER_GOOGLE_CLIENT_PATTERNS = [
+  /^your-production-client-id/i,
+  /^your-google-client-id/i,
+  /^your-client-id/i,
+];
+
+export function isGoogleClientIdPlaceholder(clientId: string): boolean {
+  const id = clientId.trim();
+  if (!id) return true;
+  return PLACEHOLDER_GOOGLE_CLIENT_PATTERNS.some((re) => re.test(id));
+}
+
 export function isGoogleConfigured(): boolean {
-  return Boolean(process.env.GOOGLE_CLIENT_ID?.trim() && process.env.GOOGLE_CLIENT_SECRET?.trim())
+  const clientId = process.env.GOOGLE_CLIENT_ID?.trim() ?? '';
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim() ?? '';
+  return Boolean(clientId && clientSecret && !isGoogleClientIdPlaceholder(clientId));
 }
 
 export interface StoredTokens {

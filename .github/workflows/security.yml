@@ -128,13 +128,11 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run npm audit
-        run: pnpm audit --audit-level=critical
-        continue-on-error: true
+        run: pnpm audit --audit-level=critical || true
 
       - name: Generate audit report
         if: always()
-        run: pnpm audit --json > npm-audit-report.json
-        continue-on-error: true
+        run: pnpm audit --json > npm-audit-report.json || true
 
       - name: Upload audit report
         if: always()
