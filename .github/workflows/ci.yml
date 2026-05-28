@@ -25,7 +25,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
 
       - name: Enable pnpm
         run: corepack enable && corepack prepare pnpm@9.15.0 --activate
@@ -77,7 +76,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
 
       - name: Enable pnpm
         run: corepack enable && corepack prepare pnpm@9.15.0 --activate
@@ -99,7 +97,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
 
       - name: Enable pnpm
         run: corepack enable && corepack prepare pnpm@9.15.0 --activate
@@ -144,7 +141,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
 
       - name: Enable pnpm
         run: corepack enable && corepack prepare pnpm@9.15.0 --activate
@@ -176,7 +172,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
 
       - name: Enable pnpm
         run: corepack enable && corepack prepare pnpm@9.15.0 --activate
