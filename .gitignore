@@ -154,6 +154,8 @@ content-*.txt
 # Scripts
 find-all-fake-data.sh
 inspect-content.cjs
+scripts/export-dimitri-gmail.mjs
+scripts/list-google-vault.mjs
 
 # Inspect screenshots
 inspect-*.png
@@ -214,6 +216,7 @@ login-page.png
 
 # Env files not covered by existing patterns
 .env.vercel-*
+.env.vault
 .veritas-kanban/
 
 # Claude Code task state
@@ -253,6 +256,11 @@ EXECUTE_MIGRATIONS_NOW.sql
 
 # Claude Code worktrees
 .claude/worktrees/
+
+# Local agent/runtime state
+.agents/
+.codex/
+.omx/
 
 # Superpowers plugin
 .superpowers/
