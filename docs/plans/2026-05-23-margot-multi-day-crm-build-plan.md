@@ -64,14 +64,14 @@ Verified current state:
 
 Primary read-first files:
 
-1. `docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md`
-2. `docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md`
-3. `docs/margot/SECOND-BRAIN-CARRY-FORWARD.md`
+1. `docs/margot/README.md`
+2. `docs/margot/operating-brain-integration.md`
+3. `docs/margot/crm-operating-model.md`
 4. `docs/margot/high-level-crm-25-step-forecast.md`
 5. `docs/margot/crm-operating-model.md`
-6. `docs/margot/access-and-data-requirements.md`
-7. `docs/margot/MARGOT-ORCHESTRATOR.md`
-8. `docs/margot/MARGOT-COMMAND-CENTER.md`
+6. `docs/margot/crm-schema-inventory.md`
+7. `docs/margot/crm-test-coverage-matrix.md`
+8. `docs/margot/daily-crm-digest-template.md`
 9. `docs/margot/overnight-progress-log.md`
 10. `docs/margot/morning-report.md`
 
@@ -99,7 +99,7 @@ Each tick must follow this loop:
    - spec compliance reviewer,
    - code quality reviewer.
 7. Append evidence to `docs/margot/overnight-progress-log.md`.
-8. Update `docs/margot/morning-report.md` and `docs/margot/MARGOT-COMMAND-CENTER.md` when status changed.
+8. Update `docs/margot/daily-crm-digest-template.md` and `docs/margot/linear-watch-today.md` when status changed.
 9. Report: completed, files changed, verification, blockers, next lane.
 
 Abort/escalation gates:
@@ -214,7 +214,7 @@ npm run type-check
 
 **Likely files:**
 
-- Create: `docs/margot/lead-to-client-conversion-plan.md`
+- Update conversion policy in `docs/margot/crm-operating-model.md`
 - Create: `tests/integration/api/crm-lead-conversion.test.ts`
 - Later create: `src/app/api/crm/leads/[id]/convert/route.ts`
 
@@ -321,7 +321,7 @@ The run is successful when these artifacts exist and have verification evidence:
 - `docs/margot/crm-schema-inventory.md`
 - tested lead-list/query surface
 - tested lead qualification helper
-- `docs/margot/lead-to-client-conversion-plan.md`
+- `docs/margot/crm-operating-model.md`
 - first conversion tests or blocked Board decision note
 - `docs/margot/project-portfolio-index.md`
 - `docs/margot/client-second-brain-model.md`

@@ -11,11 +11,9 @@ The Unite-Group CRM is not a generic contact list. It is the operating layer whe
 
 This model carries forward:
 
-- `docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md`
-- `docs/margot/SECOND-BRAIN-CARRY-FORWARD.md`
-- `docs/margot/high-level-crm-25-step-forecast.md`
-- `docs/margot/access-and-data-requirements.md`
+- `docs/margot/README.md`
 - `docs/margot/operating-brain-integration.md`
+- `docs/margot/high-level-crm-25-step-forecast.md`
 
 ## Operating Brain Layer
 

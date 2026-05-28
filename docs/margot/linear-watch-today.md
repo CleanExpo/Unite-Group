@@ -99,7 +99,7 @@ Summary / Linear description excerpt:
 
 > Outputs:
 
-> - /Users/phill-mac/hermes-agent-enhancement-report/MARGOT-COMMAND-CENTER.md
+> - Current Unite-Hub command-center context is indexed from `docs/margot/README.md` and `docs/margot/operating-brain-integration.md`
 > - /Users/phill-mac/hermes-agent-enhancement-report/restoreassist-content-packs/RESTOREASSIST-CONTENT-INDEX.md
 
 > Governance:

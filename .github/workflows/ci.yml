@@ -11,7 +11,8 @@ permissions:
   security-events: write
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '24'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   lint:
@@ -114,7 +115,7 @@ jobs:
           # Vercel env vars.
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://example.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'ci-placeholder-anon-key' }}
-          NEXT_PUBLIC_APP_URL: https://nexus.unite-group.com.au
+          NEXT_PUBLIC_APP_URL: https://unite-hub-sandbox.vercel.app
           # Server-side env vars — real values not needed for build (all pages are force-dynamic)
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'ci-placeholder-anthropic-key' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'ci-placeholder-service-role-key' }}
@@ -135,7 +136,7 @@ jobs:
       # Production deployments still resolve real environment values from Vercel.
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://example.supabase.co' }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'ci-placeholder-anon-key' }}
-      NEXT_PUBLIC_APP_URL: https://nexus.unite-group.com.au
+      NEXT_PUBLIC_APP_URL: https://unite-hub-sandbox.vercel.app
     steps:
       - uses: actions/checkout@v4
 

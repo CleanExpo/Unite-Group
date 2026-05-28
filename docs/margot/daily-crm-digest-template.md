@@ -9,9 +9,8 @@ Status: local-only template and pure helper; no production DB read/write is impl
 
 This template defines the minimum daily CRM digest that Margot should surface to Phill once CRM data is available through safe read paths. It carries forward:
 
-- `docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md`
-- `docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md`
-- `docs/margot/SECOND-BRAIN-CARRY-FORWARD.md`
+- `docs/margot/README.md`
+- `docs/margot/operating-brain-integration.md`
 - `docs/margot/high-level-crm-25-step-forecast.md`
 - `docs/margot/crm-operating-model.md`
 - `docs/margot/crm-contacts-opportunities-model.md`

@@ -21,6 +21,9 @@ concurrency:
   group: lighthouse-agentic-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   agentic-audit:
     name: Agentic Browsing audit
@@ -56,7 +59,7 @@ jobs:
               exit 0
             fi
           else
-            URL="https://unite-hub.vercel.app"
+            URL="https://unite-hub-sandbox.vercel.app"
           fi
           echo "url=$URL" >> "$GITHUB_OUTPUT"
 

@@ -10,13 +10,14 @@ on:
       base_url:
         description: 'Base URL to test against'
         required: false
-        default: 'https://unite-group.in'
+        default: 'https://unite-hub-sandbox.vercel.app'
 
 permissions:
   contents: read
 
 env:
-  BASE_URL: ${{ github.event.inputs.base_url || 'https://unite-group.in' }}
+  BASE_URL: ${{ github.event.inputs.base_url || 'https://unite-hub-sandbox.vercel.app' }}
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   smoke-tests:
@@ -36,7 +37,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'pnpm'
 
       - name: Install dependencies
@@ -96,7 +97,7 @@ jobs:
       # ── Check 5: Static assets do not server-error ───────────────────────
       - name: 'Check 5: Static assets have no 5xx errors'
         run: |
-          for ASSET in "/favicon.ico" "/logos/unite-group-nexus-logo.png"; do
+          for ASSET in "/favicon.ico" "/founder-os-sw.js"; do
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL$ASSET" --max-time 10)
             echo "$ASSET → $STATUS"
             # Production may be served by an older/private deployment that hides

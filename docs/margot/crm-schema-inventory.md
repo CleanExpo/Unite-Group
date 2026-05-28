@@ -5,7 +5,7 @@ Project: Unite-Group
 Owner: Margot
 Scope: Existing local assets only: migrations, routes, helpers, and tests in this repository.
 
-Read first: `docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md`
+Read first: `docs/margot/README.md` and `docs/margot/operating-brain-integration.md`
 
 ## 1. Purpose and source-of-truth rule
 

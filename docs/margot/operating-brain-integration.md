@@ -98,13 +98,22 @@ The code contract lives in `src/lib/operating-brain/continuous-improvement.ts`.
 
 `unite-hub-sandbox` must reach latest deploy `READY` before feature work is treated as stable. Margot and Pi-Dev-Ops may inspect Vercel state and prepare a remediation brief, but they must not mutate env vars, project binding, production config, or deploy settings without approval.
 
-Current evidence on 2026-05-28:
+Current evidence on 2026-05-28 13:51 AEST:
 
 - Portfolio sandbox project: `unite-hub-sandbox`, `prj_tNqIsHGY3kvw7zdO2bXVxFWTPIk0`.
-- Local `.vercel/project.json` binding: `unite-hub`, `prj_9uMZx73Gp8DCWsFPmvVzhnGy6zQM`.
-- Latest sandbox deploy: `dpl_DXUWGA39HoCjrcukuD4absTbwkAH`.
-- Latest sandbox deploy state: `ERROR`.
-- Latest sandbox deploy commit: `bd76d89e685f81f09b9694694c0273b73ab83a37` from PR `#58`.
+- Production alias: `https://unite-hub-sandbox.vercel.app`.
+- Latest sandbox deploy: `dpl_6PV6bPZWsB7HmTiSJ2huKtYLeEWD`.
+- Latest sandbox deploy state: `READY`.
+- Latest committed head verified before this stage: `9cc7f614`.
+- GitHub checks on that head: CI/CD Pipeline, Security Scanning, Lighthouse Agentic Browsing, and Smoke Tests passed.
+- Live route probes passed for `/auth/login`, `/founder-os-sw.js`, and `/api/auth/callback?error=access_denied&next=%2Ffounder%2Fdashboard`.
+
+Workflow alignment added in the next stage:
+
+- GitHub Actions project runtime is pinned to Node.js `24` where Node is installed.
+- Workflows opt into Node 24 action execution through `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24`.
+- Smoke, nightly health, and Lighthouse defaults target the Unite-Hub sandbox alias instead of old Unite-Group domains.
+- The smoke static-asset check uses the cleanup service worker as a current cache-safety asset instead of the removed legacy logo.
 
 Required evidence:
 
@@ -112,6 +121,8 @@ Required evidence:
 - Required env var presence check without printing secret values
 - Latest deploy URL and state
 - Blocker owner and next action when not `READY`
+
+Status: deploy stabilization is green. Feature work may resume only while the deploy gate remains `READY`; any regression returns the Operating Brain lane to P0.
 
 ## Active Roadmap Requirements
 
@@ -129,6 +140,23 @@ Board memo sequencing from `.pi/ceo-agents/memos/hub-connections-24-03-2026.md` 
 1. Sprint 1: bookkeeper completion to MACAS auto-trigger with data-readiness gate and human-review badge.
 2. Sprint 2: Hub Status via connected-projects API and dashboard widget for the seven portfolio businesses.
 3. Sprint 3: nightly intelligence sweep that starts with GitHub and Linear, then expands only after evidence quality is stable.
+
+## Next-Stage Execution Rules
+
+The next implementation stages should run in this order:
+
+1. Keep Vercel/GitHub health green on `main`.
+2. Attach this Operating Brain plan to `UNI-2056` and `UNI-2057` before writing feature code.
+3. Implement read-only Margot/Pi-Dev-Ops evidence collection before any write automation.
+4. Add command-center visibility for digest items, approvals, deploy health, and blocked tasks.
+5. Promote the Hermes 1% loop only after each tick can write evidence without secrets and without unsafe side effects.
+
+Senior PM acceptance criteria for each stage:
+
+- Owner, status, blocker, next action, and evidence are explicit.
+- Unsafe actions become decision briefs, not execution.
+- The 2nd Brain update path points to repo docs or `D:\Hermes\wiki`; no semantic store becomes authoritative until stable source rules exist.
+- Verification includes local gates, live route evidence when deployment changes, and GitHub check results after push.
 
 ## Governance Gates
 

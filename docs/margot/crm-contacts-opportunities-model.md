@@ -11,12 +11,12 @@ This document proposes the next safe CRM lane after lead persistence, lead quali
 
 The proposal is grounded only in existing repository evidence:
 
-- `docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md` says Connected Teams must use existing assets first and avoid asking Phill for new access unless a specific inspected task is genuinely blocked.
-- `docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md` makes Margot the Senior PM across CRM, project portfolio, client 2nd Brain, marketing, integrations, AI/LLM, and the $2B Unite-Group strategy lens.
+- `docs/margot/README.md` maps retired Margot references to current canonical surfaces.
+- `docs/margot/operating-brain-integration.md` makes Margot the Senior PM access point across CRM, project portfolio, client 2nd Brain, marketing, integrations, AI/LLM, and the Unite-Group strategy lens.
 - `docs/margot/high-level-crm-25-step-forecast.md` forecasts contact and opportunity modeling after lead persistence and conversion planning.
 - `docs/margot/crm-operating-model.md` identifies `crm_contacts` and `crm_opportunities` as proposed target sources of truth and names drafting those proposals as next lanes.
 - `docs/margot/crm-schema-inventory.md` says current contact data is embedded in `nexus_clients.contact_name/contact_email` and `crm_leads` fields, opportunities are not modeled, contacts need dedupe/privacy/cross-client safeguards, and opportunities must stay separate from Stripe billing truth.
-- `docs/margot/lead-to-client-conversion-plan.md` says qualification is recommendation-only, conversion must pass exact identity gates and operator approval, original lead attribution must be preserved, and production conversion has not been promoted or verified.
+- `docs/margot/crm-operating-model.md` says qualification is recommendation-only, conversion must pass exact identity gates and operator approval, original lead attribution must be preserved, and production conversion has not been promoted or verified.
 - `supabase/migrations/20260510000002_nexus_clients.sql` creates `nexus_clients` with client identity, embedded contact fields, Stripe IDs, plan/status, Linear project ID, Pi-CEO key, brand config, and timestamps.
 - `supabase/migrations/20260523100000_crm_leads.sql` creates `crm_leads` with lead person/company/contact fields, marketing consent, source, status, qualification score, owner, matched client/business links, converted client link, privacy-sensitive request metadata, and timestamps.
 
