@@ -1,5 +1,64 @@
 # Margot Overnight Progress Log
 
+## 2026-05-29 19:20 AEST
+
+### UNI-2055 CCW EOFY approval-packet evidence slice
+
+Current checkpoint:
+
+- Preflight: branch `main` started at `6fdc05e` with local UNI-2055/Linear evidence changes already present; I created branch `margot/uni-2055-approval-packet-evidence` to preserve that work before adding this checkpoint. GitHub CLI auth is available for `CleanExpo`; open PR list for `CleanExpo/Unite-Group` was empty. No token values were printed.
+- Chosen lane: continue the smallest existing local-only Margot/CRM content lane, UNI-2055, rather than starting a new code lane while draft/evidence files were already dirty.
+- Completed: verified `docs/margot/ccw-eofy-organic-campaign-copy-pack.md`, `docs/margot/ccw-eofy-synthex-approval-packet.md`, and `docs/margot/linear-uni-2055-safe-tick.md` against the Linear mirror in `docs/margot/linear-watch-today.md`.
+- Result: the packet remains approval-ready for internal review only. It is not sent, not scheduled, not published, and has no Synthex queue ID or scheduler/CMS/social IDs.
+
+Changed:
+
+- Updated `docs/margot/linear-watch-today.md` from the Linear mirror.
+- Added `docs/margot/ccw-eofy-synthex-approval-packet.md`.
+- Added `docs/margot/linear-uni-2055-safe-tick.md`.
+- Updated `docs/margot/morning-report.md` and this progress log with the current checkpoint.
+
+Verification:
+
+```bash
+python3 UNI-2055 packet validation
+# PASS:
+# copy_has_10_facebook_concepts=True
+# copy_has_3_service_posts=True
+# copy_has_3_urgency_posts=True
+# copy_image_brief_count_16=True
+# copy_accountant_safe_guardrails=True
+# copy_missing_toby_inputs=True
+# copy_no_schedule_publish_boundary=True
+# packet_has_16_queue_slots=True
+# packet_blocks_public_action=True
+# packet_has_scheduler_ids_none=True
+# packet_has_synthex_draft_id_not_created=True
+# safe_tick_records_local_only=True
+# image_brief_count=16
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after final evidence/report updates.
+```
+
+Safety:
+
+- No client-facing send, Synthex/CMS/social scheduling, public publishing, paid ad spend, pricing/promo/tax claim, production CRM/task mutation, Supabase migration application, Vercel env mutation/manual deploy, billing/payment action, destructive git, cross-client merge, external account/vendor action, or secret printing/storage occurred.
+
+Blockers / approval gates:
+
+- Moving UNI-2055 beyond local internal review requires explicit operator/client approval plus Toby/CCW stock priorities, workshop capacity, preferred CTA, approved assets, exclusions/promos, EOFY trading hours, and channel expansion decision.
+
+Next safe slice:
+
+- If no UNI-2055 approval is recorded, return to the CRM command-center daily-digest read-path slice with RED-GREEN route/page tests for scoped server-side digest injection and safe missing-config behavior.
+
 ## 2026-05-26 23:57 AEST
 
 ### Command-center Daily CRM Digest read-surface slice
