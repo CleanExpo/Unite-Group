@@ -12,6 +12,7 @@ import {
 import { mapAddOnResult, type AddOnOutcome } from './add-on-result';
 import { SourceBadge } from '../SourceBadge';
 import { DegradedDataBanner } from '../DegradedDataBanner';
+import type { CommandCenterDailyDigestInitial } from '../daily-digest-initial';
 
 type LiveControlWorkstream = ControlWorkstream & {
   crmTaskId?: string;
@@ -57,9 +58,10 @@ function stateLabel(status: ControlStatus, ryg?: ControlRyg) {
 
 type HermesControlPanelProps = {
   initialPayload?: ControlPanelPayload;
+  dailyDigestInitial?: CommandCenterDailyDigestInitial;
 };
 
-export function HermesControlPanel({ initialPayload }: HermesControlPanelProps = {}) {
+export function HermesControlPanel({ initialPayload, dailyDigestInitial }: HermesControlPanelProps = {}) {
   const [payload, setPayload] = useState<ControlPanelPayload | null>(initialPayload ?? null);
   const [sourceState, setSourceState] = useState<'loading' | 'live' | 'fallback'>(
     initialPayload?.source.startsWith('crm:') ? 'live' : initialPayload ? 'fallback' : 'loading',
@@ -221,6 +223,8 @@ export function HermesControlPanel({ initialPayload }: HermesControlPanelProps =
         />
       )}
 
+      {dailyDigestInitial && <DailyDigestSlice digest={dailyDigestInitial} />}
+
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_20rem]" style={{ gap: 1, background: 'var(--cc-grid)' }}>
         <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 1, background: 'var(--cc-grid)' }}>
           {workstreams.map((item) => (
@@ -281,6 +285,41 @@ export function HermesControlPanel({ initialPayload }: HermesControlPanelProps =
             />
           ))}
         </aside>
+      </div>
+    </section>
+  );
+}
+
+function DailyDigestSlice({ digest }: { digest: CommandCenterDailyDigestInitial }) {
+  return (
+    <section
+      className="grid gap-4 px-6 py-5 lg:grid-cols-[18rem_1fr]"
+      style={{
+        background: 'var(--cc-bg-soft)',
+        borderBottom: '1px solid var(--cc-grid)',
+      }}
+      aria-label="Daily CRM digest summary"
+    >
+      <div className="grid grid-cols-2 gap-px overflow-hidden border" style={{ borderColor: 'var(--cc-grid)', background: 'var(--cc-grid)' }}>
+        <SummaryCell label="LEADS" value={digest.summary.leadCount} tone="green" />
+        <SummaryCell label="QUALIFIED" value={digest.summary.qualifiedLeadCount} tone="green" />
+        <SummaryCell label="APPROVALS" value={digest.summary.approvalRequiredCount} tone="red" />
+        <SummaryCell label="BLOCKED" value={digest.summary.blockedTaskCount} tone="red" />
+      </div>
+      <div className="flex flex-col gap-2">
+        <span
+          className="font-mono text-[10px] uppercase tracking-[0.22em]"
+          style={{ color: 'var(--cc-ink-dim)' }}
+        >
+          Daily CRM digest · operator priorities
+        </span>
+        <ul className="grid gap-2 font-mono text-[11px] leading-relaxed" style={{ color: 'var(--cc-ink-dim)' }}>
+          {digest.operatorPriorities.map((priority, index) => (
+            <li key={`${index}-${priority}`}>
+              {priority}
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );

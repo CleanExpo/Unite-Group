@@ -16,7 +16,8 @@ import { readActivityFeed } from '@/lib/empire/read-activity-feed';
 import { readBusiness360 } from '@/lib/empire/read-business-360';
 import { readAgentTopology } from '@/lib/empire/read-agent-topology';
 import { readDataRoomHealth } from '@/lib/empire/read-data-room-health';
-import { readDailyCrmDigest } from '@/lib/crm/read-daily-digest';
+import { readCrmDailyDigestForCommandCenter } from '@/lib/crm/read-daily-digest';
+import { toCommandCenterDailyDigestInitial } from '@/components/command-center/daily-digest-initial';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,14 +37,22 @@ export default async function CommandCenterPage({
 
   // Server-fetch summaries in parallel. The page is already admin-gated, so
   // we skip requireAdmin (which is an API-route concern) and read directly.
-  const [summary, globalStatus, activity, business360, topology, dataRoomHealth, dailyDigest] = await Promise.all([
+  const [
+    summary,
+    globalStatus,
+    activity,
+    business360,
+    topology,
+    dataRoomHealth,
+    dailyDigest,
+  ] = await Promise.all([
     readPortfolioSummary(),
     readGlobalStatus(),
     readActivityFeed(),
     readBusiness360(),
     readAgentTopology(),
     readDataRoomHealth(),
-    readDailyCrmDigest(),
+    readCrmDailyDigestForCommandCenter(),
   ]);
 
   return (
@@ -85,7 +94,6 @@ export default async function CommandCenterPage({
             }
           : undefined
       }
-      dailyDigestInitial={dailyDigest}
       topologyInitial={
         topology && topology.liveNodeCount > 0
           ? {
@@ -95,6 +103,7 @@ export default async function CommandCenterPage({
             }
           : undefined
       }
+      dailyDigestInitial={toCommandCenterDailyDigestInitial(dailyDigest)}
     />
   );
 }

@@ -1,148 +1,139 @@
-import React from 'react';
+import type { CrmDailyDigest } from '@/lib/crm/daily-digest';
 
-const mockCheckAdminSession = jest.fn();
-const mockRedirect = jest.fn((url: string) => {
+const shellMock = jest.fn(() => null);
+const redirectMock = jest.fn((url: string) => {
   throw new Error(`redirect:${url}`);
 });
-const mockCommandCenterShell = jest.fn(() => <div data-testid="command-center-shell" />);
-const mockAccessDenied = jest.fn(() => <div data-testid="access-denied" />);
-const mockReadPortfolioSummary = jest.fn();
-const mockReadGlobalStatus = jest.fn();
-const mockReadActivityFeed = jest.fn();
-const mockReadBusiness360 = jest.fn();
-const mockReadAgentTopology = jest.fn();
-const mockReadDataRoomHealth = jest.fn();
-const mockReadDailyCrmDigest = jest.fn();
+const checkAdminSessionMock = jest.fn();
+const readPortfolioSummaryMock = jest.fn();
+const readGlobalStatusMock = jest.fn();
+const readActivityFeedMock = jest.fn();
+const readBusiness360Mock = jest.fn();
+const readAgentTopologyMock = jest.fn();
+const readDataRoomHealthMock = jest.fn();
+const readCrmDailyDigestForCommandCenterMock = jest.fn();
 
 jest.mock('next/navigation', () => ({
-  redirect: (url: string) => mockRedirect(url),
-}));
-
-jest.mock('@/lib/security/require-admin', () => ({
-  checkAdminSession: () => mockCheckAdminSession(),
+  redirect: (url: string) => redirectMock(url),
 }));
 
 jest.mock('@/components/command-center/CommandCenterShell', () => ({
-  CommandCenterShell: (props: Record<string, unknown>) => mockCommandCenterShell(props),
+  CommandCenterShell: (props: unknown) => shellMock(props),
 }));
 
 jest.mock('@/components/command-center/AccessDenied', () => ({
-  AccessDenied: (props: Record<string, unknown>) => mockAccessDenied(props),
+  AccessDenied: ({ actorEmail, locale }: { actorEmail?: string; locale: string }) => ({
+    type: 'AccessDenied',
+    actorEmail,
+    locale,
+  }),
+}));
+
+jest.mock('@/lib/security/require-admin', () => ({
+  checkAdminSession: () => checkAdminSessionMock(),
 }));
 
 jest.mock('@/lib/empire/read-portfolio-summary', () => ({
-  readPortfolioSummary: () => mockReadPortfolioSummary(),
+  readPortfolioSummary: () => readPortfolioSummaryMock(),
 }));
 
 jest.mock('@/lib/empire/read-global-status', () => ({
-  readGlobalStatus: () => mockReadGlobalStatus(),
+  readGlobalStatus: () => readGlobalStatusMock(),
 }));
 
 jest.mock('@/lib/empire/read-activity-feed', () => ({
-  readActivityFeed: () => mockReadActivityFeed(),
+  readActivityFeed: () => readActivityFeedMock(),
 }));
 
 jest.mock('@/lib/empire/read-business-360', () => ({
-  readBusiness360: () => mockReadBusiness360(),
+  readBusiness360: () => readBusiness360Mock(),
 }));
 
 jest.mock('@/lib/empire/read-agent-topology', () => ({
-  readAgentTopology: () => mockReadAgentTopology(),
+  readAgentTopology: () => readAgentTopologyMock(),
 }));
 
 jest.mock('@/lib/empire/read-data-room-health', () => ({
-  readDataRoomHealth: () => mockReadDataRoomHealth(),
+  readDataRoomHealth: () => readDataRoomHealthMock(),
 }));
 
-jest.mock(
-  '@/lib/crm/read-daily-digest',
-  () => ({
-    readDailyCrmDigest: () => mockReadDailyCrmDigest(),
-  }),
-  { virtual: true },
-);
+jest.mock('@/lib/crm/read-daily-digest', () => ({
+  readCrmDailyDigestForCommandCenter: () => readCrmDailyDigestForCommandCenterMock(),
+}));
 
 import CommandCenterPage from '@/app/[locale]/command-center/page';
 
-const digest = {
-  generatedAt: '2026-05-23T06:07:08.000Z',
-  summary: { leadCount: 1, qualifiedLeadCount: 1, opportunityCount: 0 },
-  operatorPriorities: ['Review Ada Lovelace'],
-  approvals: [],
-  blockers: [],
-  sourceLiveAt: '2026-05-23T06:07:08.000Z',
-};
-
-function seedSuccessfulReads() {
-  mockReadPortfolioSummary.mockResolvedValue({
-    total_arr_cents: 12345,
-    at_risk_count: 1,
-    fetched_at: '2026-05-23T06:00:00.000Z',
-  });
-  mockReadGlobalStatus.mockResolvedValue({
-    agentsAlive: 3,
-    alerts: [],
-    buildSha: 'abc123',
-    fetchedAt: '2026-05-23T06:01:00.000Z',
-  });
-  mockReadActivityFeed.mockResolvedValue({ events: [{ id: 'event-1' }], fetchedAt: '2026-05-23T06:02:00.000Z' });
-  mockReadBusiness360.mockResolvedValue({
-    liveBusinessCount: 1,
-    tiles: [{ id: 'business-1' }],
-    fetchedAt: '2026-05-23T06:03:00.000Z',
-  });
-  mockReadAgentTopology.mockResolvedValue({
-    liveNodeCount: 1,
-    nodes: [{ id: 'agent-1' }],
-    edges: [],
-    fetchedAt: '2026-05-23T06:04:00.000Z',
-  });
-  mockReadDataRoomHealth.mockResolvedValue({ health: 'healthy' });
-  mockReadDailyCrmDigest.mockResolvedValue(digest);
-}
-
-describe('/[locale]/command-center daily CRM digest SSR wiring', () => {
+describe('/[locale]/command-center daily digest server slice', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    seedSuccessfulReads();
+    checkAdminSessionMock.mockResolvedValue({ ok: true, actorEmail: 'admin@example.com' });
+    readPortfolioSummaryMock.mockResolvedValue(null);
+    readGlobalStatusMock.mockResolvedValue(null);
+    readActivityFeedMock.mockResolvedValue(null);
+    readBusiness360Mock.mockResolvedValue(null);
+    readAgentTopologyMock.mockResolvedValue(null);
+    readDataRoomHealthMock.mockResolvedValue(null);
   });
 
-  it('reads the daily CRM digest for an allowed admin and passes it to CommandCenterShell', async () => {
-    mockCheckAdminSession.mockResolvedValue({ ok: true, actorEmail: 'admin@unite.test' });
+  it('passes only a minimized CRM daily digest DTO to the client shell', async () => {
+    const digest: CrmDailyDigest = {
+      generatedAt: '2026-05-23T06:07:08.000Z',
+      summary: {
+        leadCount: 2,
+        qualifiedLeadCount: 1,
+        opportunityCount: 0,
+        approvalRequiredCount: 1,
+        blockedTaskCount: 1,
+        blockerCount: 0,
+      },
+      sections: {
+        operatorPriorities: [
+          'Task task-1 (Follow up): owner Phill, status blocked, priority high.',
+          'Priority 2',
+          'Priority 3',
+          'Priority 4',
+          'Priority 5',
+          'Priority 6 SHOULD NOT SERIALIZE',
+        ],
+        approvals: ['Task task-1 (Follow up): blocked for Phill. Priority: high'],
+        blockers: ['No blockers supplied for this digest window.'],
+        verification: ['passed: command-center CRM daily digest read'],
+      },
+      markdown: '# Daily CRM Digest',
+    };
+    readCrmDailyDigestForCommandCenterMock.mockResolvedValue(digest);
 
     const result = await CommandCenterPage({ params: Promise.resolve({ locale: 'en' }) });
 
-    expect(mockReadDailyCrmDigest).toHaveBeenCalledTimes(1);
-    expect((result as React.ReactElement).props).toEqual(
+    expect(readCrmDailyDigestForCommandCenterMock).toHaveBeenCalledTimes(1);
+    expect((result as any).props).toEqual(
       expect.objectContaining({
         locale: 'en',
-        dailyDigestInitial: digest,
+        dailyDigestInitial: {
+          generatedAt: digest.generatedAt,
+          summary: digest.summary,
+          operatorPriorities: digest.sections.operatorPriorities.slice(0, 5),
+          approvals: digest.sections.approvals.slice(0, 5),
+          blockers: digest.sections.blockers.slice(0, 5),
+          sourceLiveAt: digest.generatedAt,
+        },
       }),
     );
+    expect(JSON.stringify((result as any).props.dailyDigestInitial)).not.toContain('markdown');
+    expect(JSON.stringify((result as any).props.dailyDigestInitial)).not.toContain('Daily CRM Digest');
+    expect(JSON.stringify((result as any).props.dailyDigestInitial)).not.toContain('Priority 6 SHOULD NOT SERIALIZE');
   });
 
-  it('redirects anonymous callers before reading the daily CRM digest', async () => {
-    mockCheckAdminSession.mockResolvedValue({ ok: false, reason: 'anonymous' });
-
-    await expect(CommandCenterPage({ params: Promise.resolve({ locale: 'en' }) })).rejects.toThrow(
-      'redirect:/en/login?next=/en/command-center',
-    );
-
-    expect(mockReadDailyCrmDigest).not.toHaveBeenCalled();
-    expect(mockCommandCenterShell).not.toHaveBeenCalled();
-  });
-
-  it('renders AccessDenied for forbidden callers before reading the daily CRM digest', async () => {
-    mockCheckAdminSession.mockResolvedValue({
-      ok: false,
-      reason: 'forbidden',
-      actorEmail: 'non-admin@unite.test',
-    });
+  it('passes no daily digest when the server digest read degrades safely', async () => {
+    readCrmDailyDigestForCommandCenterMock.mockResolvedValue(undefined);
 
     const result = await CommandCenterPage({ params: Promise.resolve({ locale: 'en' }) });
 
-    expect((result as React.ReactElement).props).toEqual({ actorEmail: 'non-admin@unite.test', locale: 'en' });
-    expect(mockReadDailyCrmDigest).not.toHaveBeenCalled();
-    expect(mockCommandCenterShell).not.toHaveBeenCalled();
+    expect((result as any).props).toEqual(
+      expect.objectContaining({
+        locale: 'en',
+        dailyDigestInitial: undefined,
+      }),
+    );
   });
 });

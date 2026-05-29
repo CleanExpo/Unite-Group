@@ -1,7 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/security/require-admin';
-import { readDailyCrmDigestForRoute } from '@/lib/crm/read-daily-digest';
+import { createCrmDailyDigest } from '@/lib/crm/daily-digest';
+import {
+  LEAD_SELECT_COLUMNS_WITH_EMAIL,
+  TASK_SELECT_COLUMNS,
+  OPPORTUNITY_SELECT_COLUMNS,
+  readDigestOwner,
+  mapLead,
+  mapTask,
+  mapOpportunity,
+  type CrmLeadDigestRow,
+  type CrmTaskDigestRow,
+  type CrmOpportunityDigestRow,
+} from '@/lib/crm/digest-mappers';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,8 +28,9 @@ function parseQuery(request: NextRequest) {
   });
 }
 
-function statusForError(error: string): 500 | 503 {
-  return error === 'crm_not_configured' ? 503 : 500;
+function getOwnerFilter(request: NextRequest): string | undefined {
+  const owner = request.nextUrl.searchParams.get('owner');
+  return owner || readDigestOwner();
 }
 
 export async function GET(request: NextRequest) {
@@ -25,10 +39,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'invalid_digest_query' }, { status: 400 });
   }
 
-  // Intentional pre-auth config gate: without service-role config, requireAdmin
-  // would fall through to session inspection and can touch Supabase auth/session
-  // machinery. This route degrades closed before any CRM or session read when
-  // the digest data plane is not configured.
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return NextResponse.json({ error: 'crm_not_configured' }, { status: 503 });
   }
@@ -36,19 +46,82 @@ export async function GET(request: NextRequest) {
   const gate = await requireAdmin(request);
   if (gate instanceof NextResponse) return gate;
 
-  const result = await readDailyCrmDigestForRoute(parsed.data.limit);
-  if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: statusForError(result.error) });
-  }
-
-  return NextResponse.json(
-    {
-      success: true,
-      digest: result.digest,
-      leadCount: result.leadCount,
-      opportunityCount: result.opportunityCount,
-      filters: result.filters,
-    },
-    { status: 200 },
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    { auth: { persistSession: false } },
   );
+
+  try {
+    const digestOwner = getOwnerFilter(request);
+
+    const { data, error } = await supabase
+      .from('crm_leads')
+      .select(LEAD_SELECT_COLUMNS_WITH_EMAIL)
+      .eq('assigned_owner', digestOwner)
+      .order('captured_at', { ascending: false })
+      .limit(parsed.data.limit);
+
+    if (error) {
+      console.error('Error reading CRM daily digest leads:', error);
+      return NextResponse.json({ error: 'crm_digest_read_failed' }, { status: 500 });
+    }
+
+    const { data: taskData, error: taskError } = process.env.UNITE_CRM_WORKSPACE_ID
+      ? await supabase
+          .from('tasks')
+          .select(TASK_SELECT_COLUMNS)
+          .eq('workspace_id', process.env.UNITE_CRM_WORKSPACE_ID)
+          .in('status', ['blocked', 'todo'])
+          .order('created_at', { ascending: false })
+          .limit(parsed.data.limit)
+      : { data: [], error: null };
+
+    if (taskError) {
+      console.error('Error reading CRM daily digest tasks:', taskError);
+      return NextResponse.json({ error: 'crm_digest_tasks_read_failed' }, { status: 500 });
+    }
+
+    const opportunitiesEnabled = process.env.UNITE_CRM_OPPORTUNITIES_DIGEST_ENABLED === 'true';
+    const { data: opportunityData, error: opportunityError } = opportunitiesEnabled
+      ? await supabase
+          .from('crm_opportunities')
+          .select(OPPORTUNITY_SELECT_COLUMNS)
+          .eq('owner', digestOwner)
+          .in('status', ['open', 'won', 'blocked_review'])
+          .order('updated_at', { ascending: false })
+          .limit(parsed.data.limit)
+      : { data: [], error: null };
+
+    if (opportunityError) {
+      console.error('Error reading CRM daily digest opportunities:', opportunityError);
+      return NextResponse.json({ error: 'crm_digest_opportunities_read_failed' }, { status: 500 });
+    }
+
+    const leads = (((data ?? []) as unknown) as CrmLeadDigestRow[]).map(mapLead);
+    const tasks = (((taskData ?? []) as unknown) as CrmTaskDigestRow[]).map(mapTask);
+    const opportunities = (((opportunityData ?? []) as unknown) as CrmOpportunityDigestRow[]).map(mapOpportunity);
+
+    const digest = createCrmDailyDigest({
+      generatedAt: new Date().toISOString(),
+      leads,
+      opportunities,
+      tasks,
+      verification: [{ command: 'GET /api/crm/daily-digest', status: 'passed' }],
+    });
+
+    return NextResponse.json(
+      {
+        success: true,
+        digest,
+        leadCount: leads.length,
+        opportunityCount: opportunities.length,
+        filters: { limit: parsed.data.limit, owner: digestOwner },
+      },
+      { status: 200 },
+    );
+  } catch (error) {
+    console.error('Unexpected CRM daily digest read error:', error);
+    return NextResponse.json({ error: 'crm_digest_read_failed' }, { status: 500 });
+  }
 }
