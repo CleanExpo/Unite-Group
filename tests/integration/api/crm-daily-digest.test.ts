@@ -180,7 +180,7 @@ describe('GET /api/crm/daily-digest', () => {
     expect(calls).toEqual([
       {
         method: 'select',
-        columns: 'id,first_name,last_name,company,status,qualification_score,captured_at',
+        columns: 'id,first_name,last_name,email,company,status,qualification_score,captured_at',
       },
       { method: 'eq', column: 'assigned_owner', value: 'Margot' },
       { method: 'order', column: 'captured_at', options: { ascending: false } },
@@ -219,7 +219,7 @@ describe('GET /api/crm/daily-digest', () => {
     expect(leadCalls).toEqual([
       {
         method: 'select',
-        columns: 'id,first_name,last_name,company,status,qualification_score,captured_at',
+        columns: 'id,first_name,last_name,email,company,status,qualification_score,captured_at',
       },
       { method: 'eq', column: 'assigned_owner', value: 'Margot' },
       { method: 'order', column: 'captured_at', options: { ascending: false } },
