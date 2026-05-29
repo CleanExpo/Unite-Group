@@ -20,6 +20,26 @@
 
 ---
 
+## NorthStar Doctrine
+
+**The NorthStar:** a real, comprehensive, working founder CRM **in production** where **every section is GREEN** —
+real data + auth + founder-scope + loading/error + verify-pass. **200 ≠ real**: a rendered page or green CI
+tick is not evidence; real founder-scoped data behind auth is.
+
+**No-Invaders rule** — reject all seven on sight:
+1. No fake-as-real (mock/hardcoded data shown as live) — surface `source`, prefer honest "not_connected".
+2. No scope-creep — build only what's asked.
+3. No new dependencies — use what's in the repo.
+4. No duplicate systems — search before creating.
+5. No new repos/clones — one canonical repo per product.
+6. No shortcut hacks — no `|| true`, `--no-verify`, swallowed errors, bypassed gates.
+7. No speculative crons/skills — don't scaffold for unconnected sources/providers.
+
+**Consult [`.skills/custom/northstar-navigator`](.skills/custom/northstar-navigator/SKILL.md) before deciding
+what to build, skip, or finish.** It holds the full Definition of GREEN, the Navigation Loop, and the substrate map.
+
+---
+
 
 ## Identity
 Private founder CRM for Phill McGurk. NOT a public SaaS. One user.

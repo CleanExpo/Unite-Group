@@ -19,6 +19,7 @@ These skills load on every response via `pre-response.hook`. They are always act
 | `system-supervisor` | Architecture drift detection — pre-creation check, duplicate detection, complexity budget, pattern consistency. See `.claude/skills/custom/system-supervisor/` |
 | `context-partitioning` | **NEW** Manifest-first dispatch — orchestrator produces typed manifest before any Agent tool call |
 | `verification-first` | **NEW** Hard verification gate — no task complete without proof (Tier A–D) |
+| `northstar-navigator` | **NEW** Road-to-/shipit compass — NorthStar (every section GREEN, 200≠real), Definition of GREEN, No-Invaders Manifest. Consult before deciding what to build/skip/finish. See `.skills/custom/northstar-navigator/` |
 
 > **Custom skill location**: `.claude/skills/custom/{id}/SKILL.md`
 > **P1 cap**: Do not add more than 8 P1 skills — each one costs tokens on every response.

@@ -7,8 +7,13 @@
 
 ---
 
-## The one hard blocker to /shipit
-Production Vercel project does **not exist** — `PORTFOLIO.yaml` → `unite-hub` production `project_id: TBD, project_name: TBD`. Only `unite-hub-sandbox` exists. Repo not linked locally (`.vercel/project.json` absent). **Human/infra step**, teed up at the end. Everything else is autonomous.
+## The one hard blocker to /shipit — CLEARED 2026-05-30
+Production Vercel project **now exists**: `unite-hub` (`prj_y8hsRwhZHe6ewe6wCbwMbBYx20yp`, team `team_KMZACI5rIltoCRhAtGCXlxUf`). Repo `CleanExpo/Unite-Hub` connected. All 7 required env vars (3 CRITICAL + 4 REQUIRED) + Google OAuth set on **Production (9/9)**, **Preview (9/9, via REST API — CLI all-branches form is buggy)**, and **Development (9/9)** — replicated from `unite-hub-sandbox`. `PORTFOLIO.yaml` prod `project_id`/`project_name` recorded (was TBD). `.vercel/project.json` linked locally.
+
+**Remaining to /shipit (in order):**
+1. Branch protection on `main` — require the 4 CI checks (typecheck / lint / test / build).
+2. `deepsec` pre-ship security gate — run once (cost-gated).
+3. First production deploy — now unblocked (project + repo + env all ready).
 
 ---
 
