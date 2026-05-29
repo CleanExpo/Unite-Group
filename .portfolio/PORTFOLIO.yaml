@@ -37,8 +37,8 @@ products:
     vercel:
       team_id: team_KMZACI5rIltoCRhAtGCXlxUf
       production:
-        project_id: TBD
-        project_name: TBD
+        project_id: prj_y8hsRwhZHe6ewe6wCbwMbBYx20yp
+        project_name: unite-hub
         domain: unite-hub.vercel.app
       sandbox:
         project_id: prj_tNqIsHGY3kvw7zdO2bXVxFWTPIk0
