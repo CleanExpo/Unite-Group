@@ -277,4 +277,114 @@ describe('readCrmDailyDigestForCommandCenter', () => {
       summary: { leadCount: 0, opportunityCount: 0, blockedTaskCount: 0 },
     });
   });
+
+  describe('error-log redaction', () => {
+    const SENTINEL_RAW = 'service-role-test leaked ada@example.com x-api-key=abc123';
+
+    function flattenConsoleArgs(spy: jest.SpyInstance): string {
+      return spy.mock.calls
+        .flat()
+        .map((arg: unknown) => {
+          if (arg instanceof Error) return `${arg.message} ${arg.stack ?? ''}`;
+          if (typeof arg === 'object' && arg !== null) {
+            try {
+              return JSON.stringify(arg);
+            } catch {
+              return '[unserializable]';
+            }
+          }
+          return String(arg);
+        })
+        .join(' ');
+    }
+
+    it('does not log raw error details when lead reads fail in the command-center helper', async () => {
+      const leadCalls: QueryCall[] = [];
+      const taskCalls: QueryCall[] = [];
+      const leadBuilder = createReadBuilder(leadCalls, { data: null, error: new Error(SENTINEL_RAW) });
+      const taskBuilder = createReadBuilder(taskCalls, { data: [], error: null });
+
+      mockFrom.mockImplementation((table: string) => {
+        if (table === 'crm_leads') return leadBuilder;
+        if (table === 'tasks') return taskBuilder;
+        throw new Error(`Unexpected table read: ${table}`);
+      });
+
+      const result = await readCrmDailyDigestForCommandCenter();
+
+      expect(result).toBeUndefined();
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      const flat = flattenConsoleArgs(consoleErrorSpy);
+      expect(flat).not.toContain(SENTINEL_RAW);
+      expect(flat).not.toContain('ada@example.com');
+      expect(flat).not.toContain('x-api-key=abc123');
+      expect(flat).not.toContain('service-role-test');
+    });
+
+    it('does not log raw error details when task reads fail in the command-center helper', async () => {
+      const leadCalls: QueryCall[] = [];
+      const taskCalls: QueryCall[] = [];
+      const leadBuilder = createReadBuilder(leadCalls, { data: [], error: null });
+      const taskBuilder = createReadBuilder(taskCalls, { data: null, error: new Error(SENTINEL_RAW) });
+
+      mockFrom.mockImplementation((table: string) => {
+        if (table === 'crm_leads') return leadBuilder;
+        if (table === 'tasks') return taskBuilder;
+        throw new Error(`Unexpected table read: ${table}`);
+      });
+
+      const result = await readCrmDailyDigestForCommandCenter();
+
+      expect(result).toBeUndefined();
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      const flat = flattenConsoleArgs(consoleErrorSpy);
+      expect(flat).not.toContain(SENTINEL_RAW);
+      expect(flat).not.toContain('ada@example.com');
+      expect(flat).not.toContain('x-api-key=abc123');
+      expect(flat).not.toContain('service-role-test');
+    });
+
+    it('does not log raw error details when opportunity reads fail in the command-center helper', async () => {
+      process.env.UNITE_CRM_OPPORTUNITIES_DIGEST_ENABLED = 'true';
+      const leadCalls: QueryCall[] = [];
+      const taskCalls: QueryCall[] = [];
+      const opportunityCalls: QueryCall[] = [];
+      const leadBuilder = createReadBuilder(leadCalls, { data: [], error: null });
+      const taskBuilder = createReadBuilder(taskCalls, { data: [], error: null });
+      const opportunityBuilder = createReadBuilder(opportunityCalls, { data: null, error: new Error(SENTINEL_RAW) });
+
+      mockFrom.mockImplementation((table: string) => {
+        if (table === 'crm_leads') return leadBuilder;
+        if (table === 'tasks') return taskBuilder;
+        if (table === 'crm_opportunities') return opportunityBuilder;
+        throw new Error(`Unexpected table read: ${table}`);
+      });
+
+      const result = await readCrmDailyDigestForCommandCenter();
+
+      expect(result).toBeUndefined();
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      const flat = flattenConsoleArgs(consoleErrorSpy);
+      expect(flat).not.toContain(SENTINEL_RAW);
+      expect(flat).not.toContain('ada@example.com');
+      expect(flat).not.toContain('x-api-key=abc123');
+      expect(flat).not.toContain('service-role-test');
+    });
+
+    it('does not log raw error details when an unexpected exception is thrown in the command-center helper', async () => {
+      mockFrom.mockImplementation(() => {
+        throw new Error(SENTINEL_RAW);
+      });
+
+      const result = await readCrmDailyDigestForCommandCenter();
+
+      expect(result).toBeUndefined();
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      const flat = flattenConsoleArgs(consoleErrorSpy);
+      expect(flat).not.toContain(SENTINEL_RAW);
+      expect(flat).not.toContain('ada@example.com');
+      expect(flat).not.toContain('x-api-key=abc123');
+      expect(flat).not.toContain('service-role-test');
+    });
+  });
 });

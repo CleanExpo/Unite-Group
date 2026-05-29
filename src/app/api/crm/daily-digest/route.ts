@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/security/require-admin';
 import { createCrmDailyDigest } from '@/lib/crm/daily-digest';
+import { logCrmDigestReadError } from '@/lib/crm/digest-read-error';
 import {
   LEAD_SELECT_COLUMNS_WITH_EMAIL,
   TASK_SELECT_COLUMNS,
@@ -63,7 +64,7 @@ export async function GET(request: NextRequest) {
       .limit(parsed.data.limit);
 
     if (error) {
-      console.error('Error reading CRM daily digest leads:', error);
+      logCrmDigestReadError('leads', 'api');
       return NextResponse.json({ error: 'crm_digest_read_failed' }, { status: 500 });
     }
 
@@ -78,7 +79,7 @@ export async function GET(request: NextRequest) {
       : { data: [], error: null };
 
     if (taskError) {
-      console.error('Error reading CRM daily digest tasks:', taskError);
+      logCrmDigestReadError('tasks', 'api');
       return NextResponse.json({ error: 'crm_digest_tasks_read_failed' }, { status: 500 });
     }
 
@@ -94,7 +95,7 @@ export async function GET(request: NextRequest) {
       : { data: [], error: null };
 
     if (opportunityError) {
-      console.error('Error reading CRM daily digest opportunities:', opportunityError);
+      logCrmDigestReadError('opportunities', 'api');
       return NextResponse.json({ error: 'crm_digest_opportunities_read_failed' }, { status: 500 });
     }
 
@@ -121,7 +122,7 @@ export async function GET(request: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
-    console.error('Unexpected CRM daily digest read error:', error);
+    logCrmDigestReadError('unexpected', 'api');
     return NextResponse.json({ error: 'crm_digest_read_failed' }, { status: 500 });
   }
 }
