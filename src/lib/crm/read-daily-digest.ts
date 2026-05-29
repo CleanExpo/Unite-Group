@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { createCrmDailyDigest, type CrmDailyDigest } from './daily-digest';
+import { logCrmDigestReadError } from './digest-read-error';
 import {
   LEAD_SELECT_COLUMNS,
   TASK_SELECT_COLUMNS,
@@ -56,17 +57,17 @@ export async function readCrmDailyDigestForCommandCenter(limit = 10): Promise<Cr
       await Promise.all([leadRead, taskRead, opportunityRead]);
 
     if (error) {
-      console.error('Error reading command-center CRM daily digest leads:', error);
+      logCrmDigestReadError('leads', 'command-center');
       return undefined;
     }
 
     if (taskError) {
-      console.error('Error reading command-center CRM daily digest tasks:', taskError);
+      logCrmDigestReadError('tasks', 'command-center');
       return undefined;
     }
 
     if (opportunityError) {
-      console.error('Error reading command-center CRM daily digest opportunities:', opportunityError);
+      logCrmDigestReadError('opportunities', 'command-center');
       return undefined;
     }
 
@@ -78,7 +79,7 @@ export async function readCrmDailyDigestForCommandCenter(limit = 10): Promise<Cr
       verification: [{ command: 'command-center CRM daily digest read', status: 'passed' }],
     });
   } catch (error) {
-    console.error('Unexpected command-center CRM daily digest read error:', error);
+    logCrmDigestReadError('unexpected', 'command-center');
     return undefined;
   }
 }

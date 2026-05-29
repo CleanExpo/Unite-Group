@@ -1,5 +1,57 @@
 # Margot Overnight Progress Log
 
+## 2026-05-29 21:01 AEST
+
+### CRM daily-digest redacted error-log hardening
+
+Current checkpoint:
+
+- Preflight: started from `main` at `457fbd8` with no open PR for the current branch, GitHub CLI auth available for `CleanExpo`, and inherited local-only evidence edits in `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`; no token values were printed. I created branch `margot/digest-error-log-redaction` before changing source/test files.
+- Chosen lane: smallest safe service-role CRM read hardening slice for the already-built daily-digest route/helper, because raw read errors could leak credentials/PII into logs even though HTTP responses were already safe.
+- Completed: added `src/lib/crm/digest-read-error.ts` and routed `/api/crm/daily-digest` plus `readCrmDailyDigestForCommandCenter` through bounded `{event,stage,context}` logging instead of `console.error(..., rawError)`. Added RED/GREEN tests for lead/task/opportunity/unexpected failures that flatten `console.error` args and independently assert absence of the sentinel raw message, `ada@example.com`, `x-api-key=abc123`, and `service-role-test`.
+
+Changed:
+
+- `src/lib/crm/digest-read-error.ts`
+- `src/app/api/crm/daily-digest/route.ts`
+- `src/lib/crm/read-daily-digest.ts`
+- `tests/integration/api/crm-daily-digest.test.ts`
+- `tests/unit/lib/crm/read-daily-digest.test.ts`
+- `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md` current evidence/status sections.
+
+Verification:
+
+```bash
+npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/read-daily-digest.test.ts --runInBand
+# PASS: 2 suites / 22 tests.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after final evidence/report updates.
+```
+
+Reviews:
+
+- Spec review: PASS — API/helper failure behavior is preserved, raw CRM digest read errors are no longer logged, tests cover all required failure surfaces, and file scope matches the task.
+- Quality review: APPROVED — no critical or important issues; optional minor notes only (`catch (_error)` intent comments, shared test helper extraction, and standalone helper-schema test can wait).
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, GitHub merge, client-facing communication, Synthex/CMS/social scheduling, public publishing, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Blockers / notes:
+
+- PR creation/push and GitHub/Vercel status verification are not complete yet in this checkpoint.
+
+Next safe slice:
+
+- Run final post-evidence hygiene, commit, push/open PR if GitHub transport stays available, monitor checks/statuses, then continue the command-center CRM daily-digest spine with the next smallest read-only visibility hardening or UI polish slice.
+
 ## 2026-05-29 20:05 AEST
 
 ### Post-206 evidence hygiene and Linear mirror reconciliation
@@ -47,7 +99,15 @@ Blockers / notes:
 
 Next safe slice:
 
-- Commit/push this evidence-only branch if checks remain clean, then return to the command-center CRM daily-digest read-path slice with RED-GREEN route/page tests for scoped server-side digest injection and safe missing-config behavior.
+- Return to the command-center CRM daily-digest read-path slice with RED-GREEN route/page tests for scoped server-side digest injection and safe missing-config behavior.
+
+Post-merge verification at `2026-05-29 20:18 AEST`:
+
+- PR: https://github.com/CleanExpo/Unite-Group/pull/207 — merged.
+- Merge commit: `457fbd8ec577db5f69ee4bb8e710d8d9d439fc80` (`docs: reconcile post-206 Margot evidence`).
+- Post-merge GitHub checks on `main`: CI run `26631655945` passed and DESIGN.md lint run `26631655903` passed.
+- GitHub commit statuses for the merge commit: `Vercel – unite-group` success (`https://vercel.com/unite-group/unite-group/DBkt4mcPPRtAwC55hhJk3vjygwcK`) and `Vercel – unite-group-sandbox` success (`https://vercel.com/unite-group/unite-group-sandbox/6NukvmUGwLuywktjEinaW8VW9Zn1`). These were GitHub/Vercel status checks; no manual Vercel deploy or env mutation was performed.
+- Local checkout after merge: `main...origin/main`; this post-merge evidence note is local-only and intentionally not published in a follow-up evidence PR.
 
 ## 2026-05-29 19:20 AEST
 

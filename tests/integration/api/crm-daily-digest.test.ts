@@ -393,4 +393,99 @@ describe('GET /api/crm/daily-digest', () => {
     expect(mockFrom).toHaveBeenNthCalledWith(2, 'tasks');
     expect(mockFrom).toHaveBeenNthCalledWith(3, 'crm_opportunities');
   });
+
+  describe('error-log redaction', () => {
+    const SENTINEL_RAW = 'service-role-test leaked ada@example.com x-api-key=abc123';
+
+    function flattenConsoleArgs(spy: jest.SpyInstance): string {
+      return spy.mock.calls
+        .flat()
+        .map((arg: unknown) => {
+          if (arg instanceof Error) return `${arg.message} ${arg.stack ?? ''}`;
+          if (typeof arg === 'object' && arg !== null) {
+            try {
+              return JSON.stringify(arg);
+            } catch {
+              return '[unserializable]';
+            }
+          }
+          return String(arg);
+        })
+        .join(' ');
+    }
+
+    it('does not log raw error details when lead reads fail at the route level', async () => {
+      const calls: QueryCall[] = [];
+      mockLeadRead(calls, { data: null, error: new Error(SENTINEL_RAW) });
+
+      const res = await GET(request());
+
+      expect(res.status).toBe(500);
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      const flat = flattenConsoleArgs(consoleErrorSpy);
+      expect(flat).not.toContain(SENTINEL_RAW);
+      expect(flat).not.toContain('ada@example.com');
+      expect(flat).not.toContain('x-api-key=abc123');
+      expect(flat).not.toContain('service-role-test');
+    });
+
+    it('does not log raw error details when task reads fail at the route level', async () => {
+      const leadCalls: QueryCall[] = [];
+      const taskCalls: QueryCall[] = [];
+      mockDigestReads({
+        leadCalls,
+        taskCalls,
+        taskResult: { data: null, error: new Error(SENTINEL_RAW) },
+      });
+
+      const res = await GET(request());
+
+      expect(res.status).toBe(500);
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      const flat = flattenConsoleArgs(consoleErrorSpy);
+      expect(flat).not.toContain(SENTINEL_RAW);
+      expect(flat).not.toContain('ada@example.com');
+      expect(flat).not.toContain('x-api-key=abc123');
+      expect(flat).not.toContain('service-role-test');
+    });
+
+    it('does not log raw error details when opportunity reads fail at the route level', async () => {
+      process.env.UNITE_CRM_OPPORTUNITIES_DIGEST_ENABLED = 'true';
+      const leadCalls: QueryCall[] = [];
+      const taskCalls: QueryCall[] = [];
+      const opportunityCalls: QueryCall[] = [];
+      mockDigestReads({
+        leadCalls,
+        taskCalls,
+        opportunityCalls,
+        opportunityResult: { data: null, error: new Error(SENTINEL_RAW) },
+      });
+
+      const res = await GET(request());
+
+      expect(res.status).toBe(500);
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      const flat = flattenConsoleArgs(consoleErrorSpy);
+      expect(flat).not.toContain(SENTINEL_RAW);
+      expect(flat).not.toContain('ada@example.com');
+      expect(flat).not.toContain('x-api-key=abc123');
+      expect(flat).not.toContain('service-role-test');
+    });
+
+    it('does not log raw error details when an unexpected exception is thrown at the route level', async () => {
+      mockFrom.mockImplementation(() => {
+        throw new Error(SENTINEL_RAW);
+      });
+
+      const res = await GET(request());
+
+      expect(res.status).toBe(500);
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      const flat = flattenConsoleArgs(consoleErrorSpy);
+      expect(flat).not.toContain(SENTINEL_RAW);
+      expect(flat).not.toContain('ada@example.com');
+      expect(flat).not.toContain('x-api-key=abc123');
+      expect(flat).not.toContain('service-role-test');
+    });
+  });
 });
