@@ -5,7 +5,89 @@ import Link from 'next/link'
 import { BUSINESSES } from '@/lib/businesses'
 import { getUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { FileText, Plus, Megaphone, Scale, BookOpen, UserPlus, FlaskConical } from 'lucide-react'
+
+type IconProps = { size?: number; strokeWidth?: number; className?: string } & React.SVGProps<SVGSVGElement>
+
+function iconBase(size: number, strokeWidth: number, className: string | undefined, props: React.SVGProps<SVGSVGElement>) {
+  return {
+    width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
+    stroke: 'currentColor', strokeWidth, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const,
+    className, 'aria-hidden': true, ...props,
+  }
+}
+
+function FileText({ size = 14, strokeWidth = 2, className, ...props }: IconProps) {
+  return (
+    <svg {...iconBase(size, strokeWidth, className, props)}>
+      <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+      <path d="M14 2v5h5" />
+      <path d="M9 13h6" />
+      <path d="M9 17h6" />
+    </svg>
+  )
+}
+
+function Plus({ size = 14, strokeWidth = 2, className, ...props }: IconProps) {
+  return (
+    <svg {...iconBase(size, strokeWidth, className, props)}>
+      <path d="M12 5v14" />
+      <path d="M5 12h14" />
+    </svg>
+  )
+}
+
+function Megaphone({ size = 16, strokeWidth = 2, className, ...props }: IconProps) {
+  return (
+    <svg {...iconBase(size, strokeWidth, className, props)}>
+      <path d="m3 11 18-5v12L3 14v-3z" />
+      <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+    </svg>
+  )
+}
+
+function Scale({ size = 16, strokeWidth = 2, className, ...props }: IconProps) {
+  return (
+    <svg {...iconBase(size, strokeWidth, className, props)}>
+      <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" />
+      <path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" />
+      <path d="M7 21h10" />
+      <path d="M12 3v18" />
+      <path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2" />
+    </svg>
+  )
+}
+
+function BookOpen({ size = 16, strokeWidth = 2, className, ...props }: IconProps) {
+  return (
+    <svg {...iconBase(size, strokeWidth, className, props)}>
+      <path d="M12 7v14" />
+      <path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" />
+    </svg>
+  )
+}
+
+function UserPlus({ size = 16, strokeWidth = 2, className, ...props }: IconProps) {
+  return (
+    <svg {...iconBase(size, strokeWidth, className, props)}>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <line x1="19" x2="19" y1="8" y2="14" />
+      <line x1="22" x2="16" y1="11" y2="11" />
+    </svg>
+  )
+}
+
+function FlaskConical({ size = 14, strokeWidth = 2, className, ...props }: IconProps) {
+  return (
+    <svg {...iconBase(size, strokeWidth, className, props)}>
+      <path d="M10 2v7.31" />
+      <path d="M14 9.3V2" />
+      <path d="M8.5 2h7" />
+      <path d="M14 9.3a6.5 6.5 0 1 1-4 0" />
+      <path d="M5.52 16h12.96" />
+    </svg>
+  )
+}
 
 interface Props {
   params: Promise<{ businessKey: string }>
