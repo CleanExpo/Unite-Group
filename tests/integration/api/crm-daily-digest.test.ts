@@ -183,6 +183,7 @@ describe('GET /api/crm/daily-digest', () => {
         method: 'select',
         columns: 'id,first_name,last_name,email,company,status,qualification_score,captured_at',
       },
+      { method: 'eq', column: 'assigned_owner', value: 'Margot' },
       { method: 'order', column: 'captured_at', options: { ascending: false } },
       { method: 'limit', value: 5 },
     ]);
@@ -221,6 +222,7 @@ describe('GET /api/crm/daily-digest', () => {
         method: 'select',
         columns: 'id,first_name,last_name,email,company,status,qualification_score,captured_at',
       },
+      { method: 'eq', column: 'assigned_owner', value: 'Margot' },
       { method: 'order', column: 'captured_at', options: { ascending: false } },
       { method: 'limit', value: 5 },
     ]);
@@ -270,6 +272,7 @@ describe('GET /api/crm/daily-digest', () => {
         method: 'select',
         columns: 'id,name,stage,status,value_amount,probability,approval_required,next_action,updated_at',
       },
+      { method: 'eq', column: 'owner', value: 'Margot' },
       { method: 'in', column: 'status', values: ['open', 'won', 'blocked_review'] },
       { method: 'order', column: 'updated_at', options: { ascending: false } },
       { method: 'limit', value: 5 },
