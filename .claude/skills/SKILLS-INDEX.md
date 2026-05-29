@@ -71,6 +71,9 @@ Load when the task domain matches. Orchestrator loads based on task classificati
 | `delegation-planner` | Task planning and work package assignment |
 | `evidence-verifier` | Verification pipeline, 4-tier source hierarchy |
 | `model-currency-checker` | Validating current Claude model IDs |
+| `mock-vs-real-detector` | False-green detection — prove a 200/rendered page serves real data, not silent mock. Load on audit/verify |
+| `section-finaliser` | Per-section production done-gate (auth/scope/real-data/boundaries/verify). Load when finalising a section |
+| `rate-limiter` | Request rate limiting / throttling patterns |
 
 ---
 
@@ -125,6 +128,7 @@ Load when working within the specific domain.
 |----------|--------|
 | `changelog-generator` | Changelog and release notes |
 | `cron-scheduler` | Cron job patterns (Vercel cron) |
+| `cron-pull-template` | Scaffold a section data-sync pull cron (CRON_SECRET auth, idempotent upsert, sync_log) |
 | `feature-flag` | Feature flag patterns |
 | `genesis-orchestrator` | Genesis orchestration patterns |
 | `pipeline-builder` | Data pipeline construction |
