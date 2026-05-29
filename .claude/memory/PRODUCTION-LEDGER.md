@@ -50,13 +50,19 @@ Wave 1 was logged as "Lucide removal complete". **FALSE.** Only 3 page.tsx files
 ### GREEN — verified real (spot-check before trusting)
 dashboard (page), campaigns, experiments, contacts, invoices, settings, vault, social, notes, email, calendar, xero (page), `[businessKey]`, health, auth.
 
-### Cron pull gaps — sections with NO scheduled sync (stale-data risk)
-- **contacts** — no external sync
-- **pipeline** — no deal-stage refresh
-- **campaign ad-metrics** — only organic social pulled; no paid-ads (FB/Google/LinkedIn) spend/ROI
-- **research** — no external research/competitor pull
-- **ideas** — no ingestion cron
-22 existing crons all have working handlers + auth (4 skip FOUNDER_USER_ID legitimately; `synthex-monitor` maxDuration=30s is low).
+### Cron pull gaps — HONEST RE-ASSESSMENT 2026-05-29 (Wave 4)
+22 crons already registered + working (recon-verified auth). Coverage is strong: analytics-sync, social-publisher, engagement-monitor, content-engine, email-triage, hub-sweep, 7× strategy-daily, 4× coaches, bookkeeper, ceo-board-meeting, video-status, campaign-engine, synthex-monitor.
+
+The named "gaps" are NOT buildable tonight — and building them would be dishonest scaffolding:
+- **contacts** — manually-entered CRM data. No external source exists. A "sync cron" would pull from nothing. NOT a real gap.
+- **pipeline** — internal deal-stage data. No external source. NOT a real gap.
+- **campaign ad-metrics (paid)** — needs FB/Google/LinkedIn **Ads** APIs. INTEGRATION env = 0/13 set; none connected. Cannot pull from unconnected providers. BLOCKED on integration, not on a missing cron.
+- **research** — needs a research/competitor provider. None connected. BLOCKED on integration.
+- **ideas** — no external ingestion source identified; `hub-sweep` already handles internal sweeps.
+
+**Decision (be-true principle):** do NOT manufacture 5 no-op pull crons. The `cron-pull-template` skill is ready to scaffold each correctly the moment its provider is connected. Real prerequisite = connect the Ads/research integrations (env + OAuth), THEN add the cron. Logged as integration-gated backlog, not a tonight task.
+
+Minor: `synthex-monitor` maxDuration=30s is low for a 15-min monitor — acceptable, flagged.
 
 ### False-green CI — FIXED Wave 3 (2026-05-29)
 - `security.yml`: ✅ phantom `snyk-backend` (apps/backend Python) deleted; `snyk-frontend`→`snyk` now gated on `secrets.SNYK_TOKEN != ''` (honest skip, not silent-skip-on-unset-var) and scans root package.json; `npm-audit` gate now runs `pnpm audit --audit-level=critical --prod` with **no `|| true`** — a critical advisory now fails the job; security-summary reports real job results instead of unconditional `[PASS]`. Green tick now means "no critical prod npm advisories".
