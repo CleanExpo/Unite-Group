@@ -1,5 +1,54 @@
 # Margot Overnight Progress Log
 
+## 2026-05-29 20:05 AEST
+
+### Post-206 evidence hygiene and Linear mirror reconciliation
+
+Current checkpoint:
+
+- Preflight: started on `main` at `99c4fca05903bf3cc70bccbf167a50408dc5ffe4` with no open GitHub PRs and GitHub CLI auth available for `CleanExpo`; no token values were printed. The checkout had local-only post-merge evidence/mirror changes in `docs/margot/linear-watch-today.md`, `docs/margot/morning-report.md`, and `docs/margot/overnight-progress-log.md`, so I created branch `margot/post-206-evidence-hygiene` to preserve them before review/commit.
+- Chosen lane: evidence/status hygiene only, because PR #206 had just merged and the newest Linear mirror removed UNI-2055 from today's active candidates.
+- Completed: reconciled the top `docs/margot/morning-report.md` status so it no longer says `docs/margot/linear-watch-today.md` mirrors UNI-2055 as the active urgent candidate. The report now records UNI-2055 as merged historical/local-draft approval evidence and keeps the daily-digest read path as the next safe CRM slice unless operator/client approval is recorded.
+
+Changed:
+
+- `docs/margot/linear-watch-today.md` reflects the 2026-05-29 19:33:46 AEST Linear mirror where UNI-2055 is no longer present.
+- `docs/margot/morning-report.md` top Honest status reconciles that mirror state with the merged PR #206 evidence.
+- `docs/margot/overnight-progress-log.md` records this evidence-hygiene checkpoint.
+
+Verification:
+
+```bash
+python3 Linear invariant
+# PASS: uni_2055_present=False; last_synced_line='Last synced: 2026-05-29 19:33:46 AEST'; candidate_count=13.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after final evidence/report updates.
+```
+
+Reviews:
+
+- Spec review: PASS — UNI-2055 is absent from the active Linear mirror, the morning report treats it as historical/local-draft approval evidence, PR #206/Vercel status wording is bounded to status checks, and the next safe slice remains the daily-digest read path unless approval is recorded.
+- Quality review: APPROVED — no critical, important, or minor issues; dirty-file contract is only the three Margot evidence/status docs, Vercel/deploy language is not misleading, safety boundaries are explicit, markdown fences/EOF/trailing whitespace are clean.
+
+Safety:
+
+- No source/test code changes, production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, GitHub merge, client-facing communication, Synthex/CMS/social scheduling, public publishing, paid ad spend, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Blockers / notes:
+
+- Moving UNI-2055 beyond local internal review still requires explicit operator/client approval plus Toby/CCW stock priorities, workshop capacity, preferred CTA, approved assets, exclusions/promos, EOFY trading hours, and channel expansion decision.
+
+Next safe slice:
+
+- Commit/push this evidence-only branch if checks remain clean, then return to the command-center CRM daily-digest read-path slice with RED-GREEN route/page tests for scoped server-side digest injection and safe missing-config behavior.
+
 ## 2026-05-29 19:20 AEST
 
 ### UNI-2055 CCW EOFY approval-packet evidence slice
@@ -58,6 +107,14 @@ Blockers / approval gates:
 Next safe slice:
 
 - If no UNI-2055 approval is recorded, return to the CRM command-center daily-digest read-path slice with RED-GREEN route/page tests for scoped server-side digest injection and safe missing-config behavior.
+
+Post-merge verification at `2026-05-29 19:29 AEST`:
+
+- PR: https://github.com/CleanExpo/Unite-Group/pull/206 — merged.
+- Merge commit: `99c4fca05903bf3cc70bccbf167a50408dc5ffe4` (`docs: add UNI-2055 approval packet evidence (#206)`).
+- Post-merge GitHub checks on `main`: CI run `26629461138` passed; DESIGN.md lint run `26629461132` passed.
+- GitHub commit statuses for the merge commit: `Vercel – unite-group` success (`https://vercel.com/unite-group/unite-group/3cb8gJ87265kjpBnP6aMFot3PUL5`) and `Vercel – unite-group-sandbox` success (`https://vercel.com/unite-group/unite-group-sandbox/7JKFNjsLRCPmC2zn6S16LoUtMGzk`). These were GitHub/Vercel status checks; no manual Vercel deploy or env mutation was performed.
+- Local checkout after merge: `main...origin/main`, no tracked/untracked changes before this local-only post-merge evidence append; `git diff --check` passed after the append.
 
 ## 2026-05-26 23:57 AEST
 

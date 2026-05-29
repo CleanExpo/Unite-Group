@@ -1,6 +1,6 @@
 # Linear Watch — Margot Today Queue
 
-Last synced: 2026-05-29 19:04:11 AEST
+Last synced: 2026-05-29 19:33:46 AEST
 Source: Linear team `UNI` / Unite-Group
 Purpose: Make parent-Hermes-pushed Linear work visible to Margot for today's task list.
 
@@ -12,48 +12,6 @@ Purpose: Make parent-Hermes-pushed Linear work visible to Margot for today's tas
 - Pull the full Linear issue before execution if a task is selected for active work.
 
 ## Today's Linear candidates
-
-### UNI-2055 — CCW EOFY organic campaign — stock, service bookings, purchase-before-EOFY urgency
-
-- State: In Review (started)
-- Priority: Urgent
-- Project: CCW CRM
-- Assignee: Unassigned
-- Updated: 2026-05-22T23:06:47.564Z
-- Labels: none
-- Linear: https://linear.app/unite-group/issue/UNI-2055/ccw-eofy-organic-campaign-stock-service-bookings-purchase-before-eofy
-
-Summary / Linear description excerpt:
-
-> Founder priority captured 22/05/2026 08:10 AEST.
-
-> Objective: launch CCW organic EOFY campaign today for Toby across Facebook first, then LinkedIn/Instagram variants as useful.
-
-> Founder intent:
-
-> * Toby wants Facebook active with stock posts.
-> * Push mechanics/service bookings.
-> * Promote purchase-before-EOFY urgency.
-> * Encourage customers to talk to CCW now.
-
-> Required compliance correction:
-
-> * Do NOT state or imply guaranteed tax credits/deductions.
-> * Use accountant-safe wording: 'speak with your accountant', 'before EOFY', 'eligible businesses may be able to claim', 'plan purchases before 30 June'.
-
-> Scope:
-
-> * Draft 10 Facebook post concepts/captions for stock, servicing, consumables, machines, and EOFY planning.
-> * Draft 3 service-booking posts for mechanics/workshop demand.
-> * Draft 3 urgency posts for June closeout.
-> * Include suggested image/video brief per post.
-> * Route through Synthex for scheduling/approval.
-
-> Handoff:
-
-> * Ready-to-review copy pack for Toby.
-> * Any missing stock/product inputs clearly listed.
-> * No paid ad spend unless separately approved.
 
 ### UNI-2053 — Create CCW product category copy
 
@@ -470,7 +428,6 @@ Summary / Linear description excerpt:
 
 | Issue | State | Priority | Project | Updated | Title |
 | --- | --- | --- | --- | --- | --- |
-| [UNI-2055](https://linear.app/unite-group/issue/UNI-2055/ccw-eofy-organic-campaign-stock-service-bookings-purchase-before-eofy) | In Review | Urgent | CCW CRM | 2026-05-22T23:06:47.564Z | CCW EOFY organic campaign — stock, service bookings, purchase-before-EOFY urgency |
 | [UNI-2053](https://linear.app/unite-group/issue/UNI-2053/create-ccw-product-category-copy) | In Review | None | Brand OS Production Board | 2026-05-23T05:08:34.536Z | Create CCW product category copy |
 | [UNI-2054](https://linear.app/unite-group/issue/UNI-2054/maintain-margot-command-center-and-restoreassist-content-index) | In Progress | None | Brand OS Production Board | 2026-05-23T04:46:35.401Z | Maintain Margot Command Center and RestoreAssist Content Index |
 | [UNI-2079](https://linear.app/unite-group/issue/UNI-2079/configure-vercel-linear-api-key-telegram-webhook-for-autonomous-intake) | Todo | High | Dimitri ITR Platform | 2026-05-29T05:08:51.472Z | Configure Vercel: LINEAR_API_KEY + Telegram webhook for autonomous intake |
