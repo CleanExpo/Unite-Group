@@ -28,6 +28,8 @@ export type CrmTaskDigestRow = {
   status: string | null;
   priority: string | null;
   assignee_name: string | null;
+  tags?: string[] | null;
+  obsidian_path?: string | null;
   created_at: string;
 };
 
@@ -74,6 +76,8 @@ export const TASK_SELECT_COLUMNS = [
   'status',
   'priority',
   'assignee_name',
+  'tags',
+  'obsidian_path',
   'created_at',
 ].join(',');
 
@@ -136,12 +140,17 @@ export function mapLead(row: CrmLeadDigestRow): CrmDigestLead {
 }
 
 export function mapTask(row: CrmTaskDigestRow): CrmDigestTask {
+  const tags = Array.isArray(row.tags) ? row.tags.map(clean).filter(Boolean) : [];
+  const obsidianPath = clean(row.obsidian_path);
+  const isVoiceTask = tags.includes('margot-voice') || obsidianPath.startsWith('voice/');
+
   return {
     id: row.id,
     title: clean(row.title) || 'Untitled task',
     owner: clean(row.assignee_name) || null,
     status: clean(row.status) || null,
     priority: clean(row.priority) || null,
+    source: isVoiceTask ? 'margot_voice' : null,
   };
 }
 
