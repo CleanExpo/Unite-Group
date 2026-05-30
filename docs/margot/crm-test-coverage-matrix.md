@@ -73,7 +73,7 @@ npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration
 
 ## Ordered next coverage gaps
 
-1. Wire the command-center page/server read path to pass a scoped daily CRM digest into `dailyDigestInitial`, after route/page tests prove no UI-side service-role access and safe missing-config behavior.
+1. ~~Wire the command-center page/server read path to pass a scoped daily CRM digest into `dailyDigestInitial`~~ — COMPLETE as of 2026-05-30. Verified via merge reconciliation `cc0aa58`, page test `tests/unit/app/command-center-page-daily-digest.test.tsx`, and control-panel gate 5 suites / 35 tests.
 2. Integration stale-sync threshold tests for Linear/GitHub/Vercel/Supabase mirrors.
 3. Digest reader linkage test for voice-created `tasks` once command-center read surface is wired.
 4. Wider regression including existing `src/app/api/empire/clients/**/__tests__` before any `nexus_clients` conversion work.
