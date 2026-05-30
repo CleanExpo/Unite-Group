@@ -1,6 +1,6 @@
 # Linear Watch — Margot Today Queue
 
-Last synced: 2026-05-29 21:29:57 AEST
+Last synced: 2026-05-30 13:35:34 AEST
 Source: Linear team `UNI` / Unite-Group
 Purpose: Make parent-Hermes-pushed Linear work visible to Margot for today's task list.
 
@@ -177,6 +177,40 @@ Summary / Linear description excerpt:
 > * Stakeholders (design + eng lead + product) signed off
 > * Decision posted as a comment on this issue and on parent [UNI-2057](https://linear.app/unite-group/issue/UNI-2057/unite-hub-layer
 > …
+
+### UNI-2088 — SWAT: Cross-project deployment model analysis — Cloud vs Connected-Local
+
+- State: Backlog (backlog)
+- Priority: High
+- Project: Unite-Group
+- Assignee: Unassigned
+- Updated: 2026-05-30T03:29:36.391Z
+- Labels: none
+- Linear: https://linear.app/unite-group/issue/UNI-2088/swat-cross-project-deployment-model-analysis-cloud-vs-connected-local
+
+Summary / Linear description excerpt:
+
+> Strategic analysis completed for cloud-hosted vs connected-local deployment models across the entire Unite Group ecosystem.
+
+> Key finding: No single model fits all. Hybrid tiered approach required.
+
+> Projects analyzed:
+
+> * Pi-Dev-Ops → Cloud (internal)
+> * RestoreAssist → Hybrid (enterprise local, SMB cloud)
+> * DR-Sandbox → Connected-Local (field/offline-first)
+> * DR-NRPG → Hybrid (insurance data sensitivity)
+> * NRPG-Onboarding → Cloud
+> * Synthex → Cloud
+> * Unite-Group → Cloud
+> * NodeJS-Starter → Cloud
+> * Oh-My-Codex → Connected-Local (CLI tool)
+> * CCW-CRM → Cloud (future: franchise local)
+> * CARSI → Connected-Local (field ops)
+
+> Recommendation: Build deployment abstraction layer in Pi-Dev-Ops allowing every product to ship as Cloud, Connected-Local, or BYO-Cloud from the same codebase.
+
+> Source: brain/strategy/SWAT-deployment-models-2026-05-30.md
 
 ### UNI-2069 — [Dimitri] Epic: Human gates (12Q, Gmail, legal, board)
 
@@ -434,6 +468,7 @@ Summary / Linear description excerpt:
 | [UNI-2080](https://linear.app/unite-group/issue/UNI-2080/duncan-run-discovery-telegram-loop-3q-batches-4-buttons) | Todo | High | Dimitri ITR Platform | 2026-05-29T04:46:21.340Z | Duncan: run /discovery Telegram loop (3Q batches + 4 buttons) |
 | [UNI-2075](https://linear.app/unite-group/issue/UNI-2075/gmail-export-ingest-into-spm-intake-phill-vault) | Todo | High | Dimitri ITR Platform | 2026-05-28T02:07:42.868Z | Gmail export + ingest into SPM intake (Phill vault) |
 | [UNI-2058](https://linear.app/unite-group/issue/UNI-2058/phase-0-engineering-review-and-adoption-decision-replace-parallel) | Backlog | Urgent | Unite-Group | 2026-05-25T06:43:21.986Z | Phase 0 · Engineering review & adoption decision (replace / parallel / cherry-pick) |
+| [UNI-2088](https://linear.app/unite-group/issue/UNI-2088/swat-cross-project-deployment-model-analysis-cloud-vs-connected-local) | Backlog | High | Unite-Group | 2026-05-30T03:29:36.391Z | SWAT: Cross-project deployment model analysis — Cloud vs Connected-Local |
 | [UNI-2069](https://linear.app/unite-group/issue/UNI-2069/dimitri-epic-human-gates-12q-gmail-legal-board) | Backlog | High | Dimitri ITR Platform | 2026-05-27T23:33:00.425Z | [Dimitri] Epic: Human gates (12Q, Gmail, legal, board) |
 | [UNI-2077](https://linear.app/unite-group/issue/UNI-2077/dsp-osf-ato-api-portal-onboarding) | Backlog | High | Dimitri ITR Platform | 2026-05-27T22:38:38.348Z | DSP OSF + ATO API Portal onboarding |
 | [UNI-2059](https://linear.app/unite-group/issue/UNI-2059/phase-1-port-design-tokens-into-globalscss-tailwind-config) | Backlog | High | Unite-Group | 2026-05-25T06:43:22.244Z | Phase 1 · Port design tokens into globals.css + tailwind config |
