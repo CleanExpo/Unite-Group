@@ -338,3 +338,87 @@ body {
 @layer utilities {
   .text-balance { text-wrap: balance; }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   .theme-layered  —  Unite-Hub Layered Design System v1
+   Ports the light/paper-aesthetic tokens into a scoped class.
+   Activated by adding class="theme-layered" to <html> or a
+   route wrapper.  Does NOT affect existing dark theme.
+   ═══════════════════════════════════════════════════════════ */
+
+.theme-layered {
+  /* SURFACE STACK — paper/cream elevation */
+  --layered-surface-canvas:     oklch(98% 0.01 85);
+  --layered-surface-sidebar:    oklch(96% 0.01 85);
+  --layered-surface-card:       oklch(99% 0.005 85);
+  --layered-surface-elevated:   oklch(100% 0 85);
+
+  /* TEXT INK — navy hierarchy */
+  --layered-text-primary:   #162D5B;
+  --layered-text-secondary: #3d5a8a;
+  --layered-text-muted:     #6b82a8;
+  --layered-text-faint:     #a0b1c8;
+
+  /* BRAND */
+  --layered-brand-navy:  #162D5B;
+  --layered-brand-teal:  #2BA3B5;
+  --layered-brand-slate: #7b8fa8;
+
+  /* STATUS CHIPS — deep (filled) + soft (ghost / background) */
+  --layered-status-green-deep:  #00a854;
+  --layered-status-green-soft:  rgba(0, 168, 84, 0.12);
+  --layered-status-coral-deep:  #e07020;
+  --layered-status-coral-soft:  rgba(224, 112, 32, 0.12);
+  --layered-status-plum-deep:   #8b5cf6;
+  --layered-status-plum-soft:   rgba(139, 92, 246, 0.12);
+  --layered-status-amber-deep:  #f59e0b;
+  --layered-status-amber-soft:  rgba(245, 158, 11, 0.12);
+  --layered-status-red-deep:    #ef4444;
+  --layered-status-red-soft:    rgba(239, 68, 68, 0.12);
+
+  /* LINES */
+  --layered-line:        #e2e8f0;
+  --layered-line-strong: #cbd5e1;
+
+  /* RADIUS */
+  --layered-radius-card:  10px;
+  --layered-radius-panel: 16px;
+  --layered-radius-tile:  22px;
+  --layered-radius-page:  28px;
+
+  /* 3-LAYER OKLCH SHADOW STACKS — paper elevation */
+  --layered-shadow-1:
+    0 1px 2px  oklch(0% 0 0 / 0.04),
+    0 2px 4px  oklch(0% 0 0 / 0.04),
+    inset 0 1px 0 oklch(100% 0 0 / 0.6);
+  --layered-shadow-2:
+    0 2px 6px  oklch(0% 0 0 / 0.05),
+    0 8px 16px oklch(0% 0 0 / 0.05),
+    inset 0 1px 0 oklch(100% 0 0 / 0.6);
+  --layered-shadow-3:
+    0 4px 12px oklch(0% 0 0 / 0.06),
+    0 16px 40px oklch(0% 0 0 / 0.06),
+    inset 0 1px 0 oklch(100% 0 0 / 0.6);
+
+  /* TYPOGRAPHY — Poppins + IBM Plex Mono (loaded in layout.tsx) */
+  --layered-font-primary: 'Poppins', system-ui, sans-serif;
+  --layered-font-mono:    'IBM Plex Mono', 'Fira Code', monospace;
+
+  /* TOKENS EXPOSED FOR TAILWIND */
+  --layered-canvas:      var(--layered-surface-canvas);
+  --layered-sidebar:     var(--layered-surface-sidebar);
+  --layered-card:        var(--layered-surface-card);
+  --layered-elevated:    var(--layered-surface-elevated);
+  --layered-navy:        var(--layered-brand-navy);
+  --layered-teal:        var(--layered-brand-teal);
+  --layered-green-deep:  var(--layered-status-green-deep);
+  --layered-green-soft:  var(--layered-status-green-soft);
+  --layered-coral-deep:  var(--layered-status-coral-deep);
+  --layered-coral-soft:  var(--layered-status-coral-soft);
+  --layered-plum-deep:   var(--layered-status-plum-deep);
+  --layered-plum-soft:   var(--layered-status-plum-soft);
+  --layered-amber-deep:  var(--layered-status-amber-deep);
+  --layered-amber-soft:  var(--layered-status-amber-soft);
+  --layered-red-deep:    var(--layered-status-red-deep);
+  --layered-red-soft:    var(--layered-status-red-soft);
+}

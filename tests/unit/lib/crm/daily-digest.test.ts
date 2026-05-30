@@ -54,6 +54,7 @@ describe('createCrmDailyDigest', () => {
       approvalRequiredCount: 2,
       blockedTaskCount: 1,
       blockerCount: 1,
+      staleIntegrationCount: 0,
     });
     expect(digest.sections.operatorPriorities[0]).toContain('lead-1');
     expect(digest.sections.operatorPriorities[0]).toContain('Review identity match before conversion');
@@ -99,9 +100,29 @@ describe('createCrmDailyDigest', () => {
       approvalRequiredCount: 0,
       blockedTaskCount: 0,
       blockerCount: 0,
+      staleIntegrationCount: 0,
     });
     expect(digest.sections.operatorPriorities).toEqual(['No CRM priorities supplied for this digest window.']);
     expect(digest.sections.approvals).toEqual(['No approval-required items supplied for this digest window.']);
     expect(digest.sections.blockers).toEqual(['No blockers supplied for this digest window.']);
+    expect(digest.sections.staleIntegrations).toEqual(['All integration mirrors are within their sync cadence.']);
+  });
+
+  it('surfaces stale integrations in the digest with minutes overdue', () => {
+    const digest = createCrmDailyDigest({
+      generatedAt: '2026-05-23T09:15:00+10:00',
+      staleIntegrations: [
+        { integration: 'linear', reason: 'missed_cadence', minutesOverdue: 25 },
+        { integration: 'vercel', reason: 'last_error', minutesOverdue: 90 },
+      ],
+    });
+
+    expect(digest.summary.staleIntegrationCount).toBe(2);
+    expect(digest.sections.staleIntegrations).toEqual([
+      'linear: missed_cadence (25 min overdue)',
+      'vercel: last_error (90 min overdue)',
+    ]);
+    expect(digest.markdown).toContain('## Stale Integration Mirrors');
+    expect(digest.markdown).toContain('linear: missed_cadence (25 min overdue)');
   });
 });

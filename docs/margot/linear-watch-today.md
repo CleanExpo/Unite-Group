@@ -1,6 +1,6 @@
 # Linear Watch — Margot Today Queue
 
-Last synced: 2026-05-30 13:35:34 AEST
+Last synced: 2026-05-30 21:58:13 AEST
 Source: Linear team `UNI` / Unite-Group
 Purpose: Make parent-Hermes-pushed Linear work visible to Margot for today's task list.
 
@@ -12,6 +12,135 @@ Purpose: Make parent-Hermes-pushed Linear work visible to Margot for today's tas
 - Pull the full Linear issue before execution if a task is selected for active work.
 
 ## Today's Linear candidates
+
+### UNI-2058 — Phase 0 · Engineering review & adoption decision (replace / parallel / cherry-pick)
+
+- State: In Progress (started)
+- Priority: Urgent
+- Project: Unite-Group
+- Assignee: Phill McGurk
+- Updated: 2026-05-30T11:44:06.770Z
+- Labels: Architecture, Documentation, Ux
+- Linear: https://linear.app/unite-group/issue/UNI-2058/phase-0-engineering-review-and-adoption-decision-replace-parallel
+
+Summary / Linear description excerpt:
+
+> ## Phase 0 — Engineering Review & Adoption Decision
+
+> **Gates everything else.** Before any code is written, the team needs to decide *how* to adopt the layered design.
+
+> ### Decisions required
+
+> - [ ] **Adoption strategy** — pick one:
+>   - [ ] **A. Replace** — layered light becomes the new default theme; remove dark Nexus
+>   - [ ] **B. Parallel theme** — ship under `.theme-layered` alongside existing `.theme-unite-hub`
+>   - [ ] **C. Cherry-pick** — keep dark, port specific patterns (Command Center grid, KPI tiles, ticker, layered shadows) into existing palette
+> - [ ] **Type stack** — adopt Poppins or keep Geist?
+> - [ ] **New top-level surfaces** — confirm fate of Deals, Connect, People (new routes vs. fold into Campaigns/Settings/Users)
+> - [ ] **Ticker event taxonomy** — which Supabase tables feed the live event ticker?
+
+> ### Inputs
+
+> * `design/unite-hub-layered/README.md` — overview
+> * `design/unite-hub-layered/INTEGRATION.md` §1–3, §9 — rollout options + open questions
+> * Walk all 14 prototypes via `design/unite-hub-layered/prototypes/index.html`
+
+> ### Output
+
+> A signed-off decision doc (or comment on this issue) confirming each bullet above. Unblocks Phase 1.
+
+> ### Acceptance
+
+> * All 4 decisions documented
+> * Stakeholders (design + eng lead + product) signed off
+> * Decision posted as a comment on this issue and on parent [UNI-2057](https://linear.app/unite-group/issue/UNI-2057/unite-hub-layer
+> …
+
+### UNI-2060 — Phase 2 · Extract UI primitives (Card, KPI, Chip, Tier, Ticker, FAB, LiveIndicator, etc.)
+
+- State: In Progress (started)
+- Priority: High
+- Project: Unite-Group
+- Assignee: Phill McGurk
+- Updated: 2026-05-30T11:44:06.774Z
+- Labels: tests, ui, frontend
+- Linear: https://linear.app/unite-group/issue/UNI-2060/phase-2-extract-ui-primitives-card-kpi-chip-tier-ticker-fab
+
+Summary / Linear description excerpt:
+
+> ## Phase 2 — Extract reusable UI primitives
+
+> Build the component library that every screen composes on top of. Land them in `src/components/founder/ui/` (or extend shadcn primitives in `src/components/ui/`). Prefer `cva` (class-variance-authority) for variant skinning over rewriting shadcn from scratch.
+
+> ### Primitive extraction order
+
+>  1. `<Card>` — paper surface with `--shadow-2`, inset highlight via `::before`. Variants: `padded`, `flush`
+>  2. `<KPI label value delta trend>` — number tile with floating tag chip + optional sparkline. See `.kpi` in shared-tokens.css
+>  3. `<Chip>` — pill with variants: `green`, `coral`, `plum`, `sky`, `amber`, `red`, `dark`, `ghost`, `active`
+>  4. `<Tier level="platinum|gold|silver">` — rotated gem + label
+>  5. `<HealthBar value max thresholds>` — 80×6 rounded bar with color shifts
+>  6. `<StackShadow>` — wrapper that adds the layered paper-stack pseudo-elements
+>  7. `<TopBar>` — breadcrumb + search + actions + org pill + live indicator
+>  8. `<Sidebar>` — 80px rail with icon nav, tooltips, active-state notch
+>  9. `<Ticker>` — fixed-bottom 40px live event strip with masking gradient + 90s slide
+> 10. `<Drawer>` / `<SlideUp>` — re-skin shadcn `Sheet` / `Dialog` with new shadow + radius
+> 11. `<FAB>` — bottom-right 56×56 green button
+> 12. `<LiveIndicator>` — pulsing-dot pill, `LIVE` / `PAUSED` states
+
+> ### References
+
+> * `design/unite-hub-layered/src/shared-ui.js
+> …
+
+### UNI-2059 — Phase 1 · Port design tokens into globals.css + tailwind config
+
+- State: In Progress (started)
+- Priority: High
+- Project: Unite-Group
+- Assignee: Phill McGurk
+- Updated: 2026-05-30T11:44:06.771Z
+- Labels: Architecture, ui, frontend
+- Linear: https://linear.app/unite-group/issue/UNI-2059/phase-1-port-design-tokens-into-globalscss-tailwind-config
+
+Summary / Linear description excerpt:
+
+> ## Phase 1 — Port design tokens into `src/app/globals.css`
+
+> Lift the OKLCH tokens from `design/unite-hub-layered/prototypes/shared-tokens.css` into the Next.js codebase under whichever scope Phase 0 decided (root `:root` for replace, `.theme-layered` for parallel).
+
+> ### Files to touch
+
+> * `src/app/globals.css` — add new token block
+> * `tailwind.config.ts` (or `tailwind.config.js`) — extend `theme.colors`, `theme.boxShadow`, `theme.borderRadius`, `theme.fontFamily` to expose tokens as Tailwind utilities
+
+> ### Source of truth
+
+> * `design/unite-hub-layered/tokens/design-tokens.json` — machine-readable spec
+> * `design/unite-hub-layered/INTEGRATION.md` §2 — example CSS block, replace vs. parallel patterns
+
+> ### Token surfaces to map
+
+> * Surface stack: `--surface-canvas/sidebar/card/elevated`
+> * Text: `--color-text-primary/secondary/muted/faint` (navy `#162D5B`)
+> * Brand: `--brand-navy/teal/slate`
+> * Status: green, coral, plum, amber, red (deep / soft variants each)
+> * Lines: `--line` / `--line-strong`
+> * Radii: 10 / 16 / 22 / 28
+> * Shadows: `--shadow-1/2/3` (3-layer OKLCH stacks)
+> * Type: `--font-primary`, `--font-mono`
+
+> ### Type stack
+
+> If Phase 0 picked Poppins:
+
+> * Add `next/font/google` import for Poppins + IBM Plex Mono in `src/app/layout.tsx`
+> * Remove `geist` package import (or leave as fallback)
+
+> ### Acceptance
+
+> - [ ] Tokens compile, no unresolved `var()` warnings in dev console
+> - [ ] Tailwi
+> …
 
 ### UNI-2053 — Create CCW product category copy
 
@@ -72,7 +201,7 @@ Summary / Linear description excerpt:
 - Priority: High
 - Project: Dimitri ITR Platform
 - Assignee: Unassigned
-- Updated: 2026-05-29T05:08:51.472Z
+- Updated: 2026-05-30T11:15:49.551Z
 - Labels: none
 - Linear: https://linear.app/unite-group/issue/UNI-2079/configure-vercel-linear-api-key-telegram-webhook-for-autonomous-intake
 
@@ -105,7 +234,7 @@ Summary / Linear description excerpt:
 - Priority: High
 - Project: Dimitri ITR Platform
 - Assignee: Unassigned
-- Updated: 2026-05-29T04:46:21.340Z
+- Updated: 2026-05-30T11:15:02.231Z
 - Labels: none
 - Linear: https://linear.app/unite-group/issue/UNI-2080/duncan-run-discovery-telegram-loop-3q-batches-4-buttons
 
@@ -134,49 +263,6 @@ Summary / Linear description excerpt:
 > Copy from Vercel unite-hub production or add `D:\Unite-Hub\.env.vault` per `docs/intake/GMAIL-SETUP.md`.
 
 > Then: `pnpm intake:gmail`
-
-### UNI-2058 — Phase 0 · Engineering review & adoption decision (replace / parallel / cherry-pick)
-
-- State: Backlog (backlog)
-- Priority: Urgent
-- Project: Unite-Group
-- Assignee: Unassigned
-- Updated: 2026-05-25T06:43:21.986Z
-- Labels: Architecture, Documentation, Ux
-- Linear: https://linear.app/unite-group/issue/UNI-2058/phase-0-engineering-review-and-adoption-decision-replace-parallel
-
-Summary / Linear description excerpt:
-
-> ## Phase 0 — Engineering Review & Adoption Decision
-
-> **Gates everything else.** Before any code is written, the team needs to decide *how* to adopt the layered design.
-
-> ### Decisions required
-
-> - [ ] **Adoption strategy** — pick one:
->   - [ ] **A. Replace** — layered light becomes the new default theme; remove dark Nexus
->   - [ ] **B. Parallel theme** — ship under `.theme-layered` alongside existing `.theme-unite-hub`
->   - [ ] **C. Cherry-pick** — keep dark, port specific patterns (Command Center grid, KPI tiles, ticker, layered shadows) into existing palette
-> - [ ] **Type stack** — adopt Poppins or keep Geist?
-> - [ ] **New top-level surfaces** — confirm fate of Deals, Connect, People (new routes vs. fold into Campaigns/Settings/Users)
-> - [ ] **Ticker event taxonomy** — which Supabase tables feed the live event ticker?
-
-> ### Inputs
-
-> * `design/unite-hub-layered/README.md` — overview
-> * `design/unite-hub-layered/INTEGRATION.md` §1–3, §9 — rollout options + open questions
-> * Walk all 14 prototypes via `design/unite-hub-layered/prototypes/index.html`
-
-> ### Output
-
-> A signed-off decision doc (or comment on this issue) confirming each bullet above. Unblocks Phase 1.
-
-> ### Acceptance
-
-> * All 4 decisions documented
-> * Stakeholders (design + eng lead + product) signed off
-> * Decision posted as a comment on this issue and on parent [UNI-2057](https://linear.app/unite-group/issue/UNI-2057/unite-hub-layer
-> …
 
 ### UNI-2088 — SWAT: Cross-project deployment model analysis — Cloud vs Connected-Local
 
@@ -243,56 +329,6 @@ Summary / Linear description excerpt:
 > Runbook: `docs/compliance/DSP-ONBOARDING-RUNBOOK.md`
 
 > Parent: [UNI-2070](https://linear.app/unite-group/issue/UNI-2070/dimitri-epic-regulated-mvp-real-ato-xpm-payments-noah) — blocked on human gates.
-
-### UNI-2059 — Phase 1 · Port design tokens into globals.css + tailwind config
-
-- State: Backlog (backlog)
-- Priority: High
-- Project: Unite-Group
-- Assignee: Unassigned
-- Updated: 2026-05-25T06:43:22.244Z
-- Labels: Architecture, ui, frontend
-- Linear: https://linear.app/unite-group/issue/UNI-2059/phase-1-port-design-tokens-into-globalscss-tailwind-config
-
-Summary / Linear description excerpt:
-
-> ## Phase 1 — Port design tokens into `src/app/globals.css`
-
-> Lift the OKLCH tokens from `design/unite-hub-layered/prototypes/shared-tokens.css` into the Next.js codebase under whichever scope Phase 0 decided (root `:root` for replace, `.theme-layered` for parallel).
-
-> ### Files to touch
-
-> * `src/app/globals.css` — add new token block
-> * `tailwind.config.ts` (or `tailwind.config.js`) — extend `theme.colors`, `theme.boxShadow`, `theme.borderRadius`, `theme.fontFamily` to expose tokens as Tailwind utilities
-
-> ### Source of truth
-
-> * `design/unite-hub-layered/tokens/design-tokens.json` — machine-readable spec
-> * `design/unite-hub-layered/INTEGRATION.md` §2 — example CSS block, replace vs. parallel patterns
-
-> ### Token surfaces to map
-
-> * Surface stack: `--surface-canvas/sidebar/card/elevated`
-> * Text: `--color-text-primary/secondary/muted/faint` (navy `#162D5B`)
-> * Brand: `--brand-navy/teal/slate`
-> * Status: green, coral, plum, amber, red (deep / soft variants each)
-> * Lines: `--line` / `--line-strong`
-> * Radii: 10 / 16 / 22 / 28
-> * Shadows: `--shadow-1/2/3` (3-layer OKLCH stacks)
-> * Type: `--font-primary`, `--font-mono`
-
-> ### Type stack
-
-> If Phase 0 picked Poppins:
-
-> * Add `next/font/google` import for Poppins + IBM Plex Mono in `src/app/layout.tsx`
-> * Remove `geist` package import (or leave as fallback)
-
-> ### Acceptance
-
-> - [ ] Tokens compile, no unresolved `var()` warnings in dev console
-> - [ ] Tailwi
-> …
 
 ### UNI-2066 — Phase 8 · Accessibility audit + remediation across all ported screens
 
@@ -422,60 +458,24 @@ Summary / Linear description excerpt:
 > | Activity feed | Supabase r
 > …
 
-### UNI-2060 — Phase 2 · Extract UI primitives (Card, KPI, Chip, Tier, Ticker, FAB, LiveIndicator, etc.)
-
-- State: Backlog (backlog)
-- Priority: High
-- Project: Unite-Group
-- Assignee: Unassigned
-- Updated: 2026-05-25T06:29:52.112Z
-- Labels: tests, ui, frontend
-- Linear: https://linear.app/unite-group/issue/UNI-2060/phase-2-extract-ui-primitives-card-kpi-chip-tier-ticker-fab
-
-Summary / Linear description excerpt:
-
-> ## Phase 2 — Extract reusable UI primitives
-
-> Build the component library that every screen composes on top of. Land them in `src/components/founder/ui/` (or extend shadcn primitives in `src/components/ui/`). Prefer `cva` (class-variance-authority) for variant skinning over rewriting shadcn from scratch.
-
-> ### Primitive extraction order
-
->  1. `<Card>` — paper surface with `--shadow-2`, inset highlight via `::before`. Variants: `padded`, `flush`
->  2. `<KPI label value delta trend>` — number tile with floating tag chip + optional sparkline. See `.kpi` in shared-tokens.css
->  3. `<Chip>` — pill with variants: `green`, `coral`, `plum`, `sky`, `amber`, `red`, `dark`, `ghost`, `active`
->  4. `<Tier level="platinum|gold|silver">` — rotated gem + label
->  5. `<HealthBar value max thresholds>` — 80×6 rounded bar with color shifts
->  6. `<StackShadow>` — wrapper that adds the layered paper-stack pseudo-elements
->  7. `<TopBar>` — breadcrumb + search + actions + org pill + live indicator
->  8. `<Sidebar>` — 80px rail with icon nav, tooltips, active-state notch
->  9. `<Ticker>` — fixed-bottom 40px live event strip with masking gradient + 90s slide
-> 10. `<Drawer>` / `<SlideUp>` — re-skin shadcn `Sheet` / `Dialog` with new shadow + radius
-> 11. `<FAB>` — bottom-right 56×56 green button
-> 12. `<LiveIndicator>` — pulsing-dot pill, `LIVE` / `PAUSED` states
-
-> ### References
-
-> * `design/unite-hub-layered/src/shared-ui.js
-> …
-
 ## Full open queue snapshot
 
 | Issue | State | Priority | Project | Updated | Title |
 | --- | --- | --- | --- | --- | --- |
+| [UNI-2058](https://linear.app/unite-group/issue/UNI-2058/phase-0-engineering-review-and-adoption-decision-replace-parallel) | In Progress | Urgent | Unite-Group | 2026-05-30T11:44:06.770Z | Phase 0 · Engineering review & adoption decision (replace / parallel / cherry-pick) |
+| [UNI-2060](https://linear.app/unite-group/issue/UNI-2060/phase-2-extract-ui-primitives-card-kpi-chip-tier-ticker-fab) | In Progress | High | Unite-Group | 2026-05-30T11:44:06.774Z | Phase 2 · Extract UI primitives (Card, KPI, Chip, Tier, Ticker, FAB, LiveIndicator, etc.) |
+| [UNI-2059](https://linear.app/unite-group/issue/UNI-2059/phase-1-port-design-tokens-into-globalscss-tailwind-config) | In Progress | High | Unite-Group | 2026-05-30T11:44:06.771Z | Phase 1 · Port design tokens into globals.css + tailwind config |
 | [UNI-2053](https://linear.app/unite-group/issue/UNI-2053/create-ccw-product-category-copy) | In Review | None | Brand OS Production Board | 2026-05-23T05:08:34.536Z | Create CCW product category copy |
 | [UNI-2054](https://linear.app/unite-group/issue/UNI-2054/maintain-margot-command-center-and-restoreassist-content-index) | In Progress | None | Brand OS Production Board | 2026-05-23T04:46:35.401Z | Maintain Margot Command Center and RestoreAssist Content Index |
-| [UNI-2079](https://linear.app/unite-group/issue/UNI-2079/configure-vercel-linear-api-key-telegram-webhook-for-autonomous-intake) | Todo | High | Dimitri ITR Platform | 2026-05-29T05:08:51.472Z | Configure Vercel: LINEAR_API_KEY + Telegram webhook for autonomous intake |
-| [UNI-2080](https://linear.app/unite-group/issue/UNI-2080/duncan-run-discovery-telegram-loop-3q-batches-4-buttons) | Todo | High | Dimitri ITR Platform | 2026-05-29T04:46:21.340Z | Duncan: run /discovery Telegram loop (3Q batches + 4 buttons) |
+| [UNI-2079](https://linear.app/unite-group/issue/UNI-2079/configure-vercel-linear-api-key-telegram-webhook-for-autonomous-intake) | Todo | High | Dimitri ITR Platform | 2026-05-30T11:15:49.551Z | Configure Vercel: LINEAR_API_KEY + Telegram webhook for autonomous intake |
+| [UNI-2080](https://linear.app/unite-group/issue/UNI-2080/duncan-run-discovery-telegram-loop-3q-batches-4-buttons) | Todo | High | Dimitri ITR Platform | 2026-05-30T11:15:02.231Z | Duncan: run /discovery Telegram loop (3Q batches + 4 buttons) |
 | [UNI-2075](https://linear.app/unite-group/issue/UNI-2075/gmail-export-ingest-into-spm-intake-phill-vault) | Todo | High | Dimitri ITR Platform | 2026-05-28T02:07:42.868Z | Gmail export + ingest into SPM intake (Phill vault) |
-| [UNI-2058](https://linear.app/unite-group/issue/UNI-2058/phase-0-engineering-review-and-adoption-decision-replace-parallel) | Backlog | Urgent | Unite-Group | 2026-05-25T06:43:21.986Z | Phase 0 · Engineering review & adoption decision (replace / parallel / cherry-pick) |
 | [UNI-2088](https://linear.app/unite-group/issue/UNI-2088/swat-cross-project-deployment-model-analysis-cloud-vs-connected-local) | Backlog | High | Unite-Group | 2026-05-30T03:29:36.391Z | SWAT: Cross-project deployment model analysis — Cloud vs Connected-Local |
 | [UNI-2069](https://linear.app/unite-group/issue/UNI-2069/dimitri-epic-human-gates-12q-gmail-legal-board) | Backlog | High | Dimitri ITR Platform | 2026-05-27T23:33:00.425Z | [Dimitri] Epic: Human gates (12Q, Gmail, legal, board) |
 | [UNI-2077](https://linear.app/unite-group/issue/UNI-2077/dsp-osf-ato-api-portal-onboarding) | Backlog | High | Dimitri ITR Platform | 2026-05-27T22:38:38.348Z | DSP OSF + ATO API Portal onboarding |
-| [UNI-2059](https://linear.app/unite-group/issue/UNI-2059/phase-1-port-design-tokens-into-globalscss-tailwind-config) | Backlog | High | Unite-Group | 2026-05-25T06:43:22.244Z | Phase 1 · Port design tokens into globals.css + tailwind config |
 | [UNI-2066](https://linear.app/unite-group/issue/UNI-2066/phase-8-accessibility-audit-remediation-across-all-ported-screens) | Backlog | High | Unite-Group | 2026-05-25T06:31:14.792Z | Phase 8 · Accessibility audit + remediation across all ported screens |
 | [UNI-2057](https://linear.app/unite-group/issue/UNI-2057/unite-hub-layered-design-system-handoff-and-integration) | Backlog | High | Unite-Group | 2026-05-25T06:31:14.792Z | Unite-Hub · Layered Design System — Handoff & Integration |
 | [UNI-2061](https://linear.app/unite-group/issue/UNI-2061/phase-3-vertical-slice-command-center-end-to-end) | Backlog | High | Unite-Group | 2026-05-25T06:30:06.956Z | Phase 3 · Vertical slice — Command Center end-to-end |
-| [UNI-2060](https://linear.app/unite-group/issue/UNI-2060/phase-2-extract-ui-primitives-card-kpi-chip-tier-ticker-fab) | Backlog | High | Unite-Group | 2026-05-25T06:29:52.112Z | Phase 2 · Extract UI primitives (Card, KPI, Chip, Tier, Ticker, FAB, LiveIndicator, etc.) |
 | [UNI-2087](https://linear.app/unite-group/issue/UNI-2087/duncan-telegram-hello-need-to-know-more) | Backlog | Medium | Dimitri ITR Platform | 2026-05-29T08:28:00.744Z | [Duncan Telegram] Hello…. Need to know more? |
 | [UNI-2086](https://linear.app/unite-group/issue/UNI-2086/duncan-telegram-vision-in-piceodimtr) | Backlog | Medium | Dimitri ITR Platform | 2026-05-29T08:16:56.886Z | [Duncan Telegram] /vision in PiCEODimtr |
 | [UNI-2085](https://linear.app/unite-group/issue/UNI-2085/duncan-telegram-vision-in-piceodimtr) | Backlog | Medium | Dimitri ITR Platform | 2026-05-29T08:13:20.955Z | [Duncan Telegram] /vision in PiCEODimtr |

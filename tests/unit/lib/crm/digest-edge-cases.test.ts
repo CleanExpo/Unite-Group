@@ -194,6 +194,7 @@ describe('digest edge cases', () => {
         approvalRequiredCount: 0,
         blockedTaskCount: 0,
         blockerCount: 0,
+        staleIntegrationCount: 0,
       });
 
       expect(digest.sections.operatorPriorities).toEqual([
