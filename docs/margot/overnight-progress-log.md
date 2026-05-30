@@ -1,5 +1,87 @@
 # Margot Overnight Progress Log
 
+## 2026-05-31 08:29 AEST
+
+### Wider CRM/client route regression coverage
+
+Current checkpoint:
+
+- Preflight started from `main` at `8993ea1` with local evidence/status docs dirty (`docs/margot/crm-test-coverage-matrix.md`, `docs/margot/morning-report.md`, `docs/margot/overnight-progress-log.md`), then moved the inherited documentation slice to branch `margot/crm-client-regression-matrix`; no open GitHub PRs listed for `CleanExpo/Unite-Group`, and GitHub auth was available for `CleanExpo` without token values printed.
+- Slice completed: `docs/margot/crm-test-coverage-matrix.md` now keeps the existing Empire client route suites in the focused CRM regression gate before any future `nexus_clients` conversion work, and marks ordered gap #6 complete.
+- No source/test behavior changed in this tick; this was a local verification/documentation slice that widened the durable gate using existing repo tests.
+
+Changed in this checkpoint:
+
+- `docs/margot/crm-test-coverage-matrix.md` — updates date/status, adds Empire client route suites to the focused CRM gate, refreshes the Client create/update row, and advances the ordered gap queue.
+- `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md` — local evidence/status refresh for this cron tick.
+
+Verification:
+
+```bash
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/activity-timeline.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts src/app/api/empire/clients/__tests__/validate-website.test.ts src/app/api/empire/clients/__tests__/validate-email.test.ts src/app/api/empire/clients/__tests__/slug-race.test.ts src/app/api/empire/clients/__tests__/route-validation.test.ts src/app/api/empire/clients/__tests__/record-action.test.ts src/app/api/empire/clients/__tests__/map-unique-violation.test.ts --runInBand
+# PASS: 17 suites / 181 tests.
+
+npx jest --runTestsByPath 'src/app/api/empire/clients/[slug]/__tests__/patch-validation.test.ts' --runInBand
+# PASS: 1 suite / 10 tests.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after documentation/evidence updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, Synthex/CMS/social scheduling, public publishing, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+- No GitHub push/PR/merge/deploy has been performed for this branch at this checkpoint; evidence edits are local-only until a safe documentation/evidence PR is opened.
+
+Next safe slice:
+
+- Add Business 360/read-client-activity regression coverage before broader client dashboard changes or any `nexus_clients` conversion path.
+
+## 2026-05-31 07:19 AEST
+
+### Post-merge verification for PR #211 voice task digest linkage
+
+Current checkpoint:
+
+- PR #211 (`https://github.com/CleanExpo/Unite-Group/pull/211`) merged into `main` at `8993ea1b2e5cc2cff9699384dbfc06f5f905d5b7` after follow-up commit `e89873d` fixed the stale full-suite task select assertion.
+- Post-merge `main` CI run `26695161475` passed, DESIGN.md lint run `26695161477` passed, and GitHub commit statuses for `Vercel – unite-group` and `Vercel – unite-group-sandbox` both succeeded for merge commit `8993ea1`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local `main` was fast-forwarded to `8993ea1`; this post-merge evidence note is local-only and intentionally not published as another evidence PR.
+
+Changed in this checkpoint:
+
+- `docs/margot/morning-report.md` — current status advanced from open PR/micro-fix to merged PR #211 plus post-merge CI/Vercel status-check evidence.
+- `docs/margot/overnight-progress-log.md` — this local-only post-merge evidence entry.
+
+Verification:
+
+```bash
+gh pr view 211 --json number,state,mergedAt,mergeCommit,url,headRefOid,baseRefName,statusCheckRollup
+# PASS: state MERGED, merge commit 8993ea1b2e5cc2cff9699384dbfc06f5f905d5b7; PR rollup contexts passed before merge.
+
+git fetch origin main && git checkout main && git pull --ff-only origin main
+# PASS: local main fast-forwarded to 8993ea1.
+
+gh run watch 26695161475 --interval 10 --exit-status
+# PASS: post-merge main CI completed successfully.
+
+gh api repos/CleanExpo/Unite-Group/commits/8993ea1b2e5cc2cff9699384dbfc06f5f905d5b7/status
+# PASS: overall state success; Vercel – unite-group and Vercel – unite-group-sandbox both succeeded.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, Synthex/CMS/social scheduling, public publishing, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Choose the next CRM coverage-matrix gap, likely a wider regression including existing `src/app/api/empire/clients/**/__tests__` before touching `nexus_clients` conversion.
+
 ## 2026-05-31 07:13 AEST
 
 ### PR #211 CI micro-fix for voice task digest linkage
