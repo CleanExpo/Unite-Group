@@ -40,6 +40,12 @@ export interface CrmDigestVerification {
   status: 'passed' | 'failed' | 'blocked' | string;
 }
 
+export interface StaleIntegrationDigest {
+  integration: string;
+  reason: string;
+  minutesOverdue: number;
+}
+
 export interface CrmDailyDigestInput {
   generatedAt: string;
   leads?: CrmDigestLead[];
@@ -47,6 +53,7 @@ export interface CrmDailyDigestInput {
   tasks?: CrmDigestTask[];
   blockers?: CrmDigestBlocker[];
   verification?: CrmDigestVerification[];
+  staleIntegrations?: StaleIntegrationDigest[];
 }
 
 export interface CrmDailyDigest {
@@ -58,12 +65,14 @@ export interface CrmDailyDigest {
     approvalRequiredCount: number;
     blockedTaskCount: number;
     blockerCount: number;
+    staleIntegrationCount: number;
   };
   sections: {
     operatorPriorities: string[];
     approvals: string[];
     blockers: string[];
     verification: string[];
+    staleIntegrations: string[];
   };
   markdown: string;
 }
@@ -155,12 +164,19 @@ function markdownList(items: string[]): string {
   return items.map((item) => `- ${item}`).join('\n');
 }
 
+function buildStaleIntegrations(stale: StaleIntegrationDigest[]): string[] {
+  return stale.length
+    ? stale.map((s) => `${s.integration}: ${s.reason} (${s.minutesOverdue} min overdue)`)
+    : ['All integration mirrors are within their sync cadence.'];
+}
+
 export function createCrmDailyDigest(input: CrmDailyDigestInput): CrmDailyDigest {
   const leads = input.leads ?? [];
   const opportunities = input.opportunities ?? [];
   const tasks = input.tasks ?? [];
   const blockers = input.blockers ?? [];
   const verification = input.verification ?? [];
+  const staleIntegrations = input.staleIntegrations ?? [];
 
   const summary = {
     leadCount: leads.length,
@@ -171,6 +187,7 @@ export function createCrmDailyDigest(input: CrmDailyDigestInput): CrmDailyDigest
       tasks.filter((task) => clean(task.owner).toLowerCase() === 'phill' || clean(task.status) === 'blocked').length,
     blockedTaskCount: tasks.filter((task) => clean(task.status) === 'blocked').length,
     blockerCount: blockers.length,
+    staleIntegrationCount: staleIntegrations.length,
   };
 
   const sections = {
@@ -178,6 +195,7 @@ export function createCrmDailyDigest(input: CrmDailyDigestInput): CrmDailyDigest
     approvals: buildApprovals(opportunities, tasks),
     blockers: buildBlockers(blockers),
     verification: buildVerification(verification),
+    staleIntegrations: buildStaleIntegrations(staleIntegrations),
   };
 
   const markdown = [
@@ -193,6 +211,7 @@ export function createCrmDailyDigest(input: CrmDailyDigestInput): CrmDailyDigest
     `- Approval-required items: ${summary.approvalRequiredCount}`,
     `- Blocked tasks: ${summary.blockedTaskCount}`,
     `- Blockers: ${summary.blockerCount}`,
+    `- Stale integrations: ${summary.staleIntegrationCount}`,
     '',
     '## Operator Priorities',
     '',
@@ -209,6 +228,10 @@ export function createCrmDailyDigest(input: CrmDailyDigestInput): CrmDailyDigest
     '## Verification',
     '',
     markdownList(sections.verification),
+    '',
+    '## Stale Integration Mirrors',
+    '',
+    markdownList(sections.staleIntegrations),
     '',
     '## Safety Note',
     '',
