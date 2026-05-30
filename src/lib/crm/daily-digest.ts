@@ -27,6 +27,7 @@ export interface CrmDigestTask {
   owner?: string | null;
   status?: string | null;
   priority?: DigestPriority | string | null;
+  source?: 'margot_voice' | string | null;
 }
 
 export interface CrmDigestBlocker {
@@ -127,7 +128,8 @@ function buildOperatorPriorities(leads: CrmDigestLead[], opportunities: CrmDiges
     .filter((task) => clean(task.priority) === 'urgent' || clean(task.priority) === 'high')
     .slice(0, 5)
     .forEach((task) => {
-      priorities.push(`Task ${task.id} (${task.title}): owner ${clean(task.owner) || 'unassigned'}, status ${clean(task.status) || 'unknown'}, priority ${clean(task.priority)}.`);
+      const taskLabel = task.source === 'margot_voice' ? 'Voice task' : 'Task';
+      priorities.push(`${taskLabel} ${task.id} (${task.title}): owner ${clean(task.owner) || 'unassigned'}, status ${clean(task.status) || 'unknown'}, priority ${clean(task.priority)}.`);
     });
 
   return priorities.length ? priorities : ['No CRM priorities supplied for this digest window.'];
@@ -140,7 +142,10 @@ function buildApprovals(opportunities: CrmDigestOpportunity[], tasks: CrmDigestT
       .map((opportunity) => `Opportunity ${opportunity.id} (${opportunity.name}): approval required before commercial commitment. Next: ${clean(opportunity.nextAction) || 'Draft approval decision for Phill'}`),
     ...tasks
       .filter((task) => clean(task.owner).toLowerCase() === 'phill' || clean(task.status) === 'blocked')
-      .map((task) => `Task ${task.id} (${task.title}): blocked for ${clean(task.owner) || 'operator approval'}. Priority: ${clean(task.priority) || 'normal'}`),
+      .map((task) => {
+        const taskLabel = task.source === 'margot_voice' ? 'Voice task' : 'Task';
+        return `${taskLabel} ${task.id} (${task.title}): blocked for ${clean(task.owner) || 'operator approval'}. Priority: ${clean(task.priority) || 'normal'}`;
+      }),
   ];
 
   return approvals.length ? approvals : ['No approval-required items supplied for this digest window.'];

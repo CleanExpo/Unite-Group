@@ -1,3 +1,161 @@
+# Margot Overnight Progress Log
+
+## 2026-05-31 07:13 AEST
+
+### PR #211 CI micro-fix for voice task digest linkage
+
+Current checkpoint:
+
+- PR #211 (`https://github.com/CleanExpo/Unite-Group/pull/211`) is open on branch `margot/voice-task-digest-linkage`. Initial PR checks passed Review Board/TypeScript/lint/schema/security/Vercel contexts, but `Unit + Integration Tests` failed because `tests/unit/lib/crm/read-daily-digest.test.ts` still expected the pre-slice task select column string.
+- Fix completed: updated the command-center daily-digest read test to expect the minimized voice-source detection fields `tags,obsidian_path` in the task select shape (`id,title,status,priority,assignee_name,tags,obsidian_path,created_at`) while preserving exact `workspace_id` scope, status filter, order, and limit assertions.
+- Reviews: bounded spec review returned PASS; bounded quality/security review returned APPROVED. The reviewer confirmed the assertion remains exact-match data-minimization coverage and does not allow email/phone/address or weaken service-role scoping.
+
+Changed in this checkpoint:
+
+- `tests/unit/lib/crm/read-daily-digest.test.ts` — aligns the full-suite query-shape assertion with the production `TASK_SELECT_COLUMNS` used for voice task source detection.
+- `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md` — evidence/status refresh for the CI failure and local micro-fix.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/crm/read-daily-digest.test.ts --runInBand
+# PASS: 1 suite / 8 tests.
+
+npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/read-daily-digest.test.ts tests/integration/api/margot-voice-task.test.ts --runInBand
+# PASS: 4 suites / 39 tests.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test -- --runInBand
+# PASS: pipeline smoke subset, 3 suites / 23 tests.
+
+npx jest --runInBand
+# PASS: 142 passed / 1 skipped suites, 1102 passed / 1 skipped tests.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, Synthex/CMS/social scheduling, public publishing, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+- Vercel `unite-group` and `unite-group-sandbox` are recorded only as GitHub/Vercel status-check observations for PR #211, not as manual deployments.
+
+Blockers / notes:
+
+- The micro-fix is local until committed and pushed. PR #211 still shows the earlier `Unit + Integration Tests` failure for head `8a27e7c` until this fix is pushed and checks rerun.
+- CCW content remains local/draft only pending Toby/Phill approval; Dimitri ITR tasks remain out-of-scope for this repo.
+
+Next safe slice:
+
+- Run `git diff --check`, commit/push the CI micro-fix to PR #211, then monitor rerun checks and merge only if all checks pass cleanly.
+
+## 2026-05-31 06:56 AEST
+
+### Voice-created task linkage in daily CRM digest
+
+Current checkpoint:
+
+- Preflight: started from `main` at `98336a8` with GitHub CLI auth available for `CleanExpo` without token values printed and no open current-branch PR. Existing local-only Margot evidence docs were already dirty, so this tick created branch `margot/voice-task-digest-linkage` before committing/publishing the implementation slice.
+- Slice completed: daily-digest task rows now carry a minimal `source` marker for Margot voice-ingress tasks. The task digest read selects only the extra source-detection fields `tags` and `obsidian_path`; `mapTask()` marks rows with the existing voice convention (`margot-voice` tag or `voice/<packet>` path) as `margot_voice`; operator priorities and approvals render those rows as `Voice task ...` while preserving existing blocked/high/approval behavior.
+- TDD: RED was observed when the focused daily-digest integration test expected `Voice task ...` but the implementation still returned `Task ...`; GREEN passed after the mapper/digest changes.
+- Reviews: spec compliance review returned PASS; quality/security review returned APPROVED.
+
+Changed in this checkpoint:
+
+- `src/lib/crm/digest-mappers.ts` — task row/select shape adds `tags` + `obsidian_path`, and `mapTask()` derives the local-only `margot_voice` source marker.
+- `src/lib/crm/daily-digest.ts` — task digest copy chooses `Voice task` for voice-source rows and keeps `Task` for ordinary rows.
+- `tests/integration/api/crm-daily-digest.test.ts` — RED/GREEN coverage for voice-created task query shape and operator-facing digest copy.
+- `docs/margot/crm-test-coverage-matrix.md` — coverage gap #5 marked complete with local verification evidence.
+- `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md` — local evidence/status refresh.
+
+Verification:
+
+```bash
+npx jest tests/integration/api/crm-daily-digest.test.ts --runInBand
+# RED first: failed because digest still rendered `Task ...` instead of `Voice task ...`.
+# GREEN after implementation: PASS, 1 suite / 14 tests.
+
+npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/margot-voice-task.test.ts --runInBand
+# PASS: 3 suites / 31 tests.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, Synthex/CMS/social scheduling, public publishing, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+- No raw voice transcript, email, secret, approval id, or other task content beyond existing task title/status/priority/owner is added to the digest by this slice.
+
+Blockers / notes:
+
+- Branch is local until final hygiene/commit/push/PR creation completes.
+- CCW content remains local/draft only pending Toby/Phill approval; Dimitri ITR tasks remain out-of-scope for this repo.
+
+Next safe slice:
+
+- Run final `git diff --check`, commit/push/open PR for `margot/voice-task-digest-linkage` if transport remains available, then monitor CI/Vercel status checks.
+
+## 2026-05-31 06:19 AEST
+
+### Post-merge verification for layered command-center UI primitives + stale-sync checks
+
+Current checkpoint:
+
+- Preflight: started on merged branch `feat/UNI-2060-layered-ui-primitives` with PR #210 already `MERGED`, no open PRs, GitHub CLI auth available for `CleanExpo` without printing token values, and clean worktree. I fast-forwarded local `main` to `98336a8293bcd180aa3c8c7c92021dc285d50b34`.
+- PR #210 (`feat(UNI-2060): Layered UI primitives + stale-sync threshold checks`) merged at `2026-05-30T12:29:28Z`. Post-merge `main` CI run `26683831380` and DESIGN.md lint run `26683831393` both succeeded.
+- GitHub commit statuses for merge commit `98336a8` show `Vercel – unite-group` and `Vercel – unite-group-sandbox` both `success` / `Deployment has completed`; this is status-check observation only, not a manual Vercel deploy.
+- Local post-merge verification passed for the focused layered-command-center/founder-UI/stale-sync gate and repo safety gates.
+
+Changed in this checkpoint:
+
+- `docs/margot/morning-report.md` — current status refreshed to the merged PR #210 / post-merge CI + Vercel status-check state.
+- `docs/margot/overnight-progress-log.md` — this local-only evidence entry.
+
+Verification:
+
+```bash
+gh pr view 210 --json number,title,state,mergedAt,mergeCommit,url,headRefName,headRefOid,statusCheckRollup
+# PASS: state MERGED, merge commit 98336a8293bcd180aa3c8c7c92021dc285d50b34, PR status rollup succeeded before merge.
+
+gh run list --branch main --limit 5 --json databaseId,headSha,name,status,conclusion,createdAt,url
+# PASS: main CI run 26683831380 and DESIGN.md lint run 26683831393 succeeded for 98336a8293bcd180aa3c8c7c92021dc285d50b34.
+
+gh api repos/CleanExpo/Unite-Group/commits/98336a8293bcd180aa3c8c7c92021dc285d50b34/status
+# PASS: overall state success; Vercel – unite-group and Vercel – unite-group-sandbox both succeeded.
+
+npx jest tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/unit/components/founder-ui/Card.test.tsx tests/unit/components/founder-ui/Chip.test.tsx tests/unit/components/founder-ui/Drawer.test.tsx tests/unit/components/founder-ui/Kpi.test.tsx tests/unit/components/founder-ui/LeadCard.test.tsx tests/unit/components/founder-ui/OpportunityCard.test.tsx tests/unit/components/founder-ui/Primitives.test.tsx tests/unit/components/founder-ui/Sidebar.test.tsx tests/unit/components/founder-ui/StackShadow.test.tsx tests/unit/components/founder-ui/Ticker.test.tsx tests/unit/components/founder-ui/TopBar.test.tsx tests/unit/app/command-center-layered.test.tsx tests/unit/app/command-center-layered-server.test.ts tests/unit/design/layered-tokens.test.ts --runInBand
+# PASS: 16 suites / 109 tests.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after the evidence/report docs were updated.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, Synthex/CMS/social scheduling, public publishing, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+- No new source/test implementation was started after the merged PR #210 lane; this tick was a post-merge read-back and local evidence/status refresh.
+
+Blockers / notes:
+
+- No open Unite-Group PRs remain.
+- CCW content remains local/draft only pending Toby/Phill approval; Dimitri ITR issues remain out-of-scope for this repo.
+
+Next safe slice:
+
+- Choose the next small command-spine hardening lane from existing assets — either a focused layered command-center polish/test slice or the next CRM coverage-matrix read-only gap.
+
 ## 2026-05-30 13:40 AEST
 
 ### Hermes update + daily-digest spine verification + Linear intake sweep
@@ -40,8 +198,6 @@ Safety:
 Next safe slice:
 
 - Integration stale-sync threshold tests for Linear/GitHub/Vercel/Supabase mirrors (coverage matrix gap #2).
-
-# Margot Overnight Progress Log
 
 ## 2026-05-29 21:10 AEST
 

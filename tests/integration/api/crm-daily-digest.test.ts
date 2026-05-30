@@ -37,6 +37,8 @@ const taskRow = {
   status: 'blocked',
   priority: 'high',
   assignee_name: 'Phill approval',
+  tags: ['margot-voice', 'approval-required'],
+  obsidian_path: 'voice/voice-packet-1',
   created_at: '2026-05-23T01:00:00.000Z',
 };
 
@@ -208,10 +210,10 @@ describe('GET /api/crm/daily-digest', () => {
       blockedTaskCount: 1,
     });
     expect(body.digest.sections.operatorPriorities).toContain(
-      'Task task-approval-1 (Approve Margot escalation for qualified lead follow-up): owner Phill approval, status blocked, priority high.',
+      'Voice task task-approval-1 (Approve Margot escalation for qualified lead follow-up): owner Phill approval, status blocked, priority high.',
     );
     expect(body.digest.sections.approvals).toContain(
-      'Task task-approval-1 (Approve Margot escalation for qualified lead follow-up): blocked for Phill approval. Priority: high',
+      'Voice task task-approval-1 (Approve Margot escalation for qualified lead follow-up): blocked for Phill approval. Priority: high',
     );
     expect(mockFrom).toHaveBeenNthCalledWith(1, 'crm_leads');
     expect(mockFrom).toHaveBeenNthCalledWith(2, 'tasks');
@@ -226,7 +228,7 @@ describe('GET /api/crm/daily-digest', () => {
       { method: 'limit', value: 5 },
     ]);
     expect(taskCalls).toEqual([
-      { method: 'select', columns: 'id,title,status,priority,assignee_name,created_at' },
+      { method: 'select', columns: 'id,title,status,priority,assignee_name,tags,obsidian_path,created_at' },
       { method: 'eq', column: 'workspace_id', value: 'workspace-crm' },
       { method: 'in', column: 'status', values: ['blocked', 'todo'] },
       { method: 'order', column: 'created_at', options: { ascending: false } },
