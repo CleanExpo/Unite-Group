@@ -1,6 +1,6 @@
 # Linear Watch — Margot Today Queue
 
-Last synced: 2026-05-30 13:35:34 AEST
+Last synced: 2026-05-30 21:27:57 AEST
 Source: Linear team `UNI` / Unite-Group
 Purpose: Make parent-Hermes-pushed Linear work visible to Margot for today's task list.
 
@@ -72,7 +72,7 @@ Summary / Linear description excerpt:
 - Priority: High
 - Project: Dimitri ITR Platform
 - Assignee: Unassigned
-- Updated: 2026-05-29T05:08:51.472Z
+- Updated: 2026-05-30T11:15:49.551Z
 - Labels: none
 - Linear: https://linear.app/unite-group/issue/UNI-2079/configure-vercel-linear-api-key-telegram-webhook-for-autonomous-intake
 
@@ -105,7 +105,7 @@ Summary / Linear description excerpt:
 - Priority: High
 - Project: Dimitri ITR Platform
 - Assignee: Unassigned
-- Updated: 2026-05-29T04:46:21.340Z
+- Updated: 2026-05-30T11:15:02.231Z
 - Labels: none
 - Linear: https://linear.app/unite-group/issue/UNI-2080/duncan-run-discovery-telegram-loop-3q-batches-4-buttons
 
@@ -464,8 +464,8 @@ Summary / Linear description excerpt:
 | --- | --- | --- | --- | --- | --- |
 | [UNI-2053](https://linear.app/unite-group/issue/UNI-2053/create-ccw-product-category-copy) | In Review | None | Brand OS Production Board | 2026-05-23T05:08:34.536Z | Create CCW product category copy |
 | [UNI-2054](https://linear.app/unite-group/issue/UNI-2054/maintain-margot-command-center-and-restoreassist-content-index) | In Progress | None | Brand OS Production Board | 2026-05-23T04:46:35.401Z | Maintain Margot Command Center and RestoreAssist Content Index |
-| [UNI-2079](https://linear.app/unite-group/issue/UNI-2079/configure-vercel-linear-api-key-telegram-webhook-for-autonomous-intake) | Todo | High | Dimitri ITR Platform | 2026-05-29T05:08:51.472Z | Configure Vercel: LINEAR_API_KEY + Telegram webhook for autonomous intake |
-| [UNI-2080](https://linear.app/unite-group/issue/UNI-2080/duncan-run-discovery-telegram-loop-3q-batches-4-buttons) | Todo | High | Dimitri ITR Platform | 2026-05-29T04:46:21.340Z | Duncan: run /discovery Telegram loop (3Q batches + 4 buttons) |
+| [UNI-2079](https://linear.app/unite-group/issue/UNI-2079/configure-vercel-linear-api-key-telegram-webhook-for-autonomous-intake) | Todo | High | Dimitri ITR Platform | 2026-05-30T11:15:49.551Z | Configure Vercel: LINEAR_API_KEY + Telegram webhook for autonomous intake |
+| [UNI-2080](https://linear.app/unite-group/issue/UNI-2080/duncan-run-discovery-telegram-loop-3q-batches-4-buttons) | Todo | High | Dimitri ITR Platform | 2026-05-30T11:15:02.231Z | Duncan: run /discovery Telegram loop (3Q batches + 4 buttons) |
 | [UNI-2075](https://linear.app/unite-group/issue/UNI-2075/gmail-export-ingest-into-spm-intake-phill-vault) | Todo | High | Dimitri ITR Platform | 2026-05-28T02:07:42.868Z | Gmail export + ingest into SPM intake (Phill vault) |
 | [UNI-2058](https://linear.app/unite-group/issue/UNI-2058/phase-0-engineering-review-and-adoption-decision-replace-parallel) | Backlog | Urgent | Unite-Group | 2026-05-25T06:43:21.986Z | Phase 0 · Engineering review & adoption decision (replace / parallel / cherry-pick) |
 | [UNI-2088](https://linear.app/unite-group/issue/UNI-2088/swat-cross-project-deployment-model-analysis-cloud-vs-connected-local) | Backlog | High | Unite-Group | 2026-05-30T03:29:36.391Z | SWAT: Cross-project deployment model analysis — Cloud vs Connected-Local |
