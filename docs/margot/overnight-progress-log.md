@@ -1,5 +1,56 @@
 # Margot Overnight Progress Log
 
+## 2026-05-31 07:13 AEST
+
+### PR #211 CI micro-fix for voice task digest linkage
+
+Current checkpoint:
+
+- PR #211 (`https://github.com/CleanExpo/Unite-Group/pull/211`) is open on branch `margot/voice-task-digest-linkage`. Initial PR checks passed Review Board/TypeScript/lint/schema/security/Vercel contexts, but `Unit + Integration Tests` failed because `tests/unit/lib/crm/read-daily-digest.test.ts` still expected the pre-slice task select column string.
+- Fix completed: updated the command-center daily-digest read test to expect the minimized voice-source detection fields `tags,obsidian_path` in the task select shape (`id,title,status,priority,assignee_name,tags,obsidian_path,created_at`) while preserving exact `workspace_id` scope, status filter, order, and limit assertions.
+- Reviews: bounded spec review returned PASS; bounded quality/security review returned APPROVED. The reviewer confirmed the assertion remains exact-match data-minimization coverage and does not allow email/phone/address or weaken service-role scoping.
+
+Changed in this checkpoint:
+
+- `tests/unit/lib/crm/read-daily-digest.test.ts` — aligns the full-suite query-shape assertion with the production `TASK_SELECT_COLUMNS` used for voice task source detection.
+- `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md` — evidence/status refresh for the CI failure and local micro-fix.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/crm/read-daily-digest.test.ts --runInBand
+# PASS: 1 suite / 8 tests.
+
+npx jest tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/read-daily-digest.test.ts tests/integration/api/margot-voice-task.test.ts --runInBand
+# PASS: 4 suites / 39 tests.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test -- --runInBand
+# PASS: pipeline smoke subset, 3 suites / 23 tests.
+
+npx jest --runInBand
+# PASS: 142 passed / 1 skipped suites, 1102 passed / 1 skipped tests.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, Synthex/CMS/social scheduling, public publishing, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+- Vercel `unite-group` and `unite-group-sandbox` are recorded only as GitHub/Vercel status-check observations for PR #211, not as manual deployments.
+
+Blockers / notes:
+
+- The micro-fix is local until committed and pushed. PR #211 still shows the earlier `Unit + Integration Tests` failure for head `8a27e7c` until this fix is pushed and checks rerun.
+- CCW content remains local/draft only pending Toby/Phill approval; Dimitri ITR tasks remain out-of-scope for this repo.
+
+Next safe slice:
+
+- Run `git diff --check`, commit/push the CI micro-fix to PR #211, then monitor rerun checks and merge only if all checks pass cleanly.
+
 ## 2026-05-31 06:56 AEST
 
 ### Voice-created task linkage in daily CRM digest

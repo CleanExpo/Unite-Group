@@ -181,7 +181,10 @@ describe('readCrmDailyDigestForCommandCenter', () => {
     ]);
     expect(leadCalls.find((call) => call.method === 'select')?.columns).not.toContain('email');
     expect(taskCalls).toEqual([
-      { method: 'select', columns: 'id,title,status,priority,assignee_name,created_at' },
+      {
+        method: 'select',
+        columns: 'id,title,status,priority,assignee_name,tags,obsidian_path,created_at',
+      },
       { method: 'eq', column: 'workspace_id', value: 'workspace-crm' },
       { method: 'in', column: 'status', values: ['blocked', 'todo'] },
       { method: 'order', column: 'created_at', options: { ascending: false } },
