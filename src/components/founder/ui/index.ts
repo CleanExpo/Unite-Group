@@ -1,6 +1,6 @@
 /**
  * Layered UI Primitives — Barrel Export
- * UNI-2060 Phase 2 + remaining deferred primitives
+ * UNI-2060 Phase 2 + remaining deferred primitives + CRM composites
  */
 
 export { Card } from './Card';
@@ -39,3 +39,10 @@ export type { DrawerProps } from './Drawer';
 
 export { StackShadow } from './StackShadow';
 export type { StackShadowProps } from './StackShadow';
+
+// CRM composite cards — built on primitives above
+export { LeadCard } from './LeadCard';
+export type { LeadCardProps } from './LeadCard';
+
+export { OpportunityCard } from './OpportunityCard';
+export type { OpportunityCardProps } from './OpportunityCard';
