@@ -1,6 +1,6 @@
 # Linear Watch — Margot Today Queue
 
-Last synced: 2026-05-29 19:33:46 AEST
+Last synced: 2026-05-29 21:29:57 AEST
 Source: Linear team `UNI` / Unite-Group
 Purpose: Make parent-Hermes-pushed Linear work visible to Margot for today's task list.
 
@@ -450,7 +450,7 @@ Summary / Linear description excerpt:
 | [UNI-2063](https://linear.app/unite-group/issue/UNI-2063/phase-5-port-deals-pipeline-deal-detail-kanban-drag-to-stage) | Backlog | Medium | Unite-Group | 2026-05-25T06:30:27.813Z | Phase 5 · Port Deals pipeline + Deal detail (Kanban + drag-to-stage) |
 | [UNI-2062](https://linear.app/unite-group/issue/UNI-2062/phase-4-port-crm-list-contact-detail) | Backlog | Medium | Unite-Group | 2026-05-25T06:30:21.474Z | Phase 4 · Port CRM list + Contact detail |
 | [UNI-2056](https://linear.app/unite-group/issue/UNI-2056/unite-hub-surface-restoreassist-report-quality-and-field-data-signals) | Backlog | Medium | Unite-Group | 2026-05-22T21:47:05.775Z | [UNITE-HUB] Surface RestoreAssist report-quality and field-data signals in Command Centre |
-| [UNI-2084](https://linear.app/unite-group/issue/UNI-2084/vision-discovery-vision-3-why-idea-parking-distribution-set) | Backlog | None | Dimitri ITR Platform | 2026-05-29T07:05:25.423Z | Vision Discovery — /vision 3-why + /idea parking + distribution set |
+| [UNI-2084](https://linear.app/unite-group/issue/UNI-2084/vision-discovery-vision-3-why-idea-parking-distribution-set) | Backlog | None | Dimitri ITR Platform | 2026-05-29T11:23:40.179Z | Vision Discovery — /vision 3-why + /idea parking + distribution set |
 
 ## Watcher metadata
 

@@ -1,5 +1,44 @@
 # Margot Overnight Progress Log
 
+## 2026-05-29 21:10 AEST
+
+### Post-merge verification for CRM daily-digest redacted error-log hardening
+
+Current checkpoint:
+
+- PR #208 (`fix: redact CRM digest read errors`) merged on `main` at `209fedeedda0bce16572018461c2d515fcc6c514` after PR CI, Review Board, CodeRabbit, and Vercel status contexts passed.
+- Post-merge observation completed: `main` CI run `26633794323` passed, DESIGN.md lint run `26633794302` passed, and GitHub commit statuses for `Vercel – unite-group` and `Vercel – unite-group-sandbox` both returned `success` / `Deployment has completed` for merge commit `209fedeedda0bce16572018461c2d515fcc6c514`.
+- Local checkout is on `main` tracking `origin/main` at `209fede`; this post-merge note is local-only evidence/reporting and intentionally does not open a follow-up evidence PR.
+
+Changed in this post-merge checkpoint:
+
+- `docs/margot/morning-report.md` current status updated from pre-PR branch state to merged/post-merge CI + Vercel status-check state.
+- `docs/margot/overnight-progress-log.md` records this post-merge observation checkpoint.
+
+Verification:
+
+```bash
+gh run watch 26633794323 --interval 10 --exit-status
+# PASS: main CI completed successfully on merge commit 209fede.
+
+gh api repos/CleanExpo/Unite-Group/commits/209fedeedda0bce16572018461c2d515fcc6c514/status
+# PASS: overall state success; Vercel – unite-group and Vercel – unite-group-sandbox both succeeded.
+```
+
+Safety:
+
+- Vercel evidence is status-check observation only; no manual Vercel deploy or env mutation occurred.
+- No production DB write, Supabase migration application, sandbox apply, client-facing communication, Synthex/CMS/social scheduling, public publishing, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Blockers / notes:
+
+- None for PR #208; implementation, PR, merge, post-merge CI, and post-merge Vercel status checks are complete.
+- Existing lint annotations about `any` types were reported by the non-blocking lint job in pre-existing files outside this slice; the lint job concluded successfully.
+
+Next safe slice:
+
+- Continue the command-center CRM daily-digest spine with the next smallest read-only visibility hardening or UI polish slice; a natural follow-up is a separate RED/GREEN redaction hardening pass for pre-existing raw CRM lead read error logs.
+
 ## 2026-05-29 21:01 AEST
 
 ### CRM daily-digest redacted error-log hardening
