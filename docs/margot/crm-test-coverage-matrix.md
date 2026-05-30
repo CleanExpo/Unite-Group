@@ -1,6 +1,7 @@
 # Margot CRM Test Coverage Matrix
 
-Date: 2026-05-24 12:25 AEST
+Date: 2026-05-30 21:35 AEST
+Last update: Phase 1 (tokens) + Phase 2 (primitives) complete
 Owner: Margot
 Project: Unite-Group
 Scope: Local repo evidence only. This matrix maps the current CRM operating loop to available mocked/local tests and the next safe coverage gaps. It does not imply production DB writes, deployment, GitHub push, Vercel env mutation, client-facing sends, or permanent business-rule approval.
@@ -58,6 +59,7 @@ npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration
 | Approvals | Voice task convention: `tasks.status='blocked'`, assignee `Phill approval`; opportunity draft fields; `src/lib/crm/approval-lifecycle.ts`; `docs/margot/crm-approval-persistence-plan.md`; approval timeline events in `src/lib/crm/activity-timeline.ts` | Voice task tests; daily digest route/helper tests; migration draft tests; `tests/unit/lib/crm/approval-lifecycle.test.ts`; `tests/unit/lib/crm/activity-timeline.test.ts` | Approval-required voice tasks become blocked; daily digest surfaces blocked/high tasks; opportunities include approval fields in draft schema; local helper classifies requested, approved, rejected, cancelled, expired, and executed lifecycle states without writes or auto-execution authority; local task-evidence mapper converts Stage 1 approval tasks into lifecycle input without treating completed tasks as executed and without echoing approval references, Board IDs, approvers, rejection reasons, or malformed enum values in operator-facing reasons; approval approved/rejected/cancelled/expired timeline events map to pending sanitized `agent_actions` insert payloads. Persistence plan keeps current task subtype as Stage 1 and defers a dedicated `crm_approvals` table until structured approval history/query needs are proven. | Covered as pure local decision support plus documented persistence decision, task-evidence mapper, and sanitized approval timeline mapper; no dedicated approval migration created or applied. | Add route-level approval event-write tests before any CRM mutation route persists decision events; draft `crm_approvals` only after sandbox-first triggers are met. |
 | Command-center CRM read surface | `src/app/api/command-center/control-panel/route.ts`; `src/components/command-center/control-panel/HermesControlPanel.tsx`; `src/components/command-center/CommandCenterShell.tsx`; `src/components/command-center/digest/DailyCrmDigestPanel.tsx` | `tests/integration/api/control-panel.test.ts`; `tests/unit/components/command-center/HermesControlPanel.test.tsx`; `src/components/command-center/digest/__tests__/DailyCrmDigestPanel.test.tsx` | Control-panel API is admin-gated outside explicit local preview; local preview returns `summary.approvalRequired=0`; live workspace-scoped `tasks` reads count approval-required CRM rows. The browser-facing control panel renders an `APPROVAL REQUIRED` summary cell. The new Daily CRM Digest panel renders injected digest props only: lead/opportunity/approval/blocked/blocker counts, generated/source metadata, operator priorities, Board decisions, blockers, explicit empty states, and text-only list content with no raw markdown rendering or UI-side service-role read. | Covered for API summary approval visibility, Board/operator/tag approval marker coverage, workstream status mapping, control-panel component rendering, and the Daily CRM Digest panel populated/fallback/shell-prop contracts. Latest focused command-center gate passed 3 suites / 12 tests at 2026-05-26 23:57 AEST; type-check and route-security gates passed. | Wire the command-center page/server read path to pass a scoped daily CRM digest into `dailyDigestInitial`, after route/page tests prove no UI-side service-role access and safe missing-config behavior. |
 | Mac Mini recovery artifacts | `docs/margot/recovered-from-mac-mini/` | Health-check/progress-log evidence only | Directory exists; currently only `.gitkeep`; SMB reachable, SSH unavailable, no mounted share. | Blocked on authenticated transport. | Retry safe mount/SSH checks each run; copy only approved target files when authenticated access exists. |
+| Layered design system | `src/app/globals.css`; `tailwind.config.ts`; `src/components/founder/ui/*`; `src/app/layout.tsx` | `tests/unit/design/layered-tokens.test.ts`; `tests/unit/components/founder-ui/Card.test.tsx`; `Chip.test.tsx`; `Kpi.test.tsx`; `Primitives.test.tsx` | `.theme-layered` CSS scope with full OKLCH token stack; Tailwind utilities for colors/radii/shadows/fonts; 7 primitives using cva (Card, Chip, KPI, Tier, HealthBar, FAB, LiveIndicator); Poppins + IBM Plex Mono font loading; barrel export. | All 72 tests pass (30 tokens + 42 primitives). Type-check clean. No routes touched. | Add remaining primitives (TopBar, Sidebar, Ticker, Drawer, StackShadow) during Phase 3 vertical slice. |
 
 ## Required gates before specific changes
 
@@ -73,11 +75,13 @@ npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration
 
 ## Ordered next coverage gaps
 
-1. ~~Wire the command-center page/server read path to pass a scoped daily CRM digest into `dailyDigestInitial`~~ — COMPLETE as of 2026-05-30. Verified via merge reconciliation `cc0aa58`, page test `tests/unit/app/command-center-page-daily-digest.test.tsx`, and control-panel gate 5 suites / 35 tests.
-2. Integration stale-sync threshold tests for Linear/GitHub/Vercel/Supabase mirrors.
-3. Digest reader linkage test for voice-created `tasks` once command-center read surface is wired.
-4. Wider regression including existing `src/app/api/empire/clients/**/__tests__` before any `nexus_clients` conversion work.
-5. Recover original migrations or reconstruct sandbox-only migration proposals for `tasks` and `voice_command_sessions`; do not apply directly to production.
+1. ~~Wire the command-center page/server read path to pass a scoped daily CRM digest into `dailyDigestInitial`~~ — COMPLETE as of 2026-05-30. Verified via merge reconciliation, page test `tests/unit/app/command-center-page-daily-digest.test.tsx`, and control-panel gate 5 suites / 35 tests.
+2. ~~Layered Design System Phase 1: tokens in `globals.css` + Tailwind utilities~~ — COMPLETE as of 2026-05-30. 30 RED→GREEN token compilation tests. Merged to `main`.
+3. ~~Layered Design System Phase 2: UI primitives (Card, Chip, KPI, Tier, HealthBar, FAB, LiveIndicator)~~ — COMPLETE as of 2026-05-30. 42 RED→GREEN tests across 4 suites. Branch `feat/UNI-2060-layered-ui-primitives` ready for PR.
+4. Integration stale-sync threshold tests for Linear/GitHub/Vercel/Supabase mirrors.
+5. Digest reader linkage test for voice-created `tasks`.
+6. Wider regression including existing `src/app/api/empire/clients/**/__tests__`.
+7. Recover original migrations or reconstruct sandbox-only migration proposals for `tasks` and `voice_command_sessions`.
 
 ## Safety notes
 

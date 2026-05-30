@@ -1,10 +1,11 @@
 # CCW Category Copy Draft — Carpet Cleaning Machines and Extractors
 
-Date: 2026-05-23
+Date: 2026-05-30
 Owner: Margot
 Linear: UNI-2053
 Client/context: CCW CRM / Toby
-Status: draft for Toby/Phill review; not client-facing until approved and product details are filled.
+Status: CATEGORY APPROVED by Phill 2026-05-30. Next: Toby confirms product names, stock, CTA, images."
+
 Source brief: `docs/margot/ccw-product-category-topic-brief.md`
 
 ## Safety status
@@ -196,10 +197,11 @@ CTA: Message CCW to start the conversation.
 
 ## Approval checklist
 
-- [ ] Toby/Phill approve first category topic.
-- [ ] Toby confirms products and stock.
-- [ ] No tax guarantee language.
-- [ ] No unsupported performance claims.
-- [ ] CTA and contact route confirmed.
-- [ ] Images/video approved.
-- [ ] Synthex/scheduling route confirmed before posting.
+- [x] Toby/Phill approve first category topic. — **DONE: Category A (Carpet Cleaning Machines & Extractors) approved by Phill 2026-05-30.
+- [ ] Toby confirms products and stock. — **NEXT**
+- [x] No tax guarantee language. — Verified conservative E-E-A-T; no claims.
+- [x] No unsupported performance claims. — Verified: no "best", "fastest", "most powerful".
+- [ ] CTA and contact route confirmed. — **NEXT**
+- [ ] Images/video approved. — **NEXT**
+- [ ] Synthex/scheduling route confirmed before posting. — **NEXT**
+
