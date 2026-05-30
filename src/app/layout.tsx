@@ -1,4 +1,4 @@
-import { JetBrains_Mono, Syne } from 'next/font/google';
+import { JetBrains_Mono, Syne, Poppins, IBM_Plex_Mono } from 'next/font/google';
 import { headers } from 'next/headers';
 import './globals.css';
 import { defaultMetadata, viewport } from '@/lib/metadata';
@@ -11,6 +11,8 @@ export { viewport };
 // Syne: distinctive geometric grotesque — NOT Inter. Sharp, architectural, unmistakable.
 const syne = Syne({ subsets: ['latin'], variable: '--font-display', display: 'swap', weight: ['400','500','600','700','800'] });
 const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono', display: 'swap', weight: ['400','500','600','700'] });
+const poppins = Poppins({ subsets: ['latin'], variable: '--font-layered-primary', display: 'swap', weight: ['400','500','600','700'] });
+const ibmMono = IBM_Plex_Mono({ subsets: ['latin'], variable: '--font-layered-mono', display: 'swap', weight: ['400','500'] });
 
 const PUBLIC_PREFIXES = ['/about', '/services', '/contact'];
 function isPublicMarketing(pathname: string): boolean {
@@ -25,7 +27,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const showSidebar = !isPublicMarketing(pathname);
   return (
     <html lang="en" suppressHydrationWarning className="dark">
-      <body className={`${syne.variable} ${mono.variable}`}
+      <body className={`${syne.variable} ${mono.variable} ${poppins.variable} ${ibmMono.variable}`}
             style={{ background: '#08080a', color: '#f0f0f2', fontFamily: 'var(--font-display), system-ui, sans-serif', minHeight: '100vh', display: 'flex' }}>
         {showSidebar && <EmpireSidebar />}
         <main style={{ flex: 1, minHeight: '100vh', overflow: 'auto' }}>{children}</main>
