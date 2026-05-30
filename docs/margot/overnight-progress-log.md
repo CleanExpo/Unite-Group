@@ -1,3 +1,46 @@
+## 2026-05-30 13:40 AEST
+
+### Hermes update + daily-digest spine verification + Linear intake sweep
+
+Current checkpoint:
+
+- Hermes Agent updated to latest via `hermes --yolo update` — already up to date.
+- Unite-Group `main` pulled, local commits (Linear mirror auto-sync + Margot operational docs auto-commit) pushed to origin.
+- Linear intake refreshed at `2026-05-30 13:35 AEST`: 13 open issues in Unite-Group queue; no open PRs.
+- `feat/command-center-daily-digest-server-read` branch reconciled with `main` merge at `cc0aa58`, keeping PR #208 `logCrmDigestReadError` redaction while preserving PR #205 command-center server-read wiring. After reconciliation: type-check passed, route-security returned 0 unprotected mutating routes, focused digest/control-panel gate passed 5 suites / 35 tests.
+- CRM coverage matrix gap #1 (wire command-center page/server read path) verified as complete — no new PR needed; coverage matrix will be updated in follow-up docs sweep.
+- Dimitri ITR tasks (UNI-2079, UNI-2080, UNI-2075) identified as out-of-scope for Unite-Group repo; they belong to separate Vercel project `dimitri-itr-sandbox` and local `Unite-Hub` repo. Flagged for operator decision; no action taken.
+- CCW UNI-2053 draft copy already exists (`ccw-carpet-cleaning-machines-category-copy.md`, 205 lines); blocked on Toby/Phill category approval.
+
+Changed:
+
+- `docs/margot/morning-report.md` — status updated with current checkpoint, Dimitri ITR scope flag, and CCW draft status.
+- `docs/margot/overnight-progress-log.md` — this entry.
+
+Verification:
+
+```bash
+npm run type-check
+# PASS
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes
+
+npx jest tests/unit/app/command-center-page-daily-digest.test.tsx tests/unit/lib/crm/read-daily-digest.test.ts tests/unit/components/command-center/HermesControlPanel.test.tsx tests/integration/api/crm-daily-digest.test.ts tests/integration/api/control-panel.test.ts --runInBand
+# PASS: 5 suites / 35 tests
+
+git diff --check
+# PASS
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, GitHub merge by this run, client-facing communication, Synthex/CMS/social scheduling, public publishing, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Integration stale-sync threshold tests for Linear/GitHub/Vercel/Supabase mirrors (coverage matrix gap #2).
+
 # Margot Overnight Progress Log
 
 ## 2026-05-29 21:10 AEST
