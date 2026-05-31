@@ -63,18 +63,18 @@ export function Hero() {
         </p>
         <div style={{ marginTop: 32, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
           <Link
-            href="/en/contact"
+            href="/en/register"
             style={{
               background: 'var(--red-500)',
               color: '#fff',
               padding: '12px 24px',
               borderRadius: 'var(--radius-md)',
-              fontWeight: 500,
+              fontWeight: 600,
               textDecoration: 'none',
               display: 'inline-block',
             }}
           >
-            Talk to the operator on the desk
+            Start free trial
           </Link>
           <Link
             href="/en/services"
