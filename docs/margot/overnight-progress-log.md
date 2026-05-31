@@ -1,5 +1,92 @@
 # Margot Overnight Progress Log
 
+## 2026-05-31 11:21 AEST
+
+### Business 360/read-client-activity query-shape regression coverage
+
+Current checkpoint:
+
+- Preflight started from `main` at `33c4608` with local post-merge evidence docs dirty, GitHub auth available for `CleanExpo` without token values printed, and no open PRs listed for `CleanExpo/Unite-Group`; work moved to branch `margot/business360-activity-regression`.
+- Slice completed: shared Empire Supabase reader mocks now record query-builder calls, and the focused CRM gate includes `src/lib/empire/__tests__/read-client-activity.test.ts` plus `src/lib/empire/__tests__/readers.test.ts` before broader client dashboard changes or `nexus_clients` conversion work.
+- New regressions pin `readClientActivity` service-role reads to exact `agent_actions` select columns, `client_created`/`client_updated` filtering, exact `payload->>slug` scoping, newest-first ordering, and default/caller limits; they also pin `readBusiness360` reads to exact health-snapshot select columns, `snapshot_at` lower-bound filtering, ascending ordering, and a 10,000-row cap.
+
+Changed in this checkpoint:
+
+- `src/lib/empire/__tests__/_mock-supabase.ts` — optional query-call recording for reader tests.
+- `src/lib/empire/__tests__/read-client-activity.test.ts` — query-shape regressions for client activity plus clearer malformed-payload row-count assertion.
+- `src/lib/empire/__tests__/readers.test.ts` — query-shape regression for Business 360 health snapshots.
+- `docs/margot/crm-test-coverage-matrix.md` — focused gate now includes the two Empire reader suites and marks ordered gap #7 complete.
+- `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md` — evidence/status refresh for this cron tick.
+
+Verification:
+
+```bash
+npx jest src/lib/empire/__tests__/read-client-activity.test.ts src/lib/empire/__tests__/readers.test.ts --runInBand
+# RED first under the implementer: 3 new query-shape tests failed before mock call recording existed; GREEN after implementation: PASS, 2 suites / 23 tests.
+
+npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/unit/margot-crm-contacts-opportunities-migration.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/integration/api/crm-daily-digest.test.ts tests/unit/lib/crm/activity-timeline.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts src/app/api/empire/clients/__tests__/validate-website.test.ts src/app/api/empire/clients/__tests__/validate-email.test.ts src/app/api/empire/clients/__tests__/slug-race.test.ts src/app/api/empire/clients/__tests__/route-validation.test.ts src/app/api/empire/clients/__tests__/record-action.test.ts src/app/api/empire/clients/__tests__/map-unique-violation.test.ts src/lib/empire/__tests__/read-client-activity.test.ts src/lib/empire/__tests__/readers.test.ts --runInBand
+# PASS: 19 suites / 204 tests.
+
+npx jest --runTestsByPath 'src/app/api/empire/clients/[slug]/__tests__/patch-validation.test.ts' --runInBand
+# PASS: 1 suite / 10 tests.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after test/doc/evidence updates.
+```
+
+Review:
+
+- Spec review: PASS.
+- Quality review: APPROVED after fixing the parseability assertion, malformed-payload row-count guard, and stale matrix next-gap wording.
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, Synthex/CMS/social scheduling, public publishing, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- After this branch/PR is resolved, recover original migrations or reconstruct sandbox-only migration proposals for `tasks` and `voice_command_sessions`.
+
+## 2026-05-31 08:37 AEST
+
+### PR #212 merge and post-merge verification for CRM/client gate docs
+
+Current checkpoint:
+
+- PR #212 (`https://github.com/CleanExpo/Unite-Group/pull/212`) merged into `main` at `33c4608f5dca8b2f824885e20f6ec01f137248d5` after branch `margot/crm-client-regression-matrix` added the Empire client route suites to the durable CRM coverage matrix.
+- Post-merge `main` CI run `26696759201` passed, DESIGN.md lint run `26696759195` passed, and GitHub commit statuses for `Vercel – unite-group` and `Vercel – unite-group-sandbox` both succeeded for merge commit `33c4608`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local `main` is at `33c4608`; this post-merge evidence note is local-only and intentionally not published as another evidence PR.
+
+Verification:
+
+```bash
+gh pr view 212 --json number,state,mergedAt,mergeCommit,url
+# PASS: state MERGED, merge commit 33c4608f5dca8b2f824885e20f6ec01f137248d5.
+
+gh run watch 26696759195 --interval 10 --exit-status
+# PASS: post-merge DESIGN.md lint completed successfully.
+
+gh run watch 26696759201 --interval 10 --exit-status
+# PASS: post-merge main CI completed successfully.
+
+gh api repos/CleanExpo/Unite-Group/commits/33c4608f5dca8b2f824885e20f6ec01f137248d5/status
+# PASS: overall state success; Vercel – unite-group and Vercel – unite-group-sandbox both succeeded.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, Synthex/CMS/social scheduling, public publishing, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Add Business 360/read-client-activity regression coverage before broader client dashboard changes or any `nexus_clients` conversion path.
+
 ## 2026-05-31 08:29 AEST
 
 ### Wider CRM/client route regression coverage
