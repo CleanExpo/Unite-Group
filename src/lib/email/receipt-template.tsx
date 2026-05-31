@@ -2,7 +2,8 @@
 //
 // React component that renders a branded HTML email receipt for Unite-Hub.
 // Uses inline styles for email client compatibility.
-// Rendered server-side via react-dom/server renderToString.
+// Rendered as a static HTML string so Next.js app-route builds do not import
+// react-dom/server from route code.
 
 import React from 'react';
 import { renderToString } from 'react-dom/server';
