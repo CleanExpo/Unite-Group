@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { sendEmail } from '@/lib/email/sendEmail';
 import { rateLimit, RATE_LIMITS } from '@/lib/ratelimit';
 import crypto from 'crypto';
@@ -131,6 +132,8 @@ export async function POST(request: NextRequest) {
       expiresAt: expiresAt.toISOString(),
     });
   } catch (error) {
+    // Capture error in Sentry for monitoring
+    Sentry.captureException(error);
     console.error('send-magic-link error:', error);
     return NextResponse.json(
       {

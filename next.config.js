@@ -1,4 +1,5 @@
 ﻿// const withNextIntl = require('next-intl/plugin')('./i18n.ts');
+const { withSentryConfig } = require('@sentry/nextjs');
 
 // SYN-519: Authority Hub routes (/clients/[slug]) use ISR with revalidate=3600.
 // These pages carry LocalBusiness+VideoObject schema for E.E.A.T. positioning.
@@ -37,6 +38,41 @@ const nextConfig = {
     NEXT_PUBLIC_CDN_BASE_URL: process.env.NEXT_PUBLIC_CDN_BASE_URL,
     ENABLE_CDN_REDIRECT: process.env.ENABLE_CDN_REDIRECT || 'false',
   },
+  // Enable source maps for production builds (for Sentry)
+  productionBrowserSourceMaps: true,
+  // Hide source maps from being served publicly (Sentry uploads them)
+  webpack: (config, { dev }) => {
+    if (!dev) {
+      // Ensure sourcemaps are generated for server-side code
+      config.devtool = 'source-map';
+    }
+    return config;
+  },
 }
 
-module.exports = nextConfig;
+// Sentry configuration options
+const sentryConfig = {
+  // For all available options, see:
+  // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
+
+  // Upload a larger set of source maps for prettier stack traces (increases build time)
+  widenClientFileUpload: true,
+
+  // Hides source maps from generated client bundles
+  hideSourceMaps: true,
+
+  // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers
+  tunnelRoute: '/monitoring',
+
+  // Webpack-specific options
+  webpack: {
+    // Automatically tree-shake Sentry logger statements to reduce bundle size
+    treeshake: {
+      removeDebugLogging: true,
+    },
+    // Enables automatic instrumentation of Vercel Cron Monitors
+    automaticVercelMonitors: true,
+  },
+};
+
+module.exports = withSentryConfig(nextConfig, sentryConfig);
