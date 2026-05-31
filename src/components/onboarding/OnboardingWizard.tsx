@@ -14,20 +14,18 @@ import {
 } from "@/components/ui/spotlight-card";
 import { StepIndicator } from "./StepIndicator";
 import {
-  Building2,
-  Plug,
-  Users,
-  ChevronRight,
-  ChevronLeft,
-  SkipForward,
-  Check,
-  Rocket,
-  Database,
-  CreditCard,
-  Mail,
-  Plus,
-  X,
-} from "lucide-react";
+  ArrowLeftMark,
+  BranchMark,
+  BuildingMark,
+  ChevronRightMark,
+  CloseMark,
+  DollarMark,
+  MailMark,
+  PlusMark,
+  SourcesMark,
+  SuccessMark,
+  UsersMark,
+} from "@/components/ui/marks";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -343,7 +341,7 @@ export function OnboardingWizard() {
                   integrations.supabase ? "bg-emerald-500/20" : "bg-zinc-800"
                 }`}
               >
-                <Database className="w-5 h-5 text-emerald-400" />
+                <SourcesMark className="w-5 h-5 text-emerald-400" />
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-white">Supabase</p>
@@ -358,7 +356,7 @@ export function OnboardingWizard() {
                     : "border-zinc-600"
                 }`}
               >
-                {integrations.supabase && <Check className="w-3 h-3 text-white" />}
+                {integrations.supabase && <SuccessMark className="w-3 h-3 text-white" />}
               </div>
             </div>
 
@@ -378,7 +376,7 @@ export function OnboardingWizard() {
                   integrations.stripe ? "bg-emerald-500/20" : "bg-zinc-800"
                 }`}
               >
-                <CreditCard className="w-5 h-5 text-purple-400" />
+                <DollarMark className="w-5 h-5 text-purple-400" />
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-white">Stripe</p>
@@ -393,7 +391,7 @@ export function OnboardingWizard() {
                     : "border-zinc-600"
                 }`}
               >
-                {integrations.stripe && <Check className="w-3 h-3 text-white" />}
+                {integrations.stripe && <SuccessMark className="w-3 h-3 text-white" />}
               </div>
             </div>
           </div>
@@ -410,7 +408,7 @@ export function OnboardingWizard() {
             {teamEmails.map((email, index) => (
               <div key={index} className="flex items-center gap-2">
                 <div className="flex-1 relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
+                  <MailMark className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
                   <Input
                     type="email"
                     value={email}
@@ -427,7 +425,7 @@ export function OnboardingWizard() {
                     onClick={() => removeEmailField(index)}
                     className="w-9 h-9 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-500 hover:text-red-400 hover:border-red-500/50 transition-colors"
                   >
-                    <X className="w-4 h-4" />
+                    <CloseMark className="w-4 h-4" />
                   </button>
                 )}
               </div>
@@ -438,7 +436,7 @@ export function OnboardingWizard() {
               onClick={addEmailField}
               className="flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-300 transition-colors mt-1"
             >
-              <Plus className="w-4 h-4" />
+              <PlusMark className="w-4 h-4" />
               Add another team member
             </button>
           </div>
@@ -471,7 +469,7 @@ export function OnboardingWizard() {
                 transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
                 className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mb-6"
               >
-                <Rocket className="w-8 h-8 text-emerald-400" />
+                <BranchMark className="w-8 h-8 text-emerald-400" />
               </motion.div>
 
               <h1 className="text-2xl font-bold text-white mb-2">
@@ -486,7 +484,7 @@ export function OnboardingWizard() {
                 className="w-full h-12 bg-red-600 hover:bg-red-500 text-white font-semibold rounded-lg text-sm"
               >
                 Go to Dashboard
-                <ChevronRight className="w-4 h-4 ml-2" />
+                <ChevronRightMark className="w-4 h-4 ml-2" />
               </Button>
             </div>
           </SpotlightCard>
@@ -573,7 +571,7 @@ export function OnboardingWizard() {
                     onClick={goBack}
                     className="text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg"
                   >
-                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    <ArrowLeftMark className="w-4 h-4 mr-1" />
                     Back
                   </Button>
                 )}
@@ -586,7 +584,7 @@ export function OnboardingWizard() {
                     onClick={goSkip}
                     className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
                   >
-                    <SkipForward className="w-3.5 h-3.5" />
+                    <BranchMark className="w-3.5 h-3.5" />
                     Skip
                   </button>
                 )}
@@ -596,7 +594,7 @@ export function OnboardingWizard() {
                   className="bg-red-600 hover:bg-red-500 text-white font-medium rounded-lg px-6"
                 >
                   {currentStep === STEPS.length - 1 ? "Finish" : "Next"}
-                  <ChevronRight className="w-4 h-4 ml-1" />
+                  <ChevronRightMark className="w-4 h-4 ml-1" />
                 </Button>
               </div>
             </div>
@@ -610,13 +608,13 @@ export function OnboardingWizard() {
 // ─── Step icons ───────────────────────────────────────────────────────────────
 
 function BusinessInfoStepIcon() {
-  return <Building2 className="w-5 h-5 text-red-400" />;
+  return <BuildingMark className="w-5 h-5 text-red-400" />;
 }
 
 function IntegrationsStepIcon() {
-  return <Plug className="w-5 h-5 text-red-400" />;
+  return <SourcesMark className="w-5 h-5 text-red-400" />;
 }
 
 function TeamStepIcon() {
-  return <Users className="w-5 h-5 text-red-400" />;
+  return <UsersMark className="w-5 h-5 text-red-400" />;
 }

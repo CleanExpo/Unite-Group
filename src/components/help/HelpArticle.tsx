@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, ThumbsUp, ThumbsDown } from "lucide-react";
+import { AlertMark, ArrowLeftMark, SuccessMark } from "@/components/ui/marks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { HelpArticle as HelpArticleType } from "@/lib/help/articles";
@@ -139,7 +139,7 @@ export function HelpArticleView({ article, onBack }: HelpArticleProps) {
           onClick={onBack}
           className="text-slate-400 hover:text-slate-200 hover:bg-slate-800"
         >
-          <ArrowLeft className="h-4 w-4 mr-1" />
+          <ArrowLeftMark className="h-4 w-4 mr-1" />
           Back to articles
         </Button>
       </div>
@@ -182,7 +182,7 @@ export function HelpArticleView({ article, onBack }: HelpArticleProps) {
                 : "border-slate-700 text-slate-400 hover:text-teal-400 hover:border-teal-500/50 hover:bg-slate-800"
             }
           >
-            <ThumbsUp className="h-4 w-4 mr-1" />
+            <SuccessMark className="h-4 w-4 mr-1" />
             Yes, thanks!
           </Button>
           <Button
@@ -195,7 +195,7 @@ export function HelpArticleView({ article, onBack }: HelpArticleProps) {
                 : "border-slate-700 text-slate-400 hover:text-red-400 hover:border-red-500/50 hover:bg-slate-800"
             }
           >
-            <ThumbsDown className="h-4 w-4 mr-1" />
+            <AlertMark className="h-4 w-4 mr-1" />
             Not really
           </Button>
         </div>

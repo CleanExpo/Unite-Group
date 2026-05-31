@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertMark, LoaderMark } from "@/components/ui/marks";
 import { toast } from "sonner";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -77,7 +77,7 @@ export function CancelConfirmDialog({
         <DialogHeader>
           <div className="flex items-center gap-3 mb-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/10 border border-red-500/20">
-              <AlertTriangle className="h-5 w-5 text-red-400" />
+              <AlertMark className="h-5 w-5 text-red-400" />
             </div>
             <div>
               <DialogTitle className="text-lg text-slate-100">
@@ -146,7 +146,7 @@ export function CancelConfirmDialog({
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <LoaderMark className="h-4 w-4 mr-2 animate-spin" />
                 Cancelling...
               </>
             ) : (

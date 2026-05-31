@@ -11,14 +11,14 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { SuccessMark } from "@/components/ui/marks";
+import { LoaderMark, SuccessMark } from "@/components/ui/marks";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+
 import { toast } from "sonner";
 
 // ── Plan definitions ──────────────────────────────────────────────────────────
@@ -239,7 +239,7 @@ export function BillingPlanModal({
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <LoaderMark className="h-4 w-4 mr-2 animate-spin" />
                 Updating...
               </>
             ) : (

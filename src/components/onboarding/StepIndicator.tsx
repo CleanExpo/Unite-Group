@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Check } from "lucide-react";
+import { SuccessMark } from "@/components/ui/marks";
 
 interface Step {
   label: string;
@@ -37,7 +37,7 @@ export function StepIndicator({ steps, currentStep, completedSteps }: StepIndica
                 )}
               >
                 {isCompleted ? (
-                  <Check className="w-4 h-4" />
+                  <SuccessMark className="w-4 h-4" />
                 ) : (
                   stepNumber
                 )}
