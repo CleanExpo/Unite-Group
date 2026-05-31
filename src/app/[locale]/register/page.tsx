@@ -130,9 +130,9 @@ export default function Register() {
         return;
       }
 
-      // Success — redirect to dashboard with welcome toast
+      // Success — redirect to onboarding wizard
       toast.success(`Welcome, ${firstName}! Your account is ready.`);
-      router.push(`/${locale}/dashboard`);
+      router.push(`/${locale}/onboarding`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Network error. Please try again.");
     } finally {
