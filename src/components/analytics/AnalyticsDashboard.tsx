@@ -201,7 +201,13 @@ const formatPercentChange = (percentChange: number, higherIsBetter: boolean = tr
 };
 
 // Metric Widget Component
-const MetricWidget: React.FC<{
+const MetricWidget = ({
+  title,
+  subtitle,
+  config,
+  data,
+  isLoading = false,
+}: {
   title: string;
   subtitle?: string;
   config: MetricWidgetConfig;
@@ -210,7 +216,7 @@ const MetricWidget: React.FC<{
     previousValue?: number;
   };
   isLoading?: boolean;
-}> = ({ title, subtitle, config, data, isLoading = false }) => {
+}) => {
   const { metric, format, prefix, suffix, showComparison = true, comparisonLabel = 'vs. previous period' } = config;
   const { value, previousValue } = data;
   
@@ -253,13 +259,19 @@ const MetricWidget: React.FC<{
 };
 
 // Chart Widget Component
-const ChartWidget: React.FC<{
+const ChartWidget = ({
+  title,
+  subtitle,
+  config,
+  data,
+  isLoading = false,
+}: {
   title: string;
   subtitle?: string;
   config: ChartWidgetConfig;
   data: any;
   isLoading?: boolean;
-}> = ({ title, subtitle, config, data, isLoading = false }) => {
+}) => {
   const { type, metrics, groupBy, stacked, showLegend } = config;
   
   return (
@@ -288,13 +300,19 @@ const ChartWidget: React.FC<{
 };
 
 // Table Widget Component
-const TableWidget: React.FC<{
+const TableWidget = ({
+  title,
+  subtitle,
+  config,
+  data,
+  isLoading = false,
+}: {
   title: string;
   subtitle?: string;
   config: TableWidgetConfig;
   data: any[];
   isLoading?: boolean;
-}> = ({ title, subtitle, config, data, isLoading = false }) => {
+}) => {
   const { columns, rows, pagination, sortable } = config;
   
   return (
@@ -315,7 +333,13 @@ const TableWidget: React.FC<{
 };
 
 // Funnel Widget Component
-const FunnelWidget: React.FC<{
+const FunnelWidget = ({
+  title,
+  subtitle,
+  config,
+  data,
+  isLoading = false,
+}: {
   title: string;
   subtitle?: string;
   config: FunnelWidgetConfig;
@@ -324,7 +348,7 @@ const FunnelWidget: React.FC<{
     value: number;
   }>;
   isLoading?: boolean;
-}> = ({ title, subtitle, config, data, isLoading = false }) => {
+}) => {
   const { steps, showConversionRates } = config;
   
   return (
@@ -377,11 +401,15 @@ const FunnelWidget: React.FC<{
 };
 
 // Text Widget Component
-const TextWidget: React.FC<{
+const TextWidget = ({
+  title,
+  subtitle,
+  config,
+}: {
   title: string;
   subtitle?: string;
   config: TextWidgetConfig;
-}> = ({ title, subtitle, config }) => {
+}) => {
   const { content } = config;
   
   return (
@@ -400,7 +428,7 @@ const TextWidget: React.FC<{
 };
 
 // Widget Component (renders the appropriate widget based on type)
-const Widget: React.FC<WidgetProps> = (props) => {
+const Widget = (props: WidgetProps) => {
   const { type, ...rest } = props;
   
   switch (type) {
@@ -432,13 +460,19 @@ const Widget: React.FC<WidgetProps> = (props) => {
 };
 
 // Time Period Selector Component
-const TimePeriodSelector: React.FC<{
+const TimePeriodSelector = ({
+  value,
+  onChange,
+  startDate,
+  endDate,
+  onCustomDateChange,
+}: {
   value: string;
   onChange: (value: string) => void;
   startDate?: Date;
   endDate?: Date;
   onCustomDateChange?: (startDate: Date, endDate: Date) => void;
-}> = ({ value, onChange, startDate, endDate, onCustomDateChange }) => {
+}) => {
   const [isCustom, setIsCustom] = useState(value === 'custom');
   const [dateRange, setDateRange] = useState<{
     from: Date | undefined;

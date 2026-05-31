@@ -71,7 +71,7 @@ interface AIModelStatus {
   version: string;
 }
 
-const AIPersonalizationDashboard: React.FC = () => {
+const AIPersonalizationDashboard = () => {
   const [insights, setInsights] = useState<AIInsight[]>([]);
   const [recommendations, setRecommendations] = useState<ContentRecommendation[]>([]);
   const [metrics, setMetrics] = useState<PersonalizationMetrics>({
