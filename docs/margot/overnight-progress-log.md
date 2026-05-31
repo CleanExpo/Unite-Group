@@ -1,5 +1,64 @@
 # Margot Overnight Progress Log
 
+## 2026-05-31 23:22 AEST
+
+### PR #215 Production build recovery — receipt rendering / Telegram callback trace
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` without token values printed. Remote PR head before this local fix was `4c28b59fea9674262b2c9649cfef0d603ecd7c3d` and `CI Gate (type-check, lint, test, build)` was failing from the Production build step.
+- Slice completed locally: removed the route-imported `react-dom/server` / `renderToString` dependency from `src/lib/email/receipt-template.tsx`, replaced receipt HTML rendering with escaped static HTML, removed the now-dead `ReceiptEmail` JSX component/style object, and added regression coverage in `src/lib/email/__tests__/receipt-template.test.ts`.
+- Also tightened `src/app/api/telegram/approval-callback/route.ts` default local docs paths from `path.resolve(process.cwd(), 'docs/...')` to statically scoped `path.join(process.cwd(), 'docs', 'margot', ...)`, with regression coverage in `tests/unit/app/api/telegram/approval-callback.test.ts`.
+- Local `npm run build` now exits 0. It still prints a nonfatal Turbopack NFT warning for `next.config.js` → `src/app/api/telegram/approval-callback/route.ts`, plus existing local missing-env/Sentry-token warnings; the prior build failure is no longer reproduced locally.
+- Review loop completed: spec review PASS; quality review first requested dead-code cleanup, then narrow re-review APPROVED after removing `ReceiptEmail`/`S`/React import. No production DB write, Supabase migration, Vercel env mutation/manual deploy, client-facing action, billing/payment action, destructive git, cross-client merge, new vendor/account setup, or secret printing/storage occurred.
+
+Changed in this checkpoint:
+
+- `src/lib/email/receipt-template.tsx` — removes route-visible `react-dom/server` rendering and dead JSX component; renders escaped static receipt HTML.
+- `src/lib/email/__tests__/receipt-template.test.ts` — new RED/GREEN regression for no `react-dom/server` / no `renderToString` plus escaped customer markup.
+- `src/app/api/telegram/approval-callback/route.ts` — statically scopes fallback approval-gate/ledger paths under `docs/margot`.
+- `tests/unit/app/api/telegram/approval-callback.test.ts` — regression for statically scoped default paths.
+- `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md` — evidence/status refresh for this cron tick.
+
+Verification:
+
+```bash
+npx jest --runTestsByPath src/lib/email/__tests__/receipt-template.test.ts --runInBand
+# RED before implementation: 2 failures (react-dom/server/renderToString present; React rendering split the payment marker). GREEN after implementation: PASS, 2 tests.
+
+npx jest --runTestsByPath tests/unit/app/api/telegram/approval-callback.test.ts --runInBand
+# RED before path fix: source-regression test failed on path.resolve(process.cwd()). GREEN after fix: PASS, 4 tests.
+
+npx jest --runTestsByPath tests/unit/app/api/telegram/approval-callback.test.ts src/lib/email/__tests__/receipt-template.test.ts --runInBand
+# PASS: 2 suites / 6 tests.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm run build
+# PASS exit 0; nonfatal Turbopack NFT warning remains for approval-callback/next.config plus local missing-env/Sentry-token warnings.
+
+npm run lint
+# PASS exit 0; existing warnings only.
+
+bash .github/scripts/design-md-lint.sh
+# PASS; 34 existing icon-library imports within baseline of 34.
+
+npm run test:all
+# PASS: 143 passed, 1 skipped; 1108 passed, 1 skipped tests.
+
+git diff --check
+# PASS before this evidence append.
+```
+
+PR/Git state:
+
+- PR #215 remained OPEN/BLOCKED with `reviewDecision=REVIEW_REQUIRED` before this local fix was committed/pushed. Existing remote checks at head `4c28b59` showed `CI Gate` FAILURE, Review Board/DESIGN.md lint SUCCESS, `Vercel – unite-group` FAILURE, and `Vercel – unite-group-sandbox` FAILURE from the previous head.
+- Next action: commit/push this build-recovery slice, watch the new PR checks, and merge only if required checks and branch-policy review pass cleanly.
+
 ## 2026-05-31 22:23 AEST
 
 ### PR #215 React/Next migration design-lint recovery
