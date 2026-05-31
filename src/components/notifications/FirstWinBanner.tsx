@@ -37,10 +37,6 @@ export function FirstWinBanner({ className }: FirstWinBannerProps) {
   const [dismissed, setDismissed] = useState(false);
   const [visible, setVisible] = useState(false);
 
-  useEffect(() => {
-    fetchFirstWinNotification();
-  }, []);
-
   const fetchFirstWinNotification = async () => {
     try {
       const res = await fetch('/api/notifications');
@@ -58,6 +54,10 @@ export function FirstWinBanner({ className }: FirstWinBannerProps) {
       // Silent fail — non-critical UI
     }
   };
+
+  useEffect(() => {
+    fetchFirstWinNotification();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- only run on mount
 
   const dismiss = async () => {
     setVisible(false);

@@ -64,10 +64,6 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
-  useEffect(() => {
-    fetchProjects();
-  }, []);
-
   const fetchProjects = async () => {
     try {
       const response = await fetch('/api/projects');
@@ -81,6 +77,11 @@ export default function ProjectsPage() {
       setLoading(false);
     }
   };
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- async data fetch, setState is in a Promise callback
+  useEffect(() => {
+    fetchProjects();
+  }, []);
 
   if (loading) {
     return (

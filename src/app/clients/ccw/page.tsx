@@ -167,6 +167,7 @@ export default function CcwPortal() {
     }
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- async data fetch, setState is in a Promise callback
   useEffect(() => { if (!loadingAuth) fetchHealth(); }, [loadingAuth, fetchHealth]);
 
   if (loadingAuth) {

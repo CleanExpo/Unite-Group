@@ -29,10 +29,6 @@ export default function MFASetup({
   const [step, setStep] = useState<'generate' | 'verify'>('generate');
 
   // Generate a new secret when the component mounts
-  useEffect(() => {
-    generateNewSecret();
-  }, []);
-
   const generateNewSecret = useCallback(() => {
     const newSecret = generateSecret();
     setSecret(newSecret);
@@ -50,6 +46,10 @@ export default function MFASetup({
     setError('');
     setVerificationCode('');
   }, [userEmail]);
+
+  useEffect(() => {
+    generateNewSecret();
+  }, [generateNewSecret]);
 
   const handleVerify = useCallback(async () => {
     if (!verificationCode) {

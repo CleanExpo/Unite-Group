@@ -1,5 +1,60 @@
 # Margot Overnight Progress Log
 
+## 2026-05-31 22:23 AEST
+
+### PR #215 React/Next migration design-lint recovery
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration` for `CleanExpo/Unite-Group`; GitHub auth worked for `CleanExpo` without token values printed.
+- Initial PR head `3768862` had `Validate .claude/DESIGN.md` failing because the pricing page added two net-new `lucide-react` imports above the baseline (`src/components/pricing/PricingCards.tsx` and `src/components/pricing/FeatureComparison.tsx`).
+- Slice completed: commit `bc6911f` (`fix: use custom pricing marks`) replaced the pricing-page Check/X icon imports with internal `SuccessMark`/`AlertMark` components from `src/components/ui/marks.tsx`, pushed to `origin/margot/react-19-next-16-migration`, and preserved the active PR lane instead of starting unrelated CRM work.
+- Post-push PR head `bc6911fa343e7c1f5d7622f71125b2bbf9361513` has all observed GitHub checks/status contexts green, including `Validate .claude/DESIGN.md`, `TypeScript`, `Unit + Integration Tests`, `Pipeline Smoke Tests`, `JSON-LD Schema Validation`, `Supabase Schema Drift`, `npm audit (high+)`, Review Board specialist checks, Chief Reviewer final verdict, CodeRabbit, and the GitHub-observed `Vercel – unite-group` / `Vercel – unite-group-sandbox` status contexts. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- PR #215 is still `MERGEABLE` but `BLOCKED` with `reviewDecision=REVIEW_REQUIRED`; it was not merged.
+- Evidence docs updated after the pushed fix are local-only (`docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`) so they do not restart PR checks. Final worktree read-back also shows inherited/concurrent uncommitted React/SSR hydration-related source changes outside this tick's pushed commit (`hooks/use-mobile.ts`, `hooks/use-mobile.tsx`, `src/hooks/use-mobile.ts`, `src/components/ui/use-mobile.tsx`, and multiple `src/app/**` / UI component files); those dirty files were not committed, pushed, merged, or claimed as reviewed here.
+
+Changed in this checkpoint:
+
+- `src/components/pricing/PricingCards.tsx` — replaces the feature-list `lucide-react` Check import with `SuccessMark` from the internal mark system.
+- `src/components/pricing/FeatureComparison.tsx` — replaces comparison-cell Check/X imports with `SuccessMark`/`AlertMark` from the internal mark system.
+- `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md` — local-only evidence/status refresh for this cron tick.
+
+Verification:
+
+```bash
+bash .github/scripts/design-md-lint.sh
+# RED before fix: FAIL, net-new icon-library imports Current 36 vs Baseline 34.
+# GREEN after fix: PASS, 34 existing icon-library imports within baseline of 34.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS before commit/push and again after local-only evidence/status updates.
+
+gh pr checks 215 --watch --interval 10
+# PASS after push: all observed GitHub checks/status contexts green for head bc6911f, including Vercel status contexts.
+
+gh pr view 215 --json number,state,url,headRefOid,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, headRefOid bc6911fa343e7c1f5d7622f71125b2bbf9361513, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+```
+
+Review:
+
+- Spec review: PASS.
+- Quality review: APPROVED with only minor pre-existing/accessibility design notes on generic mark semantics.
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, Synthex/CMS/social scheduling, public publishing, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Wait for required non-author review / branch-policy clearance on PR #215, then merge only if the green check state still holds; after PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
 ## 2026-05-31 11:21 AEST
 
 ### Business 360/read-client-activity query-shape regression coverage

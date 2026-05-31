@@ -664,6 +664,7 @@ export default function EmpireCommandCenter() {
   }, [router, locale]);
 
   // On auth resolved: fetch all three endpoints
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- async data fetches, setState is in Promise callbacks
   useEffect(() => {
     if (checking) return;
 

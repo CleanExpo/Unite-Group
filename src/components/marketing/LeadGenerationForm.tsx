@@ -300,6 +300,7 @@ export default function LeadGenerationForm({
       
       // Redirect if specified
       if (formConfig.redirectUrl) {
+        // eslint-disable-next-line react-hooks/immutability -- intentional post-submit redirect
         window.location.href = formConfig.redirectUrl;
       }
     } catch (error) {

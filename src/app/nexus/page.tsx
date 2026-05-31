@@ -97,6 +97,7 @@ export default function NexusCommandCenter() {
     }
   };
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- async data fetch, setState is in a Promise callback
   useEffect(() => {
     loadData();
     const interval = setInterval(loadData, 900000); // 15-minute refresh

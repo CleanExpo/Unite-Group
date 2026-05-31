@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState, use, useMemo } from 'react';
 import Link from 'next/link';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine,
@@ -432,11 +432,13 @@ function MetricsStrip({ biz, onRescan }: { biz: BusinessDetail | null; onRescan?
   // render "Not yet scanned" rather than a meaningless 0/100 score.
   const SCAN_FRESHNESS_DAYS = 30;
   const scannedAt = biz?.snapshot_at ?? null;
-  const isStale = (() => {
+  // Capture mount-time timestamp for freshness check (useState lazy initializer runs once)
+  const [renderTime] = useState(() => Date.now());
+  const isStale = useMemo(() => {
     if (!scannedAt) return true;
-    const ageMs = Date.now() - new Date(scannedAt).getTime();
+    const ageMs = renderTime - new Date(scannedAt).getTime();
     return ageMs > SCAN_FRESHNESS_DAYS * 24 * 60 * 60 * 1000;
-  })();
+  }, [scannedAt, renderTime]);
 
   const STALE_LABEL = 'Not yet scanned';
 

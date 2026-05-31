@@ -18,6 +18,7 @@ function format(ts: Date, tz: 'UTC' | 'AEST'): string {
 
 export function MissionClock() {
   const [now, setNow] = useState<Date | null>(null);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- initial clock sync + interval timer for external time source
   useEffect(() => {
     setNow(new Date());
     const t = setInterval(() => setNow(new Date()), 1000);

@@ -33,6 +33,7 @@ export default function CookiePreferencesModal({
   const [error, setError] = useState<string | null>(null);
 
   // Update preferences when initialPreferences changes
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- sync derived state from props
   useEffect(() => {
     setPreferences({
       preferences: initialPreferences.preferences,

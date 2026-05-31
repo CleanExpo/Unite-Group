@@ -7,6 +7,19 @@ import Link from "next/link";
 import { LoaderMark, KeyMark, ArrowLeftMark, CheckCircleMark, EyeMark, EyeOffMark } from "@/components/ui/marks";
 import { motion } from "framer-motion";
 
+const UpdatePasswordLogo = () => (
+  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
+    <div style={{ width: 32, height: 32, borderRadius: 8, background: "var(--red-500)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, color: "#fff" }}>U</div>
+    <div>
+      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink-primary)", letterSpacing: "-0.02em" }}>Unite Group</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+        <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#fbbf24", display: "inline-block" }} />
+        <span style={{ fontSize: 9, color: "#fbbf24", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Empire</span>
+      </div>
+    </div>
+  </div>
+);
+
 export default function UpdatePassword() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -61,19 +74,6 @@ export default function UpdatePassword() {
   const wrapStyle: React.CSSProperties = { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, background: "var(--canvas)" };
   const cardStyle: React.CSSProperties = { width: "100%", maxWidth: 400, background: "var(--surface-1)", backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 50%)", border: "1px solid #27272a", borderRadius: 16, padding: 32 };
 
-  const Logo = () => (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
-      <div style={{ width: 32, height: 32, borderRadius: 8, background: "var(--red-500)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, color: "#fff" }}>U</div>
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink-primary)", letterSpacing: "-0.02em" }}>Unite Group</div>
-        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-          <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#fbbf24", display: "inline-block" }} />
-          <span style={{ fontSize: 9, color: "#fbbf24", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Empire</span>
-        </div>
-      </div>
-    </div>
-  );
-
   if (!tokenChecked) {
     return (
       <div style={wrapStyle}>
@@ -92,7 +92,7 @@ export default function UpdatePassword() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
         style={cardStyle}>
-        <Logo />
+        <UpdatePasswordLogo />
 
         {success ? (
           <div style={{ textAlign: "center", padding: "16px 0" }}>

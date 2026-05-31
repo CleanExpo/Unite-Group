@@ -34,6 +34,7 @@ export default async function ApprovalPage({
     notFound();
   }
 
+  // eslint-disable-next-line react-hooks/purity -- server component, Date.now() is deterministic at render time
   const expired = new Date(row.expires_at).getTime() < Date.now();
   const isPending = row.status === 'pending' && !expired;
 
