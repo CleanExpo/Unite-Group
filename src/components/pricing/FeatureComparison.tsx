@@ -1,5 +1,5 @@
 import { Fragment } from "react";
-import { Check, X } from "lucide-react";
+import { AlertMark, SuccessMark } from "@/components/ui/marks";
 import {
   Table,
   TableBody,
@@ -96,9 +96,9 @@ const FEATURE_CATEGORIES: FeatureCategory[] = [
 function FeatureCell({ value }: { value: FeatureValue }) {
   if (typeof value === "boolean") {
     return value ? (
-      <Check className="h-4 w-4 text-teal-400 mx-auto" />
+      <SuccessMark className="text-teal-400 mx-auto" size={16} />
     ) : (
-      <X className="h-4 w-4 text-slate-600 mx-auto" />
+      <AlertMark className="text-slate-600 mx-auto" size={16} />
     );
   }
   return <span className="text-sm text-slate-300">{value}</span>;

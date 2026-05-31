@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { SuccessMark } from "@/components/ui/marks";
 import {
   Card,
   CardContent,
@@ -200,7 +200,7 @@ export function PricingCards({ locale }: PricingCardsProps) {
               <ul className="space-y-3">
                 {tier.features.map((feature) => (
                   <li key={feature} className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-teal-400 mt-0.5 shrink-0" />
+                    <SuccessMark className="text-teal-400 mt-0.5 shrink-0" size={16} />
                     <span className="text-sm text-slate-300">{feature}</span>
                   </li>
                 ))}
