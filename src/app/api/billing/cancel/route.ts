@@ -1,14 +1,13 @@
 // @ts-nocheck
-// POST /api/billing/subscribe — Change subscription plan
+// POST /api/billing/cancel — Cancel subscription at period end
 //
-// Validates the user session, then updates the Stripe subscription
-// to the requested price (plan). Uses proration so users are only
-// charged the difference for the rest of their billing period.
+// Validates the user session, cancels the Stripe subscription at period
+// end (so the user keeps access until their billing cycle ends), and
+// saves the cancellation reason on the user profile.
 //
-// Body: { priceId: string }
+// Body: { reason?: string }
 
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import Stripe from "stripe";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminClient } from "@/lib/supabase/admin";
@@ -22,9 +21,14 @@ const stripe = STRIPE_KEY
   ? new Stripe(STRIPE_KEY, { apiVersion: "2026-04-22.dahlia" as never })
   : null;
 
-const subscribeSchema = z.object({
-  priceId: z.string().min(1, "Plan price ID is required"),
-});
+const VALID_REASONS = [
+  "too_expensive",
+  "missing_features",
+  "switching_service",
+  "not_using_enough",
+  "technical_issues",
+  "other",
+];
 
 export async function POST(request: NextRequest) {
   if (!stripe) {
@@ -43,25 +47,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // 2. Parse and validate body
+  // 2. Parse body
   const body = await request.json().catch(() => ({}));
-  const parsed = subscribeSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: parsed.error.errors[0]?.message ?? "Invalid input" },
-      { status: 400 },
-    );
-  }
-
-  const { priceId } = parsed.data;
+  const reason =
+    typeof body.reason === "string" && VALID_REASONS.includes(body.reason)
+      ? body.reason
+      : "other";
 
   try {
     const admin = getAdminClient();
 
-    // 3. Look up the user's Stripe subscription
+    // 3. Look up the user s Stripe subscription
     const { data: profile, error: profileErr } = await admin
       .from("profiles")
-      .select("stripe_customer_id, stripe_subscription_id")
+      .select("id, stripe_customer_id, stripe_subscription_id")
       .eq("id", user.id)
       .single();
 
@@ -79,32 +78,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. Update the subscription item to the new price
-    const subscription = await stripe.subscriptions.retrieve(
-      profile.stripe_subscription_id,
-    );
-
-    const subscriptionItemId = subscription.items.data[0]?.id;
-    if (!subscriptionItemId) {
-      return NextResponse.json(
-        { error: "Subscription item not found" },
-        { status: 500 },
-      );
-    }
-
+    // 4. Cancel at period end (user keeps access until billing cycle ends)
     const updated = await stripe.subscriptions.update(
       profile.stripe_subscription_id,
       {
-        items: [{ id: subscriptionItemId, price: priceId }],
-        proration_behavior: "create_prorations",
+        cancel_at_period_end: true,
+        metadata: { cancellation_reason: reason },
       },
     );
 
-    // 5. Update the profile with the new plan info
+    // 5. Update profile with cancellation info
     await admin
       .from("profiles")
       .update({
-        plan_updated_at: new Date().toISOString(),
+        cancellation_reason: reason,
+        cancelled_at: new Date().toISOString(),
+        plan: "free",
       })
       .eq("id", user.id);
 
@@ -113,12 +102,14 @@ export async function POST(request: NextRequest) {
       subscription: {
         id: updated.id,
         status: updated.status,
+        cancel_at_period_end: updated.cancel_at_period_end,
         current_period_end: updated.current_period_end,
       },
+      message: "Your subscription will be cancelled at the end of your current billing period.",
     });
   } catch (err) {
     return NextResponse.json(
-      safeError("plan_change_failed", err),
+      safeError("cancel_subscription_failed", err),
       { status: 500 },
     );
   }
