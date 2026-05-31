@@ -10,20 +10,17 @@ const nextConfig = {
   reactStrictMode: true,
   // Tell Next.js to use the src directory
   distDir: '.next',
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
   },
   images: {
-    domains: [
-      'localhost',
-      'ccw.com.au',
-      'synthex.social',
-      'unite-group.vercel.app',
-      'cdn.unite-group.vercel.app',
-      'unite-group-cdn.vercel.app'
+    remotePatterns: [
+      { protocol: 'https', hostname: 'localhost' },
+      { protocol: 'https', hostname: 'ccw.com.au' },
+      { protocol: 'https', hostname: 'synthex.social' },
+      { protocol: 'https', hostname: 'unite-group.vercel.app' },
+      { protocol: 'https', hostname: 'cdn.unite-group.vercel.app' },
+      { protocol: 'https', hostname: 'unite-group-cdn.vercel.app' },
     ],
     unoptimized: process.env.NODE_ENV === 'development',
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
@@ -39,14 +36,6 @@ const nextConfig = {
     NEXT_PUBLIC_CDN_PROVIDER: process.env.NEXT_PUBLIC_CDN_PROVIDER || 'vercel',
     NEXT_PUBLIC_CDN_BASE_URL: process.env.NEXT_PUBLIC_CDN_BASE_URL,
     ENABLE_CDN_REDIRECT: process.env.ENABLE_CDN_REDIRECT || 'false',
-  },
-  // Avoid issues with canvas and other problematic modules
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      // Add problematic modules to externals
-      config.externals = [...(config.externals || []), 'canvas']
-    }
-    return config
   },
 }
 
