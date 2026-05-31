@@ -1,5 +1,83 @@
 # Margot Overnight Progress Log
 
+## 2026-05-31 12:51 AEST
+
+### Sandbox-only tasks and voice command sessions migration proposal
+
+Current checkpoint:
+
+- Preflight: branch `margot/tasks-voice-schema-proposal`, head `92044bf`, GitHub auth available for `CleanExpo` without token values printed, and `gh pr list` returned no open PRs.
+- Slice completed: added a sandbox-only migration proposal for `public.tasks` and `public.voice_command_sessions` at `docs/margot/migration-proposals/2026-05-31-tasks-voice-command-sessions-sandbox.sql`, plus safety/shape regression coverage at `tests/unit/margot-tasks-voice-migration-proposal.test.ts`.
+- Proposal state is local/repo artifact only: explicitly `PROPOSAL — not applied anywhere yet`; no sandbox apply and no production promotion occurred.
+- The proposal is additive/idempotent, references `scripts/sandbox-wizard.sh`, requires fresh Board approval for production promotion, enables RLS, and marks RLS policy creation as sandbox-validation work before any prod path.
+- TDD evidence: adding `obsidian_synced_at` to the task required-column test produced the expected RED failure; patching both the CREATE TABLE and ADD COLUMN proposal sections made the focused suite GREEN.
+- Dirty-work boundary: inherited/local infrastructure and Supabase temp artifacts remain outside this CRM slice (`docs/runbooks/*`, `docs/backup-pipeline-assessment.md`, `docs/security/audit-2026-05-31.md`, `scripts/backup-healthcheck.sh`, `scripts/restoreassist-verify.sh`, `supabase/.temp/*`).
+
+Verification:
+
+```bash
+npx jest tests/unit/margot-tasks-voice-migration-proposal.test.ts --runInBand
+# RED first for missing obsidian_synced_at, then PASS after proposal patch: 1 suite / 17 tests.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after migration-proposal/test/evidence updates.
+```
+
+Review:
+
+- Spec review: PASS.
+- Quality review: APPROVED with only non-blocking minor test-hardening suggestions.
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, Synthex/CMS/social scheduling, public publishing, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Commit and push only the migration-proposal/test/Margot evidence paths on `margot/tasks-voice-schema-proposal`, open a PR if the worktree can be isolated cleanly, then apply the proposal to the sandbox with `scripts/sandbox-wizard.sh apply <file>` only after sandbox prerequisites are available; do not promote to production without fresh Board approval.
+
+## 2026-05-31 11:36 AEST
+
+### PR #213 merge and post-merge verification for Business 360/read-client-activity regressions
+
+Current checkpoint:
+
+- PR #213 (`https://github.com/CleanExpo/Unite-Group/pull/213`) merged into `main` at `38f3b8f928f93e8e7a6acf84af3fb2612210d21e`; local checkout fast-forwarded to `main` at `38f3b8f`.
+- PR checks passed before merge: CI, Review Board specialist checks, Chief Reviewer, CodeRabbit, Supabase Schema Drift, npm audit, DESIGN.md lint, and GitHub-triggered Vercel status contexts `Vercel – unite-group` / `Vercel – unite-group-sandbox`.
+- Post-merge `main` CI run `26700100973` passed, DESIGN.md lint run `26700100972` passed, and GitHub commit status for `38f3b8f` is success with `Vercel – unite-group` and `Vercel – unite-group-sandbox` both succeeded. These Vercel observations are status checks only; no manual Vercel deploy/env mutation occurred.
+- The merged slice remains test/mock/doc only: query-shape regressions now pin Business 360/read-client-activity service-role reads before broader client dashboard changes or `nexus_clients` conversion work.
+- This post-merge evidence update is local-only and intentionally not opened as another evidence PR.
+
+Verification:
+
+```bash
+gh pr checks 213 --watch --interval 10
+# PASS: all PR checks/status contexts succeeded; CodeRabbit reported success/review skipped.
+
+gh pr view 213 --json state,mergedAt,mergeCommit,url
+# PASS: state MERGED, merge commit 38f3b8f928f93e8e7a6acf84af3fb2612210d21e.
+
+gh run watch 26700100973 --interval 10 --exit-status
+# PASS: post-merge main CI completed successfully.
+
+gh api repos/CleanExpo/Unite-Group/commits/38f3b8f928f93e8e7a6acf84af3fb2612210d21e/status
+# PASS: overall state success; Vercel – unite-group and Vercel – unite-group-sandbox both succeeded.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, Synthex/CMS/social scheduling, public publishing, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Recover original migrations or reconstruct sandbox-only migration proposals for `tasks` and `voice_command_sessions`; keep sandbox-first handling and no production schema writes without fresh Board approval.
+
 ## 2026-05-31 11:21 AEST
 
 ### Business 360/read-client-activity query-shape regression coverage
