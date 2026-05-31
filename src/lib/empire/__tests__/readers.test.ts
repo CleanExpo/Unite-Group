@@ -150,6 +150,34 @@ describe('readActivityFeed', () => {
   });
 });
 
+describe('readBusiness360 query shape', () => {
+  it('queries pi_ceo_health_snapshots with the exact select/gte/order/limit contract', async () => {
+    await readBusiness360();
+    const calls = mockState.current.calls ?? [];
+    const fromCall = calls.find((c) => c.method === 'from');
+    expect(fromCall?.args[0]).toBe('pi_ceo_health_snapshots');
+
+    const selectCall = calls.find((c) => c.method === 'select');
+    expect(selectCall?.args[0]).toBe(
+      'project_id, overall_health, snapshot_at',
+    );
+
+    const gteCall = calls.find((c) => c.method === 'gte');
+    expect(gteCall?.args[0]).toBe('snapshot_at');
+    // The gte value is a date ~90 days ago; check it is parseable.
+    const gteValue = gteCall?.args[1];
+    expect(typeof gteValue).toBe('string');
+    expect(new Date(gteValue as string).getTime()).not.toBeNaN();
+
+    const orderCall = calls.find((c) => c.method === 'order');
+    expect(orderCall?.args[0]).toBe('snapshot_at');
+    expect(orderCall?.args[1]).toEqual({ ascending: true });
+
+    const limitCall = calls.find((c) => c.method === 'limit');
+    expect(limitCall?.args[0]).toBe(10_000);
+  });
+});
+
 describe('readBusiness360', () => {
   it('returns the seed unchanged when there are no snapshots', async () => {
     const out = await readBusiness360();
