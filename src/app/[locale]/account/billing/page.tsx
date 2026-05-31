@@ -21,15 +21,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  ArrowLeft,
-  Calendar,
-  CreditCard,
-  Crown,
-  Database,
-  Loader2,
-  Users,
-  Zap,
-} from "lucide-react";
+  ActivityMark,
+  ArrowLeftMark,
+  CalendarMark,
+  DollarMark,
+  LoaderMark,
+  OwnerMark,
+  RefreshMark,
+  SourcesMark,
+  UsersMark,
+} from "@/components/ui/marks";
 import { BillingPlanModal } from "@/components/billing/BillingPlanModal";
 import { CancelConfirmDialog } from "@/components/billing/CancelConfirmDialog";
 import { toast } from "sonner";
@@ -75,21 +76,21 @@ const MOCK_SUBSCRIPTION: SubscriptionInfo = {
 const MOCK_USAGE: UsageMetric[] = [
   {
     label: "API Calls",
-    icon: <Zap className="h-4 w-4" />,
+    icon: <ActivityMark className="h-4 w-4" />,
     current: 8432,
     limit: 25000,
     unit: "calls",
   },
   {
     label: "Storage",
-    icon: <Database className="h-4 w-4" />,
+    icon: <SourcesMark className="h-4 w-4" />,
     current: 4.2,
     limit: 10,
     unit: "GB",
   },
   {
     label: "Team Members",
-    icon: <Users className="h-4 w-4" />,
+    icon: <UsersMark className="h-4 w-4" />,
     current: 8,
     limit: 25,
     unit: "seats",
@@ -158,6 +159,7 @@ export default function BillingPage() {
   const [planModalOpen, setPlanModalOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [resendReceiptId, setResendReceiptId] = useState<string | null>(null);
   const [subscription, setSubscription] = useState(MOCK_SUBSCRIPTION);
 
   async function handleOpenPortal() {
@@ -187,6 +189,28 @@ export default function BillingPage() {
     }));
   }
 
+  async function handleResendReceipt(invoiceId: string) {
+    setResendReceiptId(invoiceId);
+    try {
+      const res = await fetch("/api/billing/receipt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stripeInvoiceId: invoiceId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to resend receipt");
+      toast.success("Receipt sent!", {
+        description: "A branded receipt has been sent to your email.",
+      });
+    } catch (err: any) {
+      toast.error("Failed to resend receipt", {
+        description: err.message ?? "Please try again.",
+      });
+    } finally {
+      setResendReceiptId(null);
+    }
+  }
+
   const nextBillingFormatted = new Date(
     subscription.nextBillingDate
   ).toLocaleDateString("en-US", {
@@ -203,7 +227,7 @@ export default function BillingPage() {
           href="#"
           className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors mb-6"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeftMark className="h-4 w-4" />
           Back to Dashboard
         </Link>
 
@@ -242,7 +266,7 @@ export default function BillingPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-500/10 border border-teal-500/20">
-                  <Crown className="h-5 w-5 text-teal-400" />
+                  <OwnerMark className="h-5 w-5 text-teal-400" />
                 </div>
                 <div>
                   <CardTitle className="text-lg text-slate-100">
@@ -259,7 +283,7 @@ export default function BillingPage() {
           <CardContent>
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
               <div className="flex items-center gap-2 text-sm text-slate-400">
-                <Calendar className="h-4 w-4 text-slate-500" />
+                <CalendarMark className="h-4 w-4 text-slate-500" />
                 Next billing date:{" "}
                 <span className="text-slate-200 font-medium">
                   {nextBillingFormatted}
@@ -281,9 +305,9 @@ export default function BillingPage() {
                   className="border-slate-600 text-slate-200 hover:bg-slate-800"
                 >
                   {portalLoading ? (
-                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                    <LoaderMark className="h-4 w-4 mr-1.5 animate-spin" />
                   ) : (
-                    <CreditCard className="h-4 w-4 mr-1.5" />
+                    <DollarMark className="h-4 w-4 mr-1.5" />
                   )}
                   Update Payment
                 </Button>
@@ -369,6 +393,9 @@ export default function BillingPage() {
                   <TableHead className="text-slate-400 text-right">
                     Invoice
                   </TableHead>
+                  <TableHead className="text-slate-400 text-right">
+                    Receipt
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -413,6 +440,23 @@ export default function BillingPage() {
                       >
                         <Link href={item.invoiceUrl}>View</Link>
                       </Button>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {item.status === "paid" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleResendReceipt(item.id)}
+                          disabled={resendReceiptId === item.id}
+                          className="text-slate-400 hover:text-teal-400 h-7 px-2 text-xs"
+                        >
+                          {resendReceiptId === item.id ? (
+                            <LoaderMark className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <RefreshMark className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
