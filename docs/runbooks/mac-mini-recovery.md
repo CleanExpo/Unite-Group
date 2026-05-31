@@ -5,6 +5,8 @@
 **Last Attempt:** 2026-05-26
 **Owner:** Nexus Security & DR Lead
 
+> **Cross-references:** [Master DR Runbook](disaster-recovery.md) (Scenario 7) | [Infrastructure Inventory](infrastructure-inventory.md)
+
 ---
 
 ## Current Blocker
