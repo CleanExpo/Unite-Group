@@ -184,7 +184,7 @@ const calculatePercentChange = (current: number, previous: number): number => {
 };
 
 // Format percent change
-const formatPercentChange = (percentChange: number, higherIsBetter: boolean = true): JSX.Element => {
+const formatPercentChange = (percentChange: number, higherIsBetter: boolean = true): React.JSX.Element => {
   const isPositive = percentChange > 0;
   const isNegative = percentChange < 0;
   const isGood = (isPositive && higherIsBetter) || (isNegative && !higherIsBetter);
