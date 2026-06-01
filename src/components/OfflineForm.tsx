@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, useCallback, FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { Loader2, WifiOff, Wifi } from "lucide-react";
@@ -34,7 +34,77 @@ export default function OfflineForm({
   const [isOnline, setIsOnline] = useState(true);
   const [pendingSubmissions, setPendingSubmissions] = useState(0);
   
+  // Check for pending form submissions (must be declared before useEffect that calls it)
+  const checkPendingSubmissions = useCallback(async () => {
+    try {
+      const db = await openDatabase();
+      const forms = await getAllForms(db, formId);
+      setPendingSubmissions(forms.length);
+    } catch (error) {
+      console.error('Error checking pending submissions:', error);
+    }
+  }, [formId]);
+
+  // Manually sync offline forms (must be declared before useEffect that calls it)
+  const syncOfflineForms = useCallback(async () => {
+    if (!isOnline) {
+      toast({
+        title: "Still Offline",
+        description: "You're still offline. Forms will be submitted when you're back online.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      const db = await openDatabase();
+      const forms = await getAllForms(db, formId);
+      
+      // Submit each form
+      for (const form of forms) {
+        try {
+          const response = await fetch(form.endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(form.data),
+          });
+          
+          if (response.ok && form.id !== undefined) {
+            // Remove from IndexedDB if successful
+            await deleteForm(db, form.id);
+          }
+        } catch (error) {
+          console.error('Error syncing form:', error);
+          // Keep in IndexedDB to try again later
+        }
+      }
+      
+      // Update pending submissions count
+      checkPendingSubmissions();
+      
+      toast({
+        title: "Sync Complete",
+        description: "Your offline submissions have been processed.",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error('Error syncing forms:', error);
+      
+      toast({
+        title: "Sync Failed",
+        description: "Failed to sync your offline submissions. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [isOnline, formId, checkPendingSubmissions]);
+
   // Check online status on mount and set up event listeners
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- initial sync of external system (navigator.onLine)
   useEffect(() => {
     setIsOnline(navigator.onLine);
     
@@ -58,18 +128,7 @@ export default function OfflineForm({
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
-  
-  // Check for pending form submissions
-  const checkPendingSubmissions = async () => {
-    try {
-      const db = await openDatabase();
-      const forms = await getAllForms(db, formId);
-      setPendingSubmissions(forms.length);
-    } catch (error) {
-      console.error('Error checking pending submissions:', error);
-    }
-  };
+  }, [checkPendingSubmissions, syncOfflineForms]);
   
   // Handle form submission
   const handleSubmit = async (e: FormEvent) => {
@@ -151,64 +210,6 @@ export default function OfflineForm({
       }
     } catch (error) {
       console.error('Error storing form data:', error);
-    }
-  };
-  
-  // Manually sync offline forms
-  const syncOfflineForms = async () => {
-    if (!isOnline) {
-      toast({
-        title: "Still Offline",
-        description: "You're still offline. Forms will be submitted when you're back online.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    try {
-      setIsSubmitting(true);
-      const db = await openDatabase();
-      const forms = await getAllForms(db, formId);
-      
-      // Submit each form
-      for (const form of forms) {
-        try {
-          const response = await fetch(form.endpoint, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(form.data),
-          });
-          
-          if (response.ok && form.id !== undefined) {
-            // Remove from IndexedDB if successful
-            await deleteForm(db, form.id);
-          }
-        } catch (error) {
-          console.error('Error syncing form:', error);
-          // Keep in IndexedDB to try again later
-        }
-      }
-      
-      // Update pending submissions count
-      checkPendingSubmissions();
-      
-      toast({
-        title: "Sync Complete",
-        description: "Your offline submissions have been processed.",
-        variant: "default",
-      });
-    } catch (error) {
-      console.error('Error syncing forms:', error);
-      
-      toast({
-        title: "Sync Failed",
-        description: "Failed to sync your offline submissions. Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
     }
   };
   

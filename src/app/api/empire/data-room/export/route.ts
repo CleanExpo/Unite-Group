@@ -126,7 +126,7 @@ export async function GET(req: NextRequest) {
   const blob = await zip.generateAsync({ type: 'uint8array' });
   const filename = `data-room-${new Date().toISOString().slice(0, 10)}.zip`;
 
-  return new NextResponse(blob, {
+  return new NextResponse(blob as unknown as BodyInit, {
     status: 200,
     headers: {
       'Content-Type': 'application/zip',

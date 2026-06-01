@@ -83,6 +83,7 @@ function useCountUp(target: number, duration = 1200): number {
   const frameRef = useRef<number>(0);
   const startRef = useRef<number | null>(null);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- rAF animation loop, setState is in callback
   useEffect(() => {
     if (target === 0) { setValue(0); return; }
     const animate = (ts: number) => {
@@ -409,6 +410,7 @@ export default function CeoCommandCenter() {
   const [mandates, setMandates] = useState<BoardMandate[]>([]);
   const [mandatesLoading, setMandatesLoading] = useState(true);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration guard
   useEffect(() => { setMounted(true); }, []);
 
   const fetchHealth = useCallback(async () => {

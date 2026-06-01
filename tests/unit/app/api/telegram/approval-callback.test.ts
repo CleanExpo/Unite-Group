@@ -14,6 +14,12 @@ function callbackRequest(data: string, userId = '123456789'): NextRequest { retu
 
 describe('/api/telegram/approval-callback Phase 1I', () => {
   beforeEach(() => { jest.resetModules(); jest.clearAllMocks(); process.env.TELEGRAM_BOT_TOKEN = 'test-token'; process.env.TELEGRAM_DECISION_SIGNING_KEY = signingKey; global.fetch = jest.fn().mockResolvedValue({ json: async () => ({ ok: true }) }); });
+  it('keeps default approval-gate file paths statically scoped for Turbopack tracing', () => {
+    const source = fs.readFileSync(path.join(process.cwd(), 'src/app/api/telegram/approval-callback/route.ts'), 'utf8');
+
+    expect(source).not.toContain('path.resolve(process.cwd()');
+    expect(source).toContain("path.join(process.cwd(), 'docs', 'margot'");
+  });
   it('writes one local-only decision record and updates original Telegram message', async () => {
     const gatePath = tempFile('gate.json'); const ledgerPath = tempFile('decisions.jsonl'); fs.writeFileSync(gatePath, JSON.stringify(gate)); process.env.PI_APPROVAL_GATE_PATH = gatePath; process.env.PI_DECISION_LEDGER_PATH = ledgerPath;
     const { POST } = await import('@/app/api/telegram/approval-callback/route'); const res = await POST(callbackRequest(signedData('approve'))); const body = await res.json();

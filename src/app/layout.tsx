@@ -4,6 +4,7 @@ import './globals.css';
 import { defaultMetadata, viewport } from '@/lib/metadata';
 import type { Metadata } from 'next';
 import { EmpireSidebar } from '@/components/empire/EmpireSidebar';
+import { Toaster } from '@/components/ui/sonner';
 
 export const metadata: Metadata = defaultMetadata;
 export { viewport };
@@ -31,6 +32,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             style={{ background: '#08080a', color: '#f0f0f2', fontFamily: 'var(--font-display), system-ui, sans-serif', minHeight: '100vh', display: 'flex' }}>
         {showSidebar && <EmpireSidebar />}
         <main style={{ flex: 1, minHeight: '100vh', overflow: 'auto' }}>{children}</main>
+        <Toaster position="bottom-right" richColors closeButton />
       </body>
     </html>
   );

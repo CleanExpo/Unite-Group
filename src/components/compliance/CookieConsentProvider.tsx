@@ -47,6 +47,7 @@ export default function CookieConsentProvider({ children }: CookieConsentProvide
   });
   
   // Initialize on component mount
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- sync external localStorage and async consent check
   useEffect(() => {
     // First, ensure we have a session ID
     const storedSessionId = localStorage.getItem('sessionId');

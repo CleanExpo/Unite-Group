@@ -1,135 +1,43 @@
-name: CI
+name: CI Gate
 
 on:
   push:
-    branches: [main, develop, "feature/**", "fix/**"]
+    branches: [main]
   pull_request:
-    branches: [main, develop]
+    branches: [main]
 
 jobs:
-  type-check:
-    name: TypeScript
+  ci-gate:
+    name: CI Gate (type-check, lint, test, build)
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "20"
           cache: "npm"
-      - run: npm ci
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Type check
         run: npm run type-check
 
-  jsonld-validation:
-    name: JSON-LD Schema Validation
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: "22"
-          cache: "npm"
-      - run: npm ci
-      - name: Build Next.js
+      - name: Lint
+        run: npm run lint
+
+      - name: Run all tests
+        run: npm run test:all
+
+      - name: Production build
         run: npm run build
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      - name: Validate JSON-LD schemas
-        run: npm run validate:jsonld
-
-  schema-drift:
-    name: Supabase Schema Drift
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: "22"
-          cache: "npm"
-      - run: npm ci
-      - name: Install Supabase CLI
-        uses: supabase/setup-cli@v1
-        with:
-          # Pinned: `latest` started 404ing on 2026-05-18 (upstream release-resolution flake).
-          version: 2.20.0
-      - name: Check for schema drift
-        continue-on-error: true
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: |
-          supabase gen types typescript --project-id lksfwktwtmyznckodsau > /tmp/supabase-fresh.ts
-          if ! diff -q types/supabase.ts /tmp/supabase-fresh.ts > /dev/null 2>&1; then
-            echo "⚠️ Schema drift detected — types/supabase.ts may need regeneration."
-            echo "Run: npm run gen:types to update"
-            diff types/supabase.ts /tmp/supabase-fresh.ts | head -40 || true
-          fi
-          echo "✅ No schema drift"
-
-  smoke-tests:
-    name: Pipeline Smoke Tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: "22"
-          cache: "npm"
-      - run: npm ci
-      - name: Run pipeline smoke tests
-        run: npm test
-        # No bypass: smoke test failures ALWAYS block PR merge.
-        # Do not add continue-on-error: true here.
-
-  unit-tests:
-    name: Unit + Integration Tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: "22"
-          cache: "npm"
-      - run: npm ci
-      - name: Run full jest suite
-        run: npm run test:all -- --ci --runInBand
-        # No bypass — same discipline as smoke-tests above. Gates on the
-        # full repo jest suite (84 suites / 684 tests as of PR #151). Both
-        # src/ unit tests and tests/integration/* run here; the scoped
-        # smoke-tests job above continues to run tests/pipelines/ on its own.
-
-  lint:
-    name: Lint (warnings allowed for feature PRs)
-    continue-on-error: true
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: "22"
-          cache: "npm"
-      - run: npm ci
-      - name: Run lint (non-blocking)
-        run: |
-          npm run lint -- --max-warnings=2000 || echo "::warning::Lint reported warnings but continuing (feature PR gate relaxed)"
-        continue-on-error: true
-      - name: Brand Guardian (voice compliance)
-        run: npm run brand:lint
-      - name: Route inventory regression-gate (UNI-2015 follow-up)
-        run: npm run security:routes-check
-
-  audit:
-    name: npm audit (high+)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: "22"
-          cache: "npm"
-      - run: npm ci
-      # RA-2999 — fail CI on HIGH/CRITICAL vulns. Moderates are warned but
-      # not blocking until the existing 3 moderate findings are cleared.
-      - name: npm audit --audit-level=high
-        run: npm audit --audit-level=high

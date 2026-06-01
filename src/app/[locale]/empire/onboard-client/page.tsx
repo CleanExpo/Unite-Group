@@ -88,7 +88,8 @@ export default function OnboardClientPage() {
     }
   }
 
-  useEffect(() => { loadBots(); }, []);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- async data fetch, setState is in a Promise callback
+  useEffect(() => { void loadBots(); }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
