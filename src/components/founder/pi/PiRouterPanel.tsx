@@ -4,21 +4,27 @@ import { useEffect, useState } from 'react'
 import Card, { CardDescription, CardTitle } from '@/components/ui/card'
 import Button from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import type { FounderRunQueueItem, FounderRunQueueSummary } from '@/lib/founder-os'
+import type { FounderRunQueueAction, FounderRunQueueItem, FounderRunQueueSummary } from '@/lib/founder-os'
 
 interface PiQueueReceipt {
   id: string
-  status: string
-  generatedAt: string
-  source: string
-  requiresHumanApproval: boolean
-  nextRecommendedAction: string
+  status?: string
+  generatedAt?: string
+  source?: string
+  requiresHumanApproval?: boolean
+  nextRecommendedAction?: string
+  type?: string
+  actor?: string
+  note?: string
+  evidenceLink?: string
+  at?: string
 }
 
 interface PiRunQueueResponse {
   queueItem: FounderRunQueueItem
-  routingReasons: string[]
-  receipt: PiQueueReceipt
+  routingReasons?: string[]
+  receipt: PiQueueReceipt | null
+  summary?: FounderRunQueueSummary
 }
 
 interface PiRunQueueListResponse {
@@ -34,8 +40,11 @@ export function PiRouterPanel() {
   const [result, setResult] = useState<PiRunQueueResponse | null>(null)
   const [queueItems, setQueueItems] = useState<FounderRunQueueItem[]>([])
   const [summary, setSummary] = useState<FounderRunQueueSummary | null>(null)
+  const [transitionNote, setTransitionNote] = useState('')
+  const [evidenceLink, setEvidenceLink] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isRouting, setIsRouting] = useState(false)
+  const [activeAction, setActiveAction] = useState<FounderRunQueueAction | null>(null)
 
   useEffect(() => {
     void loadQueue()
@@ -71,6 +80,39 @@ export function PiRouterPanel() {
       setError(routeError instanceof Error ? routeError.message : 'Unable to route founder message')
     } finally {
       setIsRouting(false)
+    }
+  }
+
+  async function transitionActiveItem(action: FounderRunQueueAction) {
+    if (!activeItem) return
+    setActiveAction(action)
+    setError(null)
+
+    try {
+      const response = await fetch(`/api/pi/run-queue/${activeItem.id}/transition`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          action,
+          actor: action === 'approve' ? 'Margot' : 'Pi-Dev-Ops',
+          note: transitionNote || undefined,
+          evidenceLink: action === 'complete' ? evidenceLink : undefined,
+        }),
+      })
+      const body = await response.json()
+
+      if (!response.ok) {
+        throw new Error(body.error ?? 'Unable to update queue item')
+      }
+
+      setResult(body)
+      setTransitionNote('')
+      if (action === 'complete') setEvidenceLink('')
+      await loadQueue()
+    } catch (transitionError) {
+      setError(transitionError instanceof Error ? transitionError.message : 'Unable to update queue item')
+    } finally {
+      setActiveAction(null)
     }
   }
 
@@ -117,13 +159,18 @@ export function PiRouterPanel() {
         </div>
         <div className="space-y-2">
           {queueItems.slice(0, 5).map((item) => (
-            <div key={item.id} className="rounded-sm border border-white/[0.08] bg-white/[0.02] p-3">
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setResult({ queueItem: item, receipt: item.receipts.at(-1) ?? null })}
+              className="w-full rounded-sm border border-white/[0.08] bg-white/[0.02] p-3 text-left hover:border-white/[0.16]"
+            >
               <div className="flex items-center justify-between gap-3 text-xs text-white/45">
                 <span>{item.taskPacket.portfolioTarget}</span>
                 <span>{item.status}</span>
               </div>
               <div className="mt-1 text-sm text-white/75">{item.taskPacket.objective}</div>
-            </div>
+            </button>
           ))}
           {queueItems.length === 0 && <div className="text-sm text-white/45">No queued Pi tasks yet.</div>}
         </div>
@@ -143,21 +190,68 @@ export function PiRouterPanel() {
             <ResultRow label="Queue" value={activeItem.status} />
             <ResultRow label="Device" value={activeItem.machineAssignment.assignedDeviceName ?? 'Waiting'} />
             <ResultRow label="Role" value={activeItem.machineAssignment.assignedRole ?? 'Unassigned'} />
-            <ResultRow label="Approval" value={result.receipt.requiresHumanApproval ? 'Required' : 'Not required'} />
+            <ResultRow label="Approvals" value={`${activeItem.approvals.length}`} />
           </ResultCard>
 
           <ResultCard title="Next action">
-            <p className="text-sm text-white/80">{result.receipt.nextRecommendedAction}</p>
-            <div className="mt-4 rounded-sm bg-white/[0.03] p-3 text-xs text-white/45">Receipt: {result.receipt.id}</div>
+            <p className="text-sm text-white/80">{activeItem.contextPack.nextRecommendedAction}</p>
+            <div className="mt-4 rounded-sm bg-white/[0.03] p-3 text-xs text-white/45">
+              Latest receipt: {result.receipt?.id ?? 'none'}
+            </div>
           </ResultCard>
 
+          <Card variant="bordered" padding="lg" className="lg:col-span-3 space-y-4">
+            <div>
+              <CardTitle>Execution controls</CardTitle>
+              <CardDescription>Approve, start, block, or complete the task. Completion requires evidence.</CardDescription>
+            </div>
+            <Textarea
+              value={transitionNote}
+              onChange={(event) => setTransitionNote(event.target.value)}
+              rows={3}
+              placeholder="Optional transition note, blocker, or completion summary..."
+            />
+            <Textarea
+              value={evidenceLink}
+              onChange={(event) => setEvidenceLink(event.target.value)}
+              rows={2}
+              placeholder="Evidence link required for Complete, e.g. loop:3x-green or CI URL..."
+            />
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" onClick={() => transitionActiveItem('approve')} loading={activeAction === 'approve'}>
+                Approve
+              </Button>
+              <Button variant="secondary" onClick={() => transitionActiveItem('start')} loading={activeAction === 'start'}>
+                Start
+              </Button>
+              <Button variant="danger" onClick={() => transitionActiveItem('block')} loading={activeAction === 'block'}>
+                Block
+              </Button>
+              <Button onClick={() => transitionActiveItem('complete')} loading={activeAction === 'complete'} disabled={!evidenceLink.trim()}>
+                Complete with evidence
+              </Button>
+            </div>
+          </Card>
+
           <Card variant="bordered" padding="lg" className="lg:col-span-3">
-            <CardTitle>Context pack</CardTitle>
+            <CardTitle>Context pack + evidence</CardTitle>
             <p className="mt-3 text-sm text-white/70">{activeItem.contextPack.durableSummary}</p>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               {activeItem.contextPack.constraints.map((constraint) => (
                 <div key={constraint} className="rounded-sm border border-white/[0.08] bg-white/[0.02] p-3 text-sm text-white/65">
                   {constraint}
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 space-y-2">
+              {activeItem.contextPack.evidenceLinks.map((link) => (
+                <div key={link} className="rounded-sm bg-green-500/10 p-3 text-sm text-green-200">
+                  Evidence: {link}
+                </div>
+              ))}
+              {activeItem.blockers.map((blocker) => (
+                <div key={blocker} className="rounded-sm bg-red-500/10 p-3 text-sm text-red-200">
+                  Blocker: {blocker}
                 </div>
               ))}
             </div>

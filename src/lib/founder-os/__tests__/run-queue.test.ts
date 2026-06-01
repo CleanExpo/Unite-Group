@@ -76,4 +76,39 @@ describe('createRunQueueStore', () => {
     expect(second.updatedAt).toBe('2026-06-02T00:01:00.000Z')
     expect(store.list()).toHaveLength(1)
   })
+
+  it('approves a waiting task and records the approval receipt', () => {
+    const store = createRunQueueStore()
+    const approvalTask: FounderTaskPacket = { ...taskPacket, riskLevel: 'high', requiresHumanApproval: true }
+    const queued = store.enqueue({ taskPacket: approvalTask, contextPack, machineAssignment, now: '2026-06-02T00:00:00.000Z' })
+
+    const approved = store.transition({ id: queued.id, action: 'approve', actor: 'Margot', note: 'Approved for scoped implementation.', now: '2026-06-02T00:02:00.000Z' })
+
+    expect(approved.status).toBe('queued')
+    expect(approved.approvals).toEqual([{ actor: 'Margot', note: 'Approved for scoped implementation.', at: '2026-06-02T00:02:00.000Z' }])
+    expect(approved.receipts.at(-1)?.type).toBe('approval')
+  })
+
+  it('starts, blocks, and completes work with evidence receipts', () => {
+    const store = createRunQueueStore()
+    const queued = store.enqueue({ taskPacket, contextPack, machineAssignment, now: '2026-06-02T00:00:00.000Z' })
+
+    const started = store.transition({ id: queued.id, action: 'start', actor: 'Pi-Dev-Ops', now: '2026-06-02T00:03:00.000Z' })
+    const blocked = store.transition({ id: queued.id, action: 'block', actor: 'Pi-Dev-Ops', note: 'Needs credential grant.', now: '2026-06-02T00:04:00.000Z' })
+    const completed = store.transition({ id: queued.id, action: 'complete', actor: 'Pi-Dev-Ops', evidenceLink: 'vitest:19-pass', note: 'Looped tests passed.', now: '2026-06-02T00:05:00.000Z' })
+
+    expect(started.status).toBe('in_progress')
+    expect(blocked.status).toBe('blocked')
+    expect(blocked.blockers).toContain('Needs credential grant.')
+    expect(completed.status).toBe('completed')
+    expect(completed.contextPack.evidenceLinks).toContain('vitest:19-pass')
+    expect(completed.receipts.map((receipt) => receipt.type)).toEqual(['start', 'blocker', 'completion'])
+  })
+
+  it('throws when completing without evidence', () => {
+    const store = createRunQueueStore()
+    const queued = store.enqueue({ taskPacket, contextPack, machineAssignment })
+
+    expect(() => store.transition({ id: queued.id, action: 'complete', actor: 'Pi-Dev-Ops' })).toThrow('completion requires evidenceLink')
+  })
 })

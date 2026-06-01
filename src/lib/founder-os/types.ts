@@ -124,15 +124,35 @@ export interface MachineAssignment {
 
 export type FounderRunQueueStatus = 'queued' | 'waiting_for_approval' | 'waiting_for_device' | 'in_progress' | 'blocked' | 'completed'
 
+export interface FounderRunQueueReceipt {
+  id: string
+  type: 'approval' | 'start' | 'blocker' | 'completion'
+  actor: string
+  note?: string
+  evidenceLink?: string
+  at: string
+}
+
+export interface FounderRunQueueApproval {
+  actor: string
+  note?: string
+  at: string
+}
+
 export interface FounderRunQueueItem {
   id: string
   status: FounderRunQueueStatus
   taskPacket: FounderTaskPacket
   contextPack: FounderContextPack
   machineAssignment: MachineAssignment
+  approvals: FounderRunQueueApproval[]
+  blockers: string[]
+  receipts: FounderRunQueueReceipt[]
   createdAt: string
   updatedAt: string
 }
+
+export type FounderRunQueueAction = 'approve' | 'start' | 'block' | 'complete'
 
 export interface FounderRunQueueSummary {
   total: number
