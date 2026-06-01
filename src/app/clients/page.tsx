@@ -36,8 +36,10 @@ export default function ClientsDirectory() {
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration guard
   useEffect(() => { setMounted(true); }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- async auth check, setState is in a Promise callback
   useEffect(() => {
     supabaseClient.auth.getSession().then(({ data: { session } }) => {
       if (!session) router.push('/en/login');
@@ -54,6 +56,7 @@ export default function ClientsDirectory() {
     setLoading(false);
   };
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- async data fetch, setState is in a Promise callback
   useEffect(() => { if (mounted) fetchClients(); }, [mounted]);
 
   const handleAdd = async (e: React.FormEvent) => {

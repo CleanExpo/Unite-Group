@@ -85,8 +85,10 @@ export default function BulcsHoldingsPortalClient({ initialContent }: BulcsHoldi
   const quickLinks:   QuickLink[]   = initialContent.quick_links ?? [];
   const welcomeText: string | null  = initialContent.welcome_text ?? null;
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration guard
   useEffect(() => { setMounted(true); }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- async auth check, setState is in a Promise callback
   useEffect(() => {
     supabaseClient.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push("/en/login"); return; }

@@ -39,6 +39,47 @@ interface BrandIQCardProps {
 
 type LoadState = 'idle' | 'loading' | 'loaded' | 'error';
 
+function BrandIQScoreRing({ score, label, size = 'md' }: { score: number; label: string; size?: 'sm' | 'md' }) {
+  const radius = size === 'sm' ? 22 : 30;
+  const stroke = size === 'sm' ? 4 : 5;
+  const circumference = 2 * Math.PI * radius;
+  const progress = (score / 100) * circumference;
+  const svgSize = (radius + stroke) * 2 + 4;
+
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <div className="relative">
+        <svg width={svgSize} height={svgSize} className="-rotate-90">
+          <circle
+            cx={svgSize / 2}
+            cy={svgSize / 2}
+            r={radius}
+            stroke="currentColor"
+            strokeWidth={stroke}
+            fill="none"
+            className="text-muted/30"
+          />
+          <circle
+            cx={svgSize / 2}
+            cy={svgSize / 2}
+            r={radius}
+            stroke="currentColor"
+            strokeWidth={stroke}
+            fill="none"
+            strokeDasharray={`${progress} ${circumference}`}
+            strokeLinecap="round"
+            className="text-primary transition-all duration-1000 ease-out"
+          />
+        </svg>
+        <span className="absolute inset-0 flex items-center justify-center text-sm font-bold">
+          {score}
+        </span>
+      </div>
+      <span className="text-xs text-muted-foreground text-center leading-tight">{label}</span>
+    </div>
+  );
+}
+
 export function BrandIQCard({ clientId, isUnlocked = false, className }: BrandIQCardProps) {
   const [profile, setProfile] = useState<BrandProfile | null>(null);
   const [nextSteps, setNextSteps] = useState<NextStep[]>([]);
@@ -47,6 +88,7 @@ export function BrandIQCard({ clientId, isUnlocked = false, className }: BrandIQ
   const [animating, setAnimating] = useState(false);
 
   // Trigger unlock animation when prop changes
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- animation trigger, setState is immediate UI sync
   useEffect(() => {
     if (isUnlocked && !unlocked) {
       setAnimating(true);
@@ -72,50 +114,10 @@ export function BrandIQCard({ clientId, isUnlocked = false, className }: BrandIQ
     }
   }, [clientId, unlocked]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- async data fetch, setState is in Promise callback
   useEffect(() => {
     if (unlocked) loadBrandData();
   }, [unlocked, loadBrandData]);
-
-  const ScoreRing = ({ score, label, size = 'md' }: { score: number; label: string; size?: 'sm' | 'md' }) => {
-    const radius = size === 'sm' ? 22 : 30;
-    const stroke = size === 'sm' ? 4 : 5;
-    const circumference = 2 * Math.PI * radius;
-    const progress = (score / 100) * circumference;
-    const svgSize = (radius + stroke) * 2 + 4;
-
-    return (
-      <div className="flex flex-col items-center gap-1">
-        <div className="relative">
-          <svg width={svgSize} height={svgSize} className="-rotate-90">
-            <circle
-              cx={svgSize / 2}
-              cy={svgSize / 2}
-              r={radius}
-              stroke="currentColor"
-              strokeWidth={stroke}
-              fill="none"
-              className="text-muted/30"
-            />
-            <circle
-              cx={svgSize / 2}
-              cy={svgSize / 2}
-              r={radius}
-              stroke="currentColor"
-              strokeWidth={stroke}
-              fill="none"
-              strokeDasharray={`${progress} ${circumference}`}
-              strokeLinecap="round"
-              className="text-primary transition-all duration-1000 ease-out"
-            />
-          </svg>
-          <span className="absolute inset-0 flex items-center justify-center text-sm font-bold">
-            {score}
-          </span>
-        </div>
-        <span className="text-xs text-muted-foreground text-center leading-tight">{label}</span>
-      </div>
-    );
-  };
 
   const priorityColors = {
     high: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
@@ -212,9 +214,9 @@ export function BrandIQCard({ clientId, isUnlocked = false, className }: BrandIQ
           >
             {/* Score rings */}
             <div className="flex justify-around pt-1">
-              <ScoreRing score={profile.brand_voice_score} label="Brand Voice" />
-              <ScoreRing score={profile.audience_resonance_score} label="Audience Resonance" />
-              <ScoreRing
+              <BrandIQScoreRing score={profile.brand_voice_score} label="Brand Voice" />
+              <BrandIQScoreRing score={profile.audience_resonance_score} label="Audience Resonance" />
+              <BrandIQScoreRing
                 score={Math.round((profile.brand_voice_score + profile.audience_resonance_score) / 2)}
                 label="Overall IQ"
               />

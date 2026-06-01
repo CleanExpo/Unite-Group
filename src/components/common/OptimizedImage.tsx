@@ -153,6 +153,7 @@ export default function OptimizedImage({
   ) : undefined
   
   // Handle loading state
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- sync internal state with src prop change
   useEffect(() => {
     // Reset state when src changes
     setLoaded(false)

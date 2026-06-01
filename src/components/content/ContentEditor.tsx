@@ -96,6 +96,7 @@ export default function ContentEditor({
   });
   
   // Load content-specific fields from initialContent
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- sync derived field state from initialContent prop
   useEffect(() => {
     if (initialContent) {
       if (contentType === 'blog' && 'category' in initialContent) {
@@ -241,18 +242,19 @@ export default function ContentEditor({
       switch (contentType) {
         case 'blog':
           // Add calculated reading time if not specified
-          if (!blogFields.readingTime && content.content) {
-            blogFields.readingTime = calculateReadingTime(content.content);
+          const updatedBlogFields = { ...blogFields };
+          if (!updatedBlogFields.readingTime && content.content) {
+            updatedBlogFields.readingTime = calculateReadingTime(content.content);
           }
           
           // Add excerpt if not specified
-          if (!blogFields.excerpt && content.description) {
-            blogFields.excerpt = content.description;
+          if (!updatedBlogFields.excerpt && content.description) {
+            updatedBlogFields.excerpt = content.description;
           }
           
           contentToSave = {
             ...finalContent,
-            ...blogFields,
+            ...updatedBlogFields,
           };
           break;
           

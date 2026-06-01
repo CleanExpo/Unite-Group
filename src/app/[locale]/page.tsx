@@ -201,18 +201,34 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             both. The pricing is the same line every month. The cancellation is on the same page as
             the sign-up.
           </p>
-          <p style={{ marginTop: 24 }}>
+          <div style={{ marginTop: 24, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <Link
+              href={`/${locale}/register`}
+              style={{
+                display: 'inline-block',
+                padding: '12px 24px',
+                background: 'var(--red-300)',
+                color: '#fff',
+                borderRadius: 8,
+                textDecoration: 'none',
+                fontWeight: 600,
+                fontSize: 15,
+              }}
+            >
+              Start free trial
+            </Link>
             <Link
               href={`/${locale}/contact`}
               style={{
                 color: 'var(--red-300)',
                 textDecoration: 'underline',
                 fontSize: 16,
+                alignSelf: 'center',
               }}
             >
-              Book a thirty-minute call with the founder
+              Book a call with the founder
             </Link>
-          </p>
+          </div>
         </div>
       </section>
     </main>

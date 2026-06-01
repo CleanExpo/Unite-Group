@@ -1,5 +1,7 @@
 # Unite Group — Empire Command Center
 
+[![CI Gate](https://github.com/CleanExpo/Unite-Group/actions/workflows/ci.yml/badge.svg)](https://github.com/CleanExpo/Unite-Group/actions/workflows/ci.yml)
+
 Executive dashboard and platform layer for the Unite-Group portfolio of businesses.
 
 ## What this is

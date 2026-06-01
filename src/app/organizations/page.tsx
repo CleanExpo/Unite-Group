@@ -49,11 +49,6 @@ export default function Organizations() {
   });
   const router = useRouter();
 
-  useEffect(() => {
-    checkAuth();
-    fetchOrganizations();
-  }, []);
-
   const checkAuth = async () => {
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) {
@@ -76,6 +71,12 @@ export default function Organizations() {
       setLoading(false);
     }
   };
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- async auth/data fetch, setState is in Promise callbacks
+  useEffect(() => {
+    checkAuth();
+    fetchOrganizations();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

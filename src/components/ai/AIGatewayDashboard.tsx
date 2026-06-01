@@ -54,7 +54,7 @@ interface AIAlert {
   timestamp: string;
 }
 
-const AIGatewayDashboard: React.FC = () => {
+const AIGatewayDashboard = () => {
   const [metrics, setMetrics] = useState<AIMetrics>({
     totalRequests: 0,
     successRate: 0,

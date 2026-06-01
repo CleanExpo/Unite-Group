@@ -54,6 +54,7 @@ export default function LoginPage() {
   const params = useParams<{ locale?: string }>();
   const locale = typeof params.locale === 'string' ? params.locale : 'en';
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration guard: first client render must match SSR
   useEffect(() => { setMounted(true); }, []);
 
   const handleLogin = async (e: React.FormEvent) => {

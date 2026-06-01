@@ -1,23 +1,1544 @@
 # Margot Overnight Progress Log
 
-## 2026-05-31 12:51 AEST
+## 2026-06-02 06:42 AEST
 
-### Sandbox-only tasks and voice command sessions migration proposal
+### Annual pricing contract microfix (local-only commit)
 
 Current checkpoint:
 
-- Preflight: branch `margot/tasks-voice-schema-proposal`, head `92044bf`, GitHub auth available for `CleanExpo` without token values printed, and `gh pr list` returned no open PRs.
-- Slice completed: added a sandbox-only migration proposal for `public.tasks` and `public.voice_command_sessions` at `docs/margot/migration-proposals/2026-05-31-tasks-voice-command-sessions-sandbox.sql`, plus safety/shape regression coverage at `tests/unit/margot-tasks-voice-migration-proposal.test.ts`.
-- Proposal state is local/repo artifact only: explicitly `PROPOSAL — not applied anywhere yet`; no sandbox apply and no production promotion occurred.
-- The proposal is additive/idempotent, references `scripts/sandbox-wizard.sh`, requires fresh Board approval for production promotion, enables RLS, and marks RLS policy creation as sandbox-validation work before any prod path.
-- TDD evidence: adding `obsidian_synced_at` to the task required-column test produced the expected RED failure; patching both the CREATE TABLE and ADD COLUMN proposal sections made the focused suite GREEN.
-- Dirty-work boundary: inherited/local infrastructure and Supabase temp artifacts remain outside this CRM slice (`docs/runbooks/*`, `docs/backup-pipeline-assessment.md`, `docs/security/audit-2026-05-31.md`, `scripts/backup-healthcheck.sh`, `scripts/restoreassist-verify.sh`, `supabase/.temp/*`).
+- Preflight found PR #215 is already `MERGED` and the checkout remains on `margot/react-19-next-16-migration` with preserved local-only Linear/evidence history. GitHub auth worked for `CleanExpo` via read-only API probe without token values printed. Open PR #214 remains separate/review-required and was not touched.
+- Completed a strict RED/GREEN microfix for annual pricing drift: added `tests/unit/components/pricing-annual-contract.test.ts`, watched it fail against `src/components/billing/BillingPlanModal.tsx` while it still had Starter `annualPrice: 408`, then changed BillingPlanModal to `490`. The existing inherited `src/components/pricing/PricingCards.tsx` Starter `490` change was included in commit scope because the new contract test requires both pricing surfaces to land together.
+- Final local commit: `d136be1` (`fix: align annual pricing contract`). It is local-only, not pushed, because the branch is the old merged PR #215 branch and still carries older local Linear/evidence commits plus unrelated inherited dirty source files.
+- Remaining dirty/uncommitted path groups after the commit: `docs/margot/morning-report.md`, `docs/margot/overnight-progress-log.md`, `src/app/[locale]/register/page.tsx`, and `src/components/marketing/Hero.tsx`.
 
 Verification:
 
 ```bash
-npx jest tests/unit/margot-tasks-voice-migration-proposal.test.ts --runInBand
-# RED first for missing obsidian_synced_at, then PASS after proposal patch: 1 suite / 17 tests.
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view margot/react-19-next-16-migration --json number,title,state,isDraft,url,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS/read-back: PR #215 is MERGED; old PR head a1951bda0b361708a0106dc02539337c2b57af65.
+
+npx jest --runTestsByPath tests/unit/components/pricing-annual-contract.test.ts --runInBand
+# RED before fix: failed because BillingPlanModal had annualPrice: 408 instead of 490.
+# GREEN after fix/refinement: PASS, 1 suite / 1 test.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test -- --testPathPattern=tests/pipelines --runInBand
+# PASS: tests/pipelines, 3 suites / 23 tests.
+
+git diff --check
+# PASS before commit, before evidence append, and after final evidence-doc update.
+
+delegate_task spec review + quality review
+# PASS / APPROVED after the final test refinement.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred. No push/PR/deploy was performed for `d136be1`.
+
+Next safe slice:
+
+- Preserve or separate local-only commit `d136be1` and the older Linear/evidence commits, sync to `origin/main`, then either open a focused PR for this pricing contract fix or resume the sandbox-first `tasks` / `voice_command_sessions` migration proposal lane.
+
+## 2026-06-02 06:01 AEST
+
+### PR #215 post-merge evidence checkpoint
+
+Current checkpoint:
+
+- Preflight found PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) is now `MERGED`; `gh pr view 215` reports merge commit `53e56d604a6848ebcf3664b3680fc74a935be3b9` and `mergedAt=2026-06-01T19:58:36Z`. GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- `origin/main` now points at merge commit `53e56d6` (`feat: React 19 / Next.js 16 migration + SaaS productization`). Local checkout remains on `margot/react-19-next-16-migration` at `cd47956` with four local-only Linear mirror commits ahead of the old PR branch head `a1951bda0b361708a0106dc02539337c2b57af65` and uncommitted evidence/status doc edits; I did not reset, stash, rebase, or switch branches.
+- Post-merge checks were observed: `gh run watch 26778536336 --exit-status` completed successfully for `main` CI Gate (type-check, lint, tests, production build), `DESIGN.md lint` was already successful on merge SHA `53e56d6`, and commit-status/Vercel contexts for `origin/main` are `success` for `Vercel – unite-group` (`https://vercel.com/unite-group/unite-group/9XGgdQUKgGNfS8piPdSDyCJC7uD7`) and `Vercel – unite-group-sandbox` (`https://vercel.com/unite-group/unite-group-sandbox/Ca9Cj68ZABCTHNuB7n4WKkASZ8nP`). Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local read-back gates for this evidence checkpoint passed before the evidence append: `git diff --check`, `npm run type-check`, `npm run security:routes-check`, and `npm test -- --testPathPattern=tests/pipelines --runInBand` (`tests/pipelines`, 3 suites / 23 tests). Post-evidence hygiene/invariants are recorded below and were rerun after this append.
+- Dirty/local-only path groups remain `docs/margot/linear-watch-today.md` via local ahead commits `cd47956`, `c459a00`, `0e3a114`, and `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed after the merge.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,state,mergedAt,mergeCommit,url,headRefName,headRefOid,baseRefName,statusCheckRollup
+# PASS: state MERGED, mergedAt 2026-06-01T19:58:36Z, mergeCommit 53e56d604a6848ebcf3664b3680fc74a935be3b9, old PR head a1951bda0b361708a0106dc02539337c2b57af65.
+
+git fetch origin main --prune
+git rev-parse --short origin/main
+# PASS: 53e56d6.
+
+gh run watch 26778536336 --exit-status
+# PASS: main CI Gate completed successfully for merge SHA 53e56d604a6848ebcf3664b3680fc74a935be3b9 (type-check, lint, tests, production build).
+
+gh api repos/CleanExpo/Unite-Group/commits/$(git rev-parse origin/main)/status --jq '{state:.state, statuses:[.statuses[] | {context,state,target_url}]}'
+# PASS: combined commit status success; Vercel – unite-group and Vercel – unite-group-sandbox success.
+
+git diff --check
+# PASS before evidence append.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test -- --testPathPattern=tests/pipelines --runInBand
+# PASS: tests/pipelines, 3 suites, 23 tests.
+
+# Post-evidence gates were rerun after this block and the morning-report update:
+# git diff --check => PASS
+# invariant read-back => PASS (double_newline=False, bare_log_count=0, morning report active_current_as_of_count=1, active pending-post-evidence wording cleared).
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Preserve or intentionally discard the local-only Linear/evidence commits from `margot/react-19-next-16-migration`, then sync/switch to `origin/main` before starting new source work. Once on a clean branch from merged main, resume the CRM backlog with the smallest sandbox-first slice: recover or reconstruct sandbox-only migration proposals for `tasks` and `voice_command_sessions` without touching production.
+
+## 2026-06-02 05:23 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains four Linear-mirror commits ahead at `cd47956`, `c459a00`, `0e3a114`, and `016315d` (all `chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, Review Board specialist checks and final verdict, `Validate .claude/DESIGN.md`, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: pre-evidence `git diff --check`, `npm run type-check`, `npm run security:routes-check`, `npm test -- --testPathPattern=tests/pipelines --runInBand` (`tests/pipelines`, 3 suites / 23 tests), post-evidence `git diff --check`, and current-section invariants (`double_newline=False`, `bare_log_count=0`, morning report `active_current_as_of_count=1`, active pending-post-evidence wording cleared). Bounded spec/quality review was then run against the updated current sections.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commits `cd47956`, `c459a00`, `0e3a114`, and `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git diff --check
+# PASS before evidence append.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test -- --testPathPattern=tests/pipelines --runInBand
+# PASS: tests/pipelines, 3 suites, 23 tests.
+
+git diff --check
+# PASS after evidence append.
+
+python3 - <<'PYEOF'
+from pathlib import Path
+for p in [Path('docs/margot/overnight-progress-log.md'), Path('docs/margot/morning-report.md')]:
+    b = p.read_bytes()
+    t = b.decode('utf-8')
+    double = b.endswith(bytes([10, 10]))
+    bare = t.count('Log:' + chr(10))
+    current = t.count('Current as of `')
+    current_summary = t.split('Verification:', 1)[0]
+    active_pending = ('will be finalized' in current_summary.lower()) or ('# PENDING' in current_summary) or ('post_evidence_gates_pending' in current_summary.lower())
+    print(f'{p}: endswith_double_newline={double} bare_log_count={bare} active_current_as_of_count={current} active_pending_post_evidence={active_pending}')
+PYEOF
+# PASS after evidence append: both files double_newline=False and bare_log_count=0; morning report active_current_as_of_count=1; active pending-post-evidence wording cleared in current sections.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-02 04:48 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains four Linear-mirror commits ahead at `cd47956`, `c459a00`, `0e3a114`, and `016315d` (all `chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, Review Board specialist checks and final verdict, `Validate .claude/DESIGN.md`, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: pre-evidence `git diff --check`, `npm run type-check`, `npm run security:routes-check`, `npm test -- --testPathPattern=tests/pipelines --runInBand` (`tests/pipelines`, 3 suites / 23 tests), post-evidence `git diff --check`, and current-section invariants (`double_newline=False`, `bare_log_count=0`, morning report `active_current_as_of_count=1`, active pending-post-evidence wording cleared). Bounded spec/quality review was then run against the updated current sections.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commits `cd47956`, `c459a00`, `0e3a114`, and `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git diff --check
+# PASS before evidence append.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test -- --testPathPattern=tests/pipelines --runInBand
+# PASS: tests/pipelines, 3 suites, 23 tests.
+
+git diff --check
+# PASS after evidence append.
+
+python3 - <<'PYEOF'
+from pathlib import Path
+for p in [Path('docs/margot/overnight-progress-log.md'), Path('docs/margot/morning-report.md')]:
+    b = p.read_bytes()
+    t = b.decode('utf-8')
+    double = b.endswith(bytes([10, 10]))
+    bare = t.count('Log:' + chr(10))
+    current = t.count('Current as of `')
+    current_summary = t.split('Verification:', 1)[0]
+    active_pending = ('will be finalized' in current_summary.lower()) or ('# PENDING' in current_summary) or ('post_evidence_gates_pending' in current_summary.lower())
+    print(f'{p}: endswith_double_newline={double} bare_log_count={bare} active_current_as_of_count={current} active_pending_post_evidence={active_pending}')
+PYEOF
+# PASS after evidence append: both files double_newline=False and bare_log_count=0; morning report active_current_as_of_count=1; active pending-post-evidence wording cleared in current sections.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-02 04:12 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains four Linear-mirror commits ahead at `cd47956`, `c459a00`, `0e3a114`, and `016315d` (all `chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: pre-evidence `git diff --check`, `npm run type-check`, `npm run security:routes-check`, `npm test -- --testPathPattern=tests/pipelines --runInBand` (`tests/pipelines`, 3 suites / 23 tests), post-evidence `git diff --check`, and current-section invariants (`double_newline=False`, `bare_log_count=0`, morning report `active_current_as_of_count=1`, active pending-post-evidence wording cleared). Bounded spec/quality review was then run against the updated current sections.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commits `cd47956`, `c459a00`, `0e3a114`, and `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git diff --check
+# PASS before evidence append.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test -- --testPathPattern=tests/pipelines --runInBand
+# PASS: tests/pipelines, 3 suites, 23 tests.
+
+git diff --check
+# PASS after evidence append.
+
+python3 - <<'PY'
+from pathlib import Path
+for p in [Path('docs/margot/overnight-progress-log.md'), Path('docs/margot/morning-report.md')]:
+    b = p.read_bytes()
+    t = b.decode('utf-8')
+    double = b.endswith(bytes([10, 10]))
+    bare = t.count('Log:' + chr(10))
+    current = t.count('Current as of `')
+    current_summary = t.split('Verification:', 1)[0]
+    active_pending = ('will be finalized' in current_summary.lower()) or ('# PENDING' in current_summary) or ('post_evidence_gates_pending' in current_summary.lower())
+    print(f'{p}: endswith_double_newline={double} bare_log_count={bare} active_current_as_of_count={current} active_pending_post_evidence={active_pending}')
+PY
+# PASS after evidence append: both files double_newline=False and bare_log_count=0; morning report active_current_as_of_count=1; active pending-post-evidence wording cleared in current sections.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-02 03:36 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains four Linear-mirror commits ahead at `cd47956`, `c459a00`, `0e3a114`, and `016315d` (all `chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: pre-evidence `git diff --check`, `npm run type-check`, `npm run security:routes-check`, `npm test -- --testPathPattern=tests/pipelines --runInBand` (`tests/pipelines`, 3 suites / 23 tests), post-evidence `git diff --check`, and current-section invariants (`double_newline=False`, `bare_log_count=0`, morning report `active_current_as_of_count=1`, active pending-post-evidence wording cleared). Bounded spec/quality review was then run against the updated current sections.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commits `cd47956`, `c459a00`, `0e3a114`, and `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git diff --check
+# PASS before evidence append.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test -- --testPathPattern=tests/pipelines --runInBand
+# PASS: tests/pipelines, 3 suites, 23 tests.
+
+git diff --check
+# PASS after evidence append.
+
+python3 - <<'PY'
+from pathlib import Path
+for p in [Path('docs/margot/overnight-progress-log.md'), Path('docs/margot/morning-report.md')]:
+    b = p.read_bytes()
+    t = b.decode('utf-8')
+    double = b.endswith(bytes([10, 10]))
+    bare = t.count('Log:' + chr(10))
+    current = t.count('Current as of `')
+    current_summary = t.split('Verification:', 1)[0]
+    active_pending = ('will be finalized' in current_summary.lower()) or ('# PENDING' in current_summary) or ('post_evidence_gates_pending' in current_summary.lower())
+    print(f'{p}: endswith_double_newline={double} bare_log_count={bare} active_current_as_of_count={current} active_pending_post_evidence={active_pending}')
+PY
+# PASS after evidence append: both files double_newline=False and bare_log_count=0; morning report active_current_as_of_count=1; active pending-post-evidence wording cleared in current sections.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-02 03:01 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains four Linear-mirror commits ahead at `cd47956`, `c459a00`, `0e3a114`, and `016315d` (all `chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: pre-evidence `git diff --check`, `npm run type-check`, `npm run security:routes-check`, `npm test -- --testPathPattern=tests/pipelines --runInBand` (`tests/pipelines`, 3 suites / 23 tests), post-evidence `git diff --check`, and current-section invariants (`double_newline=False`, `bare_log_count=0`, morning report `active_current_as_of_count=1`, active pending-post-evidence wording cleared). Bounded spec/quality review was then run against the updated current sections.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commits `cd47956`, `c459a00`, `0e3a114`, and `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git diff --check
+# PASS before evidence append.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test -- --testPathPattern=tests/pipelines --runInBand
+# PASS: tests/pipelines, 3 suites, 23 tests.
+
+git diff --check
+# PASS after evidence append.
+
+python3 - <<'PY'
+from pathlib import Path
+for p in [Path('docs/margot/overnight-progress-log.md'), Path('docs/margot/morning-report.md')]:
+    b = p.read_bytes()
+    t = b.decode('utf-8')
+    double = b.endswith(bytes([10,10]))
+    bare = t.count('Log:' + chr(10))
+    current = t.count('Current as of `')
+    current_summary = t.split('Verification:', 1)[0]
+    active_pending = 'will be finalized' in current_summary.lower() or '# PENDING' in current_summary or 'post_evidence_gates_pending' in current_summary.lower()
+    print(f'{p}: endswith_double_newline={double} bare_log_count={bare} active_current_as_of_count={current} active_pending_post_evidence={active_pending}')
+PY
+# PASS after evidence append: both files double_newline=False and bare_log_count=0; morning report active_current_as_of_count=1; active pending-post-evidence wording cleared in current sections.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-02 02:24 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains four Linear-mirror commits ahead at `cd47956`, `c459a00`, `0e3a114`, and `016315d` (all `chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: pre-evidence `git diff --check`, `npm run type-check`, `npm run security:routes-check`, `npm test -- --testPathPattern=tests/pipelines --runInBand` (`tests/pipelines`, 3 suites / 23 tests), post-evidence `git diff --check`, and current-section invariants (`double_newline=False`, `bare_log_count=0`, morning report `active_current_as_of_count=1`, active pending-post-evidence wording cleared). Bounded spec/quality review was then run against the updated current sections.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commits `cd47956`, `c459a00`, `0e3a114`, and `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git diff --check
+# PASS before evidence append.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test -- --testPathPattern=tests/pipelines --runInBand
+# PASS: tests/pipelines, 3 suites, 23 tests.
+
+git diff --check
+# PASS after evidence append.
+
+python3 - <<'PY'
+from pathlib import Path
+for p in [Path('docs/margot/overnight-progress-log.md'), Path('docs/margot/morning-report.md')]:
+    b = p.read_bytes()
+    t = b.decode('utf-8')
+    double = b.endswith(bytes([10,10]))
+    bare = t.count('Log:' + chr(10))
+    current = t.count('Current as of `')
+    current_summary = t.split('Verification:', 1)[0]
+    active_pending = 'will be finalized' in current_summary.lower() or '# PENDING' in current_summary or 'post_evidence_gates_pending' in current_summary.lower()
+    print(f'{p}: endswith_double_newline={double} bare_log_count={bare} active_current_as_of_count={current} active_pending_post_evidence={active_pending}')
+PY
+# PASS after evidence append: both files double_newline=False and bare_log_count=0; morning report active_current_as_of_count=1; active pending-post-evidence wording cleared in current sections.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-02 01:48 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains four Linear-mirror commits ahead at `cd47956`, `c459a00`, `0e3a114`, and `016315d` (all `chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh before this evidence append: `git diff --check`, `npm run type-check`, `npm run security:routes-check`, and `npm test -- --testPathPattern=tests/pipelines --runInBand` (`tests/pipelines`, 3 suites / 23 tests). Post-evidence hygiene/review are recorded below after the final report update.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commits `cd47956`, `c459a00`, `0e3a114`, and `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git diff --check
+# PASS before evidence append.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test -- --testPathPattern=tests/pipelines --runInBand
+# PASS: tests/pipelines, 3 suites, 23 tests.
+
+git diff --check
+# PASS after evidence append.
+
+python3 - <<'PY'
+from pathlib import Path
+for p in [Path('docs/margot/overnight-progress-log.md'), Path('docs/margot/morning-report.md')]:
+    b = p.read_bytes()
+    t = b.decode('utf-8')
+    double = b.endswith(bytes([10,10]))
+    bare = t.count('Log:' + chr(10))
+    current = t.count('Current as of `')
+    current_summary = t.split('Verification:', 1)[0]
+    active_pending = 'post_evidence_gates_pending' in current_summary.lower() or 'POST_EVIDENCE_GATES_PENDING' in current_summary or '# PENDING' in current_summary
+    print(f'{p}: endswith_double_newline={double} bare_log_count={bare} active_current_as_of_count={current} active_pending_post_evidence={active_pending}')
+PY
+# PASS after evidence append: both files double_newline=False, bare_log_count=0, active_pending_post_evidence=False; morning report active_current_as_of_count=1. The append-only overnight log includes historical invariant text, so its current_as_of_count is not used as the active-status invariant.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-02 01:11 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains four Linear-mirror commits ahead at `cd47956`, `c459a00`, `0e3a114`, and `016315d` (all `chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: pre-evidence `git diff --check`, `npm run type-check`, `npm run security:routes-check`, `npm test -- --testPathPattern=tests/pipelines --runInBand` (`tests/pipelines`, 3 suites / 23 tests), and post-evidence `git diff --check` plus EOF/bare-log/current-section invariants.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commits `cd47956`, `c459a00`, `0e3a114`, and `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git diff --check
+# PASS before evidence append.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test -- --testPathPattern=tests/pipelines --runInBand
+# PASS: tests/pipelines, 3 suites, 23 tests.
+
+git diff --check
+# PASS after evidence append.
+
+python3 - <<'PY'
+from pathlib import Path
+for p in [Path('docs/margot/overnight-progress-log.md'), Path('docs/margot/morning-report.md')]:
+    b = p.read_bytes()
+    t = b.decode('utf-8')
+    double = b.endswith(bytes([10,10]))
+    bare = t.count('Log:' + chr(10))
+    current = t.count('Current as of `')
+    current_summary = t.split('Verification:', 1)[0]
+    active_pending = 'pending post-evidence' in current_summary.lower() or '# PENDING' in current_summary
+    print(f'{p}: endswith_double_newline={double} bare_log_count={bare} active_current_as_of_count={current} active_pending_post_evidence={active_pending}')
+PY
+# PASS after evidence append: both files double_newline=False, bare_log_count=0, active_pending_post_evidence=False; morning report active_current_as_of_count=1. The append-only overnight log includes historical invariant text, so its current_as_of_count is not used as the active-status invariant.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-02 00:35 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains four Linear-mirror commits ahead at `cd47956`, `c459a00`, `0e3a114`, and `016315d` (all `chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: pre-evidence `git diff --check`, `npm run type-check`, `npm run security:routes-check`, `npm test -- --testPathPattern=tests/pipelines --runInBand` (`tests/pipelines`, 3 suites / 23 tests), and post-evidence `git diff --check` plus EOF/bare-log/current-section invariants.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commits `cd47956`, `c459a00`, `0e3a114`, and `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git diff --check
+# PASS before evidence append.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test -- --testPathPattern=tests/pipelines --runInBand
+# PASS: tests/pipelines, 3 suites, 23 tests.
+
+git diff --check
+# PASS after evidence append.
+
+python3 - <<'PY'
+from pathlib import Path
+for p in [Path('docs/margot/overnight-progress-log.md'), Path('docs/margot/morning-report.md')]:
+    b = p.read_bytes()
+    t = b.decode('utf-8')
+    double = b.endswith(bytes([10,10]))
+    bare = t.count('Log:' + chr(10))
+    current = t.count('Current as of `')
+    current_summary = t.split('Verification:', 1)[0]
+    active_pending = 'pending post-evidence' in current_summary.lower() or '# PENDING' in current_summary
+    print(f'{p}: endswith_double_newline={double} bare_log_count={bare} active_current_as_of_count={current} active_pending_post_evidence={active_pending}')
+PY
+# PASS after evidence append: both files double_newline=False, bare_log_count=0, active_pending_post_evidence=False; morning report active_current_as_of_count=1. The append-only overnight log includes historical invariant text, so its current_as_of_count is not used as the active-status invariant.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-02 00:01 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains four Linear-mirror commits ahead at `cd47956`, `c459a00`, `0e3a114`, and `016315d` (all `chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: pre-evidence `git diff --check`, `npm run type-check`, `npm run security:routes-check`, `npm test -- --testPathPattern=tests/pipelines --runInBand` (`tests/pipelines`, 3 suites / 23 tests), and post-evidence `git diff --check` plus EOF/bare-log/current-section invariants.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commits `cd47956`, `c459a00`, `0e3a114`, and `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git diff --check
+# PASS before evidence append.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test -- --testPathPattern=tests/pipelines --runInBand
+# PASS: tests/pipelines, 3 suites, 23 tests.
+
+git diff --check
+# PASS after evidence append.
+
+python3 - <<'PY'
+from pathlib import Path
+for p in [Path('docs/margot/overnight-progress-log.md'), Path('docs/margot/morning-report.md')]:
+    b = p.read_bytes()
+    t = b.decode('utf-8')
+    double = b.endswith(bytes([10,10]))
+    bare = t.count('Log:' + chr(10))
+    current = t.count('Current as of `')
+    current_summary = t.split('Verification:', 1)[0]
+    active_pending = 'pending post-evidence' in current_summary.lower() or '# PENDING' in current_summary
+    print(f'{p}: endswith_double_newline={double} bare_log_count={bare} active_current_as_of_count={current} active_pending_post_evidence={active_pending}')
+PY
+# PASS after evidence append: both files double_newline=False, bare_log_count=0, active_pending_post_evidence=False; morning report active_current_as_of_count=1. The append-only overnight log includes historical invariant text, so its current_as_of_count is not used as the active-status invariant.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 23:23 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains four Linear-mirror commits ahead at `cd47956, c459a00, 0e3a114, and 016315d` (all `chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: pre-evidence `git diff --check`, `npm run type-check`, `npm run security:routes-check`, `npm test -- --testPathPattern=tests/pipelines --runInBand` (`tests/pipelines`, 3 suites / 23 tests), and post-evidence `git diff --check` plus EOF/bare-log/current-section invariants.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commits `cd47956, c459a00, 0e3a114, and 016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git diff --check
+# PASS before evidence append.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test -- --testPathPattern=tests/pipelines --runInBand
+# PASS: tests/pipelines, 3 suites, 23 tests.
+
+git diff --check
+# PASS after evidence append.
+
+python3 - <<'PY'
+from pathlib import Path
+for p in [Path('docs/margot/overnight-progress-log.md'), Path('docs/margot/morning-report.md')]:
+    b = p.read_bytes()
+    t = b.decode('utf-8')
+    double = b.endswith(bytes([10,10]))
+    bare = t.count('Log:' + chr(10))
+    current = t.count('Current as of `')
+    current_summary = t.split('Verification:', 1)[0]
+    active_pending = 'pending post-evidence' in current_summary.lower() or '# PENDING' in current_summary
+    print(f'{p}: endswith_double_newline={double} bare_log_count={bare} active_current_as_of_count={current} active_pending_post_evidence={active_pending}')
+PY
+# PASS after evidence append: both files double_newline=False, bare_log_count=0, active_pending_post_evidence=False; morning report active_current_as_of_count=1. The append-only overnight log includes historical invariant text, so its current_as_of_count is not used as the active-status invariant.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 22:47 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains four Linear-mirror commits ahead at `cd47956`, `c459a00`, `0e3a114`, and `016315d` (all `chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: pre-evidence `git diff --check`, `npm run type-check`, `npm run security:routes-check`, corrected `npm test -- --testPathPattern=tests/pipelines --runInBand` (`tests/pipelines`, 3 suites / 23 tests), and post-evidence `git diff --check` plus EOF/bare-log/current-section invariants. A stale exact-path Jest command for removed Telegram pipeline tests failed with `ENOENT` before the canonical current pipeline suite was rerun and passed; no source/test changes were made to address that command mismatch.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commits `cd47956`, `c459a00`, `0e3a114`, and `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git log --oneline origin/margot/react-19-next-16-migration..HEAD
+# PASS: cd47956, c459a00, 0e3a114, and 016315d are local-only Linear mirror commits ahead of the PR head.
+
+git diff --check
+# PASS before evidence append.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test -- --runTestsByPath tests/pipelines/telegram-ledger-log.test.ts tests/pipelines/run-telegram-sync-once.test.ts tests/pipelines/telegram-railway-env.test.ts --runInBand
+# BLOCKED/OBSOLETE COMMAND: failed with ENOENT because those exact Telegram pipeline test files are not present in the current checkout.
+
+npm test -- --testPathPattern=tests/pipelines --runInBand
+# PASS: tests/pipelines, 3 suites, 23 tests.
+
+git diff --check
+# PASS after evidence append.
+
+python3 - <<'PY'
+from pathlib import Path
+for p in [Path('docs/margot/overnight-progress-log.md'), Path('docs/margot/morning-report.md')]:
+    b = p.read_bytes()
+    t = b.decode('utf-8')
+    double = b.endswith(bytes([10,10]))
+    bare = t.count('Log:' + chr(10))
+    current = t.count('Current as of `')
+    current_summary = t.split('Verification:', 1)[0]
+    pending_active = 'pending post-evidence' in current_summary.lower()
+    print(f'{p}: endswith_double_newline={double} bare_log_count={bare} active_current_as_of_count={current} active_pending_post_evidence={pending_active}')
+PY
+# PASS after evidence append: both files double_newline=False, bare_log_count=0, active_pending_post_evidence=False; morning report active_current_as_of_count=1. The append-only overnight log includes historical invariant text, so its current_as_of_count is not used as the active-status invariant.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 22:12 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains four Linear-mirror commits ahead at `cd47956`, `c459a00`, `0e3a114`, and `016315d` (all `chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: pre-evidence `git diff --check`, `npm run type-check`, `npm run security:routes-check`, `npm test` (`tests/pipelines`, 3 suites / 23 tests), and post-evidence `git diff --check` plus EOF/bare-log/current-section invariants.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commits `cd47956`, `c459a00`, `0e3a114`, and `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git log --oneline origin/margot/react-19-next-16-migration..HEAD
+# PASS: cd47956, c459a00, 0e3a114, and 016315d are local-only Linear mirror commits ahead of the PR head.
+
+git diff --check
+# PASS before evidence append.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test
+# PASS: tests/pipelines, 3 suites, 23 tests.
+
+git diff --check
+# PASS after evidence append.
+
+python3 - <<'PY'
+from pathlib import Path
+for p in [Path('docs/margot/overnight-progress-log.md'), Path('docs/margot/morning-report.md')]:
+    b = p.read_bytes()
+    t = b.decode('utf-8')
+    double = b.endswith(bytes([10,10]))
+    bare = t.count('Log:' + chr(10))
+    current = t.count('Current as of `')
+    current_summary = t.split('Verification:', 1)[0]
+    pending_active = 'pending post-evidence' in current_summary.lower()
+    print(f'{p}: endswith_double_newline={double} bare_log_count={bare} active_current_as_of_count={current} active_pending_post_evidence={pending_active}')
+PY
+# PASS after evidence append: both files double_newline=False, bare_log_count=0, active_pending_post_evidence=False; morning report active_current_as_of_count=1. The append-only overnight log includes historical invariant text, so its current_as_of_count is not used as the active-status invariant.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 21:36 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains four Linear-mirror commits ahead at `cd47956`, `c459a00`, `0e3a114`, and `016315d` (all `chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: pre-evidence `git diff --check`, `npm run type-check`, `npm run security:routes-check`, `npm test` (`tests/pipelines`, 3 suites / 23 tests), and post-evidence `git diff --check` plus EOF/bare-log/current-section invariants.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commits `cd47956`, `c459a00`, `0e3a114`, and `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git log --oneline origin/margot/react-19-next-16-migration..HEAD
+# PASS: cd47956, c459a00, 0e3a114, and 016315d are local-only Linear mirror commits ahead of the PR head.
+
+git diff --check
+# PASS before evidence append.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test
+# PASS: tests/pipelines, 3 suites, 23 tests.
+
+git diff --check
+# PASS after evidence append.
+
+python3 - <<'PY'
+from pathlib import Path
+for p in [Path('docs/margot/overnight-progress-log.md'), Path('docs/margot/morning-report.md')]:
+    b = p.read_bytes()
+    t = b.decode('utf-8')
+    double = b.endswith(bytes([10,10]))
+    bare = t.count('Log:' + chr(10))
+    current = t.count('Current as of `')
+    current_summary = t.split('Verification:', 1)[0]
+    pending_active = 'pending post-evidence' in current_summary.lower()
+    print(f'{p}: endswith_double_newline={double} bare_log_count={bare} active_current_as_of_count={current} active_pending_post_evidence={pending_active}')
+PY
+# PASS after evidence append: both files double_newline=False, bare_log_count=0, active_pending_post_evidence=False; morning report active_current_as_of_count=1. The append-only overnight log includes historical invariant text, so its current_as_of_count is not used as the active-status invariant.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 21:01 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains four Linear-mirror commits ahead at `cd47956`, `c459a00`, `0e3a114`, and `016315d` (all `chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: pre-evidence `git diff --check`, `npm run type-check`, `npm run security:routes-check`, `npm test` (`tests/pipelines`, 3 suites / 23 tests), and post-evidence `git diff --check` plus EOF/bare-log/current-section invariants.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commits `cd47956`, `c459a00`, `0e3a114`, and `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git log --oneline origin/margot/react-19-next-16-migration..HEAD
+# PASS: cd47956, c459a00, 0e3a114, and 016315d are local-only Linear mirror commits ahead of the PR head.
+
+git diff --check
+# PASS before evidence append.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test
+# PASS: tests/pipelines, 3 suites, 23 tests.
+
+git diff --check
+# PASS after evidence append.
+
+python3 - <<'PY'
+from pathlib import Path
+for p in [Path('docs/margot/overnight-progress-log.md'), Path('docs/margot/morning-report.md')]:
+    b = p.read_bytes()
+    t = b.decode('utf-8')
+    double = b.endswith(bytes([10,10]))
+    bare = t.count('Log:' + chr(10))
+    current = t.count('Current as of `')
+    current_summary = t.split('Verification:', 1)[0]
+    pending_active = 'pending post-evidence' in current_summary.lower()
+    print(f'{p}: endswith_double_newline={double} bare_log_count={bare} active_current_as_of_count={current} active_pending_post_evidence={pending_active}')
+PY
+# PASS after evidence append: both files double_newline=False, bare_log_count=0, active_pending_post_evidence=False; morning report active_current_as_of_count=1. The append-only overnight log includes historical invariant text, so its current_as_of_count is not used as the active-status invariant.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 20:25 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains four Linear-mirror commits ahead at `cd47956`, `c459a00`, `0e3a114`, and `016315d` (all `chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: pre-evidence `git diff --check`, `npm run type-check`, `npm run security:routes-check`, `npm test` (`tests/pipelines`, 3 suites / 23 tests), and post-evidence `git diff --check` plus EOF/bare-log/current-section invariants.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commits `cd47956`, `c459a00`, `0e3a114`, and `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git log --oneline origin/margot/react-19-next-16-migration..HEAD
+# PASS: cd47956, c459a00, 0e3a114, and 016315d are local-only Linear mirror commits ahead of the PR head.
+
+git diff --check
+# PASS before evidence append.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test
+# PASS: tests/pipelines, 3 suites, 23 tests.
+
+git diff --check
+# PASS after evidence append.
+
+python3 - <<'PY'
+from pathlib import Path
+for p in [Path('docs/margot/overnight-progress-log.md'), Path('docs/margot/morning-report.md')]:
+    b = p.read_bytes()
+    t = b.decode('utf-8')
+    double = b.endswith(bytes([10,10]))
+    bare = t.count('Log:' + chr(10))
+    current = t.count('Current as of `')
+    current_summary = t.split('Verification:', 1)[0]
+    pending_active = 'pending post-evidence' in current_summary.lower()
+    print(f'{p}: endswith_double_newline={double} bare_log_count={bare} active_current_as_of_count={current} active_pending_post_evidence={pending_active}')
+PY
+# PASS after evidence append: both files double_newline=False, bare_log_count=0, active_pending_post_evidence=False; morning report active_current_as_of_count=1. The append-only overnight log includes historical invariant text, so its current_as_of_count is not used as the active-status invariant.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 19:49 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains four Linear-mirror commits ahead at `cd47956`, `c459a00`, `0e3a114`, and `016315d` (all `chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: pre-evidence `git diff --check`, `npm run type-check`, `npm run security:routes-check`, `npm test` (`tests/pipelines`, 3 suites / 23 tests), and post-evidence `git diff --check` plus EOF/bare-log/current-section invariants.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commits `cd47956`, `c459a00`, `0e3a114`, and `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git log --oneline origin/margot/react-19-next-16-migration..HEAD
+# PASS: cd47956, c459a00, 0e3a114, and 016315d are local-only Linear mirror commits ahead of the PR head.
+
+git diff --check
+# PASS before evidence append.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test
+# PASS: tests/pipelines, 3 suites, 23 tests.
+
+python3 - <<'PY'
+from pathlib import Path
+for p in [Path('docs/margot/overnight-progress-log.md'), Path('docs/margot/morning-report.md')]:
+    b = p.read_bytes()
+    t = b.decode('utf-8')
+    double = b.endswith(bytes([10,10]))
+    bare = t.count('Log:' + chr(10))
+    current = t.count('Current as of `')
+    print(f'{p}: endswith_double_newline={double} bare_log_count={bare} active_current_as_of_count={current}')
+PY
+# PASS before evidence append: overnight log double_newline=False, bare_log_count=0; morning report double_newline=False, bare_log_count=0, active_current_as_of_count=1.
+
+git diff --check
+# PASS after evidence append.
+
+python3 - <<'PY'
+from pathlib import Path
+for p in [Path('docs/margot/overnight-progress-log.md'), Path('docs/margot/morning-report.md')]:
+    b = p.read_bytes()
+    t = b.decode('utf-8')
+    double = b.endswith(bytes([10,10]))
+    bare = t.count('Log:' + chr(10))
+    current = t.count('Current as of `')
+    print(f'{p}: endswith_double_newline={double} bare_log_count={bare} active_current_as_of_count={current}')
+PY
+# PASS after evidence append: both files double_newline=False and bare_log_count=0; morning report active_current_as_of_count=1. The append-only overnight log includes historical invariant text, so its current_as_of_count is not used as the active-status invariant.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 19:10 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains four Linear-mirror commits ahead at `cd47956`, `c459a00`, `0e3a114`, and `016315d` (all `chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: pre-evidence `git diff --check`, `npm run type-check`, `npm run security:routes-check`, `npm test` (`tests/pipelines`, 23 tests), and post-evidence `git diff --check` plus current-section invariants.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commits `cd47956`, `c459a00`, `0e3a114`, and `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git log --oneline origin/margot/react-19-next-16-migration..HEAD
+# PASS: cd47956, c459a00, 0e3a114, and 016315d are local-only Linear mirror commits ahead of the PR head.
+
+git diff --check
+# PASS before evidence append.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test
+# PASS: tests/pipelines, 3 suites, 23 tests.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 18:34 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains four Linear-mirror commits ahead at `cd47956`, `c459a00`, `0e3a114`, and `016315d` (all `chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: pre-evidence `git diff --check`, `npm run type-check`, `npm run security:routes-check`, `npm test` (`tests/pipelines`, 23 tests), and final post-append `git diff --check`.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commits `cd47956`, `c459a00`, `0e3a114`, and `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git log --oneline origin/margot/react-19-next-16-migration..HEAD
+# PASS: cd47956, c459a00, 0e3a114, and 016315d are local-only Linear mirror commits ahead of the PR head.
+
+git diff --check
+# PASS before evidence append.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test
+# PASS: tests/pipelines, 3 suites, 23 tests.
+
+git diff --check
+# PASS after final local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 17:56 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains four Linear-mirror commits ahead at `cd47956`, `c459a00`, `0e3a114`, and `016315d` (all `chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: pre-evidence `git diff --check`, `npm run type-check`, `npm run security:routes-check`, `npm test` (`tests/pipelines`, 23 tests), and final post-append `git diff --check`.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commits `cd47956`, `c459a00`, `0e3a114`, and `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git log --oneline origin/margot/react-19-next-16-migration..HEAD
+# PASS: cd47956, c459a00, 0e3a114, and 016315d are local-only Linear mirror commits ahead of the PR head.
+
+git diff --check
+# PASS before evidence append.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test
+# PASS: tests/pipelines, 3 suites, 23 tests.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 17:21 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains four Linear-mirror commits ahead at `cd47956`, `c459a00`, `0e3a114`, and `016315d` (all `chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: pre-evidence `git diff --check`, `npm run type-check`, `npm run security:routes-check`, `npm test` (`tests/pipelines`, 23 tests), and final post-append `git diff --check`.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commits `cd47956`, `c459a00`, `0e3a114`, and `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git log --oneline origin/margot/react-19-next-16-migration..HEAD
+# PASS: cd47956, c459a00, 0e3a114, and 016315d are local-only Linear mirror commits ahead of the PR head.
+
+git diff --check
+# PASS before evidence append.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test
+# PASS: tests/pipelines, 3 suites, 23 tests.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 16:47 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains four Linear-mirror commits ahead at `cd47956`, `c459a00`, `0e3a114`, and `016315d` (all `chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: pre-evidence `git diff --check`, `npm run type-check`, `npm run security:routes-check`, `npm test` (`tests/pipelines`, 23 tests), and final post-append `git diff --check`.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commits `cd47956`, `c459a00`, `0e3a114`, and `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git log --oneline origin/margot/react-19-next-16-migration..HEAD
+# PASS: cd47956, c459a00, 0e3a114, and 016315d are local-only Linear mirror commits ahead of the PR head.
+
+git diff --check
+# PASS before evidence append.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test
+# PASS: tests/pipelines, 3 suites, 23 tests.
+
+git diff --check
+# PASS after final local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 16:12 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains four Linear-mirror commits ahead at `cd47956`, `c459a00`, `0e3a114`, and `016315d` (all `chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: pre-evidence `git diff --check`, `npm run type-check`, `npm run security:routes-check`, `npm test` (`tests/pipelines`, 23 tests), and final post-append `git diff --check`.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commits `cd47956`, `c459a00`, `0e3a114`, and `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git log --oneline origin/margot/react-19-next-16-migration..HEAD
+# PASS: cd47956, c459a00, 0e3a114, and 016315d are local-only Linear mirror commits ahead of the PR head.
+
+git diff --check
+# PASS before evidence append.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test
+# PASS: tests/pipelines, 3 suites, 23 tests.
+
+git diff --check
+# PASS after final local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 15:38 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains four Linear-mirror commits ahead at `cd47956`, `c459a00`, `0e3a114`, and `016315d` (all `chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: pre-evidence `git diff --check`, `npm run type-check`, `npm run security:routes-check`, and final post-append `git diff --check`.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commits `cd47956`, `c459a00`, `0e3a114`, and `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git log --oneline origin/margot/react-19-next-16-migration..HEAD
+# PASS: cd47956, c459a00, 0e3a114, and 016315d are local-only Linear mirror commits ahead of the PR head.
+
+git diff --check
+# PASS before evidence append.
 
 npm run type-check
 # PASS.
@@ -26,13 +1547,1302 @@ npm run security:routes-check
 # PASS: 0 unprotected mutating routes.
 
 git diff --check
-# PASS after migration-proposal/test/evidence updates.
+# PASS after final local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 15:02 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout is now four Linear-mirror commits ahead at `cd47956`, `c459a00`, `0e3a114`, and `016315d` (all `chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: pre-evidence `git diff --check`, `npm run type-check`, `npm run security:routes-check`, and final post-append `git diff --check`.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commits `cd47956`, `c459a00`, `0e3a114`, and `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git log --oneline origin/margot/react-19-next-16-migration..HEAD
+# PASS: cd47956, c459a00, 0e3a114, and 016315d are local-only Linear mirror commits ahead of the PR head.
+
+git diff --check
+# PASS before evidence append.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after final local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 14:27 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout is now three Linear-mirror commits ahead at `c459a00`, `0e3a114`, and `016315d` (all `chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: pre-evidence `git diff --check`, `npm run type-check`, `npm run security:routes-check`, and final post-append `git diff --check`.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commits `c459a00`, `0e3a114`, and `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git log --oneline origin/margot/react-19-next-16-migration..HEAD
+# PASS: c459a00, 0e3a114, and 016315d are local-only Linear mirror commits ahead of the PR head.
+
+git diff --check
+# PASS before evidence append.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after final local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 13:52 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout is now two Linear-mirror commits ahead at `0e3a114` and `016315d` (both `chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: `npm run type-check`, `npm run security:routes-check`, and final post-append `git diff --check`.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commits `0e3a114` and `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git log --oneline origin/margot/react-19-next-16-migration..HEAD
+# PASS: 0e3a114 and 016315d are local-only Linear mirror commits ahead of the PR head.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after final local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 13:18 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains one commit ahead at `016315d` (`chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh before the evidence append: `npm run type-check` and `npm run security:routes-check`; final post-append `git diff --check` is recorded below after this report update.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commit `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git log --oneline origin/margot/react-19-next-16-migration..HEAD
+# PASS: 016315d chore: auto-sync Linear mirror [linear-watch-today.md] is local-only ahead of the PR head.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after final local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 12:44 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains one commit ahead at `016315d` (`chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: `npm run type-check`, `npm run security:routes-check`, and final post-append `git diff --check`.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commit `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git log --oneline origin/margot/react-19-next-16-migration..HEAD
+# PASS: 016315d chore: auto-sync Linear mirror [linear-watch-today.md] is local-only ahead of the PR head.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after final local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 12:10 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains one commit ahead at `016315d` (`chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: `npm run type-check`, `npm run security:routes-check`, and final post-append `git diff --check`.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commit `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git log --oneline origin/margot/react-19-next-16-migration..HEAD
+# PASS: 016315d chore: auto-sync Linear mirror [linear-watch-today.md] is local-only ahead of the PR head.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after final local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 11:35 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains one commit ahead at `016315d` (`chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: `npm run type-check`, `npm run security:routes-check`, and final post-append `git diff --check`.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commit `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git log --oneline origin/margot/react-19-next-16-migration..HEAD
+# PASS: 016315d chore: auto-sync Linear mirror [linear-watch-today.md] is local-only ahead of the PR head.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after final local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 11:00 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains one commit ahead at `016315d` (`chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: `npm run type-check`, `npm run security:routes-check`, and final post-append `git diff --check`.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commit `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git log --oneline origin/margot/react-19-next-16-migration..HEAD
+# PASS: 016315d chore: auto-sync Linear mirror [linear-watch-today.md] is local-only ahead of the PR head.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after final local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 10:26 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout remains one commit ahead at `016315d` (`chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: `npm run type-check`, `npm run security:routes-check`, and final post-append `git diff --check`.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commit `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git log --oneline origin/margot/react-19-next-16-migration..HEAD
+# PASS: 016315d chore: auto-sync Linear mirror [linear-watch-today.md] is local-only ahead of the PR head.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after final local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 09:51 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Remote PR head remains `a1951bda0b361708a0106dc02539337c2b57af65`; local checkout is one commit ahead at `016315d` (`chore: auto-sync Linear mirror [linear-watch-today.md]`) with additional uncommitted evidence/status doc edits.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: `npm run type-check`, `npm run security:routes-check`, and final post-append `git diff --check`.
+- Dirty/local-only path groups are `docs/margot/linear-watch-today.md` via local ahead commit `016315d`, plus uncommitted evidence/status docs `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, remote headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+git log --oneline origin/margot/react-19-next-16-migration..HEAD
+# PASS: 016315d chore: auto-sync Linear mirror [linear-watch-today.md] is local-only ahead of the PR head.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after final local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. Keep local-only Linear/evidence updates out of the pushed PR unless explicitly approved or safely separated. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 09:15 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration` at pushed head `a1951bda0b361708a0106dc02539337c2b57af65`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: `npm run type-check`, `npm run security:routes-check`, and final post-append `git diff --check`.
+- Dirty path groups remain local-only evidence/status docs: `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after final local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 08:42 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration` at pushed head `a1951bda0b361708a0106dc02539337c2b57af65`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: `npm run type-check`, `npm run security:routes-check`, and final post-append `git diff --check`.
+- Dirty path groups remain local-only evidence/status docs: `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after final local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 08:08 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration` at pushed head `a1951bda0b361708a0106dc02539337c2b57af65`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: `npm run type-check`, `npm run security:routes-check`, and final post-append `git diff --check`.
+- Dirty path groups remain local-only evidence/status docs: `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after final local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 07:35 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration` at pushed head `a1951bda0b361708a0106dc02539337c2b57af65`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: `npm run type-check`, `npm run security:routes-check`, and final post-append `git diff --check`.
+- Dirty path groups remain local-only evidence/status docs: `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after final local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 07:01 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration` at pushed head `a1951bda0b361708a0106dc02539337c2b57af65`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: `npm run type-check`, `npm run security:routes-check`, pre-append `git diff --check`, and final post-append `git diff --check`.
+- Dirty path groups remain local-only evidence/status docs: `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after final local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 06:27 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration` at pushed head `a1951bda0b361708a0106dc02539337c2b57af65`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: `npm run type-check`, `npm run security:routes-check`, pre-append `git diff --check`, and final post-append `git diff --check`.
+- Dirty path groups remain local-only evidence/status docs: `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after final local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 05:52 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration` at pushed head `a1951bda0b361708a0106dc02539337c2b57af65`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: `npm run type-check`, `npm run security:routes-check`, pre-append `git diff --check`, and final post-append `git diff --check`.
+- Dirty path groups remain local-only evidence/status docs: `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after final local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 05:14 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration` at pushed head `a1951bda0b361708a0106dc02539337c2b57af65`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: `npm run type-check`, `npm run security:routes-check`, and final post-append `git diff --check`.
+- Dirty path groups remain local-only evidence/status docs: `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after final local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 04:40 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration` at pushed head `a1951bda0b361708a0106dc02539337c2b57af65`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: `npm run type-check`, `npm run security:routes-check`, and final post-append `git diff --check`.
+- Dirty path groups remain local-only evidence/status docs: `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after final local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 04:06 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration` at pushed head `a1951bda0b361708a0106dc02539337c2b57af65`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: `npm run type-check`, `npm run security:routes-check`, and final post-append `git diff --check`.
+- Dirty path groups remain local-only evidence/status docs: `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after final local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 03:29 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration` at pushed head `a1951bda0b361708a0106dc02539337c2b57af65`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: `npm run type-check`, `npm run security:routes-check`, and final post-append `git diff --check`.
+- Dirty path groups remain local-only evidence/status docs: `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after final local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 02:54 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration` at pushed head `a1951bda0b361708a0106dc02539337c2b57af65`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: `npm run type-check`, `npm run security:routes-check`, and final post-append `git diff --check`.
+- Dirty path groups remain local-only evidence/status docs: `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after final local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 02:18 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration` at pushed head `a1951bda0b361708a0106dc02539337c2b57af65`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: `npm run type-check`, `npm run security:routes-check`, and final post-append `git diff --check`.
+- Dirty path groups remain local-only evidence/status docs: `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after final local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 01:45 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration` at pushed head `a1951bda0b361708a0106dc02539337c2b57af65`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed for this status refresh: `npm run type-check` and `npm run security:routes-check`; `git diff --check` is rerun after this evidence append before final reporting.
+- Dirty path groups remain local-only evidence/status docs: `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after final local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 01:11 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration` at pushed head `a1951bda0b361708a0106dc02539337c2b57af65`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed after this status refresh: `npm run type-check`, `npm run security:routes-check`, and `git diff --check`.
+- Dirty path groups remain local-only evidence/status docs: `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 00:37 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration` at pushed head `a1951bda0b361708a0106dc02539337c2b57af65`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state remains `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed after this status refresh: `npm run type-check`, `npm run security:routes-check`, and `git diff --check`.
+- Dirty path groups remain local-only evidence/status docs: `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-06-01 00:03 AEST
+
+### PR #215 frozen-lane health/evidence refresh
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration` at pushed head `a1951bda0b361708a0106dc02539337c2b57af65`; GitHub auth worked for `CleanExpo` without token values printed.
+- Source implementation stayed frozen because the PR is already green/mergeable and branch-policy/review blocked. Structured PR state: `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 215 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- Local evidence/read-back gates passed after this status refresh: `npm run type-check`, `npm run security:routes-check`, and `git diff --check`.
+- Dirty path groups are local-only evidence/status docs: `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`. No source/test files were changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh pr view 215 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, headRefOid a1951bda0b361708a0106dc02539337c2b57af65, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 215 --watch=false
+# PASS: all observed contexts pass, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS after local-only evidence/status updates.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get the required non-author review/branch-policy clearance on PR #215, then merge only if the green check state still holds. After PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
+
+## 2026-05-31 23:22 AEST
+
+### PR #215 Production build recovery — receipt rendering / Telegram callback trace
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration`; GitHub auth worked for `CleanExpo` without token values printed. Remote PR head before this fix was `4c28b59fea9674262b2c9649cfef0d603ecd7c3d` and `CI Gate (type-check, lint, test, build)` was failing from the Production build step.
+- Slice completed, committed, and pushed as `a1951bd` (`fix(build): avoid receipt route server render tracing`): removed the route-imported `react-dom/server` / `renderToString` dependency from `src/lib/email/receipt-template.tsx`, replaced receipt HTML rendering with escaped static HTML, removed the now-dead `ReceiptEmail` JSX component/style object, and added regression coverage in `src/lib/email/__tests__/receipt-template.test.ts`.
+- Also tightened `src/app/api/telegram/approval-callback/route.ts` default local docs paths from `path.resolve(process.cwd(), 'docs/...')` to statically scoped `path.join(process.cwd(), 'docs', 'margot', ...)`, with regression coverage in `tests/unit/app/api/telegram/approval-callback.test.ts`.
+- Local `npm run build` exits 0. It still prints a nonfatal Turbopack NFT warning for `next.config.js` → `src/app/api/telegram/approval-callback/route.ts`, plus existing local missing-env/Sentry-token warnings; the prior build failure is no longer reproduced locally.
+- Post-push PR checks for head `a1951bda0b361708a0106dc02539337c2b57af65` are green: `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks, Chief Reviewer final verdict, CodeRabbit, and GitHub-observed `Vercel – unite-group` / `Vercel – unite-group-sandbox` status contexts all report SUCCESS. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- PR #215 remains open and `MERGEABLE` but `BLOCKED` with `reviewDecision=REVIEW_REQUIRED`; it was not merged.
+- Review loop completed: spec review PASS; quality review first requested dead-code cleanup, then narrow re-review APPROVED after removing `ReceiptEmail`/`S`/React import. No production DB write, Supabase migration, Vercel env mutation/manual deploy, client-facing action, billing/payment action, destructive git, cross-client merge, new vendor/account setup, or secret printing/storage occurred.
+
+Changed in this checkpoint:
+
+- `src/lib/email/receipt-template.tsx` — removes route-visible `react-dom/server` rendering and dead JSX component; renders escaped static receipt HTML.
+- `src/lib/email/__tests__/receipt-template.test.ts` — new RED/GREEN regression for no `react-dom/server` / no `renderToString` plus escaped customer markup.
+- `src/app/api/telegram/approval-callback/route.ts` — statically scopes fallback approval-gate/ledger paths under `docs/margot`.
+- `tests/unit/app/api/telegram/approval-callback.test.ts` — regression for statically scoped default paths.
+- `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md` — evidence/status refresh for this cron tick.
+
+Verification:
+
+```bash
+npx jest --runTestsByPath src/lib/email/__tests__/receipt-template.test.ts --runInBand
+# RED before implementation: 2 failures (react-dom/server/renderToString present; React rendering split the payment marker). GREEN after implementation: PASS, 2 tests.
+
+npx jest --runTestsByPath tests/unit/app/api/telegram/approval-callback.test.ts --runInBand
+# RED before path fix: source-regression test failed on path.resolve(process.cwd()). GREEN after fix: PASS, 4 tests.
+
+npx jest --runTestsByPath tests/unit/app/api/telegram/approval-callback.test.ts src/lib/email/__tests__/receipt-template.test.ts --runInBand
+# PASS: 2 suites / 6 tests.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm run build
+# PASS exit 0; nonfatal Turbopack NFT warning remains for approval-callback/next.config plus local missing-env/Sentry-token warnings.
+
+npm run lint
+# PASS exit 0; existing warnings only.
+
+bash .github/scripts/design-md-lint.sh
+# PASS; 34 existing icon-library imports within baseline of 34.
+
+npm run test:all
+# PASS: 143 passed, 1 skipped; 1108 passed, 1 skipped tests.
+
+git diff --check
+# PASS before this evidence append.
+```
+
+PR/Git state:
+
+- PR #215 is open and `MERGEABLE` but `BLOCKED` with `reviewDecision=REVIEW_REQUIRED` at pushed head `a1951bda0b361708a0106dc02539337c2b57af65`. Post-push checks are green: `CI Gate (type-check, lint, test, build)`, Review Board/DESIGN.md lint, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox` all report SUCCESS. These Vercel observations are status checks only; no manual deploy or env mutation occurred.
+- This post-push evidence refresh in `docs/margot/overnight-progress-log.md` and `docs/margot/morning-report.md` is local-only to avoid restarting checks; the pushed commit already contains the build recovery and earlier evidence snapshot.
+- Next action: get the required non-author review/branch-policy clearance, then merge only if the green check state still holds.
+
+## 2026-05-31 22:23 AEST
+
+### PR #215 React/Next migration design-lint recovery
+
+Current checkpoint:
+
+- Preflight continued open PR #215 (`https://github.com/CleanExpo/Unite-Group/pull/215`) on branch `margot/react-19-next-16-migration` for `CleanExpo/Unite-Group`; GitHub auth worked for `CleanExpo` without token values printed.
+- Initial PR head `3768862` had `Validate .claude/DESIGN.md` failing because the pricing page added two net-new `lucide-react` imports above the baseline (`src/components/pricing/PricingCards.tsx` and `src/components/pricing/FeatureComparison.tsx`).
+- Slice completed: commit `bc6911f` (`fix: use custom pricing marks`) replaced the pricing-page Check/X icon imports with internal `SuccessMark`/`AlertMark` components from `src/components/ui/marks.tsx`, pushed to `origin/margot/react-19-next-16-migration`, and preserved the active PR lane instead of starting unrelated CRM work.
+- Post-push PR head `bc6911fa343e7c1f5d7622f71125b2bbf9361513` has all observed GitHub checks/status contexts green, including `Validate .claude/DESIGN.md`, `TypeScript`, `Unit + Integration Tests`, `Pipeline Smoke Tests`, `JSON-LD Schema Validation`, `Supabase Schema Drift`, `npm audit (high+)`, Review Board specialist checks, Chief Reviewer final verdict, CodeRabbit, and the GitHub-observed `Vercel – unite-group` / `Vercel – unite-group-sandbox` status contexts. Vercel evidence is status-check observation only, not a manual deploy or env mutation.
+- PR #215 is still `MERGEABLE` but `BLOCKED` with `reviewDecision=REVIEW_REQUIRED`; it was not merged.
+- Evidence docs updated after the pushed fix are local-only (`docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`) so they do not restart PR checks. Final worktree read-back also shows inherited/concurrent uncommitted React/SSR hydration-related source changes outside this tick's pushed commit (`hooks/use-mobile.ts`, `hooks/use-mobile.tsx`, `src/hooks/use-mobile.ts`, `src/components/ui/use-mobile.tsx`, and multiple `src/app/**` / UI component files); those dirty files were not committed, pushed, merged, or claimed as reviewed here.
+
+Changed in this checkpoint:
+
+- `src/components/pricing/PricingCards.tsx` — replaces the feature-list `lucide-react` Check import with `SuccessMark` from the internal mark system.
+- `src/components/pricing/FeatureComparison.tsx` — replaces comparison-cell Check/X imports with `SuccessMark`/`AlertMark` from the internal mark system.
+- `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md` — local-only evidence/status refresh for this cron tick.
+
+Verification:
+
+```bash
+bash .github/scripts/design-md-lint.sh
+# RED before fix: FAIL, net-new icon-library imports Current 36 vs Baseline 34.
+# GREEN after fix: PASS, 34 existing icon-library imports within baseline of 34.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS before commit/push and again after local-only evidence/status updates.
+
+gh pr checks 215 --watch --interval 10
+# PASS after push: all observed GitHub checks/status contexts green for head bc6911f, including Vercel status contexts.
+
+gh pr view 215 --json number,state,url,headRefOid,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS: state OPEN, headRefOid bc6911fa343e7c1f5d7622f71125b2bbf9361513, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
 ```
 
 Review:
 
 - Spec review: PASS.
-- Quality review: APPROVED with only non-blocking minor test-hardening suggestions.
+- Quality review: APPROVED with only minor pre-existing/accessibility design notes on generic mark semantics.
 
 Safety:
 
@@ -40,43 +2850,7 @@ Safety:
 
 Next safe slice:
 
-- Commit and push only the migration-proposal/test/Margot evidence paths on `margot/tasks-voice-schema-proposal`, open a PR if the worktree can be isolated cleanly, then apply the proposal to the sandbox with `scripts/sandbox-wizard.sh apply <file>` only after sandbox prerequisites are available; do not promote to production without fresh Board approval.
-
-## 2026-05-31 11:36 AEST
-
-### PR #213 merge and post-merge verification for Business 360/read-client-activity regressions
-
-Current checkpoint:
-
-- PR #213 (`https://github.com/CleanExpo/Unite-Group/pull/213`) merged into `main` at `38f3b8f928f93e8e7a6acf84af3fb2612210d21e`; local checkout fast-forwarded to `main` at `38f3b8f`.
-- PR checks passed before merge: CI, Review Board specialist checks, Chief Reviewer, CodeRabbit, Supabase Schema Drift, npm audit, DESIGN.md lint, and GitHub-triggered Vercel status contexts `Vercel – unite-group` / `Vercel – unite-group-sandbox`.
-- Post-merge `main` CI run `26700100973` passed, DESIGN.md lint run `26700100972` passed, and GitHub commit status for `38f3b8f` is success with `Vercel – unite-group` and `Vercel – unite-group-sandbox` both succeeded. These Vercel observations are status checks only; no manual Vercel deploy/env mutation occurred.
-- The merged slice remains test/mock/doc only: query-shape regressions now pin Business 360/read-client-activity service-role reads before broader client dashboard changes or `nexus_clients` conversion work.
-- This post-merge evidence update is local-only and intentionally not opened as another evidence PR.
-
-Verification:
-
-```bash
-gh pr checks 213 --watch --interval 10
-# PASS: all PR checks/status contexts succeeded; CodeRabbit reported success/review skipped.
-
-gh pr view 213 --json state,mergedAt,mergeCommit,url
-# PASS: state MERGED, merge commit 38f3b8f928f93e8e7a6acf84af3fb2612210d21e.
-
-gh run watch 26700100973 --interval 10 --exit-status
-# PASS: post-merge main CI completed successfully.
-
-gh api repos/CleanExpo/Unite-Group/commits/38f3b8f928f93e8e7a6acf84af3fb2612210d21e/status
-# PASS: overall state success; Vercel – unite-group and Vercel – unite-group-sandbox both succeeded.
-```
-
-Safety:
-
-- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, Synthex/CMS/social scheduling, public publishing, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
-
-Next safe slice:
-
-- Recover original migrations or reconstruct sandbox-only migration proposals for `tasks` and `voice_command_sessions`; keep sandbox-first handling and no production schema writes without fresh Board approval.
+- Wait for required non-author review / branch-policy clearance on PR #215, then merge only if the green check state still holds; after PR #215 is resolved, resume the CRM backlog by recovering original migrations or reconstructing sandbox-only migration proposals for `tasks` and `voice_command_sessions` under the sandbox-first rule.
 
 ## 2026-05-31 11:21 AEST
 

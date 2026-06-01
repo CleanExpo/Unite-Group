@@ -51,6 +51,7 @@ export function TelegramFeed() {
     }
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- async data fetch with interval, setState is in Promise callbacks
   useEffect(() => {
     fetchMessages();
     const interval = setInterval(fetchMessages, 15_000);

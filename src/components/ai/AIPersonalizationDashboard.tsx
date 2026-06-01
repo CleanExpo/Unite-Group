@@ -71,7 +71,7 @@ interface AIModelStatus {
   version: string;
 }
 
-const AIPersonalizationDashboard: React.FC = () => {
+const AIPersonalizationDashboard = () => {
   const [insights, setInsights] = useState<AIInsight[]>([]);
   const [recommendations, setRecommendations] = useState<ContentRecommendation[]>([]);
   const [metrics, setMetrics] = useState<PersonalizationMetrics>({
@@ -85,10 +85,7 @@ const AIPersonalizationDashboard: React.FC = () => {
   const [modelStatus, setModelStatus] = useState<AIModelStatus[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchAIData();
-  }, []);
-
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- mock data fetchers are stable, only run on mount
   const fetchAIData = async () => {
     try {
       setLoading(true);
@@ -111,6 +108,10 @@ const AIPersonalizationDashboard: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchAIData();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- only run on mount
 
   // Mock data functions - in production, these would be real API calls
   const fetchInsights = async (): Promise<AIInsight[]> => {

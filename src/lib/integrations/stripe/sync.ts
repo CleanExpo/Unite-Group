@@ -9,7 +9,7 @@ import { getAdminClient } from "@/lib/supabase/admin";
 function getStripeClient(): Stripe {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) throw new Error("STRIPE_SECRET_KEY missing");
-  return new Stripe(key, { apiVersion: "2026-04-22.dahlia" });
+  return new Stripe(key, { apiVersion: "2026-05-27.dahlia" });
 }
 
 export async function syncStripe(): Promise<{

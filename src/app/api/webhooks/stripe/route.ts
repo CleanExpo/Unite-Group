@@ -7,6 +7,7 @@
 //   - invoice.paid                   → milestone invoice payment cleared
 //   - charge.succeeded               → general charge success (fallback)
 //   - invoice.payment_failed         → milestone payment failed
+//   - invoice.payment_succeeded      → branded receipt email generation
 //
 // On a successful Duncan deposit → updates nexus_clients.status to 'active'
 // and enqueues the Hour-1 portal provisioning task in stripe_events.
@@ -18,6 +19,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { safeError } from '@/lib/safeError';
+import { handleInvoicePaymentSucceeded } from './receipt-handler';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';            // crypto verify needs Node runtime
@@ -88,6 +90,10 @@ export async function POST(request: NextRequest) {
         break;
       case 'invoice.payment_failed':
         await handleInvoiceFailed(event.data.object as Stripe.Invoice, admin);
+        break;
+      case 'invoice.payment_succeeded':
+        // Send branded receipt email (idempotent — skips if already sent)
+        await handleInvoicePaymentSucceeded(event.data.object as Stripe.Invoice, admin);
         break;
       default:
         // Other event types are persisted but not actively dispatched.

@@ -18,7 +18,13 @@ import {
 } from "@/components/ui/spotlight-card";
 import { ShowcaseCard } from "@/components/ui/showcase-card";
 import { GithubCalendar } from "@/components/ui/github-calendar";
-import { Search, Users, ClipboardList, Cpu, Rocket } from "lucide-react";
+import {
+  AutoMark,
+  BranchMark,
+  CheckSquareMark,
+  SearchMark,
+  UsersMark,
+} from "@/components/ui/marks";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -520,11 +526,11 @@ function BusinessHealthCardSkeleton() {
 // ─── Pipeline Circuit (CircuitBoard) ─────────────────────────────────────────
 
 const PIPELINE_STAGE_ICONS: Record<string, React.ReactNode> = {
-  margot: <Search size={16} strokeWidth={1.75} />,
-  board: <Users size={16} strokeWidth={1.75} />,
-  pm: <ClipboardList size={16} strokeWidth={1.75} />,
-  orchestrator: <Cpu size={16} strokeWidth={1.75} />,
-  deployed: <Rocket size={16} strokeWidth={1.75} />,
+  margot: <SearchMark size={16} />,
+  board: <UsersMark size={16} />,
+  pm: <CheckSquareMark size={16} />,
+  orchestrator: <AutoMark size={16} />,
+  deployed: <BranchMark size={16} />,
 };
 
 function PipelineCircuit({ stages }: { stages: PipelineStage[] }) {
@@ -540,7 +546,7 @@ function PipelineCircuit({ stages }: { stages: PipelineStage[] }) {
     x: padX + stepX * i,
     y,
     label: `${s.label} · ${s.count}`,
-    icon: PIPELINE_STAGE_ICONS[s.id] ?? <Cpu size={16} strokeWidth={1.75} />,
+    icon: PIPELINE_STAGE_ICONS[s.id] ?? <AutoMark size={16} />,
     status: s.active ? "processing" : s.count > 0 ? "active" : "inactive",
     size: "md",
   }));
@@ -664,6 +670,7 @@ export default function EmpireCommandCenter() {
   }, [router, locale]);
 
   // On auth resolved: fetch all three endpoints
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- async data fetches, setState is in Promise callbacks
   useEffect(() => {
     if (checking) return;
 

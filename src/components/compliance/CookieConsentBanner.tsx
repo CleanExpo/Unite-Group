@@ -26,6 +26,7 @@ export default function CookieConsentBanner({
   const [sessionId, setSessionId] = useState<string>('');
 
   // Generate a session ID if one doesn't exist
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- sync external localStorage with state
   useEffect(() => {
     const existingSessionId = localStorage.getItem('sessionId');
     if (existingSessionId) {

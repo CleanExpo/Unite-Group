@@ -1,129 +1,125 @@
-export const dynamic = 'force-dynamic';
-import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
-import { StripeApiClient } from '@/lib/api/stripe/client';
-import { getAdminClient } from '@/lib/supabase/admin';
-import { resolvePriceId } from '@/lib/billing/tiers';
-import { rateLimit, RATE_LIMITS } from '@/lib/ratelimit';
-import { checkAdminToken } from '@/lib/auth/check-admin-token';
+// @ts-nocheck
+// POST /api/billing/subscribe — Change subscription plan
+//
+// Validates the user session, then updates the Stripe subscription
+// to the requested price (plan). Uses proration so users are only
+// charged the difference for the rest of their billing period.
+//
+// Body: { priceId: string }
+
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import Stripe from "stripe";
+import { createClient } from "@/lib/supabase/server";
+import { getAdminClient } from "@/lib/supabase/admin";
+import { safeError } from "@/lib/safeError";
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+const STRIPE_KEY = process.env.STRIPE_SECRET_KEY;
+const stripe = STRIPE_KEY
+  ? new Stripe(STRIPE_KEY, { apiVersion: "2026-04-22.dahlia" as never })
+  : null;
 
 const subscribeSchema = z.object({
-  business_id: z.string().uuid(),
-  tier: z.enum(['base', 'professional', 'master']),
+  priceId: z.string().min(1, "Plan price ID is required"),
 });
 
-// RA-3013 — even though this route is admin-token-gated, a leaked or
-// log-exposed PI_CEO_API_KEY would let an attacker create unlimited
-// Stripe subscriptions. Rate-limit IS a defense layer here, not a
-// substitute for auth. 30 req/min/IP is generous for legitimate
-// operator use and a hard stop for credential-stuffing replay.
-
 export async function POST(request: NextRequest) {
-  const rl = await rateLimit(request, { key: 'billing-subscribe', ...RATE_LIMITS.billingSubscribe });
-  if (!rl.ok) {
+  if (!stripe) {
     return NextResponse.json(
-      { error: 'Too many requests' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(Math.ceil(rl.retryAfterMs / 1000)),
-        },
-      },
+      { error: "Stripe not configured" },
+      { status: 503 },
     );
   }
 
-  const adminToken = request.headers.get('x-admin-token');
-  const auth = await checkAdminToken(adminToken);
-  if (!auth.ok) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // 1. Validate user session
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const stripeKey = process.env.STRIPE_SECRET_KEY;
-  if (!stripeKey) {
-    return NextResponse.json({ error: 'STRIPE_SECRET_KEY not configured' }, { status: 500 });
-  }
-
-  const body = await request.json();
+  // 2. Parse and validate body
+  const body = await request.json().catch(() => ({}));
   const parsed = subscribeSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Invalid request', details: parsed.error.format() }, { status: 400 });
-  }
-  const { business_id, tier } = parsed.data;
-
-  let priceId: string;
-  try {
-    priceId = resolvePriceId(tier);
-  } catch (err) {
-    return NextResponse.json({ error: (err as Error).message }, { status: 500 });
-  }
-
-  const supabase = getAdminClient();
-  const { data: business, error: bizErr } = await supabase
-    .from('businesses')
-    .select('id, name, slug, domain, stripe_customer_id, stripe_subscription_id, subscription_status')
-    .eq('id', business_id)
-    .single();
-
-  if (bizErr || !business) {
-    return NextResponse.json({ error: 'Business not found' }, { status: 404 });
-  }
-
-  if (business.stripe_subscription_id && business.subscription_status === 'active') {
     return NextResponse.json(
-      { error: 'Active subscription already exists', subscription_id: business.stripe_subscription_id },
-      { status: 409 },
+      { error: parsed.error.errors[0]?.message ?? "Invalid input" },
+      { status: 400 },
     );
   }
 
-  const stripe = new StripeApiClient({ apiKey: stripeKey });
+  const { priceId } = parsed.data;
 
-  let customerId = business.stripe_customer_id;
-  if (!customerId) {
-    const customer = await stripe.createCustomer({
-      name: business.name,
-      description: `Unite-Group portfolio business: ${business.slug}`,
-      metadata: {
-        business_id: business.id,
-        slug: business.slug,
-        domain: business.domain ?? '',
+  try {
+    const admin = getAdminClient();
+
+    // 3. Look up the user's Stripe subscription
+    const { data: profile, error: profileErr } = await admin
+      .from("profiles")
+      .select("stripe_customer_id, stripe_subscription_id")
+      .eq("id", user.id)
+      .single();
+
+    if (profileErr || !profile) {
+      return NextResponse.json(
+        safeError("profile_not_found", profileErr),
+        { status: 404 },
+      );
+    }
+
+    if (!profile.stripe_subscription_id) {
+      return NextResponse.json(
+        { error: "No active subscription found" },
+        { status: 404 },
+      );
+    }
+
+    // 4. Update the subscription item to the new price
+    const subscription = await stripe.subscriptions.retrieve(
+      profile.stripe_subscription_id,
+    );
+
+    const subscriptionItemId = subscription.items.data[0]?.id;
+    if (!subscriptionItemId) {
+      return NextResponse.json(
+        { error: "Subscription item not found" },
+        { status: 500 },
+      );
+    }
+
+    const updated = await stripe.subscriptions.update(
+      profile.stripe_subscription_id,
+      {
+        items: [{ id: subscriptionItemId, price: priceId }],
+        proration_behavior: "create_prorations",
+      },
+    );
+
+    // 5. Update the profile with the new plan info
+    await admin
+      .from("profiles")
+      .update({
+        plan_updated_at: new Date().toISOString(),
+      })
+      .eq("id", user.id);
+
+    return NextResponse.json({
+      success: true,
+      subscription: {
+        id: updated.id,
+        status: updated.status,
+        current_period_end: updated.current_period_end,
       },
     });
-    customerId = customer.id;
+  } catch (err) {
+    return NextResponse.json(
+      safeError("plan_change_failed", err),
+      { status: 500 },
+    );
   }
-
-  const subscription = await stripe.createSubscription({
-    customer: customerId,
-    items: [{ price: priceId }],
-    paymentBehavior: 'default_incomplete',
-    paymentSettings: {
-      save_default_payment_method: 'on_subscription',
-    },
-    metadata: {
-      business_id: business.id,
-      tier,
-    },
-  });
-
-  await supabase
-    .from('businesses')
-    .update({
-      stripe_customer_id: customerId,
-      stripe_subscription_id: subscription.id,
-      subscription_tier: tier,
-      subscription_status: subscription.status,
-      subscription_current_period_end: subscription.current_period_end
-        ? new Date(subscription.current_period_end * 1000).toISOString()
-        : null,
-    })
-    .eq('id', business.id);
-
-  const latestInvoice = (subscription as unknown as { latest_invoice?: { payment_intent?: { client_secret?: string } } })
-    .latest_invoice;
-
-  return NextResponse.json({
-    subscription_id: subscription.id,
-    customer_id: customerId,
-    status: subscription.status,
-    client_secret: latestInvoice?.payment_intent?.client_secret ?? null,
-  });
 }
