@@ -19,6 +19,7 @@ This document is the bridge plan.
 ## 2. PROJECT STATE — THE FULL SURVEY
 
 ### 2.1 Platform Foundation
+
 | Layer | Status | Evidence |
 |-------|--------|----------|
 | React / Next.js | ✅ Migrated | 19.2.6 / 16.2.6, Turbopack, all gates green |
@@ -31,6 +32,7 @@ This document is the bridge plan.
 | Backup/DR | 🟡 Foundation | 7 daily backups, PITR disabled, psql auth unresolved |
 
 ### 2.2 Product Surface
+
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Homepage | ✅ Live | Karen opener, hero, feature cards, SEO meta |
@@ -50,6 +52,7 @@ This document is the bridge plan.
 | **SaaS Terms of Service** | ❌ **MISSING** | Current /privacy page is generic, not SaaS-specific |
 
 ### 2.3 Revenue & Clients
+
 | Client | Status | Revenue Model |
 |--------|--------|--------------|
 | CCW Carpet Cleaning | 🟢 Active | Retainer + portal access |
@@ -60,6 +63,7 @@ This document is the bridge plan.
 **Estimate MRR:** ~$8,250+ AUD (3 clients × $2,750 base)
 
 ### 2.4 Marketing & SEO
+
 | Component | Status |
 |-----------|--------|
 | SEO meta (OpenGraph, Twitter, canonical) | ✅ Every page |

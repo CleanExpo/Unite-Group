@@ -97,7 +97,17 @@ export async function POST(request: NextRequest) {
 
     if (profileError) {
       console.error('register: profile insert failed:', profileError.message);
-      // User is already created; don't fail the whole flow — profile can be retried
+      // Roll back the auth user so we don't leave an orphaned auth record
+      try {
+        await admin.auth.admin.deleteUser(userId);
+        console.log('register: rolled back auth user', userId);
+      } catch (rollbackErr) {
+        console.error('register: failed to roll back auth user', userId, rollbackErr);
+      }
+      return NextResponse.json(
+        { error: 'Account creation failed. Please try again.' },
+        { status: 500 },
+      );
     }
 
     // Sign the user in so session cookies are set via SSR client

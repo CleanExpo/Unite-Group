@@ -29,6 +29,7 @@ revenue, not a software product ready for market sale.**
 ## 2. WHAT EXISTS — COMPREHENSIVE INVENTORY
 
 ### 2.1 Codebase Scale
+
 | Metric | Count |
 |--------|-------|
 | Route files (.tsx/.ts pages) | 215 |
@@ -44,6 +45,7 @@ revenue, not a software product ready for market sale.**
 | Active Git branches | 140+ |
 
 ### 2.2 Active Client Portals (Verified Revenue Touchpoints)
+
 | Client | Portal Path | Status | Evidence |
 |--------|-------------|--------|----------|
 | **CCW Carpet Cleaning** | `/clients/ccw` | Active | Dedicated page, SEO content, IICRC certification |
@@ -114,6 +116,7 @@ revenue, not a software product ready for market sale.**
 - **Status:** Most integrations operational, some stale references cleaned
 
 ### 2.4 Infrastructure
+
 | Component | Status |
 |-----------|--------|
 | Vercel deployment | Active (https://unite-group.vercel.app) |

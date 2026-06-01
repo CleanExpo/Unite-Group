@@ -5,7 +5,7 @@
 
 import Link from 'next/link';
 
-export function Hero() {
+export function Hero({ locale }: { locale: string }) {
   return (
     <section
       style={{
@@ -63,7 +63,7 @@ export function Hero() {
         </p>
         <div style={{ marginTop: 32, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
           <Link
-            href="/en/register"
+            href={`/${locale}/register`}
             style={{
               background: 'var(--red-500)',
               color: '#fff',
@@ -77,7 +77,7 @@ export function Hero() {
             Start free trial
           </Link>
           <Link
-            href="/en/services"
+            href={`/${locale}/services`}
             style={{
               border: '1px solid var(--border-default)',
               color: 'var(--ink-primary)',

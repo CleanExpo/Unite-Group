@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use client";
 
 import { useState, useCallback } from "react";
@@ -283,7 +282,7 @@ export default function Register() {
                 />
                 <span style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.5 }}>
                   I agree to the{" "}
-                  <Link href={`/${locale}/privacy`} style={{ color: "var(--red-400)", textDecoration: "none" }}>
+                  <Link href={`/${locale}/terms`} style={{ color: "var(--red-400)", textDecoration: "none" }}>
                     Terms of Service
                   </Link>{" "}
                   and{" "}
