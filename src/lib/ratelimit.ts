@@ -86,5 +86,5 @@ export const RATE_LIMITS = {
   logoFetch:                  { limit: 5,  windowMs: 60_000 },  // SSRF-guarded outbound image fetch
   billingSubscribe:           { limit: 30, windowMs: 60_000 },  // admin-gated; rate-limit on top of admin auth
   onboardingCheckoutSession:  { limit: 5,  windowMs: 60_000 },  // public Stripe checkout creation
-  authRegister:               { limit: 5,  windowMs: 3_600_000 }, // public signup: 5 per IP per hour
+  authRegister:               { limit: 5,  windowMs: 60_000 }, // public signup: 5 per IP per ~60s
 } as const;

@@ -75,6 +75,7 @@ and test suite all pass. Dev server smoke-tested and verified.
 ## 3. TECHNICAL CHANGES SUMMARY
 
 ### Files Modified
+
 | File | Change |
 |------|--------|
 | `package.json` | React 19, Next.js 16, peer deps updated |
@@ -86,6 +87,7 @@ and test suite all pass. Dev server smoke-tested and verified.
 | `src/components/ai/AIGatewayDashboard.tsx` | React.FC removed |
 
 ### New Files
+
 | File | Purpose |
 |------|---------|
 | `package-lock.json.pre-migration.backup` | Rollback checkpoint |
