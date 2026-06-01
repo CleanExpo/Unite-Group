@@ -121,3 +121,25 @@ export interface MachineAssignment {
   reasons: string[]
   fallbackRoles: FounderDeviceRole[]
 }
+
+export type FounderRunQueueStatus = 'queued' | 'waiting_for_approval' | 'waiting_for_device' | 'in_progress' | 'blocked' | 'completed'
+
+export interface FounderRunQueueItem {
+  id: string
+  status: FounderRunQueueStatus
+  taskPacket: FounderTaskPacket
+  contextPack: FounderContextPack
+  machineAssignment: MachineAssignment
+  createdAt: string
+  updatedAt: string
+}
+
+export interface FounderRunQueueSummary {
+  total: number
+  queued: number
+  waitingForApproval: number
+  waitingForDevice: number
+  inProgress: number
+  blocked: number
+  completed: number
+}

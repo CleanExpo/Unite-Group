@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Card, { CardDescription, CardTitle } from '@/components/ui/card'
 import Button from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import type { FounderContextPack, FounderTaskPacket, MachineAssignment } from '@/lib/founder-os'
+import type { FounderRunQueueItem, FounderRunQueueSummary } from '@/lib/founder-os'
 
-interface PiRouteReceipt {
+interface PiQueueReceipt {
   id: string
   status: string
   generatedAt: string
@@ -15,12 +15,15 @@ interface PiRouteReceipt {
   nextRecommendedAction: string
 }
 
-interface PiRouteResponse {
-  taskPacket: FounderTaskPacket
-  contextPack: FounderContextPack
+interface PiRunQueueResponse {
+  queueItem: FounderRunQueueItem
   routingReasons: string[]
-  machineAssignment: MachineAssignment
-  receipt: PiRouteReceipt
+  receipt: PiQueueReceipt
+}
+
+interface PiRunQueueListResponse {
+  items: FounderRunQueueItem[]
+  summary: FounderRunQueueSummary
 }
 
 const EXAMPLE_MESSAGE =
@@ -28,16 +31,30 @@ const EXAMPLE_MESSAGE =
 
 export function PiRouterPanel() {
   const [message, setMessage] = useState(EXAMPLE_MESSAGE)
-  const [result, setResult] = useState<PiRouteResponse | null>(null)
+  const [result, setResult] = useState<PiRunQueueResponse | null>(null)
+  const [queueItems, setQueueItems] = useState<FounderRunQueueItem[]>([])
+  const [summary, setSummary] = useState<FounderRunQueueSummary | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isRouting, setIsRouting] = useState(false)
+
+  useEffect(() => {
+    void loadQueue()
+  }, [])
+
+  async function loadQueue() {
+    const response = await fetch('/api/pi/run-queue')
+    if (!response.ok) return
+    const body = (await response.json()) as PiRunQueueListResponse
+    setQueueItems(body.items)
+    setSummary(body.summary)
+  }
 
   async function routeMessage() {
     setIsRouting(true)
     setError(null)
 
     try {
-      const response = await fetch('/api/pi/route', {
+      const response = await fetch('/api/pi/run-queue', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ message }),
@@ -49,6 +66,7 @@ export function PiRouterPanel() {
       }
 
       setResult(body)
+      await loadQueue()
     } catch (routeError) {
       setError(routeError instanceof Error ? routeError.message : 'Unable to route founder message')
     } finally {
@@ -56,13 +74,15 @@ export function PiRouterPanel() {
     }
   }
 
+  const activeItem = result?.queueItem
+
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
       <Card variant="bordered" padding="lg" className="space-y-5">
         <div>
           <CardTitle>Founder command intake</CardTitle>
           <CardDescription>
-            Type the non-coder instruction once. Pi converts it into a task packet, context pack, risk gate, agent lane, and machine assignment.
+            Type the non-coder instruction once. Pi converts it into a task packet, context pack, risk gate, agent lane, machine assignment, and queue item.
           </CardDescription>
         </div>
 
@@ -76,7 +96,7 @@ export function PiRouterPanel() {
 
         <div className="flex flex-wrap items-center gap-3">
           <Button onClick={routeMessage} loading={isRouting} disabled={!message.trim()}>
-            Route through Pi
+            Route + queue through Pi
           </Button>
           <span className="text-sm text-white/45">No execution starts here. This is the founder-safe routing gate.</span>
         </div>
@@ -86,32 +106,43 @@ export function PiRouterPanel() {
 
       <Card variant="bordered" padding="lg" className="space-y-4">
         <div>
-          <CardTitle>Senior-engineer guardrails</CardTitle>
-          <CardDescription>Every routed task must carry scope, tests, evidence, approval state, and a clear next action.</CardDescription>
+          <CardTitle>Run queue</CardTitle>
+          <CardDescription>Current Pi control tower state for routed tasks.</CardDescription>
         </div>
-        <ul className="space-y-3 text-sm text-white/65">
-          <li>1. Classify portfolio and lane before build.</li>
-          <li>2. Create durable context pack before execution.</li>
-          <li>3. Assign the correct machine for the work.</li>
-          <li>4. Gate high-risk/account/browser/finance work.</li>
-          <li>5. Finish evidence before starting the next build.</li>
-        </ul>
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <Metric label="Total" value={summary?.total ?? queueItems.length} />
+          <Metric label="Queued" value={summary?.queued ?? 0} />
+          <Metric label="Approval" value={summary?.waitingForApproval ?? 0} />
+          <Metric label="Waiting" value={summary?.waitingForDevice ?? 0} />
+        </div>
+        <div className="space-y-2">
+          {queueItems.slice(0, 5).map((item) => (
+            <div key={item.id} className="rounded-sm border border-white/[0.08] bg-white/[0.02] p-3">
+              <div className="flex items-center justify-between gap-3 text-xs text-white/45">
+                <span>{item.taskPacket.portfolioTarget}</span>
+                <span>{item.status}</span>
+              </div>
+              <div className="mt-1 text-sm text-white/75">{item.taskPacket.objective}</div>
+            </div>
+          ))}
+          {queueItems.length === 0 && <div className="text-sm text-white/45">No queued Pi tasks yet.</div>}
+        </div>
       </Card>
 
-      {result && (
+      {activeItem && result && (
         <div className="lg:col-span-2 grid gap-4 lg:grid-cols-3">
           <ResultCard title="Task packet">
-            <ResultRow label="Target" value={result.taskPacket.portfolioTarget} />
-            <ResultRow label="Lane" value={result.taskPacket.lane} />
-            <ResultRow label="Type" value={result.taskPacket.taskType} />
-            <ResultRow label="Risk" value={result.taskPacket.riskLevel} />
-            <ResultRow label="Agents" value={result.taskPacket.requiredAgents.join(', ')} />
+            <ResultRow label="Target" value={activeItem.taskPacket.portfolioTarget} />
+            <ResultRow label="Lane" value={activeItem.taskPacket.lane} />
+            <ResultRow label="Type" value={activeItem.taskPacket.taskType} />
+            <ResultRow label="Risk" value={activeItem.taskPacket.riskLevel} />
+            <ResultRow label="Agents" value={activeItem.taskPacket.requiredAgents.join(', ')} />
           </ResultCard>
 
           <ResultCard title="Machine assignment">
-            <ResultRow label="Status" value={result.machineAssignment.status} />
-            <ResultRow label="Device" value={result.machineAssignment.assignedDeviceName ?? 'Waiting'} />
-            <ResultRow label="Role" value={result.machineAssignment.assignedRole ?? 'Unassigned'} />
+            <ResultRow label="Queue" value={activeItem.status} />
+            <ResultRow label="Device" value={activeItem.machineAssignment.assignedDeviceName ?? 'Waiting'} />
+            <ResultRow label="Role" value={activeItem.machineAssignment.assignedRole ?? 'Unassigned'} />
             <ResultRow label="Approval" value={result.receipt.requiresHumanApproval ? 'Required' : 'Not required'} />
           </ResultCard>
 
@@ -122,9 +153,9 @@ export function PiRouterPanel() {
 
           <Card variant="bordered" padding="lg" className="lg:col-span-3">
             <CardTitle>Context pack</CardTitle>
-            <p className="mt-3 text-sm text-white/70">{result.contextPack.durableSummary}</p>
+            <p className="mt-3 text-sm text-white/70">{activeItem.contextPack.durableSummary}</p>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
-              {result.contextPack.constraints.map((constraint) => (
+              {activeItem.contextPack.constraints.map((constraint) => (
                 <div key={constraint} className="rounded-sm border border-white/[0.08] bg-white/[0.02] p-3 text-sm text-white/65">
                   {constraint}
                 </div>
@@ -133,6 +164,15 @@ export function PiRouterPanel() {
           </Card>
         </div>
       )}
+    </div>
+  )
+}
+
+function Metric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-sm border border-white/[0.08] bg-white/[0.02] p-3">
+      <div className="text-xs text-white/45">{label}</div>
+      <div className="mt-1 text-2xl font-semibold text-white/85">{value}</div>
     </div>
   )
 }

@@ -109,7 +109,7 @@ export function classifyFounderIdea(message: string): ClassificationResult {
 function classifyPortfolioTarget(message: string): PortfolioTarget {
   if (includesAny(message, ['synthex', 'social media', 'linkedin', 'facebook', 'youtube', 'tiktok'])) return 'synthex'
   if (includesAny(message, ['restoreassist', 'restore assist', 'ra-', 'restoration'])) return 'restoreassist'
-  if (includesAny(message, ['pi-dev-ops', 'pi dev ops', 'pi-wrapper', 'pi wrapper', 'build engine'])) return 'pi_dev_ops'
+  if (includesAny(message, ['pi-dev-ops', 'pi dev ops', 'pi-wrapper', 'pi wrapper', 'build engine', 'pi queue', 'pi router'])) return 'pi_dev_ops'
   if (includesAny(message, ['authority site', 'unite-group site', 'landing site'])) return 'authority_site'
   if (includesAny(message, ['ato', 'tax', 'australian taxation', 'bookkeeper', 'xero'])) return 'ato_app'
   if (includesAny(message, ['disaster recovery', 'nrp', 'nrpg'])) return 'disaster_recovery'
