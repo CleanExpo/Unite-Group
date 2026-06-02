@@ -165,6 +165,12 @@ function parseLinearBacklink(comments: unknown): LinearBacklink | undefined {
   return undefined
 }
 
+async function readExistingLinearBacklink(taskId: string): Promise<LinearBacklink | undefined> {
+  const { stdout } = await execFileAsync('hermes', ['kanban', 'show', '--json', taskId], { timeout: 15_000, windowsHide: true })
+  const detail = JSON.parse(stdout) as { comments?: unknown }
+  return parseLinearBacklink(detail.comments)
+}
+
 async function hydrateLinearBacklinks(tasks: HermesKanbanTask[]) {
   const hydrateableTaskIds = new Set(tasks
     .filter((task) => task.status !== 'done')
@@ -175,9 +181,7 @@ async function hydrateLinearBacklinks(tasks: HermesKanbanTask[]) {
     if (!hydrateableTaskIds.has(task.id)) return task
 
     try {
-      const { stdout } = await execFileAsync('hermes', ['kanban', 'show', '--json', task.id], { timeout: 15_000, windowsHide: true })
-      const detail = JSON.parse(stdout) as { comments?: unknown }
-      const linearLink = parseLinearBacklink(detail.comments)
+      const linearLink = await readExistingLinearBacklink(task.id)
       return linearLink ? { ...task, linearLink } : task
     } catch {
       return task
@@ -225,6 +229,17 @@ export async function POST(request: Request) {
 
     if (action === 'linkLinear') {
       const taskId = safeTaskId(payload.taskId)
+      const existingLink = await readExistingLinearBacklink(taskId)
+      if (existingLink) {
+        return NextResponse.json({
+          source: 'hermes-kanban',
+          action,
+          linkedIssue: existingLink,
+          receipt: { command: ['hermes', 'kanban', 'show', '--json', taskId], stdout: 'Existing Linear backlink reused', stderr: '' },
+          board: await readHermesBoard(),
+        })
+      }
+
       const issue = await createLinearIssue(buildLinearIssueInput(payload))
       const backlink = `Linear link: ${issue.id}${issue.url ? ` ${issue.url}` : ''}`
       const args = ['kanban', 'comment', '--author', 'unite-hub', taskId, backlink]

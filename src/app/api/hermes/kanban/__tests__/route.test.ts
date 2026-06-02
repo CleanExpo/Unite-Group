@@ -106,9 +106,11 @@ describe('Hermes Kanban route parsing', () => {
 
   it('links a Hermes task to a new Linear issue and records the backlink as a Hermes comment', async () => {
     const execMock = vi.fn()
+      .mockResolvedValueOnce({ stdout: JSON.stringify({ task: { id: 't_176bb1b0' }, comments: [] }), stderr: '' })
       .mockResolvedValueOnce({ stdout: 'commented t_176bb1b0\n', stderr: '' })
       .mockResolvedValueOnce({ stdout: 'Current board: default\n', stderr: '' })
       .mockResolvedValueOnce({ stdout: '▶ t_176bb1b0  ready     default               Unite-Hub: keep Hermes Kanban mirrored in Founder OS\n', stderr: '' })
+      .mockResolvedValueOnce({ stdout: JSON.stringify({ task: { id: 't_176bb1b0' }, comments: [{ body: 'Linear link: UNI-777 https://linear.app/unite-group/issue/UNI-777/test' }] }), stderr: '' })
     __test__.setExecFileForTest(execMock)
     __test__.setCreateIssueForTest(vi.fn().mockResolvedValue({ id: 'UNI-777', url: 'https://linear.app/unite-group/issue/UNI-777/test' }))
 
@@ -135,6 +137,41 @@ describe('Hermes Kanban route parsing', () => {
       't_176bb1b0',
       'Linear link: UNI-777 https://linear.app/unite-group/issue/UNI-777/test',
     ], expect.any(Object))
+  })
+
+  it('returns an existing Hermes Linear backlink without creating a duplicate Linear issue', async () => {
+    const createIssueMock = vi.fn()
+    const execMock = vi.fn()
+      .mockResolvedValueOnce({ stdout: JSON.stringify({
+        task: { id: 't_176bb1b0' },
+        comments: [{ body: 'Linear link: UNI-777 https://linear.app/unite-group/issue/UNI-777/test' }],
+      }), stderr: '' })
+      .mockResolvedValueOnce({ stdout: 'Current board: default\n', stderr: '' })
+      .mockResolvedValueOnce({ stdout: '▶ t_176bb1b0  ready     default               Unite-Hub: keep Hermes Kanban mirrored in Founder OS\n', stderr: '' })
+      .mockResolvedValueOnce({ stdout: JSON.stringify({
+        task: { id: 't_176bb1b0' },
+        comments: [{ body: 'Linear link: UNI-777 https://linear.app/unite-group/issue/UNI-777/test' }],
+      }), stderr: '' })
+    __test__.setExecFileForTest(execMock)
+    __test__.setCreateIssueForTest(createIssueMock)
+
+    const response = await POST(new Request('http://localhost/api/hermes/kanban', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'linkLinear',
+        taskId: 't_176bb1b0',
+        title: 'Unite-Hub: keep Hermes Kanban mirrored in Founder OS',
+        body: 'Evidence loop required',
+        teamKey: 'UNI',
+      }),
+    }))
+    const payload = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(payload.linkedIssue).toEqual({ identifier: 'UNI-777', url: 'https://linear.app/unite-group/issue/UNI-777/test' })
+    expect(payload.receipt.stdout).toBe('Existing Linear backlink reused')
+    expect(createIssueMock).not.toHaveBeenCalled()
+    expect(execMock).not.toHaveBeenCalledWith('hermes', expect.arrayContaining(['comment']), expect.any(Object))
   })
 
   it('parses Linear backlinks from Hermes task comments', () => {
