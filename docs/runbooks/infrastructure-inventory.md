@@ -62,9 +62,9 @@
 | Attribute | Value |
 |-----------|-------|
 | **Provider** | Supabase (AWS-backed) |
-| **Production Project Ref** | `lksfwktwtmyznckodsau` |
+| **Production Project Ref** | `lksfwktwtmyznckodsau` — *see [Supabase Master Registry](supabase-master-registry.md)* |
 | **Sandbox Project Ref** | `xgqwfwqumliuguzhshwv` |
-| **Third Project Ref (legacy?)** | `uqfgdezadpkiadugufbs` (INVESTIGATE — used in gen:types, check:schema-drift) |
+| **Third Project Ref (legacy?)** | `uqfgdezadpkiadugufbs` — **STALE — DELETE PER REGISTRY** |
 | **Database** | PostgreSQL (managed) |
 | **Table Count** | ~1,665 |
 | **Auth** | Supabase Auth (GoTrue) |
