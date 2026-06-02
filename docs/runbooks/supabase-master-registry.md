@@ -2,10 +2,27 @@
 
 **Date:** 2026-06-02  
 **Purpose:** Single source of truth for ALL Supabase projects  
-**Status:** CLEANUP IN PROGRESS  
+**Status:** CLEANUP IN PROGRESS — PATH B SELECTED (Pre-Sale Clean Architecture)  
 **Owner:** Phill McGurk / Nexus Security & DR Lead
 
 > **Hierarchy:** Unite-Group CRM (Layer 1) → Your Products (Layer 2) → Client Tenants (Layer 3, NOT separate projects)
+
+---
+
+## ⚠️ CRITICAL QUESTIONS FOR PATH B DESIGN
+
+The schema audit discovered **new projects not previously documented**.
+I need answers to these before designing the consolidation:
+
+1. **restoreassist-prod-2026** (`udooysjajglluvuxkijp`, Sydney): Is this the replacement for the original RestoreAssist project? Or a separate production instance?
+
+2. **ATO** (`xwqymjisxmtcmaebcehw`, Sydney): Is this a new product? A government client (Australian Tax Office)? When did this start?
+
+3. **unite-group-ops** (`vgxidmwjdbgybjmjvwbb`, Seoul): Is this a staging/ops environment? Why is it in Seoul instead of Sydney?
+
+4. **Pi-CEO** (`zbryrmxmgfmslqzizsto`, Singapore): Is this purely an internal DevOps tool, or does it have client data? Should it remain separate or merge into CRM?
+
+5. **DR+NRPG** (`zwzbglqzmpyfzdkblxyf`, Canada): Is this actively receiving data? Is the data already duplicated in Unite-Group CRM? **Can we delete this after migration?**
 
 ---
 
@@ -34,7 +51,8 @@
 #### RestoreAssist
 | Field | Value |
 |-------|-------|
-| **Project Ref** | `oxeiaavuspvpvanzcrjc` |
+| **Project Ref (Original)** | `oxeiaavuspvpvanzcrjc` |
+| **Project Ref (2026?)** | `udooysjajglluvuxkijp` — **NEW — PURPOSE UNKNOWN** |
 | **Region** | ap-southeast-2 (Sydney) |
 | **Purpose** | Property restoration SaaS |
 | **PITR** | UNKNOWN — check required |
@@ -79,6 +97,13 @@
 | **PITR** | UNKNOWN — check required |
 | **Notes** | This is a dedicated client instance, not multi-tenant. Is this productized or one-off? |
 
+### Unclassified / Newly Discovered
+
+| Project Ref | Name | Region | Status |
+|-------------|------|--------|--------|
+| `xwqymjisxmtcmaebcehw` | ATO | Sydney | **NEW — NEEDS CLARIFICATION** |
+| `vgxidmwjdbgybjmjvwbb` | unite-group-ops | Seoul | **NEW — NEEDS CLARIFICATION** |
+
 ---
 
 ## TEST / SANDBOX PROJECTS
@@ -110,32 +135,55 @@
 
 ---
 
-## RECOMMENDED CONSOLIDATION ROADMAP
+## PATH B: PRE-SALE CLEAN ARCHITECTURE (SELECTED)
 
-### Phase 1: Cleanup (This Week)
-1. Delete `uqfgdezadpkiadugufbs`
-2. Verify `itudeoey...` is duplicate, then delete
-3. Enable PITR on: Unite-Group, RestoreAssist, Pi-CEO, DR+NRPG, Dimitri ITR
+**Goal:** Clean, scalable, easily explainable to buyers. Multi-tenant where possible, dedicated where necessary.
 
-### Phase 2: Regional Alignment (Next 30 Days)
-1. Move DR+NRPG from Canada → Sydney (data residency for AU/NZ contractors)
-2. Move Synthex from Singapore → Sydney (if AU/NZ clients use it)
-3. Move Pi-CEO from Singapore → Sydney (if it manages AU/NZ infra)
+### Target State (Post-Migration)
 
-### Phase 3: Multi-Tenant Architecture (If Preparing for Sale)
-**Goal:** Reduce from 6+ production projects → 2 projects max
+| Purpose | Project Count | Details |
+|---------|--------------|---------|
+| **Core CRM Platform** | 1 | Unite-Group (multi-tenant) |
+| **Standalone Products** | 1-2 | RestoreAssist + Synthex (if they have own client data) |
+| **Client Instances** | 1 | Dimitri ITR (or merge if productized) |
+| **Operations Tools** | 0-1 | Pi-CEO (merge into CRM as internal tenant) |
+| **DR+NRPG** | 0 | Merge into CRM as module |
+| **Test/Sandbox** | 1 | Unite-Group Test |
 
-**Architectural decision matrix:**
-| Product | Current | Target | Migration Effort |
-|---------|---------|--------|------------------|
-| Unite-Group CRM | Own project | Keep as-is (core platform) | Low |
-| RestoreAssist | Own project | Merge into Unite-Group as tenant | **High** |
-| Synthex | Own project | Merge into Unite-Group as tenant | **High** |
-| Pi-CEO | Own project | Keep separate (operational tool) | Low |
-| DR+NRPG | Own project | Merge into Unite-Group as module | **Medium** |
-| Dimitri ITR | Own project | Productize → merge as tenant | **High** |
+### Migration Phases
 
-**Effort estimate:** 40-80 hours of engineering to consolidate properly.
+**Phase 1: Foundation (Week 1)**
+1. Answer critical questions (above)
+2. Delete stale projects
+3. Enable PITR on all production projects
+4. Create Management API token for automation
+
+**Phase 2: Schema Discovery (Week 2)**
+1. Export schema from each product project
+2. Map tables to multi-tenant namespaces
+3. Design unified schema with `tenant_id` RLS
+
+**Phase 3: RestoreAssist Migration (Weeks 3-4)**
+1. Create `restoreassist` schema in Unite-Group
+2. Migrate tables with `tenant_id` column
+3. Update RestoreAssist app to connect to Unite-Group
+4. Test with single tenant, then all tenants
+
+**Phase 4: Synthex Migration (Weeks 5-6)**
+1. Create `synthex` schema in Unite-Group
+2. Migrate marketing/content data
+3. Update Synthex app to connect to Unite-Group
+
+**Phase 5: DR+NRPG Migration (Week 7)**
+1. Merge DR+NRPG data into Unite-Group as `nrpg` module
+2. Delete Canada project after verification
+
+**Phase 6: Pi-CEO & Remaining (Week 8)**
+1. Evaluate if Pi-CEO merges as internal tenant
+2. Clean up regional alignment (all to Sydney)
+3. Final testing
+
+**Total Effort:** 40-80 engineering hours over 8 weeks
 
 ---
 
@@ -153,12 +201,13 @@
 
 ## DECISIONS REQUIRED FROM BOARD
 
-1. **Enable PITR on all production projects?** (~$50/mo total)
+1. **Enable PITR on all production projects?** (~$50-60/mo total)
 2. **Move DR+NRPG from Canada to Sydney?** (Data residency for AU/NZ)
-3. **Consolidate products into Unite-Group multi-tenant?** (40-80h engineering, cleaner for sale)
+3. **Approve 40-80h engineering for multi-tenant consolidation?**
 4. **Delete stale projects?** (zero cost, reduces confusion)
+5. **Clarify restoreassist-prod-2026 purpose?** (Is this new production?)
 
 ---
 
-**Next Review:** After PITR enabled and stale projects deleted  
+**Next Review:** After critical questions answered and Phase 1 started  
 **Document Owner:** Nexus Security & DR Lead  
