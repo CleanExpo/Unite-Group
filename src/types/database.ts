@@ -7731,6 +7731,7 @@ export type Database = {
           obsidian_source: string | null
           project_key: string
           quality: string
+          slug: string
           sources: Json
           tags: string[]
           title: string
@@ -7754,6 +7755,7 @@ export type Database = {
           obsidian_source?: string | null
           project_key: string
           quality?: string
+          slug: string
           sources?: Json
           tags?: string[]
           title: string
@@ -7777,6 +7779,7 @@ export type Database = {
           obsidian_source?: string | null
           project_key?: string
           quality?: string
+          slug?: string
           sources?: Json
           tags?: string[]
           title?: string
