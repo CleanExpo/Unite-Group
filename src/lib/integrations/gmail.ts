@@ -8,6 +8,7 @@ import {
   getAccessTokenForEmail,
   type StoredTokens,
 } from './google-oauth'
+import { accountByEmail } from '@/lib/email-accounts'
 
 const GOOGLE_CACHE_TTL_MS = 5 * 60 * 1_000
 
@@ -31,7 +32,7 @@ export interface FullMessage {
   date: string
   bodyHtml: string | null
   bodyText: string | null
-  attachments: { filename: string; mimeType: string; size: number }[]
+  attachments: { attachmentId: string; filename: string; mimeType: string; size: number }[]
   unread: boolean
   labelIds: string[]
 }
@@ -116,12 +117,13 @@ function extractBody(payload: GmailMessagePayload): { html: string | null; text:
 
 function extractAttachments(
   payload: GmailMessagePayload
-): { filename: string; mimeType: string; size: number }[] {
-  const attachments: { filename: string; mimeType: string; size: number }[] = []
+): { attachmentId: string; filename: string; mimeType: string; size: number }[] {
+  const attachments: { attachmentId: string; filename: string; mimeType: string; size: number }[] = []
   if (payload.parts) {
     for (const part of payload.parts) {
       if (part.filename && part.body?.attachmentId) {
         attachments.push({
+          attachmentId: part.body.attachmentId,
           filename: part.filename,
           mimeType: part.mimeType ?? 'application/octet-stream',
           size: part.body.size ?? 0,
@@ -267,7 +269,7 @@ export async function fetchThreadsPaginated(
   options: { pageToken?: string; query?: string; maxResults?: number } = {}
 ): Promise<ThreadPage> {
   const accessToken = await getAccessTokenForEmail(founderId, email)
-  const businessKey = 'personal'
+  const businessKey = accountByEmail(email)?.businessKey ?? 'personal'
 
   const params = new URLSearchParams({
     maxResults: String(options.maxResults ?? 25),

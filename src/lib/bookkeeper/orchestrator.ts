@@ -5,7 +5,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { XeroBankTransaction, XeroInvoice, XeroContact, XeroBankStatementLine } from '@/lib/integrations/xero/types'
-import { BUSINESSES } from '@/lib/businesses'
+import { OWNED_BUSINESSES } from '@/lib/businesses'
 import { createServiceClient } from '@/lib/supabase/service'
 import {
   loadXeroTokens,
@@ -300,8 +300,8 @@ export async function runBookkeeperForAllBusinesses(
 
   const runId: string = run.id
 
-  // Filter to active businesses only (skip 'planning' status)
-  const activeBusinesses = BUSINESSES.filter((b) => b.status === 'active')
+  // Process only Phill-owned businesses. Client systems like CCW stay separate.
+  const activeBusinesses = OWNED_BUSINESSES.filter((b) => b.status === 'active')
 
   const businessResults: BusinessResult[] = []
   const errorLog: Array<{ businessKey: string; error: string }> = []
@@ -437,14 +437,14 @@ export async function runBookkeeperForOneBusiness(
     const runId: string = run.id
 
     // Find the target business
-    const business = BUSINESSES.find(
+    const business = OWNED_BUSINESSES.find(
           (b) => b.key === targetBusinessKey && b.status === 'active'
         )
 
     if (!business) {
           throw new Error(
-                  `Business '${targetBusinessKey}' not found or not active. ` +
-                  `Available active businesses: ${BUSINESSES.filter((b) => b.status === 'active').map((b) => b.key).join(', ')}`
+                  `Business '${targetBusinessKey}' is not an active owned business. ` +
+                  `Available owned businesses: ${OWNED_BUSINESSES.filter((b) => b.status === 'active').map((b) => b.key).join(', ')}`
                 )
     }
 

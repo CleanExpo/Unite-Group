@@ -1,4 +1,3 @@
-// src/app/(founder)/founder/xero/page.tsx
 export const dynamic = 'force-dynamic'
 
 import { getUser } from '@/lib/supabase/server'
@@ -6,36 +5,35 @@ import { isXeroConfigured, loadXeroTokens } from '@/lib/integrations/xero'
 import { ConnectCard } from '@/components/founder/integrations/ConnectCard'
 import { XeroConnectButton } from '@/components/founder/xero/XeroConnectButton'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { BUSINESSES, type Business } from '@/lib/businesses'
 
-// ── Xero account groupings ────────────────────────────────────────────────
-// Each business connects to one of two Xero organisations.
-// CRON jobs use the stored token for that org's tenant_id.
+function businessesByKey(keys: string[]): Business[] {
+  return keys
+    .map((key) => BUSINESSES.find((business) => business.key === key))
+    .filter((business): business is Business => Boolean(business))
+}
 
 const XERO_ACCOUNTS = [
   {
-    label: 'DR Xero Account',
-    description: 'Disaster Recovery entities',
-    businesses: [
-      { key: 'dr',   name: 'Disaster Recovery',     color: '#ef4444' },
-      { key: 'nrpg', name: 'NRPG',                  color: '#f97316' },
-    ],
+    label: 'Owned - Disaster Recovery Group',
+    description: 'Disaster Recovery and NRPG bookkeeping entities',
+    businesses: businessesByKey(['dr', 'nrpg']),
   },
   {
-    label: 'CARSI Xero Account',
-    description: 'CARSI group entities',
-    businesses: [
-      { key: 'carsi',   name: 'CARSI',              color: '#eab308' },
-      { key: 'restore', name: 'RestoreAssist',       color: '#22c55e' },
-      { key: 'ato',     name: 'ATO App',             color: '#3b82f6' },
-      { key: 'synthex', name: 'SYNTHEX',             color: '#a855f7' },
-      { key: 'ccw',     name: 'CCW-ERP/CRM',         color: '#06b6d4' },
-    ],
+    label: 'Owned - CARSI Portfolio',
+    description: 'CARSI, RestoreAssist, ATO App, and SYNTHEX',
+    businesses: businessesByKey(['carsi', 'restore', 'ato', 'synthex']),
+  },
+  {
+    label: 'Client Accounts',
+    description: 'Client systems tracked separately from owner books',
+    businesses: businessesByKey(['ccw']),
   },
 ]
 
 async function getConnectedBusinesses(founderId: string): Promise<Set<string>> {
   const connected = new Set<string>()
-  const businesses = XERO_ACCOUNTS.flatMap(account => account.businesses)
+  const businesses = XERO_ACCOUNTS.flatMap((account) => account.businesses)
 
   for (const business of businesses) {
     const tokens = await loadXeroTokens(founderId, business.key)
@@ -55,21 +53,20 @@ export default async function XeroPage({
   const user = await getUser()
   const connected = user ? await getConnectedBusinesses(user.id) : new Set<string>()
 
-  // Flat lookup for the success banner
-  const allBusinesses = XERO_ACCOUNTS.flatMap(a => a.businesses)
+  const allBusinesses = XERO_ACCOUNTS.flatMap((account) => account.businesses)
   const connectedName =
-    allBusinesses.find(b => b.key === params.business)?.name ?? params.business
+    allBusinesses.find((business) => business.key === params.business)?.name ?? params.business
 
   return (
     <div className="p-6 space-y-6">
       <PageHeader
         title="Xero"
-        subtitle="Manage Xero connections for each business"
+        subtitle="Manage Xero connections for owned businesses and client accounts"
       />
 
       {params.connected && (
         <div className="text-xs text-[#00F5FF]/80 border border-[#00F5FF]/20 bg-[#00F5FF]/5 px-4 py-2.5 rounded-sm">
-          ✓ {connectedName} connected to Xero
+          {connectedName} connected to Xero
         </div>
       )}
 
@@ -84,48 +81,52 @@ export default async function XeroPage({
           service="Xero"
           description="Xero credentials are not configured. Add XERO_CLIENT_ID and XERO_CLIENT_SECRET to your environment."
           connectUrl="#"
-          icon="📊"
+          icon="X"
           comingSoon
         />
       ) : (
         <div className="space-y-6 max-w-2xl">
-          {XERO_ACCOUNTS.map(account => (
+          {XERO_ACCOUNTS.map((account) => (
             <div key={account.label}>
-              {/* Account group header */}
               <div className="flex items-center gap-3 mb-2">
-                <p
-                  className="text-[10px] uppercase tracking-[0.3em]"
-                  style={{ color: 'var(--color-text-muted)' }}
-                >
-                  {account.label}
-                </p>
+                <div>
+                  <p
+                    className="text-[10px] uppercase tracking-[0.3em]"
+                    style={{ color: 'var(--color-text-muted)' }}
+                  >
+                    {account.label}
+                  </p>
+                  <p className="text-[11px] mt-1" style={{ color: 'var(--color-text-muted)' }}>
+                    {account.description}
+                  </p>
+                </div>
                 <div
                   className="flex-1 h-px"
                   style={{ background: 'var(--color-border)' }}
                 />
               </div>
 
-              {/* Business rows */}
               <div className="grid grid-cols-1 gap-2">
-                {account.businesses.map(biz => {
-                  const isConnected = connected.has(biz.key)
+                {account.businesses.map((business) => {
+                  const isConnected = connected.has(business.key)
+                  const isClient = business.type === 'client'
                   return (
                     <div
-                      key={biz.key}
+                      key={business.key}
                       className="flex items-center justify-between border border-white/[0.08] px-5 py-4 rounded-sm"
                       style={{ background: 'var(--surface-card)' }}
                     >
                       <div className="flex items-center gap-3">
                         <div
                           className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: biz.color }}
+                          style={{ backgroundColor: business.color }}
                         />
                         <div>
                           <p
                             className="text-sm font-light"
                             style={{ color: 'var(--color-text-primary)' }}
                           >
-                            {biz.name}
+                            {business.name}
                           </p>
                           <p
                             className="text-xs mt-0.5"
@@ -133,7 +134,13 @@ export default async function XeroPage({
                               color: isConnected ? '#00F5FF' : 'var(--color-text-muted)',
                             }}
                           >
-                            {isConnected ? 'Connected · bank feeds active' : 'Not connected'}
+                            {isConnected
+                              ? isClient
+                                ? 'Connected - client account'
+                                : 'Connected - bank feeds active'
+                              : isClient
+                                ? 'Client account - connect only when needed'
+                                : 'Not connected'}
                           </p>
                         </div>
                       </div>
@@ -144,8 +151,8 @@ export default async function XeroPage({
                         </span>
                       ) : (
                         <XeroConnectButton
-                          businessKey={biz.key}
-                          businessName={biz.name}
+                          businessKey={business.key}
+                          businessName={business.name}
                         />
                       )}
                     </div>

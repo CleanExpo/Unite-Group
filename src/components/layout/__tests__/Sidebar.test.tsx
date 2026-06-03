@@ -53,11 +53,12 @@ describe('Sidebar', () => {
     expect(screen.getByText(/my businesses/i)).toBeInTheDocument()
   })
 
-  it('renders all 7 business names', () => {
+  it('renders business names with current labels', () => {
     render(<Sidebar user={testUser} />)
     expect(screen.getByText('Disaster Recovery')).toBeInTheDocument()
-    expect(screen.getByText('Synthex')).toBeInTheDocument()
-    expect(screen.getByText('ATO Tax Optimizer')).toBeInTheDocument()
+    expect(screen.getByText('SYNTHEX')).toBeInTheDocument()
+    expect(screen.getByText('ATO App')).toBeInTheDocument()
+    expect(screen.getByText('CCW-ERP/CRM')).toBeInTheDocument()
   })
 
   it('hides text labels when sidebar is collapsed', () => {

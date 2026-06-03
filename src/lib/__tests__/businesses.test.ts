@@ -1,5 +1,10 @@
 // src/lib/__tests__/businesses.test.ts
-import { BUSINESSES } from '../businesses'
+import {
+  BUSINESSES,
+  CLIENT_BUSINESSES,
+  OWNED_BUSINESSES,
+  isOwnedBusinessKey,
+} from '../businesses'
 
 describe('BUSINESSES', () => {
   it('has 7 entries', () => {
@@ -23,13 +28,24 @@ describe('BUSINESSES', () => {
   })
 
   it('CCW is the only client-type business', () => {
-    const clients = BUSINESSES.filter(b => b.type === 'client')
-    expect(clients).toHaveLength(1)
-    expect(clients[0].key).toBe('ccw')
+    expect(CLIENT_BUSINESSES).toHaveLength(1)
+    expect(CLIENT_BUSINESSES[0].key).toBe('ccw')
   })
 
   it('has 6 owned business keys (dr and nrpg are separate keys for one business entity)', () => {
-    const owned = BUSINESSES.filter(b => b.type === 'owned')
-    expect(owned).toHaveLength(6)
+    expect(OWNED_BUSINESSES).toHaveLength(6)
+  })
+
+  it('keeps CCW out of owned-bookkeeping helpers', () => {
+    expect(isOwnedBusinessKey('ccw')).toBe(false)
+    expect(isOwnedBusinessKey('carsi')).toBe(true)
+    expect(OWNED_BUSINESSES.map((business) => business.key)).toEqual([
+      'dr',
+      'nrpg',
+      'carsi',
+      'restore',
+      'synthex',
+      'ato',
+    ])
   })
 })
