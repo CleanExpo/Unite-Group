@@ -56,6 +56,7 @@ const PUBLIC_PATHS = [
   '/api/auth',     // OAuth callbacks — must be public so Supabase can return auth codes
   '/api/health',
   '/api/cron',
+  '/api/webhooks', // External provider callbacks verify their own signatures/secrets
   '/monitoring',  // Sentry tunnel
   '/robots.txt',
   '/sitemap.xml',
