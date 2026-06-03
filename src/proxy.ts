@@ -64,6 +64,10 @@ const PUBLIC_PATHS = [
 ] as const;
 
 function isPublicPath(pathname: string): boolean {
+  if (process.env.KNOWLEDGE_CONSOLE_PREVIEW === '1' && pathname === '/preview/knowledge-console') {
+    return true;
+  }
+
   return PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 }
 
