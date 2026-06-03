@@ -2,8 +2,6 @@
 // TikTok video upload with chunked upload + status polling
 // Reference: https://developers.tiktok.com/doc/video-upload-video-files
 
-import { encodeToken } from './channels'
-
 const TIKTOK_BASE_URL = 'https://open.tiktokapis.com/v2'
 
 export interface TikTokUploadConfig {
