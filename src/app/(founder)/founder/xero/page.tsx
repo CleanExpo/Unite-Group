@@ -2,8 +2,7 @@
 export const dynamic = 'force-dynamic'
 
 import { getUser } from '@/lib/supabase/server'
-import { createServiceClient } from '@/lib/supabase/service'
-import { isXeroConfigured } from '@/lib/integrations/xero'
+import { isXeroConfigured, loadXeroTokens } from '@/lib/integrations/xero'
 import { ConnectCard } from '@/components/founder/integrations/ConnectCard'
 import { XeroConnectButton } from '@/components/founder/xero/XeroConnectButton'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -35,14 +34,15 @@ const XERO_ACCOUNTS = [
 ]
 
 async function getConnectedBusinesses(founderId: string): Promise<Set<string>> {
-  const supabase = createServiceClient()
-  const { data } = await supabase
-    .from('credentials_vault')
-    .select('label')
-    .eq('founder_id', founderId)
-    .eq('service', 'xero')
+  const connected = new Set<string>()
+  const businesses = XERO_ACCOUNTS.flatMap(account => account.businesses)
 
-  return new Set((data ?? []).map((r: { label: string }) => r.label))
+  for (const business of businesses) {
+    const tokens = await loadXeroTokens(founderId, business.key)
+    if (tokens) connected.add(business.key)
+  }
+
+  return connected
 }
 
 export default async function XeroPage({

@@ -34,15 +34,16 @@ https://unite-hub-sandbox.vercel.app/api/webhooks/xero
 - `XERO_TENANT_ID_CARSI`, `XERO_TENANT_ID_DR`, and `XERO_TENANT_ID_DRQLD` are configured in Vercel Production.
 - Xero webhook endpoint accepts signed payloads and rejects unsigned payloads.
 - Production build and deploy completed after Xero secret update.
-- Live Xero UI shows Disaster Recovery connected.
-- Live Xero UI shows CARSI connected.
+- `VAULT_ENCRYPTION_KEY` has been cleaned in Vercel Production so future vault writes do not include a hidden newline.
+- Old May 2026 vault credential rows are present but unreadable with the current vault key, so businesses must be reconnected before live Xero pulls work.
 
 ## Remaining Xero Work
 
-1. Complete Unite-Hub MFA for the NRPG / Disaster Recovery Qld connection.
-2. Complete the Xero OAuth consent flow for `business=nrpg`.
-3. Verify the live Xero page shows NRPG as connected.
-4. Run a read-only bookkeeping dry run before any full sync.
+1. Reconnect Disaster Recovery through the existing ATO App OAuth flow.
+2. Reconnect CARSI through the existing ATO App OAuth flow.
+3. Complete Unite-Hub MFA for the NRPG / Disaster Recovery Qld connection.
+4. Complete the Xero OAuth consent flow for `business=nrpg`.
+5. Run a read-only bookkeeping dry run before any full sync.
 
 ## Recommended Operating Sequence
 
