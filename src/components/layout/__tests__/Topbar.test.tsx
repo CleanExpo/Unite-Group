@@ -25,6 +25,14 @@ describe('Topbar', () => {
     expect(screen.getByText('Dashboard')).toBeInTheDocument()
   })
 
+  it('shows Knowledge Console breadcrumb for /founder/knowledge-console', () => {
+    mockPathname = '/founder/knowledge-console'
+
+    render(<Topbar />)
+
+    expect(screen.getByText('Knowledge Console')).toBeInTheDocument()
+  })
+
   it('renders search command palette button', () => {
     render(<Topbar />)
     expect(screen.getByLabelText('Command palette')).toBeInTheDocument()

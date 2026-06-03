@@ -14,6 +14,7 @@ const BREADCRUMB_MAP: Record<string, string> = {
   '/founder/kanban':      'Kanban',
   '/founder/vault':       'Vault',
   '/founder/notes':       'Notes',
+  '/founder/knowledge-console': 'Knowledge Console',
   '/founder/approvals':   'Approvals',
   '/founder/advisory':    'Advisory',
   '/founder/strategy':    'Strategy Room',

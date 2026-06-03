@@ -78,6 +78,7 @@ describe('CommandBar', () => {
     expect(screen.getByText('Dashboard')).toBeInTheDocument()
     expect(screen.getByText('Contacts')).toBeInTheDocument()
     expect(screen.getByText('Vault')).toBeInTheDocument()
+    expect(screen.getByText('Knowledge Console')).toBeInTheDocument()
     expect(screen.getByText('Approvals')).toBeInTheDocument()
     expect(screen.getByText('Advisory')).toBeInTheDocument()
     expect(screen.getByText('Social')).toBeInTheDocument()
@@ -95,6 +96,15 @@ describe('CommandBar', () => {
     const dashboardItem = screen.getByText('Dashboard').closest('[data-testid="command-item"]')!
     await user.click(dashboardItem)
     expect(mockPush).toHaveBeenCalledWith('/founder/dashboard')
+    expect(mockToggleCommandBar).toHaveBeenCalled()
+  })
+
+  it('navigates to the Knowledge Console', async () => {
+    const user = userEvent.setup()
+    render(<CommandBar />)
+    const knowledgeItem = screen.getByText('Knowledge Console').closest('[data-testid="command-item"]')!
+    await user.click(knowledgeItem)
+    expect(mockPush).toHaveBeenCalledWith('/founder/knowledge-console')
     expect(mockToggleCommandBar).toHaveBeenCalled()
   })
 

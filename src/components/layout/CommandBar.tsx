@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, Lock, ClipboardCheck,
   Scale, Share2, Settings, Zap,
   BookOpen, Receipt, Columns2, FileText, Mail,
-  CalendarDays, Brain,
+  CalendarDays, Brain, Library,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import {
@@ -46,6 +46,7 @@ const NAV_COMMANDS: NavCommand[] = [
   { type: 'nav', label: 'Kanban',     icon: Columns2,        path: '/founder/kanban' },
   { type: 'nav', label: 'Vault',      icon: Lock,            path: '/founder/vault' },
   { type: 'nav', label: 'Notes',      icon: FileText,        path: '/founder/notes' },
+  { type: 'nav', label: 'Knowledge Console', icon: Library,  path: '/founder/knowledge-console' },
   { type: 'nav', label: 'Approvals',  icon: ClipboardCheck,  path: '/founder/approvals' },
   { type: 'nav', label: 'Advisory',   icon: Scale,           path: '/founder/advisory' },
   { type: 'nav', label: 'Strategy',   icon: Brain,           path: '/founder/strategy' },
