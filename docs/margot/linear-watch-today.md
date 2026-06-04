@@ -1,6 +1,6 @@
 # Linear Watch — Margot Today Queue
 
-Last synced: 2026-05-30 21:58:13 AEST
+Last synced: 2026-06-02 12:36:16 AEST
 Source: Linear team `UNI` / Unite-Group
 Purpose: Make parent-Hermes-pushed Linear work visible to Margot for today's task list.
 
@@ -12,6 +12,49 @@ Purpose: Make parent-Hermes-pushed Linear work visible to Margot for today's tas
 - Pull the full Linear issue before execution if a task is selected for active work.
 
 ## Today's Linear candidates
+
+### UNI-2117 — [CCW P0 Wave 2] Harden Team Invites and Session Invalidation
+
+- State: In Review (started)
+- Priority: Urgent
+- Project: CCW CRM
+- Assignee: ranamuzamil1199@gmail.com
+- Updated: 2026-06-01T04:13:41.183Z
+- Labels: none
+- Linear: https://linear.app/unite-group/issue/UNI-2117/ccw-p0-wave-2-harden-team-invites-and-session-invalidation
+
+Summary / Linear description excerpt:
+
+> Evidence: `team.py` uses `TEMP_PASSWORD_CHANGE_ON_FIRST_LOGIN` placeholder and TODO for JWT invalidation. Acceptance: secure invite-token flow or unusable random password; role/status changes invalidate sessions; tests pass.
+
+> Report: `D:\CCW-CRM\docs\CCW-MISSING-ENDPOINTS-CONNECTIONS-WAVE2-2026-06-01.md`
+
+> Senior Engineer loop: reproduce/confirm gap, write failing test or failing gate, implement smallest safe slice, rerun targeted tests, record evidence before moving on. Sandbox only until verified.
+
+### UNI-2103 — [CCW P0 Build Loop] Green Gates and Repo Stabilisation
+
+- State: In Review (started)
+- Priority: Urgent
+- Project: CCW CRM
+- Assignee: ranamuzamil1199@gmail.com
+- Updated: 2026-06-01T04:07:07.949Z
+- Labels: none
+- Linear: https://linear.app/unite-group/issue/UNI-2103/ccw-p0-build-loop-green-gates-and-repo-stabilisation
+
+Summary / Linear description excerpt:
+
+> Senior Platform Engineer lane. Evidence: `pnpm --filter web type-check` currently fails because TypeScript cannot find `@testing-library/jest-dom` and `vitest/globals`; backend `python -m pytest -q` fails importing `pgvector`; git tree has uncommitted/untracked signup/onboarding work. Acceptance criteria: workspace dependencies installed/reproducible; frontend type-check passes; backend pytest import and core suite pass; dirty tree is split/committed or intentionally parked; commands and outputs recorded in docs/CCW-APP-SENIOR-AUDIT-2026-06-01.md or follow-up evidence doc.
+
+> Senior Engineer Loop for Rana:
+
+> 1. Define the narrow slice.
+> 2. Write/confirm failing test or failing gate.
+> 3. Make the smallest safe fix.
+> 4. Re-run targeted gate.
+> 5. Re-run affected build/test loop.
+> 6. Record evidence before moving to next slice.
+
+> Governance: sandbox only until gates pass; no production claim without evidence.
 
 ### UNI-2058 — Phase 0 · Engineering review & adoption decision (replace / parallel / cherry-pick)
 
@@ -195,297 +238,229 @@ Summary / Linear description excerpt:
 > * Record missing files and blocked decisions.
 > * Keep parked Toby/Duncan work out of this RestoreAssist / Brand OS workflow.
 
-### UNI-2079 — Configure Vercel: LINEAR_API_KEY + Telegram webhook for autonomous intake
+### UNI-2111 — [CCW P0 Wave 2] Connect Company Settings Save to Authenticated Organization API
+
+- State: Todo (unstarted)
+- Priority: Urgent
+- Project: CCW CRM
+- Assignee: ranamuzamil1199@gmail.com
+- Updated: 2026-06-01T03:36:08.417Z
+- Labels: none
+- Linear: https://linear.app/unite-group/issue/UNI-2111/ccw-p0-wave-2-connect-company-settings-save-to-authenticated
+
+Summary / Linear description excerpt:
+
+> Evidence: `apps/web/app/(dashboard)/settings/company/page.tsx` contains `TODO: API call to update company information`. Acceptance: company settings save persists through authenticated org backend API; tests cover save/reload and unauthorized org access rejection.
+
+> Report: `D:\CCW-CRM\docs\CCW-MISSING-ENDPOINTS-CONNECTIONS-WAVE2-2026-06-01.md`
+
+> Senior Engineer loop: reproduce/confirm gap, write failing test or failing gate, implement smallest safe slice, rerun targeted tests, record evidence before moving on. Sandbox only until verified.
+
+### UNI-2108 — [CCW P1 Build Loop] Core ERP Smoke Pack: Products, Customers, Quotes, Orders, POS, Inventory, Invoices
+
+- State: Todo (unstarted)
+- Priority: Urgent
+- Project: CCW CRM
+- Assignee: ranamuzamil1199@gmail.com
+- Updated: 2026-06-01T03:28:31.117Z
+- Labels: none
+- Linear: https://linear.app/unite-group/issue/UNI-2108/ccw-p1-build-loop-core-erp-smoke-pack-products-customers-quotes-orders
+
+Summary / Linear description excerpt:
+
+> Senior QA/UAT Engineer lane. Evidence: route surface exists for core ERP modules, but production readiness is not proven by current failing gates. Acceptance criteria: Playwright smoke covers login/signup plus create/read/update flows for products, customers, quotes, orders, POS transaction, inventory reservation/transfer, invoice export; backend tests cover the same API paths; smoke can run in CI/staging with deterministic seed data.
+
+> Senior Engineer Loop for Rana:
+
+> 1. Define the narrow slice.
+> 2. Write/confirm failing test or failing gate.
+> 3. Make the smallest safe fix.
+> 4. Re-run targeted gate.
+> 5. Re-run affected build/test loop.
+> 6. Record evidence before moving to next slice.
+
+> Governance: sandbox only until gates pass; no production claim without evidence.
+
+### UNI-2107 — [CCW P1 Build Loop] Enforce Tenant/Organization Context Across Data Paths
+
+- State: Todo (unstarted)
+- Priority: Urgent
+- Project: CCW CRM
+- Assignee: ranamuzamil1199@gmail.com
+- Updated: 2026-06-01T03:28:29.890Z
+- Labels: none
+- Linear: https://linear.app/unite-group/issue/UNI-2107/ccw-p1-build-loop-enforce-tenantorganization-context-across-data-paths
+
+Summary / Linear description excerpt:
+
+> Senior Backend/Data Engineer lane. Evidence: tenant isolation middleware has TODO for automatic filtering; Xero and POS/Xero reconciliation routes use placeholder/fixed organization IDs. Acceptance criteria: all organization-scoped APIs resolve org from authenticated user/session; no placeholder org IDs in production paths; tests prove cross-tenant reads/writes are blocked; migrations/schema support required relationships.
+
+> Senior Engineer Loop for Rana:
+
+> 1. Define the narrow slice.
+> 2. Write/confirm failing test or failing gate.
+> 3. Make the smallest safe fix.
+> 4. Re-run targeted gate.
+> 5. Re-run affected build/test loop.
+> 6. Record evidence before moving to next slice.
+
+> Governance: sandbox only until gates pass; no production claim without evidence.
+
+### UNI-2106 — [CCW P0 Build Loop] Promote Shopify/Xero/SendGrid/Sentry From Demo to Verified Staging
+
+- State: Todo (unstarted)
+- Priority: Urgent
+- Project: CCW CRM
+- Assignee: ranamuzamil1199@gmail.com
+- Updated: 2026-06-01T03:28:28.877Z
+- Labels: none
+- Linear: https://linear.app/unite-group/issue/UNI-2106/ccw-p0-build-loop-promote-shopifyxerosendgridsentry-from-demo-to
+
+Summary / Linear description excerpt:
+
+> Senior Integrations Engineer lane. Evidence: `.env.example` uses `SHOPIFY_MODE=demo`; Xero route has repeated TODOs for authenticated organization context; production env examples require SendGrid/Sentry/Xero credentials; Shopify backlog item previously blocked on 401 credentials. Acceptance criteria: staging credentials configured outside git; Shopify connection/scopes verified; Xero OAuth/token refresh tied to authenticated org context; SendGrid test email/audit trail verified; Sentry test event visible; demo mode remains available but cannot masquerade as production.
+
+> Senior Engineer Loop for Rana:
+
+> 1. Define the narrow slice.
+> 2. Write/confirm failing test or failing gate.
+> 3. Make the smallest safe fix.
+> 4. Re-run targeted gate.
+> 5. Re-run affected build/test loop.
+> 6. Record evidence before moving to next slice.
+
+> Governance: sandbox only until gates pass; no production claim without evidence.
+
+### UNI-2105 — [CCW P0 Build Loop] Refresh Project Pathway Docs Against Live Evidence
+
+- State: Todo (unstarted)
+- Priority: Urgent
+- Project: CCW CRM
+- Assignee: ranamuzamil1199@gmail.com
+- Updated: 2026-06-01T03:28:28.133Z
+- Labels: none
+- Linear: https://linear.app/unite-group/issue/UNI-2105/ccw-p0-build-loop-refresh-project-pathway-docs-against-live-evidence
+
+Summary / Linear description excerpt:
+
+> Senior Project Manager lane. Evidence: `WHATS-NEXT-ROADMAP.md` claims 97% production ready/no blockers, but current type-check and backend pytest fail; `TODO.md` appears stale/foreign (`NodeJS-Starter-V1`, 2024 health check). Acceptance criteria: stale docs archived or marked stale; current roadmap reflects real command outputs; next phases match Senior Engineer build loop; every active task has acceptance criteria, dependency, owner lane, and verification command.
+
+> Senior Engineer Loop for Rana:
+
+> 1. Define the narrow slice.
+> 2. Write/confirm failing test or failing gate.
+> 3. Make the smallest safe fix.
+> 4. Re-run targeted gate.
+> 5. Re-run affected build/test loop.
+> 6. Record evidence before moving to next slice.
+
+> Governance: sandbox only until gates pass; no production claim without evidence.
+
+### UNI-2104 — [CCW P0 Build Loop] Complete Signup, Auth, Onboarding, and Account Settings E2E
+
+- State: Todo (unstarted)
+- Priority: Urgent
+- Project: CCW CRM
+- Assignee: ranamuzamil1199@gmail.com
+- Updated: 2026-06-01T03:28:27.358Z
+- Labels: none
+- Linear: https://linear.app/unite-group/issue/UNI-2104/ccw-p0-build-loop-complete-signup-auth-onboarding-and-account-settings
+
+Summary / Linear description excerpt:
+
+> Senior Full-Stack/Auth Engineer lane. Evidence: untracked backend route `apps/backend/src/api/routes/auth_signup.py`; frontend signup posts `/api/auth/signup` then redirects to `/onboarding`; cookies are hardcoded with `domain=localhost`; settings page calls auth account endpoints that need verification. Acceptance criteria: signup route tracked and tested; cookie config works local/staging/prod; organization/user relationship persists; signup -> onboarding -> dashboard -> account update -> password change passes Playwright/API smoke; no `as any` navigation workaround remains unless justified.
+
+> Senior Engineer Loop for Rana:
+
+> 1. Define the narrow slice.
+> 2. Write/confirm failing test or failing gate.
+> 3. Make the smallest safe fix.
+> 4. Re-run targeted gate.
+> 5. Re-run affected build/test loop.
+> 6. Record evidence before moving to next slice.
+
+> Governance: sandbox only until gates pass; no production claim without evidence.
+
+### UNI-2119 — [CCW P1 Wave 2] Connect Container Receiving to Warehouse Inventory Stock Movement
 
 - State: Todo (unstarted)
 - Priority: High
-- Project: Dimitri ITR Platform
-- Assignee: Unassigned
-- Updated: 2026-05-30T11:15:49.551Z
+- Project: CCW CRM
+- Assignee: ranamuzamil1199@gmail.com
+- Updated: 2026-06-01T03:36:14.186Z
 - Labels: none
-- Linear: https://linear.app/unite-group/issue/UNI-2079/configure-vercel-linear-api-key-telegram-webhook-for-autonomous-intake
+- Linear: https://linear.app/unite-group/issue/UNI-2119/ccw-p1-wave-2-connect-container-receiving-to-warehouse-inventory-stock
 
 Summary / Linear description excerpt:
 
-> Enable Duncan → Linear pipeline on production.
+> Evidence: `containers.py` has `TODO: Add stock to warehouse inventory`. Acceptance: container receipt creates inventory movement transaction; duplicate receipt and warehouse destination tested.
 
-> ## Env (Vercel)
+> Report: `D:\CCW-CRM\docs\CCW-MISSING-ENDPOINTS-CONNECTIONS-WAVE2-2026-06-01.md`
 
-> * `LINEAR_API_KEY`
-> * `TELEGRAM_WEBHOOK_SECRET`
-> * `CRON_SECRET` (Vercel cron auth)
-> * `DIMITRI_DUNCAN_TELEGRAM_CHAT_IDS=8792816988`
+> Senior Engineer loop: reproduce/confirm gap, write failing test or failing gate, implement smallest safe slice, rerun targeted tests, record evidence before moving on. Sandbox only until verified.
 
-> ## Script
-
-> `scripts/register-telegram-webhook.ps1`
-
-> ## Doc
-
-> `docs/integrations/DUNCAN-LINEAR-INTAKE.md`
-
-> ## Verify
-
-> `GET /api/v1/intake/status` → linear_configured true
-
-### UNI-2080 — Duncan: run /discovery Telegram loop (3Q batches + 4 buttons)
+### UNI-2116 — [CCW P1 Wave 2] Stop Silent Mock Fallbacks in Agents and Marketing Dashboards
 
 - State: Todo (unstarted)
 - Priority: High
-- Project: Dimitri ITR Platform
-- Assignee: Unassigned
-- Updated: 2026-05-30T11:15:02.231Z
+- Project: CCW CRM
+- Assignee: ranamuzamil1199@gmail.com
+- Updated: 2026-06-01T03:36:12.016Z
 - Labels: none
-- Linear: https://linear.app/unite-group/issue/UNI-2080/duncan-run-discovery-telegram-loop-3q-batches-4-buttons
+- Linear: https://linear.app/unite-group/issue/UNI-2116/ccw-p1-wave-2-stop-silent-mock-fallbacks-in-agents-and-marketing
 
 Summary / Linear description excerpt:
 
-> Sandbox complete via `pnpm intake:discovery:simulate` (X-Dimitri-Intake-Simulate header). All 12 decisions recorded; `docs/ASSUMPTIONS.md` updated.
+> Evidence: agents/marketing surfaces fall back to mock data when APIs fail. Acceptance: mock data gated behind explicit demo flag; production/staging failures show visible error state and are logged.
 
-> **Follow-up:** Duncan may still run live `/discovery` on @PiCEODimitr_bot for real confirmations.
+> Report: `D:\CCW-CRM\docs\CCW-MISSING-ENDPOINTS-CONNECTIONS-WAVE2-2026-06-01.md`
 
-> **Note:** Linear child issues require a valid `LINEAR_API_KEY` on Vercel (vault key currently returns 401 on issueCreate).
-
-### UNI-2075 — Gmail export + ingest into SPM intake (Phill vault)
-
-- State: Todo (unstarted)
-- Priority: High
-- Project: Dimitri ITR Platform
-- Assignee: Phill McGurk
-- Updated: 2026-05-28T02:07:42.868Z
-- Labels: none
-- Linear: https://linear.app/unite-group/issue/UNI-2075/gmail-export-ingest-into-spm-intake-phill-vault
-
-Summary / Linear description excerpt:
-
-> **Blocked:** `VAULT_ENCRYPTION_KEY` missing from `D:\Unite-Hub\.env.local` (preflight: `pnpm intake:gmail:check`).
-
-> Copy from Vercel unite-hub production or add `D:\Unite-Hub\.env.vault` per `docs/intake/GMAIL-SETUP.md`.
-
-> Then: `pnpm intake:gmail`
-
-### UNI-2088 — SWAT: Cross-project deployment model analysis — Cloud vs Connected-Local
-
-- State: Backlog (backlog)
-- Priority: High
-- Project: Unite-Group
-- Assignee: Unassigned
-- Updated: 2026-05-30T03:29:36.391Z
-- Labels: none
-- Linear: https://linear.app/unite-group/issue/UNI-2088/swat-cross-project-deployment-model-analysis-cloud-vs-connected-local
-
-Summary / Linear description excerpt:
-
-> Strategic analysis completed for cloud-hosted vs connected-local deployment models across the entire Unite Group ecosystem.
-
-> Key finding: No single model fits all. Hybrid tiered approach required.
-
-> Projects analyzed:
-
-> * Pi-Dev-Ops → Cloud (internal)
-> * RestoreAssist → Hybrid (enterprise local, SMB cloud)
-> * DR-Sandbox → Connected-Local (field/offline-first)
-> * DR-NRPG → Hybrid (insurance data sensitivity)
-> * NRPG-Onboarding → Cloud
-> * Synthex → Cloud
-> * Unite-Group → Cloud
-> * NodeJS-Starter → Cloud
-> * Oh-My-Codex → Connected-Local (CLI tool)
-> * CCW-CRM → Cloud (future: franchise local)
-> * CARSI → Connected-Local (field ops)
-
-> Recommendation: Build deployment abstraction layer in Pi-Dev-Ops allowing every product to ship as Cloud, Connected-Local, or BYO-Cloud from the same codebase.
-
-> Source: brain/strategy/SWAT-deployment-models-2026-05-30.md
-
-### UNI-2069 — [Dimitri] Epic: Human gates (12Q, Gmail, legal, board)
-
-- State: Backlog (backlog)
-- Priority: High
-- Project: Dimitri ITR Platform
-- Assignee: Unassigned
-- Updated: 2026-05-27T23:33:00.425Z
-- Labels: none
-- Linear: https://linear.app/unite-group/issue/UNI-2069/dimitri-epic-human-gates-12q-gmail-legal-board
-
-Summary / Linear description excerpt:
-
-> Non-engineering blockers before regulated MVP.
-
-> See `docs/compliance/UNLOCK-CRITERIA.md` and `docs/brain/SPM-PROGRAMME-CONTROL.md` §4 P2.
-
-### UNI-2077 — DSP OSF + ATO API Portal onboarding
-
-- State: Backlog (backlog)
-- Priority: High
-- Project: Dimitri ITR Platform
-- Assignee: Unassigned
-- Updated: 2026-05-27T22:38:38.348Z
-- Labels: none
-- Linear: https://linear.app/unite-group/issue/UNI-2077/dsp-osf-ato-api-portal-onboarding
-
-Summary / Linear description excerpt:
-
-> Runbook: `docs/compliance/DSP-ONBOARDING-RUNBOOK.md`
-
-> Parent: [UNI-2070](https://linear.app/unite-group/issue/UNI-2070/dimitri-epic-regulated-mvp-real-ato-xpm-payments-noah) — blocked on human gates.
-
-### UNI-2066 — Phase 8 · Accessibility audit + remediation across all ported screens
-
-- State: Backlog (backlog)
-- Priority: High
-- Project: Unite-Group
-- Assignee: Unassigned
-- Updated: 2026-05-25T06:31:14.792Z
-- Labels: tests, production-readiness, Accessibility, frontend
-- Linear: https://linear.app/unite-group/issue/UNI-2066/phase-8-accessibility-audit-remediation-across-all-ported-screens
-
-Summary / Linear description excerpt:
-
-> ## Phase 8 — Accessibility audit + remediation
-
-> Pre-launch a11y sweep across every ported screen.
-
-> ### Checklist (from `design/unite-hub-layered/INTEGRATION.md` §7)
-
-> - [ ] **Color contrast**: navy on cream verified AAA (16.8:1); audit every chip/badge color combo against WCAG AA (4.5:1 normal, 3:1 large/UI)
-> - [ ] **Focus rings**: keep `:focus-visible { outline: 2px solid #00F5FF }` — do NOT remove. Verify keyboard nav lands a visible ring on every interactive element
-> - [ ] **Live regions**: ticker has `aria-live="polite"` + `aria-atomic="false"`; expose a **pause** button for vestibular users
-> - [ ] **FAB**: real `aria-label="Quick create"` (not just an icon)
-> - [ ] **Decorative elements**: stack-shadow pseudo-elements + pebble decorations all `aria-hidden="true"`
-> - [ ] **Reduced motion**: wrap pulse animations, ticker slide, drawer transitions in `@media (prefers-reduced-motion: no-preference) { ... }`
-> - [ ] **Screen reader**: VoiceOver + NVDA pass on Hub, CRM, Deal Detail
-> - [ ] **Keyboard navigation**: full tab order on Hub; Kanban drag-to-stage has keyboard equivalent (←/→ to move card)
-> - [ ] **Form labels**: every input has an associated `<label>` (not just placeholder)
-> - [ ] **Headings**: logical h1 → h2 → h3 hierarchy per route
-> - [ ] **Skip link**: "Skip to main content" anchor in `src/app/layout.tsx`
-> - [ ] **Color-only signaling**: status chips combine color + icon/text (n
-> …
-
-### UNI-2057 — Unite-Hub · Layered Design System — Handoff & Integration
-
-- State: Backlog (backlog)
-- Priority: High
-- Project: Unite-Group
-- Assignee: Unassigned
-- Updated: 2026-05-25T06:31:14.792Z
-- Labels: epic, Architecture, Ux, frontend
-- Linear: https://linear.app/unite-group/issue/UNI-2057/unite-hub-layered-design-system-handoff-and-integration
-
-Summary / Linear description excerpt:
-
-> ## Layered Design System — v1 Handoff
-
-> A complete light/paper-aesthetic redesign for the Unite-Hub founder app, delivered as **live HTML prototypes + JSX source**. Lives under `design/unite-hub-layered/` in the repo and ships **no app-code changes** — pure reference material gating the next integration phase.
-
-> ### 📦 Deliverable
-
-> GitHub: [`CleanExpo/Unite-Hub`](<https://github.com/CleanExpo/Unite-Hub>) → `design/unite-hub-layered/` (branch: `design/layered-handoff-v1`, PR pending push)
-
-> ```
-> design/unite-hub-layered/
-> ├── README.md             ← overview + adoption-strategy decision
-> ├── INTEGRATION.md        ← token mapping, component-extraction order, mock-data swap
-> ├── PUSH-INSTRUCTIONS.md  ← git commands + suggested PR description
-> ├── tokens/design-tokens.json
-> ├── prototypes/index.html ← launcher for all 14 screens
-> ├── prototypes/*.html     ← 14 runnable screens
-> ├── src/*.jsx             ← 15 JSX component sources
-> └── screenshots/
-> ```
-
-> ### 🎨 Design language
-
-> |  |  |
-> | -- | -- |
-> | **Aesthetic** | Light cream paper, layered shadow elevation, 3D-depth treatment |
-> | **Brand** | Unite-Group Nexus — navy `#162D5B` + teal `#2BA3B5` |
-> | **Accent** | Green `oklch(64% 0.16 152)` for primary CTA, coral for revenue |
-> | **Type** | Poppins (UI) + IBM Plex Mono (numerals/meta) |
-> | **Radii** | 10 / 16 / 22 / 28 px |
-> | **Surfaces** | White paper cards, no borders, elevation via `--shadow-1/2/3`
-> …
-
-### UNI-2061 — Phase 3 · Vertical slice — Command Center end-to-end
-
-- State: Backlog (backlog)
-- Priority: High
-- Project: Unite-Group
-- Assignee: Unassigned
-- Updated: 2026-05-25T06:30:06.956Z
-- Labels: ui, core, dashboard, frontend
-- Linear: https://linear.app/unite-group/issue/UNI-2061/phase-3-vertical-slice-command-center-end-to-end
-
-Summary / Linear description excerpt:
-
-> ## Phase 3 — Vertical slice: Command Center
-
-> Port the founder Command Center end-to-end as the **first integration**. Validates that tokens + primitives compose into a real screen, and that the Supabase data layer can feed the design.
-
-> ### Target route
-
-> `src/app/(founder)/founder/dashboard/page.tsx`
-
-> ### Source
-
-> * Prototype: `design/unite-hub-layered/prototypes/Unite-Hub Command Center.html`
-> * Component: `design/unite-hub-layered/src/screen-hub.jsx` + `layered-hub.jsx`
-> * Screenshot: `design/unite-hub-layered/screenshots/layered-hub.png`
-
-> ### Layout to implement
-
-> * 80px rail (left) — re-uses `<Sidebar>` primitive
-> * Top bar (breadcrumb + search + org pill + live indicator)
-> * 4-up KPI row (Revenue, MRR, Hot Leads, Pipeline Velocity)
-> * Bento grid:
->   * Today's meetings (right column)
->   * Active deals snapshot (left, wide)
->   * AI alerts (wins / risks / warnings stacked)
->   * Recent activity feed
-> * Fixed-bottom live ticker
-> * FAB (quick create)
-> * Right panel: Tasks + Meetings + Alerts (collapses into drawer on tablet)
-
-> ### Data wiring (Supabase)
-
-> Replace mock data from `src/shared-data.jsx`:
-
-> | Mock | Real source |
-> | -- | -- |
-> | KPIs | Aggregate queries on `contacts.ai_score`, `campaigns.total_*`, `email_opens`, `emails` |
-> | Meetings | Microsoft Graph `/me/calendar/events` (existing Outlook OAuth) |
-> | Tasks | `campaign_steps` where `scheduled_for <= now()` |
-> | Activity feed | Supabase r
-> …
+> Senior Engineer loop: reproduce/confirm gap, write failing test or failing gate, implement smallest safe slice, rerun targeted tests, record evidence before moving on. Sandbox only until verified.
 
 ## Full open queue snapshot
 
 | Issue | State | Priority | Project | Updated | Title |
 | --- | --- | --- | --- | --- | --- |
+| [UNI-2117](https://linear.app/unite-group/issue/UNI-2117/ccw-p0-wave-2-harden-team-invites-and-session-invalidation) | In Review | Urgent | CCW CRM | 2026-06-01T04:13:41.183Z | [CCW P0 Wave 2] Harden Team Invites and Session Invalidation |
+| [UNI-2103](https://linear.app/unite-group/issue/UNI-2103/ccw-p0-build-loop-green-gates-and-repo-stabilisation) | In Review | Urgent | CCW CRM | 2026-06-01T04:07:07.949Z | [CCW P0 Build Loop] Green Gates and Repo Stabilisation |
 | [UNI-2058](https://linear.app/unite-group/issue/UNI-2058/phase-0-engineering-review-and-adoption-decision-replace-parallel) | In Progress | Urgent | Unite-Group | 2026-05-30T11:44:06.770Z | Phase 0 · Engineering review & adoption decision (replace / parallel / cherry-pick) |
 | [UNI-2060](https://linear.app/unite-group/issue/UNI-2060/phase-2-extract-ui-primitives-card-kpi-chip-tier-ticker-fab) | In Progress | High | Unite-Group | 2026-05-30T11:44:06.774Z | Phase 2 · Extract UI primitives (Card, KPI, Chip, Tier, Ticker, FAB, LiveIndicator, etc.) |
 | [UNI-2059](https://linear.app/unite-group/issue/UNI-2059/phase-1-port-design-tokens-into-globalscss-tailwind-config) | In Progress | High | Unite-Group | 2026-05-30T11:44:06.771Z | Phase 1 · Port design tokens into globals.css + tailwind config |
 | [UNI-2053](https://linear.app/unite-group/issue/UNI-2053/create-ccw-product-category-copy) | In Review | None | Brand OS Production Board | 2026-05-23T05:08:34.536Z | Create CCW product category copy |
 | [UNI-2054](https://linear.app/unite-group/issue/UNI-2054/maintain-margot-command-center-and-restoreassist-content-index) | In Progress | None | Brand OS Production Board | 2026-05-23T04:46:35.401Z | Maintain Margot Command Center and RestoreAssist Content Index |
+| [UNI-2111](https://linear.app/unite-group/issue/UNI-2111/ccw-p0-wave-2-connect-company-settings-save-to-authenticated) | Todo | Urgent | CCW CRM | 2026-06-01T03:36:08.417Z | [CCW P0 Wave 2] Connect Company Settings Save to Authenticated Organization API |
+| [UNI-2108](https://linear.app/unite-group/issue/UNI-2108/ccw-p1-build-loop-core-erp-smoke-pack-products-customers-quotes-orders) | Todo | Urgent | CCW CRM | 2026-06-01T03:28:31.117Z | [CCW P1 Build Loop] Core ERP Smoke Pack: Products, Customers, Quotes, Orders, POS, Inventory, Invoices |
+| [UNI-2107](https://linear.app/unite-group/issue/UNI-2107/ccw-p1-build-loop-enforce-tenantorganization-context-across-data-paths) | Todo | Urgent | CCW CRM | 2026-06-01T03:28:29.890Z | [CCW P1 Build Loop] Enforce Tenant/Organization Context Across Data Paths |
+| [UNI-2106](https://linear.app/unite-group/issue/UNI-2106/ccw-p0-build-loop-promote-shopifyxerosendgridsentry-from-demo-to) | Todo | Urgent | CCW CRM | 2026-06-01T03:28:28.877Z | [CCW P0 Build Loop] Promote Shopify/Xero/SendGrid/Sentry From Demo to Verified Staging |
+| [UNI-2105](https://linear.app/unite-group/issue/UNI-2105/ccw-p0-build-loop-refresh-project-pathway-docs-against-live-evidence) | Todo | Urgent | CCW CRM | 2026-06-01T03:28:28.133Z | [CCW P0 Build Loop] Refresh Project Pathway Docs Against Live Evidence |
+| [UNI-2104](https://linear.app/unite-group/issue/UNI-2104/ccw-p0-build-loop-complete-signup-auth-onboarding-and-account-settings) | Todo | Urgent | CCW CRM | 2026-06-01T03:28:27.358Z | [CCW P0 Build Loop] Complete Signup, Auth, Onboarding, and Account Settings E2E |
+| [UNI-2119](https://linear.app/unite-group/issue/UNI-2119/ccw-p1-wave-2-connect-container-receiving-to-warehouse-inventory-stock) | Todo | High | CCW CRM | 2026-06-01T03:36:14.186Z | [CCW P1 Wave 2] Connect Container Receiving to Warehouse Inventory Stock Movement |
+| [UNI-2116](https://linear.app/unite-group/issue/UNI-2116/ccw-p1-wave-2-stop-silent-mock-fallbacks-in-agents-and-marketing) | Todo | High | CCW CRM | 2026-06-01T03:36:12.016Z | [CCW P1 Wave 2] Stop Silent Mock Fallbacks in Agents and Marketing Dashboards |
+| [UNI-2115](https://linear.app/unite-group/issue/UNI-2115/ccw-p1-wave-2-replace-service-portal-mock-customer-id-with) | Todo | High | CCW CRM | 2026-06-01T03:36:11.281Z | [CCW P1 Wave 2] Replace Service Portal Mock Customer ID with Authenticated Customer Context |
+| [UNI-2114](https://linear.app/unite-group/issue/UNI-2114/ccw-p1-wave-2-connect-portal-orders-and-tracking-pages-to-real) | Todo | High | CCW CRM | 2026-06-01T03:36:10.526Z | [CCW P1 Wave 2] Connect Portal Orders and Tracking Pages to Real Customer APIs |
+| [UNI-2113](https://linear.app/unite-group/issue/UNI-2113/ccw-p1-wave-2-replace-pos-reconciliation-bulk-placeholder-with-tested) | Todo | High | CCW CRM | 2026-06-01T03:36:09.825Z | [CCW P1 Wave 2] Replace POS Reconciliation Bulk Placeholder with Tested Bulk Match Flow |
+| [UNI-2112](https://linear.app/unite-group/issue/UNI-2112/ccw-p1-wave-2-implement-inventory-transfer-cancel-endpoint-and-ui-flow) | Todo | High | CCW CRM | 2026-06-01T03:36:09.085Z | [CCW P1 Wave 2] Implement Inventory Transfer Cancel Endpoint and UI Flow |
+| [UNI-2110](https://linear.app/unite-group/issue/UNI-2110/ccw-p2-build-loop-demote-or-finish-ai-placeholder-features) | Todo | High | CCW CRM | 2026-06-01T03:28:32.663Z | [CCW P2 Build Loop] Demote or Finish AI Placeholder Features |
+| [UNI-2109](https://linear.app/unite-group/issue/UNI-2109/ccw-p1-build-loop-finish-billingstripe-decision-and-implementation) | Todo | High | CCW CRM | 2026-06-01T03:28:31.865Z | [CCW P1 Build Loop] Finish Billing/Stripe Decision and Implementation |
 | [UNI-2079](https://linear.app/unite-group/issue/UNI-2079/configure-vercel-linear-api-key-telegram-webhook-for-autonomous-intake) | Todo | High | Dimitri ITR Platform | 2026-05-30T11:15:49.551Z | Configure Vercel: LINEAR_API_KEY + Telegram webhook for autonomous intake |
 | [UNI-2080](https://linear.app/unite-group/issue/UNI-2080/duncan-run-discovery-telegram-loop-3q-batches-4-buttons) | Todo | High | Dimitri ITR Platform | 2026-05-30T11:15:02.231Z | Duncan: run /discovery Telegram loop (3Q batches + 4 buttons) |
 | [UNI-2075](https://linear.app/unite-group/issue/UNI-2075/gmail-export-ingest-into-spm-intake-phill-vault) | Todo | High | Dimitri ITR Platform | 2026-05-28T02:07:42.868Z | Gmail export + ingest into SPM intake (Phill vault) |
+| [UNI-2120](https://linear.app/unite-group/issue/UNI-2120/ccw-p2-wave-2-decide-and-wire-ai-quote-generation-into-quote-workflow) | Todo | Medium | CCW CRM | 2026-06-01T03:36:15.106Z | [CCW P2 Wave 2] Decide and Wire AI Quote Generation into Quote Workflow or Feature-Flag It |
+| [UNI-2118](https://linear.app/unite-group/issue/UNI-2118/ccw-p2-wave-2-attach-translation-edit-audit-trail-to-authenticated) | Todo | Medium | CCW CRM | 2026-06-01T03:36:13.453Z | [CCW P2 Wave 2] Attach Translation Edit Audit Trail to Authenticated User |
+| [UNI-2090](https://linear.app/unite-group/issue/UNI-2090/vision-build-kickoff-duncan) | Backlog | Urgent | Dimitri ITR Platform | 2026-05-31T22:56:53.571Z | [Vision] Build kickoff — Duncan |
+| [UNI-2102](https://linear.app/unite-group/issue/UNI-2102/vision-rn-2-must) | Backlog | High | Dimitri ITR Platform | 2026-05-31T22:56:59.679Z | [Vision rn-2] must |
+| [UNI-2101](https://linear.app/unite-group/issue/UNI-2101/vision-rn-1-must) | Backlog | High | Dimitri ITR Platform | 2026-05-31T22:56:59.262Z | [Vision rn-1] must |
+| [UNI-2100](https://linear.app/unite-group/issue/UNI-2100/vision-rk-2-must) | Backlog | High | Dimitri ITR Platform | 2026-05-31T22:56:58.666Z | [Vision rk-2] must |
+| [UNI-2099](https://linear.app/unite-group/issue/UNI-2099/vision-rk-1-must) | Backlog | High | Dimitri ITR Platform | 2026-05-31T22:56:57.727Z | [Vision rk-1] must |
+| [UNI-2096](https://linear.app/unite-group/issue/UNI-2096/vision-mm-2-must) | Backlog | High | Dimitri ITR Platform | 2026-05-31T22:56:56.587Z | [Vision mm-2] must |
+| [UNI-2095](https://linear.app/unite-group/issue/UNI-2095/vision-mm-1-must) | Backlog | High | Dimitri ITR Platform | 2026-05-31T22:56:56.205Z | [Vision mm-1] must |
+| [UNI-2094](https://linear.app/unite-group/issue/UNI-2094/vision-mj-2-must) | Backlog | High | Dimitri ITR Platform | 2026-05-31T22:56:55.815Z | [Vision mj-2] must |
+| [UNI-2092](https://linear.app/unite-group/issue/UNI-2092/vision-dd-2-must) | Backlog | High | Dimitri ITR Platform | 2026-05-31T22:56:55.024Z | [Vision dd-2] must |
+| [UNI-2091](https://linear.app/unite-group/issue/UNI-2091/vision-dd-1-must) | Backlog | High | Dimitri ITR Platform | 2026-05-31T22:56:54.144Z | [Vision dd-1] must |
 | [UNI-2088](https://linear.app/unite-group/issue/UNI-2088/swat-cross-project-deployment-model-analysis-cloud-vs-connected-local) | Backlog | High | Unite-Group | 2026-05-30T03:29:36.391Z | SWAT: Cross-project deployment model analysis — Cloud vs Connected-Local |
 | [UNI-2069](https://linear.app/unite-group/issue/UNI-2069/dimitri-epic-human-gates-12q-gmail-legal-board) | Backlog | High | Dimitri ITR Platform | 2026-05-27T23:33:00.425Z | [Dimitri] Epic: Human gates (12Q, Gmail, legal, board) |
 | [UNI-2077](https://linear.app/unite-group/issue/UNI-2077/dsp-osf-ato-api-portal-onboarding) | Backlog | High | Dimitri ITR Platform | 2026-05-27T22:38:38.348Z | DSP OSF + ATO API Portal onboarding |
 | [UNI-2066](https://linear.app/unite-group/issue/UNI-2066/phase-8-accessibility-audit-remediation-across-all-ported-screens) | Backlog | High | Unite-Group | 2026-05-25T06:31:14.792Z | Phase 8 · Accessibility audit + remediation across all ported screens |
-| [UNI-2057](https://linear.app/unite-group/issue/UNI-2057/unite-hub-layered-design-system-handoff-and-integration) | Backlog | High | Unite-Group | 2026-05-25T06:31:14.792Z | Unite-Hub · Layered Design System — Handoff & Integration |
-| [UNI-2061](https://linear.app/unite-group/issue/UNI-2061/phase-3-vertical-slice-command-center-end-to-end) | Backlog | High | Unite-Group | 2026-05-25T06:30:06.956Z | Phase 3 · Vertical slice — Command Center end-to-end |
-| [UNI-2087](https://linear.app/unite-group/issue/UNI-2087/duncan-telegram-hello-need-to-know-more) | Backlog | Medium | Dimitri ITR Platform | 2026-05-29T08:28:00.744Z | [Duncan Telegram] Hello…. Need to know more? |
-| [UNI-2086](https://linear.app/unite-group/issue/UNI-2086/duncan-telegram-vision-in-piceodimtr) | Backlog | Medium | Dimitri ITR Platform | 2026-05-29T08:16:56.886Z | [Duncan Telegram] /vision in PiCEODimtr |
-| [UNI-2085](https://linear.app/unite-group/issue/UNI-2085/duncan-telegram-vision-in-piceodimtr) | Backlog | Medium | Dimitri ITR Platform | 2026-05-29T08:13:20.955Z | [Duncan Telegram] /vision in PiCEODimtr |
-| [UNI-2070](https://linear.app/unite-group/issue/UNI-2070/dimitri-epic-regulated-mvp-real-ato-xpm-payments-noah) | Backlog | Medium | Dimitri ITR Platform | 2026-05-27T22:38:32.308Z | [Dimitri] Epic: Regulated MVP (real ATO / XPM / payments / NOAH) |
-| [UNI-2065](https://linear.app/unite-group/issue/UNI-2065/phase-7-mobile-tablet-responsive-implementation) | Backlog | Medium | Unite-Group | 2026-05-25T06:30:54.833Z | Phase 7 · Mobile + Tablet responsive implementation |
-| [UNI-2064](https://linear.app/unite-group/issue/UNI-2064/phase-6-port-finance-intel-people-surfaces) | Backlog | Medium | Unite-Group | 2026-05-25T06:30:47.673Z | Phase 6 · Port Finance + Intel + People surfaces |
-| [UNI-2063](https://linear.app/unite-group/issue/UNI-2063/phase-5-port-deals-pipeline-deal-detail-kanban-drag-to-stage) | Backlog | Medium | Unite-Group | 2026-05-25T06:30:27.813Z | Phase 5 · Port Deals pipeline + Deal detail (Kanban + drag-to-stage) |
-| [UNI-2062](https://linear.app/unite-group/issue/UNI-2062/phase-4-port-crm-list-contact-detail) | Backlog | Medium | Unite-Group | 2026-05-25T06:30:21.474Z | Phase 4 · Port CRM list + Contact detail |
-| [UNI-2056](https://linear.app/unite-group/issue/UNI-2056/unite-hub-surface-restoreassist-report-quality-and-field-data-signals) | Backlog | Medium | Unite-Group | 2026-05-22T21:47:05.775Z | [UNITE-HUB] Surface RestoreAssist report-quality and field-data signals in Command Centre |
-| [UNI-2084](https://linear.app/unite-group/issue/UNI-2084/vision-discovery-vision-3-why-idea-parking-distribution-set) | Backlog | None | Dimitri ITR Platform | 2026-05-29T11:23:40.179Z | Vision Discovery — /vision 3-why + /idea parking + distribution set |
 
 ## Watcher metadata
 

@@ -1,5 +1,5 @@
 // Re-export generated Supabase types from the canonical source
-// To regenerate: supabase gen types typescript --project-id uqfgdezadpkiadugufbs > types/supabase.ts
+// To regenerate: supabase gen types typescript --project-id lksfwktwtmyznckodsau > types/supabase.ts
 export type { Database, Json } from "@/types/supabase"
 
 // Convenience type helpers

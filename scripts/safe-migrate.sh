@@ -28,7 +28,7 @@ log_warn()    { echo -e "${YELLOW}[WARN]${NC}  $*"; }
 log_error()   { echo -e "${RED}[ERROR]${NC} $*" >&2; }
 
 # ─── Config ───────────────────────────────────────────────────────────────────
-PROJECT_ID="uqfgdezadpkiadugufbs"
+PROJECT_ID="lksfwktwtmyznckodsau"
 BRANCH_NAME="migration-preview-$(date +%Y%m%d-%H%M%S)"
 
 # ─── Arguments ───────────────────────────────────────────────────────────────

@@ -1,5 +1,108 @@
 # Margot Overnight Progress Log
 
+## 2026-06-02 09:12 AEST
+
+### PR #214 frozen-lane health refresh
+
+Current checkpoint:
+
+- Preflight kept PR #214 (`https://github.com/CleanExpo/Unite-Group/pull/214`) as the active lane. The checkout is on local sync branch `margot/tasks-voice-schema-proposal-sync` at `23115e8`, tracking `origin/margot/tasks-voice-schema-proposal`; GitHub auth worked for `CleanExpo` via read-only API probe without token values printed.
+- Source implementation stayed frozen because PR #214 is already green/mergeable but branch-policy blocked: `gh pr view 214` reports remote PR head `23115e8ad86b2b15427f96348b5d540bb5363b23`, `state=OPEN`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`.
+- `gh pr checks 214 --watch=false` re-confirmed all observed contexts passing, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks and Chief Reviewer final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is GitHub status-check observation only, not a manual deploy or env mutation.
+- Local-only dirty path groups after this refresh are evidence/status docs plus concurrent untracked assessment/plan/runbook drafts: `docs/margot/morning-report.md`, `docs/margot/overnight-progress-log.md`, untracked `docs/margot/hermes-v15-capability-assessment.md`, untracked `docs/plans/2026-06-02-au-nz-market-dominance-architecture.md`, and untracked `docs/runbooks/resource-optimization-assessment.md`. No source/test/migration files changed in this tick, and nothing was pushed or merged.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 214 --json number,title,state,isDraft,url,headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# PASS/read-back: PR #214 OPEN, remote head 23115e8ad86b2b15427f96348b5d540bb5363b23, mergeable MERGEABLE, mergeStateStatus BLOCKED, reviewDecision REVIEW_REQUIRED.
+
+gh pr checks 214 --watch=false
+# PASS: CI Gate, DESIGN.md lint, Review Board specialist checks/final verdict, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox all passed.
+
+npx jest --runTestsByPath tests/unit/margot-tasks-voice-migration-proposal.test.ts --runInBand
+# PASS: 1 suite / 17 tests.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test -- --testPathPattern=tests/pipelines --runInBand
+# PASS: tests/pipelines, 3 suites / 23 tests.
+
+git diff --check
+# PASS after the progress-log and morning-report updates for this checkpoint.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, secret printing/storage, push, merge, or new source/test/migration edit occurred.
+
+Next safe slice:
+
+- Get required non-author review/branch-policy clearance for PR #214, then merge only if the green check state still holds. After PR #214 is merged or explicitly parked, continue the sandbox-first CRM backlog; do not apply or promote the `tasks` / `voice_command_sessions` proposal to production without fresh Board approval.
+
+## 2026-06-02 08:36 AEST
+
+### PR #214 conflict-resolution / green-check refresh
+
+Current checkpoint:
+
+- Preflight found the checkout on `main` at `59a711d` with GitHub auth available for `CleanExpo` via read-only API probe and PR #214 (`https://github.com/CleanExpo/Unite-Group/pull/214`) open but `CONFLICTING`/`DIRTY` against current `origin/main`.
+- Continued the active PR lane instead of starting new CRM source work: created local sync branch `margot/tasks-voice-schema-proposal-sync`, merged `origin/main`, resolved the two volatile evidence-doc conflicts by accepting the current `main` versions of `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`, committed `23115e8` (`chore: sync tasks voice proposal with main`), and pushed it to `origin/margot/tasks-voice-schema-proposal`.
+- PR #214 is now green and no longer conflicting. `gh pr view 214` reports head `23115e8ad86b2b15427f96348b5d540bb5363b23`, `mergeable=MERGEABLE`, `mergeStateStatus=BLOCKED`, and `reviewDecision=REVIEW_REQUIRED`. It remains open and was not merged because branch policy still requires review.
+- Post-push checks passed, including `CI Gate (type-check, lint, test, build)`, `Validate .claude/DESIGN.md`, Review Board specialist checks, Chief Reviewer final verdict, CodeRabbit, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel evidence is GitHub status-check observation only, not a manual deploy or env mutation.
+
+Verification:
+
+```bash
+gh api user --jq .login
+# PASS: CleanExpo (auth probe only; no token values printed).
+
+gh pr view 214 --json number,state,url,headRefOid,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup
+# Initial read-back: PR #214 was OPEN, head 45be90d790b7d1ebabae3fc88f013aa41472b499, mergeable CONFLICTING, mergeStateStatus DIRTY, reviewDecision REVIEW_REQUIRED.
+
+git merge origin/main
+# Conflict resolution slice: only docs/margot/morning-report.md and docs/margot/overnight-progress-log.md required manual resolution; both were resolved to current origin/main versions because they are volatile evidence docs.
+
+npx jest --runTestsByPath tests/unit/margot-tasks-voice-migration-proposal.test.ts --runInBand
+# PASS: 1 suite / 17 tests.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npm test -- --testPathPattern=tests/pipelines --runInBand
+# PASS: tests/pipelines, 3 suites / 23 tests.
+
+git diff --check
+# PASS before merge commit.
+
+delegate_task spec review + quality review
+# PASS / APPROVED. Quality note about supabase/.temp/linked-project.json was reviewed against origin/main; the file is already tracked on origin/main, so this tick did not broaden scope by deleting main-tracked files.
+
+git push origin HEAD:margot/tasks-voice-schema-proposal
+# PASS: pushed 23115e8 to PR #214 branch.
+
+gh pr checks 214 --watch --interval 15
+# PASS: all observed contexts completed successfully, including CI Gate, Review Board, DESIGN.md lint, CodeRabbit, Vercel – unite-group, and Vercel – unite-group-sandbox.
+```
+
+Safety:
+
+- No production DB write, Supabase migration application, sandbox apply, Vercel env mutation/manual deploy, client-facing communication, billing/payment action, destructive git on `main`, cross-client merge, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred.
+
+Next safe slice:
+
+- Get required non-author review/branch-policy clearance for PR #214, then merge only if the green check state still holds. After PR #214 is merged or explicitly parked, continue the CRM backlog with the next sandbox-first `tasks` / `voice_command_sessions` validation step; do not apply or promote the proposal to production without fresh Board approval.
+
 ## 2026-06-02 06:42 AEST
 
 ### Annual pricing contract microfix (local-only commit)

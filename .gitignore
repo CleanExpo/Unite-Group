@@ -57,6 +57,9 @@ frontend-minimal/node_modules/
 # Sandbox wizard cache (schema dumps + sync state)
 .sandbox-cache/
 
+# deepsec security scanner workspace
+.deepsec/
+
 # Vercel exports (transient pulls — never canonical)
 vercel-export-*/
 
