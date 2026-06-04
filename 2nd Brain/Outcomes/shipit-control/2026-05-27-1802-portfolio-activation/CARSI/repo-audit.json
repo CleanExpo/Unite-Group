@@ -1,0 +1,46 @@
+{
+  "product": "CARSI",
+  "path": "/Users/phillmcgurk/CARSI",
+  "declared_repo": "CleanExpo/CARSI",
+  "exists": true,
+  "generated_at": "2026-05-27T18:02:37+10:00",
+  "rana_authority": "Rana is final production merge authority; local artifacts only, no merge/deploy/publish performed.",
+  "is_git": true,
+  "remote": "https://github.com/CleanExpo/CARSI.git",
+  "branch": "main",
+  "head": "7cc2241",
+  "dirty_count": 1,
+  "dirty_sample": [
+    "?? .claude/"
+  ],
+  "package": true,
+  "scripts": {
+    "build": "prisma generate && next build",
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit"
+  },
+  "test_status": "not_run_no_test_script",
+  "env_examples": [
+    ".env.example"
+  ],
+  "github_workflows": [
+    ".github/workflows/security.yml",
+    ".github/workflows/deploy.yml",
+    ".github/workflows/examples",
+    ".github/workflows/deploy-staging.yml",
+    ".github/workflows/agent-pr-checks.yml",
+    ".github/workflows/ci.yml"
+  ],
+  "blockers": [
+    "missing_test_script"
+  ],
+  "risk": [
+    "working_tree_dirty:1_files"
+  ],
+  "missing_integrations_or_env_hook_gaps": [],
+  "prioritized_tasks": [
+    "Add or document repo test command for Shipit Checklist acceptance",
+    "Prepare sandbox PR task to isolate dirty worktree changes before Rana merge review"
+  ],
+  "shipit_percent": 60
+}

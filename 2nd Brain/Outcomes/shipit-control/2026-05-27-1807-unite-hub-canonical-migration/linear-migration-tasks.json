@@ -1,0 +1,46 @@
+{
+  "linear_status": {
+    "available": false,
+    "status": "auth_or_request_failed",
+    "error_type": "HTTPError",
+    "http_status": 401
+  },
+  "created": [],
+  "pending_actions": [
+    {
+      "priority": "critical",
+      "title": "Migrate Unite-Group open PR #205 into Unite-Hub or close as superseded",
+      "action": "Review https://github.com/CleanExpo/Unite-Group/pull/205 head feat/command-center-daily-digest-server-read -> main; cherry-pick/recreate required delta against CleanExpo/Unite-Hub sandbox branch; Rana reviews final PR."
+    },
+    {
+      "priority": "critical",
+      "title": "Migrate Unite-Group open PR #204 into Unite-Hub or close as superseded",
+      "action": "Review https://github.com/CleanExpo/Unite-Group/pull/204 head margot/digest-page-read -> main; cherry-pick/recreate required delta against CleanExpo/Unite-Hub sandbox branch; Rana reviews final PR."
+    },
+    {
+      "priority": "high",
+      "title": "Triage Unite-Group local uncommitted/untracked diff before archive",
+      "action": "3 local status entries in /Users/phillmcgurk/Unite-Group; copy only required deltas into Unite-Hub sandbox branch."
+    },
+    {
+      "priority": "high",
+      "title": "Review Unite-Group unmerged branches",
+      "action": "Branches not merged to main/master: chore/post-pr200-cleanup, docs/ccw-machines-category-copy, docs/ccw-product-category-topic-brief, docs/linear-watch-refresh-2053-review, docs/linear-watch-refresh-2055-review, docs/margot-pr175-merge-evidence, feat/ccw-eofy-organic-copy-pack, feat/command-center-daily-digest-server-read, feat/crm-approval-lifecycle-helper, feat/crm-timeline-write-hooks, feat/crm-timeline-write-hooks-clean, feat/margot-crm-command-spine, feat/margot-crm-contacts-api, feat/margot-crm-contacts-approval-defaults, feat/margot-crm-contacts-opportunities-migration, feat/margot-crm-daily-digest-helper, feat/margot-crm-daily-digest-route, margot-command-center-approval-ui, margot/addon-task-status-evidence, margot/digest-page-read; migrate required commits into Unite-Hub or mark obsolete."
+    },
+    {
+      "priority": "high",
+      "title": "Migrate docs/config drift from Unite-Group to Unite-Hub",
+      "action": "269 docs/config drift paths found; start with .env.example, .github/design-md-lint.baseline.txt, .github/scripts/design-md-lint.sh, .github/workflows/ci.yml, .github/workflows/deepsec-weekly.yml, .github/workflows/design-lint.yml, .github/workflows/review-board.yml, .github/workflows/rotate-admin-jwt.yml, docs/AUTO-PUBLISH-FAILURE-MODE-REGISTER.md, docs/MIGRATION-PROTOCOL.md."
+    },
+    {
+      "priority": "medium",
+      "title": "Classify files present only in deprecated Unite-Group source",
+      "action": "1135 paths missing from Unite-Hub; classify by keep/migrate/drop using inventory area counts."
+    },
+    {
+      "priority": "medium",
+      "title": "Resolve common-file content drift",
+      "action": "58 common files differ; migrate intentional deltas to Unite-Hub with tests."
+    }
+  ]
+}

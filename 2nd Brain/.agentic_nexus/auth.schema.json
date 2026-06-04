@@ -1,0 +1,392 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://unite-group-nexus.local/schemas/agentic-nexus/auth.schema.json",
+  "title": "Agentic Nexus Authorisation Policy Schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "service_name",
+    "owner",
+    "supported_agent_types",
+    "authentication_model",
+    "permission_scopes",
+    "forbidden_actions",
+    "required_evidence_types",
+    "human_approval_gates",
+    "obsidian_memory_rules",
+    "diagnostic_default_behaviour",
+    "escalation_rules"
+  ],
+  "properties": {
+    "service_name": {
+      "type": "string",
+      "const": "Agentic Nexus Control Plane"
+    },
+    "owner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "human_owner",
+        "organisation",
+        "system"
+      ],
+      "properties": {
+        "human_owner": {
+          "type": "string",
+          "const": "Phill McGurk"
+        },
+        "organisation": {
+          "type": "string",
+          "const": "Unite-Group Nexus"
+        },
+        "system": {
+          "type": "string",
+          "const": "Agentic Nexus"
+        }
+      }
+    },
+    "supported_agent_types": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "Hermes CEO Orchestrator",
+          "Senior Project Manager Agent",
+          "Context Discovery Agent",
+          "Purpose Mapping Agent",
+          "Friction Mapping Agent",
+          "Research Director Agent",
+          "Evidence Validator Agent",
+          "Principal Software Engineer Agent",
+          "QA/Test Agent",
+          "UI/UX Review Agent",
+          "SEO/AEO/GEO Agent",
+          "Marketing Strategy Agent",
+          "Brand Authority Agent",
+          "Business Operations Agent",
+          "Finance Awareness Agent",
+          "Legal/Compliance Awareness Agent",
+          "Documentation Agent",
+          "Dashboard Reporter Agent",
+          "Local Build Worker",
+          "Local Research Worker"
+        ]
+      },
+      "uniqueItems": true,
+      "minItems": 20
+    },
+    "authentication_model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "control_plane_required",
+        "direct_access_default",
+        "required_session_fields"
+      ],
+      "properties": {
+        "control_plane_required": {
+          "type": "boolean",
+          "const": true
+        },
+        "direct_access_default": {
+          "type": "string",
+          "enum": [
+            "deny_unless_scope_granted"
+          ]
+        },
+        "required_session_fields": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "agent_id",
+              "agent_type",
+              "assigned_project",
+              "assigned_task",
+              "requested_scopes",
+              "worker_id",
+              "session_start_time",
+              "human_owner",
+              "approval_status"
+            ]
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "permission_scopes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "read_scopes",
+        "write_scopes",
+        "execution_scopes",
+        "restricted_scopes"
+      ],
+      "properties": {
+        "read_scopes": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "read:project_registry",
+              "read:agent_registry",
+              "read:task_queue",
+              "read:obsidian_memory",
+              "read:github_repository",
+              "read:dashboard_status",
+              "read:evidence_ledger",
+              "read:decision_register",
+              "read:business_goals"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "write_scopes": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "write:task_status",
+              "write:structured_obsidian_note",
+              "write:evidence_record",
+              "write:gap_report",
+              "write:decision_draft",
+              "write:dashboard_status",
+              "write:branch_commit",
+              "write:pull_request_draft",
+              "write:qa_report"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "execution_scopes": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "run:lint",
+              "run:typecheck",
+              "run:tests",
+              "run:build",
+              "run:playwright",
+              "run:local_script",
+              "run:research_task",
+              "run:gap_analysis",
+              "run:shipit_readiness_check"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "restricted_scopes": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "merge:pull_request",
+              "deploy:production",
+              "publish:public_content",
+              "send:external_email",
+              "modify:billing",
+              "modify:authentication",
+              "modify:database_policy",
+              "modify:rls_policy",
+              "delete:file",
+              "delete:database_record",
+              "access:customer_personal_data",
+              "access:payment_data",
+              "change:legal_or_compliance_position"
+            ]
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "forbidden_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 19
+    },
+    "required_evidence_types": {
+      "type": "object",
+      "required": [
+        "research",
+        "coding",
+        "business_strategy",
+        "compliance",
+        "dashboard"
+      ],
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "properties": {
+        "research": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "source_links_or_file_paths",
+              "date_gathered",
+              "confidence_score",
+              "missing_evidence_notes",
+              "contradictions_found",
+              "recommended_next_action"
+            ]
+          }
+        },
+        "coding": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "files_changed",
+              "commands_run",
+              "test_results",
+              "build_results",
+              "screenshots_if_ui_affected",
+              "errors_encountered",
+              "pull_request_or_branch_reference",
+              "recommended_next_action"
+            ]
+          }
+        },
+        "business_strategy": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "business_goal_supported",
+              "assumptions",
+              "evidence_strength",
+              "revenue_impact",
+              "risk_level",
+              "next_decision_required"
+            ]
+          }
+        },
+        "compliance": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "dashboard": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "human_approval_gates": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "production_deployment",
+          "public_publishing",
+          "email_sending",
+          "billing_or_payment_changes",
+          "legal_or_compliance_sensitive_outputs",
+          "destructive_actions",
+          "database_policy_changes",
+          "authentication_changes",
+          "customer_facing_claims",
+          "final_shipit_approval"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "obsidian_memory_rules": {
+      "type": "object",
+      "required": [
+        "structured_templates_only",
+        "allowed_write_types",
+        "disallowed_write_patterns"
+      ],
+      "properties": {
+        "structured_templates_only": {
+          "type": "boolean",
+          "const": true
+        },
+        "allowed_write_types": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "research_brief",
+              "evidence_record",
+              "gap_report",
+              "decision_draft",
+              "implementation_plan",
+              "qa_report",
+              "project_status_summary",
+              "executive_briefing"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "disallowed_write_patterns": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "random_notes",
+              "duplicated_notes",
+              "unsupported_notes",
+              "untraceable_notes",
+              "unstructured_dumps"
+            ]
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "diagnostic_default_behaviour": {
+      "type": "object",
+      "required": [
+        "run_when_context_insufficient",
+        "required_steps"
+      ],
+      "properties": {
+        "run_when_context_insufficient": {
+          "type": "boolean",
+          "const": true
+        },
+        "required_steps": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "inspect_existing_assets",
+              "identify_purpose",
+              "map_friction",
+              "detect_gaps",
+              "recommend_smallest_useful_next_action"
+            ]
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "escalation_rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "condition",
+          "escalate_to",
+          "default_decision"
+        ],
+        "properties": {
+          "condition": {
+            "type": "string"
+          },
+          "escalate_to": {
+            "type": "string"
+          },
+          "default_decision": {
+            "enum": [
+              "deny",
+              "requires_human_approval",
+              "allow"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "x_policy_source": "auth.md"
+}

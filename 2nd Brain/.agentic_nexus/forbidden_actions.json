@@ -1,0 +1,160 @@
+{
+  "schema_version": "0.1.0",
+  "service_name": "Agentic Nexus Control Plane",
+  "source_policy": "auth.md",
+  "default_decision": "deny",
+  "actions": [
+    {
+      "action_id": "forbid_merge_pr_without_approval",
+      "action": "merge pull request without approval",
+      "category": "restricted_without_approval",
+      "related_scope": "merge:pull_request",
+      "default_decision": "deny",
+      "approval_required": true
+    },
+    {
+      "action_id": "forbid_deploy_production_without_approval",
+      "action": "deploy production without approval",
+      "category": "restricted_without_approval",
+      "related_scope": "deploy:production",
+      "default_decision": "deny",
+      "approval_required": true
+    },
+    {
+      "action_id": "forbid_send_external_email_without_approval",
+      "action": "send external email without approval",
+      "category": "restricted_without_approval",
+      "related_scope": "send:external_email",
+      "default_decision": "deny",
+      "approval_required": true
+    },
+    {
+      "action_id": "forbid_publish_public_content_without_approval",
+      "action": "publish public content without approval",
+      "category": "restricted_without_approval",
+      "related_scope": "publish:public_content",
+      "default_decision": "deny",
+      "approval_required": true
+    },
+    {
+      "action_id": "forbid_modify_billing_without_approval",
+      "action": "modify billing without approval",
+      "category": "restricted_without_approval",
+      "related_scope": "modify:billing",
+      "default_decision": "deny",
+      "approval_required": true
+    },
+    {
+      "action_id": "forbid_modify_authentication_without_approval",
+      "action": "modify authentication without approval",
+      "category": "restricted_without_approval",
+      "related_scope": "modify:authentication",
+      "default_decision": "deny",
+      "approval_required": true
+    },
+    {
+      "action_id": "forbid_modify_database_policy_without_approval",
+      "action": "modify database policy without approval",
+      "category": "restricted_without_approval",
+      "related_scope": "modify:database_policy",
+      "default_decision": "deny",
+      "approval_required": true
+    },
+    {
+      "action_id": "forbid_modify_rls_policy_without_approval",
+      "action": "modify RLS policy without approval",
+      "category": "restricted_without_approval",
+      "related_scope": "modify:rls_policy",
+      "default_decision": "deny",
+      "approval_required": true
+    },
+    {
+      "action_id": "forbid_delete_files_without_approval",
+      "action": "delete files without approval",
+      "category": "restricted_without_approval",
+      "related_scope": "delete:file",
+      "default_decision": "deny",
+      "approval_required": true
+    },
+    {
+      "action_id": "forbid_delete_database_records_without_approval",
+      "action": "delete database records without approval",
+      "category": "restricted_without_approval",
+      "related_scope": "delete:database_record",
+      "default_decision": "deny",
+      "approval_required": true
+    },
+    {
+      "action_id": "forbid_access_customer_personal_data_without_approval",
+      "action": "access customer personal data without approval",
+      "category": "restricted_without_approval",
+      "related_scope": "access:customer_personal_data",
+      "default_decision": "deny",
+      "approval_required": true
+    },
+    {
+      "action_id": "forbid_access_payment_data_without_approval",
+      "action": "access payment data without approval",
+      "category": "restricted_without_approval",
+      "related_scope": "access:payment_data",
+      "default_decision": "deny",
+      "approval_required": true
+    },
+    {
+      "action_id": "forbid_change_legal_or_compliance_position_without_approval",
+      "action": "change legal or compliance position without approval",
+      "category": "restricted_without_approval",
+      "related_scope": "change:legal_or_compliance_position",
+      "default_decision": "deny",
+      "approval_required": true
+    },
+    {
+      "action_id": "forbid_bypass_task_queue",
+      "action": "bypass task queue",
+      "category": "control_plane_bypass",
+      "related_scope": null,
+      "default_decision": "deny",
+      "approval_required": false
+    },
+    {
+      "action_id": "forbid_bypass_evidence_ledger",
+      "action": "bypass evidence ledger",
+      "category": "control_plane_bypass",
+      "related_scope": null,
+      "default_decision": "deny",
+      "approval_required": false
+    },
+    {
+      "action_id": "forbid_bypass_approval_gate",
+      "action": "bypass approval gate",
+      "category": "control_plane_bypass",
+      "related_scope": null,
+      "default_decision": "deny",
+      "approval_required": false
+    },
+    {
+      "action_id": "forbid_bypass_diagnostic_gate",
+      "action": "bypass diagnostic gate",
+      "category": "control_plane_bypass",
+      "related_scope": null,
+      "default_decision": "deny",
+      "approval_required": false
+    },
+    {
+      "action_id": "forbid_unstructured_obsidian_overwrite",
+      "action": "overwrite Obsidian with unstructured notes",
+      "category": "memory_integrity",
+      "related_scope": "write:structured_obsidian_note",
+      "default_decision": "deny",
+      "approval_required": false
+    },
+    {
+      "action_id": "forbid_invent_evidence",
+      "action": "invent evidence",
+      "category": "evidence_integrity",
+      "related_scope": "write:evidence_record",
+      "default_decision": "deny",
+      "approval_required": false
+    }
+  ]
+}

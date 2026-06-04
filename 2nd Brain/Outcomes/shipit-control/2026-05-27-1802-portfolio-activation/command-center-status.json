@@ -1,0 +1,109 @@
+{
+  "generated_at": "2026-05-27T18:02:37+10:00",
+  "linear": {
+    "available": false,
+    "status": "auth_or_request_failed",
+    "error_type": "HTTPError",
+    "http_status": 401
+  },
+  "queue_status": [
+    {
+      "id": "UGN-001",
+      "status": "done",
+      "owner": null,
+      "artifact_paths": [
+        "/Users/phillmcgurk/2nd-brain/Outcomes/shipit-control/2026-05-27-1709-completion-pass/UGN-001-eeat-whitepaper-pack.md"
+      ]
+    },
+    {
+      "id": "UGN-002",
+      "status": "done",
+      "owner": null,
+      "artifact_paths": [
+        "/Users/phillmcgurk/2nd-brain/Outcomes/shipit-control/2026-05-27-1709-completion-pass/UGN-002-long-form-eeat-article-1.md"
+      ]
+    },
+    {
+      "id": "UGN-003",
+      "status": "done",
+      "owner": null,
+      "artifact_paths": [
+        "/Users/phillmcgurk/2nd-brain/Outcomes/shipit-control/2026-05-27-1709-completion-pass/UGN-003-restoration-compliance-standards-brief.md"
+      ]
+    },
+    {
+      "id": "UGN-004",
+      "status": "in_progress",
+      "owner": "design_content",
+      "artifact_paths": [
+        "/Users/phillmcgurk/2nd-brain/Outcomes/shipit-control/2026-05-27-1709-completion-pass/UGN-004/ugn-004-handoff.md"
+      ]
+    },
+    {
+      "id": "UGN-005",
+      "status": "done",
+      "owner": "research_lead",
+      "artifact_paths": [
+        "/Users/phillmcgurk/2nd-brain/Outcomes/shipit-control/2026-05-27-1718/UGN-005/ugn-005-construction-procurement-risk-digest.md"
+      ]
+    },
+    {
+      "id": "UGN-006",
+      "status": "done",
+      "owner": "design_content",
+      "artifact_paths": [
+        "/Users/phillmcgurk/2nd-brain/Outcomes/shipit-control/2026-05-27-1718/UGN-006/ugn-006-x-linkedin-awareness-set.md"
+      ]
+    },
+    {
+      "id": "UGN-007",
+      "status": "in_progress",
+      "owner": "senior_engineer",
+      "artifact_paths": [
+        "/Users/phillmcgurk/2nd-brain/Outcomes/shipit-control/2026-05-27-1709-completion-pass/UGN-007/ugn-007-handoff.md"
+      ]
+    },
+    {
+      "id": "UGN-008",
+      "status": "in_progress",
+      "owner": "product_manager",
+      "artifact_paths": [
+        "/Users/phillmcgurk/2nd-brain/Outcomes/shipit-control/2026-05-27-1709-completion-pass/UGN-008/ugn-008-handoff.md"
+      ]
+    },
+    {
+      "id": "UGN-009",
+      "status": "done",
+      "owner": "designer",
+      "artifact_paths": [
+        "/Users/phillmcgurk/2nd-brain/Outcomes/shipit-control/2026-05-27-1744/UGN-009/ugn-009-ad-creative-brief-template-pack.md"
+      ]
+    },
+    {
+      "id": "UGN-010",
+      "status": "done",
+      "owner": "engineer",
+      "artifact_paths": [
+        "/Users/phillmcgurk/2nd-brain/Outcomes/shipit-control/2026-05-27-1718/UGN-010/ugn-010-autopublish-safety-gate-audit.md"
+      ]
+    },
+    {
+      "id": "UGN-011",
+      "status": "in_progress",
+      "owner": "research_lead",
+      "artifact_paths": [
+        "/Users/phillmcgurk/2nd-brain/Outcomes/shipit-control/2026-05-27-1744/UGN-011/ugn-011-eeat-source-pack-kickoff.md"
+      ]
+    },
+    {
+      "id": "UGN-000",
+      "status": "blocked",
+      "owner": "ops",
+      "artifact_paths": [
+        "/Users/phillmcgurk/2nd-brain/Outcomes/shipit-control/2026-05-27-1744/UGN-000/ugn-000-legacy-bootstrap-archive.md"
+      ]
+    }
+  ],
+  "stale": [],
+  "rana_authority": "Rana is final production merge authority"
+}

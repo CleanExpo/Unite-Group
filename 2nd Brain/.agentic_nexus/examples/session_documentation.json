@@ -1,0 +1,66 @@
+{
+  "session_id": "ANX-SESSION-documentation-agent-test",
+  "agent_id": "documentation-agent-001",
+  "agent_type": "Documentation Agent",
+  "assigned_project": "Agentic Nexus",
+  "assigned_task": "Document local worker registry and claim gate behaviour",
+  "requested_scopes": [
+    "read:project_registry",
+    "read:task_queue",
+    "read:evidence_ledger",
+    "read:dashboard_status",
+    "write:evidence_record",
+    "write:dashboard_status"
+  ],
+  "granted_scopes": [],
+  "denied_scopes": [],
+  "worker_id": "local-build-worker-01",
+  "session_start_time": "2026-06-04T08:00:00Z",
+  "session_status": "requested",
+  "human_owner": "Phill McGurk",
+  "approval_status": "not_required",
+  "evidence_required": [
+    "documentation"
+  ],
+  "evidence_supplied": [
+    "ANX-EVIDENCE-documentation-source"
+  ],
+  "diagnostic_gate_completed": true,
+  "diagnostic_gate": {
+    "diagnostic_id": "ANX-DIAGNOSTIC-documentation-allowed",
+    "request_id": "REQ-documentation-allowed",
+    "agent_id": "documentation-agent-001",
+    "assigned_project": "Agentic Nexus",
+    "answers": {
+      "What already exists?": "Agentic Nexus policy, machine-readable schemas, worker registry, and dashboard summary exist under .agentic_nexus.",
+      "What has already been started?": "Diagnostic layer, authorisation policy, schema package, validation report, task queue, claim gate, completion gate, approval store, dashboard feed, worker registry, and worker heartbeat have all been started and validated.",
+      "Why was it created?": "To stop agents receiving work without context, scope boundaries, evidence, and approval checks, and to restrict claims to registered, available, role-appropriate workers.",
+      "What problem was it meant to solve?": "Uncontrolled or unclear agent execution across the Unite-Group Nexus ecosystem.",
+      "What friction is it trying to reduce?": "Repeated explanations, duplicated work, weak evidence, unsafe autonomous actions, and unregistered workers claiming tasks.",
+      "What is missing?": "Final worker-claim-gate enforcement is being verified through this fixture task.",
+      "What is duplicated?": "No duplicate runtime validator or worker registry currently exists in this folder.",
+      "What is unclear?": "Worker integration for the three physical computers still needs end-to-end verification.",
+      "What benefits Unite-Group Nexus as a whole?": "Creates a fail-closed gate before local workers execute tasks, including a registry check that blocks unregistered and unavailable workers.",
+      "What is the smallest useful next action?": "Run worker_claim_task.py with a registered, available, role-compatible worker and verify task_claimed."
+    },
+    "context_discovery_completed": true,
+    "purpose_mapping_completed": true,
+    "friction_mapping_completed": true,
+    "gap_detection_completed": true,
+    "business_value_review_completed": true,
+    "priority_scoring_completed": true,
+    "execution_recommendation": "execute_low_risk",
+    "approval_required": false,
+    "evidence_required": [
+      "documentation"
+    ],
+    "next_action": "Validate session and then run worker_claim_task.py for task_worker_registry_allowed_001."
+  },
+  "risk_level": "low",
+  "escalation_required": false,
+  "session_expiry": "2026-12-31T23:59:59Z",
+  "audit_log_reference": ".agentic_nexus/state/audit.jsonl",
+  "requested_actions": [
+    "document worker registry and claim gate behaviour from verified evidence"
+  ]
+}
