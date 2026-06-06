@@ -65,3 +65,7 @@ vercel-export-*/
 
 # Local automation logs
 /docs/margot/automation-logs/*.log
+
+# Transient agent run artifacts (raw logs / exit codes — never canonical)
+.shipit_evidence/
+outputs/sandbox_voice_migration/
