@@ -43,7 +43,7 @@ Evidence command summary: command -v op; op whoami; op item get for approved nam
 
 Result:
 
-```
+```text
 ## Tooling
 op: present
 op_signin: not_signed_in
@@ -129,21 +129,21 @@ Purpose: prove whether the existing patched wizard can proceed before any apply.
 
 stdout:
 
-```
+```text
     Run this first:  eval $(op signin)
 
 ```
 
 stderr:
 
-```
+```text
 [0;31m[✗][0m 1Password CLI not signed in.
 
 ```
 
 meta:
 
-```
+```text
 command: ./scripts/sandbox-wizard.sh status
 exit_code: 1
 duration_seconds: 0.261

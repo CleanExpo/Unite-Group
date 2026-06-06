@@ -25,11 +25,12 @@ not a blocker.
   SHIPIT_RELEASE_READINESS_PACKET.md, SHIPIT_GIT_RUNWAY_RESULTS.md,
   SHIPIT_DEPLOYMENT_RESULTS.md, SHIPIT_POST_DEPLOYMENT_VERIFICATION.md,
   SHIPIT_FINAL_REPORT.md, and .shipit_evidence/*.log
-- These are local ShipIt evidence. They are left UNTRACKED/local-only and are
-  NOT committed to main in this run, because committing release-process scratch
-  docs to the product repo's main is not part of the named release and could
-  trigger an unnecessary Vercel rebuild. If the Board wants them persisted,
-  that is a separate, explicit decision.
+- These were originally captured as local ShipIt evidence (intended UNTRACKED/
+  local-only at generation time). In a follow-up Board-approved hygiene/evidence
+  step they were persisted into the repo under `docs/margot/evidence/` via PR #217
+  (branch `chore/repo-hygiene-evidence`), with host paths redacted and the secret
+  env-name inventory removed first. They are therefore committed on that branch and
+  reach main only through the PR's review + merge, not via any direct main push.
 
 ## Open PRs
 - CleanExpo/Unite-Group open PRs: 0.

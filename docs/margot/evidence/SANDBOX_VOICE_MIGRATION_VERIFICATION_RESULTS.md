@@ -14,21 +14,21 @@ Command: ./scripts/sandbox-wizard.sh status
 
 stdout:
 
-```
+```text
     Run this first:  eval $(op signin)
 
 ```
 
 stderr:
 
-```
+```text
 [0;31m[✗][0m 1Password CLI not signed in.
 
 ```
 
 meta:
 
-```
+```text
 command: ./scripts/sandbox-wizard.sh status
 exit_code: 1
 duration_seconds: 0.261

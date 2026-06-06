@@ -41,7 +41,7 @@ request_more_sandbox_evidence
 
 ## Exact next batch prompt
 
-```
+```text
 Proceed under autonomous bounded batch mode with sandbox-only authority. Resolve the sandbox wizard 1Password authentication gate without broadening credential scope: either authenticate 1Password so `op whoami` passes, or apply an explicitly approved sandbox-only `require_op` compatibility patch that accepts verified retrieval of `SUPABASE_ACCESS_TOKEN` and `UNITE_GROUP_SANDBOX_DB_PASSWORD` only. Then rerun the sandbox voice/task migration runway from SV-1 through SV-9 using `./scripts/sandbox-wizard.sh apply docs/margot/migration-proposals/2026-05-31-tasks-voice-command-sessions-sandbox.sql` and `./scripts/sandbox-wizard.sh status`. Do not request or use `UNITE_GROUP_DB_PASSWORD`; do not touch production; do not deploy; do not print secrets; stop at production Board gate.
 
 ```
