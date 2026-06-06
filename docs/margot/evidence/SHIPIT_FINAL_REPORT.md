@@ -4,7 +4,7 @@ Run timestamp (UTC): 20260606T064540Z
 Authority: Phill McGurk (Founder / Board / Product Owner) — explicit "ShipIt" grant
 Target system: Pi-Dev-Ops / 2nd Brain / Margot / Agentic Unite-Group Nexus
 Repo: CleanExpo/Unite-Group (canonical "Authority-Site" / Empire Command Center / Pi-CEO)
-Local path: /Users/phillmcgurk/Unite-Group
+Local path: $REPO_ROOT
 Live URL: https://www.unite-group.in
 HEAD: d1e26757f6563ffcfcbfeafe1e949bb506fc83be (== origin/main)
 
@@ -66,7 +66,7 @@ https://www.unite-group.in → 307 → https://unite-group.in/en → HTTP 200.
 GET / 200, /en 200, /en/login 200, /api/health 200. Correct app title rendered.
 
 ## Evidence / audit / dashboard
-- Local evidence logs: /Users/phillmcgurk/Unite-Group/.shipit_evidence/
+- Local evidence logs: $REPO_ROOT/.shipit_evidence/
 - Agentic Nexus evidence ledger: appended evidence_id
   shipit_unite_group_nexus_20260606_064540 (read-back verified).
 - Dashboard status feed regenerated (generate_dashboard_status_feed.py exit 0).
@@ -79,7 +79,7 @@ production DB was touched. Promotion deferred to sandbox-first + named Board app
 
 ## Rollback path
 Vercel immutable per-commit deployments (promote a prior deployment) OR
-`git revert <sha> && push main`. Non-destructive. No DB rollback needed.
+`git revert <sha>` on a revert branch + PR to main (per branch protection), OR Vercel promote-only of the last good deployment. Non-destructive. No DB rollback needed.
 
 ## Remaining risks
 - P2: 918 ESLint `no-explicit-any` warnings (non-blocking quality debt).

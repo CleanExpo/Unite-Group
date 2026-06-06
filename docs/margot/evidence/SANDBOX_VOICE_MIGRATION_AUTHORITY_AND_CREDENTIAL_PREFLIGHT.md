@@ -2,7 +2,7 @@
 
 Run ID: sandbox_voice_migration_20260606T073657Z
 Generated: 2026-06-06T07:36:57Z
-Workspace: /Users/phillmcgurk/Unite-Group
+Workspace: $REPO_ROOT
 
 UGN diagnostic gate summary
 

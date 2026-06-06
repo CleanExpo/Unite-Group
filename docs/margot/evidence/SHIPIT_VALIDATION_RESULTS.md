@@ -3,7 +3,7 @@
 Run timestamp (UTC): 20260606T064540Z
 Target system: Pi-Dev-Ops / 2nd Brain / Margot / Agentic Unite-Group Nexus
 Repo: CleanExpo/Unite-Group (canonical "Authority-Site" / Empire Command Center / Pi-CEO)
-Local path: /Users/phillmcgurk/Unite-Group
+Local path: $REPO_ROOT
 Live URL: https://www.unite-group.in
 HEAD at validation: d1e26757f6563ffcfcbfeafe1e949bb506fc83be (== origin/main)
 Working tree: clean except untracked ShipIt evidence docs + .shipit_evidence/

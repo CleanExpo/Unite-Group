@@ -51,7 +51,7 @@ No production-capable wizard subcommand was invoked. promote/diff/sync/reset/set
 
 - Evidence files: outputs/sandbox_voice_migration/preflight/
 - Audit file: outputs/sandbox_voice_migration/audit.jsonl
-- Dashboard regeneration: attempted with `python3 generate_dashboard_status_feed.py`; exit code 2 because the generator file is not present at /Users/phillmcgurk/Unite-Group/generate_dashboard_status_feed.py. Raw dashboard command output is under outputs/sandbox_voice_migration/dashboard_regeneration_stdout.txt, outputs/sandbox_voice_migration/dashboard_regeneration_stderr.txt, and outputs/sandbox_voice_migration/dashboard_regeneration_exit_code.txt.
+- Dashboard regeneration: attempted with `python3 generate_dashboard_status_feed.py`; exit code 2 because the generator file is not present at $REPO_ROOT/generate_dashboard_status_feed.py. Raw dashboard command output is under outputs/sandbox_voice_migration/dashboard_regeneration_stdout.txt, outputs/sandbox_voice_migration/dashboard_regeneration_stderr.txt, and outputs/sandbox_voice_migration/dashboard_regeneration_exit_code.txt.
 
 ## Production readiness packet
 

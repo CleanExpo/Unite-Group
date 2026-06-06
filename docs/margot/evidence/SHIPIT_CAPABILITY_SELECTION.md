@@ -11,7 +11,7 @@ Generated: 2026-06-06T06:31:37Z
 - github-pr-workflow
 
 ## Requested capability scan
-The following requested registered capability names were searched inside the local Agentic Nexus control-plane path `/Users/phillmcgurk/2nd-brain/.agentic_nexus`. Selection prefers registered/local capabilities before generic scripts.
+The following requested registered capability names were searched inside the local Agentic Nexus control-plane path `$AGENTIC_NEXUS_PATH`. Selection prefers registered/local capabilities before generic scripts.
 
 ### restoreassist_gate_review
 - status: available/reference found

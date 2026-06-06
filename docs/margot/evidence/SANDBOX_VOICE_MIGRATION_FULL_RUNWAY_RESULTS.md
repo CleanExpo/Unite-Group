@@ -17,7 +17,7 @@ Generated: 2026-06-06T07:36:57Z
 - deployment occurred: no.
 - evidence written: yes.
 - audit written: yes, local audit record appended at outputs/sandbox_voice_migration/audit.jsonl.
-- dashboard updated: no, `python3 generate_dashboard_status_feed.py` was attempted and exited 2 because the generator file is missing from /Users/phillmcgurk/Unite-Group.
+- dashboard updated: no, `python3 generate_dashboard_status_feed.py` was attempted and exited 2 because the generator file is missing from $REPO_ROOT.
 
 ## Commands run
 

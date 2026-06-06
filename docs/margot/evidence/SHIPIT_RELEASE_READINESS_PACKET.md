@@ -29,7 +29,7 @@ ALL release gates GREEN on current main (fresh evidence, real exit codes):
 
 ## 4. Rollback plan
 - Vercel keeps immutable deployments per commit. Rollback = "Promote" a prior
-  successful deployment in the Vercel dashboard, OR `git revert <sha> && push main`
+  successful deployment in the Vercel dashboard, OR `git revert <sha>` on a revert branch opened as a PR and merged to main per board governance (direct main push is blocked by branch protection)
   to trigger a new deploy from the reverted tree. Both are non-destructive.
 - No DB rollback needed: no production DB mutation is part of this release.
 
@@ -53,7 +53,7 @@ they are present in production). No secret values were read or printed.
 
 ## 7. Dashboard / control-plane status
 - Live app reachable and serving (HTTP 200 on /en after auth/locale redirect).
-- Agentic Nexus local control plane lives in /Users/phillmcgurk/2nd-brain/.agentic_nexus
+- Agentic Nexus local control plane lives in $AGENTIC_NEXUS_PATH
   (separate evidence/audit/dashboard store; out-of-tree for this repo per the
   workspace isolation rule in CLAUDE.md).
 
