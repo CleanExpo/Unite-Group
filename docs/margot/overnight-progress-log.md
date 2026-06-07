@@ -1,5 +1,50 @@
 # Margot Overnight Progress Log
 
+## 2026-06-08 03:14 AEST
+
+### Sandbox credential-boundary packaging review + Senior PM health refresh
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass and inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `ca3e109496c61d2fb6e837f02cf215409de5faf4`, `main...origin/main [ahead 14]`, with inherited/local dirty state in `scripts/sandbox-wizard.sh` and untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts` before this report update.
+- Diagnostic gate: what exists = local sandbox-wizard credential-boundary hardening plus a 13-test focused smoke harness; what started = safe local packaging/review and health refresh, not a sandbox/prod data lane; why/problem/friction = sandbox-first CRM/schema/voice work needs sandbox `apply`/`status` to load only sandbox-labelled DB credentials and parse local overrides inertly; missing = review/commit/push path remains pending and no sandbox apply/status/diff/sync/promote is authorised in this run; duplicated/unclear = Mac Mini recovery remains retry-only due network/name-resolution failure; business benefit = reduces production-credential bleed risk before future sandbox work; smallest next action = keep this local lane packaged for normal review, then resume CRM/Senior PM backlog from existing repo evidence.
+- Reviewed the current source/test boundary without invoking 1Password, Supabase, `psql`, sandbox/prod DB-writing wizard commands, or credential reads. `cmd_apply` and `cmd_status` both route through `load_sandbox_creds`; `cmd_promote` remains the production-capable path through `load_creds` after typed `promote to prod` confirmation.
+- Ran a safe local verification refresh: shell syntax, wizard help, focused Jest harness, type-check, route security inventory, and whitespace diff check all passed.
+- Refreshed the Mac Mini approved-target health check: `/Volumes` contains only `Macintosh HD`; `phills-mac-mini.local:445` and `:22` both returned `nc` exit `1` / `getaddrinfo`; a bounded approved-target search under `/Volumes` found no `MARGOT-COMMAND-CENTER.md` or `RESTOREASSIST-CONTENT-INDEX.md`; recovered Markdown artifact count remains `0`.
+- No open-PR, GitHub push, merge, deployment, sandbox apply/status/diff/sync/promote, production DB, client-facing, billing, external-vendor, credential mutation, or destructive git lane was started.
+
+Verification:
+
+```bash
+date '+%Y-%m-%d %H:%M %Z' && git status --short --branch && git rev-parse HEAD && git log --oneline -5 && git diff --stat
+# PASS/read-back: 2026-06-08 03:14 AEST; ## main...origin/main [ahead 14]; head ca3e109496c61d2fb6e837f02cf215409de5faf4; dirty state before report updates was scripts/sandbox-wizard.sh plus untracked tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts; diff stat showed scripts/sandbox-wizard.sh 88 insertions / 30 deletions.
+
+bash -n scripts/sandbox-wizard.sh && ./scripts/sandbox-wizard.sh help >/tmp/margot-sandbox-help-20260608-0314.out && npx jest tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: shell syntax OK; help renders; Jest returned 1 suite / 13 tests.
+
+python3 - <<'PY'
+# Reviewed cmd_apply/cmd_status/cmd_promote routing from scripts/sandbox-wizard.sh.
+PY
+# PASS/read-back: cmd_apply and cmd_status call load_sandbox_creds; cmd_promote calls load_creds only after typed prod confirmation.
+
+npm run type-check
+# PASS: tsc --noEmit completed.
+
+npm run security:routes-check
+# PASS: route-inventory check reported 0 unprotected mutating routes.
+
+git diff --check
+# PASS before this progress/morning-report/status update; final post-report rerun is recorded in the handoff.
+```
+
+Safety:
+
+- No GitHub push, merge, branch reset, destructive git, Vercel deploy/env mutation, production DB write, Supabase migration application, sandbox apply/status/diff/sync/promote, client-facing communication, billing/payment action, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred. The only wizard execution was `help`; the focused Jest fixtures exercise extracted parser text with temporary fake env files only.
+
+Next safe slice:
+
+- Keep the sandbox credential-boundary hardening and 13-test smoke harness local until reviewed/committed through the normal safe path. Next safe improvement is either a clean packaging/review commit under approved local scope or a return to the CRM/Senior PM backlog from existing repo evidence. Retry Mac Mini recovery only when authenticated SMB/SSH/export evidence appears.
+
 ## 2026-06-08 02:42 AEST
 
 ### Senior PM sandbox credential-boundary verification refresh
@@ -11088,3 +11133,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260608_024153.log'
+
+## 2026-06-08 03:16:56 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260608_031405.log'
