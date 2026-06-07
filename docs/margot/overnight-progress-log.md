@@ -1,5 +1,43 @@
 # Margot Overnight Progress Log
 
+## 2026-06-07 23:58 AEST
+
+### Sandbox unreadable-override fixture + Senior PM health refresh
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass and inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `32f72743ed74bb78dc86fd7dbc2e18978d0347ca`, `main...origin/main [ahead 8]`, with inherited/local dirty state in `scripts/sandbox-wizard.sh`, `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`, and Margot status docs before this report update.
+- Continued the safe sandbox credential-boundary lane without running any sandbox/prod DB-writing wizard subcommands and without loading credentials. Extended `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts` from 11 to 12 tests with a fail-closed unreadable/non-readable parser-path fixture proving the local override parser throws instead of emitting a fallback credential when the requested local override source cannot be read.
+- Refreshed the Mac Mini approved-target health check: `/Volumes` contains only `Macintosh HD`; `phills-mac-mini.local:445` and `:22` both returned `nc` exit `1` / `getaddrinfo`; a bounded approved-target search under `/Volumes` found no `MARGOT-COMMAND-CENTER.md` or `RESTOREASSIST-CONTENT-INDEX.md`; recovered Markdown artifact count remains `0`.
+- No open-PR, push, merge, deployment, sandbox apply/status/diff/sync/promote, production DB, client-facing, billing, external-vendor, or credential mutation lane was started.
+
+Verification:
+
+```bash
+git branch --show-current && git rev-parse HEAD && git status --short --branch
+# PASS/read-back: main, 32f72743ed74bb78dc86fd7dbc2e18978d0347ca, main...origin/main [ahead 8], local-only sandbox wizard/test dirty state before report updates.
+
+bash -n scripts/sandbox-wizard.sh && ./scripts/sandbox-wizard.sh help && npx jest tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: shell syntax OK; help renders; Jest returned 1 suite / 12 tests.
+
+npm run type-check
+# PASS: tsc --noEmit completed.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS before this progress/morning-report update; post-report rerun also passed before final handoff.
+```
+
+Safety:
+
+- No GitHub push, merge, branch reset, destructive git, Vercel deploy/env mutation, production DB write, Supabase migration application, sandbox apply/status/diff/sync/promote, client-facing communication, billing/payment action, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred. The new fixture uses a temporary fake parser path and invokes only the parser snippet, not the wizard credential or DB paths.
+
+Next safe slice:
+
+- Keep the sandbox credential-boundary hardening and smoke harness local until reviewed/committed through the normal safe path. Next safe improvement is a narrow local-override parser policy review or a return to CRM/Senior PM operating docs from existing repo evidence. Retry Mac Mini recovery only when authenticated SMB/SSH/export evidence appears.
+
 ## 2026-06-07 23:26 AEST
 
 ### Sandbox spaced-override fixture + Senior PM health refresh
@@ -10802,3 +10840,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260607_232453.log'
+
+## 2026-06-08 00:01:09 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260607_235752.log'
