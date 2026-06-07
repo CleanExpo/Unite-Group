@@ -1,5 +1,46 @@
 # Margot Overnight Progress Log
 
+## 2026-06-07 20:09 AEST
+
+### Sandbox credential-boundary dispatch fixture + Mac Mini health refresh
+
+Current checkpoint:
+
+- Re-ran the read-first Margot/Senior PM context pass and inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `0fa27ced9f509dc5a4aaa38f548bfb684df7bcf6`, `main...origin/main [ahead 1]`, with local-only dirty state still limited to `scripts/sandbox-wizard.sh` plus `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts` before this report update.
+- Continued the existing safe sandbox credential-boundary lane without invoking any DB-writing or credential-loading wizard subcommands. Extended `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts` from 4 to 5 tests by adding a command-dispatch fixture: `apply`, `status`, and `promote` must route through audited command functions, while `apply`/`status` dispatch lines must not inline credential loaders, `psql`, or `op item get`.
+- Refreshed the Mac Mini approved-target health check: `/Volumes` contains only `Macintosh HD`; `phills-mac-mini.local:445` and `:22` returned `nc` exit `1`; a bounded approved-target search under `/Volumes` found no `MARGOT-COMMAND-CENTER.md` or `RESTOREASSIST-CONTENT-INDEX.md`; recovered Markdown artifact count remains `0`.
+- No open-PR, push, merge, deployment, sandbox apply/status/diff/sync/promote, production DB, or external-service mutation lane was started.
+
+Verification:
+
+```bash
+git branch --show-current && git rev-parse HEAD && git status --short --branch
+# PASS/read-back: main, 0fa27ced9f509dc5a4aaa38f548bfb684df7bcf6, local-only sandbox wizard/test dirty state.
+
+bash -n scripts/sandbox-wizard.sh && ./scripts/sandbox-wizard.sh help
+# PASS: shell syntax OK; help renders sandbox-only apply wording and typed promote guard.
+
+npx jest tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: 1 suite / 5 tests.
+
+npm run type-check
+# PASS: tsc --noEmit completed.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS before this progress/morning-report update; rerun after report update before final handoff.
+```
+
+Safety:
+
+- No GitHub push, merge, branch reset, destructive git, Vercel deploy/env mutation, production DB write, Supabase migration application, sandbox apply/status/diff/sync/promote, client-facing communication, billing/payment action, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred. The new test reads local source text only and does not invoke credential or DB paths.
+
+Next safe slice:
+
+- Keep the sandbox credential-boundary fix and smoke harness local until reviewed/committed through the normal safe path. Next safe improvement is either a narrow follow-up test for the local override parser’s quoted-value handling or a return to CRM/Senior PM operating docs from existing repo evidence. Retry Mac Mini recovery only when authenticated SMB/SSH/export evidence appears.
+
 ## 2026-06-07 19:54 AEST
 
 ### Sandbox credential-boundary smoke harness + Senior PM health refresh
@@ -10470,3 +10511,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260607_195336.log'
+
+## 2026-06-07 20:10:15 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260607_200657.log'
