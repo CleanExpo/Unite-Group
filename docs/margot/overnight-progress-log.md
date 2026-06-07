@@ -1,5 +1,44 @@
 # Margot Overnight Progress Log
 
+## 2026-06-08 01:38 AEST
+
+### Sandbox single-quoted override fixture + Senior PM health refresh
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass and inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `1b6b0e21b2be951cf4b8e7f6ad572615f630042e`, `main...origin/main [ahead 11]`, with inherited/local dirty state in `scripts/sandbox-wizard.sh` and `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts` before this report update.
+- Diagnostic gate: what exists = sandbox credential-boundary hardening plus focused smoke harness; what started = a narrow local parser-fixture improvement; why/problem/friction = keep local sandbox credential overrides parsed as inert values without invoking sandbox/prod DB, 1Password, or credentials; missing = review/commit path still pending; duplicated/unclear = repeated Mac Mini network unreachability remains retry-only; business benefit = reduces credential-boundary regression risk before future sandbox schema/voice work; smallest next action = review/package this local sandbox credential-boundary lane or return to CRM/Senior PM backlog from existing repo evidence.
+- Continued the safe sandbox credential-boundary lane without running any sandbox/prod DB-writing wizard subcommands and without loading credentials. Added a single-quoted local sandbox override fixture proving values like `$(...)`, backticks, and backslashes remain inert literal text and production-labelled assignments still do not win. The focused local harness now has 13 tests.
+- Refreshed the Mac Mini approved-target health check: `/Volumes` contains only `Macintosh HD`; `phills-mac-mini.local:445` and `:22` both returned `nc` exit `1` / `getaddrinfo`; a bounded approved-target search under `/Volumes` found no `MARGOT-COMMAND-CENTER.md` or `RESTOREASSIST-CONTENT-INDEX.md`; recovered Markdown artifact count remains `0`.
+- No open-PR, push, merge, deployment, sandbox apply/status/diff/sync/promote, production DB, client-facing, billing, external-vendor, credential mutation, or destructive git lane was started.
+
+Verification:
+
+```bash
+git status --short --branch && git branch --show-current && git rev-parse HEAD
+# PASS/read-back: ## main...origin/main [ahead 11]; branch main; head 1b6b0e21b2be951cf4b8e7f6ad572615f630042e; inherited/local sandbox wizard/test dirty state before report updates.
+
+bash -n scripts/sandbox-wizard.sh && ./scripts/sandbox-wizard.sh help >/tmp/margot-sandbox-help.out && npx jest tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: shell syntax OK; help renders; Jest returned 1 suite / 13 tests.
+
+npm run type-check
+# PASS: tsc --noEmit completed.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS before this progress/morning-report/status update; final post-report rerun is recorded in the handoff.
+```
+
+Safety:
+
+- No GitHub push, merge, branch reset, destructive git, Vercel deploy/env mutation, production DB write, Supabase migration application, sandbox apply/status/diff/sync/promote, client-facing communication, billing/payment action, external account/vendor action, credential prompt, secret read, noninteractive auth attempt, or secret printing/storage occurred. The new fixture uses a temporary fake env file and invokes only the local parser snippet, not the wizard credential or DB paths.
+
+Next safe slice:
+
+- Keep the sandbox credential-boundary hardening and 13-test smoke harness local until reviewed/committed through the normal safe path. Next safe improvement is a narrow review/packaging pass for this local lane or a return to the CRM/Senior PM backlog from existing repo evidence. Retry Mac Mini recovery only when authenticated SMB/SSH/export evidence appears.
+
 ## 2026-06-08 01:05 AEST
 
 ### Senior PM autonomous health refresh and current-lane evidence sync
@@ -10944,3 +10983,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260608_010352.log'
+
+## 2026-06-08 01:39:26 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260608_013651.log'
