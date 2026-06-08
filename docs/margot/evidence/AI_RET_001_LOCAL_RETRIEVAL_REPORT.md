@@ -1,6 +1,6 @@
 # AI-RET-001 Local Retrieval Evaluation Report
 
-Generated: 08/06/2026, 21:47:29 AEST
+Generated: 08/06/2026, 22:25:17 AEST
 
 Overall status: `pass`
 
@@ -9,7 +9,7 @@ Overall status: `pass`
 | Area | Total | Pass | Needs action |
 | --- | ---: | ---: | ---: |
 | Source-citation fixtures | 7 | 7 | 0 |
-| Answer-shape fixtures | 3 | 3 | 0 |
+| Answer-shape fixtures | 4 | 4 | 0 |
 
 ## Source-citation fixture results
 
@@ -30,6 +30,7 @@ Overall status: `pass`
 | AI-RET-001-ANSWER-INTEGRATION-STALE-SYNC | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
 | AI-RET-001-ANSWER-COMMAND-CENTER-STATUS | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
 | AI-RET-001-ANSWER-REPORT-HANDOFF | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
+| AI-RET-001-ANSWER-GATED-ACTION-BOUNDARY | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
 
 ## Safety notes
 
@@ -39,4 +40,4 @@ Overall status: `pass`
 
 ## Next safe action
 
-Keep AI-RET-001 green and expand only with more mocked command-center answer shapes or local report integrity cases before changing live retrieval thresholds or behavior.
+Keep AI-RET-001 green and expand only with additional local report corruption/error-path cases or more mocked command-center answer shapes before changing live retrieval thresholds or behavior.
