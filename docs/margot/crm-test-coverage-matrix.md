@@ -1,7 +1,7 @@
 # Margot CRM Test Coverage Matrix
 
 Date: 2026-05-31 08:29 AEST
-Last update: 2026-06-08 14:11 AEST — tasks / voice_command_sessions sandbox proposal status reconciled into the schema inventory and matrix
+Last update: 2026-06-09 08:22 AEST — deterministic stale-sync / daily digest malformed-metadata coverage reconciled into the matrix
 Owner: Margot
 Project: Unite-Group
 Scope: Local repo evidence only. This matrix maps the current CRM operating loop to available mocked/local tests and the next safe coverage gaps. It does not imply production DB writes, deployment, GitHub push, Vercel env mutation, client-facing sends, or permanent business-rule approval.
@@ -35,6 +35,25 @@ Voice ingress remains part of the CRM loop, but can be run as its own focused ga
 ```bash
 npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts --runInBand
 ```
+
+## 2026-06-09 deterministic integration-health refresh
+
+This refresh records the local-only Senior PM evidence lane that hardened CRM digest and integration mirror health against malformed mirror metadata. It is evidence for the CRM operating cockpit only; it does not imply provider polling, live vector search, sandbox/prod DB writes, deployment, GitHub push, Vercel/env mutation, client-facing sends, new vendors, Nango, or production adoption.
+
+Current local evidence added since the prior matrix update:
+
+- `src/lib/runtime/stale-sync-check.ts` and `tests/unit/lib/runtime/stale-sync-check.test.ts` now treat malformed `last_sync_completed_at` as no usable completed sync (`never_synced`) and fall back from malformed `next_sync_due_at` to cadence-derived timing while clamping non-finite overdue minutes to `0`.
+- `src/lib/crm/daily-digest.ts` and `tests/unit/lib/crm/daily-digest.test.ts` now render stale integration source-state semantics as operator-readable copy (`missed cadence`, `last error (active error; cadence not yet overdue)`, `never synced`) and prevent malformed minutes from leaking `NaN` into digest markdown.
+- The current focused evidence gate for this slice is:
+
+```bash
+npx jest tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/lib/crm/daily-digest.test.ts --runInBand
+npm run type-check
+npm run security:routes-check
+git diff --check
+```
+
+Next safe gap: add route/page-level read-surface tests only when the command-center digest/stale-integration read path changes; keep provider polling, schema application, and sandbox/prod validation behind their existing authority gates.
 
 ## Coverage matrix
 
@@ -85,6 +104,7 @@ npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration
 7. ~~Add Business 360/read-client-activity regression coverage before broader client dashboard changes or `nexus_clients` conversion~~ — COMPLETE as of 2026-05-31. Shared Supabase mock enhanced to record query-builder calls (from/select/in/eq/gte/order/limit). Query-shape regression tests pin `readClientActivity` (agent_actions select, action_type in filter, payload->>slug eq, created_at desc order, default/caller limit) and `readBusiness360` (pi_ceo_health_snapshots select, snapshot_at gte, ascending order, 10000 cap). Verified: 2 suites / 23 tests passing via `npx jest src/lib/empire/__tests__/read-client-activity.test.ts src/lib/empire/__tests__/readers.test.ts --runInBand`.
 8. ~~Add sandbox-wizard credential-boundary preflight before future CRM schema/voice migration work~~ — COMPLETE as of 2026-06-08. Verified locally with `bash -n scripts/sandbox-wizard.sh`, `./scripts/sandbox-wizard.sh help >/tmp/margot-sandbox-help-20260608-1336.out`, and `npx jest tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` (1 suite / 14 tests). This was a no-DB local harness only: no sandbox apply/status/diff/sync/promote, production write, 1Password read, Supabase API call, `psql`, or secret read occurred.
 9. ~~Recover original migrations or reconstruct sandbox-only migration proposals for `tasks` and `voice_command_sessions`~~ — PARTIAL/STATIC COMPLETE as of 2026-06-08 14:11 AEST. The reconstructed sandbox-only proposal exists at `docs/margot/migration-proposals/2026-05-31-tasks-voice-command-sessions-sandbox.sql` and is guarded by `tests/unit/margot-tasks-voice-migration-proposal.test.ts` (17 local static tests). Remaining safe gap: authorized sandbox apply/diff evidence, RLS policy validation, legacy constraint review, updated-at trigger verification, and retention/privacy review before any production promotion.
+10. ~~Document deterministic stale-sync / daily digest malformed-metadata coverage in this matrix~~ — COMPLETE as of 2026-06-09 08:22 AEST. Evidence rows above now connect `checkStaleSyncs` malformed timestamp handling and daily digest operator-readable stale-integration copy to the CRM operating loop. Remaining safe gap: route/page-level read-surface tests only when the command-center digest/stale-integration read path changes.
 
 ## Safety notes
 
