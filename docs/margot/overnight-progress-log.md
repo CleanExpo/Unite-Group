@@ -1,5 +1,43 @@
 # Margot Overnight Progress Log
 
+## 2026-06-09 04:26 AEST
+
+### Deterministic stale-sync error surfacing + Senior PM health refresh + Mac Mini bounded retry
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs, Command Center, retrieval rules, Mac Mini recovery status, progress log, and morning report.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `8d16aff`, `main...origin/main [ahead 57]`. Inherited local sandbox-wizard credential-boundary state remains (`scripts/sandbox-wizard.sh` plus untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`), and local AI-RET-001 assets remain unpushed/local-only. This tick added deterministic stale-sync helper coverage and code behavior in `src/lib/runtime/stale-sync-check.ts` and `tests/unit/lib/runtime/stale-sync-check.test.ts`, then updated `docs/margot/mac-mini-recovery-status.md`, this progress log, and the morning report.
+- Safe Senior PM improvement completed with TDD: added a RED regression proving `checkStaleSyncs` hid an integration row with `last_sync_status='error'` when `next_sync_due_at` had not passed; fixed the helper so error rows are emitted immediately as `reason='last_error'` with `minutes_overdue` clamped at `0` when cadence time has not elapsed. Implemented the independent-review suggestion by adding coverage for `last_sync_status='error'` with `next_sync_due_at=null`.
+- Diagnostic gate: what exists = durable CRM operating docs/test matrix, deterministic lead/digest helpers, retrieval rules/wrappers, AI-RET-001 local report harness, command-center/digest answer-shape hardening, stale-sync helper/tests, command-center layered stale-mirror surfacing, portfolio/client/marketing/AI surfaces, sandbox-only voice/task schema evidence, validation checklist, and review packet; what has started = local deterministic stale-sync/digest evidence verification, not live provider polling, external AI enrichment, sandbox DB validation, production adoption, provider mutation, deploy, or CRM data mutation; why/problem/friction = integration errors could be hidden until cadence expiry and therefore omitted from Command Center/daily digest attention; missing = sandbox authority/auth for voice/task DB validation, transcript retention/privacy approval, authenticated Mac Mini artifact transport, and production AI adoption authority; duplicated/unclear = Mac Mini remains SMB-reachable but unauthenticated for file recovery and SSH unavailable; business benefit = failed integration mirrors surface immediately to Phill's cockpit instead of waiting for time-based staleness; smallest next action = package/review the inherited sandbox-wizard credential-boundary diff or continue deterministic digest/stale-sync evidence checks while keeping sandbox apply/status/diff/sync/promote gated.
+- Refreshed the Mac Mini approved-target health check without recursive system-volume scanning: `/Volumes` contains only `Macintosh HD`, no authenticated non-system mounted scan root exists, recovered Markdown artifact count remains `0`, `phills-mac-mini.local:445` returned exit `0`, and `:22` returned exit `1`.
+- Independent review: reviewer PASS; no security concerns or logic errors. Non-blocking suggestion to cover `next_sync_due_at=null` error rows was implemented before final validation.
+- No GitHub push, merge, deployment, sandbox apply/status/diff/sync/promote, production DB write, provider polling/mutation, client-facing action, billing/payment action, external vendor/account action, Nango/connector-platform action, credential prompt/read, secret printing/storage, recursive system-volume scan, or destructive git occurred.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/runtime/stale-sync-check.test.ts --runInBand
+# RED first on future next_sync_due_at error-row case: expected length 1, received 0; GREEN after fix: PASS, 1 suite / 9 tests.
+
+static diff scan
+# PASS: 0 findings across hardcoded secret, shell injection, eval/exec, unsafe deserialization, and SQL-formatting patterns.
+
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-edge-cases.test.ts --runInBand && npm run type-check && npm run security:routes-check && git diff --check
+# PASS: 5 suites / 64 tests; tsc --noEmit completed; route-inventory check reported 0 unprotected mutating routes; git diff --check exited 0.
+
+git/health/Mac Mini read-back
+# PASS/read-back: 2026-06-09 04:23 AEST; branch main; head 8d16aff; ## main...origin/main [ahead 57]; node_modules=present; package_lock=present; volumes=Macintosh HD; recovered_markdown_count=0; approved_targets=not scanned because only system volume is mounted; SMB exit 0; SSH exit 1.
+```
+
+Safety:
+
+- This tick was local code/docs/test verification only. It did not use live vector search, OpenAI/external AI calls, new vendors, Nango, connector platforms, sandbox/prod DB-writing wizard commands, provider mutation/polling, credential reads, client-facing sends, public publishing, CRM data mutation, recursive system-volume scans, or account creation. The Mac Mini probe did not attempt credentials and avoided recursively walking the local system volume.
+
+Next safe slice:
+
+- Package/review the inherited local sandbox-wizard credential-boundary diff without running DB-writing/status wizard subcommands, or continue deterministic digest/stale-sync evidence verification while keeping `tasks` / `voice_command_sessions` sandbox validation gated pending specific sandbox authority/auth.
+
 ## 2026-06-09 03:51 AEST
 
 ### AI-RET-001 Mac Mini recovery-boundary answer-shape hardening + Senior PM health refresh + Mac Mini bounded retry
@@ -13191,3 +13229,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_034605.log'
+
+## 2026-06-09 04:28:31 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_042226.log'
