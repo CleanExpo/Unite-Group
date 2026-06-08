@@ -179,7 +179,8 @@ Adopted, parked, or retired:
 
 ## Immediate next implementation steps
 
-1. Maintain `docs/margot/ai-enhancement-candidate-register.md` as the concrete candidate queue when a safe evaluation starts.
-2. Build the first local-only retrieval evaluation fixture for Margot docs before changing thresholds or retrieval behavior.
-3. Keep deterministic CRM helpers (`qualifyLead`, daily digest) ahead of probabilistic AI scoring/enrichment until privacy, identity, and approval gates are explicit.
-4. Link adopted enhancements back into CRM schema/source-of-truth docs and the command-center report.
+1. Keep the first local-only retrieval fixture gate (`src/lib/margot/retrieval-evaluation.ts`; `tests/unit/lib/margot/retrieval-evaluation.test.ts`) green before changing Margot retrieval thresholds or answer behavior.
+2. Maintain `docs/margot/ai-enhancement-candidate-register.md` as the concrete candidate queue when a safe evaluation starts or changes status.
+3. Expand AI-RET-001 only with mocked/static fixtures first, prioritizing integration-stale and command-center source-citation cases before any live retrieval behavior change.
+4. Keep deterministic CRM helpers (`qualifyLead`, daily digest) ahead of probabilistic AI scoring/enrichment until privacy, identity, and approval gates are explicit.
+5. Link adopted enhancements back into CRM schema/source-of-truth docs and the command-center report.
