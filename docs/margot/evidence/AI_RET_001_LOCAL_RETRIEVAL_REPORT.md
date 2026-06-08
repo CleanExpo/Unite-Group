@@ -1,6 +1,6 @@
 # AI-RET-001 Local Retrieval Evaluation Report
 
-Generated: 08/06/2026, 19:58:44 AEST
+Generated: 08/06/2026, 20:37:42 AEST
 
 Overall status: `pass`
 
@@ -38,4 +38,4 @@ Overall status: `pass`
 
 ## Next safe action
 
-Keep AI-RET-001 green and expand only with more mocked command-center answer shapes or local report-readback checks before changing live retrieval thresholds or behavior.
+Keep AI-RET-001 green and expand only with more mocked command-center answer shapes or local report integrity cases before changing live retrieval thresholds or behavior.
