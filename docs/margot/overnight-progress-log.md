@@ -1,5 +1,39 @@
 # Margot Overnight Progress Log
 
+## 2026-06-09 06:08 AEST
+
+### Daily CRM digest stale-integration wording hardening + Senior PM health refresh + Mac Mini bounded retry
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs, Command Center, retrieval rules, Mac Mini recovery status, progress log, morning report, current repo state, deterministic digest/stale-sync helpers, and local AI-RET-001 evidence context.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `94b3398`, `main...origin/main [ahead 60]`. Inherited local sandbox-wizard credential-boundary work remains (`scripts/sandbox-wizard.sh` plus untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`), deterministic stale-sync changes remain local, and local AI-RET-001 assets remain unpushed/local-only.
+- Safe Senior PM improvement completed with TDD: added a RED daily digest regression proving stale integration mirror summaries still surfaced raw enum labels (`missed_cadence`, `last_error`, `never_synced`) and misleading `0 min overdue` copy for active error rows whose cadence time had not elapsed. `createCrmDailyDigest` now renders operator-readable source-state semantics: `missed cadence`, `last error (active error; cadence not yet overdue)`, and `never synced (no completed sync recorded)`.
+- Diagnostic gate: what exists = durable CRM operating docs/test matrix, deterministic lead/digest helpers, retrieval rules/wrappers, stale-sync helper/tests, AI-RET-001 local report harness, command-center answer-shape/report read-back guards, sandbox-only voice/task schema evidence, validation checklist, and credential-boundary packet; what has started = local deterministic digest/stale-sync evidence hardening, not live provider polling, external AI enrichment, sandbox DB validation, production adoption, deploys, or CRM data mutation; why/problem/friction = operator summaries should explain stale mirror state clearly instead of leaking implementation enum names or hiding active errors behind `0 min overdue`; missing = sandbox authority/auth for voice/task DB validation, transcript retention/privacy approval, authenticated Mac Mini artifact transport, and production adoption authority; duplicated/unclear = Mac Mini remains SMB-reachable but unauthenticated for file recovery and SSH unavailable; business benefit = clearer daily digest and Command Center evidence for integration failures without provider calls or production writes; smallest next action = continue deterministic digest/stale-sync evidence checks or rotate to another local-only report/command-center evidence lane while keeping sandbox apply/status/diff gated.
+- Refreshed the Mac Mini approved-target health check without recursive system-volume scanning: `/Volumes` contains only `Macintosh HD`, no authenticated non-system mounted scan root exists, recovered Markdown artifact count remains `0`, `phills-mac-mini.local:445` returned exit `0`, and `:22` returned exit `1`.
+- No GitHub push, merge, PR mutation, deployment, Vercel/env mutation, sandbox apply/status/diff/sync/setup/reset/promote, production DB write, provider polling/mutation, client-facing action, billing/payment action, external vendor/account action, Nango/connector-platform action, credential prompt/read, secret printing/storage, recursive system-volume scan, or destructive git occurred.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/crm/daily-digest.test.ts --runInBand
+# RED first on stale integration wording: expected operator-readable labels/source-state semantics, received raw enum labels and `0 min overdue`; GREEN after fix: PASS, 1 suite / 4 tests.
+
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-edge-cases.test.ts --runInBand && npm run type-check && npm run security:routes-check && git diff --check
+# PASS: 5 suites / 65 tests; tsc --noEmit completed; route-inventory check reported 0 unprotected mutating routes; git diff --check exited 0.
+
+git/health/Mac Mini read-back
+# PASS/read-back: 2026-06-09 06:08 AEST; branch main; head 94b3398; ## main...origin/main [ahead 60]; volumes=Macintosh HD; non_system_scan_roots=none; recovered_markdown_count=0; approved_target_scan=skipped_only_system_volume_mounted; SMB exit 0; SSH exit 1.
+```
+
+Safety:
+
+- This tick was local code/docs/test verification only. It did not use live vector search, OpenAI/external AI calls, new vendors, Nango, connector platforms, sandbox/prod DB-writing wizard commands, provider mutation/polling, credential reads, client-facing sends, public publishing, CRM data mutation, recursive system-volume scans, or account creation.
+
+Next safe slice:
+
+- Continue deterministic digest/stale-sync evidence verification or rotate to another local-only report/command-center evidence lane while keeping the `tasks` / `voice_command_sessions` sandbox validation lane gated pending specific sandbox authority/auth.
+
 ## 2026-06-09 05:35 AEST
 
 ### AI-RET-001 missing fixture-section read-back hardening + Senior PM health refresh + Mac Mini bounded retry
@@ -13336,3 +13370,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_053208.log'
+
+## 2026-06-09 06:11:02 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_060658.log'
