@@ -15,7 +15,7 @@ This checklist is local documentation only. It does not apply a migration, run s
 - Original defining migrations for `public.tasks` and `public.voice_command_sessions` are still not present under `supabase/migrations/`.
 - Reconstructed sandbox-only proposal exists: `docs/margot/migration-proposals/2026-05-31-tasks-voice-command-sessions-sandbox.sql`.
 - Static guard exists: `tests/unit/margot-tasks-voice-migration-proposal.test.ts`.
-- Latest local static verification in this Margot tick: `npx jest tests/unit/margot-tasks-voice-migration-proposal.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` returned 2 suites / 31 tests passed.
+- Latest local static verification in this Margot tick (`2026-06-08 16:25 AEST`): `bash -n scripts/sandbox-wizard.sh`; `./scripts/sandbox-wizard.sh help >/tmp/margot-sandbox-help-current.out`; `npx jest tests/unit/margot-tasks-voice-migration-proposal.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` returned 2 suites / 31 tests passed; `npm run type-check`; `npm run security:routes-check` returned 0 unprotected mutating routes; and `git diff --check` passed.
 - Sandbox wizard credential-boundary harness exists: `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`.
 - Review packet exists: `docs/margot/evidence/SANDBOX_VOICE_TASKS_VALIDATION_REVIEW_PACKET.md`, classifying the lane as `static_ready_auth_blocked_sandbox_validation_not_run` and reconciling the 2026-06-06 blocked auth evidence with the 2026-06-08 local checklist.
 - No sandbox apply/status/diff/sync/promote command has been run in this tick.

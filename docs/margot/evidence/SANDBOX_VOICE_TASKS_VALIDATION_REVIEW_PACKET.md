@@ -40,15 +40,18 @@ The reconstructed sandbox-only proposal and local safety harness are reviewable,
 | Sandbox-wizard credential-boundary guard | PASS | `cmd_apply` / `cmd_status` stay sandbox-credential scoped, local override parsing is inert, and dispatch routes through audited functions. | It does not prove 1Password is currently authenticated for live wizard execution or that sandbox DB operations have run. |
 | 2026-06-06 authority/auth preflight | BLOCKED evidence | Approved credential names were checked without value exposure, production credential name was not requested, and the existing wizard stopped when `op whoami` was not signed in. | It does not authorize bypassing `require_op`, nor does it validate sandbox schema state. |
 | 2026-06-08 validation checklist | STATIC READY | The next sandbox validation sequence is explicit and separates local pre-apply checks from gated DB-writing/status actions. | It does not constitute apply/diff evidence or production readiness. |
-| Current 2026-06-08 14:47 local verification | PASS | Shell syntax, wizard help, proposal guard, and credential-boundary guard passed locally. | It does not touch sandbox/prod, inspect secrets, or validate live schema. |
+| Current 2026-06-08 16:25 local verification | PASS | Shell syntax, wizard help, proposal guard, credential-boundary guard, type-check, route-security inventory, and diff hygiene passed locally. | It does not touch sandbox/prod, inspect secrets, or validate live schema. |
 
 ## Current verification
 
 ```bash
 bash -n scripts/sandbox-wizard.sh
-./scripts/sandbox-wizard.sh help >/tmp/margot-sandbox-help-20260608-1447.out
+./scripts/sandbox-wizard.sh help >/tmp/margot-sandbox-help-current.out
 npx jest tests/unit/margot-tasks-voice-migration-proposal.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
-# PASS: 2 suites / 31 tests passed.
+npm run type-check
+npm run security:routes-check
+git diff --check
+# PASS: Jest returned 2 suites / 31 tests; TypeScript completed; route-inventory check reported 0 unprotected mutating routes; diff hygiene passed.
 ```
 
 ## Safety statement
