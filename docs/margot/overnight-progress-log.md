@@ -1,5 +1,42 @@
 # Margot Overnight Progress Log
 
+## 2026-06-08 17:32 AEST
+
+### Senior PM AI enhancement candidate register + deterministic CRM helper health refresh + Mac Mini bounded retry
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs, current reports, portfolio/client/marketing/AI control surfaces, CRM lead/digest helper evidence, and current repo state.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `4d414cf`, `main...origin/main [ahead 39]`. Inherited dirty state remains the local sandbox-wizard credential-boundary lane: `scripts/sandbox-wizard.sh` plus untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`; this tick added/updated local docs only: `docs/margot/ai-enhancement-candidate-register.md`, `docs/margot/ai-enhancement-pipeline.md`, `docs/margot/project-portfolio-index.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/mac-mini-recovery-status.md`, this progress log, and the morning report.
+- Safe Senior PM improvement completed: created `docs/margot/ai-enhancement-candidate-register.md` to convert the AI enhancement pipeline from an abstract model into a source-labeled candidate queue. It tracks deterministic lead qualification, daily CRM digest, local retrieval evaluation, integration stale-sync/risk summarization, and voice privacy/retention with explicit statuses, value scores, evidence paths, approval gates, and next safe actions.
+- Updated `docs/margot/ai-enhancement-pipeline.md` to link the candidate register and make the next AI lane a local-only retrieval evaluation fixture rather than a new vendor/tool chase.
+- Updated `docs/margot/project-portfolio-index.md` and `docs/margot/MARGOT-COMMAND-CENTER.md` so the AI enhancement lane and autonomy rotation guard now point at the candidate register and keep deterministic CRM helpers ahead of probabilistic scoring/enrichment.
+- Diagnostic gate: what exists = durable CRM operating model/schema/test-matrix artifacts, deterministic `qualifyLead`, daily digest helper/tests, retrieval rules/wrappers, portfolio/client/marketing/AI control surfaces, the sandbox-only `tasks` / `voice_command_sessions` proposal, validation checklist, and review packet; what has started = local-only AI enhancement candidate registration plus focused deterministic-helper health verification, not AI adoption or sandbox/prod execution; why/problem/friction = the AI pipeline had a model and implied candidates but no concrete register, while the sandbox DB lane remains gated and repeated revalidation risks spin; missing = local retrieval evaluation fixture, live sandbox apply/diff authority for voice/task schema, transcript retention/privacy approval, and any explicit production adoption authority; duplicated/unclear = Mac Mini SMB remains reachable but no authenticated non-system mounted share contains the approved target files and SSH remains unavailable; business benefit = gives Margot a reusable AI/automation queue that prioritizes revenue/ops/data leverage without random tool chasing or new vendors; smallest next action = build the AI-RET-001 local retrieval fixture with expected source-file citations, or keep deterministic CRM helper gates green while DB gates remain blocked.
+- Refreshed the Mac Mini approved-target health check without recursive system-volume scanning: `/Volumes` contains only `Macintosh HD`, so there was no authenticated non-system mounted scan root; no `MARGOT-COMMAND-CENTER.md` or `RESTOREASSIST-CONTENT-INDEX.md` was found; recovered Markdown artifact count remains `0`; `phills-mac-mini.local:445` returned exit `0` and `:22` returned exit `1`.
+- Updated `docs/margot/mac-mini-recovery-status.md` to capture the current 17:32 reachability retry.
+- No GitHub push, merge, deployment, sandbox apply/status/diff/sync/promote, production DB write, client-facing action, billing/payment action, external vendor/account action, credential prompt/read, secret printing/storage, or destructive git occurred.
+
+Verification:
+
+```bash
+python3 health probe + git status/read-back
+# PASS/read-back: 2026-06-08 17:32:05 AEST; branch main; head 4d414cf; node_modules=present; package_lock=present; volumes=Macintosh HD; recovered_markdown_count=0; non_system_scan_roots=(none); approved_targets=not scanned because only system volume is mounted; SMB exit 0; SSH exit 1.
+
+npx jest tests/unit/lib/crm/qualify-lead.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-edge-cases.test.ts --runInBand
+# PASS: 3 suites / 28 tests.
+
+npm run type-check && npm run security:routes-check && git diff --check
+# PASS: tsc --noEmit completed; route-inventory check reported 0 unprotected mutating routes; diff hygiene passed before this progress/morning-report update, and final post-update `git diff --check` was rerun/read back with exit 0.
+```
+
+Safety:
+
+- This tick was local/docs/test only. It did not create or use a new vendor, did not use Nango or any connector platform, did not run sandbox/prod DB-writing wizard commands, did not read credentials, and did not send/publish/client-contact anything. The Mac Mini probe did not attempt credentials and avoided recursively walking the local system volume.
+
+Next safe slice:
+
+- Build the `AI-RET-001` local retrieval evaluation fixture from the candidate register using mocked/static assertions and expected source-file citations; keep the `tasks` / `voice_command_sessions` sandbox validation lane classified as `static_ready_auth_blocked_sandbox_validation_not_run` until a specific sandbox authority/auth gate is granted.
+
 ## 2026-06-08 16:58 AEST
 
 ### Senior PM anti-spin rotation guard + portfolio voice-schema status refresh + Mac Mini bounded retry
@@ -12298,3 +12335,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260608_165742.log'
+
+## 2026-06-08 17:36:53 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260608_173137.log'

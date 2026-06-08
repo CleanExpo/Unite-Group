@@ -22,21 +22,21 @@ That mandate expands Margot's control surface beyond voice/CRM into portfolio ov
 
 The Mac Mini recovery path is approved by Phill, but the current MacBook session has not yet authenticated to the Mac Mini file share or SSH service. Local reconstruction is therefore active while recovery continues.
 
-## Current Autonomy Rotation Guard — 2026-06-08 16:58 AEST
+## Current Autonomy Rotation Guard — 2026-06-08 17:32 AEST
 
 Margot must not keep spending every tick on the same sandbox-validation/status refresh once the blocker is known. Current state from this tick:
 
-- Repo: `main` at `3a6af70`, `main...origin/main [ahead 38]`.
-- Inherited uncommitted local lane: `scripts/sandbox-wizard.sh` plus `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`.
+- Repo: `main` at `4d414cf`, with inherited local sandbox-wizard credential-boundary work still present (`scripts/sandbox-wizard.sh` plus `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`).
 - Blocked/gated lane: the `tasks` / `voice_command_sessions` sandbox validation packet is locally ready but cannot advance to sandbox apply/diff, production promotion, or live RLS/service-role/constraint verification without a specific sandbox authority/auth gate.
 - Safe evidence already exists: `docs/margot/evidence/SANDBOX_VOICE_TASKS_VALIDATION_REVIEW_PACKET.md`, `docs/margot/evidence/SANDBOX_VOICE_TASKS_VALIDATION_CHECKLIST.md`, `docs/margot/migration-proposals/2026-05-31-tasks-voice-command-sessions-sandbox.sql`, `tests/unit/margot-tasks-voice-migration-proposal.test.ts`, and `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`.
+- Safe Senior PM rotation completed this tick: `docs/margot/ai-enhancement-candidate-register.md` now tracks deterministic lead qualification, daily digest, local retrieval evaluation, integration stale-sync/risk summarization, and voice privacy/retention as source-labeled AI/automation lanes without adopting a new vendor or external AI enrichment.
 - Mac Mini recovery remains opportunistic only: `/Volumes` contains only `Macintosh HD`; no non-system authenticated scan root exists; SMB/File Sharing is reachable, SSH is unavailable, and no recovered Markdown artifacts are present.
 
 Rotation rule until the sandbox/Mac Mini gates change:
 
 1. Do one bounded health/read-back check per tick.
 2. If sandbox authority/auth is still missing, record it once and rotate to another safe Senior PM lane instead of revalidating the same blocked DB boundary repeatedly.
-3. Preferred safe lanes: package/review the local credential-boundary diff, refresh project portfolio/client 2nd Brain/marketing/AI control surfaces, add mock-only retrieval or digest verification, or improve command-center/retrieval documentation.
+3. Preferred safe lanes: package/review the local credential-boundary diff, build mock-only retrieval or digest verification, maintain the AI enhancement candidate register, or refresh project/client/marketing/AI control surfaces.
 4. Do not run `setup`, `sync`, `apply`, `diff`, `status`, `reset`, or `promote` on the sandbox wizard unless the run has explicit authority for that exact wizard action.
 5. Continue Mac Mini artifact recovery only when an authenticated SMB mount, usable SSH session, or approved export is available; otherwise record the blocker and keep another lane moving.
 

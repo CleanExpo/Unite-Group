@@ -129,6 +129,8 @@ candidate:
 
 ## Current repo anchors
 
+Current candidate register: `docs/margot/ai-enhancement-candidate-register.md`.
+
 | Anchor | Current role | Enhancement opportunity |
 | --- | --- | --- |
 | `scripts/margot-semantic-search-wrapper.ts` | Margot-facing semantic retrieval wrapper with confidence threshold. | Add evaluation fixtures for retrieval precision/recall and fallback behavior. |
@@ -177,7 +179,7 @@ Adopted, parked, or retired:
 
 ## Immediate next implementation steps
 
-1. Create a candidate register section or file when the first concrete evaluation starts.
-2. Add retrieval evaluation fixtures before changing thresholds or retrieval behavior.
-3. Keep AI scoring/enrichment out of production lead handling until deterministic helper and privacy gates are proven.
+1. Maintain `docs/margot/ai-enhancement-candidate-register.md` as the concrete candidate queue when a safe evaluation starts.
+2. Build the first local-only retrieval evaluation fixture for Margot docs before changing thresholds or retrieval behavior.
+3. Keep deterministic CRM helpers (`qualifyLead`, daily digest) ahead of probabilistic AI scoring/enrichment until privacy, identity, and approval gates are explicit.
 4. Link adopted enhancements back into CRM schema/source-of-truth docs and the command-center report.

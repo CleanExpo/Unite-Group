@@ -1,0 +1,87 @@
+# Margot AI Enhancement Candidate Register
+
+Date: 2026-06-08 17:32 AEST
+Project: Unite-Group
+Owner: Margot
+Scope: Local repo/docs/code evidence only. This register does not adopt a new vendor, connect accounts, run external AI enrichment, write databases, deploy, publish, or contact leads/clients.
+
+## Purpose
+
+This register operationalizes `docs/margot/ai-enhancement-pipeline.md` by converting the first safe AI/automation candidates into a tracked Senior PM queue. It keeps Margot focused on existing assets first, deterministic helpers before probabilistic AI, and explicit approval gates before any client data, production DB, deployment, public publishing, or new vendor work.
+
+## Source anchors
+
+- `docs/margot/AI Enhancement Pipeline`: `docs/margot/ai-enhancement-pipeline.md`
+- CRM test matrix: `docs/margot/crm-test-coverage-matrix.md`
+- Retrieval policy: `docs/margot/retrieval-rules.md`
+- Daily CRM digest template: `docs/margot/daily-crm-digest-template.md`
+- Marketing strategy model: `docs/margot/marketing-strategy-operating-model.md`
+- Client 2nd Brain model: `docs/margot/client-second-brain-model.md`
+- Lead qualification helper: `src/lib/crm/qualify-lead.ts`
+- Digest helper: `src/lib/crm/daily-digest.ts`
+- Semantic retrieval wrappers: `scripts/margot-semantic-search-wrapper.ts`, `scripts/pi-ceo-semantic-search-wrapper.ts`
+
+## Register statuses
+
+- `watch`: candidate known, not shaped.
+- `triage`: value/risk scored from existing assets.
+- `sandbox`: local-only mocks/fixtures/tests being built or run.
+- `implemented_local`: local deterministic code/docs/tests exist; no production adoption is implied.
+- `blocked_approval`: useful, but next action needs a named approval gate.
+- `parked`: no current safe business case.
+- `rejected`: does not support Unite-Group or violates guardrails.
+
+## Current candidates
+
+| ID | Candidate | Category | Current status | Existing evidence | Value score | Approval / stop gates | Next safe action |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| AI-CRM-001 | Deterministic lead qualification helper before AI scoring | automation / CRM | `implemented_local` | `src/lib/crm/qualify-lead.ts`; `tests/unit/lib/crm/qualify-lead.test.ts`; matrix row for Lead qualification helper | 13/15: revenue 3, operating 3, data 2, client 2, strategic 3 | Must not auto-convert, overwrite CRM identity, send follow-up, or create client records without Board-approved conversion rules and strong identity gates. | Keep pure helper tests green; add anonymized/approved real lead-category fixtures later; surface only as recommendation in digest/command center. |
+| AI-CRM-002 | Daily CRM digest generator with explicit source labels | automation / ops | `implemented_local` | `src/lib/crm/daily-digest.ts`; `docs/margot/daily-crm-digest-template.md`; `tests/unit/lib/crm/daily-digest.test.ts`; `tests/unit/lib/crm/digest-edge-cases.test.ts`; `tests/integration/api/crm-daily-digest.test.ts` | 14/15: revenue 2, operating 3, data 3, client 3, strategic 3 | Must not send messages, publish externally, or read production data outside guarded server routes. Digest output is operator decision support only. | Re-run focused digest tests when summary/PII behavior changes; add integration health sections only after stale-sync thresholds are source-labeled. |
+| AI-RET-001 | Retrieval evaluation harness for Margot docs | retrieval / QA | `triage` | `docs/margot/retrieval-rules.md`; `scripts/margot-semantic-search-wrapper.ts`; read-first docs; current progress logs | 12/15: revenue 1, operating 3, data 3, client 2, strategic 3 | No external vector vendor or account setup; no client-sensitive corpora without approval; semantic answers must cite exact files or fall back to file reads. | Build a local fixture set of known queries over Margot docs and expected source files; verify fallback behavior with mocks/static assertions. |
+| AI-INT-001 | Integration stale-sync/risk summarizer | automation / integrations | `triage` | `supabase/migrations/20260513000200_integration_schema.sql`; CRM matrix integration-mirrors row; current command-center/digest docs | 12/15: revenue 2, operating 3, data 3, client 1, strategic 3 | Read-only/source-labeled only; no provider mutation, secret reads, Vercel env mutation, or production DB writes; 1Password values must never be stored. | Define local stale thresholds and mocked mirror fixtures before any live provider polling. |
+| AI-VOICE-001 | Voice transcript privacy and retention policy before richer summarization | security / voice / CRM | `blocked_approval` | `src/app/api/pi-ceo/margot-voice/task/route.ts`; `tests/integration/api/margot-voice-task.test.ts`; voice/task sandbox validation packet | 12/15: revenue 1, operating 2, data 3, client 3, strategic 3 | Transcript retention/privacy policy, sandbox apply/diff, live RLS/service-role validation, and production promotion are gated. No external LLM summarization of transcripts without explicit approval. | Keep route/schema tests green and add local redaction/privacy fixtures; do not run sandbox/prod wizard subcommands until a named authority/auth gate exists. |
+
+## Candidate AI-CRM-001 operating contract
+
+The lead helper is currently the safest concrete AI-adjacent lane because it is deterministic and already local:
+
+- It performs no network calls.
+- It writes no database records.
+- It returns recommendation-only score/band/reasons/operator notes.
+- It explicitly says not to auto-convert or overwrite CRM identity from the score.
+- It treats free-email leads as context-required, not automatically disqualified.
+- It flags spam risk without automatically deleting or contacting the lead.
+
+Required display language when surfaced in command center or digest:
+
+```text
+Lead score is recommendation-only. Human/Board-approved conversion rules and strong identity checks are required before client creation, follow-up, or CRM identity merge.
+```
+
+## Candidate AI-RET-001 fixture plan
+
+First local-only retrieval evaluation should use synthetic queries whose answer source is known from existing docs:
+
+| Query intent | Expected source file | Required behavior |
+| --- | --- | --- |
+| Sandbox wizard promotion rule | `CLAUDE.md`; `docs/margot/crm-test-coverage-matrix.md` | Cite sandbox-first wizard and production approval boundary. |
+| Mac Mini recovery blocker | `docs/margot/mac-mini-recovery-status.md` | Report SMB/SSH/mount state from latest entry; do not invent recovered artifacts. |
+| Lead qualification autonomy boundary | `src/lib/crm/qualify-lead.ts`; `docs/margot/ai-enhancement-candidate-register.md` | Say recommendation-only; no auto-conversion. |
+| Connected Teams use-existing-assets rule | `docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md`; `docs/margot/access-and-data-requirements.md` | Prefer repo/docs/local assets; request access only when specifically blocked. |
+| Senior PM daily loop | `docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md` | State discover -> decide -> route -> verify -> record -> repeat. |
+
+## Safety summary
+
+- New vendor introduced: no.
+- Nango or connector platform used: no.
+- GitHub push/merge/PR mutation: no.
+- Vercel deploy/env mutation: no.
+- Production DB write or migration: no.
+- Sandbox wizard DB-writing/status command: no.
+- Secrets printed/stored/read: no.
+- Client-facing send/publish/action: no.
+- External AI enrichment over client/lead data: no.
+
+## Next safe slice
+
+Build the `AI-RET-001` local retrieval evaluation fixture and run it with mocked/static assertions only, or keep `AI-CRM-001` / `AI-CRM-002` gates green while the sandbox voice/task DB boundary remains gated.
