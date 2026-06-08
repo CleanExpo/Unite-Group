@@ -1,5 +1,43 @@
 # Margot Overnight Progress Log
 
+## 2026-06-09 09:29 AEST
+
+### AI-RET-001 unexpected fixture-status read-back hardening + Mac Mini bounded retry
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs, Command Center, retrieval rules, Mac Mini recovery status, overnight progress log, morning report, AI enhancement register, AI-RET-001 local report harness, and current repo state.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `5dbc36c`, `main...origin/main [ahead 66]`. Inherited local sandbox-wizard credential-boundary work remains (`scripts/sandbox-wizard.sh` plus untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`), deterministic stale-sync/daily-digest changes remain local, and local AI-RET-001 assets remain unpushed/local-only.
+- Safe Senior PM improvement completed with TDD: added a RED report read-back regression proving an unexpected fixture-result row status such as `skipped` or `blocked` previously failed only indirectly through pass-count mismatch. `readBackMargotRetrievalEvaluationReport` now rejects unexpected source/answer fixture statuses explicitly before reconciling totals/pass/action counts, so malformed generated or hand-edited reports cannot smuggle unknown states into command-center handoff.
+- Regenerated `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`; read-back remains green with `overallStatus=pass`, `source=7/7`, `answerShape=7/7`, `safetyNotes=true`, and `nextSafeAction=true`. Updated `docs/margot/ai-enhancement-candidate-register.md` to record the unexpected-status guard.
+- Diagnostic gate: what exists = durable CRM operating docs/test matrix, deterministic lead/digest helpers, retrieval rules/wrappers, seven-fixture source-citation harness, seven-fixture answer-shape gate, local report runner/report, report read-back parser/assertions, and report integrity/error-path cases for malformed rows, inconsistent counts, duplicate summary rows, duplicate overall-status rows, duplicate handoff sections, duplicate fixture-result sections, missing fixture-result sections, unexpected fixture statuses, hidden fixture-result mismatches, missing handoff blocks, gated-action overclaims, digest-send/publish/mutation overclaims, access/new-vendor overclaims, and Mac Mini recovery/credential overclaims; what has started = local-only retrieval/report QA, not live semantic search changes, external AI enrichment, provider polling, sandbox DB validation, production adoption, deploys, client-facing sends, public publishing, or CRM mutation; why/problem/friction = a generated/hand-edited report could otherwise use unknown status labels and fail late with less actionable pass-count evidence; missing = sandbox authority/auth for voice/task DB validation, actual sandbox apply/diff evidence, RLS/service-role/cross-scope validation, transcript retention/privacy approval, authenticated Mac Mini artifact transport, and production adoption authority; duplicated/unclear = repeated Mac Mini reachability still shows SMB reachable but no authenticated non-system mount and SSH unavailable; business benefit = stronger local evidence integrity before AI/retrieval summaries reach the Command Center; smallest next action = keep local report/read-back gates green or rotate to another local-only command-center/control-surface evidence lane while sandbox apply/status/diff remains gated.
+- Refreshed the Mac Mini approved-target health check without recursive system-volume scanning: `/Volumes` contains only `Macintosh HD`, no authenticated non-system mounted scan root exists, recovered Markdown artifact count remains `0`, `phills-mac-mini.local:445` is reachable, and `:22` is unreachable.
+- No GitHub push, merge, PR mutation, deployment, Vercel/env mutation, sandbox apply/status/diff/sync/setup/reset/promote, production DB write, provider polling/mutation, client-facing action, billing/payment action, external vendor/account action, Nango/connector-platform action, credential prompt/read, secret printing/storage, recursive system-volume scan, or destructive git occurred.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# RED first on unexpected fixture-result statuses: expected explicit `unexpected ... status ...` errors, received pass-count mismatch; GREEN after fix: PASS, 1 suite / 29 tests.
+
+npx ts-node --transpile-only -O '{"module":"commonjs","moduleResolution":"node"}' scripts/margot-retrieval-evaluation-report.ts
+# PASS/read-back: overallStatus=pass; source=7/7; answerShape=7/7; readback=pass; safetyNotes=true; nextSafeAction=true.
+
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-edge-cases.test.ts --runInBand && npm run type-check && npm run security:routes-check && git diff --check
+# PASS: 5 suites / 69 tests; tsc --noEmit completed; route-inventory check reported 0 unprotected mutating routes; git diff --check exited 0 before status-report updates.
+
+git/health/Mac Mini read-back
+# PASS/read-back: 2026-06-09 09:29 AEST; branch main; head 5dbc36c; ## main...origin/main [ahead 66]; node_modules=present; package_lock=present; volumes=Macintosh HD; non_system_scan_roots=none; recovered_markdown_count=0; approved_target_scan=skipped_only_system_volume_mounted; SMB reachable; SSH unreachable.
+```
+
+Safety:
+
+- This tick was local code/docs/test verification only. It did not use live vector search, OpenAI/external AI calls, new vendors, Nango, connector platforms, sandbox/prod DB-writing wizard commands, provider mutation/polling, credential reads, client-facing sends, public publishing, CRM data mutation, recursive system-volume scans, or account creation.
+
+Next safe slice:
+
+- Keep AI-RET-001 local report/read-back gates green or rotate to another local-only Command Center/control-surface evidence lane; do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until that specific authority/auth gate changes.
+
 ## 2026-06-09 08:55 AEST
 
 ### Senior PM verification refresh + Mac Mini bounded retry
@@ -13585,3 +13623,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_085507.log'
+
+## 2026-06-09 09:32:01 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_092726.log'
