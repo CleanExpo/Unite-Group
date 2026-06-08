@@ -1,5 +1,40 @@
 # Margot Overnight Progress Log
 
+## 2026-06-08 23:00 AEST
+
+### AI-RET-001 report status/action-count contradiction hardening + Senior PM health refresh + Mac Mini bounded retry
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs, current reports, Command Center, retrieval rules, AI enhancement register, Mac Mini status, package state, and current repo state.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `420e987`, `main...origin/main [ahead 48]`. Inherited dirty state remains the local sandbox-wizard credential-boundary lane (`scripts/sandbox-wizard.sh` plus untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`); this tick updated local AI-RET-001 report integrity assets and docs: `src/lib/margot/retrieval-evaluation.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `docs/margot/ai-enhancement-candidate-register.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/mac-mini-recovery-status.md`, this progress log, and the morning report.
+- Safe Senior PM improvement completed: added a fail-closed report read-back corruption/error-path case for overall-status contradictions. `readBackMargotRetrievalEvaluationReport` now rejects `Overall status: pass` when any source fallback or answer-shape mismatch count is non-zero, and rejects `Overall status: action_required` when all action counts are zero. The regenerated report still reports `overallStatus=pass`, `source=7/7`, `answerShape=4/4`, and `readback=pass`.
+- Diagnostic gate: what exists = durable CRM operating docs/test matrix, deterministic lead/digest helpers, retrieval rules/wrappers, seven-fixture AI-RET-001 source-citation harness, four-fixture mocked answer-shape gate, local AI-RET-001 report runner/report, report read-back parser/assertions, report integrity/error-path cases for malformed rows, internally inconsistent counts, missing handoff blocks, and now overall-status/action-count contradictions, stale-sync helper/tests, command-center layered stale-mirror surfacing, portfolio/client/marketing/AI surfaces, sandbox-only voice/task schema evidence, validation checklist, and review packet; what has started = local-only retrieval reporting/QA with report corruption hardening, not live semantic search changes, provider polling, external AI enrichment, sandbox DB validation, or production adoption; why/problem/friction = generated markdown could otherwise claim `pass` while summary rows still require action, or claim `action_required` with no failing counts, creating misleading command-center handoff evidence; missing = additional report corruption/error-path cases, broader command-center answer-shape coverage, live sandbox apply/diff authority for voice/task schema, transcript retention/privacy approval, authenticated Mac Mini artifact transport, and production AI adoption authority; duplicated/unclear = repeated Mac Mini reachability still shows SMB reachable but no authenticated non-system mount and SSH unavailable; business benefit = reduces the risk that Margot surfaces contradictory local retrieval evidence as green or action-required command-center truth; smallest next action = add another local report corruption/error-path case or a mocked command-center answer-shape fixture while keeping deterministic CRM/retrieval gates green.
+- Refreshed the Mac Mini approved-target health check without recursive system-volume scanning: `/Volumes` contains only `Macintosh HD`, so there was no authenticated non-system mounted scan root; no `MARGOT-COMMAND-CENTER.md` or `RESTOREASSIST-CONTENT-INDEX.md` was found; recovered Markdown artifact count remains `0`; `phills-mac-mini.local:445` returned exit `0` and `:22` returned exit `1`.
+- Updated `docs/margot/mac-mini-recovery-status.md` to capture the current 23:00 reachability retry.
+- No GitHub push, merge, deployment, sandbox apply/status/diff/sync/promote, production DB write, provider polling/mutation, client-facing action, billing/payment action, external vendor/account action, Nango/connector-platform action, credential prompt/read, secret printing/storage, or destructive git occurred.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# RED first: failed on the new contradiction case before implementation; GREEN after fix: PASS, 1 suite / 19 tests.
+
+npx ts-node --transpile-only -O '{"module":"commonjs","moduleResolution":"node"}' scripts/margot-retrieval-evaluation-report.ts
+# PASS: wrote docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md; overallStatus=pass; source=7/7; answerShape=4/4; readback=pass; safetyNotes=true; nextSafeAction=true.
+
+git/health/Mac Mini read-back
+# PASS/read-back: 2026-06-08 23:00 AEST; branch main; head 420e987; ## main...origin/main [ahead 48]; node_modules=present; package_lock=present; volumes=Macintosh HD; recovered_markdown_count=0; approved_targets=not scanned because only system volume is mounted; SMB exit 0; SSH exit 1.
+```
+
+Safety:
+
+- This tick was local code/docs/test/report generation only. It did not use live vector search, OpenAI/external AI calls, new vendors, Nango, connector platforms, sandbox/prod DB-writing wizard commands, provider mutation/polling, credential reads, or client-facing sends. The Mac Mini probe did not attempt credentials and avoided recursively walking the local system volume.
+
+Next safe slice:
+
+- Add another local report corruption/error-path case or another mocked command-center answer-shape fixture while keeping retrieval + deterministic CRM helper gates green and the `tasks` / `voice_command_sessions` sandbox validation lane gated pending specific sandbox authority/auth.
+
 ## 2026-06-08 22:26 AEST
 
 ### AI-RET-001 gated-action answer-shape hardening + Senior PM health refresh + Mac Mini bounded retry
@@ -12745,3 +12780,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260608_222040.log'
+
+## 2026-06-08 23:03:01 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260608_225819.log'
