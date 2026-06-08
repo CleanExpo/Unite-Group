@@ -1,5 +1,40 @@
 # Margot Overnight Progress Log
 
+## 2026-06-08 15:20 AEST
+
+### Senior PM health refresh + sandbox validation gate recheck + Mac Mini bounded retry
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs and current reports.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `76385c3`, `main...origin/main [ahead 35]`. Inherited dirty state before this report update remained the local sandbox-wizard credential-boundary lane: `scripts/sandbox-wizard.sh` plus untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`; this tick added local doc updates to `docs/margot/mac-mini-recovery-status.md`, this progress log, and the morning report.
+- Safe Senior PM health check completed: reran the static sandbox voice/task schema validation gate (`tasks` / `voice_command_sessions` proposal plus sandbox-wizard credential-boundary harness) and the standard local project gates without invoking sandbox/prod DB-writing wizard commands.
+- Diagnostic gate: what exists = durable CRM operating model/schema/test-matrix artifacts, the sandbox-only `tasks` / `voice_command_sessions` proposal, the 17-test proposal guard, the 14-test credential-boundary guard, the 2026-06-06 blocked sandbox evidence, the 2026-06-08 validation checklist, and the review packet; what has started = local-only safety/validation evidence, not sandbox/prod execution; why/problem/friction = the lane is ready for sandbox validation but must not silently cross the authority/auth boundary or imply production readiness; missing = authorized sandbox apply/diff, live RLS and service-role checks, legacy task constraint review, updated-at trigger verification, transcript retention/privacy approval, normal review/commit/push path, and explicit production-promotion authority; duplicated/unclear = Mac Mini SMB remains reachable but no authenticated non-system mounted share contains the approved target files and SSH remains unavailable; business benefit = preserves a green local safety baseline for CRM voice/task schema work while keeping gated DB actions explicit; smallest next action = keep the packet local until review/commit and run sandbox apply/diff only after a specific sandbox authority/auth gate.
+- Refreshed the Mac Mini approved-target health check without recursive system-volume scanning: `/Volumes` contains only `Macintosh HD`, so there was no authenticated non-system mounted scan root; no `MARGOT-COMMAND-CENTER.md` or `RESTOREASSIST-CONTENT-INDEX.md` was found; recovered Markdown artifact count remains `0`; `phills-mac-mini.local:445` returned exit `0` and `:22` returned exit `1`.
+- Updated `docs/margot/mac-mini-recovery-status.md` to capture the current 15:20 reachability retry.
+- No GitHub push, merge, deployment, sandbox apply/status/diff/sync/promote, production DB write, client-facing action, billing/payment action, external vendor/account action, credential prompt/read, secret printing/storage, or destructive git occurred.
+
+Verification:
+
+```bash
+python3 health probe + git status/read-back
+# PASS/read-back: 2026-06-08 15:20:35 AEST; pwd=/Users/phillmcgurk/Unite-Group; branch main; head 76385c3; ## main...origin/main [ahead 35]; node_modules=present; package_json=present; package_lock=present; volumes=Macintosh HD; recovered_markdown_count=0; non_system_scan_roots=(none); approved_targets=(none); SMB exit 0; SSH exit 1.
+
+bash -n scripts/sandbox-wizard.sh && ./scripts/sandbox-wizard.sh help >/tmp/margot-sandbox-help-20260608-1520.out && npx jest tests/unit/margot-tasks-voice-migration-proposal.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: shell syntax OK; help renders; Jest returned 2 suites / 31 tests.
+
+npm run type-check && npm run security:routes-check && git diff --check
+# PASS: tsc --noEmit completed; route-inventory check reported 0 unprotected mutating routes; diff hygiene passed before this progress/morning-report update; final post-update `git diff --check` was rerun and passed.
+```
+
+Safety:
+
+- This tick made no DB-writing/status wizard calls and did not execute `setup`, `sync`, `apply`, `diff`, `status`, `reset`, or `promote`. The only wizard execution was `help`; all tests were local/static or temporary fake-env fixtures. The Mac Mini probe did not attempt credentials and avoided recursively walking the local system volume.
+
+Next safe slice:
+
+- Keep `docs/margot/evidence/SANDBOX_VOICE_TASKS_VALIDATION_REVIEW_PACKET.md`, the validation checklist, and the local sandbox credential-boundary lane local until review/commit; run sandbox apply/diff only after a specific sandbox authority/auth gate is granted. Mac Mini recovery can retry opportunistically while SMB is reachable, but remains blocked until an authenticated SMB share with the approved target files is mounted, SSH becomes usable, or Phill provides an approved export.
+
 ## 2026-06-08 14:47 AEST
 
 ### Senior PM health refresh + sandbox voice/task validation review packet + Mac Mini bounded retry
@@ -12121,3 +12156,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260608_144626.log'
+
+## 2026-06-08 15:22:11 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260608_151939.log'
