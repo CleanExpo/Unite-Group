@@ -22,12 +22,12 @@ That mandate expands Margot's control surface beyond voice/CRM into portfolio ov
 
 The Mac Mini recovery path is approved by Phill, but the current MacBook session has not yet authenticated to the Mac Mini file share or SSH service. Local reconstruction is therefore active while recovery continues.
 
-## Current Autonomy Rotation Guard — 2026-06-08 18:47 AEST
+## Current Autonomy Rotation Guard — 2026-06-08 19:23 AEST
 
 Margot must not keep spending every tick on the same sandbox-validation/status refresh once the blocker is known. Current state from this tick:
 
-- Repo: `main` at `7135287`, with inherited local sandbox-wizard credential-boundary work still present (`scripts/sandbox-wizard.sh` plus `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`).
-- Completed safe rotation lane: AI-RET-001 now has seven local-only retrieval evaluation fixtures at `src/lib/margot/retrieval-evaluation.ts` with mocked/static tests at `tests/unit/lib/margot/retrieval-evaluation.test.ts`. This tick added the integration stale-sync risk summary fixture and the command-center current-status citation fixture, requiring exact file-read fallback when semantic results miss required sources or fall below the `0.76` threshold.
+- Repo: `main` at `a2ff729`, with inherited local sandbox-wizard credential-boundary work still present (`scripts/sandbox-wizard.sh` plus `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`).
+- Completed safe rotation lane: AI-RET-001 now has seven local-only source-citation fixtures plus two mocked answer-shape fixtures at `src/lib/margot/retrieval-evaluation.ts`, with mocked/static tests at `tests/unit/lib/margot/retrieval-evaluation.test.ts`. This tick added answer-shape checks for integration stale-sync and command-center current-status summaries so Margot must preserve source labels, sandbox/Mac Mini blockers, and no-provider/no-secret/no-production-DB boundaries before surfacing those answers.
 - Blocked/gated lane: the `tasks` / `voice_command_sessions` sandbox validation packet is locally ready but cannot advance to sandbox apply/diff, production promotion, or live RLS/service-role/constraint verification without a specific sandbox authority/auth gate.
 - Safe evidence now includes: `docs/margot/ai-enhancement-candidate-register.md`, `docs/margot/ai-enhancement-pipeline.md`, `src/lib/margot/retrieval-evaluation.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`, `src/lib/runtime/stale-sync-check.ts`, `src/app/[locale]/command-center/layered/page.tsx`, `supabase/migrations/20260513000200_integration_schema.sql`, `docs/margot/evidence/SANDBOX_VOICE_TASKS_VALIDATION_REVIEW_PACKET.md`, `docs/margot/evidence/SANDBOX_VOICE_TASKS_VALIDATION_CHECKLIST.md`, and the sandbox-only voice/tasks migration proposal.
 - Mac Mini recovery remains opportunistic only: `/Volumes` contains only `Macintosh HD`; no non-system authenticated scan root exists; SMB/File Sharing is reachable, SSH is unavailable, and no recovered Markdown artifacts are present.
@@ -36,7 +36,7 @@ Rotation rule until the sandbox/Mac Mini gates change:
 
 1. Do one bounded health/read-back check per tick.
 2. If sandbox authority/auth is still missing, record it once and rotate to another safe Senior PM lane instead of revalidating the same blocked DB boundary repeatedly.
-3. Preferred safe lanes: add mocked answer-shape checks for AI-RET-001 command-center/integration stale-sync summaries, package/review the local credential-boundary diff, build mock-only digest verification, or refresh project/client/marketing/AI control surfaces.
+3. Preferred safe lanes: wire the AI-RET-001 source-citation and answer-shape evaluations into a local-only report/fixture runner, add more mocked command-center answer-shape checks, package/review the local credential-boundary diff, build mock-only digest verification, or refresh project/client/marketing/AI control surfaces.
 4. Do not run `setup`, `sync`, `apply`, `diff`, `status`, `reset`, or `promote` on the sandbox wizard unless the run has explicit authority for that exact wizard action.
 5. Continue Mac Mini artifact recovery only when an authenticated SMB mount, usable SSH session, or approved export is available; otherwise record the blocker and keep another lane moving.
 
