@@ -1,5 +1,47 @@
 # Margot Overnight Progress Log
 
+## 2026-06-09 03:14 AEST
+
+### AI-RET-001 access-request/new-vendor answer-shape boundary + Senior PM health refresh + Mac Mini bounded retry
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs, Command Center, retrieval rules, AI enhancement register, current reports, Mac Mini status, package state, and current repo state.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `40b7d5c`, `main...origin/main [ahead 55]`. Inherited dirty state remains the local sandbox-wizard credential-boundary lane (`scripts/sandbox-wizard.sh` plus untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`); this tick updated local AI-RET-001 answer-shape/report assets and docs: `src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `docs/margot/ai-enhancement-candidate-register.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/mac-mini-recovery-status.md`, this progress log, and the morning report.
+- Safe Senior PM improvement completed with TDD: added a RED test proving AI-RET-001 expected a sixth mocked answer-shape fixture but only five existed, then added `AI-RET-001-ANSWER-ACCESS-REQUEST-BOUNDARY`. The new fixture requires access/new-vendor recommendations to use existing assets first, escalate only for a specific blocked task with a named missing source, phrase requests as least-privilege and staged, include a fallback using existing tools, and state no new vendor. It cites `docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md`, `docs/margot/access-and-data-requirements.md`, and `docs/margot/ai-enhancement-candidate-register.md`; it rejects sign-up/new connector approval/broad access/paused-until-new-AI-source/external-account-created overclaims.
+- The regenerated AI-RET-001 report now reads back with `Overall status: pass`, `Source-citation fixtures 7/7`, `Answer-shape fixtures 6/6`, `readback=pass`, `safetyNotes=true`, and `nextSafeAction=true`.
+- Diagnostic gate: what exists = durable CRM operating docs/test matrix, deterministic lead/digest helpers, retrieval rules/wrappers, seven-fixture AI-RET-001 source-citation harness, six-fixture mocked answer-shape gate, local report runner/report, report read-back parser/assertions, report integrity/error-path cases, stale-sync helper/tests, command-center layered stale-mirror surfacing, portfolio/client/marketing/AI surfaces, sandbox-only voice/task schema evidence, validation checklist, and review packet; what has started = local-only retrieval/report QA with access-request/new-vendor boundary hardening, not live semantic search changes, provider polling, external AI enrichment, sandbox DB validation, production adoption, account creation, or new vendor setup; why/problem/friction = generated command-center summaries could otherwise turn a missing-source note into broad-access or new-vendor approval; missing = broader answer-shape coverage, live sandbox apply/diff authority for voice/task schema, transcript retention/privacy approval, authenticated Mac Mini artifact transport, and production AI adoption authority; duplicated/unclear = repeated Mac Mini reachability still shows SMB reachable but no authenticated non-system mount and SSH unavailable; business benefit = preserves first-party/existing-tool operation and prevents Nango/new-vendor drift; smallest next action = add another mocked command-center answer-shape fixture or local report corruption/error-path case while keeping deterministic CRM/retrieval gates green.
+- Refreshed the Mac Mini approved-target health check without recursive system-volume scanning: `/Volumes` contains only `Macintosh HD`, so there was no authenticated non-system mounted scan root; no `MARGOT-COMMAND-CENTER.md` or `RESTOREASSIST-CONTENT-INDEX.md` was found; recovered Markdown artifact count remains `0`; `phills-mac-mini.local:445` returned exit `0` and `:22` returned exit `1`.
+- Updated `docs/margot/mac-mini-recovery-status.md` to capture the current 03:09 reachability retry.
+- No GitHub push, merge, deployment, sandbox apply/status/diff/sync/promote, production DB write, provider polling/mutation, client-facing action, billing/payment action, external vendor/account action, Nango/connector-platform action, credential prompt/read, secret printing/storage, or destructive git occurred.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# RED first on the fixture-count case: expected 6 answer-shape fixtures, received 5; GREEN after fix: PASS, 1 suite / 26 tests.
+
+npx ts-node --transpile-only -O '{"module":"commonjs","moduleResolution":"node"}' scripts/margot-retrieval-evaluation-report.ts
+# PASS: wrote docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md; overallStatus=pass; source=7/7; answerShape=6/6; readback=pass; safetyNotes=true; nextSafeAction=true.
+
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-edge-cases.test.ts --runInBand && npm run type-check && npm run security:routes-check
+# PASS: 5 suites / 61 tests; tsc --noEmit completed; route-inventory check reported 0 unprotected mutating routes.
+
+git diff --check
+# PASS: exit 0 after report updates.
+
+git/health/Mac Mini read-back
+# PASS/read-back: 2026-06-09 03:09 AEST; branch main; head 40b7d5c; ## main...origin/main [ahead 55]; node_modules=present; package_lock=present; volumes=Macintosh HD; recovered_markdown_count=0; approved_targets=not scanned because only system volume is mounted; SMB exit 0; SSH exit 1.
+```
+
+Safety:
+
+- This tick was local code/docs/test/report generation only. It did not use live vector search, OpenAI/external AI calls, new vendors, Nango, connector platforms, sandbox/prod DB-writing wizard commands, provider mutation/polling, credential reads, client-facing sends, public publishing, CRM data mutation, or account creation. The Mac Mini probe did not attempt credentials and avoided recursively walking the local system volume.
+
+Next safe slice:
+
+- Add another mocked command-center answer-shape fixture or local report corruption/error-path case while keeping retrieval + deterministic CRM helper gates green and the `tasks` / `voice_command_sessions` sandbox validation lane gated pending specific sandbox authority/auth.
+
 ## 2026-06-09 02:35 AEST
 
 ### AI-RET-001 digest operator-only answer-shape hardening + Senior PM health refresh + Mac Mini bounded retry
@@ -13093,3 +13135,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_023236.log'
+
+## 2026-06-09 03:16:04 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_030844.log'
