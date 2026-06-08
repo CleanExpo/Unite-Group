@@ -181,6 +181,6 @@ Adopted, parked, or retired:
 
 1. Keep the first local-only retrieval fixture gate (`src/lib/margot/retrieval-evaluation.ts`; `tests/unit/lib/margot/retrieval-evaluation.test.ts`) green before changing Margot retrieval thresholds or answer behavior.
 2. Maintain `docs/margot/ai-enhancement-candidate-register.md` as the concrete candidate queue when a safe evaluation starts or changes status.
-3. Expand AI-RET-001 only with mocked/static fixtures first, prioritizing integration-stale and command-center source-citation cases before any live retrieval behavior change.
+3. Expand AI-RET-001 only with mocked/static fixtures first; integration-stale and command-center source-citation fixtures now exist, so the next safe expansion is mocked answer-shape checks before any live retrieval behavior change.
 4. Keep deterministic CRM helpers (`qualifyLead`, daily digest) ahead of probabilistic AI scoring/enrichment until privacy, identity, and approval gates are explicit.
 5. Link adopted enhancements back into CRM schema/source-of-truth docs and the command-center report.
