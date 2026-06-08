@@ -1,5 +1,44 @@
 # Margot Overnight Progress Log
 
+## 2026-06-09 04:59 AEST
+
+### Sandbox-wizard credential-boundary packaging + Senior PM health refresh + Mac Mini bounded retry
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs, Command Center, retrieval rules, Mac Mini recovery status, progress log, morning report, and the sandbox voice/task validation evidence packets.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `90c5629`, `main...origin/main [ahead 58]`. Inherited local sandbox-wizard credential-boundary work remains (`scripts/sandbox-wizard.sh` plus untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`), deterministic stale-sync changes remain local, and local AI-RET-001 assets remain unpushed/local-only.
+- Safe Senior PM improvement completed: packaged the inherited sandbox-wizard credential-boundary diff into `docs/margot/evidence/SANDBOX_WIZARD_CREDENTIAL_BOUNDARY_REVIEW_PACKET.md`. The packet records the local static review: sandbox `apply` / `status` use sandbox-only credential loading, local override parsing reads only the requested key without sourcing the full credential file, and mandatory Supabase Management API token coupling is removed from those two sandbox-only paths.
+- Diagnostic gate: what exists = sandbox-first governance, the sandbox wizard, reconstructed sandbox-only `tasks` / `voice_command_sessions` proposal, static proposal guard, 14-test credential-boundary guard, prior validation/review packets, CRM operating/test-matrix surfaces, deterministic stale-sync helper/tests, and AI-RET-001 local assets; what has started = local credential-boundary hardening and static validation, not sandbox apply/status/diff/sync/setup/promote, production DB writes, credential reads, deploys, or provider mutations; why/problem/friction = sandbox-only validation should not import production-labelled DB credentials or require Management API access unless the sub-action actually needs it; missing = specific sandbox authority/auth, actual sandbox apply/diff evidence, RLS/service-role/cross-scope validation, and transcript retention/privacy approval; duplicated/unclear = older auth-blocked evidence remains historical while the narrowed credential-boundary patch is now packaged; business benefit = lower credential blast radius before a future approved sandbox validation; smallest next action = hold at the sandbox authority/auth gate or continue local-only deterministic CRM/retrieval evidence checks.
+- Refreshed the Mac Mini approved-target health check without recursive system-volume scanning: `/Volumes` contains only `Macintosh HD`, no authenticated non-system mounted scan root exists, recovered Markdown artifact count remains `0`, `phills-mac-mini.local:445` returned exit `0`, and `:22` returned exit `1`.
+- No GitHub push, merge, PR mutation, deployment, Vercel/env mutation, sandbox apply/status/diff/sync/setup/reset/promote, production DB write, provider polling/mutation, client-facing action, billing/payment action, external vendor/account action, Nango/connector-platform action, credential prompt/read, secret printing/storage, recursive system-volume scan, or destructive git occurred.
+
+Verification:
+
+```bash
+date '+%Y-%m-%d %H:%M %Z'
+# 2026-06-09 04:59 AEST
+
+bash -n scripts/sandbox-wizard.sh
+./scripts/sandbox-wizard.sh help >/tmp/margot-sandbox-help-credential-boundary.out
+npx jest tests/unit/margot-tasks-voice-migration-proposal.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+npm run type-check
+npm run security:routes-check
+git diff --check
+# PASS: Jest returned 2 suites / 31 tests; tsc --noEmit completed; route-inventory check reported 0 unprotected mutating routes; git diff --check exited 0.
+
+git/health/Mac Mini read-back
+# PASS/read-back: 2026-06-09 04:59 AEST; branch main; head 90c5629; ## main...origin/main [ahead 58]; node_modules=present; package_lock=present; volumes=Macintosh HD; recovered_markdown_count=0; approved_targets=not scanned because only system volume is mounted; SMB exit 0; SSH exit 1.
+```
+
+Safety:
+
+- This tick was local docs/static-test verification only. It did not run any sandbox DB-writing/status wizard command, production DB command, deploy, provider mutation, credential read, client-facing send, public publishing, external AI call, new vendor setup, Nango action, or recursive system-volume scan.
+
+Next safe slice:
+
+- Continue local-only deterministic CRM/retrieval/report evidence hardening, or wait at the explicit sandbox authority/auth gate before running `./scripts/sandbox-wizard.sh apply ...` / `diff` for the voice/tasks proposal.
+
 ## 2026-06-09 04:26 AEST
 
 ### Deterministic stale-sync error surfacing + Senior PM health refresh + Mac Mini bounded retry
@@ -13238,3 +13277,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_042226.log'
+
+## 2026-06-09 05:02:08 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_045832.log'
