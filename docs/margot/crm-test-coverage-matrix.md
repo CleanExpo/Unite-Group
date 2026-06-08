@@ -1,7 +1,7 @@
 # Margot CRM Test Coverage Matrix
 
 Date: 2026-05-31 08:29 AEST
-Last update: wider CRM regression now includes existing Empire client route suites
+Last update: 2026-06-08 13:36 AEST — sandbox-wizard credential-boundary preflight added to the CRM schema-migration gate
 Owner: Margot
 Project: Unite-Group
 Scope: Local repo evidence only. This matrix maps the current CRM operating loop to available mocked/local tests and the next safe coverage gaps. It does not imply production DB writes, deployment, GitHub push, Vercel env mutation, client-facing sends, or permanent business-rule approval.
@@ -72,7 +72,7 @@ npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration
 | Opportunity schema/route change | Migration guard plus new route tests written RED first | Keep opportunity as forecast/pipeline truth; Stripe remains billing truth. |
 | Voice ingress change | Focused voice gate plus daily digest if task output shape changes | No real ElevenLabs/Supabase production calls in tests. |
 | Command-center UI change | Component/route tests for the touched surface plus CRM route/helper gate if data contract changes | Avoid direct browser writes to sensitive CRM tables. |
-| Schema migration | Migration guard tests plus `./scripts/sandbox-wizard.sh apply <migration.sql>` and `./scripts/sandbox-wizard.sh diff` before promotion | Production promotion requires explicit typed approval through the wizard. |
+| Schema migration | Migration guard tests, `bash -n scripts/sandbox-wizard.sh`, `./scripts/sandbox-wizard.sh help`, the sandbox credential-boundary harness (`npx jest tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand`), then authorized sandbox-only `./scripts/sandbox-wizard.sh apply <migration.sql>` and `./scripts/sandbox-wizard.sh diff` before promotion | Production promotion requires explicit typed approval through the wizard. Sandbox/prod DB-writing wizard subcommands remain approval-gated; the credential-boundary harness proves parser/dispatch behavior with temporary fake env fixtures only. |
 
 ## Ordered next coverage gaps
 
@@ -83,13 +83,15 @@ npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration
 5. ~~Digest reader linkage test for voice-created `tasks`~~ — COMPLETE as of 2026-05-31. Daily digest task reads now include minimal source-detection fields (`tags`, `obsidian_path`) and render voice-ingress rows as `Voice task ...` when they match the existing `margot-voice` / `voice/<packet>` convention. Verified via `tests/integration/api/crm-daily-digest.test.ts`, `tests/unit/lib/crm/daily-digest.test.ts`, and `tests/integration/api/margot-voice-task.test.ts` (3 suites / 31 tests).
 6. ~~Wider regression including existing `src/app/api/empire/clients/**/__tests__`~~ — COMPLETE as of 2026-05-31. The focused CRM gate now includes the six root Empire client suites (34 tests) plus the `[slug]` PATCH validation suite (10 tests); combined local CRM/client gate passed 18 suites / 191 tests, followed by `npm run type-check` and `npm run security:routes-check`.
 7. ~~Add Business 360/read-client-activity regression coverage before broader client dashboard changes or `nexus_clients` conversion~~ — COMPLETE as of 2026-05-31. Shared Supabase mock enhanced to record query-builder calls (from/select/in/eq/gte/order/limit). Query-shape regression tests pin `readClientActivity` (agent_actions select, action_type in filter, payload->>slug eq, created_at desc order, default/caller limit) and `readBusiness360` (pi_ceo_health_snapshots select, snapshot_at gte, ascending order, 10000 cap). Verified: 2 suites / 23 tests passing via `npx jest src/lib/empire/__tests__/read-client-activity.test.ts src/lib/empire/__tests__/readers.test.ts --runInBand`.
-8. Recover original migrations or reconstruct sandbox-only migration proposals for `tasks` and `voice_command_sessions`.
+8. ~~Add sandbox-wizard credential-boundary preflight before future CRM schema/voice migration work~~ — COMPLETE as of 2026-06-08. Verified locally with `bash -n scripts/sandbox-wizard.sh`, `./scripts/sandbox-wizard.sh help >/tmp/margot-sandbox-help-20260608-1336.out`, and `npx jest tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` (1 suite / 14 tests). This was a no-DB local harness only: no sandbox apply/status/diff/sync/promote, production write, 1Password read, Supabase API call, `psql`, or secret read occurred.
+9. Recover original migrations or reconstruct sandbox-only migration proposals for `tasks` and `voice_command_sessions`.
 
 ## Safety notes
 
 - This matrix is a local planning/test artifact.
 - Do not apply migrations directly to production.
 - Do not use `psql`, `supabase db push`, or Supabase production migration tools outside the sandbox wizard path.
+- Do not run sandbox wizard DB-writing/status subcommands (`setup`, `sync`, `apply`, `diff`, `status`, `reset`, `promote`) from a routine matrix refresh; use `help` plus local parser/dispatch tests unless a specific sandbox/prod authority gate is granted.
 - Do not print or store secrets.
 - Do not post Linear/GitHub/Vercel/client-facing updates automatically from this matrix.
 - Treat all scoring and digest output as operator decision support, not autonomous approval.

@@ -1,5 +1,43 @@
 # Margot Overnight Progress Log
 
+## 2026-06-08 13:36 AEST
+
+### Senior PM health refresh + CRM test-matrix migration-gate hardening + Mac Mini bounded retry
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs and current reports.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `cf35075`, `main...origin/main [ahead 32]`. Inherited local dirty state before this tick was `scripts/sandbox-wizard.sh` plus untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`; this tick added local doc updates to `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/mac-mini-recovery-status.md`, this progress log, and the morning report.
+- Safe Senior PM improvement completed: `docs/margot/crm-test-coverage-matrix.md` now adds the sandbox-wizard credential-boundary preflight to the CRM schema-migration gate, marks the local 14-test credential-boundary harness complete, and makes routine matrix refreshes explicitly avoid sandbox/prod DB-writing/status wizard subcommands unless a specific authority gate is granted.
+- Diagnostic gate: what exists = durable CRM operating model/schema/test-matrix artifacts plus local sandbox-wizard credential-boundary hardening and its 14-test focused harness; what has started = local-only schema-wizard safety preflight documentation and verification, not sandbox/prod execution; why/problem/friction = future CRM schema/voice migration lanes need sandbox-first enforcement without routine ticks invoking DB-writing/status commands or reading production-labelled credentials; missing = normal review/commit/push path remains pending and no sandbox apply/status/diff/sync/promote is authorised in this run; duplicated/unclear = Mac Mini SMB remains reachable but no authenticated non-system mounted share contains the approved target files and SSH remains unavailable; business benefit = keeps the CRM schema pathway safer, auditable, locally testable, and aligned with the High-Level CRM forecast; smallest next action = recover/reconstruct sandbox-only migrations for `tasks` and `voice_command_sessions` or package/review the local credential-boundary lane.
+- Refreshed the Mac Mini approved-target health check without recursive system-volume scanning: `/Volumes` contains only `Macintosh HD`, so there was no authenticated non-system mounted scan root; no `MARGOT-COMMAND-CENTER.md` or `RESTOREASSIST-CONTENT-INDEX.md` was found; recovered Markdown artifact count remains `0`; `phills-mac-mini.local:445` returned `nc` exit `0` and `:22` returned exit `1`.
+- Updated `docs/margot/mac-mini-recovery-status.md` to capture the current 13:36 reachability retry.
+- No GitHub push, merge, deployment, sandbox apply/status/diff/sync/promote, production DB write, client-facing action, billing/payment action, external vendor/account action, credential prompt/read, secret printing/storage, or destructive git occurred.
+
+Verification:
+
+```bash
+printf 'timestamp='; date '+%Y-%m-%d %H:%M:%S %Z'; printf 'pwd='; pwd; printf 'branch='; git branch --show-current; printf 'head='; git rev-parse --short HEAD; git status --short --branch; git remote -v; git diff --stat
+# PASS/read-back: 2026-06-08 13:36:42 AEST; pwd=/Users/phillmcgurk/Unite-Group; branch main; head cf35075; ## main...origin/main [ahead 32]; inherited dirty state before this tick was scripts/sandbox-wizard.sh plus untracked tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts.
+
+node/dependency/Mac Mini health probe with non-system-volume scan
+# PASS/read-back: node_modules=present; package_lock=present; package_json=present; volumes=Macintosh HD; recovered_markdown_count=0; no non-system mounted scan root for approved targets; SMB reachable; SSH unreachable.
+
+bash -n scripts/sandbox-wizard.sh && ./scripts/sandbox-wizard.sh help >/tmp/margot-sandbox-help-20260608-1336.out && npx jest tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: shell syntax OK; help renders; Jest returned 1 suite / 14 tests.
+
+npm run type-check && npm run security:routes-check && git diff --check
+# PASS: tsc --noEmit completed; route-inventory check reported 0 unprotected mutating routes; diff hygiene passed before this progress/morning-report update; final post-update `git diff --check` was rerun and passed.
+```
+
+Safety:
+
+- This tick made no DB-writing/status wizard calls and did not execute `setup`, `sync`, `apply`, `diff`, `status`, `reset`, or `promote`. The only wizard execution was `help`; the focused Jest fixtures use temporary fake env files only. The Mac Mini probe did not attempt credentials and avoided recursively walking the local system volume.
+
+Next safe slice:
+
+- Continue from the updated CRM test matrix: recover original migrations or reconstruct sandbox-only migration proposals for `tasks` and `voice_command_sessions`, or package/review the local sandbox credential-boundary lane. Mac Mini recovery can retry opportunistically while SMB is reachable, but remains blocked until an authenticated SMB share with the approved target files is mounted, SSH becomes usable, or Phill provides an approved export.
+
 ## 2026-06-08 13:03 AEST
 
 ### Senior PM health refresh + sandbox credential-boundary verification + Mac Mini bounded retry
@@ -11983,3 +12021,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260608_130247.log'
+
+## 2026-06-08 13:40:12 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260608_133543.log'
