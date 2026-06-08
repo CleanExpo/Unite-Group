@@ -1,5 +1,42 @@
 # Margot Overnight Progress Log
 
+## 2026-06-08 12:30 AEST
+
+### Senior PM health refresh + sandbox credential-boundary verification + Mac Mini bounded retry
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs and current reports.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `544c3cb`, `main...origin/main [ahead 30]`, with inherited local dirty state before this report/status update limited to `scripts/sandbox-wizard.sh` and untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`.
+- Diagnostic gate: what exists = durable CRM/Senior PM operating docs plus active local sandbox-wizard credential-boundary hardening and its 14-test focused harness; what has started = local-only sandbox credential-boundary verification plus approved Mac Mini reachability retry, not sandbox/prod execution; why/problem/friction = future sandbox-first CRM/schema/voice work should keep sandbox-only apply/status paths independent from unnecessary Management API token coupling and production-labelled credential reads; missing = normal review/commit/push path remains pending and no sandbox apply/status/diff/sync/promote is authorised in this run; duplicated/unclear = Mac Mini SMB is reachable but no authenticated non-system mounted share contains the approved target files and SSH remains unavailable; business benefit = keeps the CRM/schema operating pathway safer, locally testable, and ready for later authenticated recovery; smallest next action = package/review the local credential-boundary lane, then resume the CRM/Senior PM backlog from existing docs.
+- Refreshed the Mac Mini approved-target health check with a non-system-volume bounded scan: `/Volumes` contains only `Macintosh HD`, so there was no authenticated non-system mounted scan root; no `MARGOT-COMMAND-CENTER.md` or `RESTOREASSIST-CONTENT-INDEX.md` was found; recovered Markdown artifact count remains `0`; `phills-mac-mini.local:445` returned `nc` exit `0` and `:22` returned exit `1`.
+- Updated `docs/margot/mac-mini-recovery-status.md` to capture the current 12:30 reachability retry.
+- No GitHub push, merge, deployment, sandbox apply/status/diff/sync/promote, production DB write, client-facing action, billing/payment action, external vendor/account action, credential prompt/read, secret printing/storage, or destructive git occurred.
+
+Verification:
+
+```bash
+printf 'timestamp='; date '+%Y-%m-%d %H:%M:%S %Z'; printf 'pwd='; pwd; printf 'branch='; git branch --show-current; printf 'head='; git rev-parse --short HEAD; git status --short --branch; git diff --stat
+# PASS/read-back: 2026-06-08 12:30:00 AEST; pwd=/Users/phillmcgurk/Unite-Group; branch main; head 544c3cb; ## main...origin/main [ahead 30]; dirty state before report updates was scripts/sandbox-wizard.sh plus untracked tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts; tracked diff stat showed scripts/sandbox-wizard.sh 125 changed lines / 92 insertions / 33 deletions.
+
+printf node/dependency/Mac Mini health probe with non-system-volume scan
+# PASS/read-back: node_modules=present; package_lock=present; volumes=Macintosh HD; recovered_markdown_count=0; mac_target_scan_roots=(none; only system volume mounted); mac_targets=(none); SMB exit 0; SSH exit 1.
+
+bash -n scripts/sandbox-wizard.sh && ./scripts/sandbox-wizard.sh help >/tmp/margot-sandbox-help-20260608-1226.out && npx jest tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: shell syntax OK; help renders; Jest returned 1 suite / 14 tests.
+
+npm run type-check && npm run security:routes-check && git diff --check
+# PASS: tsc --noEmit completed; route-inventory check reported 0 unprotected mutating routes; diff hygiene passed before this progress/morning-report/status update; final post-update `git diff --check` was rerun and passed.
+```
+
+Safety:
+
+- This tick made no DB-writing wizard calls and did not execute `setup`, `sync`, `apply`, `diff`, `status`, `reset`, or `promote`. The only wizard execution was `help`; the focused Jest fixtures use temporary fake env files only. The Mac Mini probe did not attempt credentials and avoided recursively walking the local system volume.
+
+Next safe slice:
+
+- Keep the sandbox credential-boundary hardening and 14-test smoke harness local until reviewed/committed through the normal safe path, then return to the CRM/Senior PM backlog from existing docs. Mac Mini recovery can retry opportunistically while SMB is reachable, but remains blocked until an authenticated SMB share with the approved target files is mounted, SSH becomes usable, or Phill provides an approved export.
+
 ## 2026-06-08 11:54 AEST
 
 ### Senior PM health refresh + sandbox apply Management API decoupling + Mac Mini retry
@@ -11891,3 +11928,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260608_115321.log'
+
+## 2026-06-08 12:32:47 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260608_122621.log'
