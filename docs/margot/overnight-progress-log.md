@@ -1,5 +1,36 @@
 # Margot Overnight Progress Log
 
+## 2026-06-09 07:49 AEST
+
+### Senior PM verification refresh + Mac Mini bounded retry
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs, Command Center, retrieval rules, Mac Mini recovery status, progress log, morning report, current repo state, deterministic stale-sync/daily-digest helpers, and local AI-RET-001 evidence context.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `93ea2b1`, `main...origin/main [ahead 63]`. Inherited local sandbox-wizard credential-boundary work remains (`scripts/sandbox-wizard.sh` plus untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`), deterministic stale-sync/daily-digest changes remain local, and local AI-RET-001 assets remain unpushed/local-only.
+- Safe health lane completed: re-ran the expanded local retrieval + stale-sync + CRM helper gate to verify the current local evidence stack still holds after the prior deterministic stale-sync work. This was a verification/containment tick, not a new sandbox or production action.
+- Diagnostic gate: what exists = durable CRM operating docs/test matrix, deterministic lead/digest helpers, retrieval rules/wrappers, stale-sync helper/tests, AI-RET-001 local report harness, command-center answer-shape/report read-back guards, sandbox-only voice/task schema evidence, validation checklist, and credential-boundary packet; what has started = local deterministic evidence hardening and report integrity work, not live provider polling, external AI enrichment, sandbox DB validation, production adoption, deploys, or CRM data mutation; why/problem/friction = the Command Center and morning report need current evidence that inherited local changes are still green before any downstream handoff; missing = sandbox authority/auth for voice/task DB validation, actual sandbox apply/diff evidence, RLS/service-role/cross-scope validation, transcript retention/privacy approval, authenticated Mac Mini artifact transport, and production adoption authority; duplicated/unclear = Mac Mini remains SMB-reachable but unauthenticated for file recovery and SSH unavailable; business benefit = keeps the Senior PM surface current without creating PR/deploy/DB churn; smallest next action = continue local-only retrieval/digest/stale-sync evidence or package the existing credential-boundary lane for human sandbox authority review.
+- Refreshed the Mac Mini approved-target health check without recursive system-volume scanning: `/Volumes` contains only `Macintosh HD`, no authenticated non-system mounted scan root exists, recovered Markdown artifact count remains `0`, `phills-mac-mini.local:445` returned exit `0`, and `:22` returned exit `1`.
+- No GitHub push, merge, PR mutation, deployment, Vercel/env mutation, sandbox apply/status/diff/sync/setup/reset/promote, production DB write, provider polling/mutation, client-facing action, billing/payment action, external vendor/account action, Nango/connector-platform action, credential prompt/read, secret printing/storage, recursive system-volume scan, or destructive git occurred.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-edge-cases.test.ts --runInBand && npm run type-check && npm run security:routes-check && git diff --check
+# PASS: 5 suites / 68 tests; tsc --noEmit completed; route-inventory check reported 0 unprotected mutating routes; git diff --check exited 0.
+
+git/health/Mac Mini read-back
+# PASS/read-back: 2026-06-09 07:49 AEST; branch main; head 93ea2b1; ## main...origin/main [ahead 63]; node_modules=present; package_lock=present; volumes=Macintosh HD; non_system_scan_roots=none; recovered_markdown_count=0; approved_target_scan=skipped_only_system_volume_mounted; SMB exit 0; SSH exit 1.
+```
+
+Safety:
+
+- This tick was local docs/test verification only. It did not use live vector search, OpenAI/external AI calls, new vendors, Nango, connector platforms, sandbox/prod DB-writing wizard commands, provider mutation/polling, credential reads, client-facing sends, public publishing, CRM data mutation, recursive system-volume scans, or account creation.
+
+Next safe slice:
+
+- Continue local-only retrieval/digest/stale-sync evidence verification or prepare a compact sandbox-authority review handoff for the existing `tasks` / `voice_command_sessions` validation lane; do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until that specific authority/auth gate changes.
+
 ## 2026-06-09 07:16 AEST
 
 ### Malformed completed-sync timestamp guard + Senior PM health refresh + Mac Mini bounded retry
@@ -13465,3 +13496,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_071454.log'
+
+## 2026-06-09 07:51:38 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_074821.log'
