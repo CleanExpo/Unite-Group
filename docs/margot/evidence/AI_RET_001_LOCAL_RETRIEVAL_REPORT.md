@@ -1,6 +1,6 @@
 # AI-RET-001 Local Retrieval Evaluation Report
 
-Generated: 08/06/2026, 21:10:22 AEST
+Generated: 08/06/2026, 21:47:29 AEST
 
 Overall status: `pass`
 
@@ -9,7 +9,7 @@ Overall status: `pass`
 | Area | Total | Pass | Needs action |
 | --- | ---: | ---: | ---: |
 | Source-citation fixtures | 7 | 7 | 0 |
-| Answer-shape fixtures | 2 | 2 | 0 |
+| Answer-shape fixtures | 3 | 3 | 0 |
 
 ## Source-citation fixture results
 
@@ -29,6 +29,7 @@ Overall status: `pass`
 | --- | --- | --- | --- | --- | --- |
 | AI-RET-001-ANSWER-INTEGRATION-STALE-SYNC | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
 | AI-RET-001-ANSWER-COMMAND-CENTER-STATUS | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
+| AI-RET-001-ANSWER-REPORT-HANDOFF | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
 
 ## Safety notes
 
