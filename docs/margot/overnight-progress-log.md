@@ -1,5 +1,50 @@
 # Margot Overnight Progress Log
 
+## 2026-06-09 12:28 AEST
+
+### Margot retrieval-evaluation empty-results + non-Mac-Mini operator-note positive coverage TDD lane (gap closure)
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs, Command Center, retrieval rules, Mac Mini recovery status, overnight progress log, morning report, and current repo state.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `171ef03`, `main...origin/main [ahead 71]`. Inherited local dirty work remains: the sandbox-wizard credential-boundary lane (`scripts/sandbox-wizard.sh` plus untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`), the prior CRM redaction TDD lane (`src/lib/crm/digest-read-error.ts` + test), the prior CRM approval-lifecycle TDD lane (`src/lib/crm/approval-lifecycle.ts` + test), the prior CRM digest-mappers positive-coverage lane (`tests/unit/lib/crm/digest-mappers.test.ts`), the deterministic stale-sync/daily-digest changes, the new untracked Margot retrieval-evaluation fixtures/harness (`src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`), and the new untracked sandbox-wizard credential-boundary test.
+- Senior PM TDD lane completed (positive-coverage variant): closed the last three unhedged branches in the Margot retrieval-evaluation module that had no dedicated unit test coverage: (1) `evaluateMargotRetrievalFixture` with an **empty results array** (no semantic candidates at all); (2) `evaluateMargotRetrievalFixture` for a **non-Mac-Mini fixture** where every result is below the similarity threshold, asserting that the `buildOperatorNotes` extra Mac-Mini credential/invented-artifact note is *not* appended; (3) `evaluateMargotRetrievalFixtures` called with an **empty `resultsByFixtureId` map** confirming the fail-closed propagation to every fixture and that the Mac-Mini fixture still gets its specific note while all others get only the generic file-read fallback note. RED→GREEN on first run (the module was already fail-closed); the new test file is now 32/32 GREEN (was 29/29 before this lane).
+- Diagnostic gate: what exists = a fully-fail-closed retrieval-evaluation module with fixture set, answer-shape set, evaluator, report builder, and report read-back; what has started = positive-coverage tests for empty input, non-Mac-Mini low-similarity input, and full-empty results-map input, not sandbox apply/diff/status, production adoption, deploys, PR mutation, provider polling, client-facing sends, public publishing, or CRM data mutation; why/problem/friction = the existing test file only ever passed a non-empty `results` array (typically with the right sources and similarities); an empty result set or an entirely below-threshold result set is a realistic failure mode that the existing fixtures bypass, so a refactor that silently let `needsFileReadFallback` stay `false` on empty input would not have been caught; missing = the empty-results branch, the non-Mac-Mini low-similarity branch, and the all-empty results-map branch all lacked dedicated coverage; duplicated/unclear = basic happy paths and Mac-Mini fallback notes are still covered by existing tests; the new file is explicitly scoped to the unhedged branches to avoid test-file duplication; business benefit = a regression in the retrieval evaluator that breaks the file-read fallback on empty input (the exact case where an upstream vector search returns nothing) can no longer ship silently; smallest next action = rotate to another bounded Senior PM lane (e.g. refresh a project/client/marketing/AI control surface, harden a stale-sync or daily-digest helper, or close another control-surface gap) and do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until the specific authority/auth gate changes.
+- Refreshed the Mac Mini approved-target health check without recursive system-volume scanning: `/Volumes` contains only `Macintosh HD`, no authenticated non-system mounted scan root exists, recovered Markdown artifact count remains `0`, `phills-mac-mini.local:445` is reachable (SMB/File Sharing reachable), and `:22` is unreachable.
+- No GitHub push, merge, PR mutation, deployment, Vercel/env mutation, sandbox apply/status/diff/sync/setup/reset/promote, production DB write, provider polling/mutation, client-facing action, billing/payment action, external vendor/account action, Nango/connector-platform action, credential prompt/read, secret printing/storage, recursive system-volume scan, or destructive git occurred.
+
+Verification:
+
+```bash
+# Focused run on the updated retrieval-evaluation test file
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 32 tests (was 29 before this lane; +3 new positive-coverage tests).
+
+# Expanded Margot gate (regression check)
+npx jest tests/unit/lib/margot/ --runInBand
+# PASS: 1 suite / 32 tests.
+
+npm run type-check
+# PASS: tsc --noEmit completed.
+
+npm run security:routes-check
+# PASS: route-inventory check reported 0 unprotected mutating routes.
+
+git diff --check
+# PASS: exited 0 before and after status-report updates.
+
+git/health/Mac Mini read-back
+# READ-BACK: 2026-06-09 12:28 AEST; branch main; head 171ef03; main...origin/main [ahead 71]; node_modules=present; package_lock=present; volumes=Macintosh HD; recovered_markdown_count=0; approved_target_scan=skipped_only_system_volume_mounted; SMB reachable; SSH unreachable.
+```
+
+Safety:
+
+- This tick was local code+test+docs verification only. It did not use live vector search, OpenAI/external AI calls, new vendors, Nango, connector platforms, sandbox/prod DB-writing wizard commands, provider mutation/polling, credential reads, client-facing sends, public publishing, CRM data mutation, recursive system-volume scans, or account creation.
+
+Next safe slice:
+
+- Rotate to another bounded Senior PM lane: refresh `project-portfolio-index.md`, `client-second-brain-model.md`, `marketing-strategy-operating-model.md`, or `ai-enhancement-pipeline.md`; close a voice-test gap from `docs/margot/voice-test-gap-analysis.md`; or run a deeper stale-sync + daily-digest + retrieval surface sweep. Do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until the specific authority/auth gate changes.
+
 ## 2026-06-09 11:50 AEST
 
 ### CRM approval-lifecycle subjectType case-insensitivity TDD fix
@@ -13937,3 +13982,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_114412.log'
+
+## 2026-06-09 12:30:11 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_122528.log'
