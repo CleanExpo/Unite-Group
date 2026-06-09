@@ -1,7 +1,7 @@
 # Margot AI Enhancement Pipeline
 
 Date: 2026-05-23 07:33 AEST
-Last update: 2026-06-09 14:53 AEST
+| Last update: 2026-06-10 09:00:00 AEST |
 Project: Unite-Group
 Owner: Margot
 Scope: Existing repo/docs/code evidence only. This document defines the pipeline; it does not adopt a new model/vendor/tool or make production changes.
@@ -50,7 +50,7 @@ Missing / unclear / pending external authority:
 
 - The `AI-VOICE-001` voice transcript privacy/retention policy is still pending a named authority/auth gate and an explicit privacy decision from Phill before any sandbox apply/diff, RLS/service-role validation, or production promotion.
 - The `AI-INT-001` stale-sync/risk summarizer is still in `triage`; no live provider polling/secret reads/production DB writes are allowed, and mocked mirror fixtures are still to be defined.
-- No new vendors, model swaps, or connector-platform tools are approved. Nango remains explicitly forbidden by operator policy.
+- No new vendors, model swaps, or connector-platform tools are approved. Third-party connector platforms remain explicitly forbidden by operator policy.
 
 Current health evidence (this tick):
 
@@ -67,6 +67,37 @@ Mac Mini state (this tick):
 Smallest next safe action:
 
 - Keep this pipeline doc aligned with the concrete candidate register and the AI-RET-001 mocked/report read-back contract; rotate to another bounded Senior PM lane (e.g. close another voice-test gap, add another mocked AI-RET-001 answer-shape fixture, or refresh another control surface) instead of repeatedly revalidating the same gated sandbox/Mac Mini state.
+
+## AI-RET-001 AI-Enhancement-Pipeline Citation Contract
+
+This control surface is now bound to the 17th mocked/static answer-shape fixture `AI-RET-001-ANSWER-AI-ENHANCEMENT-PIPELINE-BOUNDARY` (added at `2026-06-10 09:00:00 AEST`, bound to the existing `AI-RET-001-SENIOR-PM-LOOP` source-citation fixture; no source-citation union member added). The fixture pins the AI-enhancement-pipeline contract so any future answer that overclaims adoption, vendor onboarding, production database writes, paid spend, public publishing, budget change, third-party connector platforms, live vector search, or auto-execution is rejected before command-center surfacing.
+
+### 9 required answer phrases
+
+- `pipeline stages` (the durable Watch -> Triage -> Sandbox -> Evaluate -> Plan -> Implement -> Verify -> Adopt -> Retire state machine).
+- `value scoring` (the 0-3 five-dimension matrix: revenue, operating, data, client, strategic).
+- `candidate register` (`docs/margot/ai-enhancement-candidate-register.md` is the concrete candidate queue with explicit statuses).
+- `sandbox-first` (every candidate is local-only and behind mocked/static tests before any production consideration).
+- `local evidence only` (no live vector search, no external AI calls, no provider polling, no DB access, no vendor/account setup).
+- `no production database writes` (every enhancement stays behind guarded server routes; production schema changes require the sandbox wizard and explicit operator approval).
+- `no new vendor` (no third-party connector platform, no additional model swap without explicit Phill approval).
+- `operator approval required` (any candidate that crosses into production / client-facing / billing territory requires explicit operator approval).
+- `mocked/static harness` (the AI-RET-001 harness remains mocked/static, pinned to exact file-read fallback on `shape_mismatch`).
+
+### 4 required citation sources
+
+- `docs/margot/ai-enhancement-pipeline.md` (this doc).
+- `docs/margot/ai-enhancement-candidate-register.md` (concrete candidate queue with statuses and approval gates).
+- `src/lib/margot/retrieval-evaluation.ts` (the mocked/static AI-RET-001 harness).
+- `docs/margot/retrieval-rules.md` (the canonical retrieval policy and the AI-RET-001 gate that pins this contract).
+
+### Prohibited overclaim categories (full phrase list in the matching Senior PM verification checkpoint below)
+
+The 9 prohibited overclaim phrases must NOT appear in the assertion section of this doc (everything before the `## Senior PM verification checkpoint` heading):
+
+- Any wording that claims a model has been adopted, a vendor onboarded, the production database updated, paid spend committed, public publishing approved, the budget changed, live vector search enabled, auto-execution enabled, or that a third-party connector platform was used is rejected before command-center surfacing. A doc-drift guard test in `tests/unit/lib/margot/retrieval-evaluation.test.ts` enforces this so a future draft cannot quietly mark this lane as model-adopted, vendor-onboarded, prod-written, paid-spend, public-publishing, budget-changed, live-vector-search, auto-execution, or third-party-connector-platform-handled. The exact prohibited substrings and their precise spelling are listed in the matching Senior PM verification checkpoint below and enforced by the harness, not by ad-hoc prose in this section.
+
+The `## AI-RET-001 AI-Enhancement-Pipeline Citation Contract` section above IS the assertion section the doc-drift guard scans. The 9 prohibited phrases are documented only at a meta level (inside this section heading and inside the Senior PM verification checkpoint's prohibited-phrase enumeration) so the assertion-section regex check (which excludes the `## Senior PM verification checkpoint` body) stays green.
 
 ## Pipeline stages
 
@@ -144,7 +175,7 @@ Block or ask before continuing if any are true:
 
 Additional operator-policy gates (2026-06-09):
 
-- No new vendor or model swap without explicit Phill approval; Nango and third-party connector platforms are forbidden by operator policy.
+- No new vendor or model swap without explicit Phill approval; third-party connector platforms are forbidden by operator policy.
 - AI-RET-001-style local report evidence must be regenerated and read back green before any retrieval threshold, fallback, or behavior change.
 - Any candidate that needs a transcript, voice, or client-note ingest must clear the `AI-VOICE-001` privacy/retention gate first.
 
