@@ -1,15 +1,36 @@
 # Margot Voice Test Gap Analysis
 
 Date: 2026-05-23
+Last update: 2026-06-09 17:08 AEST
+Previous refresh: 2026-05-23 05:57 AEST
 Project: Unite-Group
 
-## Files Reviewed
+## Files Reviewed (Original 2026-05-23 Lane)
 
 - `src/app/api/pi-ceo/margot-voice/signed-url/route.ts`
 - `src/app/api/pi-ceo/margot-voice/task/route.ts`
 - `tests/integration/api/margot-voice-signed-url.test.ts`
 - `tests/integration/api/margot-voice-task.test.ts`
 - `src/components/command-center/voice/failure-taxonomy.ts`
+
+## Files Reviewed (2026-06-09 Senior PM Verification Refresh)
+
+- All five files above (re-read for drift).
+- Voice UI panel: `src/components/command-center/voice/MargotVoicePanel.tsx`.
+- `docs/margot/MARGOT-COMMAND-CENTER.md` (current voice surface map).
+- `docs/margot/retrieval-rules.md` (current voice/retrieval policy).
+- `docs/margot/ai-enhancement-candidate-register.md` (voice-relevant AI-RET-001 fixtures).
+- `docs/margot/voice-task-schema-provenance.md` (generated type evidence).
+- `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (current pass state).
+
+## Senior PM Verification Checkpoint (2026-06-09 17:08 AEST)
+
+- What exists: focused Margot voice test suite (3 files / 28 tests) covering rate limiting, ElevenLabs upstream non-OK, ElevenLabs network/timeout failure, cache-control, invalid JSON, invalid packet, voice session insert failure, CRM task insert failure, summary truncation, default field behavior, missing CRM/Supabase env, unauthorized bearer token rejection, voice session + CRM task creation, approval-required work becoming blocked and assigned to `Phill approval`, plus the operator-safe `mapMargotFailure` copy for 401, 403, 429, 503, 502 upstream failed, 502 upstream unreachable, network/no response, unknown responses, and code-driven classification fallback. AI-RET-001 source-citation fixtures (7/7 pass) and answer-shape fixtures (7/7 pass) include a `GATED-ACTION-BOUNDARY` answer-shape that asserts the harness never claims a voice session was created or a CRM task was inserted without a corresponding backend fixture, plus a `COMMAND-CENTER-CITATION` source-citation fixture that pins the voice surface map to the local command-center doc.
+- What has started: 2026-06-09 17:08 AEST voice-test-gap-analysis Senior PM verification refresh. No new tests, no new fixtures, no new code, no new mocks. The only change is this doc.
+- Why it exists: the previous voice-test-gap-analysis was last touched `2026-05-23 05:57 AEST`, before the AI-RET-001 source-citation and answer-shape harnesses, before the case-insensitive `normalizedSubjectType` approval-lifecycle lane, before the deterministic `logCrmDigestReadError` fail-closed guard, before the dedicated `digest-mappers` positive-coverage suite, before the daily-digest privacy hardening (`lead <id>` fallback), and before the deterministic stale-sync + daily-digest edge-case lanes. This refresh links the voice gap-closure pass to those newer CRM/margot/AI surfaces so future tests can be added without losing the original coverage map.
+- Missing/unclear: the voice task route has no negative-coverage test for malformed `voice_command_sessions` payload (e.g. truncated/missing `command` or `source` fields) beyond the `invalid_packet` 400 case. A `voice` `--source` enum test for unknown source values is not yet added. The voice UI panel has no `npm test` mounted unit test for the rendered ElevenLabs ConvAI widget state machine. The voice task route's `risk_level` and `business_context` defaulting is tested in isolation but not asserted against a fixture that simulates the live ElevenLabs → Supabase chain end-to-end. None of these gaps are blocking; they are recorded here for the next safe TDD lane.
+- Current health evidence: focused retrieval gate `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` returned 1 suite / 32 tests PASS. Voice-eval test counts unchanged from the original 2026-05-23 05:57 AEST lane: focused Margot voice suite remains 3 suites / 28 tests. AI-RET-001 report `overallStatus=pass`, `source=7/7`, `answerShape=7/7`. Mac Mini: `/Volumes=Macintosh HD`, recovered Markdown count `0`, SMB reachable, SSH unreachable; no credential prompt/read, secret printing/storage, or recursive system-volume scan.
+- Smallest next action: when a real voice code change is needed, add a new negative-coverage test (malformed `voice_command_sessions` payload, unknown `source` enum, or end-to-end ElevenLabs → Supabase chain) to the focused suite, run the focused Jest gate, and update both `docs/margot/MARGOT-COMMAND-CENTER.md` and this doc with the new test id.
 
 ## Current Coverage Indicated by Existing Tests
 

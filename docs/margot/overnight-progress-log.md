@@ -14340,3 +14340,33 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_164403.log'
+
+## 2026-06-09 17:08 AEST
+
+### Voice-test-gap-analysis + orchestrator-prompt Senior PM verification refresh
+
+Current checkpoint:
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs, Command Center, retrieval rules, Mac Mini recovery status, overnight progress log, morning report, current repo state, CRM schema inventory, CRM test matrix, AI enhancement pipeline doc, AI-RET-001 evidence report, AI candidate register, project portfolio index, the inherited client-second-brain model, the inherited voice-test-gap-analysis, and the inherited orchestrator-prompt.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `2d96cb7` (latest local code/doc commit before this uncommitted lane: `93b74f0`), `main...origin/main [ahead 0]` (sandbox-wizard auto-sync commit closed the 78-commit gap). Inherited local dirty work is unchanged: the sandbox-wizard credential-boundary lane (`scripts/sandbox-wizard.sh` plus untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`), the prior CRM redaction TDD lane (`src/lib/crm/digest-read-error.ts` + test), the prior CRM approval-lifecycle TDD lane (`src/lib/crm/approval-lifecycle.ts` + test), the prior CRM digest-mappers positive-coverage lane (`tests/unit/lib/crm/digest-mappers.test.ts`), the untracked Margot retrieval-evaluation harness (`src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`), and the deterministic stale-sync/daily-digest changes.
+- Identified the two control surfaces that were still on the 2026-05-23 lane and were not yet aligned with the modern Senior PM verification rotation: `docs/margot/voice-test-gap-analysis.md` (last touched `2026-05-23 05:57 AEST`, before the AI-RET-001 source-citation and answer-shape harnesses, the case-insensitive `normalizedSubjectType` approval-lifecycle lane, the deterministic `logCrmDigestReadError` fail-closed guard, the dedicated `digest-mappers` positive-coverage suite, the daily-digest privacy hardening, and the deterministic stale-sync + daily-digest edge-case lanes) and `docs/margot/orchestrator-prompt.md` (last touched `2026-05-23`, before the explicit Senior PM verification rotation guard, the AI-RET-001 evidence gate, the `linear-watch-today.md` live Linear mirror, the binding safety rules on Nango, the sandbox wizard subcommand allowlist, the live semantic search prohibition, and the public publishing / paid spend / client-facing send prohibitions).
+- Completed safe rotation lane: refreshed both docs to a `Last update: 2026-06-09 17:08 AEST` state with current Senior PM verification checkpoints. `voice-test-gap-analysis.md` (now 192 lines, was 171) keeps the original 2026-05-23 coverage map and adds a `Files Reviewed (2026-06-09 Senior PM Verification Refresh)` section plus a checkpoint that names the existing 28 voice tests, the AI-RET-001 GATED-ACTION-BOUNDARY answer-shape and COMMAND-CENTER-CITATION source-citation fixtures, the missing/unclear gaps (malformed `voice_command_sessions` payload, unknown `source` enum, voice UI panel state machine unit test, end-to-end ElevenLabs → Supabase chain), the current health evidence, and the smallest next action. `orchestrator-prompt.md` (now 77 lines, was 52) keeps the original Senior PM control loop and adds a 14-file ordered read-first set (with `linear-watch-today.md` and the AI-RET-001 evidence gate), the binding hard safety rules (Nango, live semantic search, sandbox wizard subcommand allowlist, public publishing / paid spend / client-facing send), and the explicit Senior PM verification rotation guard.
+- Verification passed: focused `wc -l` check on both refreshed docs (192 / 77 lines); focused retrieval-evaluation Jest gate `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` returned 1 suite / 32 tests PASS; `npm run type-check` passed; `npm run security:routes-check` reported 0 unprotected mutating routes; `git diff --check` passed before and after status-report updates. AI-RET-001 report unchanged: `overallStatus=pass`, `source=7/7`, `answerShape=7/7`, `safetyNotes=true`, `nextSafeAction=true`. Voice test counts unchanged from the original 2026-05-23 05:57 AEST lane: focused Margot voice suite remains 3 suites / 28 tests.
+- Blocked/gated lane: the `tasks` / `voice_command_sessions` sandbox validation packet and the credential-boundary patch remain locally ready/static, but cannot advance to sandbox apply/status/diff/sync/promote, production promotion, or live RLS/service-role/constraint verification without a specific sandbox authority/auth gate.
+- Mac Mini recovery remains opportunistic only: `/Volumes` contains only `Macintosh HD`; no non-system authenticated scan root exists; SMB/File Sharing is reachable (IP `192.168.2.78`), SSH is unavailable; no recovered Markdown artifacts are present.
+- Files changed this tick (docs only, no code, no schema, no test):
+  - `docs/margot/voice-test-gap-analysis.md` (171 → 192 lines; +21)
+  - `docs/margot/orchestrator-prompt.md` (52 → 77 lines; +25)
+  - `docs/margot/overnight-progress-log.md` (this entry)
+  - `docs/margot/morning-report.md` (new current block at top)
+  - `docs/margot/MARGOT-COMMAND-CENTER.md` (newest rotation guard entry)
+  - `docs/margot/mac-mini-recovery-status.md` (newest probe entry at top)
+- No GitHub push/merge/PR mutation, Vercel deploy/env mutation, sandbox apply/status/diff/sync/setup/reset/promote, production DB write, provider polling/mutation, external AI call, Nango/connector-platform use, client-facing send, public publishing, billing/payment action, credential prompt/read, secret printing/storage, recursive system-volume scan, or destructive git occurred.
+
+## 2026-06-09 17:29:40 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_172206.log'
