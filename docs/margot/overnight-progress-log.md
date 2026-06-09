@@ -14632,6 +14632,25 @@ Next safe lane (in order):
 3. Continue Mac Mini recovery probe on each tick; record any change in `docs/margot/mac-mini-recovery-status.md`.
 4. Do not run sandbox wizard `apply` / `status` / `diff` / `sync` / `setup` / `reset` / `promote` until a specific authority/auth gate is granted for that exact wizard action.
 
+## 2026-06-09 22:52:29 AEST
+
+### Senior PM command-center doc-drift guard lane
+
+- Senior PM lane: bounded RED → GREEN TDD lane that adds a doc-drift guard test for `docs/margot/MARGOT-COMMAND-CENTER.md` against the `AI-RET-001-ANSWER-COMMAND-CENTER-STATUS` answer-shape fixture, mirroring the lead-to-client plan guard pattern. The new test reads the command center doc from disk and asserts all 5 `requiredAnswerPhrases` (`current rotation guard`, `sandbox authority/auth`, `mac mini authenticated artifact transport`, `next safe lane`, `local-only retrieval`) and all 3 `requiredCitationSources` (`docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/ai-enhancement-candidate-register.md`, `docs/margot/morning-report.md`) are present in the doc, and asserts none of the 5 `prohibitedAnswerPhrases` (`sandbox apply completed`, `mac mini artifacts recovered`, `production adoption approved`, `live semantic threshold changed`, `nango`) appear in the assertion section (everything before `## Senior PM verification checkpoint`). The prohibited check is scoped to the assertion section so the verification checkpoint's documentation of the prohibited list does not false-positive the test.
+- RED phase: ran `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts -t "keeps the Margot command center" --runInBand` first; result was `Tests: 1 failed, 35 skipped, 36 total` because the command center doc was missing 4 of the 5 required answer phrases.
+- GREEN phase: appended a new `## AI-RET-001 Command-Center Citation Contract` section to `docs/margot/MARGOT-COMMAND-CENTER.md` (now 516 lines, was 512; +4). The new section names the source-citation and answer-shape fixtures the doc is bound to, enumerates the 5 required answer phrases (with the 5th phrased as the literal fixture phrase `local-only retrieval` rather than the prior `keep retrieval local-only` word order), lists the 3 required citation sources, lists the 5 prohibited overclaims, and points at the new doc-drift guard test.
+- Verification passed locally:
+  - `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts -t "keeps the Margot command center" --runInBand` → 1 test PASS (RED→GREEN).
+  - Combined local CRM + Margot + runtime + credential-boundary gate `npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` → 11 suites / 160 tests PASS (was 159 before this lane; +1 for the new doc-drift guard).
+  - `tsc --noEmit` → PASS (no output).
+  - `npm run security:routes-check` → PASS, `0 unprotected mutating routes`.
+  - `git diff --check` → clean.
+  - Re-ran the AI-RET-001 report runner: `overallStatus=pass; source=7/7; answerShape=8/8; readback=pass; safetyNotes=true; nextSafeAction=true` (unchanged; the harness itself was not modified).
+- Mac Mini recovery remains blocked: `/Volumes` contains only `Macintosh HD`; recovered Markdown artifact count = 0; `phills-mac-mini.local:445` reachable (probe at `2026-06-09 22:52:29 AEST` confirmed `nc` exit `0` for `:445`), `:22` unreachable (`nc` exit `1` for `:22`); no credential prompt/read, secret printing/storage, or recursive system-volume scan occurred.
+- No GitHub push, merge, PR mutation, deployment, Vercel/env mutation, sandbox apply/status/diff/sync/setup/reset/promote, production DB write, provider polling/mutation, client-facing action, billing/payment action, external vendor/account action, Nango/connector-platform action, credential prompt/read, secret printing/storage, recursive system-volume scan, lead auto-conversion, client record auto-creation, follow-up auto-send, campaign auto-launch, model swap, or destructive git occurred.
+- Files changed this tick (test+doc, no schema, no production, no harness, no GitHub push, no Vercel env mutation, no sandbox wizard subcommand): `tests/unit/lib/margot/retrieval-evaluation.test.ts` (+24 lines for the new doc-drift guard test, appended after the lead-to-client plan guard), `docs/margot/MARGOT-COMMAND-CENTER.md` (512 → 516 lines; +4 for the new `## AI-RET-001 Command-Center Citation Contract` section), `docs/margot/overnight-progress-log.md` (this entry), `docs/margot/morning-report.md` (new current block at top).
+- Next safe slice: rotate to another bounded Senior PM lane (e.g. add another doc-drift guard for another fixture-bound source doc such as `crm-operating-model.md` or `client-second-brain-model.md` if a fixture binding is wired, add another mocked AI-RET-001 fixture for another gated boundary, refresh another still-stale control surface such as `marketing-strategy-operating-model.md` or `ai-enhancement-pipeline.md` (both still pinned at 2026-05-23 07:33 AEST), package/review the local credential-boundary diff, or close another voice-test gap from `docs/margot/voice-test-gap-analysis.md`). Do not run sandbox wizard `apply` / `status` / `diff` / `sync` / `setup` / `reset` / `promote` until a specific authority/auth gate is granted for that exact wizard action.
+
 ## 2026-06-09 22:16:58 AEST
 
 ### LaunchAgent tick
@@ -14640,3 +14659,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_220857.log'
+
+## 2026-06-09 22:53:48 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_224658.log'
