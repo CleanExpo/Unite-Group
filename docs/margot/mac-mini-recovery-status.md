@@ -3,7 +3,14 @@
 Date: 2026-05-22
 Project: `/Users/phillmcgurk/Unite-Group`
 
-## Latest probe (2026-06-10 06:47:00 AEST — Senior PM AI-RET-001 15th answer-shape fixture (marketing-strategy boundary) + marketing-strategy doc-drift guard lane)
+## Latest probe (2026-06-10 07:30:00 AEST — Senior PM AI-RET-001 16th answer-shape fixture (crm-operating-model boundary) + crm-operating-model doc-drift guard lane)
+
+- `/Volumes` contains only `Macintosh HD`; no non-system authenticated scan root exists; recovered Markdown artifact count remains `0`.
+- `phills-mac-mini.local:445` is reachable (SMB/File Sharing reachable; IP `192.168.2.78`).
+- `phills-mac-mini.local:22` is unreachable (SSH/Remote Login unavailable from this MacBook session; `nc -G 2` exit `1` for `:22`, exit `0` for `:445`).
+- No credential prompt/read, secret printing/storage, or recursive system-volume scan occurred.
+
+## Previous probe (2026-06-10 06:47:00 AEST — Senior PM AI-RET-001 15th answer-shape fixture (marketing-strategy boundary) + marketing-strategy doc-drift guard lane)
 
 - `/Volumes` contains only `Macintosh HD`; no non-system authenticated scan root exists; recovered Markdown artifact count remains `0`.
 - `phills-mac-mini.local:445` is reachable (SMB/File Sharing reachable; IP `192.168.2.78`).
