@@ -1,4 +1,50 @@
 # Margot Overnight Progress Log
+## 2026-06-10 05:11:00 AEST
+
+### AI-RET-001 14th answer-shape fixture (retrieval-rules-drift contract) + retrieval-rules policy-doc refresh + doc-drift guard
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs, Command Center, retrieval rules, Mac Mini recovery status, overnight progress log, morning report, current repo state, AI-RET-001 evidence report, AI candidate register, the inherited retrieval-evaluation harness (47 tests before this lane; 12 answer-shape fixtures + 8 source-citation fixtures), the daily-crm-digest-template doc-drift guard (the previous lane's bound doc), and the inherited `retrieval-rules.md` policy doc (last touched 2026-06-09 16:10 AEST).
+- Read-back: AI-RET-001 evidence report at `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` reports `overallStatus=pass; source=8/8; answerShape=13/13` as of the 2026-06-10 05:11 AEST runner pass; this lane adds the 14th answer-shape fixture + 3 new tests (pass + reject + doc-drift guard), so the next pass should report `answerShape=14/14` and the focused suite should report 50 tests.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `05bf1f4` (sandbox-wizard auto-sync commit `05bf1f4 chore: Margot ops auto-sync [tick 20260610_050355]` is the current head; `git rev-list --count main..origin/main` returned `0` so the local main is in sync with origin). Inherited local dirty state is unchanged from the prior tick: the sandbox-wizard credential-boundary lane, the prior CRM redaction / approval-lifecycle / digest-mappers TDD lanes, the untracked Margot retrieval-evaluation harness, the deterministic stale-sync / daily-digest changes, the prior voice task route end-to-end chain-linkage TDD closure, and the prior voice UI panel state-machine TDD closure.
+- Safe Senior PM TDD + doc-drift-guard + doc-refresh lane completed: closed a real doc-drift bug in `docs/margot/retrieval-rules.md` (last touched `2026-06-09 16:10 AEST`) that was asserting `7/7` source-citation and `7/7` answer-shape counts even though the harness had grown to `8/8` and `13/13`. The drift was not caught by any existing test because no doc-drift guard bound this policy doc. This lane fixes the counts, binds the doc to a new answer-shape fixture (the 14th, `AI-RET-001-ANSWER-RETRIEVAL-RULES-DRIFT-BOUNDARY`, bound to the existing `AI-RET-001-SENIOR-PM-LOOP` source fixture, no source-citation union member added), and adds the 6th doc-drift guard in the retrieval suite. The 14th fixture pins the retrieval-rules policy contract: 9 `requiredAnswerPhrases` (semantic search first, file reads second, file/content search third, linear api fourth, web search last, 0.76, mocked/static, exact file-read fallback, overallstatus=pass) and 4 `requiredCitationSources` (docs/margot/retrieval-rules.md, src/lib/margot/retrieval-evaluation.ts, scripts/margot-retrieval-evaluation-report.ts, docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md); 9 `prohibitedAnswerPhrases` reject live vector search enabled, live semantic threshold changed, live embedding backfill completed, live ai call completed, real-time retrieval approved, live retrieval threshold changed, retrieval rules unchanged from 2026-05-23, harness counts not asserted, and report runner output fabricated. The new doc-drift guard test reads `docs/margot/retrieval-rules.md` from disk, asserts all 9 required phrases are present (case-insensitive), all 4 required citations are present (case-sensitive), and none of the 9 prohibited phrases appear in the assertion section (everything before `## Senior PM verification checkpoint`). `MargotRetrievalAnswerShapeFixtureId` was extended from 13 to 14 union members so the new fixture is type-safe. The doc body was refreshed to `Last update: 2026-06-10 05:11:00 AEST`, the 7/7 source-citation/answer-shape counts were corrected to 8/14, the harness body section was expanded to name the mocked/static contract + the report runner write+read-back behaviour, a new "Current Repo Hooks" line self-references the doc's own path so the doc is bound to its own surface, and the Senior PM verification checkpoint was rewritten to document the 14/14 state and the closed 7/7 drift bug. The original 2026-05-23 retrieval order, 2nd Brain carry-forward anchors, retrieval order, confidence thresholds, Margot-specific rules, Pi-CEO / Margot shared rules, out-of-scope section, and current repo hooks list are all preserved unchanged.
+- New AI-RET-001 fixture expansion: added a new answer-shape fixture `AI-RET-001-ANSWER-RETRIEVAL-RULES-DRIFT-BOUNDARY` to the Margot retrieval-evaluation harness, bound to the existing `AI-RET-001-SENIOR-PM-LOOP` source-citation fixture (no source-citation union member added; the retrieval-rules doc already had Senior PM source-citation coverage). The expansion grows the answer-shape gate from 13 to 14 fixtures while keeping the source-citation gate at 8. The new fixture pins the retrieval-rules policy contract (9 required phrases + 4 required citations + 9 prohibited phrases). The report runner's default answers map was updated so the runner reports `answerShape=14/14` for the new fixture, and the candidate register was updated with a new answer-shape fixture contract row + an expanded prose paragraph that names the 14th fixture's contract and the new retrieval-rules-drift overclaim rejection.
+- Doc-drift guard test added: a new focused Jest test in `tests/unit/lib/margot/retrieval-evaluation.test.ts` (`keeps the retrieval-rules source doc aligned with the AI-RET-001 retrieval-rules-drift answer-shape contract`) reads `docs/margot/retrieval-rules.md` from disk, asserts all 9 `requiredAnswerPhrases` are present (case-insensitive), asserts all 4 `requiredCitationSources` are present (case-sensitive), and asserts none of the 9 `prohibitedAnswerPhrases` appear in the assertion section (everything before `## Senior PM verification checkpoint`). This is the 6th doc-drift guard in the retrieval suite (after lead-to-client plan, command-center, daily-digest template, contacts-and-opportunities, crm-approval-persistence, crm-schema-inventory, and digest-mappers) and the first to bind the retrieval-rules policy doc itself.
+- Verification passed locally: focused retrieval gate `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` returned 1 suite / 50 tests PASS (was 47 before this lane; +3 from the new retrieval-rules pass + reject + doc-drift guard tests). Combined local CRM + Margot + runtime + credential-boundary gate `npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` returned 11 suites / 174 tests PASS (was 11 suites / 171 tests before this lane; +3). `npm run type-check` passed. `npm run security:routes-check` reported 0 unprotected mutating routes. `git diff --check` clean. Re-ran the AI-RET-001 report runner: `overallStatus=pass; source=8/8; answerShape=14/14; readback=pass; safetyNotes=true; nextSafeAction=true`. AI-RET-001 evidence report regenerated at `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (now 56 lines, was 53 before this lane; lists the new `AI-RET-001-ANSWER-RETRIEVAL-RULES-DRIFT-BOUNDARY` row at `pass`). Voice test counts unchanged: focused Margot voice suite remains 4 suites / 47 tests.
+- Blocked/gated lane: the `tasks` / `voice_command_sessions` sandbox validation packet, the credential-boundary patch, the future `crm_contacts` / `crm_opportunities` / `crm_leads` production promotion, and any future `crm_approvals` migration apply/promote remain locally ready/static, but cannot advance to sandbox apply/status/diff/sync/promote, production promotion, or live RLS/service-role/constraint verification without a specific sandbox authority/auth gate.
+- Mac Mini recovery remains opportunistic only: `/Volumes` contains only `Macintosh HD`; no non-system authenticated scan root exists; SMB/File Sharing is reachable (port `445` open, IP `192.168.2.78`), SSH is unavailable (probe at `2026-06-10 05:11:00 AEST` confirmed `nc` exit `0` for `:445` and exit `1` for `:22`), and no recovered Markdown artifacts are present.
+- Files changed this tick (code+test+doc, no schema, no production, no GitHub push, no Vercel env mutation, no sandbox wizard subcommand): `src/lib/margot/retrieval-evaluation.ts` (added new answer-shape fixture + extended `MargotRetrievalAnswerShapeFixtureId` type to 14 members), `tests/unit/lib/margot/retrieval-evaluation.test.ts` (added new entry to the pinned-fixture list + bumped 13->14 fixture-count assertion in the pins-mocked test + bumped 13->14 in the can-evaluate-all test + added new entry to the static answer maps in the pins/can-evaluate/read-back tests + added 3 new tests: passes retrieval-rules-drift answer shape only when retrieval order/0.76/mocked-static/exact-file-read-fallback/report-runner are present, rejects retrieval-rules-drift answer shape when it overclaims live retrieval/drops harness counts/claims report runner output fabricated, keeps the retrieval-rules source doc aligned with the AI-RET-001 retrieval-rules-drift answer-shape contract), `scripts/margot-retrieval-evaluation-report.ts` (added new entry to the default answers map so the runner reports `answerShape=14/14`), `docs/margot/retrieval-rules.md` (149 lines before this lane, now 152; +3 for the new "Current Repo Hooks" self-reference entry; refreshed date to 2026-06-10 05:11:00 AEST; corrected 7/7 source-citation/answer-shape counts to 8/14; expanded harness body section with mocked/static contract + report runner write+read-back; rewrote Senior PM verification checkpoint), `docs/margot/ai-enhancement-candidate-register.md` (date refreshed + new row in the 5-row sub-table + new row in the 8-row sub-table + updated count lines + expanded prose paragraph), `docs/margot/crm-test-coverage-matrix.md` (date refreshed to 2026-06-10 05:11:00 AEST, new per-suite-count block, new ordered next-coverage-gap item 18), `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (regenerated by the runner; now 56 lines, lists the new `AI-RET-001-ANSWER-RETRIEVAL-RULES-DRIFT-BOUNDARY` row at `pass`), `docs/margot/mac-mini-recovery-status.md` (newest probe at 2026-06-10 05:11:00 AEST), `docs/margot/overnight-progress-log.md` (this entry), `docs/margot/morning-report.md` (new current block at top).
+
+Verification:
+
+```bash
+# Focused retrieval gate
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 50 tests (was 47 before this lane; +3).
+
+# Combined local CRM + Margot + runtime + credential-boundary gate
+npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: 11 suites / 174 tests (was 11 suites / 171 tests before this lane; +3).
+
+npm run type-check
+# PASS: tsc --noEmit completed.
+
+npm run security:routes-check
+# PASS: route-inventory check reported 0 unprotected mutating routes.
+
+git diff --check
+# PASS: exited 0 before and after status-report updates.
+
+# AI-RET-001 local report runner
+npx ts-node --transpile-only -O '{"module":"commonjs","moduleResolution":"node"}' scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=14/14; readback=pass; safetyNotes=true; nextSafeAction=true.
+
+# Doc phrase + citation + prohibited phrase check
+node -e "const fs = require('fs'); const rules = fs.readFileSync('docs/margot/retrieval-rules.md', 'utf8').toLowerCase(); const phrases = ['semantic search first', 'file reads second', 'file/content search third', 'linear api fourth', 'web search last', '0.76', 'mocked/static', 'exact file-read fallback', 'overallstatus=pass']; for (const p of phrases) { console.log(p, '=>', rules.indexOf(p) >= 0 ? 'FOUND at ' + rules.indexOf(p) : 'MISSING'); }"
+# All 9 required phrases present in lowercased retrieval-rules doc.
+```
+
 ## 2026-06-09 17:08 AEST
 
 ### Voice UI panel state-machine TDD closure + voice-panel-state pure reducer extraction + voice-test-gap-analysis refresh
@@ -15174,3 +15220,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_050355.log'
+
+## 2026-06-10 06:05:06 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_054827.log'

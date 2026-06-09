@@ -1,8 +1,8 @@
 # Margot Retrieval Rules
 
-Date: 2026-06-09
-Last update: 2026-06-09 16:10 AEST
-Previous refresh: 2026-05-23 08:00 AEST
+Date: 2026-06-10
+Last update: 2026-06-10 05:11:00 AEST
+Previous refresh: 2026-06-09 16:10 AEST
 Source: Linear UNI-2052 / local Margot wrapper context / AI-RET-001 local harness
 Owner: Margot
 
@@ -77,18 +77,20 @@ Prohibited phrases in the surfaced answer (asserted by every answer-shape fixtur
 The abstract thresholds and behavior above are pinned to a repo-local, mocked, fail-closed harness so any drift from the policy is caught by `npx jest`.
 
 - Harness module: `src/lib/margot/retrieval-evaluation.ts`
-  - Exports `MARGOT_RETRIEVAL_EVALUATION_FIXTURES` (7 source-citation fixtures).
-  - Exports `MARGOT_RETRIEVAL_ANSWER_SHAPE_FIXTURES` (7 answer-shape fixtures).
+  - Exports `MARGOT_RETRIEVAL_EVALUATION_FIXTURES` (8 source-citation fixtures).
+  - Exports `MARGOT_RETRIEVAL_ANSWER_SHAPE_FIXTURES` (14 answer-shape fixtures).
   - Exports `evaluateMargotRetrievalFixtures`, `evaluateMargotRetrievalAnswerShapes`, `buildMargotRetrievalEvaluationReport`, `readBackMargotRetrievalEvaluationReport`.
   - Exports the `DEFAULT_MARGOT_RETRIEVAL_MIN_SIMILARITY = 0.76` gate.
+  - The harness is mocked/static and never reaches a live vector DB, embeddings backfill, or external AI call.
 - Runner script: `scripts/margot-retrieval-evaluation-report.ts`
-  - Writes the report to `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (refuses to write outside `docs/margot/evidence/`).
+  - The report runner writes the report to `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (refuses to write outside `docs/margot/evidence/`) and re-reads the generated markdown to assert summary/row-count/status-count reconciliation before exit.
 - Unit tests: `tests/unit/lib/margot/retrieval-evaluation.test.ts`
-  - 32 tests covering source-citation gating, answer-shape gating, empty-results fallback, non-Mac-Mini low-similarity branch, all-empty results-map branch, report read-back integrity (missing/malformed summary rows, inconsistent counts, duplicate summary rows, duplicate overall-status rows, duplicate handoff sections, duplicate fixture result sections, missing fixture-result sections, unexpected fixture statuses, fixture-result row-count/status reconciliation, missing handoff blocks, gated-action overclaims, digest-send/publish/mutation overclaims, access/new-vendor overclaims, Mac Mini recovery/credential overclaims).
-- Source-citation fixtures (7): `AI-RET-001-SANDBOX-WIZARD`, `AI-RET-001-MAC-MINI`, `AI-RET-001-LEAD-QUALIFICATION`, `AI-RET-001-USE-EXISTING-ASSETS`, `AI-RET-001-SENIOR-PM-LOOP`, `AI-RET-001-INTEGRATION-STALE-SYNC`, `AI-RET-001-COMMAND-CENTER-CITATION`.
-- Answer-shape fixtures (7): `AI-RET-001-ANSWER-INTEGRATION-STALE-SYNC`, `AI-RET-001-ANSWER-COMMAND-CENTER-STATUS`, `AI-RET-001-ANSWER-REPORT-HANDOFF`, `AI-RET-001-ANSWER-GATED-ACTION-BOUNDARY`, `AI-RET-001-ANSWER-DIGEST-OPERATOR-ONLY`, `AI-RET-001-ANSWER-ACCESS-REQUEST-BOUNDARY`, `AI-RET-001-ANSWER-MAC-MINI-RECOVERY-BOUNDARY`.
+  - 50 tests covering source-citation gating, answer-shape gating, empty-results fallback, non-Mac-Mini low-similarity branch, all-empty results-map branch, report read-back integrity (missing/malformed summary rows, inconsistent counts, duplicate summary rows, duplicate overall-status rows, duplicate handoff sections, duplicate fixture result sections, missing fixture-result sections, unexpected fixture statuses, fixture-result row-count/status reconciliation, missing handoff blocks, gated-action overclaims, digest-send/publish/mutation overclaims, access/new-vendor overclaims, Mac Mini recovery/credential overclaims, retrieval-rules-drift overclaims, plus the retrieval-rules doc-drift guard against this contract).
+- Source-citation fixtures (8): `AI-RET-001-SANDBOX-WIZARD`, `AI-RET-001-MAC-MINI`, `AI-RET-001-LEAD-QUALIFICATION`, `AI-RET-001-USE-EXISTING-ASSETS`, `AI-RET-001-SENIOR-PM-LOOP`, `AI-RET-001-INTEGRATION-STALE-SYNC`, `AI-RET-001-COMMAND-CENTER-CITATION`, `AI-RET-001-CONTACTS-OPPORTUNITIES-MODEL`.
+- Answer-shape fixtures (14): `AI-RET-001-ANSWER-INTEGRATION-STALE-SYNC`, `AI-RET-001-ANSWER-COMMAND-CENTER-STATUS`, `AI-RET-001-ANSWER-REPORT-HANDOFF`, `AI-RET-001-ANSWER-GATED-ACTION-BOUNDARY`, `AI-RET-001-ANSWER-DIGEST-OPERATOR-ONLY`, `AI-RET-001-ANSWER-ACCESS-REQUEST-BOUNDARY`, `AI-RET-001-ANSWER-MAC-MINI-RECOVERY-BOUNDARY`, `AI-RET-001-ANSWER-LEAD-TO-CLIENT-CONVERSION-BOUNDARY`, `AI-RET-001-ANSWER-CONTACTS-OPPORTUNITIES-SAFETY-BOUNDARY`, `AI-RET-001-ANSWER-APPROVAL-PERSISTENCE-BOUNDARY`, `AI-RET-001-ANSWER-STALE-SYNC-CHECK-BOUNDARY`, `AI-RET-001-ANSWER-CRM-SCHEMA-INVENTORY-BOUNDARY`, `AI-RET-001-ANSWER-DIGEST-MAPPERS-BOUNDARY`, `AI-RET-001-ANSWER-RETRIEVAL-RULES-DRIFT-BOUNDARY`.
 - Report: `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`
   - `overallStatus=pass` is the only state the runner accepts for command-center surfacing.
+  - Any `fallback_required` or `shape_mismatch` result forces an exact file-read fallback and answer rewrite before command-center surfacing.
 
 Focused gate command:
 
@@ -134,14 +136,17 @@ Pi-CEO wrapper:
 Local command-center doc:
 `docs/margot/MARGOT-COMMAND-CENTER.md`
 
+This retrieval-rules doc:
+`docs/margot/retrieval-rules.md`
+
 Mac Mini recovery status:
 `docs/margot/mac-mini-recovery-status.md`
 
-Senior PM verification checkpoint (this lane):
+## Senior PM verification checkpoint (2026-06-10 05:11:00 AEST)
 
-- What exists: AI-RET-001 source-citation harness, 7/7 pass; answer-shape harness, 7/7 pass; report runner writing to `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`; report read-back parser rejecting malformed/duplicate/overclaiming rows; retrieval-rules doc now pinned to the harness, the gate, and the answer-shape contract; carry-forward anchors unchanged.
-- What has started: 2026-06-09 16:10 AEST retrieval-rules refresh (this lane). No new code, no new fixture, no new answer-shape rule.
-- Why it exists: the previous retrieval-rules doc (last touched 2026-05-23 08:00 AEST) described thresholds in prose only; the AI-RET-001 harness now exists, the gate is `0.76`, and the answer-shape contract is testable. This refresh links policy to the harness so drift is caught locally.
-- Missing/unclear: live retrieval threshold, embedding model, and vector DB contract remain unverified. The local harness is mocked; do not treat it as proof of live behavior.
-- Current health evidence: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> 1 suite / 32 tests pass. Report is `overallStatus=pass`, `source=7/7`, `answerShape=7/7`. Mac Mini: `/Volumes=Macintosh HD`, recovered Markdown count `0`, SMB reachable, SSH unreachable; no credential prompt/read, no recursive system-volume scan.
-- Smallest next action: when a real retrieval change is needed, add a new fixture to `MARGOT_RETRIEVAL_EVALUATION_FIXTURES` or `MARGOT_RETRIEVAL_ANSWER_SHAPE_FIXTURES` first, then run the focused Jest gate, then update this doc with the new fixture id.
+- What exists: AI-RET-001 source-citation harness, 8/8 pass; answer-shape harness, 14/14 pass; report runner writing to `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` with read-back reconciliation; report read-back parser rejecting malformed/duplicate/overclaiming rows; retrieval-rules doc now pinned to the harness, the gate (`0.76`), the answer-shape contract, and the new `AI-RET-001-ANSWER-RETRIEVAL-RULES-DRIFT-BOUNDARY` fixture + doc-drift guard. The retrieval-rules doc was previously last touched `2026-06-09 16:10 AEST` and asserted `7/7` source-citation and `7/7` answer-shape counts even though the harness had grown to 8/8 and 13/13; this lane closes that drift by correcting the counts in the doc and binding the doc to a new answer-shape fixture (the 14th) that pins the retrieval order, the 0.76 threshold, the mocked/static harness contract, the exact file-read fallback, the report runner, and the report file.
+- What has started: 2026-06-10 05:11:00 AEST retrieval-rules refresh + 14th answer-shape fixture + doc-drift guard. The 14th fixture is `AI-RET-001-ANSWER-RETRIEVAL-RULES-DRIFT-BOUNDARY` (bound to `AI-RET-001-SENIOR-PM-LOOP`, no source-citation union member added). No production code, no live vector search, no live threshold change.
+- Why it exists: the prior retrieval-rules doc (last touched `2026-06-09 16:10 AEST`) had a 7/7 source-citation count that no longer matched the harness (8/8 after the contacts/opportunities fixture landed) and a 7/7 answer-shape count that no longer matched the harness (13/13). The drift was not caught by any existing test because no doc-drift guard bound this doc. This lane closes the drift and prevents regression.
+- Missing/unclear: live retrieval threshold, embedding model, and vector DB contract remain unverified. The local harness is mocked/static; do not treat it as proof of live behavior. The other still-stale Senior PM control surfaces (e.g. `marketing-strategy-operating-model.md` pinned `2026-05-23 07:33 AEST`, `ai-enhancement-pipeline.md`, `client-second-brain-model.md`, `project-portfolio-index.md`) are not yet bound to doc-drift guards and remain recorded here for the next safe TDD lane.
+- Current health evidence: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> 1 suite / 50 tests pass (was 47 before this lane; +3 from the new retrieval-rules pass + reject + doc-drift guard tests). Report is `overallStatus=pass`, `source=8/8`, `answerShape=14/14`. Mac Mini: `/Volumes=Macintosh HD`, recovered Markdown count `0`, SMB reachable, SSH unreachable; no credential prompt/read, no recursive system-volume scan.
+- Smallest next action: when a real retrieval change is needed, add a new fixture to `MARGOT_RETRIEVAL_EVALUATION_FIXTURES` or `MARGOT_RETRIEVAL_ANSWER_SHAPE_FIXTURES` first, then run the focused Jest gate, then update this doc with the new fixture id. Until then, keep the 14-fixture answer-shape gate and the 8-fixture source-citation gate green on every Senior PM tick.
