@@ -1,4 +1,52 @@
 # Margot Overnight Progress Log
+## 2026-06-10 02:30 AEST
+
+### Voice task route malformed-payload TDD gap-closure + voice-test-gap-analysis refresh
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs, Command Center, voice-test gap analysis, retrieval rules, Mac Mini recovery status, overnight progress log, morning report, current repo state, AI-RET-001 evidence report, AI candidate register, and the inherited retrieval-evaluation harness (44 tests, 12 answer-shape fixtures, 8 source-citation fixtures).
+- Read-back: AI-RET-001 evidence report at `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` reports `overallStatus=pass; source=8/8; answerShape=12/12` as of the 2026-06-10 01:55:27 AEST runner pass; this lane is a TDD test+doc lane that does not modify the harness, so the next pass should report the same state.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `28c3ba0` (sandbox-wizard auto-sync commit `28c3ba0 chore: Margot ops auto-sync [tick 20260610_022525]` is the current head; `git rev-list --count main..origin/main` returned `0` so the local main is in sync with origin). Inherited local dirty state is unchanged from the prior tick: the sandbox-wizard credential-boundary lane (`scripts/sandbox-wizard.sh` plus untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`), the prior CRM redaction TDD lane, the prior CRM approval-lifecycle TDD lane (35 tests), the prior CRM digest-mappers positive-coverage lane (16 tests), the untracked Margot retrieval-evaluation harness (44 tests), and the deterministic stale-sync/daily-digest changes.
+- Safe Senior PM TDD gap-closure + voice-test gap-analysis refresh lane completed: closed 4 malformed-payload gaps and 1 default-field gap from `docs/margot/voice-test-gap-analysis.md` by adding 5 new unit tests to `tests/integration/api/margot-voice-task.test.ts`. The 4 negative tests (`rejects a packet with missing packet_id`, `rejects a packet with missing transcript_text`, `rejects a null packet body`, `rejects a non-object packet body`) pin the 400 `invalid_packet` contract that `validatePacket` already enforces via `!isRecord(value)` and the missing-`packetId` / `summary` / `transcript` early-return. The 1 positive test (`applies risk_level, business_context, and route defaults for a truncated packet`) pins the default-field contract for `requested_outcome: summary`, `business_context: 'unite-group'`, `route: 'unite_crm'`, `risk_level: 'low'`, `status: 'todo'`, `priority: 'normal'`, `assignee_name: 'Margot'`, and the `auto-created` tag when only the 3 required fields are present. No code change was required — the existing fail-closed validator already implements the contract; the gap was that no test pinned it. `docs/margot/voice-test-gap-analysis.md` was refreshed to a `Last update: 2026-06-10 02:30 AEST` state, recording the 4 closed gaps and 1 newly-pinned default-field contract, the still-open voice UI panel state-machine gap, the still-open end-to-end ElevenLabs → Supabase chain gap, and the new 3 suites / 33 tests voice count.
+- Verification passed: focused voice gate `npx jest tests/integration/api/margot-voice-task.test.ts --runInBand` returned 1 suite / 18 tests PASS (was 13 before this lane; +5). Combined voice gate `npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts --runInBand` returned 3 suites / 33 tests PASS (was 3 suites / 28 tests before this lane; +5). Combined local CRM + Margot + runtime + credential-boundary gate `npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` returned 11 suites / 168 tests PASS (unchanged; the new voice tests live under `tests/integration/api/` and were not part of the prior 11-suite gate). Full combined voice + CRM + Margot + runtime + credential-boundary gate (all 14 suites) returned 14 suites / 201 tests PASS. `npm run type-check` passed. `npm run security:routes-check` reported 0 unprotected mutating routes. `git diff --check` clean. AI-RET-001 report unchanged from prior tick: `overallStatus=pass; source=8/8; answerShape=12/12; readback=pass; safetyNotes=true; nextSafeAction=true`.
+- Blocked/gated lane: the `tasks` / `voice_command_sessions` sandbox validation packet, the credential-boundary patch, the future `crm_contacts` / `crm_opportunities` / `crm_leads` production promotion, and any future `crm_approvals` migration apply/promote remain locally ready/static, but cannot advance to sandbox apply/status/diff/sync/promote, production promotion, or live RLS/service-role/constraint verification without a specific sandbox authority/auth gate.
+- Mac Mini recovery remains opportunistic only: `/Volumes` contains only `Macintosh HD`; no non-system authenticated scan root exists; SMB/File Sharing is reachable (port `445` open, IP `192.168.2.78`), SSH is unavailable (probe at `2026-06-10 02:30 AEST` confirmed `nc` exit `0` for `:445` and exit `1` for `:22`), and no recovered Markdown artifacts are present.
+- Files changed this tick (test+doc, no schema, no production, no GitHub push, no Vercel env mutation, no sandbox wizard subcommand): `tests/integration/api/margot-voice-task.test.ts` (13 → 18 tests; +5 malformed-payload tests), `docs/margot/voice-test-gap-analysis.md` (newest checkpoint at 2026-06-10 02:30 AEST; voice-count recorded as 33, not 28; missing/unclear updated to remove the 4 closed gaps; 2 gaps remain), `docs/margot/mac-mini-recovery-status.md` (newest probe at 2026-06-10 02:30 AEST), `docs/margot/crm-test-coverage-matrix.md` (newest `2026-06-10 02:30 AEST Senior PM voice-test gap-closure` section + Last update line recording voice suite as 3/33 and full combined gate as 14/201), `docs/margot/overnight-progress-log.md` (this entry), `docs/margot/morning-report.md` (new current block at top), `docs/margot/MARGOT-COMMAND-CENTER.md` (this rotation guard entry).
+
+Verification:
+
+```bash
+# Focused voice gate
+npx jest tests/integration/api/margot-voice-task.test.ts --runInBand
+# PASS: 1 suite / 18 tests (was 13 before this lane; +5).
+
+# Combined voice gate
+npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts --runInBand
+# PASS: 3 suites / 33 tests (was 3 suites / 28 tests before this lane; +5).
+
+# Combined CRM + Margot + runtime + credential-boundary gate (unchanged)
+npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: 11 suites / 168 tests (unchanged from the 2026-06-10 01:55 AEST baseline).
+
+# Full combined voice + CRM + Margot + runtime + credential-boundary gate (all 14 suites)
+npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: 14 suites / 201 tests (was 11 suites / 168 tests before this lane; +33).
+
+npm run type-check
+# PASS: tsc --noEmit completed.
+
+npm run security:routes-check
+# PASS: route-inventory check reported 0 unprotected mutating routes.
+
+git diff --check
+# PASS: exited 0 before and after status-report updates.
+
+# AI-RET-001 local report runner (unchanged from prior tick)
+npx ts-node --transpile-only -O '{"module":"commonjs","moduleResolution":"node"}' scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=12/12; readback=pass; safetyNotes=true; nextSafeAction=true
+```
+
 ## 2026-06-10 01:55 AEST
 
 ### CRM schema inventory Senior PM control-surface refresh + AI-RET-001 doc-drift guard + 12th answer-shape fixture
@@ -14962,3 +15010,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_022525.log'
+
+## 2026-06-10 03:16:44 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_031045.log'

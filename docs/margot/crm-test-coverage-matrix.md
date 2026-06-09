@@ -1,7 +1,7 @@
 # Margot CRM Test Coverage Matrix
 
 Date: 2026-05-31 08:29 AEST
-Last update: 2026-06-10 00:58 AEST — Senior PM verification reconciliation: re-recorded the combined local CRM + retrieval + runtime + credential-boundary gate as 11 suites / 165 tests PASS (`approval-lifecycle` 35 / `digest-mappers` 16 / `digest-read-error` 3 / `digest-edge-cases` 19 / `retrieval-evaluation` 41 / `stale-sync-check` 11 / `sandbox-wizard-credential-boundary` 14 / `daily-digest` 5 / `activity-timeline` 8 / `qualify-lead` 5 / `read-daily-digest` 8). The earlier 22:12 AEST snapshot said 162 / 35 / 35 because the per-suite counts were frozen at the moment `retrieval-evaluation` was +1 (new contact/opportunities model doc-drift guard). This tick added the `AI-RET-001-ANSWER-APPROVAL-PERSISTENCE-BOUNDARY` answer-shape fixture (10th), a new pass + reject test pair, and a new `crm-approval-persistence-plan.md` doc-drift guard (the fifth in the suite), bringing `retrieval-evaluation` from 38 to 41 tests. The Margot voice/task static proposal guard remains 1 suite / 17 tests, unchanged.
+Last update: 2026-06-10 02:30 AEST — Senior PM voice-test gap-closure: focused Margot voice suite is now 3 suites / 33 tests (was 3 suites / 28 tests; +5 malformed-payload tests on `tests/integration/api/margot-voice-task.test.ts` 13 → 18). Full combined voice + CRM + Margot + runtime + credential-boundary gate is now 14 suites / 201 tests (was 11 suites / 168 tests in the prior tick's local CRM + Margot + runtime + credential-boundary gate; the voice-task suite was not part of the prior gate, so adding it to the gate adds 18 tests, plus the 5 new tests = +23 from the gate, plus the 10 tests from the signed-url + failure-taxonomy suites = +33). Combined local CRM + Margot + runtime + credential-boundary gate (the prior 11-suite scope) is unchanged from the 2026-06-10 01:55 AEST baseline at 11 suites / 168 tests PASS (`approval-lifecycle` 35 / `digest-mappers` 16 / `digest-read-error` 3 / `digest-edge-cases` 19 / `retrieval-evaluation` 44 / `stale-sync-check` 11 / `sandbox-wizard-credential-boundary` 14 / `daily-digest` 5 / `activity-timeline` 8 / `qualify-lead` 5 / `read-daily-digest` 8). The Margot voice/task static proposal guard remains 1 suite / 17 tests, unchanged.
 Owner: Margot
 Project: Unite-Group
 Scope: Local repo evidence only. This matrix maps the current CRM operating loop to available mocked/local tests and the next safe coverage gaps. It does not imply production DB writes, deployment, GitHub push, Vercel env mutation, client-facing sends, or permanent business-rule approval.
@@ -204,7 +204,42 @@ Per-suite reconciliation notes for this tick:
 
 AI-RET-001 local retrieval report re-run via `node_modules/.bin/ts-node --transpile-only -O '{\"module\":\"commonjs\",\"moduleResolution\":\"node\"}' scripts/margot-retrieval-evaluation-report.ts` returned `overallStatus=pass; source=8/8; answerShape=10/10; readback=pass; safetyNotes=true; nextSafeAction=true`. The evidence report at `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` was regenerated (now 50 lines, was 49 before this lane) and now lists the new `AI-RET-001-ANSWER-APPROVAL-PERSISTENCE-BOUNDARY` row at `pass`. The candidate register was updated with a new answer-shape fixture contract row. The Margot voice/task static proposal guard remains 1 suite / 17 tests, unchanged.
 
-Next safe gap: keep this same 11/165 gate green on every Senior PM tick; refresh the matrix whenever a suite's test count drifts; refresh `docs/margot/mac-mini-recovery-status.md` and `docs/margot/voice-test-gap-analysis.md` only when their evidence actually changes; never run sandbox wizard `apply`/`status`/`diff`/`sync`/`setup`/`reset`/`promote` until a specific authority/auth gate is granted for that exact wizard action; never run a live vector search, embeddings backfill, or live AI call — use the AI-RET-001 local harness only.
+## 2026-06-10 02:30 AEST Senior PM voice-test gap-closure
+
+This refresh is a bounded TDD gap-closure lane only: it does not run sandbox/prod DB wizard subcommands, does not poll live providers, and does not touch any production data, deployment, GitHub push, Vercel env, client-facing send, public publishing, Nango, or new vendor. It closes 4 malformed-payload gaps and 1 default-field gap from `docs/margot/voice-test-gap-analysis.md` by adding 5 new unit tests to `tests/integration/api/margot-voice-task.test.ts`:
+
+- `rejects a packet with missing packet_id` — destructures `packet_id` out of the canonical packet; expects 400 `invalid_packet` and that `mockFrom` was never called.
+- `rejects a packet with missing transcript_text` — destructures `transcript_text` out of the canonical packet; expects 400 `invalid_packet` and that `mockFrom` was never called.
+- `rejects a null packet body` — posts a literal `null` body; expects 400 `invalid_packet` and that `mockFrom` was never called.
+- `rejects a non-object packet body` — posts the string `'not-an-object'`; expects 400 `invalid_packet` and that `mockFrom` was never called.
+- `applies risk_level, business_context, and route defaults for a truncated packet` — posts a packet with only the 3 required fields (`packet_id`, `summary`, `transcript_text`); expects 200, the task to be created with `status: 'todo'`, `priority: 'normal'`, `assignee_name: 'Margot'`, tags `['margot-voice', 'unite-group', 'unite_crm', 'auto-created']`, description containing `Route: unite_crm`, `Business context: unite-group`, `Risk: low`, and `Approval required: no`; and the `voice_command_sessions` `parsed_intent` to contain `requested_outcome: summary`, `business_context: 'unite-group'`, `route: 'unite_crm'`, `risk_level: 'low'`, `approval_required: false`.
+
+No code change was required. The existing `validatePacket` already implements the contract (it fails closed on `!isRecord(value)` and on missing required fields, and applies the documented defaults via `asString(value.x) || 'default'`); the gap was that no test pinned the contract.
+
+Per-suite reconciliation notes for this tick:
+
+- `tests/integration/api/margot-voice-task.test.ts` 13 → 18 (+5): the 4 new negative-coverage tests and the 1 new default-field positive test.
+- Focused Margot voice suite: signed-url 6 (unchanged), task 13 → 18 (+5), failure-taxonomy 9 (unchanged). Voice suite total: 3 suites / 33 tests (was 3 suites / 28 tests before this lane).
+- Combined local CRM + Margot + runtime + credential-boundary gate (the prior 11-suite scope) is unchanged from the 2026-06-10 01:55 AEST baseline at 11 suites / 168 tests PASS.
+- Full combined voice + CRM + Margot + runtime + credential-boundary gate (all 14 suites) is now 14 suites / 201 tests PASS (was 11 suites / 168 tests before this lane; +33 from the 5 new voice tests plus the 18 + 6 + 9 = 33 pre-existing voice tests now folded into the combined gate).
+
+Voice-focused gate:
+
+```bash
+npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts --runInBand
+```
+
+Result: 3 suites / 33 tests PASS (was 3 suites / 28 tests before this lane; +5).
+
+Combined voice + CRM + Margot + runtime + credential-boundary gate (all 14 suites):
+
+```bash
+npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+```
+
+Result: 14 suites / 201 tests PASS, `tsc --noEmit` PASS, route-inventory check 0 unprotected mutating routes, `git diff --check` PASS, AI-RET-001 report `overallStatus=pass; source=8/8; answerShape=12/12; readback=pass; safetyNotes=true; nextSafeAction=true`. The evidence report at `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` is unchanged from the 2026-06-10 01:55 AEST run (52 lines; no source-citation or answer-shape fixture was added in this lane).
+
+Next safe gap: keep this same 14/201 gate green on every Senior PM tick; refresh the matrix whenever a suite's test count drifts; close the still-open voice UI panel state-machine gap and the end-to-end ElevenLabs → Supabase chain gap from `docs/margot/voice-test-gap-analysis.md` when a real voice code change is needed; never run sandbox wizard `apply`/`status`/`diff`/`sync`/`setup`/`reset`/`promote` until a specific authority/auth gate is granted for that exact wizard action; never run a live vector search, embeddings backfill, or live AI call — use the AI-RET-001 local harness only.
 
 ## Safety notes
 
