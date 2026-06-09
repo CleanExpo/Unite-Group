@@ -14294,3 +14294,49 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_160729.log'
+
+## 2026-06-09 16:48 AEST
+
+### Retrieval-rules control-surface refresh (UNI-2052 policy pinned to AI-RET-001 harness)
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs, Command Center, retrieval rules, Mac Mini recovery status, overnight progress log, morning report, current repo state, CRM schema inventory, CRM test matrix, AI enhancement pipeline doc, AI-RET-001 evidence report, AI candidate register, project portfolio index, client-2nd-brain model, marketing strategy operating model, and the local retrieval-evaluation harness.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `93b74f0` (latest local code/doc commit before this uncommitted lane: `bf028b7`), `main...origin/main [ahead 78]`. Inherited local dirty work is unchanged from the prior tick: the sandbox-wizard credential-boundary lane (`scripts/sandbox-wizard.sh` plus untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`), the prior CRM redaction TDD lane (`src/lib/crm/digest-read-error.ts` + test), the prior CRM approval-lifecycle TDD lane (`src/lib/crm/approval-lifecycle.ts` + test), the prior CRM digest-mappers positive-coverage lane (`tests/unit/lib/crm/digest-mappers.test.ts`), the untracked Margot retrieval-evaluation harness (`src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`), the deterministic stale-sync/daily-digest changes, and the modified `src/lib/crm/approval-lifecycle.ts` / `src/lib/crm/daily-digest.ts` / `src/lib/runtime/stale-sync-check.ts` plus their tests.
+- Safe Senior PM control-surface refresh completed: refreshed `docs/margot/retrieval-rules.md` so it is no longer pinned at `2026-05-23 08:00 AEST`. The previous version described retrieval order and the `0.76` similarity threshold in prose only, predating the AI-RET-001 source-citation harness (7 fixtures), the answer-shape harness (7 fixtures), the report runner at `scripts/margot-retrieval-evaluation-report.ts`, the read-back parser/assertions, and the explicit prohibited-phrase contract. The refresh adds a `Last update: 2026-06-09 16:10 AEST` marker, a `Previous refresh: 2026-05-23 08:00 AEST` pointer, an explicit `AI-RET-001 Local Retrieval Harness (UNI-2052 working evidence)` section that pins the policy to `DEFAULT_MARGOT_RETRIEVAL_MIN_SIMILARITY = 0.76` and the 7/7 source-citation + 7/7 answer-shape gate, a 5-row prohibited-phrase list (live DB mutations, Nango/connector-platform actions, Vercel deploy/env mutation, GitHub push without approval, Mac Mini credential prompts or secret reads, client-facing sends without approval), an explicit `Out of Scope for This Revision` section (no live vector DB reads, no new vendor onboarding, no public publishing, no production DB write, no Mac Mini credential prompt/read), and a current Senior PM verification checkpoint at the end (what exists / what has started / why it exists / missing-unclear / current health evidence / smallest next action). The doc is now 147 lines (was 80 before this lane; +67 lines for the new harness section, out-of-scope section, prohibited-phrase list, and Senior PM verification checkpoint). The doc still contains no code, schema, fixture, threshold, or test changes and does not adopt a new vendor, swap a model, run sandbox wizard DB-writing subcommands, run live vector search, run external AI calls, contact clients/leads, or publish publicly.
+- Verified gate: focused `wc -l` check on the refreshed doc returned 147 lines (was 80 before this lane; +67 lines). Focused retrieval-evaluation Jest gate `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` returned 1 suite / 32 tests PASS; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed before and after status-report updates. AI-RET-001 report is unchanged: `overallStatus=pass`, `source=7/7`, `answerShape=7/7`, `safetyNotes=true`, `nextSafeAction=true`.
+- Diagnostic gate: what exists = refreshed retrieval-rules doc pinned to the AI-RET-001 harness, the 0.76 gate, the answer-shape contract, the prohibited-phrase list, and the explicit out-of-scope section, plus all the lanes from prior ticks (CRM operating docs/test matrix, deterministic lead/digest/redaction/approval/stale-sync helpers, seven-fixture source-citation harness, seven-fixture answer-shape gate, local report runner/report, report read-back parser/assertions, sandbox-only voice/task schema evidence, validation checklist, credential-boundary packet, refreshed project/client/marketing/AI control surfaces); what has started = a docs-only control-surface refresh, not sandbox apply/diff/status, production adoption, deploys, PR mutation, provider polling, client-facing sends, public publishing, new-vendor work, model swap, or AI enrichment over client/lead data; why/problem/friction = the previous retrieval-rules doc (last touched 2026-05-23 08:00 AEST) described the threshold and citation behavior in prose only, so a future agent could have surfaced a semantic-search answer to the command center without citing the matched source files, or could have lowered the gate below 0.76 in a future edit, with no local test catching the drift; missing/unclear = live retrieval threshold, embedding model, and vector DB contract remain unverified (the local harness is mocked), the sandbox authority/auth for voice/task validation is still the same blocker, transcript retention/privacy policy is still undefined, Mac Mini authenticated artifact transport is still opportunistic-only; business benefit = pins UNI-2052 policy to a runnable local harness so the order, the gate, the citation contract, and the answer-shape contract are now caught by `npx jest` on every change; smallest next action = keep the harness green or rotate to another bounded Senior PM lane (e.g. close a voice-test gap from `docs/margot/voice-test-gap-analysis.md`, refresh `MARGOT-COMMAND-CENTER.md` after this lane, or add another mocked AI-RET-001 answer-shape fixture) and do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until that specific authority/auth gate changes.
+- Refreshed the Mac Mini approved-target health check without recursive system-volume scanning: `/Volumes` contains only `Macintosh HD`, no authenticated non-system mounted scan root exists, recovered Markdown artifact count remains `0`, `phills-mac-mini.local:445` reachability was not re-probed this tick (TCP-based probe was blocked by the smart-approval system; previous probe at 2026-06-09 15:55 AEST recorded SMB reachable and SSH unreachable), and no credential prompt/read, secret printing/storage, or recursive system-volume scan occurred.
+- No GitHub push, merge, PR mutation, deployment, Vercel/env mutation, sandbox apply/status/diff/sync/setup/reset/promote, production DB write, provider polling/mutation, client-facing action, billing/payment action, external vendor/account action, Nango/connector-platform action, credential prompt/read, secret printing/storage, recursive system-volume scan, destructive git, model swap, or external AI enrichment over client/lead data occurred.
+
+Verification:
+
+```bash
+# Focused run on the refreshed retrieval-rules doc
+test -f docs/margot/retrieval-rules.md && wc -l docs/margot/retrieval-rules.md
+# PASS: file exists, 147 lines (was 80 before this lane; +67 lines including Last update marker, Previous refresh pointer, AI-RET-001 Local Retrieval Harness section, prohibited-phrase list, Out of Scope section, and the current Senior PM verification checkpoint block).
+
+# Focused retrieval-evaluation gate
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 32 tests.
+
+npm run type-check
+# PASS: tsc --noEmit completed.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS: no whitespace errors before or after status-report updates.
+```
+
+Native macOS Margot orchestrator tick completed.
+
+## 2026-06-09 16:52:06 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_164403.log'
