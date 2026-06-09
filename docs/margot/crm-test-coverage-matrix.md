@@ -1,7 +1,7 @@
 # Margot CRM Test Coverage Matrix
 
 Date: 2026-05-31 08:29 AEST
-Last update: 2026-06-10 03:08 AEST — Senior PM end-to-end ElevenLabs -> Supabase chain-linkage closure: focused Margot voice suite is now 3 suites / 35 tests (was 3 suites / 33 tests; +2 end-to-end chain tests on `tests/integration/api/margot-voice-task.test.ts` 18 → 20). Full combined voice + CRM + Margot + runtime + credential-boundary gate is now 14 suites / 203 tests (was 14 suites / 201 tests in the prior tick; +2). Combined local CRM + Margot + runtime + credential-boundary gate (the prior 11-suite scope) is unchanged from the 2026-06-10 01:55 AEST baseline at 11 suites / 168 tests PASS (`approval-lifecycle` 35 / `digest-mappers` 16 / `digest-read-error` 3 / `digest-edge-cases` 19 / `retrieval-evaluation` 44 / `stale-sync-check` 11 / `sandbox-wizard-credential-boundary` 14 / `daily-digest` 5 / `activity-timeline` 8 / `qualify-lead` 5 / `read-daily-digest` 8). The Margot voice/task static proposal guard remains 1 suite / 17 tests, unchanged.
+Last update: 2026-06-09 17:08 AEST — Senior PM voice UI panel state-machine closure: focused Margot voice suite is now 4 suites / 47 tests (was 3 suites / 35 tests; +12 state-machine tests on `src/components/command-center/voice/__tests__/voice-panel-state.test.ts`). Full combined voice + CRM + Margot + runtime + credential-boundary gate is now 15 suites / 215 tests (was 14 suites / 203 tests in the prior tick; +12). Combined local CRM + Margot + runtime + credential-boundary + voice-panel-state gate (the prior 11-suite scope + the new voice-panel-state suite) is now 12 suites / 180 tests PASS (`approval-lifecycle` 35 / `digest-mappers` 16 / `digest-read-error` 3 / `digest-edge-cases` 19 / `retrieval-evaluation` 44 / `stale-sync-check` 11 / `sandbox-wizard-credential-boundary` 14 / `daily-digest` 5 / `activity-timeline` 8 / `qualify-lead` 5 / `read-daily-digest` 8 / `voice-panel-state` 12). The Margot voice/task static proposal guard remains 1 suite / 17 tests, unchanged.
 Owner: Margot
 Project: Unite-Group
 Scope: Local repo evidence only. This matrix maps the current CRM operating loop to available mocked/local tests and the next safe coverage gaps. It does not imply production DB writes, deployment, GitHub push, Vercel env mutation, client-facing sends, or permanent business-rule approval.
@@ -240,6 +240,52 @@ npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration
 Result: 14 suites / 201 tests PASS, `tsc --noEmit` PASS, route-inventory check 0 unprotected mutating routes, `git diff --check` PASS, AI-RET-001 report `overallStatus=pass; source=8/8; answerShape=12/12; readback=pass; safetyNotes=true; nextSafeAction=true`. The evidence report at `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` is unchanged from the 2026-06-10 01:55 AEST run (52 lines; no source-citation or answer-shape fixture was added in this lane).
 
 Next safe gap: keep this same 14/201 gate green on every Senior PM tick; refresh the matrix whenever a suite's test count drifts; close the still-open voice UI panel state-machine gap and the end-to-end ElevenLabs → Supabase chain gap from `docs/margot/voice-test-gap-analysis.md` when a real voice code change is needed; never run sandbox wizard `apply`/`status`/`diff`/`sync`/`setup`/`reset`/`promote` until a specific authority/auth gate is granted for that exact wizard action; never run a live vector search, embeddings backfill, or live AI call — use the AI-RET-001 local harness only.
+
+## 2026-06-09 17:08 AEST Senior PM voice UI panel state-machine closure lane
+
+Lane summary: closed the still-open voice UI panel state-machine gap from `docs/margot/voice-test-gap-analysis.md` by extracting the panel's `idle | loading | ready | error` state machine into a pure `reduceVoicePanelState(prev, event)` reducer at `src/components/command-center/voice/voice-panel-state.ts` (96 lines, new) and adding 12 unit tests at `src/components/command-center/voice/__tests__/voice-panel-state.test.ts` (new) that pin the full state machine end-to-end. `src/components/command-center/voice/MargotVoicePanel.tsx` was refactored to delegate to the reducer via `useReducer(reduceVoicePanelState, initialVoicePanelSnapshot)`; the `mapMargotFailure` import was dropped from the component (it now lives in the reducer's import surface and is exercised by the test file). The panel's rendered DOM is unchanged; the refactor is a behavioral no-op for the end user, but the state machine is now testable in isolation without testing-library or jsdom (which are not installed in the repo).
+
+State-machine test coverage added (12 tests):
+
+- `starts in the idle state via the initialVoicePanelState helper` — pins the literal `'idle'` literal as the initial reducer state.
+- `starts with an empty signedUrl and null failure via the initialVoicePanelSnapshot helper` — pins the initial snapshot shape.
+- `transitions idle -> loading on START` — pins the START event handler.
+- `ignores duplicate START while already loading (button is disabled, but reducer must also be idempotent)` — pins the duplicate-START idempotency.
+- `transitions loading -> ready on a successful fetch result with a signed_url` — pins the ready path on a 200 with `signed_url`.
+- `transitions loading -> error on a non-ok fetch result and pins the failure taxonomy render` — pins the 401 unauthorized path through `mapMargotFailure` (integration test).
+- `transitions loading -> error on a network failure (status=null) and pins the network category` — pins the network-failure path.
+- `transitions loading -> error on a 503 elevenlabs_not_configured and pins the not_configured category with env-var next action` — pins the 503 not-configured path and the env-var next-action contract.
+- `allows a retry from error -> loading on a new START (operator can recover without page reload)` — pins the retry path.
+- `does not transition out of ready on a stale FETCH_RESOLVED (the widget stays mounted once the signed URL is set)` — pins the regression-prevention guard for the ElevenLabs widget lifecycle.
+- `refuses to act on a FETCH_RESOLVED that arrives while idle (defensive: stale event cannot resurrect a fresh panel)` — pins the defensive guard against stale fetch resolutions.
+- `only accepts the documented event kinds` — pins the `VoicePanelEvent` discriminated union shape.
+
+Test count movement:
+
+- `src/components/command-center/voice/__tests__/voice-panel-state.test.ts` 0 → 12 (+12, new file).
+- Focused Margot voice suite: signed-url 6 (unchanged), task 20 (unchanged), failure-taxonomy 9 (unchanged), voice-panel-state 12 (new). Voice suite total: 4 suites / 47 tests (was 3 suites / 35 tests before this lane; +12).
+- Combined local CRM + Margot + runtime + credential-boundary + voice-panel-state gate (the prior 11-suite scope + the new voice-panel-state suite) is now 12 suites / 180 tests PASS (was 11 suites / 168 tests before this lane; +12).
+- Full combined voice + CRM + Margot + runtime + credential-boundary gate (all 15 suites) is now 15 suites / 215 tests PASS (was 14 suites / 203 tests before this lane; +12).
+
+Voice-focused gate:
+
+```bash
+npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts src/components/command-center/voice/__tests__/voice-panel-state.test.ts --runInBand
+```
+
+Result: 4 suites / 47 tests PASS (was 3 suites / 35 tests before this lane; +12).
+
+Combined voice + CRM + Margot + runtime + credential-boundary gate (all 15 suites):
+
+```bash
+npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts src/components/command-center/voice/__tests__/voice-panel-state.test.ts --runInBand
+```
+
+Result: 15 suites / 215 tests PASS, `tsc --noEmit` PASS, route-inventory check 0 unprotected mutating routes, `git diff --check` PASS, AI-RET-001 report `overallStatus=pass; source=8/8; answerShape=12/12; readback=pass; safetyNotes=true; nextSafeAction=true`. The evidence report at `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` is unchanged from the 2026-06-10 03:08 AEST run (the harness itself was not modified by this lane; the new state-machine tests live in a separate suite).
+
+Files changed: `src/components/command-center/voice/voice-panel-state.ts` (new, 96 lines), `src/components/command-center/voice/__tests__/voice-panel-state.test.ts` (new, 12 tests), `src/components/command-center/voice/MargotVoicePanel.tsx` (refactored to delegate to the reducer; rendered DOM unchanged), `docs/margot/voice-test-gap-analysis.md` (newest checkpoint at 2026-06-09 17:08 AEST; voice-count recorded as 47, not 35; voice UI panel state-machine gap closed; 1 historical checkpoint preserved).
+
+Next safe gap: keep this same 15/215 gate green on every Senior PM tick; refresh the matrix whenever a suite's test count drifts; the still-open gaps from `docs/margot/voice-test-gap-analysis.md` (live ElevenLabs network failure during a future live call; signed-url 503 cascading into the task route) are recorded for the next safe TDD lane; never run sandbox wizard `apply`/`status`/`diff`/`sync`/`setup`/`reset`/`promote` until a specific authority/auth gate is granted for that exact wizard action; never run a live vector search, embeddings backfill, or live AI call — use the AI-RET-001 local harness only.
 
 ## Safety notes
 
