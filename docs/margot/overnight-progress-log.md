@@ -13991,3 +13991,53 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_122528.log'
+
+## 2026-06-09 13:05 AEST
+
+### Senior PM CRM test coverage matrix reconciliation (12:28 evidence → 13:05 doc)
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs, Command Center, retrieval rules, Mac Mini recovery status, overnight progress log, morning report, and current repo state.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `cf154f0`, `main...origin/main [ahead 72]`. Inherited local dirty work remains: the sandbox-wizard credential-boundary lane (`scripts/sandbox-wizard.sh` plus untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`), the prior CRM redaction TDD lane (`src/lib/crm/digest-read-error.ts` + test), the prior CRM approval-lifecycle TDD lane (`src/lib/crm/approval-lifecycle.ts` + test), the prior CRM digest-mappers positive-coverage lane (`tests/unit/lib/crm/digest-mappers.test.ts`), the new untracked Margot retrieval-evaluation fixtures/harness (`src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`), and the new untracked sandbox-wizard credential-boundary test. `stale-sync-check.ts`, `daily-digest.ts`, and their tests are still dirty from the 06:08/06:43/07:16 AEST deterministic TDD lanes.
+- Senior PM matrix-reconciliation lane completed: refreshed `docs/margot/crm-test-coverage-matrix.md` to reconcile the post-08:22 AEST CRM/Margot evidence into the matrix, the combined local CRM + retrieval + runtime + credential-boundary gate, the ordered next-coverage-gaps list, and three new/updated matrix rows. The matrix's `Last update` line now reads `2026-06-09 12:28 AEST — Senior PM matrix reconciliation: CRM helper suite now 8 suites / 90 tests, Margot retrieval gate 1 suite / 32 tests, runtime stale-sync 1 suite / 11 tests, sandbox-wizard credential-boundary 1 suite / 14 tests; combined local gate 11 suites / 156 tests; Margot voice/task static proposal guard still 1 suite / 17 tests.` A new section `2026-06-09 12:28 AEST Senior PM matrix reconciliation` documents the digest-read-error fail-closed guard, the digest-mappers positive-coverage lane, the case-insensitive `normalizedSubjectType` lane, the new retrieval-evaluation empty-results/non-Mac-Mini/all-empty results-map branches, the sandbox-wizard credential-boundary harness, the combined local gate command, the actual 11 suites / 156 tests PASS result, and the next safe gap (no sandbox apply/status/diff/sync/setup/reset/promote until the specific authority/auth gate is granted). The Approvals row now records the case-insensitive `normalizedSubjectType` contract and the 26-test suite total. Two new matrix rows were added: `Daily digest mapper (read-side)` for `src/lib/crm/digest-mappers.ts` + `tests/unit/lib/crm/digest-mappers.test.ts` (16 tests across 5 unhedged contract sections) and `Daily digest read-error guard` for `src/lib/crm/digest-read-error.ts` + `tests/unit/lib/crm/digest-read-error.test.ts` (3 tests for the `Set`-based fail-closed guard). The ordered next-coverage-gaps list was extended with four new COMPLETE entries: 11. `logCrmDigestReadError` fail-closed guard, 12. dedicated digest-mappers unit coverage, 13. case-insensitive `normalizedSubjectType`, and 14. this matrix reconciliation.
+- Diagnostic gate: what exists = a fully-reconciled CRM test coverage matrix that ties every current helper/test file to the operating loop, the combined 11-suite / 156-test local gate, the case-insensitive subjectType contract, the digest-mappers positive-coverage contract, the digest-read-error fail-closed guard, the new retrieval-evaluation report integrity suite, and the static sandbox-wizard credential-boundary harness; what has started = a docs-only matrix reconciliation lane, not sandbox apply/diff/status, production adoption, deploys, PR mutation, provider polling, client-facing sends, public publishing, or CRM data mutation; why/problem/friction = the matrix's prior `Last update` line (08:22 AEST) and ordered next-coverage-gaps list stopped at item 10, even though items 11/12/13 (digest-read-error fail-closed, digest-mappers positive coverage, approval-lifecycle case-insensitivity) and the retrieval-evaluation gap-closure were already merged in the worktree and verified locally; the matrix and ordered gaps were silently out of date relative to the live CRM test surface; missing = matrix rows for `digest-mappers` and `digest-read-error`, the case-insensitive subjectType clause on the Approvals row, and the items 11-14 gap closures; duplicated/unclear = the prior item-10 evidence summary is still intact and now sits as the most recent STRICT-COMPLETE row above the new 11-14 entries; business benefit = any future Senior PM tick can now read the matrix and see the full local CRM operating surface (helper contracts, route/test contracts, daily digest mapper/read-error/case-insensitive approval/margot retrieval/sandbox credential boundary) without rediscovering it; smallest next action = rotate to a non-CRM bounded Senior PM lane (e.g. refresh `client-second-brain-model.md` or `marketing-strategy-operating-model.md`, close a voice-test gap from `docs/margot/voice-test-gap-analysis.md`, or refresh a stale Margot voice/test doc) and do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until the specific authority/auth gate changes.
+- Refreshed the Mac Mini approved-target health check without recursive system-volume scanning: `/Volumes` contains only `Macintosh HD`, no authenticated non-system mounted scan root exists, recovered Markdown artifact count remains `0`, `phills-mac-mini.local:445` is reachable (SMB/File Sharing reachable), and `:22` is unreachable.
+- No GitHub push, merge, PR mutation, deployment, Vercel/env mutation, sandbox apply/status/diff/sync/setup/reset/promote, production DB write, provider polling/mutation, client-facing action, billing/payment action, external vendor/account action, Nango/connector-platform action, credential prompt/read, secret printing/storage, recursive system-volume scan, or destructive git occurred.
+
+Verification:
+
+```bash
+# Combined local CRM + retrieval + runtime + credential-boundary gate
+npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: 11 suites / 156 tests.
+
+npm run type-check
+# PASS: tsc --noEmit completed.
+
+npm run security:routes-check
+# PASS: route-inventory check reported 0 unprotected mutating routes.
+
+git diff --check
+# PASS: exited 0 before and after status-report updates.
+
+git/health/Mac Mini read-back
+# READ-BACK: 2026-06-09 13:05 AEST; branch main; head cf154f0; main...origin/main [ahead 72]; node_modules=present; package_lock=present; volumes=Macintosh HD; recovered_markdown_count=0; approved_target_scan=skipped_only_system_volume_mounted; SMB reachable; SSH unreachable.
+```
+
+Safety:
+
+- This tick was local docs/code/test verification only. It did not use live vector search, OpenAI/external AI calls, new vendors, Nango, connector platforms, sandbox/prod DB-writing wizard commands, provider mutation/polling, credential reads, client-facing sends, public publishing, CRM data mutation, recursive system-volume scans, or account creation.
+
+Next safe slice:
+
+- Rotate to another bounded Senior PM lane: refresh `client-second-brain-model.md` or `marketing-strategy-operating-model.md` with current repo evidence; close a voice-test gap from `docs/margot/voice-test-gap-analysis.md`; or prepare a fresh non-CRM control-surface evidence lane. Do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until the specific authority/auth gate changes.
+
+## 2026-06-09 13:07:04 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_130011.log'
