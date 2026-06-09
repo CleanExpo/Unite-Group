@@ -1,5 +1,50 @@
 # Margot Overnight Progress Log
 
+## 2026-06-09 14:54 AEST
+
+### AI enhancement pipeline control-surface refresh + Mac Mini bounded retry
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs, Command Center, retrieval rules, Mac Mini recovery status, overnight progress log, morning report, current repo state, CRM schema inventory, CRM test matrix, candidate register, and the AI-RET-001 local evidence report.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `97a1d32`, `main...origin/main [ahead 72]`. Inherited local dirty work is unchanged from the prior tick: the sandbox-wizard credential-boundary lane (`scripts/sandbox-wizard.sh` plus untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`), the prior CRM redaction TDD lane (`src/lib/crm/digest-read-error.ts` + test), the prior CRM approval-lifecycle TDD lane (`src/lib/crm/approval-lifecycle.ts` + test), the prior CRM digest-mappers positive-coverage lane (`tests/unit/lib/crm/digest-mappers.test.ts`), the untracked Margot retrieval-evaluation harness (`src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`), and the deterministic stale-sync/daily-digest changes.
+- Safe Senior PM control-surface refresh completed: refreshed `docs/margot/ai-enhancement-pipeline.md` so it is no longer pinned at `2026-05-23 07:33 AEST`. The previous version described `AI-RET-001` as "Add evaluation fixtures" and treated the five first-safe candidates as a single undifferentiated list, even though the candidate register has explicit per-candidate statuses (`implemented_local`, `triage`, `blocked_approval`) and the AI-RET-001 evidence report now runs 7/7 source-citation + 7/7 answer-shape green. The refresh adds a `Last update: 2026-06-09 14:54 AEST` line, a current Senior PM verification checkpoint (what exists, what has started, why it exists, missing/unclear/pending external authority, current health evidence, Mac Mini state, smallest next action), a new `Status mapping (pipeline stage -> candidate register status)` table that ties the 9-stage pipeline to the 7 register statuses, a new `First safe candidates (concrete, not abstract)` section that names the actual register IDs (`AI-CRM-001`, `AI-CRM-002`, `AI-RET-001`, `AI-INT-001`, `AI-VOICE-001`) with their current statuses, evidence pointers, and safe next steps, an updated `Local-only evaluation pattern` section that points to the existing `src/lib/margot/retrieval-evaluation.ts` / `scripts/margot-retrieval-evaluation-report.ts` / `tests/unit/lib/margot/retrieval-evaluation.test.ts` / `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` instances, an updated `Reporting requirements` template that mirrors the candidate register statuses, an updated `Immediate next implementation steps` list that names the AI-RET-001 mocked fixture/answer-shape/report read-back gates as the unit-testable boundary, and a tightened `Current repo anchors` table that adds the retrieval-evaluation module and the evidence report. The doc still contains no code, schema, or test changes and does not adopt a new vendor, swap a model, run sandbox wizard DB-writing subcommands, run live vector search, run external AI calls, contact clients/leads, or publish publicly.
+- Diagnostic gate: what exists = refreshed AI enhancement pipeline doc, durable CRM operating docs/test matrix, deterministic lead/digest helpers, retrieval rules/wrappers, seven-fixture source-citation harness, seven-fixture answer-shape gate, local report runner/report, report read-back parser/assertions, and current progress/morning reports; what has started = a docs-only control-surface refresh, not sandbox apply/diff/status, production adoption, deploys, PR mutation, provider polling, client-facing sends, public publishing, new-vendor work, model swap, or AI enrichment over client/lead data; why/problem/friction = the AI enhancement pipeline had not been refreshed since 2026-05-23 07:33 AEST, before the AI-RET-001 mocked/report-read-back harness existed and before the candidate register had explicit per-candidate statuses, so a future agent could have re-derived that AI-RET-001 was still a forward plan and would have missed the `blocked_approval` gate on AI-VOICE-001 and the `triage` status of AI-INT-001; missing/unclear = transcript retention/privacy policy, sandbox authority/auth gate, Mac Mini authenticated artifact transport, AI-INT-001 mocked mirror fixtures, and a Phill decision on pipeline stages/campaign labels are still gaps; duplicated/unclear = project/client/marketing control-surface refreshes still cover their own lanes and the existing mac-mini-recovery-status file still records the same opportunistic-only recovery state; business benefit = keeps the AI enhancement pipeline aligned with the concrete candidate register and the AI-RET-001 evidence report, reducing operator risk of re-deriving older abstract guidance; smallest next action = keep the AI enhancement pipeline aligned with the candidate register and rotate to the next bounded Senior PM lane (e.g. close another voice-test gap, add another mocked AI-RET-001 answer-shape fixture, or refresh another control surface) unless a sandbox/Mac Mini gate changes.
+- Refreshed the Mac Mini approved-target health check without recursive system-volume scanning: `/Volumes` contains only `Macintosh HD`, no authenticated non-system mounted scan root exists, recovered Markdown artifact count remains `0`, `phills-mac-mini.local:445` is reachable (SMB/File Sharing reachable), and `:22` is unreachable (SSH/Remote Login unavailable from this MacBook session).
+- No GitHub push, merge, PR mutation, deployment, Vercel/env mutation, sandbox apply/status/diff/sync/setup/reset/promote, production DB write, provider polling/mutation, client-facing action, billing/payment action, external vendor/account action, Nango/connector-platform action, credential prompt/read, secret printing/storage, recursive system-volume scan, destructive git, model swap, or external AI enrichment over client/lead data occurred.
+
+Verification:
+
+```bash
+# Focused run on the refreshed AI enhancement pipeline
+test -f docs/margot/ai-enhancement-pipeline.md && wc -l docs/margot/ai-enhancement-pipeline.md
+# PASS: file exists, 274 lines (was 186 before this lane; +88 lines including current verification checkpoint, status mapping table, concrete first-safe-candidates section, refreshed local-only pattern, refreshed reporting template, refreshed immediate next implementation steps, and refreshed current repo anchors).
+
+# Combined CRM + retrieval + runtime + credential-boundary gate (matrix reference)
+npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/ tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: 11 suites / 156 tests (no change vs prior tick; this lane was docs-only).
+
+npm run type-check
+# PASS: tsc --noEmit completed.
+
+npm run security:routes-check
+# PASS: route-inventory check reported 0 unprotected mutating routes.
+
+git diff --check
+# PASS: exited 0 before and after status-report updates.
+
+git/health/Mac Mini read-back
+# READ-BACK: 2026-06-09 14:54 AEST; branch main; head 97a1d32; main...origin/main [ahead 72]; node_modules=present; package_lock=present; volumes=Macintosh HD; recovered_markdown_count=0; approved_target_scan=skipped_only_system_volume_mounted; SMB reachable; SSH unreachable.
+```
+
+Safety:
+
+- This tick was local documentation verification only. It did not use live vector search, OpenAI/external AI calls, new vendors, Nango, connector platforms, sandbox/prod DB-writing wizard commands, provider mutation/polling, credential reads, client-facing sends, public publishing, GBP mutation, lead auto-conversion, campaign launch, paid spend, account creation, model swap, or AI enrichment over client/lead data.
+
+Next safe slice:
+
+- Rotate to another bounded Senior PM lane: close another voice-test gap from `docs/margot/voice-test-gap-analysis.md`, refresh `retrieval-rules.md` (last touched 2026-05-23 08:00 AEST), or add another mocked AI-RET-001 answer-shape fixture; do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until the specific authority/auth gate changes.
+
 ## 2026-06-09 14:13 AEST
 
 ### Marketing strategy operating-model refresh + Mac Mini bounded retry
@@ -14163,3 +14208,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_141255.log'
+
+## 2026-06-09 15:00:23 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_145142.log'
