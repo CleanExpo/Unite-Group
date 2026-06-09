@@ -1,5 +1,152 @@
 # Margot Overnight Progress Log
 
+## 2026-06-09 11:50 AEST
+
+### CRM approval-lifecycle subjectType case-insensitivity TDD fix
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs, Command Center, retrieval rules, Mac Mini recovery status, overnight progress log, morning report, and current repo state.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `df92cb6`, `main...origin/main [ahead 70]`. Inherited local sandbox-wizard credential-boundary work remains, prior CRM redaction TDD lane is in the worktree (`src/lib/crm/digest-read-error.ts`, `tests/unit/lib/crm/digest-read-error.test.ts`), and the new CRM approval-lifecycle TDD lane is now in the worktree (`src/lib/crm/approval-lifecycle.ts`, `tests/unit/lib/crm/approval-lifecycle.test.ts`).
+- Senior PM TDD lane completed: hardened the `normalizedSubjectType` function in `src/lib/crm/approval-lifecycle.ts` so the CRM approval lifecycle evaluator can no longer misclassify known subject types as `'invalid'` when callers supply case-variant values like `'LEAD_CONVERSION'` or `'Data_Export'`. RED added 2 new tests in `tests/unit/lib/crm/approval-lifecycle.test.ts` covering the lowercase and title-case variants for both a low-risk and a high-risk type; GREEN added a single `.toLowerCase()` call in `normalizedSubjectType`, mirroring the existing status-path casing pattern at line 158 (`(clean(input.status) || 'requested').toLowerCase()`). Refactor confirmed: the canonical lowercase form is now the deterministic output of `normalizedSubjectType`, downstream consumers (`evaluateCrmApprovalLifecycle`, `highRiskReason`, `reasons` arrays) get the canonical form, and `requiresPhillReview` is no longer falsely `true` for case-mismatched routine approvals.
+- Diagnostic gate: what exists = CRM approval lifecycle evaluator, 1-line lowercase normalization, deterministic digest/stale-sync helpers, retrieval rules/wrappers, project/client/marketing/AI control surfaces, Mac Mini recovery surfaces, current progress/morning reports; what has started = a normalized subject-type contract and 2 new dedicated unit tests, not sandbox apply/diff/status, production adoption, deploys, PR mutation, provider polling, client-facing sends, public publishing, or CRM data mutation; why/problem/friction = `normalizedSubjectType` was case-sensitive, so callers supplying `'LEAD_CONVERSION'` or `'Data_Export'` (which are valid forms in many upstream serializers) were silently flagged as `'invalid'` and forced into `requiresPhillReview=true` even though they matched documented low-risk/high-risk types; missing = the existing test file only asserted the all-lowercase canonical form; duplicated/unclear = the lowercase pattern is already used at line 158 for the status path, so the fix is a one-line alignment to existing house style; business benefit = routine approvals no longer get escalated to Phill because of a casing mismatch; smallest next action = rotate to another bounded Senior PM lane (e.g. digest-mappers coverage, another CRM helper, a project/client/marketing/AI control-surface refresh) and do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until the specific authority/auth gate changes.
+- Refreshed the Mac Mini approved-target health check without recursive system-volume scanning: `/Volumes` contains only `Macintosh HD`, no authenticated non-system mounted scan root exists, recovered Markdown artifact count remains `0`, `phills-mac-mini.local:445` is reachable (SMB/File Sharing reachable; IP observed `192.168.2.78`, previously `192.168.2.77`), and `:22` is unreachable.
+- No GitHub push, merge, PR mutation, deployment, Vercel/env mutation, sandbox apply/status/diff/sync/setup/reset/promote, production DB write, provider polling/mutation, client-facing action, billing/payment action, external vendor/account action, Nango/connector-platform action, credential prompt/read, secret printing/storage, recursive system-volume scan, or destructive git occurred.
+
+Verification:
+
+```bash
+# RED: focused run with new tests
+npx jest tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand
+# FAIL: 2 failed (LEAD_CONVERSION, Data_Export case-mismatch) + 33 passed (35 total)
+
+# GREEN: after adding .toLowerCase() to normalizedSubjectType
+npx jest tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand
+# PASS: 1 suite / 35 tests.
+
+# Expanded CRM helper gate (regression check)
+npx jest tests/unit/lib/crm/digest-read-error.test.ts tests/unit/lib/crm/read-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-edge-cases.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts --runInBand
+# PASS: 6 suites / 75 tests.
+
+npm run type-check
+# PASS: tsc --noEmit completed.
+
+npm run security:routes-check
+# PASS: route-inventory check reported 0 unprotected mutating routes.
+
+git diff --check
+# PASS: exited 0 before and after status-report updates.
+
+git/health/Mac Mini read-back
+# READ-BACK: 2026-06-09 11:50 AEST; branch main; head df92cb6; main...origin/main [ahead 70]; node_modules=present; package_lock=present; volumes=Macintosh HD; recovered_markdown_count=0; approved_target_scan=skipped_only_system_volume_mounted; SMB reachable; SSH unreachable.
+```
+
+Safety:
+
+- This tick was local code+test+docs verification only. It did not use live vector search, OpenAI/external AI calls, new vendors, Nango, connector platforms, sandbox/prod DB-writing wizard commands, provider mutation/polling, credential reads, client-facing sends, public publishing, CRM data mutation, recursive system-volume scans, or account creation.
+
+Next safe slice:
+
+- Rotate to another bounded Senior PM lane: digest-mappers positive coverage, project/client/marketing/AI control-surface refresh, voice-test gap closure, additional local report corruption/error-path cases. Do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until the specific authority/auth gate changes.
+
+## 2026-06-09 11:49 AEST
+
+### CRM digest-mappers positive coverage TDD lane (gap closure)
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs, Command Center, retrieval rules, Mac Mini recovery status, overnight progress log, morning report, and current repo state.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `df92cb6` (unchanged from prior tick), `main...origin/main [ahead 70]`. Inherited local dirty work persists: the sandbox-wizard credential-boundary lane (`scripts/sandbox-wizard.sh` plus untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`), the prior CRM redaction TDD lane (`src/lib/crm/digest-read-error.ts` + test), the prior CRM approval-lifecycle TDD lane (`src/lib/crm/approval-lifecycle.ts` + test, both tracked, 1-line lowercase normalization), the deterministic stale-sync/daily-digest changes, and the local AI-RET-001 assets.
+- Senior PM TDD lane completed (positive-coverage variant): closed the **last CRM shared-mapper module with zero dedicated unit tests** — `src/lib/crm/digest-mappers.ts` (167 lines, used by `src/app/api/crm/daily-digest/route.ts` and `src/lib/crm/read-daily-digest.ts`). Authored `tests/unit/lib/crm/digest-mappers.test.ts` with 16 targeted unit tests across 5 contract sections that did not have focused coverage in `digest-edge-cases.test.ts`: (1) `readDigestOwner` env-var precedence + trim + blank-fallback (3 tests), (2) `QUALIFICATION_BANDS` exact set contents with case-sensitivity guard (2 tests), (3) `mapLead` qualificationBand fail-closed derivation including "hot"/"QUALIFIED" rejection (3 tests), (4) `mapTask` source='margot_voice' detection via tags AND `voice/` obsidian_path with whitespace-trim (4 tests), (5) `mapOpportunity` probability (percent → fraction) parsing, stage→status fallback, and requiresApproval fail-closed on non-true (4 tests). Tests passed GREEN on first run (the module was already fail-closed); this lane added *positive coverage* of an unhedged contract rather than a RED→GREEN bug fix.
+- Diagnostic gate: what exists = CRM shared mapper module, dedicated test file, deterministic digest/stale-sync helpers, retrieval rules/wrappers, project/client/marketing/AI control surfaces, Mac Mini recovery surfaces, current progress/morning reports; what has started = positive-coverage tests for the last unhedged CRM mapper, not sandbox apply/diff/status, production adoption, deploys, PR mutation, provider polling, client-facing sends, public publishing, or CRM data mutation; why/problem/friction = `src/lib/crm/digest-mappers.ts` was the only `src/lib/crm/*` file lacking a dedicated unit test file; any regression in the mapper functions (e.g. a refactor that drops the `clean`/`valueEstimate` fail-closed guards or weakens the `QUALIFICATION_BANDS.has(...)` check) would silently change digest output and bypass the integration-style `digest-edge-cases.test.ts` because that file only covers all-null fallbacks; missing = no dedicated regression net for the voice-source detection branch (`tags.includes('margot-voice')` + `obsidianPath.startsWith('voice/')`), no dedicated regression net for env-driven owner, no dedicated set-contents assertion for `QUALIFICATION_BANDS`; duplicated/unclear = basic `clean` and `valueEstimate` happy paths remain covered by `digest-edge-cases.test.ts`; the new file is explicitly scoped to the unhedged branches to avoid test-file duplication; business benefit = reduces operator risk of silent digest-output drift if a refactor touches the mapper module; smallest next action = rotate to another bounded Senior PM lane (e.g. refresh a project/client/marketing/AI control surface, harden a voice-test gap, or close another control-surface gap) and do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until the specific authority/auth gate changes.
+- Refreshed the Mac Mini approved-target health check without recursive system-volume scanning: `/Volumes` contains only `Macintosh HD`, no authenticated non-system mounted scan root exists, recovered Markdown artifact count remains `0`, `phills-mac-mini.local:445` is reachable (SMB/File Sharing reachable; IP observed `192.168.2.78`, previously `192.168.2.77`), and `:22` is unreachable.
+- No GitHub push, merge, PR mutation, deployment, Vercel/env mutation, sandbox apply/status/diff/sync/setup/reset/promote, production DB write, provider polling/mutation, client-facing action, billing/payment action, external vendor/account action, Nango/connector-platform action, credential prompt/read, secret printing/storage, recursive system-volume scan, or destructive git occurred.
+
+Verification:
+
+```bash
+# Focused run on the new mapper test file
+npx jest tests/unit/lib/crm/digest-mappers.test.ts --runInBand
+# PASS: 1 suite / 16 tests.
+
+# Expanded CRM helper gate (regression check across all CRM unit suites)
+npx jest tests/unit/lib/crm/ --runInBand
+# PASS: 8 suites / 99 tests.
+
+npm run type-check
+# PASS: tsc --noEmit completed.
+
+npm run security:routes-check
+# PASS: route-inventory check reported 0 unprotected mutating routes.
+
+git diff --check
+# PASS: exited 0 before and after status-report updates.
+
+# Behavioural spot-check of the helper to confirm test expectations match real implementation
+npx tsx -e "import { clean, valueEstimate } from '@/lib/crm/digest-mappers'; console.log(clean(123), clean({}), valueEstimate(NaN), valueEstimate(Infinity), valueEstimate(undefined), valueEstimate('123abc'));"
+# OUTPUT: '' '' null null null null
+
+git/health/Mac Mini read-back
+# READ-BACK: 2026-06-09 11:49 AEST; branch main; head df92cb6; main...origin/main [ahead 70]; node_modules=present; package_lock=present; volumes=Macintosh HD; recovered_markdown_count=0; approved_target_scan=skipped_only_system_volume_mounted; SMB reachable (IP 192.168.2.78); SSH unreachable.
+```
+
+Safety:
+
+- This tick was local code+test+docs verification only. It did not use live vector search, OpenAI/external AI calls, new vendors, Nango, connector platforms, sandbox/prod DB-writing wizard commands, provider mutation/polling, credential reads, client-facing sends, public publishing, CRM data mutation, recursive system-volume scans, or account creation.
+
+Next safe slice:
+
+- Rotate to another bounded Senior PM lane: refresh a project/client/marketing/AI control surface (`project-portfolio-index.md`, `client-second-brain-model.md`, `marketing-strategy-operating-model.md`, `ai-enhancement-pipeline.md`), close a voice-test gap from `docs/margot/voice-test-gap-analysis.md`, run a deeper local helper corruption/error-path sweep, or add targeted tests for the stale-sync + retrieval surfaces. Do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until the specific authority/auth gate changes.
+
+## 2026-06-09 11:30 AEST
+
+### CRM redaction helper TDD hardening + Senior PM evidence lane
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs, Command Center, retrieval rules, Mac Mini recovery status, overnight progress log, morning report, and current repo state.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `df92cb6`, `main...origin/main [ahead 70]`. Inherited local sandbox-wizard credential-boundary work remains (`scripts/sandbox-wizard.sh` plus untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`), deterministic stale-sync/daily-digest changes and local AI-RET-001 assets remain local/pushed, and the new TDD lane is now present in the worktree (`src/lib/crm/digest-read-error.ts`, `tests/unit/lib/crm/digest-read-error.test.ts`).
+- Senior PM TDD lane completed: hardened the only CRM redaction helper with zero dedicated unit tests — `logCrmDigestReadError` in `src/lib/crm/digest-read-error.ts`. RED wrote 2 input-validation cases (`unknown stage`, `unknown context`) plus 1 exhaustive happy-path coverage test in `tests/unit/lib/crm/digest-read-error.test.ts`; GREEN added a `Set`-based fail-closed union guard at the function boundary while preserving the public `CrmDigestReadStage` and `'api' | 'command-center'` type contracts and the existing redacted `console.error(JSON.stringify({...}))` shape. Refactor confirmed: the helper still does not leak raw error details, and downstream log-alerting rules can no longer be silently broken by a typo or differently-cased stage value.
+- Diagnostic gate: what exists = CRM redaction contract, local source/test pair, deterministic digest/stale-sync helpers, retrieval rules/wrappers, project/client/marketing/AI control surfaces, Mac Mini recovery surfaces, current progress/morning reports; what has started = a TDD-hardened redaction helper with first dedicated unit tests, not sandbox apply/diff/status, production adoption, deploys, PR mutation, provider polling, client-facing sends, public publishing, or CRM data mutation; why/problem/friction = the only CRM redaction helper with zero dedicated unit tests accepted any string at the runtime boundary, so a refactor typo or differently-cased stage could silently produce unparseable log events that downstream alerting would not match, breaking the redaction contract without any test failure; missing = the existing integration tests at `read-daily-digest.test.ts` only assert "no raw error details leaked", not "stage and context are validated against the documented union"; duplicated/unclear = the type alias and the runtime `Set` declare the same union in two places, which is the standard TS pattern and is documented in the helper; business benefit = the redaction contract is now fail-closed at the function boundary and protected by a dedicated unit test, reducing operator risk of silent log-parsing drift; smallest next action = rotate to another bounded Senior PM lane (e.g. harden `approval-lifecycle.ts` or `activity-timeline.ts` redaction helpers, refresh a control-surface doc) and do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until the specific authority/auth gate changes.
+- Refreshed the Mac Mini approved-target health check without recursive system-volume scanning: `/Volumes` contains only `Macintosh HD`, no authenticated non-system mounted scan root exists, recovered Markdown artifact count remains `0`, `phills-mac-mini.local:445` is reachable, and `:22` is unreachable.
+- No GitHub push, merge, PR mutation, deployment, Vercel/env mutation, sandbox apply/status/diff/sync/setup/reset/promote, production DB write, provider polling/mutation, client-facing action, billing/payment action, external vendor/account action, Nango/connector-platform action, credential prompt/read, secret printing/storage, recursive system-volume scan, or destructive git occurred.
+
+Verification:
+
+```bash
+# RED: focused run with new tests against existing helper
+npx jest tests/unit/lib/crm/digest-read-error.test.ts --runInBand
+# FAIL: 2 failed, 1 passed (unknown stage / unknown context not validated)
+
+# GREEN: after adding Set-based fail-closed union guard
+npx jest tests/unit/lib/crm/digest-read-error.test.ts --runInBand
+# PASS: 3 suites (1 suite, 3 tests).
+
+# Expanded CRM helper gate (regression check)
+npx jest tests/unit/lib/crm/digest-read-error.test.ts tests/unit/lib/crm/read-daily-digest.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-edge-cases.test.ts tests/unit/lib/crm/qualify-lead.test.ts --runInBand
+# PASS: 5 suites / 40 tests.
+
+npm run type-check
+# PASS: tsc --noEmit completed.
+
+npm run security:routes-check
+# PASS: route-inventory check reported 0 unprotected mutating routes.
+
+git diff --check
+# PASS: exited 0 before and after status-report updates.
+
+git/health/Mac Mini read-back
+# READ-BACK: 2026-06-09 11:30 AEST; branch main; head df92cb6; main...origin/main [ahead 70]; node_modules=present; package_lock=present; volumes=Macintosh HD; recovered_markdown_count=0; approved_target_scan=skipped_only_system_volume_mounted; SMB reachable; SSH unreachable.
+```
+
+Safety:
+
+- This tick was local code+test+docs verification only. It did not use live vector search, OpenAI/external AI calls, new vendors, Nango, connector platforms, sandbox/prod DB-writing wizard commands, provider mutation/polling, credential reads, client-facing sends, public publishing, CRM data mutation, recursive system-volume scans, or account creation.
+
+Next safe slice:
+
+- Rotate to another bounded Senior PM lane: `approval-lifecycle.ts` redaction hardening, `activity-timeline.ts` redaction hardening, a project/client/marketing/AI control-surface refresh, or additional local report corruption/error-path cases. Do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until the specific authority/auth gate changes.
+
 ## 2026-06-09 11:11 AEST
 
 ### Sandbox voice/task authority handoff packaging + Mac Mini bounded retry
@@ -13781,3 +13928,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_111055.log'
+
+## 2026-06-09 11:55:28 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_114412.log'
