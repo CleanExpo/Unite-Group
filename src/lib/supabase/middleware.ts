@@ -8,6 +8,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { hasSupabaseConfig } from './server';
+import { getSupabaseAnonConfig } from './env-guard';
 
 /**
  * Create a Supabase client for middleware
@@ -30,6 +31,9 @@ export function createMiddlewareClient(request: NextRequest, extraRequestHeaders
     },
   });
 
+  // Graceful no-op when Supabase isn't configured at all (e.g. preview/build
+  // environments with no env) so a missing config never crashes the whole app —
+  // requests proceed as unauthenticated. Mirrors server.ts's hasSupabaseConfig guard.
   if (!hasSupabaseConfig()) {
     const supabase = {
       auth: {
@@ -40,9 +44,14 @@ export function createMiddlewareClient(request: NextRequest, extraRequestHeaders
     return { supabase, response };
   }
 
+  // Config IS present → fetch the validated url + anon key. This throws a clear,
+  // named error if the key is truncated/corrupted, instead of the cryptic
+  // "No API key found in request" surfacing app-wide on every request.
+  const { url, anonKey } = getSupabaseAnonConfig();
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url,
+    anonKey,
     {
       cookies: {
         get(name: string) {
