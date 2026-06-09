@@ -1,9 +1,13 @@
 # Margot CRM Operating Model
 
 Date: 2026-05-23 11:29 AEST
+Last update: 2026-06-09 20:09 AEST
+Previous refresh: 2026-05-23 11:29 AEST
 Owner: Margot
 Project: Unite-Group
 Strategic lens: build the CRM into Phill's daily operating cockpit for a $2B Unite-Group business.
+Related evidence: docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md (overallStatus=pass, source=7/7, answerShape=7/7)
+Related rotation guard: see `## Senior PM verification checkpoint (2026-06-09 20:09 AEST)` at the end of this file.
 
 ## Purpose
 
@@ -121,19 +125,24 @@ Rules:
 
 ## Lead Persistence Operating Plan
 
-Current evidence as of 2026-05-23 07:35 AEST:
+Current evidence as of 2026-06-09 20:09 AEST:
 
 - `supabase/migrations/20260523100000_crm_leads.sql` drafts the local `crm_leads` table.
 - `src/app/api/marketing/leads/route.ts` validates public lead submissions, optionally adds consenting users to SendGrid, and persists a CRM lead using the service-role server route.
 - `src/app/api/crm/leads/route.ts` lists recent CRM leads for admin/service-role command-center visibility with `status`, `owner`, `source`, and `limit` filters.
 - `tests/integration/api/marketing-leads.test.ts` covers lead capture/persistence paths.
 - `tests/integration/api/crm-leads-list.test.ts` covers recent lead listing, filters, missing configuration, and read failures.
+- `src/lib/crm/qualify-lead.ts` is the deterministic recommendation-only qualification helper (`tests/unit/lib/crm/qualify-lead.test.ts`).
+- `src/lib/crm/daily-digest.ts` is the daily CRM digest helper; `tests/unit/lib/crm/daily-digest.test.ts`, `tests/unit/lib/crm/digest-edge-cases.test.ts`, and `tests/unit/lib/crm/digest-mappers.test.ts` (16 tests, the positive-coverage suite for the only `src/lib/crm/*` module previously without a dedicated test file) cover the new mapper surface. The lead `lead <id>` privacy fallback for email-only leads is enforced; `staleReasonLabel` / `staleReasonDetail` / `normalizedMinutes` make the integration-stale reason copy human-readable (`unknown state`, `active error; cadence not yet overdue`, `no completed sync recorded`, `N min overdue`).
+- `src/lib/crm/digest-read-error.ts` is the only CRM redaction helper with a `Set`-based fail-closed union guard at the runtime boundary, plus dedicated unit tests in `tests/unit/lib/crm/digest-read-error.test.ts`.
+- `src/lib/crm/approval-lifecycle.ts` provides a case-insensitive `normalizedSubjectType` so callers supplying `'LEAD_CONVERSION'`, `'Data_Export'`, or other case variants are no longer misclassified as `'invalid'`; the focused `tests/unit/lib/crm/approval-lifecycle.test.ts` covers 35 tests including the lowercase/title-case matrix.
+- `src/lib/crm/activity-timeline.ts` is the sanitized `agent_actions` insert mapper for `crm_timeline_<event_type>` events; the unrecognized-event-type and decision-event (`approval_approved` / `approval_rejected` / `approval_cancelled` / `approval_expired`) branches are tested.
 
 Safe default:
 
 1. Treat website leads as first-class CRM records, not just email-list subscribers.
-2. Keep the local `crm_leads` migration draft and code path behind sandbox-first discipline before any production application.
-3. Run any schema change through `./scripts/sandbox-wizard.sh apply migration.sql` before promotion.
+2. Keep the local `crm_leads` migration draft and code path behind sandbox-first discipline before any production application. Production application of any CRM/tasks/voice schema must be preceded by an explicit sandbox authority/auth gate and the existing `docs/margot/evidence/SANDBOX_VOICE_TASKS_AUTHORITY_HANDOFF.md` packet.
+3. Run any schema change through `./scripts/sandbox-wizard.sh apply migration.sql` before promotion. Do not run `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` without explicit authority for that exact wizard action.
 4. Preserve SendGrid as a side integration; CRM persistence must not depend on SendGrid success.
 5. Keep tests around validation failure, rate limit, SendGrid failure with CRM capture, CRM insert failure, listing filters, missing env, read failure, and no secret leakage.
 
@@ -222,15 +231,16 @@ npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration
 
 ## Next Implementation Lanes
 
-1. Add route-level event-write tests for lead/contact/opportunity/approval events using the local `agent_actions` mapping in `src/lib/crm/activity-timeline.ts`.
-2. Decide the approval persistence shape (`crm_approvals` vs task subtype) before route writes; the pure local approval lifecycle helper/test now covers requested, approved, rejected, expired/cancelled, and executed states.
-3. Add command-center CRM UI read-surface tests for leads, approvals, opportunities, and daily digest.
-4. Add integration stale-sync threshold tests for Linear/GitHub/Vercel/Supabase mirrors.
+1. Add route-level event-write tests for lead/contact/opportunity/approval events using the local `agent_actions` mapping in `src/lib/crm/activity-timeline.ts`. (Partial coverage already exists in `tests/integration/api/crm-contacts-create.test.ts`, `tests/integration/api/crm-opportunities-create.test.ts`, and `tests/integration/api/control-panel-add-ons.test.ts`; expansion to lead and approval paths remains open.)
+2. Decide the approval persistence shape (`crm_approvals` vs task subtype) before route writes; the pure local approval lifecycle helper/test now covers requested, approved, rejected, expired/cancelled, and executed states, with case-insensitive `normalizedSubjectType` (35 tests). See `docs/margot/crm-approval-persistence-plan.md` for the Stage-1 task-subtype vs Stage-2 dedicated-table decision.
+3. Add command-center CRM UI read-surface tests for leads, approvals, opportunities, and daily digest. (The command-center summary/approval-required cell and digest route tests already pass; deeper UI read-surface tests are still open.)
+4. ~~Add integration stale-sync threshold tests for Linear/GitHub/Vercel/Supabase mirrors.~~ **Completed at 2026-05-23 lane and extended at 2026-06-09 lane**: `src/lib/runtime/stale-sync-check.ts` now handles `last_error` separately, clamps malformed `next_sync_due_at` and `last_sync_completed_at` to `never_synced` / `minutes_overdue=0`, and `tests/unit/lib/runtime/stale-sync-check.test.ts` (11 tests) covers happy-path, `last_error` precedence, missing `next_sync_due_at`, malformed timestamps, never-synced, healthy, and unknown-integration branches.
 5. Add a digest reader linkage test for voice-created `tasks` once the command-center read surface is wired.
 6. Run wider existing client route regression before any `nexus_clients` conversion work.
-7. Recover original migrations or reconstruct sandbox-only migration proposals for `tasks` and `voice_command_sessions` before schema-affecting work.
+7. Recover original migrations or reconstruct sandbox-only migration proposals for `tasks` and `voice_command_sessions` before schema-affecting work. (Sandbox-only migration proposal, validation checklist, review packet, and credential-boundary review exist at `docs/margot/evidence/`; the authority/auth gate to actually `apply` / `status` / `diff` / `sync` is still missing.)
 8. Keep the focused CRM matrix gate, Margot voice gate when touched, `npm run type-check`, and `npm run security:routes-check` green.
 9. Continue Mac Mini recovery only through authenticated SMB/SSH or manual approved export.
+10. Any client-facing send, public publishing, or live semantic-search / live vector / live AI-call change must be preceded by a green AI-RET-001 mocked fixture/answer-shape report (`docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `overallStatus=pass` required) and the updated source-citation / answer-shape contract.
 
 ## Evidence From This Pass
 
@@ -241,3 +251,24 @@ npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration
 - Ran focused Margot voice verification:
   `npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts --runInBand`
 - Result: 3 suites passed, 28 tests passed.
+
+## Out of Scope for This Revision
+
+- New vendor onboarding (including Nango or any third-party connector platform) without explicit Phill approval.
+- Live vector DB reads, embeddings backfill, or live semantic-search / live AI calls against production. Use the AI-RET-001 local harness only.
+- Sandbox wizard `apply` / `status` / `diff` / `sync` / `setup` / `reset` / `promote` without an explicit sandbox authority/auth gate for that exact wizard action. The voice/tasks validation packet is `static_ready_auth_blocked_sandbox_validation_not_run` until that gate changes.
+- GitHub push, merge, PR mutation, or Vercel deploy/env mutation.
+- Production DB writes, migrations, or schema promotion.
+- Public publishing, paid spend, billing/payment action, or client-facing send.
+- Mac Mini credential prompt/read, secret printing/storage, or recursive system-volume scan.
+- Destructive git or cross-client context merge.
+
+## Senior PM verification checkpoint (2026-06-09 20:09 AEST)
+
+- What exists: durable CRM operating model with object dictionary, source-of-truth matrix, identity resolution policy, lead persistence plan, lead qualification and conversion flow, approval/identity gates, daily digest wiring, and the `agent_actions` activity-timeline mapper. All `src/lib/crm/*.ts` modules now have dedicated unit or integration tests: 8 suites covering `activity-timeline`, `approval-lifecycle` (35 tests, case-insensitive `normalizedSubjectType`), `daily-digest` (with the email-only lead `lead <id>` privacy fallback), `digest-edge-cases`, `digest-mappers` (16 tests, the previously-untested mapper positive-coverage lane), `digest-read-error` (3 tests, the only CRM redaction helper with a `Set`-based fail-closed union guard), `qualify-lead`, and `read-daily-digest`. `src/lib/runtime/stale-sync-check.ts` is the only runtime helper outside `src/lib/crm/` with a dedicated unit test file (11 tests, including `last_error` precedence, malformed `next_sync_due_at` clamping, malformed `last_sync_completed_at` -> `never_synced`, missing-cases, never-synced, healthy, and unknown-integration branches). AI-RET-001 7/7 source-citation + 7/7 answer-shape mocked report is `overallStatus=pass`.
+- What has started: 2026-06-09 20:09 AEST docs-only control-surface refresh. No new code, no new schema, no new test, no new vendor, no model swap, no sandbox wizard subcommand, no live vector search, no live AI call, no client-facing send, no public publish.
+- Why it exists: the previous version of this doc was last touched 2026-05-23 11:29 AEST, before the AI-RET-001 mocked fixture/answer-shape/report read-back harness existed, before the case-insensitive `normalizedSubjectType` approval-lifecycle lane, before the dedicated `digest-mappers` positive-coverage suite, before the `logCrmDigestReadError` fail-closed union guard, before the deterministic daily-digest `staleReasonLabel` / `staleReasonDetail` / `normalizedMinutes` helpers, before the stale-sync `last_error` branch + NaN guard, and before the modern binding safety rules. Without this refresh, a future agent could re-derive that "Add integration stale-sync threshold tests" was still a forward lane (it is now complete) and miss the new "any client-facing send requires a green AI-RET-001 mocked report" gate.
+- Missing / unclear / pending external authority: production application of `crm_leads` / `crm_contacts` / `crm_opportunities` / `tasks` / `voice_command_sessions` is still gated on a specific sandbox authority/auth gate; the `tasks` / `voice_command_sessions` sandbox validation packet is `static_ready_auth_blocked_sandbox_validation_not_run`; the voice transcript retention/privacy policy (AI-VOICE-001) is still `blocked_approval`; the Mac Mini authenticated artifact transport is still opportunistic-only (SMB reachable, SSH unreachable, no authenticated non-system mount, 0 recovered Markdown artifacts); the crm-approvals table Stage-2 decision is still deferred until Stage-1 task-subtype evidence is collected; the lead `ip_address` / `user_agent` retention and privacy decision is still pending; live semantic-search threshold changes are still pending a green AI-RET-001 read-back.
+- Current health evidence: focused retrieval-evaluation Jest gate `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` returns 1 suite / 32 tests PASS; combined local CRM + Margot + runtime + credential-boundary gate `npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` returns 11 suites / 156 tests PASS; `npm run type-check` passes; `npm run security:routes-check` reports 0 unprotected mutating routes; `git diff --check` passes before and after status-report updates. AI-RET-001 report is `overallStatus=pass`, `source=7/7`, `answerShape=7/7`, `safetyNotes=true`, `nextSafeAction=true`.
+- Mac Mini state (this tick): `/Volumes` contains only `Macintosh HD`; no authenticated non-system mounted scan root exists; recovered Markdown artifact count remains `0`; `phills-mac-mini.local:445` is reachable (SMB/File Sharing reachable, observed IP `192.168.2.78`); `:22` is unreachable (SSH/Remote Login unavailable from this MacBook session, last verified probe at 2026-06-09 15:55 AEST). Recovery remains blocked on an authenticated SMB mount containing the approved target files, a usable authenticated SSH session, or an approved export. No credential prompt/read, secret printing/storage, or recursive system-volume scan occurred.
+- Smallest next safe action: keep the CRM operating model aligned with the deterministic helper surface, the AI-RET-001 mocked gate, and the sandbox authority/auth gate; rotate to another bounded Senior PM lane (e.g. add another mocked AI-RET-001 answer-shape fixture, add a lead-persistence route read-surface test, or refresh the next unticked control surface) instead of repeatedly revalidating the same blocked DB boundary. Do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until the specific authority/auth gate changes.
