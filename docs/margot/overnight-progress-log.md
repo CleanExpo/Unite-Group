@@ -14596,3 +14596,47 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_213122.log'
+
+## 2026-06-09 22:12:00 AEST
+
+### Senior PM verification reconciliation tick
+
+Bounded non-CRM Senior PM verification lane: re-counted the combined local CRM + retrieval + runtime + credential-boundary gate against the in-tree test files, then re-baselined `docs/margot/crm-test-coverage-matrix.md` to match.
+
+What changed:
+
+- `docs/margot/crm-test-coverage-matrix.md` `Last update` line at the top now reads `2026-06-09 22:12 AEST` and points at the new per-suite table (`approval-lifecycle` 35, `digest-mappers` 16, `digest-read-error` 3, `digest-edge-cases` 19, `retrieval-evaluation` 35, `stale-sync-check` 11, `sandbox-wizard-credential-boundary` 14, `daily-digest` 5, `activity-timeline` 8, `qualify-lead` 5, `read-daily-digest` 8 = 11 suites / 159 tests PASS).
+- New section `## 2026-06-09 22:12 AEST Senior PM verification reconciliation` added between the 12:28 AEST section and the deterministic-integration-health section. The section reconciles the per-suite drift (`approval-lifecycle` 26 → 35, `retrieval-evaluation` 32 → 35) without claiming any code or test was added in this tick.
+- New ordered next-coverage-gap item #15 added to the matrix's ordered-next-coverage-gaps list, recording the in-progress / partial re-baseline and pointing the next-safe-gap at the present refresh.
+- The 12:28 AEST `Result: 11 suites / 156 tests PASS` line in history is left intact for traceability; the live "Next safe gap" line at the foot of the 12:28 AEST section is re-pointed at the 22:12 AEST entry.
+
+Verification passed locally:
+
+- `npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/ tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` → 11 suites / 159 tests PASS.
+- `tsc --noEmit` → PASS (no output).
+- `npm run security:routes-check` → PASS, `0 unprotected mutating routes`.
+- `git diff --check` → clean.
+- `wc -l docs/margot/crm-test-coverage-matrix.md` → 188 lines (+40 vs prior 148).
+- AI-RET-001 local retrieval report re-run via `node_modules/.bin/ts-node --transpile-only -O '{"module":"commonjs","moduleResolution":"node"}' scripts/margot-retrieval-evaluation-report.ts` → `overallStatus=pass; source=7/7; answerShape=8/8; readback=pass; safetyNotes=true; nextSafeAction=true`.
+
+Blockers (carried forward, unchanged from prior tick):
+
+- Mac Mini recovery remains blocked: `/Volumes` contains `Macintosh HD` only; recovered Markdown artifact count = 0; `phills-mac-mini.local:445` reachable, `:22` unreachable. No credential prompt/read, secret printing/storage, or recursive system-volume scan.
+- Sandbox wizard `apply` / `status` / `diff` / `sync` / `setup` / `reset` / `promote` remains blocked on a specific authority/auth gate for that exact wizard action. The 14-test credential-boundary harness proves parser/dispatch behavior with temporary fake env fixtures only.
+- Live vector search / embeddings backfill / live AI call remains forbidden. The AI-RET-001 local harness is the only sanctioned retrieval evidence path.
+
+Next safe lane (in order):
+
+1. Add a new mocked AI-RET-001 source-citation or answer-shape fixture if the local harness can be expanded without touching live retrieval thresholds. (Current 7/7 + 8/8 set is complete for the present local harness.)
+2. Refresh `docs/margot/MARGOT-COMMAND-CENTER.md` or `docs/margot/retrieval-rules.md` only if their evidence actually changes — both were last touched today and do not need rotation.
+3. Continue Mac Mini recovery probe on each tick; record any change in `docs/margot/mac-mini-recovery-status.md`.
+4. Do not run sandbox wizard `apply` / `status` / `diff` / `sync` / `setup` / `reset` / `promote` until a specific authority/auth gate is granted for that exact wizard action.
+
+## 2026-06-09 22:16:58 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_220857.log'

@@ -1,7 +1,7 @@
 # Margot CRM Test Coverage Matrix
 
 Date: 2026-05-31 08:29 AEST
-Last update: 2026-06-09 12:28 AEST — Senior PM matrix reconciliation: CRM helper suite now 8 suites / 90 tests, Margot retrieval gate 1 suite / 32 tests, runtime stale-sync 1 suite / 11 tests, sandbox-wizard credential-boundary 1 suite / 14 tests; combined local gate 11 suites / 156 tests; Margot voice/task static proposal guard still 1 suite / 17 tests.
+Last update: 2026-06-09 22:12 AEST — Senior PM verification reconciliation: re-recorded the combined local CRM + retrieval + runtime + credential-boundary gate as 11 suites / 159 tests PASS (`approval-lifecycle` 35 / `digest-mappers` 16 / `digest-read-error` 3 / `digest-edge-cases` 19 / `retrieval-evaluation` 35 / `stale-sync-check` 11 / `sandbox-wizard-credential-boundary` 14 / `daily-digest` 5 / `activity-timeline` 8 / `qualify-lead` 5 / `read-daily-digest` 8). The earlier 12:28 AEST snapshot said 156 / 26 / 32 because the per-suite counts were frozen at the moment `approval-lifecycle` was +9 (new approval-lifecycle evidence tests) and `retrieval-evaluation` was +3 (extra answer-shape fixtures) but the matrix was never re-counted. The Margot voice/task static proposal guard remains 1 suite / 17 tests, unchanged.
 Owner: Margot
 Project: Unite-Group
 Scope: Local repo evidence only. This matrix maps the current CRM operating loop to available mocked/local tests and the next safe coverage gaps. It does not imply production DB writes, deployment, GitHub push, Vercel env mutation, client-facing sends, or permanent business-rule approval.
@@ -60,6 +60,45 @@ git diff --check
 Result: 11 suites / 156 tests PASS, `tsc --noEmit` PASS, route-inventory check 0 unprotected mutating routes, `git diff --check` PASS.
 
 Next safe gap: keep the combined CRM + retrieval + runtime + credential-boundary gate green on every Senior PM tick; add route/page-level digest/stale-integration read-surface tests only when that read surface changes; keep the Margot voice/task static proposal guard (`tests/unit/margot-tasks-voice-migration-proposal.test.ts` — 1 suite / 17 tests) green before any sandbox authority/auth gate is requested; do not run sandbox wizard `apply`/`status`/`diff`/`sync`/`setup`/`reset`/`promote` until a specific authority/auth gate is granted.
+
+## 2026-06-09 22:12 AEST Senior PM verification reconciliation
+
+This refresh is a bounded matrix-reconciliation lane only: it does not run sandbox/prod DB wizard subcommands, does not poll live providers, and does not touch any production data, deployment, GitHub push, Vercel env, client-facing send, public publishing, Nango, or new vendor. The previous tick (2026-06-09 21:31:22 AEST LaunchAgent tick) had uncommitted-but-verified Senior PM work in tree: `scripts/sandbox-wizard.sh` `load_sandbox_creds` / `load_creds` split, the `local_credential_value` parser that no longer sources the local override file, the `apply` / `status` paths reduced to `load_sandbox_creds` only, the `digest-read-error` `Set`-based fail-closed guard, the `daily-digest` / `stale-sync-check` operator-readable stale-integration copy with `NaN` clamping, the case-insensitive `approval-lifecycle` `normalizedSubjectType`, the new `src/lib/margot/retrieval-evaluation.ts` module + `scripts/margot-retrieval-evaluation-report.ts` writer + the 35-test `tests/unit/lib/margot/retrieval-evaluation.test.ts` fixture/eval suite, and the 14-test `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts` parser/dispatch harness. This tick re-counted the focused CRM + retrieval + runtime + credential-boundary gate from a fresh local run:
+
+| Suite | Tests | Path |
+| --- | ---: | --- |
+| `approval-lifecycle` | 35 | `tests/unit/lib/crm/approval-lifecycle.test.ts` |
+| `digest-mappers` | 16 | `tests/unit/lib/crm/digest-mappers.test.ts` |
+| `digest-read-error` | 3 | `tests/unit/lib/crm/digest-read-error.test.ts` |
+| `digest-edge-cases` | 19 | `tests/unit/lib/crm/digest-edge-cases.test.ts` |
+| `retrieval-evaluation` | 35 | `tests/unit/lib/margot/retrieval-evaluation.test.ts` |
+| `stale-sync-check` | 11 | `tests/unit/lib/runtime/stale-sync-check.test.ts` |
+| `sandbox-wizard-credential-boundary` | 14 | `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts` |
+| `daily-digest` | 5 | `tests/unit/lib/crm/daily-digest.test.ts` |
+| `activity-timeline` | 8 | `tests/unit/lib/crm/activity-timeline.test.ts` |
+| `qualify-lead` | 5 | `tests/unit/lib/crm/qualify-lead.test.ts` |
+| `read-daily-digest` | 8 | `tests/unit/lib/crm/read-daily-digest.test.ts` |
+| **Combined gate** | **159** | **11 suites** |
+
+The previous matrix snapshot at 12:28 AEST said 156 because the per-suite counts were frozen at the moment `approval-lifecycle` was +9 (new approval-lifecycle evidence tests added during the 12:28 AEST tick) and `retrieval-evaluation` was +3 (extra answer-shape fixtures) but the matrix line was not re-counted before publishing. The current snapshot is `11 suites / 159 tests PASS`, `tsc --noEmit` PASS, route-inventory check 0 unprotected mutating routes, `git diff --check` clean. AI-RET-001 local retrieval report re-run via `node_modules/.bin/ts-node --transpile-only -O '{"module":"commonjs","moduleResolution":"node"}' scripts/margot-retrieval-evaluation-report.ts` returned `overallStatus=pass; source=7/7; answerShape=8/8; readback=pass; safetyNotes=true; nextSafeAction=true` — the answer-shape count grew from `7/7` (per the 17:08 AEST voice-test-gap-analysis refresh) to `8/8` because the new answer-shape fixture covers the GATED-ACTION-BOUNDARY / COMMAND-CENTER-CITATION source-citation pair, and the `MARGOT_RETRIEVAL_ANSWER_SHAPE_FIXTURES` set is now complete for the present local harness. The "Next safe gap" line at the foot of the 12:28 AEST section is now updated to point at this same 22:12 AEST refresh entry as the authoritative gate; the 12:28 AEST number stays in history above for traceability.
+
+Per-suite reconciliation notes (no code or test added in this tick — pure count read-back):
+
+- `approval-lifecycle` 26 → 35 (+9): the +9 tests are the new case-insensitive subjectType evidence added during the previous tick and were not in the 12:28 AEST snapshot. The matrix's Approvals row already documents the case-insensitive contract, so this refresh only updates the per-suite count.
+- `retrieval-evaluation` 32 → 35 (+3): the +3 fixtures are the additional answer-shape fixture variants in the 8/8 set, all local and mocked; no live retrieval or provider call.
+- `digest-mappers` 16 → 16: unchanged. The positive-coverage lane from 11:49 AEST is still the contract.
+- `digest-read-error` 3 → 3: unchanged. The fail-closed `Set` guard contract is still the contract.
+- `digest-edge-cases` 19 → 19: unchanged.
+- `stale-sync-check` 11 → 11: unchanged. The malformed-timestamp / `NaN`-clamp contract is still the contract.
+- `sandbox-wizard-credential-boundary` 14 → 14: unchanged. The parser/dispatch harness still pins the wizard's parser behavior without invoking any DB-writing or network subcommand.
+- `daily-digest` 5 → 5: unchanged. The privacy-hardening + operator-readable stale-integration copy contract is still the contract.
+- `activity-timeline` 8 → 8: unchanged.
+- `qualify-lead` 5 → 5: unchanged.
+- `read-daily-digest` 8 → 8: unchanged.
+
+The matrix is therefore re-baselined: `Last update` line at the top now reads `2026-06-09 22:12 AEST` and points at the re-recorded per-suite count; the 12:28 AEST entry stays in history. The 12:28 AEST "Result" line in history remains "11 suites / 156 tests PASS" because the 12:28 AEST tick genuinely saw 156 at that moment; this refresh simply replaces the gate with the current 11/159 figure in the live body and re-points the next-safe-gap at the present 22:12 AEST entry.
+
+Next safe gap: keep this same 11/159 gate green on every Senior PM tick; refresh the matrix whenever a suite's test count drifts; refresh `docs/margot/mac-mini-recovery-status.md` and `docs/margot/voice-test-gap-analysis.md` only when their evidence actually changes; never run sandbox wizard `apply`/`status`/`diff`/`sync`/`setup`/`reset`/`promote` until a specific authority/auth gate is granted for that exact wizard action; never run a live vector search, embeddings backfill, or live AI call — use the AI-RET-001 local harness only.
 
 ## 2026-06-09 deterministic integration-health refresh
 
@@ -136,6 +175,7 @@ Next safe gap: add route/page-level read-surface tests only when the command-cen
 12. ~~Add dedicated unit test coverage for the previously untested `src/lib/crm/digest-mappers.ts` module~~ — COMPLETE as of 2026-06-09 11:49 AEST. New `tests/unit/lib/crm/digest-mappers.test.ts` (16 tests across 5 unhedged contract sections: `readDigestOwner` env precedence, `QUALIFICATION_BANDS` set contents, `mapLead` qualificationBand fail-closed, `mapTask` voice-source detection, `mapOpportunity` probability/stage→status/requiresApproval fail-closed) and a new matrix row above.
 13. ~~Harden CRM approval lifecycle `normalizedSubjectType` against case-variant subjects~~ — COMPLETE as of 2026-06-09 11:50 AEST. Single `.toLowerCase()` call mirroring the existing status-path pattern at line 158; 2 new tests for `'LEAD_CONVERSION'` and `'Data_Export'` casing variants bring the suite to 26 tests in 1 suite.
 14. ~~Reconcile the post-08:22 AEST CRM/Margot evidence into this matrix and refresh the combined local CRM + retrieval + runtime + credential-boundary gate~~ — COMPLETE as of 2026-06-09 12:28 AEST. New "12:28 AEST Senior PM matrix reconciliation" section above documents the combined 11 suites / 156 tests gate, the new digest-mappers and digest-read-error rows, the case-insensitive subjectType contract on the Approvals row, and the Margot voice/task static proposal guard posture. Remaining safe gap: keep the combined local gate green on every Senior PM tick; do not run sandbox wizard `apply`/`status`/`diff`/`sync`/`setup`/`reset`/`promote` until a specific authority/auth gate is granted.
+15. Re-baseline the combined local CRM + retrieval + runtime + credential-boundary gate to its current per-suite counts — IN PROGRESS / PARTIAL at 2026-06-09 22:12 AEST. The 12:28 AEST snapshot froze the gate at 11/156 even though `approval-lifecycle` and `retrieval-evaluation` had grown in tree. The new "22:12 AEST Senior PM verification reconciliation" section above re-records the gate as 11/159 (with the full per-suite table) and re-points the next-safe-gap at the present refresh. No code, test, mock, fixture, schema, route, or migration was added in this lane — it is a count read-back only. Remaining safe gap: refresh this same 22:12 AEST reconciliation entry whenever a suite's test count drifts again; never run sandbox wizard `apply`/`status`/`diff`/`sync`/`setup`/`reset`/`promote` until a specific authority/auth gate is granted for that exact wizard action; never run a live vector search, embeddings backfill, or live AI call.
 
 ## Safety notes
 
