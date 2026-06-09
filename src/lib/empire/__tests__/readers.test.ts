@@ -20,6 +20,7 @@ import { readActivityFeed } from '../read-activity-feed';
 import { readBusiness360 } from '../read-business-360';
 import { readAgentTopology } from '../read-agent-topology';
 import { readDataRoomHealth } from '../read-data-room-health';
+import { readAuthorityIntelligence } from '../read-authority-intelligence';
 
 beforeEach(() => {
   mockState.current = { rows: {} };
@@ -227,6 +228,48 @@ describe('readAgentTopology', () => {
     const pm = out?.nodes.find((n) => n.id === 'pm-core');
     expect(margot?.state).toBe('blocked-on-you');
     expect(pm?.state).toBe('running');
+  });
+});
+
+describe('readAuthorityIntelligence', () => {
+  it('returns missing wrapper state with empty wiki_pages', async () => {
+    const out = await readAuthorityIntelligence();
+    expect(out).not.toBeNull();
+    expect(out?.wrapperStatus).toBe('missing');
+    expect(out?.approvalGates.length).toBeGreaterThan(0);
+  });
+
+  it('maps Authority Intelligence wiki_pages into the Command Center panel contract', async () => {
+    mockState.current = {
+      rows: {
+        wiki_pages: [
+          {
+            id: 'authority-intelligence/nexus-authority-intelligence-wrapper-implementation-2026-06-09',
+            title: 'Nexus Authority Intelligence Wrapper — Implementation Architecture',
+            content: 'status: proposed-for-build\napproval_gate: no public publishing without approval',
+            updated_at: '2026-06-09T01:00:00Z',
+          },
+          {
+            id: 'authority-intelligence/opportunity-radar/daily/2026-06-09-daily-opportunity-radar-test.md',
+            title: 'Daily Opportunity Radar — Test Signal',
+            content: '3 material signal(s) found',
+            updated_at: '2026-06-09T02:00:00Z',
+          },
+        ],
+      },
+    };
+
+    const out = await readAuthorityIntelligence();
+    expect(out?.wrapperStatus).toBe('active');
+    expect(out?.assetsAwaitingReview).toBe(1);
+    expect(out?.materialSignals).toBeGreaterThan(0);
+    expect(out?.signals[0].source).toBe('wiki_pages');
+  });
+
+  it('returns null when wiki_pages fails', async () => {
+    mockState.current = { rows: {}, errors: new Set(['wiki_pages']) };
+    const out = await readAuthorityIntelligence();
+    expect(out).toBeNull();
   });
 });
 

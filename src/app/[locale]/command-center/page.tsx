@@ -18,6 +18,7 @@ import { readAgentTopology } from '@/lib/empire/read-agent-topology';
 import { readDataRoomHealth } from '@/lib/empire/read-data-room-health';
 import { readCrmDailyDigestForCommandCenter } from '@/lib/crm/read-daily-digest';
 import { toCommandCenterDailyDigestInitial } from '@/components/command-center/daily-digest-initial';
+import { readAuthorityIntelligence } from '@/lib/empire/read-authority-intelligence';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,6 +46,7 @@ export default async function CommandCenterPage({
     topology,
     dataRoomHealth,
     dailyDigest,
+    authority,
   ] = await Promise.all([
     readPortfolioSummary(),
     readGlobalStatus(),
@@ -53,6 +55,7 @@ export default async function CommandCenterPage({
     readAgentTopology(),
     readDataRoomHealth(),
     readCrmDailyDigestForCommandCenter(),
+    readAuthorityIntelligence(),
   ]);
 
   return (
@@ -104,6 +107,7 @@ export default async function CommandCenterPage({
           : undefined
       }
       dailyDigestInitial={toCommandCenterDailyDigestInitial(dailyDigest)}
+      authorityInitial={authority ?? undefined}
     />
   );
 }

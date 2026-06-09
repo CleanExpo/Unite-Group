@@ -43,6 +43,7 @@ export function makeMockSupabase(state: ReaderMockState) {
       eq: (...args: unknown[]) => { record('eq', args); return c; },
       in: (...args: unknown[]) => { record('in', args); return c; },
       gte: (...args: unknown[]) => { record('gte', args); return c; },
+      or: () => c,
       not: (...args: unknown[]) => { record('not', args); return c; },
       order: (...args: unknown[]) => { record('order', args); return c; },
       limit: (...args: unknown[]) => { record('limit', args); return c; },

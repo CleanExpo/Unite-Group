@@ -22,6 +22,7 @@ import { MargotVoicePanel } from './voice/MargotVoicePanel';
 import { HermesControlPanel } from './control-panel/HermesControlPanel';
 import { DailyCrmDigestPanel } from './digest/DailyCrmDigestPanel';
 import type { CommandCenterDailyDigestInitial } from './daily-digest-initial';
+import { AuthorityIntelligencePanel, type AuthorityIntelligencePanelProps } from './AuthorityIntelligencePanel';
 
 export interface CommandCenterShellProps {
   /**
@@ -62,6 +63,11 @@ export interface CommandCenterShellProps {
    * Full digest markdown must stay server-only.
    */
   dailyDigestInitial?: CommandCenterDailyDigestInitial;
+  /**
+   * Optional Authority Intelligence props injected by the server-rendered page.
+   * When provided, Nexus shows the active wiki_pages-backed wrapper and gates.
+   */
+  authorityInitial?: AuthorityIntelligencePanelProps;
 }
 
 export function CommandCenterShell({
@@ -72,6 +78,7 @@ export function CommandCenterShell({
   business360Initial,
   dailyDigestInitial,
   topologyInitial,
+  authorityInitial,
 }: CommandCenterShellProps) {
   return (
     <div
@@ -94,6 +101,7 @@ export function CommandCenterShell({
           className="command-center-side-rail flex flex-col"
         >
           <MargotVoicePanel />
+          <AuthorityIntelligencePanel {...authorityInitial} />
           <Business360Grid locale={locale} {...business360Initial} />
           <DailyCrmDigestPanel {...dailyDigestInitial} />
           <ActivityLog {...activityInitial} />
