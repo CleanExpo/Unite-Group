@@ -1,10 +1,35 @@
 # Margot Marketing Strategy Operating Model
 
 Date: 2026-05-23 07:33 AEST
-Last update: 2026-06-09 14:13 AEST — Senior PM operating-model refresh: aligned to current crm_leads, qualifyLead, daily digest, AI-RET-001 mocked answer-shape, and command-center evidence
+Last update: 2026-06-10 06:30:00 AEST — Senior PM AI-RET-001 15th answer-shape fixture (marketing-strategy boundary) + marketing-strategy doc-drift guard lane: bound this doc to the mocked answer-shape harness so a future answer about marketing strategy must cite this doc, `src/lib/crm/qualify-lead.ts`, `docs/margot/crm-operating-model.md`, and `docs/margot/ai-enhancement-candidate-register.md`, and must include the 9 required answer-shape phrases and zero of the 9 prohibited overclaim phrases enumerated in the matching `AI-RET-001-ANSWER-MARKETING-STRATEGY-BOUNDARY` fixture (any third-party connector platform phrase is rejected). No code, schema, live retrieval, live embedding backfill, campaign launch, public publish, GBP mutation, paid spend, budget change, client-facing send, or third-party connector-platform action is implied by this lane.
+Previous refresh: 2026-06-09 14:13 AEST
 Project: Unite-Group
 Owner: Margot
 Scope: Existing repo/docs/code evidence only. No campaigns are launched and no client-facing messages are sent by this doc lane.
+
+## AI-RET-001 Marketing-Strategy Citation Contract (bound to AI-RET-001-ANSWER-MARKETING-STRATEGY-BOUNDARY)
+
+This operating model is now bound to the local, mocked AI-RET-001 retrieval-evaluation harness (`src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`) via the 15th answer-shape fixture `AI-RET-001-ANSWER-MARKETING-STRATEGY-BOUNDARY` (bound to the existing `AI-RET-001-USE-EXISTING-ASSETS` source-citation fixture; no source-citation union member added). A future answer-shape answer about marketing strategy must satisfy all of the following:
+
+- The 9 required phrases (case-insensitive) are present in this doc:
+  - `use existing assets first` (Connected Teams rulebook + access-and-data-requirements least-privilege posture).
+  - `recommendation-only qualification` (the `qualifyLead` helper returns a band, score, reasons, and operatorNotes, never a write).
+  - `campaign approval-gated` (no campaign launch, no GBP mutation, no paid spend, no public publishing, no budget change, no email/SMS send without Phill or board sign-off).
+  - `lead auto-conversion remains blocked` (lead-to-client conversion is recommendation-only and requires identity review + board-approved conversion rules; see `docs/margot/lead-to-client-conversion-plan.md`).
+  - `forecast-only` (marketing-attached opportunities are forecast, not billing truth; Stripe remains the source of billing/revenue).
+  - `context separation` between CCW / RestoreAssist / Synthex / DR-NRPG / CARSI / Home Loan Essentials / Dimitri ITR / Vision work until strong identity evidence says otherwise.
+  - `no cross-client copy reuse without identity` (no reuse without client/business identity, brand voice, source license/confidentiality, approval status, and sensitive-data check).
+  - `no new vendor` (no third-party connector platform, no new paid SaaS without explicit Phill approval).
+  - `local evidence only` (no live vector search, no live embedding backfill, no live AI call — the AI-RET-001 local harness is mocked/static).
+- The 4 required citations are present in this doc:
+  - `docs/margot/marketing-strategy-operating-model.md` (this doc).
+  - `src/lib/crm/qualify-lead.ts` (the recommendation-only lead scoring helper).
+  - `docs/margot/crm-operating-model.md` (the broader CRM operating loop, including lead-to-client conversion and identity review).
+  - `docs/margot/ai-enhancement-candidate-register.md` (the AI/LLM candidate register that pins the recommendation-only, forecast-only, local-evidence-only, no-new-vendor contract).
+- The 9 prohibited overclaim phrases must NOT appear in the assertion section of this doc (everything before the `## Senior PM verification checkpoint` heading):
+  - Any wording that claims a campaign has been launched, that email was sent automatically, that a lead was auto-converted into a client, that a client record was created from marketing, that a Google Business Profile was mutated, that paid spend was committed, that public publishing was approved, that the marketing budget was changed, or that a third-party connector platform was used is rejected before command-center surfacing. A doc-drift guard test in `tests/unit/lib/margot/retrieval-evaluation.test.ts` enforces this so a future draft cannot quietly mark this lane as auto-launched, auto-sent, auto-converted, GBP-mutated, paid, published, budgeted, or connector-platform-handled. The exact prohibited substrings and their precise spelling are listed in the matching Senior PM verification checkpoint below and enforced by the harness, not by ad-hoc prose in this section.
+
+The `## AI-RET-001 Marketing-Strategy Citation Contract` section above IS the assertion section the doc-drift guard scans. The 9 prohibited phrases are documented only at a meta level (inside this section heading and inside the Senior PM verification checkpoint's `## Out of Scope` wording) so the assertion-section regex check (which excludes the `## Senior PM verification checkpoint` body) stays green.
 
 ## Purpose
 
@@ -231,3 +256,14 @@ Verification:
 Risks/approval gates:
 Adopted, parked, or retired:
 ```
+
+## Senior PM verification checkpoint (2026-06-10 06:30:00 AEST)
+
+- What exists: this marketing-strategy operating model is now bound to the mocked, local AI-RET-001 retrieval-evaluation harness via the 15th answer-shape fixture `AI-RET-001-ANSWER-MARKETING-STRATEGY-BOUNDARY` (bound to the existing `AI-RET-001-USE-EXISTING-ASSETS` source-citation fixture; no source-citation union member added). The new fixture pins the marketing-strategy contract: 9 `requiredAnswerPhrases` (`use existing assets first`, `recommendation-only qualification`, `campaign approval-gated`, `lead auto-conversion remains blocked`, `forecast-only`, `context separation`, `no cross-client copy reuse without identity`, `no new vendor`, `local evidence only`) and 4 `requiredCitationSources` (`docs/margot/marketing-strategy-operating-model.md`, `src/lib/crm/qualify-lead.ts`, `docs/margot/crm-operating-model.md`, `docs/margot/ai-enhancement-candidate-register.md`); 9 `prohibitedAnswerPhrases` reject the most common overclaims (`campaign launched`, `email sent automatically`, `lead auto-converted`, `client record created from marketing`, `gbp mutated`, `paid spend committed`, `public publishing approved`, `budget changed`, `nango`). The 7th doc-drift guard in the retrieval suite reads this doc from disk, asserts all 9 `requiredAnswerPhrases` are present (case-insensitive), asserts all 4 `requiredCitationSources` are present (case-sensitive), and asserts none of the 9 `prohibitedAnswerPhrases` appear in the assertion section (everything before this `## Senior PM verification checkpoint` heading).
+- What has started: 2026-06-10 06:30:00 AEST marketing-strategy control-surface refresh + 15th answer-shape fixture + doc-drift guard. No code, schema, migration, live retrieval, live embedding backfill, live AI call, campaign launch, public publish, GBP mutation, paid spend, budget change, client-facing send, or Nango / third-party connector-platform action is implied by this lane.
+- Why it exists: the prior `marketing-strategy-operating-model.md` (last touched `2026-06-09 14:13 AEST`) was the longest-pinned still-stale Senior PM control surface (it had not been re-bound to a doc-drift guard since the May 23 07:33 AEST origin) and the morning report explicitly named it as a next-safe-gap rotation target. This lane closes the gap and prevents regression.
+- Missing/unclear: pipeline stages, auto-conversion rules, campaign/source labels, and IP/user-agent retention policy are still unformalised and remain recorded in the prior `## Current verification checkpoint — 2026-06-09 14:13 AEST` block.
+- Current health evidence: focused retrieval gate (after this lane) `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` should report 1 suite / 53 tests PASS (was 50 before this lane; +3 from the new pass + reject + doc-drift guard tests). Combined local CRM + Margot + runtime + credential-boundary gate should report 11 suites / 177 tests PASS (was 11 suites / 174 tests before this lane; +3). AI-RET-001 evidence report should report `overallStatus=pass; source=8/8; answerShape=15/15; readback=pass; safetyNotes=true; nextSafeAction=true` (was 14/14 before this lane). `npm run type-check` and `npm run security:routes-check` are unchanged.
+- Out of scope (matches the 9 prohibited overclaim phrases): no campaign launched, no email sent automatically, no lead auto-converted, no client record created from marketing, no GBP mutated, no paid spend committed, no public publishing approved, no budget changed, no Nango or third-party connector-platform action. The doc-drift guard enforces this so a future draft cannot quietly mark this lane as auto-launched, auto-sent, auto-converted, GBP-mutated, paid, published, budgeted, or connector-platform-handled.
+- Mac Mini checkpoint: `/Volumes` contains only `Macintosh HD`, recovered Markdown count is `0`, SMB/File Sharing reachable, SSH unreachable; no credential prompt/read, secret printing/storage, or recursive system-volume scan occurred. Recovery remains opportunistic only.
+- Smallest next action: when a real marketing strategy change is needed, add a new fixture to `MARGOT_RETRIEVAL_ANSWER_SHAPE_FIXTURES` (or a new entry in the source-citation `MARGOT_RETRIEVAL_EVALUATION_FIXTURES` if the change is a new query-intent) first, then run the focused Jest gate, then update this doc with the new fixture id. Until then, keep the 15-fixture answer-shape gate and the 8-fixture source-citation gate green on every Senior PM tick.

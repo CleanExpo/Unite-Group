@@ -1,4 +1,50 @@
 # Margot Overnight Progress Log
+## 2026-06-10 06:47:00 AEST
+
+### AI-RET-001 15th answer-shape fixture (marketing-strategy boundary) + marketing-strategy doc-drift guard + marketing-strategy control-surface refresh
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs, Command Center, retrieval rules, Mac Mini recovery status, overnight progress log, morning report, current repo state, AI-RET-001 evidence report, AI candidate register, the inherited retrieval-evaluation harness (50 tests before this lane; 14 answer-shape fixtures + 8 source-citation fixtures), and the inherited `marketing-strategy-operating-model.md` control surface (last touched `2026-06-09 14:13 AEST`; bound to the May 23 07:33 AEST origin).
+- Read-back: AI-RET-001 evidence report at `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` reported `overallStatus=pass; source=8/8; answerShape=14/14` as of the 2026-06-10 05:11:00 AEST runner pass; this lane adds the 15th answer-shape fixture + 3 new tests (pass + reject + doc-drift guard), so the next pass should report `answerShape=15/15` and the focused suite should report 53 tests.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `aa5a725` (sandbox-wizard auto-sync commit `aa5a725 chore: Margot ops auto-sync [tick 20260610_054827]` is the current head; `git rev-list --count main..origin/main` returned `0` so the local main is in sync with origin). Inherited local dirty state is unchanged from the prior tick: the sandbox-wizard credential-boundary lane, the prior CRM redaction / approval-lifecycle / digest-mappers TDD lanes, the untracked Margot retrieval-evaluation harness, the deterministic stale-sync / daily-digest changes, the prior voice task route end-to-end chain-linkage TDD closure, the prior voice UI panel state-machine TDD closure, and the prior retrieval-rules-drift doc-drift guard lane.
+- Safe Senior PM TDD + doc-drift-guard + control-surface-refresh lane completed: closed the last long-pinned still-stale Senior PM control surface by binding `docs/margot/marketing-strategy-operating-model.md` to the mocked answer-shape harness. The 15th answer-shape fixture `AI-RET-001-ANSWER-MARKETING-STRATEGY-BOUNDARY` (bound to the existing `AI-RET-001-USE-EXISTING-ASSETS` source-citation fixture; no source-citation union member added) pins the marketing-strategy contract: 9 `requiredAnswerPhrases` (`use existing assets first`, `recommendation-only qualification`, `campaign approval-gated`, `lead auto-conversion remains blocked`, `forecast-only`, `context separation`, `no cross-client copy reuse without identity`, `no new vendor`, `local evidence only`) and 4 `requiredCitationSources` (`docs/margot/marketing-strategy-operating-model.md`, `src/lib/crm/qualify-lead.ts`, `docs/margot/crm-operating-model.md`, `docs/margot/ai-enhancement-candidate-register.md`); 9 `prohibitedAnswerPhrases` reject `campaign launched`, `email sent automatically`, `lead auto-converted`, `client record created from marketing`, `gbp mutated`, `paid spend committed`, `public publishing approved`, `budget changed`, and `nango` / third-party connector platform. The 7th doc-drift guard in the retrieval suite reads the doc from disk, asserts all 9 `requiredAnswerPhrases` are present (case-insensitive), all 4 `requiredCitationSources` are present (case-sensitive), and none of the 9 `prohibitedAnswerPhrases` appear in the assertion section (everything before `## Senior PM verification checkpoint`). `MargotRetrievalAnswerShapeFixtureId` was extended from 14 to 15 union members so the new fixture is type-safe. The doc body was refreshed to `Last update: 2026-06-10 06:30:00 AEST`, a new `## AI-RET-001 Marketing-Strategy Citation Contract` section was added pinning the 9 required phrases + 4 required citations + 9 prohibited phrases, and a new `## Senior PM verification checkpoint (2026-06-10 06:30:00 AEST)` block was added at the end so the doc-drift guard has a clean assertion-section split.
+- New AI-RET-001 fixture expansion: added a new answer-shape fixture `AI-RET-001-ANSWER-MARKETING-STRATEGY-BOUNDARY` to the Margot retrieval-evaluation harness, bound to the existing `AI-RET-001-USE-EXISTING-ASSETS` source-citation fixture (no source-citation union member added; the marketing-strategy doc already had use-existing-assets source-citation coverage). The expansion grows the answer-shape gate from 14 to 15 fixtures while keeping the source-citation gate at 8. The new fixture pins the marketing-strategy contract (9 required phrases + 4 required citations + 9 prohibited phrases). The report runner's default answers map was updated so the runner reports `answerShape=15/15` for the new fixture, and the candidate register was updated with a new answer-shape fixture contract row + an expanded prose paragraph that names the 15th fixture's contract and the new marketing-strategy overclaim rejection.
+- Doc-drift guard test added: a new focused Jest test in `tests/unit/lib/margot/retrieval-evaluation.test.ts` (`keeps the marketing-strategy source doc aligned with the AI-RET-001 marketing-strategy answer-shape contract`) reads `docs/margot/marketing-strategy-operating-model.md` from disk, asserts all 9 `requiredAnswerPhrases` are present (case-insensitive), asserts all 4 `requiredCitationSources` are present (case-sensitive), and asserts none of the 9 `prohibitedAnswerPhrases` appear in the assertion section (everything before `## Senior PM verification checkpoint`). This is the 7th doc-drift guard in the retrieval suite (after lead-to-client plan, command-center, daily-digest template, contacts-and-opportunities, crm-approval-persistence, crm-schema-inventory, and digest-mappers) and the first to bind the marketing-strategy control surface.
+- Verification passed locally: focused retrieval gate `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` returned 1 suite / 53 tests PASS (was 50 before this lane; +3 from the new marketing-strategy pass + reject + doc-drift guard tests). Combined local CRM + Margot + runtime + credential-boundary gate `npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` returned 11 suites / 177 tests PASS (was 11 suites / 174 tests before this lane; +3). `npm run type-check` passed. `npm run security:routes-check` reported 0 unprotected mutating routes. `git diff --check` clean. Re-ran the AI-RET-001 report runner: `overallStatus=pass; source=8/8; answerShape=15/15; readback=pass; safetyNotes=true; nextSafeAction=true`. AI-RET-001 evidence report regenerated at `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (now 55 lines; lists the new `AI-RET-001-ANSWER-MARKETING-STRATEGY-BOUNDARY` row at `pass`). Voice test counts unchanged: focused Margot voice suite remains 4 suites / 47 tests.
+- Blocked/gated lane: the `tasks` / `voice_command_sessions` sandbox validation packet, the credential-boundary patch, the future `crm_contacts` / `crm_opportunities` / `crm_leads` production promotion, and any future `crm_approvals` migration apply/promote remain locally ready/static, but cannot advance to sandbox apply/status/diff/sync/promote, production promotion, or live RLS/service-role/constraint verification without a specific sandbox authority/auth gate.
+- Mac Mini recovery remains opportunistic only: `/Volumes` contains only `Macintosh HD`; no non-system authenticated scan root exists; SMB/File Sharing is reachable (port `445` open, IP `192.168.2.78`), SSH is unavailable (the most recent probe at `2026-06-10 05:11:00 AEST` confirmed `nc` exit `0` for `:445` and exit `1` for `:22`; this tick did not re-run the probe to honour the rotation guard), and no recovered Markdown artifacts are present.
+- Files changed this tick (code+test+doc, no schema, no production, no GitHub push, no Vercel env mutation, no sandbox wizard subcommand): `src/lib/margot/retrieval-evaluation.ts` (added new answer-shape fixture + extended `MargotRetrievalAnswerShapeFixtureId` type to 15 members), `scripts/margot-retrieval-evaluation-report.ts` (added new entry to the default answers map so the runner reports `answerShape=15/15`), `tests/unit/lib/margot/retrieval-evaluation.test.ts` (added new entry to the pinned-fixture list + bumped 14->15 fixture-count assertion in the pins-mocked test + bumped 14->15 in the can-evaluate-all test + added new entry to the static answer maps in the pins/can-evaluate/read-back tests + added 3 new tests: passes marketing-strategy answer shape only when use-existing-assets/recommendation-only qualification/campaign approval/forecast-only/context separation/no new vendor/citations are present, rejects marketing-strategy answer shape when it overclaims campaign launch/lead auto-conversion/GBP mutation/paid spend/public publishing, keeps the marketing-strategy source doc aligned with the AI-RET-001 marketing-strategy answer-shape contract), `docs/margot/marketing-strategy-operating-model.md` (added `## AI-RET-001 Marketing-Strategy Citation Contract` section + `## Senior PM verification checkpoint` block + refreshed `Last update: 2026-06-10 06:30:00 AEST` + `Previous refresh: 2026-06-09 14:13 AEST` pointer; now 269 lines, was 233; +36 lines), `docs/margot/ai-enhancement-candidate-register.md` (date refreshed to `2026-06-10 06:47:00 AEST`; new marketing-strategy boundary row in the 5-row sub-table and the 8-row sub-table; updated count lines; expanded prose paragraph), `docs/margot/crm-test-coverage-matrix.md` (date refreshed to `2026-06-10 06:47:00 AEST`, new per-suite-count block, new ordered next-coverage-gap item), `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (regenerated by the runner; lists the new `AI-RET-001-ANSWER-MARKETING-STRATEGY-BOUNDARY` row at `pass`), `docs/margot/mac-mini-recovery-status.md` (newest probe heading updated to `2026-06-10 06:47:00 AEST`; contents unchanged from prior tick), `docs/margot/MARGOT-COMMAND-CENTER.md` (this rotation guard entry), `docs/margot/overnight-progress-log.md` (this entry), `docs/margot/morning-report.md` (new current block at top).
+
+Verification:
+
+```bash
+# Focused retrieval gate
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 53 tests (was 50 before this lane; +3).
+
+# Combined local CRM + Margot + runtime + credential-boundary gate
+npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: 11 suites / 177 tests (was 11 suites / 174 tests before this lane; +3).
+
+npm run type-check
+# PASS: tsc --noEmit completed.
+
+npm run security:routes-check
+# PASS: route-inventory check reported 0 unprotected mutating routes.
+
+git diff --check
+# PASS: exited 0 before and after status-report updates.
+
+# AI-RET-001 local report runner
+npx ts-node --transpile-only -O '{"module":"commonjs","moduleResolution":"node"}' scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=15/15; readback=pass; safetyNotes=true; nextSafeAction=true.
+
+# Doc phrase + citation + prohibited phrase check
+node -e "const fs = require('fs'); const doc = fs.readFileSync('docs/margot/marketing-strategy-operating-model.md', 'utf8').toLowerCase(); const phrases = ['use existing assets first', 'recommendation-only qualification', 'campaign approval-gated', 'lead auto-conversion remains blocked', 'forecast-only', 'context separation', 'no cross-client copy reuse without identity', 'no new vendor', 'local evidence only']; for (const p of phrases) { console.log(p, '=>', doc.indexOf(p) >= 0 ? 'FOUND at ' + doc.indexOf(p) : 'MISSING'); }"
+# All 9 required phrases present in lowercased marketing-strategy doc.
+```
+
 ## 2026-06-10 05:11:00 AEST
 
 ### AI-RET-001 14th answer-shape fixture (retrieval-rules-drift contract) + retrieval-rules policy-doc refresh + doc-drift guard
@@ -15229,3 +15275,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_054827.log'
+
+## 2026-06-10 06:52:47 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_063506.log'

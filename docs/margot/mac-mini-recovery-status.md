@@ -3,7 +3,7 @@
 Date: 2026-05-22
 Project: `/Users/phillmcgurk/Unite-Group`
 
-## Latest probe (2026-06-10 05:11:00 AEST — Senior PM AI-RET-001 14th answer-shape fixture (retrieval-rules-drift contract) + retrieval-rules policy-doc refresh + doc-drift guard tick)
+## Latest probe (2026-06-10 06:47:00 AEST — Senior PM AI-RET-001 15th answer-shape fixture (marketing-strategy boundary) + marketing-strategy doc-drift guard lane)
 
 - `/Volumes` contains only `Macintosh HD`; no non-system authenticated scan root exists; recovered Markdown artifact count remains `0`.
 - `phills-mac-mini.local:445` is reachable (SMB/File Sharing reachable; IP `192.168.2.78`).
