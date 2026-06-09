@@ -14041,3 +14041,71 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_130011.log'
+
+## 2026-06-09 13:40 AEST
+
+### Senior PM Client 2nd Brain model refresh (docs-only)
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs, Command Center, retrieval rules, Mac Mini recovery status, overnight progress log, morning report, and current repo state.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `d43c519`, `main...origin/main [ahead 72]`. The inherited local dirty work remains unchanged from the 13:05 AEST tick: the sandbox-wizard credential-boundary lane, the prior CRM redaction / approval-lifecycle / digest-mappers / digest-read-error TDD lanes, the runtime stale-sync lane, the new Margot retrieval-evaluation fixtures/harness, and the sandbox-wizard credential-boundary test.
+- Confirmed the 2026-05-23 `docs/margot/client-second-brain-model.md` was now stale: it still claimed "no live CRM row verified in this doc-only lane" and "no `crm_contacts` proposal" even though `supabase/migrations/20260523100000_crm_leads.sql` and `supabase/migrations/20260523103000_crm_contacts_opportunities.sql` are now in tree.
+- Bounded docs-only refresh of `docs/margot/client-second-brain-model.md`:
+  - Updated the doc header to `2026-06-09 13:42 AEST (refresh: post-2026-06-09 schema reconciliation)` and added an explicit refresh note that names the two local migrations that close the prior `crm_contacts` / `crm_leads` gaps and points at the sandbox-wizard as the only sanctioned promotion path.
+  - Replaced the `Current local anchors` table with a row per verified migration-backed table (`nexus_clients`, `businesses`, `crm_leads`, draft `crm_contacts`, draft `crm_opportunities`, `agent_actions`, `integration_*` mirrors, repo docs/SOWs) listing the migration source, the strong-key columns actually present, and the remaining gap (sandbox-wizard apply/diff not authorised, no contact create/link route, no dedupe policy, no client-mixing abort tests, no command-center/digest readers, `agent_actions.client_id` FK mismatch with `nexus_clients`).
+  - Added a new section `Verified profile-to-table mapping (post-2026-06-09)` that maps every field of the canonical client/business profile YAML to the verified local table/column, including `identity.status` (both `crm_leads.status` and `nexus_clients.status` enums), all `strong_keys.*`, `commercial.opportunity_stage` to draft `crm_opportunities.stage`/`status`, `projects.active_projects` / `projects.linear_project_ids` to `nexus_clients.linear_project_id` + `businesses.linear_project_id` + `integration_linear_*` mirror, `risks` / `decisions` to `tasks` approval-required + future `crm_approvals` (Stage 2 only), and `activity.*` to `agent_actions` + `tasks` + `integration_sync_state`.
+  - Replaced the prior 5-item `Required next implementation steps` list with a 6-item list that calls out the verified map as the working source of truth, the sandbox-wizard as the only sanctioned promotion path, the contact create/link route + dedupe policy as the next build, data-quality issue tracking for cross-table drift, morning-digest joins, and the privacy/mixing boundary reminder.
+- Diagnostic gate: what exists = a fully refreshed, post-2026-06-09 client 2nd brain model that ties every canonical profile field to a verified local migration-backed table/column and clearly labels draft (`crm_contacts`, `crm_opportunities`) vs. live (`crm_leads`, `nexus_clients`, `businesses`) sources; what has started = a docs-only refresh, not sandbox apply/diff/status, production adoption, deploys, PR mutation, provider polling, client-facing sends, public publishing, CRM data mutation, or any contact/lead/approval write path; why/problem/friction = the prior 2026-05-23 doc was actively misleading about the current CRM surface and would have pointed any Senior PM / Connected Teams worker at a phantom gap that has actually been migrated for ~17 days; missing = sandbox-wizard apply/diff evidence for `crm_contacts` / `crm_opportunities` and the contact create/link route (both intentionally out of scope for this tick); duplicated/unclear = the previous doc's "no `crm_contacts` proposal" and "no live CRM row verified" lines were the only stale content; both are now closed in the doc text and the verified mapping section; business benefit = any future Senior PM / Connected Teams worker reading the client 2nd brain model can now anchor a client/business profile to a verified local table/column without rediscovering the CRM spine; smallest next action = rotate to another bounded non-CRM Senior PM lane (e.g. refresh `marketing-strategy-operating-model.md`, close a voice-test gap from `docs/margot/voice-test-gap-analysis.md`, or rotate the project portfolio index forward) and do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until the specific authority/auth gate is granted.
+- Refreshed the Mac Mini approved-target health check without recursive system-volume scanning: `/Volumes` contains only `Macintosh HD`, no authenticated non-system mounted scan root exists, recovered Markdown artifact count remains `0`, `phills-mac-mini.local:445` is reachable (SMB/File Sharing reachable), and `:22` is unreachable.
+- No GitHub push, merge, PR mutation, deployment, Vercel/env mutation, sandbox apply/status/diff/sync/setup/reset/promote, production DB write, provider polling/mutation, client-facing action, billing/payment action, external vendor/account action, Nango/connector-platform action, credential prompt/read, secret printing/storage, recursive system-volume scan, or destructive git occurred.
+
+Verification:
+
+```bash
+# Doc consistency (after patch)
+wc -l docs/margot/client-second-brain-model.md
+# 263 lines (was 203, +60).
+
+grep -c '^```' docs/margot/client-second-brain-model.md
+# 8 fence markers (4 balanced pairs): original 2 (canonical profile + placeholder) + 1 (decision-history) + 1 (verified profile-to-table).
+
+grep "^## " docs/margot/client-second-brain-model.md
+# Purpose / Source priority / Canonical client/business profile shape / Durable decision-history format / Privacy and client-mixing boundaries / Retrieval/source labels / Example placeholder profile / Current local anchors / Verified profile-to-table mapping (post-2026-06-09) / Required next implementation steps.
+
+git diff --check docs/margot/client-second-brain-model.md
+# PASS: no conflict markers, no whitespace errors.
+
+# Combined local CRM + retrieval + runtime + credential-boundary gate (unchanged from 13:05 AEST tick)
+npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: 11 suites / 156 tests.
+
+npm run type-check
+# PASS: tsc --noEmit completed.
+
+npm run security:routes-check
+# PASS: route-inventory check reported 0 unprotected mutating routes.
+
+git diff --check
+# PASS: exited 0 before and after status-report updates.
+
+# Mac Mini read-back
+# /Volumes contains Macintosh HD only; recovered_markdown_count=0; SMB port 445 reachable, SSH port 22 unreachable.
+```
+
+Safety:
+
+- This tick was local docs/code/test verification only. It did not use live vector search, OpenAI/external AI calls, new vendors, Nango, connector platforms, sandbox/prod DB-writing wizard commands, provider mutation/polling, credential reads, client-facing sends, public publishing, CRM data mutation, recursive system-volume scans, or account creation.
+
+Next safe slice:
+
+- Rotate to another bounded non-CRM Senior PM lane: refresh `marketing-strategy-operating-model.md` with current repo evidence; close a voice-test gap from `docs/margot/voice-test-gap-analysis.md`; or rotate `project-portfolio-index.md` forward. Do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until the specific authority/auth gate is granted.
+
+## 2026-06-09 13:42:55 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_133704.log'
