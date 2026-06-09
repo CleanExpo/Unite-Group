@@ -3,7 +3,14 @@
 Date: 2026-05-22
 Project: `/Users/phillmcgurk/Unite-Group`
 
-## Latest probe (2026-06-10 02:30 AEST)
+## Latest probe (2026-06-10 03:08 AEST)
+
+- `/Volumes` contains only `Macintosh HD`; no non-system authenticated scan root exists; recovered Markdown artifact count remains `0`.
+- `phills-mac-mini.local:445` is reachable (SMB/File Sharing reachable; IP `192.168.2.78`).
+- `phills-mac-mini.local:22` is unreachable (SSH/Remote Login unavailable from this MacBook session; `nc` exit `1` for `:22`, exit `0` for `:445`).
+- No credential prompt/read, secret printing/storage, or recursive system-volume scan occurred.
+
+## Previous probe (2026-06-10 02:30 AEST)
 
 - `/Volumes` contains only `Macintosh HD`; no non-system authenticated scan root exists; recovered Markdown artifact count remains `0`.
 - `phills-mac-mini.local:445` is reachable (SMB/File Sharing reachable; IP `192.168.2.78`).
