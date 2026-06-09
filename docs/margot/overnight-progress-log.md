@@ -1,4 +1,55 @@
 # Margot Overnight Progress Log
+
+## 2026-06-09 20:58 AEST
+
+### AI-RET-001 answer-shape expansion: lead-to-client conversion boundary + Mac Mini bounded retry
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs, Command Center, retrieval rules, Mac Mini recovery status, overnight progress log, morning report, current repo state, AI-RET-001 evidence report, AI candidate register, the inherited retrieval-evaluation harness, and the existing 7 source-citation + 7 answer-shape fixtures.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `455eb32` (sandbox-wizard auto-sync commit `455eb32 chore: Margot ops auto-sync [tick 20260609_200912]` is the current head; `git rev-list --count main..origin/main` returned `0` so the local main is in sync with origin). Inherited local dirty state is unchanged from the prior tick: the sandbox-wizard credential-boundary lane (`scripts/sandbox-wizard.sh` plus untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`), the prior CRM redaction TDD lane (`src/lib/crm/digest-read-error.ts`, `tests/unit/lib/crm/digest-read-error.test.ts`), the prior CRM approval-lifecycle TDD lane (`src/lib/crm/approval-lifecycle.ts`, `tests/unit/lib/crm/approval-lifecycle.test.ts` with case-insensitive `normalizedSubjectType` and 35 tests), the prior CRM digest-mappers positive-coverage lane (`tests/unit/lib/crm/digest-mappers.test.ts`, 16 tests), the untracked Margot retrieval-evaluation harness (`src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`, 34 tests), and the deterministic stale-sync/daily-digest changes (`src/lib/runtime/stale-sync-check.ts` `last_error` + NaN guard, `src/lib/crm/daily-digest.ts` `staleReasonLabel` / `staleReasonDetail` / `normalizedMinutes`).
+- Safe Senior PM expansion lane completed: added a new mocked AI-RET-001 answer-shape fixture `AI-RET-001-ANSWER-LEAD-TO-CLIENT-CONVERSION-BOUNDARY` to `MARGOT_RETRIEVAL_ANSWER_SHAPE_FIXTURES` in `src/lib/margot/retrieval-evaluation.ts`, expanding the answer-shape gate from 7 to 8 fixtures while keeping the source-citation gate at 7. The new fixture is linked to the existing `AI-RET-001-LEAD-QUALIFICATION` source-citation fixture so a future lead-to-client conversion answer must cite `docs/margot/lead-to-client-conversion-plan.md`, `src/lib/crm/qualify-lead.ts`, `docs/margot/ai-enhancement-candidate-register.md`, and `docs/margot/crm-operating-model.md`, and must include the existing recommendation-only / no auto-conversion / no crm identity overwrite / identity review / board-approved conversion rules / operator-approved conversion contract. Six prohibited phrases (`lead auto-converted`, `client record created`, `follow-up sent`, `campaign launched`, `auto-conversion approved`, `nango`) reject common overclaims before command-center surfacing. `MargotRetrievalAnswerShapeFixtureId` was extended from 7 to 8 union members so the new fixture is type-safe. The report runner's default answers map (`scripts/margot-retrieval-evaluation-report.ts`) was updated so the runner reports `answerShape=8/8` for the new fixture, and the candidate register was updated with a new answer-shape fixture contract row.
+- Verification passed: focused retrieval gate `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` returned 1 suite / 34 tests PASS (was 32 before this lane; +2 new tests for the new fixture: a pass case proving the conversion gating language and citations evaluate to `pass`, and a reject case proving prohibited phrases and missing citation sources evaluate to `shape_mismatch`). Combined local CRM + Margot + runtime + credential-boundary gate `npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` returned 11 suites / 158 tests PASS (was 156 before this lane; +2). `npm run type-check` passed. `npm run security:routes-check` reported 0 unprotected mutating routes. `git diff --check` clean. Re-ran the AI-RET-001 report runner: `overallStatus=pass; source=7/7; answerShape=8/8; readback=pass; safetyNotes=true; nextSafeAction=true`. AI-RET-001 evidence report regenerated at `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (now 47 lines, was 46 before this lane; lists the new `AI-RET-001-ANSWER-LEAD-TO-CLIENT-CONVERSION-BOUNDARY` row at `pass`). Voice test counts unchanged: focused Margot voice suite remains 3 suites / 28 tests.
+- Blocked/gated lane: the `tasks` / `voice_command_sessions` sandbox validation packet and the credential-boundary patch remain locally ready/static, but cannot advance to sandbox apply/status/diff/sync/promote, production promotion, or live RLS/service-role/constraint verification without a specific sandbox authority/auth gate.
+- Mac Mini recovery remains opportunistic only: `/Volumes` contains only `Macintosh HD`; no non-system authenticated scan root exists; SMB/File Sharing is reachable (port `445` open, IP `192.168.2.78`), SSH is unavailable (probe at `2026-06-09 20:58 AEST` confirmed `nc` exit `0` for `:445` and exit `1` for `:22`), and no recovered Markdown artifacts are present.
+- Files changed this tick (code+test+doc, no schema, no production, no GitHub push, no Vercel env mutation, no sandbox wizard subcommand): `src/lib/margot/retrieval-evaluation.ts` (added new answer-shape fixture + extended `MargotRetrievalAnswerShapeFixtureId` type to 8 members), `tests/unit/lib/margot/retrieval-evaluation.test.ts` (added new pinned-fixture block + 2 new pass/reject test cases + bumped 7→8 fixture-count assertions + added new entry to the all-fixtures maps + bumped readback answer-shape count 7→8), `scripts/margot-retrieval-evaluation-report.ts` (added new entry to the default answers map so the runner reports `answerShape=8/8`), `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (regenerated by the runner; now lists the 8th answer-shape row), `docs/margot/ai-enhancement-candidate-register.md` (header Date updated to `2026-06-09 20:56:46 AEST`; new answer-shape fixture contract table; "adds seven" → "adds eight" with timestamp), `docs/margot/overnight-progress-log.md` (this entry), `docs/margot/morning-report.md` (new current block at top), `docs/margot/MARGOT-COMMAND-CENTER.md` (this rotation guard entry), `docs/margot/mac-mini-recovery-status.md` (newest probe entry at top).
+
+Verification:
+
+```bash
+# Focused retrieval gate on the new fixture
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 34 tests (was 32 before this lane; +2 new tests for the new fixture).
+
+# Combined CRM + Margot + runtime + credential-boundary gate
+npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: 11 suites / 158 tests (was 156 before this lane; +2).
+
+npm run type-check
+# PASS: tsc --noEmit completed.
+
+npm run security:routes-check
+# PASS: route-inventory check reported 0 unprotected mutating routes.
+
+git diff --check
+# PASS: exited 0 before and after status-report updates.
+
+# AI-RET-001 local report runner
+npx ts-node --transpile-only -O '{"module":"commonjs","moduleResolution":"node"}' scripts/margot-retrieval-evaluation-report.ts
+# PASS/read-back: overallStatus=pass; source=7/7; answerShape=8/8; readback=pass; safetyNotes=true; nextSafeAction=true.
+
+git/health/Mac Mini read-back
+# READ-BACK: 2026-06-09 20:58 AEST; branch main; head 455eb32; main...origin/main [ahead 0]; node_modules=present; package_lock=present; volumes=Macintosh HD; recovered_markdown_count=0; approved_target_scan=skipped_only_system_volume_mounted; SMB reachable (port 445 open, IP 192.168.2.78); SSH unreachable.
+```
+
+Safety:
+
+- This tick was a local mocked/static fixture expansion + report read-back + Jest gate. It did not use live vector search, OpenAI/external AI calls, new vendors, Nango, connector platforms, sandbox/prod DB-writing wizard commands, provider mutation/polling, credential reads, client-facing sends, public publishing, GBP mutation, lead auto-conversion, campaign launch, paid spend, account creation, model swap, or AI enrichment over client/lead data.
+
+Next safe slice:
+
+- Rotate to another bounded Senior PM lane: add another mocked AI-RET-001 fixture for another gated boundary (e.g. daily-digest operator-only, sandbox-credential-boundary, or board-decision summary), add a route/page-level digest or stale-integration read-surface test only if that surface changes, refresh another still-stale control surface (e.g. `daily-crm-digest-template.md` or `lead-to-client-conversion-plan.md` which are still pinned at 2026-05-23), package/review the local credential-boundary diff, or run a deeper voice-test gap-closure sweep. Do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until the specific authority/auth gate changes.
+
 ## 2026-06-09 20:09 AEST
 
 ### CRM operating model control-surface refresh + Mac Mini bounded retry
@@ -14468,3 +14519,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_200912.log'
+
+## 2026-06-09 21:01:22 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_204936.log'

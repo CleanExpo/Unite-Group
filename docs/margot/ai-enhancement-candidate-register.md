@@ -1,6 +1,6 @@
 # Margot AI Enhancement Candidate Register
 
-Date: 2026-06-09 05:32 AEST
+Date: 2026-06-09 20:56:46 AEST
 Project: Unite-Group
 Owner: Margot
 Scope: Local repo/docs/code evidence only. This register does not adopt a new vendor, connect accounts, run external AI enrichment, write databases, deploy, publish, or contact leads/clients.
@@ -74,7 +74,13 @@ It pins seven source-citation fixtures:
 | Integration stale-sync risk summary | `src/lib/runtime/stale-sync-check.ts`; `src/app/[locale]/command-center/layered/page.tsx`; `supabase/migrations/20260513000200_integration_schema.sql` | Distinguish missed cadence, last error, and never-synced mirrors; cite command-center surfacing; do not poll providers/read secrets/write DBs. |
 | Command-center current status citation | `docs/margot/MARGOT-COMMAND-CENTER.md`; `docs/margot/ai-enhancement-candidate-register.md`; `docs/margot/morning-report.md` | Cite current rotation guard/register/morning report; preserve sandbox, Mac Mini, and auth blockers without invented live state. |
 
-The source-citation fixture gate treats semantic retrieval as usable only when every required source is cited at or above the `0.76` threshold; otherwise it requires an exact file-read fallback before answering. The answer-shape gate now adds seven mocked/static checks:
+The answer-shape harness now pins eight fixtures (was seven, expanded at `2026-06-09 20:56:46 AEST`):
+
+| Answer-shape fixture | Required shape | Rejected overclaims |
+| --- | --- | --- |
+| Lead-to-client conversion boundary (added `2026-06-09 20:56:46 AEST`) | Must name recommendation-only, no auto-conversion, no crm identity overwrite, identity review, board-approved conversion rules, and operator-approved conversion; must cite `docs/margot/lead-to-client-conversion-plan.md`, `src/lib/crm/qualify-lead.ts`, `docs/margot/ai-enhancement-candidate-register.md`, and `docs/margot/crm-operating-model.md`. | Lead auto-converted, client record created, follow-up sent, campaign launched, auto-conversion approved, Nango. |
+
+The source-citation fixture gate treats semantic retrieval as usable only when every required source is cited at or above the `0.76` threshold; otherwise it requires an exact file-read fallback before answering. The answer-shape gate now adds eight mocked/static checks (was seven, expanded at `2026-06-09 20:56:46 AEST`):
 
 | Answer-shape fixture | Required shape | Rejected overclaims |
 | --- | --- | --- |
