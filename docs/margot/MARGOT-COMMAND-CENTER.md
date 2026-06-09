@@ -32,6 +32,24 @@ Margot must not keep spending every tick on the same sandbox-validation/status r
 - Blocked/gated lane: the `tasks` / `voice_command_sessions` sandbox validation packet and the credential-boundary patch remain locally ready/static, but cannot advance to sandbox apply/status/diff/sync/promote, production promotion, or live RLS/service-role/constraint verification without a specific sandbox authority/auth gate.
 - Mac Mini recovery remains opportunistic only: `/Volumes` contains only `Macintosh HD`; no non-system authenticated scan root exists; SMB/File Sharing is reachable (newly observed IP `192.168.2.78`), SSH is unavailable, and no recovered Markdown artifacts are present.
 
+## Current Autonomy Rotation Guard — 2026-06-09 15:31 AEST
+
+Margot must not keep spending every tick on the same sandbox-validation/status refresh once the blocker is known. Current state from this tick:
+
+- Repo: `main` at `4943e16`, `main...origin/main [ahead 72]`. Inherited local dirty work is unchanged: the sandbox-wizard credential-boundary lane (`scripts/sandbox-wizard.sh` plus untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`), the prior CRM redaction TDD lane (`src/lib/crm/digest-read-error.ts`, `tests/unit/lib/crm/digest-read-error.test.ts`), the prior CRM approval-lifecycle TDD lane (`src/lib/crm/approval-lifecycle.ts`, `tests/unit/lib/crm/approval-lifecycle.test.ts`), the prior CRM digest-mappers positive-coverage lane (`tests/unit/lib/crm/digest-mappers.test.ts`), the untracked Margot retrieval-evaluation harness (`src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`), and the deterministic stale-sync/daily-digest changes.
+- Completed safe rotation lane: refreshed `docs/margot/project-portfolio-index.md` to a `Last update: 2026-06-09 15:31 AEST` state. The previous version was last touched `2026-06-09 10:02 AEST` and pre-dated the digest-read-error redaction helper, the case-insensitive `normalizedSubjectType` approval-lifecycle lane, the digest-mappers positive coverage, the AI-RET-001 7/7 + 7/7 expansion, and the explicit sandbox-wizard credential-boundary lane. The refresh added a current Senior PM verification checkpoint, three new portfolio rows (CRM deterministic helpers, sandbox wizard credential boundary, AI enhancement pipeline updated to point at the AI-RET-001 evidence report and the retrieval-evaluation harness), and a tightened immediate-next-tasks list. The portfolio is now 96 lines (was 89 before this lane).
+- Verification passed: focused `wc -l` check on the refreshed doc; combined local CRM + Margot + runtime + credential-boundary gate `npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` returned 11 suites / 156 tests PASS; `npm run type-check` passed; `npm run security:routes-check` reported 0 unprotected mutating routes; `git diff --check` passed.
+- Blocked/gated lane: the `tasks` / `voice_command_sessions` sandbox validation packet and the credential-boundary patch remain locally ready/static, but cannot advance to sandbox apply/status/diff/sync/promote, production promotion, or live RLS/service-role/constraint verification without a specific sandbox authority/auth gate.
+- Mac Mini recovery remains opportunistic only: `/Volumes` contains only `Macintosh HD`; no non-system authenticated scan root exists; SMB/File Sharing is reachable, SSH is unavailable, and no recovered Markdown artifacts are present.
+
+Rotation rule until the sandbox/Mac Mini gates change:
+
+1. Do one bounded health/read-back check per tick.
+2. If sandbox authority/auth is still missing, record it once and rotate to another safe Senior PM lane instead of revalidating the same blocked DB boundary repeatedly.
+3. Preferred safe lanes: add route/page-level digest/stale-integration read-surface tests only when that surface changes, add additional local report corruption/error-path cases, package/review the local credential-boundary diff, or refresh project/client/marketing/AI control surfaces.
+4. Do not run `setup`, `sync`, `apply`, `diff`, `status`, `reset`, or `promote` on the sandbox wizard unless the run has explicit authority for that exact wizard action.
+5. Continue Mac Mini artifact recovery only when an authenticated SMB mount, usable SSH session, or approved export is available; otherwise record the blocker and keep another lane moving.
+
 ## Current Autonomy Rotation Guard — 2026-06-09 11:50 AEST
 
 Margot must not keep spending every tick on the same sandbox-validation/status refresh once the blocker is known. Current state from this tick:
