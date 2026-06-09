@@ -1,5 +1,47 @@
 # Margot Overnight Progress Log
 
+## 2026-06-09 11:11 AEST
+
+### Sandbox voice/task authority handoff packaging + Mac Mini bounded retry
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs, Command Center, retrieval rules, Mac Mini recovery status, overnight progress log, morning report, and current repo state.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `e625724`, `main...origin/main [ahead 69]`. Inherited local sandbox-wizard credential-boundary work remains (`scripts/sandbox-wizard.sh` plus untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`), deterministic stale-sync/daily-digest changes remain local, and local AI-RET-001 assets remain unpushed/local-only.
+- Safe Senior PM improvement completed: created `docs/margot/evidence/SANDBOX_VOICE_TASKS_AUTHORITY_HANDOFF.md` to package the known `tasks` / `voice_command_sessions` sandbox validation blocker into one narrow Board/operator handoff. The packet references the existing proposal, checklist, review packet, credential-boundary review, exact future command envelope, required sandbox evidence, and stop conditions without running any sandbox DB-writing/status command.
+- Diagnostic gate: what exists = sandbox-first governance, local SQL proposal, validation checklist, review packets, credential-boundary patch/tests, CRM test matrix, project/client/marketing/AI control surfaces, deterministic digest/stale-sync helpers, AI-RET-001 local report assets, Mac Mini recovery surfaces, and current progress/morning reports; what has started = local static proposal reconstruction, credential-boundary hardening, and evidence packaging, not sandbox apply/diff/status, production adoption, deploys, PR mutation, provider polling, client-facing sends, public publishing, or CRM data mutation; why/problem/friction = the lane was repeating a known blocker and needed a single action packet that names the missing authority/auth gate; missing = explicit sandbox validation authority/auth, actual sandbox apply/diff evidence, RLS/service-role/cross-scope checks, transcript retention/privacy approval, authenticated Mac Mini artifact transport, and production promotion authority; duplicated/unclear = older packets mention `op whoami` blockage while newer credential-boundary work narrows sandbox credential loading but still does not authorize execution; business benefit = reduces repeated rediscovery and gives the next operator a bounded decision/evidence envelope; smallest next action = use the handoff if the sandbox gate changes, otherwise continue local-only CRM/retrieval/control-surface evidence work.
+- Refreshed the Mac Mini approved-target health check without recursive system-volume scanning: `/Volumes` contains only `Macintosh HD`, no authenticated non-system mounted scan root exists, recovered Markdown artifact count remains `0`, `phills-mac-mini.local:445` is reachable, and `:22` is unreachable.
+- No GitHub push, merge, PR mutation, deployment, Vercel/env mutation, sandbox apply/status/diff/sync/setup/reset/promote, production DB write, provider polling/mutation, client-facing action, billing/payment action, external vendor/account action, Nango/connector-platform action, credential prompt/read, secret printing/storage, recursive system-volume scan, or destructive git occurred.
+
+Verification:
+
+```bash
+bash -n scripts/sandbox-wizard.sh
+./scripts/sandbox-wizard.sh help >/tmp/margot-sandbox-help-voice-tasks-handoff.out
+npx jest tests/unit/margot-tasks-voice-migration-proposal.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: 2 suites / 31 tests.
+
+npm run type-check
+# PASS: tsc --noEmit completed.
+
+npm run security:routes-check
+# PASS: route-inventory check reported 0 unprotected mutating routes.
+
+git diff --check
+# PASS: exited 0 before status-report updates.
+
+git/health/Mac Mini read-back
+# PASS/read-back: 2026-06-09 11:11 AEST; branch main; head e625724; ## main...origin/main [ahead 69]; node_modules=present; package_lock=present; volumes=Macintosh HD; recovered_markdown_count=0; approved_target_scan=skipped_only_system_volume_mounted; SMB reachable; SSH unreachable.
+```
+
+Safety:
+
+- This tick was local documentation/test verification only. It did not use live vector search, OpenAI/external AI calls, new vendors, Nango, connector platforms, sandbox/prod DB-writing wizard commands, provider mutation/polling, credential reads, client-facing sends, public publishing, CRM data mutation, recursive system-volume scans, or account creation.
+
+Next safe slice:
+
+- If a specific sandbox authority/auth gate is granted later, use `docs/margot/evidence/SANDBOX_VOICE_TASKS_AUTHORITY_HANDOFF.md` as the execution envelope; otherwise continue local-only CRM/retrieval/control-surface evidence work and do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until that specific authority/auth gate changes.
+
 ## 2026-06-09 10:37 AEST
 
 ### Senior PM health/read-back refresh + Mac Mini bounded retry
@@ -13730,3 +13772,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_103643.log'
+
+## 2026-06-09 11:14:12 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_111055.log'
