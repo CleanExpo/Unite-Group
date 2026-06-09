@@ -1,4 +1,49 @@
 # Margot Overnight Progress Log
+## 2026-06-09 15:55 AEST
+
+### Client 2nd Brain model control-surface refresh + Mac Mini bounded retry
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs, Command Center, retrieval rules, Mac Mini recovery status, overnight progress log, morning report, current repo state, CRM schema inventory, CRM test matrix, AI enhancement pipeline doc, AI-RET-001 evidence report, AI candidate register, project portfolio index, and the inherited client-second-brain model.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `bf028b7` (latest local code/doc commit before this uncommitted lane: `4943e16`), `main...origin/main [ahead 72]`. Inherited local dirty work is unchanged from the prior tick: the sandbox-wizard credential-boundary lane (`scripts/sandbox-wizard.sh` plus untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`), the prior CRM redaction TDD lane (`src/lib/crm/digest-read-error.ts` + test), the prior CRM approval-lifecycle TDD lane (`src/lib/crm/approval-lifecycle.ts` + test), the prior CRM digest-mappers positive-coverage lane (`tests/unit/lib/crm/digest-mappers.test.ts`), the untracked Margot retrieval-evaluation harness (`src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`), and the deterministic stale-sync/daily-digest changes.
+- Safe Senior PM control-surface refresh completed: refreshed `docs/margot/client-second-brain-model.md` so it is no longer pinned at `2026-06-09 13:42 AEST`. The previous version was structurally sound (verified profile-to-table map, canonical YAML shape, durable decision-history format, source priority, privacy/mixing abort rules, source-label taxonomy, local-anchor table, six next-implementation steps) but lacked the explicit `Last update` marker and current Senior PM verification checkpoint that the marketing-strategy (14:13 AEST), AI-enhancement-pipeline (14:54 AEST), and project-portfolio-index (15:31 AEST) refreshes already carry. The refresh adds a `Last update: 2026-06-09 15:55 AEST` line, a `Previous refresh` pointer, and a current Senior PM verification checkpoint (what exists, what has started, why it exists, missing/unclear/pending external authority, current health evidence, Mac Mini state, smallest next action) that names the verified profile-to-table bindings, the sandbox-wizard authority/auth gate still blocking production application of `crm_contacts` / `crm_opportunities`, the Stage-2 only `crm_approvals` decision, the still-undefined transcript retention/privacy policy for voice-derived client memory, the still-open identity-resolution policy between `pi_ceo_key` / slug / Linear project ID / Stripe customer ID / website domain, and the opportunistic-only Mac Mini transport. The verified profile-to-table map, canonical YAML shape, durable decision-history format, source priority, privacy/mixing abort rules, source-label taxonomy, placeholder profile, local-anchor table, and six next-implementation steps are all preserved unchanged. The doc still contains no code, schema, or test changes and does not adopt a new vendor, swap a model, run sandbox wizard DB-writing subcommands, run live vector search, run external AI calls, contact clients/leads, or publish publicly.
+- Verified gate: focused `wc -l` check on the refreshed doc returned 274 lines (was 263 before this lane; +11 lines for the `Last update` marker, `Previous refresh` pointer, and the current Senior PM verification checkpoint block). Combined local CRM + Margot + runtime + credential-boundary gate `npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` returned 11 suites / 156 tests PASS; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes; `git diff --check` passed before and after status-report updates.
+- Diagnostic gate: what exists = refreshed client-2nd-brain model with current Senior PM verification checkpoint, durable CRM operating docs/test matrix, deterministic lead/digest/redaction/approval/stale-sync helpers, retrieval rules/wrappers, seven-fixture source-citation harness, seven-fixture answer-shape gate, local report runner/report, report read-back parser/assertions, sandbox-only voice/task schema evidence, validation checklist, and credential-boundary packet; what has started = a docs-only control-surface refresh, not sandbox apply/diff/status, production adoption, deploys, PR mutation, provider polling, client-facing sends, public publishing, new-vendor work, model swap, or AI enrichment over client/lead data; why/problem/friction = the client-2nd-brain surface had not been structurally aligned with the marketing-strategy / AI-enhancement-pipeline / project-portfolio-index refreshes in the same rotation, so a future agent could have re-derived older "no `crm_contacts` proposal" placeholder guidance and proposed an identity merge that violates the strong-key discipline; missing/unclear = sandbox authority/auth for voice/task validation, transcript retention/privacy policy, Mac Mini authenticated artifact transport, live provider freshness, and Phill decisions on identity-resolution keys and pipeline stages/campaign labels are still gaps; duplicated/unclear = the existing mac-mini-recovery-status file still records the same opportunistic-only recovery state, and the marketing/AI/portfolio control-surface refreshes still cover their own lanes; business benefit = keeps the Senior PM-owned client memory model aligned with the rest of the rotation, reducing operator risk of recreating older placeholder guidance; smallest next action = keep the client-2nd-brain model aligned with the verified profile-to-table map and rotate to another bounded Senior PM lane (e.g. close a voice-test gap from `docs/margot/voice-test-gap-analysis.md`, refresh `retrieval-rules.md`, or add another mocked retrieval-evaluation fixture) unless the sandbox authority/auth gate or Mac Mini authenticated transport changes.
+- Refreshed the Mac Mini approved-target health check without recursive system-volume scanning: `/Volumes` contains only `Macintosh HD`, no authenticated non-system mounted scan root exists, recovered Markdown artifact count remains `0`, `phills-mac-mini.local:445` is reachable (SMB/File Sharing reachable; observed at this tick), and `:22` timed out (SSH/Remote Login unavailable from this MacBook session).
+- No GitHub push, merge, PR mutation, deployment, Vercel/env mutation, sandbox apply/status/diff/sync/setup/reset/promote, production DB write, provider polling/mutation, client-facing action, billing/payment action, external vendor/account action, Nango/connector-platform action, credential prompt/read, secret printing/storage, recursive system-volume scan, destructive git, model swap, or external AI enrichment over client/lead data occurred.
+
+Verification:
+
+```bash
+# Focused run on the refreshed client-2nd-brain model
+test -f docs/margot/client-second-brain-model.md && wc -l docs/margot/client-second-brain-model.md
+# PASS: file exists, 274 lines (was 263 before this lane; +11 lines including Last update marker, Previous refresh pointer, and the current Senior PM verification checkpoint block).
+
+# Combined CRM + retrieval + runtime + credential-boundary gate
+npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: 11 suites / 156 tests.
+
+npm run type-check
+# PASS: tsc --noEmit completed.
+
+npm run security:routes-check
+# PASS: route-inventory check reported 0 unprotected mutating routes.
+
+git diff --check
+# PASS: exited 0 before and after status-report updates.
+
+git/health/Mac Mini read-back
+# READ-BACK: 2026-06-09 15:55 AEST; branch main; head bf028b7; main...origin/main [ahead 72]; node_modules=present; package_lock=present; volumes=Macintosh HD; recovered_markdown_count=0; approved_target_scan=skipped_only_system_volume_mounted; SMB reachable; SSH unreachable.
+```
+
+Safety:
+
+- This tick was local documentation verification only. It did not use live vector search, OpenAI/external AI calls, new vendors, Nango, connector platforms, sandbox/prod DB-writing wizard commands, provider mutation/polling, credential reads, client-facing sends, public publishing, GBP mutation, lead auto-conversion, campaign launch, paid spend, account creation, model swap, or AI enrichment over client/lead data.
+
+Next safe slice:
+
+- Rotate to another bounded Senior PM lane: close a voice-test gap from `docs/margot/voice-test-gap-analysis.md`, refresh `retrieval-rules.md`, or add another mocked retrieval-evaluation fixture; do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until the specific authority/auth gate changes.
 
 ## 2026-06-09 15:31 AEST
 
@@ -14240,3 +14285,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_153024.log'
+
+## 2026-06-09 16:14:03 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_160729.log'

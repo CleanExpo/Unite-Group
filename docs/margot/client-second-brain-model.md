@@ -1,11 +1,22 @@
 # Margot Client 2nd Brain Model
 
-Date: 2026-06-09 13:42 AEST (refresh: post-2026-06-09 schema reconciliation)
+Last update: 2026-06-09 15:55 AEST (control-surface refresh: current Senior PM verification checkpoint)
+Previous refresh: 2026-06-09 13:42 AEST (post-2026-06-09 schema reconciliation)
 Project: Unite-Group
 Owner: Margot
 Scope: Existing repo/docs/code evidence only. This is the model for durable client/business memory; it does not create or merge client records.
 
 Refresh note: the 2026-05-23 placeholder language ("no live CRM row verified in this doc-only lane", "no `crm_contacts` proposal") is now stale. The local migrations `supabase/migrations/20260523100000_crm_leads.sql` and `supabase/migrations/20260523103000_crm_contacts_opportunities.sql` now back `crm_leads`, `crm_contacts`, and `crm_opportunities`. The sections below now name the verified local source for each strong key. The sandbox-wizard (`scripts/sandbox-wizard.sh`) is the only sanctioned path from local migration to any deployed environment; this doc does not request any new access.
+
+## Current Senior PM verification checkpoint (2026-06-09 15:55 AEST)
+
+- What exists: the verified profile-to-table map, canonical YAML profile shape, durable decision-history format, source priority stack, privacy/mixing abort rules, source-label taxonomy, placeholder profile, local-anchor table, and the six required next-implementation steps all remain current. The verified map binds `crm_leads`, `crm_contacts` (draft), `crm_opportunities` (draft), `nexus_clients`, `businesses`, integration mirrors, `agent_actions`, `tasks`, and `data_room_documents` to the strong-key and profile slots in the canonical shape.
+- What has started: this is a docs-only Senior PM control-surface refresh. It refreshes the `Last update` marker and verification checkpoint so the client-2nd-brain surface stays aligned with the marketing-strategy (14:13 AEST), AI-enhancement-pipeline (14:54 AEST), and project-portfolio-index (15:31 AEST) refreshes already in the rotation. No migration, code, test, schema, route, sandbox-wizard, provider, or client-mutation change was made in this lane.
+- Why this exists: the client-2nd-brain model is the Senior PM-owned contract for how Margot should assemble durable client/business memory without crossing identity boundaries. It must keep the verified profile-to-table map, source-priority stack, and privacy/mixing rules current so that a future agent cannot re-derive older "no `crm_contacts` proposal" placeholder guidance and propose a merge that violates the strong-key discipline.
+- Missing / unclear / pending external authority: production application of `crm_contacts` and `crm_opportunities` migrations still requires the sandbox-wizard authority/auth gate; `crm_approvals` is a Stage-2 only future table, not drafted today; transcript retention/privacy policy for voice-derived client memory is still undefined; identity-resolution policy between `pi_ceo_key` / slug / Linear project ID / Stripe customer ID / website domain remains an open decision for Phill; Mac Mini authenticated artifact transport is still opportunistic-only.
+- Current health evidence: combined local CRM + Margot + runtime + credential-boundary gate `npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` returned 11 suites / 156 tests PASS at this tick; `npm run type-check` passed; `npm run security:routes-check` reported 0 unprotected mutating routes; `git diff --check` passed before and after this refresh.
+- Mac Mini state: `/Volumes` contains only `Macintosh HD`; no authenticated non-system mounted scan root exists; recovered Markdown artifact count remains `0`; `phills-mac-mini.local:445` is reachable (SMB/File Sharing reachable; observed IP `192.168.2.78`), while `:22` is unreachable (SSH/Remote Login unavailable from this MacBook session). No credential prompt/read, secret printing/storage, noninteractive auth attempt, or recursive system-volume scan was performed.
+- Smallest next action: keep the client-2nd-brain model aligned with the verified profile-to-table map and rotate to another bounded Senior PM lane (e.g. close a voice-test gap, refresh `retrieval-rules.md`, or add another mocked retrieval-evaluation fixture) unless the sandbox authority/auth gate or Mac Mini authenticated transport changes.
 
 ## Purpose
 
