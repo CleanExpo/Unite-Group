@@ -1,6 +1,7 @@
 # Margot Project Portfolio Index
 
 Date: 2026-05-23 07:33 AEST
+Last update: 2026-06-09 10:02 AEST — Senior PM portfolio verification refresh reconciled current AI-RET-001 / stale-sync / Mac Mini evidence
 Project: Unite-Group
 Owner: Margot
 Scope: Existing repo/docs/code evidence only. External Linear/Supabase live status is not asserted unless present in local docs or code.
@@ -26,6 +27,18 @@ Read-first inputs:
 - This document is a repo-local portfolio control index, not proof of external production state.
 - Static Business 360 seed data is marked as seed evidence unless a local reader points to live Supabase mirrors.
 - Unknowns are explicit and must become tasks, not assumptions.
+
+## Current verification checkpoint — 2026-06-09 10:02 AEST
+
+Senior PM diagnostic read-back:
+
+- What already exists: CRM operating docs/test matrix, project/client/marketing/AI control-surface docs, deterministic lead/digest/stale-sync helpers, AI-RET-001 mocked retrieval/report harness, sandbox-only voice/tasks proposal evidence, Mac Mini recovery status surfaces, and current Margot progress/morning reports.
+- What has started: local-only evidence hardening and portfolio-control updates for AI-RET-001, deterministic integration health, voice/task sandbox readiness, and Mac Mini recovery monitoring. No production DB, deploy, PR, provider, client-facing, or new-vendor work is implied by this index.
+- Why it exists / friction reduced: the portfolio needs a single current management surface so Margot can rotate lanes without repeatedly rediscovering the same sandbox/Mac Mini blockers or overstating local evidence as live adoption.
+- Missing / unclear: sandbox authority/auth for voice/task validation, actual sandbox apply/diff/RLS evidence, transcript retention/privacy approval, authenticated Mac Mini artifact transport, and live provider freshness remain gated or unknown.
+- Current health evidence: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-edge-cases.test.ts --runInBand` passed 5 suites / 69 tests; `npm run type-check` passed; `npm run security:routes-check` returned 0 unprotected mutating routes.
+- Mac Mini checkpoint: `/Volumes` contains only `Macintosh HD`, recovered Markdown count is `0`, SMB/File Sharing is reachable, SSH is unreachable; no credential prompt/read, secret printing/storage, or recursive system-volume scan occurred.
+- Smallest useful next action: keep the portfolio index tied to current safe evidence, then rotate to local-only read-surface/report integrity work unless the sandbox or Mac Mini authority gate changes.
 
 ## Portfolio rows
 

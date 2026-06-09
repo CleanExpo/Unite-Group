@@ -1,5 +1,45 @@
 # Margot Overnight Progress Log
 
+## 2026-06-09 10:02 AEST
+
+### Senior PM portfolio-control refresh + Mac Mini bounded retry
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs, Command Center, retrieval rules, Mac Mini recovery status, overnight progress log, morning report, project portfolio index, AI enhancement register, CRM test matrix, and current repo state.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `4463937`, `main...origin/main [ahead 67]`. Inherited local sandbox-wizard credential-boundary work remains (`scripts/sandbox-wizard.sh` plus untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`), deterministic stale-sync/daily-digest changes remain local, and local AI-RET-001 assets remain unpushed/local-only.
+- Safe Senior PM improvement completed: `docs/margot/project-portfolio-index.md` now has a current verification checkpoint tying the existing CRM operating docs/test matrix, project/client/marketing/AI control-surface docs, deterministic lead/digest/stale-sync helpers, AI-RET-001 mocked retrieval/report harness, sandbox-only voice/tasks readiness evidence, Mac Mini recovery state, and current progress/morning reports into one management surface. This reduces repeated rediscovery of known sandbox/Mac Mini blockers and keeps local evidence clearly separate from live adoption.
+- Diagnostic gate: what exists = CRM operating docs/test matrix, project portfolio/client 2nd Brain/marketing/AI control-surface docs, deterministic lead/digest/stale-sync helpers, AI-RET-001 mocked retrieval/report harness and report read-back guards, sandbox-only voice/tasks proposal evidence, Mac Mini recovery surfaces, and current progress/morning reports; what has started = local-only evidence hardening and portfolio-control updates, not live provider polling, external AI enrichment, sandbox DB validation, production adoption, deploys, PR mutation, client-facing sends, or CRM data mutation; why/problem/friction = the portfolio needs one current management surface so Margot can rotate lanes without overstating local evidence or looping on gated sandbox/Mac Mini work; missing = sandbox authority/auth for voice/task validation, actual sandbox apply/diff/RLS evidence, transcript retention/privacy approval, authenticated Mac Mini artifact transport, and live provider freshness; duplicated/unclear = Mac Mini remains SMB-reachable but unauthenticated for file recovery and SSH unavailable; business benefit = stronger portfolio-level PM control and cleaner next-lane selection; smallest next action = keep portfolio/status surfaces current and rotate to local-only read-surface/report integrity work unless a sandbox or Mac Mini gate changes.
+- Refreshed the Mac Mini approved-target health check without recursive system-volume scanning: `/Volumes` contains only `Macintosh HD`, no authenticated non-system mounted scan root exists, recovered Markdown artifact count remains `0`, `phills-mac-mini.local:445` is reachable, and `:22` is unreachable.
+- No GitHub push, merge, PR mutation, deployment, Vercel/env mutation, sandbox apply/status/diff/sync/setup/reset/promote, production DB write, provider polling/mutation, client-facing action, billing/payment action, external vendor/account action, Nango/connector-platform action, credential prompt/read, secret printing/storage, recursive system-volume scan, or destructive git occurred.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-edge-cases.test.ts --runInBand
+# PASS: 5 suites / 69 tests.
+
+npm run type-check
+# PASS: tsc --noEmit completed.
+
+npm run security:routes-check
+# PASS: route-inventory check reported 0 unprotected mutating routes.
+
+git/health/Mac Mini read-back
+# PASS/read-back: 2026-06-09 10:02 AEST; branch main; head 4463937; ## main...origin/main [ahead 67]; node_modules=present; package_lock=present; volumes=Macintosh HD; recovered_markdown_count=0; approved_target_scan=skipped_only_system_volume_mounted; SMB reachable; SSH unreachable.
+
+git diff --check
+# PASS: exited 0 after the final progress/morning report evidence updates.
+```
+
+Safety:
+
+- This tick was local docs/test verification only. It did not use live vector search, OpenAI/external AI calls, new vendors, Nango, connector platforms, sandbox/prod DB-writing wizard commands, provider mutation/polling, credential reads, client-facing sends, public publishing, CRM data mutation, recursive system-volume scans, or account creation.
+
+Next safe slice:
+
+- Rotate to another local-only Command Center/control-surface evidence lane, route/page-level digest/stale-integration read-surface tests only if that surface changes, or additional AI-RET-001 report integrity cases; do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until that specific authority/auth gate changes.
+
 ## 2026-06-09 09:29 AEST
 
 ### AI-RET-001 unexpected fixture-status read-back hardening + Mac Mini bounded retry
@@ -13632,3 +13672,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_092726.log'
+
+## 2026-06-09 10:06:42 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_100201.log'
