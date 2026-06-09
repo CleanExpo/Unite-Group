@@ -23,6 +23,10 @@ Mac Mini Bonjour host resolved:
   - `192.168.2.77`
   - `192.168.2.78` (newly observed at 2026-06-09 11:49 AEST)
 
+## Current Mac Mini Probe — 2026-06-09 21:32 AEST
+
+`/Volumes` contains `Macintosh HD` only, so the approved-target search had no non-system mounted scan root; no `MARGOT-COMMAND-CENTER.md` or `RESTOREASSIST-CONTENT-INDEX.md` was scanned for on the local system volume, and `docs/margot/recovered-from-mac-mini/` contains `0` recovered Markdown artifacts. The TCP-based `phills-mac-mini.local:445` / `:22` reachability probe was re-run this tick: `nc -z -G 3 phills-mac-mini.local 445` returned exit `0` (SMB/File Sharing reachable; IP `192.168.2.78`) and `nc -z -G 3 phills-mac-mini.local 22` returned exit `1` (SSH/Remote Login unavailable from this MacBook session). Recovery remains blocked on an authenticated SMB mount containing the approved target files, a usable authenticated SSH session, or an approved export. No credential prompt, secret read, noninteractive auth attempt, secret printing/storage, or recursive system-volume scan was performed.
+
 ## Current Mac Mini Probe — 2026-06-09 20:58 AEST
 
 `/Volumes` contains `Macintosh HD` only, so the approved-target search had no non-system mounted scan root; no `MARGOT-COMMAND-CENTER.md` or `RESTOREASSIST-CONTENT-INDEX.md` was scanned for on the local system volume, and `docs/margot/recovered-from-mac-mini/` contains `0` recovered Markdown artifacts. The TCP-based `phills-mac-mini.local:445` / `:22` reachability probe was re-run this tick: `nc -z -G 3 phills-mac-mini.local 445` returned exit `0` (SMB/File Sharing reachable; IP `192.168.2.78`) and `nc -z -G 3 phills-mac-mini.local 22` returned exit `1` (SSH/Remote Login unavailable from this MacBook session). Recovery remains blocked on an authenticated SMB mount containing the approved target files, a usable authenticated SSH session, or an approved export. No credential prompt, secret read, noninteractive auth attempt, secret printing/storage, or recursive system-volume scan was performed.

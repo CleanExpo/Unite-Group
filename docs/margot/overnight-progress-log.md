@@ -1,5 +1,64 @@
 # Margot Overnight Progress Log
 
+## 2026-06-09 21:32 AEST
+
+### Lead-to-client conversion plan Senior PM control-surface refresh + AI-RET-001 doc-drift guard
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs, Command Center, retrieval rules, Mac Mini recovery status, overnight progress log, morning report, current repo state, AI-RET-001 evidence report, AI candidate register, the inherited retrieval-evaluation harness, the new lead-to-client conversion answer-shape fixture, and the conversion plan source doc.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `c5f7a86` (sandbox-wizard auto-sync commit `c5f7a86 chore: Margot ops auto-sync [tick 20260609_204936]` is the current head; `git rev-list --count main..origin/main` returned `0` so the local main is in sync with origin). Inherited local dirty state is unchanged from the prior tick: the sandbox-wizard credential-boundary lane (`scripts/sandbox-wizard.sh` plus untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`), the prior CRM redaction TDD lane (`src/lib/crm/digest-read-error.ts`, `tests/unit/lib/crm/digest-read-error.test.ts`), the prior CRM approval-lifecycle TDD lane (`src/lib/crm/approval-lifecycle.ts`, `tests/unit/lib/crm/approval-lifecycle.test.ts` with case-insensitive `normalizedSubjectType` and 35 tests), the prior CRM digest-mappers positive-coverage lane (`tests/unit/lib/crm/digest-mappers.test.ts`, 16 tests), the untracked Margot retrieval-evaluation harness (`src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`, 35 tests after this lane), and the deterministic stale-sync/daily-digest changes (`src/lib/runtime/stale-sync-check.ts` `last_error` + NaN guard, `src/lib/crm/daily-digest.ts` `staleReasonLabel` / `staleReasonDetail` / `normalizedMinutes`).
+- Safe Senior PM control-surface refresh + doc-drift guard lane completed: refreshed `docs/margot/lead-to-client-conversion-plan.md` (last touched `2026-05-23`, before the AI-RET-001 source-citation and answer-shape harnesses, the case-insensitive `normalizedSubjectType` approval-lifecycle lane, the `logCrmDigestReadError` `Set`-based fail-closed union guard, the dedicated `digest-mappers` positive-coverage suite, the deterministic `stale-sync` `last_error` + NaN guard, the daily-digest `staleReasonLabel` / `staleReasonDetail` / `normalizedMinutes` privacy hardening, and the new `AI-RET-001-ANSWER-LEAD-TO-CLIENT-CONVERSION-BOUNDARY` answer-shape fixture that now binds this plan to the harness). The refresh added a `Last update: 2026-06-09 21:32 AEST` header, a `Previous refresh: 2026-05-23` pointer, an explicit `Related evidence` line pointing at the AI-RET-001 report, an explicit `Related fixture` line pointing at `AI-RET-001-ANSWER-LEAD-TO-CLIENT-CONVERSION-BOUNDARY`, an explicit `Related rotation guard` pointer to the new in-doc checkpoint, an expansion of the non-negotiable rule that names the 6 required answer-shape phrases (`recommendation-only`, `no auto-conversion`, `no crm identity overwrite`, `identity review`, `board-approved conversion rules`, `operator-approved conversion`), three new `Implementation notes` (qualifyLead operator-note contract, local conversion route fail-closed branches, sandbox authority gate for `tasks` / `voice_command_sessions`), a new `Out of Scope for This Revision` section that codifies the modern hard safety rules (no live semantic search, no Nango, no production DB write, no Mac Mini credential prompt/read, no lead auto-conversion, no client record auto-creation, no follow-up auto-send, no campaign auto-launch, no cross-client conversion context mix), and a `Senior PM verification checkpoint (2026-06-09 21:32 AEST)` block (what exists, what has started, why it exists, missing/unclear, current health evidence, smallest next action). The original 2026-05-23 content (state machine, state definitions, identity gates, API contract seed, local evidence, implementation notes) is preserved unchanged. The doc is now 121 lines (was 94 before this lane; +27).
+- Doc-drift guard test added: a new focused Jest test in `tests/unit/lib/margot/retrieval-evaluation.test.ts` (`keeps the lead-to-client conversion plan source doc aligned with the AI-RET-001 answer-shape contract`) reads `docs/margot/lead-to-client-conversion-plan.md` from disk, asserts all 6 `requiredAnswerPhrases` are present in the doc, asserts all 4 `requiredCitationSources` are present in the doc, and asserts none of the 6 `prohibitedAnswerPhrases` appear in the assertion section (everything before `## Senior PM verification checkpoint`). The prohibited check is scoped to the assertion section so the verification checkpoint's documentation of the prohibited list (e.g. "and 6 prohibited phrases (`lead auto-converted`, ...)") does not false-positive the test.
+- Verification passed: focused retrieval gate `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` returned 1 suite / 35 tests PASS (was 34 before this lane; +1 for the doc-drift guard). Combined local CRM + Margot + runtime + credential-boundary gate `npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` returned 11 suites / 159 tests PASS (was 158 before this lane; +1). `npm run type-check` passed. `npm run security:routes-check` reported 0 unprotected mutating routes. `git diff --check` clean. Re-ran the AI-RET-001 report runner: `overallStatus=pass; source=7/7; answerShape=8/8; readback=pass; safetyNotes=true; nextSafeAction=true`. AI-RET-001 evidence report regenerated at `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (47 lines, unchanged from prior lane). Voice test counts unchanged: focused Margot voice suite remains 3 suites / 28 tests.
+- Blocked/gated lane: the `tasks` / `voice_command_sessions` sandbox validation packet and the credential-boundary patch remain locally ready/static, but cannot advance to sandbox apply/status/diff/sync/promote, production promotion, or live RLS/service-role/constraint verification without a specific sandbox authority/auth gate.
+- Mac Mini recovery remains opportunistic only: `/Volumes` contains only `Macintosh HD`; no non-system authenticated scan root exists; SMB/File Sharing is reachable (port `445` open, IP `192.168.2.78`), SSH is unavailable (probe at `2026-06-09 21:32 AEST` confirmed `nc` exit `0` for `:445` and exit `1` for `:22`), and no recovered Markdown artifacts are present.
+- Files changed this tick (test+doc, no schema, no production, no GitHub push, no Vercel env mutation, no sandbox wizard subcommand): `docs/margot/lead-to-client-conversion-plan.md` (94 -> 121 lines; +27), `tests/unit/lib/margot/retrieval-evaluation.test.ts` (1518 lines; +1 new doc-drift test in the final describe block), `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (regenerated by the runner; 47 lines), `docs/margot/overnight-progress-log.md` (this entry), `docs/margot/morning-report.md` (new current block at top), `docs/margot/MARGOT-COMMAND-CENTER.md` (this rotation guard entry), `docs/margot/mac-mini-recovery-status.md` (newest probe entry at top).
+
+Verification:
+
+```bash
+# Focused retrieval gate on the new doc-drift test
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 35 tests (was 34 before this lane; +1 doc-drift test).
+
+# Combined CRM + Margot + runtime + credential-boundary gate
+npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: 11 suites / 159 tests (was 158 before this lane; +1).
+
+npm run type-check
+# PASS: tsc --noEmit completed.
+
+npm run security:routes-check
+# PASS: route-inventory check reported 0 unprotected mutating routes.
+
+git diff --check
+# PASS: exited 0 before and after status-report updates.
+
+# AI-RET-001 local report runner
+npx ts-node --transpile-only -O '{"module":"commonjs","moduleResolution":"node"}' scripts/margot-retrieval-evaluation-report.ts
+# PASS/read-back: overallStatus=pass; source=7/7; answerShape=8/8; readback=pass; safetyNotes=true; nextSafeAction=true.
+
+# Doc phrase + citation + prohibited phrase check
+for p in "recommendation-only" "no auto-conversion" "no crm identity overwrite" "identity review" "board-approved conversion rules" "operator-approved conversion"; do grep -c -- "$p" docs/margot/lead-to-client-conversion-plan.md; done
+# All present.
+for s in "docs/margot/lead-to-client-conversion-plan.md" "src/lib/crm/qualify-lead.ts" "docs/margot/ai-enhancement-candidate-register.md" "docs/margot/crm-operating-model.md"; do grep -c -- "$s" docs/margot/lead-to-client-conversion-plan.md; done
+# All present.
+wc -l docs/margot/lead-to-client-conversion-plan.md
+# 121 lines (was 94; +27).
+
+git/health/Mac Mini read-back
+# READ-BACK: 2026-06-09 21:32 AEST; branch main; head c5f7a86; main...origin/main [ahead 0]; node_modules=present; package_lock=present; volumes=Macintosh HD; recovered_markdown_count=0; approved_target_scan=skipped_only_system_volume_mounted; SMB reachable (port 445 open, IP 192.168.2.78); SSH unreachable.
+```
+
+Safety:
+
+- This tick was a local mocked/static doc refresh + doc-drift guard test + report read-back + Jest gate. It did not use live vector search, OpenAI/external AI calls, new vendors, Nango, connector platforms, sandbox/prod DB-writing wizard commands, provider mutation/polling, credential reads, client-facing sends, public publishing, GBP mutation, lead auto-conversion, campaign launch, paid spend, account creation, model swap, or AI enrichment over client/lead data.
+
+Next safe slice:
+
+- Rotate to another bounded Senior PM lane: add another mocked AI-RET-001 answer-shape fixture for another gated boundary (e.g. daily-digest operator-only, sandbox-credential-boundary, or board-decision summary), add a route/page-level digest or stale-integration read-surface test only if that surface changes, refresh another still-stale control surface (e.g. `daily-crm-digest-template.md` which is still pinned at `2026-05-23 09:01`), package/review the local credential-boundary diff, or run a deeper voice-test gap-closure sweep. Do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until the specific authority/auth gate changes.
+
 ## 2026-06-09 20:58 AEST
 
 ### AI-RET-001 answer-shape expansion: lead-to-client conversion boundary + Mac Mini bounded retry
@@ -14528,3 +14587,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_204936.log'
+
+## 2026-06-09 21:38:57 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_213122.log'
