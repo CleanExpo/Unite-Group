@@ -14370,3 +14370,33 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_172206.log'
+
+## 2026-06-09 17:30 AEST
+
+### Access-and-data-requirements Senior PM control-surface refresh
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs, Command Center, retrieval rules, Mac Mini recovery status, overnight progress log, morning report, current repo state, CRM schema inventory, CRM test matrix, AI enhancement pipeline doc, AI-RET-001 evidence report, AI candidate register, project portfolio index, client-2nd-brain model, marketing strategy operating model, the inherited voice-test-gap-analysis, the inherited orchestrator-prompt, the inherited retrieval-rules (already refreshed 16:10 AEST), the inherited marketing strategy operating model (already refreshed 14:13 AEST), and the inherited access-and-data-requirements doc.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `7ce7010` (latest local code/doc commit before this uncommitted lane: `2d96cb7`), `main...origin/main [ahead 0]`. Inherited local dirty work is unchanged: the sandbox-wizard credential-boundary lane (`scripts/sandbox-wizard.sh` plus untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`), the prior CRM redaction TDD lane (`src/lib/crm/digest-read-error.ts` + test), the prior CRM approval-lifecycle TDD lane (`src/lib/crm/approval-lifecycle.ts` + test), the prior CRM digest-mappers positive-coverage lane (`tests/unit/lib/crm/digest-mappers.test.ts`), the untracked Margot retrieval-evaluation harness (`src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`), and the deterministic stale-sync/daily-digest changes.
+- Identified the next control surface that was still on the 2026-05-23 lane and was not yet aligned with the modern Senior PM verification rotation: `docs/margot/access-and-data-requirements.md` (last touched 2026-05-23 06:55:27 AEST, before the AI-RET-001 source-citation + answer-shape harness, the deterministic `logCrmDigestReadError` redaction helper, the case-insensitive `normalizedSubjectType` approval-lifecycle lane, the dedicated `digest-mappers` positive-coverage suite, the daily-digest privacy hardening, the deterministic stale-sync + daily-digest edge-case lanes, the case-insensitive `normalizeLeadStatus` digest row handling, the explicit Senior PM verification rotation guard, the `linear-watch-today.md` parent-Hermes-pushed Linear mirror, the Nango / connector-platform hard ban, the sandbox wizard subcommand allowlist, the live semantic search prohibition, and the public publishing / paid spend / client-facing send prohibitions).
+- Completed safe rotation lane: refreshed `docs/margot/access-and-data-requirements.md` to a `Last update: 2026-06-09 17:30 AEST` state. The refresh adds a `Last update` line with the lane summary, a `Previous refresh: 2026-05-23 06:55:27 AEST` pointer, an explicit `Related evidence` line pointing at the AI-RET-001 report, an explicit `Related rotation guard` pointer to the new in-doc checkpoint, an `Out of Scope for This Revision` section that codifies the modern hard safety rules (no new vendor including Nango, no live vector DB reads, no sandbox wizard DB-writing/status subcommand, no GitHub push/merge/PR mutation, no Vercel deploy/env mutation, no production DB write, no public publishing, no paid spend, no client-facing send, no Mac Mini credential prompt/read, no destructive git, no cross-client context merge), and a `Senior PM verification checkpoint (2026-06-09 17:30 AEST)` block that names the existing original access policy, the current lane state, why the refresh exists, the missing/unclear items, the current health evidence, and the smallest next action. The doc is now 566 lines (was 541 before this lane; +25 lines for the new header lines, the out-of-scope section, and the Senior PM verification checkpoint). The original 2026-05-23 access policy content (purpose, principles, default "proceed with existing assets", per-domain minimum permissions, security baseline, phased rollout, immediate next 10 actions, human decisions needed from Phill) is preserved unchanged.
+- Verification passed: focused `wc -l` check returned 566 lines (was 541 before this lane; +25 lines). Focused retrieval-evaluation Jest gate `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` returned 1 suite / 32 tests PASS. `npm run type-check` passed. `npm run security:routes-check` reported 0 unprotected mutating routes. `git diff --check` passed. Re-ran the AI-RET-001 report runner: `overallStatus=pass; source=7/7; answerShape=7/7; readback=pass; safetyNotes=true; nextSafeAction=true`.
+- Blocked/gated lane: the `tasks` / `voice_command_sessions` sandbox validation packet and the credential-boundary patch remain locally ready/static, but cannot advance to sandbox apply/status/diff/sync/promote, production promotion, or live RLS/service-role/constraint verification without a specific sandbox authority/auth gate.
+- Mac Mini recovery remains opportunistic only: `/Volumes` contains only `Macintosh HD`; no non-system authenticated scan root exists; SMB/File Sharing is reachable (IP `192.168.2.78`), SSH is unavailable (last verified probe `2026-06-09 15:55 AEST`); no recovered Markdown artifacts are present. No credential prompt/read, secret printing/storage, or recursive system-volume scan was performed in this tick.
+- Files changed this tick (docs only, no code, no schema, no test):
+  - `docs/margot/access-and-data-requirements.md` (541 -> 566 lines; +25)
+  - `docs/margot/overnight-progress-log.md` (this entry)
+  - `docs/margot/morning-report.md` (new current block at top)
+  - `docs/margot/MARGOT-COMMAND-CENTER.md` (newest rotation guard entry)
+  - `docs/margot/mac-mini-recovery-status.md` (newest probe entry at top)
+- No GitHub push/merge/PR mutation, Vercel deploy/env mutation, sandbox apply/status/diff/sync/setup/reset/promote, production DB write, provider polling/mutation, external AI call, Nango/connector-platform use, client-facing send, public publishing, billing/payment action, credential prompt/read, secret printing/storage, recursive system-volume scan, or destructive git occurred.
+
+## 2026-06-09 18:07:44 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_175940.log'
