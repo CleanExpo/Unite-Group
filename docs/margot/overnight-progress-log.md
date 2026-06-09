@@ -1,5 +1,50 @@
 # Margot Overnight Progress Log
 
+## 2026-06-09 14:13 AEST
+
+### Marketing strategy operating-model refresh + Mac Mini bounded retry
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs, Command Center, retrieval rules, Mac Mini recovery status, overnight progress log, morning report, current repo state, CRM schema inventory, CRM test matrix, and the local-only marketing/CRM/AI evidence stack.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `21d8f04`, `main...origin/main [ahead 72]`. Inherited local dirty work is unchanged from the prior tick: the sandbox-wizard credential-boundary lane (`scripts/sandbox-wizard.sh` plus untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`), the prior CRM redaction TDD lane (`src/lib/crm/digest-read-error.ts` + test), the prior CRM approval-lifecycle TDD lane (`src/lib/crm/approval-lifecycle.ts` + test), the prior CRM digest-mappers positive-coverage lane (`tests/unit/lib/crm/digest-mappers.test.ts`), the new untracked Margot retrieval-evaluation harness (`src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`), and the deterministic stale-sync/daily-digest changes.
+- Safe Senior PM improvement completed: refreshed `docs/margot/marketing-strategy-operating-model.md` so the marketing operating model is no longer pinned at `2026-05-23 07:33 AEST`. The doc was last touched before the deterministic `qualifyLead` helper, the daily-digest helper, the `crm_leads` list route, the CRM command-center approval/lead visibility, and the AI-RET-001 mocked answer-shape gate existed, so a future agent would have re-derived older "manual send to SendGrid" guidance. The refresh adds a `Last update: 2026-06-09 14:13 AEST` line, a current Senior PM verification checkpoint (what exists, what has started, why it exists, missing/unclear, current health evidence, Mac Mini state, smallest next action), explicit cross-references to the local lead intake route, the lead-list route, the crm_leads migration, the qualifyLead helper, the daily-digest helper, the retrieval-evaluation module, and the command center, plus a tightened "Immediate next implementation steps" list that names the campaign/source-label attachment for the future lead-to-client conversion flow and the AI-RET-001 mocked answer-shape contract as the unit-testable boundary for any client-facing send. The doc still contains no code, schema, or test changes and does not launch any campaign, paid spend, GBP mutation, public publish, lead auto-conversion, or client-facing send.
+- Diagnostic gate: what exists = refreshed marketing operating model, CRM operating docs/test matrix, project/client/AI control-surface docs, deterministic lead/digest/stale-sync helpers, AI-RET-001 mocked retrieval/report harness, sandbox-only voice/tasks proposal evidence, Mac Mini recovery surfaces, and current progress/morning reports; what has started = a docs-only operating-model refresh, not sandbox apply/diff/status, production adoption, deploys, PR mutation, provider polling, client-facing sends, public publishing, new-vendor work, GBP mutation, or CRM data mutation; why/problem/friction = the marketing operating model had not been refreshed since 7:33 May 23, before the deterministic qualification helper, daily-digest helper, and AI-RET-001 mocked answer-shape gate existed, so future agents risk recreating older "manual send to SendGrid" guidance that no longer reflects the local CRM-first lead capture contract; missing = production `crm_leads` migration has not been applied to the live target Supabase environment from this lane, IP/user-agent privacy retention decision is still a gap, pipeline stages and campaign/source labels are not yet formalised, Mac Mini artifacts are not recovered, and sandbox authority/auth for voice/task DB validation is still gated; duplicated/unclear = project/client/AI control-surface refreshes still cover their own lanes and the existing mac-mini-recovery-status file still records the same opportunistic-only recovery state; business benefit = keeps the Senior PM marketing control surface aligned with the current deterministic CRM operating loop, reducing operator risk of recreating older marketing guidance; smallest next action = keep the marketing operating model aligned with the deterministic CRM operating loop and rotate to the next bounded Senior PM lane (e.g. close another voice-test gap, refresh another control surface, or add another mocked AI-RET-001 answer-shape fixture) unless a production marketing campaign or pipeline-stage decision is opened by Phill.
+- Refreshed the Mac Mini approved-target health check without recursive system-volume scanning: `/Volumes` contains only `Macintosh HD`, no authenticated non-system mounted scan root exists, recovered Markdown artifact count remains `0`, `phills-mac-mini.local:445` is reachable (SMB/File Sharing reachable; observed at this tick), and `:22` times out (SSH/Remote Login unavailable from this MacBook session).
+- No GitHub push, merge, PR mutation, deployment, Vercel/env mutation, sandbox apply/status/diff/sync/setup/reset/promote, production DB write, provider polling/mutation, client-facing action, billing/payment action, external vendor/account action, Nango/connector-platform action, credential prompt/read, secret printing/storage, recursive system-volume scan, or destructive git occurred.
+
+Verification:
+
+```bash
+# Focused run on the refreshed marketing operating model
+test -f docs/margot/marketing-strategy-operating-model.md && wc -l docs/margot/marketing-strategy-operating-model.md
+# PASS: file exists, 233 lines (was 183 before this lane; +50 lines including current verification checkpoint, refreshed cross-references, and tightened next-implementation steps).
+
+# Combined CRM + retrieval + runtime + credential-boundary gate (matrix reference)
+npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: 11 suites / 156 tests (no change vs prior tick; this lane was docs-only).
+
+npm run type-check
+# PASS: tsc --noEmit completed.
+
+npm run security:routes-check
+# PASS: route-inventory check reported 0 unprotected mutating routes.
+
+git diff --check
+# PASS: exited 0 before and after status-report updates.
+
+git/health/Mac Mini read-back
+# READ-BACK: 2026-06-09 14:13 AEST; branch main; head 21d8f04; main...origin/main [ahead 72]; node_modules=present; package_lock=present; volumes=Macintosh HD; recovered_markdown_count=0; approved_target_scan=skipped_only_system_volume_mounted; SMB reachable; SSH unreachable.
+```
+
+Safety:
+
+- This tick was local documentation verification only. It did not use live vector search, OpenAI/external AI calls, new vendors, Nango, connector platforms, sandbox/prod DB-writing wizard commands, provider mutation/polling, credential reads, client-facing sends, public publishing, GBP mutation, lead auto-conversion, campaign launch, paid spend, or account creation.
+
+Next safe slice:
+
+- Rotate to another bounded Senior PM lane: close another voice-test gap from `docs/margot/voice-test-gap-analysis.md`, refresh another control surface (e.g. the AI enhancement pipeline), or add another mocked AI-RET-001 answer-shape fixture; do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until the specific authority/auth gate changes.
+
 ## 2026-06-09 12:28 AEST
 
 ### Margot retrieval-evaluation empty-results + non-Mac-Mini operator-note positive coverage TDD lane (gap closure)
@@ -14109,3 +14154,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_133704.log'
+
+## 2026-06-09 14:21:41 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260609_141255.log'
