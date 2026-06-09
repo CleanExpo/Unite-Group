@@ -1,6 +1,6 @@
 # AI-RET-001 Local Retrieval Evaluation Report
 
-Generated: 09/06/2026, 23:36:22 AEST
+Generated: 10/06/2026, 00:27:43 AEST
 
 Overall status: `pass`
 
@@ -8,8 +8,8 @@ Overall status: `pass`
 
 | Area | Total | Pass | Needs action |
 | --- | ---: | ---: | ---: |
-| Source-citation fixtures | 7 | 7 | 0 |
-| Answer-shape fixtures | 8 | 8 | 0 |
+| Source-citation fixtures | 8 | 8 | 0 |
+| Answer-shape fixtures | 9 | 9 | 0 |
 
 ## Source-citation fixture results
 
@@ -22,6 +22,7 @@ Overall status: `pass`
 | AI-RET-001-SENIOR-PM-LOOP | pass | docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md | none | Semantic retrieval may be used only with cited source files; preserve file-read fallback on confidence drop. |
 | AI-RET-001-INTEGRATION-STALE-SYNC | pass | src/lib/runtime/stale-sync-check.ts<br>src/app/[locale]/command-center/layered/page.tsx<br>supabase/migrations/20260513000200_integration_schema.sql | none | Semantic retrieval may be used only with cited source files; preserve file-read fallback on confidence drop. |
 | AI-RET-001-COMMAND-CENTER-CITATION | pass | docs/margot/MARGOT-COMMAND-CENTER.md<br>docs/margot/ai-enhancement-candidate-register.md<br>docs/margot/morning-report.md | none | Semantic retrieval may be used only with cited source files; preserve file-read fallback on confidence drop. |
+| AI-RET-001-CONTACTS-OPPORTUNITIES-MODEL | pass | docs/margot/crm-contacts-opportunities-model.md<br>docs/margot/crm-operating-model.md<br>docs/margot/lead-to-client-conversion-plan.md<br>docs/margot/ai-enhancement-candidate-register.md | none | Semantic retrieval may be used only with cited source files; preserve file-read fallback on confidence drop. |
 
 ## Answer-shape fixture results
 
@@ -35,6 +36,7 @@ Overall status: `pass`
 | AI-RET-001-ANSWER-ACCESS-REQUEST-BOUNDARY | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
 | AI-RET-001-ANSWER-MAC-MINI-RECOVERY-BOUNDARY | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
 | AI-RET-001-ANSWER-LEAD-TO-CLIENT-CONVERSION-BOUNDARY | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
+| AI-RET-001-ANSWER-CONTACTS-OPPORTUNITIES-SAFETY-BOUNDARY | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
 
 ## Safety notes
 

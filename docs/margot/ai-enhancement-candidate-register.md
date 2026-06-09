@@ -1,6 +1,6 @@
 # Margot AI Enhancement Candidate Register
 
-Date: 2026-06-09 20:56:46 AEST
+Date: 2026-06-09 23:50:18 AEST
 Project: Unite-Group
 Owner: Margot
 Scope: Local repo/docs/code evidence only. This register does not adopt a new vendor, connect accounts, run external AI enrichment, write databases, deploy, publish, or contact leads/clients.
@@ -79,8 +79,9 @@ The answer-shape harness now pins eight fixtures (was seven, expanded at `2026-0
 | Answer-shape fixture | Required shape | Rejected overclaims |
 | --- | --- | --- |
 | Lead-to-client conversion boundary (added `2026-06-09 20:56:46 AEST`) | Must name recommendation-only, no auto-conversion, no crm identity overwrite, identity review, board-approved conversion rules, and operator-approved conversion; must cite `docs/margot/lead-to-client-conversion-plan.md`, `src/lib/crm/qualify-lead.ts`, `docs/margot/ai-enhancement-candidate-register.md`, and `docs/margot/crm-operating-model.md`. | Lead auto-converted, client record created, follow-up sent, campaign launched, auto-conversion approved, Nango. |
+| Contacts and opportunities safety boundary (added `2026-06-09 23:50:18 AEST`) | Must name sandbox-only draft, no production apply, forecast-only, stripe remains billing truth, strong identity gates, operator approval, and cross-client leakage abort; must cite `docs/margot/crm-contacts-opportunities-model.md`, `docs/margot/crm-operating-model.md`, `docs/margot/lead-to-client-conversion-plan.md`, and `docs/margot/ai-enhancement-candidate-register.md`. | Contact auto-created, opportunity auto-created, cross-client merge applied, production migration applied, billing field written, Nango. |
 
-The source-citation fixture gate treats semantic retrieval as usable only when every required source is cited at or above the `0.76` threshold; otherwise it requires an exact file-read fallback before answering. The answer-shape gate now adds eight mocked/static checks (was seven, expanded at `2026-06-09 20:56:46 AEST`):
+The source-citation fixture gate treats semantic retrieval as usable only when every required source is cited at or above the `0.76` threshold; otherwise it requires an exact file-read fallback before answering. The answer-shape gate now adds nine mocked/static checks (was seven, expanded at `2026-06-09 20:56:46 AEST`, expanded again to nine at `2026-06-09 23:50:18 AEST`):
 
 | Answer-shape fixture | Required shape | Rejected overclaims |
 | --- | --- | --- |
