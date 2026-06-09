@@ -1,4 +1,45 @@
 # Margot Overnight Progress Log
+## 2026-06-10 08:30:00 AEST
+
+### Sandbox wizard credential-boundary review/packaging lane + credential-boundary doc-drift guard
+
+Current checkpoint:
+
+- Re-ran the Margot read-first/Senior PM context pass across the canonical operating docs, Command Center, retrieval rules, Mac Mini recovery status, overnight progress log, morning report, current repo state, AI-RET-001 evidence report, AI candidate register, the inherited retrieval-evaluation harness (56 tests, 16 answer-shape fixtures, 8 source-citation fixtures), and the inherited credential-boundary diff (the locally modified `scripts/sandbox-wizard.sh` plus the untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`).
+- Read-back: AI-RET-001 evidence report at `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` reports `overallStatus=pass; source=8/8; answerShape=16/16` as of the 2026-06-10 07:35:27 AEST runner pass; this lane is a doc+test packaging lane that does not modify the retrieval-evaluation harness, so the next pass should report the same state.
+- Inspected live repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `a428aea` (sandbox-wizard auto-sync commit `a428aea chore: Margot ops auto-sync [tick 20260610_072248]` is the current head; `git rev-list --count main..origin/main` returned `0` so the local main is in sync with origin). Inherited local dirty state is unchanged from the prior tick: the sandbox-wizard credential-boundary lane (`scripts/sandbox-wizard.sh` plus untracked `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`), the prior CRM redaction / approval-lifecycle / digest-mappers TDD lanes, the untracked Margot retrieval-evaluation harness, the deterministic stale-sync / daily-digest changes, the prior voice task route end-to-end chain-linkage TDD closure, the prior voice UI panel state-machine TDD closure, the prior retrieval-rules-drift doc-drift guard lane, the prior marketing-strategy doc-drift guard lane, and the prior crm-operating-model doc-drift guard lane.
+- Safe Senior PM packaging review + doc-drift-guard lane completed: closed the inherited credential-boundary packaging gap by writing a permanent review doc at `docs/margot/sandbox-wizard-credential-boundary-review.md` (new, 295 lines) that pins the full diff surface, the 14-test contract, the per-subcommand call table, the 5 remaining concerns, and the 5-step gating decision for any future commit/PR/merge/delete. The diff splits the wizard's credential loading into `load_sandbox_creds` (sandbox-only, never reads the prod-labelled DB password) and `load_creds` (production-capable, delegates to `load_sandbox_creds` after reading prod creds). `cmd_apply` and `cmd_status` now call only `load_sandbox_creds`; `cmd_setup`, `cmd_sync`, `cmd_diff`, and `cmd_promote` still call `load_creds` because they legitimately need prod access (mirror, diff, gated prod apply). The `local_credential_value` helper uses an embedded Python parser to read only the requested key from the local override file, replacing the previous `source "$creds_file"` step so a production-labelled `UNITE_GROUP_DB_PASSWORD=*** line in the same file cannot leak into the sandbox credential slot. The sandbox advisor step in `cmd_apply` is now opt-in via the `SUPABASE_ACCESS_TOKEN` env var, so a sandbox `apply` no longer requires the Supabase Management API token. The 14 inherited tests (1 structural apply/status case, 1 structural token-independence case, 1 structural sandbox-isolation case, 1 local-override-via-parser case, 1 production-capable-loader case, 1 dispatch-routing case, and 8 behavioural execFileSync cases that actually run the embedded Python parser) all continue to pass.
+- New doc-drift guard test: added a new test to `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts` (`keeps the credential-boundary review doc aligned with the structural and behavioural contracts`) that reads `docs/margot/sandbox-wizard-credential-boundary-review.md` from disk, asserts all 22 required phrases (load_sandbox_creds / load_creds / cmd_apply / cmd_status / cmd_promote / cmd_diff / cmd_setup / cmd_sync / local_credential_value / unite_group_sandbox_db_password / unite_group_db_password / prod_db_password / sandbox-only credential loading / production-capable credential loading / sandbox advisor opt-in / per-step approval / promote to prod / no github push / no production db write / no secret read / fail-closed / sandbox wizard) survive the `## Senior PM verification checkpoint` split into the assertion section, and asserts none of the 5 prohibited phrases (sandbox-wizard apply/status/diff/sync/promote completed) appear in the assertion section. This is the 9th doc-drift guard in the local suite (after lead-to-client, command-center, daily-digest template, contacts-and-opportunities, crm-approval-persistence, crm-schema-inventory, digest-mappers, retrieval-rules-drift, marketing-strategy, and crm-operating-model) and the first to bind the sandbox wizard credential-boundary review doc itself.
+- Verification passed locally: focused credential-boundary gate `npx jest tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` returned 1 suite / 15 tests PASS (was 1 suite / 14 tests before this lane; +1). Combined local CRM + Margot + runtime + credential-boundary gate `npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` returned 11 suites / 181 tests PASS (was 11 suites / 180 tests before this lane; +1). `npm run type-check` passed. `npm run security:routes-check` reported 0 unprotected mutating routes. `git diff --check` clean. AI-RET-001 report unchanged from prior tick: `overallStatus=pass; source=8/8; answerShape=16/16; readback=pass; safetyNotes=true; nextSafeAction=true`.
+- Blocked/gated lane: the `tasks` / `voice_command_sessions` sandbox validation packet, the credential-boundary diff (script + test + review doc), the future `crm_contacts` / `crm_opportunities` / `crm_leads` production promotion, and any future `crm_approvals` migration apply/promote remain locally ready/static, but cannot advance to sandbox apply/status/diff/sync/promote, production promotion, live RLS/service-role/constraint verification, or `git add`/`git commit`/`git push` without a specific authority/auth gate.
+- Mac Mini recovery remains opportunistic only: `/Volumes` contains only `Macintosh HD`; no non-system authenticated scan root exists; SMB/File Sharing is reachable (port `445` open, IP `192.168.2.78`), SSH is unavailable (the most recent probe at `2026-06-10 07:30:00 AEST` confirmed `nc -G 2` exit `0` for `:445` and exit `1` for `:22`; this tick did not re-run the probe to honour the rotation guard), and no recovered Markdown artifacts are present.
+- Files changed this tick (code+test+doc, no schema, no production, no GitHub push, no Vercel env mutation, no sandbox wizard subcommand): `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts` (added 1 new test `keeps the credential-boundary review doc aligned with the structural and behavioural contracts` with 22 required-phrase assertions + 5 prohibited-phrase assertions + a `## Senior PM verification checkpoint` assertion-section split; now 15 tests, was 14; +1), `docs/margot/sandbox-wizard-credential-boundary-review.md` (new, 295 lines; contains the 22 required phrases + the `## Senior PM verification checkpoint (2026-06-10 08:30:00 AEST)` block that scopes the prohibited-phrase check), `docs/margot/crm-test-coverage-matrix.md` (newest `2026-06-10 08:30:00 AEST Senior PM sandbox wizard credential-boundary review/packaging lane` section + Last update line recording credential-boundary suite as 1/15 and full combined gate as 11/181), `docs/margot/overnight-progress-log.md` (this entry), `docs/margot/morning-report.md` (new current block at top), `docs/margot/MARGOT-COMMAND-CENTER.md` (this rotation guard entry).
+
+Verification:
+
+```bash
+# Focused credential-boundary gate
+npx jest tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: 1 suite / 15 tests (was 1 suite / 14 tests before this lane; +1).
+
+# Combined local CRM + Margot + runtime + credential-boundary gate
+npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: 11 suites / 181 tests (was 11 suites / 180 tests before this lane; +1).
+
+npm run type-check
+# PASS: tsc --noEmit completed.
+
+npm run security:routes-check
+# PASS: route-inventory check reported 0 unprotected mutating routes.
+
+git diff --check
+# PASS: exited 0 before and after status-report updates.
+
+# AI-RET-001 local report runner (unchanged from prior tick)
+npx ts-node --transpile-only -O '{"module":"commonjs","moduleResolution":"node"}' scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=16/16; readback=pass; safetyNotes=true; nextSafeAction=true
+```
+
 ## 2026-06-10 07:30:00 AEST
 
 ### AI-RET-001 16th answer-shape fixture (crm-operating-model boundary) + crm-operating-model doc-drift guard + crm-operating-model control-surface refresh
@@ -15339,3 +15380,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_072248.log'
+
+## 2026-06-10 08:16:12 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_080607.log'
