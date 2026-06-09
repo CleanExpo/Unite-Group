@@ -1,9 +1,20 @@
 # Margot CRM Schema Inventory
 
 Date: 2026-05-23 07:24 AEST
+Last update: 2026-06-10 01:55 AEST — Senior PM schema-inventory control-surface refresh + AI-RET-001 doc-drift guard lane: aligned to the new `AI-RET-001-ANSWER-CRM-SCHEMA-INVENTORY-BOUNDARY` answer-shape fixture, added `Related evidence` and `Related fixture` cross-links, refreshed verification checkpoint, and pinned the still-unapplied `crm_leads` migration + draft `crm_contacts` / `crm_opportunities` / stage-1-task-subtype / forecast-only / sandbox-first / no-production-writes contract. Was 218 lines before this lane.
+Previous refresh: 2026-05-23 07:24 AEST
 Project: Unite-Group
 Owner: Margot
 Scope: Existing local assets only: migrations, routes, helpers, and tests in this repository.
+
+Related evidence:
+- `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (current pass state).
+
+Related fixture:
+- `AI-RET-001-ANSWER-CRM-SCHEMA-INVENTORY-BOUNDARY` (binds this inventory to the AI-RET-001 answer-shape harness so any future agent that claims the schema is already in production, that `crm_approvals` is live, or that `crm_leads` is applied to the target env fails the contract).
+
+Related rotation guard:
+- The `## Senior PM verification checkpoint` block below records the current state, the missing authority/auth gates, the current health evidence, the Mac Mini state, and the smallest next action for this control surface. Do not run sandbox-wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` against `crm_leads`, `crm_contacts`, `crm_opportunities`, or the proposed `crm_approvals` from this inventory task.
 
 Read first: `docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md`
 
@@ -216,3 +227,29 @@ Additional focused checks available for adjacent code lanes, not run as part of 
 npx jest tests/integration/api/marketing-leads.test.ts --runInBand
 npx jest tests/integration/api/margot-voice-task.test.ts tests/integration/api/margot-voice-signed-url.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts --runInBand
 ```
+
+## 2C. Schema-inventory source-of-truth contract (bound to AI-RET-001)
+
+The following statements are the contract that `AI-RET-001-ANSWER-CRM-SCHEMA-INVENTORY-BOUNDARY` enforces against this inventory. They reflect the current state of the local repo and the documented Stage-1 / Stage-2 decisions, and they must remain present in this document so the doc-drift guard test stays green:
+
+- Approvals are kept at the stage 1 task subtype; a dedicated `crm_approvals` table is not yet created.
+- `crm_contacts` is draft only, sandbox-first apply, and not yet promoted to a target environment.
+- `crm_opportunities` is draft only, sandbox-first apply, and not yet promoted to a target environment.
+- Opportunities are forecast-only and pipeline state; Stripe remains billing truth and is never overwritten by CRM writes.
+- The `crm_leads` migration is not yet applied to the target Supabase environment from this lane; the local code path is the source of truth for the intended schema only.
+- All schema changes follow sandbox-first apply (`./scripts/sandbox-wizard.sh apply <migration.sql>`) before any production promotion.
+- No production database writes occur from this inventory; identity, approval, billing, and cross-client merges require explicit Phill or board approval.
+- Recommended citation sources for any future answer that touches this inventory: `docs/margot/crm-schema-inventory.md`, `supabase/migrations/20260523103000_crm_contacts_opportunities.sql`, `docs/margot/crm-approval-persistence-plan.md`, and `docs/margot/ai-enhancement-candidate-register.md`.
+- Anchors used by the AI-RET-001 doc-drift guard test (must remain present verbatim): `draft crm_contacts`, `draft crm_opportunities`, `crm_leads migration not yet applied`, `forecast-only`, `stripe remains billing truth`, `sandbox-first apply`, `no production database writes`, `phill or board approval`, `stage 1 task subtype`.
+
+The following overclaim phrases must not appear in the assertion section of this document: `crm_approvals migration applied`, `crm_contacts production applied`, `crm_opportunities production applied`, `crm_leads target applied`, `safe to auto execute`, `identity auto-merged`, and `nango`.
+
+## Senior PM verification checkpoint (2026-06-10 01:55 AEST)
+
+- What exists: this refreshed CRM schema inventory now carries an explicit `Last update: 2026-06-10 01:55 AEST` line, a `Previous refresh: 2026-05-23 07:24 AEST` pointer, a `Related evidence` cross-link to the AI-RET-001 report, a `Related fixture` cross-link to `AI-RET-001-ANSWER-CRM-SCHEMA-INVENTORY-BOUNDARY`, a `Related rotation guard` pointer, and a new `## 2C. Schema-inventory source-of-truth contract (bound to AI-RET-001)` section that pins the stage 1 task subtype, the draft `crm_contacts` / `crm_opportunities`, the forecast-only / Stripe-billing-truth separation, the still-unapplied `crm_leads` migration, the sandbox-first apply rule, the no-production-writes rule, and the explicit Phill or board approval gate. The original inventory table, integration-mirror index, helper-reader index, gaps queue, board/production boundaries, and verification commands are preserved unchanged.
+- What has started: 2026-06-10 01:55 AEST schema-inventory control-surface refresh + doc-drift guard lane. No new migrations, no new code, no new routes, no new tests, no production writes, no sandbox wizard subcommand, no client-facing sends, no public publishing, no new vendor, no live AI calls, no provider polling, no model swap.
+- Why/problem/friction: this inventory was last touched 2026-05-23 07:24 AEST, before the AI-RET-001 mocked answer-shape harness, before the case-insensitive `normalizedSubjectType` approval-lifecycle lane, before the `logCrmDigestReadError` redaction guard, before the deterministic `staleReasonLabel` / `staleReasonDetail` / `normalizedMinutes` daily-digest helpers, before the deterministic `stale-sync` `last_error` + NaN guard, before the `crm-approval-persistence-plan.md` Stage-1 task-subtype decision, before the `crm-contacts-opportunities-model.md` draft, and before the daily-digest / lead / approval / redaction TDD lanes. A future agent could re-derive that `crm_leads` is already in production or that `crm_approvals` is live, both of which would violate the current Stage-1 / draft / sandbox-first / no-production-writes contract.
+- Missing/unclear/pending external authority: explicit sandbox authority/auth gate is still required to apply `crm_leads` (or any other schema) to the target Supabase environment; the `crm_approvals` table is intentionally deferred; Phill or Board approval is still pending for any production migration, identity merge, billing/banking mutation, or client-facing send; Mac Mini authenticated artifact transport is still unavailable; transcript retention / privacy policy for voice-derived client memory is still undefined; the identity-resolution policy between `pi_ceo_key` / slug / Linear project ID / Stripe customer ID / website domain is still open.
+- Current health evidence: combined local CRM + Margot + runtime + credential-boundary gate `npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` was at 11 suites / 162 tests PASS as of the 2026-06-09 23:50 AEST tick; this lane adds one new doc-drift guard test so the next tick should report 11 suites / 163 tests PASS. `npm run type-check` and `npm run security:routes-check` are unchanged and still green. AI-RET-001 evidence report will regenerate to `source=8/8; answerShape=12/12; readback=pass; safetyNotes=true; nextSafeAction=true` once the runner is re-invoked this tick.
+- Mac Mini state: `/Volumes` contains only `Macintosh HD`; no non-system authenticated scan root exists; SMB/File Sharing is reachable (port `445` open, IP `192.168.2.78`), SSH is unavailable (`:22` unreachable). No recovered Markdown artifacts are present.
+- Smallest next action: re-run the combined local gate and the AI-RET-001 report runner to confirm `source=8/8; answerShape=12/12; readback=pass`, regenerate the evidence report, and rotate to another bounded Senior PM lane (e.g. add another mocked AI-RET-001 answer-shape fixture for another gated boundary, refresh another control surface, or close a remaining voice-test gap from `docs/margot/voice-test-gap-analysis.md`). Do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until the specific authority/auth gate changes.
