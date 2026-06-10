@@ -1,5 +1,14 @@
 # Margot Morning Report
 
+Latest Senior PM AI-RET-001 26th answer-shape fixture (connected-teams-operating-rules boundary) at `2026-06-12 04:00:00 AEST`:
+
+- Added 26th mocked answer-shape fixture `AI-RET-001-ANSWER-CONNECTED-TEAMS-OPERATING-RULES-BOUNDARY` (bound to `AI-RET-001-COMMAND-CENTER-CITATION`). Pins the connected-teams-operating-rules doc to 10 required phrases (use what already exists first, connected teams hierarchy, auto-execute, delegate, draft only, ask phill, block, read canonical context, financial red lines, $2b strategy lens), 4 required citations (CONNECTED-TEAMS-OPERATING-RULES.md, SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md, SECOND-BRAIN-CARRY-FORWARD.md, ai-enhancement-candidate-register.md), 9 prohibited overclaims (connected teams operating rule bypassed, canonical context not read, nango, github pushed, vercel deployed, production migration applied, secret read from, live provider status fetched, cross-client context merged without approval).
+- 3 new tests: pass, reject, and doc-drift guard for CONNECTED-TEAMS-OPERATING-RULES.md.
+- CONNECTED-TEAMS-OPERATING-RULES.md refreshed with AI-RET-001 citation contract + Senior PM verification checkpoint.
+- Verification: focused retrieval gate 1 suite / 97 tests PASS (was 94; +3). AI-RET-001 runner: overallStatus=pass; source=8/8; answerShape=26/26; readback=pass. Combined gate 11 suites / 222 tests PASS (was 216; +6).
+- Mac Mini: rotation guard — not probed; blocker unchanged (SMB reachable, SSH unreachable, 0 artifacts).
+- Next safe lane: rotate to 27th answer-shape fixture (SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md or SECOND-BRAIN-CARRY-FORWARD.md) or refresh another control surface.
+
 Latest Senior PM AI-RET-001 25th answer-shape fixture (linear-watch-today boundary) at `2026-06-11 01:25:00 AEST`:
 
 - Added 25th mocked answer-shape fixture `AI-RET-001-ANSWER-LINEAR-WATCH-TODAY-BOUNDARY` (bound to `AI-RET-001-COMMAND-CENTER-CITATION`). Pins the linear-watch-today doc to 10 required phrases, 4 required citations, 9 prohibited overclaims.
