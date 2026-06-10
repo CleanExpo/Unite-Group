@@ -1,4 +1,26 @@
 # Margot Overnight Progress Log
+## 2026-06-10 20:40:00 AEST
+
+### Tick 20260610_2040 — AI-RET-001 20th answer-shape fixture (access-policy boundary) + doc-drift guard
+
+Current checkpoint:
+
+- Completed safe Senior PM lane: added 20th mocked answer-shape fixture `AI-RET-001-ANSWER-ACCESS-POLICY-BOUNDARY` (bound to `AI-RET-001-USE-EXISTING-ASSETS`, no source-citation union member added). Pins the access-and-data-requirements policy contract: 10 required phrases (use existing assets first, read-only first, staged write permissions, no payment access by default, tokens in approved secret stores, scoped api keys, service accounts where possible, every integration needs owner and purpose, every write action needs audit trail, cross-client identity scoping), 4 required citations (access-and-data-requirements.md, CONNECTED-TEAMS-OPERATING-RULES.md, SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md, ai-enhancement-candidate-register.md), 9 prohibited overclaim phrases (production database accessed directly, stripe api key read from repo, bank transfer auto-executed, password stored in docs, cross-client merge without identity scope, payroll execution approved, new vendor onboarded without approval, nango, access granted without least privilege audit).
+- 3 new tests added: pass, reject, and doc-drift guard. The doc-drift guard reads `docs/margot/access-and-data-requirements.md` from disk and asserts all 10 required phrases are present (case-insensitive), all 4 required citations are present (case-sensitive), and none of the 9 prohibited phrases appear in the assertion section.
+- `docs/margot/access-and-data-requirements.md` refreshed: date updated, `## AI-RET-001 Access-Policy Citation Contract` section added, new `## Senior PM verification checkpoint (2026-06-10 20:30:00 AEST)` block added.
+- Verification: focused retrieval gate 1 suite / 79 tests PASS; AI-RET-001 runner `overallStatus=pass; source=8/8; answerShape=20/20`; `npm run type-check` skipped (pre-existing LSP errors only); no sandbox/prod wizard, deploy, push, DB write, or credential action.
+- Mac Mini: `/Volumes=Macintosh HD` only; 0 artifacts. Blocker unchanged.
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, connector platforms, new vendors.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 79 tests.
+npx tsx scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=20/20; readback=pass.
+```
+
 ## 2026-06-10 20:10:00 AEST
 
 ### Tick 20260610_2010 — CRM dirty-tree diff review + focused CRM test gate + AI-RET-001 readback
@@ -16221,3 +16243,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_204418.log'
+
+## 2026-06-10 21:44:20 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_211850.log'

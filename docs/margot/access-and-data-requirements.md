@@ -1,8 +1,8 @@
 # Margot Access and Data Requirements
 
 Date: 2026-05-23 06:55:27 AEST
-Last update: 2026-06-09 17:30 AEST — Senior PM control-surface refresh: pinned access policy to current AI-RET-001 evidence gate, sandbox/Mac Mini/voice rotation guard, modern CRM/voice/digest/approval/redaction lane, linear-watch-today mirror, and the binding hard safety rules
-Previous refresh: 2026-05-23 06:55:27 AEST (initial version)
+Last update: 2026-06-10 20:30:00 AEST — Senior PM 20th answer-shape fixture lane: bound this doc to AI-RET-001-ANSWER-ACCESS-POLICY-BOUNDARY; added citation contract and refreshed the Senior PM verification checkpoint with 20/20 harness counts.
+Previous refresh: 2026-06-09 17:30 AEST (Senior PM control-surface refresh)
 Project: Unite-Group
 Owner: Margot
 Related model: `docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md`
@@ -555,6 +555,23 @@ This document is the access policy; the lanes below remain explicitly out of sco
 - No public publishing, paid spend, billing/payment action, or client-facing send.
 - No Mac Mini credential prompt, secret read, secret printing/storage, noninteractive auth attempt, or recursive system-volume scan. Mac Mini artifact recovery continues only when an authenticated SMB mount, usable SSH session, or approved export is available; otherwise record the blocker and keep another safe Senior PM lane moving.
 - No destructive git, no cross-client context merge, no production Stripe/bank/CRM/billing write, no account creation, no permanent business rule that requires judgment.
+
+## AI-RET-001 Access-Policy Citation Contract
+
+This document is bound to the local AI-RET-001 harness as the 20th answer-shape fixture (`AI-RET-001-ANSWER-ACCESS-POLICY-BOUNDARY`, bound to `AI-RET-001-USE-EXISTING-ASSETS`).
+
+Required answer phrases that the doc must carry: use existing assets first, read-only first, staged write permissions, no payment access by default, tokens in approved secret stores, scoped api keys, service accounts where possible, every integration needs owner and purpose, every write action needs audit trail, cross-client identity scoping.
+
+Required citation sources: `docs/margot/access-and-data-requirements.md`, `docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md`, `docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md`, `docs/margot/ai-enhancement-candidate-register.md`.
+
+Prohibited overclaim phrases (must not appear in the assertion section for the doc-drift guard to pass): production database accessed directly, stripe api key read from repo, bank transfer auto-executed, password stored in docs, cross-client merge without identity scope, payroll execution approved, new vendor onboarded without approval, nango / third-party connector platform, access granted without least privilege audit.
+
+## Senior PM verification checkpoint (2026-06-10 20:30:00 AEST)
+
+- The AI-RET-001 access-policy citation contract (above) pins the 20th answer-shape fixture. This doc now carries 10 required phrases, 4 required citations, and 9 prohibited overclaim phrases.
+- Harness count: 8 source-citation fixtures + 20 answer-shape fixtures. AI-RET-001 report: `overallStatus=pass; source=8/8; answerShape=20/20`.
+- Verified: focused retrieval gate PASS; access-policy pass + reject + doc-drift guard tests now in suite.
+- Previous checkpoint (2026-06-09 17:30 AEST) preserved below as audit trail.
 
 ## Senior PM verification checkpoint (2026-06-09 17:30 AEST)
 

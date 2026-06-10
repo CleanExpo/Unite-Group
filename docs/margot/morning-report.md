@@ -1,5 +1,15 @@
 # Margot Morning Report
 
+Latest Senior PM AI-RET-001 20th answer-shape fixture (access-policy boundary) at `2026-06-10 20:40:00 AEST`:
+
+- Added 20th mocked answer-shape fixture `AI-RET-001-ANSWER-ACCESS-POLICY-BOUNDARY` (bound to `AI-RET-001-USE-EXISTING-ASSETS`). Pins `docs/margot/access-and-data-requirements.md` to 10 required phrases, 4 required citations, 9 prohibited overclaims.
+- 3 new tests: pass, reject, doc-drift guard. Doc refreshed with AI-RET-001 citation contract section and new verification checkpoint.
+- Verification: focused retrieval gate 1 suite / 79 tests PASS; AI-RET-001 runner `overallStatus=pass; source=8/8; answerShape=20/20; readback=pass`.
+- Mac Mini: `/Volumes=Macintosh HD` only, 0 artifacts. All blockers unchanged.
+- Files changed: `src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`, `docs/margot/access-and-data-requirements.md`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+- Safety: no sandbox wizard action, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, connector-platform action, new vendor, credential read, or destructive git.
+- Next safe slice: rotate to voice-test gap mock, another local report corruption/error-path case, or a control-surface refresh; sandbox/Mac Mini gates remain unchanged.
+
 Latest Senior PM CRM dirty-tree diff review + focused CRM test gate at `2026-06-10 20:10:00 AEST`:
 
 - Reviewed dirty-tree diff: CRM lib improvements in `approval-lifecycle.ts` (case-variant `.toLowerCase()` fix), `daily-digest.ts` (operator-readable stale labels, NaN guard), `stale-sync-check.ts` (NaN-safe parsing, error/missed_cadence disambiguation), new `digest-read-error.ts`. Plus +147 voice-task test lines, +90 stale-sync-check test lines.
