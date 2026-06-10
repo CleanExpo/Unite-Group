@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
 // CommandCenterShell — the five-zone layout container for /command-center.
 //
 // PR-1 shipped Zones 1 + 2 LIVE.
@@ -92,7 +94,9 @@ export function CommandCenterShell({
 
         <aside
           className="command-center-side-rail flex flex-col"
+          aria-label="Internal command-center task rail"
         >
+          <SideRailHeader />
           <MargotVoicePanel />
           <Business360Grid locale={locale} {...business360Initial} />
           <DailyCrmDigestPanel {...dailyDigestInitial} />
@@ -119,6 +123,110 @@ export function CommandCenterShell({
         </span>
       </footer>
     </div>
+  );
+}
+
+const SIDE_RAIL_TASKS = [
+  'Voice command',
+  'Portfolio pulse',
+  'CRM digest',
+  'Agent activity',
+];
+
+function formatAestDateTime(now: Date) {
+  const date = new Intl.DateTimeFormat('en-AU', {
+    timeZone: 'Australia/Brisbane',
+    weekday: 'short',
+    day: '2-digit',
+    month: 'short',
+  }).format(now);
+  const time = new Intl.DateTimeFormat('en-AU', {
+    timeZone: 'Australia/Brisbane',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).format(now);
+
+  return { date, time };
+}
+
+function SideRailHeader() {
+  const [now, setNow] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const updateClock = () => setNow(new Date());
+    const initialTimer = window.setTimeout(updateClock, 0);
+    const timer = window.setInterval(updateClock, 1000);
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  const stamp = now ? formatAestDateTime(now) : { date: 'Loading date', time: '--:--:--' };
+
+  return (
+    <section
+      className="flex flex-col gap-4 p-5"
+      style={{
+        background: 'linear-gradient(180deg, rgba(17,20,27,0.98), rgba(10,12,16,0.96))',
+        borderBottom: '1px solid var(--cc-grid)',
+      }}
+      aria-label="Internal task rail overview"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p
+            className="font-mono text-[10px] uppercase tracking-[0.22em]"
+            style={{ color: 'var(--cc-ink-hush)' }}
+          >
+            Internal ops rail
+          </p>
+          <h2 className="mt-1 text-base font-semibold leading-tight" style={{ color: 'var(--cc-ink)' }}>
+            Today&apos;s task stack
+          </h2>
+        </div>
+        <div
+          className="shrink-0 text-right font-mono uppercase tracking-[0.16em]"
+          style={{ color: 'var(--cc-ink-dim)' }}
+          aria-live="polite"
+        >
+          <div className="text-[10px]" style={{ color: 'var(--cc-ink-hush)' }}>
+            {stamp.date}
+          </div>
+          <div
+            className="mt-1 text-[12px]"
+            style={{ color: 'var(--cc-ink)', fontVariantNumeric: 'tabular-nums' }}
+          >
+            {stamp.time} AEST
+          </div>
+        </div>
+      </div>
+
+      <p className="text-xs leading-5" style={{ color: 'var(--cc-ink-dim)' }}>
+        The live internal lane: voice decisions, portfolio health, CRM digest, and agent activity.
+      </p>
+
+      <div className="grid grid-cols-2 gap-2" aria-label="Internal task groups">
+        {SIDE_RAIL_TASKS.map((task, index) => (
+          <div
+            key={task}
+            className="rounded-md border px-2.5 py-2 font-mono text-[9px] uppercase tracking-[0.14em]"
+            style={{
+              borderColor: 'var(--cc-grid)',
+              background: index === 0 ? 'var(--cc-signal-hush)' : 'rgba(255,255,255,0.02)',
+              color: index === 0 ? 'var(--cc-ink)' : 'var(--cc-ink-dim)',
+            }}
+          >
+            <span style={{ color: index === 0 ? 'var(--cc-signal)' : 'var(--cc-ink-hush)' }}>
+              {String(index + 1).padStart(2, '0')}
+            </span>{' '}
+            {task}
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
