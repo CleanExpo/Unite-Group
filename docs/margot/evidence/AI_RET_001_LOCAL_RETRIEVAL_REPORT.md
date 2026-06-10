@@ -1,6 +1,6 @@
 # AI-RET-001 Local Retrieval Evaluation Report
 
-Generated: 10/06/2026, 10:35:49 AEST
+Generated: 10/06/2026, 11:18:35 AEST
 
 Overall status: `pass`
 
@@ -9,7 +9,7 @@ Overall status: `pass`
 | Area | Total | Pass | Needs action |
 | --- | ---: | ---: | ---: |
 | Source-citation fixtures | 8 | 8 | 0 |
-| Answer-shape fixtures | 18 | 18 | 0 |
+| Answer-shape fixtures | 19 | 19 | 0 |
 
 ## Source-citation fixture results
 
@@ -46,6 +46,7 @@ Overall status: `pass`
 | AI-RET-001-ANSWER-CRM-OPERATING-MODEL-BOUNDARY | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
 | AI-RET-001-ANSWER-AI-ENHANCEMENT-PIPELINE-BOUNDARY | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
 | AI-RET-001-ANSWER-PROJECT-PORTFOLIO-BOUNDARY | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
+| AI-RET-001-ANSWER-CLIENT-SECOND-BRAIN-BOUNDARY | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
 
 ## Safety notes
 

@@ -1,5 +1,13 @@
 # Margot Morning Report
 
+Latest Senior PM AI-RET-001 19th answer-shape fixture (client-second-brain boundary) + client-second-brain doc-drift guard + client-second-brain control-surface refresh lane at `2026-06-10 11:12:00 AEST`:
+
+- Added the 19th mocked/static answer-shape fixture `AI-RET-001-ANSWER-CLIENT-SECOND-BRAIN-BOUNDARY`, bound to `AI-RET-001-SENIOR-PM-LOOP`. It pins client memory to strong-key discipline, source priority, privacy/mixing abort, durable decision-history, verified profile-to-table map, client memory source labels, no identity auto-merge, no client-facing action, and local evidence only.
+- Refreshed the client-second-brain doc-drift guard by updating `docs/margot/client-second-brain-model.md` with an AI-RET-001 citation contract and `## Senior PM verification checkpoint` split; updated candidate register counts; regenerated `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` to `answerShape=19/19`.
+- Verification: focused retrieval gate PASS 1 suite / 65 tests; `npm run type-check` PASS; `git diff --check` clean; AI-RET-001 runner PASS `overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; safetyNotes=true; nextSafeAction=true`.
+- Safety: no sandbox wizard action, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, Nango, new vendor, credential read, or destructive git occurred.
+- Next safe slice: rotate to another local-only Senior PM lane such as a voice-test gap mock or additional AI-RET-001 report corruption/error-path case. Sandbox/Mac Mini gates remain unchanged.
+
 Latest Senior PM AI-RET-001 18th answer-shape fixture (project-portfolio boundary) + project-portfolio doc-drift guard + project-portfolio control-surface refresh lane at `2026-06-10 10:35:00 AEST`:
 
 - Added the 18th mocked/static answer-shape fixture `AI-RET-001-ANSWER-PROJECT-PORTFOLIO-BOUNDARY`, bound to `AI-RET-001-SENIOR-PM-LOOP`. It pins the portfolio surface to: portfolio rows, source-of-truth rule, unknowns explicit, current repo evidence, $2B leverage, next 3 actions, blockers / unknowns, no live provider status, and local evidence only.

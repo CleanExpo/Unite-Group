@@ -1,4 +1,32 @@
 # Margot Overnight Progress Log
+## 2026-06-10 11:12:00 AEST
+
+### AI-RET-001 19th answer-shape fixture (client-second-brain boundary) + client-second-brain doc-drift guard
+
+Current checkpoint:
+
+- Inspected repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `b8d795b`; `git rev-list --count main..origin/main` returned `0`. Inherited dirty state remains extensive from prior safe lanes; this tick did not push, commit, deploy, mutate env, or run sandbox/prod DB wizard subcommands.
+- Completed safe local-only Senior PM lane: added `AI-RET-001-ANSWER-CLIENT-SECOND-BRAIN-BOUNDARY` as the 19th mocked/static answer-shape fixture, updated the report runner static answer map, and bound `docs/margot/client-second-brain-model.md` to the fixture via a client-second-brain citation contract + doc-drift guard split.
+- Refreshed control surfaces: regenerated `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` to `overallStatus=pass; source=8/8; answerShape=19/19`; refreshed `docs/margot/ai-enhancement-candidate-register.md`, `docs/margot/morning-report.md`, and `docs/margot/MARGOT-COMMAND-CENTER.md`.
+- Verification passed locally: focused retrieval gate `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` returned 1 suite / 65 tests PASS; `npm run type-check` PASS; `git diff --check` clean; AI-RET-001 runner PASS with readback/safety/next-safe-action true.
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploys/env mutation, GitHub push/PR/merge, client-facing sends, paid spend, Nango/connector platforms, and new vendors remain gated / not performed.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 65 tests.
+
+npm run type-check
+# PASS.
+
+git diff --check
+# PASS.
+
+npx tsx scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; safetyNotes=true; nextSafeAction=true.
+```
+
 ## 2026-06-10 10:35:00 AEST
 
 ### AI-RET-001 18th answer-shape fixture (project-portfolio boundary) + project-portfolio doc-drift guard
@@ -15506,3 +15534,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_103234.log'
+
+## 2026-06-10 11:19:55 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_111036.log'
