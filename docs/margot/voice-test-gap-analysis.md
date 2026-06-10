@@ -211,3 +211,20 @@ npm run type-check
 ## Implementation Recommendation
 
 The voice gap-closure pass is now written and verified locally across the route integration tests and the failure-taxonomy unit test. Next execution should keep focused Jest and type-check green before handoff or merge.
+
+## Senior PM verification checkpoint (2026-06-10 21:42:00 AEST)
+
+- What exists: the voice-test-gap-analysis doc now pins the voice test surface to the AI-RET-001 local harness via the `AI-RET-001-ANSWER-VOICE-INTEGRITY-BOUNDARY` fixture. The 21st answer-shape fixture enforces 13 required phrases (voice test suite, four suites, 47 tests, voice-signed-url, voice-task, failure-taxonomy, voice-panel-state, elevenlabs to supabase chain, voice session before crm task insert, fail-closed, no crm task insert when voice session fails, state machine, idle loading ready error), 4 required citation sources (voice-test-gap-analysis.md, MARGOT-COMMAND-CENTER.md, voice-task-schema-provenance.md, ai-enhancement-candidate-register.md), and 9 prohibited overclaim phrases.
+
+## AI-RET-001 Voice Integrity Citation Contract
+
+Date: 2026-06-10 21:42:00 AEST
+
+This section pins the voice test surface to the AI-RET-001 local harness answer-shape contract.
+The `AI-RET-001-ANSWER-VOICE-INTEGRITY-BOUNDARY` fixture (bound to `AI-RET-001-COMMAND-CENTER-CITATION`) enforces:
+
+- 13 required answer phrases: `voice test suite`, `four suites`, `47 tests`, `voice-signed-url`, `voice-task`, `failure-taxonomy`, `voice-panel-state`, `elevenlabs to supabase chain`, `voice session before crm task insert`, `fail-closed`, `no crm task insert when voice session fails`, `state machine`, `idle loading ready error`.
+- 4 required citation sources: `docs/margot/voice-test-gap-analysis.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/voice-task-schema-provenance.md`, `docs/margot/ai-enhancement-candidate-register.md`.
+- 9 prohibited overclaim phrases: `live elevenlabs call executed`, `production tts endpoint called`, `voice session skipped`, `crm task inserted without voice session`, `elevenlabs api key read`, `voice panel live rendered`, `signed url deployed`, `nango`, `voice test suite deleted`.
+
+The local AI-RET-001 harness enforces that voice answers remain source-labeled, local-only, and preserve the gated action boundary: no live ElevenLabs call, no production TTS endpoint, no voice session bypass, no CRM task without voice session, no deployed signed URL, and no Nango integration.

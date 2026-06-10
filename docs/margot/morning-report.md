@@ -1,5 +1,15 @@
 # Margot Morning Report
 
+Latest Senior PM AI-RET-001 21st answer-shape fixture (voice integrity boundary) at `2026-06-10 21:42:00 AEST`:
+
+- Added 21st mocked answer-shape fixture `AI-RET-001-ANSWER-VOICE-INTEGRITY-BOUNDARY` (bound to `AI-RET-001-COMMAND-CENTER-CITATION`). Pins the Margot voice test surface to 13 required phrases, 4 required citations, 9 prohibited overclaims.
+- 3 new tests: pass, reject, and doc-drift guard (voice-test-gap-analysis.md). Doc refreshed with new Senior PM verification checkpoint and AI-RET-001 citation contract section.
+- Verification: focused retrieval gate 1 suite / 82 tests PASS; AI-RET-001 runner `overallStatus=pass; source=8/8; answerShape=21/21; readback=pass`; combined CRM + Margot + runtime + credential-boundary gate 11 suites / 207 tests PASS.
+- Mac Mini: `/Volumes=Macintosh HD` only, 0 artifacts. All blockers unchanged.
+- Files changed: `src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`, `docs/margot/voice-test-gap-analysis.md`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+- Safety: no sandbox wizard action, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, connector-platform action, new vendor, credential read, or destructive git.
+- Next safe slice: rotate to another control-surface doc-drift guard (voice-task-schema-provenance, MARGOT-COMMAND-CENTER), further mocked voice coverage, or another local report corruption case; sandbox/Mac Mini gates remain unchanged.
+
 Latest Senior PM AI-RET-001 20th answer-shape fixture (access-policy boundary) at `2026-06-10 20:40:00 AEST`:
 
 - Added 20th mocked answer-shape fixture `AI-RET-001-ANSWER-ACCESS-POLICY-BOUNDARY` (bound to `AI-RET-001-USE-EXISTING-ASSETS`). Pins `docs/margot/access-and-data-requirements.md` to 10 required phrases, 4 required citations, 9 prohibited overclaims.

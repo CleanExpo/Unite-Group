@@ -1,4 +1,30 @@
 # Margot Overnight Progress Log
+## 2026-06-10 21:42:00 AEST
+
+### Tick 20260610_2142 — AI-RET-001 21st answer-shape fixture (voice integrity boundary) + doc-drift guard
+
+Current checkpoint:
+
+- Completed safe Senior PM lane: added 21st mocked answer-shape fixture `AI-RET-001-ANSWER-VOICE-INTEGRITY-BOUNDARY` (bound to `AI-RET-001-COMMAND-CENTER-CITATION`). Pins the Margot voice test surface contract: 13 required phrases (voice test suite, four suites, 47 tests, voice-signed-url, voice-task, failure-taxonomy, voice-panel-state, elevenlabs to supabase chain, voice session before crm task insert, fail-closed, no crm task insert when voice session fails, state machine, idle loading ready error), 4 required citations (voice-test-gap-analysis.md, MARGOT-COMMAND-CENTER.md, voice-task-schema-provenance.md, ai-enhancement-candidate-register.md), 9 prohibited overclaim phrases (live elevenlabs call executed, production tts endpoint called, voice session skipped, crm task inserted without voice session, elevenlabs api key read, voice panel live rendered, signed url deployed, nango, voice test suite deleted).
+- 3 new tests: pass, reject, and doc-drift guard. The doc-drift guard reads `docs/margot/voice-test-gap-analysis.md` from disk and asserts all 13 required phrases are present (case-insensitive), all 4 required citations are present (case-sensitive), and none of the 9 prohibited phrases appear in the assertion section.
+- `docs/margot/voice-test-gap-analysis.md` updated: new `## Senior PM verification checkpoint (2026-06-10 21:42:00 AEST)` section added, new `## AI-RET-001 Voice Integrity Citation Contract` section pinning the full contract.
+- Verification: focused retrieval gate 1 suite / 82 tests PASS (was 79; +3); AI-RET-001 runner `overallStatus=pass; source=8/8; answerShape=21/21`; combined CRM + Margot + runtime + credential-boundary gate 11 suites / 207 tests PASS; `npx tsx scripts/margot-retrieval-evaluation-report.ts` clean readback.
+- Mac Mini: `/Volumes=Macintosh HD` only; 0 artifacts. Blocker unchanged.
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, connector platforms, new vendors.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 82 tests.
+npx tsx scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=21/21; readback=pass.
+npx jest tests/unit/lib/crm/ tests/unit/lib/margot/retrieval-evaluation.test.ts tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: 11 suites / 207 tests.
+```
+
+Files changed this tick: `src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`, `docs/margot/voice-test-gap-analysis.md`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+
 ## 2026-06-10 20:40:00 AEST
 
 ### Tick 20260610_2040 — AI-RET-001 20th answer-shape fixture (access-policy boundary) + doc-drift guard
@@ -16252,3 +16278,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_211850.log'
+
+## 2026-06-10 22:37:43 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_221420.log'
