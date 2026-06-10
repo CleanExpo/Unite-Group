@@ -1,8 +1,8 @@
 # Margot Retrieval Rules
 
 Date: 2026-06-10
-Last update: 2026-06-10 05:11:00 AEST
-Previous refresh: 2026-06-09 16:10 AEST
+Last update: 2026-06-10 19:05:00 AEST
+Previous refresh: 2026-06-10 05:11:00 AEST
 Source: Linear UNI-2052 / local Margot wrapper context / AI-RET-001 local harness
 Owner: Margot
 
@@ -147,6 +147,13 @@ Mac Mini recovery status:
 - What exists: AI-RET-001 source-citation harness, 8/8 pass; answer-shape harness, 14/14 pass; report runner writing to `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` with read-back reconciliation; report read-back parser rejecting malformed/duplicate/overclaiming rows; retrieval-rules doc now pinned to the harness, the gate (`0.76`), the answer-shape contract, and the new `AI-RET-001-ANSWER-RETRIEVAL-RULES-DRIFT-BOUNDARY` fixture + doc-drift guard. The retrieval-rules doc was previously last touched `2026-06-09 16:10 AEST` and asserted `7/7` source-citation and `7/7` answer-shape counts even though the harness had grown to 8/8 and 13/13; this lane closes that drift by correcting the counts in the doc and binding the doc to a new answer-shape fixture (the 14th) that pins the retrieval order, the 0.76 threshold, the mocked/static harness contract, the exact file-read fallback, the report runner, and the report file.
 - What has started: 2026-06-10 05:11:00 AEST retrieval-rules refresh + 14th answer-shape fixture + doc-drift guard. The 14th fixture is `AI-RET-001-ANSWER-RETRIEVAL-RULES-DRIFT-BOUNDARY` (bound to `AI-RET-001-SENIOR-PM-LOOP`, no source-citation union member added). No production code, no live vector search, no live threshold change.
 - Why it exists: the prior retrieval-rules doc (last touched `2026-06-09 16:10 AEST`) had a 7/7 source-citation count that no longer matched the harness (8/8 after the contacts/opportunities fixture landed) and a 7/7 answer-shape count that no longer matched the harness (13/13). The drift was not caught by any existing test because no doc-drift guard bound this doc. This lane closes the drift and prevents regression.
-- Missing/unclear: live retrieval threshold, embedding model, and vector DB contract remain unverified. The local harness is mocked/static; do not treat it as proof of live behavior. The other still-stale Senior PM control surfaces (e.g. `marketing-strategy-operating-model.md` pinned `2026-05-23 07:33 AEST`, `ai-enhancement-pipeline.md`, `client-second-brain-model.md`, `project-portfolio-index.md`) are not yet bound to doc-drift guards and remain recorded here for the next safe TDD lane.
+- Missing/unclear: live retrieval threshold, embedding model, and vector DB contract remain unverified. The local harness is mocked/static; do not treat it as proof of live behavior. All four previously-stale Senior PM control surfaces (marketing-strategy-operating-model, ai-enhancement-pipeline, client-second-brain-model, project-portfolio-index) were bound to doc-drift guards in subsequent 2026-06-10 lanes (fixtures 15, 17, 18, 19 respectively) and are no longer unguarded.
 - Current health evidence: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> 1 suite / 50 tests pass (was 47 before this lane; +3 from the new retrieval-rules pass + reject + doc-drift guard tests). Report is `overallStatus=pass`, `source=8/8`, `answerShape=14/14`. Mac Mini: `/Volumes=Macintosh HD`, recovered Markdown count `0`, SMB reachable, SSH unreachable; no credential prompt/read, no recursive system-volume scan.
 - Smallest next action: when a real retrieval change is needed, add a new fixture to `MARGOT_RETRIEVAL_EVALUATION_FIXTURES` or `MARGOT_RETRIEVAL_ANSWER_SHAPE_FIXTURES` first, then run the focused Jest gate, then update this doc with the new fixture id. Until then, keep the 14-fixture answer-shape gate and the 8-fixture source-citation gate green on every Senior PM tick.
+
+## Senior PM verification checkpoint (2026-06-10 19:05:00 AEST)
+
+- What exists: AI-RET-001 source-citation harness, 8/8 pass; answer-shape harness, 19/19 pass; report runner with read-back reconciliation; the still-stale-surface note from the 05:11 checkpoint is now corrected — all four previously-stale control surfaces (marketing-strategy-operating-model, ai-enhancement-pipeline, client-second-brain-model, project-portfolio-index) landed doc-drift guards as fixtures 15, 17, 18, and 19 respectively in subsequent 2026-06-10 lanes.
+- What happened this tick: post-auto-sync bounded health check + stale-surface note correction. 76-test focused retrieval gate PASS; 201-test combined CRM + Margot + runtime + credential-boundary gate PASS; 47-test focused voice gate PASS; type-check PASS; report runner PASS (source=8/8, answerShape=19/19, readback=pass).
+- Blockers unchanged: sandbox authority, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, connector platforms, new vendors.
+- Smallest next action: when a real retrieval change is needed, add the new fixture first. Until then, keep the 19-fixture answer-shape gate and 8-fixture source-citation gate green on every tick.

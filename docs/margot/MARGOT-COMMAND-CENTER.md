@@ -8,6 +8,14 @@ Root: `/Users/phillmcgurk/Unite-Group`
 
 - This section exists so the `keeps the Margot command center source doc aligned with the AI-RET-001 command-center status answer-shape contract` doc-drift guard (which splits on `## Senior PM verification checkpoint` to scope the prohibited-phrase check) treats everything above this line as the assertion section (which is intentionally empty for a fresh `Margot Command Center` header / Date / Project / Root preamble) and treats everything from this line onward as the verification checkpoint narrative (which is allowed to mention the prohibited list as part of the documentation). The current guard checks for `sandbox apply completed`, `mac mini artifacts recovered`, `production adoption approved`, `live semantic threshold changed`, and `nango` in the assertion section. All rotation guard entries below this header are historical audit-trail; the prohibited words they contain (e.g. `nango`) appear in safe documentation contexts (as items a fixture rejects, not as claims a fixture approves).
 
+## Current Autonomy Rotation Guard — 2026-06-10 19:05:00 AEST
+
+- Repo: `main` at `e89e318` (`git rev-list --count main..origin/main` returned `2`; branch `main`). Inherited dirty state from prior safe lanes.
+- Completed safe Senior PM lane: post-auto-sync bounded health check + retrieval-rules stale-surface note correction. The 05:11 checkpoint listed 4 control surfaces as still-stale; all 4 landed doc-drift guards as fixtures 15, 17, 18, 19 in subsequent lanes. Corrected.
+- Verification passed: focused retrieval gate 1 suite / 76 tests PASS; combined local CRM + Margot + runtime + credential-boundary gate 11 suites / 201 tests PASS; focused voice gate 4 suites / 47 tests PASS; `npm run type-check` PASS; `npm run security:routes-check` PASS; AI-RET-001 report runner PASS `overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`.
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, connector platforms, new vendors.
+- Files changed this tick: `docs/margot/retrieval-rules.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, and this command-center entry.
+
 ## Current Autonomy Rotation Guard — 2026-06-10 18:59:27 AEST
 
 - Repo: `main` at `0f0153e` (`git rev-list --count main..origin/main` returned `2`; branch `main`). Inherited dirty state remains extensive from prior safe lanes; this tick only added explicit AI-RET-001 duplicate handoff-section test coverage and refreshed local evidence/reporting surfaces.

@@ -1,4 +1,39 @@
 # Margot Overnight Progress Log
+## 2026-06-10 19:05:00 AEST
+
+### Post-auto-sync bounded health check + retrieval-rules stale-surface correction
+
+Current checkpoint:
+
+- Inspected repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `e89e318`; `git rev-list --count main..origin/main` returned `2`. Dirty state from prior safe lanes persists.
+- Completed safe local-only Senior PM lane: ran full bounded health check across all test gates; corrected the retrieval-rules doc stale-surface note (the 05:11 checkpoint listed 4 control surfaces as still-stale; all 4 landed doc-drift guards as fixtures 15, 17, 18, 19 in subsequent lanes). Added a new 19:05 Senior PM verification checkpoint to retrieval-rules.
+- Bounded health check: `node_modules=present`; focused retrieval gate 1 suite / 76 tests PASS; combined local CRM + Margot + runtime + credential-boundary gate 11 suites / 201 tests PASS; focused Margot voice gate 4 suites / 47 tests PASS; AI-RET-001 report runner PASS `overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`; `npm run type-check` PASS; `npm run security:routes-check` PASS with 0 unprotected mutating routes.
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status gate, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, connector platforms, new vendors.
+
+Verification:
+
+```bash
+node_modules=present
+
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 76 tests.
+
+npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: 11 suites / 201 tests.
+
+npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts src/components/command-center/voice/__tests__/voice-panel-state.test.ts --runInBand
+# PASS: 4 suites / 47 tests.
+
+npx tsx scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+```
+
 ## 2026-06-10 18:59:27 AEST
 
 ### AI-RET-001 handoff-section duplicate read-back test coverage
@@ -16067,3 +16102,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_185609.log'
+
+## 2026-06-10 19:39:18 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_193223.log'

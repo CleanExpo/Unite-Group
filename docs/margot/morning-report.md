@@ -1,5 +1,13 @@
 # Margot Morning Report
 
+Latest Senior PM post-auto-sync bounded health check + retrieval-rules stale-surface correction at `2026-06-10 19:05:00 AEST`:
+
+- Ran full bounded health check: retrieval 76/76, combined CRM/Margot/runtime/credential-boundary 201/201, voice 47/47, type-check PASS, security routes-check PASS, AI-RET-001 report PASS (source=8/8, answerShape=19/19).
+- Corrected the retrieval-rules doc stale-surface note: the 05:11 checkpoint listed 4 control surfaces as still-stale; all 4 landed doc-drift guards as fixtures 15, 17, 18, 19 in subsequent lanes. Added new 19:05 Senior PM checkpoint.
+- Files changed this lane: `docs/margot/retrieval-rules.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, and this report.
+- Safety: no sandbox wizard action, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, connector-platform action, new vendor, credential read, or destructive git occurred.
+- Next safe slice: keep all test gates green and rotate to another local-only report corruption/error-path case or mocked voice coverage; sandbox/Mac Mini gates remain unchanged.
+
 Latest Senior PM AI-RET-001 handoff-section duplicate coverage at `2026-06-10 18:59:27 AEST`:
 
 - Added explicit local unit coverage that AI-RET-001 report read-back rejects duplicated `## Safety notes` and `## Next safe action` sections before command-center handoff.
