@@ -1,5 +1,13 @@
 # Margot Morning Report
 
+Latest Senior PM AI-RET-001 report read-back duplicate-fixture-id guard at `2026-06-10 11:52:40 AEST`:
+
+- Added a local report corruption/error-path guard: AI-RET-001 read-back now rejects duplicate fixture IDs inside source-citation or answer-shape result tables, preventing a green summary from hiding an omitted evidence row behind a repeated row.
+- Verification: targeted RED was observed first (`npx jest ... -t "duplicate fixture ids"` failed because read-back did not throw), then GREEN after the parser change; full focused retrieval gate PASS 1 suite / 66 tests; `npm run type-check` PASS; AI-RET-001 runner PASS `overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; safetyNotes=true; nextSafeAction=true`; `git diff --check` clean.
+- Files changed this lane: `src/lib/margot/retrieval-evaluation.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `docs/margot/ai-enhancement-candidate-register.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, and this report.
+- Safety: no sandbox wizard action, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, Nango, new vendor, credential read, or destructive git occurred.
+- Next safe slice: keep rotating to local-only report corruption/error-path cases or voice mock coverage; sandbox/Mac Mini gates remain unchanged.
+
 Latest Senior PM AI-RET-001 19th answer-shape fixture (client-second-brain boundary) + client-second-brain doc-drift guard + client-second-brain control-surface refresh lane at `2026-06-10 11:12:00 AEST`:
 
 - Added the 19th mocked/static answer-shape fixture `AI-RET-001-ANSWER-CLIENT-SECOND-BRAIN-BOUNDARY`, bound to `AI-RET-001-SENIOR-PM-LOOP`. It pins client memory to strong-key discipline, source priority, privacy/mixing abort, durable decision-history, verified profile-to-table map, client memory source labels, no identity auto-merge, no client-facing action, and local evidence only.
