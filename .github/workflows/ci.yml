@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  spine:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/spine
+    env:
+      # Repo secret = pooler URI for the sandbox (Unite-Group Test / xgqwfwqumliuguzhshwv).
+      # Without it the integration suites self-skip and CI is typecheck + unit only.
+      SPINE_DATABASE_URL: ${{ secrets.SPINE_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: packages/spine/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - name: Tests (RLS matrix, C3 completeness/caps, idempotency, two-relayer outbox race)
+        run: npm test
