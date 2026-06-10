@@ -1,10 +1,42 @@
 # Margot Project Portfolio Index
 
 Date: 2026-05-23 07:33 AEST
-Last update: 2026-06-09 15:31 AEST — Senior PM portfolio control-surface refresh reconciled current AI-RET-001 (7/7 source + 7/7 answer-shape) / digest-read-error redaction / approval-lifecycle case-insensitive / digest-mappers positive coverage / deterministic stale-sync-digest evidence
+Last update: 2026-06-10 10:35:00 AEST — Senior PM AI-RET-001 18th answer-shape fixture (project-portfolio boundary) + project-portfolio doc-drift guard refresh; prior portfolio checkpoint reconciled AI-RET-001 7/7 source + 7/7 answer-shape / digest-read-error redaction / approval-lifecycle case-insensitive / digest-mappers positive coverage / deterministic stale-sync-digest evidence
 Project: Unite-Group
 Owner: Margot
 Scope: Existing repo/docs/code evidence only. External Linear/Supabase live status is not asserted unless present in local docs or code.
+
+## AI-RET-001 Project-Portfolio Citation Contract
+
+This control surface is bound to the mocked/static answer-shape fixture `AI-RET-001-ANSWER-PROJECT-PORTFOLIO-BOUNDARY`. It keeps the project portfolio index as a repo-local Senior PM surface, not a claim about external systems.
+
+Required answer anchors:
+
+- `portfolio rows`
+- `source-of-truth rule`
+- `unknowns explicit`
+- `current repo evidence`
+- `$2B leverage`
+- `next 3 actions`
+- `blockers / unknowns`
+- `no live provider status`
+- `local evidence only`
+
+Required citation sources:
+
+- `docs/margot/project-portfolio-index.md`
+- `docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md`
+- `docs/margot/linear-watch-today.md`
+- `docs/margot/ai-enhancement-candidate-register.md`
+
+The guard rejects overclaims in the Senior PM verification checkpoint below and in `src/lib/margot/retrieval-evaluation.ts`; this assertion section intentionally states only the positive local-evidence contract.
+
+## Senior PM verification checkpoint (2026-06-10 10:35:00 AEST)
+
+- What exists: project-portfolio index rows, current repo evidence, source-of-truth rule, explicit unknowns, next 3 actions, blockers / unknowns, and $2B leverage are now bound to the 18th AI-RET-001 answer-shape fixture. The fixture cites this doc, the Senior PM operating model, the Linear intake mirror, and the AI candidate register.
+- What has started: a local-only doc-drift guard now checks this portfolio surface before command-center surfacing; no external status was asserted and no provider polling occurred.
+- Missing / gated: live provider status verification, production adoption approval, external status assertion, client-facing send, GitHub push, production database update, budget change, connector-platform use, and cross-client merge approval remain prohibited or approval-gated; no such action occurred in this lane.
+- Smallest next action: keep AI-RET-001 green and rotate to the next still-stale control surface, likely `client-second-brain-model.md`, unless a higher-value local report corruption/error-path case appears.
 
 ## Purpose
 

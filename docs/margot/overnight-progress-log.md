@@ -1,4 +1,38 @@
 # Margot Overnight Progress Log
+## 2026-06-10 10:35:00 AEST
+
+### AI-RET-001 18th answer-shape fixture (project-portfolio boundary) + project-portfolio doc-drift guard
+
+Current checkpoint:
+
+- Inspected repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `9acf598`; `git rev-list --count main..origin/main` returned `0`. Inherited dirty state remains extensive from prior safe lanes; this tick did not push, commit, deploy, mutate env, or run sandbox/prod DB wizard subcommands.
+- Completed safe local-only Senior PM lane: added `AI-RET-001-ANSWER-PROJECT-PORTFOLIO-BOUNDARY` as the 18th mocked/static answer-shape fixture, updated the report runner static answer map, and bound `docs/margot/project-portfolio-index.md` to the fixture via a project-portfolio citation contract + doc-drift guard split.
+- Refreshed control surfaces: regenerated `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` to `overallStatus=pass; source=8/8; answerShape=18/18`; refreshed `docs/margot/ai-enhancement-candidate-register.md`, `docs/margot/crm-test-coverage-matrix.md`, `docs/margot/morning-report.md`, and `docs/margot/MARGOT-COMMAND-CENTER.md`.
+- Verification passed locally: focused retrieval gate `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` returned 1 suite / 62 tests PASS; combined CRM + Margot + runtime + credential-boundary gate returned 11 suites / 187 tests PASS; `npm run type-check` PASS; `npm run security:routes-check` PASS with 0 unprotected mutating routes; `git diff --check` clean; AI-RET-001 runner PASS with readback/safety/next-safe-action true.
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploys/env mutation, GitHub push/PR/merge, client-facing sends, paid spend, Nango/connector platforms, and new vendors remain gated / not performed.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 62 tests.
+
+npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: 11 suites / 187 tests.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS.
+
+npx ts-node --transpile-only -O '{"module":"commonjs","moduleResolution":"node"}' scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=18/18; readback=pass; safetyNotes=true; nextSafeAction=true.
+```
+
 ## 2026-06-10 09:45:00 AEST
 
 ### AI-RET-001 17th answer-shape fixture (ai-enhancement-pipeline boundary) + ai-enhancement-pipeline doc-drift guard + ai-enhancement-pipeline control-surface refresh
@@ -15463,3 +15497,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_093402.log'
+
+## 2026-06-10 10:40:36 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_103234.log'
