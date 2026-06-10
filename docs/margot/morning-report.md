@@ -1,5 +1,15 @@
 # Margot Morning Report
 
+Latest Senior PM AI-RET-001 30th answer-shape fixture (crm-forecast boundary) at `2026-06-12 08:30:00 AEST`:
+
+- Added 30th mocked answer-shape fixture `AI-RET-001-ANSWER-CRM-FORECAST-BOUNDARY` (bound to `AI-RET-001-SENIOR-PM-LOOP`). Pins the high-level-crm-25-step-forecast doc to 10 required phrases (25-step forecast, crm operating cockpit, use existing assets first, sandbox-first workflow, recommendation-only, forecast-only, source of truth matrix, identity resolution policy, no production database writes, high-level crm data loop), 4 required citations (high-level-crm-25-step-forecast.md, SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md, CONNECTED-TEAMS-OPERATING-RULES.md, ai-enhancement-candidate-register.md), 9 prohibited overclaims (production migration applied, github pushed, vercel deployed, nango, lead auto-converted, client record created, live provider status fetched, secret read from, 25-step forecast completed).
+- 3 new tests: pass, reject, and doc-drift guard for high-level-crm-25-step-forecast.md.
+- high-level-crm-25-step-forecast.md refreshed with AI-RET-001 citation contract + Senior PM verification checkpoint.
+- Report runner updated with 30th answer stub.
+- Verification: focused retrieval gate 1 suite / 109 tests PASS (was 106; +3). AI-RET-001 runner: overallStatus=pass; source=8/8; answerShape=30/30; readback=pass. Combined gate 11 suites / 234 tests PASS (was 231; +3).
+- Mac Mini: `/Volumes/Macintosh HD` only, ping 100% packet loss, 0 artifacts. Blocker unchanged.
+- Next safe lane: rotate to 31st answer-shape fixture (mac-mini-recovery-status.md or other unbound control surfaces).
+
 Latest Senior PM AI-RET-001 29th answer-shape fixture (command-center-doc boundary) at `2026-06-12 07:30:00 AEST`:
 
 - Added 29th mocked answer-shape fixture `AI-RET-001-ANSWER-COMMAND-CENTER-DOC-BOUNDARY` (bound to `AI-RET-001-COMMAND-CENTER-CITATION`). Pins the command-center doc to 10 required phrases (command center, autonomy rotation guard, blockers unchanged, mac mini, sandbox authority, verification passed, production db writes, live provider status, connector platforms, completed safe senior pm lane), 4 required citations (MARGOT-COMMAND-CENTER.md, MARGOT-ORCHESTRATOR.md, retrieval-rules.md, SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md), 9 prohibited overclaims (mac mini artifacts recovered, sandbox apply completed, production adoption approved, live semantic threshold changed, nango, github pushed, vercel deployed, production migration applied, secret read from).

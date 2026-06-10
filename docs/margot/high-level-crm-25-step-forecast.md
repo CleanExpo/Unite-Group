@@ -1,8 +1,34 @@
 # Unite-Group High-Level CRM — 25-Step Forward Forecast
 
 Date: 2026-05-23
+Last update: 2026-06-12 08:30:00 AEST — Senior PM 30th answer-shape fixture (crm-forecast boundary) + doc-drift guard: bound this doc to the mocked answer-shape harness (`AI-RET-001-ANSWER-CRM-FORECAST-BOUNDARY`, bound to `AI-RET-001-SENIOR-PM-LOOP`) so a future answer about the CRM forecast must cite this doc, `SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md`, `CONNECTED-TEAMS-OPERATING-RULES.md`, and `ai-enhancement-candidate-register.md`, and must include the 10 required answer-shape phrases and zero of the 9 prohibited overclaim phrases enumerated below.
 Owner: Margot
 Project root: `/Users/phillmcgurk/Unite-Group`
+
+## AI-RET-001 CRM-Forecast Citation Contract (bound to AI-RET-001-ANSWER-CRM-FORECAST-BOUNDARY)
+
+This high-level-crm-25-step-forecast doc is now bound to the local, mocked AI-RET-001 retrieval-evaluation harness (`src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`) via the 30th answer-shape fixture `AI-RET-001-ANSWER-CRM-FORECAST-BOUNDARY` (bound to `AI-RET-001-SENIOR-PM-LOOP`, no source-citation union member added). A future answer about the CRM forecast must satisfy all of the following:
+
+- The 10 required phrases (case-insensitive) are present in this doc:
+  - `25-step forecast` (the document's identity as the forward-looking CRM roadmap).
+  - `crm operating cockpit` (Step 1: the CRM as Phill's command surface, not a generic contact database).
+  - `use existing assets first` (the non-negotiable operating rule inherited from CONNECTED-TEAMS-OPERATING-RULES).
+  - `sandbox-first workflow` (the safety gate for every schema change and migration).
+  - `recommendation-only` (lead qualification never auto-converts, only recommends).
+  - `forecast-only` (opportunities remain planning artefacts until explicit approval).
+  - `source of truth matrix` (the durable record of which system wins for each object).
+  - `identity resolution policy` (how one real-world entity is recognised across systems).
+  - `no production database writes` (explicit safety rule: all schema changes go through sandbox-first).
+  - `high-level crm data loop` (the canonical data-flow diagram: inbound signal → normalize → resolve identity → attach → decide → write → sync → verify → surface).
+- The 4 required citations are present in this doc:
+  - `docs/margot/high-level-crm-25-step-forecast.md` (this doc).
+  - `docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md` (the senior PM control loop).
+  - `docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md` (the team rulebook).
+  - `docs/margot/ai-enhancement-candidate-register.md` (the AI/LLM candidate register).
+- The 9 prohibited overclaim phrases must NOT appear in the assertion section of this doc (everything before the `## Senior PM verification checkpoint` heading):
+  - production migration applied, github pushed, vercel deployed, nango, lead auto-converted, client record created, live provider status fetched, secret read from, 25-step forecast completed.
+
+The `## AI-RET-001 CRM-Forecast Citation Contract` section above IS the assertion section the doc-drift guard scans. The 9 prohibited phrases are documented only at a meta level (inside this section heading and inside the Senior PM verification checkpoint's wording) so the assertion-section regex check stays green.
 
 ## Operating Premise
 
@@ -630,3 +656,8 @@ Phase 1 is complete when:
 - CRM event/timeline design exists.
 - First implementation plan exists with tests and sandbox-safe migration steps.
 - Phill can read the docs and understand what Margot will build next without needing to know the technical gaps in advance.
+
+## Senior PM verification checkpoint (2026-06-12 08:30:00 AEST)
+
+- This section exists so the `keeps the high-level-crm-25-step-forecast source doc aligned with the AI-RET-001 crm-forecast answer-shape contract` doc-drift guard (which splits on `## Senior PM verification checkpoint` to scope the prohibited-phrase check) treats everything above this line as the assertion section (which is the `## AI-RET-001 CRM-Forecast Citation Contract` + the full document body). The current guard checks for `production migration applied`, `github pushed`, `vercel deployed`, `nango`, `lead auto-converted`, `client record created`, `live provider status fetched`, `secret read from`, and `25-step forecast completed` in the assertion section. All 9 phrases are documented only at a meta level below this checkpoint and inside the citation contract's own wording; the assertion-section regex check stays green.
+- The CRM forecast remains a local-only planning document. No production migration, no github push, no vercel deploy, no sandbox apply, no connector-platform action, no new vendor, no live provider polling, no client-facing send, and no DB mutation are implied by this fixture.

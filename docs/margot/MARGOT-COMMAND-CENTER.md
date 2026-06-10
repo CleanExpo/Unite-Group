@@ -3,7 +3,7 @@
 Date: 2026-05-23
 Project: Unite-Group
 Root: `/Users/phillmcgurk/Unite-Group`
-Last update: 2026-06-12 07:00:00 AEST — Senior PM 29th answer-shape fixture (command-center-doc boundary) + doc-drift guard: bound this doc to the mocked answer-shape harness (`AI-RET-001-ANSWER-COMMAND-CENTER-DOC-BOUNDARY`, bound to `AI-RET-001-COMMAND-CENTER-CITATION`) so a future answer about the command center must cite this doc, `MARGOT-ORCHESTRATOR.md`, `retrieval-rules.md`, and `SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md`, and must include the 10 required answer-shape phrases and zero of the 9 prohibited overclaim phrases enumerated below.
+Last update: 2026-06-12 08:30:00 AEST — Senior PM 30th answer-shape fixture (crm-forecast boundary) + command-center rotation guard entry.
 
 ## AI-RET-001 Command-Center-Doc Citation Contract (bound to AI-RET-001-ANSWER-COMMAND-CENTER-DOC-BOUNDARY)
 
@@ -33,6 +33,15 @@ The `## AI-RET-001 Command-Center-Doc Citation Contract` section above IS the as
 ## Senior PM verification checkpoint (2026-06-10 05:11:00 AEST)
 
 - This section exists so the `keeps the Margot command center source doc aligned with the AI-RET-001 command-center status answer-shape contract` doc-drift guard (which splits on `## Senior PM verification checkpoint` to scope the prohibited-phrase check) treats everything above this line as the assertion section (which is intentionally empty for a fresh `Margot Command Center` header / Date / Project / Root preamble) and treats everything from this line onward as the verification checkpoint narrative (which is allowed to mention the prohibited list as part of the documentation). The current guard checks for `sandbox apply completed`, `mac mini artifacts recovered`, `production adoption approved`, `live semantic threshold changed`, and `nango` in the assertion section. All rotation guard entries below this header are historical audit-trail; the prohibited words they contain (e.g. `nango`) appear in safe documentation contexts (as items a fixture rejects, not as claims a fixture approves).
+
+## Current Autonomy Rotation Guard — 2026-06-12 08:30:00 AEST
+
+- Repo: `main` at `0519abf` (`git rev-list --count main..origin/main` returned `2`; branch `main`). Inherited dirty state from prior safe lanes.
+- Completed safe Senior PM lane: added 30th mocked answer-shape fixture `AI-RET-001-ANSWER-CRM-FORECAST-BOUNDARY` (bound to `AI-RET-001-SENIOR-PM-LOOP`). Pins `docs/margot/high-level-crm-25-step-forecast.md` to 10 required phrases, 4 required citations, 9 prohibited overclaims.
+- Verification: focused retrieval gate 1 suite / 109 tests PASS (was 106; +3); AI-RET-001 runner `overallStatus=pass; source=8/8; answerShape=30/30; readback=pass`; combined CRM + Margot + runtime + credential-boundary gate 11 suites / 234 tests PASS (was 231; +3).
+- Mac Mini: `/Volumes/Macintosh HD` only, ping 100% packet loss, 0 artifacts. Blocker unchanged.
+- Files changed this tick: `src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`, `docs/margot/high-level-crm-25-step-forecast.md`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`, and this command-center entry.
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, connector platforms, new vendors.
 
 ## Current Autonomy Rotation Guard — 2026-06-12 07:30:00 AEST
 
