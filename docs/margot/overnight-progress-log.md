@@ -1,4 +1,31 @@
 # Margot Overnight Progress Log
+## 2026-06-12 02:50:00 AEST
+
+### Tick 20260612_0250 — AI-RET-001 24th answer-shape fixture (crm-test-coverage-matrix boundary) + doc-drift guard
+
+Current checkpoint:
+
+- Completed safe Senior PM lane: added 24th mocked answer-shape fixture `AI-RET-001-ANSWER-CRM-TEST-COVERAGE-MATRIX-BOUNDARY` (bound to `AI-RET-001-COMMAND-CENTER-CITATION`, no source-citation union member added). Pins the CRM test coverage matrix doc to 10 required phrases (focused crm verification gate, combined local gate, do not apply migrations directly to production, do not use `psql`, sandbox wizard, do not print or store secrets, operator decision support, no production database writes, sandbox-first, next safe gap), 4 required citations (docs/margot/SECOND-BRAIN-CARRY-FORWARD.md, docs/margot/crm-operating-model.md, docs/margot/ai-enhancement-candidate-register.md, docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md), 9 prohibited overclaims (sandbox apply completed, production migration applied, live provider status fetched, secret read from, nango, github pushed, vercel deployed, client facing sent, production database updated).
+- 3 new tests: pass, reject, and doc-drift guard. The doc-drift guard reads `docs/margot/crm-test-coverage-matrix.md` from disk and asserts all 10 required phrases are present (case-insensitive), all 4 required citations are present (case-sensitive), and none of the 9 prohibited phrases appear in the assertion section.
+- Verification: focused retrieval gate 1 suite / 91 tests PASS (was 88; +3); AI-RET-001 runner `overallStatus=pass; source=8/8; answerShape=24/24; readback=pass`; combined CRM + Margot + runtime + credential-boundary gate 11 suites / 216 tests PASS (was 213; +3).
+- Mac Mini: `/Volumes=Macintosh HD` only; 0 artifacts. Blocker unchanged.
+- No sandbox wizard Db mutating subcommand, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, connector-platform action, new vendor, credential read, or destructive git.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 91 tests.
+npx tsx scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=24/24; readback=pass.
+npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: 11 suites / 216 tests.
+```
+
+Files changed this tick: `src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+
+Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, connector platforms, new vendors.
+
 ## 2026-06-10 23:10:00 AEST
 
 ### Tick 20260610_2310 — AI-RET-001 23rd answer-shape fixture (orchestrator-loop boundary) + doc-drift guard
@@ -16357,3 +16384,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_235507.log'
+
+## 2026-06-11 01:01:33 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260611_004424.log'

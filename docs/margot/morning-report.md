@@ -1,5 +1,15 @@
 # Margot Morning Report
 
+Latest Senior PM AI-RET-001 24th answer-shape fixture (crm-test-coverage-matrix boundary) at `2026-06-12 02:50:00 AEST`:
+
+- Added 24th mocked answer-shape fixture `AI-RET-001-ANSWER-CRM-TEST-COVERAGE-MATRIX-BOUNDARY` (bound to `AI-RET-001-COMMAND-CENTER-CITATION`). Pins the CRM test coverage matrix to 10 required phrases, 4 required citations, 9 prohibited overclaims.
+- 3 new tests: pass, reject, doc-drift guard. Doc-drift guard reads `docs/margot/crm-test-coverage-matrix.md` and asserts all required phrases/citations present in assertion section, no prohibited phrases.
+- Verification: focused retrieval gate 1 suite / 91 tests PASS (was 88; +3); AI-RET-001 runner `overallStatus=pass; source=8/8; answerShape=24/24; readback=pass`; combined CRM + Margot + runtime + credential-boundary gate 11 suites / 216 tests PASS (was 213; +3).
+- Mac Mini: `/Volumes=Macintosh HD` only, 0 artifacts. All blockers unchanged.
+- Files changed: `src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+- Safety: no sandbox wizard Db mutating subcommand, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, connector-platform action, new vendor, credential read, or destructive git.
+- Next safe slice: rotate to another control-surface doc-drift guard (linear-watch-today, mac-mini-recovery-status, overnight-progress-log), further mocked voice/integration coverage, or another local report corruption/error-path case; sandbox/Mac Mini gates unchanged.
+
 Latest Senior PM AI-RET-001 23rd answer-shape fixture (orchestrator-loop boundary) at `2026-06-10 23:10:00 AEST`:
 
 - Added 23rd mocked answer-shape fixture `AI-RET-001-ANSWER-ORCHESTRATOR-LOOP-BOUNDARY` (bound to `AI-RET-001-SENIOR-PM-LOOP`). Pins the Margot orchestrator loop to 10 required phrases, 4 required citations, 9 prohibited overclaims.
