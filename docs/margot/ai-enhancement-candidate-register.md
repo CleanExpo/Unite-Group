@@ -1,6 +1,6 @@
 # Margot AI Enhancement Candidate Register
 
-Date: 2026-06-10 18:59:27 AEST — last refreshed at 2026-06-10 18:59:27 AEST (this lane added explicit AI-RET-001 duplicate Safety notes / Next safe action handoff-section read-back test coverage; fixture counts remain 8/8 source and 19/19 answer-shape; no external source or provider row was touched).
+Date: 2026-06-10 18:59:27 AEST — last refreshed at 2026-06-11 12:00:00 AEST (31st answer-shape fixture: enhancement-candidate-register boundary + doc-drift guard)
 Previous refresh: 2026-06-10 17:50:59 AEST (duplicate fixture-result table header/divider read-back guard).
 
 Project: Unite-Group
@@ -11,7 +11,15 @@ Scope: Local repo/docs/code evidence only. This register does not adopt a new ve
 
 This register operationalizes `docs/margot/ai-enhancement-pipeline.md` by converting the first safe AI/automation candidates into a tracked Senior PM queue. It keeps Margot focused on existing assets first, deterministic helpers before probabilistic AI, and explicit approval gates before any client data, production DB, deployment, public publishing, or new vendor work.
 
-## Source anchors
+## AI-RET-001 Enhancement-Candidate-Register Citation Contract (bound to AI-RET-001-ANSWER-ENHANCEMENT-CANDIDATE-REGISTER-BOUNDARY)
+
+This citation contract binds the enhancement-candidate-register boundary answer shape to the local candidate register, its pipeline stages, the retrieval policy, and the harness. It is the source-labeled, sandbox-first, local-evidence-only, operator-gated shape for answering about this lane without overclaiming adoption, vendor setup, or production action.
+
+- Required phrases: candidate register; pipeline stages; value scoring; no new vendor; operator approval required; sandbox-first; local evidence only; no production database writes; mocked/static harness; use existing assets first.
+- Required citations: `docs/margot/ai-enhancement-candidate-register.md`; `docs/margot/ai-enhancement-pipeline.md`; `docs/margot/retrieval-rules.md`; `src/lib/margot/retrieval-evaluation.ts`.
+- Prohibited overclaims: model deployed; vendor onboarded; production database updated; paid spend committed; public publishing approved; budget changed; nango; live vector search enabled; auto-execution enabled.
+
+The assertion section below must stay free of the prohibited overclaims so the doc remains aligned with the mocked/static AI-RET-001 harness contract.
 
 - `docs/margot/AI Enhancement Pipeline`: `docs/margot/ai-enhancement-pipeline.md`
 - CRM test matrix: `docs/margot/crm-test-coverage-matrix.md`
@@ -130,3 +138,7 @@ It performs no live vector search, no external AI calls, no DB access, and no ve
 ## Next safe slice
 
 Expand `AI-RET-001` with additional local report corruption/error-path cases or more mocked command-center answer-shape cases while keeping `AI-CRM-001` / `AI-CRM-002` plus the retrieval report runner/read-back/gated-action boundary gates green and the sandbox voice/task DB boundary gated.
+
+## Senior PM verification checkpoint (2026-06-12 12:00:00 AEST)
+
+Verify the answer-shape contract, its citation labels, and the report read-back gates still match the local mocked/static harness before any new candidate-register edits are proposed.

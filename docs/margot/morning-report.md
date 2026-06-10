@@ -1,5 +1,14 @@
 # Margot Morning Report
 
+Latest Senior PM AI-RET-001 31st answer-shape fixture (enhancement-candidate-register boundary) at `2026-06-12 12:30:00 AEST`:
+
+- Added 31st mocked answer-shape fixture `AI-RET-001-ANSWER-ENHANCEMENT-CANDIDATE-REGISTER-BOUNDARY` (bound to `AI-RET-001-SENIOR-PM-LOOP`). Pins the ai-enhancement-candidate-register doc to 10 required phrases (candidate register, pipeline stages, value scoring, no new vendor, operator approval required, sandbox-first, local evidence only, no production database writes, mocked/static harness, use existing assets first), 4 required citations (ai-enhancement-candidate-register.md, ai-enhancement-pipeline.md, retrieval-rules.md, src/lib/margot/retrieval-evaluation.ts), 9 prohibited overclaims (model deployed, vendor onboarded, production database updated, paid spend committed, public publishing approved, budget changed, nango, live vector search enabled, auto-execution enabled).
+- 3 new tests: pass, reject, and doc-drift guard. ai-enhancement-candidate-register.md refreshed with citation contract + verification checkpoint.
+- Updated both canned-answer test maps and report runner script.
+- Verification: focused retrieval gate 1 suite / 115 tests PASS (was 112; +3). AI-RET-001 runner: overallStatus=pass; source=8/8; answerShape=31/31; readback=pass. Combined gate 11 suites / 240 tests PASS (was 237; +3).
+- Mac Mini: `/Volumes/Macintosh HD` only, 0 artifacts. Blocker unchanged.
+- Next safe lane: rotate to 32nd answer-shape fixture (morning-report.md self-boundary or overnight-progress-log.md self-boundary) or refresh voice-test-gap-analysis.md answer-shape expansion.
+
 Latest Senior PM AI-RET-001 31st answer-shape fixture (mac-mini-recovery expanded boundary) at `2026-06-11 06:40:00 AEST`:
 
 - Expanded the existing `AI-RET-001-ANSWER-MAC-MINI-RECOVERY-BOUNDARY` fixture from 6 to 10 required answer phrases, 3 to 4 required citations, and 6 to 9 prohibited overclaim phrases. The fixture now pins the mac-mini-recovery-status doc to: mac mini recovery, smb reachable, ssh unreachable, 0 recovered markdown artifacts, macintosh hd, no credential prompt, authenticated smb mount, phills-mac-mini.local, target files, recovery remains blocked. Required citations are mac-mini-recovery-status.md, MARGOT-COMMAND-CENTER.md, CONNECTED-TEAMS-OPERATING-RULES.md, SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md.
