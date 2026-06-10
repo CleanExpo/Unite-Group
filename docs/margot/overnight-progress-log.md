@@ -1,4 +1,39 @@
 # Margot Overnight Progress Log
+## 2026-06-10 14:18:44 AEST
+
+### AI-RET-001 summary-heading read-back corruption guard
+
+Current checkpoint:
+
+- Inspected repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `a0f033e`; `git rev-list --count main..origin/main` returned `2`. Inherited dirty state remains extensive from prior safe lanes; this tick did not push, commit, deploy, mutate env, or run sandbox/prod DB wizard subcommands.
+- Completed safe local-only Senior PM lane: added an AI-RET-001 report structure guard so read-back now fails when the `## Summary` heading is missing even if valid-looking summary rows are present elsewhere in the markdown.
+- RED evidence: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts -t "summary heading" --runInBand` failed first because read-back accepted summary rows without a Summary section.
+- GREEN implementation: `src/lib/margot/retrieval-evaluation.ts` now calls `assertReportSectionExists(markdown, 'Summary')` before summary row parsing; `tests/unit/lib/margot/retrieval-evaluation.test.ts` adds the missing-summary-heading corruption case and updates the old missing-summary expectation to the new, more precise failure.
+- Verification passed locally: targeted summary-heading test PASS; full focused retrieval gate PASS 1 suite / 70 tests; AI-RET-001 report runner PASS with `overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`; `npm run type-check` PASS; `npm run security:routes-check` PASS with 0 unprotected mutating routes; `git diff --check` PASS.
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploys/env mutation, GitHub push/PR/merge, client-facing sends, paid spend, connector platforms, and new vendors remain gated / not performed.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts -t "summary heading" --runInBand
+# RED first, then PASS after Summary section existence was added.
+
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 70 tests.
+
+npx tsx scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS.
+```
+
 ## 2026-06-10 13:42:03 AEST
 
 ### AI-RET-001 report title read-back corruption guard
@@ -15688,3 +15723,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_133848.log'
+
+## 2026-06-10 14:22:42 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_141547.log'

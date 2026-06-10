@@ -1,7 +1,7 @@
 # Margot AI Enhancement Pipeline
 
 Date: 2026-05-23 07:33 AEST
-| Last update: 2026-06-10 13:42:03 AEST |
+| Last update: 2026-06-10 14:18:44 AEST |
 Project: Unite-Group
 Owner: Margot
 Scope: Existing repo/docs/code evidence only. This document defines the pipeline; it does not adopt a new model/vendor/tool or make production changes.
@@ -38,14 +38,14 @@ What exists:
 
 What has started (this tick):
 
-- Refreshed this pipeline doc and candidate register so AI-RET-001 now names the report-title read-back guard added at `2026-06-10 13:42:03 AEST`: report read-back now exposes `hasReportTitle`, rejects duplicate report title rows, and the local report runner requires `reportTitle=true` before accepting command-center handoff evidence.
+- Refreshed this pipeline doc and candidate register so AI-RET-001 now names the summary-heading read-back guard added at `2026-06-10 14:18:44 AEST`: report read-back now requires the `## Summary` section heading before accepting summary rows, preventing green counts from being accepted when pasted into a malformed/non-standard report section.
 - This is a local-only code/test/docs/evidence refresh; no schema, deployment, external AI call, live vector search, provider polling, DB write, account setup, or vendor work was performed.
 
 Why this exists / problem it solves:
 
-- The prior report read-back checked generated timestamps, summaries, fixture rows, sections, safety notes, and next-safe action, but did not separately assert the markdown belonged to the `# AI-RET-001 Local Retrieval Evaluation Report` document. A pasted or duplicated title block could have hidden report identity drift while keeping green counts intact.
-- The previous version of this doc listed "first safe candidates" abstractly and referenced `AI-RET-001` as "Add evaluation fixtures" rather than as a concrete implemented-local lane with an 8/8 source-citation + 19/19 answer-shape mocked gate. A future agent would have re-derived that `AI-RET-001` was still a forward plan and might have tried to design a new retrieval harness instead of extending the existing one.
-- The previous version also didn't explicitly name the `blocked_approval` and `triage` lanes, so the doc implied all five candidates were at the same stage. The refreshed doc states which candidates are concrete (`implemented_local`) vs gated vs parked.
+- The prior report read-back checked report title, generated timestamps, summaries, fixture rows, sections, safety notes, and next-safe action, but did not require the canonical `## Summary` heading before accepting summary rows. A pasted row table outside the Summary section could have hidden report structure drift while keeping green counts intact.
+- The previous version of this doc listed the latest guard as report-title only, so a future agent could miss that the parser now also rejects missing Summary section headings before command-center handoff.
+- The previous version also didn't explicitly name the new summary-heading corruption case in the AI-RET-001 lane, so future report-integrity work might duplicate the same guard instead of extending the next edge case.
 
 Missing / unclear / pending external authority:
 
@@ -55,8 +55,8 @@ Missing / unclear / pending external authority:
 
 Current health evidence (this tick):
 
-- Targeted report-title gate was RED first, then passed after implementation: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts -t "report title" --runInBand`.
-- Focused retrieval gate passed: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` returned 1 suite / 69 tests PASS.
+- Targeted summary-heading gate was RED first, then passed after implementation: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts -t "summary heading" --runInBand`.
+- Focused retrieval gate passed: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` returned 1 suite / 70 tests PASS.
 - `npx tsx scripts/margot-retrieval-evaluation-report.ts` refreshed `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` and returned `overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`.
 - `npm run type-check` passed.
 - `npm run security:routes-check` reported 0 unprotected mutating routes.
@@ -252,7 +252,7 @@ Current candidate register: `docs/margot/ai-enhancement-candidate-register.md`.
 | `crm_leads` / marketing route | Lead capture source. | Add deterministic qualification first; AI enrichment only after privacy/approval gates. |
 | Margot voice routes/tests | Voice-to-task ingress. | Evaluate better summarization/classification only with transcript privacy rules (AI-VOICE-001 gate). |
 | Integration mirrors | Provider health and project evidence. | Add stale-sync/risk summarization without direct provider mutation (AI-INT-001). |
-| `src/lib/margot/retrieval-evaluation.ts` | AI-RET-001 evaluation harness (8/8 source, 19/19 answer shape, generated-timestamp read-back guard). | Extend with additional fixtures/report integrity cases before any behavior change. |
+| `src/lib/margot/retrieval-evaluation.ts` | AI-RET-001 evaluation harness (8/8 source, 19/19 answer shape, report-title/generated-timestamp/Summary-heading read-back guards). | Extend with additional fixtures/report integrity cases before any behavior change. |
 | `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` | Generated AI-RET-001 evidence. | Regenerate and read back green after any harness or threshold change. |
 
 ## First safe candidates (concrete, not abstract)

@@ -1,5 +1,13 @@
 # Margot Morning Report
 
+Latest Senior PM AI-RET-001 summary-heading read-back guard at `2026-06-10 14:18:44 AEST`:
+
+- Added a local report structure guard: AI-RET-001 read-back now fails when the `## Summary` section heading is missing, even if valid-looking summary rows are present elsewhere.
+- Verification: targeted RED was observed first (`npx jest ... -t "summary heading"` failed because the missing heading was accepted), then GREEN after parser/test changes; full focused retrieval gate PASS 1 suite / 70 tests; AI-RET-001 runner PASS `overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`; type-check PASS; route security check PASS with 0 unprotected mutating routes; diff whitespace check PASS.
+- Files changed this lane: `src/lib/margot/retrieval-evaluation.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/ai-enhancement-candidate-register.md`, `docs/margot/ai-enhancement-pipeline.md`, and this report.
+- Safety: no sandbox wizard action, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, connector-platform action, new vendor, credential read, or destructive git occurred.
+- Next safe slice: keep rotating to local-only report corruption/error-path cases or voice mock coverage; sandbox/Mac Mini gates remain unchanged.
+
 Latest Senior PM AI-RET-001 report-title read-back guard at `2026-06-10 13:42:03 AEST`:
 
 - Added a local report identity guard: AI-RET-001 read-back now exposes `hasReportTitle`, rejects duplicate report title rows, and the report runner requires `reportTitle=true` before command-center handoff.
