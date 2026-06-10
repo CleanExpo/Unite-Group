@@ -1,5 +1,13 @@
 # Margot Morning Report
 
+Latest Senior PM AI-RET-001 fixture-result table structure guard at `2026-06-10 16:39:18 AEST`:
+
+- Added a local report read-back guard: AI-RET-001 now rejects Source-citation / Answer-shape fixture-result sections that contain fixture rows but are missing the canonical table header or divider.
+- Verification: targeted RED was observed first (`npx jest ... -t "fixture result table"` failed because the malformed fixture-result section was accepted), then GREEN after `assertFixtureResultTableStructure`; full focused retrieval gate PASS 1 suite / 73 tests; AI-RET-001 runner PASS `overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`; generated report timestamp `10/06/2026, 16:39:06 AEST`; type-check PASS; route security check PASS with 0 unprotected mutating routes; diff whitespace check PASS.
+- Files changed this lane: `src/lib/margot/retrieval-evaluation.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/ai-enhancement-candidate-register.md`, `docs/margot/ai-enhancement-pipeline.md`, and this report.
+- Safety: no sandbox wizard action, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, connector-platform action, new vendor, credential read, or destructive git occurred.
+- Next safe slice: continue local-only AI-RET-001 report corruption/error-path cases or rotate to mocked voice coverage; sandbox/Mac Mini gates remain unchanged.
+
 Latest Senior PM AI-RET-001 Summary table structure guard at `2026-06-10 16:01:37 AEST`:
 
 - Added a local report read-back guard: AI-RET-001 now rejects Summary sections that contain count rows but are missing the canonical Summary table header or divider.

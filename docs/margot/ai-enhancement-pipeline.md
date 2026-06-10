@@ -1,7 +1,7 @@
 # Margot AI Enhancement Pipeline
 
 Date: 2026-05-23 07:33 AEST
-| Last update: 2026-06-10 16:01:37 AEST |
+| Last update: 2026-06-10 16:39:18 AEST |
 Project: Unite-Group
 Owner: Margot
 Scope: Existing repo/docs/code evidence only. This document defines the pipeline; it does not adopt a new model/vendor/tool or make production changes.
@@ -23,7 +23,7 @@ Primary inputs:
 - `scripts/margot-semantic-search-wrapper.ts`
 - `docs/tool-registration-semantic-search.md`
 
-## Current Senior PM verification checkpoint (2026-06-10 16:01:37 AEST)
+## Current Senior PM verification checkpoint (2026-06-10 16:39:18 AEST)
 
 What exists:
 
@@ -38,14 +38,14 @@ What exists:
 
 What has started (this tick):
 
-- Refreshed this pipeline doc and candidate register so AI-RET-001 now names the Summary table structure read-back guard added at `2026-06-10 16:01:37 AEST`: report read-back now rejects a `## Summary` section that contains count rows but lacks the canonical `| Area | Total | Pass | Needs action |` header or `| --- | ---: | ---: | ---: |` divider.
+- Refreshed this pipeline doc and candidate register so AI-RET-001 now names the fixture-result table structure read-back guard added at `2026-06-10 16:39:18 AEST`: report read-back now rejects `## Source-citation fixture results` or `## Answer-shape fixture results` sections that contain fixture rows but lack the canonical fixture-result table header or divider rows.
 - This is a local-only code/test/docs/evidence refresh; no schema, deployment, external AI call, live vector search, provider polling, DB write, account setup, or vendor work was performed.
 
 Why this exists / problem it solves:
 
-- The prior report read-back required the `## Summary` heading and scoped rows to that section, but still accepted bare count rows without the expected table header/divider. That could make malformed report snippets look handoff-ready if the counts reconciled.
-- The previous version of this doc listed the latest guard as summary-section scoping only, so a future agent could miss that malformed Summary table structure is now rejected before command-center handoff.
-- The previous version also didn't explicitly name the new missing-header/divider corruption case in the AI-RET-001 lane, so future report-integrity work might duplicate the same guard instead of extending the next edge case.
+- The prior report read-back required the fixture-result sections and reconciled fixture rows to summary counts, but still accepted fixture rows without the expected fixture-result table header/divider. That could make malformed report snippets look handoff-ready if the fixture rows reconciled.
+- The previous version of this doc listed the latest guard as Summary table structure only, so a future agent could miss that malformed fixture-result table structure is now rejected before command-center handoff.
+- The previous version also didn't explicitly name the new missing fixture-result header/divider corruption case in the AI-RET-001 lane, so future report-integrity work might duplicate the same guard instead of extending the next edge case.
 
 Missing / unclear / pending external authority:
 
@@ -55,9 +55,9 @@ Missing / unclear / pending external authority:
 
 Current health evidence (this tick):
 
-- Targeted Summary-table gate was RED first, then passed after implementation: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts -t "Summary table header" --runInBand`.
-- Focused retrieval gate passed: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` returned 1 suite / 72 tests PASS.
-- `npx tsx scripts/margot-retrieval-evaluation-report.ts` refreshed `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` at `10/06/2026, 16:04:49 AEST` and returned `overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`.
+- Targeted fixture-result-table gate was RED first, then passed after implementation: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts -t "fixture result table" --runInBand`.
+- Focused retrieval gate passed: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` returned 1 suite / 73 tests PASS.
+- `npx tsx scripts/margot-retrieval-evaluation-report.ts` refreshed `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` at `10/06/2026, 16:39:06 AEST` and returned `overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`.
 - `npm run type-check` passed.
 - `npm run security:routes-check` reported 0 unprotected mutating routes.
 - `git diff --check` passed.
