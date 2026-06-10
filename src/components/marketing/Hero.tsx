@@ -1,5 +1,5 @@
 // src/components/marketing/Hero.tsx
-// Homepage hero — Karen opener per the Nexus Human Voice Spec v1.
+// Homepage hero — internal CRM entry point, not public SaaS copy.
 // Styled with CSS-var tokens (--canvas, --ink-primary, --red-500, etc.) defined
 // in src/app/globals.css. Same pattern as [locale]/empire/integrations/page.tsx.
 
@@ -32,7 +32,7 @@ export function Hero({ locale }: { locale: string }) {
             marginBottom: 16,
           }}
         >
-          Unite-Group Nexus
+          Private Founder CRM
         </p>
         <h1
           style={{
@@ -45,8 +45,7 @@ export function Hero({ locale }: { locale: string }) {
             maxWidth: 880,
           }}
         >
-          Karen runs a five-van water-damage crew out of Caboolture. Her scope last March was
-          forty-two hours of structural drying. The desk-based adjuster paid seventeen.
+          One entry point for the work that needs Phill&apos;s attention.
         </h1>
         <p
           style={{
@@ -57,13 +56,13 @@ export function Hero({ locale }: { locale: string }) {
             maxWidth: 640,
           }}
         >
-          You&apos;ve seen this scope. You&apos;ve written this scope. You&apos;ve fought this scope
-          for eleven years. Unite-Group runs the CRM, the cert, the leads, and the disputes — for
-          the five-to-fifty-van firm that doesn&apos;t have time to fight on six fronts at once.
+          Unite-Group is the internal CRM command centre: clients, follow-ups, approvals,
+          portfolio signals, and the evidence trail for decisions. No sales funnel. No fake
+          customer story. Just the operating desk.
         </p>
         <div style={{ marginTop: 32, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
           <Link
-            href={`/${locale}/register`}
+            href={`/${locale}/command-center`}
             style={{
               background: 'var(--red-500)',
               color: '#fff',
@@ -74,10 +73,10 @@ export function Hero({ locale }: { locale: string }) {
               display: 'inline-block',
             }}
           >
-            Start free trial
+            Open command centre
           </Link>
           <Link
-            href={`/${locale}/services`}
+            href={`/${locale}/empire/clients`}
             style={{
               border: '1px solid var(--border-default)',
               color: 'var(--ink-primary)',
@@ -88,7 +87,7 @@ export function Hero({ locale }: { locale: string }) {
               display: 'inline-block',
             }}
           >
-            What we run for you
+            Manage clients
           </Link>
         </div>
       </div>

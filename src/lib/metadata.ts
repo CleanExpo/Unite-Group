@@ -1,17 +1,15 @@
 import type { Metadata } from 'next';
 
-// Defaults are the PUBLIC marketing face. Per-page metadata on empire/client
-// pages overrides where needed (those are auth-gated and rarely social-shared
-// anyway). openGraph.title/description left unset here so Next.js inherits
-// them from each page's own `title` + `description` — keeps social cards
-// matching the page's voice instead of the dashboard's.
+// Defaults are for the private internal CRM shell. Per-page metadata can
+// override where a surface is deliberately external-facing. openGraph.title/
+// description left unset so Next.js inherits each page's own metadata.
 export const defaultMetadata: Metadata = {
   title: {
     template: '%s | Unite-Group',
-    default: 'Unite-Group — CRM, cert, leads, and disputes for the five-to-fifty-van firm',
+    default: 'Unite-Group — Internal CRM Command Centre',
   },
-  description: 'We run the operating side of a water-damage restoration firm so the operator on the desk doesn\'t have to. The CRM, the IICRC cert, the leads, the dispute log.',
-  keywords: 'restoration CRM, IICRC cert, water damage, dispute log, adjuster pushback, five-to-fifty-van firm, Unite-Group, CCW',
+  description: 'Private founder CRM for Phill McGurk: clients, follow-ups, approvals, evidence, and portfolio signals in one operating desk.',
+  keywords: 'internal CRM, founder CRM, client follow-ups, command centre, approvals, evidence trail, Unite-Group',
   authors: [{ name: 'Phill McGurk' }],
   creator: 'Unite-Group',
   publisher: 'Unite-Group',
@@ -26,7 +24,7 @@ export const defaultMetadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
   },
-  robots: { index: false, follow: false }, // Marketing-public soft-launch — flip to true after Phill approves copy
+  robots: { index: false, follow: false }, // Private internal CRM shell — do not index.
 };
 
 export const viewport = {
