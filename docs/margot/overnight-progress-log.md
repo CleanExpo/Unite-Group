@@ -1,4 +1,35 @@
 # Margot Overnight Progress Log
+## 2026-06-12 05:30:00 AEST
+
+### Tick 20260612_0530 — AI-RET-001 28th answer-shape fixture (second-brain-carry-forward boundary) + doc-drift guard
+
+Current checkpoint:
+
+- Completed safe Senior PM lane: added 28th mocked answer-shape fixture `AI-RET-001-ANSWER-SECOND-BRAIN-CARRY-FORWARD-BOUNDARY` (bound to `AI-RET-001-SENIOR-PM-LOOP`, no source-citation union member added). Pins the second-brain-carry-forward doc to 10 required phrases (carry-forward, crm operating loop, resolve identity, senior project manager, use existing assets first, canonical crm operating loop, margot must discover first, human judgment still needed, durable operating context, shared control loop), 4 required citations (SECOND-BRAIN-CARRY-FORWARD.md, CONNECTED-TEAMS-OPERATING-RULES.md, SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md, high-level-crm-25-step-forecast.md), 9 prohibited overclaims (carry-forward bypassed, crm forecast ignored, nango, github pushed, vercel deployed, production migration applied, secret read from, live provider status fetched, cross-client context merged without approval).
+- 3 new tests: pass, reject, and doc-drift guard. The doc-drift guard reads `docs/margot/SECOND-BRAIN-CARRY-FORWARD.md` from disk and asserts all 10 required phrases are present (case-insensitive), all 4 required citations are present (case-sensitive), and none of the 9 prohibited phrases appear in the assertion section.
+- `docs/margot/SECOND-BRAIN-CARRY-FORWARD.md` refreshed: date updated, `## AI-RET-001 Second-Brain-Carry-Forward Citation Contract` section added, `## Senior PM verification checkpoint (2026-06-12 05:30:00 AEST)` block appended.
+- `scripts/margot-retrieval-evaluation-report.ts` updated with 28th answer stub.
+- Verification: focused retrieval gate 1 suite / 103 tests PASS (was 100; +3); AI-RET-001 runner `overallStatus=pass; source=8/8; answerShape=28/28; readback=pass`; combined CRM + Margot + runtime + credential-boundary gate 11 suites / 228 tests PASS (was 225; +3).
+- Mac Mini: rotation guard — not probed this tick. Last probe: SMB reachable (IP 192.168.2.78), SSH unreachable, 0 artifacts. Blocker unchanged.
+- No sandbox wizard Db mutating subcommand, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, connector-platform action, new vendor, credential read, or destructive git.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 103 tests.
+npx tsx scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=28/28; readback=pass.
+npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: 11 suites / 228 tests.
+```
+
+Files changed this tick: `src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`, `docs/margot/SECOND-BRAIN-CARRY-FORWARD.md`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+
+Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, connector platforms, new vendors.
+
+Next safe lane: rotate to 29th answer-shape fixture (MARGOT-COMMAND-CENTER.md direct doc-drift guard) or refresh remaining unbound control surfaces.
+
 ## 2026-06-11 22:30:00 AEST
 
 ### Tick 20260611_2230 — AI-RET-001 27th answer-shape fixture (senior-pm-operating-model boundary) + doc-drift guard
@@ -16489,3 +16520,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260611_032119.log'
+
+## 2026-06-11 04:24:41 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260611_040908.log'

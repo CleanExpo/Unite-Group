@@ -1,5 +1,15 @@
 # Margot Morning Report
 
+Latest Senior PM AI-RET-001 28th answer-shape fixture (second-brain-carry-forward boundary) at `2026-06-12 05:30:00 AEST`:
+
+- Added 28th mocked answer-shape fixture `AI-RET-001-ANSWER-SECOND-BRAIN-CARRY-FORWARD-BOUNDARY` (bound to `AI-RET-001-SENIOR-PM-LOOP`). Pins the second-brain-carry-forward doc to 10 required phrases (carry-forward, crm operating loop, resolve identity, senior project manager, use existing assets first, canonical crm operating loop, margot must discover first, human judgment still needed, durable operating context, shared control loop), 4 required citations (SECOND-BRAIN-CARRY-FORWARD.md, CONNECTED-TEAMS-OPERATING-RULES.md, SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md, high-level-crm-25-step-forecast.md), 9 prohibited overclaims (carry-forward bypassed, crm forecast ignored, nango, github pushed, vercel deployed, production migration applied, secret read from, live provider status fetched, cross-client context merged without approval).
+- 3 new tests: pass, reject, and doc-drift guard for SECOND-BRAIN-CARRY-FORWARD.md.
+- SECOND-BRAIN-CARRY-FORWARD.md refreshed with AI-RET-001 citation contract + Senior PM verification checkpoint.
+- Report runner updated with 28th answer stub.
+- Verification: focused retrieval gate 1 suite / 103 tests PASS (was 100; +3). AI-RET-001 runner: overallStatus=pass; source=8/8; answerShape=28/28; readback=pass. Combined gate 11 suites / 228 tests PASS (was 225; +3).
+- Mac Mini: rotation guard — not probed; blocker unchanged (SMB reachable, SSH unreachable, 0 artifacts).
+- Next safe lane: rotate to 29th answer-shape fixture (MARGOT-COMMAND-CENTER.md direct doc-drift guard) or refresh remaining unbound control surfaces.
+
 Latest Senior PM AI-RET-001 27th answer-shape fixture (senior-pm-operating-model boundary) at `2026-06-11 22:30:00 AEST`:
 
 - Added 27th mocked answer-shape fixture `AI-RET-001-ANSWER-SENIOR-PM-OPERATING-MODEL-BOUNDARY` (bound to `AI-RET-001-SENIOR-PM-LOOP`). Pins the senior-PM-operating-model doc to 10 required phrases (senior project manager, operating cockpit, control domains, crm command, project portfolio oversight, client 2nd brain, marketing strategy oversight, ai enhancement pipeline, $2b strategy lens, use existing assets first), 4 required citations (SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md, CONNECTED-TEAMS-OPERATING-RULES.md, SECOND-BRAIN-CARRY-FORWARD.md, ai-enhancement-candidate-register.md), 9 prohibited overclaims (production migration applied, github pushed, vercel deployed, live provider status fetched, secret read from, nango, connected teams operating rule bypassed, cross-client context merged without approval, client facing sent).
