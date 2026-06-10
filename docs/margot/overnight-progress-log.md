@@ -1,4 +1,34 @@
 # Margot Overnight Progress Log
+## 2026-06-11 22:30:00 AEST
+
+### Tick 20260611_2230 — AI-RET-001 27th answer-shape fixture (senior-pm-operating-model boundary) + doc-drift guard
+
+Current checkpoint:
+
+- Completed safe Senior PM lane: added 27th mocked answer-shape fixture `AI-RET-001-ANSWER-SENIOR-PM-OPERATING-MODEL-BOUNDARY` (bound to `AI-RET-001-SENIOR-PM-LOOP`, no source-citation union member added). Pins the senior-PM-operating-model doc to 10 required phrases (senior project manager, operating cockpit, control domains, crm command, project portfolio oversight, client 2nd brain, marketing strategy oversight, ai enhancement pipeline, $2b strategy lens, use existing assets first), 4 required citations (SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md, CONNECTED-TEAMS-OPERATING-RULES.md, SECOND-BRAIN-CARRY-FORWARD.md, ai-enhancement-candidate-register.md), 9 prohibited overclaims (production migration applied, github pushed, vercel deployed, live provider status fetched, secret read from, nango, connected teams operating rule bypassed, cross-client context merged without approval, client facing sent).
+- 3 new tests: pass, reject, and doc-drift guard. The doc-drift guard reads `docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md` from disk and asserts all 10 required phrases are present (case-insensitive), all 4 required citations are present (case-sensitive), and none of the 9 prohibited phrases appear in the assertion section.
+- `docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md` refreshed: date updated, `## AI-RET-001 Senior-PM-Operating-Model Citation Contract` section added, `## Senior PM verification checkpoint (2026-06-11 22:30:00 AEST)` block appended.
+- Verification: focused retrieval gate 1 suite / 100 tests PASS (was 97; +3); AI-RET-001 runner `overallStatus=pass; source=8/8; answerShape=27/27; readback=pass`; combined CRM + Margot + runtime + credential-boundary gate 11 suites / 225 tests PASS (was 222; +3).
+- Mac Mini: rotation guard — not probed this tick. Last probe: SMB reachable (IP 192.168.2.78), SSH unreachable, 0 artifacts. Blocker unchanged.
+- No sandbox wizard Db mutating subcommand, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, connector-platform action, new vendor, credential read, or destructive git.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 100 tests.
+npx tsx scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=27/27; readback=pass.
+npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: 11 suites / 225 tests.
+```
+
+Files changed this tick: `src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`, `docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+
+Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, connector platforms, new vendors.
+
+Next safe lane: rotate to 28th answer-shape fixture (SECOND-BRAIN-CARRY-FORWARD.md) or refresh another unbound control surface.
+
 ## 2026-06-12 04:00:00 AEST
 
 ### Tick 20260612_0400 — AI-RET-001 26th answer-shape fixture (connected-teams-operating-rules boundary) + doc-drift guard
@@ -16450,3 +16480,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260611_023532.log'
+
+## 2026-06-11 03:39:07 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260611_032119.log'

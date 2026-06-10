@@ -1,5 +1,14 @@
 # Margot Morning Report
 
+Latest Senior PM AI-RET-001 27th answer-shape fixture (senior-pm-operating-model boundary) at `2026-06-11 22:30:00 AEST`:
+
+- Added 27th mocked answer-shape fixture `AI-RET-001-ANSWER-SENIOR-PM-OPERATING-MODEL-BOUNDARY` (bound to `AI-RET-001-SENIOR-PM-LOOP`). Pins the senior-PM-operating-model doc to 10 required phrases (senior project manager, operating cockpit, control domains, crm command, project portfolio oversight, client 2nd brain, marketing strategy oversight, ai enhancement pipeline, $2b strategy lens, use existing assets first), 4 required citations (SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md, CONNECTED-TEAMS-OPERATING-RULES.md, SECOND-BRAIN-CARRY-FORWARD.md, ai-enhancement-candidate-register.md), 9 prohibited overclaims (production migration applied, github pushed, vercel deployed, live provider status fetched, secret read from, nango, connected teams operating rule bypassed, cross-client context merged without approval, client facing sent).
+- 3 new tests: pass, reject, and doc-drift guard for SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md.
+- SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md refreshed with AI-RET-001 citation contract + Senior PM verification checkpoint.
+- Verification: focused retrieval gate 1 suite / 100 tests PASS (was 97; +3). AI-RET-001 runner: overallStatus=pass; source=8/8; answerShape=27/27; readback=pass. Combined gate 11 suites / 225 tests PASS (was 222; +3).
+- Mac Mini: rotation guard — not probed; blocker unchanged (SMB reachable, SSH unreachable, 0 artifacts).
+- Next safe lane: rotate to 28th answer-shape fixture (SECOND-BRAIN-CARRY-FORWARD.md) or refresh another unbound control surface.
+
 Latest Senior PM AI-RET-001 26th answer-shape fixture (connected-teams-operating-rules boundary) at `2026-06-12 04:00:00 AEST`:
 
 - Added 26th mocked answer-shape fixture `AI-RET-001-ANSWER-CONNECTED-TEAMS-OPERATING-RULES-BOUNDARY` (bound to `AI-RET-001-COMMAND-CENTER-CITATION`). Pins the connected-teams-operating-rules doc to 10 required phrases (use what already exists first, connected teams hierarchy, auto-execute, delegate, draft only, ask phill, block, read canonical context, financial red lines, $2b strategy lens), 4 required citations (CONNECTED-TEAMS-OPERATING-RULES.md, SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md, SECOND-BRAIN-CARRY-FORWARD.md, ai-enhancement-candidate-register.md), 9 prohibited overclaims (connected teams operating rule bypassed, canonical context not read, nango, github pushed, vercel deployed, production migration applied, secret read from, live provider status fetched, cross-client context merged without approval).
