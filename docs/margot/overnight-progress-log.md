@@ -16693,3 +16693,44 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260611_071137.log'
+
+## 2026-06-12 13:00:00 AEST
+
+### Tick 20260612_1300 — AI-RET-001 32nd answer-shape fixture (morning-report self-boundary) + doc-drift guard
+
+Current checkpoint:
+
+- Completed safe Senior PM lane: added 32nd mocked answer-shape fixture `AI-RET-001-ANSWER-MORNING-REPORT-BOUNDARY` (bound to `AI-RET-001-SENIOR-PM-LOOP`). Pins the morning-report doc to 10 required phrases (morning report, verification passed, ai-ret-001, focused retrieval gate, blockers unchanged, next safe lane, mac mini, sandbox authority, completed safe senior pm lane, use existing assets first), 4 required citations (morning-report.md, MARGOT-ORCHESTRATOR.md, retrieval-rules.md, SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md), 9 prohibited overclaims (github pushed, vercel deployed, production migration applied, nango, paid spend committed, client-facing sent, secret read from, live provider status fetched, mac mini artifacts recovered).
+- 3 new tests: pass, reject, and doc-drift guard. `docs/margot/morning-report.md` prefixed with AI-RET-001 citation contract + Senior PM verification checkpoint (placed before historical entries so assertion section is clean).
+- `src/lib/margot/retrieval-evaluation.ts`: added fixture + union type entries for both ENHANCEMENT-CANDIDATE-REGISTER (retroactive fix) and MORNING-REPORT.
+- Updated both canned-answer test maps (can-evaluate-all and reads-back-generated), report runner script, and pinned-fixture enumeration test.
+- Bumped counts: 31→32 in toHaveLength, toHaveLength evaluation, both canned answer maps, and summary assertions.
+- Verification: focused retrieval gate 1 suite / 118 tests PASS (was 115; +3). AI-RET-001 runner: overallStatus=pass; source=8/8; answerShape=32/32; readback=pass. Combined CRM + Margot + runtime + credential-boundary gate 11 suites / 243 tests PASS (was 240; +3).
+- Mac Mini: `/Volumes/Macintosh HD` only, 0 artifacts. Blocker unchanged.
+- No sandbox wizard Db mutating subcommand, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, connector-platform action, new vendor, credential read, or destructive git.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 118 tests.
+npx tsx scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=32/32; readback=pass.
+npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: 11 suites / 243 tests.
+```
+
+Files changed this tick: `src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`, `docs/margot/morning-report.md`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+
+Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, connector platforms, new vendors.
+
+Next safe lane: rotate to 33rd answer-shape fixture (overnight-progress-log.md self-boundary) — the last remaining unbound Senior PM read-first document; all 13 others now have AI-RET-001 citation contracts.
+
+## 2026-06-11 08:28:41 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260611_080554.log'

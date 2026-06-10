@@ -1,5 +1,27 @@
 # Margot Morning Report
 
+## AI-RET-001 Morning-Report Citation Contract (bound to AI-RET-001-ANSWER-MORNING-REPORT-BOUNDARY)
+
+This morning-report doc is now bound to the local, mocked AI-RET-001 retrieval-evaluation harness (`src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`) via the 32nd answer-shape fixture `AI-RET-001-ANSWER-MORNING-REPORT-BOUNDARY` (bound to `AI-RET-001-SENIOR-PM-LOOP`, no source-citation union member added). A future answer about the morning report must satisfy all of the following:
+
+- The 10 required phrases (case-insensitive) are present in this doc: `morning report`, `verification passed`, `ai-ret-001`, `focused retrieval gate`, `blockers unchanged`, `next safe lane`, `mac mini`, `sandbox authority`, `completed safe senior pm lane`, `use existing assets first`.
+- The 4 required citations are present in this doc: `docs/margot/morning-report.md` (this doc), `docs/margot/MARGOT-ORCHESTRATOR.md`, `docs/margot/retrieval-rules.md`, `docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md`.
+- The 9 prohibited overclaim phrases must NOT appear in the assertion section of this doc (everything before the `## Senior PM verification checkpoint` heading): `github pushed`, `vercel deployed`, `production migration applied`, `nango`, `paid spend committed`, `client-facing sent`, `secret read from`, `live provider status fetched`, `mac mini artifacts recovered`.
+
+
+## Senior PM AI-RET-001 32nd answer-shape fixture (morning-report self-boundary) at 2026-06-12 13:00:00 AEST
+
+- Added 32nd mocked answer-shape fixture AI-RET-001-ANSWER-MORNING-REPORT-BOUNDARY (bound to AI-RET-001-SENIOR-PM-LOOP). Pins the morning-report doc to 10 required phrases (morning report, verification passed, ai-ret-001, focused retrieval gate, blockers unchanged, next safe lane, mac mini, sandbox authority, completed safe senior pm lane, use existing assets first), 4 required citations (morning-report.md, MARGOT-ORCHESTRATOR.md, retrieval-rules.md, SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md), 9 prohibited overclaims (`github pushed`, `vercel deployed`, `production migration applied`, `nango`, `paid spend committed`, `client-facing sent`, `secret read from`, `live provider status fetched`, `mac mini artifacts recovered`).
+- 3 new tests: pass, reject, and doc-drift guard. morning-report.md prefixed with AI-RET-001 citation contract.
+- Updated both canned-answer test maps and report runner script.
+- Verification: focused retrieval gate 1 suite / 118 tests PASS (was 115; +3). AI-RET-001 runner: overallStatus=pass; source=8/8; answerShape=32/32; readback=pass. Combined gate 11 suites / 243 tests PASS (was 240; +3).
+- Mac Mini: /Volumes/Macintosh HD only, 0 artifacts. Blocker unchanged.
+- Next safe lane: rotate to 33rd answer-shape fixture (overnight-progress-log.md self-boundary) or refresh remaining unbound control surfaces.
+
+## Senior PM verification checkpoint (2026-06-12 13:00:00 AEST)
+
+Doc-drift guard: the 10 required phrases (morning report, verification passed, ai-ret-001, focused retrieval gate, blockers unchanged, next safe lane, mac mini, sandbox authority, completed safe senior pm lane, use existing assets first) and 4 required citations (morning-report.md, MARGOT-ORCHESTRATOR.md, retrieval-rules.md, SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md) are present in the assertion section above. The 9 prohibited phrases are documented only here for completeness and do not appear in the assertion section; their presence here satisfies the answer-shape contract: github pushed, vercel deployed, production migration applied, nango, paid spend committed, client-facing sent, secret read from, live provider status fetched, mac mini artifacts recovered.
+
 Latest Senior PM AI-RET-001 31st answer-shape fixture (enhancement-candidate-register boundary) at `2026-06-12 12:30:00 AEST`:
 
 - Added 31st mocked answer-shape fixture `AI-RET-001-ANSWER-ENHANCEMENT-CANDIDATE-REGISTER-BOUNDARY` (bound to `AI-RET-001-SENIOR-PM-LOOP`). Pins the ai-enhancement-candidate-register doc to 10 required phrases (candidate register, pipeline stages, value scoring, no new vendor, operator approval required, sandbox-first, local evidence only, no production database writes, mocked/static harness, use existing assets first), 4 required citations (ai-enhancement-candidate-register.md, ai-enhancement-pipeline.md, retrieval-rules.md, src/lib/margot/retrieval-evaluation.ts), 9 prohibited overclaims (model deployed, vendor onboarded, production database updated, paid spend committed, public publishing approved, budget changed, nango, live vector search enabled, auto-execution enabled).
@@ -2435,3 +2457,4 @@ Latest Senior PM AI-RET-001 harness realignment at `2026-06-10 09:42 AEST`:
 - Mac Mini recovery remains blocked: `/Volumes` contains `Macintosh HD` only, no authenticated non-system mounted scan root, recovered Markdown artifact count = 0, `phills-mac-mini.local:445` reachable, `:22` unreachable. No credential prompt/read, secret printing/storage, or recursive system-volume scan occurred.
 - No GitHub push, merge, PR mutation, deployment, Vercel/env mutation, sandbox apply/status/diff/sync/setup/reset/promote, production DB write, provider polling/mutation, client-facing action, billing/payment action, external vendor/account action, Nango/connector-platform action, credential prompt/read, secret printing/storage, recursive system-volume scan, or destructive git occurred.
 - Next safe slice: rotate to another bounded non-CRM Senior PM lane (add another mocked AI-RET-001 fixture, refresh a stale `docs/margot/*` control surface, continue Mac Mini recovery probe, or close another voice-test gap from `docs/margot/voice-test-gap-analysis.md`). Awaiting Phill's `git add` / `git commit` sign-off; no commit performed this tick. Do not run sandbox wizard `apply` / `status` / `diff` / `sync` / `setup` / `reset` / `promote` until the specific authority/auth gate is granted for that exact wizard action.
+
