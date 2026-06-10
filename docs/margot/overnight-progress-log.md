@@ -1,4 +1,38 @@
 # Margot Overnight Progress Log
+## 2026-06-10 16:01:37 AEST
+
+### AI-RET-001 Summary table structure read-back guard
+
+Current checkpoint:
+
+- Inspected repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `b7772ae`; `git rev-list --count main..origin/main` returned `2`. Inherited dirty state remains extensive from prior safe lanes; this tick only touched the local AI-RET-001 harness/test/docs/report surfaces.
+- Completed safe local-only Senior PM lane: added a fail-closed report read-back guard for the `## Summary` table structure. The AI-RET-001 reader now rejects reports where summary rows are present but the canonical `| Area | Total | Pass | Needs action |` header or `| --- | ---: | ---: | ---: |` divider is missing.
+- RED/GREEN evidence: targeted test `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts -t "Summary table header" --runInBand` failed first because the read-back accepted summary rows without the Summary table header, then passed after `assertSummaryTableStructure` was added.
+- Bounded health check passed: focused retrieval gate is now 1 suite / 72 tests PASS; AI-RET-001 report runner regenerated `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` at `10/06/2026, 16:04:49 AEST` and returned `overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`; `npm run type-check` passed; `npm run security:routes-check` passed with 0 unprotected mutating routes; `git diff --check` passed.
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push/PR/merge, client-facing sends, paid spend, connector platforms, and new vendors remain gated / not performed.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts -t "Summary table header" --runInBand
+# RED first, then PASS after Summary table structure validation was added.
+
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 72 tests.
+
+npx tsx scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS.
+```
+
 ## 2026-06-10 15:28:02 AEST
 
 ### AI-RET-001 post-auto-sync health/read-back refresh
@@ -15809,3 +15843,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_152700.log'
+
+## 2026-06-10 16:06:25 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_155929.log'

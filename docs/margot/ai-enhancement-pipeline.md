@@ -1,7 +1,7 @@
 # Margot AI Enhancement Pipeline
 
 Date: 2026-05-23 07:33 AEST
-| Last update: 2026-06-10 14:54:43 AEST |
+| Last update: 2026-06-10 16:01:37 AEST |
 Project: Unite-Group
 Owner: Margot
 Scope: Existing repo/docs/code evidence only. This document defines the pipeline; it does not adopt a new model/vendor/tool or make production changes.
@@ -23,7 +23,7 @@ Primary inputs:
 - `scripts/margot-semantic-search-wrapper.ts`
 - `docs/tool-registration-semantic-search.md`
 
-## Current Senior PM verification checkpoint (2026-06-09 14:53 AEST)
+## Current Senior PM verification checkpoint (2026-06-10 16:01:37 AEST)
 
 What exists:
 
@@ -38,14 +38,14 @@ What exists:
 
 What has started (this tick):
 
-- Refreshed this pipeline doc and candidate register so AI-RET-001 now names the summary-section scoping read-back guard added at `2026-06-10 14:54:43 AEST`: report read-back now parses summary rows only from the canonical `## Summary` section, preventing valid-looking summary rows pasted under a later heading from satisfying handoff counts.
+- Refreshed this pipeline doc and candidate register so AI-RET-001 now names the Summary table structure read-back guard added at `2026-06-10 16:01:37 AEST`: report read-back now rejects a `## Summary` section that contains count rows but lacks the canonical `| Area | Total | Pass | Needs action |` header or `| --- | ---: | ---: | ---: |` divider.
 - This is a local-only code/test/docs/evidence refresh; no schema, deployment, external AI call, live vector search, provider polling, DB write, account setup, or vendor work was performed.
 
 Why this exists / problem it solves:
 
-- The prior report read-back required the `## Summary` heading but still parsed summary rows from the full markdown. A pasted row table in an appendix could have hidden report structure drift while keeping green counts intact.
-- The previous version of this doc listed the latest guard as summary-heading only, so a future agent could miss that the parser now rejects summary rows outside the canonical Summary section before command-center handoff.
-- The previous version also didn't explicitly name the new outside-Summary corruption case in the AI-RET-001 lane, so future report-integrity work might duplicate the same guard instead of extending the next edge case.
+- The prior report read-back required the `## Summary` heading and scoped rows to that section, but still accepted bare count rows without the expected table header/divider. That could make malformed report snippets look handoff-ready if the counts reconciled.
+- The previous version of this doc listed the latest guard as summary-section scoping only, so a future agent could miss that malformed Summary table structure is now rejected before command-center handoff.
+- The previous version also didn't explicitly name the new missing-header/divider corruption case in the AI-RET-001 lane, so future report-integrity work might duplicate the same guard instead of extending the next edge case.
 
 Missing / unclear / pending external authority:
 
@@ -55,9 +55,9 @@ Missing / unclear / pending external authority:
 
 Current health evidence (this tick):
 
-- Targeted summary-section gate was RED first, then passed after implementation: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts -t "summary rows are outside" --runInBand`.
-- Focused retrieval gate passed: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` returned 1 suite / 71 tests PASS.
-- `npx tsx scripts/margot-retrieval-evaluation-report.ts` refreshed `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` and returned `overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`.
+- Targeted Summary-table gate was RED first, then passed after implementation: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts -t "Summary table header" --runInBand`.
+- Focused retrieval gate passed: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` returned 1 suite / 72 tests PASS.
+- `npx tsx scripts/margot-retrieval-evaluation-report.ts` refreshed `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` at `10/06/2026, 16:04:49 AEST` and returned `overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`.
 - `npm run type-check` passed.
 - `npm run security:routes-check` reported 0 unprotected mutating routes.
 - `git diff --check` passed.
