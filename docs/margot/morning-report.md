@@ -1,5 +1,13 @@
 # Margot Morning Report
 
+Latest Senior PM AI-RET-001 unknown-fixture-id report read-back guard at `2026-06-10 13:06:12 AEST`:
+
+- Added a local report integrity guard: AI-RET-001 read-back now rejects fabricated/unknown fixture IDs in source-citation and answer-shape result tables before accepting row counts as evidence.
+- Verification: targeted RED was observed first (`npx jest ... -t "unknown fixture ids"` failed because `AI-RET-001-FAKE-SOURCE` was accepted), then GREEN after registry validation; full focused retrieval gate PASS 1 suite / 68 tests; `npm run type-check` PASS; `npm run security:routes-check` PASS with 0 unprotected mutating routes; AI-RET-001 runner PASS `overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`.
+- Files changed this lane: `src/lib/margot/retrieval-evaluation.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/ai-enhancement-candidate-register.md`, `docs/margot/ai-enhancement-pipeline.md`, and this report.
+- Safety: no sandbox wizard action, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, Nango, new vendor, credential read, or destructive git occurred.
+- Next safe slice: keep rotating to local-only report corruption/error-path cases or voice mock coverage; sandbox/Mac Mini gates remain unchanged.
+
 Latest Senior PM AI-RET-001 generated-timestamp report read-back guard at `2026-06-10 12:29:35 AEST`:
 
 - Added a local report integrity guard: AI-RET-001 read-back now surfaces `hasGeneratedTimestamp`, rejects duplicate `Generated:` rows, and the report runner requires `generatedTimestamp=true` before handoff.

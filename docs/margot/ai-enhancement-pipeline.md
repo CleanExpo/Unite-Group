@@ -1,7 +1,7 @@
 # Margot AI Enhancement Pipeline
 
 Date: 2026-05-23 07:33 AEST
-| Last update: 2026-06-10 12:29:35 AEST |
+| Last update: 2026-06-10 13:06:12 AEST |
 Project: Unite-Group
 Owner: Margot
 Scope: Existing repo/docs/code evidence only. This document defines the pipeline; it does not adopt a new model/vendor/tool or make production changes.
@@ -38,7 +38,7 @@ What exists:
 
 What has started (this tick):
 
-- Refreshed this pipeline doc and candidate register so AI-RET-001 now names the generated-timestamp read-back guard added at `2026-06-10 12:29:35 AEST`: report read-back now surfaces `hasGeneratedTimestamp`, rejects duplicate generated timestamp rows, and the local report runner requires `generatedTimestamp=true` before handoff.
+- Refreshed this pipeline doc and candidate register so AI-RET-001 now names the unknown-fixture-id read-back guard added at `2026-06-10 13:06:12 AEST`: report read-back now rejects fabricated/unknown fixture IDs in source-citation and answer-shape result tables before accepting row-count/status reconciliation.
 - This is a local-only code/test/docs/evidence refresh; no schema, deployment, external AI call, live vector search, provider polling, DB write, account setup, or vendor work was performed.
 
 Why this exists / problem it solves:
@@ -54,10 +54,10 @@ Missing / unclear / pending external authority:
 
 Current health evidence (this tick):
 
+- Targeted unknown-fixture-id gate passed after RED first: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts -t "unknown fixture ids" --runInBand`.
+- Focused retrieval gate passed: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` returned 1 suite / 68 tests PASS.
 - `npm run type-check` passed.
-- `npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/ tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` returned 11 suites / 156 tests PASS.
 - `npm run security:routes-check` reported 0 unprotected mutating routes.
-- `git diff --check` passed before and after status-report updates.
 - `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` is current with 8/8 source-citation fixtures PASS, 19/19 answer-shape fixtures PASS, `overallStatus=pass`, and `readback=pass; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`.
 
 Mac Mini state (this tick):

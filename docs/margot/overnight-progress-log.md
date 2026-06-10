@@ -1,4 +1,36 @@
 # Margot Overnight Progress Log
+## 2026-06-10 13:06:12 AEST
+
+### AI-RET-001 report read-back unknown-fixture-id corruption guard
+
+Current checkpoint:
+
+- Inspected repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `98dd032`; `git rev-list --count main..origin/main` returned `2`. Inherited dirty state remains extensive from prior safe lanes; this tick did not push, commit, deploy, mutate env, or run sandbox/prod DB wizard subcommands.
+- Completed safe local-only Senior PM lane: added an AI-RET-001 read-back corruption/error-path guard so fabricated/unknown fixture IDs in either report result table now fail before row-count/status reconciliation can treat them as valid evidence rows.
+- RED evidence: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts -t "unknown fixture ids" --runInBand` failed first because `readBackMargotRetrievalEvaluationReport` accepted `AI-RET-001-FAKE-SOURCE` as a passing row.
+- GREEN implementation: `src/lib/margot/retrieval-evaluation.ts` now checks result-row fixture IDs against the in-tree source-citation and answer-shape fixture registries; `tests/unit/lib/margot/retrieval-evaluation.test.ts` adds source and answer unknown-id cases.
+- Verification passed locally: targeted unknown-fixture-id test PASS; full focused retrieval gate PASS 1 suite / 68 tests; `npm run type-check` PASS; `npm run security:routes-check` PASS with 0 unprotected mutating routes; AI-RET-001 report runner PASS with `overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`.
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploys/env mutation, GitHub push/PR/merge, client-facing sends, paid spend, Nango/connector platforms, and new vendors remain gated / not performed.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts -t "unknown fixture ids" --runInBand
+# RED first, then PASS after registry validation was added.
+
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 68 tests.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+npx tsx scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true.
+```
+
 ## 2026-06-10 11:52:40 AEST
 
 ### AI-RET-001 report read-back duplicate-fixture-id corruption guard
@@ -15603,3 +15635,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_122513.log'
+
+## 2026-06-10 13:08:48 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_130258.log'
