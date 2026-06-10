@@ -1,5 +1,15 @@
 # Margot Morning Report
 
+Latest Senior PM AI-RET-001 31st answer-shape fixture (mac-mini-recovery expanded boundary) at `2026-06-11 06:40:00 AEST`:
+
+- Expanded the existing `AI-RET-001-ANSWER-MAC-MINI-RECOVERY-BOUNDARY` fixture from 6 to 10 required answer phrases, 3 to 4 required citations, and 6 to 9 prohibited overclaim phrases. The fixture now pins the mac-mini-recovery-status doc to: mac mini recovery, smb reachable, ssh unreachable, 0 recovered markdown artifacts, macintosh hd, no credential prompt, authenticated smb mount, phills-mac-mini.local, target files, recovery remains blocked. Required citations are mac-mini-recovery-status.md, MARGOT-COMMAND-CENTER.md, CONNECTED-TEAMS-OPERATING-RULES.md, SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md.
+- Updated existing `rejects Mac Mini` test and `objectContaining` assertions to match expanded fixture shape.
+- Updated both canned-answer maps and report runner script.
+- mac-mini-recovery-status.md refreshed with AI-RET-001 citation contract + Senior PM verification checkpoint.
+- Verification: focused retrieval gate 1 suite / 112 tests PASS (was 109). AI-RET-001 runner: overallStatus=pass; source=8/8; answerShape=30/30; readback=pass. Combined gate 11 suites / 237 tests PASS (was 234; +3).
+- Mac Mini: `/Volumes/Macintosh HD` only, 0 artifacts. Blocker unchanged.
+- Next safe lane: rotate to voice-test-gap-analysis.md answer-shape fixture, access-and-data-requirements.md answer-shape fixture, or another unbound control surface.
+
 Latest Senior PM AI-RET-001 30th answer-shape fixture (crm-forecast boundary) at `2026-06-12 08:30:00 AEST`:
 
 - Added 30th mocked answer-shape fixture `AI-RET-001-ANSWER-CRM-FORECAST-BOUNDARY` (bound to `AI-RET-001-SENIOR-PM-LOOP`). Pins the high-level-crm-25-step-forecast doc to 10 required phrases (25-step forecast, crm operating cockpit, use existing assets first, sandbox-first workflow, recommendation-only, forecast-only, source of truth matrix, identity resolution policy, no production database writes, high-level crm data loop), 4 required citations (high-level-crm-25-step-forecast.md, SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md, CONNECTED-TEAMS-OPERATING-RULES.md, ai-enhancement-candidate-register.md), 9 prohibited overclaims (production migration applied, github pushed, vercel deployed, nango, lead auto-converted, client record created, live provider status fetched, secret read from, 25-step forecast completed).

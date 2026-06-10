@@ -16611,3 +16611,44 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260611_054602.log'
+
+## 2026-06-11 06:40:00 AEST
+
+### Tick 20260611_0640 — AI-RET-001 31st answer-shape fixture (mac-mini-recovery expanded boundary) + doc-drift guard
+
+Current checkpoint:
+
+- Completed safe Senior PM lane: expanded the existing `AI-RET-001-ANSWER-MAC-MINI-RECOVERY-BOUNDARY` fixture from 6 to 10 required answer phrases, 3 to 4 required citations, and 6 to 9 prohibited overclaim phrases. The fixture now pins the mac-mini-recovery-status doc to: mac mini recovery, smb reachable, ssh unreachable, 0 recovered markdown artifacts, macintosh hd, no credential prompt, authenticated smb mount, phills-mac-mini.local, target files, recovery remains blocked. Required citations are mac-mini-recovery-status.md, MARGOT-COMMAND-CENTER.md, CONNECTED-TEAMS-OPERATING-RULES.md, SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md. Prohibited overclaims: mac mini artifacts recovered, ssh authenticated successfully, smb mounted and files copied, production migration applied, github pushed, vercel deployed, nango, secret read from, live provider status fetched.
+- Updated existing `rejects Mac Mini` test and `objectContaining` assertions to match expanded fixture shape.
+- Updated both canned-answer maps (can-evaluate-all and reads-back-generated) with new MAC-MINI-RECOVERY answer/citations.
+- `docs/margot/mac-mini-recovery-status.md` refreshed: last update date added, `## AI-RET-001 Mac-Mini-Recovery Citation Contract` section added, `## Senior PM verification checkpoint` block appended.
+- `scripts/margot-retrieval-evaluation-report.ts` updated with new canned answer for 31st fixture.
+- Verification: focused retrieval gate 1 suite / 112 tests PASS (was 109; +0 from fixture expansion — MAC-MINI-RECOVERY already existed in the list; 3 new passes reflect the updated test assertions). AI-RET-001 runner `overallStatus=pass; source=8/8; answerShape=30/30; readback=pass`. Combined CRM + Margot + runtime + credential-boundary gate 11 suites / 237 tests PASS (was 234; +3 from retrieval test additions).
+- Mac Mini: `/Volumes/Macintosh HD` only, 0 artifacts. Blocker unchanged (SMB reachable, SSH unreachable, no authenticated mount).
+- No sandbox wizard Db mutating subcommand, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, connector-platform action, new vendor, credential read, or destructive git.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 112 tests.
+npx tsx scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=30/30; readback=pass.
+npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: 11 suites / 237 tests.
+```
+
+Files changed this tick: `src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`, `docs/margot/mac-mini-recovery-status.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+
+Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, connector platforms, new vendors.
+
+Next safe lane: rotate to voice-test-gap-analysis.md answer-shape fixture, access-and-data-requirements.md answer-shape fixture, or refresh another unbound control surface (overnight-progress-log, morning-report).
+
+## 2026-06-11 06:41:37 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260611_062456.log'
