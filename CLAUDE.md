@@ -65,3 +65,14 @@ distillation routine (RA-1745). If you notice something the system should
 learn from, append a structured entry — do not stop work to reason about
 meta-rules. Schema and consumer per RA-1745. See
 `.harness/learning/README.md` for the five log files and entry shape.
+
+## Authority Intelligence Wrapper
+
+Any Nexus task or board mandate touching research, sources, citations,
+content, social/community interaction, recommendations, industry authority,
+sector replication, Synthex campaign planning, or knowledge-base enhancement
+must carry the Authority Intelligence wrapper. Use `board_mandates.authority`
+as the immediate mandate flag and follow
+`docs/authority-intelligence/nexus-wrapper-process.md`. The wrapper can prepare
+but must not publish, reply publicly, contact clients, spend, deploy, merge, or
+make legal/compliance/financial claims without human approval.
