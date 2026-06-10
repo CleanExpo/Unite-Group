@@ -1,5 +1,13 @@
 # Margot Morning Report
 
+Latest Senior PM AI-RET-001 generated-timestamp report read-back guard at `2026-06-10 12:29:35 AEST`:
+
+- Added a local report integrity guard: AI-RET-001 read-back now surfaces `hasGeneratedTimestamp`, rejects duplicate `Generated:` rows, and the report runner requires `generatedTimestamp=true` before handoff.
+- Verification: targeted RED was observed first (`npx jest ... -t "generated timestamp"` failed because read-back did not flag the missing timestamp), then GREEN after the parser/runner change; full focused retrieval gate PASS 1 suite / 67 tests; `npm run type-check` PASS; AI-RET-001 runner PASS `overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`; `git diff --check` clean.
+- Files changed this lane: `src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `docs/margot/ai-enhancement-candidate-register.md`, `docs/margot/ai-enhancement-pipeline.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, and this report.
+- Safety: no sandbox wizard action, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, Nango, new vendor, credential read, or destructive git occurred.
+- Next safe slice: rotate to another local-only report corruption/error-path case, voice mock coverage, or control-surface refresh; sandbox/Mac Mini gates remain unchanged.
+
 Latest Senior PM AI-RET-001 report read-back duplicate-fixture-id guard at `2026-06-10 11:52:40 AEST`:
 
 - Added a local report corruption/error-path guard: AI-RET-001 read-back now rejects duplicate fixture IDs inside source-citation or answer-shape result tables, preventing a green summary from hiding an omitted evidence row behind a repeated row.

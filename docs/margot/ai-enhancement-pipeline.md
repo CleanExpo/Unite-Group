@@ -1,7 +1,7 @@
 # Margot AI Enhancement Pipeline
 
 Date: 2026-05-23 07:33 AEST
-| Last update: 2026-06-10 09:00:00 AEST |
+| Last update: 2026-06-10 12:29:35 AEST |
 Project: Unite-Group
 Owner: Margot
 Scope: Existing repo/docs/code evidence only. This document defines the pipeline; it does not adopt a new model/vendor/tool or make production changes.
@@ -38,12 +38,12 @@ What exists:
 
 What has started (this tick):
 
-- Refreshed this pipeline doc so the "First safe candidates" section, the "Reporting requirements" examples, and the "Immediate next implementation steps" list name the *concrete* AI-RET-001 report, the AI-RET-001 mocked answer-shape contract, the per-candidate statuses, and the existing AI-RET-001 read-back guards, rather than only describing the pipeline abstractly.
-- This is a documentation refresh only; no new code, schema, test, deployment, or vendor work was performed.
+- Refreshed this pipeline doc and candidate register so AI-RET-001 now names the generated-timestamp read-back guard added at `2026-06-10 12:29:35 AEST`: report read-back now surfaces `hasGeneratedTimestamp`, rejects duplicate generated timestamp rows, and the local report runner requires `generatedTimestamp=true` before handoff.
+- This is a local-only code/test/docs/evidence refresh; no schema, deployment, external AI call, live vector search, provider polling, DB write, account setup, or vendor work was performed.
 
 Why this exists / problem it solves:
 
-- The previous version of this doc listed "first safe candidates" abstractly and referenced `AI-RET-001` as "Add evaluation fixtures" rather than as a concrete implemented-local lane with a 7/7 source-citation + 7/7 answer-shape mocked gate. A future agent would have re-derived that `AI-RET-001` was still a forward plan and might have tried to design a new retrieval harness instead of extending the existing one.
+- The previous version of this doc listed "first safe candidates" abstractly and referenced `AI-RET-001` as "Add evaluation fixtures" rather than as a concrete implemented-local lane with an 8/8 source-citation + 19/19 answer-shape mocked gate. A future agent would have re-derived that `AI-RET-001` was still a forward plan and might have tried to design a new retrieval harness instead of extending the existing one.
 - The previous version also didn't explicitly name the `blocked_approval` and `triage` lanes, so the doc implied all five candidates were at the same stage. The refreshed doc states which candidates are concrete (`implemented_local`) vs gated vs parked.
 
 Missing / unclear / pending external authority:
@@ -58,7 +58,7 @@ Current health evidence (this tick):
 - `npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/ tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` returned 11 suites / 156 tests PASS.
 - `npm run security:routes-check` reported 0 unprotected mutating routes.
 - `git diff --check` passed before and after status-report updates.
-- `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` is current with 7/7 source-citation fixtures PASS, 7/7 answer-shape fixtures PASS, `overallStatus=pass`.
+- `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` is current with 8/8 source-citation fixtures PASS, 19/19 answer-shape fixtures PASS, `overallStatus=pass`, and `readback=pass; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`.
 
 Mac Mini state (this tick):
 
@@ -250,7 +250,7 @@ Current candidate register: `docs/margot/ai-enhancement-candidate-register.md`.
 | `crm_leads` / marketing route | Lead capture source. | Add deterministic qualification first; AI enrichment only after privacy/approval gates. |
 | Margot voice routes/tests | Voice-to-task ingress. | Evaluate better summarization/classification only with transcript privacy rules (AI-VOICE-001 gate). |
 | Integration mirrors | Provider health and project evidence. | Add stale-sync/risk summarization without direct provider mutation (AI-INT-001). |
-| `src/lib/margot/retrieval-evaluation.ts` | AI-RET-001 evaluation harness (7/7 source, 7/7 answer shape). | Extend with additional fixtures/report integrity cases before any behavior change. |
+| `src/lib/margot/retrieval-evaluation.ts` | AI-RET-001 evaluation harness (8/8 source, 19/19 answer shape, generated-timestamp read-back guard). | Extend with additional fixtures/report integrity cases before any behavior change. |
 | `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` | Generated AI-RET-001 evidence. | Regenerate and read back green after any harness or threshold change. |
 
 ## First safe candidates (concrete, not abstract)
@@ -269,7 +269,7 @@ These candidates already exist in the register; none are adopted to production b
 
 3. `AI-RET-001` — Retrieval evaluation harness for Margot docs.
    - Status: `implemented_local`.
-   - Evidence: `scripts/margot-semantic-search-wrapper.ts`; `src/lib/margot/retrieval-evaluation.ts`; `scripts/margot-retrieval-evaluation-report.ts`; `tests/unit/lib/margot/retrieval-evaluation.test.ts`; `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (7/7 source, 7/7 answer shape, `overallStatus=pass`).
+   - Evidence: `scripts/margot-semantic-search-wrapper.ts`; `src/lib/margot/retrieval-evaluation.ts`; `scripts/margot-retrieval-evaluation-report.ts`; `tests/unit/lib/margot/retrieval-evaluation.test.ts`; `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (8/8 source, 19/19 answer shape, `overallStatus=pass`, `generatedTimestamp=true`).
    - Safe next step: extend only with additional local report corruption/error-path cases or more mocked answer-shape fixtures.
 
 4. `AI-INT-001` — Integration stale-sync/risk summarizer.

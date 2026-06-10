@@ -1,7 +1,7 @@
 # Margot AI Enhancement Candidate Register
 
-Date: 2026-06-10 11:52:40 AEST — last refreshed at 2026-06-10 11:52:40 AEST (this lane added an AI-RET-001 report read-back duplicate-fixture-id corruption guard; fixture counts remain 8/8 source and 19/19 answer-shape; no external source or provider row was touched).
-Previous refresh: 2026-06-10 11:12:00 AEST (client-second-brain doc + 19th fixture + doc-drift guard).
+Date: 2026-06-10 12:29:35 AEST — last refreshed at 2026-06-10 12:29:35 AEST (this lane added an AI-RET-001 generated-timestamp read-back guard; fixture counts remain 8/8 source and 19/19 answer-shape; no external source or provider row was touched).
+Previous refresh: 2026-06-10 11:52:40 AEST (duplicate-fixture-id report corruption guard).
 
 Project: Unite-Group
 Owner: Margot
@@ -62,7 +62,7 @@ Lead score is recommendation-only. Human/Board-approved conversion rules and str
 
 ## Candidate AI-RET-001 fixture contract
 
-The first retrieval evaluation harness is now local-only and implemented in `src/lib/margot/retrieval-evaluation.ts`, with mocked/static coverage in `tests/unit/lib/margot/retrieval-evaluation.test.ts`, a local-only report runner at `scripts/margot-retrieval-evaluation-report.ts`, and a report read-back parser/assertion gate that verifies the generated markdown summary, fixture-result sections, fixture-result row counts/status counts, duplicate fixture IDs, safety notes, and next-safe-action block before command-center handoff. It now covers source-citation requirements, answer-shape requirements, generated evidence at `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, and report integrity/error-path checks for malformed rows, internally inconsistent counts, duplicate summary rows, duplicate overall-status rows, duplicate handoff sections, duplicate fixture-result sections, duplicate fixture IDs that could hide omitted evidence rows, missing fixture-result sections, fixture-result row-count/status reconciliation, explicit unexpected fixture-status rejection, overall-status contradiction, missing-handoff-block, read-back/safety-proof omission, gated-action overclaims, digest-send/publish/mutation overclaims, access-request/new-vendor overclaims, and Mac Mini recovery/credential overclaims.
+The first retrieval evaluation harness is now local-only and implemented in `src/lib/margot/retrieval-evaluation.ts`, with mocked/static coverage in `tests/unit/lib/margot/retrieval-evaluation.test.ts`, a local-only report runner at `scripts/margot-retrieval-evaluation-report.ts`, and a report read-back parser/assertion gate that verifies the generated markdown summary, generated timestamp presence, fixture-result sections, fixture-result row counts/status counts, duplicate fixture IDs, safety notes, and next-safe-action block before command-center handoff. It now covers source-citation requirements, answer-shape requirements, generated evidence at `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, and report integrity/error-path checks for malformed rows, internally inconsistent counts, duplicate summary rows, duplicate overall-status rows, duplicate generated timestamp rows, duplicate handoff sections, duplicate fixture-result sections, duplicate fixture IDs that could hide omitted evidence rows, missing fixture-result sections, fixture-result row-count/status reconciliation, explicit unexpected fixture-status rejection, overall-status contradiction, missing/duplicate generated timestamp handling, missing-handoff-block, read-back/safety-proof omission, gated-action overclaims, digest-send/publish/mutation overclaims, access-request/new-vendor overclaims, and Mac Mini recovery/credential overclaims.
 
 It pins seven source-citation fixtures:
 
