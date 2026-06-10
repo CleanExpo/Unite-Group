@@ -1,4 +1,36 @@
 # Margot Overnight Progress Log
+## 2026-06-12 07:30:00 AEST
+
+### Tick 20260612_0730 — AI-RET-001 29th answer-shape fixture (command-center-doc boundary) + doc-drift guard
+
+Current checkpoint:
+
+- Completed safe Senior PM lane: added 29th mocked answer-shape fixture `AI-RET-001-ANSWER-COMMAND-CENTER-DOC-BOUNDARY` (bound to `AI-RET-001-COMMAND-CENTER-CITATION`, no source-citation union member added). Pins the command-center doc to 10 required phrases (command center, autonomy rotation guard, blockers unchanged, mac mini, sandbox authority, verification passed, production db writes, live provider status, connector platforms, completed safe senior pm lane), 4 required citations (MARGOT-COMMAND-CENTER.md, MARGOT-ORCHESTRATOR.md, retrieval-rules.md, SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md), 9 prohibited overclaims (mac mini artifacts recovered, sandbox apply completed, production adoption approved, live semantic threshold changed, nango, github pushed, vercel deployed, production migration applied, secret read from).
+- 3 new tests: pass, reject, and doc-drift guard. The doc-drift guard reads `docs/margot/MARGOT-COMMAND-CENTER.md` from disk and asserts all 10 required phrases are present (case-insensitive), all 4 required citations are present (case-sensitive), and none of the 9 prohibited phrases appear in the assertion section.
+- `docs/margot/MARGOT-COMMAND-CENTER.md` refreshed: date updated, `## AI-RET-001 Command-Center-Doc Citation Contract` section added, new rotation guard entry appended.
+- `scripts/margot-retrieval-evaluation-report.ts` updated with 29th answer stub.
+- Updated canned-answer maps in test file (both the "can evaluate all" and "reads back generated report" test maps) with 29th fixture.
+- Verification: focused retrieval gate 1 suite / 106 tests PASS (was 103; +3); AI-RET-001 runner `overallStatus=pass; source=8/8; answerShape=29/29; readback=pass`; combined CRM + Margot + runtime + credential-boundary gate 11 suites / 231 tests PASS (was 228; +3).
+- Mac Mini: `/Volumes/Macintosh HD` only, ping 100% packet loss, 0 artifacts. Blocker unchanged.
+- No sandbox wizard Db mutating subcommand, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, connector-platform action, new vendor, credential read, or destructive git.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 106 tests.
+npx tsx scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=29/29; readback=pass.
+npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: 11 suites / 231 tests.
+```
+
+Files changed this tick: `src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+
+Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, connector platforms, new vendors.
+
+Next safe lane: rotate to 30th answer-shape fixture (high-level-crm-25-step-forecast.md or mac-mini-recovery-status.md) or refresh remaining unbound control surfaces.
+
 ## 2026-06-12 05:30:00 AEST
 
 ### Tick 20260612_0530 — AI-RET-001 28th answer-shape fixture (second-brain-carry-forward boundary) + doc-drift guard
@@ -16529,3 +16561,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260611_040908.log'
+
+## 2026-06-11 05:16:02 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260611_045441.log'

@@ -1,5 +1,15 @@
 # Margot Morning Report
 
+Latest Senior PM AI-RET-001 29th answer-shape fixture (command-center-doc boundary) at `2026-06-12 07:30:00 AEST`:
+
+- Added 29th mocked answer-shape fixture `AI-RET-001-ANSWER-COMMAND-CENTER-DOC-BOUNDARY` (bound to `AI-RET-001-COMMAND-CENTER-CITATION`). Pins the command-center doc to 10 required phrases (command center, autonomy rotation guard, blockers unchanged, mac mini, sandbox authority, verification passed, production db writes, live provider status, connector platforms, completed safe senior pm lane), 4 required citations (MARGOT-COMMAND-CENTER.md, MARGOT-ORCHESTRATOR.md, retrieval-rules.md, SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md), 9 prohibited overclaims (mac mini artifacts recovered, sandbox apply completed, production adoption approved, live semantic threshold changed, nango, github pushed, vercel deployed, production migration applied, secret read from).
+- 3 new tests: pass, reject, and doc-drift guard for MARGOT-COMMAND-CENTER.md.
+- MARGOT-COMMAND-CENTER.md refreshed with AI-RET-001 citation contract + Senior PM verification checkpoint.
+- Report runner and both canned-answer test maps updated with 29th answer stub.
+- Verification: focused retrieval gate 1 suite / 106 tests PASS (was 103; +3). AI-RET-001 runner: overallStatus=pass; source=8/8; answerShape=29/29; readback=pass. Combined gate 11 suites / 231 tests PASS (was 228; +3).
+- Mac Mini: `/Volumes/Macintosh HD` only, ping 100% packet loss, 0 artifacts. Blocker unchanged.
+- Next safe lane: rotate to 30th answer-shape fixture (high-level-crm-25-step-forecast.md or mac-mini-recovery-status.md).
+
 Latest Senior PM AI-RET-001 28th answer-shape fixture (second-brain-carry-forward boundary) at `2026-06-12 05:30:00 AEST`:
 
 - Added 28th mocked answer-shape fixture `AI-RET-001-ANSWER-SECOND-BRAIN-CARRY-FORWARD-BOUNDARY` (bound to `AI-RET-001-SENIOR-PM-LOOP`). Pins the second-brain-carry-forward doc to 10 required phrases (carry-forward, crm operating loop, resolve identity, senior project manager, use existing assets first, canonical crm operating loop, margot must discover first, human judgment still needed, durable operating context, shared control loop), 4 required citations (SECOND-BRAIN-CARRY-FORWARD.md, CONNECTED-TEAMS-OPERATING-RULES.md, SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md, high-level-crm-25-step-forecast.md), 9 prohibited overclaims (carry-forward bypassed, crm forecast ignored, nango, github pushed, vercel deployed, production migration applied, secret read from, live provider status fetched, cross-client context merged without approval).
