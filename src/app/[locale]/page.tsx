@@ -1,7 +1,6 @@
 // src/app/[locale]/page.tsx
-// Public marketing landing page. The CEO dashboard lives at /[locale]/ceo;
-// authenticated CEOs navigate there directly. Unauthenticated visitors see this.
-// Copy mirrors the Nexus Human Voice Spec v1 (Karen opener, verdict last).
+// Internal CRM landing page. This is not a public SaaS or marketing funnel.
+// It gives Phill direct entry points into the work that needs attention.
 
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -13,9 +12,9 @@ import type { BrandConfig } from '@/types/brand-config';
 export const dynamic = 'force-static';
 
 export const metadata: Metadata = {
-  title: 'Unite-Group — CRM, cert, leads, and disputes for the five-to-fifty-van firm',
+  title: 'Unite-Group — Internal CRM Command Centre',
   description:
-    "Karen runs a five-van water-damage crew. We run the operating side so she doesn't have to. The CRM, the IICRC cert, the leads, the dispute log — for the five-to-fifty-van firm that hasn't got time to fight on six fronts at once.",
+    "Private founder CRM for Phill McGurk: client follow-ups, command-centre work, approvals, evidence, and portfolio signals in one place.",
 };
 
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
@@ -39,10 +38,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     <main style={{ background: 'var(--canvas)', color: 'var(--ink-primary)', minHeight: '100vh' }}>
       {/*
         ShowcaseCard (the primitive under HeroShowcase) renders its heading as
-        an h2. To preserve the homepage's h1 semantic for SEO + a11y, we mirror
-        the Karen opener into a visually-hidden h1 here. Same string as the
-        showcase heading — kept in sync manually until the Tier-1 primitive
-        exposes a heading-level prop.
+        an h2. To preserve the homepage's h1 semantic for a11y, we mirror the
+        internal CRM heading here until the Tier-1 primitive exposes a heading-level prop.
       */}
       <h1
         style={{
@@ -57,7 +54,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           border: 0,
         }}
       >
-        Karen runs a five-van water-damage crew out of Caboolture. Her scope last March was forty-two hours of structural drying. The desk-based adjuster paid seventeen.
+        Unite-Group is Phill&apos;s private CRM command centre.
       </h1>
 
       <section
@@ -77,14 +74,14 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             brandSlug="unite-group"
             brand={brand}
             brandName={brandName}
-            tagline="Unite-Group Nexus"
-            heading="Karen runs a five-van water-damage crew out of Caboolture. Her scope last March was forty-two hours of structural drying. The desk-based adjuster paid seventeen."
-            description="You've seen this scope. You've written this scope. You've fought this scope for eleven years. Unite-Group runs the CRM, the cert, the leads, and the disputes — for the five-to-fifty-van firm that doesn't have time to fight on six fronts at once."
+            tagline="Private founder CRM"
+            heading="One entry point for the work that needs Phill's attention."
+            description="Unite-Group is the internal CRM command centre: clients, follow-ups, approvals, portfolio signals, and the evidence trail for decisions. No sales funnel. No fake customer story. Just the operating desk."
             imageUrl="/images/handshake-gear.png"
-            imageAlt="Unite-Group — operating-side brand mark"
-            ctaText="Talk to the operator on the desk"
-            ctaHref={`/${locale}/contact`}
-            services={['CRM', 'IICRC cert', 'Leads', 'Disputes']}
+            imageAlt="Unite-Group internal CRM command centre"
+            ctaText="Open command centre"
+            ctaHref={`/${locale}/command-center`}
+            services={['Clients', 'Follow-ups', 'Approvals', 'Evidence']}
           />
         </div>
       </section>
@@ -100,7 +97,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               letterSpacing: '-0.01em',
             }}
           >
-            What you actually get
+            What this page should help you do
           </h2>
           <p
             style={{
@@ -111,7 +108,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               lineHeight: 1.6,
             }}
           >
-            Three things, in this order. Not features. Things you stop doing yourself.
+            Fast doors into the internal CRM areas that matter during the day.
           </p>
 
           <ul
@@ -126,42 +123,40 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           >
             <li>
               <PortfolioTile
-                title="A CRM your crew actually opens"
+                title="Open the command centre"
                 status="operational"
                 brandSlug="unite-group"
                 brand={brand}
               >
                 <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: 'var(--ink-secondary)' }}>
-                  Built around the job, not the lead. Karen&apos;s foreman opens it from a van outside
-                  a triplex in Redcliffe. He sees the scope, the photos, the adjuster&apos;s last
-                  reply, and the parts list. He doesn&apos;t see seventeen tabs of CRM theory.
+                  Start where the day starts: active signals, queued work, approvals, voice tasks,
+                  and anything that needs a decision before it goes stale.
                 </p>
               </PortfolioTile>
             </li>
             <li>
               <PortfolioTile
-                title="A cert the regulator already recognises"
+                title="Manage clients without hunting"
                 status="operational"
                 brandSlug="unite-group"
                 brand={brand}
               >
                 <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: 'var(--ink-secondary)' }}>
-                  IICRC pathway, ANZ-aligned. You sit it through CARSI; the file lands in your portal
-                  in fourteen days. Documents on-screen, not a marketing brochure.
+                  Jump straight to the client list, active records, contact context, onboarding
+                  state, and the next useful action for each account.
                 </p>
               </PortfolioTile>
             </li>
             <li>
               <PortfolioTile
-                title="A dispute log that survives an audit"
+                title="Review the evidence trail"
                 status="operational"
                 brandSlug="unite-group"
                 brand={brand}
               >
                 <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: 'var(--ink-secondary)' }}>
-                  Every back-and-forth with the panel. Every photo. Every revised scope. Stored,
-                  exportable, FOI-resistant. The last time Karen needed it, it took four minutes to
-                  assemble.
+                  Keep decisions grounded in source material: logs, docs, status changes, and
+                  follow-up history instead of memory or scattered chat threads.
                 </p>
               </PortfolioTile>
             </li>
@@ -186,7 +181,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               letterSpacing: '-0.01em',
             }}
           >
-            Right — here&apos;s the verdict
+            The rule for this CRM
           </h2>
           <p
             style={{
@@ -196,14 +191,13 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               lineHeight: 1.65,
             }}
           >
-            You don&apos;t need another platform. You need the disputes to stop costing you
-            forty-percent margin and the cert to stop costing you four months. Unite-Group runs
-            both. The pricing is the same line every month. The cancellation is on the same page as
-            the sign-up.
+            If the homepage does not help Phill run the business, it does not belong here. This
+            surface should point to live CRM work, show honest connection status, and avoid public
+            SaaS language unless a section is deliberately external-facing.
           </p>
           <div style={{ marginTop: 24, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             <Link
-              href={`/${locale}/register`}
+              href={`/${locale}/command-center`}
               style={{
                 display: 'inline-block',
                 padding: '12px 24px',
@@ -215,10 +209,10 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                 fontSize: 15,
               }}
             >
-              Start free trial
+              Open command centre
             </Link>
             <Link
-              href={`/${locale}/contact`}
+              href={`/${locale}/empire/clients`}
               style={{
                 color: 'var(--red-300)',
                 textDecoration: 'underline',
@@ -226,7 +220,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                 alignSelf: 'center',
               }}
             >
-              Book a call with the founder
+              Manage clients
             </Link>
           </div>
         </div>
