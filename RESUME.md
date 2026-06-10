@@ -2,12 +2,13 @@
 
 One-screen handoff so a fresh session continues without re-reading the long thread.
 
-> ⚠️ **NOT under version control.** There is no git repo anywhere in `D:\Unite-Group-Spine` (verified 2026-06-09).
-> Every "committed" note below meant *file written to disk*, not a git commit. All spine work — incl. the proven C3
-> results and `types/database.ts` — exists ONLY as untracked working-tree files on this one Windows box: no history,
-> no remote, no backup. **Pending decision (Phill): make the spine its own standalone repo (leaning) vs. a package
-> inside an existing repo.** Until then it is one disk failure from gone. Local same-disk copy ≠ durability; real
-> safety = an off-machine remote (a separate gated step).
+> ✅ **Under version control since 2026-06-10:** standalone PRIVATE repo `github.com/CleanExpo/Unite-Group-Spine`
+> (Phill approved the push). Pre-push secret-scan clean; bundle backup also at `C:\Backups\spine\`. CI
+> (`.github/workflows/ci.yml`) runs typecheck + vitest on every push; the 19 integration tests (RLS matrix, C3,
+> idempotency, **two-relayer outbox race**) self-skip until the **`SPINE_DATABASE_URL` secret is set — current
+> blocker, needs Phill** (pooler URI for `xgqwfwqumliuguzhshwv`; set as repo secret + local user env). Historical
+> "committed" notes below predating 2026-06-10 meant *file written to disk*; everything is in real git now.
+> Multi-session coordination: `~\.claude\agents-bus\` (this lane = SPINE).
 
 ## What this is
 **P0 "The Spine"** — the canonical shared-identity platform. One contractor firm = one
