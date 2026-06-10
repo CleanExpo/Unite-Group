@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from 'next/link';
+import Image from 'next/image';
 import { useParams, useRouter } from "next/navigation";
 import { supabaseClient } from "@/lib/supabase/client";
 import {
@@ -19,27 +20,6 @@ function Clock() {
     return () => clearInterval(id);
   }, []);
   return <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ink-tertiary)", letterSpacing: "0.1em" }}>{time} AEST</span>;
-}
-
-const BUSINESSES = [
-  { name: "SYNTHEX",       health: 50,  arr: null,    status: "LIVE"  },
-  { name: "RESTOREASSIST", health: 85,  arr: null,    status: "LIVE"  },
-  { name: "CCW-CRM",       health: 78,  arr: 33000,   status: "LIVE"  },
-  { name: "DR PLATFORM",   health: 71,  arr: null,    status: "LIVE"  },
-  { name: "NRPG",          health: 50,  arr: null,    status: "BUILD" },
-  { name: "CARSI",         health: 65,  arr: null,    status: "LIVE"  },
-];
-
-function HealthBar({ value }: { value: number }) {
-  const color = value >= 80 ? "#22c55e" : value >= 60 ? "#f59e0b" : "#ef4444";
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-      <div style={{ flex: 1, height: 2, background: "#1a1a1d", position: "relative" }}>
-        <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: `${value}%`, background: color, transition: "width 1s ease" }} />
-      </div>
-      <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color, width: 28, textAlign: "right" }}>{value}</span>
-    </div>
-  );
 }
 
 export default function LoginPage() {
@@ -72,7 +52,16 @@ export default function LoginPage() {
     }
   };
 
-  const totalARR = BUSINESSES.reduce((s, b) => s + (b.arr || 0), 0);
+  const handleGoogleLogin = async () => {
+    setError(null);
+    const { error } = await supabaseClient.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/${locale}/command-center` },
+    });
+    if (error) {
+      setError('Google sign-in did not complete. Try again, or use email and password.');
+    }
+  };
 
   return (
     <>
@@ -91,7 +80,7 @@ export default function LoginPage() {
         }
         .scan-line {
           position: absolute; left: 0; right: 0; height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(245,158,11,0.15), transparent);
+          background: linear-gradient(90deg, transparent, rgba(220,20,60,0.22), transparent);
           animation: scan 4s linear infinite;
           pointer-events: none;
         }
@@ -103,19 +92,19 @@ export default function LoginPage() {
         }
       `}</style>
 
-      <div style={{ minHeight: "100vh", display: "flex", background: "#08080a", fontFamily: "var(--font-display, system-ui)" }}>
+      <div style={{ minHeight: "100vh", display: "flex", background: "#0a0c10", fontFamily: "var(--font-display, system-ui)" }}>
 
         {/* ── LEFT: MISSION TELEMETRY ──────────────────────────────────────── */}
         <div className="telemetry-panel" style={{
-          width: 480, flexShrink: 0, display: "flex", flexDirection: "column",
-          padding: "32px 36px", background: "#08080a",
-          borderRight: "1px solid rgba(245,158,11,0.12)",
+          width: 680, flexShrink: 0, display: "flex", flexDirection: "column",
+          padding: "28px 32px", background: "#11141b",
+          borderRight: "1px solid #2a3447",
           position: "relative", overflow: "hidden",
         }}>
           {/* Subtle grid overlay */}
           <div style={{
             position: "absolute", inset: 0, opacity: 0.03, pointerEvents: "none",
-            backgroundImage: "linear-gradient(#f59e0b 1px, transparent 1px), linear-gradient(90deg, #f59e0b 1px, transparent 1px)",
+            backgroundImage: "linear-gradient(#2a3447 1px, transparent 1px), linear-gradient(90deg, #2a3447 1px, transparent 1px)",
             backgroundSize: "32px 32px",
           }} />
           {/* Scan line animation */}
@@ -130,9 +119,9 @@ export default function LoginPage() {
                   Unite Group
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
-                  <span className="amber-pulse" style={{ width: 5, height: 5, borderRadius: "50%", background: "#f59e0b", display: "inline-block" }} />
-                  <span style={{ fontSize: 9, color: "#f59e0b", fontWeight: 600, letterSpacing: "0.15em", textTransform: "uppercase", fontFamily: "var(--font-mono)" }}>
-                    EMPIRE / CLASSIFIED
+                  <span className="amber-pulse" style={{ width: 5, height: 5, borderRadius: "50%", background: "#dc143c", display: "inline-block" }} />
+                  <span style={{ fontSize: 9, color: "#dc143c", fontWeight: 600, letterSpacing: "0.15em", textTransform: "uppercase", fontFamily: "var(--font-mono)" }}>
+                    CONSOLE / AUTH-GATED
                   </span>
                 </div>
               </div>
@@ -140,84 +129,62 @@ export default function LoginPage() {
             <Clock />
           </div>
 
-          {/* Large empire identifier */}
-          <div style={{ marginBottom: 40 }}>
+          {/* Command Center vision preview */}
+          <div style={{ marginBottom: 24, position: "relative", zIndex: 1 }}>
             <div style={{
-              fontSize: 68, fontWeight: 800, color: "#f0f0f2",
-              letterSpacing: "-0.04em", lineHeight: 0.9,
-              textTransform: "uppercase",
+              fontSize: 48, fontWeight: 800, color: "#f0f2f5",
+              letterSpacing: "-0.045em", lineHeight: 0.96,
+              textTransform: "uppercase", marginBottom: 12,
             }}>
-              EMPIRE<br />
-              <span style={{ color: "#f59e0b" }}>CMD</span><br />
-              CTR
+              Login<br />
+              <span style={{ color: "#dc143c" }}>Console</span><br />
+              Vision
             </div>
             <div style={{
-              marginTop: 12, fontFamily: "var(--font-mono)", fontSize: 10,
-              color: "var(--ink-tertiary)", letterSpacing: "0.15em",
-              borderLeft: "2px solid #f59e0b", paddingLeft: 10,
+              fontFamily: "var(--font-mono)", fontSize: 10,
+              color: "var(--ink-tertiary)", letterSpacing: "0.13em",
+              borderLeft: "2px solid #dc143c", paddingLeft: 10,
+              lineHeight: 1.7, marginBottom: 18,
             }}>
-              6 BUSINESSES · PI-CEO SWARM · 100% AUTONOMY<br />
-              AUTH REQUIRED · ACCESS LOGGED
+              GLOBAL STATUS · KPI STRIP · AGENT TOPOLOGY<br />
+              BUSINESS 360 · ACTIVITY LOG · AUTH GATE
+            </div>
+            <div style={{
+              border: "1px solid #2a3447",
+              borderRadius: 20,
+              overflow: "hidden",
+              background: "#11141b",
+              boxShadow: "0 22px 70px rgba(0,0,0,0.42)",
+            }}>
+              <Image
+                src="/images/login-console-command-center-vision-v3.png"
+                alt="Command Center login preview with KPI strip, agent topology, side rail panels and activity log"
+                width={1600}
+                height={900}
+                priority
+                style={{ display: "block", width: "100%", height: "auto" }}
+              />
             </div>
           </div>
 
-          {/* Telemetry: business health */}
-          <div style={{ flex: 1 }}>
-            <div style={{
-              fontSize: 9, fontWeight: 600, letterSpacing: "0.2em",
-              textTransform: "uppercase", color: "var(--ink-tertiary)",
-              fontFamily: "var(--font-mono)", marginBottom: 12,
-              display: "flex", alignItems: "center", gap: 8,
-            }}>
-              <span style={{ flex: 1, height: 1, background: "#1a1a1d", display: "inline-block" }} />
-              PORTFOLIO TELEMETRY
-              <span style={{ flex: 1, height: 1, background: "#1a1a1d", display: "inline-block" }} />
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {BUSINESSES.map(biz => (
-                <div key={biz.name} style={{ display: "grid", gridTemplateColumns: "110px 1fr 44px", gap: 10, alignItems: "center" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                    <span style={{
-                      fontSize: 8, fontWeight: 600, fontFamily: "var(--font-mono)",
-                      letterSpacing: "0.05em", color: biz.status === "LIVE" ? "#22c55e" : "#f59e0b",
-                      padding: "1px 5px", border: `1px solid ${biz.status === "LIVE" ? "#166534" : "#78350f"}`,
-                      borderRadius: 2,
-                    }}>{biz.status}</span>
-                  </div>
-                  <HealthBar value={biz.health} />
-                  <div style={{ textAlign: "right" }}>
-                    {biz.arr ? (
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#22c55e" }}>
-                        ${(biz.arr / 1000).toFixed(0)}K
-                      </span>
-                    ) : (
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#27272a" }}>—</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Footer strip */}
-          <div style={{
-            marginTop: 32, paddingTop: 16,
-            borderTop: "1px solid #1a1a1d",
-            display: "flex", justifyContent: "space-between", alignItems: "center",
-          }}>
-            <div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-tertiary)", letterSpacing: "0.1em" }}>TOTAL ARR</div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 18, fontWeight: 700, color: "#22c55e", letterSpacing: "-0.02em" }}>
-                ${(totalARR / 1000).toFixed(0)}K<span style={{ fontSize: 10, color: "var(--ink-tertiary)" }}>/yr</span>
+          {/* Command Center source signals */}
+          <div style={{ position: "relative", zIndex: 1, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: "auto" }}>
+            {[
+              ["Route", `/${locale}/command-center`],
+              ["Access", "admin allow-list"],
+              ["Fallback", "email/password"],
+              ["Signal", "Trivy needs review"],
+            ].map(([label, value]) => (
+              <div key={label} style={{
+                padding: "12px 14px",
+                border: "1px solid #2a3447",
+                borderRadius: 12,
+                background: "rgba(17,20,27,0.72)",
+              }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-tertiary)", letterSpacing: "0.16em", textTransform: "uppercase" }}>{label}</div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: label === "Signal" ? "#dc143c" : "#d8dee8", marginTop: 7 }}>{value}</div>
               </div>
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-tertiary)", letterSpacing: "0.1em" }}>SWARM STATUS</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 5, justifyContent: "flex-end" }}>
-                <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#22c55e", display: "inline-block" }} />
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#22c55e" }}>NOMINAL</span>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 
@@ -258,8 +225,8 @@ export default function LoginPage() {
                 letterSpacing: "-0.03em", margin: 0, textTransform: "uppercase",
                 lineHeight: 1.1,
               }}>
-                AUTHENTICATE
-                <span className="cursor" style={{ color: "#f59e0b", marginLeft: 2 }}>_</span>
+                LOGIN TO CONSOLE
+                <span className="cursor" style={{ color: "#dc143c", marginLeft: 2 }}>_</span>
               </h2>
               <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--ink-tertiary)", margin: "8px 0 0", letterSpacing: "0.05em" }}>
                 AUTHORISED PERSONNEL ONLY
@@ -304,7 +271,7 @@ export default function LoginPage() {
                     transition: "border-color 0.15s",
                     letterSpacing: "0.02em",
                   }}
-                  onFocus={e => (e.target.style.borderColor = "#f59e0b")}
+                  onFocus={e => (e.target.style.borderColor = "#dc143c")}
                   onBlur={e => (e.target.style.borderColor = "#27272a")}
                 />
               </div>
@@ -333,7 +300,7 @@ export default function LoginPage() {
                     transition: "border-color 0.15s",
                     letterSpacing: "0.1em",
                   }}
-                  onFocus={e => (e.target.style.borderColor = "#f59e0b")}
+                  onFocus={e => (e.target.style.borderColor = "#dc143c")}
                   onBlur={e => (e.target.style.borderColor = "#27272a")}
                 />
               </div>
@@ -346,14 +313,14 @@ export default function LoginPage() {
                   fontSize: 12, fontWeight: 700,
                   fontFamily: "var(--font-mono)",
                   letterSpacing: "0.2em", textTransform: "uppercase",
-                  background: loading ? "#1a1a1d" : "#f59e0b",
-                  color: loading ? "#3f3f46" : "#08080a",
+                  background: loading ? "#1a1a1d" : "#dc143c",
+                  color: loading ? "#3f3f46" : "#ffffff",
                   border: "none", borderRadius: 2,
                   cursor: loading ? "not-allowed" : "pointer",
                   transition: "all 0.15s ease",
                 }}
-                onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = "#fbbf24"; }}
-                onMouseLeave={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = "#f59e0b"; }}
+                onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = "#f43f5e"; }}
+                onMouseLeave={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = "#dc143c"; }}
               >
                 {loading ? "VERIFYING..." : "GRANT ACCESS →"}
               </button>
@@ -363,10 +330,7 @@ export default function LoginPage() {
             <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid #27272a" }}>
               <button
                 type="button"
-                onClick={() => supabaseClient.auth.signInWithOAuth({
-                  provider: 'google',
-                  options: { redirectTo: `${window.location.origin}/en/ceo` }
-                })}
+                onClick={handleGoogleLogin}
                 style={{
                   width: "100%", padding: "10px 0", fontSize: 12, fontWeight: 600,
                   fontFamily: "var(--font-mono)", letterSpacing: "0.1em",
