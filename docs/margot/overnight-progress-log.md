@@ -1,4 +1,35 @@
 # Margot Overnight Progress Log
+## 2026-06-10 20:10:00 AEST
+
+### Tick 20260610_2010 — CRM dirty-tree diff review + focused CRM test gate + AI-RET-001 readback
+
+Current checkpoint:
+
+- Inspected full Senior PM read-first set (all 14 files). Repo state: `main` at `40264cb`, 2 commits behind `origin/main` (`9f1bc2d`, `2ab90c3`, `75f07b7`). Dirty tree: 14 modified + 24 untracked from prior safe lanes.
+- Completed bounded health check: CRM dirty-tree diff review. The modified files carry substantive improvements:
+  - `approval-lifecycle.ts`: added `.toLowerCase()` in `normalizedSubjectType()` to prevent case-variant misclassification (2 tests added).
+  - `daily-digest.ts`: added `staleReasonLabel()`, `normalizedMinutes()`, `staleReasonDetail()` for operator-readable digest copy (no raw `last_error`/`never_synced` in output; no NaN leakage).
+  - `stale-sync-check.ts`: `last_sync_completed_at` parse now uses `Date.parse` + `Number.isFinite` guard; `last_error` rows get explicit `minutes_overdue` with active-error semantics; `missed_cadence` rows separated from error rows.
+  - `digest-read-error.ts` (new): 18 lines of read-back error handling.
+  - `margot-voice-task.test.ts`: +147 lines of integration test coverage.
+  - `stale-sync-check.test.ts`: +90 lines of unit test coverage.
+- Verification passed:
+  - Focused CRM gate: 8 suites / 99 tests PASS (`tests/unit/lib/crm/*`)
+  - AI-RET-001 report: `overallStatus=pass; source=8/8; answerShape=19/19; readback=pass`
+  - Sandbox authority/auth gate: unchanged (rotated away per Senior PM verification rotation guard).
+  - Mac Mini: SMB unreachable, SSH unreachable, 0 artifacts. Blocker unchanged.
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, connector platforms, new vendors.
+- Files changed this tick: `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (regenerated).
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/crm/ --runInBand
+# PASS: 8 suites / 99 tests.
+npx tsx scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=19/19; readback=pass.
+```
+
 ## 2026-06-10 19:33:00 AEST
 
 ### Post-auto-sync bounded health check + CRM deliverable inventory + rotation-guard lane
@@ -16181,3 +16212,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_200918.log'
+
+## 2026-06-10 20:48:50 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_204418.log'

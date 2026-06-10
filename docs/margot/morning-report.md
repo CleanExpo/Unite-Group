@@ -1,5 +1,13 @@
 # Margot Morning Report
 
+Latest Senior PM CRM dirty-tree diff review + focused CRM test gate at `2026-06-10 20:10:00 AEST`:
+
+- Reviewed dirty-tree diff: CRM lib improvements in `approval-lifecycle.ts` (case-variant `.toLowerCase()` fix), `daily-digest.ts` (operator-readable stale labels, NaN guard), `stale-sync-check.ts` (NaN-safe parsing, error/missed_cadence disambiguation), new `digest-read-error.ts`. Plus +147 voice-task test lines, +90 stale-sync-check test lines.
+- Verification: Focused CRM gate 8 suites / 99 tests PASS; AI-RET-001 `overallStatus=pass; source=8/8; answerShape=19/19`.
+- Blocks: no sandbox authority, no Mac Mini artifacts, no push/deploy/DB/migration authority. All safe boundaries intact.
+- Files changed: `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`.
+- Next safe slice: rotate to project portfolio / marketing strategy / AI pipeline control-surface refresh or add another mocked AI-RET-001 fixture.
+
 Latest Senior PM bounded health check + CRM deliverable inventory at `2026-06-10 19:33:00 AEST`:
 
 - Ran full bounded health check: all gates green (retrieval 76/76, CRM+Margot+runtime+credential-boundary 201/201, voice 47/47, type-check PASS, security routes-check PASS, AI-RET-001 report PASS source=8/8 answerShape=19/19).
