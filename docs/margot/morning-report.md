@@ -1,5 +1,13 @@
 # Margot Morning Report
 
+Latest Senior PM AI-RET-001 summary-section scoping guard at `2026-06-10 14:54:43 AEST`:
+
+- Tightened local AI-RET-001 report read-back: summary rows now count only when they live inside the canonical `## Summary` section, not in an appendix or pasted elsewhere.
+- Verification: targeted RED was observed first (`npx jest ... -t "summary rows are outside"` failed because Appendix rows were accepted), then GREEN after parser/test changes; full focused retrieval gate PASS 1 suite / 71 tests; AI-RET-001 runner PASS `overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`; type-check PASS; route security check PASS with 0 unprotected mutating routes; diff whitespace check PASS.
+- Files changed this lane: `src/lib/margot/retrieval-evaluation.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/ai-enhancement-candidate-register.md`, `docs/margot/ai-enhancement-pipeline.md`, and this report.
+- Safety: no sandbox wizard action, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, connector-platform action, new vendor, credential read, or destructive git occurred.
+- Next safe slice: continue local-only AI-RET-001 report corruption/error-path cases or rotate to voice mock coverage; sandbox/Mac Mini gates remain unchanged.
+
 Latest Senior PM AI-RET-001 summary-heading read-back guard at `2026-06-10 14:18:44 AEST`:
 
 - Added a local report structure guard: AI-RET-001 read-back now fails when the `## Summary` section heading is missing, even if valid-looking summary rows are present elsewhere.

@@ -1,4 +1,39 @@
 # Margot Overnight Progress Log
+## 2026-06-10 14:54:43 AEST
+
+### AI-RET-001 summary-section scoping read-back corruption guard
+
+Current checkpoint:
+
+- Inspected repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `5de1ee1`; `git rev-list --count main..origin/main` returned `2`. Inherited dirty state remains extensive from prior safe lanes; this tick did not push, commit, deploy, mutate env, or run sandbox/prod DB wizard subcommands.
+- Completed safe local-only Senior PM lane: tightened AI-RET-001 report read-back so summary rows are parsed only from the canonical `## Summary` section. A valid-looking summary table pasted under another heading now fails instead of satisfying the handoff counts.
+- RED evidence: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts -t "summary rows are outside" --runInBand` failed first because read-back accepted summary rows under `## Appendix`.
+- GREEN implementation: `readBackMargotRetrievalEvaluationReport` now scopes summary-row parsing to `extractReportSection(markdown, 'Summary')`; `tests/unit/lib/margot/retrieval-evaluation.test.ts` adds the outside-Summary corruption case.
+- Verification passed locally: targeted summary-section test PASS; full focused retrieval gate PASS 1 suite / 71 tests; AI-RET-001 report runner PASS with `overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`; `npm run type-check` PASS; `npm run security:routes-check` PASS with 0 unprotected mutating routes; `git diff --check` PASS.
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploys/env mutation, GitHub push/PR/merge, client-facing sends, paid spend, connector platforms, and new vendors remain gated / not performed.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts -t "summary rows are outside" --runInBand
+# RED first, then PASS after Summary-section scoping was added.
+
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 71 tests.
+
+npx tsx scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS.
+```
+
 ## 2026-06-10 14:18:44 AEST
 
 ### AI-RET-001 summary-heading read-back corruption guard
@@ -15732,3 +15767,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_141547.log'
+
+## 2026-06-10 14:57:00 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_145242.log'
