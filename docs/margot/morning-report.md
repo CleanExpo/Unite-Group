@@ -1,5 +1,15 @@
 # Margot Morning Report
 
+Latest Senior PM AI-RET-001 22nd answer-shape fixture (voice schema provenance boundary) at `2026-06-10 22:55:00 AEST`:
+
+- Added 22nd mocked answer-shape fixture `AI-RET-001-ANSWER-VOICE-SCHEMA-PROVENANCE-BOUNDARY` (bound to `AI-RET-001-COMMAND-CENTER-CITATION`). Pins `docs/margot/voice-task-schema-provenance.md` to 11 required phrases, 4 required citations, 10 prohibited overclaims.
+- 3 new tests: pass, reject, doc-drift guard. Doc refreshed with AI-RET-001 citation contract section and new Senior PM verification checkpoint.
+- Verification: focused retrieval gate 1 suite / 85 tests PASS; AI-RET-001 runner `overallStatus=pass; source=8/8; answerShape=22/22; readback=pass`; combined CRM + Margot + runtime + credential-boundary gate 11 suites / 210 tests PASS.
+- Mac Mini: `/Volumes=Macintosh HD` only, 0 artifacts. All blockers unchanged.
+- Files changed: `src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`, `docs/margot/voice-task-schema-provenance.md`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+- Safety: no sandbox wizard action, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, connector-platform action, new vendor, credential read, or destructive git.
+- Next safe slice: rotate to another control-surface doc-drift guard (MARGOT-COMMAND-CENTER, CRM operating model), further mocked voice coverage, or another local report corruption case; sandbox/Mac Mini gates remain unchanged.
+
 Latest Senior PM AI-RET-001 21st answer-shape fixture (voice integrity boundary) at `2026-06-10 21:42:00 AEST`:
 
 - Added 21st mocked answer-shape fixture `AI-RET-001-ANSWER-VOICE-INTEGRITY-BOUNDARY` (bound to `AI-RET-001-COMMAND-CENTER-CITATION`). Pins the Margot voice test surface to 13 required phrases, 4 required citations, 9 prohibited overclaims.

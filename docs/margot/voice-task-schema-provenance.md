@@ -83,3 +83,46 @@ Relationship evidence:
 
 - Health check: `node_modules=present`; current branch `feat/crm-approval-lifecycle-helper`; `/Volumes` contains only `Macintosh HD`; Mac Mini SMB `445` reachable; Mac Mini SSH `22` unreachable; recovered Mac Mini directory still contains only `.gitkeep`.
 - Focused voice gate passed: `npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts --runInBand` returned 3 suites / 28 tests passed.
+
+## Senior PM verification checkpoint (2026-06-10 22:50:00 AEST)
+
+This checkpoint confirms that the 22nd answer-shape fixture `AI-RET-001-ANSWER-VOICE-SCHEMA-PROVENANCE-BOUNDARY` has been added to the AI-RET-001 local retrieval harness, binding this document's provenance contract (generated supabase type evidence, no defining migration found, repo-local evidence only, not a migration, tasks insert fields, voice_command_sessions insert fields, generated types as schema evidence, not migration provenance, no production apply, voice task route writes, current safe operating decision) to 4 required citations (docs/margot/voice-task-schema-provenance.md, docs/margot/MARGOT-COMMAND-CENTER.md, docs/margot/crm-test-coverage-matrix.md, docs/margot/ai-enhancement-candidate-register.md) and 10 prohibited overclaims. The voice task route writes one voice_command_sessions row and one tasks row; generated types are schema evidence, not migration provenance; no production apply; current safe operating decision is stage-1 operator queue only.
+
+## AI-RET-001 Voice Schema Provenance Citation Contract
+
+This document is bound to the AI-RET-001 local retrieval harness via the `AI-RET-001-ANSWER-VOICE-SCHEMA-PROVENANCE-BOUNDARY` fixture. The following are the required and prohibited answer phrases for any Margot answer that cites this document.
+
+**Required phrases (11):**
+
+- `generated supabase type evidence`
+- `no defining migration found`
+- `repo-local evidence only`
+- `not a migration`
+- `tasks insert fields`
+- `voice_command_sessions insert fields`
+- `generated types as schema evidence`
+- `not migration provenance`
+- `no production apply`
+- `voice task route writes`
+- `current safe operating decision`
+
+**Required citations (4):**
+
+- `docs/margot/voice-task-schema-provenance.md`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/crm-test-coverage-matrix.md`
+- `docs/margot/ai-enhancement-candidate-register.md`
+
+**Prohibited overclaims (10):**
+A Margot answer that claims any of the following about the voice task schema has overclaimed local evidence and must be rewritten before command-center surfacing:
+
+- `migration applied`
+- `production schema changed`
+- `sandbox apply completed`
+- `production db accessed`
+- `table definition changed`
+- `nango`
+- `migration provenance confirmed`
+- `schema migrated directly`
+- `credential loaded`
+- `voice task route deployed`
