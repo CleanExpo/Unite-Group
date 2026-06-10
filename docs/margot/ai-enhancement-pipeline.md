@@ -1,7 +1,7 @@
 # Margot AI Enhancement Pipeline
 
 Date: 2026-05-23 07:33 AEST
-| Last update: 2026-06-10 13:06:12 AEST |
+| Last update: 2026-06-10 13:42:03 AEST |
 Project: Unite-Group
 Owner: Margot
 Scope: Existing repo/docs/code evidence only. This document defines the pipeline; it does not adopt a new model/vendor/tool or make production changes.
@@ -38,11 +38,12 @@ What exists:
 
 What has started (this tick):
 
-- Refreshed this pipeline doc and candidate register so AI-RET-001 now names the unknown-fixture-id read-back guard added at `2026-06-10 13:06:12 AEST`: report read-back now rejects fabricated/unknown fixture IDs in source-citation and answer-shape result tables before accepting row-count/status reconciliation.
+- Refreshed this pipeline doc and candidate register so AI-RET-001 now names the report-title read-back guard added at `2026-06-10 13:42:03 AEST`: report read-back now exposes `hasReportTitle`, rejects duplicate report title rows, and the local report runner requires `reportTitle=true` before accepting command-center handoff evidence.
 - This is a local-only code/test/docs/evidence refresh; no schema, deployment, external AI call, live vector search, provider polling, DB write, account setup, or vendor work was performed.
 
 Why this exists / problem it solves:
 
+- The prior report read-back checked generated timestamps, summaries, fixture rows, sections, safety notes, and next-safe action, but did not separately assert the markdown belonged to the `# AI-RET-001 Local Retrieval Evaluation Report` document. A pasted or duplicated title block could have hidden report identity drift while keeping green counts intact.
 - The previous version of this doc listed "first safe candidates" abstractly and referenced `AI-RET-001` as "Add evaluation fixtures" rather than as a concrete implemented-local lane with an 8/8 source-citation + 19/19 answer-shape mocked gate. A future agent would have re-derived that `AI-RET-001` was still a forward plan and might have tried to design a new retrieval harness instead of extending the existing one.
 - The previous version also didn't explicitly name the `blocked_approval` and `triage` lanes, so the doc implied all five candidates were at the same stage. The refreshed doc states which candidates are concrete (`implemented_local`) vs gated vs parked.
 
@@ -54,15 +55,16 @@ Missing / unclear / pending external authority:
 
 Current health evidence (this tick):
 
-- Targeted unknown-fixture-id gate passed after RED first: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts -t "unknown fixture ids" --runInBand`.
-- Focused retrieval gate passed: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` returned 1 suite / 68 tests PASS.
+- Targeted report-title gate was RED first, then passed after implementation: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts -t "report title" --runInBand`.
+- Focused retrieval gate passed: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` returned 1 suite / 69 tests PASS.
+- `npx tsx scripts/margot-retrieval-evaluation-report.ts` refreshed `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` and returned `overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`.
 - `npm run type-check` passed.
 - `npm run security:routes-check` reported 0 unprotected mutating routes.
-- `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` is current with 8/8 source-citation fixtures PASS, 19/19 answer-shape fixtures PASS, `overallStatus=pass`, and `readback=pass; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`.
+- `git diff --check` passed.
 
 Mac Mini state (this tick):
 
-- `/Volumes` contains only `Macintosh HD`; no authenticated non-system mounted scan root exists; recovered Markdown artifact count remains `0`; `phills-mac-mini.local:445` is reachable (SMB/File Sharing reachable), `:22` is unreachable (SSH/Remote Login unavailable from this MacBook session). No credential prompt/read, secret printing/storage, or recursive system-volume scan occurred.
+- Not reprobed this tick due rotation guard; recovery remains blocked unless an authenticated SMB mount, usable SSH session, or approved export exists. No credential prompt/read, secret printing/storage, or recursive system-volume scan occurred.
 
 Smallest next safe action:
 
