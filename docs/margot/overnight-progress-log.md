@@ -1,4 +1,37 @@
 # Margot Overnight Progress Log
+## 2026-06-10 18:24:51 AEST
+
+### AI-RET-001 bounded health/read-back refresh
+
+Current checkpoint:
+
+- Inspected repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `4e68535`; `git rev-list --count main..origin/main` returned `2`. Inherited dirty state remains extensive from prior safe lanes; this tick only refreshed the local AI-RET-001 report evidence and reporting surfaces.
+- Bounded health check completed: `node_modules=present`; focused AI-RET-001 retrieval gate stayed green at 1 suite / 75 tests PASS; report runner regenerated `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` at `10/06/2026, 18:24:59 AEST` and returned `overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`; `npm run type-check` passed; `npm run security:routes-check` passed with 0 unprotected mutating routes; `git diff --check` passed.
+- No new implementation lane was opened because the latest AI-RET-001 duplicate fixture-result table structure guard remains current and green. This tick is a read-back / evidence-freshness checkpoint after the local head advanced to `4e68535`.
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push/PR/merge, client-facing sends, paid spend, connector platforms, and new vendors remain gated / not performed.
+
+Verification:
+
+```bash
+test -d node_modules && echo node_modules=present || echo node_modules=missing
+# node_modules=present
+
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 75 tests.
+
+npx tsx scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS.
+```
+
 ## 2026-06-10 17:50:59 AEST
 
 ### AI-RET-001 fixture-result duplicate header/divider read-back guard
@@ -15981,3 +16014,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_174858.log'
+
+## 2026-06-10 18:26:08 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_182338.log'
