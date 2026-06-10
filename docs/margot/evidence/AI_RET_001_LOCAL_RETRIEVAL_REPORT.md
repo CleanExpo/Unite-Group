@@ -1,6 +1,6 @@
 # AI-RET-001 Local Retrieval Evaluation Report
 
-Generated: 11/06/2026, 09:11:34 AEST
+Generated: 11/06/2026, 09:56:12 AEST
 
 Overall status: `pass`
 
@@ -9,7 +9,7 @@ Overall status: `pass`
 | Area | Total | Pass | Needs action |
 | --- | ---: | ---: | ---: |
 | Source-citation fixtures | 8 | 8 | 0 |
-| Answer-shape fixtures | 33 | 33 | 0 |
+| Answer-shape fixtures | 46 | 46 | 0 |
 
 ## Source-citation fixture results
 
@@ -61,6 +61,19 @@ Overall status: `pass`
 | AI-RET-001-ANSWER-ENHANCEMENT-CANDIDATE-REGISTER-BOUNDARY | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
 | AI-RET-001-ANSWER-MORNING-REPORT-BOUNDARY | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
 | AI-RET-001-ANSWER-OVERNIGHT-PROGRESS-LOG-BOUNDARY | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
+| AI-RET-001-ANSWER-TRUNCATED-ARTIFACT | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
+| AI-RET-001-ANSWER-MISSING-SECTION | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
+| AI-RET-001-ANSWER-FRONT-MATTER-MISSING | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
+| AI-RET-001-ANSWER-PLAN-2026-05-22-SELF-BOUNDARY | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
+| AI-RET-001-ANSWER-PLAN-2026-05-23-SELF-BOUNDARY | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
+| AI-RET-001-ANSWER-NEXT-SAFE-LANE-STAGING | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
+| AI-RET-001-ANSWER-VOICE-GAP-ANALYSIS-SELF-BOUNDARY | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
+| AI-RET-001-ANSWER-PROVIDER-POLLING-FAKE | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
+| AI-RET-001-ANSWER-SANDBOX-FAIL-MOCK | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
+| AI-RET-001-ANSWER-STALE-SYNC-5XX | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
+| AI-RET-001-ANSWER-MULTI-DOC-INCONSISTENCY | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
+| AI-RET-001-ANSWER-LIVE-GATING-PHRASING | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
+| AI-RET-001-ANSWER-THRESHOLD-BUMP-REQUEST | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
 
 ## Safety notes
 
@@ -70,4 +83,4 @@ Overall status: `pass`
 
 ## Next safe action
 
-Keep AI-RET-001 green and expand only with additional local report corruption/error-path cases or more mocked command-center answer shapes before changing live retrieval thresholds or behavior.
+Keep AI-RET-001 green and harden the harness against the live gating phrasings (crm-foundry semantic threshold, mac mini authenticated artifact transport, sandbox authority auth) with another bounded mocked fixture or error-path class before changing live retrieval thresholds or behavior.
