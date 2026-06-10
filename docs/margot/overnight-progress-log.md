@@ -1,4 +1,65 @@
 # Margot Overnight Progress Log
+## 2026-06-10 19:33:00 AEST
+
+### Post-auto-sync bounded health check + CRM deliverable inventory + rotation-guard lane
+
+Current checkpoint:
+
+- Inspected read-first set (all 14 files): CONNECTED-TEAMS-OPERATING-RULES, SENIOR-PROJECT-MANAGER-OPERATING-MODEL, SECOND-BRAIN-CARRY-FORWARD, high-level-crm-25-step-forecast, access-and-data-requirements, MARGOT-ORCHESTRATOR, MARGOT-COMMAND-CENTER, retrieval-rules, voice-test-gap-analysis, mac-mini-recovery-status, overnight-progress-log, morning-report, linear-watch-today, AI-RET-001 report.
+- Repo state: branch `main`, head `642bd1f`, 2 commits behind `origin/main`, uncommitted dirty state (14 modified + 24 untracked) from prior safe lanes.
+- Completed safe bounded health check + CRM deliverable inventory lane (rotation guard: rotated away from AI-RET-001 report read-back guards; consumed the Senior PM verification rotation guard for this tick).
+- CRM deliverable inventory: all 6 core files confirmed present and current (today's timestamps):
+  - `crm-operating-model.md` (32KB)
+  - `crm-schema-inventory.md` (39KB)
+  - `project-portfolio-index.md` (19KB)
+  - `client-second-brain-model.md` (20KB)
+  - `marketing-strategy-operating-model.md` (23KB)
+  - `ai-enhancement-pipeline.md` (21KB)
+- Plus: `crm-test-coverage-matrix.md`, `crm-contacts-opportunities-model.md`, `crm-approval-persistence-plan.md`, `lead-to-client-conversion-plan.md`, `daily-crm-digest-template.md`, `synthex-ccw-content-packet-v1.md`, `hermes-v15-capability-assessment.md`. 50 .md files total in `docs/margot/`.
+- Full bounded health check:
+  - `node_modules=present`
+  - Focused retrieval gate: 1 suite / 76 tests PASS
+  - Focused voice gate: 4 suites / 47 tests PASS
+  - Combined CRM + Margot + runtime + credential-boundary gate: 11 suites / 201 tests PASS
+  - AI-RET-001 report runner: `overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`
+  - `npm run type-check` PASS
+  - `npm run security:routes-check` PASS (0 unprotected mutating routes)
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport (SMB reachable `192.168.2.78`, SSH unreachable, `/Volumes=Macintosh HD`, 0 artifacts), live provider status, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, connector platforms, new vendors.
+
+Verification:
+
+```bash
+node_modules=present
+
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 76 tests.
+
+npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
+# PASS: 11 suites / 201 tests.
+
+npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts src/components/command-center/voice/__tests__/voice-panel-state.test.ts --runInBand
+# PASS: 4 suites / 47 tests.
+
+npx tsx scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+```
+
+CRM deliverables: `ls -la docs/margot/{crm-operating-model,crm-schema-inventory,project-portfolio-index,client-second-brain-model,marketing-strategy-operating-model,ai-enhancement-pipeline}.md`
+| File | Size | Last touched |
+| --- | ---: | --- |
+| crm-operating-model.md | 32KB | Jun 10 07:28 |
+| crm-schema-inventory.md | 39KB | Jun 10 02:32 |
+| project-portfolio-index.md | 19KB | Jun 10 10:35 |
+| client-second-brain-model.md | 20KB | Jun 10 11:17 |
+| marketing-strategy-operating-model.md | 23KB | Jun 10 06:42 |
+| ai-enhancement-pipeline.md | 21KB | Jun 10 19:01 |
+
 ## 2026-06-10 19:05:00 AEST
 
 ### Post-auto-sync bounded health check + retrieval-rules stale-surface correction
@@ -16111,3 +16172,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_193223.log'
+
+## 2026-06-10 20:14:18 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_200918.log'
