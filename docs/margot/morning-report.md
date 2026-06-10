@@ -1,5 +1,13 @@
 # Margot Morning Report
 
+Latest Senior PM AI-RET-001 handoff-section duplicate coverage at `2026-06-10 18:59:27 AEST`:
+
+- Added explicit local unit coverage that AI-RET-001 report read-back rejects duplicated `## Safety notes` and `## Next safe action` sections before command-center handoff.
+- Verification: `node_modules=present`; targeted duplicate-handoff test PASS; focused retrieval gate PASS 1 suite / 76 tests; AI-RET-001 runner PASS `overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`; generated report timestamp `10/06/2026, 19:01:28 AEST`; type-check PASS; route security check PASS with 0 unprotected mutating routes; diff whitespace check PASS.
+- Files changed this lane: `tests/unit/lib/margot/retrieval-evaluation.test.ts`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, and this report.
+- Safety: no sandbox wizard action, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, connector-platform action, new vendor, credential read, or destructive git occurred.
+- Next safe slice: rotate to another local-only report corruption/error-path case or mocked voice coverage; sandbox/Mac Mini gates remain unchanged.
+
 Latest Senior PM AI-RET-001 health/read-back refresh at `2026-06-10 18:24:51 AEST`:
 
 - Refreshed the local AI-RET-001 evidence after repo head advanced to `4e68535`; no new source implementation was opened.

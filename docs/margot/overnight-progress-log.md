@@ -1,4 +1,39 @@
 # Margot Overnight Progress Log
+## 2026-06-10 18:59:27 AEST
+
+### AI-RET-001 handoff-section duplicate read-back test coverage
+
+Current checkpoint:
+
+- Inspected repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `0f0153e`; `git rev-list --count main..origin/main` returned `2`. Inherited dirty state remains extensive from prior safe lanes; this tick touched only the local AI-RET-001 retrieval test file plus regenerated report/reporting docs.
+- Completed safe local-only Senior PM lane: added explicit unit coverage that AI-RET-001 report read-back rejects duplicated `## Safety notes` and `## Next safe action` sections before command-center handoff. This pins the existing fail-closed section-duplication behavior against hidden/conflicting handoff text.
+- Bounded health check passed: `node_modules=present`; targeted handoff-duplicate test passed; focused retrieval gate is now 1 suite / 76 tests PASS; AI-RET-001 report runner regenerated `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` at `10/06/2026, 19:01:28 AEST` and returned `overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`; `npm run type-check` passed; `npm run security:routes-check` passed with 0 unprotected mutating routes; `git diff --check` passed.
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push/PR/merge, client-facing sends, paid spend, connector platforms, and new vendors remain gated / not performed.
+
+Verification:
+
+```bash
+node_modules=present
+
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts -t "handoff sections are duplicated" --runInBand
+# PASS: 1 targeted test.
+
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 76 tests.
+
+npx tsx scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS.
+```
+
 ## 2026-06-10 18:24:51 AEST
 
 ### AI-RET-001 bounded health/read-back refresh
@@ -16023,3 +16058,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_182338.log'
+
+## 2026-06-10 19:02:23 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_185609.log'

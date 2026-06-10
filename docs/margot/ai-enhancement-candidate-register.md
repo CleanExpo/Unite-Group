@@ -1,7 +1,7 @@
 # Margot AI Enhancement Candidate Register
 
-Date: 2026-06-10 17:50:59 AEST — last refreshed at 2026-06-10 17:50:59 AEST (this lane added an AI-RET-001 duplicate fixture-result table header/divider read-back guard; fixture counts remain 8/8 source and 19/19 answer-shape; no external source or provider row was touched).
-Previous refresh: 2026-06-10 17:14:51 AEST (duplicate Summary table header/divider read-back guard).
+Date: 2026-06-10 18:59:27 AEST — last refreshed at 2026-06-10 18:59:27 AEST (this lane added explicit AI-RET-001 duplicate Safety notes / Next safe action handoff-section read-back test coverage; fixture counts remain 8/8 source and 19/19 answer-shape; no external source or provider row was touched).
+Previous refresh: 2026-06-10 17:50:59 AEST (duplicate fixture-result table header/divider read-back guard).
 
 Project: Unite-Group
 Owner: Margot
