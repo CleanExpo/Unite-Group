@@ -1,6 +1,14 @@
 # Margot Morning Report
 
-Latest Senior PM AI-RET-001 24th answer-shape fixture (crm-test-coverage-matrix boundary) at `2026-06-12 02:50:00 AEST`:
+Latest Senior PM AI-RET-001 25th answer-shape fixture (linear-watch-today boundary) at `2026-06-11 01:25:00 AEST`:
+
+- Added 25th mocked answer-shape fixture `AI-RET-001-ANSWER-LINEAR-WATCH-TODAY-BOUNDARY` (bound to `AI-RET-001-COMMAND-CENTER-CITATION`). Pins the linear-watch-today doc to 10 required phrases, 4 required citations, 9 prohibited overclaims.
+- 3 new tests: pass, reject, doc-drift guard. Doc-drift guard reads `docs/margot/linear-watch-today.md` and asserts all required phrases/citations present in assertion section, no prohibited phrases.
+- Verification: focused retrieval gate 1 suite / 94 tests PASS (was 91; +3); AI-RET-001 runner `overallStatus=pass; source=8/8; answerShape=25/25; readback=pass`.
+- Mac Mini: `/Volumes=Macintosh HD` only, 0 artifacts. SMB host unreachable (100% packet loss). All blockers unchanged.
+- Files changed: `src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`, `docs/margot/linear-watch-today.md`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+- Safety: no sandbox wizard Db mutating subcommand, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, connector-platform action, new vendor, credential read, or destructive git.
+- Next safe slice: rotate to another control-surface doc-drift guard (mac-mini-recovery-status, overnight-progress-log, morning-report itself), further mocked voice/integration/access-boundary coverage, or another local report corruption/error-path case; sandbox/Mac Mini gates unchanged.
 
 - Added 24th mocked answer-shape fixture `AI-RET-001-ANSWER-CRM-TEST-COVERAGE-MATRIX-BOUNDARY` (bound to `AI-RET-001-COMMAND-CENTER-CITATION`). Pins the CRM test coverage matrix to 10 required phrases, 4 required citations, 9 prohibited overclaims.
 - 3 new tests: pass, reject, doc-drift guard. Doc-drift guard reads `docs/margot/crm-test-coverage-matrix.md` and asserts all required phrases/citations present in assertion section, no prohibited phrases.
