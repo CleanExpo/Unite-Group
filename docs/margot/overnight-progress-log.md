@@ -1,4 +1,38 @@
 # Margot Overnight Progress Log
+## 2026-06-10 17:50:59 AEST
+
+### AI-RET-001 fixture-result duplicate header/divider read-back guard
+
+Current checkpoint:
+
+- Inspected repo state from `/Users/phillmcgurk/Unite-Group`: branch `main`, head `cb3e51f`; `git rev-list --count main..origin/main` returned `2`. Inherited dirty state remains extensive from prior safe lanes; this tick only touched the local AI-RET-001 harness/test/docs/report surfaces.
+- Completed safe local-only Senior PM lane: added a fail-closed report read-back guard for duplicated fixture-result table structure. AI-RET-001 now rejects duplicate Source-citation or Answer-shape fixture-result table headers/dividers inside their canonical sections.
+- RED/GREEN evidence: targeted test `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts -t "fixture result table headers or dividers are duplicated" --runInBand` failed first because read-back accepted a duplicated Source-citation fixture-result table header, then passed after fixture-result header/divider duplicate counting was added.
+- Bounded health check passed: focused retrieval gate is now 1 suite / 75 tests PASS; AI-RET-001 report runner regenerated `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` at `10/06/2026, 17:50:50 AEST` and returned `overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`; `npm run type-check` passed; `npm run security:routes-check` passed with 0 unprotected mutating routes; `git diff --check` passed.
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push/PR/merge, client-facing sends, paid spend, connector platforms, and new vendors remain gated / not performed.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts -t "fixture result table headers or dividers are duplicated" --runInBand
+# RED first, then PASS after duplicate fixture-result table header/divider validation was added.
+
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 75 tests.
+
+npx tsx scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true.
+
+npm run type-check
+# PASS.
+
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+
+git diff --check
+# PASS.
+```
+
 ## 2026-06-10 17:14:51 AEST
 
 ### AI-RET-001 Summary table duplicate header/divider read-back guard
@@ -15938,3 +15972,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_171205.log'
+
+## 2026-06-10 17:53:38 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260610_174858.log'

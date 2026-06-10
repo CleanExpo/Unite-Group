@@ -1,7 +1,7 @@
 # Margot AI Enhancement Pipeline
 
 Date: 2026-05-23 07:33 AEST
-| Last update: 2026-06-10 17:14:51 AEST |
+| Last update: 2026-06-10 17:50:59 AEST |
 Project: Unite-Group
 Owner: Margot
 Scope: Existing repo/docs/code evidence only. This document defines the pipeline; it does not adopt a new model/vendor/tool or make production changes.
@@ -23,7 +23,7 @@ Primary inputs:
 - `scripts/margot-semantic-search-wrapper.ts`
 - `docs/tool-registration-semantic-search.md`
 
-## Current Senior PM verification checkpoint (2026-06-10 17:14:51 AEST)
+## Current Senior PM verification checkpoint (2026-06-10 17:50:59 AEST)
 
 What exists:
 
@@ -38,14 +38,14 @@ What exists:
 
 What has started (this tick):
 
-- Refreshed this pipeline doc and candidate register so AI-RET-001 now names the duplicate Summary table structure read-back guard added at `2026-06-10 17:14:51 AEST`: report read-back now rejects duplicate `| Area | Total | Pass | Needs action |` headers and duplicate `| --- | ---: | ---: | ---: |` dividers inside the canonical `## Summary` section.
+- Refreshed this pipeline doc and candidate register so AI-RET-001 now names the duplicate fixture-result table structure read-back guard added at `2026-06-10 17:50:59 AEST`: report read-back now rejects duplicate Source-citation / Answer-shape fixture-result table headers and duplicate fixture-result table dividers inside their canonical sections.
 - This is a local-only code/test/docs/evidence refresh; no schema, deployment, external AI call, live vector search, provider polling, DB write, account setup, or vendor work was performed.
 
 Why this exists / problem it solves:
 
-- The prior report read-back required the Summary table header and divider but still accepted duplicated Summary table header/divider lines. That could make malformed report snippets look handoff-ready while hiding duplicated structure in the handoff section.
-- The previous version of this doc listed the latest guard as fixture-result table structure only, so a future agent could miss that duplicated Summary table structure is now rejected before command-center handoff.
-- The previous version also didn't explicitly name the duplicate Summary header/divider corruption case in the AI-RET-001 lane, so future report-integrity work might duplicate the same guard instead of extending the next edge case.
+- The prior report read-back required fixture-result table headers and dividers but still accepted duplicated fixture-result header/divider lines. That could make malformed report snippets look handoff-ready while hiding duplicated structure in the evidence sections.
+- The previous version of this doc listed the latest guard as duplicate Summary table structure only, so a future agent could miss that duplicated fixture-result table structure is now rejected before command-center handoff.
+- The previous version also didn't explicitly name the duplicate fixture-result header/divider corruption case in the AI-RET-001 lane, so future report-integrity work might duplicate the same guard instead of extending the next edge case.
 
 Missing / unclear / pending external authority:
 
@@ -55,9 +55,9 @@ Missing / unclear / pending external authority:
 
 Current health evidence (this tick):
 
-- Targeted duplicate Summary table structure gate was RED first, then passed after implementation: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts -t "Summary table headers or dividers are duplicated" --runInBand`.
-- Focused retrieval gate passed: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` returned 1 suite / 74 tests PASS.
-- `npx tsx scripts/margot-retrieval-evaluation-report.ts` refreshed `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` at `10/06/2026, 17:14:43 AEST` and returned `overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`.
+- Targeted duplicate fixture-result table structure gate was RED first, then passed after implementation: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts -t "fixture result table headers or dividers are duplicated" --runInBand`.
+- Focused retrieval gate passed: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` returned 1 suite / 75 tests PASS.
+- `npx tsx scripts/margot-retrieval-evaluation-report.ts` refreshed `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` at `10/06/2026, 17:50:50 AEST` and returned `overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`.
 - `npm run type-check` passed.
 - `npm run security:routes-check` reported 0 unprotected mutating routes.
 - `git diff --check` passed.
