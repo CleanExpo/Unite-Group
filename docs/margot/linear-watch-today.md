@@ -1,6 +1,6 @@
 # Linear Watch — Margot Today Queue
 
-Last synced: 2026-06-11 12:22:48 AEST
+Last synced: 2026-06-11 12:37:49 AEST
 Source: Linear team `UNI` / Unite-Group
 Purpose: Make parent-Hermes-pushed Linear work visible to Margot for today's task list.
 
@@ -13,30 +13,23 @@ Purpose: Make parent-Hermes-pushed Linear work visible to Margot for today's tas
 
 ## Today's Linear candidates
 
-### UNI-2107 — [CCW P1 Build Loop] Enforce Tenant/Organization Context Across Data Paths
+### UNI-2111 — [CCW P0 Wave 2] Connect Company Settings Save to Authenticated Organization API
 
 - State: In Progress (started)
 - Priority: Urgent
 - Project: CCW CRM
 - Assignee: ranamuzamil1199@gmail.com
-- Updated: 2026-06-11T02:07:54.160Z
+- Updated: 2026-06-11T02:36:46.713Z
 - Labels: none
-- Linear: https://linear.app/unite-group/issue/UNI-2107/ccw-p1-build-loop-enforce-tenantorganization-context-across-data-paths
+- Linear: https://linear.app/unite-group/issue/UNI-2111/ccw-p0-wave-2-connect-company-settings-save-to-authenticated
 
 Summary / Linear description excerpt:
 
-> Senior Backend/Data Engineer lane. Evidence: tenant isolation middleware has TODO for automatic filtering; Xero and POS/Xero reconciliation routes use placeholder/fixed organization IDs. Acceptance criteria: all organization-scoped APIs resolve org from authenticated user/session; no placeholder org IDs in production paths; tests prove cross-tenant reads/writes are blocked; migrations/schema support required relationships.
+> Evidence: `apps/web/app/(dashboard)/settings/company/page.tsx` contains `TODO: API call to update company information`. Acceptance: company settings save persists through authenticated org backend API; tests cover save/reload and unauthorized org access rejection.
 
-> Senior Engineer Loop for Rana:
+> Report: `D:\CCW-CRM\docs\CCW-MISSING-ENDPOINTS-CONNECTIONS-WAVE2-2026-06-01.md`
 
-> 1. Define the narrow slice.
-> 2. Write/confirm failing test or failing gate.
-> 3. Make the smallest safe fix.
-> 4. Re-run targeted gate.
-> 5. Re-run affected build/test loop.
-> 6. Record evidence before moving to next slice.
-
-> Governance: sandbox only until gates pass; no production claim without evidence.
+> Senior Engineer loop: reproduce/confirm gap, write failing test or failing gate, implement smallest safe slice, rerun targeted tests, record evidence before moving on. Sandbox only until verified.
 
 ### UNI-2117 — [CCW P0 Wave 2] Harden Team Invites and Session Invalidation
 
@@ -123,24 +116,6 @@ Summary / Linear description excerpt:
 > * Stakeholders (design + eng lead + product) signed off
 > * Decision posted as a comment on this issue and on parent [UNI-2057](https://linear.app/unite-group/issue/UNI-2057/unite-hub-layer
 > …
-
-### UNI-2112 — [CCW P1 Wave 2] Implement Inventory Transfer Cancel Endpoint and UI Flow
-
-- State: In Progress (started)
-- Priority: High
-- Project: CCW CRM
-- Assignee: ranamuzamil1199@gmail.com
-- Updated: 2026-06-11T02:18:17.245Z
-- Labels: none
-- Linear: https://linear.app/unite-group/issue/UNI-2112/ccw-p1-wave-2-implement-inventory-transfer-cancel-endpoint-and-ui-flow
-
-Summary / Linear description excerpt:
-
-> Evidence: `apps/web/app/(dashboard)/inventory/transfers/page.tsx` contains `TODO: Implement cancel endpoint` and shows `Not Implemented`. Acceptance: transfer cancel endpoint exists, stock/state rollback rules tested, UI action verified.
-
-> Report: `D:\CCW-CRM\docs\CCW-MISSING-ENDPOINTS-CONNECTIONS-WAVE2-2026-06-01.md`
-
-> Senior Engineer loop: reproduce/confirm gap, write failing test or failing gate, implement smallest safe slice, rerun targeted tests, record evidence before moving on. Sandbox only until verified.
 
 ### UNI-2060 — Phase 2 · Extract UI primitives (Card, KPI, Chip, Tier, Ticker, FAB, LiveIndicator, etc.)
 
@@ -281,24 +256,6 @@ Summary / Linear description excerpt:
 > * Record missing files and blocked decisions.
 > * Keep parked Toby/Duncan work out of this RestoreAssist / Brand OS workflow.
 
-### UNI-2111 — [CCW P0 Wave 2] Connect Company Settings Save to Authenticated Organization API
-
-- State: Todo (unstarted)
-- Priority: Urgent
-- Project: CCW CRM
-- Assignee: ranamuzamil1199@gmail.com
-- Updated: 2026-06-01T03:36:08.417Z
-- Labels: none
-- Linear: https://linear.app/unite-group/issue/UNI-2111/ccw-p0-wave-2-connect-company-settings-save-to-authenticated
-
-Summary / Linear description excerpt:
-
-> Evidence: `apps/web/app/(dashboard)/settings/company/page.tsx` contains `TODO: API call to update company information`. Acceptance: company settings save persists through authenticated org backend API; tests cover save/reload and unauthorized org access rejection.
-
-> Report: `D:\CCW-CRM\docs\CCW-MISSING-ENDPOINTS-CONNECTIONS-WAVE2-2026-06-01.md`
-
-> Senior Engineer loop: reproduce/confirm gap, write failing test or failing gate, implement smallest safe slice, rerun targeted tests, record evidence before moving on. Sandbox only until verified.
-
 ### UNI-2108 — [CCW P1 Build Loop] Core ERP Smoke Pack: Products, Customers, Quotes, Orders, POS, Inventory, Invoices
 
 - State: Todo (unstarted)
@@ -417,20 +374,54 @@ Summary / Linear description excerpt:
 
 > Senior Engineer loop: reproduce/confirm gap, write failing test or failing gate, implement smallest safe slice, rerun targeted tests, record evidence before moving on. Sandbox only until verified.
 
+### UNI-2115 — [CCW P1 Wave 2] Replace Service Portal Mock Customer ID with Authenticated Customer Context
+
+- State: Todo (unstarted)
+- Priority: High
+- Project: CCW CRM
+- Assignee: ranamuzamil1199@gmail.com
+- Updated: 2026-06-01T03:36:11.281Z
+- Labels: none
+- Linear: https://linear.app/unite-group/issue/UNI-2115/ccw-p1-wave-2-replace-service-portal-mock-customer-id-with
+
+Summary / Linear description excerpt:
+
+> Evidence: `apps/web/app/(portal)/service/page.tsx` sends `customer_id: "mock-customer-id"`. Acceptance: customer ID comes from portal auth/session; backend rejects spoofed customer IDs; regression test exists.
+
+> Report: `D:\CCW-CRM\docs\CCW-MISSING-ENDPOINTS-CONNECTIONS-WAVE2-2026-06-01.md`
+
+> Senior Engineer loop: reproduce/confirm gap, write failing test or failing gate, implement smallest safe slice, rerun targeted tests, record evidence before moving on. Sandbox only until verified.
+
+### UNI-2114 — [CCW P1 Wave 2] Connect Portal Orders and Tracking Pages to Real Customer APIs
+
+- State: Todo (unstarted)
+- Priority: High
+- Project: CCW CRM
+- Assignee: ranamuzamil1199@gmail.com
+- Updated: 2026-06-01T03:36:10.526Z
+- Labels: none
+- Linear: https://linear.app/unite-group/issue/UNI-2114/ccw-p1-wave-2-connect-portal-orders-and-tracking-pages-to-real
+
+Summary / Linear description excerpt:
+
+> Evidence: portal order list/detail/tracking pages use mock data comments. Acceptance: portal auth -> orders -> tracking uses real customer-scoped APIs and blocks cross-customer access.
+
+> Report: `D:\CCW-CRM\docs\CCW-MISSING-ENDPOINTS-CONNECTIONS-WAVE2-2026-06-01.md`
+
+> Senior Engineer loop: reproduce/confirm gap, write failing test or failing gate, implement smallest safe slice, rerun targeted tests, record evidence before moving on. Sandbox only until verified.
+
 ## Full open queue snapshot
 
 | Issue | State | Priority | Project | Updated | Title |
 | --- | --- | --- | --- | --- | --- |
-| [UNI-2107](https://linear.app/unite-group/issue/UNI-2107/ccw-p1-build-loop-enforce-tenantorganization-context-across-data-paths) | In Progress | Urgent | CCW CRM | 2026-06-11T02:07:54.160Z | [CCW P1 Build Loop] Enforce Tenant/Organization Context Across Data Paths |
+| [UNI-2111](https://linear.app/unite-group/issue/UNI-2111/ccw-p0-wave-2-connect-company-settings-save-to-authenticated) | In Progress | Urgent | CCW CRM | 2026-06-11T02:36:46.713Z | [CCW P0 Wave 2] Connect Company Settings Save to Authenticated Organization API |
 | [UNI-2117](https://linear.app/unite-group/issue/UNI-2117/ccw-p0-wave-2-harden-team-invites-and-session-invalidation) | In Review | Urgent | CCW CRM | 2026-06-01T04:13:41.183Z | [CCW P0 Wave 2] Harden Team Invites and Session Invalidation |
 | [UNI-2103](https://linear.app/unite-group/issue/UNI-2103/ccw-p0-build-loop-green-gates-and-repo-stabilisation) | In Review | Urgent | CCW CRM | 2026-06-01T04:07:07.949Z | [CCW P0 Build Loop] Green Gates and Repo Stabilisation |
 | [UNI-2058](https://linear.app/unite-group/issue/UNI-2058/phase-0-engineering-review-and-adoption-decision-replace-parallel) | In Progress | Urgent | Unite-Group | 2026-05-30T11:44:06.770Z | Phase 0 · Engineering review & adoption decision (replace / parallel / cherry-pick) |
-| [UNI-2112](https://linear.app/unite-group/issue/UNI-2112/ccw-p1-wave-2-implement-inventory-transfer-cancel-endpoint-and-ui-flow) | In Progress | High | CCW CRM | 2026-06-11T02:18:17.245Z | [CCW P1 Wave 2] Implement Inventory Transfer Cancel Endpoint and UI Flow |
 | [UNI-2060](https://linear.app/unite-group/issue/UNI-2060/phase-2-extract-ui-primitives-card-kpi-chip-tier-ticker-fab) | In Progress | High | Unite-Group | 2026-05-30T11:44:06.774Z | Phase 2 · Extract UI primitives (Card, KPI, Chip, Tier, Ticker, FAB, LiveIndicator, etc.) |
 | [UNI-2059](https://linear.app/unite-group/issue/UNI-2059/phase-1-port-design-tokens-into-globalscss-tailwind-config) | In Progress | High | Unite-Group | 2026-05-30T11:44:06.771Z | Phase 1 · Port design tokens into globals.css + tailwind config |
 | [UNI-2053](https://linear.app/unite-group/issue/UNI-2053/create-ccw-product-category-copy) | In Review | None | Brand OS Production Board | 2026-05-23T05:08:34.536Z | Create CCW product category copy |
 | [UNI-2054](https://linear.app/unite-group/issue/UNI-2054/maintain-margot-command-center-and-restoreassist-content-index) | In Progress | None | Brand OS Production Board | 2026-05-23T04:46:35.401Z | Maintain Margot Command Center and RestoreAssist Content Index |
-| [UNI-2111](https://linear.app/unite-group/issue/UNI-2111/ccw-p0-wave-2-connect-company-settings-save-to-authenticated) | Todo | Urgent | CCW CRM | 2026-06-01T03:36:08.417Z | [CCW P0 Wave 2] Connect Company Settings Save to Authenticated Organization API |
 | [UNI-2108](https://linear.app/unite-group/issue/UNI-2108/ccw-p1-build-loop-core-erp-smoke-pack-products-customers-quotes-orders) | Todo | Urgent | CCW CRM | 2026-06-01T03:28:31.117Z | [CCW P1 Build Loop] Core ERP Smoke Pack: Products, Customers, Quotes, Orders, POS, Inventory, Invoices |
 | [UNI-2106](https://linear.app/unite-group/issue/UNI-2106/ccw-p0-build-loop-promote-shopifyxerosendgridsentry-from-demo-to) | Todo | Urgent | CCW CRM | 2026-06-01T03:28:28.877Z | [CCW P0 Build Loop] Promote Shopify/Xero/SendGrid/Sentry From Demo to Verified Staging |
 | [UNI-2105](https://linear.app/unite-group/issue/UNI-2105/ccw-p0-build-loop-refresh-project-pathway-docs-against-live-evidence) | Todo | Urgent | CCW CRM | 2026-06-01T03:28:28.133Z | [CCW P0 Build Loop] Refresh Project Pathway Docs Against Live Evidence |
@@ -461,6 +452,8 @@ Summary / Linear description excerpt:
 | [UNI-2069](https://linear.app/unite-group/issue/UNI-2069/dimitri-epic-human-gates-12q-gmail-legal-board) | Backlog | High | Dimitri ITR Platform | 2026-05-27T23:33:00.425Z | [Dimitri] Epic: Human gates (12Q, Gmail, legal, board) |
 | [UNI-2077](https://linear.app/unite-group/issue/UNI-2077/dsp-osf-ato-api-portal-onboarding) | Backlog | High | Dimitri ITR Platform | 2026-05-27T22:38:38.348Z | DSP OSF + ATO API Portal onboarding |
 | [UNI-2066](https://linear.app/unite-group/issue/UNI-2066/phase-8-accessibility-audit-remediation-across-all-ported-screens) | Backlog | High | Unite-Group | 2026-05-25T06:31:14.792Z | Phase 8 · Accessibility audit + remediation across all ported screens |
+| [UNI-2057](https://linear.app/unite-group/issue/UNI-2057/unite-hub-layered-design-system-handoff-and-integration) | Backlog | High | Unite-Group | 2026-05-25T06:31:14.792Z | Unite-Hub · Layered Design System — Handoff & Integration |
+| [UNI-2061](https://linear.app/unite-group/issue/UNI-2061/phase-3-vertical-slice-command-center-end-to-end) | Backlog | High | Unite-Group | 2026-05-25T06:30:06.956Z | Phase 3 · Vertical slice — Command Center end-to-end |
 
 ## Watcher metadata
 
