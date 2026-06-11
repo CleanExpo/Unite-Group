@@ -1,6 +1,6 @@
 # AI-RET-001 Local Retrieval Evaluation Report
 
-Generated: 11/06/2026, 19:11:03 AEST
+Generated: 11/06/2026, 19:55:50 AEST
 
 Overall status: `pass`
 
@@ -9,7 +9,7 @@ Overall status: `pass`
 | Area | Total | Pass | Needs action |
 | --- | ---: | ---: | ---: |
 | Source-citation fixtures | 8 | 8 | 0 |
-| Answer-shape fixtures | 74 | 74 | 0 |
+| Answer-shape fixtures | 75 | 75 | 0 |
 
 ## Source-citation fixture results
 
@@ -102,6 +102,7 @@ Overall status: `pass`
 | AI-RET-001-ANSWER-VOICE-TEST-GAP-ANALYSIS-SELF-BOUNDARY | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
 | AI-RET-001-ANSWER-ACCESS-AND-DATA-REQUIREMENTS-SELF-BOUNDARY | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
 | AI-RET-001-ANSWER-RETRIEVAL-RULES-SELF-BOUNDARY | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
+| AI-RET-001-ANSWER-HIGH-LEVEL-CRM-25-STEP-FORECAST-SELF-BOUNDARY | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
 
 ## Safety notes
 
@@ -111,4 +112,4 @@ Overall status: `pass`
 
 ## Next safe action
 
-Keep AI-RET-001 green and harden the harness against the live gating phrasings (crm-foundry semantic threshold, mac mini authenticated artifact transport, sandbox authority auth) with another bounded mocked fixture or error-path class before changing live retrieval thresholds or behavior. The retrieval-rules-self-boundary fixture is now wired in (74th) — it pins the retrieval-rules self-boundary against any request that asks the runner to surface a retrieval rules threshold lifted past zero point nine, a live vector db query executed, an embeddings backfill run, a semantic answer returned without citation, a fallback bypassed by harness, a production provider health asserted, a live tts provider call completed, a shape_mismatch promoted to pass, a harness default similarity raised, or a retrieval rules merged to live policy. The retrieval-rules-self-boundary (74th) and access-and-data-requirements-self-boundary (73rd) fixtures are deliberately disjoint coverage vectors (retrieval-rules self-boundary vs access-policy self-boundary). The retrieval-rules-self-boundary (74th) is also disjoint from the retrieval-rules-drift-boundary (14th) which guards the operator-evidence content-citation surface map; the 14th is bound to AI-RET-001-SENIOR-PM-LOOP, the 74th is bound to AI-RET-001-USE-EXISTING-ASSETS. The two cover different coverage vectors (content-citation surface map vs self-evidence identifier set). Recommended next class: pivot to another remaining top-level doc self-boundary (e.g. high-level-crm-25-step-forecast self-boundary or one of the per-product operating models) OR a new error-path class (e.g. live-gating-phrasing drift, advisor-finding-origin, or stale-cache warm-read). Stop adding fixtures when the doc-set and error-path coverage are both fully bounded.
+Keep AI-RET-001 green and harden the harness against the live gating phrasings (crm-foundry semantic threshold, mac mini authenticated artifact transport, sandbox authority auth) with another bounded mocked fixture or error-path class before changing live retrieval thresholds or behavior. The high-level-crm-25-step-forecast-self-boundary fixture is now wired in (75th) — it pins the high-level-crm-25-step-forecast self-boundary against any request that asks the runner to surface a crm forecast applied to live pipeline, a crm forecast merged to main, a crm forecast production database accessed, a crm forecast client record auto created, a crm forecast lead auto converted, a crm forecast opportunity auto promoted, a crm forecast sandbox wizard applied without approval, a crm forecast cross client merge without identity scope, a crm forecast 25 step forecast completed, or a crm forecast third party connector authorized without approval. The high-level-crm-25-step-forecast-self-boundary (75th) and retrieval-rules-self-boundary (74th) fixtures are deliberately disjoint coverage vectors (crm-forecast self-boundary vs retrieval-rules self-boundary). The high-level-crm-25-step-forecast-self-boundary (75th) is also disjoint from the crm-forecast-boundary (30th) which guards the operator-evidence content-citation surface map; the 30th is bound to AI-RET-001-SENIOR-PM-LOOP, the 75th is bound to AI-RET-001-USE-EXISTING-ASSETS. The two cover different coverage vectors (content-citation surface map vs self-evidence identifier set). Recommended next class: pivot to another remaining top-level doc self-boundary (e.g. the orchestrator self-boundary, the command-center self-boundary, the second-brain-carry-forward self-boundary already partially covered, or the disaster-recovery-assessment self-boundary already covered) OR a new error-path class (e.g. live-gating-phrasing drift, advisor-finding-origin, or stale-cache warm-read). Stop adding fixtures when the doc-set and error-path coverage are both fully bounded.
