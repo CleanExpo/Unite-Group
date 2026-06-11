@@ -1,5 +1,46 @@
 # Margot Overnight Progress Log
 
+## 2026-06-11 21:56:00 AEST
+
+### Tick 20260611_2156 — AI-RET-001 78th answer-shape fixture (MARGOT-ORCHESTRATOR-SELF-BOUNDARY) + doc-tick
+
+Current checkpoint:
+
+- Completed safe Senior PM lane: added 78th mocked answer-shape fixture `AI-RET-001-ANSWER-MARGOT-ORCHESTRATOR-SELF-BOUNDARY` (bound to `AI-RET-001-USE-EXISTING-ASSETS`) per the rotated `nextSafeAction` from the 77th tick. Pins the harness against the `docs/margot/MARGOT-ORCHESTRATOR.md` self-boundary — the 10th self-boundary for a committed source doc (37th = disaster-recovery-assessment-boundary, 64th = dr-swarm-execution-report, 66th = dr-validation-gap-analysis, 67th = sandbox-wizard-credential-boundary-review, 72nd = voice-test-gap-analysis, 73rd = access-and-data-requirements, 74th = retrieval-rules, 75th = high-level-crm-25-step-forecast, 76th = personal-intelligence-candidate-register, 77th = command-center, 78th = margot-orchestrator). 10 required phrases (`orchestrator self boundary lane`, `23rd orchestrator loop content citation class`, `choose one safe lane per tick`, `mac mini artifact recovery lane 0`, `retrieval order semantic search first file reads second`, `do not push to github or deploy to vercel`, `voice lane uses mocks and local test doubles`, `every tick must update the progress log`, `fixture id disjoint from content citation boundary`, `use existing assets first`), 4 required citation sources (`docs/margot/MARGOT-ORCHESTRATOR.md`, `docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md`, `docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md`, `docs/margot/ai-enhancement-candidate-register.md`), 10 prohibited overclaim phrases (all `orchestrator <overclaim>` prefixed to disambiguate from the 23rd content-citation contract's prefix-free list).
+- Disjoint from 23rd fixture: the 23rd `AI-RET-001-ANSWER-ORCHESTRATOR-LOOP-BOUNDARY` (content-citation boundary, bound to `AI-RET-001-SENIOR-PM-LOOP`) guards the operator-evidence orchestrator surface map; the 78th (self-boundary, bound to `AI-RET-001-USE-EXISTING-ASSETS`) guards the self-evidence identifier set. The two cover different coverage vectors. The 78th is also disjoint from the 77th (command-center self-boundary), 76th (personal-intelligence-candidate-register self-boundary), 75th (crm-forecast self-boundary), 74th (retrieval-rules self-boundary), 73rd (access-and-data-requirements self-boundary), 72nd (voice-test self-boundary), 71st (non-cross-tenant-safety-class), 70th (5xx-cascade-asserted), 69th (provider-status-asserted), 68th (cross-tenant-data-join-attempted), and 67th (sandbox-wizard-credential-boundary-review self-boundary).
+- Substring discipline: pre-flight Python script confirmed zero internal collision between the 10 new required phrases and the 10 new prohibited phrases. The 23rd fixture's unprefixed prohibited substrings (`github pushed`, `vercel deployed`, `production migration applied`, `nango`, `secrets printed`, `destructive git executed`, `cross-client context merged`, `secret read from`, `live provider status fetched`) were avoided by using a negative paraphrase form inside the canned answer (`do not push to github or deploy to vercel`, `no false github push`, `no false vercel deploy`, `no false production migration apply`, `no false nango connector platform onboarding`, `no false cross-client context merge`, `no false live provider status assertion`, `no false live semantic threshold change`, `no false sandbox wizard apply`, `no false production tick execution`, `no false mac mini artifact recovery`). First-run tests were green on all 3 maps (can-evaluate, reads-back, individual pass/reject) without any reword pass.
+- Doc-drift guard: the `docs/margot/MARGOT-ORCHESTRATOR.md` source doc was updated to a `2026-06-11 21:56:00 AEST` Last-update header and a new `## AI-RET-001 Margot-Orchestrator Self-Boundary (78th answer-shape fixture)` section was added at the end, followed by a new `## Senior PM verification checkpoint (2026-06-11 21:56:00 AEST)` block. The new section carries the 10 required phrases, the 4 required citation sources, and the 10 prohibited overclaim phrases (all in meta-level "do not claim" form, scoped to the assertion section before the verification checkpoint heading).
+- Fixture wired into 6 locations: type union (line 118), fixture array (after line 2659), 3 test-aggregator maps (around lines 360, 488, 638), 1 report-script map (after line 752), and the master pin test (line 198 + line 277). Pinned fixture count 77→78 in 7 places: harness type union, 1 `toHaveLength(78)` master pin test (line 198), 1 hardcoded `MARGOT_RETRIEVAL_ANSWER_SHAPE_FIXTURES.map((fixture) => fixture.id)).toEqual([...])` master pin list (line 277), 3 `toHaveLength(78)` aggregator tests (around lines 363, 488, 640), 2 `answerShapePassCount: 78` + `answerShapeFixtureCount: 78` readback count assertions (around lines 511 and 663), 3 canned-answer map entries (around lines 360, 488, 638), and 1 new canned-answer function (`canned_ai_ret_001_answer_margot_orchestrator_self_boundary`).
+- 2 individual tests added (mirror the 77th command-center self-boundary pattern): `passes ai-ret-001-answer-margot-orchestrator-self-boundary answer shape only when orchestrator self boundary lane, 23rd orchestrator loop content citation class, choose one safe lane per tick, mac mini artifact recovery lane 0, retrieval order semantic search first file reads second, do not push to github or deploy to vercel, voice lane uses mocks and local test doubles, every tick must update the progress log, fixture id disjoint from content citation boundary, and use existing assets first are present` and `rejects ai-ret-001-answer-margot-orchestrator-self-boundary answer shape when it overclaims orchestrator loop tick applied to production, orchestrator mac mini artifacts recovered live, orchestrator live semantic threshold changed, orchestrator live provider status asserted, orchestrator github push executed, orchestrator vercel deploy executed, orchestrator production migration applied, orchestrator sandbox wizard apply completed, orchestrator cross-client context merged without approval, or orchestrator nango connector platform onboarded`.
+- Verification: focused retrieval gate 1 suite / 166 tests PASS (was 164; +2 from new fixture's 2 individual tests). Combined CRM + Margot + runtime + credential-boundary gate 11 suites / 291 tests PASS (was 289; +2). Voice gate 4 suites / 47 tests PASS (unchanged). AI-RET-001 runner `overallStatus=pass; source=8/8; answerShape=78/78; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true` (was 77/77; +1 fixture). `npm run type-check` PASS. `npm run security:routes-check` reports 0 unprotected mutating routes. Report regenerated at `2026-06-11 21:56:00 AEST`.
+- Mac Mini: rotation guard - not probed this tick. Last probe: `/Volumes=Macintosh HD` only, SMB reachable, SSH unreachable, 0 recovered Markdown artifacts. Blocker unchanged.
+- No sandbox wizard Db mutating subcommand, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, connector-platform action, new vendor, credential read, or destructive git.
+- Pre-existing untracked-file type-check noise: clean. No new `TS1117 duplicate property` errors introduced. The 5 leftover conflict markers flagged by `git diff --check` in `docs/margot/overnight-progress-log.md` (lines 8789-9323) remain pre-existing uncommitted unmerged content from prior auto-syncs, not introduced by this tick.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 166 tests.
+npx tsx scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=78/78
+# readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true.
+npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --silent
+# PASS: 11 suites / 291 tests.
+npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts src/components/command-center/voice/__tests__/voice-panel-state.test.ts --silent
+# PASS: 4 suites / 47 tests.
+npm run type-check
+# PASS.
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+```
+
+Files changed this tick: `src/lib/margot/retrieval-evaluation.ts` (type union line 118 + 78th fixture def after line 2659), `scripts/margot-retrieval-evaluation-report.ts` (78th canned answer after line 752 + rotated `nextSafeAction` line 773), `tests/unit/lib/margot/retrieval-evaluation.test.ts` (1 new canned-answer function + master pin 77→78 line 198 + hardcoded pin list 77→78 line 277 + 3 hardcoded count bumps 77→78 + 3 canned-answer map entries + 2 individual pass/reject tests), `docs/margot/MARGOT-ORCHESTRATOR.md` (Last-update header + new self-boundary section + new Senior PM verification checkpoint), `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (regenerated), `docs/margot/overnight-progress-log.md` (this tick), `docs/margot/morning-report.md` (lane summary).
+
+Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, public publishing, connector platforms, new vendors, destructive git, cross-tenant data joins, fabricated board approval, implicit policy inference, fabricated tick history, fabricated conversation history, orchestrator loop tick applied to production, orchestrator mac mini artifacts recovered live, orchestrator live semantic threshold changed, orchestrator live provider status asserted, orchestrator github push executed, orchestrator vercel deploy executed, orchestrator production migration applied, orchestrator sandbox wizard apply completed, orchestrator cross-client context merged without approval, orchestrator nango connector platform onboarded.
+
+Next safe lane: per the rotated `nextSafeAction`, pivot to another remaining top-level doc self-boundary (e.g. the second-brain-carry-forward self-boundary, the senior-pm-operating-model self-boundary, the connected-teams-operating-rules self-boundary, or another committed control surface) OR a new error-path class (e.g. live-gating-phrasing drift, advisor-finding-origin, or stale-cache warm-read). The ten self-boundary fixtures (37th, 64th, 66th, 67th, 72nd, 73rd, 74th, 75th, 76th, 77th, 78th) now cover ten committed source docs. Four error-path classes bounded: 68th (cross-tenant-data-join), 69th (provider-status), 70th (5xx-cascade), 71st (non-cross-tenant-safety). Senior PM recommendation: stop adding fixtures when both the doc-set and error-path coverage are fully bounded — current state is "doc-set has 10 self-boundaries + 4 source-citation boundaries, error-path coverage has 4 disjoint classes, several unmargot-bounded source docs and error paths remain".
+
 ## 2026-06-12 14:30:00 AEST
 
 ### Tick 20260612_1430 — AI-RET-001 77th answer-shape fixture (COMMAND-CENTER-SELF-BOUNDARY) + doc-tick
@@ -18704,3 +18745,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260611_211147.log'
+
+## 2026-06-11 22:04:18 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260611_215252.log'
