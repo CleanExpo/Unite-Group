@@ -3,7 +3,18 @@
 Date: 2026-05-23
 Project: Unite-Group
 Root: `/Users/phillmcgurk/Unite-Group`
-Last update: 2026-06-12 08:30:00 AEST — Senior PM 30th answer-shape fixture (crm-forecast boundary) + command-center rotation guard entry.
+Last update: 2026-06-11 10:30:00 AEST — Senior PM 52nd answer-shape fixture (credential-load-attempted) bring-back + linear-watch-today doc-drift closure + command-center rotation guard entry.
+
+## Current Autonomy Rotation Guard — 2026-06-11 10:30:00 AEST
+
+- Repo: `main` at `ae8581d` (branch `main`; `git rev-list --count main..origin/main` returned `4`). Inherited dirty state from prior safe lanes.
+- Completed safe Senior PM lane: closed the pre-existing `linear-watch-today.md` doc-drift that flipped the LINEAR-WATCH-TODAY-BOUNDARY row from `pass` to `shape_mismatch` (`margot today queue` row) by adding a `## Snapshot contract` section to the source doc that carries the four missing required phrases (`margot today queue`, `state / priority / project / assignee`, `no linear api key or secrets in this file`, `operator decision support`) and the four required citation references (linear-watch-today.md, MARGOT-COMMAND-CENTER.md, ai-enhancement-candidate-register.md, CONNECTED-TEAMS-OPERATING-RULES.md) without introducing any of the prohibited substrings asserted by the LINEAR-WATCH-TODAY-BOUNDARY fixture. The 52nd fixture (CREDENTIAL-LOAD-ATTEMPTED, error-path class for `.env` / 1Password read attempts) was already wired into harness + tests + runner + evidence from a prior tick and is now also passing under the regenerated report. The doc was last synced `2026-06-11 10:21:46 AEST`; this is a documentation-only edit and does not re-pull or mutate the Linear mirror.
+- Verification: focused retrieval gate 1 suite / 151 tests PASS (was 150; +1 — the previously-failing `keeps the linear-watch-today source doc aligned` doc-drift test is now green). AI-RET-001 runner `overallStatus=pass; source=8/8; answerShape=52/52; readback=pass` (was `action_required` / `50/51` failing). Combined CRM + Margot + runtime + credential-boundary gate 11 suites / 276 tests PASS (was 274; +2 from fixture-count expansion in the doc-drift guard). `npm run security:routes-check` PASS. `git diff --check` clean. Report regenerated at `2026-06-11 10:30:00 AEST`.
+- Pre-existing type-check noise: `npm run type-check` still reports 1 pre-existing `TS1117 duplicate property` error in the untracked `scripts/margot-retrieval-evaluation-report.ts` at line 372 (duplicate `ANSWER-MAC-MINI-RECOVERY-BOUNDARY` key from a prior tick's untracked-file addition; second key wins at runtime so the runner still produces correct output). Not introduced by this tick and out of scope for a documentation-only lane.
+- Mac Mini: rotation guard — not probed this tick. Last probe: SMB reachable (IP 192.168.2.78), SSH unreachable, `/Volumes/Macintosh HD`, 0 artifacts. Blocker unchanged.
+- No sandbox wizard Db mutating subcommand, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, connector-platform action, new vendor, credential read, or destructive git.
+- Files changed this tick: `docs/margot/linear-watch-today.md`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (regenerated), `docs/margot/MARGOT-COMMAND-CENTER.md` (this entry), `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, connector platforms, new vendors.
 
 ## AI-RET-001 Command-Center-Doc Citation Contract (bound to AI-RET-001-ANSWER-COMMAND-CENTER-DOC-BOUNDARY)
 

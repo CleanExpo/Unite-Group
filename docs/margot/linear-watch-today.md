@@ -11,6 +11,13 @@ Purpose: Make parent-Hermes-pushed Linear work visible to Margot for today's tas
 - Draft-first for production DB writes, deployments, GitHub pushes/PRs, Vercel env changes, client-facing comms, billing/banking/payment actions, cross-client merges, or permanent business rules.
 - Pull the full Linear issue before execution if a task is selected for active work.
 
+## Snapshot contract
+
+- The full open queue snapshot table below is the canonical view of the `Margot today queue`.
+- Each row exposes `state / priority / project / assignee / updated / title` for operator decision support.
+- This file holds `no linear api key or secrets in this file`; sandbox only — no production apply, no connector account, no live sync from this surface.
+- Cross-references (also cited in the AI-RET-001 fixture): `docs/margot/linear-watch-today.md` (this file), `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/ai-enhancement-candidate-register.md`, `docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md`.
+
 ## Today's Linear candidates
 
 ### UNI-2117 — [CCW P0 Wave 2] Harden Team Invites and Session Invalidation
