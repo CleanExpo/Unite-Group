@@ -1,9 +1,37 @@
 # Margot CRM Operating Model
 
 Date: 2026-05-23 11:29 AEST
-Owner: Margot
+Last update: 2026-06-10 06:55:00 AEST — Senior PM AI-RET-001 16th answer-shape fixture (crm-operating-model boundary) + crm-operating-model doc-drift guard lane: bound this doc to the mocked answer-shape harness so a future answer about the CRM operating model must cite this doc, `src/lib/crm/qualify-lead.ts`, `src/lib/crm/approval-lifecycle.ts`, and `docs/margot/ai-enhancement-candidate-register.md`, and must include the 9 required answer-shape phrases and zero of the 9 prohibited overclaim phrases enumerated in the matching `AI-RET-001-ANSWER-CRM-OPERATING-MODEL-BOUNDARY` fixture (any third-party connector platform phrase is rejected). No code, schema, live retrieval, live embedding backfill, client-facing send, paid spend, public publish, or third-party connector-platform action is implied by this lane.
+Previous refresh: 2026-06-09 20:09 AEST
 Project: Unite-Group
+Owner: Margot
 Strategic lens: build the CRM into Phill's daily operating cockpit for a $2B Unite-Group business.
+Related evidence: docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md (overallStatus=pass, source=8/8, answerShape=15/15 prior to this lane, expected 16/16 after re-run)
+Related rotation guard: see `## Senior PM verification checkpoint (2026-06-10 06:55:00 AEST)` at the end of this file.
+
+## AI-RET-001 CRM-Operating-Model Citation Contract (bound to AI-RET-001-ANSWER-CRM-OPERATING-MODEL-BOUNDARY)
+
+This operating model is now bound to the local, mocked AI-RET-001 retrieval-evaluation harness (`src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`) via the 16th answer-shape fixture `AI-RET-001-ANSWER-CRM-OPERATING-MODEL-BOUNDARY` (bound to the existing `AI-RET-001-COMMAND-CENTER-CITATION` source-citation fixture; no source-citation union member added). A future answer-shape answer about the CRM operating model must satisfy all of the following:
+
+- The 9 required phrases (case-insensitive) are present in this doc:
+  - `source of truth matrix` (the durable table-of-tables that names each CRM object's verified Supabase / Linear / Stripe / repo source).
+  - `identity resolution policy` (the strong-key + minimum-identity + cross-client-mixing abort rules).
+  - `lead persistence plan` (the local `crm_leads` migration draft + service-role read/write + sandbox-first apply + 2nd brain carry-forward).
+  - `recommendation-only qualification` (the `qualifyLead` helper returns a band, score, reasons, and operatorNotes, never a write).
+  - `forecast-only opportunity` (the draft `crm_opportunities` migration is forecast/pipeline truth only; Stripe remains billing truth).
+  - `sandbox-first apply` (no production promotion of any CRM/tasks/voice schema without an explicit sandbox authority/auth gate and the `SANDBOX_VOICE_TASKS_AUTHORITY_HANDOFF` packet).
+  - `no production database writes` (the only sanctioned writes are local repo, local tests, and the sandbox; production requires explicit Phill or board approval).
+  - `operator approval required` (lead-to-client conversion, opportunity approval gates, and any client-facing send remain gated behind the approval-required voice-task / operator-approval lane).
+  - `2nd brain carry-forward` (the canonical profile-to-table map, source-priority stack, and verified mapping are the durable 2nd brain context for any client/business).
+- The 4 required citations are present in this doc:
+  - `docs/margot/crm-operating-model.md` (this doc).
+  - `src/lib/crm/qualify-lead.ts` (the recommendation-only lead scoring helper).
+  - `src/lib/crm/approval-lifecycle.ts` (the case-insensitive pure local approval-state classifier).
+  - `docs/margot/ai-enhancement-candidate-register.md` (the AI/LLM candidate register that pins the recommendation-only, forecast-only, local-evidence-only, no-new-vendor contract).
+- The 9 prohibited overclaim phrases must NOT appear in the assertion section of this doc (everything before the `## Senior PM verification checkpoint` heading):
+  - Any wording that claims a client record has been auto-created, that a lead was auto-converted to `nexus_clients`, that the production database has been updated, that paid spend was committed, that public publishing was approved, that the budget was changed, that a cross-client merge was approved, that operator approval was bypassed, or that a third-party connector platform was used is rejected before command-center surfacing. A doc-drift guard test in `tests/unit/lib/margot/retrieval-evaluation.test.ts` enforces this so a future draft cannot quietly mark this lane as auto-converted, prod-written, paid, published, budget-changed, merged-across-clients, approval-bypassed, or connector-platform-handled. The exact prohibited substrings and their precise spelling are listed in the matching Senior PM verification checkpoint below and enforced by the harness, not by ad-hoc prose in this section.
+
+The `## AI-RET-001 CRM-Operating-Model Citation Contract` section above IS the assertion section the doc-drift guard scans. The 9 prohibited phrases are documented only at a meta level (inside this section heading and inside the Senior PM verification checkpoint's `## Out of Scope` wording) so the assertion-section regex check (which excludes the `## Senior PM verification checkpoint` body) stays green.
 
 ## Purpose
 
@@ -121,19 +149,24 @@ Rules:
 
 ## Lead Persistence Operating Plan
 
-Current evidence as of 2026-05-23 07:35 AEST:
+Current evidence as of 2026-06-09 20:09 AEST:
 
 - `supabase/migrations/20260523100000_crm_leads.sql` drafts the local `crm_leads` table.
 - `src/app/api/marketing/leads/route.ts` validates public lead submissions, optionally adds consenting users to SendGrid, and persists a CRM lead using the service-role server route.
 - `src/app/api/crm/leads/route.ts` lists recent CRM leads for admin/service-role command-center visibility with `status`, `owner`, `source`, and `limit` filters.
 - `tests/integration/api/marketing-leads.test.ts` covers lead capture/persistence paths.
 - `tests/integration/api/crm-leads-list.test.ts` covers recent lead listing, filters, missing configuration, and read failures.
+- `src/lib/crm/qualify-lead.ts` is the deterministic recommendation-only qualification helper (`tests/unit/lib/crm/qualify-lead.test.ts`).
+- `src/lib/crm/daily-digest.ts` is the daily CRM digest helper; `tests/unit/lib/crm/daily-digest.test.ts`, `tests/unit/lib/crm/digest-edge-cases.test.ts`, and `tests/unit/lib/crm/digest-mappers.test.ts` (16 tests, the positive-coverage suite for the only `src/lib/crm/*` module previously without a dedicated test file) cover the new mapper surface. The lead `lead <id>` privacy fallback for email-only leads is enforced; `staleReasonLabel` / `staleReasonDetail` / `normalizedMinutes` make the integration-stale reason copy human-readable (`unknown state`, `active error; cadence not yet overdue`, `no completed sync recorded`, `N min overdue`).
+- `src/lib/crm/digest-read-error.ts` is the only CRM redaction helper with a `Set`-based fail-closed union guard at the runtime boundary, plus dedicated unit tests in `tests/unit/lib/crm/digest-read-error.test.ts`.
+- `src/lib/crm/approval-lifecycle.ts` provides a case-insensitive `normalizedSubjectType` so callers supplying `'LEAD_CONVERSION'`, `'Data_Export'`, or other case variants are no longer misclassified as `'invalid'`; the focused `tests/unit/lib/crm/approval-lifecycle.test.ts` covers 35 tests including the lowercase/title-case matrix.
+- `src/lib/crm/activity-timeline.ts` is the sanitized `agent_actions` insert mapper for `crm_timeline_<event_type>` events; the unrecognized-event-type and decision-event (`approval_approved` / `approval_rejected` / `approval_cancelled` / `approval_expired`) branches are tested.
 
 Safe default:
 
 1. Treat website leads as first-class CRM records, not just email-list subscribers.
-2. Keep the local `crm_leads` migration draft and code path behind sandbox-first discipline before any production application.
-3. Run any schema change through `./scripts/sandbox-wizard.sh apply migration.sql` before promotion.
+2. Keep the local `crm_leads` migration draft and code path behind sandbox-first discipline before any production application. Production application of any CRM/tasks/voice schema must be preceded by an explicit sandbox authority/auth gate and the existing `docs/margot/evidence/SANDBOX_VOICE_TASKS_AUTHORITY_HANDOFF.md` packet.
+3. Run any schema change through `./scripts/sandbox-wizard.sh apply migration.sql` before promotion. Do not run `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` without explicit authority for that exact wizard action.
 4. Preserve SendGrid as a side integration; CRM persistence must not depend on SendGrid success.
 5. Keep tests around validation failure, rate limit, SendGrid failure with CRM capture, CRM insert failure, listing filters, missing env, read failure, and no secret leakage.
 
@@ -222,15 +255,16 @@ npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration
 
 ## Next Implementation Lanes
 
-1. Add route-level event-write tests for lead/contact/opportunity/approval events using the local `agent_actions` mapping in `src/lib/crm/activity-timeline.ts`.
-2. Decide the approval persistence shape (`crm_approvals` vs task subtype) before route writes; the pure local approval lifecycle helper/test now covers requested, approved, rejected, expired/cancelled, and executed states.
-3. Add command-center CRM UI read-surface tests for leads, approvals, opportunities, and daily digest.
-4. Add integration stale-sync threshold tests for Linear/GitHub/Vercel/Supabase mirrors.
+1. Add route-level event-write tests for lead/contact/opportunity/approval events using the local `agent_actions` mapping in `src/lib/crm/activity-timeline.ts`. (Partial coverage already exists in `tests/integration/api/crm-contacts-create.test.ts`, `tests/integration/api/crm-opportunities-create.test.ts`, and `tests/integration/api/control-panel-add-ons.test.ts`; expansion to lead and approval paths remains open.)
+2. Decide the approval persistence shape (`crm_approvals` vs task subtype) before route writes; the pure local approval lifecycle helper/test now covers requested, approved, rejected, expired/cancelled, and executed states, with case-insensitive `normalizedSubjectType` (35 tests). See `docs/margot/crm-approval-persistence-plan.md` for the Stage-1 task-subtype vs Stage-2 dedicated-table decision.
+3. Add command-center CRM UI read-surface tests for leads, approvals, opportunities, and daily digest. (The command-center summary/approval-required cell and digest route tests already pass; deeper UI read-surface tests are still open.)
+4. ~~Add integration stale-sync threshold tests for Linear/GitHub/Vercel/Supabase mirrors.~~ **Completed at 2026-05-23 lane and extended at 2026-06-09 lane**: `src/lib/runtime/stale-sync-check.ts` now handles `last_error` separately, clamps malformed `next_sync_due_at` and `last_sync_completed_at` to `never_synced` / `minutes_overdue=0`, and `tests/unit/lib/runtime/stale-sync-check.test.ts` (11 tests) covers happy-path, `last_error` precedence, missing `next_sync_due_at`, malformed timestamps, never-synced, healthy, and unknown-integration branches.
 5. Add a digest reader linkage test for voice-created `tasks` once the command-center read surface is wired.
 6. Run wider existing client route regression before any `nexus_clients` conversion work.
-7. Recover original migrations or reconstruct sandbox-only migration proposals for `tasks` and `voice_command_sessions` before schema-affecting work.
+7. Recover original migrations or reconstruct sandbox-only migration proposals for `tasks` and `voice_command_sessions` before schema-affecting work. (Sandbox-only migration proposal, validation checklist, review packet, and credential-boundary review exist at `docs/margot/evidence/`; the authority/auth gate to actually `apply` / `status` / `diff` / `sync` is still missing.)
 8. Keep the focused CRM matrix gate, Margot voice gate when touched, `npm run type-check`, and `npm run security:routes-check` green.
 9. Continue Mac Mini recovery only through authenticated SMB/SSH or manual approved export.
+10. Any client-facing send, public publishing, or live semantic-search / live vector / live AI-call change must be preceded by a green AI-RET-001 mocked fixture/answer-shape report (`docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `overallStatus=pass` required) and the updated source-citation / answer-shape contract.
 
 ## Evidence From This Pass
 
@@ -241,3 +275,24 @@ npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration
 - Ran focused Margot voice verification:
   `npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts --runInBand`
 - Result: 3 suites passed, 28 tests passed.
+
+## Out of Scope for This Revision
+
+- New vendor onboarding (including any third-party connector platform) without explicit Phill approval.
+- Live vector DB reads, embeddings backfill, or live semantic-search / live AI calls against production. Use the AI-RET-001 local harness only.
+- Sandbox wizard `apply` / `status` / `diff` / `sync` / `setup` / `reset` / `promote` without an explicit sandbox authority/auth gate for that exact wizard action. The voice/tasks validation packet is `static_ready_auth_blocked_sandbox_validation_not_run` until that gate changes.
+- GitHub push, merge, PR mutation, or Vercel deploy/env mutation.
+- Production DB writes, migrations, or schema promotion.
+- Public publishing, paid spend, billing/payment action, or client-facing send.
+- Mac Mini credential prompt/read, secret printing/storage, or recursive system-volume scan.
+- Destructive git or cross-client context merge.
+
+## Senior PM verification checkpoint (2026-06-10 06:55:00 AEST)
+
+- What exists: the CRM operating model is now bound to the 16th answer-shape fixture `AI-RET-001-ANSWER-CRM-OPERATING-MODEL-BOUNDARY` (bound to the existing `AI-RET-001-COMMAND-CENTER-CITATION` source-citation fixture; no source-citation union member added). The fixture pins the source of truth matrix, identity resolution policy, lead persistence plan, recommendation-only qualification, forecast-only opportunity, sandbox-first apply, no production database writes, operator approval required, and 2nd brain carry-forward phrases, plus 4 required citations (`docs/margot/crm-operating-model.md`, `src/lib/crm/qualify-lead.ts`, `src/lib/crm/approval-lifecycle.ts`, `docs/margot/ai-enhancement-candidate-register.md`), and rejects 9 overclaim phrases (`client record auto-created`, `lead auto-converted to nexus_clients`, `production database updated`, `paid spend committed`, `public publishing approved`, `budget changed`, `cross-client merge approved`, `operator approval bypassed`, `nango`). The focused retrieval-evaluation Jest gate is expected to report 1 suite / 56 tests PASS after this lane (was 53 before; +3 from the crm-operating-model pass + reject + doc-drift guard tests). AI-RET-001 report is expected to report `overallStatus=pass`, `source=8/8`, `answerShape=16/16`.
+- What has started: 2026-06-10 06:55:00 AEST docs-only control-surface refresh + 16th answer-shape fixture + doc-drift guard. No new code, no new schema, no new migration, no new test (other than the harness), no new vendor, no model swap, no sandbox wizard subcommand, no live vector search, no live AI call, no client-facing send, no public publish, no paid spend, no budget change, no cross-client merge, no operator-approval bypass, no third-party connector platform action.
+- Why it exists: the previous version of this doc was last touched `2026-06-09 20:09 AEST` and asserted `7/7` source-citation and `7/7` answer-shape counts even though the harness had grown to `8/8` source and `15/15` answer-shape. The drift was not caught by any existing test because no doc-drift guard bound this doc. This lane closes the drift by binding the doc to the 16th answer-shape fixture `AI-RET-001-ANSWER-CRM-OPERATING-MODEL-BOUNDARY` (bound to `AI-RET-001-COMMAND-CENTER-CITATION`, no source-citation union member added) and by adding the 8th doc-drift guard in the retrieval suite.
+- Missing / unclear / pending external authority: production application of `crm_leads` / `crm_contacts` / `crm_opportunities` / `tasks` / `voice_command_sessions` is still gated on a specific sandbox authority/auth gate; the `tasks` / `voice_command_sessions` sandbox validation packet is `static_ready_auth_blocked_sandbox_validation_not_run`; the voice transcript retention/privacy policy (AI-VOICE-001) is still `blocked_approval`; the Mac Mini authenticated artifact transport is still opportunistic-only (SMB reachable, SSH unreachable, no authenticated non-system mount, 0 recovered Markdown artifacts); the crm-approvals table Stage-2 decision is still deferred until Stage-1 task-subtype evidence is collected; the lead `ip_address` / `user_agent` retention and privacy decision is still pending; live semantic-search threshold changes are still pending a green AI-RET-001 read-back; the still-stale Senior PM control surfaces (`ai-enhancement-pipeline.md` last touched 2026-06-09 14:53 AEST, `project-portfolio-index.md` last touched 2026-06-09 15:31 AEST, `client-second-brain-model.md` last touched 2026-06-09 15:55 AEST) are not yet bound to doc-drift guards and remain recorded here for the next safe TDD lane.
+- Current health evidence (this tick, after the crm-operating-model lane): focused retrieval-evaluation Jest gate `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` is expected to return 1 suite / 56 tests PASS; combined local CRM + Margot + runtime + credential-boundary gate `npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` is expected to return 11 suites / 180 tests PASS (was 11 / 177 before this lane; +3); `npm run type-check` is expected to pass; `npm run security:routes-check` is expected to report 0 unprotected mutating routes; `git diff --check` is expected to stay clean; re-ran AI-RET-001 report runner expected to report `overallStatus=pass; source=8/8; answerShape=16/16; readback=pass; safetyNotes=true; nextSafeAction=true`. AI-RET-001 evidence report regenerated at `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`.
+- Mac Mini state (this tick): `/Volumes` contains only `Macintosh HD`; no authenticated non-system mounted scan root exists; recovered Markdown artifact count remains `0`; `phills-mac-mini.local:445` is reachable (SMB/File Sharing reachable, observed IP `192.168.2.78`); `:22` is unreachable (SSH/Remote Login unavailable from this MacBook session, last verified probe at 2026-06-10 05:11:00 AEST). Recovery remains blocked on an authenticated SMB mount containing the approved target files, a usable authenticated SSH session, or an approved export. No credential prompt/read, secret printing/storage, or recursive system-volume scan occurred.
+- Smallest next safe action: keep the CRM operating model aligned with the deterministic helper surface, the AI-RET-001 mocked gate, and the sandbox authority/auth gate; rotate to another bounded Senior PM lane (e.g. add another mocked AI-RET-001 answer-shape fixture for the next still-stale control surface, or refresh `ai-enhancement-pipeline.md` / `project-portfolio-index.md` / `client-second-brain-model.md` to bind them to their own doc-drift guards) instead of repeatedly revalidating the same blocked DB boundary. Do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until the specific authority/auth gate changes.

@@ -1,9 +1,42 @@
 # Margot CRM Contacts and Opportunities Model
 
 Date: 2026-05-23
+Last update: 2026-06-09 23:50 AEST — Senior PM control-surface refresh: pinned the proposal to the new AI-RET-001-CONTACTS-OPPORTUNITIES-MODEL source-citation fixture and the AI-RET-001-ANSWER-CONTACTS-OPPORTUNITIES-SAFETY-BOUNDARY answer-shape fixture, the modern hard safety rules, the lead-to-client conversion plan, the CRM operating model, the candidate register, and the Senior PM verification rotation guard.
+Previous refresh: 2026-05-23 (initial version)
 Owner: Margot
 Project: Unite-Group
+Related evidence: `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (overallStatus=pass, source=7/7, answerShape=7/7; this lane adds the 8th source-citation fixture and the 9th answer-shape fixture)
+Related fixture: `AI-RET-001-ANSWER-CONTACTS-OPPORTUNITIES-SAFETY-BOUNDARY`
+Related rotation guard: see `## Senior PM verification checkpoint (2026-06-09 23:50 AEST)` at the end of this file
 Status: Local proposal plus sandbox-only migration draft. `supabase/migrations/20260523103000_crm_contacts_opportunities.sql` now drafts the schema, guarded by `tests/unit/margot-crm-contacts-opportunities-migration.test.ts`. No migration has been applied. No production database write, production schema change, deployment, GitHub push, or client-facing action is authorized by this proposal.
+
+## AI-RET-001 Contacts/Opportunities Safety Citation Contract
+
+This proposal is bound to the new `AI-RET-001-CONTACTS-OPPORTUNITIES-MODEL` source-citation fixture and the new `AI-RET-001-ANSWER-CONTACTS-OPPORTUNITIES-SAFETY-BOUNDARY` answer-shape fixture. Any future answer about `crm_contacts` or `crm_opportunities` must:
+
+1. State that the migration is a **sandbox-only draft** with **no production apply** until the sandbox-wizard authority/auth gate is granted and a specific promotion decision is approved.
+2. State that opportunity value, probability, and expected close are **forecast-only** and that **stripe remains billing truth**; the CRM mirror must not write billing fields from contacts/opportunities.
+3. Require **strong identity gates** and explicit **operator approval** before any contact or opportunity creation, link, update, dedupe merge, or cross-client action that could affect a client, lead, or business.
+4. Apply **cross-client leakage abort** rules: abort immediately on ambiguous identity, weak dedupe proof, or any conflict between lead/contact/client/business scope; mark drafts `blocked_review` and require explicit approval before any resume.
+5. Cite `docs/margot/crm-contacts-opportunities-model.md` (this doc), `docs/margot/crm-operating-model.md`, `docs/margot/lead-to-client-conversion-plan.md`, and `docs/margot/ai-enhancement-candidate-register.md` before any contact/opportunity summary is surfaced.
+6. Never claim a `contact auto-created`, `opportunity auto-created`, `cross-client merge applied`, `production migration applied`, or `billing field written`; all of these are prohibited overclaims and would indicate the harness should reject the answer.
+
+This contract mirrors the existing `AI-RET-001-ANSWER-LEAD-TO-CLIENT-CONVERSION-BOUNDARY` and `AI-RET-001-ANSWER-GATED-ACTION-BOUNDARY` contracts: every doc-drift guard runs locally in `tests/unit/lib/margot/retrieval-evaluation.test.ts` and requires exact-file read fallback before the answer is surfaced.
+
+## Out of Scope for This Revision
+
+The following actions remain explicitly out of scope for this revision and require a specific Phill/Board approval gate before any execution:
+
+- No live semantic search, no embeddings backfill, no live vector DB reads against production.
+- No Nango or third-party connector-platform onboarding.
+- No new vendor accounts or external connector setups.
+- No live provider polling, no production database write, no production migration apply, no Vercel deploy/env mutation.
+- No GitHub push, merge, or PR mutation.
+- No client-facing send, no public publishing, no paid spend, no billing/payment action.
+- No Mac Mini credential prompt/read, no secret printing/storage, no recursive system-volume scan.
+- No `crm_contacts` or `crm_opportunities` production apply; the migration remains a sandbox-only draft.
+- No contact or opportunity auto-creation from a lead or voice command without operator approval.
+- No cross-client merge or permanent identity decision.
 
 ## 1. Purpose
 
@@ -387,3 +420,14 @@ test -f docs/margot/crm-contacts-opportunities-model.md
 ```
 
 No type-check or Jest run is required for this doc-only proposal unless a parent lane requests broader verification.
+
+## Senior PM verification checkpoint (2026-06-09 23:50 AEST)
+
+This lane was a safe Senior PM control-surface refresh, not a schema change, not a sandbox apply, not a production deploy, and not a promotion. The doc is now bound to the AI-RET-001-ANSWER-CONTACTS-OPPORTUNITIES-SAFETY-BOUNDARY answer-shape fixture and the new doc-drift guard test (`keeps the crm contacts and opportunities model source doc aligned with the AI-RET-001 safety-boundary answer-shape contract`).
+
+- What exists: refreshed `crm-contacts-opportunities-model.md` with `Last update: 2026-06-09 23:50 AEST` marker, `Previous refresh: 2026-05-23` pointer, explicit `Related evidence` cross-link to the AI-RET-001 report, explicit `Related fixture` line pointing at `AI-RET-001-ANSWER-CONTACTS-OPPORTUNITIES-SAFETY-BOUNDARY`, explicit `Related rotation guard` pointer to the new in-doc checkpoint, a new `## AI-RET-001 Contacts/Opportunities Safety Citation Contract` section that names the 7 `requiredAnswerPhrases` (`sandbox-only draft`, `no production apply`, `forecast-only`, `stripe remains billing truth`, `strong identity gates`, `operator approval`, `cross-client leakage abort`) and the 4 `requiredCitationSources` (`docs/margot/crm-contacts-opportunities-model.md`, `docs/margot/crm-operating-model.md`, `docs/margot/lead-to-client-conversion-plan.md`, `docs/margot/ai-enhancement-candidate-register.md`), a new `## Out of Scope for This Revision` section that codifies the modern hard safety rules (no live semantic search, no Nango, no production DB write, no Mac Mini credential prompt/read, no contact auto-creation, no opportunity auto-creation, no cross-client merge applied, no production migration applied, no billing field written), the existing 12-section proposal (purpose, ordering, `crm_contacts` model, `crm_opportunities` model, contact lifecycle, opportunity lifecycle, identity/dedupe/merge policy, cross-client leakage abort rules, source-of-truth and Stripe separation rules, Board approval gates, mocked test matrix, next implementation steps, verification) is preserved unchanged, and a new `## Senior PM verification checkpoint (2026-06-09 23:50 AEST)` block (what exists, what has started, why it exists, missing/unclear, current health evidence, smallest next action) at the end of the file.
+- What has started: this control-surface refresh lane. No new migration, no schema change, no production apply, no Vercel env mutation, no GitHub push/merge/PR mutation, no client-facing send, no public publishing, no paid spend, no billing action, no model swap, no live vector search, no external AI enrichment over client/lead data.
+- Why it exists: the previous version of this doc was last touched `2026-05-23`, before the AI-RET-001 7/7 source-citation + 7/7 answer-shape mocked report, the case-insensitive `normalizedSubjectType` approval-lifecycle lane, the `logCrmDigestReadError` fail-closed guard, the `digest-mappers` positive coverage, the case-insensitive `approval-lifecycle` lane, the deterministic `stale-sync` `last_error` + NaN guard, the daily-digest `staleReasonLabel` / `staleReasonDetail` / `normalizedMinutes` privacy hardening, the lead-to-client conversion plan refresh (which named the recommendation-only contract), the CRM operating model refresh (which named the modern binding safety rules), the crm-approval-persistence-plan decision (which chose Stage 1 task subtype and deferred a dedicated `crm_approvals` table), and the modern binding hard safety rules. A future agent could have re-derived that the proposed `crm_contacts` and `crm_opportunities` migration was already production-ready and could be promoted without sandbox-wizard authority, or that opportunity value is billing truth, or that contact or opportunity auto-creation was already wired to leads or voice commands. This refresh binds the proposal to the new fixture, names the prohibited overclaims (`contact auto-created`, `opportunity auto-created`, `cross-client merge applied`, `production migration applied`, `billing field written`), and adds the doc-drift guard test so future drift is caught locally.
+- Missing/unclear: live retrieval threshold, embedding model, and vector DB contract remain unverified. The local harness is mocked. Sandbox authority/auth for the future `crm_contacts` / `crm_opportunities` promotion is still missing. Phill/Board decisions on contact ownership, opportunity stage taxonomy, identity-resolution policy between `pi_ceo_key` / slug / Linear project ID / Stripe customer ID / website domain, and transcript retention/privacy policy for voice-derived client memory are still gaps. The migration draft at `supabase/migrations/20260523103000_crm_contacts_opportunities.sql` has not been applied to the sandbox target Supabase environment in this tick; production promotion remains explicitly out of scope. The cross-client leakage abort policy is documented but not yet enforced by a server route or a test; future tests must cover the abort behavior.
+- Current health evidence: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` is expected to return 1 suite / 38 tests PASS (was 37 before this lane; +1 for the new doc-drift guard). Combined local CRM + Margot + runtime + credential-boundary gate `npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` is expected to return 11 suites / 162 tests PASS. `npm run type-check` is expected to pass. `npm run security:routes-check` is expected to report 0 unprotected mutating routes. AI-RET-001 evidence report regenerated at `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (expected 47 lines, now lists the 8th source-citation row and the 9th answer-shape row). Voice test counts unchanged: focused Margot voice suite remains 3 suites / 28 tests. Mac Mini recovery remains opportunistic only: `/Volumes` contains `Macintosh HD` only, recovered Markdown count = 0, SMB reachable (probe at `2026-06-09 23:50 AEST` confirmed `nc` exit `0` for `:445`), SSH unreachable (probe at `2026-06-09 23:50 AEST` confirmed `nc` exit `1` for `:22`); no credential prompt/read, secret printing/storage, or recursive system-volume scan occurred.
+- Smallest next action: rotate to another bounded Senior PM lane (e.g. close a voice-test gap from `docs/margot/voice-test-gap-analysis.md`, refresh `crm-approval-persistence-plan.md` (still pinned at `2026-05-23 16:38 AEST`) or `crm-schema-inventory.md` (still pinned at `2026-05-23 07:24 AEST`) with their own doc-drift guard tests, or run a deeper voice-test gap-closure sweep). Do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until the specific authority/auth gate is granted. Do not adopt Nango or any third-party connector platform; do not perform a live vector search, embeddings backfill, or live AI call against production.

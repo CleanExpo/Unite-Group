@@ -1,9 +1,13 @@
 # Margot CRM Approval Persistence Plan
 
 Date: 2026-05-23 16:38 AEST
+Last update: 2026-06-10 00:58 AEST — Senior PM approval-persistence doc-drift guard lane: aligned to the new `AI-RET-001-ANSWER-APPROVAL-PERSISTENCE-BOUNDARY` answer-shape fixture and bound this control surface to AI-RET-001 (was 192 lines before this lane)
 Owner: Margot
 Project: Unite-Group
 Scope: Local planning artifact only. No production database write, migration application, deployment, GitHub push, Vercel env mutation, client-facing communication, billing/payment action, or permanent business-rule approval is implied.
+Related evidence: `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (overallStatus=pass, answerShape=10/10 after this lane)
+Related fixture: `AI-RET-001-ANSWER-APPROVAL-PERSISTENCE-BOUNDARY` (new in this lane, bound to `AI-RET-001-LEAD-QUALIFICATION` source-citation fixture)
+Related rotation guard: `## Senior PM verification checkpoint (2026-06-10 00:58 AEST)` block at the end of this file
 
 ## Purpose
 
@@ -190,3 +194,71 @@ Allowed now:
 - Local docs, tests, helpers, and mocked route tests.
 - Daily digest/command-center read-only surfacing of blocked approval tasks.
 - Progress log and morning report updates.
+
+## AI-RET-001 Approval-Persistence Citation Contract
+
+This control surface is now bound to the `AI-RET-001-ANSWER-APPROVAL-PERSISTENCE-BOUNDARY` answer-shape fixture (added in this lane), which in turn references the `AI-RET-001-LEAD-QUALIFICATION` source-citation fixture. A future retrieval-augmented answer that summarises the approval-persistence boundary must satisfy all of the following:
+
+- Cite the 4 required source files: `docs/margot/crm-approval-persistence-plan.md`, `src/lib/crm/approval-lifecycle.ts`, `docs/margot/ai-enhancement-candidate-register.md`, `docs/margot/crm-operating-model.md`.
+- Include the 7 required answer phrases that codify the stage-1 / stage-2 boundary:
+  - `stage-1 task subtype` — the current approval queue is the `tasks` row with `status='blocked'`, `priority='high'`, `assignee_name='Phill approval'`, the `approval-required` tag, and a sanitized approval reason in the description.
+  - `stage-2 crm_approvals table` — a future dedicated CRM table for durable approval history; only justified after structured approval history/query needs are proven.
+  - `no auto-execution` — `src/lib/crm/approval-lifecycle.ts` always returns `safeToAutoExecute: false`; approval is recommendation-only.
+  - `sanitized approval reason` — task descriptions and `reason` fields must not store secret values, bearer tokens, payment details, full approval references, or Board IDs.
+  - `no board approval id persisted` — by default, the `crm_approvals` table stores an optional one-way `approval_reference_hash` only and never the raw Board approval ID.
+  - `phill or board review for high risk` — `client_merge`, `data_export`, billing/payment, deployment, and client-facing-send subjects remain high-risk even when marked approved.
+  - `sandbox-first apply` — any future `crm_approvals` migration must be applied through `./scripts/sandbox-wizard.sh apply` and `./scripts/sandbox-wizard.sh diff` before production promotion; promotion itself is still gated on explicit Phill/Board approval.
+- Reject the 6 prohibited overclaims (`crm_approvals migration applied`, `crm_approvals production applied`, `auto-execution enabled`, `safe to auto execute`, `board id persisted`, `nango`) before any command-center surfacing.
+
+The new doc-drift guard test in `tests/unit/lib/margot/retrieval-evaluation.test.ts` (`keeps the crm approval persistence plan source doc aligned with the AI-RET-001 approval-persistence answer-shape contract`) reads this file from disk and asserts that all 7 required answer phrases and all 4 required citation sources are present, and that none of the 6 prohibited phrases appear in the assertion section (everything before `## Senior PM verification checkpoint`). This is the fifth doc-drift guard in the retrieval suite (after the lead-to-client plan guard, the command-center guard, the daily-digest-template guard, and the contacts/opportunities model guard).
+
+## Out of Scope for This Revision
+
+This control-surface refresh is a docs-only, mock-only, local-only Senior PM lane. It does NOT:
+
+- Apply, promote, or sync any database migration.
+- Create, alter, or seed the `crm_approvals` table in any environment.
+- Write, mutate, or read production database records.
+- Persist any Board approval ID, secret, token, payment detail, or full approval reference.
+- Touch the sandbox wizard (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, `promote`).
+- Deploy to Vercel or mutate Vercel env / GitHub repository state.
+- Trigger any client-facing send, public publishing, billing/payment action, or campaign auto-launch.
+- Adopt Nango, any new vendor, or any new connector platform.
+- Run a live semantic search, embeddings backfill, or external AI call.
+
+## Senior PM verification checkpoint (2026-06-10 00:58 AEST)
+
+What exists (this tick, `2026-06-10 00:58 AEST`):
+
+- The new `AI-RET-001-ANSWER-APPROVAL-PERSISTENCE-BOUNDARY` answer-shape fixture in `src/lib/margot/retrieval-evaluation.ts` (10th in the array; pinned by `pins mocked answer-shape fixtures` and `can evaluate all mocked answer-shape fixtures` tests; type-safe via the extended `MargotRetrievalAnswerShapeFixtureId` union).
+- A new pass-test case `passes approval-persistence answer shape only when stage-1/stage-2 boundary and citations are present` proving the contract evaluates to `pass` when the future answer uses the stage-1/stage-2 phrasing, the sanitized-reason rule, the no-Board-id rule, the Phill/Board high-risk review, the sandbox-first apply, and the four required citation sources.
+- A new reject-test case `rejects approval-persistence answer shape when it overclaims crm_approvals applied or auto-execution` proving the contract evaluates to `shape_mismatch` when an answer claims the `crm_approvals` migration was applied, claims production apply, claims auto-execution, claims `safe to auto execute`, persists the Board ID, or mentions `nango`.
+- A new doc-drift guard test `keeps the crm approval persistence plan source doc aligned with the AI-RET-001 approval-persistence answer-shape contract` that reads `docs/margot/crm-approval-persistence-plan.md` from disk and asserts the 7 required answer phrases, the 4 required citation sources, and the absence of the 6 prohibited phrases in the assertion section.
+- The default-answer entry for the new fixture in `scripts/margot-retrieval-evaluation-report.ts` so the local report runner emits `answerShape=10/10` for the new fixture.
+
+What has started (this tick):
+
+- Refreshed the control-surface header to a `Last update: 2026-06-10 00:58 AEST` state, added the `Related evidence`, `Related fixture`, and `Related rotation guard` lines, added the `## AI-RET-001 Approval-Persistence Citation Contract` section, the `## Out of Scope for This Revision` section, and this checkpoint.
+
+Why it exists:
+
+- This control surface (`docs/margot/crm-approval-persistence-plan.md`) was last touched `2026-05-23 16:38 AEST` and was not yet bound to the AI-RET-001 harness. Without a doc-drift guard, future refreshes could accidentally soften the stage-1/stage-2 boundary, introduce `crm_approvals` migration language that implies production apply, or remove the no-Board-id rule.
+
+Missing/unclear/pending external authority:
+
+- Dedicated `crm_approvals` migration (Stage 2): not drafted in this lane; remains blocked on sandbox-first apply/diff and explicit Phill/Board promotion approval.
+- Approval outcome writes: still need a route contract and sanitized timeline events before any task/agent action can persist an approval decision.
+- Voice transcript retention/privacy policy (carried forward): still blocks richer AI-RET-001 answer shapes for voice-derived approval data.
+- Mac Mini authenticated artifact transport: still blocked; no credential prompt, secret read, or recursive system-volume scan.
+
+Current health evidence:
+
+- The new doc-drift guard test is in RED for one tick only because the doc was not yet updated in this lane; the GREEN phase is achieved by this very refresh (the doc now contains the 7 required phrases, the 4 required sources, and zero prohibited phrases in the assertion section).
+- AI-RET-001 local report runner is expected to report `answerShape=10/10` after this lane (was 9/9).
+- Combined local CRM + Margot + runtime + credential-boundary gate is expected to grow by `+3` (pass + reject + doc-drift guard) — `+1` for the pass, `+1` for the reject, `+1` for the doc-drift guard.
+
+Smallest next action:
+
+- Re-run the focused retrieval-evaluation Jest gate and the AI-RET-001 report runner to confirm `answerShape=10/10` and the GREEN status of the new doc-drift guard.
+- Continue rotating other still-stale control surfaces (e.g. `crm-schema-inventory.md` at `2026-05-23 07:24 AEST`, `marketing-strategy-operating-model.md` and `ai-enhancement-pipeline.md` at `2026-05-23 07:33 AEST`) into the same doc-drift guard pattern on future ticks.
+- Do NOT run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until a specific authority/auth gate is granted for that exact wizard action.

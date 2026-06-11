@@ -1,6 +1,6 @@
 # Linear Watch — Margot Today Queue
 
-Last synced: 2026-06-02 12:36:16 AEST
+Last synced: 2026-06-11 10:21:46 AEST
 Source: Linear team `UNI` / Unite-Group
 Purpose: Make parent-Hermes-pushed Linear work visible to Margot for today's task list.
 
@@ -10,6 +10,13 @@ Purpose: Make parent-Hermes-pushed Linear work visible to Margot for today's tas
 - Use existing repo/docs/code/tests/context before asking Phill for more information.
 - Draft-first for production DB writes, deployments, GitHub pushes/PRs, Vercel env changes, client-facing comms, billing/banking/payment actions, cross-client merges, or permanent business rules.
 - Pull the full Linear issue before execution if a task is selected for active work.
+
+## Snapshot contract
+
+- The full open queue snapshot table below is the canonical view of the `Margot today queue`.
+- Each row exposes `state / priority / project / assignee / updated / title` for operator decision support.
+- This file holds `no linear api key or secrets in this file`; sandbox only — no production apply, no connector account, no live sync from this surface.
+- Cross-references (also cited in the AI-RET-001 fixture): `docs/margot/linear-watch-today.md` (this file), `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/ai-enhancement-candidate-register.md`, `docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md`.
 
 ## Today's Linear candidates
 
@@ -448,6 +455,7 @@ Summary / Linear description excerpt:
 | [UNI-2120](https://linear.app/unite-group/issue/UNI-2120/ccw-p2-wave-2-decide-and-wire-ai-quote-generation-into-quote-workflow) | Todo | Medium | CCW CRM | 2026-06-01T03:36:15.106Z | [CCW P2 Wave 2] Decide and Wire AI Quote Generation into Quote Workflow or Feature-Flag It |
 | [UNI-2118](https://linear.app/unite-group/issue/UNI-2118/ccw-p2-wave-2-attach-translation-edit-audit-trail-to-authenticated) | Todo | Medium | CCW CRM | 2026-06-01T03:36:13.453Z | [CCW P2 Wave 2] Attach Translation Edit Audit Trail to Authenticated User |
 | [UNI-2090](https://linear.app/unite-group/issue/UNI-2090/vision-build-kickoff-duncan) | Backlog | Urgent | Dimitri ITR Platform | 2026-05-31T22:56:53.571Z | [Vision] Build kickoff — Duncan |
+| [UNI-2131](https://linear.app/unite-group/issue/UNI-2131/ccw-crm-ci-red-rollbackyml-startup-failure-failing-deepsec-scan-prs) | Backlog | High | CCW CRM | 2026-06-11T00:09:23.691Z | CCW-CRM CI red: rollback.yml startup failure + failing deepsec scan; PRs #151–153/#197 rotting |
 | [UNI-2102](https://linear.app/unite-group/issue/UNI-2102/vision-rn-2-must) | Backlog | High | Dimitri ITR Platform | 2026-05-31T22:56:59.679Z | [Vision rn-2] must |
 | [UNI-2101](https://linear.app/unite-group/issue/UNI-2101/vision-rn-1-must) | Backlog | High | Dimitri ITR Platform | 2026-05-31T22:56:59.262Z | [Vision rn-1] must |
 | [UNI-2100](https://linear.app/unite-group/issue/UNI-2100/vision-rk-2-must) | Backlog | High | Dimitri ITR Platform | 2026-05-31T22:56:58.666Z | [Vision rk-2] must |
@@ -460,7 +468,6 @@ Summary / Linear description excerpt:
 | [UNI-2088](https://linear.app/unite-group/issue/UNI-2088/swat-cross-project-deployment-model-analysis-cloud-vs-connected-local) | Backlog | High | Unite-Group | 2026-05-30T03:29:36.391Z | SWAT: Cross-project deployment model analysis — Cloud vs Connected-Local |
 | [UNI-2069](https://linear.app/unite-group/issue/UNI-2069/dimitri-epic-human-gates-12q-gmail-legal-board) | Backlog | High | Dimitri ITR Platform | 2026-05-27T23:33:00.425Z | [Dimitri] Epic: Human gates (12Q, Gmail, legal, board) |
 | [UNI-2077](https://linear.app/unite-group/issue/UNI-2077/dsp-osf-ato-api-portal-onboarding) | Backlog | High | Dimitri ITR Platform | 2026-05-27T22:38:38.348Z | DSP OSF + ATO API Portal onboarding |
-| [UNI-2066](https://linear.app/unite-group/issue/UNI-2066/phase-8-accessibility-audit-remediation-across-all-ported-screens) | Backlog | High | Unite-Group | 2026-05-25T06:31:14.792Z | Phase 8 · Accessibility audit + remediation across all ported screens |
 
 ## Watcher metadata
 

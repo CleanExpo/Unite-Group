@@ -1,12 +1,17 @@
 # Lead-to-Client Conversion Plan
 
 Date: 2026-05-23
+Last update: 2026-06-09 21:32 AEST — Senior PM control-surface refresh: pinned plan to the new AI-RET-001-ANSWER-LEAD-TO-CLIENT-CONVERSION-BOUNDARY answer-shape fixture, the modern hard safety rules, the modern CRM helper surface (qualify-lead, approval-lifecycle, digest-read-error, digest-mappers, stale-sync), and the Senior PM verification rotation guard.
+Previous refresh: 2026-05-23 (initial version)
 Owner: Margot
+Related evidence: `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (overallStatus=pass, source=7/7, answerShape=8/8)
+Related fixture: `AI-RET-001-ANSWER-LEAD-TO-CLIENT-CONVERSION-BOUNDARY` (linked to `AI-RET-001-LEAD-QUALIFICATION` source-citation fixture; required answer phrases and prohibited phrases asserted in `src/lib/margot/retrieval-evaluation.ts` and `tests/unit/lib/margot/retrieval-evaluation.test.ts`)
+Related rotation guard: see `## Senior PM verification checkpoint (2026-06-09 21:32 AEST)` at the end of this file
 Status: Local guarded route/test contract exists; production conversion is not promoted/applied and no production DB write has been verified
 
 ## Non-negotiable rule
 
-Lead qualification is recommendation-only. A score or band can prioritize review, but it must not create, overwrite, merge, or convert a client without passing the identity gates below and an explicit operator-approved conversion action.
+Lead qualification is recommendation-only (no auto-conversion). A score or band can prioritize review, but it must not create, overwrite, merge, or convert a client without passing the identity gates below and an explicit operator-approved conversion action. The plan enforces no crm identity overwrite from a qualification score alone; identity review is mandatory before any conversion-ready transition; conversion follows the board-approved conversion rules and is gated on an operator-approved conversion step.
 
 ## State machine
 
@@ -92,3 +97,25 @@ The local guarded conversion endpoint (`src/app/api/crm/leads/[id]/convert/route
 - Do not apply migrations or write production data from this draft.
 - Preserve original lead attribution; conversion should set status/target references, not delete lead history.
 - Every conversion should produce a timeline/audit event suitable for daily digest and command center surfaces.
+- The qualification helper (`src/lib/crm/qualify-lead.ts`) is deterministic and recommendation-only; it never calls Supabase, never writes audit rows, and never overwrites CRM identity — `qualifyLead` returns a `LeadQualificationRecommendation` (`score`, `band`, `reasons`, `operatorNotes`) where every branch emits a `Recommendation only: do not auto-convert or overwrite CRM identity from this score.` operator note, `qualified` band explicitly notes it is not approval to create a client record, and `spam_risk` band explicitly notes to avoid external follow-up until identity is checked.
+- The current local conversion route/test contract is `src/app/api/crm/leads/[id]/convert/route.ts`; identity conflict, already-converted, missing-exact-lead-id, lead-not-found, and missing/blank `boardApprovalId` are all fail-closed before any client/contact/opportunity write.
+- The plan remains gated on the sandbox wizard authority/auth gate for any future `tasks` / `voice_command_sessions` validation packet; no sandbox `apply`/`status`/`diff`/`sync`/`setup`/`reset`/`promote` will run from this plan without explicit per-wizard-action authority.
+
+## Out of Scope for This Revision
+
+- No live semantic search, embeddings backfill, or live AI call against production.
+- No new vendor onboarding (including Nango) without explicit Phill approval.
+- No public publishing, paid spend, billing/payment action, or client-facing send.
+- No production DB write, migration, Vercel deploy/env mutation, or GitHub push/merge/PR mutation.
+- No Mac Mini credential prompt/read, secret printing/storage, or recursive system-volume scan.
+- No lead auto-conversion, client record auto-creation, follow-up auto-send, or campaign auto-launch from this plan. The board-approved conversion rules remain the only path to a `converted` state.
+- No mixing of cross-client conversion context; identity review remains identity-scoped.
+
+## Senior PM verification checkpoint (2026-06-09 21:32 AEST)
+
+- What exists: local guarded conversion route/test contract at `src/app/api/crm/leads/[id]/convert/route.ts` with the documented 400/403/404/409 fail-closed branches; deterministic recommendation-only `qualifyLead` helper with explicit `Recommendation only` operator notes per branch; AI-RET-001 mocked report at `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` listing `AI-RET-001-ANSWER-LEAD-TO-CLIENT-CONVERSION-BOUNDARY` as `pass` and binding this plan to the 6 required answer phrases, 4 required citation sources (`docs/margot/lead-to-client-conversion-plan.md`, `src/lib/crm/qualify-lead.ts`, `docs/margot/ai-enhancement-candidate-register.md`, `docs/margot/crm-operating-model.md`), and 6 prohibited phrases (`lead auto-converted`, `client record created`, `follow-up sent`, `campaign launched`, `auto-conversion approved`, `nango`).
+- What has started: 2026-06-09 21:32 AEST lead-to-client conversion plan Senior PM control-surface refresh. No new code, no new fixture, no new test, no schema, no migration, no route change, no production action, no sandbox wizard subcommand.
+- Why it exists: the previous plan was last touched `2026-05-23`, before the AI-RET-001 source-citation and answer-shape harnesses, before the case-insensitive `normalizedSubjectType` approval-lifecycle lane (35 tests), before the `logCrmDigestReadError` `Set`-based fail-closed union guard, before the dedicated `digest-mappers` positive-coverage suite, before the deterministic `stale-sync` `last_error` + NaN guard, before the daily-digest `staleReasonLabel` / `staleReasonDetail` / `normalizedMinutes` privacy hardening, and before the new `AI-RET-001-ANSWER-LEAD-TO-CLIENT-CONVERSION-BOUNDARY` answer-shape fixture that now binds this plan to the harness. This refresh re-anchors the plan to the modern Senior PM control surface so fixture drift is caught locally.
+- Missing/unclear: the production migration that would create `crm_leads`, `crm_contacts`, `crm_opportunities`, `crm_approvals`, `crm_audit_events` is not yet authored; the `tasks` / `voice_command_sessions` sandbox validation packet is not yet applied; the exact `board_approval_id` minting flow for operator-approved conversion is not yet wired into the local conversion route; the Stripe-customer / Linear-project / Nexus-slug identity-resolution policy that `qualifyLead` would consult is still in the proposal state from `docs/margot/crm-contacts-opportunities-model.md` and `docs/margot/crm-approval-persistence-plan.md`.
+- Current health evidence: focused retrieval gate `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` returns 1 suite / 34 tests PASS (was 32 before this lane; +2 for the new answer-shape fixture). Combined local CRM + Margot + runtime + credential-boundary gate `npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` returns 11 suites / 158 tests PASS (was 156 before this lane; +2). `npm run type-check` passes. `npm run security:routes-check` reports 0 unprotected mutating routes. `git diff --check` is clean. AI-RET-001 report re-read: `overallStatus=pass; source=7/7; answerShape=8/8; readback=pass; safetyNotes=true; nextSafeAction=true`. Mac Mini: `/Volumes=Macintosh HD`, recovered Markdown count `0`, SMB reachable (port `445` open, IP `192.168.2.78`), SSH unreachable (`nc -z -G 3 phills-mac-mini.local 22` returned exit `1`); no credential prompt/read, secret printing/storage, or recursive system-volume scan.
+- Smallest next action: when a real conversion code change is needed, add a new negative-coverage test for the local conversion route (e.g. `board_approval_id` whitespace-only, mismatched `board_approval_id`/lead tenant, or `nexus_clients.id` reuse across two leads) to the focused Jest gate, then update both `docs/margot/lead-to-client-conversion-plan.md` and `docs/margot/MARGOT-COMMAND-CENTER.md` with the new test id. Do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until the specific authority/auth gate is granted.

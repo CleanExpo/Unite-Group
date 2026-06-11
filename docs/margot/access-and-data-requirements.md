@@ -1,9 +1,13 @@
 # Margot Access and Data Requirements
 
 Date: 2026-05-23 06:55:27 AEST
+Last update: 2026-06-10 20:30:00 AEST — Senior PM 20th answer-shape fixture lane: bound this doc to AI-RET-001-ANSWER-ACCESS-POLICY-BOUNDARY; added citation contract and refreshed the Senior PM verification checkpoint with 20/20 harness counts.
+Previous refresh: 2026-06-09 17:30 AEST (Senior PM control-surface refresh)
 Project: Unite-Group
 Owner: Margot
 Related model: `docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md`
+Related evidence: `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (overallStatus=pass, source=7/7, answerShape=7/7)
+Related rotation guard: see `## Senior PM verification checkpoint (2026-06-09 17:30 AEST)` at the end of this file
 
 ## Purpose
 
@@ -539,3 +543,41 @@ Do not answer all at once if inconvenient. These are the next real decisions:
 6. What actions are absolutely never allowed without explicit approval?
 7. Where is the canonical client 2nd Brain: repo docs, Obsidian, Google Drive, or another system?
 8. What daily time/channel should Margot use for the command digest?
+
+## Out of Scope for This Revision
+
+This document is the access policy; the lanes below remain explicitly out of scope here and are governed by their own hard safety rules.
+
+- No new vendor onboarding (including Nango or any third-party connector platform) without explicit Phill approval for that specific vendor, scope, and credential location. Nango and connector-platform use is forbidden unless explicitly approved.
+- No live vector DB reads, embeddings backfill, or live semantic-search calls against production. Retrieval policy is exercised by the local AI-RET-001 harness at `src/lib/margot/retrieval-evaluation.ts` and the generated report at `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`. Any new live retrieval threshold, new fixture, or new answer-shape rule must be added to the harness and the report must stay `overallStatus=pass` before it ships.
+- No `./scripts/sandbox-wizard.sh apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` without an explicit sandbox authority/auth gate for that exact wizard action. Static review packets, evidence reports, and `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts` are still allowed and encouraged, but no DB-writing/status wizard subcommand may run.
+- No GitHub push, merge, PR mutation, Vercel deploy, Vercel env mutation, or production DB write/migration.
+- No public publishing, paid spend, billing/payment action, or client-facing send.
+- No Mac Mini credential prompt, secret read, secret printing/storage, noninteractive auth attempt, or recursive system-volume scan. Mac Mini artifact recovery continues only when an authenticated SMB mount, usable SSH session, or approved export is available; otherwise record the blocker and keep another safe Senior PM lane moving.
+- No destructive git, no cross-client context merge, no production Stripe/bank/CRM/billing write, no account creation, no permanent business rule that requires judgment.
+
+## AI-RET-001 Access-Policy Citation Contract
+
+This document is bound to the local AI-RET-001 harness as the 20th answer-shape fixture (`AI-RET-001-ANSWER-ACCESS-POLICY-BOUNDARY`, bound to `AI-RET-001-USE-EXISTING-ASSETS`).
+
+Required answer phrases that the doc must carry: use existing assets first, read-only first, staged write permissions, no payment access by default, tokens in approved secret stores, scoped api keys, service accounts where possible, every integration needs owner and purpose, every write action needs audit trail, cross-client identity scoping.
+
+Required citation sources: `docs/margot/access-and-data-requirements.md`, `docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md`, `docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md`, `docs/margot/ai-enhancement-candidate-register.md`.
+
+Prohibited overclaim phrases (must not appear in the assertion section for the doc-drift guard to pass): production database accessed directly, stripe api key read from repo, bank transfer auto-executed, password stored in docs, cross-client merge without identity scope, payroll execution approved, new vendor onboarded without approval, nango / third-party connector platform, access granted without least privilege audit.
+
+## Senior PM verification checkpoint (2026-06-10 20:30:00 AEST)
+
+- The AI-RET-001 access-policy citation contract (above) pins the 20th answer-shape fixture. This doc now carries 10 required phrases, 4 required citations, and 9 prohibited overclaim phrases.
+- Harness count: 8 source-citation fixtures + 20 answer-shape fixtures. AI-RET-001 report: `overallStatus=pass; source=8/8; answerShape=20/20`.
+- Verified: focused retrieval gate PASS; access-policy pass + reject + doc-drift guard tests now in suite.
+- Previous checkpoint (2026-06-09 17:30 AEST) preserved below as audit trail.
+
+## Senior PM verification checkpoint (2026-06-09 17:30 AEST)
+
+- What exists: the original 2026-05-23 access policy (purpose, principles, default "proceed with existing assets", per-domain minimum permissions for email, calendar, banking, Stripe, accounting, CRM/Supabase, Linear, GitHub, Vercel/Railway/DO, 1Password, documents/2nd Brain, communications, marketing, sales/leads, legal/contracts, forecasting inputs, governance, identity resolution, forecasting model, daily digest, security baseline, phased rollout, immediate next 10 actions, and the human-decisions-needed list), now linked to the current repo evidence and the modern safety frame.
+- What has started: a docs-only Senior PM control-surface refresh of this access policy so the access/data requirements stay aligned with the current CRM operating loop, the modern voice/digest/approval/redaction lane, the AI-RET-001 mocked retrieval gate, the `linear-watch-today.md` live Linear mirror, and the binding hard safety rules. No new access, no new vendor, no new account, no sandbox wizard subcommand, no production write, no Mac Mini credential, no destructive git, and no model swap.
+- Why it exists / friction reduced: the previous version (last touched 2026-05-23 06:55:27 AEST) predates the AI-RET-001 source-citation + answer-shape harness (7/7 + 7/7), the deterministic `logCrmDigestReadError` redaction helper, the case-insensitive `normalizedSubjectType` approval-lifecycle lane, the dedicated `digest-mappers` positive-coverage suite, the daily-digest privacy hardening (`lead <id>` fallback), the deterministic stale-sync + daily-digest edge-case lanes, the case-insensitive `normalizeLeadStatus` digest row handling, the explicit Senior PM verification rotation guard, the `linear-watch-today.md` parent-Hermes-pushed Linear mirror, the Nango / connector-platform hard ban, the sandbox wizard subcommand allowlist, the live semantic search prohibition, and the public publishing / paid spend / client-facing send prohibitions. Without this refresh a future agent could re-derive a request that violates the modern safety frame because the policy doc would still describe access in 2026-05-23 terms.
+- Missing / unclear: live retrieval threshold, embedding model, and vector DB contract remain unverified (the harness is mocked/static). The sandbox authority/auth for voice/task DB validation is still gated. Mac Mini authenticated artifact transport is still opportunistic-only. The access-register / decision-rights-matrix / identity-resolution-policy / daily-digest-template docs from "Immediate Next 10 Actions" are still only proposed; this lane did not create them. IP/user-agent privacy retention for `crm_leads` is still undefined. Pipeline stages, auto-conversion rules, and campaign/source labels are not yet formalised.
+- Current health evidence: focused retrieval-evaluation Jest gate `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` returns 1 suite / 32 tests PASS. AI-RET-001 report unchanged: `overallStatus=pass`, `source=7/7`, `answerShape=7/7`, `safetyNotes=true`, `nextSafeAction=true`. `npm run type-check` passes. `npm run security:routes-check` reports 0 unprotected mutating routes. `git diff --check` passes. Mac Mini probe: `/Volumes` contains only `Macintosh HD`; `phills-mac-mini.local:445` reachable (SMB/File Sharing); `:22` unreachable (SSH/Remote Login); recovered Markdown count `0`; no credential prompt/read, secret printing/storage, or recursive system-volume scan. Linear live queue mirror is `docs/margot/linear-watch-today.md`; the most relevant Margot-owned tickets are `UNI-2054` (Maintain Margot Command Center and RestoreAssist Content Index, In Progress, parked on Mac Mini artifact transport) and `UNI-2053` (Create CCW product category copy, In Review, blocked on a Phill-side product-category topic decision and on CCW vs RestoreAssist context separation).
+- Smallest useful next action: keep this access policy aligned with the current CRM/voice/digest/approval/redaction lane and rotate to another bounded Senior PM lane (e.g. author the proposed `docs/margot/access-register.md`, `docs/margot/decision-rights-matrix.md`, or `docs/margot/identity-resolution-policy.md` from the Immediate Next 10 Actions, or close a voice-test gap from `docs/margot/voice-test-gap-analysis.md`). Do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until a specific authority/auth gate is granted for that exact wizard action. Do not use Nango or any other third-party connector platform. Do not perform a live vector search, embeddings backfill, or live AI call against production.
