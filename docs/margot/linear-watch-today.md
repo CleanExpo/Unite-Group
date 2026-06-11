@@ -1,6 +1,6 @@
 # Linear Watch — Margot Today Queue
 
-Last synced: 2026-06-11 12:53:45 AEST
+Last synced: 2026-06-11 13:08:50 AEST
 Source: Linear team `UNI` / Unite-Group
 Purpose: Make parent-Hermes-pushed Linear work visible to Margot for today's task list.
 
@@ -288,31 +288,6 @@ Summary / Linear description excerpt:
 
 > Governance: sandbox only until gates pass; no production claim without evidence.
 
-### UNI-2105 — [CCW P0 Build Loop] Refresh Project Pathway Docs Against Live Evidence
-
-- State: Todo (unstarted)
-- Priority: Urgent
-- Project: CCW CRM
-- Assignee: ranamuzamil1199@gmail.com
-- Updated: 2026-06-01T03:28:28.133Z
-- Labels: none
-- Linear: https://linear.app/unite-group/issue/UNI-2105/ccw-p0-build-loop-refresh-project-pathway-docs-against-live-evidence
-
-Summary / Linear description excerpt:
-
-> Senior Project Manager lane. Evidence: `WHATS-NEXT-ROADMAP.md` claims 97% production ready/no blockers, but current type-check and backend pytest fail; `TODO.md` appears stale/foreign (`NodeJS-Starter-V1`, 2024 health check). Acceptance criteria: stale docs archived or marked stale; current roadmap reflects real command outputs; next phases match Senior Engineer build loop; every active task has acceptance criteria, dependency, owner lane, and verification command.
-
-> Senior Engineer Loop for Rana:
-
-> 1. Define the narrow slice.
-> 2. Write/confirm failing test or failing gate.
-> 3. Make the smallest safe fix.
-> 4. Re-run targeted gate.
-> 5. Re-run affected build/test loop.
-> 6. Record evidence before moving to next slice.
-
-> Governance: sandbox only until gates pass; no production claim without evidence.
-
 ### UNI-2104 — [CCW P0 Build Loop] Complete Signup, Auth, Onboarding, and Account Settings E2E
 
 - State: Todo (unstarted)
@@ -351,24 +326,6 @@ Summary / Linear description excerpt:
 Summary / Linear description excerpt:
 
 > Evidence: `containers.py` has `TODO: Add stock to warehouse inventory`. Acceptance: container receipt creates inventory movement transaction; duplicate receipt and warehouse destination tested.
-
-> Report: `D:\CCW-CRM\docs\CCW-MISSING-ENDPOINTS-CONNECTIONS-WAVE2-2026-06-01.md`
-
-> Senior Engineer loop: reproduce/confirm gap, write failing test or failing gate, implement smallest safe slice, rerun targeted tests, record evidence before moving on. Sandbox only until verified.
-
-### UNI-2113 — [CCW P1 Wave 2] Replace POS Reconciliation Bulk Placeholder with Tested Bulk Match Flow
-
-- State: Todo (unstarted)
-- Priority: High
-- Project: CCW CRM
-- Assignee: ranamuzamil1199@gmail.com
-- Updated: 2026-06-01T03:36:09.825Z
-- Labels: none
-- Linear: https://linear.app/unite-group/issue/UNI-2113/ccw-p1-wave-2-replace-pos-reconciliation-bulk-placeholder-with-tested
-
-Summary / Linear description excerpt:
-
-> Evidence: `BulkActionsPanel.tsx` says placeholder only and shows `Not Implemented`. Acceptance: selected bank/POS transaction bulk match flow works with audit trail and partial-failure handling.
 
 > Report: `D:\CCW-CRM\docs\CCW-MISSING-ENDPOINTS-CONNECTIONS-WAVE2-2026-06-01.md`
 
@@ -424,6 +381,57 @@ Summary / Linear description excerpt:
 
 > Governance: sandbox only until gates pass; no production claim without evidence.
 
+### UNI-2079 — Configure Vercel: LINEAR_API_KEY + Telegram webhook for autonomous intake
+
+- State: Todo (unstarted)
+- Priority: High
+- Project: Dimitri ITR Platform
+- Assignee: Unassigned
+- Updated: 2026-05-30T11:15:49.551Z
+- Labels: none
+- Linear: https://linear.app/unite-group/issue/UNI-2079/configure-vercel-linear-api-key-telegram-webhook-for-autonomous-intake
+
+Summary / Linear description excerpt:
+
+> Enable Duncan → Linear pipeline on production.
+
+> ## Env (Vercel)
+
+> * `LINEAR_API_KEY`
+> * `TELEGRAM_WEBHOOK_SECRET`
+> * `CRON_SECRET` (Vercel cron auth)
+> * `DIMITRI_DUNCAN_TELEGRAM_CHAT_IDS=8792816988`
+
+> ## Script
+
+> `scripts/register-telegram-webhook.ps1`
+
+> ## Doc
+
+> `docs/integrations/DUNCAN-LINEAR-INTAKE.md`
+
+> ## Verify
+
+> `GET /api/v1/intake/status` → linear_configured true
+
+### UNI-2080 — Duncan: run /discovery Telegram loop (3Q batches + 4 buttons)
+
+- State: Todo (unstarted)
+- Priority: High
+- Project: Dimitri ITR Platform
+- Assignee: Unassigned
+- Updated: 2026-05-30T11:15:02.231Z
+- Labels: none
+- Linear: https://linear.app/unite-group/issue/UNI-2080/duncan-run-discovery-telegram-loop-3q-batches-4-buttons
+
+Summary / Linear description excerpt:
+
+> Sandbox complete via `pnpm intake:discovery:simulate` (X-Dimitri-Intake-Simulate header). All 12 decisions recorded; `docs/ASSUMPTIONS.md` updated.
+
+> **Follow-up:** Duncan may still run live `/discovery` on @PiCEODimitr_bot for real confirmations.
+
+> **Note:** Linear child issues require a valid `LINEAR_API_KEY` on Vercel (vault key currently returns 401 on issueCreate).
+
 ## Full open queue snapshot
 
 | Issue | State | Priority | Project | Updated | Title |
@@ -437,10 +445,8 @@ Summary / Linear description excerpt:
 | [UNI-2054](https://linear.app/unite-group/issue/UNI-2054/maintain-margot-command-center-and-restoreassist-content-index) | In Progress | None | Brand OS Production Board | 2026-05-23T04:46:35.401Z | Maintain Margot Command Center and RestoreAssist Content Index |
 | [UNI-2108](https://linear.app/unite-group/issue/UNI-2108/ccw-p1-build-loop-core-erp-smoke-pack-products-customers-quotes-orders) | Todo | Urgent | CCW CRM | 2026-06-01T03:28:31.117Z | [CCW P1 Build Loop] Core ERP Smoke Pack: Products, Customers, Quotes, Orders, POS, Inventory, Invoices |
 | [UNI-2106](https://linear.app/unite-group/issue/UNI-2106/ccw-p0-build-loop-promote-shopifyxerosendgridsentry-from-demo-to) | Todo | Urgent | CCW CRM | 2026-06-01T03:28:28.877Z | [CCW P0 Build Loop] Promote Shopify/Xero/SendGrid/Sentry From Demo to Verified Staging |
-| [UNI-2105](https://linear.app/unite-group/issue/UNI-2105/ccw-p0-build-loop-refresh-project-pathway-docs-against-live-evidence) | Todo | Urgent | CCW CRM | 2026-06-01T03:28:28.133Z | [CCW P0 Build Loop] Refresh Project Pathway Docs Against Live Evidence |
 | [UNI-2104](https://linear.app/unite-group/issue/UNI-2104/ccw-p0-build-loop-complete-signup-auth-onboarding-and-account-settings) | Todo | Urgent | CCW CRM | 2026-06-01T03:28:27.358Z | [CCW P0 Build Loop] Complete Signup, Auth, Onboarding, and Account Settings E2E |
 | [UNI-2119](https://linear.app/unite-group/issue/UNI-2119/ccw-p1-wave-2-connect-container-receiving-to-warehouse-inventory-stock) | Todo | High | CCW CRM | 2026-06-01T03:36:14.186Z | [CCW P1 Wave 2] Connect Container Receiving to Warehouse Inventory Stock Movement |
-| [UNI-2113](https://linear.app/unite-group/issue/UNI-2113/ccw-p1-wave-2-replace-pos-reconciliation-bulk-placeholder-with-tested) | Todo | High | CCW CRM | 2026-06-01T03:36:09.825Z | [CCW P1 Wave 2] Replace POS Reconciliation Bulk Placeholder with Tested Bulk Match Flow |
 | [UNI-2110](https://linear.app/unite-group/issue/UNI-2110/ccw-p2-build-loop-demote-or-finish-ai-placeholder-features) | Todo | High | CCW CRM | 2026-06-01T03:28:32.663Z | [CCW P2 Build Loop] Demote or Finish AI Placeholder Features |
 | [UNI-2109](https://linear.app/unite-group/issue/UNI-2109/ccw-p1-build-loop-finish-billingstripe-decision-and-implementation) | Todo | High | CCW CRM | 2026-06-01T03:28:31.865Z | [CCW P1 Build Loop] Finish Billing/Stripe Decision and Implementation |
 | [UNI-2079](https://linear.app/unite-group/issue/UNI-2079/configure-vercel-linear-api-key-telegram-webhook-for-autonomous-intake) | Todo | High | Dimitri ITR Platform | 2026-05-30T11:15:49.551Z | Configure Vercel: LINEAR_API_KEY + Telegram webhook for autonomous intake |
@@ -468,6 +474,8 @@ Summary / Linear description excerpt:
 | [UNI-2133](https://linear.app/unite-group/issue/UNI-2133/mission-station-visual-command-console-for-unite-group-nexus) | Backlog | Medium | Unite-Group | 2026-06-11T02:03:43.301Z | Mission Station: visual command console for Unite Group Nexus (graphs/3D/voice, minimal text) |
 | [UNI-2132](https://linear.app/unite-group/issue/UNI-2132/ato-repo-pr-pileup-5-duplicate-pi-ceo-full-analysis-prs-deepsec-cron) | Backlog | Medium | Unite-Group | 2026-06-11T00:09:36.428Z | ATO repo PR pileup: 5 duplicate "Pi CEO full analysis" PRs + Deepsec cron PR rotting since 14 May |
 | [UNI-2130](https://linear.app/unite-group/issue/UNI-2130/duncan-telegram-q6-looks-like-stripe-is-the-only-way-to-go-sadly-one) | Backlog | Medium | Dimitri ITR Platform | 2026-06-04T17:38:13.885Z | [Duncan Telegram] Q6 Looks like STRIPE is the only way to go - sadly. One option only hey? |
+| [UNI-2129](https://linear.app/unite-group/issue/UNI-2129/duncan-telegram-from-asic-messaging-service-asictransactionno) | Backlog | Medium | Dimitri ITR Platform | 2026-06-04T07:37:14.775Z | [Duncan Telegram] From: ASIC Messaging Service <ASIC.Transaction.No-reply@asic.gov.au> Sen |
+| [UNI-2128](https://linear.app/unite-group/issue/UNI-2128/duncan-telegram-q8-turning-a-client-into-a-tax-planning-client-for) | Backlog | Medium | Dimitri ITR Platform | 2026-06-04T06:18:08.270Z | [Duncan Telegram] q8 = Turning a client into a Tax Planning client for BLinks or the Agent |
 
 ## Watcher metadata
 
