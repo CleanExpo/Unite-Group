@@ -1,6 +1,6 @@
 # Linear Watch — Margot Today Queue
 
-Last synced: 2026-06-11 12:45:28 AEST
+Last synced: 2026-06-11 12:53:45 AEST
 Source: Linear team `UNI` / Unite-Group
 Purpose: Make parent-Hermes-pushed Linear work visible to Margot for today's task list.
 
@@ -98,24 +98,6 @@ Summary / Linear description excerpt:
 > * Stakeholders (design + eng lead + product) signed off
 > * Decision posted as a comment on this issue and on parent [UNI-2057](https://linear.app/unite-group/issue/UNI-2057/unite-hub-layer
 > …
-
-### UNI-2115 — [CCW P1 Wave 2] Replace Service Portal Mock Customer ID with Authenticated Customer Context
-
-- State: In Progress (started)
-- Priority: High
-- Project: CCW CRM
-- Assignee: ranamuzamil1199@gmail.com
-- Updated: 2026-06-11T02:41:56.262Z
-- Labels: none
-- Linear: https://linear.app/unite-group/issue/UNI-2115/ccw-p1-wave-2-replace-service-portal-mock-customer-id-with
-
-Summary / Linear description excerpt:
-
-> Evidence: `apps/web/app/(portal)/service/page.tsx` sends `customer_id: "mock-customer-id"`. Acceptance: customer ID comes from portal auth/session; backend rejects spoofed customer IDs; regression test exists.
-
-> Report: `D:\CCW-CRM\docs\CCW-MISSING-ENDPOINTS-CONNECTIONS-WAVE2-2026-06-01.md`
-
-> Senior Engineer loop: reproduce/confirm gap, write failing test or failing gate, implement smallest safe slice, rerun targeted tests, record evidence before moving on. Sandbox only until verified.
 
 ### UNI-2060 — Phase 2 · Extract UI primitives (Card, KPI, Chip, Tier, Ticker, FAB, LiveIndicator, etc.)
 
@@ -417,6 +399,31 @@ Summary / Linear description excerpt:
 
 > Governance: sandbox only until gates pass; no production claim without evidence.
 
+### UNI-2109 — [CCW P1 Build Loop] Finish Billing/Stripe Decision and Implementation
+
+- State: Todo (unstarted)
+- Priority: High
+- Project: CCW CRM
+- Assignee: ranamuzamil1199@gmail.com
+- Updated: 2026-06-01T03:28:31.865Z
+- Labels: none
+- Linear: https://linear.app/unite-group/issue/UNI-2109/ccw-p1-build-loop-finish-billingstripe-decision-and-implementation
+
+Summary / Linear description excerpt:
+
+> Senior Payments Engineer lane. Evidence: `apps/backend/src/api/main.py` comments billing route as disabled temporarily/requires Stripe; billing UI uses mock payment method ID and TODO notes Stripe.js. Acceptance criteria: either Stripe billing is enabled with real test-mode payment method flow and backend route tests, or billing is explicitly deferred from MVP with UI hidden/labelled; no mock payment method path shown as production.
+
+> Senior Engineer Loop for Rana:
+
+> 1. Define the narrow slice.
+> 2. Write/confirm failing test or failing gate.
+> 3. Make the smallest safe fix.
+> 4. Re-run targeted gate.
+> 5. Re-run affected build/test loop.
+> 6. Record evidence before moving to next slice.
+
+> Governance: sandbox only until gates pass; no production claim without evidence.
+
 ## Full open queue snapshot
 
 | Issue | State | Priority | Project | Updated | Title |
@@ -424,7 +431,6 @@ Summary / Linear description excerpt:
 | [UNI-2117](https://linear.app/unite-group/issue/UNI-2117/ccw-p0-wave-2-harden-team-invites-and-session-invalidation) | In Review | Urgent | CCW CRM | 2026-06-01T04:13:41.183Z | [CCW P0 Wave 2] Harden Team Invites and Session Invalidation |
 | [UNI-2103](https://linear.app/unite-group/issue/UNI-2103/ccw-p0-build-loop-green-gates-and-repo-stabilisation) | In Review | Urgent | CCW CRM | 2026-06-01T04:07:07.949Z | [CCW P0 Build Loop] Green Gates and Repo Stabilisation |
 | [UNI-2058](https://linear.app/unite-group/issue/UNI-2058/phase-0-engineering-review-and-adoption-decision-replace-parallel) | In Progress | Urgent | Unite-Group | 2026-05-30T11:44:06.770Z | Phase 0 · Engineering review & adoption decision (replace / parallel / cherry-pick) |
-| [UNI-2115](https://linear.app/unite-group/issue/UNI-2115/ccw-p1-wave-2-replace-service-portal-mock-customer-id-with) | In Progress | High | CCW CRM | 2026-06-11T02:41:56.262Z | [CCW P1 Wave 2] Replace Service Portal Mock Customer ID with Authenticated Customer Context |
 | [UNI-2060](https://linear.app/unite-group/issue/UNI-2060/phase-2-extract-ui-primitives-card-kpi-chip-tier-ticker-fab) | In Progress | High | Unite-Group | 2026-05-30T11:44:06.774Z | Phase 2 · Extract UI primitives (Card, KPI, Chip, Tier, Ticker, FAB, LiveIndicator, etc.) |
 | [UNI-2059](https://linear.app/unite-group/issue/UNI-2059/phase-1-port-design-tokens-into-globalscss-tailwind-config) | In Progress | High | Unite-Group | 2026-05-30T11:44:06.771Z | Phase 1 · Port design tokens into globals.css + tailwind config |
 | [UNI-2053](https://linear.app/unite-group/issue/UNI-2053/create-ccw-product-category-copy) | In Review | None | Brand OS Production Board | 2026-05-23T05:08:34.536Z | Create CCW product category copy |
@@ -461,6 +467,7 @@ Summary / Linear description excerpt:
 | [UNI-2061](https://linear.app/unite-group/issue/UNI-2061/phase-3-vertical-slice-command-center-end-to-end) | Backlog | High | Unite-Group | 2026-05-25T06:30:06.956Z | Phase 3 · Vertical slice — Command Center end-to-end |
 | [UNI-2133](https://linear.app/unite-group/issue/UNI-2133/mission-station-visual-command-console-for-unite-group-nexus) | Backlog | Medium | Unite-Group | 2026-06-11T02:03:43.301Z | Mission Station: visual command console for Unite Group Nexus (graphs/3D/voice, minimal text) |
 | [UNI-2132](https://linear.app/unite-group/issue/UNI-2132/ato-repo-pr-pileup-5-duplicate-pi-ceo-full-analysis-prs-deepsec-cron) | Backlog | Medium | Unite-Group | 2026-06-11T00:09:36.428Z | ATO repo PR pileup: 5 duplicate "Pi CEO full analysis" PRs + Deepsec cron PR rotting since 14 May |
+| [UNI-2130](https://linear.app/unite-group/issue/UNI-2130/duncan-telegram-q6-looks-like-stripe-is-the-only-way-to-go-sadly-one) | Backlog | Medium | Dimitri ITR Platform | 2026-06-04T17:38:13.885Z | [Duncan Telegram] Q6 Looks like STRIPE is the only way to go - sadly. One option only hey? |
 
 ## Watcher metadata
 
