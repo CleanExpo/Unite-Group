@@ -1,5 +1,41 @@
 # Margot Overnight Progress Log
 
+## 2026-06-12 19:30:00 AEST
+
+### Tick 20260612_1930 — AI-RET-001 67th answer-shape fixture (SANDBOX-WIZARD-CREDENTIAL-BOUNDARY-REVIEW-SELF-BOUNDARY) + doc-tick
+
+Current checkpoint:
+
+- Completed safe Senior PM lane: added 67th mocked answer-shape fixture `AI-RET-001-ANSWER-SANDBOX-WIZARD-CREDENTIAL-BOUNDARY-REVIEW-SELF-BOUNDARY` (bound to `AI-RET-001-SENIOR-PM-LOOP`) per the prior tick's `nextSafeAction` rotation. Pins the harness against the `docs/margot/sandbox-wizard-credential-boundary-review.md` self-boundary — defends against any answer that overclaims the uncommitted dirty diff as committed and pushed, as merged to main, as having any sandbox-wizard subcommand invoked, as having the prod password removed, as having `load_creds` deleted, as adopting a fail-open posture, as having the sandbox-wizard authority lifted, as having the advisor opt-in skipped, or as having any credential leak resolved. 9 required phrases (`wizard credential boundary review`, `load_creds and load_sandbox_creds split`, `local_credential_value python parser`, `cmd_apply and cmd_status sandbox-only`, `cmd_setup cmd_sync cmd_diff cmd_promote prod-capable`, `require_supabase_token opt-in`, `14 cases 1 suite all pass`, `uncommitted dirty state`, `use existing assets first`), 3 required citation sources (`docs/margot/sandbox-wizard-credential-boundary-review.md`, `docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md`, `docs/margot/retrieval-rules.md`), and 9 prohibited overclaim phrases (`diff committed and pushed`, `diff merged to main`, `wizard subcommand invoked`, `prod password removed`, `load_creds deleted`, `fail-open posture adopted`, `sandbox-wizard authority lifted`, `adv opt-in skipped`, `credential leak resolved`).
+- Substring discipline applied up front: pre-flight script confirmed no required or prohibited phrase collides with any of the 66 existing fixtures' required or prohibited phrase vocabulary. Pre-flight also confirmed the chosen pass answer string contains all 9 required phrases and zero of the 9 prohibited phrases, and the chosen reject answer string contains all 9 prohibited phrases (no required-phrase check needed for the reject lane). First-run tests were green on all 3 maps (can-evaluate, reads-back, individual pass/reject) without any reword pass.
+- This completes the **dr-and-capability doc self-boundary set**: 37th (disaster-recovery-assessment-boundary), 64th (dr-swarm-execution-report-self-boundary), 66th (dr-validation-gap-analysis-self-boundary), and now 67th (sandbox-wizard-credential-boundary-review-self-boundary) cover the four committed dr/capability docs in the repo. `forward-readiness` and `hermes-v15` were also rotation candidates but are not yet committed as docs in the repo (no `docs/margot/forward-readiness-gap-analysis.md` or `docs/margot/hermes-v15-capability-assessment.md` exists on disk), so a fresh error-path class is the next higher-leverage lane per the new `nextSafeAction`.
+- Fixture wired into 6 locations: type union (line 108), fixture array, 2 test-aggregator maps (line 2192-2200 and line 2863-2871), 1 report-script map (line 665-675), and the pin list (line 371). Pinned fixture count 66→67 in 3 places (`toHaveLength(67)` at line 303, `toHaveLength(67)` at line 2195, `answerShapePassCount: 67` + `answerShapeFixtureCount: 67` at lines 2873-2874).
+- 2 individual tests added (mirror the DR-SWARM-EXECUTION-REPORT pattern): `passes sandbox-wizard-credential-boundary-review-self-boundary answer shape only when wizard credential boundary review, load_creds and load_sandbox_creds split, local_credential_value python parser, cmd_apply and cmd_status sandbox-only, cmd_setup cmd_sync cmd_diff cmd_promote prod-capable, require_supabase_token opt-in, 14 cases 1 suite all pass, uncommitted dirty state, and use existing assets first are present` and `rejects sandbox-wizard-credential-boundary-review-self-boundary answer shape when it overclaims diff committed and pushed, diff merged to main, wizard subcommand invoked, prod password removed, load_creds deleted, fail-open posture adopted, sandbox-wizard authority lifted, adv opt-in skipped, or credential leak resolved`.
+- Verification: focused retrieval gate 1 suite / 181 tests PASS (was 179; +2 from new fixture's 2 individual tests); combined CRM + Margot + runtime + credential-boundary gate 11 suites / 306 tests PASS (was 304; +2); voice gate 4 suites / 47 tests PASS (unchanged); AI-RET-001 runner `overallStatus=pass; source=8/8; answerShape=67/67; readback=pass` (was 66/66; +1 fixture); `npm run security:routes-check` PASS; `git diff --check` clean. Report regenerated at `2026-06-12 19:30:00 AEST`.
+- Mac Mini: rotation guard - probe blocked by user mid-tick (TCP probe to `:22` denied). Last probe state: `/Volumes=Macintosh HD` only, SMB reachable (port 445, exit 0 at 14:30 tick), SSH unreachable, `docs/margot/recovered-from-mac-mini/` contains 0 recovered Markdown artifacts (just `.gitkeep`). No credential prompt/read, secret printing/storage, or recursive system-volume scan occurred.
+- No sandbox wizard Db mutating subcommand, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, connector-platform action, new vendor, credential read, or destructive git.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 181 tests.
+npx tsx scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=67/67; readback=pass.
+npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --silent
+# PASS: 11 suites / 306 tests.
+npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts src/components/command-center/voice/__tests__/voice-panel-state.test.ts --silent
+# PASS: 4 suites / 47 tests.
+git diff --check
+# (clean)
+```
+
+Files changed this tick: `src/lib/margot/retrieval-evaluation.ts` (type union line 108 + 67th fixture def lines 2285-2315), `scripts/margot-retrieval-evaluation-report.ts` (67th canned answer + rotated `nextSafeAction` and pinned `nextSafeAction` from 66→67), `tests/unit/lib/margot/retrieval-evaluation.test.ts` (pin list line 371 + 3 hardcoded count bumps 66→67 + 2 aggregator map canned answers + 2 individual pass/reject tests), `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (regenerated), `docs/margot/overnight-progress-log.md` (this tick), `docs/margot/morning-report.md` (this tick).
+
+Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, public publishing, connector platforms, new vendors, destructive git, cross-tenant data joins, fabricated board approval, implicit policy inference, fabricated tick history, fabricated conversation history, diff committed and pushed, diff merged to main, wizard subcommand invoked, prod password removed, load_creds deleted, fail-open posture adopted, sandbox-wizard authority lifted, adv opt-in skipped, credential leak resolved.
+
+Next safe lane: per the new `nextSafeAction`, the dr-and-capability doc self-boundary set is now complete on the four committed dr/capability docs. Rotate to a fresh error-path class on a new harness coverage vector (provider-status-error-path, 5xx-cascade, or cross-tenant-data-join) before changing live retrieval thresholds or behavior. Stop adding fixtures when the doc-set is fully bounded and the next higher-leverage lane is an error-path class. The 67th fixture is the 4th self-boundary for committed dr/capability docs and completes that sub-set.
+
 ## 2026-06-11 14:30:00 AEST
 
 ### Tick 20260611_1430 — AI-RET-001 66th answer-shape fixture (DR-VALIDATION-GAP-ANALYSIS-SELF-BOUNDARY) + doc-tick
@@ -17678,3 +17714,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260611_131925.log'
+
+## 2026-06-11 14:13:24 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260611_140049.log'
