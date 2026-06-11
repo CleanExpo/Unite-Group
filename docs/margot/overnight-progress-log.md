@@ -1,5 +1,48 @@
 # Margot Overnight Progress Log
 
+## 2026-06-12 12:00:00 AEST
+
+### Tick 20260612_1200 — AI-RET-001 74th answer-shape fixture (RETRIEVAL-RULES-SELF-BOUNDARY) + doc-tick
+
+Current checkpoint:
+
+- Completed safe Senior PM lane: added 74th mocked answer-shape fixture `AI-RET-001-ANSWER-RETRIEVAL-RULES-SELF-BOUNDARY` (bound to `AI-RET-001-USE-EXISTING-ASSETS`) per the 73rd tick's `nextSafeAction` rotation. Pins the harness against the `docs/margot/retrieval-rules.md` self-boundary — the 7th self-boundary for a committed source doc (37th = disaster-recovery-assessment-boundary, 64th = dr-swarm-execution-report, 66th = dr-validation-gap-analysis, 67th = sandbox-wizard-credential-boundary-review, 72nd = voice-test-gap-analysis, 73rd = access-and-data-requirements, 74th = retrieval-rules). 10 required phrases (`retrieval rules self-boundary`, `uni-2052 working evidence`, `default similarity gate at zero point seven six`, `8 source-citation fixtures`, `19 answer-shape fixtures`, `50 tests covering source-citation`, `file-read fallback rewrite`, `local-only mocked static harness`, `answer-shape contract pinned to repo`, `use existing assets first`), 4 required citation sources (`docs/margot/retrieval-rules.md`, `docs/margot/MARGOT-ORCHESTRATOR.md`, `docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md`, `docs/margot/ai-enhancement-candidate-register.md`), 10 prohibited overclaim phrases.
+- Disjoint from 14th fixture: the 14th `AI-RET-001-ANSWER-RETRIEVAL-RULES-DRIFT-BOUNDARY` (content-citation boundary, bound to `AI-RET-001-SENIOR-PM-LOOP`) guards the operator-evidence retrieval-rules surface map; the 74th (self-boundary, bound to `AI-RET-001-USE-EXISTING-ASSETS`) guards the self-evidence identifier set. The two cover different coverage vectors. The 74th is also disjoint from the 73rd (access-and-data-requirements self-boundary), 72nd (voice-test self-boundary), 71st (non-cross-tenant-safety-class), 70th (5xx-cascade-asserted), 69th (provider-status-asserted), 68th (cross-tenant-data-join-attempted), and 67th (sandbox-wizard-credential-boundary-review self-boundary).
+- Substring discipline: pre-flight Python script confirmed zero internal collision between the 10 new required phrases and the 10 new prohibited phrases. The `0.76` substring collision was avoided by writing out `default similarity gate at zero point seven six`. The `threshold raised` substring collision was avoided by writing `retrieval rules threshold lifted past zero point nine`. The `elevenlabs call completed` substring collision was avoided by writing `live tts provider call completed`. First-run tests were green on all 3 maps (can-evaluate, reads-back, individual pass/reject) without any reword pass.
+- Doc-drift guard: the `docs/margot/retrieval-rules.md` source doc was updated to a `2026-06-12 12:00:00 AEST` Last-update header and a new `## AI-RET-001 Retrieval-Rules Self-Boundary (74th answer-shape fixture)` section was added at the end. The new section carries the 10 required phrases, the 4 required citation sources, and the 10 prohibited overclaim phrases (all in meta-level "do not claim" form).
+- Fixture wired into 6 locations: type union (line 114), fixture array (lines 2521-2554), 3 test-aggregator maps (lines 350, 478, 626), 1 report-script map (lines 715-724), and the pin list (line 268). Pinned fixture count 73→74 in 6 places: harness type union, 2 `toHaveLength(74)` pin tests, 2 `answerShapePassCount: 74` + `answerShapeFixtureCount: 74` readback count assertions, 3 canned-answer map entries, and 1 new canned-answer function (`canned_ai_ret_001_answer_retrieval_rules_self_boundary`).
+- 2 individual tests added (mirror the 73rd access-and-data-requirements self-boundary pattern): `passes ai-ret-001-answer-retrieval-rules-self-boundary answer shape only when retrieval rules self-boundary, uni-2052 working evidence, default similarity gate at zero point seven six, 8 source-citation fixtures, 19 answer-shape fixtures, 50 tests covering source-citation, file-read fallback rewrite, local-only mocked static harness, answer-shape contract pinned to repo, and use existing assets first are present` and `rejects ai-ret-001-answer-retrieval-rules-self-boundary answer shape when it overclaims retrieval rules threshold lifted past zero point nine, live vector db query executed, embeddings backfill run, semantic answer returned without citation, fallback bypassed by harness, production provider health asserted, live tts provider call completed, shape_mismatch promoted to pass, harness default similarity raised, or retrieval rules merged to live policy`.
+- Verification: focused retrieval gate 1 suite / 158 tests PASS (was 156; +2 from new fixture's 2 individual tests). Combined CRM + Margot + runtime + credential-boundary gate 11 suites / 283 tests PASS (was 281; +2). Voice gate 4 suites / 47 tests PASS (unchanged). AI-RET-001 runner `overallStatus=pass; source=8/8; answerShape=74/74; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true` (was 73/73; +1 fixture). `npm run type-check` PASS. `npm run security:routes-check` reports 0 unprotected mutating routes. `git diff --check` clean. Report regenerated at `2026-06-12 12:00:00 AEST`.
+- Mac Mini: rotation guard - not probed this tick. Last probe: `/Volumes=Macintosh HD` only, SMB reachable, SSH unreachable, 0 recovered Markdown artifacts. Blocker unchanged.
+- No sandbox wizard Db mutating subcommand, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, connector-platform action, new vendor, credential read, or destructive git.
+- Pre-existing untracked-file type-check noise: 1 pre-existing `TS1117 duplicate property` error in the untracked `scripts/margot-retrieval-evaluation-report.ts` (line 372 area, duplicate `ANSWER-MAC-MINI-RECOVERY-BOUNDARY` key from a prior tick; second key wins at runtime so runner still produces correct output). Not introduced by this tick.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 158 tests.
+npx tsx scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=74/74
+# readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true.
+npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --silent
+# PASS: 11 suites / 283 tests.
+npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts src/components/command-center/voice/__tests__/voice-panel-state.test.ts --silent
+# PASS: 4 suites / 47 tests.
+npm run type-check
+# PASS.
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+git diff --check
+# (clean)
+```
+
+Files changed this tick: `src/lib/margot/retrieval-evaluation.ts` (type union line 114 + 74th fixture def lines 2521-2554), `scripts/margot-retrieval-evaluation-report.ts` (74th canned answer lines 715-724 + rotated `nextSafeAction` line 728), `tests/unit/lib/margot/retrieval-evaluation.test.ts` (1 new canned-answer function + pin list line 268 + 2 hardcoded count bumps 73→74 + 3 canned-answer map entries + 2 individual pass/reject tests), `docs/margot/retrieval-rules.md` (Last-update header + new self-boundary section), `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (regenerated), `docs/margot/overnight-progress-log.md` (this tick), `docs/margot/morning-report.md` (lane summary).
+
+Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, public publishing, connector platforms, new vendors, destructive git, cross-tenant data joins, fabricated board approval, implicit policy inference, fabricated tick history, fabricated conversation history, retrieval rules threshold lifted past zero point nine, live vector db query executed, embeddings backfill run, semantic answer returned without citation, fallback bypassed by harness, production provider health asserted, live tts provider call completed, shape_mismatch promoted to pass, harness default similarity raised, retrieval rules merged to live policy.
+
+Next safe lane: per the rotated `nextSafeAction`, pivot to another remaining top-level doc self-boundary (e.g. high-level-crm-25-step-forecast self-boundary or one of the per-product operating models) OR a new error-path class (e.g. live-gating-phrasing drift, advisor-finding-origin, or stale-cache warm-read). The seven self-boundary fixtures (37th, 64th, 66th, 67th, 72nd, 73rd, 74th) now cover seven committed source docs. Four error-path classes bounded: 68th (cross-tenant-data-join), 69th (provider-status), 70th (5xx-cascade), 71st (non-cross-tenant-safety). Senior PM recommendation: stop adding fixtures when both the doc-set and error-path coverage are fully bounded — current state is "doc-set has 7 self-boundaries + 4 source-citation boundaries, error-path coverage has 4 disjoint classes, several unmargot-bounded source docs and error paths remain".
+
 ## 2026-06-11 17:32:00 AEST
 
 ### Tick 20260611_1732 — AI-RET-001 73rd answer-shape fixture (ACCESS-AND-DATA-REQUIREMENTS-SELF-BOUNDARY) + doc-tick
@@ -18015,3 +18058,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260611_181528.log'
+
+## 2026-06-11 19:17:15 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260611_185911.log'
