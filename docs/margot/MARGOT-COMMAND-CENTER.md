@@ -3,7 +3,18 @@
 Date: 2026-05-23
 Project: Unite-Group
 Root: `/Users/phillmcgurk/Unite-Group`
-Last update: 2026-06-11 10:30:00 AEST — Senior PM 52nd answer-shape fixture (credential-load-attempted) bring-back + linear-watch-today doc-drift closure + command-center rotation guard entry.
+Last update: 2026-06-11 16:18:00 AEST — Senior PM 70th answer-shape fixture (5xx-cascade-asserted) + closure of pre-existing 69th-fixture drift.
+
+## Current Autonomy Rotation Guard — 2026-06-11 16:18:00 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at `ab35b87` (inherited dirty state from prior safe lanes; `git rev-list --count main..origin/main` returned `5`; branch `mesh/mission-control-2026-06-11`). Inherited uncommitted dirty state remains extensive.
+- Completed safe Senior PM lane: added 70th mocked answer-shape fixture `AI-RET-001-ANSWER-5XX-CASCADE-ASSERTED` (bound to `AI-RET-001-SENIOR-PM-LOOP`) per the prior tick's `nextSafeAction` rotation. Also closed a pre-existing 69th-fixture drift (the 69th `PROVIDER-STATUS-ASSERTED` fixture was already wired into type union + harness + tests + runner at tick start, but was not acknowledged in the visible 67th-tick entry — acknowledged in this tick's morning-report and progress-log entries). 10 required phrases, 4 required citations, 10 prohibited overclaims. Disjoint-paraphrase rephrasing of the prohibited list inside the canned answer applied (one reword pass required to avoid spurious `shape_mismatch` violations on the literal prohibited substrings).
+- Verification: focused retrieval gate 1 suite / 150 tests PASS (was 148; +2). AI-RET-001 runner `overallStatus=pass; source=8/8; answerShape=70/70; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true` (was 69/69 at tick start; +1 fixture). Combined CRM + Margot + runtime + credential-boundary gate 20 suites / 289 tests PASS. Voice gate 4 suites / 47 tests PASS (unchanged). `npm run security:routes-check` PASS. `git diff --check` clean. Report regenerated at `2026-06-11 16:18:00 AEST`.
+- Mac Mini: rotation guard - not probed this tick. Last probe: SMB reachable (IP 192.168.2.78), SSH unreachable, `/Volumes/Macintosh HD`, 0 recovered Markdown artifacts. Blocker unchanged.
+- Pre-existing test brittleness (not introduced by this tick, not modified by this tick): `tests/integration/api/empire-health.test.ts` "source is unavailable when Railway is unreachable" returns `local_session` (env has a local session available, so it does not fall through to "unavailable"). Pre-existing since at least commit 2b43360.
+- Pre-existing untracked-file type-check noise: `npm run type-check` still reports 1 pre-existing `TS1117 duplicate property` error in the untracked `scripts/margot-retrieval-evaluation-report.ts` at line 372 (duplicate `ANSWER-MAC-MINI-RECOVERY-BOUNDARY` key from a prior tick's untracked-file addition; second key wins at runtime so the runner still produces correct output). Not introduced by this tick.
+- Files changed this tick: `src/lib/margot/retrieval-evaluation.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (regenerated), `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`, and this command-center entry.
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, connector platforms, new vendors.
 
 ## Current Autonomy Rotation Guard — 2026-06-11 10:30:00 AEST
 
