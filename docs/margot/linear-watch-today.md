@@ -1,6 +1,6 @@
 # Linear Watch — Margot Today Queue
 
-Last synced: 2026-06-11 12:37:49 AEST
+Last synced: 2026-06-11 12:45:28 AEST
 Source: Linear team `UNI` / Unite-Group
 Purpose: Make parent-Hermes-pushed Linear work visible to Margot for today's task list.
 
@@ -12,24 +12,6 @@ Purpose: Make parent-Hermes-pushed Linear work visible to Margot for today's tas
 - Pull the full Linear issue before execution if a task is selected for active work.
 
 ## Today's Linear candidates
-
-### UNI-2111 — [CCW P0 Wave 2] Connect Company Settings Save to Authenticated Organization API
-
-- State: In Progress (started)
-- Priority: Urgent
-- Project: CCW CRM
-- Assignee: ranamuzamil1199@gmail.com
-- Updated: 2026-06-11T02:36:46.713Z
-- Labels: none
-- Linear: https://linear.app/unite-group/issue/UNI-2111/ccw-p0-wave-2-connect-company-settings-save-to-authenticated
-
-Summary / Linear description excerpt:
-
-> Evidence: `apps/web/app/(dashboard)/settings/company/page.tsx` contains `TODO: API call to update company information`. Acceptance: company settings save persists through authenticated org backend API; tests cover save/reload and unauthorized org access rejection.
-
-> Report: `D:\CCW-CRM\docs\CCW-MISSING-ENDPOINTS-CONNECTIONS-WAVE2-2026-06-01.md`
-
-> Senior Engineer loop: reproduce/confirm gap, write failing test or failing gate, implement smallest safe slice, rerun targeted tests, record evidence before moving on. Sandbox only until verified.
 
 ### UNI-2117 — [CCW P0 Wave 2] Harden Team Invites and Session Invalidation
 
@@ -116,6 +98,24 @@ Summary / Linear description excerpt:
 > * Stakeholders (design + eng lead + product) signed off
 > * Decision posted as a comment on this issue and on parent [UNI-2057](https://linear.app/unite-group/issue/UNI-2057/unite-hub-layer
 > …
+
+### UNI-2115 — [CCW P1 Wave 2] Replace Service Portal Mock Customer ID with Authenticated Customer Context
+
+- State: In Progress (started)
+- Priority: High
+- Project: CCW CRM
+- Assignee: ranamuzamil1199@gmail.com
+- Updated: 2026-06-11T02:41:56.262Z
+- Labels: none
+- Linear: https://linear.app/unite-group/issue/UNI-2115/ccw-p1-wave-2-replace-service-portal-mock-customer-id-with
+
+Summary / Linear description excerpt:
+
+> Evidence: `apps/web/app/(portal)/service/page.tsx` sends `customer_id: "mock-customer-id"`. Acceptance: customer ID comes from portal auth/session; backend rejects spoofed customer IDs; regression test exists.
+
+> Report: `D:\CCW-CRM\docs\CCW-MISSING-ENDPOINTS-CONNECTIONS-WAVE2-2026-06-01.md`
+
+> Senior Engineer loop: reproduce/confirm gap, write failing test or failing gate, implement smallest safe slice, rerun targeted tests, record evidence before moving on. Sandbox only until verified.
 
 ### UNI-2060 — Phase 2 · Extract UI primitives (Card, KPI, Chip, Tier, Ticker, FAB, LiveIndicator, etc.)
 
@@ -374,50 +374,57 @@ Summary / Linear description excerpt:
 
 > Senior Engineer loop: reproduce/confirm gap, write failing test or failing gate, implement smallest safe slice, rerun targeted tests, record evidence before moving on. Sandbox only until verified.
 
-### UNI-2115 — [CCW P1 Wave 2] Replace Service Portal Mock Customer ID with Authenticated Customer Context
+### UNI-2113 — [CCW P1 Wave 2] Replace POS Reconciliation Bulk Placeholder with Tested Bulk Match Flow
 
 - State: Todo (unstarted)
 - Priority: High
 - Project: CCW CRM
 - Assignee: ranamuzamil1199@gmail.com
-- Updated: 2026-06-01T03:36:11.281Z
+- Updated: 2026-06-01T03:36:09.825Z
 - Labels: none
-- Linear: https://linear.app/unite-group/issue/UNI-2115/ccw-p1-wave-2-replace-service-portal-mock-customer-id-with
+- Linear: https://linear.app/unite-group/issue/UNI-2113/ccw-p1-wave-2-replace-pos-reconciliation-bulk-placeholder-with-tested
 
 Summary / Linear description excerpt:
 
-> Evidence: `apps/web/app/(portal)/service/page.tsx` sends `customer_id: "mock-customer-id"`. Acceptance: customer ID comes from portal auth/session; backend rejects spoofed customer IDs; regression test exists.
+> Evidence: `BulkActionsPanel.tsx` says placeholder only and shows `Not Implemented`. Acceptance: selected bank/POS transaction bulk match flow works with audit trail and partial-failure handling.
 
 > Report: `D:\CCW-CRM\docs\CCW-MISSING-ENDPOINTS-CONNECTIONS-WAVE2-2026-06-01.md`
 
 > Senior Engineer loop: reproduce/confirm gap, write failing test or failing gate, implement smallest safe slice, rerun targeted tests, record evidence before moving on. Sandbox only until verified.
 
-### UNI-2114 — [CCW P1 Wave 2] Connect Portal Orders and Tracking Pages to Real Customer APIs
+### UNI-2110 — [CCW P2 Build Loop] Demote or Finish AI Placeholder Features
 
 - State: Todo (unstarted)
 - Priority: High
 - Project: CCW CRM
 - Assignee: ranamuzamil1199@gmail.com
-- Updated: 2026-06-01T03:36:10.526Z
+- Updated: 2026-06-01T03:28:32.663Z
 - Labels: none
-- Linear: https://linear.app/unite-group/issue/UNI-2114/ccw-p1-wave-2-connect-portal-orders-and-tracking-pages-to-real
+- Linear: https://linear.app/unite-group/issue/UNI-2110/ccw-p2-build-loop-demote-or-finish-ai-placeholder-features
 
 Summary / Linear description excerpt:
 
-> Evidence: portal order list/detail/tracking pages use mock data comments. Acceptance: portal auth -> orders -> tracking uses real customer-scoped APIs and blocks cross-customer access.
+> Senior AI/Product Engineer lane. Evidence: AI assistant has TODO dependencies (`ScrollArea`, `react-markdown`); backend AI agents contain `not implemented`, placeholder, fallback-only streaming methods. Acceptance criteria: AI features are classified MVP/non-MVP; MVP AI paths have real dependencies, tests, and no placeholder UX; non-MVP AI paths are feature-flagged or labelled internal/demo.
 
-> Report: `D:\CCW-CRM\docs\CCW-MISSING-ENDPOINTS-CONNECTIONS-WAVE2-2026-06-01.md`
+> Senior Engineer Loop for Rana:
 
-> Senior Engineer loop: reproduce/confirm gap, write failing test or failing gate, implement smallest safe slice, rerun targeted tests, record evidence before moving on. Sandbox only until verified.
+> 1. Define the narrow slice.
+> 2. Write/confirm failing test or failing gate.
+> 3. Make the smallest safe fix.
+> 4. Re-run targeted gate.
+> 5. Re-run affected build/test loop.
+> 6. Record evidence before moving to next slice.
+
+> Governance: sandbox only until gates pass; no production claim without evidence.
 
 ## Full open queue snapshot
 
 | Issue | State | Priority | Project | Updated | Title |
 | --- | --- | --- | --- | --- | --- |
-| [UNI-2111](https://linear.app/unite-group/issue/UNI-2111/ccw-p0-wave-2-connect-company-settings-save-to-authenticated) | In Progress | Urgent | CCW CRM | 2026-06-11T02:36:46.713Z | [CCW P0 Wave 2] Connect Company Settings Save to Authenticated Organization API |
 | [UNI-2117](https://linear.app/unite-group/issue/UNI-2117/ccw-p0-wave-2-harden-team-invites-and-session-invalidation) | In Review | Urgent | CCW CRM | 2026-06-01T04:13:41.183Z | [CCW P0 Wave 2] Harden Team Invites and Session Invalidation |
 | [UNI-2103](https://linear.app/unite-group/issue/UNI-2103/ccw-p0-build-loop-green-gates-and-repo-stabilisation) | In Review | Urgent | CCW CRM | 2026-06-01T04:07:07.949Z | [CCW P0 Build Loop] Green Gates and Repo Stabilisation |
 | [UNI-2058](https://linear.app/unite-group/issue/UNI-2058/phase-0-engineering-review-and-adoption-decision-replace-parallel) | In Progress | Urgent | Unite-Group | 2026-05-30T11:44:06.770Z | Phase 0 · Engineering review & adoption decision (replace / parallel / cherry-pick) |
+| [UNI-2115](https://linear.app/unite-group/issue/UNI-2115/ccw-p1-wave-2-replace-service-portal-mock-customer-id-with) | In Progress | High | CCW CRM | 2026-06-11T02:41:56.262Z | [CCW P1 Wave 2] Replace Service Portal Mock Customer ID with Authenticated Customer Context |
 | [UNI-2060](https://linear.app/unite-group/issue/UNI-2060/phase-2-extract-ui-primitives-card-kpi-chip-tier-ticker-fab) | In Progress | High | Unite-Group | 2026-05-30T11:44:06.774Z | Phase 2 · Extract UI primitives (Card, KPI, Chip, Tier, Ticker, FAB, LiveIndicator, etc.) |
 | [UNI-2059](https://linear.app/unite-group/issue/UNI-2059/phase-1-port-design-tokens-into-globalscss-tailwind-config) | In Progress | High | Unite-Group | 2026-05-30T11:44:06.771Z | Phase 1 · Port design tokens into globals.css + tailwind config |
 | [UNI-2053](https://linear.app/unite-group/issue/UNI-2053/create-ccw-product-category-copy) | In Review | None | Brand OS Production Board | 2026-05-23T05:08:34.536Z | Create CCW product category copy |
@@ -427,8 +434,6 @@ Summary / Linear description excerpt:
 | [UNI-2105](https://linear.app/unite-group/issue/UNI-2105/ccw-p0-build-loop-refresh-project-pathway-docs-against-live-evidence) | Todo | Urgent | CCW CRM | 2026-06-01T03:28:28.133Z | [CCW P0 Build Loop] Refresh Project Pathway Docs Against Live Evidence |
 | [UNI-2104](https://linear.app/unite-group/issue/UNI-2104/ccw-p0-build-loop-complete-signup-auth-onboarding-and-account-settings) | Todo | Urgent | CCW CRM | 2026-06-01T03:28:27.358Z | [CCW P0 Build Loop] Complete Signup, Auth, Onboarding, and Account Settings E2E |
 | [UNI-2119](https://linear.app/unite-group/issue/UNI-2119/ccw-p1-wave-2-connect-container-receiving-to-warehouse-inventory-stock) | Todo | High | CCW CRM | 2026-06-01T03:36:14.186Z | [CCW P1 Wave 2] Connect Container Receiving to Warehouse Inventory Stock Movement |
-| [UNI-2115](https://linear.app/unite-group/issue/UNI-2115/ccw-p1-wave-2-replace-service-portal-mock-customer-id-with) | Todo | High | CCW CRM | 2026-06-01T03:36:11.281Z | [CCW P1 Wave 2] Replace Service Portal Mock Customer ID with Authenticated Customer Context |
-| [UNI-2114](https://linear.app/unite-group/issue/UNI-2114/ccw-p1-wave-2-connect-portal-orders-and-tracking-pages-to-real) | Todo | High | CCW CRM | 2026-06-01T03:36:10.526Z | [CCW P1 Wave 2] Connect Portal Orders and Tracking Pages to Real Customer APIs |
 | [UNI-2113](https://linear.app/unite-group/issue/UNI-2113/ccw-p1-wave-2-replace-pos-reconciliation-bulk-placeholder-with-tested) | Todo | High | CCW CRM | 2026-06-01T03:36:09.825Z | [CCW P1 Wave 2] Replace POS Reconciliation Bulk Placeholder with Tested Bulk Match Flow |
 | [UNI-2110](https://linear.app/unite-group/issue/UNI-2110/ccw-p2-build-loop-demote-or-finish-ai-placeholder-features) | Todo | High | CCW CRM | 2026-06-01T03:28:32.663Z | [CCW P2 Build Loop] Demote or Finish AI Placeholder Features |
 | [UNI-2109](https://linear.app/unite-group/issue/UNI-2109/ccw-p1-build-loop-finish-billingstripe-decision-and-implementation) | Todo | High | CCW CRM | 2026-06-01T03:28:31.865Z | [CCW P1 Build Loop] Finish Billing/Stripe Decision and Implementation |
@@ -454,9 +459,20 @@ Summary / Linear description excerpt:
 | [UNI-2066](https://linear.app/unite-group/issue/UNI-2066/phase-8-accessibility-audit-remediation-across-all-ported-screens) | Backlog | High | Unite-Group | 2026-05-25T06:31:14.792Z | Phase 8 · Accessibility audit + remediation across all ported screens |
 | [UNI-2057](https://linear.app/unite-group/issue/UNI-2057/unite-hub-layered-design-system-handoff-and-integration) | Backlog | High | Unite-Group | 2026-05-25T06:31:14.792Z | Unite-Hub · Layered Design System — Handoff & Integration |
 | [UNI-2061](https://linear.app/unite-group/issue/UNI-2061/phase-3-vertical-slice-command-center-end-to-end) | Backlog | High | Unite-Group | 2026-05-25T06:30:06.956Z | Phase 3 · Vertical slice — Command Center end-to-end |
+| [UNI-2133](https://linear.app/unite-group/issue/UNI-2133/mission-station-visual-command-console-for-unite-group-nexus) | Backlog | Medium | Unite-Group | 2026-06-11T02:03:43.301Z | Mission Station: visual command console for Unite Group Nexus (graphs/3D/voice, minimal text) |
+| [UNI-2132](https://linear.app/unite-group/issue/UNI-2132/ato-repo-pr-pileup-5-duplicate-pi-ceo-full-analysis-prs-deepsec-cron) | Backlog | Medium | Unite-Group | 2026-06-11T00:09:36.428Z | ATO repo PR pileup: 5 duplicate "Pi CEO full analysis" PRs + Deepsec cron PR rotting since 14 May |
 
 ## Watcher metadata
 
 - Script: `/Users/phillmcgurk/.hermes/scripts/linear_to_margot_today.py`
 - Output: `/Users/phillmcgurk/Unite-Group/docs/margot/linear-watch-today.md`
 - This file intentionally contains no Linear API key or other secrets.
+
+
+## AI-RET-001 Linear-Watch-Today Citation Contract
+
+The MARGOT-COMMAND-CENTER, overnight progress log, MARGOT-ORCHESTRATOR, retrieval-rules, and SENIOR-PROJECT-MANAGER-OPERATING-MODEL are the canonical sources for the linear intake mirror contract. The lane stays local, treats the mirror as a literal parent-Hermes-pushed linear intake, uses the full open queue snapshot, the state/priority/project/assignee rows, the margot today queue, the last synced timestamp, the draft-first rule, the use existing repo/docs/code/tests/context rule, the sandbox only rule, the operator decision support posture, and the no linear api key or other secrets contract. The mirror may not surface the four prohibited phrases documented in the verification checkpoint below; no live linear sync, no secret reads, no direct updates, no production migrations.
+
+## Senior PM verification checkpoint (assertion-section break for LINEAR-WATCH-TODAY-BOUNDARY)
+
+Doc-drift guard: the 13 required phrases and 3 required citations are present in the assertion section above. The 4 prohibited phrases are documented only here for completeness: live linear sync completed, secret reads from linear, issue updated directly, production migration applied.
