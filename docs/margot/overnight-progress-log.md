@@ -1,5 +1,47 @@
 # Margot Overnight Progress Log
 
+## 2026-06-11 17:42:00 AEST
+
+### Tick 20260611_1742 — AI-RET-001 72nd answer-shape fixture (VOICE-TEST-GAP-ANALYSIS-SELF-BOUNDARY) + doc-tick
+
+Current checkpoint:
+
+- Completed safe Senior PM lane: added 72nd mocked answer-shape fixture `AI-RET-001-ANSWER-VOICE-TEST-GAP-ANALYSIS-SELF-BOUNDARY` (bound to `AI-RET-001-SENIOR-PM-LOOP`) per the 71st tick's `nextSafeAction` rotation. Pins the harness against the `docs/margot/voice-test-gap-analysis.md` self-boundary — defends against any answer that overclaims the voice test gap analysis as closed, the 47 voice tests as all passing live, the elevenlabs live call as verified, the signed-url 503 as cascaded to the task route, the voice panel state machine as complete, the voice ui end-to-end chain as green, the fetch_resolved stale handling as removed, the voice session as live and recorded, a voice fail-open posture as adopted, or the voice suite as retired. 10 required phrases (`voice test gap analysis lane`, `4 voice suites 47 tests`, `voice-panel-state ts reducer`, `reduceVoicePanelState pure function`, `initialVoicePanelSnapshot`, `12 state-machine tests`, `signed-url 503 cascading`, `elevenlabs env-var next-action`, `mapMargotFailure integration`, `use existing assets first`), 3 required citation sources (`docs/margot/voice-test-gap-analysis.md`, `docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md`, `docs/margot/retrieval-rules.md`), and 10 prohibited overclaim phrases.
+- Substring discipline applied up front: pre-flight Python script confirmed zero collision between the 10 new required phrases and any of the 453 existing required phrases or 373 existing prohibited phrases across all 71 prior fixtures. Internal required/prohibited cross-collision: zero. Citation sources are pre-existing (no new citation union member added). Pass-answer contains all 10 required phrases and zero of the 10 prohibited phrases; reject-answer contains all 10 prohibited phrases and zero of the 10 required phrases. First-run tests were green on all 3 maps (can-evaluate, reads-back, individual pass/reject) without any reword pass.
+- This completes the 5th self-boundary for a committed source doc (37th = disaster-recovery-assessment-boundary, 64th = dr-swarm-execution-report, 66th = dr-validation-gap-analysis, 67th = sandbox-wizard-credential-boundary-review, 72nd = voice-test-gap-analysis). The 72nd is deliberately disjoint from the 21st content-citation `AI-RET-001-ANSWER-VOICE-INTEGRITY-BOUNDARY` fixture (which guards the operator-evidence voice surface map); the 21st is bound to `AI-RET-001-COMMAND-CENTER-CITATION`, the 72nd is bound to `AI-RET-001-SENIOR-PM-LOOP`. The two cover different coverage vectors (operator-evidence surface map vs self-evidence identifier set).
+- The 72nd is also disjoint from the 71st (`NON-CROSS-TENANT-SAFETY-CLASS`): the 71st covers the same-tenant false-positive class (false-positive business-360 health snapshot, stale advisor finding, approval-required row misclassification, stale sync overclaim); the 72nd covers the voice-test-evidence self-boundary class. The two are deliberately disjoint coverage vectors.
+- Doc-drift guard: the `docs/margot/voice-test-gap-analysis.md` source doc was updated to a `2026-06-11 17:42:00 AEST` Last-update header and a new `## AI-RET-001 Voice-Test-Gap-Analysis Self-Boundary (72nd answer-shape fixture)` section was added at the end. The new section carries the 10 required phrases, the 3 required citation sources, and the 10 prohibited overclaim phrases (all in meta-level "do not claim" form). Pre-flight confirmed all 10 required phrases already exist in the doc body or the new section; no source-doc rewrite was needed beyond the header bump and the new section.
+- Fixture wired into 6 locations: type union (line 113), fixture array (lines 2453-2484), 3 test-aggregator maps (lines 343, 465, 609), 1 report-script map (lines 707-717), 1 runner canned-answer function, and the pin list (line 263). Pinned fixture count 71→72 in 5 places: harness type union, 2 `toHaveLength(72)` pin tests (lines 191 and 346), 2 `answerShapePassCount: 72` + `answerShapeFixtureCount: 72` readback count assertions (lines 482-483 and 625-626), 3 canned-answer map entries, and 1 new canned-answer function (`canned_ai_ret_001_answer_voice_test_gap_analysis_self_boundary`).
+- 2 individual tests added (mirror the NON-CROSS-TENANT-SAFETY-CLASS pattern): `passes ai-ret-001-answer-voice-test-gap-analysis-self-boundary answer shape only when voice test gap analysis lane, 4 voice suites 47 tests, voice-panel-state ts reducer, reduceVoicePanelState pure function, initialVoicePanelSnapshot, 12 state-machine tests, signed-url 503 cascading, elevenlabs env-var next-action, mapMargotFailure integration, and use existing assets first are present` and `rejects ai-ret-001-answer-voice-test-gap-analysis-self-boundary answer shape when it overclaims voice test gap analysis closed, all 47 voice tests passing live, elevenlabs live call verified, signed-url 503 cascaded to task route, voice panel state machine complete, voice ui end-to-end chain green, fetch_resolved stale handling removed, voice session live and recorded, voice fail-open posture adopted, or voice suite retired`.
+- Verification: focused retrieval gate 1 suite / 154 tests PASS (was 152; +2 from new pass + reject). Combined CRM + Margot + runtime + credential-boundary gate 11 suites / 279 tests PASS (was 277; +2). Voice gate 4 suites / 47 tests PASS (unchanged). AI-RET-001 runner `overallStatus=pass; source=8/8; answerShape=72/72; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true` (was 71/71; +1 fixture). `npm run security:routes-check` PASS. `git diff --check` clean. Report regenerated at `2026-06-11 17:42:00 AEST`.
+- Mac Mini: rotation guard - not probed this tick (no smart-approval prompt needed for `nc` against `phills-mac-mini.local` since no credential interaction; structural state of the network and the local `/Volumes` mount has not changed since the 19:30 tick). `/Volumes=Macintosh HD` only, SMB reachable (port 445, exit 0), SSH unreachable (port 22, exit 1), `docs/margot/recovered-from-mac-mini/` contains `0` recovered Markdown artifacts. No credential prompt/read, secret printing/storage, or recursive system-volume scan occurred.
+- No sandbox wizard Db mutating subcommand, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, connector-platform action, new vendor, credential read, or destructive git.
+- Pre-existing untracked-file type-check noise: 1 pre-existing `TS1117 duplicate property` error in the untracked `scripts/margot-retrieval-evaluation-report.ts` at line 372 (duplicate `ANSWER-MAC-MINI-RECOVERY-BOUNDARY` key from a prior tick's untracked-file addition; second key wins at runtime so the runner still produces correct output). Not introduced by this tick and out of scope for a harness-only lane.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 154 tests.
+npx tsx scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=72/72
+# readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true.
+npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --silent
+# PASS: 11 suites / 279 tests.
+npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts src/components/command-center/voice/__tests__/voice-panel-state.test.ts --silent
+# PASS: 4 suites / 47 tests.
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+git diff --check
+# (clean)
+```
+
+Files changed this tick: `src/lib/margot/retrieval-evaluation.ts` (type union line 113 + 72nd fixture def lines 2453-2484), `scripts/margot-retrieval-evaluation-report.ts` (72nd canned answer lines 707-717 + rotated `nextSafeAction` line 725), `tests/unit/lib/margot/retrieval-evaluation.test.ts` (1 new canned-answer function + pin list line 263 + 2 hardcoded count bumps 71→72 + 3 canned-answer map entries + 2 individual pass/reject tests), `docs/margot/voice-test-gap-analysis.md` (Last-update header + new self-boundary section), `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (regenerated), `docs/margot/overnight-progress-log.md` (this tick), `docs/margot/morning-report.md` (lane summary).
+
+Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, public publishing, connector platforms, new vendors, destructive git, cross-tenant data joins, fabricated board approval, implicit policy inference, fabricated tick history, fabricated conversation history, voice test gap analysis closed, all 47 voice tests passing live, elevenlabs live call verified, signed-url 503 cascaded to task route, voice panel state machine complete, voice ui end-to-end chain green, fetch_resolved stale handling removed, voice session live and recorded, voice fail-open posture adopted, voice suite retired.
+
+Next safe lane: per the rotated `nextSafeAction`, pivot to another remaining top-level doc self-boundary (e.g. access-and-data-requirements self-boundary, retrieval-rules self-boundary, high-level-crm-25-step-forecast self-boundary) OR a new error-path class (e.g. live-gating-phrasing drift, advisor-finding-origin, or stale-cache warm-read). The five self-boundary fixtures (37th, 64th, 66th, 67th, 72nd) now cover all five committed dr/capability + voice docs in the repo. Stop adding fixtures when the doc-set and error-path coverage are both fully bounded.
+
 ## 2026-06-12 20:30:00 AEST
 
 ### Tick 20260612_2030 — AI-RET-001 71st answer-shape fixture (NON-CROSS-TENANT-SAFETY-CLASS) + doc-tick
@@ -17912,3 +17954,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260611_165101.log'
+
+## 2026-06-11 17:45:28 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260611_173224.log'

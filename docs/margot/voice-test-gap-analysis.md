@@ -1,7 +1,7 @@
 # Margot Voice Test Gap Analysis
 
 Date: 2026-05-23
-Last update: 2026-06-09 17:08 AEST
+Last update: 2026-06-11 17:42:00 AEST
 Previous refresh: 2026-06-10 03:08 AEST
 Project: Unite-Group
 
@@ -228,3 +228,19 @@ The `AI-RET-001-ANSWER-VOICE-INTEGRITY-BOUNDARY` fixture (bound to `AI-RET-001-C
 - 9 prohibited overclaim phrases: `live elevenlabs call executed`, `production tts endpoint called`, `voice session skipped`, `crm task inserted without voice session`, `elevenlabs api key read`, `voice panel live rendered`, `signed url deployed`, `nango`, `voice test suite deleted`.
 
 The local AI-RET-001 harness enforces that voice answers remain source-labeled, local-only, and preserve the gated action boundary: no live ElevenLabs call, no production TTS endpoint, no voice session bypass, no CRM task without voice session, no deployed signed URL, and no Nango integration.
+
+## AI-RET-001 Voice-Test-Gap-Analysis Self-Boundary (72nd answer-shape fixture)
+
+Date: 2026-06-11 17:42:00 AEST
+
+This section anchors this doc to the 72nd AI-RET-001 answer-shape fixture (`AI-RET-001-ANSWER-VOICE-TEST-GAP-ANALYSIS-SELF-BOUNDARY`, bound to `AI-RET-001-SENIOR-PM-LOOP`). The fixture is a *self-boundary*, not a content-citation boundary: it pins the literal evidence identifiers in this doc (4 voice suites 47 tests in the combined gate, voice-panel-state ts reducer, reduceVoicePanelState pure function, initialVoicePanelSnapshot, 12 state-machine tests, signed-url 503 cascading, elevenlabs env-var next-action, mapMargotFailure integration) so a future answer about the voice test surface is forced to cite this doc and the Senior PM operating model, and is bound to the canonical 2026-06-09 17:08 AEST verification snapshot.
+
+The 72nd fixture enforces:
+
+- 10 required answer phrases: `voice test gap analysis lane`, `4 voice suites 47 tests`, `voice-panel-state ts reducer`, `reduceVoicePanelState pure function`, `initialVoicePanelSnapshot`, `12 state-machine tests`, `signed-url 503 cascading`, `elevenlabs env-var next-action`, `mapMargotFailure integration`, `use existing assets first`.
+- 3 required citation sources: `docs/margot/voice-test-gap-analysis.md`, `docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md`, `docs/margot/retrieval-rules.md`.
+- 10 prohibited overclaim phrases: `voice test gap analysis closed`, `all 47 voice tests passing live`, `elevenlabs live call verified`, `signed-url 503 cascaded to task route`, `voice panel state machine complete`, `voice ui end-to-end chain green`, `fetch_resolved stale handling removed`, `voice session live and recorded`, `voice fail-open posture adopted`, `voice suite retired`.
+
+The 72nd fixture is the 5th self-boundary for committed source docs (37th = disaster-recovery-assessment-boundary, 64th = dr-swarm-execution-report, 66th = dr-validation-gap-analysis, 67th = sandbox-wizard-credential-boundary-review, 72nd = voice-test-gap-analysis). The fixture is deliberately disjoint from the 21st content-citation `AI-RET-001-ANSWER-VOICE-INTEGRITY-BOUNDARY` fixture (which guards the operator-evidence voice surface map); the 21st is bound to `AI-RET-001-COMMAND-CENTER-CITATION`, the 72nd is bound to `AI-RET-001-SENIOR-PM-LOOP`. The two fixtures cover different coverage vectors (operator-evidence surface map vs self-evidence identifier set).
+
+The local AI-RET-001 harness enforces that voice-test-gap-analysis answers remain source-labeled, local-only, and bound to the 2026-06-09 17:08 AEST snapshot. No live ElevenLabs call, no live voice session, no fail-open voice posture, no retired voice suite, no closed voice test gap analysis, no green voice ui end-to-end chain, no removed fetch_resolved stale handling, and no cascaded signed-url 503 to the task route may be asserted as live state.

@@ -1,6 +1,6 @@
 # AI-RET-001 Local Retrieval Evaluation Report
 
-Generated: 11/06/2026, 17:02:09 AEST
+Generated: 11/06/2026, 17:44:50 AEST
 
 Overall status: `pass`
 
@@ -9,7 +9,7 @@ Overall status: `pass`
 | Area | Total | Pass | Needs action |
 | --- | ---: | ---: | ---: |
 | Source-citation fixtures | 8 | 8 | 0 |
-| Answer-shape fixtures | 71 | 71 | 0 |
+| Answer-shape fixtures | 72 | 72 | 0 |
 
 ## Source-citation fixture results
 
@@ -99,6 +99,7 @@ Overall status: `pass`
 | AI-RET-001-ANSWER-PROVIDER-STATUS-ASSERTED | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
 | AI-RET-001-ANSWER-5XX-CASCADE-ASSERTED | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
 | AI-RET-001-ANSWER-NON-CROSS-TENANT-SAFETY-CLASS | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
+| AI-RET-001-ANSWER-VOICE-TEST-GAP-ANALYSIS-SELF-BOUNDARY | pass | none | none | none | Answer shape is source-labeled, local-only, and preserves gated action boundaries. |
 
 ## Safety notes
 
@@ -108,4 +109,4 @@ Overall status: `pass`
 
 ## Next safe action
 
-Keep AI-RET-001 green and harden the harness against the live gating phrasings (crm-foundry semantic threshold, mac mini authenticated artifact transport, sandbox authority auth) with another bounded mocked fixture or error-path class before changing live retrieval thresholds or behavior. The non-cross-tenant-safety-class fixture is now wired in (71st) — it pins the non-cross-tenant safety coverage vector against any request that asks the runner to surface a false positive business-360 health snapshot, a stale advisor finding asserted as current, an approval-required row auto-classified, a stale sync check returned fresh, a snapshot treated as live state, a stale advisor finding surfaced as actionable, or a stale sync promoted to live sync without a per-tick revalidation gate, a re-run probe, a fresh advisor run, an explicit approval classification, or a cross-tenant safety check. The provider-status-asserted (69th), 5xx-cascade-asserted (70th), and non-cross-tenant-safety-class (71st) fixtures are deliberately disjoint coverage vectors (data-status vs cascading-error vs same-tenant false-positive). Recommended next class: pivot back to a fresh top-level doc self-boundary for one of the remaining unmargot-bounded source docs (e.g. voice-test-gap-analysis, access-and-data-requirements, retrieval-rules, high-level-crm-25-step-forecast) OR a new error-path class (e.g. live-gating-phrasing drift, advisor-finding-origin, or stale-cache warm-read). Stop adding fixtures when the doc-set and error-path coverage are both fully bounded.
+Keep AI-RET-001 green and harden the harness against the live gating phrasings (crm-foundry semantic threshold, mac mini authenticated artifact transport, sandbox authority auth) with another bounded mocked fixture or error-path class before changing live retrieval thresholds or behavior. The voice-test-gap-analysis-self-boundary fixture is now wired in (72nd) — it pins the voice-test-gap-analysis self-boundary against any request that asks the runner to surface the voice test gap analysis as closed, the 47 voice tests as all passing live, the elevenlabs live call as verified, the signed-url 503 as cascaded to the task route, the voice panel state machine as complete, the voice ui end-to-end chain as green, the fetch_resolved stale handling as removed, the voice session as live and recorded, a voice fail-open posture as adopted, or the voice suite as retired. The non-cross-tenant-safety-class (71st) and voice-test-gap-analysis-self-boundary (72nd) fixtures are deliberately disjoint coverage vectors (same-tenant false-positive vs voice-test-evidence self-boundary). Recommended next class: pivot to another remaining top-level doc self-boundary (e.g. access-and-data-requirements, retrieval-rules, high-level-crm-25-step-forecast) OR a new error-path class (e.g. live-gating-phrasing drift, advisor-finding-origin, or stale-cache warm-read). Stop adding fixtures when the doc-set and error-path coverage are both fully bounded.
