@@ -424,6 +424,7 @@ export default function Home() {
   const [refineText, setRefineText] = useState("");
   const [projectMaterial, setProjectMaterial] = useState("");
   const [failures, setFailures] = useState<Record<string, string>>({});
+  const [queueNote, setQueueNote] = useState("");
   const [evidence, setEvidence] = useState<{
     verified: number;
     inference: number;
@@ -1055,6 +1056,40 @@ export default function Home() {
         >
           {running ? "Running…" : clarifying ? "Preparing questions…" : "Run"}
         </button>
+        <button
+          onClick={async () => {
+            setQueueNote("");
+            try {
+              const res = await fetch("/api/queue", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ vision }),
+              });
+              const data = await res.json().catch(() => null);
+              setQueueNote(
+                res.ok
+                  ? `Queued for your Max worker (${String(data?.visionId ?? "").slice(0, 8)}…) — it will appear in the library when done`
+                  : `Queue failed: ${data?.error ?? res.status}`,
+              );
+            } catch (error) {
+              setQueueNote(`Queue failed: ${error instanceof Error ? error.message : String(error)}`);
+            }
+          }}
+          disabled={running || vision.trim().length === 0}
+          title="Saves the vision for the local Max-plan worker (scripts/max-worker.mjs) instead of running on API credit"
+          style={{
+            padding: "10px 18px",
+            fontSize: 14,
+            background: C.panel,
+            color: vision.trim() ? C.text : C.dim,
+            border: `1px solid ${C.border}`,
+            borderRadius: 8,
+            cursor: vision.trim() ? "pointer" : "not-allowed",
+          }}
+        >
+          Queue for Max
+        </button>
+        {queueNote && <span style={{ color: C.dim, fontSize: 13 }}>{queueNote}</span>}
         {message && (
           <span style={{ color: state === "error" ? C.red : C.dim, fontSize: 13 }}>{message}</span>
         )}
