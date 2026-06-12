@@ -358,6 +358,12 @@ export default function Home() {
   const [approved, setApproved] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [provider, setProvider] = useState("");
+  const [boardResponses, setBoardResponses] = useState<
+    { name: string; seat: string; critique: string }[]
+  >([]);
+  const [boardSynthesis, setBoardSynthesis] = useState("");
+  const [boardRunning, setBoardRunning] = useState(false);
+  const [boardNote, setBoardNote] = useState("");
   const lineBuffer = useRef("");
 
   const running = state === "running";
@@ -404,6 +410,9 @@ export default function Home() {
     setApproved(false);
     setElapsed(0);
     setProvider("");
+    setBoardResponses([]);
+    setBoardSynthesis("");
+    setBoardNote("");
     lineBuffer.current = "";
 
     try {
@@ -552,6 +561,89 @@ export default function Home() {
     } else {
       const data = await res.json().catch(() => null);
       setMessage(`Approve failed: ${data?.error ?? res.status}`);
+    }
+  }
+
+  // Ask the Board (Phase 3): persona critiques streamed seat by seat.
+  // Board output is a lens, never truth — the approval gate stays with you.
+  async function askBoard() {
+    if (!specId) return;
+    setBoardRunning(true);
+    setBoardNote("");
+    setBoardResponses([]);
+    setBoardSynthesis("");
+    try {
+      const res = await fetch("/api/board", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ specId }),
+      });
+      if (!res.ok || !res.body) {
+        const data = await res.json().catch(() => null);
+        setBoardNote(`Board failed: ${data?.error ?? res.status}`);
+        return;
+      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let sep: number;
+        while ((sep = buffer.indexOf("\n\n")) >= 0) {
+          const frame = buffer.slice(0, sep);
+          buffer = buffer.slice(sep + 2);
+          const dataLine = frame.split("\n").find((l) => l.startsWith("data: "));
+          if (!dataLine) continue;
+          let event: any;
+          try {
+            event = JSON.parse(dataLine.slice(6));
+          } catch {
+            continue;
+          }
+          handleBoardEvent(event);
+        }
+      }
+    } catch (error) {
+      setBoardNote(error instanceof Error ? error.message : String(error));
+    } finally {
+      setBoardRunning(false);
+    }
+  }
+
+  function handleBoardEvent(event: any) {
+    switch (event.type) {
+      case "meta":
+        addFeed(`board convened — ${(event.seats ?? []).length} seats`);
+        break;
+      case "seat_start":
+        addFeed(`${event.name} reviewing…`);
+        break;
+      case "seat_done":
+        setBoardResponses((prev) => [
+          ...prev,
+          { name: event.name, seat: event.seat, critique: event.critique },
+        ]);
+        addFeed(`${event.name} responded`);
+        break;
+      case "seat_error":
+        addFeed(`${event.name} failed: ${event.error}`);
+        break;
+      case "synthesis":
+        setBoardSynthesis(event.text);
+        break;
+      case "done":
+        setStatusLines((prev) => ({
+          ...prev,
+          board: `${event.responded}/${event.total} seats responded`,
+        }));
+        addFeed("board adjourned — lens only, the gate is still yours");
+        break;
+      case "error":
+        setBoardNote(event.error);
+        addFeed(`board error: ${event.error}`);
+        break;
     }
   }
 
@@ -718,6 +810,85 @@ export default function Home() {
           >
             {critique}
           </pre>
+        </section>
+      )}
+
+      {state === "done" && specId && (
+        <section style={{ marginTop: 24 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+            <button
+              onClick={askBoard}
+              disabled={boardRunning}
+              style={{
+                padding: "10px 24px",
+                fontSize: 15,
+                fontWeight: 600,
+                background: boardRunning ? C.border : C.panel,
+                color: boardRunning ? C.dim : C.text,
+                border: `1px solid ${C.accent}`,
+                borderRadius: 8,
+                cursor: boardRunning ? "wait" : "pointer",
+              }}
+            >
+              {boardRunning ? "Board in session…" : "Ask the board"}
+            </button>
+            <span style={{ color: C.dim, fontSize: 13 }}>
+              Persona critiques from knowledge/board — a lens, never truth.
+            </span>
+            {boardNote && <span style={{ color: C.red, fontSize: 13 }}>{boardNote}</span>}
+          </div>
+
+          {boardResponses.map((r) => (
+            <div key={r.name} style={{ marginTop: 16 }}>
+              <h3 style={{ fontSize: 15, margin: 0 }}>
+                {r.name}{" "}
+                <span style={{ color: C.dim, fontWeight: 400, fontSize: 12.5 }}>
+                  · {r.seat} — persona critique, not the real person
+                </span>
+              </h3>
+              <pre
+                style={{
+                  marginTop: 8,
+                  padding: 14,
+                  background: C.panel,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 8,
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  fontSize: 13,
+                  lineHeight: 1.55,
+                }}
+              >
+                {r.critique}
+              </pre>
+            </div>
+          ))}
+
+          {boardSynthesis && (
+            <div style={{ marginTop: 16 }}>
+              <h3 style={{ fontSize: 15, margin: 0 }}>
+                Board synthesis{" "}
+                <span style={{ color: C.dim, fontWeight: 400, fontSize: 12.5 }}>
+                  · [INFERENCE] — persona synthesis, not fact
+                </span>
+              </h3>
+              <pre
+                style={{
+                  marginTop: 8,
+                  padding: 14,
+                  background: C.panel,
+                  border: `1px solid ${C.accent}`,
+                  borderRadius: 8,
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  fontSize: 13,
+                  lineHeight: 1.55,
+                }}
+              >
+                {boardSynthesis}
+              </pre>
+            </div>
+          )}
         </section>
       )}
 

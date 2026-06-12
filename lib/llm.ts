@@ -200,12 +200,21 @@ export function describeCritic(): CriticConfig | null {
 }
 
 export async function runCritic(spec: string): Promise<EngineResult | null> {
+  return runPersona(CRITIC_PROMPT, `Review this spec:\n\n${spec}`);
+}
+
+// One-shot non-streaming completion on the critic's provider — used for the
+// verify-loop critic and for ask-the-board persona critiques (Phase 3).
+export async function runPersona(
+  system: string,
+  user: string,
+  maxTokens = 8000,
+): Promise<EngineResult | null> {
   const config = describeCritic();
   if (!config) return null;
 
-  const user = `Review this spec:\n\n${spec}`;
   if (config.provider === "anthropic") {
-    return runAnthropic({ system: CRITIC_PROMPT, user, model: config.model, maxTokens: 8000 });
+    return runAnthropic({ system, user, model: config.model, maxTokens });
   }
   if (config.provider === "openrouter") {
     return chatCompletions({
@@ -213,9 +222,9 @@ export async function runCritic(spec: string): Promise<EngineResult | null> {
       baseUrl: process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1",
       apiKey: requireEnv("OPENROUTER_API_KEY"),
       models: [config.model],
-      system: CRITIC_PROMPT,
+      system,
       user,
-      maxTokens: 8000,
+      maxTokens,
     });
   }
   return chatCompletions({
@@ -223,9 +232,9 @@ export async function runCritic(spec: string): Promise<EngineResult | null> {
     baseUrl: process.env.MINIMAX_BASE_URL ?? "https://api.minimax.io/v1",
     apiKey: requireEnv("MINIMAX_API_KEY"),
     models: [config.model],
-    system: CRITIC_PROMPT,
+    system,
     user,
-    maxTokens: 8000,
+    maxTokens,
   });
 }
 
