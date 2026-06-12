@@ -6,9 +6,9 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/run": ["./skills/fable-engine/**"],
     // /api/board and /api/health read advisor profiles from knowledge/board/
-    // at runtime.
+    // at runtime; /api/health also lists installed skills from skills/.
     "/api/board": ["./knowledge/board/**"],
-    "/api/health": ["./knowledge/board/**"],
+    "/api/health": ["./knowledge/board/**", "./skills/**"],
   },
 };
 
