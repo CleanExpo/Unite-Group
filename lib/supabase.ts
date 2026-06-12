@@ -37,3 +37,19 @@ export async function saveRun(
 
   return { visionId: vision.id, specId: spec.id };
 }
+
+export type DatabaseStatus =
+  | { state: "ok"; savedSpecs: number }
+  | { state: "not_configured" }
+  | { state: "error"; problem: string };
+
+// Real connectivity check for the health endpoint — one cheap count query.
+export async function checkDatabase(): Promise<DatabaseStatus> {
+  const supabase = getClient();
+  if (!supabase) return { state: "not_configured" };
+  const { count, error } = await supabase
+    .from("specs")
+    .select("id", { count: "exact", head: true });
+  if (error) return { state: "error", problem: error.message };
+  return { state: "ok", savedSpecs: count ?? 0 };
+}
