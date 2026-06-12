@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { runPersona } from "./llm";
 
 // Web channel (live research): before a run, hunt for fresh sources on the
 // vision — articles, white papers/PDFs, and YouTube material — using the
@@ -9,13 +10,10 @@ import Anthropic from "@anthropic-ai/sdk";
 // Best-effort and optional: without a capable provider the channel skips
 // honestly, exactly as before.
 
-export interface WebSource {
-  title: string;
-  url: string;
-  excerpt: string;
-}
+import { parseSources, MAX_SOURCES, type WebSource } from "./sources";
 
-const MAX_SOURCES = 10;
+export { parseSources };
+export type { WebSource };
 
 export type ResearchProvider = "anthropic" | "openrouter" | null;
 
@@ -42,44 +40,67 @@ Output ONLY a numbered list, one source per line, in exactly this form:
 N. Title | URL | 1-2 sentences on what it contributes to this vision
 No preamble, no commentary, no closing remarks.`;
 
-// Parses the researcher's numbered "Title | URL | summary" lines, tolerating
-// missing pipes by falling back to any numbered line that contains a URL.
-export function parseSources(text: string): WebSource[] {
-  const sources: WebSource[] = [];
-  const seen = new Set<string>();
-  for (const line of text.split("\n")) {
-    if (!/^\s*\d+[.)]/.test(line)) continue;
-    let title: string | undefined;
-    let url: string | undefined;
-    let excerpt = "";
-    const piped = line.match(/^\s*\d+[.)]\s*(.+?)\s*\|\s*(https?:\/\/[^\s|]+)\s*\|\s*(.+)$/);
-    if (piped) {
-      [, title, url, excerpt] = piped;
-    } else {
-      url = line.match(/https?:\/\/[^\s)\]"']+/)?.[0];
-      if (!url) continue;
-      title = line
-        .replace(/^\s*\d+[.)]\s*/, "")
-        .replace(url, "")
-        .replace(/[|\\—–\-:()[\]]+/g, " ")
-        .trim();
-    }
-    url = url.replace(/[.,;)\]]+$/, "");
-    if (seen.has(url)) continue;
-    seen.add(url);
-    sources.push({ title: (title || url).trim(), url, excerpt: excerpt.trim() });
-    if (sources.length >= MAX_SOURCES) break;
+const QUERY_PROMPT = `You turn a product/build vision into search queries.
+Output the 3 search queries most likely to surface high-quality, current
+material (articles, white papers, research, expert videos) that would sharpen
+a build spec for this vision. Each query 3-8 words. Output ONLY a numbered
+list, one query per line. No commentary.`;
+
+// Short, targeted queries derived from the brief — shared by the Web channel
+// and the vault (Obsidian) FTS retrieval.
+export async function deriveQueries(vision: string): Promise<string[]> {
+  try {
+    const result = await runPersona(QUERY_PROMPT, `The vision:\n\n${vision}`, 300);
+    const queries = (result?.text ?? "")
+      .split("\n")
+      .map((line) => line.match(/^\s*\d+[.)]\s*(.+)$/)?.[1]?.trim())
+      .filter((q): q is string => Boolean(q))
+      .slice(0, 3);
+    if (queries.length > 0) return queries;
+  } catch {
+    // fall through to the raw vision
   }
-  return sources;
+  return [vision.slice(0, 300)];
 }
 
-export async function webResearch(vision: string): Promise<WebSource[]> {
+
+// Multi-round seeking ("dog with a bone"): search, look at what came back,
+// name the evidence gaps, and search again for those — up to RESEARCH_ROUNDS
+// (default 2) or until the source cap is hit.
+export async function webResearch(
+  vision: string,
+  presetQueries?: string[],
+): Promise<WebSource[]> {
   const provider = researchProvider();
   if (!provider) return [];
-  const user = `Research this vision:\n\n${vision}`;
-  const text =
-    provider === "anthropic" ? await anthropicResearch(user) : await openrouterResearch(user);
-  return parseSources(text);
+
+  const queries =
+    presetQueries && presetQueries.length > 0 ? presetQueries : await deriveQueries(vision);
+  const rounds = Math.min(4, Math.max(1, Number(process.env.RESEARCH_ROUNDS ?? 2) || 2));
+
+  const seen = new Set<string>();
+  const sources: WebSource[] = [];
+  let user = `Research this vision:\n\n${vision}\n\nStart from these search angles:\n${queries
+    .map((q, i) => `${i + 1}. ${q}`)
+    .join("\n")}`;
+
+  for (let round = 1; round <= rounds; round++) {
+    const text =
+      provider === "anthropic" ? await anthropicResearch(user) : await openrouterResearch(user);
+    for (const source of parseSources(text)) {
+      if (seen.has(source.url)) continue;
+      seen.add(source.url);
+      sources.push(source);
+    }
+    if (sources.length >= MAX_SOURCES || round === rounds) break;
+
+    user = `Vision:\n\n${vision}\n\nSources already found:\n${sources
+      .map((s) => `- ${s.title} (${s.url})`)
+      .join(
+        "\n",
+      )}\n\nName the biggest remaining evidence gaps for a build spec on this vision (market numbers, technical feasibility, competing products, real costs, expert walkthroughs) and SEARCH for sources that fill them. Do not repeat URLs already found.`;
+  }
+  return sources.slice(0, MAX_SOURCES);
 }
 
 async function anthropicResearch(user: string): Promise<string> {

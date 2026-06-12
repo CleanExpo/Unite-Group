@@ -15,6 +15,7 @@ interface Health {
   board?: { seats: string[] };
   skills?: { name: string; description: string }[];
   research?: { configured: boolean; provider: string | null };
+  critic?: { provider: string; model: string } | null;
 }
 
 const C = {
@@ -130,6 +131,13 @@ function StatusStrip() {
           health.board.seats.length > 0
             ? `Board seated: ${health.board.seats.join(", ")}`
             : "Board empty — no profiles in knowledge/board",
+        )}
+      {health.critic !== undefined &&
+        chip(
+          Boolean(health.critic),
+          health.critic
+            ? `Critic & board on ${health.critic.provider} (${health.critic.model})`
+            : "Critic off — no critic provider configured",
         )}
       {health.research &&
         chip(
@@ -595,6 +603,15 @@ export default function Home() {
         } else {
           addFeed("obsidian channel: no matching vault notes");
         }
+        break;
+      case "queries":
+        addFeed(`search angles: ${(event.queries ?? []).join(" · ")}`);
+        break;
+      case "knowledge_error":
+        addFeed(`obsidian channel failed: ${event.error}`);
+        break;
+      case "web_error":
+        addFeed(`web channel failed: ${event.error}`);
         break;
       case "web":
         if (event.count > 0) {
