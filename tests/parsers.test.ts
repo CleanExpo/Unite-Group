@@ -100,3 +100,22 @@ test("harvestSources rescues URLs from prose output", async () => {
   assert.equal(sources[1].url, "https://youtube.com/watch?v=abc");
   assert.ok(sources[0].title.length > 0);
 });
+
+test("parseFindings drops scratchpad leakage, near-duplicates, bold-inline tags", () => {
+  const critique = [
+    "1. (critical) — The spec has no hour-1 artifact; add a wireframe in phase 1.",
+    "2. I need to check if this is truly an agent-reviewing-agent loop",
+    "3. **The spec has no hour-1 artifact.** A client paying $10k expects a wireframe in the first phase.",
+    "4. **critical** — The six deployment-gate checks are never defined; add a checklist with thresholds.",
+    "5. (important) — No weekly delivery calendar exists; add per-week artifacts.",
+  ].join("\n");
+
+  const findings = parseFindings(critique);
+  // scratchpad (#2) and duplicate (#3) removed; inline bold tag (#4) parsed as critical
+  assert.equal(findings.length, 3);
+  assert.deepEqual(
+    findings.map((f) => f.priority),
+    ["critical", "critical", "important"],
+  );
+  assert.ok(findings[1].text.includes("deployment-gate"));
+});
