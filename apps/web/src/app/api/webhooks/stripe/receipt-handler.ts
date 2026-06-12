@@ -111,7 +111,7 @@ export async function handleInvoicePaymentSucceeded(
     // Resolve recipient from Stripe (apps/web has no `profiles` table — Stripe
     // is the honest source of truth here).
     const stripeClient = STRIPE_KEY
-      ? new Stripe(STRIPE_KEY, { apiVersion: '2026-04-22.dahlia' as Stripe.LatestApiVersion })
+      ? new Stripe(STRIPE_KEY, { apiVersion: '2026-05-27.dahlia' })
       : null;
 
     if (invoice.customer_email) {
@@ -199,7 +199,7 @@ export async function handleInvoicePaymentSucceeded(
     await admin.from('stripe_events').insert({
       stripe_event_id: `receipt_${invoice.id}_${Date.now()}`,
       type: 'receipt.sent',
-      api_version: invoice.api_version ?? '2026-04-22.dahlia',
+      api_version: '2026-04-22.dahlia',
       livemode: !STRIPE_KEY?.startsWith('sk_test_'),
       payload: {
         invoice_id: invoice.id,

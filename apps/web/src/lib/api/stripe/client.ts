@@ -16,7 +16,7 @@ import Stripe from 'stripe';
 
 interface StripeApiConfig {
   apiKey: string;
-  apiVersion?: Stripe.LatestApiVersion | string;
+  apiVersion?: string;
   maxRetries?: number;
   timeout?: number;
 }
@@ -32,11 +32,16 @@ export class StripeApiClient {
       // Surfacing the missing key honestly (No-Invaders: no silent fallback).
       throw new Error('Stripe not configured: STRIPE_SECRET_KEY missing');
     }
-    this.stripe = new Stripe(config.apiKey, {
-      apiVersion: (config.apiVersion ?? '2026-04-22.dahlia') as Stripe.LatestApiVersion,
+    // UserProvidedConfig.apiVersion is a plain string (accepts any version);
+    // the SDK applies its pinned default when omitted.
+    const stripeConfig: Stripe.UserProvidedConfig = {
       maxNetworkRetries: config.maxRetries ?? 3,
       timeout: config.timeout ?? 30000,
-    });
+    };
+    if (config.apiVersion) {
+      stripeConfig.apiVersion = config.apiVersion;
+    }
+    this.stripe = new Stripe(config.apiKey, stripeConfig);
   }
 
   /** Direct access to the underlying SDK if needed. */
