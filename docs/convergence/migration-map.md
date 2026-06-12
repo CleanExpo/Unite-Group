@@ -4,8 +4,11 @@
 > **migrated / rejected / obsolete / deferred** before the directory is deleted.
 > Every entry must cite the slice commit that carried it (or the reason it didn't move).
 
-Status: **OPEN** — Phase 1 (monorepo import) complete 12/06/2026; Phase 2 ports complete 12/06/2026;
-legacy app removal gated on review of DEFERRED list below.
+Status: **CLOSED** — Phase 1 (monorepo import) and Phase 2 (ports + classification of all
+139 path-groups) complete 12/06/2026. `apps/authority-legacy/` removed from the tree;
+**every deferred item's source is recoverable from git history at commit `d63a37f3`**
+(the last commit containing the legacy app). The Deferred register below is the
+work-queue for follow-up ports.
 
 ## Phase 1 record (12/06/2026)
 

@@ -1,8 +1,8 @@
 {
-  "name": "unite-group",
+  "name": "@unite-group/web",
   "version": "1.0.0",
   "private": true,
-  "description": "Unite Hub — AI-Powered CRM & Marketing Automation. Next.js 16 + Supabase PostgreSQL.",
+  "description": "Unite-Group \u2014 AI-first CRM, marketing automation and founder command centre. The product app of the Unite-Group monorepo.",
   "author": "Unite Group",
   "license": "ISC",
   "scripts": {

@@ -1,8 +1,0 @@
-{
-  "siteUrl": "https://unite-group.vercel.app",
-  "configFile": "vercel.json",
-  "framework": "nextjs",
-  "region": "syd1",
-  "status": "repo contains vercel.json; Vercel CLI/auth not linked locally yet",
-  "notes": "No VERCEL_TOKEN or ~/.vercel auth was present when this was prepared. Run `npx vercel login` or provide VERCEL_TOKEN, then `npx vercel link` and `npx vercel pull`."
-}
