@@ -1,0 +1,121 @@
+import Anthropic from "@anthropic-ai/sdk";
+import { getEnginePrompt } from "./engine-prompt";
+
+// Provider routing: the engine can run on whichever plan currently has
+// budget. Flip LLM_PROVIDER in env — no code change needed.
+//   anthropic  → first-party API (claude-opus-4-8), needs ANTHROPIC_API_KEY
+//   openrouter → OpenRouter credit as the metered bridge, needs OPENROUTER_API_KEY
+//   minimax    → MiniMax plan (also the Phase 2 critic), needs MINIMAX_API_KEY
+export type Provider = "anthropic" | "openrouter" | "minimax";
+
+export interface EngineResult {
+  text: string;
+  provider: Provider;
+  model: string;
+  usage?: unknown;
+  stopReason?: string | null;
+}
+
+export function getProvider(): Provider {
+  const p = (process.env.LLM_PROVIDER ?? "anthropic").toLowerCase();
+  if (p === "anthropic" || p === "openrouter" || p === "minimax") return p;
+  throw new Error(
+    `Unknown LLM_PROVIDER "${p}" — use anthropic, openrouter, or minimax`,
+  );
+}
+
+export async function runEngine(vision: string): Promise<EngineResult> {
+  const provider = getProvider();
+  if (provider === "anthropic") return runAnthropic(vision);
+  if (provider === "openrouter") {
+    return runChatCompletions({
+      provider,
+      baseUrl: process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1",
+      apiKey: requireEnv("OPENROUTER_API_KEY"),
+      // No default — pick a slug from openrouter.ai/models (e.g. an
+      // anthropic/claude-* model) and set OPENROUTER_MODEL explicitly.
+      model: requireEnv("OPENROUTER_MODEL"),
+      vision,
+    });
+  }
+  return runChatCompletions({
+    provider,
+    baseUrl: process.env.MINIMAX_BASE_URL ?? "https://api.minimax.io/v1",
+    apiKey: requireEnv("MINIMAX_API_KEY"),
+    model: process.env.MINIMAX_MODEL ?? "MiniMax-M2",
+    vision,
+  });
+}
+
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is not set (required for LLM_PROVIDER=${process.env.LLM_PROVIDER})`);
+  return value;
+}
+
+async function runAnthropic(vision: string): Promise<EngineResult> {
+  const client = new Anthropic();
+  const model = process.env.ANTHROPIC_MODEL ?? "claude-opus-4-8";
+  const stream = client.messages.stream({
+    model,
+    max_tokens: 64000,
+    thinking: { type: "adaptive" },
+    system: getEnginePrompt(),
+    messages: [{ role: "user", content: vision }],
+  });
+  const message = await stream.finalMessage();
+  const text = message.content
+    .filter((block): block is Anthropic.TextBlock => block.type === "text")
+    .map((block) => block.text)
+    .join("\n");
+  return {
+    text,
+    provider: "anthropic",
+    model,
+    usage: message.usage,
+    stopReason: message.stop_reason,
+  };
+}
+
+// OpenRouter and MiniMax both speak the OpenAI chat-completions wire format.
+async function runChatCompletions(opts: {
+  provider: Provider;
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+  vision: string;
+}): Promise<EngineResult> {
+  const res = await fetch(`${opts.baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${opts.apiKey}`,
+    },
+    body: JSON.stringify({
+      model: opts.model,
+      max_tokens: 32000,
+      messages: [
+        { role: "system", content: getEnginePrompt() },
+        { role: "user", content: opts.vision },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const body = (await res.text()).slice(0, 500);
+    throw new Error(`${opts.provider} API error ${res.status}: ${body}`);
+  }
+
+  const data = await res.json();
+  const text: unknown = data?.choices?.[0]?.message?.content;
+  if (typeof text !== "string" || text.length === 0) {
+    throw new Error(`${opts.provider} returned no text content`);
+  }
+  return {
+    text,
+    provider: opts.provider,
+    model: opts.model,
+    usage: data?.usage,
+    stopReason: data?.choices?.[0]?.finish_reason ?? null,
+  };
+}

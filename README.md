@@ -33,9 +33,27 @@ One page → text box → **Run** → serverless function calls Claude with the
 engine prompt → spec comes back, gets saved to Supabase, and is shown with a
 copy button.
 
-**Stack:** Next.js (App Router) · Vercel · Supabase · Anthropic API
-(`claude-opus-4-8` — switch the model string in `app/api/run/route.ts` to
-`claude-fable-5` if you want the top-tier model).
+**Stack:** Next.js (App Router) · Vercel · Supabase · switchable LLM provider
+(Anthropic API by default — set `ANTHROPIC_MODEL=claude-fable-5` if you want
+the top-tier model).
+
+### Which plan pays for what
+
+The engine runs on whichever plan has budget — set `LLM_PROVIDER` in env, no
+code change:
+
+| Surface | Provider | Plan it bills to |
+|---|---|---|
+| Phase 0 (Cowork / Claude Code) | n/a — runs in the Claude app | **Anthropic Max** subscription |
+| Deployed app, `LLM_PROVIDER=openrouter` | OpenRouter (`OPENROUTER_API_KEY` + `OPENROUTER_MODEL`) | OpenRouter credit |
+| Deployed app, `LLM_PROVIDER=minimax` | MiniMax (`MINIMAX_API_KEY`) | MiniMax plan |
+| Deployed app, `LLM_PROVIDER=anthropic` | Anthropic API (`ANTHROPIC_API_KEY`) | Anthropic API credits |
+| Phase 2 critic (planned) | MiniMax | MiniMax plan |
+
+Two constraints to know: Anthropic **Max** subscriptions cover Claude surfaces
+(Claude Code, Cowork, claude.ai) but cannot act as an API key for your own
+deployed app, and ChatGPT plans likewise don't include OpenAI API usage —
+which is why the app's metered paths are OpenRouter / MiniMax / Anthropic API.
 
 ### Run locally
 

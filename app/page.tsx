@@ -30,12 +30,13 @@ export default function Home() {
       }
       setSpec(data.spec);
       setState("done");
+      const via = data.provider ? ` · via ${data.provider} (${data.model})` : "";
       if (data.saved) {
-        setMessage(`Saved to Supabase (spec ${data.saved.specId})`);
+        setMessage(`Saved to Supabase (spec ${data.saved.specId})${via}`);
       } else if (data.saveError) {
-        setMessage(`Spec generated, but saving failed: ${data.saveError}`);
+        setMessage(`Spec generated, but saving failed: ${data.saveError}${via}`);
       } else {
-        setMessage("Spec generated (Supabase not configured — not saved)");
+        setMessage(`Spec generated (Supabase not configured — not saved)${via}`);
       }
     } catch (error) {
       setState("error");
