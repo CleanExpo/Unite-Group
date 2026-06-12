@@ -32,9 +32,14 @@ export async function runEngine(vision: string): Promise<EngineResult> {
       provider,
       baseUrl: process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1",
       apiKey: requireEnv("OPENROUTER_API_KEY"),
-      // No default — pick a slug from openrouter.ai/models (e.g. an
-      // anthropic/claude-* model) and set OPENROUTER_MODEL explicitly.
-      model: requireEnv("OPENROUTER_MODEL"),
+      // Comma-separated list of slugs from openrouter.ai/models. The first
+      // model is tried first; the rest are OpenRouter-side fallbacks (used
+      // automatically when a model is rate-limited, down, or removed —
+      // common with :free models).
+      models: requireEnv("OPENROUTER_MODEL")
+        .split(",")
+        .map((m) => m.trim())
+        .filter(Boolean),
       vision,
     });
   }
@@ -42,7 +47,7 @@ export async function runEngine(vision: string): Promise<EngineResult> {
     provider,
     baseUrl: process.env.MINIMAX_BASE_URL ?? "https://api.minimax.io/v1",
     apiKey: requireEnv("MINIMAX_API_KEY"),
-    model: process.env.MINIMAX_MODEL ?? "MiniMax-M2",
+    models: [process.env.MINIMAX_MODEL ?? "MiniMax-M2"],
     vision,
   });
 }
@@ -82,9 +87,11 @@ async function runChatCompletions(opts: {
   provider: Provider;
   baseUrl: string;
   apiKey: string;
-  model: string;
+  models: string[]; // first entry primary; extras are OpenRouter fallbacks
   vision: string;
 }): Promise<EngineResult> {
+  if (opts.models.length === 0) throw new Error(`${opts.provider}: no model configured`);
+
   const res = await fetch(`${opts.baseUrl}/chat/completions`, {
     method: "POST",
     headers: {
@@ -92,7 +99,9 @@ async function runChatCompletions(opts: {
       Authorization: `Bearer ${opts.apiKey}`,
     },
     body: JSON.stringify({
-      model: opts.model,
+      model: opts.models[0],
+      // OpenRouter model-routing fallback list; harmlessly ignored elsewhere
+      ...(opts.models.length > 1 ? { models: opts.models } : {}),
       max_tokens: 32000,
       messages: [
         { role: "system", content: getEnginePrompt() },
@@ -114,7 +123,8 @@ async function runChatCompletions(opts: {
   return {
     text,
     provider: opts.provider,
-    model: opts.model,
+    // OpenRouter reports which model actually served the request
+    model: typeof data?.model === "string" ? data.model : opts.models[0],
     usage: data?.usage,
     stopReason: data?.choices?.[0]?.finish_reason ?? null,
   };
