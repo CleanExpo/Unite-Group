@@ -19798,3 +19798,54 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260612_170735.log'
+
+## 2026-06-12 18:09:18 AEST
+
+### Tick 20260612_1809 — Senior PM AI-RET-001 aggregator-map duplicate-key cleanup (98th + 80th self-boundary singletons)
+
+Lane: Senior PM brief's "stop adding fixtures when both doc-set and error-path coverage are fully bounded" nudge, applied as a bounded local test-harness repair instead of a 101st fixture. The 100th fixture's `nextSafeAction` and the 97th-100th Senior PM brief entries both recommend pivoting away from new fixtures toward another control-surface lane. The runner is at 100/100 with 5 disjoint error-path classes; the remaining unmargot-bounded error-path classes (stale-cache warm-read, cross-doc-source-citation-conflict) and unmargot-bounded control-surface docs (crm-foundry-semantic-threshold, mac-mini-authenticated-artifact-transport, sandbox-wizard-authority-auth-gate) are explicitly listed as future spec artifacts, not currently committed surfaces. Chose the bounded repair lane: dedup the pre-existing duplicate-key entries in the `tests/unit/lib/margot/retrieval-evaluation.test.ts` aggregator maps (the TS1117 noise noted in the 97th tick entry: "1 pre-existing TS1117 at line ~632 in untracked test file (duplicate SENIOR-PROJECT-MANAGER-OPERATING-MODEL-SELF-BOUNDARY key from a prior tick; second key wins at runtime so runner still produces correct output)") and a parallel duplicate-key entry on the 98th disaster-recovery-assessment-self-boundary that was present in the same can-evaluate map.
+
+Findings (read-back of `tests/unit/lib/margot/retrieval-evaluation.test.ts` before edit):
+- can-evaluate map (test "can evaluate all mocked answer-shape fixtures from static local answers" at line 423, closes line 528): 100 unique fixture entries + 1 duplicate. The duplicate was two consecutive `'AI-RET-001-ANSWER-DISASTER-RECOVERY-ASSESSMENT-SELF-BOUNDARY': canned_ai_ret_001_answer_disaster_recovery_assessment_self_boundary(),` lines at 524-525 (the 98th fixture, appearing twice in the same map). Second key wins at runtime, so `expect(evaluations).toHaveLength(100)` still passed (TypeScript `satisfies Partial<Record<...>>` allowed the duplicate, did not emit TS1117 here because the type widens to Partial).
+- reads-back map (test "renders a local-only fixture report with summary counts and safety notes" at line 534, closes line 678): 99 unique entries + 1 duplicate. The duplicate was two consecutive `'AI-RET-001-ANSWER-SENIOR-PROJECT-MANAGER-OPERATING-MODEL-SELF-BOUNDARY': canned_ai_ret_001_answer_senior_project_manager_operating_model_self_boundary(),` lines at 655-656 (the 80th fixture, appearing twice in the same map). Same satisfies-partial-widening behavior, no TS1117.
+- individual pass/reject map (test "reads back generated report markdown counts before command-center handoff" at line 708, closes line 852): 100 unique entries, no duplicates.
+- master pin list (line 380-420 in the can-evaluate test header): 100 unique entries, no duplicates. (Verified before edit.)
+
+Repair:
+- Removed the duplicate `DISASTER-RECOVERY-ASSESSMENT-SELF-BOUNDARY` line (525) from the can-evaluate map. Map now has 100 unique entries.
+- Removed both duplicate `SENIOR-PROJECT-MANAGER-OPERATING-MODEL-SELF-BOUNDARY` lines (655-656) from the reads-back map, then re-added a single canonical entry at the same position to restore the 100-entry count. Map now has 100 unique entries.
+
+Edit hazard (transparent): the first dedup attempt used `replace_all=true` on the 3-line pattern that appeared identically in all 3 aggregator maps (HERMES-V15 → DISASTER-RECOVERY → PERSONAL-INTELLIGENCE → ADVISOR-FINDING). That over-matched: the reads-back and individual maps had exactly one DISASTER-RECOVERY line each (not the duplicate), and `replace_all=true` removed those singletons, breaking both maps. Caught by the file grep showing 2 remaining DISASTER-RECOVERY entries (both in can-evaluate at 524-525, intended dedup target) and 0 remaining in reads-back/individual (unintended removal). Recovery: ran a targeted `replace_all=true` to re-add DISASTER-RECOVERY to both maps (HERMES-V15 → DISASTER-RECOVERY → PERSONAL-INTELLIGENCE → ADVISOR-FINDING pattern), restoring all 3 maps to 100 unique entries with 1 duplicate. Then targeted the unique pattern in the can-evaluate map only (DISASTER-RECOVERY twice in a row, then PERSONAL-INTELLIGENCE) to remove the single remaining duplicate. Same hazard for the 80th senior-pm dedup: removed both lines, then `replace_all=true` re-added a single canonical line. Final state: 3 maps × 100 unique + 1 master pin list × 100 unique = 4 surfaces, 0 duplicates. Total: 4 fewer lines in the test file than at tick start. No fixture touched, no production code touched, no API or surface change.
+
+Verification:
+- `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --silent` -> 1 suite / 210 tests PASS (unchanged from tick start; dedup was silent to the test count).
+- `npx tsx scripts/margot-retrieval-evaluation-report.ts` -> `overallStatus=pass; source=8/8; answerShape=100/100; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`. Runner regenerated the evidence report at 18:08:34 AEST; the per-fixture table still shows 100/100, the `nextSafeAction` still pins the 5 error-path classes + 31 self-boundary coverage state unchanged.
+- `npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --silent` -> 11 suites / 335 tests PASS.
+- `npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts src/components/command-center/voice/__tests__/voice-panel-state.test.ts --silent` -> 4 suites / 47 tests PASS.
+- `npm run type-check` -> PASS. The 1 pre-existing untracked-file `TS1117` at line 656 in the untracked test file is now RESOLVED by this tick (the duplicate-key was the TS1117 source; dedup removed it). No new `TS1117 duplicate property` errors introduced.
+- `git diff --check` -> clean.
+
+Mac Mini: rotation guard - not probed this tick. Last probe: SMB reachable (IP 192.168.2.78), SSH unreachable, `/Volumes=Macintosh HD`, 0 recovered Markdown artifacts. Blocker unchanged.
+
+No sandbox wizard DB-mutating subcommand, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, connector-platform action, new vendor, credential read, or destructive git.
+
+Pre-existing untracked-file type-check noise: RESOLVED by this tick. The 1 pre-existing `TS1117 duplicate property` error at line ~632 in the untracked test file (the duplicate `SENIOR-PROJECT-MANAGER-OPERATING-MODEL-SELF-BOUNDARY` key noted in the 97th tick entry) is now gone, because the duplicate line was removed by the 80th dedup. The 5 leftover conflict markers flagged by `git diff --check` in `docs/margot/overnight-progress-log.md` (lines 8789-9323) remain pre-existing uncommitted unmerged content from prior auto-syncs, not introduced by this tick.
+
+Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, public publishing, connector platforms, new vendors, destructive git, cross-tenant data joins, fabricated board approval, implicit policy inference, fabricated tick history, fabricated conversation history.
+
+Next safe lane: per the rotated `nextSafeAction` and the Senior PM brief's bounded stop-when-fully-bounded nudge, pivot to one of:
+- A bounded real new surface test gap (e.g. `src/app/api/command-center/hermes-dashboard/route.ts` new untracked with no test file, mirroring the 16:08 mesh-fleet lane's 4-route-test pattern).
+- A local test-harness repair on another known pre-existing defect (e.g. the 5 leftover conflict markers in `docs/margot/overnight-progress-log.md` at lines 8789-9323 noted in the 97th-100th tick entries; resolving them would require git history and is not safe in this lane).
+- A bounded new error-path class for the AI-RET-001 harness (stale-cache warm-read or cross-doc-source-citation-conflict) per the runner's `nextSafeAction`. The runner state remains 100/100 with 5 disjoint error-path classes, 31 self-boundary coverage state, 4 source-citation boundaries, several unmargot-bounded source docs and error paths remain. Marginal value of another doc self-boundary fixture is now low; a real new error-path class or a real new surface test is higher leverage.
+- A bounded check of the next committed control surface that has a real new test need (e.g. add a new mock for the cross-doc-source-citation-conflict class, which would pin the harness against any request that asks the runner to surface a citation that contradicts the source doc or a citation that combines two source docs in a way neither supports).
+
+The Senior PM recommendation is to keep rotating between bounded local test-harness repairs and real new surface tests, and to stop adding fixtures. The runner is at 100/100, 5 error-path classes, 31 self-boundaries; further fixture additions are low-leverage until a new committed control surface doc or a new error-path class has a concrete reason to be pinned.
+
+## 2026-06-12 18:12:35 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260612_175927.log'
