@@ -82,6 +82,9 @@ Rules:
   per line, each in exactly this form:
   N. (critical|important|nice-to-have) — the finding and the concrete change
   this advisor would make.
+- Output ONLY the final findings. Never include your reasoning process,
+  notes-to-self, checklists you are working through, or draft versions of a
+  finding. Each point appears exactly once.
 - Tag factual claims [VERIFIED] / [INFERENCE] / [UNCONFIRMED].
 - No preamble, no flattery, no closing summary.`;
 }
