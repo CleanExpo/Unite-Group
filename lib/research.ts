@@ -1,9 +1,13 @@
-import { runPersona } from "./llm";
+import Anthropic from "@anthropic-ai/sdk";
 
 // Web channel (live research): before a run, hunt for fresh sources on the
-// vision — articles, white papers/PDFs, and YouTube material — via the
-// Tavily search API. Best-effort and optional: without TAVILY_API_KEY the
-// channel skips exactly as before.
+// vision — articles, white papers/PDFs, and YouTube material — using the
+// web-search capability of the LLM provider already configured. No extra
+// service or key needed:
+//   anthropic  → native web_search server tool
+//   openrouter → built-in web plugin (Exa) on the existing key
+// Best-effort and optional: without a capable provider the channel skips
+// honestly, exactly as before.
 
 export interface WebSource {
   title: string;
@@ -12,86 +16,120 @@ export interface WebSource {
 }
 
 const MAX_SOURCES = 10;
-const EXCERPT_CHARS = 2000;
+
+export type ResearchProvider = "anthropic" | "openrouter" | null;
+
+export function researchProvider(): ResearchProvider {
+  const preferred = (process.env.LLM_PROVIDER ?? "").toLowerCase();
+  if (preferred === "anthropic" && process.env.ANTHROPIC_API_KEY) return "anthropic";
+  if (preferred === "openrouter" && process.env.OPENROUTER_API_KEY) return "openrouter";
+  if (process.env.ANTHROPIC_API_KEY) return "anthropic";
+  if (process.env.OPENROUTER_API_KEY) return "openrouter";
+  return null;
+}
 
 export function researchConfigured(): boolean {
-  return Boolean(process.env.TAVILY_API_KEY);
+  return researchProvider() !== null;
 }
 
-const QUERY_PROMPT = `You turn a product/build vision into web search queries.
-Output the 3 search queries most likely to surface high-quality, current
-material (articles, white papers, research, expert videos) that would sharpen
-a build spec for this vision. Each query 3-8 words. Output ONLY a numbered
-list, one query per line. No commentary.`;
+const RESEARCH_PROMPT = `You are the Web channel researcher for The Fable
+System. Search the web for the 5-10 most valuable, current sources on the
+vision you are given — articles, white papers, research documents, and
+YouTube videos. Prefer recent, authoritative, and diverse sources; include
+at least one video if a relevant one exists.
 
-async function deriveQueries(vision: string): Promise<string[]> {
-  try {
-    const result = await runPersona(QUERY_PROMPT, `The vision:\n\n${vision}`, 300);
-    const queries = (result?.text ?? "")
-      .split("\n")
-      .map((line) => line.match(/^\s*\d+[.)]\s*(.+)$/)?.[1]?.trim())
-      .filter((q): q is string => Boolean(q))
-      .slice(0, 3);
-    if (queries.length > 0) return queries;
-  } catch {
-    // fall through to the raw vision
+Output ONLY a numbered list, one source per line, in exactly this form:
+N. Title | URL | 1-2 sentences on what it contributes to this vision
+No preamble, no commentary, no closing remarks.`;
+
+// Parses the researcher's numbered "Title | URL | summary" lines, tolerating
+// missing pipes by falling back to any numbered line that contains a URL.
+export function parseSources(text: string): WebSource[] {
+  const sources: WebSource[] = [];
+  const seen = new Set<string>();
+  for (const line of text.split("\n")) {
+    if (!/^\s*\d+[.)]/.test(line)) continue;
+    let title: string | undefined;
+    let url: string | undefined;
+    let excerpt = "";
+    const piped = line.match(/^\s*\d+[.)]\s*(.+?)\s*\|\s*(https?:\/\/[^\s|]+)\s*\|\s*(.+)$/);
+    if (piped) {
+      [, title, url, excerpt] = piped;
+    } else {
+      url = line.match(/https?:\/\/[^\s)\]"']+/)?.[0];
+      if (!url) continue;
+      title = line
+        .replace(/^\s*\d+[.)]\s*/, "")
+        .replace(url, "")
+        .replace(/[|\\—–\-:()[\]]+/g, " ")
+        .trim();
+    }
+    url = url.replace(/[.,;)\]]+$/, "");
+    if (seen.has(url)) continue;
+    seen.add(url);
+    sources.push({ title: (title || url).trim(), url, excerpt: excerpt.trim() });
+    if (sources.length >= MAX_SOURCES) break;
   }
-  return [vision.slice(0, 300)];
-}
-
-interface TavilyResult {
-  title?: string;
-  url?: string;
-  content?: string;
-}
-
-async function tavilySearch(
-  query: string,
-  maxResults: number,
-  includeDomains?: string[],
-): Promise<TavilyResult[]> {
-  const res = await fetch("https://api.tavily.com/search", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      api_key: process.env.TAVILY_API_KEY,
-      query,
-      max_results: maxResults,
-      search_depth: "basic",
-      include_answer: false,
-      ...(includeDomains ? { include_domains: includeDomains } : {}),
-    }),
-  });
-  if (!res.ok) throw new Error(`tavily ${res.status}`);
-  const data = await res.json();
-  return Array.isArray(data?.results) ? data.results : [];
+  return sources;
 }
 
 export async function webResearch(vision: string): Promise<WebSource[]> {
-  if (!researchConfigured()) return [];
+  const provider = researchProvider();
+  if (!provider) return [];
+  const user = `Research this vision:\n\n${vision}`;
+  const text =
+    provider === "anthropic" ? await anthropicResearch(user) : await openrouterResearch(user);
+  return parseSources(text);
+}
 
-  const queries = await deriveQueries(vision);
-  const searches = [
-    ...queries.map((q) => tavilySearch(q, 4)),
-    // dedicated video sweep on the strongest query
-    tavilySearch(queries[0], 3, ["youtube.com"]),
-  ];
-  const settled = await Promise.allSettled(searches);
+async function anthropicResearch(user: string): Promise<string> {
+  const client = new Anthropic();
+  const message = await client.messages.create({
+    model: process.env.RESEARCH_MODEL ?? process.env.ANTHROPIC_MODEL ?? "claude-opus-4-8",
+    max_tokens: 2000,
+    system: RESEARCH_PROMPT,
+    messages: [{ role: "user", content: user }],
+    tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 4 }],
+  });
+  return message.content
+    .filter((block): block is Anthropic.TextBlock => block.type === "text")
+    .map((block) => block.text)
+    .join("\n");
+}
 
-  const seen = new Set<string>();
-  const sources: WebSource[] = [];
-  for (const outcome of settled) {
-    if (outcome.status !== "fulfilled") continue;
-    for (const r of outcome.value) {
-      if (!r.url || seen.has(r.url)) continue;
-      seen.add(r.url);
-      sources.push({
-        title: r.title?.trim() || r.url,
-        url: r.url,
-        excerpt: (r.content ?? "").slice(0, EXCERPT_CHARS),
-      });
-      if (sources.length >= MAX_SOURCES) return sources;
-    }
+async function openrouterResearch(user: string): Promise<string> {
+  const models = (process.env.OPENROUTER_MODEL ?? "")
+    .split(",")
+    .map((m) => m.trim())
+    .filter(Boolean);
+  const model = process.env.RESEARCH_MODEL ?? models[0];
+  if (!model) throw new Error("OPENROUTER_MODEL is not set");
+
+  const res = await fetch(
+    `${process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1"}/chat/completions`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model,
+        // OpenRouter's web plugin grounds the call with live search results.
+        plugins: [{ id: "web", max_results: 5 }],
+        max_tokens: 2000,
+        messages: [
+          { role: "system", content: RESEARCH_PROMPT },
+          { role: "user", content: user },
+        ],
+      }),
+    },
+  );
+  if (!res.ok) {
+    const body = (await res.text()).slice(0, 300);
+    throw new Error(`openrouter research ${res.status}: ${body}`);
   }
-  return sources;
+  const data = await res.json();
+  const text: unknown = data?.choices?.[0]?.message?.content;
+  return typeof text === "string" ? text : "";
 }

@@ -54,3 +54,22 @@ test("extractClaims caps runaway specs", () => {
   const spec = Array.from({ length: 500 }, (_, i) => `- Claim ${i} [VERIFIED]`).join("\n");
   assert.equal(extractClaims(spec).length, 200);
 });
+
+test("parseSources reads piped researcher output and dedupes", async () => {
+  const { parseSources } = await import("../lib/research.ts");
+  const text = [
+    "1. AI Spec Writing in 2026 | https://example.com/spec-writing | Survey of current practice.",
+    "2. Deep dive video | https://youtube.com/watch?v=xyz | 40-min walkthrough.",
+    "3. AI Spec Writing in 2026 | https://example.com/spec-writing | duplicate URL is dropped",
+    "Some commentary the model was told not to write",
+    "4. Bare line with https://example.com/whitepaper.pdf trailing words",
+  ].join("\n");
+
+  const sources = parseSources(text);
+  assert.equal(sources.length, 3);
+  assert.equal(sources[0].title, "AI Spec Writing in 2026");
+  assert.equal(sources[0].url, "https://example.com/spec-writing");
+  assert.equal(sources[1].url, "https://youtube.com/watch?v=xyz");
+  assert.equal(sources[2].url, "https://example.com/whitepaper.pdf");
+  assert.ok(sources[2].title.length > 0);
+});

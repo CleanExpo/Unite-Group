@@ -4,7 +4,7 @@ import { checkDatabase } from "@/lib/supabase";
 import { knowledgeCount, knowledgeSourceRepo } from "@/lib/knowledge";
 import { loadBoardSeats } from "@/lib/board";
 import { loadSkills } from "@/lib/skills";
-import { researchConfigured } from "@/lib/research";
+import { researchConfigured, researchProvider } from "@/lib/research";
 
 // Plain-language system check: is the engine configured, is the database
 // connected, how many vault notes are ingested, who sits on the board,
@@ -23,7 +23,7 @@ export async function GET() {
   };
   const board = { seats: loadBoardSeats().map((seat) => seat.name) };
   const skills = loadSkills();
-  const research = { configured: researchConfigured() };
+  const research = { configured: researchConfigured(), provider: researchProvider() };
   return NextResponse.json(
     { engine, database, knowledge, board, skills, research },
     { headers: { "Cache-Control": "no-store" } },
