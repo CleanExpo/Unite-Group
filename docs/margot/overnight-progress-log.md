@@ -19733,3 +19733,59 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260612_155121.log'
+
+## 2026-06-12 16:08:00 AEST
+
+### Tick 20260612_1608 — Senior PM Mesh Fleet Read-Surface Test Gap Closure (read-fleet lib + api/mesh/fleet route, real new surface)
+
+Lane: Senior PM Preferred-Safe-Lane #1 (add route/page-level read-surface tests only when that surface changes). Picked the real new untracked surfaces: `src/lib/mesh/read-fleet.ts` (server-only reader for the Nexus Mesh fleet snapshot from the Pi-CEO Railway API) and `src/app/api/mesh/fleet/route.ts` (admin-gated poll proxy that wraps it). Both were untracked, with NO test files. Pinned 12 read-surface properties that the missing test files did not yet cover.
+
+Completed safe Senior PM lane: closed 12 coverage gaps on the new mesh fleet read surface with focused TDD red-then-green tests.
+
+Coverage gaps closed:
+
+For `src/lib/mesh/read-fleet.ts` (8 tests in `tests/unit/lib/mesh/read-fleet.test.ts`):
+1. `returns a populated Fleet with machines, agents, ships, and claims from a 200 upstream` — pins the happy-path read shape: all four arrays populated, `ok=true`, no `error`, fresh `fetchedAt` ISO timestamp.
+2. `returns ok=false with a pi-ceo <status> error message on a non-OK upstream` — pins that a 503 upstream returns `{ ok: false, error: 'pi-ceo 503' }` and the four arrays are emptied (not undefined).
+3. `returns ok=false with the thrown error message when fetch itself throws (network failure)` — pins that a fetch-thrown Error propagates its `message` to `error` and the four arrays empty.
+4. `strips a trailing slash from PI_CEO_API_URL so the path is /api/mesh/fleet (not //api/mesh/fleet)` — pins the regex trim that prevents double-slash in the request URL.
+5. `sends PI_CEO_API_KEY as the literal X-Pi-CEO-Secret header value (server-side auth, never exposed to the browser)` — pins that the secret flows through verbatim into the `X-Pi-CEO-Secret` header AND does not appear in the URL or body (so a downstream leak path is bounded).
+6. `uses cache: no-store on the outbound request so the read is always live (no stale-while-revalidate)` — pins the `cache: 'no-store'` init option.
+7. `always returns a fresh ISO fetchedAt timestamp even when the upstream body is empty (never returns undefined)` — pins the local-clock `fetchedAt` is set to a valid ISO between before/after markers, not the upstream's empty body.
+8. `defaults missing machines/agents/ships/claims to empty arrays (never undefined) so the Mission Control card renders zero counts` — pins the `?? []` defaults so a partial upstream body never produces `undefined` in the read model.
+
+For `src/app/api/mesh/fleet/route.ts` (4 tests in `tests/integration/api/mesh-fleet.test.ts`):
+9. `returns 401 with { error: "forbidden" } when checkAdminSession reports an anonymous caller (no Supabase session)` — pins the 401 path AND that `readFleet` is NOT called when the admin gate is closed.
+10. `returns 401 with { error: "forbidden" } when checkAdminSession reports a forbidden caller (logged in but not on the allow-list)` — pins that the route intentionally NARROWS the 401/403 distinction in the shared `requireAdmin` helper down to 401 `{ error: 'forbidden' }` for both anonymous and forbidden reasons (a deliberate contract, not a bug). The route still skips `readFleet` on the closed gate.
+11. `passes the readFleet result through unchanged when checkAdminSession returns an ok session` — pins the open-gate pass-through: the body is the literal `readFleet()` return value, no rewriting.
+12. `forwards a degraded readFleet result (ok=false with error) to the browser unchanged so the dashboard can render a degraded card` — pins that the route does NOT auto-rewrite `ok=false` into an HTTP error; the wrapper renders the degraded card from the body.
+
+Red-then-green pass: 1 red finding on the first draft of the `X-Pi-CEO-Secret` test — the test was setting `process.env.PI_CEO_API_KEY` inside the test body, but the lib reads it at module-load time, not at call time. The first run reported `Expected: "super-secret-shhh"`, `Received: "test-pi-ceo-secret"` (the beforeEach sentinel). Fixed by (a) setting the expected value in a `const expectedSecret` local so the assertion is bound to the same env mutation, (b) calling `jest.resetModules()` before the dynamic import so the module-level const picks up the new env, and (c) adding a negative-assertion that the secret does NOT appear in the URL (defense-in-depth against a future leak path). Second run: all 8 lib tests green, plus 4/4 route tests green on first run.
+
+Files changed: `tests/unit/lib/mesh/read-fleet.test.ts` (new file, 191 lines: 8 tests + 2 helpers + 2 hooks), `tests/integration/api/mesh-fleet.test.ts` (new file, 84 lines: 4 tests + 2 jest.mock declarations + 1 beforeEach). No production code touched. No gate behavior changed. No existing test changed. No new dependencies. `server-only` is mocked via `jest.mock('server-only', () => ({}), { virtual: true })` in both files (the package is a Next.js virtual marker not installed as a direct dep; the virtual mock is the standard Next.js + jest pattern).
+
+Verification: focused mesh lib gate `npx jest tests/unit/lib/mesh/read-fleet.test.ts --runInBand` -> 1 suite / 8 tests PASS. Focused mesh route gate `npx jest tests/integration/api/mesh-fleet.test.ts --runInBand` -> 1 suite / 4 tests PASS. Combined CRM + Margot + runtime + credential-boundary + voice + security + mesh gate `npx jest tests/unit/lib/security/ tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/lib/mesh/ tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts tests/integration/api/margot-voice-task.test.ts tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/mesh-fleet.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts src/components/command-center/voice/__tests__/voice-panel-state.test.ts --silent` -> 18 suites / 406 tests PASS (was 16 suites / 394 tests before this lane; +2 suites +12 tests). Full project suite `npx jest --silent` -> 152 suites pass + 1 pre-existing `empire-health.test.ts:199` failure + 1 skipped (verified pre-existing via `git stash` + re-run: failure reproduces on stashed worktree, then stash popped). AI-RET-001 runner `overallStatus=pass; source=8/8; answerShape=99/99; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true` (unchanged from prior tick; no fixture touched; only `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` regenerated by the runner). `npm run type-check` PASS (the 2 LSP diagnostics on `@/lib/mesh/read-fleet` and `@/app/api/mesh/fleet/route` are the pre-existing project-wide `@/` path alias limitation; jest resolves them via tsconfig-paths; not introduced by this tick). `npm run security:routes-check` -> 0 unprotected mutating routes. `git diff --check` clean for the new files.
+
+Mac Mini: rotation guard - not probed this tick. Last probe: SMB reachable (IP 192.168.2.78), SSH unreachable, `/Volumes=Macintosh HD`, 0 recovered Markdown artifacts. Blocker unchanged.
+
+No sandbox wizard DB-mutating subcommand, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, connector-platform action, new vendor, credential read, or destructive git.
+
+Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, public publishing, connector platforms, new vendors, destructive git, cross-tenant data joins, fabricated board approval, implicit policy inference, fabricated tick history, fabricated conversation history.
+
+Next safe lane: per the Senior PM brief's Preferred Safe Lanes rotation guard, pivot to another surface-change-triggered test gap. Candidates:
+- `src/lib/crm/digest-read-error.ts` new untracked file with new test (`digest-read-error.test.ts` untracked) — last lane covered 8 crm surface tests; this one is the missing-pair.
+- `src/components/command-center/voice/voice-panel-state.ts` new untracked with 12 tests (already in the combined gate; could be hardened with error-path tests).
+- `src/app/api/command-center/hermes-dashboard/route.ts` new untracked with no test file (the hermes-dashboard route is in the same read-surface pattern as the mesh-fleet route; could mirror the 4-test route pattern).
+- A bounded new error-path class for the AI-RET-001 harness (live-gating-phrasing drift, advisor-finding-origin, stale-cache warm-read, or cross-doc-source-citation-conflict) per the runner's `nextSafeAction`.
+- A bounded check of the next committed control surface that has a real new test need.
+
+OR: the runner's `nextSafeAction` explicitly recommends "stop adding fixtures when both the doc-set and error-path coverage are fully bounded" — current state is "30+ self-boundaries + 4 source-citation boundaries, error-path coverage has 4 disjoint classes, several unmargot-bounded source docs and error paths remain". The marginal value of another doc self-boundary fixture is now low; a real new error-path class or a real surface test is higher leverage (this lane is the 2nd surface-test lane in a row, mirroring the 15:56 crm-lead-integration-gate lane's pattern).
+
+## 2026-06-12 16:37:35 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260612_162738.log'
