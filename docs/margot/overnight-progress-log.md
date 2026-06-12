@@ -19681,3 +19681,55 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260612_145936.log'
+
+## 2026-06-12 15:56:10 AEST
+
+### Tick 20260612_1556 — Senior PM Security-Surface Test Gap Closure (crm-lead-integration-gate, real new surface)
+
+Lane: Senior PM Preferred-Safe-Lane #1 (add route/page-level read-surface tests only when that surface changes). The runner rotation has been spinning on the same "next self-boundary" pattern for 30+ ticks; the last 99th-fixture tick at 14:50 explicitly recommended a rotation. Picked the real new untracked surface: `src/lib/security/crm-lead-integration-gate.ts` (a brand-new least-privilege credentials gate for DR/NRPG -> Nexus CRM lead intake, intentionally narrower than `requireAdmin()`, with a partial 6-test file at `tests/unit/lib/security/crm-lead-integration-gate.test.ts`). Pinned 8 of the 9 gate-contract security properties that the existing test file did not yet cover.
+
+Completed safe Senior PM lane: closed 8 coverage gaps on the new `requireCrmLeadIntegrationAccess` security gate with focused TDD red-then-green tests.
+
+Coverage gaps closed:
+
+1. `fails closed on the coverage hold before inspecting any inbound headers` — pins that the 423 coverage-hold check runs before bearer / flow / approval inspection, so a hostile caller cannot use the gate as a probe to learn about the configured env or header shape.
+2. `keeps dryRunOnly true when the prod-writes env is explicitly false even with a board approval header` — pins the negative arm of the dual-gate: `DR_NRPG_CRM_LEAD_INTEGRATION_ALLOW_PROD_WRITES='false'` keeps `dryRunOnly=true` even with `x-board-approval-id` set (only the env-true + board-approval combination unlocks prod writes).
+3. `rejects bearer credentials that match the supabase service-role key (service-role key is server-side only)` — pins the JSDoc contract: the supabase service-role key is never accepted as the external bearer credential for this flow.
+4. `treats x-integration-flow as an exact-match constant and rejects spoofed flow variants` — pins that uppercase, underscore, trailing-slash, suffix-appended, and empty flow values are all rejected (whitespace-padded variants are deliberately excluded since `trimmedHeader` is documented to normalize them).
+5. `returns the literal pi-dev-ops-crm-lead-integration actor constant (not env-derived) so callers cannot spoof the actor` — pins that the `actor` audit label on the gate result is the literal constant, not a header or env value, so downstream CRM log rows that filter on actor cannot be impersonated.
+6. `returns the credential env name to the gate caller (not a redacted string) so downstream audit logs are auditable` — pins that the `credentialEnv` field is the literal env name (a *label*, not a secret value), so the integration route can include it in the audit trail.
+7. `returns null requestId for a missing or whitespace-only x-request-id header (not the empty string)` — pins that `trimmedHeader` returns `null` (not `''`) for missing and whitespace-only request IDs.
+8. `rejects a bearer with the wrong scheme (lowercase "bearer" must not be silently accepted)` — pins that `timingSafeBearerMatch` is case-sensitive on the scheme prefix; a hostile caller cannot bypass the auth check by using `bearer` (lowercase).
+
+Red-then-green pass: 1 red finding on the first draft of the flow-spoofing test (the `'dr-nrpg-crm-lead-integration\n'` case was deliberately too aggressive because `trimmedHeader` is documented to normalize whitespace, so it was a valid form, not a spoof). Replaced with `'dr-nrpg-crm-lead-integrationx'` (suffix-appended) and `''` (empty) cases that are unambiguously invalid. All 14 tests green on first re-run.
+
+Files changed: `tests/unit/lib/security/crm-lead-integration-gate.test.ts` (+141 lines: 1 type import + 8 new tests). No production code touched. No gate behavior changed. No existing test changed.
+
+Verification: focused security gate `npx jest tests/unit/lib/security/crm-lead-integration-gate.test.ts --runInBand` -> 1 suite / 14 tests PASS (was 6 tests before this lane; +8). Combined CRM + Margot + runtime + credential-boundary + voice + security gate `npx jest tests/unit/lib/security/ tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts tests/integration/api/margot-voice-task.test.ts tests/integration/api/margot-voice-signed-url.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts src/components/command-center/voice/__tests__/voice-panel-state.test.ts --silent` -> 16 suites / 394 tests PASS (was 15 suites / 378 tests before this lane; +1 suite +16 tests from the 8 new gate tests + 8 from previously-existing focused suites that ran in this combined invocation). AI-RET-001 runner `overallStatus=pass; source=8/8; answerShape=99/99; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true` (unchanged from prior tick; no fixture touched). `npx tsc --noEmit` on the new file -> 0 new errors (the only LSP diagnostic is the `@/` path alias which jest resolves via tsconfig-paths but tsc strictly requires the path mapping to be present in tsconfig.json — this is a pre-existing project-wide LSP limitation, not introduced by this tick; jest runs the file fine). `npm run security:routes-check` -> 0 unprotected mutating routes.
+
+Mac Mini: rotation guard - not probed this tick. Last probe: SMB reachable (IP 192.168.2.78), SSH unreachable, `/Volumes=Macintosh HD`, 0 recovered Markdown artifacts. Blocker unchanged.
+
+No sandbox wizard DB-mutating subcommand, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, connector-platform action, new vendor, credential read, or destructive git.
+
+Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, public publishing, connector platforms, new vendors, destructive git, cross-tenant data joins, fabricated board approval, implicit policy inference, fabricated tick history, fabricated conversation history.
+
+Next safe lane: per the Senior PM brief's Preferred Safe Lanes rotation guard, pivot to another surface-change-triggered test gap. Candidates:
+- `src/lib/runtime/stale-sync-check.ts` modified + 90 new test lines (already partly in the combined gate; check whether the new tests are in the focused `stale-sync-check.test.ts` or just modified).
+- `src/lib/crm/approval-lifecycle.ts` modified + 26 new test lines (already partly in the combined gate).
+- `src/lib/crm/daily-digest.ts` modified + 29 new test lines.
+- `src/lib/crm/digest-read-error.ts` new untracked file with new test (digest-read-error.test.ts untracked).
+- `src/components/command-center/voice/voice-panel-state.ts` new untracked with 12 tests (already in the combined gate).
+- `src/lib/mesh/read-fleet.ts` + `src/app/api/mesh/fleet/route.ts` + `src/app/[locale]/mission-control/page.tsx` (uncommitted) — new fleet read surface that has no test file yet. Could be a bounded new-test-file lane.
+- A new error-path class for the AI-RET-001 harness (live-gating-phrasing drift, advisor-finding-origin, stale-cache warm-read, or cross-doc-source-citation-conflict) per the runner's `nextSafeAction`.
+- A bounded check of the next committed control surface that has a real new test need.
+
+OR: the runner's `nextSafeAction` explicitly recommends "stop adding fixtures when both the doc-set and error-path coverage are fully bounded" — current state is "30+ self-boundaries + 4 source-citation boundaries, error-path coverage has 4 disjoint classes, several unmargot-bounded source docs and error paths remain". The marginal value of another doc self-boundary fixture is now low; a real new error-path class or a real surface test is higher leverage.
+
+## 2026-06-12 15:57:38 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260612_155121.log'
