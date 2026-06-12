@@ -46,7 +46,7 @@ const APP_CSP = [
 ].join('; ')
 
 const THEME_STORAGE_KEY = 'claude-theme'
-const DEFAULT_THEME = 'claude-nous'
+const DEFAULT_THEME = 'unite'
 const VALID_THEMES = [
   'claude-nous',
   'claude-nous-light',
@@ -56,6 +56,9 @@ const VALID_THEMES = [
   'claude-classic-light',
   'claude-slate',
   'claude-slate-light',
+  'matrix',
+  'matrix-light',
+  'unite',
 ]
 
 const themeScript = `
@@ -66,7 +69,7 @@ const themeScript = `
     const root = document.documentElement
     const storedTheme = localStorage.getItem('${THEME_STORAGE_KEY}')
     const theme = ${JSON.stringify(VALID_THEMES)}.includes(storedTheme) ? storedTheme : '${DEFAULT_THEME}'
-    const lightThemes = ['claude-nous-light', 'claude-official-light', 'claude-classic-light', 'claude-slate-light']
+    const lightThemes = ['claude-nous-light', 'claude-official-light', 'claude-classic-light', 'claude-slate-light', 'matrix-light']
     const isDark = !lightThemes.includes(theme)
     root.classList.remove('light', 'dark', 'system')
     root.classList.add(isDark ? 'dark' : 'light')
@@ -97,9 +100,12 @@ const themeColorScript = `
       'claude-classic-light': '#F5F2ED',
       'claude-slate': '#0d1117',
       'claude-slate-light': '#F6F8FA',
+      'matrix': '#020804',
+      'matrix-light': '#F4FFF6',
+      'unite': '#050505',
     }
     const nextColor = colors[theme] || colors['${DEFAULT_THEME}']
-    const isDark = !['claude-nous-light', 'claude-official-light', 'claude-classic-light', 'claude-slate-light'].includes(String(theme))
+    const isDark = !['claude-nous-light', 'claude-official-light', 'claude-classic-light', 'claude-slate-light', 'matrix-light'].includes(String(theme))
 
     let meta = document.querySelector('meta[name="theme-color"]')
     if (!meta) {
@@ -420,10 +426,15 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             __html: wrapInlineScript(`
           (function(){
             if (document.getElementById('splash-screen')) return;
-            var bg = '#031A1A', txt = '#F8F1E3', muted = '#9CB2AE', accent = '#FFAC02';
+            var bg = '#050505', txt = '#E8E8E8', muted = 'rgba(232,232,232,0.52)', accent = '#00F5FF';
             try {
               var theme = localStorage.getItem('${THEME_STORAGE_KEY}') || '${DEFAULT_THEME}';
-              if (theme === 'claude-nous') {
+              if (theme === 'unite') {
+                bg = '#050505';
+                txt = '#E8E8E8';
+                muted = 'rgba(232,232,232,0.52)';
+                accent = '#00F5FF';
+              } else if (theme === 'claude-nous') {
                 bg = '#031A1A';
                 txt = '#F8F1E3';
                 muted = '#9CB2AE';
@@ -458,10 +469,20 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                 txt = '#24292f';
                 muted = '#57606A';
                 accent = '#3b82f6';
+              } else if (theme === 'matrix') {
+                bg = '#020804';
+                txt = '#D8FFE3';
+                muted = 'rgba(216,255,227,0.58)';
+                accent = '#00FF41';
+              } else if (theme === 'matrix-light') {
+                bg = '#F4FFF6';
+                txt = '#062A12';
+                muted = 'rgba(6,42,18,0.55)';
+                accent = '#008F2D';
               }
             } catch(e){}
 
-            var isDark = !['claude-nous-light','claude-official-light','claude-classic-light','claude-slate-light'].includes(theme);
+            var isDark = !['claude-nous-light','claude-official-light','claude-classic-light','claude-slate-light','matrix-light'].includes(theme);
             var quips = ["Consulting the oracle...","Loading ancient knowledge...","Warming up the messenger...","Calibrating tool chain...","Summoning your agent...","Preparing the workspace...","Bridging realms...","Initializing agent runtime..."];
             var quip = quips[Math.floor(Math.random() * quips.length)];
 

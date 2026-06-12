@@ -182,6 +182,13 @@ const THEME_PREVIEWS: Record<
     accent: '#3b82f6',
     text: '#1F2328',
   },
+  unite: {
+    bg: '#050505',
+    panel: '#111111',
+    border: 'rgba(0,245,255,0.18)',
+    accent: '#00f5ff',
+    text: '#e8e8e8',
+  },
 }
 
 function WorkspaceThemePicker() {

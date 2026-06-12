@@ -1012,6 +1012,7 @@ function AppearanceContent() {
 }
 
 const ENTERPRISE_THEME_FAMILIES: Array<ThemeId> = [
+  'unite',
   'claude-nous',
   'matrix',
   'claude-official',
@@ -1095,13 +1096,22 @@ const ENTERPRISE_THEMES = THEMES.map((theme) => ({
                       accent: '#7eb8f6',
                       text: '#c9d1d9',
                     }
-                  : {
-                      bg: '#F6F8FA',
-                      panel: '#FFFFFF',
-                      border: '#D0D7DE',
-                      accent: '#3b82f6',
-                      text: '#24292f',
-                    },
+                  : theme.id === 'unite'
+                    ? {
+                        // Unite — Scientific Luxury: OLED black, cyan accent
+                        bg: '#050505',
+                        panel: '#111111',
+                        border: 'rgba(0,245,255,0.18)',
+                        accent: '#00F5FF',
+                        text: '#E8E8E8',
+                      }
+                    : {
+                        bg: '#F6F8FA',
+                        panel: '#FFFFFF',
+                        border: '#D0D7DE',
+                        accent: '#3b82f6',
+                        text: '#24292f',
+                      },
 }))
 
 function ThemeSwatch({

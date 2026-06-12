@@ -9,6 +9,7 @@ export type ThemeId =
   | 'claude-classic-light'
   | 'claude-slate'
   | 'claude-slate-light'
+  | 'unite'
 
 export const THEMES: Array<{
   id: ThemeId
@@ -76,10 +77,16 @@ export const THEMES: Array<{
     description: 'GitHub-light palette with blue accents',
     icon: '🔷',
   },
+  {
+    id: 'unite',
+    label: 'Unite',
+    description: 'Scientific Luxury — OLED black with cyan accent, high contrast, premium feel',
+    icon: '◈',
+  },
 ]
 
 const STORAGE_KEY = 'claude-theme'
-const DEFAULT_THEME: ThemeId = 'claude-nous'
+const DEFAULT_THEME: ThemeId = 'unite'
 const THEME_SET = new Set<ThemeId>(THEMES.map((theme) => theme.id))
 const LIGHT_THEME_MAP: Record<
   Exclude<ThemeId, `${string}-light`>,
@@ -90,6 +97,8 @@ const LIGHT_THEME_MAP: Record<
   'claude-official': 'claude-official-light',
   'claude-classic': 'claude-classic-light',
   'claude-slate': 'claude-slate-light',
+  // Unite has no light variant — fall back to Nous Light when light mode is forced
+  unite: 'claude-nous-light',
 }
 const DARK_THEME_MAP: Record<
   Extract<ThemeId, `${string}-light`>,

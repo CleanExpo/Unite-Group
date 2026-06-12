@@ -155,7 +155,8 @@
 
 [data-theme='ops-dark'] .kpi-card:hover,
 [data-theme='premium-dark'] .kpi-card:hover,
-[data-theme='sunset-brand'] .kpi-card:hover {
+[data-theme='sunset-brand'] .kpi-card:hover,
+[data-theme='unite'] .kpi-card:hover {
   border-color: var(--theme-accent-border);
   box-shadow:
     var(--theme-shadow-2),
@@ -1180,6 +1181,59 @@ code {
   --theme-input: #fbfdfb;
 }
 
+/* ============================================================
+   Unite — Scientific Luxury
+   OLED black background, cyan #00F5FF primary accent,
+   very dark grey surfaces, high-contrast light text.
+   Border radii restrained to 'rounded-sm' aesthetic.
+   ============================================================ */
+
+[data-theme='unite'] {
+  --theme-bg: #050505;
+  --theme-sidebar: #0a0a0a;
+  --theme-panel: #0a0a0a;
+  --theme-card: #111111;
+  --theme-card2: #1a1a1a;
+  --theme-border: rgba(0, 245, 255, 0.18);
+  --theme-border-subtle: rgba(0, 245, 255, 0.08);
+  --theme-text: #e8e8e8;
+  --theme-muted: rgba(232, 232, 232, 0.52);
+  --theme-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.85);
+  --theme-shadow-2: 0 6px 16px rgba(0, 0, 0, 0.75);
+  --theme-shadow-3: 0 16px 40px rgba(0, 0, 0, 0.85);
+  --theme-glass: rgba(5, 5, 5, 0.92);
+  --theme-focus: #00f5ff;
+  --theme-accent: #00f5ff;
+  --theme-accent-secondary: #5cf8ff;
+  --theme-accent-subtle: rgba(0, 245, 255, 0.1);
+  --theme-accent-border: rgba(0, 245, 255, 0.28);
+  --theme-active: #00f5ff;
+  --theme-link: #5cf8ff;
+  --theme-success: #22c55e;
+  --theme-warning: #f59e0b;
+  --theme-danger: #e05252;
+  --theme-stripe: rgba(0, 245, 255, 0.04);
+  --theme-header-bg: #0a0a0a;
+  --theme-header-border: rgba(0, 245, 255, 0.16);
+  --chat-user-bg: #111111;
+  --chat-user-border: rgba(0, 245, 255, 0.22);
+  --chat-user-foreground: #ffffff;
+  --chat-assistant-bg: #0a0a0a;
+  --chat-assistant-border: rgba(0, 245, 255, 0.08);
+  --chat-assistant-foreground: #e8e8e8;
+  --composer-bg: #0a0a0a;
+  --composer-border: rgba(0, 245, 255, 0.22);
+  --composer-placeholder: rgba(232, 232, 232, 0.38);
+  --tool-card-bg: #111111;
+  --tool-card-border: rgba(0, 245, 255, 0.14);
+  --tool-card-title: #ffffff;
+  --tool-card-muted: rgba(232, 232, 232, 0.52);
+  --code-bg: #050505;
+  --code-border: rgba(0, 245, 255, 0.12);
+  --code-foreground: #e8e8e8;
+  --theme-input: #111111;
+}
+
 [data-theme='claude-nous'] html,
 [data-theme='claude-nous'] body,
 [data-theme='claude-nous'] #root,
@@ -1195,7 +1249,11 @@ code {
 [data-theme='claude-slate'] html,
 [data-theme='claude-slate'] body,
 [data-theme='claude-slate'] #root,
-[data-theme='claude-slate'] .dark {
+[data-theme='claude-slate'] .dark,
+[data-theme='unite'] html,
+[data-theme='unite'] body,
+[data-theme='unite'] #root,
+[data-theme='unite'] .dark {
   background-color: var(--theme-bg);
   color: var(--theme-text);
 }
@@ -1228,7 +1286,8 @@ code {
 [data-theme='claude-nous'],
 [data-theme='claude-official'],
 [data-theme='claude-classic'],
-[data-theme='claude-slate'] {
+[data-theme='claude-slate'],
+[data-theme='unite'] {
   --color-primary-50: var(--theme-panel);
   --color-primary-100: var(--theme-card);
   --color-primary-200: var(--theme-border);
