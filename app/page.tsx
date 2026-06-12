@@ -387,11 +387,21 @@ export default function Home() {
   const [elapsed, setElapsed] = useState(0);
   const [provider, setProvider] = useState("");
   const [boardResponses, setBoardResponses] = useState<
-    { name: string; seat: string; critique: string }[]
+    {
+      name: string;
+      seat: string;
+      critique: string;
+      findings: { priority: string; text: string }[];
+    }[]
   >([]);
+  const [selectedFindings, setSelectedFindings] = useState<Set<string>>(new Set());
   const [boardSynthesis, setBoardSynthesis] = useState("");
   const [boardRunning, setBoardRunning] = useState(false);
   const [boardNote, setBoardNote] = useState("");
+  const [questions, setQuestions] = useState<string[] | null>(null);
+  const [answers, setAnswers] = useState<string[]>([]);
+  const [clarifying, setClarifying] = useState(false);
+  const [refineText, setRefineText] = useState("");
   const lineBuffer = useRef("");
 
   const running = state === "running";
@@ -424,7 +434,40 @@ export default function Home() {
     }
   }
 
-  async function run() {
+  // Step 1 of a run: fetch 3-4 clarifying questions so the engine's one
+  // shot lands better. Best-effort — failure falls through to a plain run.
+  async function clarify() {
+    setClarifying(true);
+    setMessage("");
+    try {
+      const res = await fetch("/api/clarify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vision }),
+      });
+      const data = await res.json().catch(() => null);
+      const qs: string[] = Array.isArray(data?.questions) ? data.questions : [];
+      if (qs.length === 0) {
+        await run();
+        return;
+      }
+      setQuestions(qs);
+      setAnswers(qs.map(() => ""));
+    } catch {
+      await run();
+    } finally {
+      setClarifying(false);
+    }
+  }
+
+  async function run(extra?: { refinement?: string; previousSpec?: string }) {
+    const clarifications =
+      !extra && questions
+        ? questions
+            .map((question, i) => ({ question, answer: (answers[i] ?? "").trim() }))
+            .filter((c) => c.answer.length > 0)
+        : [];
+
     setState("running");
     setMessage("");
     setSpec("");
@@ -441,13 +484,22 @@ export default function Home() {
     setBoardResponses([]);
     setBoardSynthesis("");
     setBoardNote("");
+    setSelectedFindings(new Set());
+    setQuestions(null);
+    setRefineText("");
     lineBuffer.current = "";
 
     try {
       const res = await fetch("/api/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ vision }),
+        body: JSON.stringify({
+          vision,
+          ...(clarifications.length > 0 ? { clarifications } : {}),
+          ...(extra?.refinement
+            ? { refinement: extra.refinement, previousSpec: extra.previousSpec }
+            : {}),
+        }),
       });
       if (!res.ok || !res.body) {
         const data = await res.json().catch(() => null);
@@ -600,6 +652,7 @@ export default function Home() {
     setBoardNote("");
     setBoardResponses([]);
     setBoardSynthesis("");
+    setSelectedFindings(new Set());
     try {
       const res = await fetch("/api/board", {
         method: "POST",
@@ -651,7 +704,12 @@ export default function Home() {
       case "seat_done":
         setBoardResponses((prev) => [
           ...prev,
-          { name: event.name, seat: event.seat, critique: event.critique },
+          {
+            name: event.name,
+            seat: event.seat,
+            critique: event.critique,
+            findings: Array.isArray(event.findings) ? event.findings : [],
+          },
         ]);
         addFeed(`${event.name} responded`);
         break;
@@ -718,25 +776,92 @@ export default function Home() {
 
       <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 12 }}>
         <button
-          onClick={run}
-          disabled={running || vision.trim().length === 0}
+          onClick={() => clarify()}
+          disabled={running || clarifying || vision.trim().length === 0}
           style={{
             padding: "10px 24px",
             fontSize: 15,
             fontWeight: 600,
-            background: running ? C.border : C.accent,
-            color: running ? C.dim : C.bg,
+            background: running || clarifying ? C.border : C.accent,
+            color: running || clarifying ? C.dim : C.bg,
             border: "none",
             borderRadius: 8,
-            cursor: running ? "wait" : "pointer",
+            cursor: running || clarifying ? "wait" : "pointer",
           }}
         >
-          {running ? "Running…" : "Run"}
+          {running ? "Running…" : clarifying ? "Preparing questions…" : "Run"}
         </button>
         {message && (
           <span style={{ color: state === "error" ? C.red : C.dim, fontSize: 13 }}>{message}</span>
         )}
       </div>
+
+      {questions && !running && (
+        <section
+          style={{
+            marginTop: 16,
+            padding: 16,
+            background: C.panel,
+            border: `1px solid ${C.accent}`,
+            borderRadius: 8,
+          }}
+        >
+          <h2 style={{ fontSize: 16, margin: 0 }}>Quick questions before the run</h2>
+          <p style={{ color: C.dim, fontSize: 13, margin: "6px 0 0" }}>
+            Answer any that help — every answer sharpens the one-shot spec. Blank ones are skipped.
+          </p>
+          {questions.map((q, i) => (
+            <div key={i} style={{ marginTop: 12 }}>
+              <div style={{ fontSize: 13.5 }}>
+                {i + 1}. {q}
+              </div>
+              <input
+                value={answers[i] ?? ""}
+                onChange={(e) =>
+                  setAnswers((prev) => {
+                    const next = [...prev];
+                    next[i] = e.target.value;
+                    return next;
+                  })
+                }
+                placeholder="(optional)"
+                style={{
+                  marginTop: 6,
+                  width: "100%",
+                  boxSizing: "border-box",
+                  padding: "8px 10px",
+                  fontSize: 14,
+                  fontFamily: "inherit",
+                  background: C.bg,
+                  color: C.text,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 6,
+                }}
+              />
+            </div>
+          ))}
+          <div style={{ display: "flex", gap: 12, marginTop: 16, alignItems: "center" }}>
+            <button
+              onClick={() => run()}
+              style={{
+                padding: "10px 24px",
+                fontSize: 15,
+                fontWeight: 600,
+                background: C.accent,
+                color: C.bg,
+                border: "none",
+                borderRadius: 8,
+                cursor: "pointer",
+              }}
+            >
+              Run engine →
+            </button>
+            <span style={{ color: C.dim, fontSize: 12.5 }}>
+              {answers.filter((a) => a.trim()).length} of {questions.length} answered
+            </span>
+          </div>
+        </section>
+      )}
 
       {(running || spec) && (
         <Cockpit
@@ -841,6 +966,60 @@ export default function Home() {
         </section>
       )}
 
+      {state === "done" && spec && (
+        <section
+          style={{
+            marginTop: 24,
+            padding: 16,
+            background: C.panel,
+            border: `1px solid ${C.border}`,
+            borderRadius: 8,
+          }}
+        >
+          <h2 style={{ fontSize: 16, margin: 0 }}>Refine this spec</h2>
+          <p style={{ color: C.dim, fontSize: 13, margin: "6px 0 0" }}>
+            Thought of something else? Describe what to add, change, or drop — the engine
+            re-runs with this spec as the starting point and produces an updated version.
+          </p>
+          <textarea
+            value={refineText}
+            onChange={(e) => setRefineText(e.target.value)}
+            placeholder="e.g. Add an offline mode, drop the billing phase, the finish line should mention mobile…"
+            rows={3}
+            style={{
+              marginTop: 10,
+              width: "100%",
+              boxSizing: "border-box",
+              padding: 10,
+              fontSize: 14,
+              fontFamily: "inherit",
+              background: C.bg,
+              color: C.text,
+              border: `1px solid ${C.border}`,
+              borderRadius: 6,
+              resize: "vertical",
+            }}
+          />
+          <button
+            onClick={() => run({ refinement: refineText, previousSpec: spec })}
+            disabled={refineText.trim().length === 0}
+            style={{
+              marginTop: 10,
+              padding: "8px 20px",
+              fontSize: 14,
+              fontWeight: 600,
+              background: refineText.trim() ? C.accent : C.border,
+              color: refineText.trim() ? C.bg : C.dim,
+              border: "none",
+              borderRadius: 8,
+              cursor: refineText.trim() ? "pointer" : "not-allowed",
+            }}
+          >
+            Refine & re-run
+          </button>
+        </section>
+      )}
+
       {state === "done" && specId && (
         <section style={{ marginTop: 24 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
@@ -874,23 +1053,123 @@ export default function Home() {
                   · {r.seat} — persona critique, not the real person
                 </span>
               </h3>
-              <pre
-                style={{
-                  marginTop: 8,
-                  padding: 14,
-                  background: C.panel,
-                  border: `1px solid ${C.border}`,
-                  borderRadius: 8,
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word",
-                  fontSize: 13,
-                  lineHeight: 1.55,
-                }}
-              >
-                {r.critique}
-              </pre>
+              {r.findings.length > 0 ? (
+                <div
+                  style={{
+                    marginTop: 8,
+                    padding: "10px 14px",
+                    background: C.panel,
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 8,
+                  }}
+                >
+                  {r.findings.map((f, i) => {
+                    const key = `${r.name}|${i}`;
+                    const checked = selectedFindings.has(key);
+                    const priorityColor =
+                      f.priority === "critical"
+                        ? C.red
+                        : f.priority === "important"
+                          ? C.amber
+                          : C.dim;
+                    return (
+                      <label
+                        key={key}
+                        style={{
+                          display: "flex",
+                          gap: 10,
+                          alignItems: "baseline",
+                          padding: "6px 0",
+                          cursor: "pointer",
+                          fontSize: 13,
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() =>
+                            setSelectedFindings((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(key)) next.delete(key);
+                              else next.add(key);
+                              return next;
+                            })
+                          }
+                        />
+                        <span style={{ fontFamily: C.mono, fontSize: 11, color: C.dim }}>
+                          {i + 1}.
+                        </span>
+                        <span
+                          style={{
+                            fontFamily: C.mono,
+                            fontSize: 10.5,
+                            letterSpacing: 0.5,
+                            color: priorityColor,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {f.priority.toUpperCase()}
+                        </span>
+                        <span style={{ color: checked ? C.text : C.dim }}>{f.text}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              ) : (
+                <pre
+                  style={{
+                    marginTop: 8,
+                    padding: 14,
+                    background: C.panel,
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 8,
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                    fontSize: 13,
+                    lineHeight: 1.55,
+                  }}
+                >
+                  {r.critique}
+                </pre>
+              )}
             </div>
           ))}
+
+          {!boardRunning && boardResponses.some((r) => r.findings.length > 0) && (
+            <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 16 }}>
+              <button
+                onClick={() => {
+                  const chosen = boardResponses.flatMap((r) =>
+                    r.findings
+                      .map((f, i) => ({ key: `${r.name}|${i}`, member: r.name, f }))
+                      .filter((x) => selectedFindings.has(x.key)),
+                  );
+                  if (chosen.length === 0) return;
+                  const refinement = `Integrate these selected board findings into the spec:\n${chosen
+                    .map((x) => `- [${x.member} — ${x.f.priority}] ${x.f.text}`)
+                    .join("\n")}`;
+                  run({ refinement, previousSpec: spec });
+                }}
+                disabled={selectedFindings.size === 0}
+                style={{
+                  padding: "10px 24px",
+                  fontSize: 15,
+                  fontWeight: 600,
+                  background: selectedFindings.size > 0 ? C.green : C.border,
+                  color: selectedFindings.size > 0 ? C.bg : C.dim,
+                  border: "none",
+                  borderRadius: 8,
+                  cursor: selectedFindings.size > 0 ? "pointer" : "not-allowed",
+                }}
+              >
+                Integrate {selectedFindings.size || ""} selected & re-run
+              </button>
+              <span style={{ color: C.dim, fontSize: 12.5 }}>
+                Tick the findings you want folded into the next version of the spec.
+              </span>
+            </div>
+          )}
 
           {boardSynthesis && (
             <div style={{ marginTop: 16 }}>

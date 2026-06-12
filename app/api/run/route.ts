@@ -5,20 +5,62 @@ import { buildSystemPrompt } from "@/lib/engine-prompt";
 
 export const maxDuration = 300;
 
+interface Clarification {
+  question: string;
+  answer: string;
+}
+
 // Streams the run as Server-Sent Events so the cockpit can light up live:
 //   meta → delta* → engine_done → saved|save_skipped|save_error
 //   → critic_start → critique | critic_error | critic_skipped → done
+//
+// Three ways in:
+//   { vision }                                    — plain one-shot run
+//   { vision, clarifications }                    — run with pre-run Q&A attached
+//   { vision, refinement, previousSpec }          — revise an earlier spec
 export async function POST(request: Request) {
   let vision: string;
+  let clarifications: Clarification[] = [];
+  let refinement = "";
+  let previousSpec = "";
   try {
     const body = await request.json();
     if (typeof body.vision !== "string" || body.vision.trim().length === 0) {
       return Response.json({ error: "vision is required" }, { status: 400 });
     }
     vision = body.vision;
+    if (Array.isArray(body.clarifications)) {
+      clarifications = body.clarifications
+        .filter(
+          (c: unknown): c is Clarification =>
+            typeof (c as Clarification)?.question === "string" &&
+            typeof (c as Clarification)?.answer === "string" &&
+            (c as Clarification).answer.trim().length > 0,
+        )
+        .slice(0, 6);
+    }
+    if (typeof body.refinement === "string") refinement = body.refinement.trim();
+    if (typeof body.previousSpec === "string") previousSpec = body.previousSpec;
+    if (refinement && !previousSpec) {
+      return Response.json({ error: "refinement needs previousSpec" }, { status: 400 });
+    }
   } catch {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
+
+  // What the engine sees as its task, and what we record as the request.
+  let brief = vision;
+  if (clarifications.length > 0) {
+    brief += `\n\n## Clarifications (answered by the user before this run)\n${clarifications
+      .map((c) => `- Q: ${c.question}\n  A: ${c.answer}`)
+      .join("\n")}`;
+  }
+  if (refinement) {
+    brief += `\n\n## Requested changes to the previous spec\n${refinement}`;
+  }
+  const engineTask = refinement
+    ? `${brief}\n\n## Previous spec (revise it per the requested changes; output the complete updated spec)\n\n${previousSpec}`
+    : brief;
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -32,9 +74,10 @@ export async function POST(request: Request) {
         send({ type: "meta", provider: engine.provider, models: engine.models });
 
         // Obsidian channel: retrieve relevant vault notes for this vision
+        // (brief includes clarifications/refinement, sharpening the search)
         let knowledge: Awaited<ReturnType<typeof searchKnowledge>> = [];
         try {
-          knowledge = await searchKnowledge(vision);
+          knowledge = await searchKnowledge(brief);
         } catch {
           // engine runs without vault material rather than failing the run
         }
@@ -45,7 +88,7 @@ export async function POST(request: Request) {
         });
 
         const result = await runEngineStream(
-          vision,
+          engineTask,
           (text) => send({ type: "delta", text }),
           (failedModel, nextModels) =>
             send({ type: "engine_retry", failedModel, nextModels }),
@@ -55,7 +98,9 @@ export async function POST(request: Request) {
 
         let specId: string | null = null;
         try {
-          const saved = await saveRun(vision, result.text);
+          // brief (not engineTask) so visions.raw_text records the request
+          // without duplicating the whole previous spec.
+          const saved = await saveRun(brief, result.text);
           if (saved) {
             specId = saved.specId;
             send({ type: "saved", visionId: saved.visionId, specId: saved.specId });
