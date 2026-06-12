@@ -84,9 +84,14 @@ function requireEnv(name: string): string {
 
 // ── Engine (streaming) ────────────────────────────────────────────────────
 
+// A real spec is thousands of characters; anything shorter is a model flaking
+// (free-tier models sometimes emit only a closing line).
+const STUB_THRESHOLD = 500;
+
 export async function runEngineStream(
   vision: string,
   onDelta: (text: string) => void,
+  onRetry?: (failedModel: string, nextModels: string[]) => void,
 ): Promise<EngineResult> {
   const provider = getProvider();
   const system = getEnginePrompt();
@@ -94,21 +99,38 @@ export async function runEngineStream(
   if (provider === "anthropic") {
     return runAnthropic({ system, user: vision, onDelta });
   }
+
   if (provider === "openrouter") {
-    const models = openrouterModels();
+    let models = openrouterModels();
     if (models.length === 0) throw new Error("OPENROUTER_MODEL is not set");
-    return chatCompletions({
-      provider,
-      baseUrl: process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1",
-      apiKey: requireEnv("OPENROUTER_API_KEY"),
-      models,
-      system,
-      user: vision,
-      maxTokens: 32000,
-      onDelta,
-    });
+
+    // Stub guard: if a model returns a degenerate "spec", drop it from the
+    // list and retry on the remaining fallback models.
+    for (;;) {
+      const result = await chatCompletions({
+        provider,
+        baseUrl: process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1",
+        apiKey: requireEnv("OPENROUTER_API_KEY"),
+        models,
+        system,
+        user: vision,
+        maxTokens: 32000,
+        onDelta,
+      });
+      if (result.text.length >= STUB_THRESHOLD) return result;
+
+      const remaining = models.filter((m) => m !== result.model && m !== models[0]);
+      if (remaining.length === 0) {
+        throw new Error(
+          `${result.model} returned a stub instead of a spec (${result.text.length} chars) and no fallback models remain — try again or switch models`,
+        );
+      }
+      onRetry?.(result.model, remaining);
+      models = remaining;
+    }
   }
-  return chatCompletions({
+
+  const result = await chatCompletions({
     provider,
     baseUrl: process.env.MINIMAX_BASE_URL ?? "https://api.minimax.io/v1",
     apiKey: requireEnv("MINIMAX_API_KEY"),
@@ -118,6 +140,12 @@ export async function runEngineStream(
     maxTokens: 32000,
     onDelta,
   });
+  if (result.text.length < STUB_THRESHOLD) {
+    throw new Error(
+      `${result.model} returned a stub instead of a spec (${result.text.length} chars) — try again`,
+    );
+  }
+  return result;
 }
 
 // ── Critic (Phase 2 verify loop) ─────────────────────────────────────────
