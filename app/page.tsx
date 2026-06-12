@@ -13,6 +13,7 @@ interface Health {
   knowledge?: { configured: boolean; repo: string | null; notes: number | null };
   board?: { seats: string[] };
   skills?: { name: string; description: string }[];
+  research?: { configured: boolean };
 }
 
 const C = {
@@ -128,6 +129,13 @@ function StatusStrip() {
           health.board.seats.length > 0
             ? `Board seated: ${health.board.seats.join(", ")}`
             : "Board empty — no profiles in knowledge/board",
+        )}
+      {health.research &&
+        chip(
+          health.research.configured,
+          health.research.configured
+            ? "Web research ready (Tavily)"
+            : "Web research off — set TAVILY_API_KEY",
         )}
       {health.skills && (
         <span
@@ -558,6 +566,17 @@ export default function Home() {
           addFeed(`obsidian channel: ${event.count} vault notes retrieved`);
         } else {
           addFeed("obsidian channel: no matching vault notes");
+        }
+        break;
+      case "web":
+        if (event.count > 0) {
+          setStatusLines((prev) => ({
+            ...prev,
+            "channel:web": `${event.count} fresh source${event.count === 1 ? "" : "s"} attached`,
+          }));
+          addFeed(`web channel: ${event.count} fresh sources retrieved`);
+        } else {
+          addFeed("web channel: no research material (set TAVILY_API_KEY to enable)");
         }
         break;
       case "delta":

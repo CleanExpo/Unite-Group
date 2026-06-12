@@ -1,6 +1,7 @@
 import { describeEngine, runEngineStream, describeCritic, runCritic } from "@/lib/llm";
 import { saveRun, saveCritique } from "@/lib/supabase";
 import { searchKnowledge } from "@/lib/knowledge";
+import { webResearch } from "@/lib/research";
 import { buildSystemPrompt } from "@/lib/engine-prompt";
 
 export const maxDuration = 300;
@@ -87,12 +88,23 @@ export async function POST(request: Request) {
           paths: knowledge.map((hit) => hit.path),
         });
 
+        // Web channel: live research for fresh sources (articles, papers,
+        // videos). Best-effort — without TAVILY_API_KEY or on failure the
+        // channel skips honestly, same as before.
+        let web: Awaited<ReturnType<typeof webResearch>> = [];
+        try {
+          web = await webResearch(brief);
+        } catch {
+          // engine runs without web material rather than failing the run
+        }
+        send({ type: "web", count: web.length, urls: web.map((s) => s.url) });
+
         const result = await runEngineStream(
           engineTask,
           (text) => send({ type: "delta", text }),
           (failedModel, nextModels) =>
             send({ type: "engine_retry", failedModel, nextModels }),
-          buildSystemPrompt(knowledge),
+          buildSystemPrompt(knowledge, web),
         );
         send({ type: "engine_done", model: result.model, stopReason: result.stopReason });
 
