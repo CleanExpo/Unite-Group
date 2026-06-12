@@ -52,7 +52,11 @@ Authority-Site's `uqfgdezadpkiadugufbs` holds the old app's data.
 4. Point ALL env vars at the canonical project only.
    **Rollback:** old project untouched until Step 6.
 
-## Step 3 — Stripe (verify with a real test payment)
+## Step 3 — Stripe (verify with a real test payment) — **Owner: Rana**
+
+> Per Phill 12/06/2026: Rana addresses all external Stripe + webhook
+> configuration. The code side (webhook handlers, billing routes, signature
+> verification) ships in the convergence PR; Rana's work is dashboards only.
 
 1. Stripe dashboard → Webhooks: list every endpoint targeting
    `unite-group.in` or `*.vercel.app`. Update any pointing at retired hosts to
@@ -62,7 +66,7 @@ Authority-Site's `uqfgdezadpkiadugufbs` holds the old app's data.
    `stripe_events` row written, receipt email sent.
    **Gate: do not proceed until the test payment round-trips.**
 
-## Step 4 — OAuth consoles (counted checklist)
+## Step 4 — OAuth consoles (counted checklist) — **Owner: Rana**
 
 For each provider, update redirect URIs from `unite-hub*.vercel.app` to
 `https://unite-group.in/...` (keep both during soak):
