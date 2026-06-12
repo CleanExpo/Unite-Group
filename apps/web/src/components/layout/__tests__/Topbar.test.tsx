@@ -1,0 +1,61 @@
+// src/components/layout/__tests__/Topbar.test.tsx
+import { render, screen } from '@testing-library/react'
+import { Topbar } from '../Topbar'
+import { useUIStore } from '@/store/ui'
+
+let mockPathname = '/founder/dashboard'
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => mockPathname,
+}))
+
+beforeEach(() => {
+  mockPathname = '/founder/dashboard'
+  useUIStore.setState({ sidebarOpen: true, expandedBusinesses: [], theme: 'dark' })
+})
+
+describe('Topbar', () => {
+  it('renders header element', () => {
+    render(<Topbar />)
+    expect(document.querySelector('header')).toBeInTheDocument()
+  })
+
+  it('shows Dashboard breadcrumb for /founder/dashboard', () => {
+    render(<Topbar />)
+    expect(screen.getByText('Dashboard')).toBeInTheDocument()
+  })
+
+  it('shows Knowledge Console breadcrumb for /founder/knowledge-console', () => {
+    mockPathname = '/founder/knowledge-console'
+
+    render(<Topbar />)
+
+    expect(screen.getByText('Knowledge Console')).toBeInTheDocument()
+  })
+
+  it('renders search command palette button', () => {
+    render(<Topbar />)
+    expect(screen.getByLabelText('Command palette')).toBeInTheDocument()
+  })
+
+  it('renders help button', () => {
+    render(<Topbar />)
+    expect(screen.getByLabelText('Help')).toBeInTheDocument()
+  })
+
+  it('renders toggle sidebar button on mobile', () => {
+    render(<Topbar />)
+    expect(screen.getByLabelText('Toggle sidebar')).toBeInTheDocument()
+  })
+
+  it('labels the Pi route as the command cockpit with live evidence posture', () => {
+    mockPathname = '/founder/pi'
+
+    render(<Topbar />)
+
+    expect(screen.getByText('Pi Command Cockpit')).toBeInTheDocument()
+    expect(screen.getByText('3-loop gate active')).toBeInTheDocument()
+    expect(screen.getByText('Linear evidence')).toBeInTheDocument()
+    expect(screen.getByText('Build logs watched')).toBeInTheDocument()
+  })
+})

@@ -1,0 +1,80 @@
+/**
+ * UI Components Barrel File
+ * Re-exports all UI components for unified imports
+ */
+
+// Alert components
+export * from './alert';
+export * from './alert-dialog';
+
+// Avatar
+export * from './avatar';
+
+// Badge - default export
+export { default as Badge } from './badge';
+
+// Button - default export
+export { default as Button } from './button';
+
+// Card - exports named components
+export * from './card';
+
+// Checkbox
+export * from './checkbox';
+
+// Command
+export * from './command';
+
+// Dialog
+export * from './dialog';
+
+// Dropdown Menu
+export * from './dropdown-menu';
+
+// Form
+export * from './form';
+
+// Input - default export
+export { default as Input } from './input';
+
+// Label
+export * from './label';
+
+// Popover
+export * from './popover';
+
+// Progress
+export * from './progress';
+
+// Radio Group
+export * from './radio-group';
+
+// Scroll Area
+export * from './scroll-area';
+
+// Select
+export * from './select';
+
+// Skeleton - default export
+export { default as Skeleton } from './skeleton';
+
+// Spinner - PascalCase file
+export { default as Spinner } from './Spinner';
+
+// Switch
+export * from './switch';
+
+// Table
+export * from './table';
+
+// Tabs
+export * from './tabs';
+
+// Textarea
+export * from './textarea';
+
+// Toaster
+export * from './toaster';
+
+// Tooltip
+export * from './tooltip';
