@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { getEnginePrompt } from "./engine-prompt";
+import { stripThinking } from "./findings";
 
 // Provider routing: the engine can run on whichever plan currently has
 // budget. Flip LLM_PROVIDER in env — no code change needed.
@@ -204,7 +205,9 @@ export async function runCritic(spec: string): Promise<EngineResult | null> {
 }
 
 // One-shot non-streaming completion on the critic's provider — used for the
-// verify-loop critic and for ask-the-board persona critiques (Phase 3).
+// verify-loop critic, ask-the-board personas, clarify, and research queries.
+// Reasoning models can leak chain-of-thought in <think> blocks; it is
+// stripped here centrally so no persona output can ever leak it downstream.
 export async function runPersona(
   system: string,
   user: string,
@@ -213,11 +216,11 @@ export async function runPersona(
   const config = describeCritic();
   if (!config) return null;
 
+  let result: EngineResult;
   if (config.provider === "anthropic") {
-    return runAnthropic({ system, user, model: config.model, maxTokens });
-  }
-  if (config.provider === "openrouter") {
-    return chatCompletions({
+    result = await runAnthropic({ system, user, model: config.model, maxTokens });
+  } else if (config.provider === "openrouter") {
+    result = await chatCompletions({
       provider: config.provider,
       baseUrl: process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1",
       apiKey: requireEnv("OPENROUTER_API_KEY"),
@@ -226,16 +229,18 @@ export async function runPersona(
       user,
       maxTokens,
     });
+  } else {
+    result = await chatCompletions({
+      provider: config.provider,
+      baseUrl: process.env.MINIMAX_BASE_URL ?? "https://api.minimax.io/v1",
+      apiKey: requireEnv("MINIMAX_API_KEY"),
+      models: [config.model],
+      system,
+      user,
+      maxTokens,
+    });
   }
-  return chatCompletions({
-    provider: config.provider,
-    baseUrl: process.env.MINIMAX_BASE_URL ?? "https://api.minimax.io/v1",
-    apiKey: requireEnv("MINIMAX_API_KEY"),
-    models: [config.model],
-    system,
-    user,
-    maxTokens,
-  });
+  return { ...result, text: stripThinking(result.text) };
 }
 
 // ── Providers ────────────────────────────────────────────────────────────
