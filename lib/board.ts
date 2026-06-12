@@ -78,9 +78,45 @@ Rules:
   Cite the listed source files where a point leans on them.
 - If the advisor's material does not cover part of the topic, say so in one
   line instead of fabricating their view.
-- 3–6 bullets total: what they'd push on, what they'd cut, what they'd bet on.
+- Output 3–6 findings as a numbered list, ordered most critical first, one
+  per line, each in exactly this form:
+  N. (critical|important|nice-to-have) — the finding and the concrete change
+  this advisor would make.
 - Tag factual claims [VERIFIED] / [INFERENCE] / [UNCONFIRMED].
 - No preamble, no flattery, no closing summary.`;
+}
+
+export type FindingPriority = "critical" | "important" | "nice-to-have";
+
+export interface BoardFinding {
+  priority: FindingPriority;
+  text: string;
+}
+
+const PRIORITY_ORDER: Record<FindingPriority, number> = {
+  critical: 0,
+  important: 1,
+  "nice-to-have": 2,
+};
+
+// Pulls the numbered findings out of a persona critique so the UI can offer
+// them as selectable, prioritised items. Lines that carry no recognisable
+// priority default to "important" rather than being dropped.
+export function parseFindings(critique: string): BoardFinding[] {
+  const findings: BoardFinding[] = [];
+  for (const line of critique.split("\n")) {
+    const tagged = line.match(
+      /^\s*\d+[.)]\s*(?:[([]\s*)?(critical|important|nice[- ]to[- ]have)(?:\s*[)\]])?\s*[—:–-]*\s*(.+)$/i,
+    );
+    if (tagged) {
+      const priority = tagged[1].toLowerCase().replace(/\s+/g, "-") as FindingPriority;
+      findings.push({ priority, text: tagged[2].trim() });
+      continue;
+    }
+    const plain = line.match(/^\s*\d+[.)]\s+(.+)$/);
+    if (plain) findings.push({ priority: "important", text: plain[1].trim() });
+  }
+  return findings.sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]);
 }
 
 export const SYNTHESIS_PROMPT = `You are combining per-seat board critiques for

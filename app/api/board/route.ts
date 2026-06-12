@@ -1,6 +1,12 @@
 import { runPersona, describeCritic } from "@/lib/llm";
 import { getSupabase } from "@/lib/supabase";
-import { loadBoardSeats, ensureBoardMembers, personaPrompt, SYNTHESIS_PROMPT } from "@/lib/board";
+import {
+  loadBoardSeats,
+  ensureBoardMembers,
+  personaPrompt,
+  parseFindings,
+  SYNTHESIS_PROMPT,
+} from "@/lib/board";
 
 export const maxDuration = 300;
 
@@ -74,7 +80,13 @@ export async function POST(request: Request) {
                 .insert({ spec_id: specId, member_id: memberId, critique: result.text });
               if (saveError) send({ type: "seat_save_error", name: seat.name, error: saveError.message });
             }
-            send({ type: "seat_done", name: seat.name, seat: seat.seat, critique: result.text });
+            send({
+              type: "seat_done",
+              name: seat.name,
+              seat: seat.seat,
+              critique: result.text,
+              findings: parseFindings(result.text),
+            });
           } catch (e) {
             send({ type: "seat_error", name: seat.name, error: errorText(e) });
           }

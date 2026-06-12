@@ -387,8 +387,14 @@ export default function Home() {
   const [elapsed, setElapsed] = useState(0);
   const [provider, setProvider] = useState("");
   const [boardResponses, setBoardResponses] = useState<
-    { name: string; seat: string; critique: string }[]
+    {
+      name: string;
+      seat: string;
+      critique: string;
+      findings: { priority: string; text: string }[];
+    }[]
   >([]);
+  const [selectedFindings, setSelectedFindings] = useState<Set<string>>(new Set());
   const [boardSynthesis, setBoardSynthesis] = useState("");
   const [boardRunning, setBoardRunning] = useState(false);
   const [boardNote, setBoardNote] = useState("");
@@ -478,6 +484,7 @@ export default function Home() {
     setBoardResponses([]);
     setBoardSynthesis("");
     setBoardNote("");
+    setSelectedFindings(new Set());
     setQuestions(null);
     setRefineText("");
     lineBuffer.current = "";
@@ -645,6 +652,7 @@ export default function Home() {
     setBoardNote("");
     setBoardResponses([]);
     setBoardSynthesis("");
+    setSelectedFindings(new Set());
     try {
       const res = await fetch("/api/board", {
         method: "POST",
@@ -696,7 +704,12 @@ export default function Home() {
       case "seat_done":
         setBoardResponses((prev) => [
           ...prev,
-          { name: event.name, seat: event.seat, critique: event.critique },
+          {
+            name: event.name,
+            seat: event.seat,
+            critique: event.critique,
+            findings: Array.isArray(event.findings) ? event.findings : [],
+          },
         ]);
         addFeed(`${event.name} responded`);
         break;
@@ -1040,23 +1053,123 @@ export default function Home() {
                   · {r.seat} — persona critique, not the real person
                 </span>
               </h3>
-              <pre
-                style={{
-                  marginTop: 8,
-                  padding: 14,
-                  background: C.panel,
-                  border: `1px solid ${C.border}`,
-                  borderRadius: 8,
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word",
-                  fontSize: 13,
-                  lineHeight: 1.55,
-                }}
-              >
-                {r.critique}
-              </pre>
+              {r.findings.length > 0 ? (
+                <div
+                  style={{
+                    marginTop: 8,
+                    padding: "10px 14px",
+                    background: C.panel,
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 8,
+                  }}
+                >
+                  {r.findings.map((f, i) => {
+                    const key = `${r.name}|${i}`;
+                    const checked = selectedFindings.has(key);
+                    const priorityColor =
+                      f.priority === "critical"
+                        ? C.red
+                        : f.priority === "important"
+                          ? C.amber
+                          : C.dim;
+                    return (
+                      <label
+                        key={key}
+                        style={{
+                          display: "flex",
+                          gap: 10,
+                          alignItems: "baseline",
+                          padding: "6px 0",
+                          cursor: "pointer",
+                          fontSize: 13,
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() =>
+                            setSelectedFindings((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(key)) next.delete(key);
+                              else next.add(key);
+                              return next;
+                            })
+                          }
+                        />
+                        <span style={{ fontFamily: C.mono, fontSize: 11, color: C.dim }}>
+                          {i + 1}.
+                        </span>
+                        <span
+                          style={{
+                            fontFamily: C.mono,
+                            fontSize: 10.5,
+                            letterSpacing: 0.5,
+                            color: priorityColor,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {f.priority.toUpperCase()}
+                        </span>
+                        <span style={{ color: checked ? C.text : C.dim }}>{f.text}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              ) : (
+                <pre
+                  style={{
+                    marginTop: 8,
+                    padding: 14,
+                    background: C.panel,
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 8,
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                    fontSize: 13,
+                    lineHeight: 1.55,
+                  }}
+                >
+                  {r.critique}
+                </pre>
+              )}
             </div>
           ))}
+
+          {!boardRunning && boardResponses.some((r) => r.findings.length > 0) && (
+            <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 16 }}>
+              <button
+                onClick={() => {
+                  const chosen = boardResponses.flatMap((r) =>
+                    r.findings
+                      .map((f, i) => ({ key: `${r.name}|${i}`, member: r.name, f }))
+                      .filter((x) => selectedFindings.has(x.key)),
+                  );
+                  if (chosen.length === 0) return;
+                  const refinement = `Integrate these selected board findings into the spec:\n${chosen
+                    .map((x) => `- [${x.member} — ${x.f.priority}] ${x.f.text}`)
+                    .join("\n")}`;
+                  run({ refinement, previousSpec: spec });
+                }}
+                disabled={selectedFindings.size === 0}
+                style={{
+                  padding: "10px 24px",
+                  fontSize: 15,
+                  fontWeight: 600,
+                  background: selectedFindings.size > 0 ? C.green : C.border,
+                  color: selectedFindings.size > 0 ? C.bg : C.dim,
+                  border: "none",
+                  borderRadius: 8,
+                  cursor: selectedFindings.size > 0 ? "pointer" : "not-allowed",
+                }}
+              >
+                Integrate {selectedFindings.size || ""} selected & re-run
+              </button>
+              <span style={{ color: C.dim, fontSize: 12.5 }}>
+                Tick the findings you want folded into the next version of the spec.
+              </span>
+            </div>
+          )}
 
           {boardSynthesis && (
             <div style={{ marginTop: 16 }}>
