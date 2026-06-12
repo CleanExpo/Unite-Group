@@ -32,14 +32,17 @@ export class StripeApiClient {
       // Surfacing the missing key honestly (No-Invaders: no silent fallback).
       throw new Error('Stripe not configured: STRIPE_SECRET_KEY missing');
     }
-    // UserProvidedConfig.apiVersion is a plain string (accepts any version);
-    // the SDK applies its pinned default when omitted.
-    const stripeConfig: Stripe.UserProvidedConfig = {
+    // The Stripe constructor's config type pins apiVersion to a literal; the
+    // optional `config.apiVersion` override (a plain string) is applied via a
+    // narrowed cast so callers can pin an explicit version when needed. When
+    // omitted, the SDK applies its pinned default.
+    type StripeConfig = NonNullable<ConstructorParameters<typeof Stripe>[1]>;
+    const stripeConfig: StripeConfig = {
       maxNetworkRetries: config.maxRetries ?? 3,
       timeout: config.timeout ?? 30000,
     };
     if (config.apiVersion) {
-      stripeConfig.apiVersion = config.apiVersion;
+      stripeConfig.apiVersion = config.apiVersion as StripeConfig['apiVersion'];
     }
     this.stripe = new Stripe(config.apiKey, stripeConfig);
   }

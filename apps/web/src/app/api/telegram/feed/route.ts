@@ -50,11 +50,19 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ messages: [], error: error.message }, { status: 500 });
   }
 
+  interface TelegramRow {
+    id: string | number;
+    sender_name: string | null;
+    message: string;
+    response: string | null;
+    created_at: string;
+  }
+
   const turns: FeedTurn[] = [];
-  (data || [])
+  ((data ?? []) as TelegramRow[])
     .slice()
     .reverse()
-    .forEach((row: any) => {
+    .forEach((row) => {
       turns.push({
         id: `${row.id}-in`,
         from: row.sender_name || 'Phill',

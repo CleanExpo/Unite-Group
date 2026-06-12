@@ -24,6 +24,9 @@
 
 import Stripe from 'stripe';
 import { sendEmail } from '@/lib/integrations/sendgrid';
+import { createServiceClient } from '@/lib/supabase/service';
+
+type ServiceClient = ReturnType<typeof createServiceClient>;
 
 const STRIPE_KEY = process.env.STRIPE_SECRET_KEY;
 
@@ -86,7 +89,7 @@ function renderReceiptHtml(d: ReceiptData): string {
  */
 export async function handleInvoicePaymentSucceeded(
   invoice: Stripe.Invoice,
-  admin: { from: (table: string) => any },
+  admin: ServiceClient,
 ): Promise<boolean> {
   // 1. Idempotency check: see if we already sent a receipt for this invoice.
   const { data: existingReceipts } = await admin
