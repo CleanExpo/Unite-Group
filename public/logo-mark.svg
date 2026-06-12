@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" fill="none">
-  <!-- Outer hexagon — 6 businesses united -->
-  <path d="M20 2L36 11v18L20 38 4 29V11L20 2z" fill="#1d4ed8"/>
-  <!-- Inner U letterform -->
-  <path d="M13 13v9.5a7 7 0 0014 0V13" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-  <!-- Amber accent dot — the signal/live indicator -->
-  <circle cx="20" cy="32.5" r="1.8" fill="#f59e0b"/>
-</svg>

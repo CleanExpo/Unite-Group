@@ -1,0 +1,28 @@
+# Obsidian workspace (per-machine UI state, not content)
+.obsidian/workspace*.json
+.obsidian/cache
+.obsidian/community-plugins.json
+.obsidian/plugins/*/data.json
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+Icon?
+
+# Temp
+*.tmp
+*.temp
+.tmp/
+
+# Local exports
+exports/
+*.pdf.tmp
+
+# Sources/Completed audio cache
+Sources/Completed/*.wav
+Sources/Completed/*.mp3
+
+# Local temp/signup state (per-machine, may contain transient secrets)
+.tmp*

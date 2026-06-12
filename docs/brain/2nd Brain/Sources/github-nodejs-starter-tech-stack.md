@@ -1,0 +1,86 @@
+---
+title: "nodejs-starter Tech Stack"
+source: "https://github.com/CleanExpo/NodeJS-Starter-V1"
+repo: "CleanExpo/NodeJS-Starter-V1"
+file_type: "tech-stack"
+captured: "2026-05-21"
+tags:
+  - clippings
+  - github
+  - nodejs-starter-v1
+---
+
+# nodejs-starter — Tech Stack
+
+## package.json
+```
+{
+  "name": "claude-agent-orchestration-template",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Production-ready monorepo for AI-powered applications with Next.js, LangGraph, and Claude",
+  "author": "Your Name",
+  "license": "MIT",
+  "scripts": {
+    "setup": "bash scripts/setup.sh",
+    "setup:windows": "powershell -ExecutionPolicy Bypass -File scripts/setup.ps1",
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "test": "turbo run test",
+    "test:coverage": "turbo run test:coverage",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:restart": "docker compose restart",
+    "docker:reset": "docker compose down -v && docker compose up -d",
+    "docker:logs": "docker compose logs -f",
+    "verify": "bash scripts/verify.sh",
+    "verify:fix": "bash scripts/verify.sh --fix",
+    "verify:windows": "powershell -ExecutionPolicy Bypass -File scripts/verify.ps1",
+    "verify:windows:fix": "powershell -ExecutionPolicy Bypass -File scripts/verify.ps1 -Fix",
+    "deps:check": "bash scripts/dependency-checks.sh",
+    "deps:sync": "pnpm install && pnpm verify:deps",
+    "deps:clean": "pnpm prune && pnpm install",
+    "prepare": "husky",
+    "starter:build": "cd src && npx tsc",
+    "starter:adopt": "npm run starter:build && node scripts/adopt-project.mjs",
+    "starter:audit": "npm run starter:build && node scripts/full-audit.mjs",
+    "starter:sync-linear": "npm run starter:build && node scripts/sync-linear.mjs",
+    "vault:index": "node scripts/vault-index.mjs",
+    "vault:validate": "node scripts/vault-validate.mjs",
+    "vault:adopt": "node scripts/adopt-vault.mjs",
+    "vault:adopt:dry": "node scripts/adopt-vault.mjs --dry-run"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.3",
+    "@rushstack/eslint-patch": "1.16.1",
+    "@types/node": "^22.10.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.10",
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  },
+  "dependencies": {
+    "brave-search": "^0.9.0",
+    "prettier-plugin-tailwindcss": "^0.7.2"
+  }
+}
+```

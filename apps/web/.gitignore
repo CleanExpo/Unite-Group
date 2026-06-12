@@ -1,0 +1,300 @@
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+/test-results
+/playwright-report
+/.playwright
+*.lcov
+.vitest-cache
+
+# VPN Configuration (contains credentials - DO NOT COMMIT)
+vpn-config.json
+**/vpn-config*.json
+screenshot_*.png
+
+# Next.js
+/.next/
+/out/
+next-env.d.ts
+
+# Production
+/build
+/dist
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dev-output.log
+
+# Local env files
+.env*.local
+.env
+.env.local
+.env.production
+.env.development
+.env.test
+.env.pulled
+.linear-api-key
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+
+# Convex
+.convex/
+# _generated/ - Commented out to allow committing Convex generated files for Vercel builds
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+nul
+ENV_AUDIT_REPORT.md
+ENV_FINAL_STATUS.md
+ENV_*.md
+
+.vercel
+.env*.local
+
+# Security: Scripts with hardcoded credentials
+insert-supabase-data.mjs
+insert-via-supabase-client.mjs
+insert-contacts-only.mjs
+insert-simple-contact.mjs
+insert-real-contacts.mjs
+check-supabase-schema.mjs
+
+# Security: Documentation with sensitive info
+SWITCHED_TO_SUPABASE.md
+SUPABASE_DATA_LOADED.md
+SECURITY_INCIDENT_REPORT.md
+add-test-data.sql
+add-test-data-simple.sql
+
+# Test scripts and screenshots
+test-*.cjs
+test-*.js
+test-*.mjs
+*-screenshot.png
+final-*.png
+test-*.png
+
+# Status and diagnostic files
+*_STATUS.md
+*_REPORT.md
+FINAL_STATUS.md
+FIXES_APPLIED.md
+VERIFICATION_COMPLETE.md
+ALL_BROKEN_SHIT.md
+BROWSER_ERRORS_RESOLVED.md
+SYSTEM_READY_STATUS.md
+SYSTEM_DIAGNOSTIC_REPORT.md
+
+# Test logs and output files
+*.log
+*-test-*.log
+test-output.log
+integration-test-*.log
+e2e-*.log
+
+# Runtime logs directory
+logs/
+logs/*.log
+logs/*.log.*
+
+# Turbo build cache (per-machine, never commit)
+.turbo/
+
+# Generated health-check artifacts
+health-check-reports/
+
+# Test summary files (keep in docs/test-reports/)
+/*TESTING*.md
+/*TEST*.md
+/COMPREHENSIVE*.md
+/INTEGRATION*.md
+/E2E*.md
+/TRACK*.md
+/NEXT_STEPS.md
+
+# PR and automation scripts
+create-pr*.bat
+create-pr*.ps1
+.githubpr-*.md
+
+# Setup guides with credentials
+GMAIL_SETUP_GUIDE.md
+ENVIRONMENT_VARIABLES_GUIDE.md
+DEPLOYMENT_GUIDE.md
+DEPLOYMENT_CHECKLIST.md
+CLAUDE_AI_IMPLEMENTATION.md
+DALLE_QUICK_START.md
+DALLE_SETUP_GUIDE.md
+DEPLOYMENT.md
+ENV_QUICKFIX.md
+SECURITY_CHECKLIST.md
+lib/claude/QUICKSTART.md
+src/lib/dalle/README.md
+
+# Playwright MCP and testing files
+PLAYWRIGHT_MCP_GUIDE.md
+PRICING_PAGE_TEST_RESULTS.md
+
+# Content dumps
+content-*.txt
+
+# Scripts
+find-all-fake-data.sh
+inspect-content.cjs
+scripts/export-dimitri-gmail.mjs
+scripts/list-google-vault.mjs
+
+# Inspect screenshots
+inspect-*.png
+NodeJS-Starter-V1/
+
+# External projects (separate repos)
+external/
+
+# Playwright MCP screenshots
+.playwright-mcp/
+
+# Test output
+vitest-results.json
+
+# Temp reports
+navigation-report.json
+placeholder-report.json
+
+# Secrets documentation (sensitive)
+ADD_SECRETS_TO_VERCEL.md
+SECRETS_QUICK_REFERENCE.md
+SECRETS_SECURITY_GUIDE.md
+add-to-vercel.ps1
+
+# MCP server generated files
+.claude/mcp_servers/*/node_modules/
+.claude/mcp_servers/*/dist/
+.claude/mcp_servers/*/.env
+.claude/mcp_servers/*/package-lock.json
+
+# Claude upgrade artifacts
+.claude/.structure-before-upgrade.txt
+.claude/CLAUDE.md.backup
+.claude/backups/
+
+# Multiple lockfile artifacts (keep only pnpm-lock.yaml for monorepo)
+package-lock.json
+yarn.lock
+
+# Tests starter artifacts
+tests-starter/
+
+# Nul file (Windows artifact)
+nul
+
+# Build artifacts (generated, not committed)
+packages/shared/dist/
+apps/web/.next/
+apps/backend/.venv/
+
+# Veritas Kanban MCP — only packages/veritas-kanban-mcp/mcp/ is ours; ignore the rest of the upstream monorepo
+packages/veritas-kanban-mcp/*
+!packages/veritas-kanban-mcp/mcp/
+
+# Screenshots from browser automation
+dashboard-after-login.png
+login-page.png
+
+# Env files not covered by existing patterns
+.env.vercel-*
+.env.vault
+.env.unite-group-nexus
+.env.local.backup.*
+.env.local.pre-pull-*
+.veritas-kanban/
+
+# Claude Code task state
+tasks/
+
+# Contract testing output
+pacts/
+
+.vercel
+
+# Diagnostic SQL scripts (root-level)
+CHECK_*.sql
+TEST_*.sql
+DEBUG_*.sql
+FIX_*.sql
+VERIFY_*.sql
+COMPLETE_*.sql
+CREATE_MISSING_*.sql
+FULL_SCHEMA_DUMP.sql
+SETUP_SUPABASE.sql
+supabase-schema.sql
+apply-migrations*.sql
+apply-all-migrations.sql
+fix-*.sql
+check-*.sql
+create-missing-*.sql
+verify-*.sql
+MIGRATION_*_DIAGNOSTICS.sql
+EXECUTE_MIGRATIONS_NOW.sql
+
+# AI session artefact guard — prevent root *.md accumulation
+/*.md
+!/README.md
+!/CHANGELOG.md
+!/ENGINEERING-FRAMEWORK.md
+!/CLAUDE.md
+
+# Claude Code worktrees
+.claude/worktrees/
+
+# Local agent/runtime state
+.agents/
+.codex/
+.omx/
+
+# Superpowers plugin
+.superpowers/
+
+# Archive directories (v1 legacy — not tracked)
+docs/_archive/
+scripts/_archive/
+
+# Prevent root-level diagnostic accumulation
+/*.txt
+/*.log
+/*.png
+!CHANGELOG.md
+
+# Raw Lighthouse audit output
+.claude/audits/*.json
+
+.vercel
+
+.env*.local
+# Env backups (may contain real secrets — never commit)
+.env.local.bak.*
+.env.local.*.bak
+
+# Local dev launcher (machine-specific CA path)
+start-dev.ps1

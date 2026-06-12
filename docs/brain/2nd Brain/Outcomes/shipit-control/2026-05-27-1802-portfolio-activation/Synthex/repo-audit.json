@@ -1,0 +1,57 @@
+{
+  "product": "Synthex",
+  "path": "/Users/phillmcgurk/Synthex",
+  "declared_repo": "CleanExpo/Synthex",
+  "exists": true,
+  "generated_at": "2026-05-27T18:02:37+10:00",
+  "rana_authority": "Rana is final production merge authority; local artifacts only, no merge/deploy/publish performed.",
+  "is_git": true,
+  "remote": "https://github.com/CleanExpo/Synthex.git",
+  "branch": "main",
+  "head": "afba962b",
+  "dirty_count": 6,
+  "dirty_sample": [
+    "M supabase/.temp/cli-latest",
+    " M supabase/.temp/gotrue-version",
+    " M supabase/.temp/storage-migration",
+    " M supabase/.temp/storage-version",
+    "?? docs/marketing/",
+    "?? supabase/.temp/linked-project.json"
+  ],
+  "package": true,
+  "scripts": {
+    "build": "next build --webpack",
+    "lint": "eslint . --max-warnings 0",
+    "test": "jest --config jest.worktree.cjs",
+    "type-check": "tsc --noEmit"
+  },
+  "test_status": "script_available_not_run_activation_pass",
+  "env_examples": [
+    ".env.test",
+    ".env.example"
+  ],
+  "github_workflows": [
+    ".github/workflows/security.yml",
+    ".github/workflows/review-board.yml",
+    ".github/workflows/design-lint.yml",
+    ".github/workflows/lighthouse.yml",
+    ".github/workflows/deploy.yml",
+    ".github/workflows/brand-intelligence-cron.yml",
+    ".github/workflows/client-value-scorecard.yml",
+    ".github/workflows/lighthouse-agentic.yml",
+    ".github/workflows/agent-pr-checks.yml",
+    ".github/workflows/dependency-check.yml",
+    ".github/workflows/accuracy-gate.yml",
+    ".github/workflows/ci.yml",
+    ".github/workflows/hermes-skill-check.yml"
+  ],
+  "blockers": [],
+  "risk": [
+    "working_tree_dirty:6_files"
+  ],
+  "missing_integrations_or_env_hook_gaps": [],
+  "prioritized_tasks": [
+    "Prepare sandbox PR task to isolate dirty worktree changes before Rana merge review"
+  ],
+  "shipit_percent": 100
+}

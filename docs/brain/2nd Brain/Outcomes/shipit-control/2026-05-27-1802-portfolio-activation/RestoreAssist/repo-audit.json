@@ -1,0 +1,63 @@
+{
+  "product": "RestoreAssist",
+  "path": "/Users/phillmcgurk/RestoreAssist",
+  "declared_repo": "CleanExpo/RestoreAssist",
+  "exists": true,
+  "generated_at": "2026-05-27T18:02:37+10:00",
+  "rana_authority": "Rana is final production merge authority; local artifacts only, no merge/deploy/publish performed.",
+  "is_git": true,
+  "remote": "https://github.com/CleanExpo/RestoreAssist.git",
+  "branch": "main",
+  "head": "8c216f79",
+  "dirty_count": 88,
+  "dirty_sample": [
+    "M .agents/skills/design-audit/SKILL.md",
+    " M .agents/skills/design-intelligence/SKILL.md",
+    " M .agents/skills/design-system/SKILL.md",
+    " M .claude/ARCHITECTURE.md",
+    " M .claude/DESIGN.md",
+    " M .claude/PACKAGE_LOOKUPS.md",
+    " M .claude/RULES.md",
+    " M .claude/STANDARDS.md",
+    " M .claude/aggregation/MASTER_PLAN.md",
+    " M .claude/aggregation/README.md",
+    " M .claude/aggregation/github/state.md",
+    " M .claude/aggregation/hermes/inventory.md"
+  ],
+  "package": true,
+  "scripts": {
+    "build": "NODE_OPTIONS=\"--max-old-space-size=8192\" sh scripts/build.sh",
+    "lint": "eslint .",
+    "type-check": "NODE_OPTIONS=\"--max-old-space-size=8192\" tsc --noEmit"
+  },
+  "test_status": "not_run_no_test_script",
+  "env_examples": [
+    ".env.test.local.example",
+    ".env.example"
+  ],
+  "github_workflows": [
+    ".github/workflows/release-gate.yml",
+    ".github/workflows/smoke-prod.yml",
+    ".github/workflows/android-build-field-app.yml",
+    ".github/workflows/design-lint.yml",
+    ".github/workflows/deploy-check.yml",
+    ".github/workflows/pr-checks.yml",
+    ".github/workflows/android-build-cet-app.yml",
+    ".github/workflows/ios-release.yml",
+    ".github/workflows/deepsec-weekly.yml",
+    ".github/workflows/android-release.yml",
+    ".github/workflows/pilot-canary.yml"
+  ],
+  "blockers": [
+    "missing_test_script"
+  ],
+  "risk": [
+    "working_tree_dirty:88_files"
+  ],
+  "missing_integrations_or_env_hook_gaps": [],
+  "prioritized_tasks": [
+    "Add or document repo test command for Shipit Checklist acceptance",
+    "Prepare sandbox PR task to isolate dirty worktree changes before Rana merge review"
+  ],
+  "shipit_percent": 60
+}

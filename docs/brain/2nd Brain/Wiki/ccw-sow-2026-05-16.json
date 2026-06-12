@@ -1,0 +1,186 @@
+{
+  "sow_version": "v1.1-ABR-verified",
+  "sow_date": "2026-05-16",
+  "wiki_md": "/Users/phill-mac/2nd Brain/2nd Brain/Wiki/ccw-sow-draft-2026-05-16.md",
+  "client": {
+    "slug": "ccw",
+    "legal_entity": "ABERFORD HOLDINGS PTY LTD",
+    "trading_name": "CARPET CLEANERS WAREHOUSE",
+    "abn": "94086503317",
+    "abn_formatted": "94 086 503 317",
+    "acn": "086 503 317",
+    "entity_type": "Australian Private Company",
+    "gst_registered": true,
+    "gst_registered_from": "2000-07-01",
+    "address": {
+      "state": "QLD",
+      "postcode": "4034",
+      "country": "AU"
+    },
+    "contact": {
+      "name": "Toby Bredhauer",
+      "email": "tobyb@ccwarehouse.com.au",
+      "domain": "ccwarehouse.com.au"
+    },
+    "abr_verified": true,
+    "abr_verified_date": "2026-05-16"
+  },
+  "service_provider": {
+    "entity": "UNITE-GROUP NEXUS PTY LTD",
+    "abn": "95691477844",
+    "abn_formatted": "95 691 477 844",
+    "acn": "691 477 844",
+    "entity_type": "Australian Private Company",
+    "gst_registered": true,
+    "gst_registered_from": "2025-10-01",
+    "address": {
+      "state": "QLD",
+      "postcode": "4305",
+      "country": "AU"
+    }
+  },
+  "engagement": {
+    "type": "Retainer",
+    "name": "Synthex Agency Retainer — CCW",
+    "term_months": 6,
+    "renewal": "month-to-month after Month 6",
+    "notice_period_days": 30,
+    "supersedes_prior_arrangement": true,
+    "supersedes_note": "This SOW supersedes the existing $2,750/mo arrangement between Unite-Group and CCW. Phill must cancel the prior subscription once the new Stripe subscription is live. No double-billing.",
+    "grandfathered_pricing": true,
+    "public_floor_aud_excl": 5000,
+    "grandfathered_rate_aud_excl": 2750
+  },
+  "currency": "AUD",
+  "gst_handling": "exclusive",
+  "gst_rate": 0.10,
+  "stripe_product": {
+    "name": "Synthex Agency Retainer",
+    "description": "Monthly marketing retainer — 4 weekly content batches (blog + 4 social + newsletter) delivered against the CCW BrandConfig. Includes monthly performance scorecard and brand-guardian QA.",
+    "monthly_aud_excl": 2750,
+    "monthly_aud_incl": 3025,
+    "billing_interval": "month"
+  },
+  "milestones": [
+    {
+      "id": "deposit-signing",
+      "label": "Signing deposit — Month 1 + Month 2 prepaid",
+      "type": "payment_link",
+      "days": "0",
+      "fee_aud_excl": 5500,
+      "gst_aud": 550,
+      "fee_aud_incl": 6050,
+      "deliverables": [
+        "Counter-signed SOW v1.1",
+        "Kickoff call scheduled within 5 business days",
+        "Month 1 content cadence commences",
+        "Month 2 prepaid as rolling forward deposit (reconciled on termination per §4.1)"
+      ],
+      "payment_trigger": "Payment Link sent to Toby via Phill; paid at signing",
+      "stripe_action": "create_payment_link"
+    },
+    {
+      "id": "month-3",
+      "label": "Month 3 retainer invoice",
+      "type": "invoice_draft",
+      "days": "60",
+      "fee_aud_excl": 2750,
+      "gst_aud": 275,
+      "fee_aud_incl": 3025,
+      "deliverables": [
+        "4 weekly content batches (blog + 4 social + newsletter)",
+        "Monthly performance scorecard delivered by 7th business day"
+      ],
+      "payment_trigger": "Net 7, issued 1st of calendar month",
+      "stripe_action": "create_draft_invoice"
+    },
+    {
+      "id": "month-4",
+      "label": "Month 4 retainer invoice",
+      "type": "invoice_draft",
+      "days": "90",
+      "fee_aud_excl": 2750,
+      "gst_aud": 275,
+      "fee_aud_incl": 3025,
+      "deliverables": [
+        "4 weekly content batches (blog + 4 social + newsletter)",
+        "Monthly performance scorecard delivered by 7th business day",
+        "Brand-guardian Phase B telemetry capture begins (per §3.3)"
+      ],
+      "payment_trigger": "Net 7, issued 1st of calendar month",
+      "stripe_action": "create_draft_invoice"
+    },
+    {
+      "id": "month-5",
+      "label": "Month 5 retainer invoice",
+      "type": "invoice_draft",
+      "days": "120",
+      "fee_aud_excl": 2750,
+      "gst_aud": 275,
+      "fee_aud_incl": 3025,
+      "deliverables": [
+        "4 weekly content batches (blog + 4 social + newsletter)",
+        "Monthly performance scorecard delivered by 7th business day"
+      ],
+      "payment_trigger": "Net 7, issued 1st of calendar month",
+      "stripe_action": "create_draft_invoice"
+    },
+    {
+      "id": "month-6",
+      "label": "Month 6 retainer invoice — final initial-term invoice",
+      "type": "invoice_draft",
+      "days": "150",
+      "fee_aud_excl": 2750,
+      "gst_aud": 275,
+      "fee_aud_incl": 3025,
+      "deliverables": [
+        "4 weekly content batches (blog + 4 social + newsletter)",
+        "Monthly performance scorecard delivered by 7th business day",
+        "Renewal conversation — month-to-month rolls automatically unless either party gives 30-day written notice"
+      ],
+      "payment_trigger": "Net 7, issued 1st of calendar month",
+      "stripe_action": "create_draft_invoice"
+    }
+  ],
+  "totals": {
+    "deposit_aud_excl": 5500,
+    "deposit_aud_incl": 6050,
+    "remaining_4_invoices_aud_excl": 11000,
+    "remaining_4_invoices_aud_incl": 12100,
+    "initial_term_total_aud_excl": 16500,
+    "initial_term_total_aud_incl": 18150
+  },
+  "stripe_constraints": {
+    "do_not_charge_deposit": true,
+    "deposit_payment_link_recipient": "Phill (forwards to Toby)",
+    "tax_registration_required": "AU GST",
+    "supersedes_existing_subscription": true,
+    "supersedes_action": "If existing CCW customer found, attach new product to that customer (do not create duplicate). Phill cancels the prior $2,750/mo subscription once the new payment link is paid."
+  },
+  "stripe_minted_2026_05_16": {
+    "account_id": "acct_1SzE5KGib5mMf28d",
+    "account_business_profile": "Synthex",
+    "customer_id": "cus_UWDwsApzrB6Yjd",
+    "customer_reused": true,
+    "product_id": "prod_UWfKxu3oyCrcYW",
+    "recurring_price_id": "price_1TXbzVGib5mMf28dZnavBwRb",
+    "deposit_payment_link_id": "plink_1TXbznGib5mMf28djW9jzBAH",
+    "deposit_payment_link_url": "https://buy.stripe.com/bJe28r1Hf29QeHWfw69oc0a",
+    "draft_invoices": {
+      "month_3": "in_1TXc09Gib5mMf28d8Bz7J8E9",
+      "month_4": "in_1TXc0BGib5mMf28daHWffnVD",
+      "month_5": "in_1TXc0CGib5mMf28dXWjI9BN1",
+      "month_6": "in_1TXc0EGib5mMf28dZ3AYjLb3"
+    },
+    "au_gst_tax_registration_id": "taxreg_1TWrCNGib5mMf28dlY2vSdsu",
+    "tax_calculation_verified": {
+      "deposit_aud_excl": 5500,
+      "deposit_gst": 550,
+      "deposit_aud_incl": 6050,
+      "rate": "10.0%"
+    },
+    "superseding_finding": "BRIEF SAID 'superseding $2,750/mo'. ACTUAL: the existing sub_1TXBVjGib5mMf28dQwKOlS4a on this customer is a DIFFERENT product (CCW-CRM SaaS, prod_UWDwOiE8VWA7Yf, $2,500 ex / $2,750 inc GST per month). Wiki SOW v1.1 §14 explicitly states the SaaS is a separate agreement unaffected by this SOW. NO subscription was cancelled or modified — Phill to disambiguate whether the new retainer truly supersedes the SaaS (which would mean cancelling the active SaaS subscription) or whether they coexist."
+  },
+  "governing_law": "Queensland, Australia",
+  "liability_cap": "6 months of fees paid"
+}

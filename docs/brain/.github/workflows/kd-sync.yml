@@ -1,0 +1,23 @@
+name: Sync vault to Fable knowledge_docs
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sync notes to Supabase
+        env:
+          KD_FN_URL: https://yhteftfnoegmdkimzzjd.supabase.co/functions/v1/kd-ingest-temp
+          # Supabase publishable (anon) key — public by design, required by the
+          # function gateway. Real auth is the ephemeral GITHUB_TOKEN below.
+          KD_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlodGVmdGZub2VnbWRraW16empkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMjQ0OTQsImV4cCI6MjA5NjgwMDQ5NH0.cML4EHdfKcPSCil0x5chMmcEVsM8AGwq5kN7zW9tk08
+          KD_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 .scripts/kd-sync.py

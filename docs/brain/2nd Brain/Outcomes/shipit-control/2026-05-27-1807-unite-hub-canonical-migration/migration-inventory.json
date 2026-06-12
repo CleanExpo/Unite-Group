@@ -1,0 +1,1369 @@
+{
+  "generated_at": "2026-05-27T18:07:00+10:00",
+  "canonical_repo": "CleanExpo/Unite-Hub",
+  "deprecated_source_repo": "CleanExpo/Unite-Group",
+  "freeze_artifact": "/Users/phillmcgurk/2nd-brain/Outcomes/shipit-control/2026-05-27-1807-unite-hub-canonical-migration/UNITE-GROUP-FREEZE.md",
+  "open_prs": {
+    "CleanExpo/Unite-Group": {
+      "ok": true,
+      "data": [
+        {
+          "author": {
+            "id": "U_kgDOCZ_Kqg",
+            "is_bot": false,
+            "login": "CleanExpo",
+            "name": "Phillip McGurk"
+          },
+          "baseRefName": "main",
+          "headRefName": "feat/command-center-daily-digest-server-read",
+          "isDraft": false,
+          "mergeStateStatus": "BLOCKED",
+          "number": 205,
+          "state": "OPEN",
+          "statusCheckRollup": [
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-27T06:55:02Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26495814951/job/78023652749",
+              "name": "TypeScript",
+              "startedAt": "2026-05-27T06:54:16Z",
+              "status": "COMPLETED",
+              "workflowName": "CI"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-27T06:54:21Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26495815000/job/78023652640",
+              "name": "Validate .claude/DESIGN.md",
+              "startedAt": "2026-05-27T06:54:16Z",
+              "status": "COMPLETED",
+              "workflowName": "DESIGN.md lint"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-27T06:54:20Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26495815027/job/78023652630",
+              "name": "PR Triage & Risk Classification",
+              "startedAt": "2026-05-27T06:54:16Z",
+              "status": "COMPLETED",
+              "workflowName": "Review Board"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-27T06:55:34Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26495814951/job/78023652722",
+              "name": "JSON-LD Schema Validation",
+              "startedAt": "2026-05-27T06:54:16Z",
+              "status": "COMPLETED",
+              "workflowName": "CI"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-27T06:54:49Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26495815027/job/78023667583",
+              "name": "Specialist Review (security)",
+              "startedAt": "2026-05-27T06:54:23Z",
+              "status": "COMPLETED",
+              "workflowName": "Review Board"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-27T06:54:53Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26495815027/job/78023667576",
+              "name": "Specialist Review (typescript)",
+              "startedAt": "2026-05-27T06:54:23Z",
+              "status": "COMPLETED",
+              "workflowName": "Review Board"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-27T06:54:51Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26495815027/job/78023667630",
+              "name": "Specialist Review (database)",
+              "startedAt": "2026-05-27T06:54:23Z",
+              "status": "COMPLETED",
+              "workflowName": "Review Board"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-27T06:54:54Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26495815027/job/78023667602",
+              "name": "Specialist Review (performance)",
+              "startedAt": "2026-05-27T06:54:23Z",
+              "status": "COMPLETED",
+              "workflowName": "Review Board"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-27T06:54:52Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26495815027/job/78023667597",
+              "name": "Specialist Review (architecture)",
+              "startedAt": "2026-05-27T06:54:23Z",
+              "status": "COMPLETED",
+              "workflowName": "Review Board"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-27T06:54:58Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26495815027/job/78023667619",
+              "name": "Specialist Review (react)",
+              "startedAt": "2026-05-27T06:54:23Z",
+              "status": "COMPLETED",
+              "workflowName": "Review Board"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-27T06:54:53Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26495815027/job/78023667611",
+              "name": "Specialist Review (api-design)",
+              "startedAt": "2026-05-27T06:54:23Z",
+              "status": "COMPLETED",
+              "workflowName": "Review Board"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-27T06:54:50Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26495815027/job/78023667593",
+              "name": "Specialist Review (error-handling)",
+              "startedAt": "2026-05-27T06:54:23Z",
+              "status": "COMPLETED",
+              "workflowName": "Review Board"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-27T06:54:57Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26495815027/job/78023667620",
+              "name": "Specialist Review (testing)",
+              "startedAt": "2026-05-27T06:54:23Z",
+              "status": "COMPLETED",
+              "workflowName": "Review Board"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-27T06:54:51Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26495815027/job/78023667661",
+              "name": "Specialist Review (documentation)",
+              "startedAt": "2026-05-27T06:54:23Z",
+              "status": "COMPLETED",
+              "workflowName": "Review Board"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-27T06:54:45Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26495814951/job/78023652727",
+              "name": "Supabase Schema Drift",
+              "startedAt": "2026-05-27T06:54:16Z",
+              "status": "COMPLETED",
+              "workflowName": "CI"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-27T06:55:29Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26495815027/job/78023749505",
+              "name": "Chief Reviewer \u2014 Final Verdict",
+              "startedAt": "2026-05-27T06:55:01Z",
+              "status": "COMPLETED",
+              "workflowName": "Review Board"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-27T06:54:43Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26495814951/job/78023652771",
+              "name": "Pipeline Smoke Tests",
+              "startedAt": "2026-05-27T06:54:16Z",
+              "status": "COMPLETED",
+              "workflowName": "CI"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-27T06:55:04Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26495814951/job/78023652713",
+              "name": "Unit + Integration Tests",
+              "startedAt": "2026-05-27T06:54:16Z",
+              "status": "COMPLETED",
+              "workflowName": "CI"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-27T06:55:00Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26495814951/job/78023652733",
+              "name": "Lint (warnings allowed for feature PRs)",
+              "startedAt": "2026-05-27T06:54:16Z",
+              "status": "COMPLETED",
+              "workflowName": "CI"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-27T06:54:44Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26495814951/job/78023652717",
+              "name": "npm audit (high+)",
+              "startedAt": "2026-05-27T06:54:16Z",
+              "status": "COMPLETED",
+              "workflowName": "CI"
+            },
+            {
+              "__typename": "StatusContext",
+              "context": "CodeRabbit",
+              "startedAt": "2026-05-27T06:54:20Z",
+              "state": "SUCCESS",
+              "targetUrl": ""
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-27T06:55:08Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://vercel.com/github",
+              "name": "Vercel Preview Comments",
+              "startedAt": "2026-05-27T06:55:08Z",
+              "status": "COMPLETED",
+              "workflowName": ""
+            },
+            {
+              "__typename": "StatusContext",
+              "context": "Vercel \u2013 unite-group",
+              "startedAt": "2026-05-27T06:55:06Z",
+              "state": "SUCCESS",
+              "targetUrl": "https://vercel.com/unite-group/unite-group/3JcM8UWqMF5wdU8qjAMTYiPWmYDb"
+            },
+            {
+              "__typename": "StatusContext",
+              "context": "Vercel \u2013 unite-group-sandbox",
+              "startedAt": "2026-05-27T06:55:05Z",
+              "state": "SUCCESS",
+              "targetUrl": "https://vercel.com/unite-group/unite-group-sandbox/6WuU4o7RynA6txAcELkRe2utG1Xo"
+            }
+          ],
+          "title": "feat: hydrate command center daily digest",
+          "updatedAt": "2026-05-27T06:55:07Z",
+          "url": "https://github.com/CleanExpo/Unite-Group/pull/205"
+        },
+        {
+          "author": {
+            "id": "U_kgDOCZ_Kqg",
+            "is_bot": false,
+            "login": "CleanExpo",
+            "name": "Phillip McGurk"
+          },
+          "baseRefName": "main",
+          "headRefName": "margot/digest-page-read",
+          "isDraft": false,
+          "mergeStateStatus": "BLOCKED",
+          "number": 204,
+          "state": "OPEN",
+          "statusCheckRollup": [
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-26T15:18:43Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26457388216/job/77895186014",
+              "name": "TypeScript",
+              "startedAt": "2026-05-26T15:17:54Z",
+              "status": "COMPLETED",
+              "workflowName": "CI"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-26T15:17:58Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26457387989/job/77895185660",
+              "name": "Validate .claude/DESIGN.md",
+              "startedAt": "2026-05-26T15:17:53Z",
+              "status": "COMPLETED",
+              "workflowName": "DESIGN.md lint"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-26T15:17:58Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26457388093/job/77895185857",
+              "name": "PR Triage & Risk Classification",
+              "startedAt": "2026-05-26T15:17:53Z",
+              "status": "COMPLETED",
+              "workflowName": "Review Board"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-26T15:19:20Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26457388216/job/77895185983",
+              "name": "JSON-LD Schema Validation",
+              "startedAt": "2026-05-26T15:17:53Z",
+              "status": "COMPLETED",
+              "workflowName": "CI"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-26T15:18:31Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26457388093/job/77895212124",
+              "name": "Specialist Review (security)",
+              "startedAt": "2026-05-26T15:18:01Z",
+              "status": "COMPLETED",
+              "workflowName": "Review Board"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-26T15:18:35Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26457388093/job/77895212091",
+              "name": "Specialist Review (typescript)",
+              "startedAt": "2026-05-26T15:18:02Z",
+              "status": "COMPLETED",
+              "workflowName": "Review Board"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-26T15:18:30Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26457388093/job/77895212799",
+              "name": "Specialist Review (database)",
+              "startedAt": "2026-05-26T15:18:01Z",
+              "status": "COMPLETED",
+              "workflowName": "Review Board"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-26T15:18:37Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26457388093/job/77895212196",
+              "name": "Specialist Review (performance)",
+              "startedAt": "2026-05-26T15:18:01Z",
+              "status": "COMPLETED",
+              "workflowName": "Review Board"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-26T15:18:37Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26457388093/job/77895212524",
+              "name": "Specialist Review (architecture)",
+              "startedAt": "2026-05-26T15:18:02Z",
+              "status": "COMPLETED",
+              "workflowName": "Review Board"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-26T15:18:38Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26457388093/job/77895212175",
+              "name": "Specialist Review (react)",
+              "startedAt": "2026-05-26T15:18:02Z",
+              "status": "COMPLETED",
+              "workflowName": "Review Board"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-26T15:18:32Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26457388093/job/77895212082",
+              "name": "Specialist Review (api-design)",
+              "startedAt": "2026-05-26T15:18:02Z",
+              "status": "COMPLETED",
+              "workflowName": "Review Board"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-26T15:18:39Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26457388093/job/77895212093",
+              "name": "Specialist Review (error-handling)",
+              "startedAt": "2026-05-26T15:18:02Z",
+              "status": "COMPLETED",
+              "workflowName": "Review Board"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-26T15:18:35Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26457388093/job/77895212106",
+              "name": "Specialist Review (testing)",
+              "startedAt": "2026-05-26T15:18:01Z",
+              "status": "COMPLETED",
+              "workflowName": "Review Board"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-26T15:18:38Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26457388093/job/77895212087",
+              "name": "Specialist Review (documentation)",
+              "startedAt": "2026-05-26T15:18:01Z",
+              "status": "COMPLETED",
+              "workflowName": "Review Board"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-26T15:18:28Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26457388216/job/77895186186",
+              "name": "Supabase Schema Drift",
+              "startedAt": "2026-05-26T15:17:54Z",
+              "status": "COMPLETED",
+              "workflowName": "CI"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-26T15:19:14Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26457388093/job/77895352070",
+              "name": "Chief Reviewer \u2014 Final Verdict",
+              "startedAt": "2026-05-26T15:18:42Z",
+              "status": "COMPLETED",
+              "workflowName": "Review Board"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-26T15:18:32Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26457388216/job/77895186064",
+              "name": "Pipeline Smoke Tests",
+              "startedAt": "2026-05-26T15:17:55Z",
+              "status": "COMPLETED",
+              "workflowName": "CI"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-26T15:18:43Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26457388216/job/77895185996",
+              "name": "Unit + Integration Tests",
+              "startedAt": "2026-05-26T15:17:53Z",
+              "status": "COMPLETED",
+              "workflowName": "CI"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-26T15:18:44Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26457388216/job/77895186092",
+              "name": "Lint (warnings allowed for feature PRs)",
+              "startedAt": "2026-05-26T15:17:54Z",
+              "status": "COMPLETED",
+              "workflowName": "CI"
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-26T15:18:22Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://github.com/CleanExpo/Unite-Group/actions/runs/26457388216/job/77895185992",
+              "name": "npm audit (high+)",
+              "startedAt": "2026-05-26T15:17:53Z",
+              "status": "COMPLETED",
+              "workflowName": "CI"
+            },
+            {
+              "__typename": "StatusContext",
+              "context": "CodeRabbit",
+              "startedAt": "2026-05-26T15:25:20Z",
+              "state": "SUCCESS",
+              "targetUrl": ""
+            },
+            {
+              "__typename": "CheckRun",
+              "completedAt": "2026-05-26T15:17:55Z",
+              "conclusion": "SUCCESS",
+              "detailsUrl": "https://vercel.com/github",
+              "name": "Vercel Preview Comments",
+              "startedAt": "2026-05-26T15:17:55Z",
+              "status": "COMPLETED",
+              "workflowName": ""
+            },
+            {
+              "__typename": "StatusContext",
+              "context": "Vercel \u2013 unite-group",
+              "startedAt": "2026-05-26T15:17:48Z",
+              "state": "SUCCESS",
+              "targetUrl": "https://vercel.com/unite-group/unite-group/5vDWpbxgp8tnHW2KQt7MWkuMx2VK"
+            },
+            {
+              "__typename": "StatusContext",
+              "context": "Vercel \u2013 unite-group-sandbox",
+              "startedAt": "2026-05-26T15:17:51Z",
+              "state": "SUCCESS",
+              "targetUrl": "https://vercel.com/unite-group/unite-group-sandbox/GPANygC8pJCG6SqrwFZUxs4wjsV4"
+            }
+          ],
+          "title": "feat: wire CRM digest into command center",
+          "updatedAt": "2026-05-26T15:25:15Z",
+          "url": "https://github.com/CleanExpo/Unite-Group/pull/204"
+        }
+      ]
+    },
+    "CleanExpo/Unite-Hub": {
+      "ok": true,
+      "data": []
+    }
+  },
+  "local_git": {
+    "Unite-Hub": {
+      "path": "/Users/phillmcgurk/Unite-Hub",
+      "exists": true,
+      "is_git": true,
+      "remote": "https://github.com/CleanExpo/Unite-Hub.git",
+      "branch": "main",
+      "head": "b423b602292eab4ff964027d513a292644d396c7",
+      "status_short": [],
+      "branches_local": [
+        "docs/margot-ccw-linear-watch-pack|origin/docs/margot-ccw-linear-watch-pack|2026-05-23 20:39:17 +1000|docs: migrate Margot CCW and Linear watch pack",
+        "docs/margot-crm-pack|origin/docs/margot-crm-pack|2026-05-23 20:10:22 +1000|docs: migrate Margot CRM operating pack",
+        "feat/crm-lead-qualification-helper|origin/feat/crm-lead-qualification-helper|2026-05-23 21:13:06 +1000|feat: add CRM lead qualification helper",
+        "fix/smoke-static-assets|origin/fix/smoke-static-assets|2026-05-23 20:17:31 +1000|ci: keep smoke static assets outage-focused",
+        "fix/smoke-test-current-prod|origin/fix/smoke-test-current-prod|2026-05-23 17:11:46 +1000|ci: relax smoke auth route baseline",
+        "fix/unite-hub-ci-baseline|origin/fix/unite-hub-ci-baseline|2026-05-23 16:59:39 +1000|ci: gate credentialed e2e suite",
+        "main|origin/main|2026-05-24 15:56:56 +1000|docs(audit): REFRESHED-AUDIT-2026-05-24 + ESLint service-role guard (#56)",
+        "pidev/cleanup-phase-2-quick-wins|origin/pidev/cleanup-phase-2-quick-wins|2026-05-24 15:40:11 +1000|docs(audit): REFRESHED-AUDIT-2026-05-24 + ESLint service-role guard",
+        "pidev/geo-rollout-unite-hub-2026-05-25|origin/pidev/geo-rollout-unite-hub-2026-05-25|2026-05-25 12:54:20 +1000|feat(geo): Phase 2 sweep \u2014 Unite Hub (llms.txt + Lighthouse Agentic, internal-tool variant)"
+      ],
+      "branches_remote": [
+        "origin/AI-POWERED|2025-11-13 14:40:14 +1000|Add missing Claude and toast utilities",
+        "origin/Anthropic-UI-UX|2025-12-29 08:18:46 +1000|feat(visual): Phase 1-2 complete - Google AI visual generation",
+        "origin/Anthropic-Vend|2025-12-29 07:08:58 +1000|docs: Final status - All validations complete",
+        "origin/Designer|2025-11-17 10:00:30 +1000|Update contacts page with modern gradient design",
+        "origin|2026-05-26 20:39:49 +1000|Add Obsidian + Google \u2192 Nexus playbook (Hermes Knowledge Flywheel) (#58)",
+        "origin/abacus/api-refactor|2025-11-23 13:40:09 +1100|feat: Standardized API response utilities",
+        "origin/abacus/auth-enhancements|2025-11-23 13:42:54 +1100|feat: Rate limiting and audit logging for auth middleware",
+        "origin/abacus/env-hardening|2025-11-23 13:41:30 +1100|feat: Environment validation and typed configuration",
+        "origin/abacus/routing-upgrade|2025-11-23 13:39:02 +1100|feat: Centralized route configuration for improved navigation",
+        "origin/archive/d-unite-group-backup-local--2026-05-24|2025-05-29 15:14:49 +1000|Merge remote repository updates: Integrate latest features while preserving local Unite Group project structure and fixes",
+        "origin/archive/d-unite-group-backup-local-20250530-0730-2026-05-24|2025-05-29 15:14:49 +1000|Merge remote repository updates: Integrate latest features while preserving local Unite Group project structure and fixes",
+        "origin/archive/d-unite-group-backup-local-changes-2026-05-24|2025-05-25 00:30:05 +1000|FINAL FIX: Remove entire conflicting app/ directory and fix Image onError handler - build now successful",
+        "origin/archive/d-unite-group-crm-main-2026-05-24|2026-05-21 11:22:10 +1000|chore: resolve merge conflict",
+        "origin/archive/d-unite-group-main-2026-05-24|2026-03-09 20:16:31 +1000|feat(claude): add superpowers skill framework via SessionStart hook",
+        "origin/backup/pre-synthex-removal|2026-01-24 12:38:10 +1000|fix: time-entries API with dev test mode and admin bypass",
+        "origin/bron/founder-workspace|2026-05-10 03:39:43 +1000|feat: Founder Workspace \u2014 Notion-style databases pre-configured for Phill",
+        "origin/bron/unite-hub-overhaul|2026-03-04 10:16:30 +1000|feat: Update Anthropic models to latest (Opus 4, Sonnet 4, Haiku 4) + NEXUS_AI_ROUTING config",
+        "origin/chore/v2-migration-hygiene-nul-fix|2025-12-15 11:47:29 +1100|fix: vercel build missing imports (guardian pages + admin health)",
+        "origin/claude/intelligent-wing|2026-03-10 21:10:46 +1000|feat(bookkeeper): add sidebar navigation entry",
+        "origin/claude/modest-saha|2026-03-12 10:11:02 +1000|merge: resolve conflicts with origin/main",
+        "origin/codex/connect-obsidian-to-unite-group-nexus|2026-05-26 14:24:22 +1000|docs: specify Telegram callback payload and tamper controls",
+        "origin/design/layered-handoff-v1|2026-05-25 13:04:15 +1000|feat(geo): Phase 2 sweep \u2014 Unite Hub (llms.txt + Lighthouse Agentic, internal-tool variant) (#57)",
+        "origin/docs/margot-crm-pack|2026-05-23 20:10:22 +1000|docs: migrate Margot CRM operating pack",
+        "origin/feat/superpowers-integration|2026-03-09 20:21:41 +1000|feat(claude): add superpowers SessionStart hook alongside existing hooks",
+        "origin/feature/phase10-week1-2-operator-foundation|2025-11-20 08:42:47 +1000|feat(phase10): Week 1-2 - Operator Mode foundation complete",
+        "origin/feature/phase10-week3-4-collaborative-review|2025-11-20 09:01:41 +1000|feat: Phase 10 Week 3-4 - Collaborative review system",
+        "origin/feature/phase10-week5-6-operator-insights|2025-11-20 09:26:05 +1000|feat: Phase 10 Week 5-6 - Operator insights and feedback intelligence",
+        "origin/feature/phase10-week7-8-playbooks-guardrails-sandbox|2025-11-20 09:34:38 +1000|feat: Phase 10 Week 7-8 - Playbooks, guardrails, and sandbox mode",
+        "origin/feature/phase10-week9-stabilisation-finalisation|2025-11-20 09:56:43 +1000|feat: Phase 10 Week 9 - Operator Mode finalization",
+        "origin/feature/phase11-week1-2-strategy-foundation|2025-11-20 10:10:56 +1000|fix: Use user_organizations instead of operator_profiles in RLS policies",
+        "origin/feature/phase11-week3-4-strategy-simulation|2025-11-20 10:21:30 +1000|feat: Phase 11 Week 3-4 - Strategy Simulation & Evaluation Engine",
+        "origin/feature/phase11-week5-6-horizon-planning|2025-11-20 17:32:08 +1000|feat: Phase 11 Week 5-6 - Long-Horizon Autonomous Strategy Planning",
+        "origin/feature/phase11-week7-8-strategy-refinement|2025-11-20 17:45:16 +1000|feat: Phase 11 Week 7-8 - Adaptive Strategy Refinement Layer",
+        "origin/feature/phase11-week9-stabilisation-finalisation|2025-11-20 17:58:16 +1000|feat: Phase 11 Week 9 - Strategy Engine Finalization",
+        "origin/feature/phase12-week1-2-enterprise-foundation|2025-11-20 18:06:41 +1000|feat: Phase 12 Week 1-2 - Enterprise Mode Foundation",
+        "origin/feature/phase12-week3-4-team-structures|2025-11-20 18:46:52 +1000|fix: use team_id IN (SELECT) pattern instead of EXISTS with table prefix",
+        "origin/feature/phase12-week5-6-enterprise-billing|2025-11-20 18:57:54 +1000|feat: Phase 12 Week 5-6 - Enterprise Billing & Metering System",
+        "origin/feature/phase4-real-api-integration|2025-11-19 20:35:58 +1000|feat: Complete Phase 4 Step 3 - Real API Integration Layer",
+        "origin/feature/phase4-seo-ui-shell|2025-11-19 21:53:56 +1000|feat(seo): Complete Iteration 6 - Final Polish & Pre-Merge Stabilization",
+        "origin/feature/phase5-intelligence-layer|2025-11-19 21:59:44 +1000|feat(seo): Complete Phase 5 Intelligence Layer Foundation",
+        "origin/feature/phase6-autonomy|2025-11-19 22:51:49 +1000|feat(seo): Complete Phase 7 Docker Multi-Tenant Foundation",
+        "origin/feature/phase7-api-routes|2025-11-19 23:09:34 +1000|docs: Add Phase 7 Week 18 completion summary",
+        "origin/feature/phase7-geo-onboarding-ui|2025-11-19 23:20:20 +1000|feat: Complete Phase 7 Week 19 - GEO Onboarding UI",
+        "origin/feature/phase7-week20-report-system|2025-11-19 23:34:06 +1000|feat: Complete Phase 7 Week 20 - Report Generation System + E2E Testing",
+        "origin/feature/phase8-week21-delta-engine|2025-11-20 06:54:42 +1000|feat(phase8-week21): Add Delta Engine & History Timeline system",
+        "origin/feature/phase8-week22-backlinks-entity|2025-11-20 07:04:30 +1000|feat(phase8-week22): Add Backlinks & Entity Intelligence engines",
+        "origin/feature/phase8-week23-scheduling-alerts|2025-11-20 07:12:56 +1000|feat(phase8-week23): Add Scheduling Engine & Alert System",
+        "origin/feature/phase8-week24-dashboards-strategy|2025-11-20 07:20:30 +1000|feat: Complete Phase 8 Week 24 - Interactive Dashboards & Strategy Layer",
+        "origin/feature/phase9-week1-2-trust-foundation|2025-11-20 07:53:55 +1000|feat: Complete Phase 9 Weeks 1-2 - Trust Foundation",
+        "origin/feature/phase9-week3-4-trust-api|2025-11-20 07:57:54 +1000|feat: Complete Phase 9 Weeks 3-4 - Trust API & UI Wizard",
+        "origin/feature/phase9-week5-6-signature-pipeline|2025-11-20 08:07:04 +1000|feat: Complete Phase 9 Weeks 5-6 - Signature Pipeline",
+        "origin/feature/phase9-week7-8-autonomy-execution|2025-11-20 08:21:46 +1000|feat(phase9): Week 7-8 - Autonomy execution system complete",
+        "origin/feature/phase9-week9-governance-finalisation|2025-11-20 08:30:05 +1000|feat(phase9): Week 9 - Governance finalization complete",
+        "origin/feature/uiux-overhaul-phase-1|2025-11-19 14:04:09 +1000|feat: Implement Phase 2 Step 5 - Client Authentication System",
+        "origin/fix/smoke-static-assets|2026-05-23 20:17:31 +1000|ci: keep smoke static assets outage-focused",
+        "origin/fix/smoke-test-current-prod|2026-05-23 17:11:46 +1000|ci: relax smoke auth route baseline",
+        "origin/fix/unite-hub-ci-baseline|2026-05-23 16:59:39 +1000|ci: gate credentialed e2e suite",
+        "origin/main|2026-05-26 20:39:49 +1000|Add Obsidian + Google \u2192 Nexus playbook (Hermes Knowledge Flywheel) (#58)",
+        "origin/overnight-test|2025-11-23 00:51:36 +1100|Test Cycle 5 Complete: Final documentation and summary",
+        "origin/phase-1/quick-wins|2025-12-02 14:49:17 +1000|feat: Add autonomous image generation system for MVP",
+        "origin/sandbox|2026-05-23 21:18:38 +1000|feat: add CRM lead qualification helper (#53)",
+        "origin/v2-ai-search-intelligence|2025-12-24 17:01:58 +1000|Merge pull request #29 from CleanExpo/chore/v2-migration-hygiene-nul-fix"
+      ],
+      "unmerged_to_main": [
+        "docs/margot-ccw-linear-watch-pack",
+        "docs/margot-crm-pack",
+        "feat/crm-lead-qualification-helper",
+        "fix/smoke-static-assets",
+        "fix/smoke-test-current-prod",
+        "fix/unite-hub-ci-baseline",
+        "pidev/cleanup-phase-2-quick-wins",
+        "pidev/geo-rollout-unite-hub-2026-05-25"
+      ],
+      "diff_stat": "",
+      "untracked_count": 0
+    },
+    "Unite-Group": {
+      "path": "/Users/phillmcgurk/Unite-Group",
+      "exists": true,
+      "is_git": true,
+      "remote": "https://github.com/CleanExpo/Unite-Group.git",
+      "branch": "feat/command-center-daily-digest-server-read",
+      "head": "daf72c41a6d4cf1ec4238bc148646f177061fc6d",
+      "status_short": [
+        "M docs/margot/mac-mini-recovery-status.md",
+        " M docs/margot/morning-report.md",
+        " M docs/margot/overnight-progress-log.md"
+      ],
+      "branches_local": [
+        "chore/post-pr200-cleanup|origin/chore/post-pr200-cleanup|2026-05-26 23:05:53 +1000|docs: refresh Margot evidence hygiene",
+        "docs/ccw-machines-category-copy|origin/docs/ccw-machines-category-copy|2026-05-23 15:01:45 +1000|docs: draft CCW machines category copy",
+        "docs/ccw-product-category-topic-brief|origin/docs/ccw-product-category-topic-brief|2026-05-23 14:53:14 +1000|docs: draft CCW product category topic brief",
+        "docs/linear-watch-refresh-2053-review|origin/docs/linear-watch-refresh-2053-review|2026-05-23 14:57:08 +1000|docs: refresh Linear watch after CCW category brief",
+        "docs/linear-watch-refresh-2055-review|origin/docs/linear-watch-refresh-2055-review|2026-05-23 09:07:03 +1000|docs: refresh Linear today queue",
+        "docs/margot-pr175-merge-evidence|origin/docs/margot-pr175-merge-evidence|2026-05-23 21:31:40 +1000|docs: record PR 175 merge evidence",
+        "feat/ccw-eofy-organic-copy-pack|origin/feat/ccw-eofy-organic-copy-pack|2026-05-23 09:03:10 +1000|docs: draft CCW EOFY organic campaign pack",
+        "feat/command-center-daily-digest-server-read|origin/feat/command-center-daily-digest-server-read|2026-05-27 16:54:00 +1000|fix: launch CRM digest reads concurrently",
+        "feat/crm-approval-lifecycle-helper|origin/feat/crm-approval-lifecycle-helper|2026-05-23 21:21:20 +1000|fix: avoid email fallback in CRM daily digest",
+        "feat/crm-timeline-write-hooks|origin/feat/crm-timeline-write-hooks|2026-05-23 14:07:08 +1000|feat: record CRM create activity timeline events",
+        "feat/crm-timeline-write-hooks-clean|origin/feat/crm-timeline-best-effort-writes|2026-05-23 14:35:13 +1000|docs: record CRM timeline write-hook fix evidence",
+        "feat/margot-crm-command-spine|origin/feat/margot-crm-command-spine|2026-05-23 07:56:17 +1000|feat: build Margot CRM command spine",
+        "feat/margot-crm-contacts-api|origin/feat/margot-crm-contacts-api|2026-05-23 08:40:45 +1000|test: harden CRM contacts approval defaults",
+        "feat/margot-crm-contacts-approval-defaults|origin/feat/margot-crm-contacts-approval-defaults|2026-05-23 08:41:23 +1000|test: harden CRM contacts approval defaults",
+        "feat/margot-crm-contacts-opportunities-migration|origin/feat/margot-crm-contacts-opportunities-migration|2026-05-23 08:28:51 +1000|feat: draft CRM contacts opportunities schema",
+        "feat/margot-crm-daily-digest-helper|origin/feat/margot-crm-daily-digest-helper|2026-05-23 08:57:57 +1000|feat: add CRM daily digest helper",
+        "feat/margot-crm-daily-digest-route|origin/feat/margot-crm-daily-digest-route|2026-05-23 13:44:32 +1000|docs: record CRM timeline push blocker",
+        "main|origin/main|2026-05-26 21:37:01 +1000|test: cover opportunity update timeline events (#201)",
+        "margot-command-center-approval-ui|origin/margot-command-center-approval-ui|2026-05-23 23:33:15 +1000|docs: fix PR 178 evidence whitespace",
+        "margot/addon-task-status-evidence|origin/margot/addon-task-status-evidence|2026-05-25 10:47:17 +1000|test: cover nexus search service role client options",
+        "margot/control-panel-workstream-task-evidence|origin/margot/control-panel-workstream-task-evidence|2026-05-24 14:48:33 +1000|feat: show CRM task evidence on workstreams",
+        "margot/digest-page-read|origin/margot/digest-page-read|2026-05-27 01:16:12 +1000|feat: wire CRM digest into command center",
+        "margot/digest-read-surface|origin/margot/digest-read-surface|2026-05-27 00:03:44 +1000|feat: add daily CRM digest command surface",
+        "margot/opportunity-update-assertions|origin/main|2026-05-26 20:35:06 +1000|feat: show add-on CRM task status evidence (#198)",
+        "margot/personal-intelligence-ingestion-lane||2026-05-26 21:10:41 +1000|feat(personal-intelligence): add fallback + telegram decision lane follow-up (#200)",
+        "pidev/fix-rotate-jwt-sensitive-2026-05-25|origin/pidev/fix-rotate-jwt-sensitive-2026-05-25|2026-05-25 00:14:11 +1000|fix(rotate-admin-jwt): omit type from PATCH so sensitive env vars rotate"
+      ],
+      "branches_remote": [
+        "origin|2026-05-27 00:06:22 +1000|feat: add daily CRM digest command surface (#203)",
+        "origin/chore/jest-discovery-cleanup|2026-05-19 00:38:44 +1000|chore(jest): drop stray vitest imports + ignore _*.ts helpers in __tests__/",
+        "origin/chore/mock-require-admin-integration-tests|2026-05-19 00:51:33 +1000|chore(tests): mock requireAdmin in 3 integration suites (cookies() fix)",
+        "origin/chore/mock-require-admin-route-tests|2026-05-19 00:43:12 +1000|chore(tests): mock requireAdmin in 7 empire route tests (full local suite green)",
+        "origin/chore/pi-seo-security-cleanup|2026-05-19 00:11:24 +1000|chore(schema): harden JSON-LD encoding against </script> breakout (UNI-1958)",
+        "origin/chore/post-pr200-cleanup|2026-05-26 23:05:53 +1000|docs: refresh Margot evidence hygiene",
+        "origin/chore/sources-md-2026-05-18|2026-05-18 15:24:26 +1000|docs(sources): reflect PRs #75\u2013#85 in cockpit map",
+        "origin/ci/promote-unit-tests-gate-to-test-all|2026-05-19 00:58:36 +1000|ci: promote unit-tests gate from src/ pattern to full npm run test:all",
+        "origin/ci/wire-src-jest-suite|2026-05-19 00:47:31 +1000|ci: gate PRs on the full src/ jest suite (64 suites / 524 tests)",
+        "origin/codex/unite-command-center-ui-audit|2026-05-17 22:44:07 +1000|fix: tighten command center responsive layout",
+        "origin/codex/unite-command-center-ui-audit-2|2026-05-18 01:47:50 +1000|fix: tighten command center responsive preview",
+        "origin/consolidation-batch|2026-05-17 19:07:45 +1000|feat: connect control panel to crm tasks",
+        "origin/docs/1p-runbook-3-vault-reality|2026-05-18 16:21:27 +1000|docs(ops): rewrite 1P vault runbook for 3-vault post-fix reality",
+        "origin/docs/margot-pr175-merge-evidence|2026-05-23 21:31:40 +1000|docs: record PR 175 merge evidence",
+        "origin/feat/admin-jwt-module|2026-05-18 15:06:44 +1000|feat(security): add admin JWT mint/verify module (Task 15 prereq)",
+        "origin/feat/admin-jwt-rotation|2026-05-18 15:18:09 +1000|ci(security): admin JWT rotation script + daily cron (Task 15 slice 3)",
+        "origin/feat/admin-token-dual-auth|2026-05-18 15:14:31 +1000|feat(security): dual-auth bridge for x-admin-token \u2192 JWT migration",
+        "origin/feat/command-center-activity-log-live|2026-05-18 21:37:21 +1000|feat(command-center): wire ActivityLog to live agent_actions feed (UNI-2024)",
+        "origin/feat/command-center-business-360-live|2026-05-18 21:42:41 +1000|feat(command-center): wire Business360Grid to live health_snapshots (UNI-2024)",
+        "origin/feat/command-center-daily-digest-server-read|2026-05-27 16:54:00 +1000|fix: launch CRM digest reads concurrently",
+        "origin/feat/command-center-global-status-live|2026-05-18 21:33:21 +1000|feat(command-center): wire GlobalStatusBar to live agent_actions + git SHA (UNI-2024)",
+        "origin/feat/command-center-kpi-strip-live|2026-05-18 21:22:16 +1000|feat(command-center): wire KpiStrip ARR to live portfolio data (UNI-2024)",
+        "origin/feat/command-center-topology-live|2026-05-18 21:47:24 +1000|feat(command-center): wire AgentTopology to live agent_actions state overlay (UNI-2024)",
+        "origin/feat/contextbot-platform|2026-05-14 14:15:51 +1000|feat(empire): ContextBot platform \u2014 Onboard Client UI + provision API",
+        "origin/feat/crm-approval-lifecycle-helper|2026-05-23 21:21:20 +1000|fix: avoid email fallback in CRM daily digest",
+        "origin/feat/data-room-cron-observability|2026-05-18 22:37:17 +1000|feat(data-room): observability \u2014 regen emits agent_actions on every run",
+        "origin/feat/data-room-per-kind-freshness|2026-05-18 21:16:46 +1000|feat(data-room): per-kind freshness strip above doc table",
+        "origin/feat/data-room-regenerate-cron|2026-05-18 21:03:09 +1000|ci(vercel): daily cron for /api/cron/data-room/regenerate (17:00 UTC = 03:00 AEST)",
+        "origin/feat/duncan-foundations|2026-05-14 15:10:07 +1000|feat(clients): HourOnePortal \u2014 6-section client portal template (CMO call)",
+        "origin/feat/empire-client-edit-activity-panel|2026-05-18 23:42:16 +1000|feat(empire): per-client Recent activity panel on edit page",
+        "origin/feat/empire-clients-audit-trail|2026-05-18 23:38:12 +1000|feat(empire): audit trail \u2014 clients POST/PATCH emit agent_actions rows",
+        "origin/feat/empire-clients-index|2026-05-18 22:52:30 +1000|feat(empire): /empire/clients index page",
+        "origin/feat/empire-clients-portal-content-edit|2026-05-18 23:03:10 +1000|feat(empire): portal_content editing on client edit page",
+        "origin/feat/empire-clients-quick-activate|2026-05-18 23:13:38 +1000|feat(empire): one-click Activate button on /empire/clients",
+        "origin/feat/empire-clients-slug-edit|2026-05-18 22:58:12 +1000|feat(empire): /empire/clients/[slug]/edit page + PATCH route",
+        "origin/feat/empire-clients-status-filter|2026-05-18 23:46:33 +1000|feat(empire): status filter on /empire/clients index",
+        "origin/feat/empire-data-room-nav-link|2026-05-18 20:54:18 +1000|feat(empire): link Data Room from Empire Command Center header",
+        "origin/feat/global-status-data-room-pip|2026-05-18 22:40:45 +1000|feat(command-center): data-room health pip in GlobalStatusBar",
+        "origin/feat/global-status-pip-clickable|2026-05-18 22:43:54 +1000|feat(command-center): data-room pip is now a next/link to admin page",
+        "origin/feat/margot-crm-daily-digest-route|2026-05-23 13:44:32 +1000|docs: record CRM timeline push blocker",
+        "origin/feat/proof-video-pipeline|2026-05-14 15:57:10 +1000|feat(github-webhook): PR-triggered Proof Video pipeline foundation",
+        "origin/feat/runtime-reconciliation|2026-05-18 12:29:50 +1000|refactor(integrations): migrate onepassword route to withSyncLifecycle",
+        "origin/feat/security-p1-client-state|2026-05-18 14:05:23 +1000|fix(security): gate 3 P1 client-state routes (UNI-2015 P1 row)",
+        "origin/feat/security-p2-rate-limits|2026-05-18 13:40:29 +1000|fix(security): rate-limit public intake routes (UNI-2015 P2 row)",
+        "origin/feat/security-routes-ci-gate|2026-05-18 14:12:03 +1000|ci(security): regression-gate for unauthenticated mutating routes",
+        "origin/feat/security-sweep-task-1|2026-05-18 13:17:43 +1000|chore(security): catch requireAdmin + timingSafeTokenMatch in detector",
+        "origin/feat/turnstile-verifier|2026-05-18 14:31:54 +1000|feat(security): add Cloudflare Turnstile server-side verifier",
+        "origin/feat/uni-1947-silent-fail-button-audit|2026-05-18 22:15:26 +1000|fix(empire): silent-fail Refresh button on onboard-client (UNI-1947)",
+        "origin/feat/uni-1953-sanitize-dangerously-set-html|2026-05-18 19:14:49 +1000|security: sanitize 2 dangerouslySetInnerHTML sinks, justify 2 canonical-safe (UNI-1953..1961)",
+        "origin/feat/uni-1971-continual-learning-adoption|2026-05-18 17:01:13 +1000|docs: adopt continual learning architecture (RA-1745)",
+        "origin/feat/uni-1983-data-room-documents-table|2026-05-18 19:26:26 +1000|feat(supabase): data_room_documents table + harden 8 migrations to idempotent (UNI-1983)",
+        "origin/feat/uni-1984-cohort-metrics-generator|2026-05-18 20:20:32 +1000|feat(data-room): cohort metrics generator (UNI-1984)",
+        "origin/feat/uni-1985-pl-summary-generator|2026-05-18 20:26:12 +1000|feat(data-room): P&L summary generator (UNI-1985)",
+        "origin/feat/uni-1986-vendor-contracts|2026-05-18 20:29:52 +1000|feat(data-room): vendor contracts inventory (UNI-1986)",
+        "origin/feat/uni-1987-ip-audit|2026-05-18 20:37:32 +1000|feat(data-room): IP audit generator (UNI-1987)",
+        "origin/feat/uni-1988-incident-timeline|2026-05-18 20:41:41 +1000|feat(data-room): incident history timeline generator (UNI-1988)",
+        "origin/feat/uni-1989-data-room-admin-ui|2026-05-18 20:51:11 +1000|fix(lint): use download attribute on Export ZIP anchor (UNI-1989)",
+        "origin/feat/uni-1993-dynamic-portal-slug|2026-05-18 22:21:16 +1000|feat(portal): dynamic /portal/[slug] route reading nexus_clients (UNI-1993)",
+        "origin/feat/uni-1994-brand-primary-css-var|2026-05-18 17:14:33 +1000|refactor(clients/ccw): consume --brand-primary CSS var (UNI-1994 first slice)",
+        "origin/feat/uni-1994-bulcs-dimitri-color-mix|2026-05-18 18:08:55 +1000|refactor(clients): consume --brand-primary on bulcs + dimitri portals (UNI-1994 slice 2)",
+        "origin/feat/uni-1994-dimitri-brand-accent|2026-05-18 18:18:56 +1000|refactor(clients/dimitri): consume --brand-accent CSS vars (UNI-1994 slice 3)",
+        "origin/feat/uni-1995-onboarding-wizard|2026-05-18 22:26:41 +1000|feat(empire): /empire/clients/new onboarding wizard (UNI-1995)",
+        "origin/feat/uni-1996-logo-fetch-in-wizard|2026-05-18 22:33:01 +1000|feat(wizard): logo auto-fetch in onboarding step 2 (UNI-1996)",
+        "origin/feat/uni-1998-branch-ticket-resolver-tests|2026-05-18 16:39:06 +1000|test(developers): unit tests for branch-ticket-resolver (UNI-1998 #3)",
+        "origin/feat/uni-1998-i18n-unit-tests|2026-05-18 16:29:10 +1000|test(i18n): unit tests for locale routing + fallback (UNI-1998 #5)",
+        "origin/feat/uni-1998-totp-unit-tests|2026-05-18 16:33:44 +1000|test(mfa): unit tests for TOTP module (UNI-1998 #1 partial)",
+        "origin/feat/uni-2022-command-center-access-parity|2026-05-18 19:02:05 +1000|fix(lint): use next/link for AccessDenied switch-account anchor (UNI-2022)",
+        "origin/feat/uni-2023-margot-voice-failure-taxonomy|2026-05-18 19:03:18 +1000|fix(lint): use next/link for AccessDenied switch-account anchor (UNI-2022)",
+        "origin/feat/uni-2024-source-badges-credible-data|2026-05-18 18:50:13 +1000|feat(command-center): SourceBadge + degraded-data banner across panels (UNI-2024)",
+        "origin/feat/uni-2024-source-badges-v2|2026-05-18 18:54:46 +1000|feat(command-center): SourceBadge + degraded-data banner across panels (UNI-2024)",
+        "origin/feat/uni-2025-add-on-action-contract|2026-05-18 18:45:00 +1000|feat(command-center): explicit action contract for add-on approval (UNI-2025)",
+        "origin/feat/wizard-step1-contact-email|2026-05-18 23:18:05 +1000|feat(wizard): capture contact_email in step 1",
+        "origin/feature/nexus-command-centre-v01|2026-05-21 19:08:34 +1000|ci: make lint job truly non-blocking with continue-on-error + ::warning::",
+        "origin/fix/add-ons-assignee-type-check|2026-05-19 01:55:59 +1000|fix(add-ons): assignee_type must satisfy tasks CHECK enum (crm_insert_failed)",
+        "origin/fix/brand-config-cache-invalidation|2026-05-18 23:06:31 +1000|fix(empire): bust brand_config + portal_content cache on client PATCH",
+        "origin/fix/cache-bust-on-client-post|2026-05-18 23:09:54 +1000|fix(empire): bust negative cache on client POST (sister of #131)",
+        "origin/fix/clients-contact-email-23505|2026-05-18 23:54:10 +1000|fix(empire): map contact_email 23505 to 409 contact_email_in_use",
+        "origin/fix/clients-post-23505-handling|2026-05-18 23:49:50 +1000|fix(empire): map Postgres 23505 to 409 slug_in_use on POST race",
+        "origin/fix/command-center-locale-and-dead-surfaces|2026-05-19 00:06:45 +1000|fix(command-center): kill dead surfaces + locale-hardcoded CTAs (UNI-2025)",
+        "origin/fix/data-room-supersede-older-docs|2026-05-18 21:12:07 +1000|fix(data-room): regeneration supersedes older pending+approved docs",
+        "origin/fix/empire-clients-email-validation|2026-05-18 23:22:10 +1000|fix(empire): email format validation on /api/empire/clients (POST + PATCH)",
+        "origin/fix/empire-clients-website-validation|2026-05-18 23:25:48 +1000|fix(empire): website_url format validation on /api/empire/clients",
+        "origin/fix/empire-portal-url-schemes|2026-05-18 23:31:00 +1000|fix(security): scheme allow-list for logo_url + quick_link href (XSS)",
+        "origin/fix/empire-swr-cache-on-back-nav|2026-05-19 02:35:54 +1000|fix(empire): stale-while-revalidate via sessionStorage \u2014 kills back-nav skeleton flash",
+        "origin/fix/marketing-pages-locale-drop|2026-05-19 01:08:52 +1000|fix(routes): locale-aware marketing CTAs \u2014 closes last /en/ sites in [locale]/",
+        "origin/fix/operator-routes-locale-drop|2026-05-19 00:31:24 +1000|fix(routes): sweep remaining /en/ locale-hardcoded operator URLs (UNI-2025 follow-up)",
+        "origin/fix/sync-stripe-handle-missing-env|2026-05-19 00:55:32 +1000|fix(integrations/stripe): syncStripe surfaces missing env as failed[], not throw",
+        "origin/fix/topology-responsive-height|2026-05-19 02:13:22 +1000|fix(command-center): topology container scales with viewport (was pinned 600px)",
+        "origin/fix/wizard-portal-redirect-locale|2026-05-19 00:00:34 +1000|fix(empire-clients): wizard publish redirect respects current locale (UNI-1995)",
+        "origin/main|2026-05-27 00:06:22 +1000|feat: add daily CRM digest command surface (#203)",
+        "origin/margot-command-center-approval-ui|2026-05-23 23:33:15 +1000|docs: fix PR 178 evidence whitespace",
+        "origin/margot/control-panel-workstream-task-evidence|2026-05-24 14:48:33 +1000|feat: show CRM task evidence on workstreams",
+        "origin/margot/digest-page-read|2026-05-27 01:16:12 +1000|feat: wire CRM digest into command center",
+        "origin/margot/digest-read-surface|2026-05-27 00:03:44 +1000|feat: add daily CRM digest command surface",
+        "origin/refactor/rate-limit-consolidation|2026-05-18 15:33:23 +1000|refactor(security): consolidate two rate-limit modules into one",
+        "origin/sandbox|2026-05-24 14:28:12 +1000|chore(portfolio): add Identity block linking to Unite-Group registry (Plan 03)",
+        "origin/test/add-ons-post-happy-path|2026-05-19 02:19:04 +1000|test(add-ons): contract-level happy-path test for POST handler",
+        "origin/test/business-tile-locale-prop|2026-05-19 01:13:18 +1000|test(business-tile): pin locale-aware href against regression (UNI-2025 follow-up)",
+        "origin/test/empire-readers-coverage|2026-05-18 22:48:07 +1000|test(empire): coverage for 6 Command Center server readers",
+        "origin/test/locale-hardcoding-regression-guard|2026-05-19 01:18:05 +1000|test(locale-guard): CI regression-guard against /en/ literals in [locale]/",
+        "origin/test/run-all-generators-coverage|2026-05-18 21:06:31 +1000|test(data-room): coverage for runAllGenerators orchestrator"
+      ],
+      "unmerged_to_main": [
+        "chore/post-pr200-cleanup",
+        "docs/ccw-machines-category-copy",
+        "docs/ccw-product-category-topic-brief",
+        "docs/linear-watch-refresh-2053-review",
+        "docs/linear-watch-refresh-2055-review",
+        "docs/margot-pr175-merge-evidence",
+        "feat/ccw-eofy-organic-copy-pack",
+        "feat/command-center-daily-digest-server-read",
+        "feat/crm-approval-lifecycle-helper",
+        "feat/crm-timeline-write-hooks",
+        "feat/crm-timeline-write-hooks-clean",
+        "feat/margot-crm-command-spine",
+        "feat/margot-crm-contacts-api",
+        "feat/margot-crm-contacts-approval-defaults",
+        "feat/margot-crm-contacts-opportunities-migration",
+        "feat/margot-crm-daily-digest-helper",
+        "feat/margot-crm-daily-digest-route",
+        "margot-command-center-approval-ui",
+        "margot/addon-task-status-evidence",
+        "margot/digest-page-read",
+        "margot/digest-read-surface",
+        "pidev/fix-rotate-jwt-sensitive-2026-05-25"
+      ],
+      "diff_stat": "docs/margot/mac-mini-recovery-status.md |   35 +-\n docs/margot/morning-report.md           |  170 ++-\n docs/margot/overnight-progress-log.md   | 1774 ++++++++++++++++++++++++++++++-\n 3 files changed, 1970 insertions(+), 9 deletions(-)",
+      "untracked_count": 0
+    }
+  },
+  "file_inventory_counts": {
+    "unite_hub_files": 1968,
+    "unite_group_files": 1204,
+    "common": 69,
+    "missing_in_unite_hub": 1135,
+    "different_common_files": 58
+  },
+  "missing_in_unite_hub_by_area": [
+    [
+      "src/lib",
+      273
+    ],
+    [
+      "docs/margot",
+      220
+    ],
+    [
+      "src/app",
+      204
+    ],
+    [
+      "src/components",
+      136
+    ],
+    [
+      "config",
+      40
+    ],
+    [
+      "scripts",
+      38
+    ],
+    [
+      "public",
+      34
+    ],
+    [
+      "supabase/migrations",
+      31
+    ],
+    [
+      "tests/unit",
+      31
+    ],
+    [
+      "database",
+      25
+    ],
+    [
+      "tests/integration",
+      17
+    ],
+    [
+      "docs/superpowers",
+      12
+    ],
+    [
+      "src/types",
+      7
+    ],
+    [
+      ".github/workflows",
+      4
+    ],
+    [
+      "docs/brand",
+      4
+    ],
+    [
+      "docs/plans",
+      3
+    ],
+    [
+      "hooks",
+      3
+    ],
+    [
+      "supabase/functions",
+      3
+    ],
+    [
+      "tests/developers",
+      3
+    ],
+    [
+      "tests/pipelines",
+      3
+    ],
+    [
+      "tests/integrations",
+      2
+    ],
+    [
+      "tests/runtime",
+      2
+    ],
+    [
+      ".github/design-md-lint.baseline.txt",
+      1
+    ],
+    [
+      ".github/scripts",
+      1
+    ],
+    [
+      "COMPLIANCE_FRAMEWORK.md",
+      1
+    ],
+    [
+      "DESIGN_PRESERVATION.md",
+      1
+    ],
+    [
+      "Design.md",
+      1
+    ],
+    [
+      "ROADMAP.md",
+      1
+    ],
+    [
+      "Research.md",
+      1
+    ],
+    [
+      "ShadCN-context.md",
+      1
+    ],
+    [
+      "board-cron",
+      1
+    ],
+    [
+      "docs/AUTO-PUBLISH-FAILURE-MODE-REGISTER.md",
+      1
+    ],
+    [
+      "docs/MIGRATION-PROTOCOL.md",
+      1
+    ],
+    [
+      "docs/SOURCES.md",
+      1
+    ],
+    [
+      "docs/adr",
+      1
+    ],
+    [
+      "docs/audit",
+      1
+    ],
+    [
+      "docs/dr-nrpg-service-area-command-center-2026-05-20.md",
+      1
+    ],
+    [
+      "docs/integrations",
+      1
+    ],
+    [
+      "docs/operations",
+      1
+    ],
+    [
+      "docs/security",
+      1
+    ],
+    [
+      "docs/sows",
+      1
+    ],
+    [
+      "docs/tool-registration-semantic-search.md",
+      1
+    ],
+    [
+      "eslint.config.mjs",
+      1
+    ],
+    [
+      "i18n.ts",
+      1
+    ],
+    [
+      "jest.config.js",
+      1
+    ],
+    [
+      "lib/database.types.ts",
+      1
+    ],
+    [
+      "lib/font-utils.ts",
+      1
+    ],
+    [
+      "lib/geo-citation",
+      1
+    ],
+    [
+      "lib/logger.ts",
+      1
+    ],
+    [
+      "lib/pdf-fallback.ts",
+      1
+    ],
+    [
+      "lib/pdf-styling.ts",
+      1
+    ],
+    [
+      "lib/pdf-templates.ts",
+      1
+    ],
+    [
+      "lib/supabase",
+      1
+    ],
+    [
+      "lib/utils.ts",
+      1
+    ],
+    [
+      "src/hooks",
+      1
+    ],
+    [
+      "src/i18n",
+      1
+    ],
+    [
+      "src/middleware.ts",
+      1
+    ],
+    [
+      "src/styles",
+      1
+    ],
+    [
+      "supabase/.temp",
+      1
+    ],
+    [
+      "tests/README.md",
+      1
+    ],
+    [
+      "tests/__mocks__",
+      1
+    ],
+    [
+      "tests/test_vibetest_smoke.sh",
+      1
+    ]
+  ],
+  "different_common_files_by_area": [
+    [
+      "src/components",
+      24
+    ],
+    [
+      "config",
+      7
+    ],
+    [
+      "src/lib",
+      6
+    ],
+    [
+      "docs/margot",
+      5
+    ],
+    [
+      "src/app",
+      5
+    ],
+    [
+      "public",
+      2
+    ],
+    [
+      ".github/workflows",
+      1
+    ],
+    [
+      "CLAUDE.md",
+      1
+    ],
+    [
+      "README.md",
+      1
+    ],
+    [
+      "components.json",
+      1
+    ],
+    [
+      "next-env.d.ts",
+      1
+    ],
+    [
+      "package-lock.json",
+      1
+    ],
+    [
+      "postcss.config.mjs",
+      1
+    ],
+    [
+      "src/hooks",
+      1
+    ],
+    [
+      "tsconfig.tsbuildinfo",
+      1
+    ]
+  ],
+  "docs_config_drift_count": 269,
+  "docs_config_drift_sample": [
+    ".env.example",
+    ".github/design-md-lint.baseline.txt",
+    ".github/scripts/design-md-lint.sh",
+    ".github/workflows/ci.yml",
+    ".github/workflows/deepsec-weekly.yml",
+    ".github/workflows/design-lint.yml",
+    ".github/workflows/review-board.yml",
+    ".github/workflows/rotate-admin-jwt.yml",
+    "docs/AUTO-PUBLISH-FAILURE-MODE-REGISTER.md",
+    "docs/MIGRATION-PROTOCOL.md",
+    "docs/SOURCES.md",
+    "docs/adr/ai-marketing-advisor.md",
+    "docs/audit/silent-fail-buttons-2026-05-18.md",
+    "docs/brand/README.md",
+    "docs/brand/voice-audit-2026-05-13-post.csv",
+    "docs/brand/voice-audit-2026-05-13.csv",
+    "docs/brand/voice-audit-2026-05-13.md",
+    "docs/dr-nrpg-service-area-command-center-2026-05-20.md",
+    "docs/integrations/README.md",
+    "docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md",
+    "docs/margot/MARGOT-COMMAND-CENTER.md",
+    "docs/margot/MARGOT-ORCHESTRATOR.md",
+    "docs/margot/OVERNIGHT-AUTONOMY-MANDATE.md",
+    "docs/margot/PERSONAL-INTELLIGENCE-SECOND-ASSISTANT-MODEL.md",
+    "docs/margot/SECOND-BRAIN-CARRY-FORWARD.md",
+    "docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md",
+    "docs/margot/access-and-data-requirements.md",
+    "docs/margot/ai-enhancement-pipeline.md",
+    "docs/margot/automation-logs/launchd.stderr.log",
+    "docs/margot/automation-logs/launchd.stdout.log",
+    "docs/margot/automation-logs/margot-launchd.log",
+    "docs/margot/automation-logs/margot-tick-20260523_080938.log",
+    "docs/margot/automation-logs/margot-tick-20260523_084937.log",
+    "docs/margot/automation-logs/margot-tick-20260523_092346.log",
+    "docs/margot/automation-logs/margot-tick-20260523_095706.log",
+    "docs/margot/automation-logs/margot-tick-20260523_102952.log",
+    "docs/margot/automation-logs/margot-tick-20260523_110310.log",
+    "docs/margot/automation-logs/margot-tick-20260523_113817.log",
+    "docs/margot/automation-logs/margot-tick-20260523_121520.log",
+    "docs/margot/automation-logs/margot-tick-20260523_125012.log",
+    "docs/margot/automation-logs/margot-tick-20260523_135746.log",
+    "docs/margot/automation-logs/margot-tick-20260523_143635.log",
+    "docs/margot/automation-logs/margot-tick-20260523_151612.log",
+    "docs/margot/automation-logs/margot-tick-20260523_155453.log",
+    "docs/margot/automation-logs/margot-tick-20260523_163732.log",
+    "docs/margot/automation-logs/margot-tick-20260523_171147.log",
+    "docs/margot/automation-logs/margot-tick-20260523_175047.log",
+    "docs/margot/automation-logs/margot-tick-20260523_183145.log",
+    "docs/margot/automation-logs/margot-tick-20260523_192153.log",
+    "docs/margot/automation-logs/margot-tick-20260523_200749.log",
+    "docs/margot/automation-logs/margot-tick-20260523_204851.log",
+    "docs/margot/automation-logs/margot-tick-20260523_214328.log",
+    "docs/margot/automation-logs/margot-tick-20260523_224146.log",
+    "docs/margot/automation-logs/margot-tick-20260523_232111.log",
+    "docs/margot/automation-logs/margot-tick-20260524_001518.log",
+    "docs/margot/automation-logs/margot-tick-20260524_004842.log",
+    "docs/margot/automation-logs/margot-tick-20260524_013705.log",
+    "docs/margot/automation-logs/margot-tick-20260524_022038.log",
+    "docs/margot/automation-logs/margot-tick-20260524_030526.log",
+    "docs/margot/automation-logs/margot-tick-20260524_033854.log",
+    "docs/margot/automation-logs/margot-tick-20260524_041255.log",
+    "docs/margot/automation-logs/margot-tick-20260524_044621.log",
+    "docs/margot/automation-logs/margot-tick-20260524_051849.log",
+    "docs/margot/automation-logs/margot-tick-20260524_055231.log",
+    "docs/margot/automation-logs/margot-tick-20260524_062627.log",
+    "docs/margot/automation-logs/margot-tick-20260524_070010.log",
+    "docs/margot/automation-logs/margot-tick-20260524_073316.log",
+    "docs/margot/automation-logs/margot-tick-20260524_081014.log",
+    "docs/margot/automation-logs/margot-tick-20260524_084438.log",
+    "docs/margot/automation-logs/margot-tick-20260524_091902.log",
+    "docs/margot/automation-logs/margot-tick-20260524_095254.log",
+    "docs/margot/automation-logs/margot-tick-20260524_102702.log",
+    "docs/margot/automation-logs/margot-tick-20260524_110059.log",
+    "docs/margot/automation-logs/margot-tick-20260524_114313.log",
+    "docs/margot/automation-logs/margot-tick-20260524_122423.log",
+    "docs/margot/automation-logs/margot-tick-20260524_125935.log",
+    "docs/margot/automation-logs/margot-tick-20260524_133250.log",
+    "docs/margot/automation-logs/margot-tick-20260524_140552.log",
+    "docs/margot/automation-logs/margot-tick-20260524_144036.log",
+    "docs/margot/automation-logs/margot-tick-20260524_153137.log",
+    "docs/margot/automation-logs/margot-tick-20260524_162249.log",
+    "docs/margot/automation-logs/margot-tick-20260524_165632.log",
+    "docs/margot/automation-logs/margot-tick-20260524_174520.log",
+    "docs/margot/automation-logs/margot-tick-20260524_181812.log",
+    "docs/margot/automation-logs/margot-tick-20260524_190734.log",
+    "docs/margot/automation-logs/margot-tick-20260524_200045.log",
+    "docs/margot/automation-logs/margot-tick-20260524_204415.log",
+    "docs/margot/automation-logs/margot-tick-20260524_212300.log",
+    "docs/margot/automation-logs/margot-tick-20260524_215658.log",
+    "docs/margot/automation-logs/margot-tick-20260524_223054.log",
+    "docs/margot/automation-logs/margot-tick-20260524_230828.log",
+    "docs/margot/automation-logs/margot-tick-20260524_234743.log",
+    "docs/margot/automation-logs/margot-tick-20260525_002310.log",
+    "docs/margot/automation-logs/margot-tick-20260525_010708.log",
+    "docs/margot/automation-logs/margot-tick-20260525_020326.log",
+    "docs/margot/automation-logs/margot-tick-20260525_024241.log",
+    "docs/margot/automation-logs/margot-tick-20260525_032141.log",
+    "docs/margot/automation-logs/margot-tick-20260525_040453.log",
+    "docs/margot/automation-logs/margot-tick-20260525_043714.log",
+    "docs/margot/automation-logs/margot-tick-20260525_050926.log"
+  ],
+  "highest_risk_missing_samples": [
+    ".claude/DESIGN.md",
+    ".claude/agents/chief-reviewer.md",
+    ".claude/skills/review-board/review-metrics.md",
+    ".env.local",
+    ".eslintrc.production.json",
+    ".githooks/pre-commit",
+    ".github/design-md-lint.baseline.txt",
+    ".github/scripts/design-md-lint.sh",
+    ".github/workflows/deepsec-weekly.yml",
+    ".github/workflows/design-lint.yml",
+    ".github/workflows/review-board.yml",
+    ".github/workflows/rotate-admin-jwt.yml",
+    ".gitleaks.toml",
+    ".harness/learning/README.md",
+    ".harness/learning/adversary-disagreements.jsonl",
+    ".harness/learning/ci-failures.jsonl",
+    ".harness/learning/false-positives.jsonl",
+    ".harness/learning/incident-postmortems.jsonl",
+    ".harness/learning/user-corrections.jsonl",
+    ".husky/_/.gitignore",
+    ".husky/_/applypatch-msg",
+    ".husky/_/commit-msg",
+    ".husky/_/h",
+    ".husky/_/husky.sh",
+    ".husky/_/post-applypatch",
+    ".husky/_/post-checkout",
+    ".husky/_/post-commit",
+    ".husky/_/post-merge",
+    ".husky/_/post-rewrite",
+    ".husky/_/pre-applypatch",
+    ".husky/_/pre-auto-gc",
+    ".husky/_/pre-commit",
+    ".husky/_/pre-merge-commit",
+    ".husky/_/pre-push",
+    ".husky/_/pre-rebase",
+    ".husky/_/prepare-commit-msg",
+    ".husky/pre-push",
+    ".linear/project.json",
+    ".nvmrc",
+    ".pi-ceo/e91100a942ec/IMPLEMENT.md",
+    ".pi-ceo/e91100a942ec/PLAN.md",
+    ".pi-ceo/e91100a942ec/PROMPT.md",
+    ".pi-ceo/e91100a942ec/STATUS.md",
+    ".vercel-context.json",
+    ".vercelignore",
+    "COMPLIANCE_FRAMEWORK.md",
+    "DESIGN_PRESERVATION.md",
+    "Design.md",
+    "ROADMAP.md",
+    "Research.md",
+    "ShadCN-context.md",
+    "board-cron/remotion/src/scenes/CaseStudy.tsx",
+    "database/auth_triggers.sql",
+    "database/authority_scores.sql",
+    "database/client_videos.sql",
+    "database/company_settings.sql",
+    "database/company_settings_font_sizes.sql",
+    "database/company_settings_line_spacing.sql",
+    "database/company_settings_paragraph_spacing.sql",
+    "database/consultations.sql",
+    "database/content_calendars.sql",
+    "database/database_stats.sql",
+    "database/featured_programme.sql",
+    "database/mfa.sql",
+    "database/notifications.sql",
+    "database/pipeline_cost_ledger.sql",
+    "database/post_performance_metrics.sql",
+    "database/privacy_compliance.sql",
+    "database/projects.sql",
+    "database/publish_queue.sql",
+    "database/rbac.sql",
+    "database/rls_policies.sql",
+    "database/schema.sql",
+    "database/seed_clients.sql",
+    "database/seed_data.sql",
+    "database/soc2_compliance.sql",
+    "database/weekly_digests_eeat.sql",
+    "docs/AUTO-PUBLISH-FAILURE-MODE-REGISTER.md",
+    "docs/MIGRATION-PROTOCOL.md",
+    "docs/SOURCES.md",
+    "docs/adr/ai-marketing-advisor.md",
+    "docs/audit/silent-fail-buttons-2026-05-18.md",
+    "docs/brand/README.md",
+    "docs/brand/voice-audit-2026-05-13-post.csv",
+    "docs/brand/voice-audit-2026-05-13.csv",
+    "docs/brand/voice-audit-2026-05-13.md",
+    "docs/dr-nrpg-service-area-command-center-2026-05-20.md",
+    "docs/integrations/README.md",
+    "docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md",
+    "docs/margot/MARGOT-COMMAND-CENTER.md",
+    "docs/margot/MARGOT-ORCHESTRATOR.md",
+    "docs/margot/OVERNIGHT-AUTONOMY-MANDATE.md",
+    "docs/margot/PERSONAL-INTELLIGENCE-SECOND-ASSISTANT-MODEL.md",
+    "docs/margot/SECOND-BRAIN-CARRY-FORWARD.md",
+    "docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md",
+    "docs/margot/access-and-data-requirements.md",
+    "docs/margot/ai-enhancement-pipeline.md",
+    "docs/margot/automation-logs/launchd.stderr.log",
+    "docs/margot/automation-logs/launchd.stdout.log",
+    "docs/margot/automation-logs/margot-launchd.log"
+  ],
+  "highest_risk_different_samples": [
+    ".claude/settings.local.json",
+    ".env.example",
+    ".github/workflows/ci.yml",
+    ".gitignore",
+    "CLAUDE.md",
+    "README.md",
+    "components.json",
+    "docs/margot/ccw-carpet-cleaning-machines-category-copy.md",
+    "docs/margot/ccw-product-category-topic-brief.md",
+    "docs/margot/crm-schema-inventory.md",
+    "docs/margot/crm-test-coverage-matrix.md",
+    "docs/margot/linear-watch-today.md",
+    "next-env.d.ts",
+    "package-lock.json",
+    "package.json",
+    "postcss.config.mjs",
+    "public/robots.txt",
+    "public/sitemap.xml",
+    "src/app/api/cron/synthex-monitor/route.ts",
+    "src/app/api/health/route.ts",
+    "src/app/globals.css",
+    "src/app/layout.tsx",
+    "src/app/page.tsx",
+    "src/components/ui/EmptyState.tsx",
+    "src/components/ui/alert-dialog.tsx",
+    "src/components/ui/alert.tsx",
+    "src/components/ui/badge.tsx",
+    "src/components/ui/button.tsx",
+    "src/components/ui/card.tsx",
+    "src/components/ui/checkbox.tsx",
+    "src/components/ui/command.tsx",
+    "src/components/ui/dialog.tsx",
+    "src/components/ui/dropdown-menu.tsx",
+    "src/components/ui/form.tsx",
+    "src/components/ui/input.tsx",
+    "src/components/ui/popover.tsx",
+    "src/components/ui/progress.tsx",
+    "src/components/ui/radio-group.tsx",
+    "src/components/ui/select.tsx",
+    "src/components/ui/separator.tsx",
+    "src/components/ui/skeleton.tsx",
+    "src/components/ui/switch.tsx",
+    "src/components/ui/table.tsx",
+    "src/components/ui/tabs.tsx",
+    "src/components/ui/textarea.tsx",
+    "src/components/ui/toaster.tsx",
+    "src/components/ui/tooltip.tsx",
+    "src/hooks/use-toast.ts",
+    "src/lib/ai/types.ts",
+    "src/lib/content/types.ts",
+    "src/lib/crm/qualify-lead.ts",
+    "src/lib/supabase/client.ts",
+    "src/lib/supabase/server.ts",
+    "src/lib/utils.ts",
+    "tailwind.config.ts",
+    "tsconfig.json",
+    "tsconfig.tsbuildinfo",
+    "vercel.json"
+  ]
+}

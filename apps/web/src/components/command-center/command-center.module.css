@@ -1,0 +1,51 @@
+/* command-center.module.css — Scientific Luxury token scope for the ported
+ * Authority command-center components.
+ *
+ * The ported components reference --cc-* CSS custom properties (inherited from
+ * the legacy Authority cockpit). Rather than scatter colour literals through
+ * the components or pollute globals.css, this module declares the tokens once
+ * on a wrapper. Every child inherits them via the custom-property cascade.
+ *
+ * Palette: Scientific Luxury — OLED Black #050505, Cyan #00F5FF.
+ * Borders: rounded-sm only (2px) — no other radii. */
+
+.scope {
+  /* surfaces */
+  --cc-bg: #050505;
+  --cc-bg-soft: #0a0a0c;
+  --cc-grid: rgba(0, 245, 255, 0.14);
+  /* ink */
+  --cc-ink: #f4fbfc;
+  --cc-ink-dim: rgba(244, 251, 252, 0.62);
+  --cc-ink-hush: rgba(244, 251, 252, 0.38);
+  /* single accent — cyan signal */
+  --cc-signal: #00f5ff;
+  /* motion */
+  --cc-pulse-duration: 2.4s;
+
+  background: var(--cc-bg);
+  color: var(--cc-ink);
+}
+
+/* rounded-sm only */
+.scope :global(article),
+.scope :global(section),
+.scope :global(button) {
+  border-radius: 2px;
+}
+
+/* Module-scoped keyframes; children use the .breathe class so the renamed
+ * keyframes resolve within this module (Turbopack rejects :global(@keyframes)). */
+@keyframes cc-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.breathe {
+  animation: cc-breathe var(--cc-pulse-duration) ease-in-out infinite;
+}
