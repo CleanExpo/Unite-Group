@@ -278,6 +278,7 @@ function Tile({ label, stage }: { label: string; stage: Stage }) {
 function Cockpit({
   stages,
   statusLines,
+  failures,
   feed,
   running,
   elapsed,
@@ -289,6 +290,7 @@ function Cockpit({
 }: {
   stages: Record<string, Stage>;
   statusLines: Record<string, string>;
+  failures: Record<string, string>;
   feed: string[];
   running: boolean;
   elapsed: number;
@@ -306,6 +308,7 @@ function Cockpit({
       if (approved) return { state: "done", detail: "approved by you" };
       if (runDone && specId) return { state: "active", detail: "awaiting your approval" };
     }
+    if (failures[subject] !== undefined) return { state: "failed", detail: failures[subject] };
     if (statusLines[subject] !== undefined) return { state: "done", detail: statusLines[subject] };
     if (stages.engine.state === "active") return { state: "pending", detail: "standing by" };
     return { state: "skipped", detail: "no signal" };
@@ -419,6 +422,8 @@ export default function Home() {
   const [answers, setAnswers] = useState<string[]>([]);
   const [clarifying, setClarifying] = useState(false);
   const [refineText, setRefineText] = useState("");
+  const [projectMaterial, setProjectMaterial] = useState("");
+  const [failures, setFailures] = useState<Record<string, string>>({});
   const [evidence, setEvidence] = useState<{
     verified: number;
     inference: number;
@@ -526,6 +531,7 @@ export default function Home() {
     setQuestions(null);
     setRefineText("");
     setEvidence(null);
+    setFailures({});
     setLibraryOpen(false);
     lineBuffer.current = "";
 
@@ -535,6 +541,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           vision,
+          ...(projectMaterial.trim() ? { projectMaterial: projectMaterial.trim() } : {}),
           ...(clarifications.length > 0 ? { clarifications } : {}),
           ...(extra?.refinement
             ? {
@@ -608,10 +615,23 @@ export default function Home() {
         addFeed(`search angles: ${(event.queries ?? []).join(" · ")}`);
         break;
       case "knowledge_error":
+        setFailures((prev) => ({ ...prev, "channel:obsidian": event.error }));
         addFeed(`obsidian channel failed: ${event.error}`);
         break;
       case "web_error":
+        setFailures((prev) => ({ ...prev, "channel:web": event.error }));
         addFeed(`web channel failed: ${event.error}`);
+        break;
+      case "project":
+        if (event.chars > 0) {
+          setStatusLines((prev) => ({
+            ...prev,
+            "channel:project": `${(event.chars / 1000).toFixed(1)}k chars attached`,
+          }));
+          addFeed(`project channel: ${(event.chars / 1000).toFixed(1)}k chars of material attached`);
+        } else {
+          addFeed("project channel: nothing attached — paste material above the Run button to use it");
+        }
         break;
       case "web":
         if (event.count > 0) {
@@ -998,6 +1018,26 @@ export default function Home() {
         }}
       />
 
+      <textarea
+        value={projectMaterial}
+        onChange={(e) => setProjectMaterial(e.target.value)}
+        placeholder="Optional project material — paste the client's current site URL, brand notes, requirements, prior work. Feeds the PROJECT channel."
+        rows={2}
+        style={{
+          marginTop: 8,
+          width: "100%",
+          boxSizing: "border-box",
+          padding: 10,
+          fontSize: 13.5,
+          fontFamily: "inherit",
+          background: C.panel,
+          color: C.text,
+          border: `1px dashed ${projectMaterial.trim() ? C.green : C.border}`,
+          borderRadius: 8,
+          resize: "vertical",
+        }}
+      />
+
       <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 12 }}>
         <button
           onClick={() => clarify()}
@@ -1091,6 +1131,7 @@ export default function Home() {
         <Cockpit
           stages={stages}
           statusLines={statusLines}
+          failures={failures}
           feed={feed}
           running={running}
           elapsed={elapsed}

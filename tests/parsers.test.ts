@@ -85,3 +85,18 @@ test("keywordQuery ORs meaningful vision words for FTS fallback", async () => {
   assert.ok(!q!.split(" or ").includes("want"));
   assert.equal(keywordQuery("a an to of"), null);
 });
+
+test("harvestSources rescues URLs from prose output", async () => {
+  const { harvestSources } = await import("../lib/sources.ts");
+  const prose = [
+    "I found a great overview at https://example.com/overview which covers pricing.",
+    "There's also a detailed video walkthrough: https://youtube.com/watch?v=abc.",
+    "See https://example.com/overview again (duplicate).",
+  ].join("\n");
+
+  const sources = harvestSources(prose);
+  assert.equal(sources.length, 2);
+  assert.equal(sources[0].url, "https://example.com/overview");
+  assert.equal(sources[1].url, "https://youtube.com/watch?v=abc");
+  assert.ok(sources[0].title.length > 0);
+});

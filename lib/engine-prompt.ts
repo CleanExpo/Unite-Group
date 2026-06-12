@@ -17,12 +17,21 @@ function engineSkill(): string {
 // (Phase 3), the Obsidian channel has real material; when fresh web sources
 // are attached, the Web channel has real material; otherwise the engine
 // must skip those channels honestly per its own rules.
-export function buildSystemPrompt(knowledge: KnowledgeHit[], web: WebSource[] = []): string {
+export function buildSystemPrompt(
+  knowledge: KnowledgeHit[],
+  web: WebSource[] = [],
+  projectMaterial = "",
+): string {
   const webLine =
     web.length === 0
       ? `No web research material was retrieved for this run — mark the Web
 channel skipped and tag claims that would have needed it as [UNCONFIRMED].`
       : `Fresh web research material is attached below — treat it as the Web
+channel's findings.`;
+  const projectLine =
+    projectMaterial.trim().length === 0
+      ? `The Project channel has no attached material — mark it skipped.`
+      : `The user attached project material below — treat it as the Project
 channel's findings.`;
 
   let prompt = `${engineSkill()}
@@ -31,9 +40,20 @@ channel's findings.`;
 
 ## Runtime context (Fable web app)
 
-You are running inside the Fable System web app, not Cowork. The Project
-channel has no attached material in this environment — mark it skipped.
+You are running inside the Fable System web app, not Cowork. ${projectLine}
 ${webLine} Produce the full spec in Markdown, ending at the approval gate.`;
+
+  if (projectMaterial.trim().length > 0) {
+    prompt += `
+
+## Project channel material (attached by the user for this run)
+
+Existing context the user supplied — current site details, brand notes,
+requirements, prior work. Treat as the Project channel's findings; claims
+grounded here are [VERIFIED] with "project material" as the source.
+
+${projectMaterial.trim().slice(0, 30000)}`;
+  }
 
   if (knowledge.length === 0) {
     prompt += `
