@@ -10,7 +10,7 @@ import { runPersona } from "./llm";
 // Best-effort and optional: without a capable provider the channel skips
 // honestly, exactly as before.
 
-import { parseSources, MAX_SOURCES, type WebSource } from "./sources";
+import { parseSources, harvestSources, MAX_SOURCES, type WebSource } from "./sources";
 
 export { parseSources };
 export type { WebSource };
@@ -35,6 +35,10 @@ System. Search the web for the 5-10 most valuable, current sources on the
 vision you are given — articles, white papers, research documents, and
 YouTube videos. Prefer recent, authoritative, and diverse sources; include
 at least one video if a relevant one exists.
+
+Do not give up: if a search angle returns nothing useful, rephrase and
+search again with different terms before answering. Returning fewer than 5
+sources is a failure unless the topic is genuinely obscure.
 
 Output ONLY a numbered list, one source per line, in exactly this form:
 N. Title | URL | 1-2 sentences on what it contributes to this vision
@@ -87,7 +91,11 @@ export async function webResearch(
   for (let round = 1; round <= rounds; round++) {
     const text =
       provider === "anthropic" ? await anthropicResearch(user) : await openrouterResearch(user);
-    for (const source of parseSources(text)) {
+    let found = parseSources(text);
+    // A flaky model writing prose instead of the list must not kill the
+    // channel — harvest any URLs it mentioned.
+    if (found.length === 0 && text.trim().length > 0) found = harvestSources(text);
+    for (const source of found) {
       if (seen.has(source.url)) continue;
       seen.add(source.url);
       sources.push(source);
@@ -118,39 +126,54 @@ async function anthropicResearch(user: string): Promise<string> {
     .join("\n");
 }
 
+// Bulldog mode: walk the whole configured model list (RESEARCH_MODEL first if
+// set). A model that errors or returns nothing usable hands off to the next —
+// the free-tier primary flaking must never kill the channel.
 async function openrouterResearch(user: string): Promise<string> {
-  const models = (process.env.OPENROUTER_MODEL ?? "")
+  const configured = (process.env.OPENROUTER_MODEL ?? "")
     .split(",")
     .map((m) => m.trim())
     .filter(Boolean);
-  const model = process.env.RESEARCH_MODEL ?? models[0];
-  if (!model) throw new Error("OPENROUTER_MODEL is not set");
+  const models = [
+    ...(process.env.RESEARCH_MODEL ? [process.env.RESEARCH_MODEL] : []),
+    ...configured,
+  ];
+  if (models.length === 0) throw new Error("OPENROUTER_MODEL is not set");
 
-  const res = await fetch(
-    `${process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1"}/chat/completions`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model,
-        // OpenRouter's web plugin grounds the call with live search results.
-        plugins: [{ id: "web", max_results: 5 }],
-        max_tokens: 2000,
-        messages: [
-          { role: "system", content: RESEARCH_PROMPT },
-          { role: "user", content: user },
-        ],
-      }),
-    },
-  );
-  if (!res.ok) {
-    const body = (await res.text()).slice(0, 300);
-    throw new Error(`openrouter research ${res.status}: ${body}`);
+  let lastError = "all research models returned nothing";
+  for (const model of models) {
+    try {
+      const res = await fetch(
+        `${process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1"}/chat/completions`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model,
+            // OpenRouter's web plugin grounds the call with live search results.
+            plugins: [{ id: "web", max_results: 5 }],
+            max_tokens: 2000,
+            messages: [
+              { role: "system", content: RESEARCH_PROMPT },
+              { role: "user", content: user },
+            ],
+          }),
+        },
+      );
+      if (!res.ok) {
+        lastError = `openrouter research ${res.status} on ${model}: ${(await res.text()).slice(0, 300)}`;
+        continue;
+      }
+      const data = await res.json();
+      const text: unknown = data?.choices?.[0]?.message?.content;
+      if (typeof text === "string" && text.trim().length > 0) return text;
+      lastError = `${model} returned empty research output`;
+    } catch (error) {
+      lastError = `${model}: ${error instanceof Error ? error.message : String(error)}`;
+    }
   }
-  const data = await res.json();
-  const text: unknown = data?.choices?.[0]?.message?.content;
-  return typeof text === "string" ? text : "";
+  throw new Error(lastError);
 }

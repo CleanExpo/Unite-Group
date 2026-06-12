@@ -39,3 +39,27 @@ export function parseSources(text: string): WebSource[] {
   }
   return sources;
 }
+
+// Last-resort extraction: when the researcher wrote prose instead of the
+// numbered list, harvest every URL with its surrounding sentence so a flaky
+// model still yields usable sources instead of a skipped channel.
+export function harvestSources(text: string): WebSource[] {
+  const sources: WebSource[] = [];
+  const seen = new Set<string>();
+  for (const match of text.matchAll(/https?:\/\/[^\s)\]>"']+/g)) {
+    const url = match[0].replace(/[.,;)\]]+$/, "");
+    if (seen.has(url)) continue;
+    seen.add(url);
+    const start = text.lastIndexOf("\n", match.index ?? 0) + 1;
+    const lineEnd = text.indexOf("\n", match.index ?? 0);
+    const line = text.slice(start, lineEnd === -1 ? undefined : lineEnd);
+    const context = line.replace(match[0], "").replace(/[|\\—–\-:()[\]*#]+/g, " ").trim();
+    sources.push({
+      title: context.slice(0, 120) || url,
+      url,
+      excerpt: context,
+    });
+    if (sources.length >= MAX_SOURCES) break;
+  }
+  return sources;
+}

@@ -26,6 +26,7 @@ export async function POST(request: Request) {
   let refinement = "";
   let previousSpec = "";
   let previousSpecId = "";
+  let projectMaterial = "";
   try {
     const body = await request.json();
     if (typeof body.vision !== "string" || body.vision.trim().length === 0) {
@@ -45,6 +46,7 @@ export async function POST(request: Request) {
     if (typeof body.refinement === "string") refinement = body.refinement.trim();
     if (typeof body.previousSpec === "string") previousSpec = body.previousSpec;
     if (typeof body.previousSpecId === "string") previousSpecId = body.previousSpecId;
+    if (typeof body.projectMaterial === "string") projectMaterial = body.projectMaterial.trim();
     if (refinement && !previousSpec) {
       return Response.json({ error: "refinement needs previousSpec" }, { status: 400 });
     }
@@ -61,6 +63,9 @@ export async function POST(request: Request) {
   }
   if (refinement) {
     brief += `\n\n## Requested changes to the previous spec\n${refinement}`;
+  }
+  if (projectMaterial) {
+    brief += `\n\n[project material attached: ${projectMaterial.length} chars]`;
   }
   const engineTask = refinement
     ? `${brief}\n\n## Previous spec (revise it per the requested changes; output the complete updated spec)\n\n${previousSpec}`
@@ -106,13 +111,14 @@ export async function POST(request: Request) {
           send({ type: "web_error", error: errorText(e) });
         }
         send({ type: "web", count: web.length, urls: web.map((s) => s.url) });
+        send({ type: "project", chars: projectMaterial.length });
 
         const result = await runEngineStream(
           engineTask,
           (text) => send({ type: "delta", text }),
           (failedModel, nextModels) =>
             send({ type: "engine_retry", failedModel, nextModels }),
-          buildSystemPrompt(knowledge, web),
+          buildSystemPrompt(knowledge, web, projectMaterial),
         );
         send({ type: "engine_done", model: result.model, stopReason: result.stopReason });
 
