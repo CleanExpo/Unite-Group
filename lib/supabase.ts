@@ -2,12 +2,14 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 // Server-side only — uses the service role key. Returns null when Supabase
 // isn't configured so the app still works before Phase 1 storage is set up.
-function getClient(): SupabaseClient | null {
+export function getSupabase(): SupabaseClient | null {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) return null;
   return createClient(url, key, { auth: { persistSession: false } });
 }
+
+const getClient = getSupabase;
 
 export interface SavedRun {
   visionId: string;

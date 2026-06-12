@@ -1,5 +1,7 @@
 import { describeEngine, runEngineStream, describeCritic, runCritic } from "@/lib/llm";
 import { saveRun, saveCritique } from "@/lib/supabase";
+import { searchKnowledge } from "@/lib/knowledge";
+import { buildSystemPrompt } from "@/lib/engine-prompt";
 
 export const maxDuration = 300;
 
@@ -29,11 +31,25 @@ export async function POST(request: Request) {
         const engine = describeEngine();
         send({ type: "meta", provider: engine.provider, models: engine.models });
 
+        // Obsidian channel: retrieve relevant vault notes for this vision
+        let knowledge: Awaited<ReturnType<typeof searchKnowledge>> = [];
+        try {
+          knowledge = await searchKnowledge(vision);
+        } catch {
+          // engine runs without vault material rather than failing the run
+        }
+        send({
+          type: "knowledge",
+          count: knowledge.length,
+          paths: knowledge.map((hit) => hit.path),
+        });
+
         const result = await runEngineStream(
           vision,
           (text) => send({ type: "delta", text }),
           (failedModel, nextModels) =>
             send({ type: "engine_retry", failedModel, nextModels }),
+          buildSystemPrompt(knowledge),
         );
         send({ type: "engine_done", model: result.model, stopReason: result.stopReason });
 
