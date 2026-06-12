@@ -9,10 +9,13 @@ build-ready spec. Your job: ask the 3-4 questions whose answers would most
 improve that single run.
 
 Rules:
+- Every item MUST be a genuine question the user can answer — it MUST end
+  with a question mark. NEVER restate or echo fragments of the vision back.
 - Ask only what cannot be inferred from the vision text itself.
 - Each question must be concrete and answerable in one short sentence
   (finish line, audience, constraints, what's explicitly out of scope,
   existing assets, budget/timeline).
+- Each question is one single line — no sub-bullets, no multi-line items.
 - Never ask more than 4. If the vision is already fully specified, ask fewer.
 - Output ONLY the questions as a numbered list, one per line. No preamble,
   no commentary.`;
@@ -36,11 +39,14 @@ export async function POST(request: Request) {
     const result = await runPersona(CLARIFY_PROMPT, `The vision:\n\n${vision}`, 1000);
     if (!result) return NextResponse.json({ questions: [] });
 
-    const questions = result.text
+    const parsed = result.text
       .split("\n")
       .map((line) => line.match(/^\s*\d+[.)]\s*(.+)$/)?.[1]?.trim())
       .filter((q): q is string => Boolean(q))
       .slice(0, 4);
+    // Statement echoes are worse than no questions: keep only real questions,
+    // and if the model produced none, skip the step (run proceeds directly).
+    const questions = parsed.filter((q) => q.endsWith("?"));
     return NextResponse.json({ questions });
   } catch (error) {
     // Clarify is best-effort: a failure must never block the run.
