@@ -8,6 +8,7 @@ import { useMemo } from 'react'
 import { ActivityRow } from './ActivityRow'
 import { ACTIVITY_DATA, type ActivityDatum } from './activity-data'
 import { SourceBadge } from '../SourceBadge'
+import styles from '../command-center.module.css'
 
 export interface ActivityLogProps {
   /** Override the seed — used for live wiring. */
@@ -49,13 +50,13 @@ export function ActivityLog({ events = ACTIVITY_DATA, maxRows = 20, sourceLiveAt
           {signalCount > 0 && (
             <span
               aria-hidden
+              className={styles.breathe}
               style={{
                 display: 'inline-block',
                 width: 6,
                 height: 6,
                 borderRadius: '50%',
                 background: 'var(--cc-signal)',
-                animation: 'cc-breathe var(--cc-pulse-duration) ease-in-out infinite',
               }}
             />
           )}

@@ -4,6 +4,7 @@
 // Severity vocabulary: running → ink; signal → cyan pip + ink; hush → ink-hush.
 
 import type { ActivityDatum } from './activity-data'
+import styles from '../command-center.module.css'
 
 export interface ActivityRowProps {
   data: ActivityDatum
@@ -53,13 +54,13 @@ export function ActivityRow({ data }: ActivityRowProps) {
       <span className="truncate">{data.target}</span>
       <span
         aria-hidden
+        className={isSignal ? styles.breathe : undefined}
         style={{
           display: 'inline-block',
           width: 6,
           height: 6,
           borderRadius: '50%',
           background: isSignal ? 'var(--cc-signal)' : 'transparent',
-          animation: isSignal ? 'cc-breathe var(--cc-pulse-duration) ease-in-out infinite' : 'none',
         }}
       />
     </>

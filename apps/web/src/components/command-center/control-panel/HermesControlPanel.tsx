@@ -10,6 +10,7 @@ import {
   type ControlWorkstream,
 } from './control-panel-data'
 import { mapAddOnResult, type AddOnOutcome } from './add-on-result'
+import styles from '../command-center.module.css'
 import { SourceBadge } from '../SourceBadge'
 import { DegradedDataBanner } from '../DegradedDataBanner'
 
@@ -289,6 +290,7 @@ function WorkstreamRow({ item }: { item: LiveControlWorkstream }) {
       {isSignal && (
         <span
           aria-hidden
+          className={styles.breathe}
           style={{
             position: 'absolute',
             top: 10,
@@ -297,7 +299,6 @@ function WorkstreamRow({ item }: { item: LiveControlWorkstream }) {
             height: 6,
             borderRadius: '50%',
             background: 'var(--cc-signal)',
-            animation: 'cc-breathe var(--cc-pulse-duration) ease-in-out infinite',
           }}
         />
       )}

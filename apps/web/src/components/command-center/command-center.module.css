@@ -34,9 +34,9 @@
   border-radius: 2px;
 }
 
-/* Global keyframe so inline-styled children referencing
- * `animation: cc-breathe ...` resolve it (CSS-module @keyframes are renamed). */
-:global(@keyframes cc-breathe) {
+/* Module-scoped keyframes; children use the .breathe class so the renamed
+ * keyframes resolve within this module (Turbopack rejects :global(@keyframes)). */
+@keyframes cc-breathe {
   0%,
   100% {
     opacity: 1;
@@ -44,4 +44,8 @@
   50% {
     opacity: 0.35;
   }
+}
+
+.breathe {
+  animation: cc-breathe var(--cc-pulse-duration) ease-in-out infinite;
 }
