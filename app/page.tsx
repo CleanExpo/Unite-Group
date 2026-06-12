@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { parseFindings } from "@/lib/findings";
 
 type RunState = "idle" | "running" | "done" | "error";
 
@@ -410,6 +411,23 @@ export default function Home() {
   const [answers, setAnswers] = useState<string[]>([]);
   const [clarifying, setClarifying] = useState(false);
   const [refineText, setRefineText] = useState("");
+  const [evidence, setEvidence] = useState<{
+    verified: number;
+    inference: number;
+    unconfirmed: number;
+  } | null>(null);
+  const [library, setLibrary] = useState<
+    | {
+        specId: string;
+        vision: string;
+        createdAt: string;
+        approvedAt: string | null;
+        parentSpecId: string | null;
+      }[]
+    | null
+  >(null);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [libraryNote, setLibraryNote] = useState("");
   const lineBuffer = useRef("");
 
   const running = state === "running";
@@ -468,7 +486,11 @@ export default function Home() {
     }
   }
 
-  async function run(extra?: { refinement?: string; previousSpec?: string }) {
+  async function run(extra?: {
+    refinement?: string;
+    previousSpec?: string;
+    previousSpecId?: string;
+  }) {
     const clarifications =
       !extra && questions
         ? questions
@@ -495,6 +517,8 @@ export default function Home() {
     setSelectedFindings(new Set());
     setQuestions(null);
     setRefineText("");
+    setEvidence(null);
+    setLibraryOpen(false);
     lineBuffer.current = "";
 
     try {
@@ -505,7 +529,11 @@ export default function Home() {
           vision,
           ...(clarifications.length > 0 ? { clarifications } : {}),
           ...(extra?.refinement
-            ? { refinement: extra.refinement, previousSpec: extra.previousSpec }
+            ? {
+                refinement: extra.refinement,
+                previousSpec: extra.previousSpec,
+                ...(extra.previousSpecId ? { previousSpecId: extra.previousSpecId } : {}),
+              }
             : {}),
         }),
       });
@@ -604,6 +632,20 @@ export default function Home() {
         setSpecId(event.specId);
         setStage("save", { state: "done", detail: `spec ${String(event.specId).slice(0, 8)}…` });
         addFeed("spec saved to database");
+        setLibrary(null); // stale — refetch on next open
+        break;
+      case "evidence":
+        setEvidence({
+          verified: event.verified ?? 0,
+          inference: event.inference ?? 0,
+          unconfirmed: event.unconfirmed ?? 0,
+        });
+        addFeed(
+          `evidence ledger: ${event.verified} verified · ${event.inference} inference · ${event.unconfirmed} unconfirmed`,
+        );
+        break;
+      case "evidence_error":
+        addFeed(`evidence ledger failed: ${event.error}`);
         break;
       case "save_skipped":
         setStage("save", { state: "skipped", detail: "Supabase not configured" });
@@ -752,6 +794,82 @@ export default function Home() {
     }
   }
 
+  // The Spec Library: reopen anything ever generated.
+  async function openLibrary() {
+    if (libraryOpen) {
+      setLibraryOpen(false);
+      return;
+    }
+    setLibraryOpen(true);
+    setLibraryNote("");
+    if (!library) {
+      try {
+        const res = await fetch("/api/specs");
+        const data = await res.json();
+        if (!res.ok) {
+          setLibraryNote(data?.error ?? `Library failed (${res.status})`);
+          return;
+        }
+        setLibrary(data.specs ?? []);
+      } catch (error) {
+        setLibraryNote(error instanceof Error ? error.message : String(error));
+      }
+    }
+  }
+
+  async function loadSpec(id: string) {
+    setLibraryNote("");
+    try {
+      const res = await fetch(`/api/specs?id=${encodeURIComponent(id)}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setLibraryNote(data?.error ?? `Load failed (${res.status})`);
+        return;
+      }
+      setVision(data.vision ?? "");
+      setSpec(data.content ?? "");
+      setCritique(data.critique ?? "");
+      setCriticLabel(data.critique ? "stored review" : "");
+      setSpecId(data.specId);
+      setApproved(Boolean(data.approvedAt));
+      setEvidence(data.evidence ?? null);
+      setBoardResponses(
+        (data.boardResponses ?? []).map((r: { member: string; critique: string }) => ({
+          name: r.member,
+          seat: "stored response",
+          critique: r.critique,
+          findings: parseFindings(r.critique),
+        })),
+      );
+      setBoardSynthesis("");
+      setBoardNote("");
+      setSelectedFindings(new Set());
+      setQuestions(null);
+      setRefineText("");
+      setStages(initialStages());
+      setStatusLines({});
+      setFeed([]);
+      setState("done");
+      setMessage(`Loaded spec ${id.slice(0, 8)}… from the library`);
+      setLibraryOpen(false);
+    } catch (error) {
+      setLibraryNote(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  function download() {
+    const clean = spec
+      .split("\n")
+      .filter((line) => !line.trim().startsWith("[STATUS]"))
+      .join("\n");
+    const blob = new Blob([clean], { type: "text/markdown" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `fable-spec-${specId ? specId.slice(0, 8) : "draft"}.md`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
   async function copy() {
     await navigator.clipboard.writeText(spec);
     setCopied(true);
@@ -773,6 +891,76 @@ export default function Home() {
       </p>
 
       <StatusStrip />
+
+      <div style={{ display: "flex", gap: 12, alignItems: "center", margin: "0 0 16px" }}>
+        <button
+          onClick={openLibrary}
+          style={{
+            padding: "5px 14px",
+            borderRadius: 999,
+            fontSize: 12.5,
+            background: C.panel,
+            color: C.text,
+            border: `1px solid ${libraryOpen ? C.accent : C.border}`,
+            cursor: "pointer",
+          }}
+        >
+          {libraryOpen ? "Close library" : "📚 Spec library"}
+        </button>
+        {libraryNote && <span style={{ color: C.red, fontSize: 12.5 }}>{libraryNote}</span>}
+      </div>
+
+      {libraryOpen && (
+        <section
+          style={{
+            margin: "0 0 16px",
+            padding: 12,
+            background: C.panel,
+            border: `1px solid ${C.border}`,
+            borderRadius: 8,
+            maxHeight: 320,
+            overflowY: "auto",
+          }}
+        >
+          {!library && <span style={{ color: C.dim, fontSize: 13 }}>Loading…</span>}
+          {library && library.length === 0 && (
+            <span style={{ color: C.dim, fontSize: 13 }}>No specs saved yet.</span>
+          )}
+          {(library ?? []).map((item) => (
+            <button
+              key={item.specId}
+              onClick={() => loadSpec(item.specId)}
+              style={{
+                display: "block",
+                width: "100%",
+                textAlign: "left",
+                padding: "8px 10px",
+                marginTop: 4,
+                background: "transparent",
+                color: C.text,
+                border: `1px solid ${C.border}`,
+                borderRadius: 6,
+                cursor: "pointer",
+                fontSize: 13,
+              }}
+            >
+              <span style={{ fontFamily: C.mono, fontSize: 11, color: C.dim }}>
+                {new Date(item.createdAt).toLocaleString()}
+              </span>{" "}
+              {item.approvedAt && <span style={{ color: C.green }}>✓ approved</span>}{" "}
+              {item.parentSpecId && (
+                <span style={{ color: C.amber, fontFamily: C.mono, fontSize: 11 }}>
+                  revision
+                </span>
+              )}
+              <div style={{ color: C.dim, marginTop: 2 }}>
+                {item.vision.slice(0, 140)}
+                {item.vision.length > 140 ? "…" : ""}
+              </div>
+            </button>
+          ))}
+        </section>
+      )}
 
       <textarea
         value={vision}
@@ -908,21 +1096,53 @@ export default function Home() {
                 </span>
               )}
             </h2>
-            <button
-              onClick={copy}
-              style={{
-                padding: "6px 14px",
-                fontSize: 13,
-                background: C.panel,
-                color: C.text,
-                border: `1px solid ${C.border}`,
-                borderRadius: 6,
-                cursor: "pointer",
-              }}
-            >
-              {copied ? "Copied ✓" : "Copy"}
-            </button>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={download}
+                style={{
+                  padding: "6px 14px",
+                  fontSize: 13,
+                  background: C.panel,
+                  color: C.text,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 6,
+                  cursor: "pointer",
+                }}
+              >
+                Download .md
+              </button>
+              <button
+                onClick={copy}
+                style={{
+                  padding: "6px 14px",
+                  fontSize: 13,
+                  background: C.panel,
+                  color: C.text,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 6,
+                  cursor: "pointer",
+                }}
+              >
+                {copied ? "Copied ✓" : "Copy"}
+              </button>
+            </div>
           </div>
+          {evidence && (
+            <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+              <span style={{ fontFamily: C.mono, fontSize: 11.5, color: C.green }}>
+                ✓ {evidence.verified} VERIFIED
+              </span>
+              <span style={{ fontFamily: C.mono, fontSize: 11.5, color: C.amber }}>
+                ◐ {evidence.inference} INFERENCE
+              </span>
+              <span style={{ fontFamily: C.mono, fontSize: 11.5, color: C.red }}>
+                ⚠ {evidence.unconfirmed} UNCONFIRMED
+              </span>
+              <span style={{ fontSize: 11.5, color: C.dim }}>
+                — evidence ledger, stored in findings
+              </span>
+            </div>
+          )}
           <pre
             style={{
               marginTop: 12,
@@ -1020,7 +1240,13 @@ export default function Home() {
             }}
           />
           <button
-            onClick={() => run({ refinement: refineText, previousSpec: spec })}
+            onClick={() =>
+              run({
+                refinement: refineText,
+                previousSpec: spec,
+                previousSpecId: specId ?? undefined,
+              })
+            }
             disabled={refineText.trim().length === 0}
             style={{
               marginTop: 10,
@@ -1168,7 +1394,7 @@ export default function Home() {
                   const refinement = `Integrate these selected board findings into the spec:\n${chosen
                     .map((x) => `- [${x.member} — ${x.f.priority}] ${x.f.text}`)
                     .join("\n")}`;
-                  run({ refinement, previousSpec: spec });
+                  run({ refinement, previousSpec: spec, previousSpecId: specId ?? undefined });
                 }}
                 disabled={selectedFindings.size === 0}
                 style={{

@@ -1,7 +1,8 @@
 import { describeEngine, runEngineStream, describeCritic, runCritic } from "@/lib/llm";
-import { saveRun, saveCritique } from "@/lib/supabase";
+import { saveRun, saveCritique, saveFindings } from "@/lib/supabase";
 import { searchKnowledge } from "@/lib/knowledge";
 import { webResearch } from "@/lib/research";
+import { extractClaims, summarizeEvidence } from "@/lib/evidence";
 import { buildSystemPrompt } from "@/lib/engine-prompt";
 
 export const maxDuration = 300;
@@ -24,6 +25,7 @@ export async function POST(request: Request) {
   let clarifications: Clarification[] = [];
   let refinement = "";
   let previousSpec = "";
+  let previousSpecId = "";
   try {
     const body = await request.json();
     if (typeof body.vision !== "string" || body.vision.trim().length === 0) {
@@ -42,6 +44,7 @@ export async function POST(request: Request) {
     }
     if (typeof body.refinement === "string") refinement = body.refinement.trim();
     if (typeof body.previousSpec === "string") previousSpec = body.previousSpec;
+    if (typeof body.previousSpecId === "string") previousSpecId = body.previousSpecId;
     if (refinement && !previousSpec) {
       return Response.json({ error: "refinement needs previousSpec" }, { status: 400 });
     }
@@ -109,18 +112,30 @@ export async function POST(request: Request) {
         send({ type: "engine_done", model: result.model, stopReason: result.stopReason });
 
         let specId: string | null = null;
+        let visionId: string | null = null;
         try {
           // brief (not engineTask) so visions.raw_text records the request
           // without duplicating the whole previous spec.
-          const saved = await saveRun(brief, result.text);
+          const saved = await saveRun(brief, result.text, previousSpecId || undefined);
           if (saved) {
             specId = saved.specId;
+            visionId = saved.visionId;
             send({ type: "saved", visionId: saved.visionId, specId: saved.specId });
           } else {
             send({ type: "save_skipped" });
           }
         } catch (e) {
           send({ type: "save_error", error: errorText(e) });
+        }
+
+        // Evidence Ledger: extract tagged claims into findings and report
+        // the verified / inference / unconfirmed balance.
+        try {
+          const claims = extractClaims(result.text);
+          if (visionId) await saveFindings(visionId, claims);
+          send({ type: "evidence", ...summarizeEvidence(claims) });
+        } catch (e) {
+          send({ type: "evidence_error", error: errorText(e) });
         }
 
         const critic = describeCritic();
