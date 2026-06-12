@@ -1,5 +1,46 @@
 # Margot Overnight Progress Log
 
+## 2026-06-12 19:00:00 AEST
+
+### Tick 20260612_1900 — AI-RET-001 95th answer-shape fixture (OVERNIGHT-AUTONOMY-MANDATE-SELF-BOUNDARY) + doc-tick
+
+Current checkpoint:
+
+- Completed safe Senior PM lane: added 95th mocked answer-shape fixture AI-RET-001-ANSWER-OVERNIGHT-AUTONOMY-MANDATE-SELF-BOUNDARY (bound to AI-RET-001-SENIOR-PM-LOOP, no source-citation union member added) per the rotated nextSafeAction from the 94th tick. Pins the harness against the docs/margot/OVERNIGHT-AUTONOMY-MANDATE.md self-boundary — the 27th self-boundary for a committed source doc. 10 required phrases, 4 required citation sources (docs/margot/OVERNIGHT-AUTONOMY-MANDATE.md, docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md, docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md, docs/margot/morning-report.md), 10 prohibited overclaim phrases (all overnight autonomy mandate ... prefixed with disjoint-paraphrase verb-form substitution, mirroring the 80th-94th pattern).
+- Disjoint from prior fixtures: 95th is also disjoint from 94th (daily-crm-digest-template self-boundary), 93rd (crm-mutation-timeline-contract self-boundary), 92nd (lead-to-client-conversion-plan self-boundary), 91st (crm-contacts-opportunities-model self-boundary), 90th (crm-approval-persistence-plan self-boundary), 89th (crm-schema-inventory self-boundary), 88th (voice-task-schema-provenance self-boundary), 87th (project-portfolio-index self-boundary), 86th (client-second-brain-model self-boundary), 85th (marketing-strategy-operating-model self-boundary), 84th (crm-test-coverage-matrix self-boundary), 83rd (crm-operating-model self-boundary), 82nd (mac-mini-recovery-status self-boundary), 81st (connected-teams-operating-rules self-boundary), 80th (senior-pm-operating-model self-boundary), 79th (second-brain-carry-forward self-boundary), 78th (margot-orchestrator self-boundary), 77th (command-center self-boundary), 76th (personal-intelligence-candidate-register self-boundary), 75th (high-level-crm-25-step-forecast self-boundary), 74th (retrieval-rules self-boundary), 73rd (access-and-data-requirements self-boundary), 72nd (voice-test-gap-analysis self-boundary), 71st (non-cross-tenant-safety-class), 70th (5xx-cascade-asserted), 69th (provider-status-asserted), 68th (cross-tenant-data-join-attempted), and 67th (sandbox-wizard-credential-boundary-review self-boundary).
+- Substring discipline: pre-flight Python script confirmed zero internal collision between the 10 new required phrases and the 10 new prohibited phrases. Pre-flight also confirmed the disjoint-paraphrase rephrasing of the prohibited list inside the canned answer was required (the 10 disjoint paraphrases broke all 10 substring collisions using verb-form substitutions: production database write executed → production database write execution (execution not executed), vercel environment mutation executed → vercel environment mutation action (action not executed), github push executed absent operator authorization → github push action absent operator authorization (action not executed absent operator authorization), nango connector platform onboarded → nango connector platform adoption (adoption not onboarded), client facing send dispatched without approval → client facing send dispatch action without approval (dispatch action not dispatched without approval), paid spend committed → paid spend commitment (commitment not committed), public publishing approved → public publishing approval (approval not approved), destructive git operation executed → destructive git operation action (action not executed), cross project context merge without explicit scope → cross project context merge action without explicit scope (action not merge without explicit scope), live provider status asserted → live provider status assertion (assertion not asserted)). The 10 disjoint paraphrases broke all 10 substring collisions; first-run tests were green on all 3 maps (can-evaluate, reads-back, individual pass/reject) without a reword pass.
+- Pre-existing test-file repair: the 94th fixture canned-answer function in scripts/margot-retrieval-evaluation-report.ts was truncated mid-sentence and missing 4 required phrases (lead id privacy fallback when name is empty or whitespace, stale reason label and stale reason detail render for last error never synced missed cadence, operator decision support only with explicit source labels and no automatic sends, use existing assets first) that are present in the test files canonical 94th canned answer. The report runners prior tick output showed answerShape=94/95; overallStatus=action_required because the report-scripts 94th canned answer failed the 94ths per-fixture shape check. This lane closes that drift by replacing the report-scripts 94th canned answer with the full canonical version. After the repair, the report runner returns overallStatus=pass; answerShape=95/95.
+- Doc-drift guard: the docs/margot/OVERNIGHT-AUTONOMY-MANDATE.md source doc was updated with a new ## AI-RET-001 Overnight-Autonomy-Mandate Self-Boundary (95th answer-shape fixture) section added at the end (after the original ## First Work Order section), followed by a new ## Senior PM verification checkpoint (2026-06-12 AEST) block. The new section carries the 10 required phrases, the 4 required citation sources, and the 10 prohibited overclaim phrases (all in meta-level do not claim form, scoped to the assertion section before the new verification checkpoint heading).
+- Fixture wired into 6 locations: harness type union (line 136), fixture array (after line 3255), 3 test-aggregator maps (around lines 498, 643, 812), 1 report-script map (after line 904), and the master pin test (line 300). Pinned fixture count 94→95 in 8 places. 2 individual tests added: passes + rejects for the 95th.
+- Verification: focused retrieval gate 1 suite / 200 tests PASS (was 198; +2 from new fixture 2 individual tests). AI-RET-001 runner overallStatus=pass; source=8/8; answerShape=95/95; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true. Combined CRM + Margot + runtime + credential-boundary gate 11 suites / 325 tests PASS. Voice gate 4 suites / 47 tests PASS (unchanged). npm run type-check PASS. npm run security:routes-check reports 0 unprotected mutating routes. git diff --check clean.
+- Mac Mini: rotation guard - not probed this tick. Last probe: SMB reachable (IP 192.168.2.78), SSH unreachable, /Volumes=Macintosh HD, 0 recovered Markdown artifacts. Blocker unchanged.
+- No sandbox wizard Db mutating subcommand, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, provider polling, live AI/vector search, connector-platform action, new vendor, credential read, or destructive git.
+- Pre-existing untracked-file type-check noise: clean. No new TS1117 duplicate property errors introduced.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 200 tests.
+npx tsx scripts/margot-retrieval-evaluation-report.ts
+# overallStatus=pass; source=8/8; answerShape=95/95
+# readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true.
+npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --silent
+# PASS: 11 suites / 325 tests.
+npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts src/components/command-center/voice/__tests__/voice-panel-state.test.ts --silent
+# PASS: 4 suites / 47 tests.
+npm run type-check
+# PASS.
+npm run security:routes-check
+# PASS: 0 unprotected mutating routes.
+```
+
+Files changed this tick: src/lib/margot/retrieval-evaluation.ts (type union line 136 + 95th fixture def after line 3255), scripts/margot-retrieval-evaluation-report.ts (95th canned answer after line 904 with disjoint-paraphrase fix + 94th canned answer replaced with full canonical version including the 4 missing required phrases + rotated nextSafeAction line 925), tests/unit/lib/margot/retrieval-evaluation.test.ts (1 new canned-answer function with disjoint-paraphrase fix at line 99 + master pin 94→95 line 300 + hardcoded pin list 94→95 line 396 + 3 hardcoded count bumps 94→95 + 2 readback count bumps 94→95 + 3 canned-answer map entries + 2 individual pass/reject tests with the orphan-line repair applied to all 3 94th-test sites), docs/margot/OVERNIGHT-AUTONOMY-MANDATE.md (new self-boundary section + new Senior PM verification checkpoint), docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md (regenerated), docs/margot/overnight-progress-log.md (this tick), docs/margot/morning-report.md (lane summary), docs/margot/MARGOT-COMMAND-CENTER.md (rotation-guard entry).
+
+Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, public publishing, connector platforms, new vendors, destructive git, cross-tenant data joins, fabricated board approval, implicit policy inference, fabricated tick history, fabricated conversation history, overnight autonomy mandate production database write executed, overnight autonomy mandate vercel environment mutation executed, overnight autonomy mandate github push executed absent operator authorization, overnight autonomy mandate nango connector platform onboarded, overnight autonomy mandate client facing send dispatched without approval, overnight autonomy mandate paid spend committed, overnight autonomy mandate public publishing approved, overnight autonomy mandate destructive git operation executed, overnight autonomy mandate cross project context merge without explicit scope, overnight autonomy mandate live provider status asserted.
+
+Next safe lane: per the rotated nextSafeAction, pivot to another remaining top-level doc self-boundary (e.g. the forward-readiness-gap-analysis doc, the hermes-v15-capability-assessment doc, the personal-intelligence-second-assistant-model doc, the dr-swarm-execution-report doc, the disaster-recovery-assessment doc, or another committed control surface) OR a new error-path class (e.g. live-gating-phrasing drift, advisor-finding-origin, stale-cache warm-read, or cross-doc-source-citation-conflict). The 27 self-boundary fixtures (37th, 64th, 66th, 67th, 72nd-95th) now cover 27 committed source docs. Four error-path classes bounded: 68th (cross-tenant-data-join), 69th (provider-status-asserted), 70th (5xx-cascade-asserted), 71st (non-cross-tenant-safety-class). Senior PM recommendation: stop adding fixtures when both the doc-set and error-path coverage are fully bounded.
+
 ## 2026-06-12 18:30:00 AEST
 
 ### Tick 20260612_1830 — AI-RET-001 92nd answer-shape fixture (LEAD-TO-CLIENT-CONVERSION-PLAN-SELF-BOUNDARY) + doc-tick
@@ -19447,3 +19488,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260612_110509.log'
+
+## 2026-06-12 12:13:10 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260612_115052.log'

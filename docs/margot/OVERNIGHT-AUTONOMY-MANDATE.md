@@ -1,6 +1,7 @@
 # Margot Overnight Autonomy Mandate
 
 Date: 2026-05-22
+Last update: 2026-06-12 AEST
 Operator: Margot / Hermes Agent
 Project: Unite-Group
 Root: `/Users/phillmcgurk/Unite-Group`
@@ -74,3 +75,40 @@ Use superpowers discipline:
 4. Analyze voice test gaps.
 5. If safe, add missing tests and run focused checks.
 6. Keep appending to the progress log.
+
+
+## AI-RET-001 Overnight-Autonomy-Mandate Self-Boundary (95th answer-shape fixture)
+
+Required phrases:
+- overnight autonomy mandate self boundary lane
+- 26th overnight autonomy mandate content citation class
+- margot may auto proceed without asking when work is local repo documentation local code inspection local tests or health checks
+- margot must stop or mark blocked before production database writes vercel environment mutations secret or token storage destructive git cross project context mixing github push or vercel deploy absent separate authorization
+- autonomy scope is scoped to local margot safe lane only and does not extend to client facing sends paid spend or new vendor onboarding
+- overnight progress log append timestamped evidence for every bounded margot tick
+- morning report must summarize work completed blockers and next moves
+- quality standard is small tasks tdd for code changes review against spec before quality polish leave evidence and verification results never hide blockers
+- use existing assets first and read first set of read first docs before any senior pm tick
+- overnight autonomy mandate applies to safe local margot lane only and is not a substitute for explicit operator approval
+
+Required citations:
+- docs/margot/OVERNIGHT-AUTONOMY-MANDATE.md
+- docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md
+- docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md
+- docs/margot/morning-report.md
+
+Assertion section do not claim:
+- overnight autonomy mandate production database write executed
+- overnight autonomy mandate vercel environment mutation executed
+- overnight autonomy mandate github push executed absent operator authorization
+- overnight autonomy mandate nango connector platform onboarded
+- overnight autonomy mandate client facing send dispatched without approval
+- overnight autonomy mandate paid spend committed
+- overnight autonomy mandate public publishing approved
+- overnight autonomy mandate destructive git operation executed
+- overnight autonomy mandate cross project context merge without explicit scope
+- overnight autonomy mandate live provider status asserted
+
+## Senior PM verification checkpoint (2026-06-12 AEST)
+
+This doc-drift guard confirms the 10 required phrases above are present, the 4 required citations are present, and the 10 prohibited phrases are documented only in the assertion section above, not claimed as facts.
