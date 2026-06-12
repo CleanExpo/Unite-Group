@@ -53,3 +53,37 @@ export async function checkDatabase(): Promise<DatabaseStatus> {
   if (error) return { state: "error", problem: error.message };
   return { state: "ok", savedSpecs: count ?? 0 };
 }
+
+export async function saveCritique(
+  specId: string,
+  critique: string,
+  criticModel: string,
+): Promise<void> {
+  const supabase = getClient();
+  if (!supabase) return;
+  const { error } = await supabase
+    .from("specs")
+    .update({ critique, critic_model: criticModel })
+    .eq("id", specId);
+  if (error) throw new Error(`supabase critique update: ${error.message}`);
+}
+
+// The approval gate: marks the spec approved and the vision's status.
+export async function approveSpec(specId: string): Promise<void> {
+  const supabase = getClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+
+  const { data: spec, error: specError } = await supabase
+    .from("specs")
+    .update({ approved_at: new Date().toISOString() })
+    .eq("id", specId)
+    .select("vision_id")
+    .single();
+  if (specError) throw new Error(`supabase approve: ${specError.message}`);
+
+  const { error: visionError } = await supabase
+    .from("visions")
+    .update({ status: "approved" })
+    .eq("id", spec.vision_id);
+  if (visionError) throw new Error(`supabase vision status: ${visionError.message}`);
+}

@@ -10,7 +10,7 @@ Built in four phases, smallest first. **Phases 0 and 1 are in this repo.**
 |---|---|---|
 | **0 — OS Layer** | The engine + board + folders, usable in Cowork/Claude Code today, no code | ✅ here |
 | **1 — Thin App** | A private web page: type a vision → get a saved, sourced spec | ✅ here |
-| **2 — Cockpit + Verify** | Mission-control UI wired to `[STATUS]` lines + critic model + approval gate | planned |
+| **2 — Cockpit + Verify** | Mission-control UI wired to `[STATUS]` lines + critic model + approval gate | ✅ here |
 | **3 — Board + Ingest** | "Ask the Board" with real advisor content + Obsidian vault ingestion | planned (needs the vault) |
 
 ## Phase 0 — the OS Layer (no code needed)

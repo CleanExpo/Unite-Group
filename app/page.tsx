@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type RunState = "idle" | "running" | "done" | "error";
 
@@ -11,6 +11,19 @@ interface Health {
     | { state: "not_configured" }
     | { state: "error"; problem: string };
 }
+
+const colors = {
+  bg: "#101214",
+  panel: "#1a1d21",
+  border: "#33373d",
+  dim: "#9aa0a6",
+  green: "#7ed8a0",
+  greenBorder: "#2e5c3f",
+  red: "#f28b82",
+  redBorder: "#6e3030",
+  amber: "#f5c97b",
+  accent: "#d97742",
+};
 
 function StatusStrip() {
   const [health, setHealth] = useState<Health | null>(null);
@@ -32,9 +45,9 @@ function StatusStrip() {
         padding: "4px 10px",
         borderRadius: 999,
         fontSize: 12.5,
-        background: "#1a1d21",
-        border: `1px solid ${ok ? "#2e5c3f" : "#6e3030"}`,
-        color: ok ? "#7ed8a0" : "#f28b82",
+        background: colors.panel,
+        border: `1px solid ${ok ? colors.greenBorder : colors.redBorder}`,
+        color: ok ? colors.green : colors.red,
       }}
     >
       {ok ? "✓" : "✗"} {label}
@@ -42,7 +55,7 @@ function StatusStrip() {
   );
 
   if (failed) return <div style={{ margin: "10px 0 20px" }}>{chip(false, "Status check failed — is the deployment healthy?")}</div>;
-  if (!health) return <div style={{ margin: "10px 0 20px", color: "#9aa0a6", fontSize: 12.5 }}>Checking system status…</div>;
+  if (!health) return <div style={{ margin: "10px 0 20px", color: colors.dim, fontSize: 12.5 }}>Checking system status…</div>;
 
   const db = health.database;
   return (
@@ -65,43 +78,243 @@ function StatusStrip() {
   );
 }
 
+// Cockpit rows: pipeline stages driven by SSE events, plus the engine's own
+// [STATUS] lines parsed out of the streamed text.
+const STATUS_SUBJECTS: Record<string, string> = {
+  "finish-line": "Finish line",
+  "channel:obsidian": "Obsidian channel",
+  "channel:project": "Project channel",
+  "channel:web": "Web channel",
+  synthesis: "Synthesis",
+  board: "Board",
+  gate: "Approval gate",
+};
+
+type StageState = "pending" | "active" | "done" | "failed" | "skipped";
+
+interface Stage {
+  state: StageState;
+  detail: string;
+}
+
+function Cockpit({ stages, statusLines }: { stages: Record<string, Stage>; statusLines: Record<string, string> }) {
+  const dot = (state: StageState) => {
+    const fill =
+      state === "done" ? colors.green
+      : state === "active" ? colors.amber
+      : state === "failed" ? colors.red
+      : state === "skipped" ? colors.dim
+      : colors.border;
+    return (
+      <span
+        style={{
+          width: 9,
+          height: 9,
+          borderRadius: 999,
+          background: fill,
+          display: "inline-block",
+          flexShrink: 0,
+          ...(state === "active" ? { animation: "pulse 1.2s ease-in-out infinite" } : {}),
+        }}
+      />
+    );
+  };
+
+  const row = (label: string, stage: Stage) => (
+    <div key={label} style={{ display: "flex", alignItems: "center", gap: 10, padding: "5px 0", fontSize: 13 }}>
+      {dot(stage.state)}
+      <span style={{ width: 130, color: "#e6e6e6", flexShrink: 0 }}>{label}</span>
+      <span style={{ color: colors.dim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        {stage.detail}
+      </span>
+    </div>
+  );
+
+  return (
+    <aside
+      style={{
+        background: colors.panel,
+        border: `1px solid ${colors.border}`,
+        borderRadius: 8,
+        padding: "12px 16px",
+        marginTop: 20,
+      }}
+    >
+      <style>{`@keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.35 } }`}</style>
+      <div style={{ fontSize: 12, letterSpacing: 1.2, color: colors.dim, marginBottom: 6 }}>COCKPIT</div>
+      {row("Engine", stages.engine)}
+      {Object.entries(STATUS_SUBJECTS).map(([subject, label]) =>
+        row(label, statusLines[subject] !== undefined
+          ? { state: "done", detail: statusLines[subject] }
+          : { state: stages.engine.state === "pending" ? "pending" : stages.engine.state === "active" ? "pending" : "skipped", detail: "—" }),
+      )}
+      {row("Save", stages.save)}
+      {row("Critic", stages.critic)}
+    </aside>
+  );
+}
+
+const initialStages = (): Record<string, Stage> => ({
+  engine: { state: "pending", detail: "—" },
+  save: { state: "pending", detail: "—" },
+  critic: { state: "pending", detail: "—" },
+});
+
 export default function Home() {
   const [vision, setVision] = useState("");
   const [spec, setSpec] = useState("");
+  const [critique, setCritique] = useState("");
+  const [criticLabel, setCriticLabel] = useState("");
   const [state, setState] = useState<RunState>("idle");
   const [message, setMessage] = useState("");
   const [copied, setCopied] = useState(false);
+  const [stages, setStages] = useState<Record<string, Stage>>(initialStages);
+  const [statusLines, setStatusLines] = useState<Record<string, string>>({});
+  const [specId, setSpecId] = useState<string | null>(null);
+  const [approved, setApproved] = useState(false);
+  const lineBuffer = useRef("");
+
+  const setStage = (name: string, stage: Stage) =>
+    setStages((prev) => ({ ...prev, [name]: stage }));
+
+  // The engine narrates progress with lines like:
+  //   [STATUS] channel:web — skipped
+  function scanForStatusLines(delta: string) {
+    lineBuffer.current += delta;
+    let nl: number;
+    while ((nl = lineBuffer.current.indexOf("\n")) >= 0) {
+      const line = lineBuffer.current.slice(0, nl).trim();
+      lineBuffer.current = lineBuffer.current.slice(nl + 1);
+      const match = line.match(/^\[STATUS\]\s*([a-z:-]+)\s*[:—-]?\s*(.*)$/i);
+      if (match && match[1].toLowerCase() in STATUS_SUBJECTS) {
+        const detail = match[2].trim() || "done";
+        setStatusLines((prev) => ({ ...prev, [match[1].toLowerCase()]: detail }));
+      }
+    }
+  }
 
   async function run() {
     setState("running");
     setMessage("");
     setSpec("");
+    setCritique("");
+    setCriticLabel("");
     setCopied(false);
+    setStages(initialStages());
+    setStatusLines({});
+    setSpecId(null);
+    setApproved(false);
+    lineBuffer.current = "";
+
     try {
       const res = await fetch("/api/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ vision }),
       });
-      const data = await res.json();
-      if (!res.ok) {
+      if (!res.ok || !res.body) {
+        const data = await res.json().catch(() => null);
         setState("error");
-        setMessage(data.error ?? `Request failed (${res.status})`);
+        setMessage(data?.error ?? `Request failed (${res.status})`);
         return;
       }
-      setSpec(data.spec);
-      setState("done");
-      const via = data.provider ? ` · via ${data.provider} (${data.model})` : "";
-      if (data.saved) {
-        setMessage(`Saved to Supabase (spec ${data.saved.specId})${via}`);
-      } else if (data.saveError) {
-        setMessage(`Spec generated, but saving failed: ${data.saveError}${via}`);
-      } else {
-        setMessage(`Spec generated (Supabase not configured — not saved)${via}`);
+
+      setStage("engine", { state: "active", detail: "running…" });
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let sep: number;
+        while ((sep = buffer.indexOf("\n\n")) >= 0) {
+          const frame = buffer.slice(0, sep);
+          buffer = buffer.slice(sep + 2);
+          const dataLine = frame.split("\n").find((l) => l.startsWith("data: "));
+          if (!dataLine) continue;
+          let event: any;
+          try {
+            event = JSON.parse(dataLine.slice(6));
+          } catch {
+            continue;
+          }
+          handleEvent(event);
+        }
       }
+      setState((s) => (s === "running" ? "done" : s));
     } catch (error) {
       setState("error");
       setMessage(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  function handleEvent(event: any) {
+    switch (event.type) {
+      case "meta":
+        setStage("engine", {
+          state: "active",
+          detail: `${event.provider} (${(event.models ?? []).join(" → ")})`,
+        });
+        break;
+      case "delta":
+        setSpec((prev) => prev + event.text);
+        scanForStatusLines(event.text);
+        break;
+      case "engine_done":
+        setStage("engine", { state: "done", detail: `done · ${event.model}` });
+        setStage("save", { state: "active", detail: "saving…" });
+        break;
+      case "saved":
+        setSpecId(event.specId);
+        setStage("save", { state: "done", detail: `saved (${String(event.specId).slice(0, 8)}…)` });
+        break;
+      case "save_skipped":
+        setStage("save", { state: "skipped", detail: "Supabase not configured" });
+        break;
+      case "save_error":
+        setStage("save", { state: "failed", detail: event.error });
+        break;
+      case "critic_start":
+        setStage("critic", { state: "active", detail: `${event.provider} (${event.model}) reviewing…` });
+        break;
+      case "critique":
+        setCritique(event.text);
+        setCriticLabel(`${event.provider} (${event.model})`);
+        setStage("critic", { state: "done", detail: `reviewed by ${event.provider}` });
+        break;
+      case "critic_skipped":
+        setStage("critic", { state: "skipped", detail: "no critic configured" });
+        break;
+      case "critic_error":
+        setStage("critic", { state: "failed", detail: event.error });
+        break;
+      case "done":
+        setState("done");
+        setMessage("Run complete");
+        break;
+      case "error":
+        setState("error");
+        setMessage(event.error);
+        setStage("engine", { state: "failed", detail: event.error });
+        break;
+    }
+  }
+
+  async function approve() {
+    if (!specId) return;
+    const res = await fetch("/api/approve", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ specId }),
+    });
+    if (res.ok) {
+      setApproved(true);
+      setStatusLines((prev) => ({ ...prev, gate: "approved by you" }));
+    } else {
+      const data = await res.json().catch(() => null);
+      setMessage(`Approve failed: ${data?.error ?? res.status}`);
     }
   }
 
@@ -112,11 +325,16 @@ export default function Home() {
   }
 
   const running = state === "running";
+  const displaySpec = spec
+    .split("\n")
+    .filter((line) => !line.trim().startsWith("[STATUS]"))
+    .join("\n");
+  const verdict = critique.match(/VERDICT:\s*(APPROVE|REVISE)/i)?.[1]?.toUpperCase() ?? null;
 
   return (
     <main style={{ maxWidth: 860, margin: "0 auto", padding: "48px 24px" }}>
       <h1 style={{ fontSize: 28, marginBottom: 4 }}>The Fable System</h1>
-      <p style={{ color: "#9aa0a6", marginTop: 0 }}>
+      <p style={{ color: colors.dim, marginTop: 0 }}>
         Type a vision in plain English. Get a sourced, build-ready spec.
       </p>
 
@@ -126,16 +344,16 @@ export default function Home() {
         value={vision}
         onChange={(e) => setVision(e.target.value)}
         placeholder="I want to build…"
-        rows={6}
+        rows={5}
         style={{
           width: "100%",
           boxSizing: "border-box",
           padding: 12,
           fontSize: 15,
           fontFamily: "inherit",
-          background: "#1a1d21",
+          background: colors.panel,
           color: "#e6e6e6",
-          border: "1px solid #33373d",
+          border: `1px solid ${colors.border}`,
           borderRadius: 8,
           resize: "vertical",
         }}
@@ -149,41 +367,36 @@ export default function Home() {
             padding: "10px 24px",
             fontSize: 15,
             fontWeight: 600,
-            background: running ? "#33373d" : "#d97742",
-            color: running ? "#9aa0a6" : "#101214",
+            background: running ? colors.border : colors.accent,
+            color: running ? colors.dim : colors.bg,
             border: "none",
             borderRadius: 8,
             cursor: running ? "wait" : "pointer",
           }}
         >
-          {running ? "Running the engine…" : "Run"}
+          {running ? "Running…" : "Run"}
         </button>
         {message && (
-          <span style={{ color: state === "error" ? "#f28b82" : "#9aa0a6", fontSize: 13 }}>
+          <span style={{ color: state === "error" ? colors.red : colors.dim, fontSize: 13 }}>
             {message}
           </span>
         )}
       </div>
 
-      {running && (
-        <p style={{ color: "#9aa0a6", fontSize: 13 }}>
-          This can take a few minutes — the engine locks the finish line, works
-          its channels, and writes the full spec before responding.
-        </p>
-      )}
+      {(running || spec) && <Cockpit stages={stages} statusLines={statusLines} />}
 
       {spec && (
-        <section style={{ marginTop: 32 }}>
+        <section style={{ marginTop: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2 style={{ fontSize: 18, margin: 0 }}>Spec</h2>
+            <h2 style={{ fontSize: 18, margin: 0 }}>Spec {running && <span style={{ color: colors.dim, fontWeight: 400, fontSize: 13 }}>· streaming…</span>}</h2>
             <button
               onClick={copy}
               style={{
                 padding: "6px 14px",
                 fontSize: 13,
-                background: "#1a1d21",
+                background: colors.panel,
                 color: "#e6e6e6",
-                border: "1px solid #33373d",
+                border: `1px solid ${colors.border}`,
                 borderRadius: 6,
                 cursor: "pointer",
               }}
@@ -195,8 +408,8 @@ export default function Home() {
             style={{
               marginTop: 12,
               padding: 16,
-              background: "#1a1d21",
-              border: "1px solid #33373d",
+              background: colors.panel,
+              border: `1px solid ${colors.border}`,
               borderRadius: 8,
               whiteSpace: "pre-wrap",
               wordBreak: "break-word",
@@ -204,8 +417,94 @@ export default function Home() {
               lineHeight: 1.55,
             }}
           >
-            {spec}
+            {displaySpec}
           </pre>
+        </section>
+      )}
+
+      {critique && (
+        <section style={{ marginTop: 24 }}>
+          <h2 style={{ fontSize: 18, margin: 0 }}>
+            Critic review{" "}
+            <span style={{ color: colors.dim, fontWeight: 400, fontSize: 13 }}>
+              · {criticLabel} — a lens, not a verdict
+            </span>
+          </h2>
+          {verdict && (
+            <div
+              style={{
+                display: "inline-block",
+                marginTop: 10,
+                padding: "4px 12px",
+                borderRadius: 999,
+                fontSize: 13,
+                fontWeight: 600,
+                background: colors.panel,
+                border: `1px solid ${verdict === "APPROVE" ? colors.greenBorder : colors.redBorder}`,
+                color: verdict === "APPROVE" ? colors.green : colors.amber,
+              }}
+            >
+              Critic says: {verdict}
+            </div>
+          )}
+          <pre
+            style={{
+              marginTop: 12,
+              padding: 16,
+              background: colors.panel,
+              border: `1px solid ${colors.border}`,
+              borderRadius: 8,
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              fontSize: 13.5,
+              lineHeight: 1.55,
+            }}
+          >
+            {critique}
+          </pre>
+        </section>
+      )}
+
+      {state === "done" && spec && (
+        <section
+          style={{
+            marginTop: 24,
+            padding: 16,
+            background: colors.panel,
+            border: `1px solid ${approved ? colors.greenBorder : colors.border}`,
+            borderRadius: 8,
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
+          }}
+        >
+          {approved ? (
+            <span style={{ color: colors.green, fontWeight: 600 }}>✓ Approved — this spec is final</span>
+          ) : (
+            <>
+              <button
+                onClick={approve}
+                disabled={!specId}
+                style={{
+                  padding: "10px 24px",
+                  fontSize: 15,
+                  fontWeight: 600,
+                  background: specId ? colors.green : colors.border,
+                  color: colors.bg,
+                  border: "none",
+                  borderRadius: 8,
+                  cursor: specId ? "pointer" : "not-allowed",
+                }}
+              >
+                Approve spec
+              </button>
+              <span style={{ color: colors.dim, fontSize: 13 }}>
+                {specId
+                  ? "Nothing is final until you approve. The critic is advisory only."
+                  : "Approval needs the spec saved to the database first."}
+              </span>
+            </>
+          )}
         </section>
       )}
     </main>
