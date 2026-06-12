@@ -12,18 +12,31 @@ interface Health {
     | { state: "error"; problem: string };
 }
 
-const colors = {
-  bg: "#101214",
-  panel: "#1a1d21",
-  border: "#33373d",
-  dim: "#9aa0a6",
-  green: "#7ed8a0",
-  greenBorder: "#2e5c3f",
-  red: "#f28b82",
-  redBorder: "#6e3030",
-  amber: "#f5c97b",
-  accent: "#d97742",
+const C = {
+  bg: "#0b0d0f",
+  panel: "#14171b",
+  panelEdge: "#1f242b",
+  border: "#2a3038",
+  text: "#e8eaed",
+  dim: "#8b939e",
+  green: "#34d399",
+  amber: "#fbbf24",
+  red: "#f87171",
+  accent: "#e8743b",
+  mono: "ui-monospace, 'SF Mono', Menlo, monospace",
 };
+
+const GLOBAL_CSS = `
+@keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .25 } }
+@keyframes glow {
+  0%,100% { box-shadow: 0 0 0 1px rgba(251,191,36,.45), 0 0 18px rgba(251,191,36,.12); }
+  50%     { box-shadow: 0 0 0 1px rgba(251,191,36,.9),  0 0 28px rgba(251,191,36,.30); }
+}
+@keyframes sweep {
+  0% { transform: translateX(-100%); } 100% { transform: translateX(260%); }
+}
+@keyframes blink { 0%,100% { opacity: 1 } 50% { opacity: 0 } }
+`;
 
 function StatusStrip() {
   const [health, setHealth] = useState<Health | null>(null);
@@ -45,9 +58,9 @@ function StatusStrip() {
         padding: "4px 10px",
         borderRadius: 999,
         fontSize: 12.5,
-        background: colors.panel,
-        border: `1px solid ${ok ? colors.greenBorder : colors.redBorder}`,
-        color: ok ? colors.green : colors.red,
+        background: C.panel,
+        border: `1px solid ${ok ? "#1f5c40" : "#6e3030"}`,
+        color: ok ? C.green : C.red,
       }}
     >
       {ok ? "✓" : "✗"} {label}
@@ -55,7 +68,7 @@ function StatusStrip() {
   );
 
   if (failed) return <div style={{ margin: "10px 0 20px" }}>{chip(false, "Status check failed — is the deployment healthy?")}</div>;
-  if (!health) return <div style={{ margin: "10px 0 20px", color: colors.dim, fontSize: 12.5 }}>Checking system status…</div>;
+  if (!health) return <div style={{ margin: "10px 0 20px", color: C.dim, fontSize: 12.5 }}>Checking system status…</div>;
 
   const db = health.database;
   return (
@@ -78,16 +91,16 @@ function StatusStrip() {
   );
 }
 
-// Cockpit rows: pipeline stages driven by SSE events, plus the engine's own
-// [STATUS] lines parsed out of the streamed text.
+// ── Cockpit ──────────────────────────────────────────────────────────────
+
 const STATUS_SUBJECTS: Record<string, string> = {
-  "finish-line": "Finish line",
-  "channel:obsidian": "Obsidian channel",
-  "channel:project": "Project channel",
-  "channel:web": "Web channel",
-  synthesis: "Synthesis",
-  board: "Board",
-  gate: "Approval gate",
+  "finish-line": "FINISH LINE",
+  "channel:obsidian": "OBSIDIAN",
+  "channel:project": "PROJECT",
+  "channel:web": "WEB",
+  synthesis: "SYNTHESIS",
+  board: "BOARD",
+  gate: "GATE",
 };
 
 type StageState = "pending" | "active" | "done" | "failed" | "skipped";
@@ -97,68 +110,185 @@ interface Stage {
   detail: string;
 }
 
-function Cockpit({ stages, statusLines }: { stages: Record<string, Stage>; statusLines: Record<string, string> }) {
-  const dot = (state: StageState) => {
-    const fill =
-      state === "done" ? colors.green
-      : state === "active" ? colors.amber
-      : state === "failed" ? colors.red
-      : state === "skipped" ? colors.dim
-      : colors.border;
-    return (
-      <span
-        style={{
-          width: 9,
-          height: 9,
-          borderRadius: 999,
-          background: fill,
-          display: "inline-block",
-          flexShrink: 0,
-          ...(state === "active" ? { animation: "pulse 1.2s ease-in-out infinite" } : {}),
-        }}
-      />
-    );
-  };
+const stageColor = (s: StageState) =>
+  s === "done" ? C.green : s === "active" ? C.amber : s === "failed" ? C.red : C.dim;
 
-  const row = (label: string, stage: Stage) => (
-    <div key={label} style={{ display: "flex", alignItems: "center", gap: 10, padding: "5px 0", fontSize: 13 }}>
-      {dot(stage.state)}
-      <span style={{ width: 130, color: "#e6e6e6", flexShrink: 0 }}>{label}</span>
-      <span style={{ color: colors.dim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-        {stage.detail}
-      </span>
-    </div>
-  );
-
+function Tile({ label, stage }: { label: string; stage: Stage }) {
+  const color = stageColor(stage.state);
+  const active = stage.state === "active";
   return (
-    <aside
+    <div
       style={{
-        background: colors.panel,
-        border: `1px solid ${colors.border}`,
-        borderRadius: 8,
-        padding: "12px 16px",
-        marginTop: 20,
+        position: "relative",
+        overflow: "hidden",
+        background: C.panel,
+        border: `1px solid ${stage.state === "pending" ? C.border : color}`,
+        borderRadius: 10,
+        padding: "10px 12px",
+        minHeight: 64,
+        opacity: stage.state === "pending" || stage.state === "skipped" ? 0.55 : 1,
+        ...(active ? { animation: "glow 1.6s ease-in-out infinite" } : {}),
       }}
     >
-      <style>{`@keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.35 } }`}</style>
-      <div style={{ fontSize: 12, letterSpacing: 1.2, color: colors.dim, marginBottom: 6 }}>COCKPIT</div>
-      {row("Engine", stages.engine)}
-      {Object.entries(STATUS_SUBJECTS).map(([subject, label]) =>
-        row(label, statusLines[subject] !== undefined
-          ? { state: "done", detail: statusLines[subject] }
-          : { state: stages.engine.state === "pending" ? "pending" : stages.engine.state === "active" ? "pending" : "skipped", detail: "—" }),
+      {active && (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            height: 2,
+            width: "40%",
+            background: `linear-gradient(90deg, transparent, ${C.amber}, transparent)`,
+            animation: "sweep 1.4s linear infinite",
+          }}
+        />
       )}
-      {row("Save", stages.save)}
-      {row("Critic", stages.critic)}
-    </aside>
+      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+        <span
+          style={{
+            width: 8,
+            height: 8,
+            borderRadius: 999,
+            background: stage.state === "pending" ? C.border : color,
+            boxShadow: stage.state === "done" ? `0 0 8px ${C.green}` : "none",
+            ...(active ? { animation: "pulse 1.1s ease-in-out infinite" } : {}),
+          }}
+        />
+        <span style={{ fontFamily: C.mono, fontSize: 11, letterSpacing: 1.5, color: C.text }}>
+          {label}
+        </span>
+      </div>
+      <div
+        style={{
+          marginTop: 6,
+          fontFamily: C.mono,
+          fontSize: 11,
+          lineHeight: 1.45,
+          color: stage.state === "failed" ? C.red : C.dim,
+          display: "-webkit-box",
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical",
+          overflow: "hidden",
+        }}
+      >
+        {stage.detail}
+      </div>
+    </div>
+  );
+}
+
+function Cockpit({
+  stages,
+  statusLines,
+  feed,
+  running,
+  elapsed,
+  streamed,
+  provider,
+  approved,
+  specId,
+  runDone,
+}: {
+  stages: Record<string, Stage>;
+  statusLines: Record<string, string>;
+  feed: string[];
+  running: boolean;
+  elapsed: number;
+  streamed: number;
+  provider: string;
+  approved: boolean;
+  specId: string | null;
+  runDone: boolean;
+}) {
+  const mm = String(Math.floor(elapsed / 60)).padStart(2, "0");
+  const ss = String(elapsed % 60).padStart(2, "0");
+
+  const subjectStage = (subject: string): Stage => {
+    if (subject === "gate") {
+      if (approved) return { state: "done", detail: "approved by you" };
+      if (runDone && specId) return { state: "active", detail: "awaiting your approval" };
+    }
+    if (statusLines[subject] !== undefined) return { state: "done", detail: statusLines[subject] };
+    if (stages.engine.state === "active") return { state: "pending", detail: "standing by" };
+    return { state: "skipped", detail: "no signal" };
+  };
+
+  return (
+    <section
+      style={{
+        marginTop: 22,
+        background: `linear-gradient(180deg, ${C.panelEdge}, ${C.bg})`,
+        border: `1px solid ${C.border}`,
+        borderRadius: 14,
+        padding: 16,
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
+        <div style={{ fontFamily: C.mono, fontSize: 12, letterSpacing: 3, color: C.accent }}>
+          ▮ FABLE COCKPIT
+        </div>
+        <div style={{ display: "flex", gap: 16, fontFamily: C.mono, fontSize: 11.5, color: C.dim }}>
+          <span>
+            T+{mm}:{ss}
+          </span>
+          <span>{(streamed / 1000).toFixed(1)}k chars</span>
+          <span style={{ color: running ? C.amber : C.green }}>
+            {running ? "● LIVE" : "■ COMPLETE"}
+          </span>
+          {provider && <span>{provider.toUpperCase()}</span>}
+        </div>
+      </div>
+
+      <div
+        style={{
+          marginTop: 14,
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(148px, 1fr))",
+          gap: 10,
+        }}
+      >
+        <Tile label="ENGINE" stage={stages.engine} />
+        {Object.entries(STATUS_SUBJECTS).map(([subject, label]) => (
+          <Tile key={subject} label={label} stage={subjectStage(subject)} />
+        ))}
+        <Tile label="SAVE" stage={stages.save} />
+        <Tile label="CRITIC" stage={stages.critic} />
+      </div>
+
+      {feed.length > 0 && (
+        <div
+          style={{
+            marginTop: 12,
+            background: "#0e1013",
+            border: `1px solid ${C.border}`,
+            borderRadius: 8,
+            padding: "8px 12px",
+            fontFamily: C.mono,
+            fontSize: 11.5,
+            lineHeight: 1.7,
+            color: C.dim,
+            maxHeight: 120,
+            overflowY: "auto",
+          }}
+        >
+          {feed.map((line, i) => (
+            <div key={i} style={{ color: i === feed.length - 1 ? C.text : C.dim }}>
+              <span style={{ color: C.accent }}>›</span> {line}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
 const initialStages = (): Record<string, Stage> => ({
-  engine: { state: "pending", detail: "—" },
-  save: { state: "pending", detail: "—" },
-  critic: { state: "pending", detail: "—" },
+  engine: { state: "pending", detail: "standing by" },
+  save: { state: "pending", detail: "standing by" },
+  critic: { state: "pending", detail: "standing by" },
 });
+
+// ── Page ─────────────────────────────────────────────────────────────────
 
 export default function Home() {
   const [vision, setVision] = useState("");
@@ -170,15 +300,28 @@ export default function Home() {
   const [copied, setCopied] = useState(false);
   const [stages, setStages] = useState<Record<string, Stage>>(initialStages);
   const [statusLines, setStatusLines] = useState<Record<string, string>>({});
+  const [feed, setFeed] = useState<string[]>([]);
   const [specId, setSpecId] = useState<string | null>(null);
   const [approved, setApproved] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const [provider, setProvider] = useState("");
   const lineBuffer = useRef("");
+
+  const running = state === "running";
+
+  useEffect(() => {
+    if (!running) return;
+    const start = Date.now();
+    const id = setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [running]);
 
   const setStage = (name: string, stage: Stage) =>
     setStages((prev) => ({ ...prev, [name]: stage }));
 
-  // The engine narrates progress with lines like:
-  //   [STATUS] channel:web — skipped
+  const addFeed = (line: string) =>
+    setFeed((prev) => [...prev.slice(-30), line]);
+
   function scanForStatusLines(delta: string) {
     lineBuffer.current += delta;
     let nl: number;
@@ -189,6 +332,7 @@ export default function Home() {
       if (match && match[1].toLowerCase() in STATUS_SUBJECTS) {
         const detail = match[2].trim() || "done";
         setStatusLines((prev) => ({ ...prev, [match[1].toLowerCase()]: detail }));
+        addFeed(`${match[1].toLowerCase()} — ${detail}`);
       }
     }
   }
@@ -202,8 +346,11 @@ export default function Home() {
     setCopied(false);
     setStages(initialStages());
     setStatusLines({});
+    setFeed(["run started"]);
     setSpecId(null);
     setApproved(false);
+    setElapsed(0);
+    setProvider("");
     lineBuffer.current = "";
 
     try {
@@ -219,7 +366,7 @@ export default function Home() {
         return;
       }
 
-      setStage("engine", { state: "active", detail: "running…" });
+      setStage("engine", { state: "active", detail: "spinning up…" });
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -253,51 +400,65 @@ export default function Home() {
   function handleEvent(event: any) {
     switch (event.type) {
       case "meta":
+        setProvider(event.provider ?? "");
         setStage("engine", {
           state: "active",
-          detail: `${event.provider} (${(event.models ?? []).join(" → ")})`,
+          detail: `${event.provider} · ${(event.models ?? []).join(" → ")}`,
         });
+        addFeed(`engine dispatched on ${event.provider}`);
         break;
       case "delta":
         setSpec((prev) => prev + event.text);
         scanForStatusLines(event.text);
         break;
       case "engine_done":
-        setStage("engine", { state: "done", detail: `done · ${event.model}` });
-        setStage("save", { state: "active", detail: "saving…" });
+        setStage("engine", { state: "done", detail: `complete · ${event.model}` });
+        setStage("save", { state: "active", detail: "writing to Supabase…" });
+        addFeed(`engine complete (${event.model})`);
         break;
       case "saved":
         setSpecId(event.specId);
-        setStage("save", { state: "done", detail: `saved (${String(event.specId).slice(0, 8)}…)` });
+        setStage("save", { state: "done", detail: `spec ${String(event.specId).slice(0, 8)}…` });
+        addFeed("spec saved to database");
         break;
       case "save_skipped":
         setStage("save", { state: "skipped", detail: "Supabase not configured" });
+        addFeed("save skipped — no database");
         break;
       case "save_error":
         setStage("save", { state: "failed", detail: event.error });
+        addFeed(`save failed: ${event.error}`);
         break;
       case "critic_start":
-        setStage("critic", { state: "active", detail: `${event.provider} (${event.model}) reviewing…` });
+        setStage("critic", { state: "active", detail: `${event.provider} · ${event.model}` });
+        addFeed(`critic reviewing (${event.provider})`);
         break;
-      case "critique":
+      case "critique": {
         setCritique(event.text);
         setCriticLabel(`${event.provider} (${event.model})`);
-        setStage("critic", { state: "done", detail: `reviewed by ${event.provider}` });
+        const v = event.text.match(/VERDICT:\s*(APPROVE|REVISE)/i)?.[1]?.toUpperCase();
+        setStage("critic", { state: "done", detail: v ? `verdict: ${v}` : "review delivered" });
+        addFeed(`critic verdict: ${v ?? "delivered"}`);
         break;
+      }
       case "critic_skipped":
         setStage("critic", { state: "skipped", detail: "no critic configured" });
+        addFeed("critic skipped");
         break;
       case "critic_error":
         setStage("critic", { state: "failed", detail: event.error });
+        addFeed(`critic failed: ${event.error}`);
         break;
       case "done":
         setState("done");
         setMessage("Run complete");
+        addFeed("run complete — gate open, awaiting your decision");
         break;
       case "error":
         setState("error");
         setMessage(event.error);
         setStage("engine", { state: "failed", detail: event.error });
+        addFeed(`error: ${event.error}`);
         break;
     }
   }
@@ -311,7 +472,7 @@ export default function Home() {
     });
     if (res.ok) {
       setApproved(true);
-      setStatusLines((prev) => ({ ...prev, gate: "approved by you" }));
+      addFeed("gate closed — spec approved");
     } else {
       const data = await res.json().catch(() => null);
       setMessage(`Approve failed: ${data?.error ?? res.status}`);
@@ -324,7 +485,6 @@ export default function Home() {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  const running = state === "running";
   const displaySpec = spec
     .split("\n")
     .filter((line) => !line.trim().startsWith("[STATUS]"))
@@ -332,9 +492,10 @@ export default function Home() {
   const verdict = critique.match(/VERDICT:\s*(APPROVE|REVISE)/i)?.[1]?.toUpperCase() ?? null;
 
   return (
-    <main style={{ maxWidth: 860, margin: "0 auto", padding: "48px 24px" }}>
+    <main style={{ maxWidth: 920, margin: "0 auto", padding: "48px 24px" }}>
+      <style>{GLOBAL_CSS}</style>
       <h1 style={{ fontSize: 28, marginBottom: 4 }}>The Fable System</h1>
-      <p style={{ color: colors.dim, marginTop: 0 }}>
+      <p style={{ color: C.dim, marginTop: 0 }}>
         Type a vision in plain English. Get a sourced, build-ready spec.
       </p>
 
@@ -351,9 +512,9 @@ export default function Home() {
           padding: 12,
           fontSize: 15,
           fontFamily: "inherit",
-          background: colors.panel,
-          color: "#e6e6e6",
-          border: `1px solid ${colors.border}`,
+          background: C.panel,
+          color: C.text,
+          border: `1px solid ${C.border}`,
           borderRadius: 8,
           resize: "vertical",
         }}
@@ -367,8 +528,8 @@ export default function Home() {
             padding: "10px 24px",
             fontSize: 15,
             fontWeight: 600,
-            background: running ? colors.border : colors.accent,
-            color: running ? colors.dim : colors.bg,
+            background: running ? C.border : C.accent,
+            color: running ? C.dim : C.bg,
             border: "none",
             borderRadius: 8,
             cursor: running ? "wait" : "pointer",
@@ -377,26 +538,44 @@ export default function Home() {
           {running ? "Running…" : "Run"}
         </button>
         {message && (
-          <span style={{ color: state === "error" ? colors.red : colors.dim, fontSize: 13 }}>
-            {message}
-          </span>
+          <span style={{ color: state === "error" ? C.red : C.dim, fontSize: 13 }}>{message}</span>
         )}
       </div>
 
-      {(running || spec) && <Cockpit stages={stages} statusLines={statusLines} />}
+      {(running || spec) && (
+        <Cockpit
+          stages={stages}
+          statusLines={statusLines}
+          feed={feed}
+          running={running}
+          elapsed={elapsed}
+          streamed={spec.length}
+          provider={provider}
+          approved={approved}
+          specId={specId}
+          runDone={state === "done"}
+        />
+      )}
 
       {spec && (
         <section style={{ marginTop: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2 style={{ fontSize: 18, margin: 0 }}>Spec {running && <span style={{ color: colors.dim, fontWeight: 400, fontSize: 13 }}>· streaming…</span>}</h2>
+            <h2 style={{ fontSize: 18, margin: 0 }}>
+              Spec{" "}
+              {running && (
+                <span style={{ color: C.amber, fontFamily: C.mono, fontSize: 12 }}>
+                  ▮<span style={{ animation: "blink 1s step-end infinite" }}>▮</span> streaming
+                </span>
+              )}
+            </h2>
             <button
               onClick={copy}
               style={{
                 padding: "6px 14px",
                 fontSize: 13,
-                background: colors.panel,
-                color: "#e6e6e6",
-                border: `1px solid ${colors.border}`,
+                background: C.panel,
+                color: C.text,
+                border: `1px solid ${C.border}`,
                 borderRadius: 6,
                 cursor: "pointer",
               }}
@@ -408,8 +587,8 @@ export default function Home() {
             style={{
               marginTop: 12,
               padding: 16,
-              background: colors.panel,
-              border: `1px solid ${colors.border}`,
+              background: C.panel,
+              border: `1px solid ${C.border}`,
               borderRadius: 8,
               whiteSpace: "pre-wrap",
               wordBreak: "break-word",
@@ -426,7 +605,7 @@ export default function Home() {
         <section style={{ marginTop: 24 }}>
           <h2 style={{ fontSize: 18, margin: 0 }}>
             Critic review{" "}
-            <span style={{ color: colors.dim, fontWeight: 400, fontSize: 13 }}>
+            <span style={{ color: C.dim, fontWeight: 400, fontSize: 13 }}>
               · {criticLabel} — a lens, not a verdict
             </span>
           </h2>
@@ -439,20 +618,21 @@ export default function Home() {
                 borderRadius: 999,
                 fontSize: 13,
                 fontWeight: 600,
-                background: colors.panel,
-                border: `1px solid ${verdict === "APPROVE" ? colors.greenBorder : colors.redBorder}`,
-                color: verdict === "APPROVE" ? colors.green : colors.amber,
+                fontFamily: C.mono,
+                background: C.panel,
+                border: `1px solid ${verdict === "APPROVE" ? "#1f5c40" : "#6e5320"}`,
+                color: verdict === "APPROVE" ? C.green : C.amber,
               }}
             >
-              Critic says: {verdict}
+              CRITIC: {verdict}
             </div>
           )}
           <pre
             style={{
               marginTop: 12,
               padding: 16,
-              background: colors.panel,
-              border: `1px solid ${colors.border}`,
+              background: C.panel,
+              border: `1px solid ${C.border}`,
               borderRadius: 8,
               whiteSpace: "pre-wrap",
               wordBreak: "break-word",
@@ -470,8 +650,8 @@ export default function Home() {
           style={{
             marginTop: 24,
             padding: 16,
-            background: colors.panel,
-            border: `1px solid ${approved ? colors.greenBorder : colors.border}`,
+            background: C.panel,
+            border: `1px solid ${approved ? "#1f5c40" : C.border}`,
             borderRadius: 8,
             display: "flex",
             alignItems: "center",
@@ -479,7 +659,7 @@ export default function Home() {
           }}
         >
           {approved ? (
-            <span style={{ color: colors.green, fontWeight: 600 }}>✓ Approved — this spec is final</span>
+            <span style={{ color: C.green, fontWeight: 600 }}>✓ Approved — this spec is final</span>
           ) : (
             <>
               <button
@@ -489,8 +669,8 @@ export default function Home() {
                   padding: "10px 24px",
                   fontSize: 15,
                   fontWeight: 600,
-                  background: specId ? colors.green : colors.border,
-                  color: colors.bg,
+                  background: specId ? C.green : C.border,
+                  color: C.bg,
                   border: "none",
                   borderRadius: 8,
                   cursor: specId ? "pointer" : "not-allowed",
@@ -498,7 +678,7 @@ export default function Home() {
               >
                 Approve spec
               </button>
-              <span style={{ color: colors.dim, fontSize: 13 }}>
+              <span style={{ color: C.dim, fontSize: 13 }}>
                 {specId
                   ? "Nothing is final until you approve. The critic is advisory only."
                   : "Approval needs the spec saved to the database first."}
