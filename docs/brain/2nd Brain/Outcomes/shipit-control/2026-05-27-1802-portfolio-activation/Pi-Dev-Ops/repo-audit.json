@@ -1,0 +1,51 @@
+{
+  "product": "Pi-Dev-Ops",
+  "path": "/Users/phillmcgurk/Pi-CEO",
+  "declared_repo": "CleanExpo/Pi-Dev-Ops",
+  "exists": true,
+  "generated_at": "2026-05-27T18:02:37+10:00",
+  "rana_authority": "Rana is final production merge authority; local artifacts only, no merge/deploy/publish performed.",
+  "is_git": true,
+  "remote": "https://github.com/CleanExpo/Pi-Dev-Ops.git",
+  "branch": "main",
+  "head": "505cd4c",
+  "dirty_count": 6,
+  "dirty_sample": [
+    "?? .agents/",
+    "?? .claude/scheduled_tasks.lock",
+    "?? .claude/skills/",
+    "?? .harness/artefacts/synthex/sandbox/",
+    "?? skills-lock.json",
+    "?? skills/grill-me/"
+  ],
+  "package": false,
+  "scripts": {},
+  "test_status": "not_applicable_no_package_json",
+  "env_examples": [
+    ".env.example"
+  ],
+  "github_workflows": [
+    ".github/workflows/ideas_inbox_drain.yml",
+    ".github/workflows/smoke_test_e2e.yml",
+    ".github/workflows/design-lint.yml",
+    ".github/workflows/morning_briefing.yml",
+    ".github/workflows/dns_takeover_scan.yml",
+    ".github/workflows/smoke_test.yml",
+    ".github/workflows/codebase-wiki.yml",
+    ".github/workflows/pgtap-pilot.yml",
+    ".github/workflows/workspace_intel_brief.yml",
+    ".github/workflows/live_nexus_smoke.yml",
+    ".github/workflows/smoke_surface_gate.yml",
+    ".github/workflows/ci.yml",
+    ".github/workflows/smoke_pipeline.yml"
+  ],
+  "blockers": [],
+  "risk": [
+    "working_tree_dirty:6_files"
+  ],
+  "missing_integrations_or_env_hook_gaps": [],
+  "prioritized_tasks": [
+    "Prepare sandbox PR task to isolate dirty worktree changes before Rana merge review"
+  ],
+  "shipit_percent": 80
+}

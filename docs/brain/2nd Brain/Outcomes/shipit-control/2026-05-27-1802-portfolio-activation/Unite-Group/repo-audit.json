@@ -1,0 +1,47 @@
+{
+  "product": "Unite-Group",
+  "path": "/Users/phillmcgurk/Unite-Group",
+  "declared_repo": "CleanExpo/Unite-Group",
+  "exists": true,
+  "generated_at": "2026-05-27T18:02:37+10:00",
+  "rana_authority": "Rana is final production merge authority; local artifacts only, no merge/deploy/publish performed.",
+  "is_git": true,
+  "remote": "https://github.com/CleanExpo/Unite-Group.git",
+  "branch": "feat/command-center-daily-digest-server-read",
+  "head": "daf72c4",
+  "dirty_count": 3,
+  "dirty_sample": [
+    "M docs/margot/mac-mini-recovery-status.md",
+    " M docs/margot/morning-report.md",
+    " M docs/margot/overnight-progress-log.md"
+  ],
+  "package": true,
+  "scripts": {
+    "lint": "eslint .",
+    "build": "next build",
+    "test": "jest --testPathPattern=tests/pipelines --runInBand",
+    "type-check": "tsc --noEmit",
+    "security:routes-check": "ts-node --transpile-only -O '{\"module\":\"commonjs\",\"moduleResolution\":\"node\"}' scripts/check-route-inventory.ts"
+  },
+  "test_status": "script_available_not_run_activation_pass",
+  "env_examples": [
+    ".env.local",
+    ".env.example"
+  ],
+  "github_workflows": [
+    ".github/workflows/review-board.yml",
+    ".github/workflows/design-lint.yml",
+    ".github/workflows/rotate-admin-jwt.yml",
+    ".github/workflows/deepsec-weekly.yml",
+    ".github/workflows/ci.yml"
+  ],
+  "blockers": [],
+  "risk": [
+    "working_tree_dirty:3_files"
+  ],
+  "missing_integrations_or_env_hook_gaps": [],
+  "prioritized_tasks": [
+    "Prepare sandbox PR task to isolate dirty worktree changes before Rana merge review"
+  ],
+  "shipit_percent": 100
+}

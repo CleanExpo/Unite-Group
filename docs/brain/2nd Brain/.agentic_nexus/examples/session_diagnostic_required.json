@@ -1,0 +1,56 @@
+{
+  "session_id": "ANX-SESSION-diagnostic-required",
+  "agent_id": "context-discovery-001",
+  "agent_type": "Context Discovery Agent",
+  "assigned_project": "Agentic Nexus",
+  "assigned_task": "Inspect context before creating task draft",
+  "requested_scopes": [
+    "read:project_registry",
+    "read:agent_registry",
+    "read:task_queue",
+    "read:obsidian_memory",
+    "read:evidence_ledger",
+    "write:evidence_record",
+    "write:gap_report"
+  ],
+  "granted_scopes": [],
+  "denied_scopes": [],
+  "worker_id": "local-research-worker-001",
+  "session_start_time": "2026-06-04T07:00:00Z",
+  "session_status": "requested",
+  "human_owner": "Phill McGurk",
+  "approval_status": "not_required",
+  "evidence_required": [
+    "diagnostic"
+  ],
+  "evidence_supplied": [],
+  "diagnostic_gate_completed": false,
+  "diagnostic_gate": {
+    "diagnostic_id": "ANX-DIAGNOSTIC-example-incomplete",
+    "request_id": "REQ-example-diagnostic-required",
+    "agent_id": "context-discovery-001",
+    "assigned_project": "Agentic Nexus",
+    "answers": {
+      "What already exists?": "Partial answer only."
+    },
+    "context_discovery_completed": false,
+    "purpose_mapping_completed": false,
+    "friction_mapping_completed": false,
+    "gap_detection_completed": false,
+    "business_value_review_completed": false,
+    "priority_scoring_completed": false,
+    "execution_recommendation": "needs_more_evidence",
+    "approval_required": false,
+    "evidence_required": [
+      "diagnostic"
+    ],
+    "next_action": "Complete diagnostic gate before execution."
+  },
+  "risk_level": "low",
+  "escalation_required": false,
+  "session_expiry": "2026-12-31T23:59:59Z",
+  "audit_log_reference": ".agentic_nexus/state/audit.jsonl",
+  "requested_actions": [
+    "perform context discovery"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "evidence_id": "ANX-EVIDENCE-task-allowed-001-completion",
+  "task_id": "task_allowed_001",
+  "agent_id": "dashboard-reporter-001",
+  "worker_id": "local-build-worker-01",
+  "project": "Agentic Nexus",
+  "evidence_type": "dashboard",
+  "source_path": "/Users/phillmcgurk/2nd-brain/.agentic_nexus/task_queue.jsonl",
+  "source_url": "",
+  "source_date": "2026-06-04T07:13:11Z",
+  "date_gathered": "2026-06-04T07:20:00Z",
+  "claim_supported": "task_allowed_001 was claimed by local-build-worker-01 after worker_preflight.py returned worker_can_start and validator decision allowed.",
+  "confidence_score": 0.98,
+  "freshness_rating": "fresh",
+  "contradiction_status": "none_found",
+  "business_relevance": "high",
+  "linked_decision": "Allow completion only when a claimed task supplies required dashboard evidence.",
+  "linked_gap": "No completion evidence enforcement existed before worker_complete_task.py.",
+  "linked_output": "/Users/phillmcgurk/2nd-brain/.agentic_nexus/TASK_CLAIM_RESULTS.md",
+  "recommended_next_action": "Generate a local dashboard status feed from queue, evidence ledger, and audits."
+}

@@ -1,0 +1,899 @@
+{
+  "schema_version": "0.1.0",
+  "service_name": "Agentic Nexus Control Plane",
+  "source_policy": "auth.md",
+  "default_rule": "deny scopes not explicitly listed; restricted scopes require approval gate; diagnostic gate must be complete before execution",
+  "agent_types": [
+    {
+      "agent_type": "Hermes CEO Orchestrator",
+      "allowed_read_scopes": [
+        "read:project_registry",
+        "read:agent_registry",
+        "read:task_queue",
+        "read:obsidian_memory",
+        "read:github_repository",
+        "read:dashboard_status",
+        "read:evidence_ledger",
+        "read:decision_register",
+        "read:business_goals"
+      ],
+      "allowed_write_scopes": [
+        "write:task_status",
+        "write:evidence_record",
+        "write:decision_draft",
+        "write:dashboard_status"
+      ],
+      "allowed_execution_scopes": [
+        "run:gap_analysis",
+        "run:shipit_readiness_check"
+      ],
+      "restricted_scopes_available_by_approval": [
+        "merge:pull_request",
+        "deploy:production",
+        "publish:public_content",
+        "send:external_email",
+        "modify:billing",
+        "modify:authentication",
+        "modify:database_policy",
+        "modify:rls_policy",
+        "delete:file",
+        "delete:database_record",
+        "access:customer_personal_data",
+        "access:payment_data",
+        "change:legal_or_compliance_position"
+      ],
+      "forbidden_scopes": [],
+      "required_evidence_outputs": [
+        "executive_briefing",
+        "evidence_record",
+        "decision_draft"
+      ],
+      "escalation_conditions": [
+        "requested restricted scope",
+        "diagnostic gate incomplete",
+        "insufficient evidence",
+        "high or critical risk",
+        "scope outside assigned project"
+      ]
+    },
+    {
+      "agent_type": "Senior Project Manager Agent",
+      "allowed_read_scopes": [
+        "read:project_registry",
+        "read:agent_registry",
+        "read:task_queue",
+        "read:obsidian_memory",
+        "read:github_repository",
+        "read:dashboard_status",
+        "read:evidence_ledger",
+        "read:decision_register",
+        "read:business_goals"
+      ],
+      "allowed_write_scopes": [
+        "write:task_status",
+        "write:evidence_record",
+        "write:gap_report",
+        "write:decision_draft",
+        "write:dashboard_status"
+      ],
+      "allowed_execution_scopes": [
+        "run:gap_analysis",
+        "run:shipit_readiness_check"
+      ],
+      "restricted_scopes_available_by_approval": [
+        "merge:pull_request",
+        "deploy:production",
+        "publish:public_content",
+        "send:external_email",
+        "modify:billing",
+        "modify:authentication",
+        "modify:database_policy",
+        "modify:rls_policy",
+        "delete:file",
+        "delete:database_record",
+        "access:customer_personal_data",
+        "access:payment_data",
+        "change:legal_or_compliance_position"
+      ],
+      "forbidden_scopes": [],
+      "required_evidence_outputs": [
+        "project_status_summary",
+        "gap_report",
+        "decision_draft"
+      ],
+      "escalation_conditions": [
+        "requested restricted scope",
+        "diagnostic gate incomplete",
+        "insufficient evidence",
+        "high or critical risk",
+        "scope outside assigned project"
+      ]
+    },
+    {
+      "agent_type": "Context Discovery Agent",
+      "allowed_read_scopes": [
+        "read:project_registry",
+        "read:agent_registry",
+        "read:task_queue",
+        "read:obsidian_memory",
+        "read:github_repository",
+        "read:dashboard_status",
+        "read:evidence_ledger",
+        "read:decision_register",
+        "read:business_goals"
+      ],
+      "allowed_write_scopes": [
+        "write:evidence_record",
+        "write:gap_report"
+      ],
+      "allowed_execution_scopes": [
+        "run:gap_analysis"
+      ],
+      "restricted_scopes_available_by_approval": [],
+      "forbidden_scopes": [
+        "merge:pull_request",
+        "deploy:production",
+        "publish:public_content",
+        "send:external_email",
+        "modify:billing",
+        "modify:authentication",
+        "modify:database_policy",
+        "modify:rls_policy",
+        "delete:file",
+        "delete:database_record",
+        "access:customer_personal_data",
+        "access:payment_data",
+        "change:legal_or_compliance_position"
+      ],
+      "required_evidence_outputs": [
+        "context_discovery_report",
+        "evidence_record"
+      ],
+      "escalation_conditions": [
+        "requested restricted scope",
+        "diagnostic gate incomplete",
+        "insufficient evidence",
+        "high or critical risk",
+        "scope outside assigned project"
+      ]
+    },
+    {
+      "agent_type": "Purpose Mapping Agent",
+      "allowed_read_scopes": [
+        "read:project_registry",
+        "read:agent_registry",
+        "read:task_queue",
+        "read:dashboard_status",
+        "read:evidence_ledger",
+        "read:decision_register",
+        "read:business_goals",
+        "read:obsidian_memory"
+      ],
+      "allowed_write_scopes": [
+        "write:evidence_record",
+        "write:gap_report",
+        "write:decision_draft"
+      ],
+      "allowed_execution_scopes": [
+        "run:gap_analysis"
+      ],
+      "restricted_scopes_available_by_approval": [],
+      "forbidden_scopes": [
+        "merge:pull_request",
+        "deploy:production",
+        "publish:public_content",
+        "send:external_email",
+        "modify:billing",
+        "modify:authentication",
+        "modify:database_policy",
+        "modify:rls_policy",
+        "delete:file",
+        "delete:database_record",
+        "access:customer_personal_data",
+        "access:payment_data",
+        "change:legal_or_compliance_position"
+      ],
+      "required_evidence_outputs": [
+        "purpose_map",
+        "evidence_record"
+      ],
+      "escalation_conditions": [
+        "requested restricted scope",
+        "diagnostic gate incomplete",
+        "insufficient evidence",
+        "high or critical risk",
+        "scope outside assigned project"
+      ]
+    },
+    {
+      "agent_type": "Friction Mapping Agent",
+      "allowed_read_scopes": [
+        "read:project_registry",
+        "read:agent_registry",
+        "read:task_queue",
+        "read:dashboard_status",
+        "read:evidence_ledger",
+        "read:decision_register",
+        "read:business_goals",
+        "read:obsidian_memory"
+      ],
+      "allowed_write_scopes": [
+        "write:evidence_record",
+        "write:gap_report"
+      ],
+      "allowed_execution_scopes": [
+        "run:gap_analysis"
+      ],
+      "restricted_scopes_available_by_approval": [],
+      "forbidden_scopes": [
+        "merge:pull_request",
+        "deploy:production",
+        "publish:public_content",
+        "send:external_email",
+        "modify:billing",
+        "modify:authentication",
+        "modify:database_policy",
+        "modify:rls_policy",
+        "delete:file",
+        "delete:database_record",
+        "access:customer_personal_data",
+        "access:payment_data",
+        "change:legal_or_compliance_position"
+      ],
+      "required_evidence_outputs": [
+        "friction_map",
+        "gap_report"
+      ],
+      "escalation_conditions": [
+        "requested restricted scope",
+        "diagnostic gate incomplete",
+        "insufficient evidence",
+        "high or critical risk",
+        "scope outside assigned project"
+      ]
+    },
+    {
+      "agent_type": "Research Director Agent",
+      "allowed_read_scopes": [
+        "read:project_registry",
+        "read:agent_registry",
+        "read:task_queue",
+        "read:obsidian_memory",
+        "read:github_repository",
+        "read:dashboard_status",
+        "read:evidence_ledger",
+        "read:decision_register",
+        "read:business_goals"
+      ],
+      "allowed_write_scopes": [
+        "write:structured_obsidian_note",
+        "write:evidence_record",
+        "write:gap_report"
+      ],
+      "allowed_execution_scopes": [
+        "run:research_task",
+        "run:gap_analysis"
+      ],
+      "restricted_scopes_available_by_approval": [
+        "publish:public_content",
+        "send:external_email"
+      ],
+      "forbidden_scopes": [],
+      "required_evidence_outputs": [
+        "research_brief",
+        "evidence_record",
+        "missing_evidence_notes"
+      ],
+      "escalation_conditions": [
+        "requested restricted scope",
+        "diagnostic gate incomplete",
+        "insufficient evidence",
+        "high or critical risk",
+        "scope outside assigned project"
+      ]
+    },
+    {
+      "agent_type": "Evidence Validator Agent",
+      "allowed_read_scopes": [
+        "read:project_registry",
+        "read:agent_registry",
+        "read:task_queue",
+        "read:obsidian_memory",
+        "read:github_repository",
+        "read:dashboard_status",
+        "read:evidence_ledger",
+        "read:decision_register",
+        "read:business_goals"
+      ],
+      "allowed_write_scopes": [
+        "write:evidence_record",
+        "write:qa_report",
+        "write:decision_draft"
+      ],
+      "allowed_execution_scopes": [
+        "run:research_task",
+        "run:gap_analysis"
+      ],
+      "restricted_scopes_available_by_approval": [],
+      "forbidden_scopes": [
+        "merge:pull_request",
+        "deploy:production",
+        "publish:public_content",
+        "send:external_email",
+        "modify:billing",
+        "modify:authentication",
+        "modify:database_policy",
+        "modify:rls_policy",
+        "delete:file",
+        "delete:database_record",
+        "access:customer_personal_data",
+        "access:payment_data",
+        "change:legal_or_compliance_position"
+      ],
+      "required_evidence_outputs": [
+        "evidence_validation_report",
+        "contradictions_found",
+        "confidence_score"
+      ],
+      "escalation_conditions": [
+        "requested restricted scope",
+        "diagnostic gate incomplete",
+        "insufficient evidence",
+        "high or critical risk",
+        "scope outside assigned project"
+      ]
+    },
+    {
+      "agent_type": "Principal Software Engineer Agent",
+      "allowed_read_scopes": [
+        "read:project_registry",
+        "read:agent_registry",
+        "read:task_queue",
+        "read:dashboard_status",
+        "read:evidence_ledger",
+        "read:decision_register",
+        "read:business_goals",
+        "read:github_repository"
+      ],
+      "allowed_write_scopes": [
+        "write:evidence_record",
+        "write:branch_commit",
+        "write:pull_request_draft",
+        "write:qa_report"
+      ],
+      "allowed_execution_scopes": [
+        "run:lint",
+        "run:typecheck",
+        "run:tests",
+        "run:build",
+        "run:playwright",
+        "run:local_script",
+        "run:shipit_readiness_check"
+      ],
+      "restricted_scopes_available_by_approval": [
+        "merge:pull_request",
+        "deploy:production",
+        "modify:authentication",
+        "modify:database_policy",
+        "modify:rls_policy",
+        "delete:file",
+        "access:customer_personal_data"
+      ],
+      "forbidden_scopes": [],
+      "required_evidence_outputs": [
+        "files_changed",
+        "commands_run",
+        "test_results",
+        "build_results",
+        "branch_reference"
+      ],
+      "escalation_conditions": [
+        "requested restricted scope",
+        "diagnostic gate incomplete",
+        "insufficient evidence",
+        "high or critical risk",
+        "scope outside assigned project"
+      ]
+    },
+    {
+      "agent_type": "QA/Test Agent",
+      "allowed_read_scopes": [
+        "read:project_registry",
+        "read:agent_registry",
+        "read:task_queue",
+        "read:dashboard_status",
+        "read:evidence_ledger",
+        "read:decision_register",
+        "read:business_goals",
+        "read:github_repository"
+      ],
+      "allowed_write_scopes": [
+        "write:evidence_record",
+        "write:qa_report",
+        "write:dashboard_status"
+      ],
+      "allowed_execution_scopes": [
+        "run:lint",
+        "run:typecheck",
+        "run:tests",
+        "run:build",
+        "run:playwright",
+        "run:shipit_readiness_check"
+      ],
+      "restricted_scopes_available_by_approval": [
+        "access:customer_personal_data"
+      ],
+      "forbidden_scopes": [],
+      "required_evidence_outputs": [
+        "qa_report",
+        "test_results",
+        "build_results",
+        "screenshots_if_ui_affected"
+      ],
+      "escalation_conditions": [
+        "requested restricted scope",
+        "diagnostic gate incomplete",
+        "insufficient evidence",
+        "high or critical risk",
+        "scope outside assigned project"
+      ]
+    },
+    {
+      "agent_type": "UI/UX Review Agent",
+      "allowed_read_scopes": [
+        "read:project_registry",
+        "read:agent_registry",
+        "read:task_queue",
+        "read:dashboard_status",
+        "read:evidence_ledger",
+        "read:decision_register",
+        "read:business_goals",
+        "read:github_repository"
+      ],
+      "allowed_write_scopes": [
+        "write:evidence_record",
+        "write:qa_report",
+        "write:dashboard_status"
+      ],
+      "allowed_execution_scopes": [
+        "run:playwright",
+        "run:local_script"
+      ],
+      "restricted_scopes_available_by_approval": [
+        "publish:public_content"
+      ],
+      "forbidden_scopes": [],
+      "required_evidence_outputs": [
+        "ui_review_report",
+        "screenshots_if_ui_affected",
+        "accessibility_notes"
+      ],
+      "escalation_conditions": [
+        "requested restricted scope",
+        "diagnostic gate incomplete",
+        "insufficient evidence",
+        "high or critical risk",
+        "scope outside assigned project"
+      ]
+    },
+    {
+      "agent_type": "SEO/AEO/GEO Agent",
+      "allowed_read_scopes": [
+        "read:project_registry",
+        "read:agent_registry",
+        "read:task_queue",
+        "read:obsidian_memory",
+        "read:github_repository",
+        "read:dashboard_status",
+        "read:evidence_ledger",
+        "read:decision_register",
+        "read:business_goals"
+      ],
+      "allowed_write_scopes": [
+        "write:structured_obsidian_note",
+        "write:evidence_record",
+        "write:gap_report",
+        "write:decision_draft"
+      ],
+      "allowed_execution_scopes": [
+        "run:research_task",
+        "run:gap_analysis"
+      ],
+      "restricted_scopes_available_by_approval": [
+        "publish:public_content",
+        "send:external_email",
+        "change:legal_or_compliance_position"
+      ],
+      "forbidden_scopes": [],
+      "required_evidence_outputs": [
+        "research_brief",
+        "verified_claims",
+        "confidence_score",
+        "recommended_next_action"
+      ],
+      "escalation_conditions": [
+        "requested restricted scope",
+        "diagnostic gate incomplete",
+        "insufficient evidence",
+        "high or critical risk",
+        "scope outside assigned project"
+      ]
+    },
+    {
+      "agent_type": "Marketing Strategy Agent",
+      "allowed_read_scopes": [
+        "read:project_registry",
+        "read:agent_registry",
+        "read:task_queue",
+        "read:obsidian_memory",
+        "read:github_repository",
+        "read:dashboard_status",
+        "read:evidence_ledger",
+        "read:decision_register",
+        "read:business_goals"
+      ],
+      "allowed_write_scopes": [
+        "write:structured_obsidian_note",
+        "write:evidence_record",
+        "write:decision_draft",
+        "write:dashboard_status"
+      ],
+      "allowed_execution_scopes": [
+        "run:research_task",
+        "run:gap_analysis"
+      ],
+      "restricted_scopes_available_by_approval": [
+        "publish:public_content",
+        "send:external_email",
+        "change:legal_or_compliance_position"
+      ],
+      "forbidden_scopes": [],
+      "required_evidence_outputs": [
+        "business_goal_supported",
+        "assumptions",
+        "revenue_impact",
+        "risk_level"
+      ],
+      "escalation_conditions": [
+        "requested restricted scope",
+        "diagnostic gate incomplete",
+        "insufficient evidence",
+        "high or critical risk",
+        "scope outside assigned project"
+      ]
+    },
+    {
+      "agent_type": "Brand Authority Agent",
+      "allowed_read_scopes": [
+        "read:project_registry",
+        "read:agent_registry",
+        "read:task_queue",
+        "read:obsidian_memory",
+        "read:github_repository",
+        "read:dashboard_status",
+        "read:evidence_ledger",
+        "read:decision_register",
+        "read:business_goals"
+      ],
+      "allowed_write_scopes": [
+        "write:structured_obsidian_note",
+        "write:evidence_record",
+        "write:decision_draft"
+      ],
+      "allowed_execution_scopes": [
+        "run:research_task",
+        "run:gap_analysis"
+      ],
+      "restricted_scopes_available_by_approval": [
+        "publish:public_content",
+        "send:external_email",
+        "change:legal_or_compliance_position"
+      ],
+      "forbidden_scopes": [],
+      "required_evidence_outputs": [
+        "brand_rationale",
+        "claim_evidence",
+        "approval_notes"
+      ],
+      "escalation_conditions": [
+        "requested restricted scope",
+        "diagnostic gate incomplete",
+        "insufficient evidence",
+        "high or critical risk",
+        "scope outside assigned project"
+      ]
+    },
+    {
+      "agent_type": "Business Operations Agent",
+      "allowed_read_scopes": [
+        "read:project_registry",
+        "read:agent_registry",
+        "read:task_queue",
+        "read:obsidian_memory",
+        "read:github_repository",
+        "read:dashboard_status",
+        "read:evidence_ledger",
+        "read:decision_register",
+        "read:business_goals"
+      ],
+      "allowed_write_scopes": [
+        "write:task_status",
+        "write:evidence_record",
+        "write:decision_draft",
+        "write:dashboard_status"
+      ],
+      "allowed_execution_scopes": [
+        "run:gap_analysis",
+        "run:shipit_readiness_check"
+      ],
+      "restricted_scopes_available_by_approval": [
+        "send:external_email",
+        "access:customer_personal_data",
+        "modify:billing"
+      ],
+      "forbidden_scopes": [],
+      "required_evidence_outputs": [
+        "project_status_summary",
+        "business_impact",
+        "next_decision_required"
+      ],
+      "escalation_conditions": [
+        "requested restricted scope",
+        "diagnostic gate incomplete",
+        "insufficient evidence",
+        "high or critical risk",
+        "scope outside assigned project"
+      ]
+    },
+    {
+      "agent_type": "Finance Awareness Agent",
+      "allowed_read_scopes": [
+        "read:project_registry",
+        "read:agent_registry",
+        "read:task_queue",
+        "read:dashboard_status",
+        "read:evidence_ledger",
+        "read:decision_register",
+        "read:business_goals"
+      ],
+      "allowed_write_scopes": [
+        "write:evidence_record",
+        "write:decision_draft",
+        "write:gap_report"
+      ],
+      "allowed_execution_scopes": [
+        "run:gap_analysis"
+      ],
+      "restricted_scopes_available_by_approval": [
+        "modify:billing",
+        "access:payment_data"
+      ],
+      "forbidden_scopes": [],
+      "required_evidence_outputs": [
+        "financial_risk_note",
+        "assumptions",
+        "approval_packet"
+      ],
+      "escalation_conditions": [
+        "requested restricted scope",
+        "diagnostic gate incomplete",
+        "insufficient evidence",
+        "high or critical risk",
+        "scope outside assigned project"
+      ]
+    },
+    {
+      "agent_type": "Legal/Compliance Awareness Agent",
+      "allowed_read_scopes": [
+        "read:project_registry",
+        "read:agent_registry",
+        "read:task_queue",
+        "read:obsidian_memory",
+        "read:github_repository",
+        "read:dashboard_status",
+        "read:evidence_ledger",
+        "read:decision_register",
+        "read:business_goals"
+      ],
+      "allowed_write_scopes": [
+        "write:evidence_record",
+        "write:decision_draft",
+        "write:qa_report"
+      ],
+      "allowed_execution_scopes": [
+        "run:research_task",
+        "run:gap_analysis"
+      ],
+      "restricted_scopes_available_by_approval": [
+        "change:legal_or_compliance_position",
+        "access:customer_personal_data",
+        "publish:public_content"
+      ],
+      "forbidden_scopes": [],
+      "required_evidence_outputs": [
+        "compliance_review",
+        "risk_level",
+        "decision_draft"
+      ],
+      "escalation_conditions": [
+        "requested restricted scope",
+        "diagnostic gate incomplete",
+        "insufficient evidence",
+        "high or critical risk",
+        "scope outside assigned project"
+      ]
+    },
+    {
+      "agent_type": "Documentation Agent",
+      "allowed_read_scopes": [
+        "read:project_registry",
+        "read:agent_registry",
+        "read:task_queue",
+        "read:obsidian_memory",
+        "read:github_repository",
+        "read:dashboard_status",
+        "read:evidence_ledger",
+        "read:decision_register",
+        "read:business_goals"
+      ],
+      "allowed_write_scopes": [
+        "write:structured_obsidian_note",
+        "write:evidence_record",
+        "write:gap_report",
+        "write:decision_draft",
+        "write:dashboard_status"
+      ],
+      "allowed_execution_scopes": [
+        "run:gap_analysis"
+      ],
+      "restricted_scopes_available_by_approval": [
+        "publish:public_content",
+        "delete:file"
+      ],
+      "forbidden_scopes": [],
+      "required_evidence_outputs": [
+        "structured_note",
+        "evidence_record",
+        "linked_output"
+      ],
+      "escalation_conditions": [
+        "requested restricted scope",
+        "diagnostic gate incomplete",
+        "insufficient evidence",
+        "high or critical risk",
+        "scope outside assigned project"
+      ]
+    },
+    {
+      "agent_type": "Dashboard Reporter Agent",
+      "allowed_read_scopes": [
+        "read:project_registry",
+        "read:agent_registry",
+        "read:task_queue",
+        "read:obsidian_memory",
+        "read:github_repository",
+        "read:dashboard_status",
+        "read:evidence_ledger",
+        "read:decision_register",
+        "read:business_goals"
+      ],
+      "allowed_write_scopes": [
+        "write:evidence_record",
+        "write:dashboard_status",
+        "write:task_status"
+      ],
+      "allowed_execution_scopes": [
+        "run:gap_analysis"
+      ],
+      "restricted_scopes_available_by_approval": [
+        "access:customer_personal_data",
+        "access:payment_data"
+      ],
+      "forbidden_scopes": [],
+      "required_evidence_outputs": [
+        "dashboard_status_update",
+        "source_paths",
+        "confidence_score"
+      ],
+      "escalation_conditions": [
+        "requested restricted scope",
+        "diagnostic gate incomplete",
+        "insufficient evidence",
+        "high or critical risk",
+        "scope outside assigned project"
+      ]
+    },
+    {
+      "agent_type": "Local Build Worker",
+      "allowed_read_scopes": [
+        "read:project_registry",
+        "read:agent_registry",
+        "read:task_queue",
+        "read:dashboard_status",
+        "read:evidence_ledger",
+        "read:decision_register",
+        "read:business_goals",
+        "read:github_repository"
+      ],
+      "allowed_write_scopes": [
+        "write:evidence_record",
+        "write:qa_report",
+        "write:branch_commit",
+        "write:pull_request_draft"
+      ],
+      "allowed_execution_scopes": [
+        "run:lint",
+        "run:typecheck",
+        "run:tests",
+        "run:build",
+        "run:playwright",
+        "run:local_script"
+      ],
+      "restricted_scopes_available_by_approval": [
+        "merge:pull_request",
+        "deploy:production",
+        "delete:file",
+        "modify:authentication",
+        "modify:database_policy",
+        "modify:rls_policy"
+      ],
+      "forbidden_scopes": [],
+      "required_evidence_outputs": [
+        "commands_run",
+        "test_results",
+        "build_results",
+        "errors_encountered"
+      ],
+      "escalation_conditions": [
+        "requested restricted scope",
+        "diagnostic gate incomplete",
+        "insufficient evidence",
+        "high or critical risk",
+        "scope outside assigned project"
+      ]
+    },
+    {
+      "agent_type": "Local Research Worker",
+      "allowed_read_scopes": [
+        "read:project_registry",
+        "read:agent_registry",
+        "read:task_queue",
+        "read:obsidian_memory",
+        "read:github_repository",
+        "read:dashboard_status",
+        "read:evidence_ledger",
+        "read:decision_register",
+        "read:business_goals"
+      ],
+      "allowed_write_scopes": [
+        "write:structured_obsidian_note",
+        "write:evidence_record",
+        "write:gap_report"
+      ],
+      "allowed_execution_scopes": [
+        "run:research_task",
+        "run:gap_analysis",
+        "run:local_script"
+      ],
+      "restricted_scopes_available_by_approval": [
+        "publish:public_content",
+        "send:external_email",
+        "access:customer_personal_data"
+      ],
+      "forbidden_scopes": [],
+      "required_evidence_outputs": [
+        "research_brief",
+        "source_links_or_file_paths",
+        "confidence_score",
+        "missing_evidence_notes"
+      ],
+      "escalation_conditions": [
+        "requested restricted scope",
+        "diagnostic gate incomplete",
+        "insufficient evidence",
+        "high or critical risk",
+        "scope outside assigned project"
+      ]
+    }
+  ]
+}
