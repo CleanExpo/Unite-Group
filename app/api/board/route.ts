@@ -7,6 +7,7 @@ import {
   parseFindings,
   SYNTHESIS_PROMPT,
 } from "@/lib/board";
+import { stripThinking } from "@/lib/findings";
 
 export const maxDuration = 300;
 
@@ -71,21 +72,22 @@ export async function POST(request: Request) {
               `Critique this spec in ${seat.name}'s lens:\n\n${spec.content}`,
             );
             if (!result) throw new Error("no persona model configured");
-            critiques.push({ name: seat.name, seat: seat.seat, critique: result.text });
+            const critique = stripThinking(result.text);
+            critiques.push({ name: seat.name, seat: seat.seat, critique });
 
             const memberId = memberIds.get(seat.name);
             if (memberId) {
               const { error: saveError } = await supabase
                 .from("board_responses")
-                .insert({ spec_id: specId, member_id: memberId, critique: result.text });
+                .insert({ spec_id: specId, member_id: memberId, critique });
               if (saveError) send({ type: "seat_save_error", name: seat.name, error: saveError.message });
             }
             send({
               type: "seat_done",
               name: seat.name,
               seat: seat.seat,
-              critique: result.text,
-              findings: parseFindings(result.text),
+              critique,
+              findings: parseFindings(critique),
             });
           } catch (e) {
             send({ type: "seat_error", name: seat.name, error: errorText(e) });
@@ -102,7 +104,7 @@ export async function POST(request: Request) {
               `Combine these board critiques:\n\n${combined}`,
               4000,
             );
-            if (synthesis) send({ type: "synthesis", text: synthesis.text });
+            if (synthesis) send({ type: "synthesis", text: stripThinking(synthesis.text) });
           } catch (e) {
             send({ type: "synthesis_error", error: errorText(e) });
           }

@@ -119,3 +119,12 @@ test("parseFindings drops scratchpad leakage, near-duplicates, bold-inline tags"
   );
   assert.ok(findings[1].text.includes("deployment-gate"));
 });
+
+test("stripThinking removes leaked chain-of-thought blocks", async () => {
+  const { stripThinking } = await import("../lib/findings.ts");
+  const leaked = "<think>\nLet me analyze the critiques...\n</think>\n\n## Convergence\n\n- Real content";
+  assert.equal(stripThinking(leaked), "## Convergence\n\n- Real content");
+  assert.equal(stripThinking("clean output"), "clean output");
+  // unterminated think block swallows the rest rather than leaking it
+  assert.equal(stripThinking("<think>never closed reasoning"), "");
+});

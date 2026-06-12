@@ -21,6 +21,15 @@ const META_LINE = /^(i need|i'd need|i should|let me|i will|checking|looking at|
 
 const WORD = /[a-z][a-z0-9-]{2,}/g;
 
+// Reasoning models served raw can leak their chain-of-thought wrapped in
+// <think> tags — strip it before anything is parsed, stored, or shown.
+export function stripThinking(text: string): string {
+  return text
+    .replace(/<think>[\s\S]*?<\/think>/gi, "")
+    .replace(/^<think>[\s\S]*/gi, "")
+    .trim();
+}
+
 function tokens(text: string): Set<string> {
   return new Set(text.toLowerCase().match(WORD) ?? []);
 }
