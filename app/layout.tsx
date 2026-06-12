@@ -9,7 +9,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
+      {/* suppressHydrationWarning: browser extensions inject attributes
+          (e.g. data-gptw) into <body> before React hydrates */}
       <body
+        suppressHydrationWarning
         style={{
           margin: 0,
           fontFamily:
