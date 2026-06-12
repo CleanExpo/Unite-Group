@@ -92,8 +92,9 @@ export async function POST(request: Request) {
         });
 
         // Web channel: live research for fresh sources (articles, papers,
-        // videos). Best-effort — without TAVILY_API_KEY or on failure the
-        // channel skips honestly, same as before.
+        // videos) via the configured LLM provider's web search. Best-effort
+        // — without a capable provider or on failure the channel skips
+        // honestly, same as before.
         let web: Awaited<ReturnType<typeof webResearch>> = [];
         try {
           web = await webResearch(brief);

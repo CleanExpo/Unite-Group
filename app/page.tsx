@@ -14,7 +14,7 @@ interface Health {
   knowledge?: { configured: boolean; repo: string | null; notes: number | null };
   board?: { seats: string[] };
   skills?: { name: string; description: string }[];
-  research?: { configured: boolean };
+  research?: { configured: boolean; provider: string | null };
 }
 
 const C = {
@@ -135,8 +135,8 @@ function StatusStrip() {
         chip(
           health.research.configured,
           health.research.configured
-            ? "Web research ready (Tavily)"
-            : "Web research off — set TAVILY_API_KEY",
+            ? `Web research ready (${health.research.provider === "anthropic" ? "Anthropic web search" : "OpenRouter web plugin"})`
+            : "Web research off — needs an Anthropic or OpenRouter key",
         )}
       {health.skills && (
         <span
@@ -604,7 +604,7 @@ export default function Home() {
           }));
           addFeed(`web channel: ${event.count} fresh sources retrieved`);
         } else {
-          addFeed("web channel: no research material (set TAVILY_API_KEY to enable)");
+          addFeed("web channel: no research material retrieved");
         }
         break;
       case "delta":
