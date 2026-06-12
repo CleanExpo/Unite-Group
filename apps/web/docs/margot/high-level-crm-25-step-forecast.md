@@ -1,3 +1,5 @@
+<!-- Ported from Authority-Site docs/margot, 12/06/2026; schema/API assumptions not yet validated against apps/web — see docs/convergence/migration-map.md -->
+
 # Unite-Group High-Level CRM — 25-Step Forward Forecast
 
 Date: 2026-05-23
@@ -8,7 +10,7 @@ Project root: `/Users/phillmcgurk/Unite-Group`
 
 Phill is not expected to know every missing requirement up front. Margot must operate as the forward-looking CRM architect: discover what exists, identify what is missing, forecast the next dependencies, and convert ambiguity into a sequenced plan with evidence, safe defaults, and clear questions only where human judgment is genuinely required.
 
-The end result is not “a dashboard”. The end result is a high-level CRM and command operating system for Phill where data flows back and forth between:
+The end result is not "a dashboard". The end result is a high-level CRM and command operating system for Phill where data flows back and forth between:
 
 - prospects / leads,
 - clients,
@@ -104,7 +106,7 @@ The weakest missing connective tissue is:
 
 Phill does not need to know schemas. Phill needs to answer business truth questions:
 
-1. What is the definition of a “client” vs “prospect” vs “business” vs “project”?
+1. What is the definition of a "client" vs "prospect" vs "business" vs "project"?
 2. Which businesses belong in the CRM command view first?
 3. What does Phill want to see every morning without asking?
 4. Which changes may Margot make automatically?
@@ -115,21 +117,21 @@ Phill does not need to know schemas. Phill needs to answer business truth questi
 9. Which source wins if Linear, Supabase, and a voice command disagree?
 10. What are the non-negotiable privacy/security rules for client data?
 
-Margot’s job is to turn these into structured options, not dump open-ended questions on Phill.
+Margot's job is to turn these into structured options, not dump open-ended questions on Phill.
 
 ## The 25-Step Forecast
 
 ### Phase 1 — Define the CRM operating model
 
-#### Step 1 — Name the CRM’s command purpose
+#### Step 1 — Name the CRM's command purpose
 
-Define the CRM as Phill’s operating cockpit, not a generic contact database.
+Define the CRM as Phill's operating cockpit, not a generic contact database.
 
 Output:
 - `docs/margot/crm-operating-model.md`
 
 Decision to frame:
-- “What should Phill know, decide, and delegate every day?”
+- "What should Phill know, decide, and delegate every day?"
 
 Default assumption:
 - The CRM should surface priorities, risk, next actions, blockers, revenue/client health, and agent work status.
@@ -175,7 +177,7 @@ Output:
 
 #### Step 4 — Define identity resolution keys
 
-Map how one real-world entity is recognized across systems.
+Map how one real-world entity is recognised across systems.
 
 Likely keys:
 
@@ -192,7 +194,7 @@ Likely keys:
 Output:
 - identity resolution policy.
 
-#### Step 5 — Define Phill’s decision categories
+#### Step 5 — Define Phill's decision categories
 
 Separate actions into:
 
@@ -216,7 +218,7 @@ List current tables and fields relevant to CRM:
 - `integration_*`
 - `client_notifications`
 - `projects`
-- `organizations`
+- `organisations`
 - `ccw_support_tickets`
 - `stripe_events`
 - voice task/session tables if present in prod
@@ -327,9 +329,9 @@ Outbound lanes should include:
 Output:
 - outbound action map.
 
-#### Step 13 — Define event normalization
+#### Step 13 — Define event normalisation
 
-Every inbound event should become a normalized event with:
+Every inbound event should become a normalised event with:
 
 - source,
 - actor,
@@ -346,7 +348,7 @@ Existing candidate:
 - `agent_actions` can be extended or complemented by a dedicated CRM timeline table.
 
 Output:
-- event normalization spec.
+- event normalisation spec.
 
 #### Step 14 — Define the CRM timeline
 
@@ -536,7 +538,7 @@ Margot voice should not create vague tasks. It should classify commands into:
 - update client,
 - create task,
 - request approval,
-- summarize status,
+- summarise status,
 - generate report,
 - open investigation,
 - schedule follow-up.
@@ -579,7 +581,7 @@ Margot should research/inspect these before implementation:
 ```text
 Inbound signal
   ↓
-Normalize event
+Normalise event
   ↓
 Resolve identity
   ↓

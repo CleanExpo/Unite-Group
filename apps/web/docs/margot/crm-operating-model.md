@@ -1,3 +1,5 @@
+<!-- Ported from Authority-Site docs/margot, 12/06/2026; schema/API assumptions not yet validated against apps/web — see docs/convergence/migration-map.md -->
+
 # Margot CRM Operating Model
 
 Date: 2026-05-23 11:29 AEST

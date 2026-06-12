@@ -1,9 +1,11 @@
+<!-- Ported from Authority-Site docs/margot, 12/06/2026; schema/API assumptions not yet validated against apps/web — see docs/convergence/migration-map.md -->
+
 # Margot CRM Contacts and Opportunities Model
 
 Date: 2026-05-23
 Owner: Margot
 Project: Unite-Group
-Status: Local proposal plus sandbox-only migration draft. `supabase/migrations/20260523103000_crm_contacts_opportunities.sql` now drafts the schema, guarded by `tests/unit/margot-crm-contacts-opportunities-migration.test.ts`. No migration has been applied. No production database write, production schema change, deployment, GitHub push, or client-facing action is authorized by this proposal.
+Status: Local proposal plus sandbox-only migration draft. `supabase/migrations/20260523103000_crm_contacts_opportunities.sql` now drafts the schema, guarded by `tests/unit/margot-crm-contacts-opportunities-migration.test.ts`. No migration has been applied. No production database write, production schema change, deployment, GitHub push, or client-facing action is authorised by this proposal.
 
 ## 1. Purpose
 
@@ -13,9 +15,9 @@ The proposal is grounded only in existing repository evidence:
 
 - `docs/margot/README.md` maps retired Margot references to current canonical surfaces.
 - `docs/margot/operating-brain-integration.md` makes Margot the Senior PM access point across CRM, project portfolio, client 2nd Brain, marketing, integrations, AI/LLM, and the Unite-Group strategy lens.
-- `docs/margot/high-level-crm-25-step-forecast.md` forecasts contact and opportunity modeling after lead persistence and conversion planning.
+- `docs/margot/high-level-crm-25-step-forecast.md` forecasts contact and opportunity modelling after lead persistence and conversion planning.
 - `docs/margot/crm-operating-model.md` identifies `crm_contacts` and `crm_opportunities` as proposed target sources of truth and names drafting those proposals as next lanes.
-- `docs/margot/crm-schema-inventory.md` says current contact data is embedded in `nexus_clients.contact_name/contact_email` and `crm_leads` fields, opportunities are not modeled, contacts need dedupe/privacy/cross-client safeguards, and opportunities must stay separate from Stripe billing truth.
+- `docs/margot/crm-schema-inventory.md` says current contact data is embedded in `nexus_clients.contact_name/contact_email` and `crm_leads` fields, opportunities are not modelled, contacts need dedupe/privacy/cross-client safeguards, and opportunities must stay separate from Stripe billing truth.
 - `docs/margot/crm-operating-model.md` says qualification is recommendation-only, conversion must pass exact identity gates and operator approval, original lead attribution must be preserved, and production conversion has not been promoted or verified.
 - `supabase/migrations/20260510000002_nexus_clients.sql` creates `nexus_clients` with client identity, embedded contact fields, Stripe IDs, plan/status, Linear project ID, Pi-CEO key, brand config, and timestamps.
 - `supabase/migrations/20260523100000_crm_leads.sql` creates `crm_leads` with lead person/company/contact fields, marketing consent, source, status, qualification score, owner, matched client/business links, converted client link, privacy-sensitive request metadata, and timestamps.
@@ -31,12 +33,12 @@ Current evidence:
 - `nexus_clients` has `contact_name` and `contact_email`, but those fields represent only one embedded contact on a client row.
 - `crm_leads` has lead person fields such as `first_name`, `last_name`, `email`, `phone`, `company`, and `job_title`, but those fields are lead-capture data, not durable relationship memory.
 - `crm-schema-inventory.md` explicitly marks `crm_contacts` as proposed and says current contact data lives in `nexus_clients.contact_name/contact_email` and `crm_leads` fields.
-- `crm-schema-inventory.md` explicitly marks opportunities as not modeled and says they need lead/client/contact links, stage, value, probability, expected close, source, owner, next action, and status.
+- `crm-schema-inventory.md` explicitly marks opportunities as not modelled and says they need lead/client/contact links, stage, value, probability, expected close, source, owner, next action, and status.
 - `crm-operating-model.md` describes lead qualification as recommendation-only and says a qualified lead can become a contact and opportunity before any approved/won client creation.
 
 Reasoning:
 
-1. Contact normalization prevents overloading client and lead email fields.
+1. Contact normalisation prevents overloading client and lead email fields.
 2. Contact records allow relationship history, role/title, consent/source, owner, privacy metadata, and retention rules to be tracked independently of a lead or client.
 3. Opportunities give Margot a place to track qualified commercial work, stage, expected value, probability, next action, risks, and decisions before creating or updating a client.
 4. Lead-to-client conversion is safer when the CRM can first create or link a contact and opportunity, then request approval for any client mutation.
@@ -65,7 +67,7 @@ Target source-of-truth status: proposed Supabase CRM table with local draft migr
 | --- | --- | --- | --- |
 | `id` | `uuid primary key default gen_random_uuid()` | Yes | Standard durable CRM identifier, consistent with `nexus_clients.id` and `crm_leads.id`. |
 | `display_name` | `text` | Yes | Human-readable name for command center, digest, and relationship memory. Can be derived from first/last name when present. |
-| `first_name` | `text` | No | Mirrors `crm_leads.first_name`; useful for lead-derived contacts and personalized follow-up. |
+| `first_name` | `text` | No | Mirrors `crm_leads.first_name`; useful for lead-derived contacts and personalised follow-up. |
 | `last_name` | `text` | No | Mirrors `crm_leads.last_name`; optional because current embedded client contact can be a single name. |
 | `primary_email` | `text` | No, but strongly preferred | Current contact identity exists as `nexus_clients.contact_email` and `crm_leads.email`; email is a strong dedupe key but not always sufficient for cross-client merge. |
 | `primary_phone` | `text` | No | Mirrors `crm_leads.phone`; useful for relationship memory and follow-up. |
@@ -81,10 +83,10 @@ Target source-of-truth status: proposed Supabase CRM table with local draft migr
 | `consent_captured_at` | `timestamptz` | No | Supports consent audit and future retention/privacy policy. |
 | `relationship_owner` | `text` | Yes, default candidate `Margot` | Required by inventory; aligns with `crm_leads.assigned_owner`. |
 | `status` | `text` | Yes | Candidate values: `active`, `lead_only`, `client_contact`, `nurture`, `do_not_contact`, `archived`, `blocked_review`. |
-| `dedupe_email_key` | `text` | No | Lower-cased/normalized email key for matching. Should be indexed but not treated as sole proof for cross-client merge. |
+| `dedupe_email_key` | `text` | No | Lower-cased/normalised email key for matching. Should be indexed but not treated as sole proof for cross-client merge. |
 | `dedupe_domain_key` | `text` | No | Domain hint from email/website; hint only, not proof for multi-brand clients or agencies. |
-| `dedupe_phone_key` | `text` | No | Normalized phone hint where available. |
-| `dedupe_name_company_key` | `text` | No | Lower-cased normalized name + company hint for review queues, not automatic merge authority. |
+| `dedupe_phone_key` | `text` | No | Normalised phone hint where available. |
+| `dedupe_name_company_key` | `text` | No | Lower-cased normalised name + company hint for review queues, not automatic merge authority. |
 | `privacy_scope` | `text` | Yes | Candidate values: `lead_scoped`, `client_scoped`, `business_scoped`, `restricted`, and tightly-approved `global_crm`. Default to the narrowest scope available; `global_crm` must not be the default for personal data and requires explicit non-sensitive use case approval. |
 | `retention_policy` | `text` | No | Records retention basis once policy is approved; especially important for lead-derived personal data. |
 | `privacy_notes` | `text` | No | Operator notes for privacy boundaries or restrictions. Must not contain secrets. |
@@ -128,7 +130,7 @@ Target source-of-truth status: proposed Supabase CRM table with local draft migr
 | `linked_client_id` | `uuid references public.nexus_clients(id) on delete set null` | No | Used for expansion/renewal/account opportunities when client identity is confirmed. |
 | `linked_business_id` | `uuid references public.businesses(id) on delete set null` | No | Used when opportunity belongs to a portfolio business context. |
 | `next_action` | `text` | No | Required by inventory; the next concrete follow-up or operator action. |
-| `next_action_due_at` | `timestamptz` | No | Helps daily digest and command center prioritize action. |
+| `next_action_due_at` | `timestamptz` | No | Helps daily digest and command center prioritise action. |
 | `decision_needed` | `text` | No | Captures Phill/Board decision required before progress. |
 | `risk` | `text` | No | Captures risk signal such as unclear identity, budget uncertainty, privacy boundary, or delivery dependency. |
 | `campaign_source` | `text` | No | Campaign/source attribution required by document scope and compatible with `crm_leads.referral_source` / `source`. |
@@ -176,7 +178,7 @@ cancelled
 
 ```text
 Lead/person signal received
-  -> normalize name/email/phone/company/title/source/consent
+  -> normalise name/email/phone/company/title/source/consent
   -> search existing crm_contacts by strong keys
   -> search linked client/business context where available
   -> if exact safe same-scope match: update allowed non-sensitive fields through tested server route
@@ -229,7 +231,7 @@ Strong identifiers already named in CRM operating documents:
 - Supabase UUIDs such as `nexus_clients.id`, `crm_leads.id`, and future contact/opportunity IDs.
 - `nexus_clients.slug`.
 - `businesses.slug` where available.
-- `contact_email` / normalized email.
+- `contact_email` / normalised email.
 - `stripe_customer_id` and `stripe_subscription_id` for billing identity links only.
 - `linear_project_id` for execution/project mapping.
 - `pi_ceo_key` for business/client operating context.
@@ -237,9 +239,9 @@ Strong identifiers already named in CRM operating documents:
 
 Contact dedupe policy:
 
-1. Normalize email to lower case for `dedupe_email_key`.
-2. Normalize phone to digits/country-aware key where possible for `dedupe_phone_key`.
-3. Normalize display/name/company into `dedupe_name_company_key` for review queues only.
+1. Normalise email to lower case for `dedupe_email_key`.
+2. Normalise phone to digits/country-aware key where possible for `dedupe_phone_key`.
+3. Normalise display/name/company into `dedupe_name_company_key` for review queues only.
 4. Use email as a strong contact hint, but not sole authority to merge across clients/businesses.
 5. Use domain as a weak hint only because agencies, multi-brand groups, shared domains, aliases, and consultants can span multiple clients.
 6. Never discard the original lead row during dedupe; update status/link fields instead.
@@ -264,7 +266,7 @@ Abort immediately and do not create, update, merge, or surface sensitive data wh
 6. A Stripe, Linear, GitHub, Vercel, or other integration mirror link conflicts with CRM identity.
 7. The route or agent cannot prove whether it is operating in sandbox/local or production.
 
-Abort behavior:
+Abort behaviour:
 
 ```text
 Stop mutation
@@ -327,7 +329,7 @@ Sandbox-first rule:
 Draft migration
   -> write mocked tests first
   -> apply only through sandbox wizard
-  -> verify schema, RLS, server route, and abort behavior
+  -> verify schema, RLS, server route, and abort behaviour
   -> review Board gates
   -> only then consider production promotion with explicit approval
 ```
@@ -342,9 +344,9 @@ This document does not run that command and does not apply any migration.
 
 ## 11. Future mocked test matrix
 
-| Area | Future mocked test focus | Expected safety behavior |
+| Area | Future mocked test focus | Expected safety behaviour |
 | --- | --- | --- |
-| Contact migration shape | Required fields, status check, indexes for normalized email/status/linked IDs, timestamps | Migration runs in sandbox only; no production apply. |
+| Contact migration shape | Required fields, status check, indexes for normalised email/status/linked IDs, timestamps | Migration runs in sandbox only; no production apply. |
 | Contact RLS | Service-role server route can write; browser/client cannot directly write sensitive CRM contacts | Public/client-side writes blocked. |
 | Contact create from lead | Creates contact from `crm_leads` fields, preserves lead, defaults marketing consent from lead | Original lead remains intact; no client conversion. |
 | Contact consent defaults | Missing consent defaults false; explicit lead consent maps to contact fields | No assumed marketing consent. |
@@ -361,7 +363,7 @@ This document does not run that command and does not apply any migration.
 | Opportunity approval gate | `decision_needed` or approval-required stage creates blocked/approval task draft in future route | No external action without approval. |
 | Cross-client abort | Conflicting linked lead/contact/client/business IDs reject request | No data leakage. |
 | Source attribution | Campaign/source fields persist from lead or explicit payload | Original attribution preserved. |
-| Audit/timeline future hook | Successful create/update can call future event writer; event failure is non-fatal only where safe | Audit behavior explicit and tested. |
+| Audit/timeline future hook | Successful create/update can call future event writer; event failure is non-fatal only where safe | Audit behaviour explicit and tested. |
 | Command-center read route | Lists contacts/opportunities with filters by owner/status/source without exposing restricted scopes | Read rules respect privacy scope. |
 | Missing environment | Routes fail safely when Supabase env/config is absent | No partial or guessed writes. |
 
@@ -370,7 +372,7 @@ This document does not run that command and does not apply any migration.
 1. Keep this proposal as the local planning source for the contacts/opportunities lane.
 2. Draft a sandbox-only `crm_contacts` migration with status checks, indexes, RLS, and no production apply.
 3. Draft a sandbox-only `crm_opportunities` migration with stage/status/probability checks, indexes, RLS, and no production apply.
-4. Write mocked tests before route implementation for contact creation/linking/dedupe/cross-client abort behavior.
+4. Write mocked tests before route implementation for contact creation/linking/dedupe/cross-client abort behaviour.
 5. Write mocked tests before route implementation for opportunity creation/stage transitions/Stripe separation/approval gates.
 6. Draft server-only API route contracts; do not allow browser/client direct writes to sensitive CRM tables.
 7. Define minimal event taxonomy for future contact/opportunity audit entries, likely via `agent_actions` until a dedicated timeline is approved.
