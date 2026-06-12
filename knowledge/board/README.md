@@ -6,8 +6,12 @@ One folder per advisor. Each advisor folder contains:
   paragraph, and links to source material.
 - Ingested source files (articles, transcripts) filed by `ingest`.
 
-Planned starting seats (content arrives in Phase 3 with the vault):
-IndyDevDan, Gary Vee, Perkins, Karpathy.
+Seated in Phase 3 (2026-06-12), from material found in the vault:
+**IndyDevDan**, **Andrej Karpathy**, **Duncan Perkins**.
+
+Gary Vee was a planned seat but the vault holds no source material by or
+about him (only "Gary V ×5" agent-archetype mentions) — no material, no seat.
+Ingest real Gary Vee material via `ingest` to open the seat.
 
 **Rule:** advisor "clones" are a lens, never a source of truth. Their output
 is always labelled as a persona critique, and the human approval gate applies.
