@@ -359,3 +359,9 @@ One row per remaining path-group. Classification verified against `apps/web` pat
 
 > Counts are path-groups, not individual files. A single "deferred" row may represent
 > dozens of files (e.g. all of `lib/empire/`).
+
+## Post-import debt register (apps/workspace)
+
+| Item | Detail | Unblocks |
+|---|---|---|
+| Workspace lint/type debt | `pnpm run check` fails with ~466 pre-existing errors inherited from upstream hermes-workspace (`@typescript-eslint/no-unnecessary-condition` et al). CI gates on build only until burned down. | Dedicated lint burn-down slice, then restore `check` to `.github/workflows/ci.yml` |
