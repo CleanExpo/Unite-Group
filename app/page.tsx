@@ -129,7 +129,7 @@ function StatusStrip() {
             ? `Board seated: ${health.board.seats.join(", ")}`
             : "Board empty — no profiles in knowledge/board",
         )}
-      {health.skills && health.skills.length > 0 && (
+      {health.skills && (
         <span
           title={health.skills.map((s) => `${s.name} — ${s.description}`).join("\n\n")}
           style={{
@@ -140,12 +140,14 @@ function StatusStrip() {
             borderRadius: 999,
             fontSize: 12.5,
             background: C.panel,
-            border: `1px solid ${C.border}`,
-            color: C.dim,
+            border: `1px solid ${health.skills.length > 0 ? "#1f5c40" : "#6e3030"}`,
+            color: health.skills.length > 0 ? C.green : C.red,
             cursor: "help",
           }}
         >
-          ⚙ Skills: {health.skills.map((s) => s.name).join(" · ")}
+          {health.skills.length > 0
+            ? `✓ Skills: ${health.skills.map((s) => s.name).join(" · ")}`
+            : "✗ No skills installed"}
         </span>
       )}
       {kn?.configured && (
