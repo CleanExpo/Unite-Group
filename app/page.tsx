@@ -11,6 +11,7 @@ interface Health {
     | { state: "not_configured" }
     | { state: "error"; problem: string };
   knowledge?: { configured: boolean; repo: string | null; notes: number | null };
+  board?: { seats: string[] };
 }
 
 const C = {
@@ -115,12 +116,17 @@ function StatusStrip() {
       )}
       {kn &&
         chip(
-          kn.configured && (kn.notes ?? 0) > 0,
-          !kn.configured
-            ? "2nd Brain not linked — set KNOWLEDGE_REPO + GITHUB_TOKEN"
-            : (kn.notes ?? 0) > 0
-              ? `2nd Brain linked (${kn.notes} notes from ${kn.repo})`
-              : `2nd Brain linked (${kn.repo}) — not synced yet`,
+          (kn.notes ?? 0) > 0,
+          (kn.notes ?? 0) > 0
+            ? `2nd Brain linked (${kn.notes} notes${kn.repo ? ` from ${kn.repo}` : ""})`
+            : "2nd Brain empty — push to the vault repo or run its sync workflow",
+        )}
+      {health.board &&
+        chip(
+          health.board.seats.length > 0,
+          health.board.seats.length > 0
+            ? `Board seated: ${health.board.seats.join(", ")}`
+            : "Board empty — no profiles in knowledge/board",
         )}
       {kn?.configured && (
         <button

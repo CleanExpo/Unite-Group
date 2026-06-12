@@ -133,6 +133,20 @@ export async function searchKnowledge(query: string): Promise<KnowledgeHit[]> {
   }));
 }
 
+// Which repo the ingested notes came from — lets the UI name the vault even
+// when the app-side sync env (KNOWLEDGE_REPO) isn't set.
+export async function knowledgeSourceRepo(): Promise<string | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("knowledge_docs")
+    .select("source_repo")
+    .limit(1)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data.source_repo;
+}
+
 export async function knowledgeCount(): Promise<number | null> {
   const supabase = getSupabase();
   if (!supabase) return null;
