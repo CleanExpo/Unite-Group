@@ -155,7 +155,10 @@ async function openrouterResearch(user: string): Promise<string> {
             model,
             // OpenRouter's web plugin grounds the call with live search results.
             plugins: [{ id: "web", max_results: 5 }],
-            max_tokens: 2000,
+            // Reasoning models (e.g. Kimi K2.6) burn budget thinking before
+            // they emit content — give headroom and ask for minimal effort.
+            max_tokens: 8000,
+            reasoning: { effort: "low" },
             messages: [
               { role: "system", content: RESEARCH_PROMPT },
               { role: "user", content: user },
@@ -168,9 +171,14 @@ async function openrouterResearch(user: string): Promise<string> {
         continue;
       }
       const data = await res.json();
-      const text: unknown = data?.choices?.[0]?.message?.content;
-      if (typeof text === "string" && text.trim().length > 0) return text;
-      lastError = `${model} returned empty research output`;
+      const message = data?.choices?.[0]?.message;
+      // Reasoning models may leave content empty and put everything in the
+      // reasoning field — its prose still names URLs the harvester can mine.
+      const candidates: unknown[] = [message?.content, message?.reasoning, message?.reasoning_content];
+      for (const candidate of candidates) {
+        if (typeof candidate === "string" && candidate.trim().length > 0) return candidate;
+      }
+      lastError = `${model} returned empty research output (finish: ${data?.choices?.[0]?.finish_reason ?? "?"})`;
     } catch (error) {
       lastError = `${model}: ${error instanceof Error ? error.message : String(error)}`;
     }
