@@ -5,8 +5,10 @@ const nextConfig: NextConfig = {
   // make sure Vercel bundles it with the serverless function.
   outputFileTracingIncludes: {
     "/api/run": ["./skills/fable-engine/**"],
-    // /api/board reads advisor profiles from knowledge/board/ at runtime.
+    // /api/board and /api/health read advisor profiles from knowledge/board/
+    // at runtime.
     "/api/board": ["./knowledge/board/**"],
+    "/api/health": ["./knowledge/board/**"],
   },
 };
 
