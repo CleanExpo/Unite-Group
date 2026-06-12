@@ -3,10 +3,11 @@ import { describeEngine } from "@/lib/llm";
 import { checkDatabase } from "@/lib/supabase";
 import { knowledgeCount, knowledgeSourceRepo } from "@/lib/knowledge";
 import { loadBoardSeats } from "@/lib/board";
+import { loadSkills } from "@/lib/skills";
 
 // Plain-language system check: is the engine configured, is the database
-// connected, how many vault notes are ingested, who sits on the board.
-// Makes no LLM calls.
+// connected, how many vault notes are ingested, who sits on the board,
+// which skills are installed. Makes no LLM calls.
 export async function GET() {
   const engine = describeEngine();
   const database = await checkDatabase();
@@ -20,8 +21,9 @@ export async function GET() {
     notes,
   };
   const board = { seats: loadBoardSeats().map((seat) => seat.name) };
+  const skills = loadSkills();
   return NextResponse.json(
-    { engine, database, knowledge, board },
+    { engine, database, knowledge, board, skills },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

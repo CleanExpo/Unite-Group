@@ -12,6 +12,7 @@ interface Health {
     | { state: "error"; problem: string };
   knowledge?: { configured: boolean; repo: string | null; notes: number | null };
   board?: { seats: string[] };
+  skills?: { name: string; description: string }[];
 }
 
 const C = {
@@ -128,6 +129,25 @@ function StatusStrip() {
             ? `Board seated: ${health.board.seats.join(", ")}`
             : "Board empty — no profiles in knowledge/board",
         )}
+      {health.skills && health.skills.length > 0 && (
+        <span
+          title={health.skills.map((s) => `${s.name} — ${s.description}`).join("\n\n")}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "4px 10px",
+            borderRadius: 999,
+            fontSize: 12.5,
+            background: C.panel,
+            border: `1px solid ${C.border}`,
+            color: C.dim,
+            cursor: "help",
+          }}
+        >
+          ⚙ Skills: {health.skills.map((s) => s.name).join(" · ")}
+        </span>
+      )}
       {kn?.configured && (
         <button
           onClick={syncVault}
