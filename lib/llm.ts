@@ -92,9 +92,10 @@ export async function runEngineStream(
   vision: string,
   onDelta: (text: string) => void,
   onRetry?: (failedModel: string, nextModels: string[]) => void,
+  systemPrompt?: string,
 ): Promise<EngineResult> {
   const provider = getProvider();
-  const system = getEnginePrompt();
+  const system = systemPrompt ?? getEnginePrompt();
 
   if (provider === "anthropic") {
     return runAnthropic({ system, user: vision, onDelta });

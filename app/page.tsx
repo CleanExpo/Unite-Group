@@ -10,6 +10,7 @@ interface Health {
     | { state: "ok"; savedSpecs: number }
     | { state: "not_configured" }
     | { state: "error"; problem: string };
+  knowledge?: { configured: boolean; repo: string | null; notes: number | null };
 }
 
 const C = {
@@ -41,13 +42,37 @@ const GLOBAL_CSS = `
 function StatusStrip() {
   const [health, setHealth] = useState<Health | null>(null);
   const [failed, setFailed] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncNote, setSyncNote] = useState("");
 
-  useEffect(() => {
+  const refresh = () =>
     fetch("/api/health")
       .then((res) => res.json())
       .then(setHealth)
       .catch(() => setFailed(true));
+
+  useEffect(() => {
+    refresh();
   }, []);
+
+  async function syncVault() {
+    setSyncing(true);
+    setSyncNote("");
+    try {
+      const res = await fetch("/api/ingest", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setSyncNote(`Sync failed: ${data.error ?? res.status}`);
+      } else {
+        setSyncNote(`Synced ${data.ingested} notes from ${data.repo}`);
+        refresh();
+      }
+    } catch (error) {
+      setSyncNote(`Sync failed: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   const chip = (ok: boolean, label: string) => (
     <span
@@ -71,8 +96,9 @@ function StatusStrip() {
   if (!health) return <div style={{ margin: "10px 0 20px", color: C.dim, fontSize: 12.5 }}>Checking system status…</div>;
 
   const db = health.database;
+  const kn = health.knowledge;
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, margin: "10px 0 20px" }}>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, margin: "10px 0 20px", alignItems: "center" }}>
       {chip(
         health.engine.ready,
         health.engine.ready
@@ -87,6 +113,33 @@ function StatusStrip() {
             ? "Database not configured — specs won't be saved"
             : `Database error: ${db.problem}`,
       )}
+      {kn &&
+        chip(
+          kn.configured && (kn.notes ?? 0) > 0,
+          !kn.configured
+            ? "2nd Brain not linked — set KNOWLEDGE_REPO + GITHUB_TOKEN"
+            : (kn.notes ?? 0) > 0
+              ? `2nd Brain linked (${kn.notes} notes from ${kn.repo})`
+              : `2nd Brain linked (${kn.repo}) — not synced yet`,
+        )}
+      {kn?.configured && (
+        <button
+          onClick={syncVault}
+          disabled={syncing}
+          style={{
+            padding: "4px 12px",
+            borderRadius: 999,
+            fontSize: 12.5,
+            background: C.panel,
+            color: syncing ? C.dim : C.text,
+            border: `1px solid ${C.border}`,
+            cursor: syncing ? "wait" : "pointer",
+          }}
+        >
+          {syncing ? "Syncing vault…" : "Sync vault"}
+        </button>
+      )}
+      {syncNote && <span style={{ color: C.dim, fontSize: 12.5 }}>{syncNote}</span>}
     </div>
   );
 }
@@ -406,6 +459,17 @@ export default function Home() {
           detail: `${event.provider} · ${(event.models ?? []).join(" → ")}`,
         });
         addFeed(`engine dispatched on ${event.provider}`);
+        break;
+      case "knowledge":
+        if (event.count > 0) {
+          setStatusLines((prev) => ({
+            ...prev,
+            "channel:obsidian": `${event.count} vault note${event.count === 1 ? "" : "s"} attached`,
+          }));
+          addFeed(`obsidian channel: ${event.count} vault notes retrieved`);
+        } else {
+          addFeed("obsidian channel: no matching vault notes");
+        }
         break;
       case "delta":
         setSpec((prev) => prev + event.text);
