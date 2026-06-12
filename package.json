@@ -7,7 +7,8 @@
     "verify:web": "cd apps/web && pnpm install --frozen-lockfile && pnpm run type-check && pnpm run lint && pnpm run test && pnpm run build",
     "verify:workspace": "cd apps/workspace && pnpm install --frozen-lockfile && pnpm run check && pnpm run build",
     "verify:mcp": "cd packages/pi-ceo-operator-mcp && npm ci && npm run build",
-    "verify": "npm run verify:web && npm run verify:workspace && npm run verify:mcp"
+    "verify": "npm run verify:web && npm run verify:workspace && npm run verify:mcp",
+    "env:check": "node scripts/check-env.mjs --package all"
   },
   "engines": {
     "node": ">=22"
