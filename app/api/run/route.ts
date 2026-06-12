@@ -29,8 +29,11 @@ export async function POST(request: Request) {
         const engine = describeEngine();
         send({ type: "meta", provider: engine.provider, models: engine.models });
 
-        const result = await runEngineStream(vision, (text) =>
-          send({ type: "delta", text }),
+        const result = await runEngineStream(
+          vision,
+          (text) => send({ type: "delta", text }),
+          (failedModel, nextModels) =>
+            send({ type: "engine_retry", failedModel, nextModels }),
         );
         send({ type: "engine_done", model: result.model, stopReason: result.stopReason });
 

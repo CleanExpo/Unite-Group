@@ -411,6 +411,18 @@ export default function Home() {
         setSpec((prev) => prev + event.text);
         scanForStatusLines(event.text);
         break;
+      case "engine_retry":
+        // Primary model returned a stub — wipe its output and restart the
+        // board for the fallback attempt.
+        setSpec("");
+        setStatusLines({});
+        lineBuffer.current = "";
+        setStage("engine", {
+          state: "active",
+          detail: `retrying on ${(event.nextModels ?? []).join(" → ")}`,
+        });
+        addFeed(`${event.failedModel} returned a stub — retrying on fallback`);
+        break;
       case "engine_done":
         setStage("engine", { state: "done", detail: `complete · ${event.model}` });
         setStage("save", { state: "active", detail: "writing to Supabase…" });
