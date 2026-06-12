@@ -3,7 +3,7 @@ name: Sync vault to Fable knowledge_docs
 on:
   workflow_dispatch:
   push:
-    branches: [claude/serene-mayer-z1hpf4]
+    branches: [main]
 
 permissions:
   contents: read

@@ -85,6 +85,12 @@ for i, b in enumerate(batches):
     sent += result.get("upserted", 0)
     print(f"batch {i + 1}/{len(batches)}: upserted {result.get('upserted')}")
 
+# Prune: notes deleted from the vault disappear from knowledge_docs too.
+# The function refuses keep-lists under its safety floor, so a buggy walk
+# can't mass-delete.
+prune_result = post({"prune": [str(rel) for rel in files]})
+print(f"pruned {prune_result.get('pruned')} stale docs")
+
 print(f"done: {sent} docs synced from {len(files)} in-scope files")
-if sent != len(files):
+if sent != len(files) or prune_result.get("pruned") is None:
     sys.exit(1)
