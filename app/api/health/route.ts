@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { describeEngine } from "@/lib/llm";
+import { describeEngine, describeCritic } from "@/lib/llm";
 import { checkDatabase } from "@/lib/supabase";
 import { knowledgeCount, knowledgeSourceRepo } from "@/lib/knowledge";
 import { loadBoardSeats } from "@/lib/board";
@@ -24,8 +24,11 @@ export async function GET() {
   const board = { seats: loadBoardSeats().map((seat) => seat.name) };
   const skills = loadSkills();
   const research = { configured: researchConfigured(), provider: researchProvider() };
+  // Which plan each pipeline stage burns: engine follows LLM_PROVIDER,
+  // critic/board/clarify prefer MiniMax → OpenRouter → Anthropic.
+  const critic = describeCritic();
   return NextResponse.json(
-    { engine, database, knowledge, board, skills, research },
+    { engine, database, knowledge, board, skills, research, critic },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

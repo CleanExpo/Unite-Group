@@ -1,7 +1,7 @@
 import { describeEngine, runEngineStream, describeCritic, runCritic } from "@/lib/llm";
 import { saveRun, saveCritique, saveFindings } from "@/lib/supabase";
 import { searchKnowledge } from "@/lib/knowledge";
-import { webResearch } from "@/lib/research";
+import { webResearch, deriveQueries } from "@/lib/research";
 import { extractClaims, summarizeEvidence } from "@/lib/evidence";
 import { buildSystemPrompt } from "@/lib/engine-prompt";
 
@@ -77,13 +77,18 @@ export async function POST(request: Request) {
         const engine = describeEngine();
         send({ type: "meta", provider: engine.provider, models: engine.models });
 
-        // Obsidian channel: retrieve relevant vault notes for this vision
-        // (brief includes clarifications/refinement, sharpening the search)
+        // Shared search angles: short targeted queries derived from the
+        // brief, used by both the vault FTS and the web researcher (a whole
+        // vision paragraph ANDs every term and matches nothing).
+        const queries = await deriveQueries(brief);
+        send({ type: "queries", queries });
+
+        // Obsidian channel: retrieve relevant vault notes for this vision.
         let knowledge: Awaited<ReturnType<typeof searchKnowledge>> = [];
         try {
-          knowledge = await searchKnowledge(brief);
-        } catch {
-          // engine runs without vault material rather than failing the run
+          knowledge = await searchKnowledge(brief, queries);
+        } catch (e) {
+          send({ type: "knowledge_error", error: errorText(e) });
         }
         send({
           type: "knowledge",
@@ -91,15 +96,14 @@ export async function POST(request: Request) {
           paths: knowledge.map((hit) => hit.path),
         });
 
-        // Web channel: live research for fresh sources (articles, papers,
-        // videos) via the configured LLM provider's web search. Best-effort
-        // — without a capable provider or on failure the channel skips
-        // honestly, same as before.
+        // Web channel: multi-round live research via the configured LLM
+        // provider's web search. Failures are reported, not swallowed —
+        // the engine still runs, but you can see why material is missing.
         let web: Awaited<ReturnType<typeof webResearch>> = [];
         try {
-          web = await webResearch(brief);
-        } catch {
-          // engine runs without web material rather than failing the run
+          web = await webResearch(brief, queries);
+        } catch (e) {
+          send({ type: "web_error", error: errorText(e) });
         }
         send({ type: "web", count: web.length, urls: web.map((s) => s.url) });
 

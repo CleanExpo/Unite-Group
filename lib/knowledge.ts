@@ -1,4 +1,5 @@
 import { getSupabase } from "./supabase";
+import { keywordQuery } from "./keywords";
 
 // Phase 3 ingestion: pulls Markdown notes from the knowledge repo (the
 // Obsidian vault, e.g. CleanExpo/brain-1) into Supabase, where engine runs
@@ -115,22 +116,42 @@ const EXCERPT_CHARS = 3500;
 
 // Full-text search over ingested notes; used to assemble the engine's
 // Obsidian-channel material for a run.
-export async function searchKnowledge(query: string): Promise<KnowledgeHit[]> {
+//
+// websearch_to_tsquery ANDs every term, so a whole vision paragraph almost
+// never matches anything. Instead: run the derived search queries (short,
+// targeted), then fall back to an OR of the vision's meaningful keywords,
+// merging unique hits up to the cap.
+export async function searchKnowledge(
+  query: string,
+  extraQueries: string[] = [],
+): Promise<KnowledgeHit[]> {
   const supabase = getSupabase();
   if (!supabase) return [];
 
-  const { data, error } = await supabase
-    .from("knowledge_docs")
-    .select("path, title, content")
-    .textSearch("fts", query, { type: "websearch" })
-    .limit(MAX_HITS);
-  if (error || !data) return [];
+  const attempts = [...extraQueries, query];
+  const fallback = keywordQuery(query);
+  if (fallback) attempts.push(fallback);
 
-  return data.map((doc) => ({
-    path: doc.path,
-    title: doc.title,
-    excerpt: doc.content.slice(0, EXCERPT_CHARS),
-  }));
+  const hits = new Map<string, KnowledgeHit>();
+  for (const attempt of attempts) {
+    if (hits.size >= MAX_HITS) break;
+    const { data, error } = await supabase
+      .from("knowledge_docs")
+      .select("path, title, content")
+      .textSearch("fts", attempt, { type: "websearch" })
+      .limit(MAX_HITS);
+    if (error || !data) continue;
+    for (const doc of data) {
+      if (hits.has(doc.path)) continue;
+      hits.set(doc.path, {
+        path: doc.path,
+        title: doc.title,
+        excerpt: doc.content.slice(0, EXCERPT_CHARS),
+      });
+      if (hits.size >= MAX_HITS) break;
+    }
+  }
+  return [...hits.values()];
 }
 
 // Which repo the ingested notes came from — lets the UI name the vault even

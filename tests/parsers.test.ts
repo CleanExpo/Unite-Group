@@ -56,7 +56,7 @@ test("extractClaims caps runaway specs", () => {
 });
 
 test("parseSources reads piped researcher output and dedupes", async () => {
-  const { parseSources } = await import("../lib/research.ts");
+  const { parseSources } = await import("../lib/sources.ts");
   const text = [
     "1. AI Spec Writing in 2026 | https://example.com/spec-writing | Survey of current practice.",
     "2. Deep dive video | https://youtube.com/watch?v=xyz | 40-min walkthrough.",
@@ -72,4 +72,16 @@ test("parseSources reads piped researcher output and dedupes", async () => {
   assert.equal(sources[1].url, "https://youtube.com/watch?v=xyz");
   assert.equal(sources[2].url, "https://example.com/whitepaper.pdf");
   assert.ok(sources[2].title.length > 0);
+});
+
+test("keywordQuery ORs meaningful vision words for FTS fallback", async () => {
+  const { keywordQuery } = await import("../lib/keywords.ts");
+  const q = keywordQuery(
+    "I want to build a mortgage broker dashboard that tracks loan approvals with some alerts",
+  );
+  assert.ok(q);
+  assert.ok(q!.includes(" or "));
+  assert.ok(q!.includes("mortgage"));
+  assert.ok(!q!.split(" or ").includes("want"));
+  assert.equal(keywordQuery("a an to of"), null);
 });
