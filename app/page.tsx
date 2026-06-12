@@ -1,8 +1,69 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type RunState = "idle" | "running" | "done" | "error";
+
+interface Health {
+  engine: { provider: string; models: string[]; ready: boolean; problem: string | null };
+  database:
+    | { state: "ok"; savedSpecs: number }
+    | { state: "not_configured" }
+    | { state: "error"; problem: string };
+}
+
+function StatusStrip() {
+  const [health, setHealth] = useState<Health | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/health")
+      .then((res) => res.json())
+      .then(setHealth)
+      .catch(() => setFailed(true));
+  }, []);
+
+  const chip = (ok: boolean, label: string) => (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "4px 10px",
+        borderRadius: 999,
+        fontSize: 12.5,
+        background: "#1a1d21",
+        border: `1px solid ${ok ? "#2e5c3f" : "#6e3030"}`,
+        color: ok ? "#7ed8a0" : "#f28b82",
+      }}
+    >
+      {ok ? "✓" : "✗"} {label}
+    </span>
+  );
+
+  if (failed) return <div style={{ margin: "10px 0 20px" }}>{chip(false, "Status check failed — is the deployment healthy?")}</div>;
+  if (!health) return <div style={{ margin: "10px 0 20px", color: "#9aa0a6", fontSize: 12.5 }}>Checking system status…</div>;
+
+  const db = health.database;
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, margin: "10px 0 20px" }}>
+      {chip(
+        health.engine.ready,
+        health.engine.ready
+          ? `Engine ready: ${health.engine.provider} (${health.engine.models.join(" → ")})`
+          : `Engine not ready: ${health.engine.problem}`,
+      )}
+      {chip(
+        db.state === "ok",
+        db.state === "ok"
+          ? `Database connected (${db.savedSpecs} spec${db.savedSpecs === 1 ? "" : "s"} saved)`
+          : db.state === "not_configured"
+            ? "Database not configured — specs won't be saved"
+            : `Database error: ${db.problem}`,
+      )}
+    </div>
+  );
+}
 
 export default function Home() {
   const [vision, setVision] = useState("");
@@ -58,6 +119,8 @@ export default function Home() {
       <p style={{ color: "#9aa0a6", marginTop: 0 }}>
         Type a vision in plain English. Get a sourced, build-ready spec.
       </p>
+
+      <StatusStrip />
 
       <textarea
         value={vision}

@@ -24,6 +24,54 @@ export function getProvider(): Provider {
   );
 }
 
+export interface EngineStatus {
+  provider: string;
+  models: string[];
+  ready: boolean;
+  problem: string | null;
+}
+
+// Config-only check for the health endpoint — makes no LLM calls.
+export function describeEngine(): EngineStatus {
+  let provider: Provider;
+  try {
+    provider = getProvider();
+  } catch (error) {
+    return {
+      provider: process.env.LLM_PROVIDER ?? "(unset)",
+      models: [],
+      ready: false,
+      problem: error instanceof Error ? error.message : String(error),
+    };
+  }
+
+  if (provider === "anthropic") {
+    const model = process.env.ANTHROPIC_MODEL ?? "claude-opus-4-8";
+    return process.env.ANTHROPIC_API_KEY
+      ? { provider, models: [model], ready: true, problem: null }
+      : { provider, models: [model], ready: false, problem: "ANTHROPIC_API_KEY is not set" };
+  }
+
+  if (provider === "openrouter") {
+    const models = (process.env.OPENROUTER_MODEL ?? "")
+      .split(",")
+      .map((m) => m.trim())
+      .filter(Boolean);
+    if (!process.env.OPENROUTER_API_KEY) {
+      return { provider, models, ready: false, problem: "OPENROUTER_API_KEY is not set" };
+    }
+    if (models.length === 0) {
+      return { provider, models, ready: false, problem: "OPENROUTER_MODEL is not set" };
+    }
+    return { provider, models, ready: true, problem: null };
+  }
+
+  const models = [process.env.MINIMAX_MODEL ?? "MiniMax-M2"];
+  return process.env.MINIMAX_API_KEY
+    ? { provider, models, ready: true, problem: null }
+    : { provider, models, ready: false, problem: "MINIMAX_API_KEY is not set" };
+}
+
 export async function runEngine(vision: string): Promise<EngineResult> {
   const provider = getProvider();
   if (provider === "anthropic") return runAnthropic(vision);
