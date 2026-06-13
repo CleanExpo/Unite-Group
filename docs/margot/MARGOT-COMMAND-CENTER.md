@@ -2,6 +2,19 @@
 Date: 2026-05-23
 Project: Unite-Group
 Root: `/Users/phillmcgurk/Unite-Group`
+|Last update: 2026-06-13 13:09:09 AEST — Senior PM Hermes dashboard process-count read-surface contract + doc-tick
+
+|## Current Autonomy Rotation Guard — 2026-06-13 13:09:09 AEST
+|
+|- Repo: `mesh/mission-control-2026-06-11` at `79ceeb2e` (dirty inherited worktree; `git rev-list --count main..origin/main` returned `8`; branch `mesh/mission-control-2026-06-11`). Inherited uncommitted dirty state remains extensive, including the untracked Hermes dashboard route/test surface this lane touched.
+|- Completed safe Senior PM lane: tightened the local Hermes dashboard read-surface contract. `src/app/api/command-center/hermes-dashboard/route.ts` now preserves the dashboard CLI's reported process count when the HTTP status probe is reachable via `Math.max(reportedProcessCount, 1)`, instead of always returning `1` for any reachable HTTP endpoint. This keeps the wrapper's `Dashboard <n>` source badge and cards aligned with actual local CLI evidence while still falling back to at least one reachable dashboard when the CLI reports zero but HTTP is live.
+|- Regression coverage: `tests/integration/api/hermes-dashboard.test.ts` now asserts the local-preview happy path mocked as `2 hermes dashboard process(es) running.` returns `body.dashboard.processCount === 2`. Existing wrapper render coverage in `tests/unit/components/command-center/HermesDashboardWrapper.test.tsx` remains green.
+|- Verification: `npx jest tests/integration/api/hermes-dashboard.test.ts tests/unit/components/command-center/HermesDashboardWrapper.test.tsx --runInBand` -> 2 suites / 5 tests PASS. `npm run type-check` PASS. `npm run security:routes-check` -> 0 unprotected mutating routes. `git diff --check` clean. AI-RET-001 latest read report remains `overallStatus=pass; source=8/8; answerShape=100/100`; no fixture touched and no report regeneration required.
+|- Mac Mini: not probed this tick per rotation guard. Last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, 0 recovered Markdown artifacts. Blocker unchanged.
+|- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, public publishing, connector platforms, new vendors, destructive git, cross-tenant data joins, fabricated board approval, implicit policy inference, fabricated tick history, fabricated conversation history.
+|- Files changed this tick: `src/app/api/command-center/hermes-dashboard/route.ts`, `tests/integration/api/hermes-dashboard.test.ts`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`, and this command-center entry.
+|- Next safe lane: rotate to another real surface or error-path gap, with priority candidates `src/lib/crm/digest-read-error.ts` + its test pair, voice-panel state error-path hardening, or a bounded mocked AI-RET-001 error-path class (live-gating phrasing, stale-cache warm-read, cross-doc source-citation conflict). Do not revalidate unchanged sandbox/Mac Mini gates unless their authority/auth state changes.
+|
 |Last update: 2026-06-12 16:08:00 AEST — Senior PM Mesh Fleet Read-Surface Test Gap Closure (read-fleet lib + api/mesh/fleet route) + doc-tick
 
 |## Current Autonomy Rotation Guard — 2026-06-12 16:08:00 AEST

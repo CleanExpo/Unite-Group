@@ -1,5 +1,25 @@
 # Margot Overnight Progress Log
 
+## 2026-06-13 13:09:09 AEST
+
+### Tick 20260613_1309 — Hermes dashboard process-count read-surface contract
+
+Current checkpoint:
+
+- Completed safe Senior PM lane: tightened the new local Hermes dashboard read surface so the wrapper preserves the CLI-reported dashboard process count instead of collapsing any reachable HTTP probe to `1`. This is a bounded route read-surface improvement on the already-untracked Mission Control wrapper lane; no production route mutation, deploy, DB write, provider polling, live AI call, or credential read occurred.
+- Files changed: `src/app/api/command-center/hermes-dashboard/route.ts` now reports `processCount: Math.max(reportedProcessCount, 1)` when the dashboard HTTP status endpoint is reachable; `tests/integration/api/hermes-dashboard.test.ts` now pins the local-preview happy path to the mocked `2 hermes dashboard process(es) running.` CLI output. Existing wrapper render coverage in `tests/unit/components/command-center/HermesDashboardWrapper.test.tsx` remains green.
+- Verification: `npx jest tests/integration/api/hermes-dashboard.test.ts tests/unit/components/command-center/HermesDashboardWrapper.test.tsx --runInBand` PASS (2 suites / 5 tests). `npm run type-check` PASS. `npm run security:routes-check` PASS (0 unprotected mutating routes). `git diff --check` PASS. Preflight git state remains dirty with the inherited untracked Hermes dashboard route/test files and prior modified files; no commit/push/PR/deploy was attempted.
+- AI-RET-001 evidence remained read-only for this tick: the latest read-back report at `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` is `overallStatus=pass; source=8/8; answerShape=100/100`; no fixture or report regeneration was needed for this read-surface fix.
+- Mac Mini: not probed this tick per rotation guard. Blocker unchanged: no authenticated SMB mount, no usable SSH session, and no approved export; 0 recovered Markdown artifacts remain recorded in the recovery status doc.
+
+Safety:
+
+- No sandbox wizard subcommand, production DB write/migration, Vercel deploy/env mutation, GitHub push/PR/merge, client-facing send, public publishing, paid spend, connector-platform action, new vendor/account setup, destructive git, secret read/print/store, live vector search, embeddings backfill, or live AI/provider call occurred.
+
+Next safe lane:
+
+- Continue rotating to another real read-surface/error-path gap rather than rechecking unchanged gated boundaries: the next candidates are the untracked `src/lib/crm/digest-read-error.ts` pair, the voice panel state error-path surface, or another bounded AI-RET-001 mocked error-path class (for live-gating phrasing, stale-cache warm-read, or cross-doc source-citation conflict).
+
 ## 2026-06-12 13:30:00 AEST
 
 ### Tick 20260612_1330 — AI-RET-001 97th answer-shape fixture (HERMES-V15-CAPABILITY-ASSESSMENT-SELF-BOUNDARY) + doc-tick
@@ -19391,3 +19411,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260613_122743.log'
+
+## 2026-06-13 13:10:33 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260613_130719.log'
