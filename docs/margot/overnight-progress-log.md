@@ -19789,3 +19789,51 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260613_204904.log'
+
+## 2026-06-13 21:40:07 AEST
+
+### Senior PM DR/NRPG CRM lead route approval-boundary read-surface test
+
+Current checkpoint:
+
+- Inspected repo state before selecting the lane: branch `mesh/mission-control-2026-06-11`; latest commit `e08374b6 chore: Margot ops auto-sync [tick 20260613_204904] (ops only — other uncommitted files present)`; `git rev-list --count main..origin/main` returned `8`; inherited dirty/untracked Margot/CRM/security state remains and was not normalized.
+- Re-read the required Senior PM read-first set, live Linear mirror, AI-RET-001 evidence report (`overallStatus=pass; source=8/8; answerShape=103/103`), command-center current tail, progress log, and morning report before choosing the lane.
+- Chose a concrete local security/read-surface improvement rather than revalidating unchanged sandbox/Mac Mini gates: `tests/integration/api/dr-nrpg-crm-lead-integration.test.ts` now pins that when `DR_NRPG_CRM_LEAD_INTEGRATION_ALLOW_PROD_WRITES=true` but `x-board-approval-id` is whitespace-only, the DR/NRPG CRM lead route stays in `dry_run`, returns `dryRunOnly: true`, and does not create a Supabase client.
+- While verifying, `npm run security:routes-check` exposed that the route-inventory detector did not recognize the route's narrow `requireCrmLeadIntegrationAccess` wrapper. Updated `scripts/check-route-inventory.ts` to classify that wrapper as an auth wrapper rather than allowlisting the route.
+
+Verification:
+
+```bash
+test -d node_modules && echo node_modules=present || echo node_modules=missing
+# PASS: node_modules=present.
+
+npx jest tests/integration/api/dr-nrpg-crm-lead-integration.test.ts tests/unit/lib/security/crm-lead-integration-gate.test.ts --runInBand
+# PASS: 2 suites / 21 tests passed.
+
+npm run type-check
+# PASS: tsc --noEmit completed.
+
+npm run security:routes-check
+# PASS: route-inventory check reported 0 unprotected mutating routes.
+
+git diff --check
+# PASS: no whitespace errors reported.
+```
+
+Safety:
+
+- No sandbox wizard subcommand, production DB write, migration, Vercel deploy/env mutation, GitHub push/PR/merge, client-facing send, paid spend, public publishing, connector platform, new vendor, live vector/AI call, provider polling, credential read, destructive git, cross-tenant data join, fabricated approval, or Mac Mini credential prompt occurred.
+- Mac Mini recovery was not re-probed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, 0 recovered Markdown artifacts.
+
+Next safe slice:
+
+- Continue rotating to concrete local gaps: another route/security read-surface test if a changed surface gives a target, a bounded AI-RET-001 error-path class, or a Senior PM control-surface refresh from existing repo evidence.
+
+## 2026-06-13 22:01:46 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260613_212221.log'
