@@ -19745,3 +19745,47 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260613_201710.log'
+
+## 2026-06-13 20:50:26 AEST
+
+### Senior PM crm-lead-integration-gate whitespace approval-boundary test
+
+Current checkpoint:
+
+- Inspected repo state before selecting the lane: branch `mesh/mission-control-2026-06-11`; latest commit `25cac801 chore: Margot ops auto-sync [tick 20260613_201710] (ops only — other uncommitted files present)`; `git rev-list --count main..origin/main` returned `8`; inherited dirty/untracked state remains extensive and was not normalized.
+- Re-read the required Senior PM control surfaces and live intake/evidence for this tick: Connected Teams operating rules, Senior PM operating model, 2nd Brain carry-forward directive, High-Level CRM forecast, access/data requirements, orchestrator, command-center current/tail, retrieval rules, voice-test gap analysis, Mac Mini recovery status, Linear watch mirror, AI-RET-001 evidence report, AI enhancement candidate register/pipeline, the two Margot plans, overnight progress log, and morning report.
+- Chose a real local security test-surface lane instead of repeatedly revalidating unchanged sandbox/Mac Mini gates: `tests/unit/lib/security/crm-lead-integration-gate.test.ts` now pins that a whitespace-only `x-board-approval-id` does not lift the DR/NRPG CRM lead integration gate out of `dryRunOnly` even when `DR_NRPG_CRM_LEAD_INTEGRATION_ALLOW_PROD_WRITES=true`.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/security/crm-lead-integration-gate.test.ts --runInBand
+# PASS: 1 suite / 15 tests passed.
+
+npm run type-check
+# PASS: tsc --noEmit completed.
+
+npm run security:routes-check
+# PASS: route-inventory check reported 0 unprotected mutating routes.
+
+git diff --check
+# PASS: no whitespace errors reported.
+```
+
+Safety:
+
+- No sandbox wizard subcommand, production DB write, migration, Vercel deploy/env mutation, GitHub push/PR/merge, client-facing send, paid spend, public publishing, connector platform, new vendor, live vector/AI call, provider polling, credential read, destructive git, cross-tenant data join, fabricated approval, or Mac Mini credential prompt occurred.
+- Mac Mini recovery was not re-probed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, 0 recovered Markdown artifacts.
+
+Next safe slice:
+
+- Continue rotating to real surface/error-path gaps: another narrow security/route read-surface test if a changed surface gives a concrete target, a bounded AI-RET-001 error-path class, or a Senior PM control-surface refresh from existing repo evidence.
+
+## 2026-06-13 20:52:21 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260613_204904.log'

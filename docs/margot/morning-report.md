@@ -3114,3 +3114,13 @@ Latest Senior PM AI-RET-001 harness realignment at `2026-06-10 09:42 AEST`:
 - Mac Mini: rotation guard - not probed this tick. Last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, 0 recovered Markdown artifacts. Blocker unchanged.
 - Safety: no sandbox wizard subcommand, production DB write, migration, deploy/env mutation, GitHub push/PR/merge, client-facing send, paid spend, public publishing, connector platform, new vendor, live vector/AI call, provider polling, credential read, destructive git, cross-tenant data join, fabricated approval, or Mac Mini credential prompt occurred.
 - Next safe lane: rotate to a real surface/error-path gap rather than repeatedly validating unchanged gates — `crm-lead-integration-gate` self-boundary if needed, a 7th bounded AI-RET-001 error-path class, or a Senior PM control-surface refresh from existing repo evidence.
+
+## 2026-06-13 20:50:26 AEST
+
+- Completed a bounded real security-surface test lane on `requireCrmLeadIntegrationAccess`: added coverage proving a whitespace-only `x-board-approval-id` keeps the DR/NRPG CRM lead integration gate in `dryRunOnly` even when prod writes are env-enabled.
+- Repo preflight: branch `mesh/mission-control-2026-06-11`; latest commit `25cac801`; `main..origin/main=8`; inherited dirty/untracked Margot/CRM/security state remains and was not normalized.
+- Verification passed: `npx jest tests/unit/lib/security/crm-lead-integration-gate.test.ts --runInBand` -> 1 suite / 15 tests PASS; `npm run type-check` PASS; `npm run security:routes-check` PASS with 0 unprotected mutating routes; `git diff --check` PASS.
+- Files changed: `tests/unit/lib/security/crm-lead-integration-gate.test.ts`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`. No production code touched. No gate behavior changed. No existing test changed beyond the added assertion.
+- Mac Mini: rotation guard - not reprobed this tick. Last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, 0 recovered Markdown artifacts. Blocker unchanged.
+- Safety: no sandbox wizard subcommand, production DB write, migration, deploy/env mutation, GitHub push/PR/merge, client-facing send, paid spend, public publishing, connector platform, new vendor, live vector/AI call, provider polling, credential read, destructive git, cross-tenant data join, fabricated approval, or Mac Mini credential prompt occurred.
+- Next safe lane: keep rotating to concrete local gaps — another narrow security/route read-surface test, a bounded AI-RET-001 error-path class, or a Senior PM control-surface refresh from existing repo evidence.
