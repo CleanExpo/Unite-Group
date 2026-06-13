@@ -1,5 +1,15 @@
 # Margot Morning Report
 
+## 2026-06-14 02:12 AEST — Senior PM bounded AI-RET-001 read-back health check
+
+- **Completed safe lane:** Re-read the Senior PM read-first set, current Linear mirror, AI-RET-001 evidence, AI enhancement register/pipeline, Mac Mini status, current progress/morning logs, command-center surface, and active Margot execution plans, then ran the bounded local AI-RET-001 focused gate and regenerated/read back the evidence report. This was a health/read-back lane only; no new fixture, route behavior, vendor, integration, retrieval threshold, live provider check, sandbox wizard command, DB action, or production behavior was added.
+- **Repo state read-back:** branch `mesh/mission-control-2026-06-11`; latest commit `5ee94096`; `git rev-list --count main..origin/main` returned `8`; inherited dirty/untracked worktree state remains extensive.
+- **Verification:** `node_modules=present`; `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> 1 suite / 220 tests PASS; report runner -> `overallStatus=pass; source=8/8; answerShape=105/105; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`; `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check` -> PASS.
+- **Evidence read-back:** `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` regenerated at `14/06/2026, 02:12:22 AEST` with `overallStatus=pass`, source fixtures `8/8`, and answer-shape fixtures `105/105`.
+- **Files changed:** `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`, and `docs/margot/MARGOT-COMMAND-CENTER.md` evidence entries only. No production code touched, no gate behavior changed, no existing tests changed.
+- **Safety/blockers:** No sandbox wizard subcommand, production DB write/migration, Vercel deploy/env mutation, GitHub push/PR/merge, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live vector/AI call, provider polling, credential read, destructive git, or cross-client merge occurred. Mac Mini was not re-probed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, 0 recovered Markdown artifacts. Sandbox authority/auth gate unchanged and not revalidated.
+- **Next safe lane:** Add an 8th bounded error-path class, refresh another Senior PM control surface doc, or add another real read-surface test only if a changed route/component provides a concrete target while keeping AI-RET-001 green.
+
 ## 2026-06-14 01:37 AEST — AI-RET-001 stale-cache warm-read guard added
 
 - **Completed safe lane:** Hardened the local AI-RET-001 retrieval/answer-shape harness with the 105th mocked/static fixture: `AI-RET-001-ANSWER-STALE-CACHE-WARM-READ-ASSERTED`. The new 7th error-path class prevents stale cache warm reads from being treated as live state unless the answer carries a cache snapshot timestamp, explicit freshness window, exact file-read fallback on cache miss, and operator-draft-only framing.
