@@ -1,5 +1,45 @@
 # Margot Overnight Progress Log
 
+## 2026-06-14 01:37 AEST
+
+### Tick 20260614_0137 — AI-RET-001 105th fixture: STALE-CACHE-WARM-READ-ASSERTED
+
+Lane: AI-RET-001 harness hardening — 7th bounded error-path class for stale-cache warm-read overclaims.
+
+Completed:
+- Re-read the ordered Senior PM read-first set, current Linear mirror, AI-RET-001 evidence, AI enhancement register/pipeline, Mac Mini recovery status, current progress/morning logs, command-center surface, and the two Margot execution plans before selecting the lane.
+- Inspected current repo state: branch `mesh/mission-control-2026-06-11`, latest commit `f5123adf`, `git rev-list --count main..origin/main` returned `8`, and the inherited dirty/untracked worktree remains extensive.
+- Added `AI-RET-001-ANSWER-STALE-CACHE-WARM-READ-ASSERTED` as the 105th mocked/static answer-shape fixture and 7th error-path class in `src/lib/margot/retrieval-evaluation.ts`.
+- Fixture pins that cached mirrors/warm reads require a cache snapshot timestamp, explicit freshness window, exact file-read fallback on cache miss, operator-draft-only treatment, and no provider polling / DB write / credential read.
+- Updated the retrieval-evaluation tests, report-runner canned answer, and regenerated/read back `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` with `overallStatus=pass` and answer-shape `105/105`.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-14 01:37:35 AEST`.
+- `node_modules=present`.
+- Targeted fixture gate: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts -t "stale-cache-warm-read" --runInBand` -> PASS, 1 suite / 2 matching tests.
+- Full focused retrieval gate: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> PASS, 1 suite / 220 tests.
+- Report runner: `npx ts-node --transpile-only -O '{"module":"commonjs","moduleResolution":"node"}' scripts/margot-retrieval-evaluation-report.ts` -> `overallStatus=pass; source=8/8; answerShape=105/105; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`.
+- Report read-back: `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` regenerated at `14/06/2026, 01:37:30 AEST` with `overallStatus=pass`, source-citation fixtures `8/8`, and answer-shape fixtures `105/105`.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS, no whitespace errors.
+
+Files changed:
+- `src/lib/margot/retrieval-evaluation.ts`
+- `tests/unit/lib/margot/retrieval-evaluation.test.ts`
+- `scripts/margot-retrieval-evaluation-report.ts`
+- `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand, production DB write/migration, Vercel deploy/env mutation, GitHub push/PR/merge, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live vector/AI call, provider polling, credential read, destructive git, or cross-client merge occurred.
+- Mac Mini recovery was not re-probed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts.
+- Sandbox authority/auth gate unchanged and not revalidated.
+
+Next safe lane: add an 8th bounded error-path class, refresh another Senior PM control surface doc, or add another real read-surface test only if a changed route/component provides a concrete target while keeping AI-RET-001 `overallStatus=pass`.
+
 ## 2026-06-14 00:22 AEST
 
 ### Tick 20260614_0022 — Senior PM bounded AI-RET-001 read-back health check
@@ -20002,3 +20042,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260614_002043.log'
+
+## 2026-06-14 01:40:58 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260614_005337.log'
