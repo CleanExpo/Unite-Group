@@ -1,5 +1,48 @@
 # Margot Overnight Progress Log
 
+## 2026-06-14 08:24 AEST
+
+### Tick 20260614_0824 — DR/NRPG CRM lead integration credential-conflict hardening
+
+Lane: concrete local security-gate gap — harden the DR/NRPG CRM lead integration gate so a misconfigured Pi-Dev-Ops integration bearer cannot equal the Supabase service-role key.
+
+Completed:
+- Re-read the Senior PM read-first set, live Linear mirror, AI-RET-001 evidence/register/pipeline, Mac Mini status, Margot progress/morning surfaces, active execution plans, package manifest, and the DR/NRPG CRM lead integration gate plus route/tests before selecting this lane.
+- Added a RED unit test proving `requireCrmLeadIntegrationAccess` failed open to an auditable gate result when `PI_DEV_OPS_CRM_LEAD_INTEGRATION_TOKEN` was misconfigured to the same value as `SUPABASE_SERVICE_ROLE_KEY`.
+- Updated `src/lib/security/crm-lead-integration-gate.ts` to fail closed with `crm_lead_integration_credential_conflict` (`503`) before bearer comparison when the integration token conflicts with the server-side service-role key. The check does not print or expose either value.
+- Regenerated/read back the AI-RET-001 local evidence report after the code/test change; it remains `overallStatus=pass`, source fixtures `8/8`, answer-shape fixtures `106/106`, and read-back `pass`.
+
+Repo state read-back:
+- Branch: `mesh/mission-control-2026-06-11`.
+- Latest commit: `6a141035 chore: Margot ops auto-sync [tick 20260614_074819] (ops only — other uncommitted files present)`.
+- `git rev-list --count main..origin/main` returned `8`.
+- Inherited dirty/untracked worktree remains extensive; this tick touched only the DR/NRPG CRM lead integration gate/test, regenerated AI-RET-001 evidence report, and Margot evidence surfaces.
+
+Verification:
+- `date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-14 08:24:37 AEST`.
+- RED: `npx jest tests/unit/lib/security/crm-lead-integration-gate.test.ts --runInBand` failed on the new service-role conflict case because the gate returned an OK object instead of a `NextResponse`.
+- GREEN: `npx jest tests/unit/lib/security/crm-lead-integration-gate.test.ts --runInBand` -> PASS, 1 suite / 16 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS, no whitespace errors.
+- `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> PASS, 1 suite / 222 tests.
+- Report runner: `npx ts-node --transpile-only -O '{"module":"commonjs","moduleResolution":"node"}' scripts/margot-retrieval-evaluation-report.ts` -> `overallStatus=pass; source=8/8; answerShape=106/106; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`.
+- Report read-back: `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` regenerated at `14/06/2026, 08:24:33 AEST` with `overallStatus=pass`, source-citation fixtures `8/8`, and answer-shape fixtures `106/106`.
+
+Files changed:
+- `src/lib/security/crm-lead-integration-gate.ts`
+- `tests/unit/lib/security/crm-lead-integration-gate.test.ts`
+- `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand, production DB write/migration, Vercel deploy/env mutation, GitHub push/PR/merge, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live vector/AI call, provider polling, credential read, secret printing/storage, destructive git, or cross-client merge occurred.
+- Mac Mini recovery was not re-probed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts.
+- Sandbox authority/auth gate unchanged and not revalidated.
+
+Next safe lane: package/review the remaining local credential-boundary diffs or add another real changed read-surface test, while keeping sandbox/prod writes and Mac Mini authenticated transport gated.
+
 ## 2026-06-14 06:10 AEST
 
 ### Tick 20260614_0610 — Senior PM bounded AI-RET-001 read-back health check
@@ -20569,3 +20612,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260614_074819.log'
+
+## 2026-06-14 08:26:28 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260614_082044.log'

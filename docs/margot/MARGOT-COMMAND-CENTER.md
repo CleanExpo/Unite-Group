@@ -2,7 +2,18 @@
 Date: 2026-05-23
 Project: Unite-Group
 Root: `/Users/phillmcgurk/Unite-Group`
-Last update: 2026-06-14 07:49 AEST — Senior PM AI-RET-001 read-back refresh after ops auto-sync
+Last update: 2026-06-14 08:24 AEST — DR/NRPG CRM lead integration credential-conflict hardening
+
+## Current Autonomy Rotation Guard — 2026-06-14 08:24 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at `6a141035` (dirty inherited worktree; `git rev-list --count main..origin/main` returned `8`). Current `git status --short` still shows inherited modified/untracked Margot, CRM, command-center, security, runtime, docs/design, image, and test surfaces; no commit, push, PR, deploy, or destructive git action was attempted.
+- Completed safe Senior PM lane: re-read the ordered Senior PM read-first set, current `docs/margot/linear-watch-today.md`, AI-RET-001 evidence/register/pipeline, Mac Mini status, command-center surface, progress/morning logs, package manifest, active Margot execution plans, and the DR/NRPG CRM lead integration gate/route/tests, then hardened the local credential boundary. `requireCrmLeadIntegrationAccess` now fails closed if the Pi-Dev-Ops integration token is misconfigured to equal the server-side Supabase service-role key, before bearer comparison and without printing either value.
+- Verification: `date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-14 08:24:37 AEST`; RED `npx jest tests/unit/lib/security/crm-lead-integration-gate.test.ts --runInBand` failed on the new service-role conflict case before the fix; GREEN same focused gate -> 1 suite / 16 tests PASS; `npm run type-check` PASS; `npm run security:routes-check` -> 0 unprotected mutating routes; `git diff --check` exited clean; `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> 1 suite / 222 tests PASS; report runner -> `overallStatus=pass; source=8/8; answerShape=106/106; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`.
+- Evidence read-back: `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` regenerated at `14/06/2026, 08:24:33 AEST` with `overallStatus=pass`, source fixtures `8/8`, answer-shape fixtures `106/106`, and report read-back `pass`.
+- Mac Mini: not reprobed this tick per rotation guard. Last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts. Recovery remains blocked on an authenticated SMB mount, usable SSH session, or approved export.
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, source-control publication, client-facing sends, paid spend, public publishing, connector platforms, new vendors, destructive git, cross-tenant data joins, fabricated board approval, implicit policy inference, fabricated tick history, fabricated conversation history.
+- Files changed this tick: `src/lib/security/crm-lead-integration-gate.ts`, `tests/unit/lib/security/crm-lead-integration-gate.test.ts`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/overnight-progress-log.md`, and `docs/margot/morning-report.md`.
+- Next safe lane: package/review remaining local credential-boundary diffs or add another real changed read-surface test, while keeping sandbox/prod writes and Mac Mini authenticated transport gated.
 
 ## Current Autonomy Rotation Guard — 2026-06-14 07:49 AEST
 
