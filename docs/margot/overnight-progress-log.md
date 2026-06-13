@@ -1,5 +1,40 @@
 # Margot Overnight Progress Log
 
+## 2026-06-13 18:57 AEST
+
+### Tick 20260613_1857 — AI-RET-001 103rd fixture: OVERNIGHT-PROGRESS-LOG-SELF-BOUNDARY
+
+Lane: AI-RET-001 harness hardening — overnight-progress-log self-boundary fixture.
+
+Completed:
+- Added `AI-RET-001-ANSWER-OVERNIGHT-PROGRESS-LOG-SELF-BOUNDARY` as the 103rd answer-shape fixture in `src/lib/margot/retrieval-evaluation.ts`.
+- Fixture pins 10 required phrases: overnight progress log self boundary lane, 34th overnight progress log content citation class, timestamped evidence append, verification passed evidence, morning report mirror, no retrospective tick history, blockers unchanged, next safe lane rotation, local-only mocked static harness, and use existing assets first.
+- Fixture requires 4 local citations: `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`, `docs/margot/MARGOT-ORCHESTRATOR.md`, and `docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md`.
+- Fixture rejects 10 overclaim phrases covering fabricated tick history, invented retrospective completion, GitHub push, Vercel deploy, production migration, sandbox wizard action, secret read, Mac Mini artifact recovery, live provider status fetch, and client-facing send.
+- Updated the report runner canned answer and regenerated `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-13 18:57:13 AEST`.
+- RED: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts -t "overnight-progress-log-self-boundary" --runInBand` failed because the fixture was not yet registered.
+- GREEN: same targeted command passed after wiring the fixture.
+- Full focused retrieval gate: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> PASS, 1 suite / 216 tests.
+- Report runner: `npx tsx scripts/margot-retrieval-evaluation-report.ts` -> `overallStatus=pass; source=8/8; answerShape=103/103; readback=pass`.
+
+Files changed:
+- `src/lib/margot/retrieval-evaluation.ts`
+- `tests/unit/lib/margot/retrieval-evaluation.test.ts`
+- `scripts/margot-retrieval-evaluation-report.ts`
+- `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand, production DB write/migration, Vercel deploy/env mutation, GitHub push/PR/merge, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live vector/AI call, provider polling, credential read, destructive git, or cross-client merge occurred.
+- Mac Mini recovery was not re-probed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts.
+- Sandbox authority/auth gate unchanged and not revalidated.
+
+Next safe lane: add the `crm-lead-integration-gate` self-boundary fixture, add a 7th bounded error-path class, or refresh another Senior PM control surface doc while keeping AI-RET-001 `overallStatus=pass`.
+
 ## 2026-06-13 17:48 AEST
 
 ### Tick 20260613_1748 — Senior PM control-surface refresh + AI-RET-001 read-back gate
@@ -19620,3 +19655,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260613_174739.log'
+
+## 2026-06-13 19:15:01 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260613_181948.log'
