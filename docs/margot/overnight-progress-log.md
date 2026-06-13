@@ -1,5 +1,37 @@
 # Margot Overnight Progress Log
 
+## 2026-06-13 23:48 AEST
+
+### Tick 20260613_2348 — Hermes dashboard add-on redaction read-surface test hardening
+
+Lane: concrete local read-surface test improvement — replace a temporary console-debug test with an operator-safety regression for the Hermes dashboard add-on readiness probe.
+
+Completed:
+- Re-read the ordered Senior PM read-first set, current Linear mirror, AI-RET-001 evidence (`overallStatus=pass; source=8/8; answerShape=104/104`), AI enhancement register/pipeline, Mac Mini recovery status, current progress/morning logs, command-center surface, and the two Margot execution plans before selecting the lane.
+- Inspected current repo state: branch `mesh/mission-control-2026-06-11`, latest commit `c25b9323`, `git rev-list --count main..origin/main` returned `8`, and the inherited dirty/untracked worktree remains extensive.
+- Reworked `tests/integration/api/debug-addon.test.ts` from a temporary console-debug file (`Temporary debug test — delete after use`, console logs, `expect(true).toBe(true)`) into a deterministic redaction/readiness regression for `/api/command-center/hermes-dashboard` add-on probes.
+- The new test proves the route may derive readiness from local Hermes config and `hermes tools list`, but the API payload does not echo raw config secrets, sensitive judge IDs, or raw tool stdout while still surfacing goals/code-execution/hooks/batch readiness.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-13 23:47:12 AEST`.
+- `npx jest tests/integration/api/debug-addon.test.ts tests/integration/api/hermes-dashboard.test.ts --runInBand` -> PASS, 2 suites / 5 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS, no whitespace errors.
+
+Files changed:
+- `tests/integration/api/debug-addon.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand, production DB write/migration, Vercel deploy/env mutation, GitHub push/PR/merge, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live vector/AI call, provider polling, credential read, destructive git, or cross-client merge occurred.
+- Mac Mini recovery was not re-probed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts.
+- Sandbox authority/auth gate unchanged and not revalidated.
+
+Next safe lane: keep rotating to concrete local gaps — another read-surface test only if a changed route/component gives a target, a 7th bounded AI-RET-001 error-path class, or a Senior PM control-surface refresh from existing repo evidence.
+
 ## 2026-06-13 23:14 AEST
 
 ### Tick 20260613_2314 — Senior PM bounded AI-RET-001 read-back health check
@@ -19921,3 +19953,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260613_231332.log'
+
+## 2026-06-13 23:50:42 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260613_234554.log'

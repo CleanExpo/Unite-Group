@@ -1,5 +1,14 @@
 # Margot Morning Report
 
+## Senior PM Hermes dashboard add-on redaction test hardening at 2026-06-13 23:48 AEST
+
+- **Completed safe lane:** Replaced the temporary `tests/integration/api/debug-addon.test.ts` console-debug artifact with a deterministic Hermes dashboard add-on redaction/readiness regression. The test now proves `/api/command-center/hermes-dashboard` can derive readiness metrics from local Hermes config and `hermes tools list` while not echoing raw config tokens, sensitive judge IDs, or raw tool stdout into the API payload.
+- **Repo state read-back:** branch `mesh/mission-control-2026-06-11`; latest commit `c25b9323`; `git rev-list --count main..origin/main` returned `8`; inherited dirty/untracked worktree state remains extensive.
+- **Verification:** `npx jest tests/integration/api/debug-addon.test.ts tests/integration/api/hermes-dashboard.test.ts --runInBand` -> 2 suites / 5 tests PASS; `npm run type-check` PASS; `npm run security:routes-check` PASS with 0 unprotected mutating routes; `git diff --check` PASS.
+- **Files changed:** `tests/integration/api/debug-addon.test.ts`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`, and `docs/margot/MARGOT-COMMAND-CENTER.md`. No production code touched and no route behavior changed; this was test-surface hardening only.
+- **Safety/blockers:** No sandbox wizard subcommand, production DB write/migration, Vercel deploy/env mutation, GitHub push/PR/merge, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live vector/AI call, provider polling, credential read, destructive git, or cross-client merge occurred. Mac Mini was not re-probed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, 0 recovered Markdown artifacts. Sandbox authority/auth gate unchanged and not revalidated.
+- **Next safe lane:** Keep rotating to concrete local gaps — another route/component read-surface test if a changed surface gives a target, a 7th bounded AI-RET-001 error-path class, or a Senior PM control-surface refresh from existing repo evidence.
+
 ## Senior PM bounded AI-RET-001 read-back health check at 2026-06-13 23:14 AEST
 
 - **Completed safe lane:** Re-read the Senior PM read-first set, current Linear mirror, AI-RET-001 evidence, AI enhancement register/pipeline, Mac Mini status, current progress/morning logs, and active Margot execution plans, then ran the bounded local AI-RET-001 focused gate and regenerated/read back the evidence report. This was a health/read-back lane only; no new fixture, route behavior, vendor, integration, retrieval threshold, live provider check, sandbox wizard command, or DB action was added.

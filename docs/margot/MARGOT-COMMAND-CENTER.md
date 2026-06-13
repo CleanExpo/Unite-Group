@@ -2,7 +2,17 @@
 Date: 2026-05-23
 Project: Unite-Group
 Root: `/Users/phillmcgurk/Unite-Group`
-Last update: 2026-06-13 23:14 AEST — Senior PM bounded AI-RET-001 read-back health check
+Last update: 2026-06-13 23:48 AEST — Senior PM Hermes dashboard add-on redaction test hardening
+
+## Current Autonomy Rotation Guard — 2026-06-13 23:48 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at `c25b9323` (dirty inherited worktree; `git rev-list --count main..origin/main` returned `8`). Current `git status --short` still shows the inherited modified/untracked Margot, CRM, command-center, security, and test surfaces; no commit, push, PR, deploy, or destructive git action was attempted.
+- Completed safe Senior PM lane: converted `tests/integration/api/debug-addon.test.ts` from a temporary console-debug artifact into a deterministic add-on readiness/redaction regression for the read-only Hermes dashboard wrapper. The new test proves local config/tool output can drive readiness cards without exposing raw config tokens, sensitive judge IDs, or raw tool stdout in the API envelope.
+- Verification: `npx jest tests/integration/api/debug-addon.test.ts tests/integration/api/hermes-dashboard.test.ts --runInBand` -> 2 suites / 5 tests PASS; `npm run type-check` PASS; `npm run security:routes-check` -> 0 unprotected mutating routes; `git diff --check` PASS. AI-RET-001 evidence was read before lane selection and remains `overallStatus=pass; source=8/8; answerShape=104/104` from the current report.
+- Mac Mini: not reprobed this tick per rotation guard. Last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts. Recovery remains blocked on an authenticated SMB mount, usable SSH session, or approved export.
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, public publishing, connector platforms, new vendors, destructive git, cross-tenant data joins, fabricated board approval, implicit policy inference, fabricated tick history, fabricated conversation history.
+- Files changed this tick: `tests/integration/api/debug-addon.test.ts`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`, and this command-center entry. No production code touched and no route behavior changed; test-surface hardening only.
+- Next safe lane: keep rotating to concrete local gaps — another read-surface test only if a changed route/component gives a target, a 7th bounded AI-RET-001 error-path class, or a Senior PM control-surface refresh from existing repo evidence.
 
 ## Current Autonomy Rotation Guard — 2026-06-13 23:14 AEST
 
