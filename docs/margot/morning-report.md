@@ -1,5 +1,14 @@
 # Margot Morning Report
 
+## Senior PM bounded AI-RET-001 read-back health check at 2026-06-13 20:18 AEST
+
+- **Completed safe lane:** Re-read the Senior PM read-first set, current Linear mirror, AI-RET-001 evidence, AI enhancement register/pipeline, Mac Mini status, current progress/morning logs, and active Margot execution plans, then ran the bounded local AI-RET-001 focused gate and regenerated/read back the evidence report. This was a health/read-back lane only; no new fixture, route behavior, vendor, integration, retrieval threshold, live provider check, or DB action was added.
+- **Repo state read-back:** branch `mesh/mission-control-2026-06-11`; latest commit `90d1cd7d`; `git rev-list --count main..origin/main` returned `8`; inherited dirty/untracked worktree state remains extensive.
+- **Verification:** `node_modules=present`; `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> 1 suite / 216 tests PASS; `npx tsx scripts/margot-retrieval-evaluation-report.ts` -> `overallStatus=pass; source=8/8; answerShape=103/103; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`. The evidence report was regenerated at `13/06/2026, 20:18:12 AEST`.
+- **Files changed:** `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `docs/margot/overnight-progress-log.md`, and `docs/margot/morning-report.md` evidence entries only. No production code touched, no gate behavior changed, no existing tests changed.
+- **Safety/blockers:** No sandbox wizard subcommand, production DB write/migration, Vercel deploy/env mutation, GitHub push/PR/merge, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live vector/AI call, provider polling, credential read, destructive git, or cross-client merge occurred. Mac Mini was not re-probed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, 0 recovered Markdown artifacts. Sandbox authority/auth gate unchanged and not revalidated.
+- **Next safe lane:** Add the `crm-lead-integration-gate` self-boundary fixture, add a 7th bounded error-path class, or refresh another Senior PM control surface doc while keeping AI-RET-001 green.
+
 ## AI-RET-001 103rd fixture: overnight-progress-log-self-boundary at 2026-06-13 18:57 AEST
 
 - **Completed safe lane:** Added the 103rd mocked/static AI-RET-001 answer-shape fixture `AI-RET-001-ANSWER-OVERNIGHT-PROGRESS-LOG-SELF-BOUNDARY`. This pins the overnight-progress-log self-boundary around timestamped evidence append, verification passed evidence, morning report mirror, no retrospective tick history, blockers unchanged, next safe lane rotation, local-only mocked static harness, and use existing assets first.
