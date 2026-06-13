@@ -1,5 +1,14 @@
 # Margot Morning Report
 
+## Senior PM control-surface refresh + AI-RET-001 health gate at 2026-06-13 17:48 AEST
+
+- **Completed safe lane:** Refreshed the local command-center/morning/progress control surfaces after reading the Senior PM read-first set, current Linear mirror, AI-RET-001 evidence, AI enhancement register/pipeline, Mac Mini status, and active Margot execution plans. This was a bounded docs/evidence lane; no new fixture, integration, vendor, live retrieval behavior, or route behavior was added.
+- **Repo state read-back:** branch `mesh/mission-control-2026-06-11`; latest commit `c4918596`; `git rev-list --count main..origin/main` returned `8`; inherited dirty/untracked worktree state remains extensive.
+- **Verification:** `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> 1 suite / 214 tests PASS. Existing AI-RET-001 evidence report remains `overallStatus=pass; source=8/8; answerShape=102/102; readback=pass`.
+- **Files changed:** `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`, and `docs/margot/MARGOT-COMMAND-CENTER.md` evidence entries only. No production code touched, no gate behavior changed, no existing tests changed.
+- **Safety/blockers:** No sandbox wizard subcommand, production DB write/migration, Vercel deploy/env mutation, GitHub push/PR/merge, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live vector/AI call, provider polling, credential read, destructive git, or cross-client merge occurred. Mac Mini was not re-probed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, 0 recovered Markdown artifacts. Sandbox authority/auth gate unchanged.
+- **Next safe lane:** Prefer a concrete read-surface test if a changed route/component provides a real target; otherwise add the 103rd mocked AI-RET-001 fixture for `overnight-progress-log` self-boundary / `crm-lead-integration-gate` self-boundary, or a 7th bounded error-path class.
+
 ## Senior PM bounded AI-RET-001 read-back health check at 2026-06-13 17:16:30 AEST
 
 - **Completed safe lane:** Performed a bounded local health check after re-reading the Senior PM read-first set, current Linear mirror, AI-RET-001 evidence, command-center status/tail, AI enhancement register/pipeline, and the two Margot plans. No new fixture or integration was added because the current report already shows `overallStatus=pass; source=8/8; answerShape=102/102` and the next useful step should be a concrete new surface/error-path gap.

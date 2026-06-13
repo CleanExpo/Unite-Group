@@ -2,6 +2,18 @@
 Date: 2026-05-23
 Project: Unite-Group
 Root: `/Users/phillmcgurk/Unite-Group`
+Last update: 2026-06-13 17:48 AEST — Senior PM control-surface refresh + AI-RET-001 read-back gate
+
+## Current Autonomy Rotation Guard — 2026-06-13 17:48 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at `c4918596` (dirty inherited worktree; `git rev-list --count main..origin/main` returned `8`). Current `git status --short` still shows the inherited modified/untracked Margot, CRM, command-center, security, and test surfaces; no commit, push, PR, deploy, or destructive git action was attempted.
+- Completed safe Senior PM lane: re-read the ordered Senior PM read-first set, current `docs/margot/linear-watch-today.md`, AI-RET-001 evidence, AI enhancement register/pipeline, Mac Mini status, morning/progress logs, and active Margot execution plans, then ran a bounded local AI-RET-001 health gate and refreshed this command-center control surface.
+- Verification: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> 1 suite / 214 tests PASS. Existing `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` remains `overallStatus=pass; source=8/8; answerShape=102/102; readback=pass`.
+- Mac Mini: not reprobed this tick per rotation guard. Last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts. Recovery remains blocked on an authenticated SMB mount, usable SSH session, or approved export.
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, public publishing, connector platforms, new vendors, destructive git, cross-tenant data joins, fabricated board approval, implicit policy inference, fabricated tick history, fabricated conversation history.
+- Files changed this tick: `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`, and this command-center entry only. No production code touched, no gate behavior changed, no existing tests changed.
+- Next safe lane: prefer a concrete read-surface test if a changed route/component provides a real target; otherwise add the 103rd mocked AI-RET-001 fixture for `overnight-progress-log` self-boundary / `crm-lead-integration-gate` self-boundary, or a 7th bounded error-path class.
+
 |Last update: 2026-06-13 13:09:09 AEST — Senior PM Hermes dashboard process-count read-surface contract + doc-tick
 
 |## Current Autonomy Rotation Guard — 2026-06-13 13:09:09 AEST

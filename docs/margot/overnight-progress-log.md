@@ -1,5 +1,34 @@
 # Margot Overnight Progress Log
 
+## 2026-06-13 17:48 AEST
+
+### Tick 20260613_1748 — Senior PM control-surface refresh + AI-RET-001 read-back gate
+
+Lane: bounded Senior PM health/read-back and command-center control-surface refresh.
+
+Completed:
+- Re-read the ordered Senior PM read-first set, current Linear intake mirror, AI-RET-001 evidence report, AI enhancement register/pipeline, Mac Mini recovery status, latest morning/progress logs, and the two Margot execution plans before selecting a lane.
+- Inspected current repo state: branch `mesh/mission-control-2026-06-11`, latest commit `c4918596`, `git rev-list --count main..origin/main` returned `8`, and the inherited dirty/untracked worktree remains extensive.
+- Ran the bounded local AI-RET-001 health gate instead of adding speculative infrastructure or touching gated live systems.
+- Refreshed the command-center and morning-report control surfaces so they point at the current 102/102 AI-RET-001 pass state rather than the older 100/100 command-center snapshot.
+
+Verification:
+- `date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-13 17:48:38 AEST`.
+- `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> PASS, 1 suite / 214 tests.
+- Existing AI-RET-001 report read-back remains `overallStatus=pass; source=8/8; answerShape=102/102; readback=pass`.
+
+Files changed:
+- docs/margot/overnight-progress-log.md
+- docs/margot/morning-report.md
+- docs/margot/MARGOT-COMMAND-CENTER.md
+
+Safety/blockers:
+- No sandbox wizard subcommand, production DB write/migration, Vercel deploy/env mutation, GitHub push/PR/merge, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live vector/AI call, provider polling, credential read, destructive git, or cross-client merge occurred.
+- Mac Mini recovery was not re-probed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts.
+- Sandbox authority/auth gate unchanged and not revalidated.
+
+Next safe lane: if a concrete changed route/component exists, add a small read-surface test; otherwise add the 103rd mocked AI-RET-001 fixture for `overnight-progress-log` self-boundary / `crm-lead-integration-gate` self-boundary, or a 7th bounded error-path class.
+
 ## 2026-06-13 14:52 AEST
 
 ### Tick 20260613_1452 — AI-RET-001 102nd fixture: DIGEST-READ-ERROR-SELF-BOUNDARY (6th error-path class)
@@ -19582,3 +19611,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260613_171503.log'
+
+## 2026-06-13 17:49:48 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260613_174739.log'
