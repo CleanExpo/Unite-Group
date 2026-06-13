@@ -1,7 +1,7 @@
 # Margot AI Enhancement Pipeline
 
 Date: 2026-05-23 07:33 AEST
-| Last update: 2026-06-10 18:59:27 AEST |
+| Last update: 2026-06-14 05:34 AEST — Senior PM AI-RET-001 control-surface refresh |
 Project: Unite-Group
 Owner: Margot
 Scope: Existing repo/docs/code evidence only. This document defines the pipeline; it does not adopt a new model/vendor/tool or make production changes.
@@ -23,12 +23,13 @@ Primary inputs:
 - `scripts/margot-semantic-search-wrapper.ts`
 - `docs/tool-registration-semantic-search.md`
 
-## Current Senior PM verification checkpoint (2026-06-10 18:59:27 AEST)
+## Current Senior PM verification checkpoint (2026-06-14 05:34 AEST)
 
 What exists:
 
 - Durable pipeline doc with 9-stage state machine and 5-dimension value scoring.
 - Concrete candidate register with explicit per-candidate status, value score, evidence list, and approval gates.
+- Current AI-RET-001 local evidence report is `overallStatus=pass`, source fixtures `8/8`, answer-shape fixtures `106/106`, and read-back `pass`.
 - Three local-only `implemented_local` candidates:
   - `AI-CRM-001` deterministic lead qualification helper.
   - `AI-CRM-002` daily CRM digest generator with explicit source labels.
@@ -38,13 +39,13 @@ What exists:
 
 What has started (this tick):
 
-- Added explicit AI-RET-001 unit coverage that duplicated `## Safety notes` and duplicated `## Next safe action` sections are rejected before command-center handoff.
-- This is a local-only test/docs/evidence refresh; no schema, deployment, external AI call, live vector search, provider polling, DB write, account setup, or vendor work was performed.
+- Refreshed this AI enhancement pipeline control surface from the current AI-RET-001 report, candidate register, retrieval rules, Senior PM read-first set, Linear mirror, command center, progress log, and morning report.
+- This is a local-only docs/evidence refresh; no schema, deployment, external AI call, live vector search, provider polling, DB write, account setup, new fixture, threshold change, or vendor work was performed.
 
 Why this exists / problem it solves:
 
-- The report read-back parser already rejected duplicate handoff sections, but that behavior was only indirectly covered by a broader duplicate-handoff-section test. This tick pins the two concrete handoff sections that carry safety notes and next-safe-action instructions so a malformed report cannot hide conflicting safety/action text behind duplicated headings.
-- The previous version of this doc listed the latest guard as duplicate fixture-result table structure, so future agents could miss that explicit Safety notes / Next safe action duplication coverage now exists and duplicate the same case.
+- The previous version of this control surface still described the AI-RET-001 harness as `19/19` answer-shape evidence in several summary anchors even though the current generated report is `106/106`.
+- This refresh prevents Senior PM lane selection from using stale fixture counts while preserving the same local-only, operator-gated adoption boundary.
 
 Missing / unclear / pending external authority:
 
@@ -54,12 +55,9 @@ Missing / unclear / pending external authority:
 
 Current health evidence (this tick):
 
-- Targeted duplicate handoff-section coverage passed: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts -t "handoff sections are duplicated" --runInBand`.
-- Focused retrieval gate passed: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` returned 1 suite / 76 tests PASS.
-- `npx tsx scripts/margot-retrieval-evaluation-report.ts` refreshed `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` at `10/06/2026, 19:01:28 AEST` and returned `overallStatus=pass; source=8/8; answerShape=19/19; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`.
-- `npm run type-check` passed.
-- `npm run security:routes-check` reported 0 unprotected mutating routes.
-- `git diff --check` passed.
+- Focused retrieval gate after this refresh passed: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> 1 suite / 222 tests PASS.
+- Report runner after this refresh passed: `npx ts-node --transpile-only -O '{"module":"commonjs","moduleResolution":"node"}' scripts/margot-retrieval-evaluation-report.ts` -> `overallStatus=pass; source=8/8; answerShape=106/106; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`; evidence regenerated at `14/06/2026, 05:38:36 AEST`.
+- `npm run type-check` passed; `npm run security:routes-check` reported 0 unprotected mutating routes; `git diff --check` passed.
 
 Mac Mini state (this tick):
 
@@ -251,7 +249,7 @@ Current candidate register: `docs/margot/ai-enhancement-candidate-register.md`.
 | `crm_leads` / marketing route | Lead capture source. | Add deterministic qualification first; AI enrichment only after privacy/approval gates. |
 | Margot voice routes/tests | Voice-to-task ingress. | Evaluate better summarization/classification only with transcript privacy rules (AI-VOICE-001 gate). |
 | Integration mirrors | Provider health and project evidence. | Add stale-sync/risk summarization without direct provider mutation (AI-INT-001). |
-| `src/lib/margot/retrieval-evaluation.ts` | AI-RET-001 evaluation harness (8/8 source, 19/19 answer shape, report-title/generated-timestamp/Summary-heading read-back guards). | Extend with additional fixtures/report integrity cases before any behavior change. |
+| `src/lib/margot/retrieval-evaluation.ts` | AI-RET-001 evaluation harness (8/8 source, 106/106 answer shape, report-title/generated-timestamp/Summary-heading/read-back guards). | Extend only with additional fixtures/report integrity cases before any behavior change. |
 | `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` | Generated AI-RET-001 evidence. | Regenerate and read back green after any harness or threshold change. |
 
 ## First safe candidates (concrete, not abstract)
@@ -270,7 +268,7 @@ These candidates already exist in the register; none are adopted to production b
 
 3. `AI-RET-001` — Retrieval evaluation harness for Margot docs.
    - Status: `implemented_local`.
-   - Evidence: `scripts/margot-semantic-search-wrapper.ts`; `src/lib/margot/retrieval-evaluation.ts`; `scripts/margot-retrieval-evaluation-report.ts`; `tests/unit/lib/margot/retrieval-evaluation.test.ts`; `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (8/8 source, 19/19 answer shape, `overallStatus=pass`, `generatedTimestamp=true`).
+   - Evidence: `scripts/margot-semantic-search-wrapper.ts`; `src/lib/margot/retrieval-evaluation.ts`; `scripts/margot-retrieval-evaluation-report.ts`; `tests/unit/lib/margot/retrieval-evaluation.test.ts`; `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (8/8 source, 106/106 answer shape, `overallStatus=pass`, `generatedTimestamp=true`, `readback=pass`).
    - Safe next step: extend only with additional local report corruption/error-path cases or more mocked answer-shape fixtures.
 
 4. `AI-INT-001` — Integration stale-sync/risk summarizer.

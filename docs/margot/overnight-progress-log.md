@@ -1,5 +1,42 @@
 # Margot Overnight Progress Log
 
+## 2026-06-14 05:37 AEST
+
+### Tick 20260614_0537 — Senior PM AI-RET-001 control-surface count refresh
+
+Completed safe lane: refreshed the AI enhancement control surfaces from existing repo evidence so `docs/margot/ai-enhancement-pipeline.md` and `docs/margot/ai-enhancement-candidate-register.md` no longer carry stale `19/19` / `seventy-six` answer-shape language while the current AI-RET-001 report is `106/106`. This was a local documentation/evidence lane only; no new fixture, route behavior, retrieval threshold, live provider check, vendor, account setup, sandbox wizard command, DB action, deploy, push, client-facing send, public publishing, paid spend, credential read, or production behavior was added.
+
+Repo state read-back:
+- Branch: `mesh/mission-control-2026-06-11`.
+- Latest commit: `194a6494 chore: Margot ops auto-sync [tick 20260614_050134] (ops only — other uncommitted files present)`.
+- `git rev-list --count main..origin/main` returned `8`.
+- Inherited dirty/untracked worktree remains extensive; this tick touched only the AI enhancement control-surface docs, regenerated AI-RET-001 evidence report, and the Margot report surfaces.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-14 05:37:23 AEST` / `2026-06-14 05:37:41 AEST` during this lane.
+- `node_modules=present`.
+- `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> PASS, 1 suite / 222 tests.
+- Report runner: `npx ts-node --transpile-only -O '{"module":"commonjs","moduleResolution":"node"}' scripts/margot-retrieval-evaluation-report.ts` -> `overallStatus=pass; source=8/8; answerShape=106/106; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`.
+- `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` regenerated at `14/06/2026, 05:38:36 AEST` after the final post-doc-update read-back run.
+- `npm run type-check` -> PASS.
+- `npm run security:routes-check` -> PASS, 0 unprotected mutating routes.
+- `git diff --check` -> PASS.
+
+Files changed this tick:
+- `docs/margot/ai-enhancement-pipeline.md`
+- `docs/margot/ai-enhancement-candidate-register.md`
+- `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+
+Safety/blockers:
+- Mac Mini was not re-probed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts. Recovery remains blocked on authenticated SMB mount, usable SSH, or approved export.
+- Sandbox authority/auth gate unchanged and not revalidated; no sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` was run.
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push/PR/merge, client-facing sends, paid spend, public publishing, connector platforms, new vendors, destructive git, cross-client data merge, fabricated approval, implicit policy inference, fabricated tick history, and fabricated conversation history.
+
+Next safe lane: keep AI-RET-001 green at source `8/8`, answerShape `106/106`, and `readback=pass`; add new harness fixtures only for a named error-path gap, otherwise rotate to a real changed read-surface test or another stale Senior PM control surface refresh.
+
 ## 2026-06-14 05:02 AEST
 
 ### Tick 20260614_0502 — Senior PM bounded AI-RET-001 read-back health check
@@ -20319,3 +20356,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260614_050134.log'
+
+## 2026-06-14 05:39:25 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260614_053351.log'
