@@ -3260,3 +3260,13 @@ Latest Senior PM AI-RET-001 harness realignment at `2026-06-10 09:42 AEST`:
 - Mac Mini: rotation guard - not reprobed this tick. Last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, 0 recovered Markdown artifacts. Blocker unchanged.
 - Safety: no sandbox wizard subcommand, production DB write, migration, deploy/env mutation, GitHub push/PR/merge, client-facing send, paid spend, public publishing, connector platform, new vendor, live vector/AI call, provider polling, credential read, destructive git, cross-tenant data join, fabricated approval, or Mac Mini credential prompt occurred.
 - Next safe lane: rotate to a concrete local gap — an 8th bounded AI-RET-001 error-path class, another Senior PM control-surface refresh, or a real read-surface test only if a changed route/component gives a target.
+
+## 2026-06-14 06:42:56 AEST
+
+- Completed bounded Senior PM Mission Control read-surface health check after re-reading the ordered read-first set, live Linear mirror, AI evidence, command-center surface, progress log, morning report, and Mission Control wrapper route/test files.
+- Repo preflight: branch `mesh/mission-control-2026-06-11`; latest commit `a31c32af`; `main..origin/main=8`; inherited dirty/untracked Margot/CRM/security/command-center/runtime state remains and was not normalized.
+- Verification passed: `node_modules=present`; `npx jest tests/integration/api/debug-addon.test.ts tests/integration/api/hermes-dashboard.test.ts tests/integration/api/mesh-fleet.test.ts --runInBand` -> 3 suites / 9 tests PASS; `npm run type-check` PASS; `npm run security:routes-check` PASS with 0 unprotected mutating routes; `git diff --check` PASS.
+- Files changed: `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`. No production code touched. No gate behavior changed. No existing tests changed.
+- Mac Mini: rotation guard - not reprobed this tick. Last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, 0 recovered Markdown artifacts. Blocker unchanged.
+- Safety: no sandbox wizard subcommand, production DB write, migration, deploy/env mutation, GitHub push/PR/merge, client-facing send, paid spend, public publishing, connector platform, new vendor, live vector/AI call, provider polling, credential read, destructive git, cross-tenant data join, fabricated approval, or Mac Mini credential prompt occurred.
+- Next safe lane: keep rotating to concrete local gaps — another route/component read-surface test only if a changed surface gives a target, a bounded AI-RET-001 report corruption/error-path class, or a Senior PM control-surface refresh from existing repo evidence.

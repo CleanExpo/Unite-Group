@@ -20408,3 +20408,53 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260614_060925.log'
+
+## 2026-06-14 06:42:56 AEST
+
+### Senior PM Mission Control read-surface health check
+
+Current checkpoint:
+
+- Inspected repo state before selecting the lane: branch `mesh/mission-control-2026-06-11`; latest commit `a31c32af chore: Margot ops auto-sync [tick 20260614_060925] (ops only — other uncommitted files present)`; `git rev-list --count main..origin/main` returned `8`; inherited dirty/untracked Margot, CRM, command-center, security, runtime, and test surfaces remain and were not normalized.
+- Re-read the required Senior PM read-first set, live Linear mirror, AI-RET-001 evidence report (`overallStatus=pass; source=8/8; answerShape=106/106`), AI enhancement register/pipeline, Mac Mini recovery status, command-center surface, progress log, morning report, and the two Margot execution plans before choosing the lane.
+- Chose a bounded real read-surface health check instead of revalidating unchanged sandbox/Mac Mini gates: re-read the Mission Control wrapper route and its focused tests (`src/app/api/command-center/hermes-dashboard/route.ts`, `tests/integration/api/hermes-dashboard.test.ts`, `tests/integration/api/debug-addon.test.ts`, and `tests/integration/api/mesh-fleet.test.ts`) and verified the local read-only dashboard / mesh wrapper contracts remain green.
+
+Verification:
+
+```bash
+TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'
+# 2026-06-14 06:42:56 AEST
+
+test -d node_modules && echo node_modules=present || echo node_modules=missing
+# PASS: node_modules=present.
+
+npx jest tests/integration/api/debug-addon.test.ts tests/integration/api/hermes-dashboard.test.ts tests/integration/api/mesh-fleet.test.ts --runInBand
+# PASS: 3 suites / 9 tests passed.
+
+npm run type-check
+# PASS: tsc --noEmit completed.
+
+npm run security:routes-check
+# PASS: route-inventory check reported 0 unprotected mutating routes.
+
+git diff --check
+# PASS: no whitespace errors reported.
+```
+
+Safety:
+
+- No sandbox wizard subcommand, production DB write, migration, Vercel deploy/env mutation, GitHub push/PR/merge, client-facing send, paid spend, public publishing, connector platform, new vendor, live vector/AI call, provider polling, credential read, destructive git, cross-tenant data join, fabricated approval, or Mac Mini credential prompt occurred.
+- Mac Mini recovery was not reprobed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, 0 recovered Markdown artifacts.
+
+Next safe slice:
+
+- Continue rotating to concrete local gaps: another route/component read-surface test only if a changed surface gives a target, a bounded AI-RET-001 report corruption/error-path class, or a Senior PM control-surface refresh from existing repo evidence.
+
+## 2026-06-14 06:44:08 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260614_064144.log'
