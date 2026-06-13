@@ -1,5 +1,32 @@
 # Margot Overnight Progress Log
 
+## 2026-06-13 14:52 AEST
+
+### Tick 20260613_1452 — AI-RET-001 102nd fixture: DIGEST-READ-ERROR-SELF-BOUNDARY (6th error-path class)
+
+Lane: AI-RET-001 harness hardening — 6th error-path class fixture.
+
+Completed:
+- Added `AI-RET-001-ANSWER-DIGEST-READ-ERROR-SELF-BOUNDARY` as 102nd answer-shape fixture in `src/lib/margot/retrieval-evaluation.ts`. Documents the `logCrmDigestReadError` PII-redaction and credential-boundary contract in `src/lib/crm/digest-read-error.ts`.
+- 10 required phrases: digest read error self boundary lane, 6th error-path class, logCrmDigestReadError bounded event helper, stage leads tasks opportunities unexpected, context api command-center, fail-closed no log when stage or context out of bounds, raw error objects messages query strings and pii never logged, local-only mocked static harness, no production db write no supabase call no network call, use existing assets first.
+- 4 required citations: src/lib/crm/digest-read-error.ts, tests/unit/lib/crm/digest-read-error.test.ts, docs/margot/MARGOT-COMMAND-CENTER.md, docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md.
+- 10 overclaim prohibitions: digest read error raw error object logged, pii logged in event, out of band stage accepted, out of band context accepted, production db write executed, supabase call executed, network call executed, credential stored, github push executed, vercel deploy executed.
+- Added canned helper + pass/reject test blocks to `tests/unit/lib/margot/retrieval-evaluation.test.ts`. Bumped all pinned fixture-count assertions from 101 to 102.
+- Added fixture entry to `scripts/margot-retrieval-evaluation-report.ts`. Updated `nextSafeAction` to reference 102nd fixture and point to 103rd.
+- Ran report script: `overallStatus=pass; source=8/8; answerShape=102/102; readback=pass`.
+- Regenerated `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`.
+
+Verification: `npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ --runInBand` — 9 suites / 313 tests pass.
+
+Files changed:
+- src/lib/margot/retrieval-evaluation.ts
+- tests/unit/lib/margot/retrieval-evaluation.test.ts
+- scripts/margot-retrieval-evaluation-report.ts
+- docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md
+
+Mac Mini: SMB reachable (192.168.2.78:445), SSH unreachable, 0 artifacts. Rotation guard: blocked, rotated to safe lane.
+Sandbox gate: unchanged, not revalidated.
+
 ## 2026-06-13 14:40 AEST
 
 ### Tick 20260613_1440 — AI-RET-001 harness stability: advisor-finding overclaim fix + duplicate-key removal
@@ -19490,3 +19517,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260613_143349.log'
+
+## 2026-06-13 15:38:14 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260613_152328.log'

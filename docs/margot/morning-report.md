@@ -1,5 +1,15 @@
 # Margot Morning Report
 
+## 102nd AI-RET-001 fixture: digest-read-error-self-boundary at 2026-06-13 14:52 AEST
+
+- Completed safe Senior PM lane: added 102nd mocked answer-shape fixture `AI-RET-001-ANSWER-DIGEST-READ-ERROR-SELF-BOUNDARY`. 6th error-path class. Pins the harness against any claim of raw error object logged, PII logged in event, out-of-band stage accepted, out-of-band context accepted, production DB write, Supabase call, network call, credential stored, GitHub push, or Vercel deploy. Documents `logCrmDigestReadError` credential-boundary and PII-redaction contract.
+- 10 required phrases, 10 prohibited overclaim phrases, 4 required citations: src/lib/crm/digest-read-error.ts, tests/unit/lib/crm/digest-read-error.test.ts, docs/margot/MARGOT-COMMAND-CENTER.md, docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md.
+- All pinned fixture-count assertions bumped from 101 to 102 (3 toHaveLength, 2 answerShapeFixtureCount, 2 answerShapePassCount, 1 MARGOT_RETRIEVAL_ANSWER_SHAPE_FIXTURES array-length, 1 ID-list).
+- Verification: npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ --runInBand -> 9 suites / 313 tests passed. Report script: overallStatus=pass, source=8/8, answerShape=102/102, readback=pass.
+- Files changed: src/lib/margot/retrieval-evaluation.ts, tests/unit/lib/margot/retrieval-evaluation.test.ts, scripts/margot-retrieval-evaluation-report.ts, docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md (answerShape 101->102).
+- Mac Mini: SMB reachable (192.168.2.78:445), SSH unreachable — rotation guard active, rotated to safe harness lane. Sandbox gate: unchanged, not revalidated.
+- Next recommended lane: 103rd fixture (overnight-progress-log self-boundary, crm-lead-integration-gate self-boundary, or 7th error-path class).
+
 ## 101st AI-RET-001 fixture: linear-watch-today-self-boundary at 2026-06-13 13:50 AEST
 
 - Completed safe Senior PM lane: added 101st mocked answer-shape fixture `AI-RET-001-ANSWER-LINEAR-WATCH-TODAY-SELF-BOUNDARY`. This is the first self-boundary for the `linear-watch-today.md` doc (the 26th content-citation class for this doc already existed). Fixture pins the harness against any claim of live linear sync completed, secret read from linear, issue updated directly, production migration applied, linear api key exposed, cross client context merged, github push executed, vercel deploy executed, paid spend committed, or client facing send dispatched.
