@@ -1,5 +1,14 @@
 # Margot Morning Report
 
+## 101st AI-RET-001 fixture: linear-watch-today-self-boundary at 2026-06-13 13:50 AEST
+
+- Completed safe Senior PM lane: added 101st mocked answer-shape fixture `AI-RET-001-ANSWER-LINEAR-WATCH-TODAY-SELF-BOUNDARY`. This is the first self-boundary for the `linear-watch-today.md` doc (the 26th content-citation class for this doc already existed). Fixture pins the harness against any claim of live linear sync completed, secret read from linear, issue updated directly, production migration applied, linear api key exposed, cross client context merged, github push executed, vercel deploy executed, paid spend committed, or client facing send dispatched.
+- 10 required phrases, 10 prohibited overclaim phrases, 4 required citation sources (docs/margot/linear-watch-today.md, docs/margot/MARGOT-COMMAND-CENTER.md, docs/margot/ai-enhancement-candidate-register.md, docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md).
+- Verification: npx jest retrieval-evaluation.test.ts -> 212/212 passed (0.228s). overallStatus=pass, source=8/8, answerShape=101/101.
+- Files changed: src/lib/margot/retrieval-evaluation.ts, tests/unit/lib/margot/retrieval-evaluation.test.ts, scripts/margot-retrieval-evaluation-report.ts, docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md (answerShape 100->101).
+- No sandbox wizard DB action, production DB write, deploy/env mutation, GitHub push, client-facing send, public publishing, paid spend, live AI/vector call, connector platform, new vendor, credential read, or destructive git.
+- Next safe lane: another self-boundary for a remaining unbounded control surface (access-and-data-requirements, retrieval-rules, voice-test-gap-analysis, overnight-progress-log) or a 6th error-path class.
+
 ## Senior PM Hermes Dashboard Process-Count Read-Surface Contract at 2026-06-13 13:09:09 AEST
 
 - **Hermes dashboard read surface tightened.** The local Mission Control wrapper now preserves the CLI-reported Hermes dashboard process count when the HTTP status probe is reachable (`processCount: Math.max(reportedProcessCount, 1)`) instead of collapsing all reachable states to `1`. The route remains read-only, admin-gated outside local preview, no-store cached, and degraded-safe.

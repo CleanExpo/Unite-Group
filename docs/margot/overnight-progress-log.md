@@ -1,5 +1,30 @@
 # Margot Overnight Progress Log
 
+## 2026-06-13 13:50 AEST
+
+### Tick 20260613_1350 — 101st AI-RET-001 fixture: linear-watch-today-self-boundary
+
+Lane: retrieval harness / answer-shape fixture expansion.
+
+Action: Added `AI-RET-001-ANSWER-LINEAR-WATCH-TODAY-SELF-BOUNDARY` as the 101st answer-shape fixture. This pins the `linear-watch-today.md` doc self-boundary — the first self-boundary for this specific doc (the 26th content-citation boundary for this doc already existed as `AI-RET-001-ANSWER-LINEAR-WATCH-TODAY-BOUNDARY`).
+
+10 required phrases: linear watch today self boundary lane, 26th linear watch today content citation class, live linear intake mirror, full open queue snapshot, state priority project assignee rows, draft-first rule, sandbox only rule, no linear api key or other secrets contract, local-only mocked static harness, use existing assets first.
+
+10 prohibited overclaim phrases: live sync completed, secret read from linear, issue updated directly, production migration applied, linear api key exposed, cross client context merged, github push executed, vercel deploy executed, paid spend committed, client facing send dispatched.
+
+4 required citation sources: docs/margot/linear-watch-today.md, docs/margot/MARGOT-COMMAND-CENTER.md, docs/margot/ai-enhancement-candidate-register.md, docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md.
+
+Files changed:
+- src/lib/margot/retrieval-evaluation.ts (type union +1)
+- tests/unit/lib/margot/retrieval-evaluation.test.ts (+canned fn, +pin entry, +4 map entries, +2 individual tests; counts 100->101)
+- scripts/margot-retrieval-evaluation-report.ts (+canned entry, nextSafeAction updated)
+- docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md (answerShape 100->101, +fixture row, nextSafeAction updated)
+
+Verification: npx jest retrieval-evaluation.test.ts → 212/212 passed (0.228s). overallStatus=pass, source=8/8, answerShape=101/101.
+
+Blocker: none.
+Next lane: another self-boundary for a remaining unbounded control surface (access-and-data-requirements, retrieval-rules, voice-test-gap-analysis, overnight-progress-log), or a 6th error-path class.
+
 ## 2026-06-13 13:09:09 AEST
 
 ### Tick 20260613_1309 — Hermes dashboard process-count read-surface contract
@@ -19420,3 +19445,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260613_130719.log'
+
+## 2026-06-13 14:03:49 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260613_134033.log'
