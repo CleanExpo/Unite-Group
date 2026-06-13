@@ -1,6 +1,6 @@
 # AI-RET-001 Local Retrieval Evaluation Report
 
-Generated: 14/06/2026, 02:12:22 AEST
+Generated: 14/06/2026, 02:46:32 AEST
 
 Overall status: `pass`
 

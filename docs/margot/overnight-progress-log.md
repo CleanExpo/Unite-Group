@@ -20094,3 +20094,48 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260614_021058.log'
+
+## 2026-06-14 02:46:32 AEST
+
+### Senior PM bounded AI-RET-001 read-back health check
+
+Current checkpoint:
+
+- Inspected repo state before selecting the lane: branch `mesh/mission-control-2026-06-11`; latest commit `3b202e60 chore: Margot ops auto-sync [tick 20260614_021058] (ops only — other uncommitted files present)`; `git rev-list --count main..origin/main` returned `8`; inherited dirty/untracked Margot, CRM, command-center, security, and test surfaces remain and were not normalized.
+- Re-read the required Senior PM read-first set, live Linear mirror, AI-RET-001 evidence report, AI enhancement register/pipeline, Mac Mini recovery status, command-center current/tail, progress log, morning report, and the two Margot execution plans before choosing the lane.
+- Chose a bounded local AI-RET-001 health/read-back check rather than a gated DB/Mac Mini lane. The harness remains local-only mocked/static; no live vector search, embeddings backfill, live AI call, provider polling, credential read, sandbox wizard subcommand, production DB write, deployment, external send, paid spend, or connector-platform action occurred.
+
+Verification:
+
+```bash
+date '+%Y-%m-%d %H:%M:%S %Z'
+# 2026-06-14 02:45:57 AEST
+
+test -d node_modules && echo node_modules=present || echo node_modules=missing
+# PASS: node_modules=present.
+
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 220 tests passed.
+
+npx tsx scripts/margot-retrieval-evaluation-report.ts
+# PASS: wrote docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md.
+# overallStatus=pass; source=8/8; answerShape=105/105; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true.
+```
+
+Safety:
+
+- No sandbox wizard subcommand, production DB write, migration, Vercel deploy/env mutation, GitHub push/PR/merge, client-facing send, paid spend, public publishing, connector platform, new vendor, live vector/AI call, provider polling, credential read, destructive git, cross-tenant data join, fabricated approval, or Mac Mini credential prompt occurred.
+- Mac Mini recovery was not reprobed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, 0 recovered Markdown artifacts.
+
+Next safe slice:
+
+- Rotate to a concrete local gap if one is available: an 8th bounded AI-RET-001 error-path class, another Senior PM control-surface refresh from existing repo evidence, or a real read-surface test only when a changed route/component provides a target.
+
+## 2026-06-14 02:48:23 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260614_024457.log'
