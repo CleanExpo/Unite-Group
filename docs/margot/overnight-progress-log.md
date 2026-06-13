@@ -1,5 +1,32 @@
 # Margot Overnight Progress Log
 
+## 2026-06-13 14:40 AEST
+
+### Tick 20260613_1440 — AI-RET-001 harness stability: advisor-finding overclaim fix + duplicate-key removal
+
+Lane: retrieval harness / answer-shape fixture hardening.
+
+Root cause found: `AI-RET-001-ANSWER-ADVISOR-FINDING-ORIGIN-ASSERTED` (100th fixture, 5th error-path class) was evaluating to `shape_mismatch` because the canned answer's overclaim-protection enumeration contained three substrings that matched the fixture's own prohibited phrases:
+  - `advisor finding quoted past timestamp` (substring of `no false advisor finding quoted past timestamp`)
+  - `advisor finding severity raised without evidence` (substring of `no false advisor finding severity raised without evidence`)
+  - `advisor finding patched without source row` (substring of `no false advisor finding patched without source row`)
+
+Secondary issue: Previous tick's insertion of `AI-RET-001-ANSWER-MAC-MINI-RECOVERY-BOUNDARY` created a duplicate object key at line 150 of the report script (a pre-existing wired entry existed at line 373). TypeScript TS1117 caught the duplicate. Removed the duplicate insertion; the pre-existing entry at line 364 is authoritative and already contains the correct answer text.
+
+Fixes applied:
+  1. Rewrote three prohibited-phrase-substring enumeration fragments in the ADVISOR canned answer to non-matching paraphrases: `stale-timestamp citation`, `severity escalated absent evidence`, `remediation absent source row`.
+  2. Removed duplicate `MAC-MINI-RECOVERY-BOUNDARY` key inserted at line 150.
+  3. Updated `nextSafeAction` to reflect accurate harness state.
+
+Verification:
+  - `npx tsx scripts/margot-retrieval-evaluation-report.ts` → `overallStatus=pass; source=8/8; answerShape=101/101; readback=pass`
+  - `npx jest --silent` → `155 suites pass, 1429 tests pass, 1 pre-existing skip, 0 new failures`
+  - `npm run type-check` → clean
+  - `npm run security:routes-check` → 0 unprotected mutating routes
+
+Blockers unchanged: Mac Mini SSH unreachable (SMB only), sandbox auth gate unchanged.
+Next safe lane: add 102nd fixture (retrieval-rules drift, overnight-progress-log self-boundary, or 6th error-path class) or refresh a Senior PM control surface doc.
+
 ## 2026-06-13 13:50 AEST
 
 ### Tick 20260613_1350 — 101st AI-RET-001 fixture: linear-watch-today-self-boundary
@@ -19454,3 +19481,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260613_134033.log'
+
+## 2026-06-13 14:53:28 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260613_143349.log'

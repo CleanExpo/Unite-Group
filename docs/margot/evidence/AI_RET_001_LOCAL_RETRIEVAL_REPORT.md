@@ -1,6 +1,6 @@
 # AI-RET-001 Local Retrieval Evaluation Report
 
-Generated: 13/06/2026, 13:50 AEST
+Generated: 13/06/2026, 14:52:54 AEST
 
 Overall status: `pass`
 
@@ -138,4 +138,4 @@ Overall status: `pass`
 
 ## Next safe action
 
-Keep AI-RET-001 green. The linear-watch-today-self-boundary fixture is now wired in (101st) — it pins the linear-watch-today doc self-boundary against any claim of live linear sync completed, secret read from linear, issue updated directly, or production migration applied. answerShape=101/101. Next: another self-boundary fixture for a remaining unbounded control surface (e.g. access-and-data-requirements, retrieval-rules, voice-test-gap-analysis, or overnight-progress-log), or a 6th error-path class.
+Keep AI-RET-001 green (answerShape=101/101) and harden the harness with another bounded mocked fixture or error-path class before changing live retrieval thresholds or behavior. The mac-mini-recovery-boundary fixture is wired (position 7 of 101) and passes all 10 required phrases and 4 required citations. The advisor-finding-origin-asserted canned answer (100th fixture, 5th error-path class) was repaired 2026-06-13: three overclaim enumeration phrases that were substrings of the prohibited-phrase list were rewritten to non-matching paraphrases (stale-timestamp citation, severity escalated absent evidence, remediation absent source row). The linear-watch-today-self-boundary fixture is the 101st. Next safe lane: add a 102nd fixture for a new boundary (retrieval-rules drift, overnight-progress-log self-boundary, or a 6th error-path class) or refresh a Senior PM control surface doc.
