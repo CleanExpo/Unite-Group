@@ -1,6 +1,6 @@
 # Sandbox Wizard Credential Boundary — Packaging Review
 
-Last update: 2026-06-10 08:30:00 AEST
+Last update: 2026-06-14 08:58:00 AEST
 Project: Unite-Group
 Lane: Senior PM rotation-guard, "package/review the local credential-boundary diff"
 Status: review complete; locally ready, gated
@@ -13,7 +13,7 @@ Read first: `docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md`,
 
 The inherited dirty state carried a non-trivial local change to
 `scripts/sandbox-wizard.sh` (about +125 / -10 lines) plus a new untracked test
-file `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts` (14 tests).
+file `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts` (15 tests).
 The previous Margot rotation-guard tick at 2026-06-10 07:30:00 AEST bound the
 CRM operating model; the binding rotation guard requires rotating to a
 different safe Senior PM lane instead of revalidating the same blocked DB
@@ -85,10 +85,12 @@ is never sourced or `.`-executed, so a production-labelled
 `UNITE_GROUP_DB_PASSWORD=...` line that happens to live in the same
 override file cannot leak into the sandbox credential slot.
 
-The 9 behavioural tests (lines 91-247 of the test file) actually invoke
+The 8 behavioural parser tests (lines 91-247 of the test file) actually invoke
 the embedded Python parser via `execFileSync('python3', ...)` against
 real temp files and assert the exact unescaped value. This is the only
-non-mocked test in the local suite.
+non-mocked parser path in the local suite; the 15th test is the review-doc
+alignment guard that keeps this packaging note bound to the structural and
+behavioural credential-boundary contract.
 
 ### Subcommand call surface
 
@@ -124,12 +126,12 @@ the correct least-privilege posture for a sandbox lane. The token is
 only required for the prod-mirroring and prod-applying subcommands
 that legitimately need it.
 
-## What the tests pin (14 cases, 1 suite, all pass)
+## What the tests pin (15 cases, 1 suite, all pass)
 
 ```
 PASS tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts
 Test Suites: 1 passed, 1 total
-Tests:       14 passed, 14 total
+Tests:       15 passed, 15 total
 ```
 
 Case-by-case review:
@@ -156,11 +158,7 @@ Case-by-case review:
    — asserts `load_creds` body still has `UNITE_GROUP_DB_PASSWORD`
    and delegates to `load_sandbox_creds`, so the prod path is still
    complete and correct.
-6. `keeps command dispatch routed through the audited command
-   functions` — asserts the dispatch table still routes `apply`,
-   `status`, and `promote` to the `cmd_*` functions and that the
-   dispatch entries do not in-line raw credential/psql/op calls.
-7-14. Eight behavioural cases that actually `execFileSync('python3',
+6-13. Eight behavioural parser cases that actually `execFileSync('python3',
 ...)` against temp files to verify the embedded parser unescapes
 double-quoted values, treats single-quoted values as inert literal
 text, handles malformed quoting without executing it, ignores blank
@@ -169,13 +167,22 @@ keys, accepts whitespace around the `=` sign, and fails closed
 (Python raises) when the file path is unreadable. The fail-closed
 case is the security floor: an unreadable override file cannot
 silently fall through to 1P and leak the wrong credential.
+14. `keeps command dispatch routed through the audited command
+    functions` — asserts the dispatch table still routes `apply`,
+    `status`, and `promote` to the `cmd_*` functions and keeps the
+    public dispatch table from bypassing those audited bodies with
+    inline credential, `psql`, or `op` calls.
+15. `keeps the credential-boundary review doc aligned with the
+    structural and behavioural contracts` — keeps this packaging doc
+    carrying the required function/subcommand/approval-boundary terms
+    and rejects overclaims about sandbox-wizard subcommands completing.
 
 ## Verification this tick
 
 ```
 # Focused credential-boundary gate
 npx jest tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
-# PASS: 1 suite / 14 tests.
+# PASS: 1 suite / 15 tests (fresh read-back: 2026-06-14 08:57 AEST).
 
 # Combined local CRM + Margot + runtime + credential-boundary gate
 npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand
@@ -262,7 +269,7 @@ hard safety rules.
 - [x] Diff inspected: load functions split, subcommand call surface
       verified by grep, no shared mutable state, no prod-write path
       weakened.
-- [x] Test file inspected: 14 cases, 1 suite, all pass, structure
+- [x] Test file inspected: 15 cases, 1 suite, all pass, structure
       and behaviour both covered.
 - [x] Combined local gate still passes (11 suites / 180 tests).
 - [x] Review doc written at

@@ -1,5 +1,46 @@
 # Margot Overnight Progress Log
 
+## 2026-06-14 08:58 AEST
+
+### Tick 20260614_0858 — Sandbox wizard credential-boundary packaging refresh
+
+Lane: package/review remaining local credential-boundary diff without running any sandbox wizard subcommand.
+
+Completed:
+- Re-read the ordered Senior PM read-first set, current Linear mirror, AI-RET-001 evidence/register/pipeline, Mac Mini status, command-center surface, progress/morning logs, package manifest, active Margot execution plans, and the sandbox-wizard credential-boundary script/test/review surfaces before selecting this lane.
+- Refreshed `docs/margot/sandbox-wizard-credential-boundary-review.md` so the packaging doc matches the current focused gate: 15 tests, including the review-doc alignment guard, not the stale 14-test count.
+- Preserved the substantive boundary: `cmd_apply` / `cmd_status` use sandbox-only credential loading; production-capable `load_creds` remains reserved for setup/sync/diff/promote paths; sandbox advisor remains opt-in when `SUPABASE_ACCESS_TOKEN` is already present.
+
+Repo state read-back:
+- Branch: `mesh/mission-control-2026-06-11`.
+- Latest commit: `72c27f86 chore: Margot ops auto-sync [tick 20260614_082044] (ops only — other uncommitted files present)`.
+- `git rev-list --count main..origin/main` returned `8`.
+- Inherited dirty/untracked worktree remains extensive; this tick intentionally touched only the sandbox-wizard credential-boundary review doc plus Margot evidence surfaces.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-14 08:58:45 AEST`.
+- `node_modules=present`.
+- `npx jest tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` -> PASS, 1 suite / 15 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> PASS, 1 suite / 222 tests.
+- `git diff --check` -> PASS, no whitespace errors.
+- AI-RET-001 report read before lane selection remains `overallStatus=pass`, source fixtures `8/8`, answer-shape fixtures `106/106`, and read-back `pass` from the current generated report.
+
+Files changed:
+- `docs/margot/sandbox-wizard-credential-boundary-review.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, GitHub push/PR/merge, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live vector/AI call, provider polling, credential read, secret printing/storage, destructive git, cross-client merge, or Mac Mini credential prompt occurred.
+- Mac Mini recovery was not re-probed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts.
+- Sandbox authority/auth gate unchanged and not revalidated.
+
+Next safe lane: rotate to a real changed read-surface test or a named local report corruption/error-path fixture if one is available; otherwise keep command-center/progress surfaces aligned without touching gated sandbox/prod/Mac Mini systems.
+
 ## 2026-06-14 08:24 AEST
 
 ### Tick 20260614_0824 — DR/NRPG CRM lead integration credential-conflict hardening
@@ -20621,3 +20662,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260614_082044.log'
+
+## 2026-06-14 09:01:13 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260614_085629.log'

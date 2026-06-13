@@ -2,7 +2,18 @@
 Date: 2026-05-23
 Project: Unite-Group
 Root: `/Users/phillmcgurk/Unite-Group`
-Last update: 2026-06-14 08:24 AEST — DR/NRPG CRM lead integration credential-conflict hardening
+Last update: 2026-06-14 08:58 AEST — sandbox wizard credential-boundary packaging refresh
+
+## Current Autonomy Rotation Guard — 2026-06-14 08:58 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at `72c27f86` (dirty inherited worktree; `git rev-list --count main..origin/main` returned `8`). Current `git status --short` still shows inherited modified/untracked Margot, CRM, command-center, security, runtime, docs/design, image, and test surfaces; no commit, push, PR, deploy, or destructive git action was attempted.
+- Completed safe Senior PM lane: re-read the ordered Senior PM read-first set, current `docs/margot/linear-watch-today.md`, AI-RET-001 evidence/register/pipeline, Mac Mini status, command-center surface, progress/morning logs, package manifest, active Margot execution plans, and sandbox-wizard credential-boundary script/test/review surfaces, then refreshed `docs/margot/sandbox-wizard-credential-boundary-review.md` so its packaging review matches the current 15-test focused gate instead of stale 14-test language.
+- Verification: `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-14 08:58:45 AEST`; `node_modules=present`; `npx jest tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` -> 1 suite / 15 tests PASS; `npm run type-check` PASS; `npm run security:routes-check` -> 0 unprotected mutating routes; `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> 1 suite / 222 tests PASS; `git diff --check` exited clean.
+- Evidence read-back: AI-RET-001 report read before lane selection remains `overallStatus=pass`, source fixtures `8/8`, answer-shape fixtures `106/106`, and report read-back `pass` from the current generated report.
+- Mac Mini: not reprobed this tick per rotation guard. Last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts. Recovery remains blocked on an authenticated SMB mount, usable SSH session, or approved export.
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, source-control publication, client-facing sends, paid spend, public publishing, connector platforms, new vendors, destructive git, cross-tenant data joins, fabricated board approval, implicit policy inference, fabricated tick history, fabricated conversation history.
+- Files changed this tick: `docs/margot/sandbox-wizard-credential-boundary-review.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/overnight-progress-log.md`, and `docs/margot/morning-report.md`. No sandbox-wizard subcommand, production code write, route behavior change, or existing test behavior change occurred.
+- Next safe lane: rotate to a real changed read-surface test or a named local report corruption/error-path fixture if available; otherwise keep control surfaces aligned without touching gated sandbox/prod/Mac Mini systems.
 
 ## Current Autonomy Rotation Guard — 2026-06-14 08:24 AEST
 
