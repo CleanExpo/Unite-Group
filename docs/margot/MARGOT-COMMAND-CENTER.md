@@ -2,7 +2,17 @@
 Date: 2026-05-23
 Project: Unite-Group
 Root: `/Users/phillmcgurk/Unite-Group`
-Last update: 2026-06-14 02:46 AEST — Senior PM bounded AI-RET-001 read-back health check
+Last update: 2026-06-14 03:23 AEST — AI-RET-001 cross-doc source-citation conflict guard added
+
+## Current Autonomy Rotation Guard — 2026-06-14 03:23 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at `94660904` (dirty inherited worktree; `git rev-list --count main..origin/main` returned `8`). Current `git status --short` still shows inherited modified/untracked Margot, CRM, command-center, security, and test surfaces; no commit, push, PR, deploy, or destructive git action was attempted.
+- Completed safe Senior PM lane: added `AI-RET-001-ANSWER-CROSS-DOC-SOURCE-CITATION-CONFLICT` as the 106th mocked/static answer-shape fixture and 8th error-path class. This guards command-center/retrieval answers against silently reconciling conflicting cited docs: citation sources must agree on object identity, conflicting rows require blocked review, newer timestamps do not override canonical source, exact file-read fallback must cover both docs, and contradictions must be surfaced.
+- Verification: `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-14 03:23:46 AEST`; targeted cross-doc fixture gate -> 1 suite / 5 matching tests PASS; full focused retrieval gate `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> 1 suite / 222 tests PASS; report runner -> `overallStatus=pass; source=8/8; answerShape=106/106; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`; `npm run type-check` PASS; `npm run security:routes-check` -> 0 unprotected mutating routes; `git diff --check` PASS. `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` regenerated at `14/06/2026, 03:23:29 AEST`.
+- Mac Mini: not reprobed this tick per rotation guard. Last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts. Recovery remains blocked on an authenticated SMB mount, usable SSH session, or approved export.
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, public publishing, connector platforms, new vendors, destructive git, cross-tenant data joins, fabricated board approval, implicit policy inference, fabricated tick history, fabricated conversation history.
+- Files changed this tick: `src/lib/margot/retrieval-evaluation.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`, `scripts/margot-retrieval-evaluation-report.ts`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`, and this command-center entry.
+- Next safe lane: refresh a Senior PM control surface doc, add another bounded error-path class only if a new failure mode is named, or add a real read-surface test if a changed route/component provides a target.
 
 ## Current Autonomy Rotation Guard — 2026-06-14 02:46 AEST
 

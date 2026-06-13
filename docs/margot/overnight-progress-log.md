@@ -20139,3 +20139,54 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260614_024457.log'
+
+## 2026-06-14 03:23:46 AEST
+
+### AI-RET-001 cross-doc source-citation conflict guard added
+
+Current checkpoint:
+
+- Inspected repo state before selecting the lane: branch `mesh/mission-control-2026-06-11`; latest commit `94660904 chore: Margot ops auto-sync [tick 20260614_024457] (ops only — other uncommitted files present)`; `git rev-list --count main..origin/main` returned `8`; inherited dirty/untracked Margot, CRM, command-center, security, and test surfaces remain and were not normalized.
+- Re-read the ordered Senior PM read-first set, live Linear mirror, AI-RET-001 evidence report, AI enhancement register/pipeline, Mac Mini recovery status, command-center surface, progress log, morning report, and the two Margot execution plans before choosing the lane.
+- Chose the rotated local AI-RET-001 error-path lane instead of revalidating unchanged sandbox/Mac Mini gates. Added `AI-RET-001-ANSWER-CROSS-DOC-SOURCE-CITATION-CONFLICT` as the 106th mocked/static answer-shape fixture and 8th error-path class. The fixture blocks answers that automatically resolve conflicts between cited docs; it requires object-identity agreement, exact file-read fallback across both docs, blocked review on conflicting rows, contradiction surfacing in command-center wording, and no cross-client merge, provider polling, DB write, secret read, client-facing send, or source-control action.
+
+Verification:
+
+```bash
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts -t "cross-doc-source-citation-conflict|pins mocked answer-shape|can evaluate all mocked|reads back generated report" --runInBand
+# PASS: 1 suite / 5 matching tests passed.
+
+npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand
+# PASS: 1 suite / 222 tests passed.
+
+npx tsx scripts/margot-retrieval-evaluation-report.ts
+# PASS: wrote docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md.
+# overallStatus=pass; source=8/8; answerShape=106/106; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true.
+
+npm run type-check
+# PASS: tsc --noEmit completed.
+
+npm run security:routes-check
+# PASS: route-inventory check reported 0 unprotected mutating routes.
+
+git diff --check
+# PASS: no whitespace errors reported.
+```
+
+Safety:
+
+- No sandbox wizard subcommand, production DB write, migration, Vercel deploy/env mutation, GitHub push/PR/merge, client-facing send, paid spend, public publishing, connector platform, new vendor, live vector/AI call, provider polling, credential read, destructive git, cross-tenant data join, fabricated approval, or Mac Mini credential prompt occurred.
+- Mac Mini recovery was not reprobed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, 0 recovered Markdown artifacts.
+
+Next safe slice:
+
+- Refresh a Senior PM control surface doc, add another bounded error-path class only if a new failure mode is named, or add a real read-surface test if a changed route/component provides a target.
+
+## 2026-06-14 03:26:58 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260614_031823.log'
