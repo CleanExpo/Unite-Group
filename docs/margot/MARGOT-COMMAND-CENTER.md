@@ -2,7 +2,17 @@
 Date: 2026-05-23
 Project: Unite-Group
 Root: `/Users/phillmcgurk/Unite-Group`
-Last update: 2026-06-14 05:37 AEST — Senior PM AI-RET-001 control-surface count refresh
+Last update: 2026-06-14 06:10 AEST — Senior PM bounded AI-RET-001 read-back health check
+
+## Current Autonomy Rotation Guard — 2026-06-14 06:10 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at `474a58d0` (dirty inherited worktree; `git rev-list --count main..origin/main` returned `8`). Current `git status --short` still shows inherited modified/untracked Margot, CRM, command-center, security, runtime, and test surfaces; no commit, push, PR, deploy, or destructive git action was attempted.
+- Completed safe Senior PM lane: re-read the ordered Senior PM read-first set, current `docs/margot/linear-watch-today.md`, AI-RET-001 evidence, AI enhancement register/pipeline, Mac Mini status, progress/morning logs, command-center surface, and the two Margot execution plans, then ran a bounded local AI-RET-001 health/read-back gate. This tick did not add a new fixture, route behavior, vendor, integration, retrieval threshold, live provider check, sandbox wizard command, DB action, or production behavior.
+- Verification: `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-14 06:10:31 AEST`; `node_modules=present`; `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> 1 suite / 222 tests PASS; report runner -> `overallStatus=pass; source=8/8; answerShape=106/106; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`; `npm run type-check` PASS; `npm run security:routes-check` -> 0 unprotected mutating routes; `git diff --check` PASS. `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` regenerated at `14/06/2026, 06:10:32 AEST`.
+- Mac Mini: not reprobed this tick per rotation guard. Last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts. Recovery remains blocked on an authenticated SMB mount, usable SSH session, or approved export.
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, GitHub push, client-facing sends, paid spend, public publishing, connector platforms, new vendors, destructive git, cross-tenant data joins, fabricated board approval, implicit policy inference, fabricated tick history, fabricated conversation history.
+- Files changed this tick: `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`, and this command-center entry only. No production code touched, no gate behavior changed, no existing tests changed.
+- Next safe lane: rotate away from repeated health-only checks unless a sync changes the evidence; prefer a real changed read-surface test, a named local report corruption/error-path fixture, or another stale Senior PM control surface refresh while keeping AI-RET-001 `overallStatus=pass`.
 
 ## Current Autonomy Rotation Guard — 2026-06-14 05:37 AEST
 
