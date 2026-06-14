@@ -21736,3 +21736,60 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260614_230422.log'
+
+## 2026-06-14 23:38:37 AEST
+
+### Senior PM Mission Control/Hermes dashboard focused gate after ops auto-sync
+
+Current checkpoint:
+
+- Inspected repo state before selecting the lane: branch `mesh/mission-control-2026-06-11`; latest commit `759a47a8 chore: Margot ops auto-sync [tick 20260614_230422] (ops only — other uncommitted files present)`; `git rev-list --count main..origin/main` returned `8`; inherited dirty/untracked Margot, CRM, command-center, security, runtime, marketing/homepage, docs/design, image, and test surfaces remain and were not normalized.
+- Re-read the required Senior PM read-first set, live Linear mirror, AI-RET-001 evidence report, AI enhancement register/pipeline, Mac Mini recovery status, command-center surface, voice gap analysis, progress log tail, morning report tail, package/runtime state, and the two Margot execution plans before choosing the lane.
+- Chose a bounded local Mission Control/Hermes dashboard read-surface gate because the latest ops auto-sync advanced local HEAD again and the dirty worktree includes command-center / Hermes dashboard / mesh fleet surfaces. This tick did not regenerate AI-RET evidence, add a fixture, change route behavior, poll a live provider, run a sandbox wizard command, write any database, deploy, publish, or touch source-control remotes.
+
+Verification:
+
+```bash
+TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'
+# 2026-06-14 23:38:37 AEST
+
+test -d node_modules && echo node_modules=present || echo node_modules=missing
+# PASS: node_modules=present.
+
+node -v
+# v22.22.3
+
+npm -v
+# 10.9.8
+
+npx jest tests/integration/api/debug-addon.test.ts tests/integration/api/hermes-dashboard.test.ts tests/integration/api/mesh-fleet.test.ts tests/unit/components/command-center/HermesDashboardWrapper.test.tsx --runInBand
+# PASS: 4 suites / 10 tests passed.
+
+npm run security:routes-check
+# PASS: route-inventory check reported 0 unprotected mutating routes.
+
+git diff --check
+# PASS: clean exit with no whitespace output.
+```
+
+Evidence read-back:
+
+- `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` was read before lane selection and remains `overallStatus=pass`, source fixtures `8/8`, answer-shape fixtures `106/106`, report read-back `pass`, generated at `14/06/2026, 17:08:58 AEST`. It was not regenerated because no AI-RET harness/report surface changed.
+
+Safety:
+
+- No sandbox wizard subcommand, production DB write, migration, Vercel deploy/env mutation, source-control remote publication, client-facing send, paid spend, public publishing, connector platform, new vendor, live vector/AI call, provider polling, credential read, destructive git, cross-tenant data join, fabricated approval, or Mac Mini credential prompt occurred.
+- Mac Mini recovery was not reprobed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, 0 recovered Markdown artifacts.
+
+Next safe slice:
+
+- Keep rotating to concrete local gaps only: a changed read-surface test if another modified route/component/helper gives a target, a named local report corruption/error-path fixture, or a control-surface refresh from existing repo evidence. Avoid repeated CRM/digest/runtime or AI-RET-only checks unless another sync changes those surfaces.
+
+## 2026-06-14 23:40:44 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260614_233700.log'
