@@ -2,7 +2,18 @@
 Date: 2026-05-23
 Project: Unite-Group
 Root: `/Users/phillmcgurk/Unite-Group`
-Last update: 2026-06-14 19:18 AEST — Senior PM CRM/digest/runtime focused gate after ops auto-sync
+Last update: 2026-06-14 19:50 AEST — Senior PM sandbox-wizard credential-boundary focused gate after ops auto-sync
+
+## Current Autonomy Rotation Guard — 2026-06-14 19:50 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at `89888592` (dirty inherited worktree; `git rev-list --count main..origin/main` returned `8`). Current `git status --short` still shows inherited modified/untracked Margot, CRM, command-center, security, runtime, docs/design, image, and test surfaces; no commit, push, PR, deploy, or destructive git action was attempted.
+- Completed safe Senior PM lane: re-read the ordered Senior PM read-first set, current `docs/margot/linear-watch-today.md`, AI-RET-001 evidence/register/pipeline, Mac Mini status, command-center surface, voice gap analysis, progress/morning logs, package/runtime state, active Margot execution plans, and the sandbox-wizard credential-boundary packaging surface before lane selection. Because the latest ops auto-sync advanced local HEAD beyond the command-center snapshot and the sandbox-wizard credential-boundary diff remains inherited in the dirty worktree, this tick rotated to the bounded local credential-boundary focused gate. This tick did not run any sandbox wizard subcommand, regenerate AI-RET evidence, add a fixture, change route behavior, poll a live provider, write any database, deploy, publish, or touch source-control remotes.
+- Verification: `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-14 19:50:40 AEST`; `node_modules=present`; `node -v` -> `v22.22.3`; `npm -v` -> `10.9.8`; `npx jest tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` -> 1 suite / 15 tests PASS.
+- Evidence read-back: AI-RET-001 report read before lane selection remains `overallStatus=pass`, source fixtures `8/8`, answer-shape fixtures `106/106`, report read-back `pass`, generated at `14/06/2026, 17:08:58 AEST`; it was not regenerated because no AI-RET harness/report surface changed.
+- Mac Mini: not reprobed this tick per rotation guard. Last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts. Recovery remains blocked on an authenticated SMB mount, usable SSH session, or approved export.
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, source-control publication, client-facing sends, paid spend, public publishing, connector platforms, new vendors, destructive git, cross-tenant data joins, fabricated board approval, implicit policy inference, fabricated tick history, fabricated conversation history.
+- Files changed this tick: `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/overnight-progress-log.md`, and `docs/margot/morning-report.md` evidence/control-surface entries only. No production code touched, no route behavior changed, no existing tests changed.
+- Next safe lane: keep rotating to concrete local gaps only — a changed read-surface test if a changed route/component/helper provides a target, a named local report corruption/error-path fixture, or a control-surface refresh from existing repo evidence. Avoid repeated sandbox-boundary revalidation unless another sync changes the credential-boundary surface.
 
 ## Current Autonomy Rotation Guard — 2026-06-14 19:18 AEST
 
