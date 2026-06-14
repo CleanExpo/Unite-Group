@@ -1,5 +1,38 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 01:32 AEST
+
+### Tick 20260615_0132 — Senior PM Mission Control/Hermes dashboard read-surface gate after ops auto-sync
+
+Lane: bounded Senior PM health/read-back check after the latest ops auto-sync advanced local HEAD beyond the command-center snapshot; verify the local Mission Control/Hermes dashboard route, add-on redaction/readiness, mesh fleet proxy, and wrapper read-surface from existing repo evidence while preserving all gated boundaries.
+
+Completed:
+- Re-read the ordered Senior PM read-first set, current Linear mirror, AI-RET-001 evidence/register/pipeline, Mac Mini status, command-center surface, voice gap analysis, progress/morning logs, package/runtime state, active Margot execution plans, package scripts, and the Mission Control/Hermes dashboard focused test surfaces before selecting this lane.
+- Inspected current repo state: branch `mesh/mission-control-2026-06-11`, latest commit `b9bc92f4 chore: Margot ops auto-sync [tick 20260615_004304] (ops only — other uncommitted files present)`, `git rev-list --count main..origin/main` returned `8`, and the inherited dirty/untracked worktree remains extensive.
+- Ran the bounded local Mission Control/Hermes dashboard focused Jest gate plus route-inventory and whitespace checks only. This tick did not run `./scripts/sandbox-wizard.sh` in any mode, regenerate AI-RET evidence, add a fixture, change route behavior, poll a live provider, write any database, deploy, publish, or touch source-control remotes.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 01:32:04 AEST`.
+- `node_modules=present`; `node -v` -> `v22.22.3`; `npm -v` -> `10.9.8`.
+- `npx jest tests/integration/api/debug-addon.test.ts tests/integration/api/hermes-dashboard.test.ts tests/integration/api/mesh-fleet.test.ts tests/unit/components/command-center/HermesDashboardWrapper.test.tsx --runInBand` -> PASS, 4 suites / 10 tests.
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check && echo 'git_diff_check=pass'` -> `git_diff_check=pass`.
+- AI-RET-001 evidence read-back before lane selection remained `overallStatus=pass`, source-citation fixtures `8/8`, answer-shape fixtures `106/106`, and report generated at `14/06/2026, 17:08:58 AEST`; it was not regenerated because no AI-RET harness/report surface changed.
+
+Files changed:
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live vector/AI call, provider polling, credential read, secret printing/storage, destructive git, cross-client merge, or Mac Mini credential prompt occurred.
+- The Mission Control/Hermes dashboard surfaces were exercised only through local Jest mocks/static-render checks and local route-inventory inspection; no live Hermes dashboard iframe, provider call, credential read, or secret-bearing config output was surfaced.
+- Mac Mini recovery was not re-probed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts.
+- Sandbox authority/auth gate unchanged and not revalidated.
+
+Next safe lane: keep rotating to concrete local gaps only — a changed read-surface test if another modified route/component/helper gives a target, a named local report corruption/error-path fixture, or a control-surface refresh from existing repo evidence. Avoid repeated TypeScript-only, Mission Control/Hermes dashboard, AI-RET-only, voice, or CRM/digest/runtime checks unless another sync changes those surfaces.
+
 ## 2026-06-15 00:44 AEST
 
 ### Tick 20260615_0044 — Senior PM TypeScript/route-inventory read-back gate after ops auto-sync
@@ -21877,3 +21910,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_004304.log'
+
+## 2026-06-15 01:33:10 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_013022.log'
