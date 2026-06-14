@@ -28,6 +28,16 @@ plain-English idea into a verified, build-ready spec. It has two layers:
 - **`ingest`** — files new articles, transcripts, and notes into `knowledge/`
   in the right place with the right metadata.
 
+## Fable Playbook Generator (app-layer capability)
+
+`scripts/fable-distill.mjs` mines your Claude Code JSONL sessions for the
+working rhythm of each model; `app/api/playbook` synthesises a
+`FABLE_PLAYBOOK.md` that lifts a baseline model toward Fable's behaviour. The
+synthesis is grounded only in `knowledge/playbook/fable-5-official-behaviors.md`
+(authoritative copy: `lib/playbook-catalogue.ts`) — it may not invent behaviours
+Anthropic didn't document. Pure logic lives in `lib/playbook.ts`. See
+`projects/fable-playbook-generator/`.
+
 ## The Evidence Standard (non-negotiable)
 
 Every factual claim in any output carries exactly one tag:

@@ -12,6 +12,30 @@ Built in four phases, smallest first. **Phases 0 and 1 are in this repo.**
 | **1 — Thin App** | A private web page: type a vision → get a saved, sourced spec | ✅ here |
 | **2 — Cockpit + Verify** | Mission-control UI wired to `[STATUS]` lines + critic model + approval gate | ✅ here |
 | **3 — Board + Ingest** | "Ask the Board" with real advisor content + Obsidian vault ingestion | planned (needs the vault) |
+| **4 — Fable Playbook Generator** | Mine your Claude Code JSONL sessions → measure your model-vs-Fable gap → synthesise a `FABLE_PLAYBOOK.md` to inject into any model | ✅ here |
+
+## Phase 4 — the Fable Playbook Generator
+
+You can't clone Claude Fable 5's weights, but its *working rhythm* lives in your
+session history. Claude Code conversations are JSONL on disk, and every line
+tags the model that produced it. This phase mines that, measures how Fable
+worked versus your fallback model, and distills the delta — grounded in
+Anthropic's verified Fable-5 behaviour catalogue — into a `FABLE_PLAYBOOK.md`
+you drop into a hook, a skill, or your CLAUDE.md.
+
+```bash
+# 1 · distill your sessions locally (Node >= 22.18)
+npm run distill                              # ~/.claude/projects → corpus.json
+# no Fable history? grab a public corpus first:
+huggingface-cli download armand0e/claude-fable-5-claude-code \
+  --repo-type dataset --local-dir ./hf-traces
+node scripts/fable-distill.mjs --dir ./hf-traces
+
+# 2 · open /playbook, paste corpus.json, Generate → copy/download FABLE_PLAYBOOK.md
+```
+
+Your JSONL never leaves your machine — only the distilled, text-capped corpus is
+sent for synthesis. Provenance and the full investigation: `projects/fable-playbook-generator/`.
 
 ## Phase 0 — the OS Layer (no code needed)
 

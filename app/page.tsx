@@ -925,7 +925,10 @@ export default function Home() {
       <style>{GLOBAL_CSS}</style>
       <h1 style={{ fontSize: 28, marginBottom: 4 }}>The Fable System</h1>
       <p style={{ color: C.dim, marginTop: 0 }}>
-        Type a vision in plain English. Get a sourced, build-ready spec.
+        Type a vision in plain English. Get a sourced, build-ready spec.{" "}
+        <a href="/playbook" style={{ color: C.accent, textDecoration: "none" }}>
+          Or generate a Fable Playbook →
+        </a>
       </p>
 
       <StatusStrip />
