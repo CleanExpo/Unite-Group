@@ -2,7 +2,18 @@
 Date: 2026-05-23
 Project: Unite-Group
 Root: `/Users/phillmcgurk/Unite-Group`
-Last update: 2026-06-14 11:05 AEST — Senior PM AI-RET-001 read-back refresh after latest ops auto-sync
+Last update: 2026-06-14 12:11 AEST — Senior PM stale-sync malformed next-due coverage
+
+## Current Autonomy Rotation Guard — 2026-06-14 12:11 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at `9f3beecd` (dirty inherited worktree; `git rev-list --count main..origin/main` returned `8`). Current `git status --short` still shows inherited modified/untracked Margot, CRM, command-center, security, runtime, docs/design, image, and test surfaces; no commit, push, PR, deploy, or destructive git action was attempted.
+- Completed safe Senior PM lane: re-read the ordered Senior PM read-first set, current `docs/margot/linear-watch-today.md`, AI-RET-001 evidence/register/pipeline, Mac Mini status, command-center surface, progress/morning logs, and active Margot execution plans, then added one local stale-sync regression. `tests/unit/lib/runtime/stale-sync-check.test.ts` now proves an `ok` integration row with malformed `next_sync_due_at` falls back to `last_sync_completed_at + cadenceMs` and reports `missed_cadence` with the expected overdue minutes. This tick did not add a fixture, route behavior, vendor, integration, retrieval threshold, live provider check, sandbox wizard command, DB action, production behavior, or source-control publication.
+- Verification: `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-14 12:10:43 AEST` / `2026-06-14 12:11:33 AEST`; `node_modules=present`; `npx jest tests/unit/lib/runtime/stale-sync-check.test.ts --runInBand` -> 1 suite / 12 tests PASS; `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> 1 suite / 222 tests PASS; `npm run type-check` PASS; `npm run security:routes-check` -> 0 unprotected mutating routes; `git diff --check` exited clean.
+- Evidence read-back: AI-RET-001 report read before lane selection remains `overallStatus=pass`, source fixtures `8/8`, answer-shape fixtures `106/106`, and read-back `pass` from the current generated report. It was not regenerated because no AI-RET harness/report surface changed.
+- Mac Mini: not reprobed this tick per rotation guard. Last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts. Recovery remains blocked on an authenticated SMB mount, usable SSH session, or approved export.
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, source-control publication, client-facing sends, paid spend, public publishing, connector platforms, new vendors, destructive git, cross-tenant data joins, fabricated board approval, implicit policy inference, fabricated tick history, fabricated conversation history.
+- Files changed this tick: `tests/unit/lib/runtime/stale-sync-check.test.ts`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/overnight-progress-log.md`, and `docs/margot/morning-report.md`. No production code touched, no route behavior changed, no existing production behavior changed.
+- Next safe lane: keep rotating to concrete local gaps only — another changed read-surface test if a changed route/component/helper gives a target, a named local report corruption/error-path fixture, or a control-surface refresh from existing repo evidence. Avoid repeated health-only AI-RET-001 checks unless another sync changes evidence.
 
 ## Current Autonomy Rotation Guard — 2026-06-14 11:05 AEST
 
