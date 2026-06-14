@@ -1,5 +1,38 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 09:33 AEST
+
+### Tick 20260615_0933 — Senior PM post-AI-RET parser hardening read-back gate
+
+Lane: bounded Senior PM health/read-back check after the 09:00 local AI-RET report read-back parser hardening; verify the inherited Margot retrieval/report surface remains green without regenerating evidence, adding fixtures, touching gated systems, or repeating sandbox/Mac Mini checks.
+
+Completed:
+- Re-read the ordered Senior PM read-first set, current `docs/margot/linear-watch-today.md`, AI-RET-001 evidence/register/pipeline, Mac Mini status, command-center surface, voice gap analysis, active execution plans, package manifest, and current progress/morning surfaces before selecting this lane.
+- Inspected current repo state: branch `mesh/mission-control-2026-06-11`, latest commit `d6db558c chore: Margot ops auto-sync [tick 20260615_085532] (ops only — other uncommitted files present)`, `git rev-list --count main..origin/main` returned `8`, and `git status --short` before this tick's doc entries showed 15 modified and 29 untracked entries across inherited Margot, CRM, command-center, security, runtime, marketing/homepage, docs/design, image, API, and test surfaces.
+- Ran the focused local AI-RET Jest read-back/doc-drift gate, TypeScript, route-inventory, and whitespace checks only. This tick did not run `./scripts/sandbox-wizard.sh` in any mode, regenerate AI-RET evidence, add a fixture, change route behavior, poll a live provider, write any database, deploy, publish, or touch source-control remotes.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 09:33:49 AEST`.
+- `node_modules=present`; `node -v` -> `v22.22.3`; `npm -v` -> `10.9.8`.
+- `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> PASS, 1 suite / 225 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check && echo git_diff_check=pass` -> `git_diff_check=pass`.
+- AI-RET-001 evidence read-back before lane selection remained `overallStatus=pass`, source-citation fixtures `8/8`, answer-shape fixtures `106/106`, report read-back `pass`, generated at `15/06/2026, 09:00:27 AEST`; it was not regenerated because no AI-RET harness/report surface changed during this tick.
+
+Files changed:
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live vector/AI call, provider polling, credential read, secret printing/storage, destructive git, cross-client merge, or Mac Mini credential prompt occurred.
+- Mac Mini recovery was not re-probed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts.
+- Sandbox authority/auth gate unchanged and not revalidated.
+
+Next safe lane: rotate away from AI-RET-only unless another retrieval/report surface changes; prefer a changed read-surface test from the inherited dirty worktree, a named local report corruption/error-path fixture outside the just-verified Next-safe-action parser class, or a control-surface refresh from existing repo evidence.
+
 ## 2026-06-15 09:00 AEST
 
 ### Tick 20260615_0900 — AI-RET report read-back section-boundary hardening
@@ -22454,3 +22487,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_085532.log'
+
+## 2026-06-15 09:35:22 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_093147.log'

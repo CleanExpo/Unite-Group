@@ -2,7 +2,18 @@
 Date: 2026-05-23
 Project: Unite-Group
 Root: `/Users/phillmcgurk/Unite-Group`
-Last update: 2026-06-15 07:32 AEST — Senior PM combined changed-surface read-back gate after latest ops auto-sync
+Last update: 2026-06-15 09:33 AEST — Senior PM post-AI-RET parser hardening read-back gate
+
+## Current Autonomy Rotation Guard — 2026-06-15 09:33 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at `d6db558c` (dirty inherited worktree; `git rev-list --count main..origin/main` returned `8`). Current `git status --short` before this tick's doc entries showed 15 modified and 29 untracked entries across inherited Margot, CRM, command-center, security, runtime, marketing/homepage, docs/design, image, API, and test surfaces; no commit, push, PR, deploy, or destructive git action was attempted.
+- Completed safe Senior PM lane: re-read the ordered Senior PM read-first set, current `docs/margot/linear-watch-today.md`, AI-RET-001 evidence/register/pipeline, Mac Mini status, command-center surface, voice gap analysis, active execution plans, package manifest, and current progress/morning surfaces. Because the 09:00 tick changed the local AI-RET report read-back parser/test/report surface and the current worktree still carries that inherited untracked Margot retrieval surface, this tick ran a bounded post-hardening read-back gate rather than touching sandbox, Mac Mini, DB, provider, publication, or deployment lanes. This tick did not run sandbox wizard commands, regenerate AI-RET evidence, add fixtures, change route behavior, poll providers, access databases, deploy, publish, or touch source-control remotes.
+- Verification: `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 09:33:49 AEST`; `node_modules=present`; `node -v` -> `v22.22.3`; `npm -v` -> `10.9.8`; focused AI-RET Jest read-back/doc-drift gate -> PASS (1 suite / 225 tests); `npm run type-check` -> PASS (`tsc --noEmit`); `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check && echo git_diff_check=pass` -> `git_diff_check=pass`.
+- Evidence read-back: AI-RET-001 report read before lane selection remains `overallStatus=pass`, source fixtures `8/8`, answer-shape fixtures `106/106`, report read-back `pass`, generated at `15/06/2026, 09:00:27 AEST`. It was not regenerated this tick because the prior tick already regenerated it and no new AI-RET harness/report surface changed during this read-back check.
+- Mac Mini: not reprobed this tick per rotation guard. Last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts. Recovery remains blocked on an authenticated SMB mount, usable SSH session, or approved export.
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, source-control publication, client-facing sends, paid spend, public publishing, connector platforms, new vendors, destructive git, cross-tenant data joins, fabricated board approval, implicit policy inference, fabricated tick history, fabricated conversation history.
+- Files changed this tick: `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/overnight-progress-log.md`, and `docs/margot/morning-report.md` evidence/control-surface entries only. No production code touched, no route behavior changed, no existing tests changed.
+- Next safe lane: rotate away from AI-RET-only unless another retrieval/report surface changes; prefer a changed read-surface test from the inherited dirty worktree, a named local report corruption/error-path fixture outside the just-verified Next-safe-action parser class, or a control-surface refresh from existing repo evidence.
 
 ## Current Autonomy Rotation Guard — 2026-06-15 07:32 AEST
 
