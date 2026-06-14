@@ -1,5 +1,14 @@
 # Margot Morning Report
 
+## 2026-06-14 17:41 AEST — Senior PM stale-sync focused read-back rotation
+
+- **Completed safe lane:** Re-read the Senior PM read-first set, current Linear mirror, AI-RET-001 evidence/register/pipeline, Mac Mini status, current Margot progress/morning surfaces, command-center surface, voice gap analysis, package/runtime state, and active execution plans, then rotated away from repeated AI-RET-only refreshes to run the local stale-sync focused gate. This was local read-back/verification only; no AI-RET report regeneration, new fixture, route behavior, vendor, integration, live provider check, sandbox wizard command, DB action, production behavior, deploy, publish, or source-control publication was added.
+- **Repo state read-back:** branch `mesh/mission-control-2026-06-11`; latest commit `970c7457`; `git rev-list --count main..origin/main` returned `8`; inherited dirty/untracked worktree state remains extensive.
+- **Verification:** `node_modules=present`; `node -v` -> `v22.22.3`; `npm -v` -> `10.9.8`; `npx jest tests/unit/lib/runtime/stale-sync-check.test.ts --runInBand` -> 1 suite / 12 tests PASS.
+- **Evidence read-back:** AI-RET-001 report read before lane selection remains `overallStatus=pass`, source `8/8`, answerShape `106/106`, readback `pass`, generated at `14/06/2026, 17:08:58 AEST`; not regenerated because no AI-RET harness/report surface changed.
+- **Files changed:** `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/overnight-progress-log.md`, and `docs/margot/morning-report.md` evidence/control-surface entries only. No production code touched, no route behavior changed, no existing tests changed.
+- **Blockers unchanged:** sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, source-control publication, client-facing sends, paid spend, public publishing, connector platforms, new vendors, destructive git, cross-tenant data joins, fabricated approval/policy/history claims. Next safe lane: keep rotating to concrete local gaps only — a changed read-surface test, a named local report corruption/error-path fixture, or a control-surface refresh from existing repo evidence.
+
 ## 2026-06-14 17:08 AEST — Senior PM AI-RET-001 read-back refresh after ops auto-sync
 
 - **Completed safe lane:** Re-read the Senior PM read-first set, current Linear mirror, AI-RET-001 evidence/register/pipeline, Mac Mini status, current Margot progress/morning surfaces, command-center surface, package manifest, and active execution plans, then ran a bounded local AI-RET-001 focused gate plus report read-back after the latest ops auto-sync advanced local HEAD. This was local evidence/read-back only; no new fixture, route behavior, vendor, integration, retrieval threshold, live provider check, sandbox wizard command, DB action, production behavior, or source-control publication was added.

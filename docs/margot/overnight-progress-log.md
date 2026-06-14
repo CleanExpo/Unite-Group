@@ -1,5 +1,35 @@
 # Margot Overnight Progress Log
 
+## 2026-06-14 17:41 AEST
+
+### Tick 20260614_1741 — Senior PM stale-sync focused read-back rotation
+
+Lane: bounded Senior PM health/read-back check rotated away from repeated AI-RET-only refreshes; verify the local stale integration summarizer surface from existing repo evidence while preserving all gated boundaries.
+
+Completed:
+- Re-read the ordered Senior PM read-first set, current Linear mirror, AI-RET-001 evidence/register/pipeline, Mac Mini status, command-center surface, voice gap analysis, progress/morning logs, and active Margot execution plans before selecting this lane.
+- Inspected current repo state: branch `mesh/mission-control-2026-06-11`, latest commit `970c7457 chore: Margot ops auto-sync [tick 20260614_170803] (ops only — other uncommitted files present)`, `git rev-list --count main..origin/main` returned `8`, and the inherited dirty/untracked worktree remains extensive.
+- Ran the bounded local stale-sync focused gate only. This tick did not regenerate AI-RET evidence, add a fixture, change route behavior, poll a live provider, run a sandbox wizard command, write any database, deploy, publish, or touch source-control remotes.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-14 17:41:30 AEST`.
+- `node_modules=present`; `node -v` -> `v22.22.3`; `npm -v` -> `10.9.8`.
+- `npx jest tests/unit/lib/runtime/stale-sync-check.test.ts --runInBand` -> PASS, 1 suite / 12 tests.
+- AI-RET-001 evidence read-back before lane selection remained `overallStatus=pass`, source-citation fixtures `8/8`, answer-shape fixtures `106/106`, and report generated at `14/06/2026, 17:08:58 AEST`; it was not regenerated because no AI-RET harness/report surface changed.
+
+Files changed:
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live vector/AI call, provider polling, credential read, secret printing/storage, destructive git, cross-client merge, or Mac Mini credential prompt occurred.
+- Mac Mini recovery was not re-probed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts.
+- Sandbox authority/auth gate unchanged and not revalidated.
+
+Next safe lane: keep rotating to concrete local gaps only — a changed read-surface test if a changed route/component/helper provides a target, a named local report corruption/error-path fixture, or a control-surface refresh from existing repo evidence. Avoid repeated health-only AI-RET-001 checks unless another sync changes evidence.
+
 ## 2026-06-14 17:08 AEST
 
 ### Tick 20260614_1708 — Senior PM AI-RET-001 read-back refresh after ops auto-sync
@@ -21271,3 +21301,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260614_170803.log'
+
+## 2026-06-14 17:42:28 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260614_174006.log'
