@@ -1,5 +1,37 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 02:36 AEST
+
+### Tick 20260615_0236 — Senior PM read-first/repo-state control-surface refresh after latest ops auto-sync
+
+Lane: bounded Senior PM health/read-back check after latest ops auto-sync advanced local HEAD again; re-read the ordered Senior PM control set and current AI-RET evidence, inspect repo state, then update the command-center/progress/morning surfaces without repeating a recently exercised CRM/digest/runtime, Mission Control/Hermes dashboard, TypeScript-only, voice, or AI-RET-only gate.
+
+Completed:
+- Re-read the ordered Senior PM read-first set, current `docs/margot/linear-watch-today.md`, AI-RET-001 evidence/register/pipeline, Mac Mini status, command-center surface, voice gap analysis, active execution plans, and current progress/morning surfaces before selecting this lane.
+- Inspected current repo state: branch `mesh/mission-control-2026-06-11`, latest commit `9dcd64bb chore: Margot ops auto-sync [tick 20260615_020310] (ops only — other uncommitted files present)`, `git rev-list --count main..origin/main` returned `8`, and the inherited dirty/untracked worktree remains extensive across Margot, CRM, command-center, security, runtime, marketing/homepage, docs/design, image, and test surfaces.
+- Rotated to a local control-surface/evidence refresh because the latest completed ticks already covered CRM/digest/runtime, Mission Control/Hermes dashboard, TypeScript/route-inventory, and voice gates, and because the package/script inspection command in this tick was blocked by the approval guard. This tick did not run tests, route inventory, package scripts, AI-RET regeneration, sandbox wizard commands, provider polling, DB access, deploys, publication, source-control remote actions, or code changes.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 02:35:59 AEST`.
+- `git status --short` showed the inherited modified/untracked worktree headed by `scripts/check-route-inventory.ts`, `scripts/sandbox-wizard.sh`, command-center/voice/CRM/runtime files, plus untracked `.hermes/`, `.worktrees/`, docs/design/image/API/test surfaces.
+- `git log -1 --oneline` -> `9dcd64bb chore: Margot ops auto-sync [tick 20260615_020310] (ops only — other uncommitted files present)`.
+- `git rev-list --count main..origin/main` -> `8`; `git branch --show-current` -> `mesh/mission-control-2026-06-11`.
+- AI-RET-001 evidence read-back remained `overallStatus=pass`, source-citation fixtures `8/8`, answer-shape fixtures `106/106`, report read-back `pass`, generated at `14/06/2026, 17:08:58 AEST`; it was not regenerated because no AI-RET harness/report surface changed.
+- Attempted package/script line-count inspection was blocked by the approval guard (`BLOCKED: User denied this command`), so no package-script, Jest, route-inventory, type-check, or whitespace gate result is claimed for this tick.
+
+Files changed:
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live vector/AI call, provider polling, credential read, secret printing/storage, destructive git, cross-client merge, or Mac Mini credential prompt occurred.
+- Mac Mini recovery was not re-probed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts.
+- Sandbox authority/auth gate unchanged and not revalidated.
+
+Next safe lane: if terminal/package execution is available again, run a concrete changed-surface read-back gate only when a modified route/component/helper gives a target; otherwise continue safe control-surface refreshes or add a named local report corruption/error-path fixture without live providers, DB writes, sandbox wizard commands, or source-control remotes.
+
 ## 2026-06-15 02:04 AEST
 
 ### Tick 20260615_0204 — Senior PM CRM/digest/runtime focused gate after latest ops auto-sync
@@ -21961,3 +21993,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_020310.log'
+
+## 2026-06-15 02:38:53 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_023538.log'
