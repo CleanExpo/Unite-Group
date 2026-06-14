@@ -2,7 +2,17 @@
 Date: 2026-05-23
 Project: Unite-Group
 Root: `/Users/phillmcgurk/Unite-Group`
-Last update: 2026-06-15 09:33 AEST — Senior PM post-AI-RET parser hardening read-back gate
+Last update: 2026-06-15 09:49 AEST — Senior PM CRM conversion audit-gate metadata slice
+
+## Current Autonomy Rotation Guard — 2026-06-15 09:49 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at `1324433b` (dirty inherited worktree; `git rev-list --count main..origin/main` returned `8`; `git status --short | wc -l` returned `46`). GitHub CLI auth is available for `CleanExpo`, no open PRs were listed, and Vercel CLI is installed; no push, PR, merge, deploy, env mutation, or destructive git action was attempted.
+- Completed safe Senior PM lane: used RED-GREEN-REFACTOR on the local guarded lead conversion route/test contract. Added a failing expectation that successful conversion timeline metadata records a non-sensitive `operatorGateSatisfied: true` flag, then updated `src/app/api/crm/leads/[id]/convert/route.ts` to persist that sanitized boolean while continuing not to store the raw board approval reference in the timeline payload.
+- Verification: `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 09:49:22 AEST`; RED focused Jest test failed because the metadata lacked `operatorGateSatisfied`; GREEN focused Jest test passed; full `npx jest tests/integration/api/crm-lead-conversion.test.ts --runInBand` -> PASS (1 suite / 8 tests); `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check` -> PASS; `npm run build` -> PASS with existing warnings about deprecated middleware convention, Turbopack NFT trace for `next.config.js` via telegram approval callback route, missing optional Sentry auth token, and missing integration env tokens.
+- Independent review: small-diff reviewer returned `passed=true`, with no security concerns and no logic errors; static added-line scan found no hardcoded-secret/injection/eval/deserialization/SQL patterns.
+- Files changed this tick: `src/app/api/crm/leads/[id]/convert/route.ts`, `tests/integration/api/crm-lead-conversion.test.ts`, `docs/margot/lead-to-client-conversion-plan.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/overnight-progress-log.md`, and `docs/margot/morning-report.md`.
+- Safety: no sandbox wizard subcommand, production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live provider polling, Mac Mini credential prompt/read, secret printing/storage, destructive git, cross-client merge, or raw board approval reference persistence occurred.
+- Next safe lane: continue the lead-conversion local route contract only if a new fail-closed guard is concrete (for example dry-run audit/readback behavior or exact identity mismatch coverage); otherwise rotate to another changed read-surface test from the inherited dirty worktree.
 
 ## Current Autonomy Rotation Guard — 2026-06-15 09:33 AEST
 

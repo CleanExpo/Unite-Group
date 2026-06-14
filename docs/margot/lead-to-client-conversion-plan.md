@@ -84,6 +84,7 @@ The local guarded conversion endpoint (`src/app/api/crm/leads/[id]/convert/route
 
 - Local route/test contract exists for exact lead ID, already-converted guard, identity conflict, required operator approval, and guarded conversion-field update.
 - Missing or blank `boardApprovalId` returns `403` with `{ error: 'operator_approval_required' }` before Supabase conversion/update is attempted.
+- Successful local conversion timeline inserts now persist only a non-sensitive `operatorGateSatisfied: true` metadata flag; the raw board approval reference remains out of the persisted timeline payload.
 - Production qualification remains precise: this is a local guarded route/test contract only; no production conversion promotion, migration, deploy, or production DB write/application has been verified from this plan.
 - Verification on 2026-05-23:
   - RED before route change: `npx jest tests/integration/api/crm-lead-conversion.test.ts --runInBand` failed only the new missing-approval expectation: expected HTTP `403`, received `400`.

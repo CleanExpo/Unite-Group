@@ -242,6 +242,7 @@ describe('POST /api/crm/leads/[id]/convert', () => {
               priorStatus: 'qualified',
               hadMatchedClient: true,
               targetClientLinked: true,
+              operatorGateSatisfied: true,
             },
           }),
         }),

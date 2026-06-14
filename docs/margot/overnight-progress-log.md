@@ -1,5 +1,45 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 09:49 AEST
+
+### Tick 20260615_0949 — CRM conversion audit-gate metadata slice
+
+Lane: bounded Senior PM CRM command-spine improvement on the local guarded lead-to-client conversion route. Goal was to prove successful conversion timeline metadata records that the operator gate was satisfied without persisting the raw board approval reference, while preserving all production/sandbox boundaries.
+
+Completed:
+- Preflighted current in-progress branch/worktree: `mesh/mission-control-2026-06-11`, latest commit `1324433b`, `git rev-list --count main..origin/main` -> `8`, `git status --short | wc -l` -> `46`, GitHub CLI authenticated as `CleanExpo`, no open PRs, Vercel CLI installed. No push/PR/deploy action taken.
+- Re-read the Senior PM read-first/current-state set including operating rules, Senior PM model, CRM operating model, CRM forecast, lead-to-client plan, contacts/opportunities model, Linear mirror, progress/morning reports, package scripts, and the local conversion route/test.
+- RED: added a focused expectation in `tests/integration/api/crm-lead-conversion.test.ts` that the successful conversion timeline payload includes `metadata.operatorGateSatisfied: true`; the focused Jest test failed because that flag was absent. Initial `hadBoardApproval` wording was rejected by the existing metadata sanitizer, so the test was refined to the non-sensitive sanitizer-safe `operatorGateSatisfied` flag and failed for the expected missing-flag reason.
+- GREEN: updated `src/app/api/crm/leads/[id]/convert/route.ts` to include `operatorGateSatisfied: true` in the sanitized timeline metadata. The existing assertions still ensure the raw board approval reference is not stored on the persisted timeline payload.
+- Updated `docs/margot/lead-to-client-conversion-plan.md` and `docs/margot/MARGOT-COMMAND-CENTER.md` with the local evidence and safety read-back.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 09:49:22 AEST`.
+- RED focused Jest: `npx jest tests/integration/api/crm-lead-conversion.test.ts --runInBand --testNamePattern='updates the exact lead conversion fields'` -> FAIL before route change because metadata lacked `operatorGateSatisfied`.
+- GREEN focused Jest: same command -> PASS after route change.
+- Full focused suite: `npx jest tests/integration/api/crm-lead-conversion.test.ts --runInBand` -> PASS, 1 suite / 8 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS.
+- `npm run build` -> PASS. Existing/non-blocking warnings: deprecated `middleware` convention, Turbopack NFT trace warning for `next.config.js` imported by `src/app/api/telegram/approval-callback/route.ts`, missing optional Sentry auth token/source-map upload token, and missing integration env tokens for Railway/DigitalOcean/Vercel/GitHub/Stripe during static generation.
+- Static added-line scan -> no hardcoded-secret/injection/eval/deserialization/SQL patterns.
+- Independent reviewer -> `passed=true`, no security concerns, no logic errors.
+
+Files changed:
+- `src/app/api/crm/leads/[id]/convert/route.ts`
+- `tests/integration/api/crm-lead-conversion.test.ts`
+- `docs/margot/lead-to-client-conversion-plan.md`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live provider polling, Mac Mini credential prompt/read, secret printing/storage, destructive git, cross-client merge, or raw board approval reference persistence occurred.
+- Worktree remains inherited/dirty and branch remains far ahead of origin; because no PR exists and the branch contains broad pre-existing uncommitted work, this tick did not push or open a PR.
+
+Next safe lane: continue lead-conversion local route coverage only for a concrete fail-closed gap (for example dry-run readback/audit behavior or exact identity mismatch coverage); otherwise rotate to another changed read-surface test from the inherited dirty worktree.
+
 ## 2026-06-15 09:33 AEST
 
 ### Tick 20260615_0933 — Senior PM post-AI-RET parser hardening read-back gate

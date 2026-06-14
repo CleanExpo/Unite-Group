@@ -56,6 +56,7 @@ async function recordLeadConversionTimelineEvent(
       priorStatus: lead.status,
       hadMatchedClient: Boolean(lead.matched_client_id),
       targetClientLinked: Boolean(targetClientId),
+      operatorGateSatisfied: true,
     },
   });
 
