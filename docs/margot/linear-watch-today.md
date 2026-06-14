@@ -1,6 +1,6 @@
 # Linear Watch — Margot Today Queue
 
-Last synced: 2026-06-11 13:08:50 AEST
+Last synced: 2026-06-15 09:44:29 AEST
 Source: Linear team `UNI` / Unite-Group
 Purpose: Make parent-Hermes-pushed Linear work visible to Margot for today's task list.
 
@@ -184,59 +184,6 @@ Summary / Linear description excerpt:
 > - [ ] Tokens compile, no unresolved `var()` warnings in dev console
 > - [ ] Tailwi
 > …
-
-### UNI-2053 — Create CCW product category copy
-
-- State: In Review (started)
-- Priority: None
-- Project: Brand OS Production Board
-- Assignee: Unassigned
-- Updated: 2026-05-23T05:08:34.536Z
-- Labels: none
-- Linear: https://linear.app/unite-group/issue/UNI-2053/create-ccw-product-category-copy
-
-Summary / Linear description excerpt:
-
-> Status: QUEUED
-> Owner: Margot
-> Route: Unite-Group / CCW CRM
-> Skills: client-identity-lock, business-brand-voice, ai-seo-content-brief
-
-> Decision needed:
-
-> * First product category topic.
-
-> Governance:
-
-> * Do not mix CCW with RestoreAssist/Synthex/DR-NRPG/CARSI contexts.
-> * Source client identity from registry before drafting.
-
-### UNI-2054 — Maintain Margot Command Center and RestoreAssist Content Index
-
-- State: In Progress (started)
-- Priority: None
-- Project: Brand OS Production Board
-- Assignee: Unassigned
-- Updated: 2026-05-23T04:46:35.401Z
-- Labels: none
-- Linear: https://linear.app/unite-group/issue/UNI-2054/maintain-margot-command-center-and-restoreassist-content-index
-
-Summary / Linear description excerpt:
-
-> Status: ACTIVE
-> Owner: Margot
-> Route: Unite-Group operating system + RestoreAssist content index
-
-> Outputs:
-
-> * /Users/phill-mac/hermes-agent-enhancement-report/MARGOT-COMMAND-CENTER.md
-> * /Users/phill-mac/hermes-agent-enhancement-report/restoreassist-content-packs/RESTOREASSIST-CONTENT-INDEX.md
-
-> Governance:
-
-> * Keep statuses current.
-> * Record missing files and blocked decisions.
-> * Keep parked Toby/Duncan work out of this RestoreAssist / Brand OS workflow.
 
 ### UNI-2108 — [CCW P1 Build Loop] Core ERP Smoke Pack: Products, Customers, Quotes, Orders, POS, Inventory, Invoices
 
@@ -432,6 +379,42 @@ Summary / Linear description excerpt:
 
 > **Note:** Linear child issues require a valid `LINEAR_API_KEY` on Vercel (vault key currently returns 401 on issueCreate).
 
+### UNI-2075 — Gmail export + ingest into SPM intake (Phill vault)
+
+- State: Todo (unstarted)
+- Priority: High
+- Project: Dimitri ITR Platform
+- Assignee: Phill McGurk
+- Updated: 2026-05-28T02:07:42.868Z
+- Labels: none
+- Linear: https://linear.app/unite-group/issue/UNI-2075/gmail-export-ingest-into-spm-intake-phill-vault
+
+Summary / Linear description excerpt:
+
+> **Blocked:** `VAULT_ENCRYPTION_KEY` missing from `D:\Unite-Hub\.env.local` (preflight: `pnpm intake:gmail:check`).
+
+> Copy from Vercel unite-hub production or add `D:\Unite-Hub\.env.vault` per `docs/intake/GMAIL-SETUP.md`.
+
+> Then: `pnpm intake:gmail`
+
+### UNI-2120 — [CCW P2 Wave 2] Decide and Wire AI Quote Generation into Quote Workflow or Feature-Flag It
+
+- State: Todo (unstarted)
+- Priority: Medium
+- Project: CCW CRM
+- Assignee: ranamuzamil1199@gmail.com
+- Updated: 2026-06-01T03:36:15.106Z
+- Labels: none
+- Linear: https://linear.app/unite-group/issue/UNI-2120/ccw-p2-wave-2-decide-and-wire-ai-quote-generation-into-quote-workflow
+
+Summary / Linear description excerpt:
+
+> Evidence: `quotes.py` TODO to integrate `/api/ai/generate/quote`. Acceptance: either connected with tests or explicitly feature-flagged/non-MVP.
+
+> Report: `D:\CCW-CRM\docs\CCW-MISSING-ENDPOINTS-CONNECTIONS-WAVE2-2026-06-01.md`
+
+> Senior Engineer loop: reproduce/confirm gap, write failing test or failing gate, implement smallest safe slice, rerun targeted tests, record evidence before moving on. Sandbox only until verified.
+
 ## Full open queue snapshot
 
 | Issue | State | Priority | Project | Updated | Title |
@@ -441,8 +424,6 @@ Summary / Linear description excerpt:
 | [UNI-2058](https://linear.app/unite-group/issue/UNI-2058/phase-0-engineering-review-and-adoption-decision-replace-parallel) | In Progress | Urgent | Unite-Group | 2026-05-30T11:44:06.770Z | Phase 0 · Engineering review & adoption decision (replace / parallel / cherry-pick) |
 | [UNI-2060](https://linear.app/unite-group/issue/UNI-2060/phase-2-extract-ui-primitives-card-kpi-chip-tier-ticker-fab) | In Progress | High | Unite-Group | 2026-05-30T11:44:06.774Z | Phase 2 · Extract UI primitives (Card, KPI, Chip, Tier, Ticker, FAB, LiveIndicator, etc.) |
 | [UNI-2059](https://linear.app/unite-group/issue/UNI-2059/phase-1-port-design-tokens-into-globalscss-tailwind-config) | In Progress | High | Unite-Group | 2026-05-30T11:44:06.771Z | Phase 1 · Port design tokens into globals.css + tailwind config |
-| [UNI-2053](https://linear.app/unite-group/issue/UNI-2053/create-ccw-product-category-copy) | In Review | None | Brand OS Production Board | 2026-05-23T05:08:34.536Z | Create CCW product category copy |
-| [UNI-2054](https://linear.app/unite-group/issue/UNI-2054/maintain-margot-command-center-and-restoreassist-content-index) | In Progress | None | Brand OS Production Board | 2026-05-23T04:46:35.401Z | Maintain Margot Command Center and RestoreAssist Content Index |
 | [UNI-2108](https://linear.app/unite-group/issue/UNI-2108/ccw-p1-build-loop-core-erp-smoke-pack-products-customers-quotes-orders) | Todo | Urgent | CCW CRM | 2026-06-01T03:28:31.117Z | [CCW P1 Build Loop] Core ERP Smoke Pack: Products, Customers, Quotes, Orders, POS, Inventory, Invoices |
 | [UNI-2106](https://linear.app/unite-group/issue/UNI-2106/ccw-p0-build-loop-promote-shopifyxerosendgridsentry-from-demo-to) | Todo | Urgent | CCW CRM | 2026-06-01T03:28:28.877Z | [CCW P0 Build Loop] Promote Shopify/Xero/SendGrid/Sentry From Demo to Verified Staging |
 | [UNI-2104](https://linear.app/unite-group/issue/UNI-2104/ccw-p0-build-loop-complete-signup-auth-onboarding-and-account-settings) | Todo | Urgent | CCW CRM | 2026-06-01T03:28:27.358Z | [CCW P0 Build Loop] Complete Signup, Auth, Onboarding, and Account Settings E2E |
@@ -454,7 +435,12 @@ Summary / Linear description excerpt:
 | [UNI-2075](https://linear.app/unite-group/issue/UNI-2075/gmail-export-ingest-into-spm-intake-phill-vault) | Todo | High | Dimitri ITR Platform | 2026-05-28T02:07:42.868Z | Gmail export + ingest into SPM intake (Phill vault) |
 | [UNI-2120](https://linear.app/unite-group/issue/UNI-2120/ccw-p2-wave-2-decide-and-wire-ai-quote-generation-into-quote-workflow) | Todo | Medium | CCW CRM | 2026-06-01T03:36:15.106Z | [CCW P2 Wave 2] Decide and Wire AI Quote Generation into Quote Workflow or Feature-Flag It |
 | [UNI-2118](https://linear.app/unite-group/issue/UNI-2118/ccw-p2-wave-2-attach-translation-edit-audit-trail-to-authenticated) | Todo | Medium | CCW CRM | 2026-06-01T03:36:13.453Z | [CCW P2 Wave 2] Attach Translation Edit Audit Trail to Authenticated User |
+| [UNI-2136](https://linear.app/unite-group/issue/UNI-2136/design-comprehensive-claude-playbook-for-agent-governance) | Backlog | Urgent | Unite-Group | 2026-06-14T23:34:50.650Z | Design comprehensive Claude Playbook for agent governance |
+| [UNI-2135](https://linear.app/unite-group/issue/UNI-2135/finalize-and-deploy-unite-group-multi-agent-orchestration-platform) | Backlog | Urgent | Unite-Group | 2026-06-14T23:34:49.985Z | Finalize and deploy Unite Group multi-agent orchestration platform |
 | [UNI-2090](https://linear.app/unite-group/issue/UNI-2090/vision-build-kickoff-duncan) | Backlog | Urgent | Dimitri ITR Platform | 2026-05-31T22:56:53.571Z | [Vision] Build kickoff — Duncan |
+| [UNI-2139](https://linear.app/unite-group/issue/UNI-2139/integrate-all-portfolio-projects-into-unite-group-system-management) | Backlog | High | Unite-Group | 2026-06-14T23:34:52.008Z | Integrate all portfolio projects into Unite Group system management |
+| [UNI-2138](https://linear.app/unite-group/issue/UNI-2138/enable-agents-to-autonomously-research-and-enhance-project) | Backlog | High | Unite-Group | 2026-06-14T23:34:51.554Z | Enable agents to autonomously research and enhance project architecture |
+| [UNI-2137](https://linear.app/unite-group/issue/UNI-2137/build-visual-dashboard-for-unite-group-agent-activity-monitoring) | Backlog | High | Unite-Group | 2026-06-14T23:34:51.127Z | Build visual dashboard for Unite Group agent activity monitoring |
 | [UNI-2134](https://linear.app/unite-group/issue/UNI-2134/unite-group-repo-pre-push-hook-fails-on-pre-existing-ts1117-blocks-all) | Backlog | High | Unite-Group | 2026-06-11T02:04:19.319Z | Unite-Group repo: pre-push hook fails on pre-existing TS1117 (blocks ALL pushes) |
 | [UNI-2102](https://linear.app/unite-group/issue/UNI-2102/vision-rn-2-must) | Backlog | High | Dimitri ITR Platform | 2026-05-31T22:56:59.679Z | [Vision rn-2] must |
 | [UNI-2101](https://linear.app/unite-group/issue/UNI-2101/vision-rn-1-must) | Backlog | High | Dimitri ITR Platform | 2026-05-31T22:56:59.262Z | [Vision rn-1] must |
@@ -470,12 +456,9 @@ Summary / Linear description excerpt:
 | [UNI-2077](https://linear.app/unite-group/issue/UNI-2077/dsp-osf-ato-api-portal-onboarding) | Backlog | High | Dimitri ITR Platform | 2026-05-27T22:38:38.348Z | DSP OSF + ATO API Portal onboarding |
 | [UNI-2066](https://linear.app/unite-group/issue/UNI-2066/phase-8-accessibility-audit-remediation-across-all-ported-screens) | Backlog | High | Unite-Group | 2026-05-25T06:31:14.792Z | Phase 8 · Accessibility audit + remediation across all ported screens |
 | [UNI-2057](https://linear.app/unite-group/issue/UNI-2057/unite-hub-layered-design-system-handoff-and-integration) | Backlog | High | Unite-Group | 2026-05-25T06:31:14.792Z | Unite-Hub · Layered Design System — Handoff & Integration |
-| [UNI-2061](https://linear.app/unite-group/issue/UNI-2061/phase-3-vertical-slice-command-center-end-to-end) | Backlog | High | Unite-Group | 2026-05-25T06:30:06.956Z | Phase 3 · Vertical slice — Command Center end-to-end |
 | [UNI-2133](https://linear.app/unite-group/issue/UNI-2133/mission-station-visual-command-console-for-unite-group-nexus) | Backlog | Medium | Unite-Group | 2026-06-11T02:03:43.301Z | Mission Station: visual command console for Unite Group Nexus (graphs/3D/voice, minimal text) |
 | [UNI-2132](https://linear.app/unite-group/issue/UNI-2132/ato-repo-pr-pileup-5-duplicate-pi-ceo-full-analysis-prs-deepsec-cron) | Backlog | Medium | Unite-Group | 2026-06-11T00:09:36.428Z | ATO repo PR pileup: 5 duplicate "Pi CEO full analysis" PRs + Deepsec cron PR rotting since 14 May |
 | [UNI-2130](https://linear.app/unite-group/issue/UNI-2130/duncan-telegram-q6-looks-like-stripe-is-the-only-way-to-go-sadly-one) | Backlog | Medium | Dimitri ITR Platform | 2026-06-04T17:38:13.885Z | [Duncan Telegram] Q6 Looks like STRIPE is the only way to go - sadly. One option only hey? |
-| [UNI-2129](https://linear.app/unite-group/issue/UNI-2129/duncan-telegram-from-asic-messaging-service-asictransactionno) | Backlog | Medium | Dimitri ITR Platform | 2026-06-04T07:37:14.775Z | [Duncan Telegram] From: ASIC Messaging Service <ASIC.Transaction.No-reply@asic.gov.au> Sen |
-| [UNI-2128](https://linear.app/unite-group/issue/UNI-2128/duncan-telegram-q8-turning-a-client-into-a-tax-planning-client-for) | Backlog | Medium | Dimitri ITR Platform | 2026-06-04T06:18:08.270Z | [Duncan Telegram] q8 = Turning a client into a Tax Planning client for BLinks or the Agent |
 
 ## Watcher metadata
 
