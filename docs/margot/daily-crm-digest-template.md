@@ -1,10 +1,10 @@
 # Daily CRM Digest Template
 
 Date: 2026-05-23
-Last update: 2026-06-12 11:05:00 AEST — Senior PM 94th answer-shape fixture (daily-crm-digest-template self-boundary) + doc-drift guard: bound this doc to the mocked answer-shape harness (`AI-RET-001-ANSWER-DAILY-CRM-DIGEST-TEMPLATE-SELF-BOUNDARY`, bound to `AI-RET-001-COMMAND-CENTER-CITATION`, no source-citation union member added) so a future answer about the daily CRM digest template self-boundary must cite this doc, `src/lib/crm/daily-digest.ts`, `SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md`, and `retrieval-rules.md`, and must include the 10 required answer-shape phrases and zero of the 10 prohibited overclaim phrases enumerated below.
+Last update: 2026-06-14 12:44 AEST — Senior PM stale-sync evidence count refresh: aligned the local helper section to the current `tests/unit/lib/runtime/stale-sync-check.test.ts` 12-test gate after the malformed `next_sync_due_at` fallback regression, while preserving the 94th answer-shape fixture (daily-crm-digest-template self-boundary) + doc-drift guard contract.
 Previous refresh: 2026-05-23 (initial version)
 Owner: Margot
-Related evidence: `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (overallStatus=pass, source=7/7, answerShape=8/8)
+Related evidence: `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (overallStatus=pass, source=8/8, answerShape=106/106, readback=pass as of the current generated report)
 Related fixture: `AI-RET-001-ANSWER-DIGEST-OPERATOR-ONLY` (required answer phrases, required citation sources, and prohibited phrases asserted in `src/lib/margot/retrieval-evaluation.ts` and `tests/unit/lib/margot/retrieval-evaluation.test.ts`)
 Related rotation guard: see `## Senior PM verification checkpoint (2026-06-09 22:50 AEST)` at the end of this file
 Project: Unite-Group
@@ -36,7 +36,7 @@ Implemented helpers:
 - `src/lib/crm/daily-digest.ts` — pure TypeScript digest builder (no network, no Supabase, no DB write, no client-facing send).
 - `src/lib/crm/digest-mappers.ts` — pure mapping helpers (input normalization to digest input shape).
 - `src/lib/crm/digest-read-error.ts` — bounded `logCrmDigestReadError` event helper (`stage ∈ leads|tasks|opportunities|unexpected`, `context ∈ api|command-center`, fail-closed on out-of-band values).
-- `src/lib/runtime/stale-sync-check.ts` — deterministic `checkStaleSyncs` with `last_error` precedence and NaN/never-synced guards (11 tests).
+- `src/lib/runtime/stale-sync-check.ts` — deterministic `checkStaleSyncs` with `last_error` precedence, NaN/never-synced guards, and malformed `next_sync_due_at` fallback coverage (12 tests).
 
 - Focused tests:
 

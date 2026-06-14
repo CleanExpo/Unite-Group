@@ -1,5 +1,41 @@
 # Margot Overnight Progress Log
 
+## 2026-06-14 12:45 AEST
+
+### Tick 20260614_1245 — Senior PM stale-sync control-surface count refresh
+
+Lane: control-surface refresh from existing repo evidence; align CRM docs to the current stale-sync helper test count and AI-RET-001 read-back without touching live providers, sandbox/prod DB, Mac Mini auth, or source-control publication.
+
+Completed:
+- Re-read the ordered Senior PM read-first set, current Linear mirror, AI-RET-001 evidence/register/pipeline, Mac Mini status, command-center surface, progress/morning logs, and active Margot execution plans before selecting this lane.
+- Inspected current repo state: branch `mesh/mission-control-2026-06-11`, latest commit `fa5344ae chore: Margot ops auto-sync [tick 20260614_120913] (ops only — other uncommitted files present)`, `git rev-list --count main..origin/main` returned `8`, and the inherited dirty/untracked worktree remains extensive.
+- Refreshed `docs/margot/daily-crm-digest-template.md`, `docs/margot/crm-operating-model.md`, and `docs/margot/crm-test-coverage-matrix.md` so their live control-surface rows now reflect the current stale-sync focused gate: `tests/unit/lib/runtime/stale-sync-check.test.ts` is 12 tests after the malformed `next_sync_due_at` ok-row fallback regression, and AI-RET-001 remains `overallStatus=pass`, source fixtures `8/8`, answer-shape fixtures `106/106`, and read-back `pass`.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-14 12:44:22 AEST` / `2026-06-14 12:45:16 AEST`.
+- `node_modules=present`.
+- `npx jest tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> PASS, 2 suites / 234 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS, no whitespace errors.
+- AI-RET-001 evidence read-back before lane selection remained `overallStatus=pass`, source fixtures `8/8`, answer-shape fixtures `106/106`, and read-back `pass` from the current generated report. The report was not regenerated because no harness or report-runner surface changed.
+
+Files changed:
+- `docs/margot/daily-crm-digest-template.md`
+- `docs/margot/crm-operating-model.md`
+- `docs/margot/crm-test-coverage-matrix.md`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live vector/AI call, provider polling, credential read, secret printing/storage, destructive git, cross-client merge, or Mac Mini credential prompt occurred.
+- Mac Mini recovery was not re-probed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts.
+- Sandbox authority/auth gate unchanged and not revalidated.
+
+Next safe lane: keep rotating to concrete local gaps only — another changed read-surface test if a changed surface provides a target, a named local report corruption/error-path fixture, or a control-surface refresh from existing repo evidence. Avoid repeated health-only AI-RET-001 checks unless another sync changes evidence.
+
 ## 2026-06-14 12:11 AEST
 
 ### Tick 20260614_1211 — Senior PM stale-sync malformed next-due coverage
@@ -20856,3 +20892,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260614_120913.log'
+
+## 2026-06-14 12:46:32 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260614_124251.log'
