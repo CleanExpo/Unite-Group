@@ -1,5 +1,39 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 06:59 AEST
+
+### Tick 20260615_0659 — Senior PM combined changed-surface read-back gate after latest ops auto-sync
+
+Lane: bounded Senior PM health/read-back check after the latest ops auto-sync advanced local HEAD beyond the 06:25 snapshot; verify the combined local changed-surface set spanning Margot voice, CRM digest/approval, runtime stale-sync, route-inventory, homepage/metadata TypeScript, and route protection while preserving all gated boundaries.
+
+Completed:
+- Re-read the ordered Senior PM read-first set, current `docs/margot/linear-watch-today.md`, AI-RET-001 evidence/register/pipeline, Mac Mini status, command-center surface, voice gap analysis, active execution plans, package manifest, and current progress/morning surfaces before selecting this lane.
+- Inspected current repo state: branch `mesh/mission-control-2026-06-11`, latest commit `76d825dd chore: Margot ops auto-sync [tick 20260615_062422] (ops only — other uncommitted files present)`, `git rev-list --count main..origin/main` returned `8`, and the inherited dirty/untracked worktree remains extensive across Margot, CRM, command-center, security, runtime, marketing/homepage, docs/design, image, API, and test surfaces.
+- Ran the bounded combined local changed-surface Jest gate plus TypeScript, route-inventory, and whitespace checks only. This tick did not run `./scripts/sandbox-wizard.sh` in any mode, regenerate AI-RET evidence, add a fixture, change route behavior, poll a live provider, write any database, deploy, publish, or touch source-control remotes.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 06:59:32 AEST`.
+- `node_modules=present`; `node -v` -> `v22.22.3`; `npm -v` -> `10.9.8`.
+- `npx jest src/components/command-center/voice/__tests__/voice-panel-state.test.ts tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-mappers.test.ts tests/unit/lib/crm/digest-read-error.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/check-route-inventory.test.ts --runInBand` -> PASS, 10 suites / 119 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check && echo git_diff_check=pass` -> `git_diff_check=pass`.
+- AI-RET-001 evidence read-back before lane selection remained `overallStatus=pass`, source-citation fixtures `8/8`, answer-shape fixtures `106/106`, and report generated at `14/06/2026, 17:08:58 AEST`; it was not regenerated because no AI-RET harness/report surface changed.
+
+Files changed:
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live vector/AI call, provider polling, credential read, secret printing/storage, destructive git, cross-client merge, or Mac Mini credential prompt occurred.
+- The changed surfaces were exercised only through local Jest mocks/helpers, TypeScript compilation, local route-inventory inspection, and whitespace read-back; no live Supabase write, provider call, production integration call, site probe, or external account action occurred.
+- Mac Mini recovery was not re-probed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts.
+- Sandbox authority/auth gate unchanged and not revalidated.
+
+Next safe lane: keep rotating to concrete local gaps only — a changed read-surface test if another modified route/component/helper gives a target, a named local report corruption/error-path fixture, or a control-surface refresh from existing repo evidence. Avoid repeated combined changed-surface, CRM/digest/runtime, TypeScript-only, route-inventory-only, Mission Control/Hermes dashboard, AI-RET-only, or voice checks unless another sync changes those surfaces.
+
 ## 2026-06-15 06:25 AEST
 
 ### Tick 20260615_0625 — Senior PM combined changed-surface read-back gate after latest ops auto-sync
@@ -22299,3 +22333,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_062422.log'
+
+## 2026-06-15 07:00:49 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_065638.log'
