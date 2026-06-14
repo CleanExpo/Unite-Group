@@ -1,5 +1,38 @@
 # Margot Overnight Progress Log
 
+## 2026-06-14 20:55 AEST
+
+### Tick 20260614_2055 — Senior PM DR/NRPG CRM lead integration gate read-surface check after ops auto-sync
+
+Lane: bounded Senior PM health/read-back check after the latest ops auto-sync advanced local HEAD beyond the command-center snapshot; verify the local DR/NRPG CRM lead integration credential gate and route read-surface from existing repo evidence while preserving all gated boundaries.
+
+Completed:
+- Re-read the ordered Senior PM read-first set, current Linear mirror, AI-RET-001 evidence/register/pipeline, Mac Mini status, command-center surface, voice gap analysis, progress/morning logs, package/runtime state, active Margot execution plans, and the DR/NRPG CRM lead integration gate/route/tests before selecting this lane.
+- Inspected current repo state: branch `mesh/mission-control-2026-06-11`, latest commit `7abe0cfb chore: Margot ops auto-sync [tick 20260614_202149] (ops only — other uncommitted files present)`, `git rev-list --count main..origin/main` returned `8`, and the inherited dirty/untracked worktree remains extensive.
+- Ran the bounded local DR/NRPG CRM lead integration focused gate plus route-inventory check only. This tick did not run `./scripts/sandbox-wizard.sh` in any mode, regenerate AI-RET evidence, add a fixture, change route behavior, poll a live provider, write any database, deploy, publish, or touch source-control remotes.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-14 20:55:37 AEST`.
+- `node_modules=present`; `node -v` -> `v22.22.3`; `npm -v` -> `10.9.8`.
+- `npx jest tests/unit/lib/security/crm-lead-integration-gate.test.ts tests/integration/api/dr-nrpg-crm-lead-integration.test.ts --runInBand` -> PASS, 2 suites / 22 tests.
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS, no whitespace errors.
+- AI-RET-001 evidence read-back before lane selection remained `overallStatus=pass`, source-citation fixtures `8/8`, answer-shape fixtures `106/106`, and report generated at `14/06/2026, 17:08:58 AEST`; it was not regenerated because no AI-RET harness/report surface changed.
+
+Files changed:
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live vector/AI call, provider polling, credential read, secret printing/storage, destructive git, cross-client merge, or Mac Mini credential prompt occurred.
+- The DR/NRPG CRM lead integration route was exercised only through local Jest mocks; no live Supabase write or production integration call occurred.
+- Mac Mini recovery was not re-probed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts.
+- Sandbox authority/auth gate unchanged and not revalidated.
+
+Next safe lane: keep rotating to concrete local gaps only — a changed read-surface test if a changed route/component/helper provides a target, a named local report corruption/error-path fixture, or a control-surface refresh from existing repo evidence. Avoid repeated sandbox-boundary revalidation unless another sync changes the credential-boundary surface.
+
 ## 2026-06-14 20:22 AEST
 
 ### Tick 20260614_2022 — Senior PM CRM digest/approval focused gate after ops auto-sync
@@ -21511,3 +21544,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260614_202149.log'
+
+## 2026-06-14 20:56:49 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260614_205358.log'
