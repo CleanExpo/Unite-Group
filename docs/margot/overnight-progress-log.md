@@ -1,5 +1,38 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 04:15 AEST
+
+### Tick 20260615_0415 — Senior PM route-inventory unit/read-surface gate after latest ops auto-sync
+
+Lane: bounded Senior PM health/read-back check after the latest ops auto-sync advanced local HEAD again and the inherited dirty worktree still includes the route-inventory script; verify the local route-inventory unit/read-surface without changing route behavior or touching gated systems.
+
+Completed:
+- Re-read the ordered Senior PM read-first set, current `docs/margot/linear-watch-today.md`, AI-RET-001 evidence/register/pipeline, Mac Mini status, command-center surface, voice gap analysis, active execution plans, package manifest, route-inventory script/test surfaces, and current progress/morning surfaces before selecting this lane.
+- Inspected current repo state: branch `mesh/mission-control-2026-06-11`, latest commit `00740682 chore: Margot ops auto-sync [tick 20260615_034109] (ops only — other uncommitted files present)`, `git rev-list --count main..origin/main` returned `8`, and the inherited dirty/untracked worktree remains extensive across Margot, CRM, command-center, security, runtime, marketing/homepage, docs/design, image, API, and test surfaces.
+- Ran the bounded local route-inventory unit/read-surface gate only. This tick did not run `./scripts/sandbox-wizard.sh` in any mode, regenerate AI-RET evidence, add a fixture, change route behavior, poll a live provider, write any database, deploy, publish, or touch source-control remotes.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 04:15:01 AEST`.
+- `node_modules=present`; `node -v` -> `v22.22.3`; `npm -v` -> `10.9.8`.
+- `npx jest tests/unit/scripts/check-route-inventory.test.ts --runInBand` -> PASS, 1 suite / 1 test.
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check && echo git_diff_check=pass` -> `git_diff_check=pass`.
+- AI-RET-001 evidence read-back before lane selection remained `overallStatus=pass`, source-citation fixtures `8/8`, answer-shape fixtures `106/106`, and report generated at `14/06/2026, 17:08:58 AEST`; it was not regenerated because no AI-RET harness/report surface changed.
+
+Files changed:
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live vector/AI call, provider polling, credential read, secret printing/storage, destructive git, cross-client merge, or Mac Mini credential prompt occurred.
+- The route-inventory surfaces were exercised only through local Jest, local static route scanning, and whitespace read-back; no live site probe, provider call, DB access, route behavior change, or production integration call occurred.
+- Mac Mini recovery was not re-probed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts.
+- Sandbox authority/auth gate unchanged and not revalidated.
+
+Next safe lane: keep rotating to concrete local gaps only — a changed read-surface test if another modified route/component/helper gives a target, a named local report corruption/error-path fixture, or a control-surface refresh from existing repo evidence. Avoid repeated route-inventory-only, TypeScript-only, CRM/digest/runtime, Mission Control/Hermes dashboard, AI-RET-only, or voice checks unless another sync changes those surfaces.
+
 ## 2026-06-15 03:42 AEST
 
 ### Tick 20260615_0342 — Senior PM route-inventory unit/read-surface gate after latest ops auto-sync
@@ -22086,3 +22119,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_034109.log'
+
+## 2026-06-15 04:16:17 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_041340.log'
