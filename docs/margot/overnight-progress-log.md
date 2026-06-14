@@ -1,5 +1,40 @@
 # Margot Overnight Progress Log
 
+## 2026-06-14 14:59 AEST
+
+### Tick 20260614_1459 — Senior PM AI-RET-001 read-back refresh after ops auto-sync
+
+Lane: bounded Senior PM health/read-back check after the latest ops auto-sync advanced local HEAD; keep AI-RET-001 evidence green and rotate without touching gated systems.
+
+Completed:
+- Re-read the ordered Senior PM read-first set, current Linear mirror, AI-RET-001 evidence/register/pipeline, Mac Mini status, command-center surface, progress/morning logs, and active Margot execution plans before selecting this lane.
+- Inspected current repo state: branch `mesh/mission-control-2026-06-11`, latest commit `a3e4c805 chore: Margot ops auto-sync [tick 20260614_142538] (ops only — other uncommitted files present)`, `git rev-list --count main..origin/main` returned `8`, and the inherited dirty/untracked worktree remains extensive.
+- Ran the bounded local AI-RET-001 focused gate and regenerated/read back the local evidence report after the latest ops auto-sync. No new fixture, route behavior, vendor, integration, retrieval threshold, live provider check, sandbox wizard command, DB action, production behavior, or source-control publication was added.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-14 14:59:10 AEST`.
+- `node_modules=present`.
+- `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> PASS, 1 suite / 224 tests.
+- Report runner: `npx ts-node --transpile-only -O '{"module":"commonjs","moduleResolution":"node"}' scripts/margot-retrieval-evaluation-report.ts` -> `overallStatus=pass; source=8/8; answerShape=106/106; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`.
+- Report read-back: `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` regenerated at `14/06/2026, 14:59:12 AEST` with `overallStatus=pass`, source-citation fixtures `8/8`, answer-shape fixtures `106/106`, and read-back `pass`.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS, no whitespace errors.
+
+Files changed:
+- `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live vector/AI call, provider polling, credential read, secret printing/storage, destructive git, cross-client merge, or Mac Mini credential prompt occurred.
+- Mac Mini recovery was not re-probed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts.
+- Sandbox authority/auth gate unchanged and not revalidated.
+
+Next safe lane: rotate away from repeated health-only AI-RET-001 checks until another sync changes evidence; prefer a concrete changed read-surface test, a named local report corruption/error-path fixture, or a control-surface refresh from existing repo evidence.
+
 ## 2026-06-14 14:26 AEST
 
 ### Tick 20260614_1426 — Senior PM AI-RET-001 read-back refresh after ops auto-sync
@@ -21037,3 +21072,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260614_142538.log'
+
+## 2026-06-14 15:00:23 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260614_145810.log'
