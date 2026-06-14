@@ -1,5 +1,44 @@
 # Margot Overnight Progress Log
 
+## 2026-06-14 13:52 AEST
+
+### Tick 20260614_1352 — Senior PM AI-RET-001 report read-back hardening
+
+Lane: named local report corruption/error-path fixture; harden AI-RET-001 generated-report read-back without changing live retrieval thresholds, source-citation fixtures, answer-shape fixtures, providers, sandbox/prod DB state, or deployment behavior.
+
+Completed:
+- Re-read the ordered Senior PM read-first set, current Linear mirror, AI-RET-001 evidence/register/pipeline, Mac Mini status, command-center surface, progress/morning logs, and active Margot execution plans before selecting this lane.
+- Inspected current repo state: branch `mesh/mission-control-2026-06-11`, latest commit `492c2bfa chore: Margot ops auto-sync [tick 20260614_131633] (ops only — other uncommitted files present)`, `git rev-list --count main..origin/main` returned `8`, and the inherited dirty/untracked worktree remains extensive.
+- Hardened `readBackMargotRetrievalEvaluationReport` so missing report title, generated timestamp, Safety notes bullet evidence, or Next safe action body now fails closed inside the read-back parser.
+- Added two local report corruption/error-path tests proving empty Safety notes and empty Next safe action report blocks are rejected before command-center surfacing.
+- Regenerated/read back the AI-RET-001 local evidence report. Fixture counts stayed unchanged at source `8/8` and answerShape `106/106`; this lane added parser hardening and test coverage, not a new fixture or live behavior.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-14 13:52:15 AEST`.
+- `node_modules=present`.
+- `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> PASS, 1 suite / 224 tests.
+- Report runner: `npx ts-node --transpile-only -O '{"module":"commonjs","moduleResolution":"node"}' scripts/margot-retrieval-evaluation-report.ts` -> `overallStatus=pass; source=8/8; answerShape=106/106; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`.
+- Report read-back: `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` regenerated at `14/06/2026, 13:52:07 AEST` with `overallStatus=pass`, source-citation fixtures `8/8`, answer-shape fixtures `106/106`, and read-back `pass`.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS, no whitespace errors.
+
+Files changed:
+- `src/lib/margot/retrieval-evaluation.ts`
+- `tests/unit/lib/margot/retrieval-evaluation.test.ts`
+- `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live vector/AI call, provider polling, credential read, secret printing/storage, destructive git, cross-client merge, or Mac Mini credential prompt occurred.
+- Mac Mini recovery was not re-probed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts.
+- Sandbox authority/auth gate unchanged and not revalidated.
+
+Next safe lane: keep rotating to concrete local gaps only — another named report corruption/error-path fixture, a real changed read-surface test if a changed route/component/helper provides a target, or a control-surface refresh from existing repo evidence. Avoid repeated health-only AI-RET-001 checks unless another sync changes evidence.
+
 ## 2026-06-14 13:18 AEST
 
 ### Tick 20260614_1318 — Senior PM AI-RET-001 read-back refresh after ops auto-sync
@@ -20945,3 +20984,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260614_131633.log'
+
+## 2026-06-14 13:55:38 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260614_134910.log'

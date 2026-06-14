@@ -2,7 +2,18 @@
 Date: 2026-05-23
 Project: Unite-Group
 Root: `/Users/phillmcgurk/Unite-Group`
-Last update: 2026-06-14 13:18 AEST — Senior PM AI-RET-001 read-back refresh after ops auto-sync
+Last update: 2026-06-14 13:52 AEST — Senior PM AI-RET-001 report read-back hardening
+
+## Current Autonomy Rotation Guard — 2026-06-14 13:52 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at `492c2bfa` (dirty inherited worktree; `git rev-list --count main..origin/main` returned `8`). Current `git status --short` still shows inherited modified/untracked Margot, CRM, command-center, security, runtime, docs/design, image, and test surfaces; the selected files read-back shows `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` modified plus untracked `src/lib/margot/retrieval-evaluation.ts` and `tests/unit/lib/margot/retrieval-evaluation.test.ts`. No commit, push, PR, deploy, or destructive git action was attempted.
+- Completed safe Senior PM lane: re-read the ordered Senior PM read-first set, current `docs/margot/linear-watch-today.md`, AI-RET-001 evidence/register/pipeline, Mac Mini status, command-center surface, progress/morning logs, and active Margot execution plans, then hardened AI-RET-001 report read-back so missing report title, generated timestamp, Safety notes bullet evidence, or Next safe action body now fail closed inside `readBackMargotRetrievalEvaluationReport` rather than relying only on the runner's outer boolean comparison. Added two local report corruption/error-path tests for empty Safety notes and empty Next safe action blocks.
+- Verification: `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-14 13:52:15 AEST`; `node_modules=present`; `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> 1 suite / 224 tests PASS; report runner -> `overallStatus=pass; source=8/8; answerShape=106/106; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true`; `npm run type-check` PASS; `npm run security:routes-check` -> 0 unprotected mutating routes; `git diff --check` exited clean.
+- Evidence read-back: `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` regenerated at `14/06/2026, 13:52:07 AEST` with `overallStatus=pass`, source fixtures `8/8`, answer-shape fixtures `106/106`, and report read-back `pass`.
+- Mac Mini: not reprobed this tick per rotation guard. Last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts. Recovery remains blocked on an authenticated SMB mount, usable SSH session, or approved export.
+- Blockers unchanged: sandbox authority/auth gate, Mac Mini authenticated artifact transport, live provider status, production DB writes, deploy/env mutation, source-control publication, client-facing sends, paid spend, public publishing, connector platforms, new vendors, destructive git, cross-tenant data joins, fabricated board approval, implicit policy inference, fabricated tick history, fabricated conversation history.
+- Files changed this tick: `src/lib/margot/retrieval-evaluation.ts`, `tests/unit/lib/margot/retrieval-evaluation.test.ts`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/overnight-progress-log.md`, and `docs/margot/morning-report.md`.
+- Next safe lane: keep rotating to concrete local gaps only — another named report corruption/error-path fixture, a real changed read-surface test if a changed route/component/helper provides a target, or a control-surface refresh from existing repo evidence. Avoid repeated health-only AI-RET-001 checks unless another sync changes evidence.
 
 ## Current Autonomy Rotation Guard — 2026-06-14 13:18 AEST
 
