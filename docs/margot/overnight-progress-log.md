@@ -22342,3 +22342,67 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_065638.log'
+
+## 2026-06-15 07:32:00 AEST
+
+### Senior PM combined changed-surface read-back gate
+
+Completed bounded local read-back after re-reading the ordered Senior PM read-first set, current Linear mirror, AI-RET-001 evidence/register/pipeline, Mac Mini status, command-center surface, voice gap analysis, active execution plans, package manifest, and current progress/morning surfaces.
+
+Repo preflight:
+- Branch: `mesh/mission-control-2026-06-11`.
+- Head: `4814a9f7 chore: Margot ops auto-sync [tick 20260615_065638] (ops only — other uncommitted files present)`.
+- `git rev-list --count main..origin/main`: `8`.
+- Inherited dirty/untracked Margot, CRM, command-center, security, runtime, marketing/homepage, docs/design, image, API, and test surfaces remain; this tick did not normalize the worktree.
+
+Verification:
+
+```bash
+TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'
+# 2026-06-15 07:32:00 AEST
+
+test -d node_modules && echo node_modules=present || echo node_modules=missing
+# node_modules=present
+
+node -v
+# v22.22.3
+
+npm -v
+# 10.9.8
+
+npx jest src/components/command-center/voice/__tests__/voice-panel-state.test.ts tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-mappers.test.ts tests/unit/lib/crm/digest-read-error.test.ts tests/unit/lib/crm/approval-lifecycle.test.ts tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/check-route-inventory.test.ts --runInBand
+# PASS: 10 suites / 119 tests passed.
+
+npm run type-check
+# PASS: tsc --noEmit.
+
+npm run security:routes-check
+# PASS: route-inventory check reported 0 unprotected mutating routes.
+
+git diff --check && echo git_diff_check=pass
+# git_diff_check=pass
+```
+
+Evidence read-back:
+- `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` was read before lane selection and remains `overallStatus=pass`, source fixtures `8/8`, answer-shape fixtures `106/106`, report read-back `pass`, generated at `14/06/2026, 17:08:58 AEST`. It was not regenerated because no AI-RET harness/report surface changed.
+
+Safety:
+- No sandbox wizard subcommand, production DB write, migration, Vercel deploy/env mutation, source-control remote publication, client-facing send, paid spend, public publishing, connector platform, new vendor, live vector/AI call, provider polling, credential read, destructive git, cross-tenant data join, fabricated approval, or Mac Mini credential prompt occurred.
+- Mac Mini recovery was not reprobed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, 0 recovered Markdown artifacts.
+
+Files changed:
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Next safe slice:
+- Keep rotating to concrete local gaps only: a changed read-surface test if another modified route/component/helper gives a target, a named local report corruption/error-path fixture, or a control-surface refresh from existing repo evidence. Avoid repeated combined changed-surface, CRM/digest/runtime, TypeScript-only, route-inventory-only, Mission Control/Hermes dashboard, AI-RET-only, or voice checks unless another sync changes those surfaces.
+
+## 2026-06-15 07:34:24 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_073050.log'
