@@ -1,5 +1,82 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 18:08 AEST
+
+### Tick 20260615_1808 — Mac Mini transport flip read-back and bounded artifact probe
+
+Lane: bounded Senior PM health/read-back check on the approved Mac Mini recovery target, rotated from repeated Linear/provider-action guards. Goal was to refresh the recovery boundary without credential prompting, recursive system-volume scans, provider polling, publication, deploy, or DB action.
+
+Completed:
+- Preflighted current repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=7bec313d`; `git rev-list --count main..origin/main` -> `8`; upstream ahead/behind `0\t154`; inherited broad dirty/untracked worktree remains. No push, PR, merge, deploy, env mutation, sandbox wizard subcommand, destructive git action, provider mutation, or client-facing action was attempted.
+- Re-read the ordered Senior PM read-first set, current Linear mirror, AI-RET-001 local retrieval report (`overallStatus=pass`, source `8/8`, answerShape `106/106`), candidate register/pipeline, Mac Mini status, progress/morning surfaces, and active plans before selecting this bounded health lane.
+- Ran the bounded Mac Mini probe: `/Volumes` now lists `Macintosh HD,Ollama`; recovered Markdown artifact count under `docs/margot/recovered-from-mac-mini/` remains `0`; SMB `:445` is reachable; SSH `:22` is reachable at TCP level.
+- Ran a bounded, pruned scan of `/Volumes/Ollama` to max depth 6 for the two approved target files; no approved target file was found.
+- Tried a noninteractive SSH read-only file-presence check with `BatchMode=yes`; it failed with `Permission denied (publickey,password,keyboard-interactive)`, so SSH is reachable but not authenticated/usable for recovery in this session. No password prompt or credential attempt was made.
+- Updated `docs/margot/mac-mini-recovery-status.md` so the latest status supersedes the older SSH-unreachable wording while preserving the recovery blocker.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 18:08:33 AEST`.
+- `/bin/ls -1 /Volumes | paste -sd, -` -> `Macintosh HD,Ollama`.
+- `/usr/bin/find docs/margot/recovered-from-mac-mini -maxdepth 1 -type f -name '*.md' | wc -l` -> `0`.
+- `nc -G 2 -z phills-mac-mini.local 445` -> success / `SMB=reachable`.
+- `nc -G 2 -z phills-mac-mini.local 22` -> success / `SSH=reachable`.
+- Bounded target-file scan of `/Volumes/Ollama` -> no output / no approved target file found.
+- `ssh -o BatchMode=yes -o ConnectTimeout=5 phills-mac-mini.local ...` -> `Permission denied (publickey,password,keyboard-interactive)`.
+- `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> PASS, 1 suite / 225 tests.
+- `npm run type-check` -> PASS.
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS.
+
+Files changed:
+- `docs/margot/mac-mini-recovery-status.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Recovery remains blocked until an authenticated SMB mount containing the approved target files, a usable authenticated SSH session, or an approved export exists. Next safe lane should rotate away from Mac Mini unless authenticated transport changes again; prefer a non-Linear changed read-surface test, local report corruption/error-path fixture, or control-surface refresh.
+
+## 2026-06-15 17:42 AEST
+
+### Tick 20260615_1742 — Linear issue update state pre-lookup fail-closed guard
+
+Lane: bounded provider/action route hardening on the local admin-gated Linear issue route. Goal was to ensure update requests cannot dispatch to Linear's state lookup unless the requested state and team identifier are both non-blank strings.
+
+Completed:
+- Preflighted current repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=7bec313d`; upstream ahead/behind `154\t0`; inherited broad dirty/untracked worktree remains. GitHub auth and Vercel CLI auth were available, but this broad local lane was not published. No push, PR, merge, deploy, env mutation, sandbox wizard subcommand, destructive git action, provider mutation, or client-facing action was attempted.
+- Re-read the Senior PM / connected-teams CRM source-of-truth docs, CRM schema/conversion/contact-opportunity models, current progress/morning surfaces, package scripts, and the Linear issue route/test surface before selecting this follow-up guard.
+- RED #1: added `rejects update state changes without a teamId before Linear state lookup`; focused Jest failed before the route change because the route returned `200` instead of typed `400`.
+- GREEN #1: required a non-blank string `teamId` before resolving a requested state and trimmed the `teamId` before state lookup.
+- Independent review then identified a non-blocking but concrete pre-existing blank-state risk, so I took the same TDD loop rather than leaving it as a known fail-open provider-dispatch path.
+- RED #2: added `rejects blank update state values before Linear state lookup`; focused Jest failed because the route still called mocked `fetch` for a blank state.
+- GREEN #2: trimmed `state`, rejected blank state values with typed `400 { error: 'invalid_update_payload' }`, and used the trimmed lower-case state for matching.
+- Final independent review returned PASS with no required fixes. Residual low-risk follow-ups: trim `issueId` before dispatch, consider all-or-nothing behavior when state is unrecognized but priority is valid, and add broader parameterized coverage if this route remains the active lane.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 17:42:34 AEST`.
+- RED focused Jest #1: `npx jest tests/integration/api/linear-issue-route.test.ts --runInBand --testNamePattern='rejects update state changes without a teamId'` -> FAIL before route change, expected `400`, received `200`.
+- GREEN focused Jest #1: same command -> PASS, 1 selected test / 5 skipped.
+- RED focused Jest #2: `npx jest tests/integration/api/linear-issue-route.test.ts --runInBand --testNamePattern='rejects blank update state values'` -> FAIL before route change because mocked `fetch` was called once.
+- GREEN focused Jest #2: same command -> PASS, 1 selected test / 6 skipped.
+- Focused Linear route suite: `npx jest tests/integration/api/linear-issue-route.test.ts --runInBand` -> PASS, 1 suite / 7 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace for `next.config.js` via `src/app/api/telegram/approval-callback/route.ts`, missing optional Sentry auth/source-map token, and missing Railway/DigitalOcean/Vercel/GitHub/Stripe integration env tokens during static generation.
+
+Files changed:
+- `src/app/api/linear/issue/route.ts`
+- `tests/integration/api/linear-issue-route.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- No commit was created because the branch/worktree remains a broad inherited dirty lane. Next safe lane should rotate away from Linear unless taking a separately tested trim-before-dispatch/all-or-nothing update follow-up.
+
 ## 2026-06-15 17:36 AEST
 
 ### Tick 20260615_1736 — runtime stale-sync partial failure read-surface guard
@@ -23454,3 +23531,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_173359.log'
+
+## 2026-06-15 18:10:55 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_180740.log'

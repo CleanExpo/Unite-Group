@@ -1,7 +1,7 @@
 # Mac Mini Margot Recovery Status
 
 Date: 2026-05-22
-Last update: 2026-06-12 10:00:00 AEST — Senior PM 31st answer-shape fixture (mac-mini-recovery boundary) + doc-drift guard: bound this doc to the mocked answer-shape harness (`AI-RET-001-ANSWER-MAC-MINI-RECOVERY-BOUNDARY`, bound to `AI-RET-001-MAC-MINI`, no source-citation union member added) so a future answer about mac-mini-recovery must cite this doc, `MARGOT-COMMAND-CENTER.md`, `CONNECTED-TEAMS-OPERATING-RULES.md`, and `SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md`, and must include the 10 required answer-shape phrases and zero of the 9 prohibited overclaim phrases enumerated below.
+Last update: 2026-06-15 18:08:33 AEST — Senior PM bounded Mac Mini transport probe: `/Volumes` now contains `Macintosh HD,Ollama`; bounded scan of `/Volumes/Ollama` found no approved target files; recovered Markdown count remains `0`; SMB port 445 is reachable; SSH port 22 is reachable but authenticated noninteractive SSH is not usable (`Permission denied (publickey,password,keyboard-interactive)`). Recovery remains blocked on an authenticated SMB mount containing the approved target files, a usable authenticated SSH session, or an approved export. No credential prompt/read, secret printing/storage, recursive system-volume scan, or credential attempt occurred.
 Project: `/Users/phillmcgurk/Unite-Group`
 
 ## AI-RET-001 Mac-Mini-Recovery Citation Contract (bound to AI-RET-001-ANSWER-MAC-MINI-RECOVERY-BOUNDARY)
@@ -28,6 +28,13 @@ This mac-mini-recovery-status doc is now bound to the local, mocked AI-RET-001 r
   - mac mini artifacts recovered, ssh authenticated successfully, smb mounted and files copied, production migration applied, github pushed, vercel deployed, nango, secret read from, live provider status fetched.
 
 The `## AI-RET-001 Mac-Mini-Recovery Citation Contract` section above IS the assertion section the doc-drift guard scans. The 9 prohibited phrases are documented only at a meta level (inside this section heading and inside the Senior PM verification checkpoint's wording) so the assertion-section regex check stays green.
+
+## Latest probe (2026-06-15 18:08:33 AEST — Senior PM bounded Mac Mini transport probe)
+
+- `/Volumes` contains `Macintosh HD,Ollama`; a bounded, pruned scan of `/Volumes/Ollama` to max depth 6 found no approved target files (`MARGOT-COMMAND-CENTER.md` or `RESTOREASSIST-CONTENT-INDEX.md` under the approved `hermes-agent-enhancement-report` paths). The local recovered artifact count remains `0` Markdown files under `docs/margot/recovered-from-mac-mini/`.
+- `phills-mac-mini.local:445` is reachable (SMB/File Sharing TCP probe succeeded).
+- `phills-mac-mini.local:22` is reachable at the TCP layer, but noninteractive SSH is not a usable authenticated session: `ssh -o BatchMode=yes -o ConnectTimeout=5 phills-mac-mini.local ...` returned `Permission denied (publickey,password,keyboard-interactive)`.
+- Recovery remains blocked on an authenticated SMB mount containing the approved target files, a usable authenticated SSH session, or an approved export. No credential prompt/read, secret printing/storage, recursive system-volume scan, or credential attempt occurred.
 
 ## Latest probe (2026-06-10 09:45:00 AEST — Senior PM AI-RET-001 17th answer-shape fixture (ai-enhancement-pipeline boundary) + ai-enhancement-pipeline doc-drift guard + ai-enhancement-pipeline control-surface refresh lane (no probe re-run, rotation guard))
 

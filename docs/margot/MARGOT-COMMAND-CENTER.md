@@ -2,7 +2,16 @@
 |Date: 2026-05-23
 |Project: Unite-Group
 |Root: `/Users/phillmcgurk/Unite-Group`
-|Last update: 2026-06-15 17:02 AEST — Linear issue update issueId fail-closed guard
+|Last update: 2026-06-15 18:08 AEST — Mac Mini transport flip read-back and bounded artifact probe
+
+## Current Autonomy Rotation Guard — 2026-06-15 18:08 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at `HEAD=7bec313d`; `git rev-list --count main..origin/main` -> `8`; upstream ahead/behind `0\t154`; inherited broad dirty/untracked worktree remains. No push, PR, merge, deploy, env mutation, sandbox wizard subcommand, destructive git action, provider mutation, or client-facing action was attempted.
+- Completed safe Senior PM lane: refreshed the approved Mac Mini recovery boundary after the reachability probe changed. `/Volumes` now lists `Macintosh HD,Ollama`; bounded scan of `/Volumes/Ollama` found no approved target files; recovered Markdown artifacts remain `0`; SMB `:445` is reachable; SSH `:22` is TCP-reachable but noninteractive SSH is not authenticated/usable (`Permission denied (publickey,password,keyboard-interactive)`).
+- Verification: `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 18:08:33 AEST`; bounded `/Volumes/Ollama` target-file scan -> no approved files; AI-RET-001 focused gate -> PASS (1 suite / 225 tests); `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check` -> PASS.
+- Files changed in this slice: `docs/margot/mac-mini-recovery-status.md`, plus this command-center/progress/morning evidence update.
+- Safety: no production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, recursive system-volume scan, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- Next safe lane: rotate away from Mac Mini unless authenticated transport changes again; prefer a non-Linear changed read-surface test, local report corruption/error-path fixture, or control-surface refresh from existing repo evidence.
 
 ## Current Autonomy Rotation Guard — 2026-06-15 17:02 AEST
 
