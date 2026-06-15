@@ -96,6 +96,9 @@ export async function POST(req: NextRequest) {
       if (matchedState) updateInput.stateId = matchedState.id;
     }
     if (priority !== undefined) updateInput.priority = priority;
+    if (Object.keys(updateInput).length === 0) {
+      return NextResponse.json({ error: 'invalid_update_payload' }, { status: 400 });
+    }
 
     const data = await linearRequest(`
       mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) {
