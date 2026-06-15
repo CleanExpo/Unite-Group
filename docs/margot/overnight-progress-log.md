@@ -23735,3 +23735,69 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_191408.log'
+
+## 2026-06-15 19:59:47 AEST — CRM opportunity positive multi-link approval fixture
+
+### Senior PM autonomous CRM / command-spine tick
+
+Completed the follow-up positive fixture for the CRM opportunities cross-scope approval boundary after re-reading the ordered Senior PM read-first set, current Linear mirror, AI-RET-001 evidence/register/pipeline, Mac Mini status, command-center surface, voice gap analysis, active plans, and current progress/morning surfaces.
+
+Repo preflight:
+- Branch: `mesh/mission-control-2026-06-11`.
+- Head at lane start: `8c6ed9c1 docs(margot): record opportunity approval guard evidence`.
+- `git rev-list --count main..origin/main`: `8`.
+- Inherited broad dirty/untracked worktree remains; this tick did not normalize it and did not publish source-control state.
+
+Slice:
+- Added `inserts a multi-link opportunity only when full operator approval evidence is present` to `tests/integration/api/crm-opportunities-create.test.ts`.
+- The fixture proves a cross-scope opportunity with `approvalRequired: true`, `approvalStatus: 'approved'`, and `boardApprovalId` length evidence inserts successfully while the persisted `crm_opportunities` row omits both `boardApprovalId` and `board_approval_id`.
+- The fixture also pins the scoped duplicate lookup (`name` + first scoped link) and confirms both timeline inserts run after the primary opportunity insert.
+
+Verification:
+
+```bash
+TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'
+# 2026-06-15 19:59:47 AEST
+
+npx jest tests/integration/api/crm-opportunities-create.test.ts --runInBand --runTestsByPath
+# PASS: 1 suite / 34 tests.
+
+npx jest tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/integration/api/crm-activity-timeline.test.ts --runInBand
+# PASS: 2 suites / 68 tests (the third path has no matching test file in this repo state).
+
+npm run type-check
+# PASS: tsc --noEmit.
+
+npm run security:routes-check
+# PASS: route-inventory check reported 0 unprotected mutating routes.
+
+git diff --check && echo git_diff_check=pass
+# git_diff_check=pass.
+
+npm run build
+# PASS: compiled and generated 154 static pages; existing warnings only (deprecated middleware convention, Turbopack NFT trace via telegram approval callback, absent optional Sentry auth/source-map token, and optional integration env tokens absent during static generation).
+```
+
+Evidence read-back:
+- AI-RET-001 report was read before lane selection and remains `overallStatus=pass`, source fixtures `8/8`, answer-shape fixtures `106/106`, report read-back `pass`, generated at `15/06/2026, 09:00:27 AEST`. It was not regenerated because no AI-RET harness/report surface changed.
+
+Files changed:
+- `tests/integration/api/crm-opportunities-create.test.ts`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety:
+- No sandbox wizard subcommand, production DB write/migration, Vercel deploy/env mutation, source-control remote publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, recursive system-volume scan, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+
+Next safe lane:
+- Rotate away from CRM opportunities unless a fresh concrete identity/approval boundary appears; prefer another changed read-surface/control-surface gap from existing repo evidence.
+
+## 2026-06-15 20:01:10 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_195729.log'

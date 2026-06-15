@@ -3943,3 +3943,12 @@ Latest Senior PM AI-RET-001 harness realignment at `2026-06-10 09:42 AEST`:
 - Mac Mini: rotation guard - not reprobed this tick. Last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, 0 recovered Markdown artifacts. Blocker unchanged.
 - Safety: no sandbox wizard subcommand, production DB write, migration, deploy/env mutation, source-control remote publication, client-facing send, paid spend, public publishing, connector platform, new vendor, live vector/AI call, provider polling, credential read, destructive git, cross-tenant data join, fabricated approval, or Mac Mini credential prompt occurred.
 - Next safe lane: keep rotating to concrete local gaps — another changed read-surface test if a modified route/component/helper gives a target, a bounded AI-RET-001 report corruption/error-path class, or a Senior PM control-surface refresh from existing repo evidence.
+
+## 2026-06-15 19:59:47 AEST
+
+- Completed CRM opportunity positive multi-link approval fixture after full Senior PM read-first, Linear mirror, AI-RET, Mac Mini, command-center, voice-gap, and progress/morning read-back.
+- Repo preflight: branch `mesh/mission-control-2026-06-11`; latest commit `8c6ed9c1`; `main..origin/main=8`; inherited broad dirty/untracked worktree remains and was not normalized.
+- Verification passed: focused opportunities suite -> 1 suite / 34 tests PASS; contacts/opportunities sweep -> 2 suites / 68 tests PASS; `npm run type-check` PASS; `npm run security:routes-check` -> 0 unprotected mutating routes; `git diff --check` PASS; `npm run build` PASS with existing warnings only.
+- Files changed: `tests/integration/api/crm-opportunities-create.test.ts`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+- Safety: no sandbox wizard subcommand, production DB write, migration, deploy/env mutation, source-control remote publication, client-facing send, paid spend, public publishing, connector platform, new vendor, live provider polling, credential read, destructive git, cross-client merge, fabricated approval, or Mac Mini credential prompt occurred.
+- Next safe lane: rotate away from CRM opportunities unless a fresh concrete identity/approval boundary appears; prefer another changed read-surface/control-surface gap from existing repo evidence.

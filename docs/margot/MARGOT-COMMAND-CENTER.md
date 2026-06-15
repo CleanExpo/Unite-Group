@@ -2,7 +2,16 @@
 |Date: 2026-05-23
 |Project: Unite-Group
 |Root: `/Users/phillmcgurk/Unite-Group`
-|Last update: 2026-06-15 19:48 AEST — CRM opportunity cross-scope full-approval guard
+|Last update: 2026-06-15 19:59 AEST — CRM opportunity positive multi-link approval fixture
+
+## Current Autonomy Rotation Guard — 2026-06-15 19:59 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at local code/test commit `8c6ed9c1` (`docs(margot): record opportunity approval guard evidence`); `git rev-list --count main..origin/main` -> `8`; inherited broad dirty/untracked worktree remains. No push, PR, merge, deploy, env mutation, sandbox wizard subcommand, destructive git action, provider mutation, client-facing action, or database write was attempted.
+- Completed safe Senior PM lane: added the positive CRM opportunities multi-link/full-operator-approval fixture. The test now proves a cross-scope opportunity with `approvalRequired: true`, `approvalStatus: 'approved'`, and a length-checked `boardApprovalId` inserts successfully, strips any raw approval id from persisted opportunity rows, performs the scoped duplicate lookup, and records the two timeline actions.
+- Verification: focused opportunities suite -> PASS (1 suite / 34 tests); CRM contacts/opportunities sweep -> PASS (2 suites / 68 tests); `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check` -> PASS; `npm run build` -> PASS with existing warnings only.
+- Files changed in this slice: `tests/integration/api/crm-opportunities-create.test.ts`, plus this command-center/progress/morning evidence update.
+- Safety: no production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, recursive system-volume scan, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- Next safe lane: rotate away from CRM opportunities unless a fresh concrete identity/approval boundary appears; prefer another changed read-surface/control-surface gap from existing repo evidence.
 
 ## Current Autonomy Rotation Guard — 2026-06-15 19:48 AEST
 
