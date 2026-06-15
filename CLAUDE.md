@@ -3,7 +3,9 @@
 **Read `SOURCE-OF-TRUTH.md` first.** This repo (`CleanExpo/Unite-Group`) is the
 single canonical repository for the Unite-Group product and ecosystem. On
 12/06/2026 it absorbed Unite-Hub, hermes-workspace, Unite-Group-Spine,
-pi-ceo-operator-mcp and brain-1 with full git history.
+pi-ceo-operator-mcp and brain-1 with full git history. On 15/06/2026 it
+absorbed Fabel-Prompt-Engineer (→ `apps/spec-board/`), the fix-queue gate
+having been met.
 
 ## Layout
 
@@ -12,6 +14,7 @@ pi-ceo-operator-mcp and brain-1 with full git history.
 | `apps/web/` | **The product** — Unite-Group (formerly Unite-Hub CRM engine). Next.js 16, React 19, Supabase, pnpm workspace. Its own `apps/web/CLAUDE.md` rules (NorthStar, No-Invaders, founder_id scoping, Scientific Luxury) still apply inside it. |
 | `apps/workspace/` | Hermes workspace — agent command centre (Vite/React 19) |
 | `apps/authority-legacy/` | Old Authority-Site app — TEMPORARY harvest source for the C-then-A port. Do not build features here. |
+| `apps/spec-board/` | Fabel-Prompt-Engineer — plain-English vision → verified, build-ready spec (Next.js 15, npm, own Supabase project `yhteftfnoegmdkimzzjd`). Keeps its own lockfile/toolchain. Live founder data (visions/specs/board) untouched by the fold-in. |
 | `packages/spine/` | Unite-Group-Spine — greenfield shared-identity schema (gated, non-prod) |
 | `packages/pi-ceo-operator-mcp/` | Portfolio-health MCP server |
 | `docs/brain/` | Strategic knowledge vault (formerly brain-1) |

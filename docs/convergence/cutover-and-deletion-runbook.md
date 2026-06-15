@@ -19,6 +19,15 @@ and the migration map is CLOSED.
 
 ## Step 1 — Vercel: repoint the product (reversible)
 
+> **Known CI state until this step is done:** the `unite-group` and
+> `unite-group-sandbox` Vercel checks fail RED on every PR, because their Root
+> Directory still points at the monorepo root (no buildable Next app there since
+> the #224 convergence). This is expected and unrelated to PR content. The
+> **GitHub Actions "Monorepo CI" workflow is the merge arbiter** (per-package
+> type-check/test/build, incl. `apps/spec-board`); a green Actions run with red
+> Vercel is mergeable. The Vercel red clears the moment Root Directory below is
+> set to `apps/web`.
+
 1. Vercel team `team_KMZACI5rIltoCRhAtGCXlxUf`, project `unite-group`
    (`prj_IfUuJNLjXTE8VXqEGwLAleIGhiA0`):
    - Git repo stays `CleanExpo/Unite-Group`; set **Root Directory = `apps/web`**,
