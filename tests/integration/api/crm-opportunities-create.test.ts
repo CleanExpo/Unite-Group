@@ -233,7 +233,7 @@ describe('POST /api/crm/opportunities', () => {
     process.env = oldEnv;
   });
 
-  it('creates an open opportunity for an admin caller with safe snake_case payload, defaults, links, and no boardApprovalId stored', async () => {
+  it('creates an open opportunity for an admin caller with safe snake_case payload, defaults, and a single link', async () => {
     const calls: InsertCall[] = [];
     const selectCalls: SelectCall[] = [];
     mockOpportunityInsert(calls, selectCalls);
@@ -252,11 +252,7 @@ describe('POST /api/crm/opportunities', () => {
       campaignName: ' Autumn CRM ',
       sourceDetail: ' Warm inbound ',
       linkedLeadId: leadId,
-      linkedContactId: contactId,
-      linkedClientId: clientId,
-      linkedBusinessId: businessId,
       additionalData: { priority: 'high' },
-      boardApprovalId: 'BOARD-SHOULD-NOT-BE-STORED',
     }));
 
     expect(res.status).toBe(201);
@@ -298,9 +294,9 @@ describe('POST /api/crm/opportunities', () => {
           source_detail: 'Warm inbound',
           lost_reason: null,
           linked_lead_id: leadId,
-          linked_contact_id: contactId,
-          linked_client_id: clientId,
-          linked_business_id: businessId,
+          linked_contact_id: null,
+          linked_client_id: null,
+          linked_business_id: null,
           approval_required: false,
           approval_status: 'not_required',
           additional_data: { priority: 'high' },
@@ -330,9 +326,9 @@ describe('POST /api/crm/opportunities', () => {
             valueCurrency: 'AUD',
             hasValueAmount: true,
             linkedLead: true,
-            linkedContact: true,
-            linkedClient: true,
-            linkedBusiness: true,
+            linkedContact: false,
+            linkedClient: false,
+            linkedBusiness: false,
           },
         }),
       }),
@@ -491,6 +487,20 @@ describe('POST /api/crm/opportunities', () => {
       name: 'Margot CRM Buildout',
       linkedLeadId: leadId,
       linkedClientId: clientId,
+    }));
+
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ error: 'operator_approval_required' });
+    expect(createClient).not.toHaveBeenCalled();
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it('returns 403 operator_approval_required when multiple entity links only provide a boardApprovalId', async () => {
+    const res = await POST(request({
+      name: 'Margot CRM Buildout',
+      linkedLeadId: leadId,
+      linkedClientId: clientId,
+      boardApprovalId: 'BOARD-CROSS-SCOPE-ONLY',
     }));
 
     expect(res.status).toBe(403);

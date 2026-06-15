@@ -401,7 +401,7 @@ export async function POST(request: NextRequest) {
   }
 
   const opportunity = parsed.data;
-  if (linkedScopeCount(opportunity) > 1 && !hasBoardApprovalId(opportunity)) {
+  if (linkedScopeCount(opportunity) > 1 && !hasRequiredOperatorApproval(opportunity)) {
     return NextResponse.json({ error: 'operator_approval_required' }, { status: 403 });
   }
 
