@@ -2,7 +2,16 @@
 |Date: 2026-05-23
 |Project: Unite-Group
 |Root: `/Users/phillmcgurk/Unite-Group`
-|Last update: 2026-06-15 21:42 AEST — CRM digest bearer equals-header redaction guard
+|Last update: 2026-06-15 22:17 AEST — Linear update priority pre-dispatch guard
+
+## Current Autonomy Rotation Guard — 2026-06-15 22:17 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at `HEAD=badae30d`; `git rev-list --count main..origin/main` -> `10`; inherited broad dirty/untracked worktree remains (`55` status entries after docs update), so no bundled commit/push/PR action was attempted.
+- Completed safe Senior PM lane: hardened the admin-gated Linear issue update route so `priority` must be numeric, integer, and non-negative before it can be forwarded to Linear. Invalid priority is rejected before all Linear GraphQL requests, including the `state` lookup path.
+- Verification: RED #1 reproduced `priority: '1'` returning `200`; GREEN #1 passed after validation. Reviewer found the `state` + invalid-priority ordering gap; RED #2 reproduced the unwanted `GetStates` call; GREEN #2 passed after moving validation before the state lookup. Full Linear issue suite -> PASS (1 suite / 10 tests); `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check` -> PASS; independent reviewer re-check -> PASS; `npm run build` -> PASS with existing warnings only.
+- Files changed in this slice: `src/app/api/linear/issue/route.ts`, `tests/integration/api/linear-issue-route.test.ts`, plus this command-center/progress/morning evidence update.
+- Safety: no production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, sandbox wizard subcommand, recursive system-volume scan, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- Next safe lane: rotate away from Linear issue-route validation unless a fresh provider-action guard appears; prefer another changed read-surface/control-surface gap from existing repo evidence.
 
 ## Current Autonomy Rotation Guard — 2026-06-15 21:42 AEST
 

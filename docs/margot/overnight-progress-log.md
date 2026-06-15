@@ -1,5 +1,78 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 22:17 AEST
+
+### Tick 20260615_2217 — Linear update priority pre-dispatch guard
+
+Lane: bounded provider/action route hygiene for the admin-gated Linear issue command spine. Goal was to close the optional-field validation gap where an update `priority` could be a string and still be forwarded to Linear; after reviewer feedback, the guard was moved before the state lookup so invalid priority is rejected before any Linear GraphQL request even when `state` is also present.
+
+Completed:
+- Preflighted repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=badae30d`; `git rev-list --count main..origin/main` -> `10`; inherited broad dirty/untracked worktree remains (`55` status entries after this docs update).
+- Re-read the Senior PM read-first set, Linear mirror, AI-RET-001 evidence (`overallStatus=pass`, source `8/8`, answerShape `106/106`), current command-center/progress/morning surfaces, and the Linear route/test surface before selecting this small follow-up.
+- RED #1: added a focused regression proving `priority: '1'` returned `200`; GREEN #1 added numeric/integer/non-negative priority validation.
+- Reviewer found a blocking ordering gap: `state` + invalid `priority` still performed the Linear state lookup before rejecting. RED #2 reproduced the lookup; GREEN #2 moved priority validation ahead of all Linear requests.
+- Independent reviewer re-check -> PASS/no blocking correctness or security issues. No local commit was created because the branch/worktree already contains broad inherited dirty changes in the same Linear files plus many unrelated files.
+
+Verification:
+- `date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 22:17:43 AEST`.
+- Focused RED #1: `npx jest tests/integration/api/linear-issue-route.test.ts --runInBand --testNamePattern="non-numeric priority"` -> FAIL before route change; expected `400`, received `200`.
+- Focused GREEN #1: same command -> PASS.
+- Focused RED #2: `npx jest tests/integration/api/linear-issue-route.test.ts --runInBand --testNamePattern="state and invalid priority"` -> FAIL before guard reorder; fetch called once for `GetStates`.
+- Focused GREEN #2: `npx jest tests/integration/api/linear-issue-route.test.ts --runInBand --testNamePattern="state and invalid priority|non-numeric priority"` -> PASS, 2 selected tests.
+- Full Linear issue route suite: `npx jest tests/integration/api/linear-issue-route.test.ts --runInBand` -> PASS, 1 suite / 10 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace via `src/app/api/telegram/approval-callback/route.ts`, missing Sentry auth/source-map token, and missing optional integration env tokens during static generation.
+
+Files changed:
+- `src/app/api/linear/issue/route.ts`
+- `tests/integration/api/linear-issue-route.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Broad inherited branch remains unsuitable for push/PR/merge or a bundled commit without reconciliation/splitting. Next safe lane should rotate away from Linear issue-route validation unless a fresh provider-action guard appears.
+
+## 2026-06-15 21:54 AEST
+
+### Tick 20260615_2154 — Linear update issueId trim-before-dispatch guard
+
+Lane: bounded provider/action route hygiene for the admin-gated Linear issue command spine. Goal was to close the reviewer-noted whitespace drift where an update `issueId` could pass validation but still dispatch to Linear with surrounding whitespace. No production write, live provider call, sandbox wizard action, deploy, env mutation, source-control publication, or client-facing action was needed or attempted.
+
+Completed:
+- Preflighted repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=badae30d`; upstream ahead/behind `168\t0`; GitHub auth available; open PR `#228` is on `fabel/keystone-install`, not the current branch; inherited broad dirty/untracked worktree remains (`53` status entries).
+- Re-read the Connected Teams, Senior PM, CRM operating/schema/forecast/conversion/contact-opportunity docs plus current morning/progress evidence before selecting this small Linear command-spine follow-up.
+- RED: added a focused regression proving `issueId: '  LIN-123  '` was dispatched as `"  LIN-123  "`; focused Jest failed before the route change with expected `"LIN-123"`, received `"  LIN-123  "`.
+- GREEN: trimmed the validated update `issueId` once and used `trimmedIssueId` in the Linear `issueUpdate` variables, preserving existing fail-closed validation and mutable-field checks.
+- No local commit was created because the current branch/worktree already contains broad inherited dirty changes in the same Linear files plus many unrelated files; committing this tick would risk bundling unrelated work. Safe local evidence was recorded instead.
+
+Verification:
+- `date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 21:54:48 AEST`.
+- RED focused Jest: `npx jest tests/integration/api/linear-issue-route.test.ts --runInBand --testNamePattern="trims update issueId before Linear requests"` -> FAIL before route change; expected `LIN-123`, received whitespace-padded id.
+- GREEN focused Jest: same command -> PASS, 1 selected test / 7 skipped.
+- Full Linear issue route suite: `npx jest tests/integration/api/linear-issue-route.test.ts --runInBand` -> PASS, 1 suite / 8 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS.
+- Added-line static scans over the relevant Linear route/test diff -> PASS/no hardcoded-secret, shell-injection, eval/exec, unsafe deserialization, or SQL-string-format patterns.
+- Independent reviewer -> PASS/no security concerns or logic errors; non-blocking suggestions were future tests for whitespace-trimmed state `teamId` and optional field type/range validation.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace for `next.config.js` via `src/app/api/telegram/approval-callback/route.ts`, missing Sentry auth/source-map token, and missing Railway/DigitalOcean/Vercel/GitHub/Stripe integration env tokens during static generation.
+
+Files changed:
+- `src/app/api/linear/issue/route.ts`
+- `tests/integration/api/linear-issue-route.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Broad inherited branch remains unsuitable for push/PR/merge or a bundled commit without reconciliation/splitting. Next safe lane should rotate away from Linear unless taking a separately tested state `teamId` trim or optional-field validation follow-up.
+
 ## 2026-06-15 21:42 AEST
 
 ### Tick 20260615_2142 — CRM digest bearer equals-header redaction guard
@@ -23998,3 +24071,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_214100.log'
+
+## 2026-06-15 22:18:48 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_221349.log'
