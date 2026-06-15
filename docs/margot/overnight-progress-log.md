@@ -1,5 +1,78 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 19:17 AEST
+
+### Tick 20260615_1917 — CRM contact PATCH duplicate-email conflict guard
+
+Lane: bounded CRM contacts identity/dedupe hardening. Goal was to close the reviewer-suggested update-time duplicate-email conflict gap after the prior dedupe-key refresh slice, without widening PATCH fields, creating contacts/clients, touching production data, or changing approval gates.
+
+Completed:
+- Preflighted repo state: branch `mesh/mission-control-2026-06-11`; pre-slice `HEAD=7d0b8b28`; `git rev-list --count main..origin/main` -> `8`; inherited broad dirty/untracked worktree remains. No push, PR, merge, deploy, env mutation, sandbox wizard subcommand, provider mutation, client-facing send, destructive git action, or database write was attempted.
+- Re-read the Senior PM read-first set, Linear mirror, AI-RET-001 evidence (`overallStatus=pass`, source `8/8`, answerShape `106/106`), Mac Mini status, current progress/morning surfaces, package scripts, and the CRM contacts route/test surface before selecting this small non-Linear follow-up.
+- RED #1: added `returns 409 and does not update when a PATCH email collides with another contact dedupe key`; focused Jest failed before the route change with expected `409`, received `200`.
+- GREEN #1: reused the existing dedupe lookup before PATCH update so another contact id returns `409 { error: 'crm_contact_conflict' }` before update/timeline dispatch.
+- RED #2: added `allows a PATCH email update when the dedupe lookup finds the same contact id`; focused Jest failed after the first guard with expected `200`, received `409`.
+- GREEN #2: made the dedupe helper accept the current contact id and treat same-id lookup rows as non-conflicts. Independent reviewer returned PASS with no blocking correctness/security issues; noted DB uniqueness remains the race-condition backstop.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 19:17:53 AEST`.
+- RED focused Jest #1: `npx jest tests/integration/api/crm-contacts-create.test.ts --runInBand --testNamePattern='PATCH email collides'` -> FAIL before route change; expected `409`, received `200`.
+- GREEN focused Jest #1: same command -> PASS, 1 selected test / 32 skipped.
+- RED focused Jest #2: `npx jest tests/integration/api/crm-contacts-create.test.ts --runInBand --testNamePattern='same contact id'` -> FAIL after first guard; expected `200`, received `409`.
+- GREEN focused Jest #2: `npx jest tests/integration/api/crm-contacts-create.test.ts --runInBand --testNamePattern='PATCH email collides|same contact id'` -> PASS, 2 selected tests / 32 skipped.
+- Full CRM contacts suite: `npx jest tests/integration/api/crm-contacts-create.test.ts --runInBand` -> PASS, 1 suite / 34 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS before docs update.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace for `next.config.js` via `src/app/api/telegram/approval-callback/route.ts`, missing Sentry auth/source-map token, and missing Railway/DigitalOcean/Vercel/GitHub/Stripe integration env tokens during static generation.
+
+Files changed:
+- `src/app/api/crm/contacts/route.ts`
+- `tests/integration/api/crm-contacts-create.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Broad inherited branch remains unsuitable for push/PR without reconciliation/splitting. Next safe lane should rotate away from CRM contacts unless a fresh identity-boundary gap appears; prefer another CRM opportunities/contact identity read-surface or a different control-surface refresh.
+
+## 2026-06-15 19:03 AEST
+
+### Tick 20260615_1903 — CRM contact PATCH dedupe-key refresh guard
+
+Lane: bounded CRM contacts identity/dedupe hardening. Goal was to keep canonical contact dedupe keys aligned when an admin-gated PATCH changes `primary_email`, without changing approval gates, adding client/contact auto-creation rules, touching production data, or widening the PATCH field surface.
+
+Completed:
+- Preflighted repo state: branch `mesh/mission-control-2026-06-11`; pre-slice `HEAD=48e3c2a1`; upstream ahead/behind `0\t156`; inherited broad dirty/untracked worktree remains (`50` status entries before docs update). GitHub auth and Vercel CLI auth are available; no PR exists for the current branch; open PRs `#227`/`#228` are on other branches and have Vercel status-context failures. No push, PR, merge, deploy, env mutation, sandbox wizard subcommand, provider mutation, client-facing send, destructive git action, or database write was attempted.
+- Re-read the Senior PM / connected-teams CRM source-of-truth docs, current progress/morning surfaces, package scripts, and the CRM contacts route/test surface before selecting this small non-Linear, non-sandbox follow-up.
+- RED: added `refreshes contact dedupe keys when a PATCH updates the primary email`; focused Jest failed before the route change because the PATCH update payload only set `primary_email` and `updated_at`, omitting `dedupe_email_key` and `dedupe_domain_key`.
+- GREEN: updated `src/app/api/crm/contacts/route.ts` so a validated/trimmed email PATCH also refreshes `dedupe_email_key` and `dedupe_domain_key`; timeline metadata still records only `changedEmail: true` and the test asserts the patched email is not leaked into the timeline action JSON.
+- Local code/test commit created: `7d0b8b28 test(crm): refresh contact dedupe keys on email patch`. No source-control publication was attempted from the broad inherited branch.
+- Independent reviewer returned PASS with no security concerns and no logic errors. Non-blocking suggestion: consider a future update-time duplicate-email conflict guard if product policy requires PATCH to mirror POST duplicate behavior.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 19:03:02 AEST`.
+- RED focused Jest: `npx jest tests/integration/api/crm-contacts-create.test.ts --runInBand --testNamePattern='refreshes contact dedupe keys'` -> FAIL before route change; expected `dedupe_email_key` / `dedupe_domain_key`, received only `primary_email` / `updated_at`.
+- GREEN focused Jest: same command -> PASS, 1 selected test / 31 skipped.
+- Focused CRM contacts suite: `npx jest tests/integration/api/crm-contacts-create.test.ts --runInBand` -> PASS, 1 suite / 32 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS before docs update.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace for `next.config.js` via `src/app/api/telegram/approval-callback/route.ts`, missing Sentry auth/source-map token, and missing Railway/DigitalOcean/Vercel/GitHub/Stripe integration env tokens during static generation.
+
+Files changed:
+- `src/app/api/crm/contacts/route.ts`
+- `tests/integration/api/crm-contacts-create.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Broad inherited branch remains unsuitable for push/PR without reconciliation/splitting. Next safe lane: either add the reviewer's update-time duplicate-email conflict guard, or rotate to another CRM contacts/opportunities identity boundary with a fresh failing test.
+
 ## 2026-06-15 18:42 AEST
 
 ### Tick 20260615_1842 — sandbox wizard hash-literal local override guard
@@ -23616,3 +23689,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_184055.log'
+
+## 2026-06-15 19:27:29 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_191408.log'
