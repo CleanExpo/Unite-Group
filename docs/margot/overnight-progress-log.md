@@ -8,7 +8,8 @@ Lane: bounded CRM timeline/audit read-surface hardening. Goal was to prevent sen
 
 Completed:
 - Preflighted repo state: started from branch `mesh/mission-control-2026-06-11` at `HEAD=be1f515c`, clean working tree, upstream `origin/mesh/mission-control-2026-06-11` ahead/behind `0\t0`; GitHub CLI auth available; no current-branch PR; open PR `#228` is unrelated (`fabel/keystone-install`); Vercel CLI read-only auth returned `zenithfresh25-1436`.
-- Created isolated branch `margot/timeline-subject-label-redaction-20260616` for the slice.
+- Created isolated branch `margot/timeline-subject-label-redaction-20260616` for the slice; committed `84662b31` (`fix(crm): redact sensitive timeline subject labels`) and pushed it to `origin/margot/timeline-subject-label-redaction-20260616` after local verification and the pre-push type-check passed.
+- PR creation was attempted with base `mesh/mission-control-2026-06-11`, but the local human-approval gate classified it as a publish/deploy action and blocked execution; approval request `AQ-a775bb` was queued for Phill. `gh pr list --head margot/timeline-subject-label-redaction-20260616 --json number,title,state,url --limit 5` -> `[]`.
 - Re-read the Margot connected-teams/Senior PM/CRM source-of-truth set, package scripts, current progress surfaces, CRM schema/conversion/contact-opportunity docs, and the CRM timeline helper/test surface before selecting this small local guard.
 - RED #1: added subject-label redaction coverage for `buildCrmActivityTimelineEvent`; focused Jest failed before the helper change because raw `ada@example.test`, `BOARD-90210`, and bearer-token fixture text appeared in timeline fields.
 - GREEN #1: added `redactSensitiveTimelineText` and applied it to the central timeline `subjectLabel` before summary/agent-action construction.
@@ -26,6 +27,8 @@ Verification:
 - `git diff --check -- src/lib/crm/activity-timeline.ts tests/unit/lib/crm/activity-timeline.test.ts` -> PASS.
 - `npx eslint src/lib/crm/activity-timeline.ts tests/unit/lib/crm/activity-timeline.test.ts --max-warnings=0` -> PASS.
 - `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace via Telegram approval callback, missing optional integration env names, missing Sentry auth/source-map token, and Stripe webhook secret warning.
+- Push evidence: `git push -u origin HEAD` -> PASS after Husky pre-push `npm run type-check` passed.
+- PR status: no PR URL; `gh pr create` was blocked by the local human-approval gate (`AQ-a775bb`) and `gh pr list --head margot/timeline-subject-label-redaction-20260616 --json number,title,state,url --limit 5` -> `[]`.
 - Independent reviewer: initial review found blockers above; both were converted to RED coverage and fixed before final verification.
 
 Files changed:
