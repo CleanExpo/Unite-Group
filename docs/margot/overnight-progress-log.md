@@ -1,5 +1,43 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 11:06 AEST
+
+### Tick 20260615_1106 — Linear issue route invalid-JSON fail-closed slice
+
+Lane: bounded Senior PM changed-surface route hardening for the local admin-gated Linear issue route. Goal was to make malformed POST JSON fail closed with a typed `400 invalid_json` response instead of throwing before the route can return a controlled payload.
+
+Completed:
+- Preflighted branch `mesh/mission-control-2026-06-11`: inherited broad dirty/untracked worktree, upstream ahead/behind `0\t127`, `gh_available=no`, Vercel CLI installed but `vercel_auth=unavailable`, and no open PR state available. Continued the existing lane and did not start a new branch.
+- Read the Senior PM / CRM command-spine rules, current progress/morning reports, Linear watch mirror, relevant package scripts, and candidate route/test surfaces before selecting the smallest safe route error-path slice.
+- RED: added `tests/integration/api/linear-issue-route.test.ts` with a malformed JSON POST request authenticated through the existing service-role admin gate; focused Jest failed because `src/app/api/linear/issue/route.ts` threw `SyntaxError` at `req.json()`.
+- GREEN: wrapped `req.json()` in a minimal try/catch returning `NextResponse.json({ error: 'invalid_json' }, { status: 400 })`; string-narrowed Linear `state` lookup so `npm run type-check` stayed green after replacing implicit `any` with typed request-body fields.
+- Committed the code/test slice locally as `893c87c4 test(linear): fail closed on malformed issue payloads`.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 11:06:54 AEST`.
+- RED focused Jest: `npx jest tests/integration/api/linear-issue-route.test.ts --runInBand` -> FAIL before route change; `SyntaxError` at `req.json()`.
+- GREEN focused Jest: same command -> PASS after route change, 1 suite / 1 test.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check && echo git_diff_check=pass` -> `git_diff_check=pass`.
+- `npm run build` -> PASS. Existing/non-blocking warnings: deprecated `middleware` convention, Turbopack NFT trace for `next.config.js` via `src/app/api/telegram/approval-callback/route.ts`, missing optional Sentry auth/source-map token, and missing Railway/DigitalOcean/Vercel/GitHub/Stripe integration env tokens during static generation.
+- Static added-line scan -> `static_added_line_scan=pass`.
+- Independent reviewer -> `passed=true`, no security concerns, no logic errors; suggestions only: consider a future non-string `state` update-path test and a shared JSON parsing helper if this pattern repeats.
+
+Files changed:
+- `src/app/api/linear/issue/route.ts`
+- `tests/integration/api/linear-issue-route.test.ts`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication beyond the local commit, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, or fabricated history occurred.
+- Branch remains far ahead of origin and the worktree remains broadly inherited/dirty; with `gh` unavailable in this shell and no clean PR lane, no push/PR/merge was attempted.
+
+Next safe lane: continue rotating to concrete changed-surface tests only — e.g. a non-string Linear `state` update guard, a CRM/runtime read-surface edge case, or a named local report corruption/error-path fixture.
+
 ## 2026-06-15 10:41 AEST
 
 ### Tick 20260615_1041 — Linear mirror / AI-RET local read-back gate

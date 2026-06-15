@@ -2,7 +2,16 @@
 Date: 2026-05-23
 Project: Unite-Group
 Root: `/Users/phillmcgurk/Unite-Group`
-Last update: 2026-06-15 10:41 AEST — Linear mirror / AI-RET local read-back gate
+Last update: 2026-06-15 11:06 AEST — Linear issue route invalid-JSON fail-closed slice
+
+## Current Autonomy Rotation Guard — 2026-06-15 11:06 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at local commit `893c87c4` (`test(linear): fail closed on malformed issue payloads`); preflight showed `gh_available=no`, Vercel CLI installed but `vercel_auth=unavailable`, no open PR state available, and inherited broad dirty/untracked worktree remained. No push, PR, merge, deploy, env mutation, or destructive git action was attempted.
+- Completed safe Senior PM lane: used strict RED-GREEN on the local admin-gated Linear issue route. Added a focused integration test proving malformed POST JSON returns `400 { error: 'invalid_json' }`, watched it fail because `req.json()` threw, then added the minimal route guard and kept Linear state lookup string-narrowed for TypeScript safety.
+- Verification: `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 11:06:54 AEST`; RED focused Jest failed before the route change with `SyntaxError` at `req.json()`; GREEN focused Jest passed after the route change (`tests/integration/api/linear-issue-route.test.ts`, 1 suite / 1 test); `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check && echo git_diff_check=pass` -> PASS; `npm run build` -> PASS with existing warnings only (deprecated middleware convention, Turbopack NFT trace via telegram approval callback, missing optional Sentry token/source-map upload token, and missing integration env tokens during static generation).
+- Review/evidence: static added-line scan returned `static_added_line_scan=pass`; independent reviewer returned `passed=true` with no security concerns and no logic errors. Files changed in the slice: `src/app/api/linear/issue/route.ts` and `tests/integration/api/linear-issue-route.test.ts`.
+- Safety: no sandbox wizard subcommand, production DB write/migration, Vercel deploy/env mutation, source-control publication beyond the local commit, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, or fabricated history occurred.
+- Next safe lane: continue rotating to concrete changed-surface tests; good candidates are a non-string Linear `state` update guard test, a CRM/runtime read-surface edge case, or a named local report corruption/error-path fixture.
 
 ## Current Autonomy Rotation Guard — 2026-06-15 10:41 AEST
 
