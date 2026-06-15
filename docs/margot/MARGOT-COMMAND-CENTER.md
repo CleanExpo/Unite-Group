@@ -2,7 +2,16 @@
 |Date: 2026-05-23
 |Project: Unite-Group
 |Root: `/Users/phillmcgurk/Unite-Group`
-|Last update: 2026-06-15 15:54 AEST — Linear issue create payload trim-before-dispatch guard
+|Last update: 2026-06-15 17:02 AEST — Linear issue update issueId fail-closed guard
+
+## Current Autonomy Rotation Guard — 2026-06-15 17:02 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at `HEAD=025c7382`; `git rev-list --count main..origin/main` -> `8`; inherited broad dirty/untracked worktree remains (`51` status lines after this slice). No push, PR, merge, deploy, env mutation, sandbox wizard subcommand, destructive git action, provider mutation, or client-facing action was attempted.
+- Completed safe Senior PM lane: rotated to another provider/action read-surface guard on the admin-gated Linear issue route. Added a RED regression proving `action: "update"` with a non-string `issueId` and mutable `priority` reached Linear dispatch, then made update payloads require a non-blank string issue id before any provider request.
+- Verification: RED focused Jest failed before route change with expected `400`, received `200`; GREEN focused Jest passed after the guard; full `npx jest tests/integration/api/linear-issue-route.test.ts --runInBand` -> PASS (1 suite / 5 tests); `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check` -> PASS; `npm run build` -> PASS with existing warnings only.
+- Files changed in this slice: `src/app/api/linear/issue/route.ts`, `tests/integration/api/linear-issue-route.test.ts`, plus this command-center/progress/morning evidence update.
+- Safety: no production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- Next safe lane: rotate away from Linear issue route validation unless a fresh concrete provider/action guard appears; prefer a non-Linear changed read-surface test, local report corruption/error-path fixture, or control-surface refresh from existing repo evidence.
 
 ## Current Autonomy Rotation Guard — 2026-06-15 16:28 AEST
 

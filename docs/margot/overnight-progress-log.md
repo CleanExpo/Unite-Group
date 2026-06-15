@@ -1,5 +1,73 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 17:02 AEST
+
+### Tick 20260615_1702 — Linear issue update issueId fail-closed guard
+
+Lane: bounded provider/action route hardening on the local admin-gated Linear issue route. Goal was to ensure update requests cannot dispatch to Linear unless the issue identifier is a non-blank string.
+
+Completed:
+- Preflighted current repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=025c7382 chore: Margot ops auto-sync [tick 20260615_162640] (ops only — other uncommitted files present)`; `git rev-list --count main..origin/main` -> `8`; inherited broad dirty/untracked worktree remains (`51` status lines after this slice). No push, PR, merge, deploy, env mutation, sandbox wizard subcommand, destructive git action, provider mutation, or client-facing action was attempted.
+- Re-read the ordered Senior PM read-first set, current Linear mirror, AI-RET-001 local report (`overallStatus=pass`, source `8/8`, answerShape `106/106`), candidate register/pipeline, Mac Mini recovery status, current command-center/progress/morning surfaces, package scripts, and the Linear issue route/test surface before selecting this lane.
+- RED: added `rejects update payloads with a non-string issueId before Linear requests`; focused Jest failed before the route change because the route returned `200` and called the mocked Linear update path.
+- GREEN: changed the update branch to require `issueId` to be a non-blank string before constructing update input or making any Linear request. Invalid update payloads now return typed `400 { error: 'invalid_update_payload' }`.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 17:02:21 AEST`.
+- RED focused Jest: `npx jest tests/integration/api/linear-issue-route.test.ts --runInBand --testNamePattern='non-string issueId'` -> FAIL before route change, expected `400`, received `200`.
+- GREEN focused Jest: same command -> PASS, 1 selected test / 4 skipped.
+- Focused Linear route suite: `npx jest tests/integration/api/linear-issue-route.test.ts --runInBand` -> PASS, 1 suite / 5 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace for `next.config.js` via `src/app/api/telegram/approval-callback/route.ts`, missing optional Sentry auth/source-map token, and missing Railway/DigitalOcean/Vercel/GitHub/Stripe integration env tokens during static generation.
+
+Files changed:
+- `src/app/api/linear/issue/route.ts`
+- `tests/integration/api/linear-issue-route.test.ts`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- Next safe lane: rotate away from Linear issue route validation unless a fresh concrete provider/action guard appears; otherwise choose a non-Linear changed read-surface test, local report corruption/error-path fixture, or control-surface refresh from existing repo evidence.
+
+## 2026-06-15 17:00 AEST
+
+### Tick 20260615_1700 — Hermes dashboard singular active-job parser guard
+
+Lane: bounded command-center/Hermes dashboard read-surface hardening. Goal was to keep the local Mission Control wrapper from rendering `0 active jobs` when `hermes cron status` emits the singular CLI form `1 active job` instead of the older literal `1 active job(s)` form.
+
+Completed:
+- Preflighted current repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=025c7382`; upstream ahead/behind `152\t0`; inherited broad dirty/untracked worktree remains (`49` status lines). GitHub auth is available, and open PR `#227` is currently blocked by Vercel status-context failures on a different branch. No push, PR, merge, deploy, env mutation, sandbox wizard subcommand, destructive git action, provider mutation, or client-facing action was attempted.
+- Re-read the Senior PM / connected-teams CRM source-of-truth docs, current Linear mirror, progress/morning surfaces, package scripts, and the Hermes dashboard route/test surface before selecting this small changed read-surface lane.
+- Used 3 inspection subagents only for independent local candidate selection; the selected slice was the command-center/Hermes dashboard parser gap, not another Margot voice, Linear issue, or CRM digest redaction repeat.
+- RED: added `parses singular cron "1 active job" output so the wrapper does not render 0 active jobs for a live gateway`; focused Jest failed before the route change with expected `1`, received `0` for `body.cron.activeJobs`.
+- GREEN: widened the local `parseCronStatus` active-job regex to accept `active job`, `active jobs`, and the existing `active job(s)` wording while leaving the gateway-running and next-run parsing unchanged.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 17:00:53 AEST`.
+- RED focused Jest: `npx jest tests/integration/api/hermes-dashboard.test.ts --runInBand --testNamePattern='parses singular cron "1 active job" output'` -> FAIL before route change, expected `1`, received `0`.
+- GREEN focused Jest: same command -> PASS, 1 selected test / 4 skipped.
+- Focused command-center dashboard gate: `npx jest tests/integration/api/hermes-dashboard.test.ts tests/unit/components/command-center/HermesDashboardWrapper.test.tsx --runInBand` -> PASS, 2 suites / 17 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace for `next.config.js` via `src/app/api/telegram/approval-callback/route.ts`, missing optional Sentry auth/source-map token, and missing Railway/DigitalOcean/Vercel/GitHub/Stripe integration env tokens during static generation.
+
+Files changed:
+- `src/app/api/command-center/hermes-dashboard/route.ts`
+- `tests/integration/api/hermes-dashboard.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- No local commit was created because the two affected Hermes dashboard route/test files are inherited untracked files in a broad dirty worktree; committing them now would publish more than this tiny parser slice. Next safe lane: either reconcile/split the inherited Mission Control/Hermes dashboard untracked lane, or choose another concrete changed read-surface test with tracked files only.
+
 ## 2026-06-15 16:28 AEST
 
 ### Tick 20260615_1628 — Margot signed-url missing-url fail-closed guard
@@ -23336,3 +23404,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_162640.log'
+
+## 2026-06-15 17:03:59 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_170008.log'
