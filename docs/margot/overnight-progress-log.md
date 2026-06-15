@@ -1,5 +1,39 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 16:28 AEST
+
+### Tick 20260615_1628 — Margot signed-url missing-url fail-closed guard
+
+Lane: bounded Margot voice signed-url route hardening. Goal was to take the next safe voice follow-up and ensure an upstream ElevenLabs `200 OK` response without a usable `signed_url` does not surface as a ready voice session.
+
+Completed:
+- Preflighted current repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=d7284d90 docs(margot): record voice panel slice commit`; `git rev-list --count main..origin/main` -> `8`; inherited broad dirty/untracked worktree remains. No push, PR, merge, deploy, env mutation, sandbox wizard subcommand, destructive git action, provider mutation, or client-facing action was attempted.
+- Re-read the ordered Senior PM read-first set, current Linear mirror, AI-RET-001 local report (`overallStatus=pass`, source `8/8`, answerShape `106/106`), Mac Mini recovery status, current progress/morning/command-center surfaces, voice gap analysis, package scripts, and the Margot signed-url route/test surface before selecting this lane.
+- RED: added `returns 502 when ElevenLabs returns OK without a signed_url`; focused Jest failed before the route change because the route returned `200` with an undefined signed URL.
+- GREEN: added a minimal response-shape guard after upstream JSON parse so missing, non-string, or blank `signed_url` returns typed `502 { error: 'elevenlabs_signed_url_failed' }` instead of mounting a broken voice widget.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 16:28:18 AEST`.
+- RED focused Jest: `npx jest tests/integration/api/margot-voice-signed-url.test.ts --runInBand --testNamePattern='returns 502 when ElevenLabs returns OK without a signed_url'` -> FAIL before route change, expected `502`, received `200`.
+- GREEN focused Jest: same command -> PASS, 1 selected test / 6 skipped.
+- Focused voice suite: `npx jest src/components/command-center/voice/__tests__/voice-panel-state.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts --runInBand` -> PASS, 4 suites / 49 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace for `next.config.js` via `src/app/api/telegram/approval-callback/route.ts`, missing optional Sentry auth/source-map token, and missing Railway/DigitalOcean/Vercel/GitHub/Stripe integration env tokens during static generation.
+
+Files changed:
+- `src/app/api/pi-ceo/margot-voice/signed-url/route.ts`
+- `tests/integration/api/margot-voice-signed-url.test.ts`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- Next safe lane: rotate away from Margot voice unless a fresh concrete signed-url/task/widget gap appears; prefer another changed read-surface test, local report corruption/error-path fixture, or control-surface refresh from existing repo evidence.
+
 ## 2026-06-15 15:54 AEST
 
 ### Tick 20260615_1554 — Linear issue create payload trim-before-dispatch guard
@@ -23293,3 +23327,12 @@ Safety:
 Next safe lane:
 
 - If staying on Margot voice UI, add the reviewer's focused follow-up: a RED/GREEN reducer test for `ok=true` with a missing/empty signed URL or a component-level guard preventing redundant ready-state signed-url fetches. Otherwise rotate to another concrete changed read-surface or local report corruption/error-path fixture.
+
+## 2026-06-15 16:30:08 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_162640.log'

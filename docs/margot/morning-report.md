@@ -1,5 +1,13 @@
 # Margot Morning Report
 
+## 2026-06-15 16:28 AEST — Margot signed-url missing-url fail-closed guard
+
+- **Completed safe lane:** Used strict RED-GREEN on the local Margot signed-url route. Added a failing regression proving an ElevenLabs `200 OK` response without `signed_url` returned `200` to the UI; then added a response-shape guard so missing/non-string/blank signed URLs return typed `502 { error: 'elevenlabs_signed_url_failed' }`.
+- **Repo state read-back:** branch `mesh/mission-control-2026-06-11`; `HEAD=d7284d90 docs(margot): record voice panel slice commit`; `git rev-list --count main..origin/main` -> `8`; inherited broad dirty/untracked worktree remains (`49` status lines after this slice). No push/PR/merge/deploy/env mutation/sandbox wizard/destructive git action was attempted.
+- **Verification:** RED focused Jest failed before route change with expected `502`, received `200`; GREEN focused Jest passed after the guard. Final gates: focused voice suite `npx jest src/components/command-center/voice/__tests__/voice-panel-state.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts --runInBand` -> 4 suites / 49 tests PASS; `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check` -> PASS; `npm run build` -> PASS with existing warnings only.
+- **Evidence paths:** `src/app/api/pi-ceo/margot-voice/signed-url/route.ts`, `tests/integration/api/margot-voice-signed-url.test.ts`, `docs/margot/overnight-progress-log.md`.
+- **Blockers unchanged / next lane:** no production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred. Next lane rotates away from Margot voice unless a fresh concrete voice gap appears.
+
 ## 2026-06-15 16:19 AEST — Margot voice ready-state duplicate-start guard
 
 - **Completed safe lane:** Used strict RED-GREEN on the local Margot voice-panel reducer. Added a failing regression proving a duplicate `START` event after `ready` tore the mounted voice widget back down to `loading`; then made `reduceVoicePanelState` preserve the prior ready snapshot while keeping idle/error retry and loading idempotency intact.

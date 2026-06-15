@@ -4,6 +4,15 @@
 |Root: `/Users/phillmcgurk/Unite-Group`
 |Last update: 2026-06-15 15:54 AEST — Linear issue create payload trim-before-dispatch guard
 
+## Current Autonomy Rotation Guard — 2026-06-15 16:28 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at `HEAD=d7284d90`; `git rev-list --count main..origin/main` -> `8`; inherited broad dirty/untracked worktree remains (`49` status lines after this slice). No push, PR, merge, deploy, env mutation, sandbox wizard subcommand, destructive git action, provider mutation, or client-facing action was attempted.
+- Completed safe Senior PM lane: took the next Margot voice follow-up. Added a focused RED regression proving an upstream ElevenLabs `200 OK` response without `signed_url` returned `200` to the UI, then added a response-shape guard so missing/non-string/blank signed URLs return typed `502 { error: 'elevenlabs_signed_url_failed' }`.
+- Verification: RED focused Jest failed before route change with expected `502`, received `200`; GREEN focused Jest passed after the guard; focused voice suite `npx jest src/components/command-center/voice/__tests__/voice-panel-state.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts --runInBand` -> PASS (4 suites / 49 tests); `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check` -> PASS; `npm run build` -> PASS with existing warnings only.
+- Files changed in this slice: `src/app/api/pi-ceo/margot-voice/signed-url/route.ts`, `tests/integration/api/margot-voice-signed-url.test.ts`, plus this command-center/progress/morning evidence update.
+- Safety: no production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- Next safe lane: rotate away from Margot voice unless a fresh concrete signed-url/task/widget gap appears; prefer another changed read-surface test, a local report corruption/error-path fixture, or a control-surface refresh from existing repo evidence.
+
 ## Current Autonomy Rotation Guard — 2026-06-15 15:54 AEST
 
 - Repo: `mesh/mission-control-2026-06-11` at `HEAD=11577a44`; `git rev-list --count main..origin/main` -> `8`; inherited broad dirty/untracked worktree remains. No push, PR, merge, deploy, env mutation, sandbox wizard subcommand, destructive git action, provider mutation, or client-facing action was attempted.
