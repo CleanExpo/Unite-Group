@@ -38,13 +38,12 @@ function isUuid(value: string) {
   return z.string().uuid().safeParse(value).success;
 }
 
-async function recordLeadConversionTimelineEvent(
-  supabase: ReturnType<typeof createClient<any>>,
+function buildLeadConversionTimelineEvent(
   lead: CrmLeadConversionRow,
   targetClientId: string,
 ) {
   const subjectLabel = lead.company?.trim() || lead.id;
-  const event = buildCrmActivityTimelineEvent({
+  return buildCrmActivityTimelineEvent({
     type: 'lead_converted',
     actor: 'Margot',
     subjectId: lead.id,
@@ -59,6 +58,14 @@ async function recordLeadConversionTimelineEvent(
       operatorGateSatisfied: true,
     },
   });
+}
+
+async function recordLeadConversionTimelineEvent(
+  supabase: ReturnType<typeof createClient<any>>,
+  lead: CrmLeadConversionRow,
+  targetClientId: string,
+) {
+  const event = buildLeadConversionTimelineEvent(lead, targetClientId);
 
   try {
     const { error } = await supabase
@@ -152,6 +159,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
         lead_id: lead.id,
         target_client_id: parsed.data.targetClientId,
         planned_update: conversionPayload,
+        planned_timeline_event: buildCrmTimelineAgentActionInsert(
+          buildLeadConversionTimelineEvent(lead, parsed.data.targetClientId),
+        ).payload,
         board_approval_id: parsed.data.boardApprovalId,
       },
       { status: 200 },

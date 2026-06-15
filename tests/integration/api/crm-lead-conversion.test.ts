@@ -184,6 +184,46 @@ describe('POST /api/crm/leads/[id]/convert', () => {
     expect(updateBuilder.update).not.toHaveBeenCalled();
   });
 
+  it('returns a sanitized planned timeline event and performs no mutation for dry-run conversions', async () => {
+    const timelineCalls: Array<{ table: string; row: Record<string, unknown> }> = [];
+    const { updateBuilder } = mockLeadConversion({
+      id: leadId,
+      email: 'ada@example.com',
+      company: 'Analytical Engines Pty Ltd',
+      status: 'qualified',
+      matched_client_id: targetClientId,
+      converted_client_id: null,
+      converted_at: null,
+    }, {}, timelineCalls);
+
+    const res = await POST(request({ dryRun: true }), context());
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({
+      success: true,
+      dry_run: true,
+      lead_id: leadId,
+      target_client_id: targetClientId,
+      planned_timeline_event: expect.objectContaining({
+        type: 'lead_converted',
+        category: 'lead',
+        actionClass: 'approval_required',
+        requiresApproval: true,
+        subjectId: leadId,
+        subjectLabel: 'Analytical Engines Pty Ltd',
+        source: 'crm_lead_conversion_route',
+        metadata: {
+          priorStatus: 'qualified',
+          hadMatchedClient: true,
+          targetClientLinked: true,
+          operatorGateSatisfied: true,
+        },
+      }),
+    });
+    expect(updateBuilder.update).not.toHaveBeenCalled();
+    expect(timelineCalls).toEqual([]);
+  });
+
   it('updates the exact lead conversion fields and writes a sanitized pending timeline action when identity gates and Board approval pass', async () => {
     const timelineCalls: Array<{ table: string; row: Record<string, unknown> }> = [];
     const { updateBuilder } = mockLeadConversion({
