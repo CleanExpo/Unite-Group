@@ -1,0 +1,109 @@
+{
+  "meta": {
+    "product": "RestoreAssist (P1)",
+    "spec": "Unite Group — Completion & Production-Readiness Specification",
+    "authored": "2026-06-16",
+    "done_rule": "zero open blockers AND zero open majors (spec §5 loop-until-done, §7 sign-off)",
+    "target_repo_env": "TARGET_REPO",
+    "target_repo_note": "command/gap-scan checks run inside $TARGET_REPO (the RestoreAssist codebase, CleanExpo/Unite-Hub). With no TARGET_REPO set, command checks report 'open' (unevaluated) — which is the correct starting state.",
+    "severity_levels": ["blocker", "major", "minor"],
+    "check_kinds": {
+      "command": "runs a shell command in TARGET_REPO; exit 0 = pass",
+      "attestation": "a named human/reviewer sign-off recorded in readiness-state.json",
+      "gap-scan": "runs the §3 enumeration command in TARGET_REPO; exit 0 = no gaps"
+    },
+    "version": "1.0"
+  },
+  "gates": [
+    {
+      "id": "G4-DISPATCH", "phase": "§4 Consequential-action", "title": "Dispatch cannot fire on an unverified match",
+      "type": "hard", "severity": "blocker", "consequential": true, "owner": "Nova+Lens",
+      "done_definition": "No code path dispatches a contractor to a property until the match is verified against vetting + coverage rules.",
+      "check": { "kind": "command", "run": "npm test -- --testPathPattern=dispatch-gate", "todo": "confirm the dispatch-gate test name in RestoreAssist" }
+    },
+    {
+      "id": "G4-PAYMENT", "phase": "§4 Consequential-action", "title": "Payment cannot exceed threshold without human approval",
+      "type": "hard", "severity": "blocker", "consequential": true, "owner": "Nova",
+      "done_definition": "Amount + payee validated; any payment above the configured threshold pauses for a human approve before money moves.",
+      "check": { "kind": "command", "run": "npm test -- --testPathPattern=payment-threshold", "todo": "confirm test name + that PAYMENT_AUTO_APPROVE_MAX is enforced server-side" }
+    },
+    {
+      "id": "G4-INSURANCE", "phase": "§4 Consequential-action", "title": "Insurance claim submit/alter requires Lens check + human confirm",
+      "type": "hard", "severity": "blocker", "consequential": true, "owner": "Lens",
+      "done_definition": "No claim is submitted or altered without a legal/ethics (Lens) check AND an explicit human confirmation.",
+      "check": { "kind": "command", "run": "npm test -- --testPathPattern=insurance-gate", "todo": "confirm test name" }
+    },
+    {
+      "id": "G4-COMMS", "phase": "§4 Consequential-action", "title": "Crisis customer comms are template-bound with a human escalation path",
+      "type": "hard", "severity": "major", "consequential": true, "owner": "Nova",
+      "done_definition": "Customer-facing comms in a crisis are template-bound (no free-form agent text to distressed people) with a working escalation path to a human.",
+      "check": { "kind": "command", "run": "npm test -- --testPathPattern=crisis-comms", "todo": "confirm test name" }
+    },
+    {
+      "id": "G4-ONBOARD", "phase": "§4 Consequential-action", "title": "Contractor onboarding verifies credentials + insurance (not self-attestation)",
+      "type": "hard", "severity": "blocker", "consequential": true, "owner": "Lens",
+      "done_definition": "Contractor approval requires verified credential + current insurance evidence; self-attestation alone cannot approve.",
+      "check": { "kind": "command", "run": "npm test -- --testPathPattern=contractor-onboard", "todo": "confirm test name" }
+    },
+    {
+      "id": "G4-SURGE-FALLBACK", "phase": "§4 Consequential-action", "title": "Surge fallback + 24/7 escalation SLA defined (no-human-available rule)",
+      "type": "hard", "severity": "blocker", "consequential": true, "owner": "Atlas+Nova",
+      "done_definition": "Documented + tested rule for when no human is available during a surge: either auto-approve within tight bounds OR queue-and-degrade — never silent auto-fire. Pager/on-call owner + escalation SLA named (resolves the 3am-during-a-disaster gap).",
+      "check": { "kind": "attestation", "attestation_key": "surge_fallback_signed" }
+    },
+
+    {
+      "id": "P5.1-REQS", "phase": "§5.1 Discovery & Requirements", "title": "Requirements written, assumptions explicit, no placeholders/contradictions",
+      "type": "hard", "severity": "major", "owner": "Nova",
+      "done_definition": "Features, users (distressed customers, contractors, insurers) and constraints written down; assumptions explicit; brainstorming self-review finds no placeholders/contradictions.",
+      "check": { "kind": "gap-scan", "run": "! grep -rInE 'TODO|TBD|FIXME|PLACEHOLDER|\\\\?\\\\?\\\\?' docs/requirements", "todo": "point at the RestoreAssist requirements docs path" }
+    },
+    { "id": "P5.1-REVIEW", "phase": "§5.1 Discovery & Requirements", "title": "Nova confirms scope realistic", "type": "soft", "severity": "major", "owner": "Nova", "done_definition": "Senior PM (Nova) sign-off that the scope is realistic.", "check": { "kind": "attestation", "attestation_key": "p51_nova_scope" } },
+
+    { "id": "P5.2-TRACE", "phase": "§5.2 UX/UI", "title": "Every requirement maps to a screen/flow", "type": "hard", "severity": "major", "owner": "Pixel", "done_definition": "Each requirement traces to a designed screen/flow incl. the stressed-customer path; empty/loading/error/failure states covered.", "check": { "kind": "command", "run": "npm run ux:traceability", "todo": "add a requirement→flow traceability check in RestoreAssist, or convert to attestation" } },
+    { "id": "P5.2-REVIEW", "phase": "§5.2 UX/UI", "title": "Pixel + Nova confirm crisis flow is usable under stress", "type": "soft", "severity": "major", "owner": "Pixel+Nova", "done_definition": "Design review confirms the stressed-customer path is genuinely usable under stress.", "check": { "kind": "attestation", "attestation_key": "p52_crisis_flow" } },
+
+    { "id": "P5.3-SCHEMA", "phase": "§5.3 Architecture", "title": "Schema validates", "type": "hard", "severity": "blocker", "owner": "Forge", "done_definition": "Data model defined; schema validates clean.", "check": { "kind": "command", "run": "npm run db:validate", "todo": "confirm schema-validate script name" } },
+    { "id": "P5.3-APISPEC", "phase": "§5.3 Architecture", "title": "API spec is machine-readable", "type": "hard", "severity": "major", "owner": "Forge", "done_definition": "Every API endpoint specified in a machine-readable contract (e.g. OpenAPI) that lints clean.", "check": { "kind": "command", "run": "npm run api:lint", "todo": "confirm OpenAPI lint script" } },
+    { "id": "P5.3-MATCH", "phase": "§5.3 Architecture", "title": "Matching logic deterministic, logged + explainable", "type": "hard", "severity": "blocker", "owner": "Vex", "done_definition": "Matching algorithm inputs/outputs specified; deterministic; every decision logged with an explanation; fairness + vetting-freshness asserted.", "check": { "kind": "command", "run": "npm test -- --testPathPattern=matching", "todo": "confirm matching test name; ensure fairness + vetting-not-lapsed assertions exist" } },
+    { "id": "P5.3-REVIEW", "phase": "§5.3 Architecture", "title": "Forge + Vex confirm scale + explainable matching", "type": "soft", "severity": "major", "owner": "Forge+Vex", "done_definition": "Architecture review confirms it supports scale and the matching is explainable.", "check": { "kind": "attestation", "attestation_key": "p53_arch_review" } },
+
+    { "id": "P5.4-E2E", "phase": "§5.4 Operational Loop", "title": "Core flow runs end-to-end with every §4 gate enforced", "type": "hard", "severity": "blocker", "owner": "Forge", "done_definition": "Disaster→search→assess&match→accept&contact→complete→pay→claim runs end-to-end; dispatch/payment/insurance gates all enforced inline.", "check": { "kind": "command", "run": "npm run test:e2e -- --grep operational-loop", "todo": "confirm e2e command" } },
+    { "id": "P5.4-CAPS", "phase": "§5.4 Operational Loop", "title": "Tool-failure retry→route→bail + budget/timeout caps exist", "type": "hard", "severity": "major", "owner": "Forge", "done_definition": "A tool failure retries, then routes, then bails; budget + timeout caps exist and are enforced.", "check": { "kind": "command", "run": "npm test -- --testPathPattern=loop-caps", "todo": "confirm test name" } },
+    { "id": "P5.4-REVIEW", "phase": "§5.4 Operational Loop", "title": "Nova + Lens confirm no agent commits a §4 action alone", "type": "soft", "severity": "blocker", "owner": "Nova+Lens", "done_definition": "Review confirms no agent can commit any §4 consequential action without the gate clearing.", "check": { "kind": "attestation", "attestation_key": "p54_no_solo_commit" } },
+
+    { "id": "P5.5-INTEG", "phase": "§5.5 Integrations & AI", "title": "Payment/insurance/contractor integrations pass + fail gracefully", "type": "hard", "severity": "blocker", "owner": "Forge", "done_definition": "Integration tests pass on realistic data; failure modes are handled, not crashed.", "check": { "kind": "command", "run": "npm run test:integration", "todo": "confirm integration test script" } },
+    { "id": "P5.5-AIVALID", "phase": "§5.5 Integrations & AI", "title": "AI outputs validated before use", "type": "hard", "severity": "major", "owner": "Vex", "done_definition": "Every AI output is schema/range-validated before any downstream use.", "check": { "kind": "command", "run": "npm test -- --testPathPattern=ai-output-validation", "todo": "confirm test name" } },
+    { "id": "P5.5-REVIEW", "phase": "§5.5 Integrations & AI", "title": "Vex confirms AI outputs validated", "type": "soft", "severity": "major", "owner": "Vex", "done_definition": "Data/algorithm review confirms AI output validation is sufficient.", "check": { "kind": "attestation", "attestation_key": "p55_ai_validated" } },
+
+    { "id": "P5.6-DEPLOY", "phase": "§5.6 Cloud & Deployment", "title": "Clean repeatable deploy end-to-end", "type": "hard", "severity": "blocker", "owner": "Grid", "done_definition": "A documented deploy to the target environment runs clean end-to-end.", "check": { "kind": "command", "run": "npm run deploy:dryrun", "todo": "confirm deploy dry-run / CI deploy job" } },
+    { "id": "P5.6-ROLLBACK", "phase": "§5.6 Cloud & Deployment", "title": "Rollback tested", "type": "hard", "severity": "blocker", "owner": "Grid", "done_definition": "Rollback to the previous good state is tested and works.", "check": { "kind": "command", "run": "npm run rollback:test", "todo": "confirm rollback test" } },
+    { "id": "P5.6-REVIEW", "phase": "§5.6 Cloud & Deployment", "title": "Grid confirms no undocumented manual steps", "type": "soft", "severity": "major", "owner": "Grid", "done_definition": "DevOps review confirms the deploy has no undocumented manual steps.", "check": { "kind": "attestation", "attestation_key": "p56_no_manual_steps" } },
+
+    { "id": "P5.7-SUITE", "phase": "§5.7 QA & Testing", "title": "Full suite green on a clean checkout", "type": "hard", "severity": "blocker", "owner": "Forge", "done_definition": "Unit + integration + regression suite passes on a fresh clone.", "check": { "kind": "command", "run": "npm ci && npm test", "todo": "confirm" } },
+    { "id": "P5.7-LOAD", "phase": "§5.7 QA & Testing", "title": "Surge/load test passes at the named target", "type": "hard", "severity": "blocker", "owner": "Grid", "done_definition": "Load test passes at the documented surge target (e.g. 50× baseline concurrent intakes in a regional event) with a defined degradation policy. The target number MUST be set (see attestation p57_load_target).", "check": { "kind": "command", "run": "npm run test:load", "todo": "confirm load harness; encode the surge multiple" } },
+    { "id": "P5.7-LOAD-TARGET", "phase": "§5.7 QA & Testing", "title": "Surge target number is defined", "type": "hard", "severity": "major", "owner": "Grid", "done_definition": "The peak concurrent-intake target + surge multiple + degradation policy are written down (otherwise the load gate is not falsifiable).", "check": { "kind": "attestation", "attestation_key": "p57_load_target" } },
+    { "id": "P5.7-REVIEW", "phase": "§5.7 QA & Testing", "title": "Nova confirms tests cover behaviour that matters", "type": "soft", "severity": "major", "owner": "Nova", "done_definition": "PM review confirms tests cover the behaviour that matters, not just coverage %.", "check": { "kind": "attestation", "attestation_key": "p57_tests_matter" } },
+
+    { "id": "P5.8-SECREVIEW", "phase": "§5.8 Security/Privacy/Compliance", "title": "Security review passes", "type": "hard", "severity": "blocker", "owner": "Grid", "done_definition": "Security review passes (deps audited, advisors clean); access controls tested.", "check": { "kind": "command", "run": "npm audit --audit-level=high", "todo": "swap for the real security gate (deepsec/snyk)" } },
+    { "id": "P5.8-SECRETS", "phase": "§5.8 Security/Privacy/Compliance", "title": "No secrets in code or logs", "type": "hard", "severity": "blocker", "owner": "Grid", "done_definition": "Secret scan finds nothing in code or logs.", "check": { "kind": "command", "run": "gitleaks detect --no-banner", "todo": "confirm gitleaks present in target" } },
+    { "id": "P5.8-ACCESS", "phase": "§5.8 Security/Privacy/Compliance", "title": "Access controls tested", "type": "hard", "severity": "major", "owner": "Grid", "done_definition": "AuthN/AuthZ and access controls have passing tests.", "check": { "kind": "command", "run": "npm test -- --testPathPattern=access-control", "todo": "confirm test name" } },
+    { "id": "P5.8-REGIME", "phase": "§5.8 Security/Privacy/Compliance", "title": "Named compliance regime documented + Lens sign-off (PHASE-0 BLOCKER)", "type": "hard", "severity": "blocker", "owner": "Lens", "done_definition": "The applicable regimes are named, scoped, and signed by Lens: PCI-DSS (payments), Privacy Act 1988 + APPs (vulnerable-person data), insurance claims-handling (ASIC/AFCA considerations), and state contractor licensing (e.g. QBCC). Elevated from 'open item' to a blocking gate.", "check": { "kind": "attestation", "attestation_key": "p58_compliance_regime" } },
+    { "id": "P5.8-REVIEW", "phase": "§5.8 Security/Privacy/Compliance", "title": "Lens confirms posture fits disaster-recovery + insurance + payments", "type": "soft", "severity": "blocker", "owner": "Lens", "done_definition": "Legal/ethics review confirms the compliance posture fits the domain.", "check": { "kind": "attestation", "attestation_key": "p58_lens_posture" } },
+
+    { "id": "P5.9-RESTORE", "phase": "§5.9 Data", "title": "Restore-from-backup tested", "type": "hard", "severity": "blocker", "owner": "Grid", "done_definition": "A backup restore is tested and succeeds.", "check": { "kind": "command", "run": "npm run data:restore-test", "todo": "confirm restore-test command" } },
+    { "id": "P5.9-INTEGRITY", "phase": "§5.9 Data", "title": "Integrity checks pass", "type": "hard", "severity": "major", "owner": "Vex", "done_definition": "Data integrity checks pass; real data loads.", "check": { "kind": "command", "run": "npm run data:integrity", "todo": "confirm" } },
+    { "id": "P5.9-MIGRATE", "phase": "§5.9 Data", "title": "Migrations validated", "type": "hard", "severity": "major", "owner": "Forge", "done_definition": "Migrations validated (forward + reversible).", "check": { "kind": "command", "run": "npm run db:migrate:validate", "todo": "confirm" } },
+    { "id": "P5.9-REVIEW", "phase": "§5.9 Data", "title": "Lens + Grid confirm data handling matches promises and law", "type": "soft", "severity": "blocker", "owner": "Lens+Grid", "done_definition": "Review confirms data handling matches stated promises and applicable law.", "check": { "kind": "attestation", "attestation_key": "p59_data_lawful" } },
+
+    { "id": "P5.10-RUNBOOK", "phase": "§5.10 Launch/Go-Live", "title": "Cutover runbook dry-run", "type": "hard", "severity": "blocker", "owner": "Grid", "done_definition": "A cutover runbook exists and a dry-run completes.", "check": { "kind": "attestation", "attestation_key": "p510_runbook_dryrun" } },
+    { "id": "P5.10-ROLLBACK-TRIG", "phase": "§5.10 Launch/Go-Live", "title": "Rollback triggers + go/no-go criteria exist", "type": "hard", "severity": "major", "owner": "Grid", "done_definition": "Documented rollback triggers and go/no-go criteria exist.", "check": { "kind": "attestation", "attestation_key": "p510_rollback_triggers" } },
+    { "id": "P5.10-SIGNOFF", "phase": "§5.10 Launch/Go-Live", "title": "Nova + Atlas sign go/no-go", "type": "soft", "severity": "blocker", "owner": "Nova+Atlas", "done_definition": "Senior PM + Orchestrator sign the go/no-go decision.", "check": { "kind": "attestation", "attestation_key": "p510_go_nogo" } },
+
+    { "id": "P5.11-DOCS-RUN", "phase": "§5.11 Handover & Ownership", "title": "A non-builder ran the platform from docs alone (without the agent stack)", "type": "hard", "severity": "blocker", "owner": "Atlas", "done_definition": "A person who did not build it ran the platform from documentation alone — and crucially, WITHOUT the OpenClaw agent stack — proving owned, transferable knowledge.", "check": { "kind": "attestation", "attestation_key": "p511_nonbuilder_run" } },
+    { "id": "P5.11-OWNERSHIP", "phase": "§5.11 Handover & Ownership", "title": "All code/config/docs under United Software accounts", "type": "hard", "severity": "blocker", "owner": "Atlas", "done_definition": "All code, infra config and docs live under United Software's repos/accounts — no third party required to deploy, change, or understand it.", "check": { "kind": "attestation", "attestation_key": "p511_ownership" } },
+    { "id": "P5.11-REVIEW", "phase": "§5.11 Handover & Ownership", "title": "Atlas confirms no single point of human dependency", "type": "soft", "severity": "major", "owner": "Atlas", "done_definition": "Review confirms no builder-only knowledge / single point of human dependency.", "check": { "kind": "attestation", "attestation_key": "p511_no_spof" } },
+
+    { "id": "GAP-SCAN", "phase": "§3 Gap-discovery", "title": "Gap-discovery pass returns zero open blockers/majors", "type": "hard", "severity": "blocker", "owner": "Sage+Nova", "done_definition": "The §3 enumeration (expected components per phase vs what exists in repo/deploy/docs) returns zero open blockers or majors. This gate is satisfied automatically when every other gate passes; it exists so the loop reports the §7 verdict explicitly.", "check": { "kind": "attestation", "attestation_key": "gap_scan_clean" } }
+  ]
+}

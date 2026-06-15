@@ -1,0 +1,131 @@
+{
+  "_comment": "Human attestations for the RestoreAssist readiness loop. Set signed:true with by/date/evidence when a reviewer signs off. The runner (scripts/readiness-loop.mjs) reads this; it appends each pass to 'runs'. Never sign a gate you cannot evidence.",
+  "attestations": {
+    "surge_fallback_signed": {
+      "signed": false,
+      "by": null,
+      "date": null,
+      "evidence": null
+    },
+    "p51_nova_scope": {
+      "signed": false,
+      "by": null,
+      "date": null,
+      "evidence": null
+    },
+    "p52_crisis_flow": {
+      "signed": false,
+      "by": null,
+      "date": null,
+      "evidence": null
+    },
+    "p53_arch_review": {
+      "signed": false,
+      "by": null,
+      "date": null,
+      "evidence": null
+    },
+    "p54_no_solo_commit": {
+      "signed": false,
+      "by": null,
+      "date": null,
+      "evidence": null
+    },
+    "p55_ai_validated": {
+      "signed": false,
+      "by": null,
+      "date": null,
+      "evidence": null
+    },
+    "p56_no_manual_steps": {
+      "signed": false,
+      "by": null,
+      "date": null,
+      "evidence": null
+    },
+    "p57_load_target": {
+      "signed": false,
+      "by": null,
+      "date": null,
+      "evidence": null
+    },
+    "p57_tests_matter": {
+      "signed": false,
+      "by": null,
+      "date": null,
+      "evidence": null
+    },
+    "p58_compliance_regime": {
+      "signed": false,
+      "by": null,
+      "date": null,
+      "evidence": null
+    },
+    "p58_lens_posture": {
+      "signed": false,
+      "by": null,
+      "date": null,
+      "evidence": null
+    },
+    "p59_data_lawful": {
+      "signed": false,
+      "by": null,
+      "date": null,
+      "evidence": null
+    },
+    "p510_runbook_dryrun": {
+      "signed": false,
+      "by": null,
+      "date": null,
+      "evidence": null
+    },
+    "p510_rollback_triggers": {
+      "signed": false,
+      "by": null,
+      "date": null,
+      "evidence": null
+    },
+    "p510_go_nogo": {
+      "signed": false,
+      "by": null,
+      "date": null,
+      "evidence": null
+    },
+    "p511_nonbuilder_run": {
+      "signed": false,
+      "by": null,
+      "date": null,
+      "evidence": null
+    },
+    "p511_ownership": {
+      "signed": false,
+      "by": null,
+      "date": null,
+      "evidence": null
+    },
+    "p511_no_spof": {
+      "signed": false,
+      "by": null,
+      "date": null,
+      "evidence": null
+    },
+    "gap_scan_clean": {
+      "signed": false,
+      "by": null,
+      "date": null,
+      "evidence": null
+    }
+  },
+  "runs": [
+    {
+      "at": "2026-06-15T23:29:00.444Z",
+      "target": null,
+      "total": 43,
+      "passing": 0,
+      "blockers": 25,
+      "majors": 18,
+      "minors": 0,
+      "done": false
+    }
+  ]
+}
