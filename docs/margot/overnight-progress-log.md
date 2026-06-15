@@ -1,5 +1,68 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 23:24 AEST
+
+### Tick 20260615_2324 — Mesh fleet missing-secret fail-closed guard
+
+Lane: bounded Mission Control / Nexus Mesh fleet read-surface hardening. Goal was to keep the browser-facing `/api/mesh/fleet` card from making an upstream Pi-CEO request with a missing/blank server secret, while preserving the admin-gated route, no-store polling, and degraded-card response shape.
+
+Completed:
+- Preflighted repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=7c328244`; `git rev-list --count main..origin/main` -> `10`; `git status --short | wc -l` -> `57` after this slice. Inherited broad dirty/untracked worktree remains, so no commit/push/PR/merge/deploy/env mutation/sandbox wizard/destructive git action was attempted.
+- Re-read the Senior PM read-first set, Linear mirror, AI-RET-001 evidence (`overallStatus=pass`, source `8/8`, answerShape `106/106`), current progress/morning/command-center surfaces, package scripts, and the Mesh route/helper/test surface before selecting this tiny local guard.
+- Added a local unit guard proving `readFleet` fails closed with `ok:false`, empty arrays, and `error: 'pi-ceo api key not configured'` without calling `fetch` when `PI_CEO_API_KEY` is missing.
+- Changed `readFleet` to read `PI_CEO_API_KEY` at call time, trim it, return the degraded no-fetch result when absent, and continue using the default Pi-CEO API URL plus `X-Pi-CEO-Secret` only when configured.
+
+Verification:
+- `CI=1 npx jest tests/unit/lib/mesh/read-fleet.test.ts tests/integration/api/mesh-fleet.test.ts --runInBand` -> PASS, 2 suites / 13 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, `route-inventory check: 0 unprotected mutating routes`.
+- `git diff --check` -> PASS before report docs update.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace via Telegram approval callback, missing optional integration env names, missing Sentry auth token/source-map upload token, and Stripe webhook secret warning.
+
+Files changed:
+- `src/lib/mesh/read-fleet.ts`
+- `tests/unit/lib/mesh/read-fleet.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No production DB write/migration, sandbox wizard subcommand, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Broad inherited branch remains unsuitable for push/PR without reconciliation/splitting. Next safe lane should rotate to another tiny local read-surface guard or split/reconcile inherited work before any publication lane.
+
+## 2026-06-15 23:20 AEST
+
+### Tick 20260615_2320 — Margot voice risk-level normalization guard
+
+Lane: bounded Margot voice-to-task command-spine hygiene. Goal was to keep the ElevenLabs/Margot voice packet -> Supabase voice session/task chain deterministic when upstream emits padded or differently cased `risk_level`, without changing approval gates, task status semantics, production data, provider calls, or schema.
+
+Completed:
+- Preflighted repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=7c328244`; upstream ahead/behind `0\t170`; `git status --short | wc -l` -> `54`; GitHub auth available; open PR `#228` is on `fabel/keystone-install`, not this branch. Vercel CLI is available, but no deploy/status mutation was attempted.
+- Re-read the Senior PM / connected-teams / CRM read-first docs, current progress/morning surfaces, package scripts, and the Margot voice route/test surface before selecting this small local route hygiene lane.
+- RED: added `normalizes padded uppercase risk_level before deriving task priority` to `tests/integration/api/margot-voice-task.test.ts`; focused Jest failed before route change because task priority was `"normal"` instead of `"high"` for `risk_level: ' HIGH '`.
+- GREEN: changed `validatePacket` in `src/app/api/pi-ceo/margot-voice/task/route.ts` to lower-case the already-trimmed risk level before persistence/priority derivation. This keeps `approval_required: false` tasks as `todo` while correctly marking high-risk work as high priority.
+- Independent reviewer: PASS/no blocking correctness or security issue; non-blocking note that enum-whitelisting risk levels remains a separate pre-existing hardening lane.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 23:20:19 AEST`.
+- RED focused Jest: `CI=1 npx jest tests/integration/api/margot-voice-task.test.ts --runInBand -t "normalizes padded uppercase risk_level"` -> FAIL before route change; expected `"high"`, received `"normal"`.
+- GREEN focused Jest: same command -> PASS, 1 selected test / 20 skipped.
+- Full Margot voice task suite: `CI=1 npx jest tests/integration/api/margot-voice-task.test.ts --runInBand` -> PASS, 1 suite / 21 tests.
+- Margot voice sweep: `CI=1 npx jest tests/integration/api/margot-voice-task.test.ts tests/integration/api/margot-voice-signed-url.test.ts --runInBand` -> PASS, 2 suites / 28 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, `route-inventory check: 0 unprotected mutating routes`.
+- `git diff --check` -> PASS (no output, exit 0).
+- `npm run build` -> PASS. Existing/non-blocking local build warnings remained: deprecated `middleware` convention, Turbopack NFT trace warning via `next.config.js` / Telegram approval callback route, missing optional integration env names, missing Sentry auth token for release/sourcemap upload, and Stripe webhook secret warning.
+
+Files changed:
+- `src/app/api/pi-ceo/margot-voice/task/route.ts`
+- `tests/integration/api/margot-voice-task.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No production DB write/migration, sandbox wizard subcommand, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Broad inherited branch remains unsuitable for push/PR/merge or bundled commit without reconciliation/splitting. No commit was created because the same branch/worktree contains broad inherited unrelated changes. Next safe lane can split/reconcile or add the separate Mesh fleet missing-secret fail-closed guard under local mocked tests.
+
 ## 2026-06-15 22:49 AEST
 
 ### Tick 20260615_2249 — AI-RET-001 local read-back refresh
@@ -24151,3 +24214,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_224848.log'
+
+## 2026-06-15 23:24:51 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_232104.log'
