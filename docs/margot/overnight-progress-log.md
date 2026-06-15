@@ -23234,7 +23234,7 @@ Branch / repo state:
 
 - Branch: `mesh/mission-control-2026-06-11`.
 - Pre-slice head: `319eac6e chore: Margot ops auto-sync [tick 20260615_155238] (ops only — other uncommitted files present)`.
-- Local slice commit: `6f7abec9 test(command-center): preserve ready voice panel state`.
+- Local slice commit: `7931f65f test(command-center): preserve ready voice panel state`.
 - Pre-slice upstream compare: `git rev-list --left-right --count @{u}...HEAD` -> `0\t149`.
 - Inherited dirty/untracked state remains broad across Margot, CRM, command-center, security, runtime, marketing/homepage, docs/design, image, API, and test surfaces.
 
