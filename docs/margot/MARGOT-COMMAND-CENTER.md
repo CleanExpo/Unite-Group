@@ -2,7 +2,17 @@
 Date: 2026-05-23
 Project: Unite-Group
 Root: `/Users/phillmcgurk/Unite-Group`
-Last update: 2026-06-15 09:49 AEST — Senior PM CRM conversion audit-gate metadata slice
+Last update: 2026-06-15 10:08 AEST — Senior PM CRM conversion post-commit read-back gate
+
+## Current Autonomy Rotation Guard — 2026-06-15 10:08 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at `a056ca68` (`test(crm): record conversion operator gate metadata`); `git rev-list --count main..origin/main` returned `8`; `git status --short | wc -l` returned `44`. The worktree remains inherited/dirty across Margot, CRM, command-center, security, runtime, marketing/homepage, docs/design, image, API, and test surfaces. No commit, push, PR, deploy, env mutation, or destructive git action was attempted.
+- Completed safe Senior PM lane: post-commit read-back of the guarded lead-to-client conversion contract from the previous local CRM conversion metadata slice. Re-read the Senior PM read-first set, current Linear mirror, AI-RET-001 evidence/register/pipeline, Mac Mini status, command-center surface, voice gap analysis, active execution plans, package manifest, current progress/morning surfaces, and the conversion route/test before selecting this lane.
+- Verification: `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 10:06:59 AEST`; `node_modules=present`; `node -v` -> `v22.22.3`; `npm -v` -> `10.9.8`; `npx jest tests/integration/api/crm-lead-conversion.test.ts --runInBand` -> PASS (1 suite / 8 tests); `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check && echo git_diff_check=pass` -> `git_diff_check=pass`.
+- Evidence read-back: the conversion route still persists sanitizer-safe `metadata.operatorGateSatisfied: true` on the pending timeline action while the focused test continues to assert that raw board approval references are not persisted into the timeline payload. The AI-RET-001 report read before lane selection remains `overallStatus=pass`, source fixtures `8/8`, answer-shape fixtures `106/106`, and report read-back `pass`, generated at `15/06/2026, 09:00:27 AEST`; it was not regenerated because no AI-RET harness/report surface changed.
+- Files changed this tick: `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/overnight-progress-log.md`, and `docs/margot/morning-report.md` evidence/control-surface entries only. No production code touched, no route behavior changed, and no existing tests changed.
+- Safety: no sandbox wizard subcommand, production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live provider polling, Mac Mini credential prompt/read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, or fabricated history occurred.
+- Next safe lane: rotate away from the lead-conversion contract unless another concrete fail-closed gap is selected; prefer a changed read-surface test from the inherited dirty worktree, a named local report corruption/error-path fixture, or a control-surface refresh from existing repo evidence.
 
 ## Current Autonomy Rotation Guard — 2026-06-15 09:49 AEST
 

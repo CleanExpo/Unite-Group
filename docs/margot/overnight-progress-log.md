@@ -1,5 +1,38 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 10:08 AEST
+
+### Tick 20260615_1008 — Senior PM CRM conversion post-commit read-back gate
+
+Lane: bounded Senior PM health/read-back check after the CRM conversion operator-gate metadata slice landed as local commit `a056ca68`. Goal was to verify the guarded lead-to-client conversion test/route contract remains green on the current branch without changing route behavior or touching gated systems.
+
+Completed:
+- Inspected current repo state: branch `mesh/mission-control-2026-06-11`, latest commit `a056ca68 test(crm): record conversion operator gate metadata`, `git rev-list --count main..origin/main` -> `8`, and `git status --short | wc -l` -> `44` inherited dirty/untracked entries.
+- Re-read the ordered Senior PM read-first set, current `docs/margot/linear-watch-today.md`, AI-RET-001 evidence/register/pipeline, Mac Mini status, command-center surface, voice gap analysis, active execution plans, package manifest, current progress/morning surfaces, and the conversion route/test before lane selection.
+- Ran the focused local conversion suite plus TypeScript, route-inventory, and whitespace read-back gates only. This tick did not run `./scripts/sandbox-wizard.sh` in any mode, regenerate AI-RET evidence, add fixtures, change route behavior, poll a live provider, write any database, deploy, publish, or touch source-control remotes.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 10:06:59 AEST`.
+- `node_modules=present`; `node -v` -> `v22.22.3`; `npm -v` -> `10.9.8`.
+- `npx jest tests/integration/api/crm-lead-conversion.test.ts --runInBand` -> PASS, 1 suite / 8 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check && echo git_diff_check=pass` -> `git_diff_check=pass`.
+- AI-RET-001 evidence read-back before lane selection remained `overallStatus=pass`, source-citation fixtures `8/8`, answer-shape fixtures `106/106`, report read-back `pass`, generated at `15/06/2026, 09:00:27 AEST`; it was not regenerated because no AI-RET harness/report surface changed.
+
+Files changed:
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live vector/AI call, provider polling, credential read, secret printing/storage, destructive git, cross-client merge, Mac Mini credential prompt, fabricated approval, implicit policy inference, or fabricated tick/conversation history occurred.
+- Mac Mini recovery was not re-probed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts.
+- Sandbox authority/auth gate unchanged and not revalidated.
+
+Next safe lane: rotate away from the lead-conversion contract unless another concrete fail-closed conversion gap is deliberately selected; prefer a changed read-surface test from the inherited dirty worktree, a named local report corruption/error-path fixture, or a control-surface refresh from existing repo evidence.
+
 ## 2026-06-15 09:49 AEST
 
 ### Tick 20260615_0949 — CRM conversion audit-gate metadata slice
@@ -22536,3 +22569,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_093147.log'
+
+## 2026-06-15 10:09:42 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_100522.log'
