@@ -1,5 +1,39 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 15:54 AEST
+
+### Tick 20260615_1554 — Linear issue create payload trim-before-dispatch guard
+
+Lane: bounded provider/action route hardening follow-up on the local admin-gated Linear issue route. Goal was to take the prior reviewer suggestion and ensure valid create payloads with padded required fields are normalized before any Linear provider dispatch.
+
+Completed:
+- Preflighted current repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=11577a44 docs(margot): record linear create guard evidence`; `git rev-list --count main..origin/main` -> `8`; inherited broad dirty/untracked worktree remains. No push, PR, merge, deploy, env mutation, sandbox wizard subcommand, destructive git action, provider mutation, or client-facing action was attempted.
+- Re-read the Senior PM read-first set, current Linear mirror, AI-RET-001 local report (`overallStatus=pass`, source `8/8`, answerShape `106/106`), Mac Mini recovery status, current progress/morning surfaces, package scripts, and the Linear issue route/test surface before selecting this tiny follow-up lane.
+- RED: added `trims required create fields before Linear requests`; focused Jest failed before the route change because the GraphQL input carried padded `title` (`"  Prepare CRM evidence packet  "`) and `teamId` values.
+- GREEN: changed the `create` branch to compute `trimmedTitle` and `trimmedTeamId` after validation and dispatch those trimmed values to Linear while preserving existing invalid-create fail-closed behavior.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 15:54:54 AEST`.
+- RED focused Jest: `npx jest tests/integration/api/linear-issue-route.test.ts --runInBand --testNamePattern='trims required create fields'` -> FAIL before route change, expected trimmed title, received padded title.
+- GREEN focused Jest: same command -> PASS, 1 selected test / 3 skipped.
+- Focused Linear route suite: `npx jest tests/integration/api/linear-issue-route.test.ts --runInBand` -> PASS, 1 suite / 4 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace for `next.config.js` via `src/app/api/telegram/approval-callback/route.ts`, missing optional Sentry auth/source-map token, and missing Railway/DigitalOcean/Vercel/GitHub/Stripe integration env tokens during static generation.
+
+Files changed:
+- `src/app/api/linear/issue/route.ts`
+- `tests/integration/api/linear-issue-route.test.ts`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- Next safe lane: rotate away from Linear issue create validation unless a fresh concrete provider-action guard appears; otherwise choose another changed read-surface test, local report corruption/error-path fixture, or control-surface refresh from existing repo evidence.
+
 ## 2026-06-15 15:39 AEST
 
 ### Tick 20260615_1539 — Linear issue create payload fail-closed guard
@@ -23180,3 +23214,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_151951.log'
+
+## 2026-06-15 15:56:39 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_155238.log'

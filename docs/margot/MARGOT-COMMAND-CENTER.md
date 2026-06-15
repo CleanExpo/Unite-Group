@@ -2,7 +2,16 @@
 |Date: 2026-05-23
 |Project: Unite-Group
 |Root: `/Users/phillmcgurk/Unite-Group`
-|Last update: 2026-06-15 15:21 AEST — CRM daily-digest equals-style quoted CLI flag redaction
+|Last update: 2026-06-15 15:54 AEST — Linear issue create payload trim-before-dispatch guard
+
+## Current Autonomy Rotation Guard — 2026-06-15 15:54 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at `HEAD=11577a44`; `git rev-list --count main..origin/main` -> `8`; inherited broad dirty/untracked worktree remains. No push, PR, merge, deploy, env mutation, sandbox wizard subcommand, destructive git action, provider mutation, or client-facing action was attempted.
+- Completed safe Senior PM lane: took the prior reviewer follow-up on the admin-gated Linear issue route. Added a focused RED regression proving padded valid `create` required fields reached the Linear GraphQL input untrimmed, then normalized `title` and `teamId` after validation and before dispatch.
+- Verification: RED focused Jest failed before route change with received padded title; GREEN focused Jest passed after trim-before-dispatch; `npx jest tests/integration/api/linear-issue-route.test.ts --runInBand` -> PASS (1 suite / 4 tests); `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check` -> PASS; `npm run build` -> PASS with existing warnings only.
+- Files changed in this slice: `src/app/api/linear/issue/route.ts`, `tests/integration/api/linear-issue-route.test.ts`, plus this command-center/progress/morning evidence update.
+- Safety: no production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- Next safe lane: rotate away from Linear issue create validation unless a fresh concrete provider-action guard appears; prefer another changed read-surface test, a local report corruption/error-path fixture, or a control-surface refresh from existing repo evidence.
 
 ## Current Autonomy Rotation Guard — 2026-06-15 15:21 AEST
 

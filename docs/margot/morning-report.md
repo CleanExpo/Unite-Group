@@ -1,5 +1,13 @@
 # Margot Morning Report
 
+## 2026-06-15 15:54 AEST — Linear issue create payload trim-before-dispatch guard
+
+- **Completed safe lane:** Used strict RED-GREEN on the local admin-gated Linear issue route. Added a failing regression proving valid `create` payloads with padded `title`/`teamId` values were dispatched to Linear untrimmed; then normalized required fields after validation and before GraphQL dispatch.
+- **Repo state read-back:** branch `mesh/mission-control-2026-06-11`; `HEAD=11577a44 docs(margot): record linear create guard evidence`; `git rev-list --count main..origin/main` -> `8`; inherited broad dirty/untracked worktree remains. No push/PR/merge/deploy/env mutation/sandbox wizard/destructive git action was attempted.
+- **Verification:** RED focused Jest failed before route change with received padded title; GREEN focused Jest passed after trim-before-dispatch. Final gates: `npx jest tests/integration/api/linear-issue-route.test.ts --runInBand` -> 1 suite / 4 tests PASS; `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check` -> PASS; `npm run build` -> PASS with existing warnings only.
+- **Evidence paths:** `src/app/api/linear/issue/route.ts`, `tests/integration/api/linear-issue-route.test.ts`, `docs/margot/overnight-progress-log.md`.
+- **Blockers unchanged / next lane:** no sandbox wizard subcommand, production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred. Next lane rotates away from Linear create validation unless a fresh concrete provider-action guard appears.
+
 ## 2026-06-15 15:39 AEST — Linear issue create payload fail-closed guard
 
 - **Completed safe lane:** Used strict RED-GREEN on the local admin-gated Linear issue route. Added a failing regression proving `create` requests with blank/missing required fields reached the Linear dispatch path; then added a minimal pre-dispatch guard requiring non-blank string `title` and `teamId`, returning typed `400 { error: 'invalid_create_payload' }` before `fetch`.
