@@ -1,5 +1,13 @@
 # Margot Morning Report
 
+## 2026-06-15 21:42 AEST — CRM digest bearer equals-header redaction guard
+
+- **Completed safe lane:** Used strict RED-GREEN on the local CRM daily-digest helper. Verification command copy now redacts bearer values when the header is written as `Authorization=Bearer <value>`, matching the existing colon-header, quoted-header, env-var, and CLI-flag redaction behavior.
+- **Repo state read-back:** branch `mesh/mission-control-2026-06-11`; latest commit before this slice `6f1287c3`; `git rev-list --count main..origin/main` -> `10`; inherited broad dirty/untracked worktree remains. No push/PR/merge/deploy/env mutation/sandbox wizard/destructive git action was attempted.
+- **Verification:** RED focused Jest failed before the helper change because the raw `equals-opaque-value` appeared in `sections.verification`; GREEN focused Jest passed. CRM digest helper sweep -> 3 suites / 31 tests PASS; `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check` -> PASS before docs update; `npm run build` -> PASS with existing warnings only.
+- **Evidence paths:** `src/lib/crm/daily-digest.ts`, `tests/unit/lib/crm/daily-digest.test.ts`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`.
+- **Blockers unchanged / next lane:** no production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred. Rotate away from CRM digest redaction unless another concrete leak class appears.
+
 ## 2026-06-15 21:14 AEST — CRM lead conversion dry-run approval echo guard
 
 - **Completed safe lane:** Used strict RED-GREEN on the local guarded CRM lead-conversion route. The dry-run response now preserves reviewable planned conversion evidence but no longer echoes the raw Board approval reference as `board_approval_id`.

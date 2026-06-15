@@ -1,5 +1,39 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 21:42 AEST
+
+### Tick 20260615_2142 — CRM digest bearer equals-header redaction guard
+
+Lane: bounded CRM daily-digest privacy hardening. Goal was to close a small verification-copy leak class where `Authorization=Bearer <token>` command snippets were not redacted, while preserving the existing colon-header, quoted-header, env-var, and CLI-flag redaction behavior. No production write, provider call, sandbox wizard action, deploy, env mutation, source-control publication, or client-facing action was needed or attempted.
+
+Completed:
+- Preflighted repo state: branch `mesh/mission-control-2026-06-11`; latest commit `6f1287c3`; `git rev-list --count main..origin/main` -> `10`; inherited broad dirty/untracked worktree remains.
+- Re-read the Senior PM read-first set, Linear mirror, AI-RET-001 evidence (`overallStatus=pass`, source `8/8`, answerShape `106/106`), current command-center/progress/morning surfaces, package scripts, and the CRM digest helper/test surface before selecting this narrow read-back privacy lane.
+- RED: added a focused daily-digest regression proving `curl --header Authorization=Bearer equals-opaque-value ...` still surfaced the raw bearer value; focused Jest failed before the helper change.
+- GREEN: widened the bearer redaction pattern from `Authorization:` to `Authorization[:=]`, preserving the prefix and replacing only the value with `[REDACTED]`.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 21:42:25 AEST`.
+- RED focused Jest: `npx jest tests/unit/lib/crm/daily-digest.test.ts --runInBand --testNamePattern='equals separator'` -> FAIL before helper change; expected `[REDACTED]`, received `equals-opaque-value`.
+- GREEN focused Jest: same command -> PASS, 1 selected test / 11 skipped.
+- CRM digest helper sweep: `npx jest tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-mappers.test.ts tests/unit/lib/crm/digest-read-error.test.ts --runInBand` -> PASS, 3 suites / 31 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS before docs update.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace for `next.config.js` via `src/app/api/telegram/approval-callback/route.ts`, missing Sentry auth/source-map token, and missing Railway/DigitalOcean/Vercel/GitHub/Stripe integration env tokens during static generation.
+
+Files changed:
+- `src/lib/crm/daily-digest.ts`
+- `tests/unit/lib/crm/daily-digest.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Broad inherited branch remains unsuitable for push/PR without reconciliation/splitting. Next safe lane should rotate away from CRM digest redaction unless a fresh leak class appears.
+
 ## 2026-06-15 21:14 AEST
 
 ### Tick 20260615_2114 — CRM lead conversion dry-run approval echo guard
@@ -23955,3 +23989,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_210536.log'
+
+## 2026-06-15 21:43:49 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_214100.log'

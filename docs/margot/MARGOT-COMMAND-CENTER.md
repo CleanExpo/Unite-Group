@@ -2,7 +2,16 @@
 |Date: 2026-05-23
 |Project: Unite-Group
 |Root: `/Users/phillmcgurk/Unite-Group`
-|Last update: 2026-06-15 21:14 AEST — CRM lead conversion dry-run approval echo guard
+|Last update: 2026-06-15 21:42 AEST — CRM digest bearer equals-header redaction guard
+
+## Current Autonomy Rotation Guard — 2026-06-15 21:42 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at pre-slice `HEAD=6f1287c3`; `git rev-list --count main..origin/main` -> `10`; inherited broad dirty/untracked worktree remains unsuitable for push/PR publication. No push, PR, merge, deploy, env mutation, sandbox wizard subcommand, destructive git action, provider mutation, client-facing action, or database write was attempted.
+- Completed safe Senior PM lane: hardened CRM daily-digest verification-copy redaction so `Authorization=Bearer <value>` redacts the bearer value, matching the existing `Authorization: Bearer`, quoted-header, env-var, and CLI-flag secret redaction behavior.
+- Verification: RED focused Jest failed before helper change with raw `equals-opaque-value`; GREEN focused Jest passed. CRM digest helper sweep -> PASS (3 suites / 31 tests); `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check` -> PASS before docs update; `npm run build` -> PASS with existing warnings only.
+- Files changed in this slice: `src/lib/crm/daily-digest.ts`, `tests/unit/lib/crm/daily-digest.test.ts`, plus this command-center/progress/morning evidence update.
+- Safety: no production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, recursive system-volume scan, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- Next safe lane: rotate away from CRM digest redaction unless a fresh concrete leak class appears; prefer another changed read-surface/control-surface gap from existing repo evidence.
 
 ## Current Autonomy Rotation Guard — 2026-06-15 21:14 AEST
 
