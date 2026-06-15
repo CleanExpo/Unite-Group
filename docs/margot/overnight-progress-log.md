@@ -1,5 +1,74 @@
 # Margot Overnight Progress Log
 
+## 2026-06-16 03:14 AEST
+
+### Tick 20260616_0314 — CRM digest URL query-secret redaction guard
+
+Lane: bounded CRM daily-digest read-surface hardening. Goal was to prevent operator-facing verification command copy from leaking secret-shaped URL query parameter values such as `api_key=...`, without changing CRM writes, provider state, schema, deployment, credentials, or production data.
+
+Completed:
+- Preflighted repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=665639c1`; `git rev-list --count main..origin/main` -> `10`; inherited broad dirty/untracked worktree remains (`59` status entries after this slice), so no commit/push/PR/merge/deploy/env mutation/sandbox wizard/destructive git action was attempted.
+- Re-read the Senior PM read-first set, Linear intake mirror, AI-RET-001 evidence, AI candidate/pipeline surfaces, package scripts, current progress/morning reports, and the CRM digest helper/test surface before selecting this tiny local read-surface guard.
+- RED: added `redacts secret-shaped URL query parameter values from verification command copy`; focused Jest failed before the helper change because `api_key=query-opaque-fixture` remained in `sections.verification`.
+- GREEN: extended `redactVerificationCommand` to redact secret-shaped URL query parameter values while preserving the query key, surrounding URL, and non-secret parameters.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-16 03:14:48 AEST`.
+- RED focused Jest: `CI=1 npx jest tests/unit/lib/crm/daily-digest.test.ts --runInBand -t "URL query parameter"` -> FAIL before helper change; expected `[REDACTED]`, received raw `query-opaque-fixture`.
+- GREEN focused Jest: same command -> PASS, 1 selected test.
+- CRM digest focused sweep: `CI=1 npx jest tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-mappers.test.ts tests/unit/lib/crm/digest-read-error.test.ts --runInBand` -> PASS, 3 suites / 35 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, `route-inventory check: 0 unprotected mutating routes`.
+- `git diff --check -- src/lib/crm/daily-digest.ts tests/unit/lib/crm/daily-digest.test.ts` -> PASS.
+- Targeted `npx eslint src/lib/crm/daily-digest.ts tests/unit/lib/crm/daily-digest.test.ts --max-warnings=0` -> PASS.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace via Telegram approval callback, missing optional integration env names, missing Sentry auth/source-map token, and Stripe webhook secret warning.
+
+Files changed:
+- `src/lib/crm/daily-digest.ts`
+- `tests/unit/lib/crm/daily-digest.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No production DB write/migration, sandbox wizard subcommand, live provider dispatch/polling, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Broad inherited branch remains unsuitable for push/PR/merge or bundled publication without reconciliation/splitting. Next safe lane: rotate away from CRM digest redaction unless a fresh concrete leak class appears; prefer branch reconciliation/splitting or a different changed read-surface/control-surface guard.
+
+## 2026-06-16 02:56 AEST
+
+### Tick 20260616_0256 — CRM digest API-key header redaction guard
+
+Lane: bounded CRM daily-digest read-surface hardening. Goal was to prevent operator-facing verification command copy from leaking API-key-like header values, including quoted `--header "X-API-Key: ..."` and equals-style `--header=X-API-Key:...` forms, while preserving existing env-var, CLI-flag, and bearer-header redaction behavior. No live provider, DB, deployment, Vercel env, sandbox wizard, client-facing, billing, or production action was in scope.
+
+Completed:
+- Preflighted repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=665639c1`; upstream status `ahead 177`; current branch PR `#223` is already merged; open PR `#228` is on `fabel/keystone-install`, unrelated; Vercel CLI auth read-only check returned `zenithfresh25-1436`; inherited broad dirty/untracked worktree remains (`57` status entries), so no commit/push/PR/merge/deploy/env mutation/sandbox wizard/destructive git action was attempted.
+- Re-read the Margot/CRM read-first set, package scripts, current progress/morning surfaces, and the CRM digest helper/test surface before selecting this small local read-surface guard.
+- RED #1: added `redacts API key header values from verification command copy`; focused Jest failed before the helper change because `X-API-Key: header-opaque-value` remained in `sections.verification`.
+- GREEN #1: added a secret-shaped header redaction pass for header names containing secret/token/password/API-key/service-role-key markers, preserving header syntax and replacing only the value with `[REDACTED]`.
+- Independent reviewer found two edge blockers; RED #2 added equals-style `--header=X-API-Key:...` coverage and RED #3 added semicolon-separated env assignment coverage. Both failed before the follow-up regex tightening, then passed after widening the allowed prefix characters for the header pass and restoring semicolon env-assignment redaction.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-16 02:56:18 AEST`.
+- RED #1 focused Jest: `CI=1 npx jest tests/unit/lib/crm/daily-digest.test.ts --runInBand -t "API key header"` -> FAIL before helper change; expected `[REDACTED]`, received raw `header-opaque-value`.
+- GREEN #1 focused Jest: same command -> PASS, 1 selected test.
+- Reviewer REDs: `CI=1 npx jest tests/unit/lib/crm/daily-digest.test.ts --runInBand -t "equals header flag|shell separators"` -> FAIL before follow-up fix for equals-style header and semicolon env-assignment cases.
+- Follow-up GREEN: `CI=1 npx jest tests/unit/lib/crm/daily-digest.test.ts --runInBand -t "API key header|equals header flag|shell separators"` -> PASS, 3 selected tests.
+- CRM digest focused sweep: `CI=1 npx jest tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-mappers.test.ts tests/unit/lib/crm/digest-read-error.test.ts --runInBand` -> PASS, 3 suites / 34 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, `route-inventory check: 0 unprotected mutating routes`.
+- `git diff --check -- src/lib/crm/daily-digest.ts tests/unit/lib/crm/daily-digest.test.ts` -> PASS.
+- `npx eslint src/lib/crm/daily-digest.ts tests/unit/lib/crm/daily-digest.test.ts --max-warnings=0` -> PASS.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace via Telegram approval callback, missing optional integration env names, missing Sentry auth/source-map token, and Stripe webhook secret warning.
+
+Files changed:
+- `src/lib/crm/daily-digest.ts`
+- `tests/unit/lib/crm/daily-digest.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No production DB write/migration, sandbox wizard subcommand, live provider dispatch/polling, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Broad inherited branch remains unsuitable for push/PR/merge or bundled publication without reconciliation/splitting. No local commit was created because the touched CRM digest files already contain inherited uncommitted redaction hunks, and committing them now would bundle prior lanes into this tick. Next safe lane: reconcile/split the inherited daily-digest/control-surface changes or continue only tiny local verified read-surface guards with explicit evidence.
+
 ## 2026-06-16 02:42 AEST
 
 ### Tick 20260616_0242 — AI-RET-001 local harness health read-back
@@ -24590,3 +24659,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260616_023954.log'
+
+## 2026-06-16 03:27:20 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260616_031308.log'
