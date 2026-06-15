@@ -1,5 +1,44 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 11:43 AEST
+
+### Tick 20260615_1143 — Linear issue update empty-payload fail-closed slice
+
+Lane: bounded Senior PM route-hardening continuation on the local admin-gated Linear issue route. Goal was to prevent `action: 'update'` requests that carry an `issueId` but no valid mutable update fields from dispatching an empty `IssueUpdateInput` to Linear.
+
+Completed:
+- Preflighted the existing in-progress branch/worktree: `mesh/mission-control-2026-06-11`, upstream ahead/behind `0\t132` at start, `gh` unavailable, inherited broad dirty/untracked worktree. Continued the existing lane; did not start a new branch.
+- Re-read the Senior PM / connected-teams CRM source-of-truth set, current command-center/progress/morning surfaces, `package.json`, and the Linear issue route/test before selecting this small route guard.
+- RED: added `rejects update payloads with no mutable fields before Linear requests` to `tests/integration/api/linear-issue-route.test.ts`; the focused Jest test failed as expected because the route returned `200` and attempted the existing update path instead of typed `400 invalid_update_payload`.
+- GREEN: added the minimal `Object.keys(updateInput).length === 0` guard in `src/app/api/linear/issue/route.ts`, returning `400 { error: 'invalid_update_payload' }` before any Linear provider request.
+- Committed the code/test slice locally as `b48aeb9c test(linear): reject empty issue updates`.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 11:41:31 AEST`; `node -v` -> `v22.22.3`; `npm -v` -> `10.9.8`; `node_modules=present`.
+- RED focused Jest: `npx jest tests/integration/api/linear-issue-route.test.ts --runInBand --testNamePattern='rejects update payloads with no mutable fields'` -> FAIL before route change; expected `400`, received `200`.
+- GREEN focused Jest: same focused command -> PASS after route change.
+- Focused suite: `npx jest tests/integration/api/linear-issue-route.test.ts --runInBand` -> PASS, 1 suite / 2 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check && echo git_diff_check=pass` -> `git_diff_check=pass`.
+- Static added-line scan -> `static_added_line_scan=pass`.
+- `npm run build` -> PASS. Existing/non-blocking warnings unchanged: deprecated `middleware` convention, Turbopack NFT trace for `next.config.js` via `src/app/api/telegram/approval-callback/route.ts`, missing optional Sentry auth/source-map token, and missing Railway/DigitalOcean/Vercel/GitHub/Stripe integration env tokens during static generation.
+- Independent reviewer -> `passed=true`, no security concerns, no logic errors; suggestions only to keep future mutable fields aligned with the empty-payload guard.
+
+Files changed:
+- `src/app/api/linear/issue/route.ts`
+- `tests/integration/api/linear-issue-route.test.ts`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication beyond local commits, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, or fabricated history occurred.
+- Branch remains far ahead of origin and the worktree remains broadly inherited/dirty; with `gh` unavailable in this shell and no clean PR lane, no push/PR/merge was attempted.
+
+Next safe lane: continue rotating to concrete changed-surface tests; good candidates are another provider/action typed-validation guard, a CRM/runtime read-surface edge case, or a named local report corruption/error-path fixture from existing repo evidence.
+
 ## 2026-06-15 11:15 AEST
 
 ### Tick 20260615_1115 — DR/NRPG CRM lead integration invalid-payload fail-closed slice

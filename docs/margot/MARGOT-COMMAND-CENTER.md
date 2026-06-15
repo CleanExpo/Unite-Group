@@ -2,7 +2,16 @@
 Date: 2026-05-23
 Project: Unite-Group
 Root: `/Users/phillmcgurk/Unite-Group`
-Last update: 2026-06-15 11:15 AEST — DR/NRPG CRM lead integration invalid-payload fail-closed slice
+Last update: 2026-06-15 11:43 AEST — Linear issue update empty-payload fail-closed slice
+
+## Current Autonomy Rotation Guard — 2026-06-15 11:43 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at local commit `b48aeb9c` (`test(linear): reject empty issue updates`); preflight showed `gh_available=no`, inherited broad dirty/untracked worktree, and no open PR state available. No push, PR, merge, deploy, env mutation, or destructive git action was attempted.
+- Completed safe Senior PM lane: used strict RED-GREEN on the local admin-gated Linear issue route. Added a focused integration test proving an `update` request with `issueId` but no valid mutable fields returns `400 { error: 'invalid_update_payload' }` before any Linear provider request; watched it fail because the existing route returned `200`, then added the minimal empty-`updateInput` guard.
+- Verification: `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 11:41:31 AEST`; `node -v` -> `v22.22.3`; `npm -v` -> `10.9.8`; `node_modules=present`; RED focused Jest failed before the route change with expected `400`, received `200`; GREEN focused Jest passed; full focused `npx jest tests/integration/api/linear-issue-route.test.ts --runInBand` -> PASS (1 suite / 2 tests); `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check && echo git_diff_check=pass` -> PASS; `static_added_line_scan=pass`; `npm run build` -> PASS with existing warnings only (deprecated middleware convention, Turbopack NFT trace via telegram approval callback, missing optional Sentry token/source-map upload token, and missing integration env tokens during static generation).
+- Review/evidence: independent reviewer returned `passed=true`, no security concerns, no logic errors; suggestions only to keep future mutable fields aligned with the guard. Files changed in the code/test slice: `src/app/api/linear/issue/route.ts` and `tests/integration/api/linear-issue-route.test.ts`.
+- Safety: no sandbox wizard subcommand, production DB write/migration, Vercel deploy/env mutation, source-control publication beyond local commits, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, or fabricated history occurred.
+- Next safe lane: continue rotating to concrete changed-surface tests; good candidates are another provider/action typed-validation guard, a CRM/runtime read-surface edge case, or a named local report corruption/error-path fixture from existing repo evidence.
 
 ## Current Autonomy Rotation Guard — 2026-06-15 11:15 AEST
 
