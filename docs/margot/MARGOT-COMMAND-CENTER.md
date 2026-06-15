@@ -2,7 +2,16 @@
 |Date: 2026-05-23
 |Project: Unite-Group
 |Root: `/Users/phillmcgurk/Unite-Group`
-|Last update: 2026-06-15 12:00 AEST — HermesDashboardWrapper readiness/formatNextRun slice
+|Last update: 2026-06-15 12:22 AEST — DR/NRPG approval metadata redaction slice
+
+## Current Autonomy Rotation Guard — 2026-06-15 12:22 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at local code/test commit `4edae8f1` (`test(crm): avoid raw approval metadata in dr-nrpg sync`); preflight in this Hermes profile showed `gh_auth=yes`, Vercel CLI installed but `vercel auth no`, current branch PR `#223` already `MERGED`, upstream ahead/behind `0\t137`, and a broad inherited dirty/untracked worktree. No push/PR/merge/deploy/env mutation was attempted because the lane is local and the branch is not a clean publication surface.
+- Completed safe Senior PM lane: used strict RED-GREEN on the local guarded DR/NRPG → Nexus CRM lead integration route. Added `does not persist raw board approval references in CRM metadata`; RED failed because the lead insert metadata contained `gate.board_approval_id: "BOARD-123"`. GREEN replaces the persisted raw approval reference with non-sensitive `operator_gate_satisfied: true` while preserving `dry_run_only`, actor, flow, credential-env name, and request-id evidence. The route file was inherited untracked from prior DR/NRPG work, so this commit also brings that route under source control with the new redaction fix.
+- Verification: RED focused Jest failed as expected with received `board_approval_id: "BOARD-123"`; GREEN `npx jest tests/integration/api/dr-nrpg-crm-lead-integration.test.ts --runInBand --runTestsByPath` -> 1 suite / 9 tests PASS; related gate `npx jest tests/integration/api/dr-nrpg-crm-lead-integration.test.ts tests/unit/lib/security/crm-lead-integration-gate.test.ts --runInBand` -> 2 suites / 25 tests PASS; `npm run type-check` -> PASS; `npm run security:routes-check` -> 0 unprotected mutating routes; `git diff --check` -> PASS; static added-line scan -> PASS; `npm run build` -> PASS with existing warnings only (deprecated middleware convention, Turbopack NFT trace via telegram approval callback, missing optional Sentry auth/source-map token, and missing optional integration env tokens during static generation).
+- Review/evidence: independent reviewer returned `passed=true`, no security concerns, no logic errors; optional suggestion was to add broader no-raw-approval assertions later. Files changed in the code/test commit: `src/app/api/integrations/dr-nrpg/crm/leads/route.ts` and `tests/integration/api/dr-nrpg-crm-lead-integration.test.ts`.
+- Safety: no sandbox wizard subcommand, production DB write/migration, Vercel deploy/env mutation, source-control publication beyond the local commit, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, or fabricated history occurred. Mac Mini was not reprobed; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts.
+- Next safe lane: rotate away from DR/NRPG approval metadata unless adding the reviewer-suggested broader no-raw-approval assertions; otherwise choose another changed read-surface test from the inherited dirty worktree, a local report corruption/error-path fixture, or a control-surface refresh from existing repo evidence.
 
 ## Current Autonomy Rotation Guard — 2026-06-15 12:00 AEST
 

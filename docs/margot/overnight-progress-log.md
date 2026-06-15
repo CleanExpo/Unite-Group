@@ -1,5 +1,45 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 12:22 AEST
+
+### Tick 20260615_1222 — DR/NRPG approval metadata redaction slice
+
+Lane: bounded Senior PM CRM command-spine hardening on the local guarded DR/NRPG → Nexus CRM lead integration route. Goal was to preserve the operator approval gate without persisting the raw `x-board-approval-id` value in CRM metadata.
+
+Completed:
+- Preflighted the existing in-progress branch/worktree: `mesh/mission-control-2026-06-11`, current branch PR `#223` already `MERGED`, upstream ahead/behind `0\t137`, `gh_auth=yes`, Vercel CLI installed but `vercel auth no`, inherited broad dirty/untracked worktree. Continued the existing lane; did not start a new branch and did not publish the branch.
+- Re-read the Senior PM / connected-teams CRM source-of-truth set, current command-center/progress/morning surfaces, package scripts, and the DR/NRPG route/security gate/test surfaces before selecting this lane.
+- RED: added `does not persist raw board approval references in CRM metadata` to `tests/integration/api/dr-nrpg-crm-lead-integration.test.ts`; focused Jest failed as expected because `lead.additional_data.gate` contained `board_approval_id: "BOARD-123"` and lacked `operator_gate_satisfied`.
+- GREEN: changed `src/app/api/integrations/dr-nrpg/crm/leads/route.ts` so persisted gate metadata records `operator_gate_satisfied: Boolean(gate.boardApprovalId) && !gate.dryRunOnly` and no longer stores the raw board approval reference. The route file was inherited untracked from prior DR/NRPG work, so the code/test commit also brought it under source control.
+- Committed the code/test slice locally as `4edae8f1 test(crm): avoid raw approval metadata in dr-nrpg sync`.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 12:21:58 AEST`.
+- RED focused Jest: `npx jest tests/integration/api/dr-nrpg-crm-lead-integration.test.ts --runInBand --runTestsByPath` -> FAIL before route change; expected `operator_gate_satisfied: true`, received raw `board_approval_id: "BOARD-123"`.
+- GREEN focused Jest: same command -> PASS, 1 suite / 9 tests.
+- Related CRM integration/security gate: `npx jest tests/integration/api/dr-nrpg-crm-lead-integration.test.ts tests/unit/lib/security/crm-lead-integration-gate.test.ts --runInBand` -> PASS, 2 suites / 25 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check && echo git_diff_check=pass` -> `git_diff_check=pass`.
+- Static added-line scan over the tracked test diff plus untracked route diff -> `static_added_line_scan_full=pass`.
+- `npm run build` -> PASS. Existing/non-blocking warnings unchanged: deprecated `middleware` convention, Turbopack NFT trace for `next.config.js` via `src/app/api/telegram/approval-callback/route.ts`, missing optional Sentry auth/source-map token, and missing Railway/DigitalOcean/Vercel/GitHub/Stripe integration env tokens during static generation.
+- Independent reviewer: `passed=true`, `security_concerns=[]`, `logic_errors=[]`; suggestion only to optionally broaden no-raw-approval assertions across contact/opportunity/update payloads in a later test-only slice.
+
+Files changed:
+- `src/app/api/integrations/dr-nrpg/crm/leads/route.ts` (newly tracked route file from inherited DR/NRPG lane; redacts raw approval reference from persisted gate metadata).
+- `tests/integration/api/dr-nrpg-crm-lead-integration.test.ts` (new RED/GREEN regression test for approval-reference redaction).
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication beyond the local commit, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- Branch remains far ahead of origin and the worktree remains broadly inherited/dirty; despite GitHub auth being available in this Hermes profile, no push/PR/merge was attempted because the current branch PR is already merged and this is not a clean publication lane.
+- Mac Mini was not reprobed per rotation guard. Last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts.
+
+Next safe lane: rotate away from DR/NRPG approval metadata unless adding the reviewer-suggested broader no-raw-approval assertions; otherwise use another changed read-surface test from the inherited dirty worktree, a named local report corruption/error-path fixture, or a control-surface refresh from existing repo evidence.
+
 ## 2026-06-15 12:00 AEST
 
 ### Tick 20260615_1200 — HermesDashboardWrapper readiness/formatNextRun slice
