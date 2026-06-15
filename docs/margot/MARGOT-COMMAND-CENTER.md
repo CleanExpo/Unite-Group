@@ -2,7 +2,17 @@
 Date: 2026-05-23
 Project: Unite-Group
 Root: `/Users/phillmcgurk/Unite-Group`
-Last update: 2026-06-15 11:06 AEST — Linear issue route invalid-JSON fail-closed slice
+Last update: 2026-06-15 11:15 AEST — DR/NRPG CRM lead integration invalid-payload fail-closed slice
+
+## Current Autonomy Rotation Guard — 2026-06-15 11:15 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at local commit `d3f6babe` (`test(crm): pin dr-nrpg invalid payload fail-closed surface`); preflight showed `gh_available=no`, Vercel CLI installed but `vercel_auth=unavailable`, no open PR state available, and inherited broad dirty/untracked worktree remained. No push, PR, merge, deploy, env mutation, or destructive git action was attempted.
+- Completed safe Senior PM lane: used RED-then-GREEN (no code change needed) on the local guarded DR/NRPG → Nexus CRM lead integration route. Added two focused integration tests proving the route's existing `try`/`catch` envelope returns a typed `400 invalid_crm_lead_payload` for both malformed JSON and zod schema-invalid JSON when the credentials gate is open, with no Supabase client created and no zod-internal error-shape leak (no `NOT_AN_ENUM_VALUE` and no `issues` substring in the response envelope). The second test pins the no-leak contract so a future refactor that returns the raw zod error object fails the gate.
+- Verification: `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 11:14:55 AEST`; `node -v` -> `v22.22.3`; `npm -v` -> `10.9.8`; `node_modules=present`; focused Jest `npx jest tests/integration/api/dr-nrpg-crm-lead-integration.test.ts --runInBand` -> 1 suite / 8 tests PASS (was 6 tests; added 2 new fail-closed cases, all green without route change); `npm run type-check` -> PASS (`tsc --noEmit`); `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check && echo git_diff_check=pass` -> PASS; `npm run build` -> PASS with existing warnings only (deprecated middleware convention, Turbopack NFT trace via telegram approval callback, missing optional Sentry token/source-map upload token, and missing integration env tokens during static generation).
+- Review/evidence: static added-line scan found no hardcoded-secret/injection/eval/deserialization/SQL patterns; the only test-side credential is the same `'Bearer pi-dev-ops-only-token'` literal the existing test helper already sets in the route's env, so no new secret material is introduced. No code-route change, no new fixture, no AI-RET harness/report surface change, no regenerated evidence.
+- Files changed this slice: `tests/integration/api/dr-nrpg-crm-lead-integration.test.ts`. This evidence entry and matching progress/morning entries are follow-up documentation only.
+- Safety: no sandbox wizard subcommand, production DB write/migration, Vercel deploy/env mutation, source-control publication beyond the local commit, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, or fabricated history occurred.
+- Next safe lane: continue rotating to concrete changed-surface tests; good candidates are a focused route-inventory/digest/CRM integration read-surface test, a non-typed-payload zod-leak regression case from existing repo evidence, or a control-surface refresh from existing repo docs.
 
 ## Current Autonomy Rotation Guard — 2026-06-15 11:06 AEST
 

@@ -1,5 +1,43 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 11:15 AEST
+
+### Tick 20260615_1115 — DR/NRPG CRM lead integration invalid-payload fail-closed slice
+
+Lane: bounded Senior PM CRM command-spine improvement on the local guarded DR/NRPG → Nexus CRM lead integration route. Goal was to pin the same fail-closed pattern the Linear issue route gained in commit `893c87c4`, but on the DR/NRPG CRM lead integration surface: prove the route's payload-validation path returns a controlled typed `400 invalid_crm_lead_payload` for both malformed JSON and zod schema-invalid JSON, without ever creating a Supabase client and without leaking zod-internal error shapes. The route's existing `try`/`catch` already wraps `request.json()` and `integrationPayloadSchema.parse(...)`, so this slice is a regression-pinning test addition, not a route change.
+
+Completed:
+- Preflighted the existing in-progress branch/worktree: `mesh/mission-control-2026-06-11`, `git rev-list --count main..origin/main` -> `8`, inherited broad dirty/untracked worktree. Continued the existing lane; did not start a new branch.
+- Re-read the Senior PM read-first set, current `linear-watch-today.md`, AI-RET-001 evidence/register/pipeline, Mac Mini status, command-center surface, voice gap analysis, active execution plans, package manifest, current progress/morning surfaces, and the `src/lib/security/crm-lead-integration-gate.ts` and `src/app/api/integrations/dr-nrpg/crm/leads/route.ts` surfaces before selecting this lane.
+- RED: added two focused integration tests to `tests/integration/api/dr-nrpg-crm-lead-integration.test.ts`:
+  - `returns a typed 400 invalid_crm_lead_payload for malformed JSON when the credentials gate is open, without creating any Supabase client`,
+  - `returns a typed 400 invalid_crm_lead_payload for a schema-invalid JSON body when the credentials gate is open, without creating any Supabase client` (also pins the no-leak contract: no `NOT_AN_ENUM_VALUE` and no `issues` substring in the response envelope).
+- GREEN: the new tests passed without any route change. The route's existing `try { payload = integrationPayloadSchema.parse(await request.json()); } catch (error) { return NextResponse.json({ success: false, error: 'invalid_crm_lead_payload', errorClass: 'terminal_validation_failure', retryable: false }, { status: 400 }); }` already covers both cases, so this slice is regression-pinning coverage only.
+- Committed the test slice locally as `d3f6babe test(crm): pin dr-nrpg invalid payload fail-closed surface`.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 11:14:55 AEST`; `node -v` -> `v22.22.3`; `npm -v` -> `10.9.8`; `node_modules=present`.
+- RED/GREEN focused Jest: `npx jest tests/integration/api/dr-nrpg-crm-lead-integration.test.ts --runInBand` -> PASS, 1 suite / 8 tests (was 6 tests; added 2 new fail-closed-pinning cases; all 8 green).
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check && echo git_diff_check=pass` -> `git_diff_check=pass`.
+- `npm run build` -> PASS. Existing/non-blocking warnings unchanged: deprecated `middleware` convention, Turbopack NFT trace for `next.config.js` via `src/app/api/telegram/approval-callback/route.ts`, missing optional Sentry auth/source-map token, and missing Railway/DigitalOcean/Vercel/GitHub/Stripe integration env tokens during static generation.
+- Static added-line scan -> no hardcoded-secret/injection/eval/deserialization/SQL patterns; the new tests are mock-driven and assert response envelopes, no credentials are embedded in test bodies (the test `authorization: 'Bearer pi-dev-ops-only-token'` string matches the env value the route's existing test helper already sets).
+- No code-route change, no new fixture, no AI-RET harness/report surface change, no regenerated evidence.
+
+Files changed:
+- `tests/integration/api/dr-nrpg-crm-lead-integration.test.ts`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication beyond the local commit, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live provider polling, Mac Mini credential prompt/read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, or fabricated history occurred.
+- Branch remains far ahead of origin and the worktree remains broadly inherited/dirty; with `gh` unavailable in this shell and no clean PR lane, no push/PR/merge was attempted.
+
+Next safe lane: continue rotating to concrete changed-surface tests only — e.g. a focused route-inventory/digest/CRM integration read-surface test, a non-typed-payload zod-leak regression case from existing repo evidence, or a control-surface refresh from existing repo docs.
+
 ## 2026-06-15 11:06 AEST
 
 ### Tick 20260615_1106 — Linear issue route invalid-JSON fail-closed slice
