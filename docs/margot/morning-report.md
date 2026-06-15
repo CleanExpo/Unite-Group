@@ -1,5 +1,13 @@
 # Margot Morning Report
 
+## 2026-06-15 23:56 AEST — Mesh fleet blank API URL fallback guard
+
+- **Completed safe lane:** Hardened the local Nexus Mesh fleet reader so a blank-whitespace `PI_CEO_API_URL` falls back to the default Pi-CEO Railway API URL instead of producing an invalid whitespace-prefixed `/api/mesh/fleet` request. The missing/blank `PI_CEO_API_KEY` no-fetch degraded path remains intact.
+- **Repo state read-back:** branch `mesh/mission-control-2026-06-11`; `HEAD=89ef3dc6`; `git rev-list --count main..origin/main` -> `10`; inherited broad dirty/untracked worktree remains (`55` status entries before docs update). No commit/push/PR/merge/deploy/env mutation/sandbox wizard/destructive git action was attempted.
+- **Verification:** RED focused Jest failed before the helper change with received URL `   /api/mesh/fleet`; GREEN focused Jest passed. Mesh focused sweep `CI=1 npx jest tests/unit/lib/mesh/read-fleet.test.ts tests/integration/api/mesh-fleet.test.ts --runInBand` -> PASS, 2 suites / 14 tests; `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check` -> PASS before docs update; `npm run build` -> PASS with existing warnings only.
+- **Evidence paths:** `src/lib/mesh/read-fleet.ts`, `tests/unit/lib/mesh/read-fleet.test.ts`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+- **Blockers unchanged / next lane:** no production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred. Broad inherited branch remains unsuitable for push/PR without reconciliation/splitting.
+
 ## 2026-06-15 23:24 AEST — Mesh fleet missing-secret fail-closed guard
 
 - **Completed safe lane:** Hardened the local Nexus Mesh fleet reader so a missing/blank `PI_CEO_API_KEY` returns a degraded `ok:false` empty fleet with `pi-ceo api key not configured` and does not call the upstream Pi-CEO API.

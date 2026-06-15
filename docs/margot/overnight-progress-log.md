@@ -1,5 +1,36 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 23:56 AEST
+
+### Tick 20260615_2356 — Mesh fleet blank API URL fallback guard
+
+Lane: bounded Mission Control / Nexus Mesh fleet read-surface hardening. Goal was to keep `/api/mesh/fleet` deterministic when `PI_CEO_API_URL` exists but is blank whitespace, without exposing `PI_CEO_API_KEY`, calling live provider status, changing auth, or touching production data.
+
+Completed:
+- Preflighted repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=89ef3dc6`; `git rev-list --count main..origin/main` -> `10`; `git status --short | wc -l` -> `55` before report docs update. Inherited broad dirty/untracked worktree remains, so no commit/push/PR/merge/deploy/env mutation/sandbox wizard/destructive git action was attempted.
+- Re-read the Senior PM read-first set, Linear mirror, current progress/morning/command-center surfaces, package scripts, and the Mesh route/helper/test surface before selecting this tiny local guard.
+- RED: added a local unit guard proving blank-whitespace `PI_CEO_API_URL` should fall back to the default Pi-CEO Railway API URL. The focused Jest failed before the helper change with received URL `   /api/mesh/fleet`.
+- GREEN: changed `readFleet` to trim `PI_CEO_API_URL` and use the default `https://pi-dev-ops-production.up.railway.app` when the trimmed value is blank. The secret gate remains unchanged: missing/blank `PI_CEO_API_KEY` still returns degraded `ok:false` without calling fetch.
+
+Verification:
+- RED focused Jest: `CI=1 npx jest tests/unit/lib/mesh/read-fleet.test.ts --runInBand -t "blank whitespace"` -> FAIL before route change; expected default Railway URL, received `   /api/mesh/fleet`.
+- GREEN focused Jest: same command -> PASS, 1 selected test / 9 skipped.
+- Mesh focused sweep: `CI=1 npx jest tests/unit/lib/mesh/read-fleet.test.ts tests/integration/api/mesh-fleet.test.ts --runInBand` -> PASS, 2 suites / 14 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, `route-inventory check: 0 unprotected mutating routes`.
+- `git diff --check` -> PASS before report docs update.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace via Telegram approval callback, missing optional integration env names, missing Sentry auth token/source-map upload token, and Stripe webhook secret warning.
+
+Files changed:
+- `src/lib/mesh/read-fleet.ts`
+- `tests/unit/lib/mesh/read-fleet.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No production DB write/migration, sandbox wizard subcommand, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Broad inherited branch remains unsuitable for push/PR without reconciliation/splitting. Next safe lane should rotate away from Mesh fleet unless a fresh Mission Control read-surface issue appears; otherwise split/reconcile inherited work before any publication lane.
+
 ## 2026-06-15 23:24 AEST
 
 ### Tick 20260615_2324 — Mesh fleet missing-secret fail-closed guard
@@ -24223,3 +24254,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_232104.log'
+
+## 2026-06-15 23:57:28 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_235451.log'
