@@ -108,21 +108,56 @@ describe('createCrmDailyDigest', () => {
     expect(digest.sections.staleIntegrations).toEqual(['All integration mirrors are within their sync cadence.']);
   });
 
-  it('surfaces stale integrations in the digest with minutes overdue', () => {
+  it('surfaces stale integrations with operator-readable reason labels and source-state semantics', () => {
     const digest = createCrmDailyDigest({
       generatedAt: '2026-05-23T09:15:00+10:00',
       staleIntegrations: [
         { integration: 'linear', reason: 'missed_cadence', minutesOverdue: 25 },
-        { integration: 'vercel', reason: 'last_error', minutesOverdue: 90 },
+        { integration: 'vercel', reason: 'last_error', minutesOverdue: 0 },
+        { integration: 'stripe', reason: 'never_synced', minutesOverdue: 0 },
       ],
     });
 
-    expect(digest.summary.staleIntegrationCount).toBe(2);
+    expect(digest.summary.staleIntegrationCount).toBe(3);
     expect(digest.sections.staleIntegrations).toEqual([
-      'linear: missed_cadence (25 min overdue)',
-      'vercel: last_error (90 min overdue)',
+      'linear: missed cadence (25 min overdue)',
+      'vercel: last error (active error; cadence not yet overdue)',
+      'stripe: never synced (no completed sync recorded)',
     ]);
     expect(digest.markdown).toContain('## Stale Integration Mirrors');
-    expect(digest.markdown).toContain('linear: missed_cadence (25 min overdue)');
+    expect(digest.markdown).toContain('linear: missed cadence (25 min overdue)');
+    expect(digest.markdown).toContain('vercel: last error (active error; cadence not yet overdue)');
+  });
+
+  it('does not leak NaN overdue copy when stale integration minutes are malformed', () => {
+    const digest = createCrmDailyDigest({
+      generatedAt: '2026-05-23T09:20:00+10:00',
+      staleIntegrations: [
+        { integration: 'github', reason: 'missed_cadence', minutesOverdue: Number.NaN },
+      ],
+    });
+
+    expect(digest.sections.staleIntegrations).toEqual([
+      'github: missed cadence (0 min overdue)',
+    ]);
+    expect(digest.markdown).not.toContain('NaN');
+  });
+
+  it('redacts secret-shaped values from verification command copy', () => {
+    const digest = createCrmDailyDigest({
+      generatedAt: '2026-05-23T09:25:00+10:00',
+      verification: [
+        {
+          command: 'SUPABASE_SERVICE_ROLE_KEY=super-secret-service-role-token npm run security:routes-check',
+          status: 'blocked',
+        },
+      ],
+    });
+
+    expect(digest.sections.verification).toEqual([
+      'blocked: SUPABASE_SERVICE_ROLE_KEY=[REDACTED] npm run security:routes-check',
+    ]);
+    expect(digest.markdown).toContain('SUPABASE_SERVICE_ROLE_KEY=[REDACTED]');
+    expect(digest.markdown).not.toContain('super-secret-service-role-token');
   });
 });

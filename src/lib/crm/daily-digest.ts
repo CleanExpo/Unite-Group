@@ -160,8 +160,15 @@ function buildBlockers(blockers: CrmDigestBlocker[]): string[] {
   return lines.length ? lines : ['No blockers supplied for this digest window.'];
 }
 
+function redactVerificationCommand(command: string): string {
+  return command.replace(
+    /(\b[A-Z0-9_]*(?:SECRET|TOKEN|PASSWORD|PASSWD|API[_-]?KEY|SERVICE[_-]?ROLE[_-]?KEY)[A-Z0-9_]*=)(?:"[^"]*"|'[^']*'|\S+)/gi,
+    '$1[REDACTED]',
+  );
+}
+
 function buildVerification(verification: CrmDigestVerification[]): string[] {
-  const lines = verification.map((item) => `${item.status}: ${item.command}`);
+  const lines = verification.map((item) => `${item.status}: ${redactVerificationCommand(item.command)}`);
   return lines.length ? lines : ['No verification supplied for this digest window.'];
 }
 
@@ -169,9 +176,29 @@ function markdownList(items: string[]): string {
   return items.map((item) => `- ${item}`).join('\n');
 }
 
+function staleReasonLabel(reason: string): string {
+  return clean(reason).replace(/_/g, ' ') || 'unknown state';
+}
+
+function normalizedMinutes(value: number): number {
+  return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+}
+
+function staleReasonDetail(reason: string, minutesOverdue: number): string {
+  const normalized = clean(reason);
+  const safeMinutes = normalizedMinutes(minutesOverdue);
+  if (normalized === 'last_error' && safeMinutes <= 0) {
+    return 'active error; cadence not yet overdue';
+  }
+  if (normalized === 'never_synced') {
+    return 'no completed sync recorded';
+  }
+  return `${safeMinutes} min overdue`;
+}
+
 function buildStaleIntegrations(stale: StaleIntegrationDigest[]): string[] {
   return stale.length
-    ? stale.map((s) => `${s.integration}: ${s.reason} (${s.minutesOverdue} min overdue)`)
+    ? stale.map((s) => `${s.integration}: ${staleReasonLabel(s.reason)} (${staleReasonDetail(s.reason, s.minutesOverdue)})`)
     : ['All integration mirrors are within their sync cadence.'];
 }
 
