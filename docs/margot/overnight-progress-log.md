@@ -1,5 +1,46 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 13:43 AEST
+
+### Tick 20260615_1343 — CRM daily-digest CLI flag secret redaction slice
+
+Lane: bounded Senior PM CRM digest hardening on the local pure `createCrmDailyDigest` helper. Goal was to extend the prior verification-copy redaction so secret-shaped CLI flags cannot leak values into operator-facing digest sections or markdown.
+
+Completed:
+- Preflighted existing in-progress branch/worktree: `mesh/mission-control-2026-06-11`, inherited broad dirty/untracked worktree, GitHub remote `CleanExpo/Unite-Group`, `gh_auth=yes`, `gh pr list` returned no open PRs, and upstream ahead/behind `142\t0` after the code/test commit. Continued the existing lane; did not start a new branch.
+- Re-read the Senior PM / connected-teams CRM source-of-truth set, current command-center/progress/morning surfaces, package scripts, and the CRM digest helper/test surfaces before selecting this small local read-surface hardening lane.
+- RED: added `redacts secret-shaped CLI flags from verification command copy`; focused Jest failed before the helper change because `--api-key super-secret-api-key` remained raw in `sections.verification`.
+- GREEN: extended `redactVerificationCommand` to redact secret-shaped CLI flag values for whitespace-separated and equals-separated forms while preserving the flag name and separator.
+- Review fix loop: independent reviewer failed the first implementation because underscore-style flags (for example `--client_secret`) were not covered. Added the `--client_secret` expectation, watched focused Jest fail with the raw synthetic value, then fixed the CLI-flag regex to include underscores and reran GREEN.
+- Committed the local code/test slice as `e0528138 test(crm): redact digest CLI flag secrets`.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 13:43:10 AEST`.
+- RED focused Jest: `npx jest tests/unit/lib/crm/daily-digest.test.ts --runInBand --testNamePattern='redacts secret-shaped CLI flags'` -> FAIL before helper change; expected `[REDACTED]`, received raw synthetic `--api-key` value.
+- GREEN focused Jest after first helper change: same command -> PASS for `--api-key` and `--token=...`.
+- Reviewer-driven RED: same focused command -> FAIL after adding `--client_secret` expectation; expected `[REDACTED]`, received raw synthetic `--client_secret` value.
+- Final GREEN focused Jest: same command -> PASS, 1 selected test / 6 skipped.
+- Focused CRM digest suite: `npx jest tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-mappers.test.ts tests/unit/lib/crm/digest-read-error.test.ts --runInBand` -> PASS, 3 suites / 26 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS.
+- `npm run build` -> PASS. Existing/non-blocking warnings unchanged: deprecated `middleware` convention, Turbopack NFT trace for `next.config.js` via `src/app/api/telegram/approval-callback/route.ts`, missing optional Sentry auth/source-map token, and missing Railway/DigitalOcean/Vercel/GitHub/Stripe integration env tokens during static generation.
+- Independent review: first reviewer returned `passed=false` for missed underscore flags; second reviewer after fix returned `passed=true`, `security_concerns=[]`, `logic_errors=[]`.
+
+Files changed:
+- `src/lib/crm/daily-digest.ts`
+- `tests/unit/lib/crm/daily-digest.test.ts`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication beyond the local commit, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- Branch remains far ahead of origin and the worktree remains broadly inherited/dirty; no push/PR/merge was attempted because this is not a clean publication lane.
+
+Next safe lane: rotate away from CRM digest verification-redaction unless adding a separately tested Bearer-header case; otherwise choose another changed read-surface test from the inherited dirty worktree.
+
 ## 2026-06-15 13:04 AEST
 
 ### Tick 20260615_1304 — CRM daily-digest verification secret redaction slice

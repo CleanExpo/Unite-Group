@@ -2,7 +2,16 @@
 |Date: 2026-05-23
 |Project: Unite-Group
 |Root: `/Users/phillmcgurk/Unite-Group`
-|Last update: 2026-06-15 13:04 AEST — CRM daily-digest verification secret redaction slice
+|Last update: 2026-06-15 13:43 AEST — CRM daily-digest CLI flag secret redaction slice
+
+## Current Autonomy Rotation Guard — 2026-06-15 13:43 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at local code/test commit `e0528138` (`test(crm): redact digest CLI flag secrets`); preflight showed inherited broad dirty/untracked worktree, `gh` auth available with no open PRs, origin `https://github.com/CleanExpo/Unite-Group.git`, and upstream ahead/behind `142\t0` after the local commit. No push, PR, merge, deploy, env mutation, or destructive git action was attempted because the branch is not a clean publication lane.
+- Completed safe Senior PM lane: continued the prior CRM digest verification-redaction surface using strict RED-GREEN. Added a failing test proving `--api-key`, `--token=...`, and underscore-style `--client_secret` values in operator-facing verification command copy were echoed into digest output; then extended `redactVerificationCommand` to redact secret-shaped CLI flags while preserving flag names and separators.
+- Verification: RED focused Jest failed before the helper change for `--api-key`; GREEN focused Jest passed; independent reviewer then failed the first implementation because underscore flags such as `--client_secret` were missed; added a second failing expectation for `--client_secret`, fixed the regex to include underscores, and reran GREEN. Final gates: `npx jest tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-mappers.test.ts tests/unit/lib/crm/digest-read-error.test.ts --runInBand` -> PASS (3 suites / 26 tests); `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check` -> PASS; `npm run build` -> PASS with existing warnings only.
+- Review/evidence: second independent reviewer returned `passed=true`, no security concerns, no logic errors; summary confirmed equals-separated and whitespace-separated secret-shaped flags with hyphen and underscore names are covered. Files changed in the code/test commit: `src/lib/crm/daily-digest.ts` and `tests/unit/lib/crm/daily-digest.test.ts`.
+- Safety: no sandbox wizard subcommand, production DB write/migration, Vercel deploy/env mutation, source-control publication beyond the local commit, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- Next safe lane: rotate away from CRM digest verification redaction unless adding a separately tested Bearer-header case; otherwise choose another changed read-surface test from the inherited dirty worktree.
 
 ## Current Autonomy Rotation Guard — 2026-06-15 13:04 AEST
 
