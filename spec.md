@@ -44,10 +44,12 @@
 
 **Vision.** Authority-Site becomes Phill's daily operating cockpit (`docs/margot/crm-operating-model.md` `[VERIFIED]`): a single-tenant, in-house CRM on Vercel + Supabase where Margot advises and humans approve. We are NOT building Unite-Hub — we are building THIS project's own CRM spine on the existing command-center.
 
-**Three-line test of done (V1):**
-1. `crm_contacts` and `crm_opportunities` are live in prod (sandbox-promoted) with CRUD, dedupe, lead→contact conversion, and an end-to-end approval workflow wired onto `src/lib/crm/approval-lifecycle.ts` `[VERIFIED engine exists]`.
-2. The command-center shows a pipeline + forecast READ dashboard sourced from `crm_opportunities` — today the only pipeline surface, `src/app/api/empire/pipeline/route.ts`, reads `agent_actions` funnel counts, not opportunities `[VERIFIED]`.
-3. Email/calendar 2-way sync is shipping for at least one provider, OR the documented fast-follow fallback (read-only digest sync) is live so V1 ships on time.
+**Headline test of done (V1)** — the authoritative gate is §15.1; this is the five-line headline:
+1. `crm_contacts` and `crm_opportunities` are live in prod (sandbox-promoted) with CRUD, dedupe, and lead→contact conversion (via the `crm_convert_lead_to_contact()` RPC).
+2. The approval workflow is wired end-to-end onto `src/lib/crm/approval-lifecycle.ts` `[VERIFIED engine exists]` — a gated write executes only on `may_execute`, never auto-executes, and writes an audit row.
+3. The command-center shows a pipeline + forecast READ dashboard sourced from `crm_opportunities` (forecast is **single-currency AUD by construction** — see §6.2 of `data-model-erd.md`) — today the only pipeline surface, `src/app/api/empire/pipeline/route.ts`, reads `agent_actions` funnel counts, not opportunities `[VERIFIED]`.
+4. Advisory AI (lead score + next-best-action) renders in the daily digest, recommendation-only, with zero auto-writes.
+5. Email/calendar 2-way sync is shipping for at least one provider, OR the documented fast-follow fallback (read-only digest sync) is live so V1 ships on time.
 
 ---
 
@@ -76,6 +78,8 @@
 | AI auto-writing CRM data | AI is recommendation-only, human-approved, everywhere, forever |
 | Direct prod DB writes (`psql` / `supabase db push` / MCP `apply_migration`) | Every schema change routes through `scripts/sandbox-wizard.sh` (sandbox→diff→promote) `[VERIFIED wizard exists]` |
 | CRM as billing truth | Stripe is billing truth; opportunities are forecast-only (`crm_opportunities` migration comment `[VERIFIED]`) |
+| Quotes / line-items on opportunities in V1 | Opportunities are **forecast-only single-value** (`value_amount`) in V1; itemized quotes require Stripe-product linkage, deferred to V2 with the billing view. Confirm with Phill that no V1 sales motion needs a quote artifact (OQ-16). `[INFERENCE]` |
+| Custom-field registry/UI in V1 | The `additional_data` jsonb extensibility surface exists on all CRM tables, but a typed custom-field registry/UI is deferred to V2 — V1 ships the fixed identity/pipeline schema so the long-pole (email/cal) owns the critical path. `[INFERENCE]` |
 
 ### 2.3 Success metrics
 
@@ -99,15 +103,25 @@ Single-tenant, role-light, approval-gated. The admin allow-list is 2 emails toda
 | Persona | Who | Access in V1 | Write capability | Notes |
 |---|---|---|---|---|
 | **Phill (Operator/Owner)** | Founder | Full read; approves all gated writes; admin allow-list | Approves every gated mutation; can execute directly | Final approval authority; Supabase admin-email session OR service-role bearer `[VERIFIED dual-mode gate]` |
-| **Margot (AI Orchestrator)** | Agent | Read CRM; produce drafts/recommendations; create approval-required tasks | **Never** auto-writes CRM truth — recommendation-only `[VERIFIED]` | Writes only via approved server routes; voice→task route already gates approval-required work (`src/app/api/pi-ceo/margot-voice/task/route.ts` `[VERIFIED]`) |
+| **Margot (AI Orchestrator)** | Agent | Read CRM via a **distinct read-only credential** (V1 — see §3.1); produce drafts/recommendations; create approval-required tasks | **Never** auto-writes CRM truth — recommendation-only, enforced by the **credential boundary** (§3.1), not merely by which routes call the engine `[VERIFIED contract]` | Writes only via approved server routes; voice→task route already gates approval-required work (`src/app/api/pi-ceo/margot-voice/task/route.ts` `[VERIFIED]`); **must NOT hold the service-role bearer** |
 | **Internal Ops (small team)** | 1–3 staff | Read; create leads/contacts/activities; submit opportunities for approval | Non-sensitive writes; sensitive writes (conversion, client merge, external comms) need Phill approval | Role-light; granular RBAC deferred to V3+ |
 | **System/Cron** | Vercel cron + service-role | Integration mirrors, digest generation, sync jobs | Service-role server routes only; never client-side | E.g. `src/app/api/cron/integrations/composio/route.ts` `[VERIFIED]` |
 
 **Access-model invariants (all phases):**
 - All mutating CRM routes pass `requireAdmin` (service-role bearer → admin-email session fallback, fail-closed) `[VERIFIED]` — enforced by `npm run security:routes-check` `[VERIFIED script]`.
-- TOTP MFA infra exists (`src/lib/auth/mfa/totp.ts`, `service.ts` `[VERIFIED]`); enforcing MFA on operator login is a V1 launch-readiness item.
+- TOTP MFA infra exists (`src/lib/auth/mfa/totp.ts`, `service.ts` `[VERIFIED]`); **enforced TOTP MFA on every `ALLOWED_ADMINS` account is a HARD V1 launch gate** (§11.9, §3.1) — contacts/opportunities cannot be promoted to prod with real PII until MFA is verified on Supabase + the founder Google account, evidence captured in §15.
 - Browser/client code never writes sensitive CRM tables directly; only service-role server routes do.
 - High-risk subject types (`client_merge`, `data_export`) always require explicit Phill/Board review (`approval-lifecycle.ts` HIGH_RISK_SUBJECT_TYPES `[VERIFIED]`).
+
+### 3.1 Credential trust boundary (BLOCKER B2 — Security)
+
+**Recommendation-only is enforced by route TOPOLOGY, not by credential — and the spec must stop presenting a convention as a control.** `requireAdmin`'s bearer branch compares `Authorization` against `SUPABASE_SERVICE_ROLE_KEY` (`src/lib/security/require-admin.ts:79-81`) `[VERIFIED]` — that single key authorizes **every** mutating CRM route (`POST`/`PATCH` `/api/crm/contacts`, `/api/crm/opportunities`, lead convert, etc.). The approval engine (`approval-lifecycle.ts`) governs only the **not-yet-built** `/api/crm/approvals/[id]/execute` route; it is **not** a chokepoint for the default mutation routes. So if Margot holds that bearer to *read* CRM data, it can also *write* CRM truth directly, bypassing the engine entirely.
+
+**V1 controls (pulled into V1, not V2):**
+- **Bearer = full CRM write authority.** This is stated plainly. Recommendation-only is enforced by **NOT issuing that bearer to Margot or any AI/agent process.**
+- **Distinct read-only credential for Margot.** Margot reads CRM via a separate token whose `requireAdmin` branch maps to a read-only actor, OR via GET-only surfaces that never accept the service-role key.
+- **Actor attribution (`x-actor-id`) is V1, not V2.** Every bearer write records the originating actor in `agent_actions` so the audit trail distinguishes Margot from Phill from a leaked key.
+- **Acceptance:** *No credential issued to an AI/agent process can satisfy `requireAdmin` on any mutating CRM route.*
 
 ---
 
@@ -115,9 +129,12 @@ Single-tenant, role-light, approval-gated. The admin allow-list is 2 emails toda
 
 Every claim here is evidence-tagged; the per-section detail (§6–§12) carries the file-line citations.
 
+> **⚠ Prod-state evidence integrity (BLOCKER B1).** "Migration file present in the repo" is **not** "applied in prod." The only machine-readable prod-schema artifact, `types/supabase.ts` (generated from prod ref `lksfwktwtmyznckodsau`, **dated 2026-05-22**), contains **no `public.Tables` definition** for `crm_leads`, `agent_actions`, or `nexus_clients` — only an unrelated `client_agent_actions` and `businesses` `[VERIFIED — grep over types/supabase.ts]`. The prod-applied state of these tables is therefore **`[UNCONFIRMED]`**. A **mandatory pre-M1.1 step** regenerates `types/supabase.ts` from prod, commits it as the §17 evidence baseline, and makes M1.1 verify each FK-target table exists in prod before the promote transaction runs (its FK references fail otherwise). See `data-model-erd.md` §1.
+
 | Area | State today | Evidence |
 |---|---|---|
-| `crm_leads` table | Migration written (status/score CHECKs, lower(email) index, service-role RLS, FK links); marketing form writes to it | `supabase/migrations/20260523100000_crm_leads.sql`; `src/app/api/marketing/leads/route.ts` `[VERIFIED]` |
+| `crm_leads` table | Migration **file** in repo (status/score CHECKs, lower(email) index, service-role RLS, FK links); marketing form writes to it. **Prod-applied state `[UNCONFIRMED]`** — absent from `types/supabase.ts` | `supabase/migrations/20260523100000_crm_leads.sql`; `src/app/api/marketing/leads/route.ts` `[VERIFIED files]`; prod-applied `[UNCONFIRMED]` |
+| `agent_actions` / `nexus_clients` / `businesses` (FK targets) | Migration **files** in repo; CRM contacts/opportunities reference them as FK targets. **Prod-applied state `[UNCONFIRMED]`** — `agent_actions`/`nexus_clients` absent from `types/supabase.ts` (only `client_agent_actions`/`businesses` present) | `types/supabase.ts` grep `[VERIFIED]`; prod-applied `[UNCONFIRMED]` |
 | `crm_contacts` + `crm_opportunities` | **DRAFTED in one migration, NOT applied** to sandbox or prod | `supabase/migrations/20260523103000_crm_contacts_opportunities.sql`; `docs/margot/crm-schema-inventory.md:239-240` `[VERIFIED]` |
 | Dedupe | Route computes only `dedupe_email_key` + `dedupe_domain_key`; migration declares 4 keys but **no UNIQUE constraint** | `src/app/api/crm/contacts/route.ts:261-262`; migration (grep unique → none) `[VERIFIED]` |
 | Lead conversion route | **Exists** (`src/app/api/crm/leads/[id]/convert/route.ts`) but links lead→`nexus_clients` only — it never materializes a `crm_contacts` row | route `:138-182` `[VERIFIED]` — corrects the locked-context "currently missing" claim |
@@ -157,6 +174,8 @@ The **full matrix** — every feature row with pillar | name | phase | status | 
 | 14 Integrations | 5 | 0 | 1 | 9 cron mirrors, Stripe/Linear/DR-NRPG, 1Password (all live) |
 | 15 Platform / non-functional | 18 | 7 | 1 | Wire CI gates; remove `ignoreBuildErrors`; PITR; coverage gate; sandbox-first pipeline |
 
+> **These are indicative row-counts, not normalized feature-counts (P19).** Each count is the number of matrix rows a specialist authored under that pillar, not a one-feature-per-row inventory — so infra-heavy Pillar 15 carries many rows while Billing (Pillar 7) carries one, and some rows collapse several features (e.g. Pillar 6's "templated sends, sequences, Telegram, notifications" is one row covering four features). The 15-pillar universe is fully covered with no blank phase cells; the counts measure rows, not granularity. See `feature-coverage-matrix.md` for the authoritative per-row detail.
+
 **Status distribution (V1 rows):** the V1 set is roughly a third `exists`, a third `partial`, a third `missing` — i.e. a strong base with three concentrated gaps to close: (a) the **schema promotion** (contacts/opportunities), (b) the **approval execution wiring**, and (c) the **email/calendar sync** long-pole. See §13 for sequencing.
 
 ---
@@ -167,7 +186,7 @@ The **full matrix** — every feature row with pillar | name | phase | status | 
 
 ### 6.1 Entity model & relationships
 
-The CRM spine layers on the existing Nexus identity tables. Three identity anchors already exist in prod-applied migrations (`businesses`, `nexus_clients`, `agent_actions`); the CRM extends them rather than replacing them. See the ERD in [`data-model-erd.md`](docs/spec/data-model-erd.md#2-erd).
+The CRM spine layers on the existing Nexus identity tables. Three identity anchors (`businesses`, `nexus_clients`, `agent_actions`) are expected in prod and the CRM extends them rather than replacing them — but their **prod-applied state is `[UNCONFIRMED]`** (`agent_actions`/`nexus_clients` are absent from `types/supabase.ts`; see §4 BLOCKER B1 and `data-model-erd.md` §1). M1.1 verifies each FK-target exists in prod before promoting contacts/opportunities. See the ERD in [`data-model-erd.md`](docs/spec/data-model-erd.md#2-erd).
 
 **Verified relationship facts:**
 - `crm_leads` references `nexus_clients(id)` via `matched_client_id`/`converted_client_id` and `businesses(id)` via `matched_business_id`, all `ON DELETE SET NULL` — `…crm_leads.sql:21-23`. `[VERIFIED]`
@@ -177,9 +196,9 @@ The CRM spine layers on the existing Nexus identity tables. Three identity ancho
 
 **Design decision — no separate `accounts`/`organizations` table in V1.** Org identity is carried by `businesses` (portfolio units) and `nexus_clients` (paying clients); `crm_contacts.company_name` is free-text for not-yet-a-client orgs. A normalized `crm_accounts` table is V2. `[INFERENCE — grounded in the single-tenant lock and the existing businesses/nexus_clients split]`
 
-### 6.2 `crm_leads` (LIVE)
+### 6.2 `crm_leads` (migration in repo; prod-applied state to be confirmed by `gen:types` before M1.1)
 
-`crm_leads` is the V1 baseline the marketing form writes to. Notable for data architecture: `status` CHECK ∈ {new, qualified, nurture, converted, disqualified, spam} `[VERIFIED]`; `qualification_score` 0–100 CHECK `[VERIFIED]`; lower-cased functional email index `[VERIFIED]`; **privacy debt** — stores raw `ip_address`/`user_agent` as `text` with no retention decision (`…crm_leads.sql:24-25`; flagged at `docs/margot/crm-operating-model.md:200`). See §6.6, §11.6, §18. `[VERIFIED]`
+`crm_leads` is the V1 baseline the marketing form writes to; its migration file is in the repo but its **prod-applied state is `[UNCONFIRMED]`** (absent from `types/supabase.ts` — see §4 BLOCKER B1). One canonical status phrasing is used across §4 / §6.2 here and `data-model-erd.md` §1/§2. Notable for data architecture: `status` CHECK ∈ {new, qualified, nurture, converted, disqualified, spam} `[VERIFIED file]`; `qualification_score` 0–100 CHECK `[VERIFIED file]`; lower-cased functional email index `[VERIFIED file]`; **privacy debt** — stores raw `ip_address`/`user_agent` as `text` with no retention decision (`…crm_leads.sql:24-25`; flagged at `docs/margot/crm-operating-model.md:200`); the public route also stores `additional_data` verbatim with no filter (`marketing/leads/route.ts:126`). See §6.6, §11.6, §11.3, §18. `[VERIFIED file]`
 
 ### 6.3 `crm_contacts` + `crm_opportunities` (DRAFTED, not applied) — V1 target
 
@@ -193,11 +212,11 @@ Both tables are drafted in one migration (`…103000.sql`), guarded by a static 
 1. **No DB-level dedupe uniqueness.** Add a partial UNIQUE index on `dedupe_email_key` (where not null) so the DB is the backstop, not the route's race-prone `SELECT … limit 1` (`…contacts/route.ts:180-202`). `[VERIFIED gap]`
 2. **Two dedupe keys never populated.** Populate all four in the route (normalize phone to E.164-ish; `name_company_key = lower(trim(display_name))||'|'||lower(trim(company_name))`) and index them. `[VERIFIED gap]`
 3. **No `updated_at` trigger.** Add a `set_updated_at` BEFORE UPDATE trigger (reuse pattern in `20260514142500_client_approvals.sql`). `[VERIFIED gap]`
-4. **Lead→contact conversion does not exist.** `src/app/api/crm/leads/[id]/convert/route.ts` converts **lead → `nexus_clients`** (sets `converted_client_id`/`matched_client_id` — `…convert/route.ts:146-152`); it never materializes a `crm_contacts` row. The V1 conversion flow must (a) upsert a deduped `crm_contacts` row from lead fields, (b) optionally seed an opportunity, (c) set lead status, (d) write one `agent_actions` event — atomically or with compensating cleanup. `[VERIFIED — route read]`
+4. **Lead→contact conversion does not exist, and must be atomic via a Postgres RPC (P5).** `src/app/api/crm/leads/[id]/convert/route.ts` converts **lead → `nexus_clients`** (sets `converted_client_id`/`matched_client_id` — `…convert/route.ts:146-152`); it never materializes a `crm_contacts` row, and it does a non-transactional `.update()` (`:172`) then a best-effort timeline insert in try/catch (`:182`) `[VERIFIED]`. The supabase-js client has **no multi-statement transaction**, so chained SDK calls cannot be atomic and will ship orphaned-contact partial commits. The V1 conversion flow MUST run inside a single **`SECURITY DEFINER` Postgres RPC `crm_convert_lead_to_contact()`** (promoted sandbox-first in M1.1/M1.2) that, in one transaction: (a) upserts a deduped `crm_contacts` row from lead fields, (b) optionally seeds an opportunity, (c) sets lead status, (d) writes exactly one `agent_actions` event. Request/response JSON schema in §7.5. This closes OQ-6. `[VERIFIED — route read]`
 
 ### 6.4 Dedupe keys & strategy (V1)
 
-Dedupe is **detect-and-block on write** in V1 (no auto-merge). Email is the only key strong enough to block on alone; domain is a hint; phone/name+company block only when a second key corroborates. Full derivation table in [`data-model-erd.md` §3](docs/spec/data-model-erd.md#3-dedupe-keys--strategy-v1). `[VERIFIED]`
+Dedupe is **detect-and-block on write** in V1 (no auto-merge). Email is the only key strong enough to block on alone; domain is a hint; phone/name+company block only when a second key corroborates. **`dedupe_name_company_key` is derived from a stable normalized full-name (`first_name`+`last_name`), NOT the mutable `display_name`** — a rename must not silently change dedupe identity — and is **advisory-only** (never an automatic 409 on its own). **PATCH recomputes phone + name+company keys** (today PATCH recomputes only email keys) so keys never drift. Full derivation table in [`data-model-erd.md` §3](docs/spec/data-model-erd.md#3-dedupe-keys--strategy-v1). `[VERIFIED]`
 
 ### 6.5 Merge strategy
 
@@ -205,11 +224,11 @@ Dedupe is **detect-and-block on write** in V1 (no auto-merge). Email is the only
 
 ### 6.6 Privacy scopes
 
-`crm_contacts.privacy_scope` (5-scope CHECK, default `lead_scoped`) is the per-record visibility band — forward-compatible metadata that becomes load-bearing at V3+ RBAC and drives redaction today. PII redaction in the timeline is enforced at write time (`activity-timeline.ts:105-153`; contacts route re-sanitizes the subject label). `crm_leads` IP/user-agent retention is unresolved privacy debt. Consent is first-class on contacts and leads. Full detail in [`data-model-erd.md` §4](docs/spec/data-model-erd.md#4-privacy-scopes) and §11.4–§11.6. `[VERIFIED]`
+`crm_contacts.privacy_scope` (5-scope CHECK, default `lead_scoped`) is the per-record visibility band — forward-compatible metadata that becomes load-bearing at V3+ RBAC and drives redaction today. PII redaction in the timeline is enforced at write time (`activity-timeline.ts:105-153`; contacts route re-sanitizes the subject label). `crm_leads` IP/user-agent retention is unresolved privacy debt (§11.6). **Consent provenance is a V1 AC with teeth (P9):** `consent_source`/`consent_captured_at` columns exist (`…103000.sql:21-22`) but the contacts route writes only `marketing_consent` (`…contacts/route.ts:257`) `[VERIFIED]`; V1 requires that any write flipping `marketing_consent` true on either the contacts route or `marketing/leads` writes `consent_source` + a **server-side** `consent_captured_at`, and a consent=true write with no provenance is **rejected (422)**. `do_not_contact` is a hard server-side block on any send/sequence path. Full detail in [`data-model-erd.md` §4](docs/spec/data-model-erd.md#4-privacy-scopes) and §11.4–§11.6. `[VERIFIED]`
 
 ### 6.7 RLS policies
 
-Every CRM table is RLS-enabled with a single `service_role` ALL policy and no authenticated/anon policy; `agent_actions` and `nexus_clients` additionally grant authenticated SELECT. **V1 plan:** keep service-role-only writes; add an `authenticated` SELECT to contacts/opportunities only once privacy-scope redaction is confirmed; tighten `agent_actions` SELECT to founder-only; the `service_role` ALL policy is the safety floor — no client-side write path is ever opened. **V3+:** `privacy_scope` becomes an RLS predicate (policy-only, no schema change). Full table in [`data-model-erd.md` §5](docs/spec/data-model-erd.md#5-rls-posture) and §11.2. `[VERIFIED current posture; INFERENCE for the planned policies]`
+Every CRM table is RLS-enabled with a single `service_role` ALL policy and no authenticated/anon policy; `agent_actions` and `nexus_clients` additionally grant authenticated SELECT. **`agent_actions` grants `FOR SELECT TO authenticated USING (true)` (`…nexus_agent_actions.sql:37`)** — every authenticated principal can read the entire cross-entity audit/timeline trail `[VERIFIED]`. **V1 HARD GATE (P8):** tighten `agent_actions` SELECT to founder-email-only (mirror `data_room_documents`) in the **same M1.1 hardening migration** as the contacts/opportunities promotion — landing BEFORE ops-team authenticated principals are provisioned and BEFORE the M1.8-FB email/cal metadata lands in the table — with an **M1.1 exit assertion that an authenticated-non-founder key returns 0 rows from `agent_actions`**. Otherwise: keep service-role-only writes; add an `authenticated` SELECT to contacts/opportunities only once privacy-scope redaction is confirmed; the `service_role` ALL policy is the safety floor — no client-side write path is ever opened. **V3+:** `privacy_scope` becomes an RLS predicate (policy-only, no schema change). Full table in [`data-model-erd.md` §5](docs/spec/data-model-erd.md#5-rls-posture) and §11.2. `[VERIFIED current posture; INFERENCE for the planned policies]`
 
 ### 6.8 Approvals & timeline persistence (data-layer view)
 
@@ -252,21 +271,36 @@ Distinct caller classes, distinct credential lanes — do not collapse them:
 
 `[VERIFIED — require-admin.ts, sync-lifecycle.ts, margot-voice/task/route.ts, crm-lead-integration-gate.ts, marketing/leads/route.ts]`
 
-**`requireAdmin` contract (canonical gate):** service-role bearer tried first (constant-time via `timingSafeTokenMatch`); falls back to admin-email Supabase session; fails **closed** — `401` no credential, `403` not allow-listed. `[VERIFIED require-admin.ts:90-93]`
+**`requireAdmin` contract (canonical gate):** service-role bearer tried first (constant-time via `timingSafeTokenMatch`); falls back to admin-email Supabase session; fails **closed** — `401` no credential, `403` not allow-listed. `[VERIFIED require-admin.ts:79-93]`
 
-**Gaps to close (V1):** `ALLOWED_ADMINS` is duplicated in two files — converge to the single `require-admin.ts` export; bearer callers audit as a generic `'service-role'` — add `x-actor-id` attribution (V2). `[VERIFIED duplicate set; INFERENCE for attribution]`
+**Credential trust boundary (BLOCKER B2 — see §3.1):** the bearer branch compares `Authorization` against `SUPABASE_SERVICE_ROLE_KEY` (`require-admin.ts:79-81`), the single key that authorizes **every** mutating CRM route. Recommendation-only is enforced by **NOT issuing that bearer to any AI/agent process**, plus a distinct read-only Margot credential — it is a credential boundary, not a route convention. **AC:** no credential issued to an AI/agent process can satisfy `requireAdmin` on any mutating CRM route. `[VERIFIED]`
+
+**Gaps to close (V1):**
+- `ALLOWED_ADMINS` is duplicated in two files — **converge to the single `require-admin.ts` export with a grep/lint guard and a V1 AC** (a second definition fails CI). A duplicated trust anchor is a contract-integrity risk, not a style nit. `[VERIFIED duplicate set]`
+- Bearer callers audit as generic `'service-role'` — **add `x-actor-id` attribution in V1 (not V2)** so the audit trail distinguishes Margot from Phill from a leaked key (§3.1). `[VERIFIED]`
 
 ### 7.2 Error model
 
 Stable machine-readable codes (string `error`), never raw DB messages. Codes span `400` (validation), `401` (no/bad credential), `403` (forbidden/approval gate), `404`, `409` (dedupe/idempotency/state conflict), `410` (expired), `422` (terminal), `423` (feature-flag hold), `429` (rate limit), `500`, `503` (env not configured). `[VERIFIED across the CRM routes]`
 
-**V1 normalization (NEW):** the DR/NRPG route returns `{ success, error, errorClass, retryable }` `[VERIFIED]`; promote this `errorClass` + `retryable` shape to all CRM mutation routes so Margot/swarm decide retry-vs-escalate deterministically. **Acceptance: every 5xx CRM response carries `retryable: boolean`.**
+**V1 normalization (NEW) — concrete error envelope (P25):** the DR/NRPG route returns `{ success, error, errorClass, retryable }` `[VERIFIED]`; promote this shape to all CRM mutation routes. The envelope is defined concretely:
+- `errorClass` enum: `validation | auth | conflict | rate_limit | dependency | internal`.
+- `retryable: boolean` is **derived from `errorClass`** (`internal`/`dependency`/`rate_limit` → retryable; `validation`/`auth`/`conflict` → not).
+- The existing stable string `error` code (the §7.2 code table) is **preserved as a sibling field**, not replaced — callers that branch on the string keep working.
+
+Example 5xx body:
+```json
+{ "success": false, "error": "crm_contact_persist_failed", "errorClass": "internal", "retryable": true }
+```
+**Acceptance:** every 5xx CRM response carries `errorClass` + `retryable: boolean`, with the stable `error` code retained.
 
 ### 7.3 Idempotency & concurrency
 
 Natural-key idempotency exists today (email dedupe + `23505` catch on contacts; name+link dedupe on opportunities; `dedupe_key` on DR/NRPG; conditional `.is('converted_client_id', null)` on conversion; conditional `.eq('status','pending')` on client approval). `[VERIFIED]`
 
-**V1 gap (HIGH):** no client-supplied `Idempotency-Key` header anywhere — a retried keyless contact/opportunity POST can duplicate. **NEW requirement:** accept an optional `Idempotency-Key` on all CRM POST routes, persist `(key → resource_id)` in a short-TTL store, replay the stored response. `[INFERENCE — no idempotency-key code found]`
+**V1 gap (HIGH) — resolved store (P12, closes OQ-9):** no client-supplied `Idempotency-Key` header exists today — a retried keyless contact/opportunity POST can duplicate. The in-memory option **cannot work on Vercel serverless** (per-invocation isolation), so a launch-blocking AC cannot depend on it. **Resolution:** the V1 store is a **persistent `crm_idempotency` table** (`key`, `resource_id`, `response_hash`, `expires_at`), promoted sandbox-first; all CRM POST routes accept an optional `Idempotency-Key`, persist `(key → resource_id)`, and replay the stored response. (If the Board instead chooses to descope, `Idempotency-Key` drops to a fast-follow and the V1 idempotency guarantee is natural-key only — email dedupe + `23505`; the AC must move with it. Do **not** leave a launch-blocking AC depending on an undecided store.) `[INFERENCE — no idempotency-key code found]`
+
+**Optimistic locking on PATCH (P24):** PATCH today is last-write-wins. **NEW:** PATCH on contacts/opportunities accepts an `If-Match`/`updated_at` precondition; a stale precondition returns `409` (or `412`) rather than silently overwriting a concurrent edit. Natural-key insert idempotency does not cover concurrent updates.
 
 ### 7.4 Source-of-truth matrix (API enforcement)
 
@@ -283,21 +317,41 @@ Routes MUST mirror, never overwrite, the truth source. `[VERIFIED against docs/m
 | Email / calendar | **Google via Composio** | cron | Provider wins; CRM logs activity refs, never message body in clear |
 | Agent audit | Supabase `agent_actions` | all CRM routes append | Append-only; failed audit write logged, does not undo the safe mutation `[VERIFIED]` |
 
-**Hard contract in code:** opportunities `additional_data` has a sensitive-data firewall (`containsUnsafeAdditionalData`) rejecting `stripe|payment|card|bank|…` keys/values — billing data physically cannot be smuggled into pipeline truth. `[VERIFIED opportunities/route.ts:34-90]`
+**Hard contract in code — scoped to opportunities only (P11):** the `additional_data` sensitive-data firewall (`containsUnsafeAdditionalData`) rejecting `stripe|payment|card|bank|email|phone|…` keys/values exists **only on opportunities** (`opportunities/route.ts:62-90`) `[VERIFIED]`. The other two write surfaces do NOT yet enforce it: **contacts hardcodes `additional_data: {}`** (`contacts/route.ts:263`, so nothing can be smuggled but nothing is filtered either) and the **public, unauthenticated `marketing/leads` route has NO filter** — it stores `leadData.additionalData` verbatim (`marketing/leads/route.ts:126`) `[VERIFIED]`. So the source-of-truth write contract is enforced **asymmetrically**, with the most-exposed surface unguarded. **V1 precondition of the source-of-truth AC:** the shared `src/lib/security/safe-additional-data.ts` (**new module**, §11.3) is imported by all three write surfaces, with a **per-route assertion** that each rejects billing/secret-shaped payloads (and a size cap on the public route). `[VERIFIED]`
 
 ### 7.5–7.7 Endpoint contracts — Leads, Contacts, Opportunities
 
-- **Leads:** `POST /api/marketing/leads` (public, rate-limited; standardize 200→201); `GET /api/crm/leads` (admin, filters); `POST /api/crm/leads/[id]/convert` **EXISTS** (board-approval gated, dryRun, race-safe) — but only links lead→client. **NEW `POST /api/crm/leads/[id]/convert-to-contact`** materializes a deduped `crm_contacts` row (`linked_lead_id`, status), idempotent on `dedupe_email_key`, emitting `contact_created` + `lead_converted` events; second call → 409. `[VERIFIED route present; INFERENCE for the new route]`
-- **Contacts:** `POST` + `PATCH /api/crm/contacts` exist (identity-required, email dedupe → 409, multi-link approval gate, dedupe re-derive on email change). **V1 gaps:** no `GET` (needed for timeline + dashboard); phone/name+company dedupe not enforced; merge endpoint is V2. `[VERIFIED]`
-- **Opportunities:** `POST` + `PATCH /api/crm/opportunities` exist (12 stages, won transitions need full approval, `additional_data` billing firewall + 4 KB cap, PATCH free-text redaction). **V1 gap:** no `GET` + `/forecast` rollup (Σ value × probability/100 per stage) for the pipeline dashboard; products/line items are V2. `[VERIFIED]`
+- **Leads:** `POST /api/marketing/leads` (public, rate-limited; standardize 200→201; gains the shared `safe-additional-data` filter + size cap + ip/UA hashing per §11.3/§11.6); `GET /api/crm/leads` (admin, filters); `POST /api/crm/leads/[id]/convert` **EXISTS** (board-approval gated, dryRun, race-safe) — but only links lead→client.
+- **NEW `POST /api/crm/leads/[id]/convert-to-contact` (atomic, RPC-backed — P5):** invokes the `crm_convert_lead_to_contact()` `SECURITY DEFINER` RPC so contact upsert + optional opportunity + lead-status + audit commit in **one Postgres transaction** (chained SDK calls are explicitly disallowed — supabase-js has no client transaction). Idempotent on `dedupe_email_key`; emits exactly one `contact_created` + `lead_converted` pair; second call → 409.
+  - **Request body schema:** `{ leadFieldMapping?: {...overrides}, seedOpportunity?: boolean, opportunitySeed?: { name, stage, value_amount, value_currency:'AUD', probability }, boardApprovalId?: string, dryRun?: boolean }`.
+  - **Responses:** `201 { contact, opportunity?, timelineEventId }` · `409 crm_lead_already_converted` / `crm_contact_conflict` · `200` (dryRun) `{ planned_contact, planned_opportunity?, planned_timeline_event }` · `4xx/5xx` per the §7.2 envelope (no partial-commit shape exists because the RPC is all-or-nothing). `[VERIFIED route present; INFERENCE for the new route]`
+- **Contacts:** `POST` + `PATCH /api/crm/contacts` exist (identity-required, email dedupe → 409, multi-link approval gate, dedupe re-derive on email change). **V1 gaps / NEW:** `GET /api/crm/contacts` (list + by-id) with a **pagination/ordering contract** (`limit` default 20 / **max 100**, `cursor` or `offset`, `order_by=created_at desc` default, status/owner filters); phone/name+company dedupe now enforced (advisory, stable full-name key); **PATCH accepts `If-Match`/`updated_at` optimistic-lock precondition**; merge endpoint is V2. `[VERIFIED]`
+- **Opportunities:** `POST` + `PATCH /api/crm/opportunities` exist (12 stages, won transitions need full approval, `additional_data` billing firewall + 4 KB cap, PATCH free-text redaction). **V1 gap / NEW:** `GET /api/crm/opportunities` (list, same pagination/ordering contract) **+ `GET /api/crm/opportunities/forecast`** rollup. The forecast is **single-currency by construction** — `value_currency` is pinned `NOT NULL DEFAULT 'AUD'` with `CHECK (value_currency = 'AUD')` in the M1.1 hardening migration (P6) — so `Σ(value_amount × probability/100)` per stage is well-defined and "matches API to the cent" is meaningful; the endpoint asserts a single currency and refuses cross-currency summation. Multi-currency + FX is V2. Products/line items are V2. `[VERIFIED]`
+- **DELETE / archive (P24):** statuses `archived` / `blocked_review` exist in the contacts/opportunities schema but have no write contract. **NEW:** `PATCH … { status:'archived' }` (or `DELETE` → soft-archive) is the V1 archive contract — never a hard row delete; archive emits a timeline event; archived rows are excluded from default GET lists. Hard delete is out of scope (append-only posture).
 
 ### 7.8 Approvals & approval execution
 
 Today, `client_approvals` + magic-link routes handle **client-deliverable** approvals (HMAC receipts, sha256 token-at-rest). CRM-object approval is enforced **inline** via `boardApprovalId` checks; the engine `evaluateCrmApprovalLifecycle` is **not wired to any route** — unit-tested logic only. `[VERIFIED]`
 
+#### 7.8.1 Reconciling two parallel approval mechanisms (BLOCKER B3 — API)
+
+The spec previously said "wire the handler onto the engine" without reconciling two **incompatible** mechanisms that exist in the live code `[VERIFIED]`:
+
+| | Engine (`approval-lifecycle.ts`) | Live opportunities route (`route.ts:28`) |
+|---|---|---|
+| Status set | `{requested, approved, rejected, cancelled, executed, expired}` (`:54`) | `['not_required','requested','approved','rejected','expired']` — **no `cancelled`, no `executed`** |
+| Execution precondition | `may_execute` requires recorded **`approvedBy` + `approvalReference`** (`:208-211`) | gates only on `approvalStatus==='approved'` + a free-text **`boardApprovalId`** (≥6 chars, `:150-158`) — captures no `approvedBy` |
+| Convert route | n/a | gates solely on `boardApprovalId`; **never invokes the engine** |
+
+**Resolution (V1, closes sub-question of OQ-5):**
+1. **The engine is the single approval authority.** All gated CRM writes resolve through `evaluateCrmApprovalLifecycle`; the inline `boardApprovalId` gate is migrated onto it.
+2. **Align the `crm_opportunities.approval_status` CHECK to the engine vocabulary** — add `cancelled` and `executed` (or document a deliberate projection mapping if the column intentionally carries a narrower set; the mapping must be written down).
+3. **Capture `approvedBy` wherever an approval is recorded** so the engine's `may_execute` precondition (`approvedBy` + `approvalReference`) is satisfiable; a bare `boardApprovalId` is no longer sufficient to record an approval.
+4. **Define the id mapping:** a request-supplied `boardApprovalId` resolves to an engine approval id (the `approvalReference`); the execute route loads the engine approval by that id.
+
 **V1 NEW requirement — wire the execution handler onto the engine (locked scope item 1):**
-- **`POST /api/crm/approvals`** — create request (persistence shape per `docs/margot/crm-approval-persistence-plan.md`: Stage-1 task-subtype vs Stage-2 table — open question), status `requested`, emit `approval_requested`.
-- **`POST /api/crm/approvals/[id]/execute`** — loads the approval, calls the engine; only when `decision==='may_execute'` (requires recorded `approvedBy` + `approvalReference`) performs the gated mutation, marks `executed`, appends `approval_*`. `do_not_execute`/`already_executed`/`invalid_request` → 403/409/400. `safeToAutoExecute` is hard-`false` — the engine can never green-light an automatic write. **Acceptance:** a `requested` approval cannot execute (403); `client_merge`/`data_export` always set `requiresPhillReview`; executed is idempotent (409 on repeat). `[VERIFIED engine; INFERENCE for the unbuilt endpoints]`
+- **`POST /api/crm/approvals`** — create request (persistence shape per `docs/margot/crm-approval-persistence-plan.md`: Stage-1 task-subtype vs Stage-2 table — OQ-5), status `requested`, emit `approval_requested`. **Request:** `{ subjectType, subjectId, requestedBy, reason, scope?, relatedObject }` → **Response:** `201 { approvalId, status:'requested' }`.
+- **`POST /api/crm/approvals/[id]/execute`** — loads the approval, calls the engine; only when `decision==='may_execute'` (requires recorded `approvedBy` + `approvalReference`) performs the gated mutation, drives `crm_opportunities.approval_status` to `executed`, appends `approval_*`. **Request:** `{ approvedBy, approvalReference }` → **Response:** `200 { status:'executed', resourceId }` · `do_not_execute`/`already_executed`/`invalid_request` → 403/409/400. `safeToAutoExecute` is hard-`false` — the engine can never green-light an automatic write. **Acceptance:** a `requested` approval cannot execute (403); `client_merge`/`data_export` always set `requiresPhillReview`; executed is idempotent (409 on repeat); the opportunities `approval_status` enum and the engine vocabulary agree (or a documented projection maps them). `[VERIFIED engine; INFERENCE for the unbuilt endpoints]`
 
 ### 7.9 Daily digest & voice ingress
 
