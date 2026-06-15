@@ -92,10 +92,11 @@ describe('POST /api/integrations/dr-nrpg/crm/leads', () => {
       retryable: false,
     });
     expect(json.leadPreview).toMatchObject({
-      email: 'ada@example.com',
       source: 'dr_contractor_portal',
       status: 'new',
     });
+    expect(json.leadPreview).not.toHaveProperty('email');
+    expect(JSON.stringify(json)).not.toContain('ada@example.com');
     expect(mockCreateClient).not.toHaveBeenCalled();
   });
 

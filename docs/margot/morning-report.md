@@ -1,5 +1,13 @@
 # Margot Morning Report
 
+## 2026-06-15 20:29 AEST — DR/NRPG dry-run raw-email read-back guard
+
+- **Completed safe lane:** Used strict RED-GREEN on the local guarded DR/NRPG CRM lead integration dry-run response. Added a failing assertion proving `leadPreview` echoed the normalized customer email (`ada@example.com`), then removed that raw email from the dry-run preview while preserving `customerEmailHash`, `dedupeKey`, source, status, sourceType, and sourceId for non-secret operator correlation.
+- **Repo state read-back:** branch `mesh/mission-control-2026-06-11`; pre-slice `HEAD=bd74b475`; upstream ahead/behind `0\t161`; inherited broad dirty/untracked worktree remains (`51` entries). GitHub auth is available and current branch PR `#223` is already merged, but no push/PR/merge/deploy/env mutation/sandbox wizard/destructive git action was attempted.
+- **Verification:** RED focused Jest failed before route change with expected no `email`, received `"ada@example.com"`; GREEN focused Jest passed. Full DR/NRPG focused suite -> 1 suite / 11 tests PASS; `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check` -> PASS; `npm run build` -> PASS with existing warnings only.
+- **Evidence paths:** `src/app/api/integrations/dr-nrpg/crm/leads/route.ts`, `tests/integration/api/dr-nrpg-crm-lead-integration.test.ts`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+- **Blockers unchanged / next lane:** no sandbox wizard subcommand, production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred. Next safe lane can harden approved multi-link opportunity duplicate lookup across all supplied scoped links or rotate to another fresh read/control-surface gap.
+
 ## 2026-06-15 19:48 AEST — CRM opportunity cross-scope full-approval guard
 
 - **Completed safe lane:** Used strict RED-GREEN on the local admin-gated CRM opportunities route. Added a failing regression proving multiple linked CRM entities plus only a raw `boardApprovalId` did not fail closed before Supabase/mock access; then made cross-scope opportunity creation require full operator approval evidence (`approvalRequired: true`, `approvalStatus: 'approved'`, and a length-checked `boardApprovalId`).

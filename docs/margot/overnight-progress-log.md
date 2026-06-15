@@ -1,5 +1,38 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 20:29 AEST
+
+### Tick 20260615_2029 — DR/NRPG dry-run raw-email read-back guard
+
+Lane: bounded DR/NRPG CRM lead integration dry-run privacy hardening. Goal was to keep the operator-facing dry-run response useful while preventing raw normalized customer email from being echoed in `leadPreview`; the already-hashed `customerEmailHash` remains the non-secret correlation surface. No production write, provider call, sandbox wizard action, deploy, env mutation, or client-facing action was needed or attempted.
+
+Completed:
+- Preflighted repo state: branch `mesh/mission-control-2026-06-11`; pre-slice `HEAD=bd74b475`; upstream ahead/behind `0\t161`; current branch PR `#223` is already merged with successful checks; inherited broad dirty/untracked worktree remains (`51` status entries). GitHub auth is available, but this branch remains unsuitable for push/PR publication without reconciliation.
+- Re-read the Senior PM / connected-teams CRM source-of-truth docs, recent progress/morning surfaces, package scripts, and DR/NRPG route/test surface before selecting this small read-back privacy slice.
+- RED: changed the dry-run test to assert `leadPreview` has no `email` field and the dry-run JSON does not contain `ada@example.com`; focused Jest failed before the route change because the response still returned `leadPreview.email: "ada@example.com"`.
+- GREEN: removed the raw email from the dry-run `leadPreview`, preserving `source`, `status`, `dedupeKey`, `sourceType`, `sourceId`, and `customerEmailHash` for safe operator correlation.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 20:29:31 AEST`.
+- RED focused Jest: `npx jest tests/integration/api/dr-nrpg-crm-lead-integration.test.ts --runInBand --runTestsByPath --testNamePattern='honours dry-run mode'` -> FAIL before route change; expected no `email`, received `"ada@example.com"`.
+- GREEN focused Jest: same command -> PASS, 1 selected test / 10 skipped.
+- Full DR/NRPG focused suite: `npx jest tests/integration/api/dr-nrpg-crm-lead-integration.test.ts --runInBand --runTestsByPath` -> PASS, 1 suite / 11 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace for `next.config.js` via `src/app/api/telegram/approval-callback/route.ts`, missing Sentry auth/source-map token, and missing Railway/DigitalOcean/Vercel/GitHub/Stripe integration env tokens during static generation.
+
+Files changed:
+- `src/app/api/integrations/dr-nrpg/crm/leads/route.ts`
+- `tests/integration/api/dr-nrpg-crm-lead-integration.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Broad inherited branch remains unsuitable for push/PR without reconciliation/splitting. Next safe lane: either harden the approved multi-link opportunity duplicate lookup across all supplied scoped links, or rotate to another changed read-surface/control-surface gap with a fresh failing test.
+
 ## 2026-06-15 19:48 AEST
 
 ### Tick 20260615_1948 — CRM opportunity cross-scope full-approval guard

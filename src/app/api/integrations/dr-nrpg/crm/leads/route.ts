@@ -334,7 +334,6 @@ export async function POST(request: NextRequest) {
       customerEmailHash: records.customerEmailHash,
       retryable: false,
       leadPreview: {
-        email: records.lead.email,
         source: records.lead.source,
         status: records.lead.status,
       },
