@@ -1,5 +1,38 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 14:16 AEST
+
+### Tick 20260615_1416 — CRM daily-digest Bearer authorization redaction slice
+
+Lane: bounded Senior PM CRM digest hardening on the local pure `createCrmDailyDigest` helper. Goal was to finish the previously named verification-redaction follow-up by covering bearer authorization header values in operator-facing digest evidence copy.
+
+Completed:
+- Preflighted current repo state: branch `mesh/mission-control-2026-06-11`; latest commit at tick start `a0540825 docs(margot): log digest CLI redaction evidence`; `git rev-list --count main..origin/main` -> `8`; inherited broad dirty/untracked worktree remained.
+- Re-read the ordered Senior PM set, Linear mirror, AI-RET-001 report (`overallStatus=pass`, source `8/8`, answerShape `106/106`), command-center/progress/morning surfaces, package manifest, and CRM digest helper/test files before selecting this lane.
+- RED: added a focused bearer-authorization verification-copy test to `tests/unit/lib/crm/daily-digest.test.ts`; focused Jest failed before the helper change because the raw bearer fixture value remained in `sections.verification`.
+- GREEN: extended `redactVerificationCommand` in `src/lib/crm/daily-digest.ts` with an `Authorization: Bearer` redaction pass that preserves the header prefix and command context while replacing the bearer value with `[REDACTED]`.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 14:16:18 AEST`.
+- RED focused Jest: `npx jest tests/unit/lib/crm/daily-digest.test.ts --runInBand --testNamePattern='redacts bearer authorization values'` -> FAIL before helper change with the raw bearer fixture value in digest verification copy.
+- GREEN focused Jest: same command -> PASS after helper change.
+- Focused CRM digest suite: `npx jest tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-mappers.test.ts tests/unit/lib/crm/digest-read-error.test.ts --runInBand` -> PASS, 3 suites / 27 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS.
+
+Files changed:
+- `src/lib/crm/daily-digest.ts`
+- `tests/unit/lib/crm/daily-digest.test.ts`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- Branch remains broad/dirty and unpublished from this tick; next safe lane rotates away from CRM digest verification redaction.
+
 ## 2026-06-15 13:43 AEST
 
 ### Tick 20260615_1343 — CRM daily-digest CLI flag secret redaction slice
@@ -22953,3 +22986,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_114734.log'
+
+## 2026-06-15 14:17:19 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_135636.log'

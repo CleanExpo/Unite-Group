@@ -4,6 +4,15 @@
 |Root: `/Users/phillmcgurk/Unite-Group`
 |Last update: 2026-06-15 13:43 AEST — CRM daily-digest CLI flag secret redaction slice
 
+## Current Autonomy Rotation Guard — 2026-06-15 14:16 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at local code/test commit `a0540825` when this tick started; preflight showed inherited broad dirty/untracked worktree and `git rev-list --count main..origin/main` -> `8`. No push, PR, merge, deploy, env mutation, sandbox wizard subcommand, or destructive git action was attempted.
+- Completed safe Senior PM lane: rotated to the previously named CRM daily-digest Bearer-header follow-up. Added a focused local test proving verification command copy redacts `Authorization: Bearer ...` values, then extended `redactVerificationCommand` to redact bearer token values while preserving the header prefix and surrounding verification command context.
+- Verification: RED focused Jest failed before the helper change with the raw bearer fixture value present; GREEN focused Jest passed after the helper change. Final gates: `npx jest tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-mappers.test.ts tests/unit/lib/crm/digest-read-error.test.ts --runInBand` -> PASS (3 suites / 27 tests); `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check` -> PASS.
+- Files changed in this slice: `src/lib/crm/daily-digest.ts`, `tests/unit/lib/crm/daily-digest.test.ts`, plus this command-center/progress/morning evidence update.
+- Safety: no production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- Next safe lane: rotate away from CRM digest verification redaction; prefer another changed read-surface test from the inherited dirty worktree or a control-surface refresh from existing repo evidence.
+
 ## Current Autonomy Rotation Guard — 2026-06-15 13:43 AEST
 
 - Repo: `mesh/mission-control-2026-06-11` at local code/test commit `e0528138` (`test(crm): redact digest CLI flag secrets`); preflight showed inherited broad dirty/untracked worktree, `gh` auth available with no open PRs, origin `https://github.com/CleanExpo/Unite-Group.git`, and upstream ahead/behind `142\t0` after the local commit. No push, PR, merge, deploy, env mutation, or destructive git action was attempted because the branch is not a clean publication lane.

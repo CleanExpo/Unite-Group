@@ -1,5 +1,13 @@
 # Margot Morning Report
 
+## 2026-06-15 14:16 AEST — CRM daily-digest Bearer authorization redaction slice
+
+- **Completed safe lane:** Added the final named CRM digest verification-redaction follow-up: bearer authorization header values in digest verification command copy are now redacted by `redactVerificationCommand` while preserving the command context.
+- **Repo state read-back:** branch `mesh/mission-control-2026-06-11`; latest commit at tick start `a0540825 docs(margot): log digest CLI redaction evidence`; `git rev-list --count main..origin/main` -> `8`; inherited broad dirty/untracked worktree remains. No push/PR/merge/deploy/env mutation was attempted.
+- **Verification:** RED focused Jest failed before the helper change with the raw bearer fixture value present; GREEN focused Jest passed after the helper change. Final gates: `npx jest tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-mappers.test.ts tests/unit/lib/crm/digest-read-error.test.ts --runInBand` -> 3 suites / 27 tests PASS; `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check` -> PASS.
+- **Evidence paths:** `src/lib/crm/daily-digest.ts`, `tests/unit/lib/crm/daily-digest.test.ts`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/overnight-progress-log.md`.
+- **Blockers unchanged / next lane:** no sandbox wizard subcommand, production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred. Next safe lane rotates away from CRM digest redaction.
+
 ## 2026-06-15 13:43 AEST — CRM daily-digest CLI flag secret redaction slice
 
 - **Completed safe lane:** Used strict RED-GREEN on the local pure CRM daily-digest helper. Added a failing test proving secret-shaped CLI flag values in verification command copy (`--api-key`, `--token=...`, and underscore-style `--client_secret`) were surfaced raw, then extended `redactVerificationCommand` so operator-facing digest sections/markdown preserve flag names but replace values with `[REDACTED]`.
