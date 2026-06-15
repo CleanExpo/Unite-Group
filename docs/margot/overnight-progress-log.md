@@ -1,5 +1,70 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 14:49 AEST
+
+### Tick 20260615_1449 — route-inventory DR/NRPG gate read-surface pin
+
+Lane: bounded Senior PM changed read-surface hardening. Goal was to rotate away from CRM digest redaction and pin the inherited `scripts/check-route-inventory.ts` gate change that recognizes `requireCrmLeadIntegrationAccess` as a protected mutating-route guard.
+
+Completed:
+- Preflighted current repo state earlier in this tick: branch `mesh/mission-control-2026-06-11`; `HEAD=3f9338ec`; `git rev-list --count main..origin/main` -> `8`; inherited broad dirty/untracked worktree remains. Post-change status count is `50` changed/untracked entries. No push, PR, merge, deploy, env mutation, sandbox wizard subcommand, or destructive git action was attempted.
+- Re-read the Senior PM read-first set, current Linear mirror, AI-RET-001 report (`overallStatus=pass`, source `8/8`, answerShape `106/106`), candidate register/pipeline, Mac Mini status, package manifest, current progress/morning surfaces, `scripts/check-route-inventory.ts`, the route-inventory test, and the guarded DR/NRPG CRM lead route before selecting this lane.
+- Added a focused route-inventory regression asserting `/api/integrations/dr-nrpg/crm/leads` is not reported as unprotected when `ROUTE_INVENTORY_ALLOWLIST` is empty. This pins the existing local script change that added `requireCrmLeadIntegrationAccess` to the detector's auth-pattern set.
+
+Verification:
+- `date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 14:49:06 AEST`.
+- `npx jest tests/unit/scripts/check-route-inventory.test.ts --runInBand` -> PASS, 1 suite / 2 tests.
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `git diff --check` -> PASS (exit 0).
+
+Files changed:
+- `tests/unit/scripts/check-route-inventory.test.ts`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- Next safe lane: rotate to another changed read-surface test or control-surface refresh; avoid repeating route-inventory unless the detector or route surface changes again.
+
+## 2026-06-15 14:25 AEST
+
+### Tick 20260615_1425 — CRM daily-digest quoted Bearer header redaction follow-up
+
+Lane: bounded Senior PM CRM digest hardening on the local pure `createCrmDailyDigest` helper. Goal was to close the quoted-header edge case left after the previous Bearer redaction slice: verification command copy must redact bearer values without consuming the closing quote around an `Authorization: Bearer ...` header.
+
+Completed:
+- Preflighted current repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=3f9338ec`; upstream ahead/behind `0\t144`; `gh` auth available; inherited broad dirty/untracked worktree remains (`git status --short | wc -l` -> `47`). No open-PR output was returned by the preflight `gh pr list` command.
+- Re-read the Senior PM / connected-teams CRM source-of-truth set, current CRM test matrix, package scripts, and the CRM digest helper/test surfaces before selecting this tiny local read-surface hardening lane.
+- RED: added `preserves quoted authorization header syntax while redacting bearer values` to `tests/unit/lib/crm/daily-digest.test.ts`; focused Jest failed before the helper change because the quoted header lost its closing quote / leaked malformed redaction output.
+- GREEN: narrowed the `Authorization: Bearer` regex in `src/lib/crm/daily-digest.ts` so it replaces only the bearer value and leaves surrounding whitespace/quote delimiters intact.
+- Review fix loop: the first independent reviewer failed closed because tool-level redaction made the literal quoted-header fixture appear malformed. Reworked the test to construct `Authorization:` / `Bearer` / fixture marker from fragments, reran the full local gate, and a second independent reviewer returned `passed=true`, `security_concerns=[]`, `logic_errors=[]`.
+
+Verification:
+- `date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 14:25:23 AEST`.
+- RED focused Jest: `npx jest tests/unit/lib/crm/daily-digest.test.ts --runInBand` -> FAIL before helper change, 1 failing test / 8 passing tests.
+- GREEN focused Jest: same command -> PASS, 1 suite / 9 tests.
+- Final focused gate: `npx jest tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-read-error.test.ts tests/unit/lib/runtime/stale-sync-check.test.ts --runInBand` -> PASS, 3 suites / 24 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS (exit 0).
+- Independent review after test-fragment repair: `passed=true`, `security_concerns=[]`, `logic_errors=[]`; non-blocking suggestion was to consider single-quoted/lowercase authorization cases later.
+
+Files changed:
+- `src/lib/crm/daily-digest.ts`
+- `tests/unit/lib/crm/daily-digest.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- No commit was created because the current branch/worktree remains a broad inherited dirty lane; publishing this tiny slice would require first separating or reconciling the existing 47 changed/untracked paths.
+
+Next safe lane: rotate away from CRM digest verification-redaction unless explicitly adding the single-quoted/lowercase Authorization follow-up; otherwise choose another changed read-surface test or local control-surface refresh from the inherited dirty worktree.
+
 ## 2026-06-15 14:16 AEST
 
 ### Tick 20260615_1416 — CRM daily-digest Bearer authorization redaction slice
@@ -22995,3 +23060,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_135636.log'
+
+## 2026-06-15 14:49:50 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_144720.log'

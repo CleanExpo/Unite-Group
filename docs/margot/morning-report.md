@@ -1,5 +1,21 @@
 # Margot Morning Report
 
+## 2026-06-15 14:49 AEST — route-inventory DR/NRPG gate read-surface pin
+
+- **Completed safe lane:** Rotated away from CRM digest redaction and pinned the inherited route-inventory detector change: the security check now has a focused regression proving `/api/integrations/dr-nrpg/crm/leads` is protected by `requireCrmLeadIntegrationAccess` without needing an allowlist entry.
+- **Repo state read-back:** branch `mesh/mission-control-2026-06-11`; `HEAD=3f9338ec`; `git rev-list --count main..origin/main` -> `8`; post-change `git status --short | wc -l` -> `50`. No push/PR/merge/deploy/env mutation was attempted.
+- **Verification:** `npx jest tests/unit/scripts/check-route-inventory.test.ts --runInBand` -> 1 suite / 2 tests PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `npm run type-check` -> PASS; `git diff --check` -> PASS.
+- **Evidence paths:** `scripts/check-route-inventory.ts`, `tests/unit/scripts/check-route-inventory.test.ts`, `src/app/api/integrations/dr-nrpg/crm/leads/route.ts`, `docs/margot/overnight-progress-log.md`.
+- **Blockers unchanged / next lane:** no sandbox wizard subcommand, production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred. Next lane rotates to another changed read-surface or control-surface refresh.
+
+## 2026-06-15 14:25 AEST — CRM daily-digest quoted Bearer header redaction follow-up
+
+- **Completed safe lane:** Added a focused quoted-header regression for CRM digest verification redaction. `redactVerificationCommand` now redacts only the bearer value in `Authorization: Bearer ...` evidence copy while preserving the closing quote and the rest of the command context.
+- **Repo state read-back:** branch `mesh/mission-control-2026-06-11`; `HEAD=3f9338ec`; upstream ahead/behind `0\t144`; `gh` auth available; inherited broad dirty/untracked worktree remains (`47` changed/untracked status lines). No push/PR/merge/deploy/env mutation was attempted.
+- **Verification:** RED focused Jest failed before the helper change (1 failing quoted-header test / 8 passing tests); GREEN focused Jest passed after the regex change (1 suite / 9 tests). Final gates: `npx jest tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-read-error.test.ts tests/unit/lib/runtime/stale-sync-check.test.ts --runInBand` -> 3 suites / 24 tests PASS; `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check` -> PASS.
+- **Review/evidence:** first independent reviewer failed closed because tool-output redaction made the literal fixture appear malformed; the test was repaired to build the Authorization/Bearer header from fragments, and the second reviewer returned `passed=true`, `security_concerns=[]`, `logic_errors=[]`. Evidence paths: `src/lib/crm/daily-digest.ts`, `tests/unit/lib/crm/daily-digest.test.ts`, `docs/margot/overnight-progress-log.md`.
+- **Blockers unchanged / next lane:** no sandbox wizard subcommand, production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred. No commit was created because the branch/worktree remains a broad inherited dirty lane. Next safe lane should rotate away from digest redaction unless explicitly taking the single-quoted/lowercase Authorization follow-up.
+
 ## 2026-06-15 14:16 AEST — CRM daily-digest Bearer authorization redaction slice
 
 - **Completed safe lane:** Added the final named CRM digest verification-redaction follow-up: bearer authorization header values in digest verification command copy are now redacted by `redactVerificationCommand` while preserving the command context.

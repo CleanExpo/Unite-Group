@@ -2,7 +2,16 @@
 |Date: 2026-05-23
 |Project: Unite-Group
 |Root: `/Users/phillmcgurk/Unite-Group`
-|Last update: 2026-06-15 13:43 AEST — CRM daily-digest CLI flag secret redaction slice
+|Last update: 2026-06-15 14:49 AEST — route-inventory DR/NRPG gate read-surface pin
+
+## Current Autonomy Rotation Guard — 2026-06-15 14:49 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at `HEAD=3f9338ec`; preflight `git rev-list --count main..origin/main` -> `8`; inherited broad dirty/untracked worktree remains (`git status --short | wc -l` -> `50` after this docs/test update). No push, PR, merge, deploy, env mutation, sandbox wizard subcommand, or destructive git action was attempted.
+- Completed safe Senior PM lane: rotated away from CRM digest redaction and pinned the route-inventory read surface. Added a focused local test proving the DR/NRPG CRM lead integration route is treated as protected by the `requireCrmLeadIntegrationAccess` gate when the allowlist is empty.
+- Verification: `npx jest tests/unit/scripts/check-route-inventory.test.ts --runInBand` -> PASS (1 suite / 2 tests); `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `npm run type-check` -> PASS; `git diff --check` -> PASS.
+- Files changed in this slice: `tests/unit/scripts/check-route-inventory.test.ts`, plus this command-center/progress/morning evidence update. The detector change in `scripts/check-route-inventory.ts` was already present in the inherited dirty worktree and is now covered by the new test.
+- Safety: no production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- Next safe lane: rotate to another changed read-surface test or control-surface refresh; avoid repeating route-inventory unless the detector or route surface changes again.
 
 ## Current Autonomy Rotation Guard — 2026-06-15 14:16 AEST
 
