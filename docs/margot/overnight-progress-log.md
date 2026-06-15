@@ -1,5 +1,43 @@
 # Margot Overnight Progress Log
 
+## 2026-06-16 09:49 AEST
+
+### Tick 20260616_0949 — CRM timeline subject-label redaction guard
+
+Lane: bounded CRM timeline/audit read-surface hardening. Goal was to prevent sensitive subject labels from leaking raw email addresses, Board-style approval references, or bearer-token fragments into CRM timeline `subjectLabel`, `summary`, `idea_text`, or `agent_actions` payloads while preserving opaque UUID/id fallback labels. No CRM write, production DB action, migration, deployment, env mutation, client-facing send, billing/payment action, or cross-client identity decision was in scope.
+
+Completed:
+- Preflighted repo state: started from branch `mesh/mission-control-2026-06-11` at `HEAD=be1f515c`, clean working tree, upstream `origin/mesh/mission-control-2026-06-11` ahead/behind `0\t0`; GitHub CLI auth available; no current-branch PR; open PR `#228` is unrelated (`fabel/keystone-install`); Vercel CLI read-only auth returned `zenithfresh25-1436`.
+- Created isolated branch `margot/timeline-subject-label-redaction-20260616` for the slice.
+- Re-read the Margot connected-teams/Senior PM/CRM source-of-truth set, package scripts, current progress surfaces, CRM schema/conversion/contact-opportunity docs, and the CRM timeline helper/test surface before selecting this small local guard.
+- RED #1: added subject-label redaction coverage for `buildCrmActivityTimelineEvent`; focused Jest failed before the helper change because raw `ada@example.test`, `BOARD-90210`, and bearer-token fixture text appeared in timeline fields.
+- GREEN #1: added `redactSensitiveTimelineText` and applied it to the central timeline `subjectLabel` before summary/agent-action construction.
+- Independent reviewer found two blockers: only the first sensitive occurrence was redacted, and alphanumeric Board references such as `BOARD-CROSS-SCOPE-APPROVED` were not covered. RED #2 widened the test to multiple emails/Board refs/bearer fixtures and failed before the regex fix; GREEN #2 made timeline label redaction global and covered alphanumeric Board refs while preserving UUID/id fallback labels.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-16 09:49:14 AEST`.
+- RED #1 focused Jest: `CI=1 npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand -t "sensitive subject labels"` -> FAIL before helper change; expected `[REDACTED]`, received raw email/Board/bearer fixture values.
+- GREEN #1 focused Jest: same command -> PASS, 1 selected test.
+- Reviewer RED #2 focused Jest: same command -> FAIL before follow-up regex fix; received second email, alphanumeric Board ref, and second bearer fixture unredacted.
+- GREEN #2 focused Jest: same command -> PASS, 1 selected test.
+- CRM timeline focused sweep: `CI=1 npx jest tests/unit/lib/crm/activity-timeline.test.ts tests/integration/api/crm-lead-conversion.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/integration/api/crm-contacts-create.test.ts tests/integration/api/dr-nrpg-crm-lead-integration.test.ts tests/integration/api/control-panel-add-ons.test.ts --runInBand` -> PASS, 6 suites / 107 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, `route-inventory check: 0 unprotected mutating routes`.
+- `git diff --check -- src/lib/crm/activity-timeline.ts tests/unit/lib/crm/activity-timeline.test.ts` -> PASS.
+- `npx eslint src/lib/crm/activity-timeline.ts tests/unit/lib/crm/activity-timeline.test.ts --max-warnings=0` -> PASS.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace via Telegram approval callback, missing optional integration env names, missing Sentry auth/source-map token, and Stripe webhook secret warning.
+- Independent reviewer: initial review found blockers above; both were converted to RED coverage and fixed before final verification.
+
+Files changed:
+- `src/lib/crm/activity-timeline.ts`
+- `tests/unit/lib/crm/activity-timeline.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No production DB write/migration, sandbox wizard subcommand, live provider dispatch/polling, Vercel deploy/env mutation, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Next safe lane: continue small audit/read-surface guards or publish/monitor this isolated branch if checks remain green.
+
 ## 2026-06-16 03:14 AEST
 
 ### Tick 20260616_0314 — CRM digest URL query-secret redaction guard

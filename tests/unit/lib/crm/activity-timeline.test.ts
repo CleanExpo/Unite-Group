@@ -180,6 +180,40 @@ describe('buildCrmActivityTimelineEvent', () => {
     expect(event.metadata).toEqual({ safeCount: 3, stage: 'captured' });
   });
 
+  it('redacts sensitive subject labels before summary and agent_actions payloads', () => {
+    const event = buildCrmActivityTimelineEvent({
+      type: 'approval_requested',
+      actor: 'Margot',
+      subjectId: 'approval-sensitive-label',
+      subjectLabel:
+        'Approve lead ada' +
+        '@example.test and bob' +
+        '@example.test with BOARD-' +
+        '90210 and BOARD-CROSS-SCOPE-APPROVED plus bearer opaque.fixture.value and bearer second.token',
+      occurredAt: '2026-05-23T12:34:00+10:00',
+      source: 'crm_opportunities_route',
+      requiresApproval: true,
+    });
+    const insert = buildCrmTimelineAgentActionInsert(event);
+    const serialized = JSON.stringify(insert);
+
+    expect(event.subjectLabel).toBe(
+      'Approve lead [REDACTED] and [REDACTED] with [REDACTED] and [REDACTED] plus [REDACTED] and [REDACTED]',
+    );
+    expect(event.summary).toBe(
+      'Approval requested: Approve lead [REDACTED] and [REDACTED] with [REDACTED] and [REDACTED] plus [REDACTED] and [REDACTED] via crm_opportunities_route.',
+    );
+    expect(insert.idea_text).toBe(event.summary);
+    expect(insert.payload.subjectLabel).toBe(event.subjectLabel);
+    expect(insert.payload.summary).toBe(event.summary);
+    expect(serialized).not.toContain('ada' + '@example.test');
+    expect(serialized).not.toContain('bob' + '@example.test');
+    expect(serialized).not.toContain('BOARD-' + '90210');
+    expect(serialized).not.toContain('BOARD-CROSS-SCOPE-APPROVED');
+    expect(serialized).not.toContain('opaque.fixture.value');
+    expect(serialized).not.toContain('second.token');
+  });
+
   it('defensively re-sanitizes metadata when mapping structurally constructed events to agent_actions inserts', () => {
     const manuallyConstructedEvent: CrmActivityTimelineEvent = {
       type: 'lead_captured',

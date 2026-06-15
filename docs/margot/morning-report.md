@@ -1,5 +1,13 @@
 # Margot Morning Report
 
+## 2026-06-16 09:49 AEST — CRM timeline subject-label redaction guard
+
+- **Completed safe lane:** Used strict RED-GREEN plus reviewer loop on the central CRM timeline helper. Timeline `subjectLabel`, `summary`, `idea_text`, and `agent_actions.payload` now redact email addresses, numeric/alphanumeric Board-style approval refs, and bearer-token fragments while preserving opaque UUID/id fallback labels.
+- **Repo state read-back:** started from `mesh/mission-control-2026-06-11` at `HEAD=be1f515c`, clean working tree, upstream ahead/behind `0\t0`; created isolated branch `margot/timeline-subject-label-redaction-20260616`. GitHub CLI auth available; no current-branch PR before this slice; unrelated open PR `#228` remains on `fabel/keystone-install`; Vercel CLI read-only auth returned `zenithfresh25-1436`.
+- **Verification:** RED #1 `CI=1 npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand -t "sensitive subject labels"` failed before helper change with raw email/Board/bearer values; GREEN passed. Reviewer RED #2 then failed for second occurrences and alphanumeric Board refs; GREEN passed after global/alphanumeric regex fix. CRM timeline focused sweep -> PASS, 6 suites / 107 tests. `npm run type-check` -> PASS. `npm run security:routes-check` -> PASS with 0 unprotected mutating routes. `git diff --check` -> PASS. Targeted `npx eslint ... --max-warnings=0` -> PASS. `npm run build` -> PASS with existing/non-blocking warnings only.
+- **Evidence paths:** `src/lib/crm/activity-timeline.ts`, `tests/unit/lib/crm/activity-timeline.test.ts`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+- **Safety/blockers:** no production DB write/migration, sandbox wizard subcommand, live provider dispatch/polling, Vercel deploy/env mutation, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred. Next safe lane is either publish/monitor this isolated branch or continue small audit/read-surface guards.
+
 ## 2026-06-16 03:14 AEST — CRM digest URL query-secret redaction guard
 
 - **Completed safe lane:** Used strict RED-GREEN on the local CRM daily-digest read surface. Verification command copy now redacts secret-shaped URL query parameters such as `api_key=[REDACTED]` while preserving the URL and non-secret query parameters.
