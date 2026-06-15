@@ -49,3 +49,29 @@ Also live in the same project: `knowledge_docs` — 1,193 rows (brain-1 vault sy
 - Prompt 3: the check constraint defines the tag vocabulary — the extractor must emit only `verified | inference | unconfirmed`.
 - The 4 existing visions/specs and 3 board_responses are real founder data — never truncate or reseed over them.
 - After all six are done: fold the app into the monorepo (suggested home `apps/spec-board/`) per `SOURCE-OF-TRUTH.md` one-repo policy and the convergence playbook.
+
+## Fold-in completed — 15/06/2026
+
+All six fix-prompts verified done in `CleanExpo/Fabel-Prompt-Engineer` before fold-in:
+
+| # | Prompt | Evidence |
+|---|---|---|
+| 1 | Schema into repo | `supabase/migrations/0001_init…0005_enable_rls.sql` |
+| 2 | Read path | `app/api/specs` GET → `listSpecs`; `page.tsx` Spec Library reopen |
+| 3 | Evidence Standard → findings | `lib/findings.ts` parser + `lib/supabase.ts` `from("findings").insert(...)` + read |
+| 4 | Refinement lineage | `supabase/migrations/0004_spec_lineage.sql` |
+| 5 | Export | `page.tsx` `download()` → "Download .md" |
+| 6 | Tests + CI | `tests/parsers.test.ts`, `tests/playbook.test.ts`; `ci.yml` (tsc + test + build) |
+
+**Mechanic:** history-preserving `git subtree add --prefix=apps/spec-board` from
+the local Fabel clone (branch `claude/great-brown-up2zvp`, HEAD `ca17bb7`).
+Not a flat copy; not a root merge.
+
+**Toolchain:** stays npm + Next.js 15, own `package-lock.json`. Root verify wired
+as `npm run verify:spec-board` (`npm ci && npx tsc --noEmit && npm test && npm run build`).
+
+**Untouched / deferred:** the live Fabel Supabase project (`yhteftfnoegmdkimzzjd`)
+and its real founder data (visions/specs/board_responses, `knowledge_docs`) — the
+fold-in is code-only. Env wiring stays separate; any database consolidation is a
+later, gated decision. **No repo deletion** — `CleanExpo/Fabel-Prompt-Engineer`
+stays live behind the cutover runbook's typed-approval hard-delete gate.
