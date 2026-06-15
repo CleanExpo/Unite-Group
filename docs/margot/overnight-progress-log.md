@@ -1,5 +1,73 @@
 # Margot Overnight Progress Log
 
+## 2026-06-16 00:29 AEST
+
+### Tick 20260616_0029 — Margot voice unknown-risk fail-safe guard
+
+Lane: bounded Margot voice-to-task command-spine hygiene. Goal was to prevent unknown nonblank upstream `risk_level` values from being stored verbatim or silently downgraded, while keeping missing risk defaulted to `low`, preserving approval semantics, and avoiding live providers, schema changes, production data, or deployment.
+
+Completed:
+- Preflighted repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=b2ed9600`; `git rev-list --count main..origin/main` -> `10`; `git status --short | wc -l` -> `57` after code/test edits. Inherited broad dirty/untracked worktree remains, so no commit/push/PR/merge/deploy/env mutation/sandbox wizard/destructive git action was attempted.
+- Re-read the Senior PM read-first set, Linear mirror, AI-RET-001 report (`overallStatus=pass`, source `8/8`, answerShape `106/106`), current progress/morning surfaces, package scripts, and Margot voice route/test surface before selecting this tiny local guard.
+- RED: added `treats unknown risk_level as high-priority unknown instead of downgrading it`; the first failing run reproduced the current unsafe verbatim persistence (`Risk: severe`) for upstream `risk_level: ' SEVERE '`.
+- GREEN: added `normalizeRiskLevel`; blank/missing stays `low`, canonical `low|medium|high|critical` is preserved, and unknown nonblank values normalize to `unknown` and high priority.
+- Reviewer loop: initial low-downgrade draft was rejected as unsafe; corrected to fail-safe high-priority `unknown`. Final independent reviewer PASS/no blockers.
+
+Verification:
+- RED focused Jest: `CI=1 npx jest tests/integration/api/margot-voice-task.test.ts --runInBand -t "unknown risk_level"` -> FAIL before final route change; expected `Risk: low`, received `Risk: severe` during the first RED, then corrected expected behavior to high-priority `unknown` after reviewer feedback.
+- GREEN focused Jest: same command -> PASS, 1 selected test / 22 skipped.
+- Full Margot voice task suite: `CI=1 npx jest tests/integration/api/margot-voice-task.test.ts --runInBand` -> PASS, 1 suite / 23 tests.
+- Margot voice sweep: `CI=1 npx jest tests/integration/api/margot-voice-task.test.ts tests/integration/api/margot-voice-signed-url.test.ts --runInBand` -> PASS, 2 suites / 30 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, `route-inventory check: 0 unprotected mutating routes`.
+- Static scan over touched code/test files -> PASS/no eval/exec/child_process/dangerous HTML/secret-assignment/Nango matches.
+- `git diff --check` -> PASS before report docs update.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace via Telegram approval callback, missing optional integration env names, missing Sentry auth token/source-map upload token, and Stripe webhook secret warning.
+
+Files changed:
+- `src/app/api/pi-ceo/margot-voice/task/route.ts`
+- `tests/integration/api/margot-voice-task.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No production DB write/migration, sandbox wizard subcommand, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Broad inherited branch remains unsuitable for publication without reconciliation/splitting. Next safe lane should rotate away from Margot voice risk normalization unless a fresh provider packet-shape issue appears.
+
+## 2026-06-16 00:04 AEST
+
+### Tick 20260616_0004 — Margot voice critical-risk priority guard
+
+Lane: bounded Margot voice-to-task command-spine hygiene. Goal was to keep the ElevenLabs/Margot voice packet -> Supabase voice session/task chain cautious when upstream emits a normalized `critical` risk level, without fabricating approval, changing approval status semantics, calling live providers, changing schema, or touching production data.
+
+Completed:
+- Preflighted repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=b2ed9600`; current branch PR `#223` is `MERGED` at `https://github.com/CleanExpo/Unite-Group/pull/223`; branch compare to upstream `172\t0`; compare to `origin/main` `312\t10`; `git status --short | wc -l` -> `55`. Inherited broad dirty/untracked worktree remains, so no commit/push/PR/merge/deploy/env mutation/sandbox wizard/destructive git action was attempted.
+- Re-read the Senior PM / connected-teams / CRM read-first docs, current progress/morning surfaces, package scripts, and the Margot voice route/test surface before selecting this tiny local route hygiene lane.
+- RED: added `treats critical risk_level as high priority without changing approval status` to `tests/integration/api/margot-voice-task.test.ts`; focused Jest failed before the route change with expected task priority `"high"`, received `"normal"` for `risk_level: ' CRITICAL '`.
+- GREEN: changed `src/app/api/pi-ceo/margot-voice/task/route.ts` so normalized `critical` risk joins `high` in the high-priority derivation while `approval_required: false` tasks remain `todo`.
+- Independent reviewer: PASS/no security concerns/no logic errors; non-blocking suggestion was to centralize future risk-to-priority mapping if more levels appear.
+
+Verification:
+- RED focused Jest: `CI=1 npx jest tests/integration/api/margot-voice-task.test.ts --runInBand -t "critical risk_level"` -> FAIL before route change; expected `"high"`, received `"normal"`.
+- GREEN focused Jest: same command -> PASS, 1 selected test / 21 skipped.
+- Full Margot voice task suite: `CI=1 npx jest tests/integration/api/margot-voice-task.test.ts --runInBand` -> PASS, 1 suite / 22 tests.
+- Margot voice sweep: `CI=1 npx jest tests/integration/api/margot-voice-task.test.ts tests/integration/api/margot-voice-signed-url.test.ts --runInBand` -> PASS, 2 suites / 29 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, `route-inventory check: 0 unprotected mutating routes`.
+- Added-line static scan over the two touched files -> PASS/no hardcoded-secret, shell-injection, eval/exec, pickle, or SQL-format matches.
+- `git diff --check` -> PASS.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace via Telegram approval callback, missing optional integration env names, missing Sentry auth token/source-map upload token, and Stripe webhook secret warning.
+
+Files changed:
+- `src/app/api/pi-ceo/margot-voice/task/route.ts`
+- `tests/integration/api/margot-voice-task.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No production DB write/migration, sandbox wizard subcommand, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Broad inherited branch remains unsuitable for push/PR/merge or bundled publication without reconciliation/splitting. Next safe lane should either split/reconcile inherited work before publication or add another tiny local guard outside the already-covered Margot voice risk normalization surface.
+
 ## 2026-06-15 23:56 AEST
 
 ### Tick 20260615_2356 — Mesh fleet blank API URL fallback guard
@@ -24263,3 +24331,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_235451.log'
+
+## 2026-06-16 00:32:54 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260616_002728.log'
