@@ -1,5 +1,64 @@
 # Margot Overnight Progress Log
 
+## 2026-06-16 02:42 AEST
+
+### Tick 20260616_0242 — AI-RET-001 local harness health read-back
+
+Lane: bounded Senior PM health/read-back check after the prior Kanban redaction slice. Goal was to re-confirm the local mocked/static retrieval evidence before further control-surface or publication work, without live semantic search, external AI calls, provider polling, sandbox wizard subcommands, DB writes, deployments, source-control publication, credentials, or Mac Mini transport retries.
+
+Completed:
+- Preflighted repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=8d48a410`; `git rev-list --count main..origin/main` -> `10`; inherited broad dirty/untracked worktree remains, so no commit/push/PR/merge/deploy/env mutation/sandbox wizard/destructive git action was attempted.
+- Re-read the Senior PM read-first set, Linear intake mirror, AI enhancement register/pipeline, AI-RET-001 evidence report, Mac Mini recovery status, current progress log, and morning report before selecting this bounded local health lane.
+- Ran the focused AI-RET-001 local mocked/static harness. It remains green at 1 suite / 227 tests PASS.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-16 02:42:16 AEST`.
+- `node_modules=present`.
+- `CI=1 npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> PASS, 1 suite / 227 tests.
+- Current evidence report read-back remains `overallStatus=pass`, source `8/8`, answerShape `106/106`, generated `15/06/2026, 22:49:50 AEST`; this tick did not regenerate the report because no harness/report code changed.
+
+Files changed:
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No live vector search, embeddings backfill, external AI call, provider polling, production DB write/migration, sandbox wizard subcommand, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Mac Mini recovery remains blocked on authenticated SMB mount, usable authenticated SSH, or approved export. Broad inherited branch remains unsuitable for publication without reconciliation/splitting. Next safe lane: rotate away from pure AI-RET health unless a fresh report-integrity gap appears; prefer another changed read-surface/control-surface guard or branch reconciliation packet.
+
+## 2026-06-16 02:17 AEST
+
+### Tick 20260616_0217 — Control-panel Kanban sync underscored assignment redaction guard
+
+Lane: bounded command-center/control-panel read-surface hardening. Goal was to prevent CRM task descriptions from leaking underscored or quoted secret-shaped assignment values into admin-gated Kanban sync packets, without changing CRM writes, Kanban writes, provider state, schema, deployment, credentials, or production data.
+
+Completed:
+- Preflighted repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=8d48a410`; upstream ahead/behind `0\t176`; inherited broad dirty/untracked worktree remains (`57` status entries), so no commit/push/PR/merge/deploy/env mutation/sandbox wizard/destructive git action was attempted.
+- Re-read the Senior PM / Connected Teams / CRM source-of-truth set, contacts/opportunities model, build plan, current progress/morning surfaces, package scripts, GitHub PR state, and the control-panel Kanban sync route/test surface before selecting this tiny local read-surface guard.
+- RED: added `redacts underscored and quoted secret assignments in Kanban sync packets`; focused Jest failed before the route change because the serialized response still contained `access_token`, `client_secret`, and `db_password` assignment values.
+- GREEN: widened the local `redactKanbanText` assignment matcher to redact secret-shaped key names with prefixes/suffixes (for example token/secret/password variants) and quoted or unquoted assignment values before packet return.
+- Independent reviewer: PASS/no security or correctness blockers; reviewer reran the focused Kanban sync suite and type-check.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-16 02:17:08 AEST`.
+- RED focused Jest: `CI=1 npx jest tests/integration/api/control-panel-kanban-sync.test.ts --runInBand -t "underscored and quoted secret assignments"` -> FAIL before route change; expected `[REDACTED]`, received raw assignment values in `kanban.body`.
+- GREEN focused Jest: same command -> PASS, 1 selected test / 5 skipped.
+- Full focused suite: `CI=1 npx jest tests/integration/api/control-panel-kanban-sync.test.ts --runInBand --runTestsByPath` -> PASS, 1 suite / 6 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, `route-inventory check: 0 unprotected mutating routes`.
+- `git diff --check -- src/app/api/command-center/control-panel/kanban-sync/route.ts tests/integration/api/control-panel-kanban-sync.test.ts` -> PASS.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace via Telegram approval callback, missing optional integration env names, missing Sentry auth/source-map token, and Stripe webhook secret warning.
+- Targeted lint: `npx eslint src/app/api/command-center/control-panel/kanban-sync/route.ts tests/integration/api/control-panel-kanban-sync.test.ts --max-warnings=0` -> PASS. Repository script form `npm run lint -- --max-warnings=0 ...` remains blocked by pre-existing broad `.worktrees/.next` and unrelated repo warnings/errors because the package script prepends `eslint .`.
+
+Files changed:
+- `src/app/api/command-center/control-panel/kanban-sync/route.ts`
+- `tests/integration/api/control-panel-kanban-sync.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No production DB write/migration, sandbox wizard subcommand, Kanban write, provider dispatch/polling, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Broad inherited branch remains unsuitable for push/PR/merge or bundled publication without reconciliation/splitting. Open PR `#228` remains on `fabel/keystone-install` with failing Vercel status contexts, unrelated to this local branch. Next safe lane: continue only tiny local verified read-surface/control-surface guards or reconcile/split inherited work before publication.
+
 ## 2026-06-16 02:08 AEST
 
 ### Tick 20260616_0208 — AI-RET-001 report-title/generated-timestamp read-back guards
@@ -24522,3 +24581,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260616_020654.log'
+
+## 2026-06-16 02:43:08 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260616_023954.log'
