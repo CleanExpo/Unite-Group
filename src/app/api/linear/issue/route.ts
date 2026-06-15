@@ -41,7 +41,21 @@ export async function POST(req: NextRequest) {
   const gate = await requireAdmin(req);
   if (gate instanceof NextResponse) return gate;
 
-  const body = await req.json();
+  let body: {
+    action?: unknown;
+    issueId?: unknown;
+    title?: unknown;
+    teamId?: unknown;
+    description?: unknown;
+    priority?: unknown;
+    state?: unknown;
+  };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'invalid_json' }, { status: 400 });
+  }
+
   const { action, issueId, title, teamId, description, priority, state } = body;
 
   if (action === 'create') {
@@ -65,7 +79,7 @@ export async function POST(req: NextRequest) {
 
   if (action === 'update' && issueId) {
     const updateInput: Record<string, unknown> = {};
-    if (state) {
+    if (typeof state === 'string') {
       // Get state ID first
       const stateData = await linearRequest(`
         query GetStates($teamId: String!) {
@@ -75,8 +89,9 @@ export async function POST(req: NextRequest) {
         }
       `, { teamId });
       const states = stateData?.data?.team?.states?.nodes ?? [];
+      const requestedState = state.toLowerCase();
       const matchedState = states.find((s: { name: string }) =>
-        s.name.toLowerCase().includes(state.toLowerCase())
+        s.name.toLowerCase().includes(requestedState)
       );
       if (matchedState) updateInput.stateId = matchedState.id;
     }
