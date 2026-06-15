@@ -1,16 +1,23 @@
 'use client';
 
-import { createElement, useCallback, useEffect, useMemo, useState } from 'react';
-import { mapMargotFailure, type FailureRender } from './failure-taxonomy';
-
-type VoiceState = 'idle' | 'loading' | 'ready' | 'error';
+import { createElement, useCallback, useEffect, useMemo, useReducer } from 'react';
+import {
+  initialVoicePanelSnapshot,
+  reduceVoicePanelState,
+  type VoicePanelEvent,
+  type VoicePanelSnapshot,
+} from './voice-panel-state';
 
 const WIDGET_SRC = 'https://unpkg.com/@elevenlabs/convai-widget-embed';
 
 export function MargotVoicePanel() {
-  const [state, setState] = useState<VoiceState>('idle');
-  const [signedUrl, setSignedUrl] = useState('');
-  const [failure, setFailure] = useState<FailureRender | null>(null);
+  const [snapshot, dispatch] = useReducer(
+    reduceVoicePanelState,
+    initialVoicePanelSnapshot,
+  );
+  const { state, signedUrl, failure } = snapshot;
+
+  const dispatchEvent = dispatch as (event: VoicePanelEvent) => void;
 
   const statusLabel = useMemo(() => {
     if (state === 'ready') return 'secure voice ready';
@@ -30,31 +37,40 @@ export function MargotVoicePanel() {
   }, []);
 
   const prepareSession = useCallback(async () => {
-    setState('loading');
-    setFailure(null);
-    setSignedUrl('');
+    dispatchEvent({ kind: 'START' });
 
     let status: number | null = null;
     let code: string | null = null;
+    let bodySignedUrl: string | null = null;
     try {
       const res = await fetch('/api/pi-ceo/margot-voice/signed-url', { cache: 'no-store' });
       status = res.status;
       const body = await res.json().catch(() => ({}));
       code = typeof body?.error === 'string' ? body.error : null;
-      if (!res.ok || !body.signed_url) {
-        setFailure(mapMargotFailure(status, code));
-        setState('error');
-        return;
+      if (res.ok && body.signed_url) {
+        bodySignedUrl = body.signed_url as string;
       }
-      setSignedUrl(body.signed_url);
-      setState('ready');
     } catch {
       // fetch() threw (network failure, CORS, abort). status stays null →
-      // the taxonomy classifies this as a network failure.
-      setFailure(mapMargotFailure(null, null));
-      setState('error');
+      // the reducer classifies this as a network failure.
+      status = null;
+      code = null;
     }
-  }, []);
+
+    dispatchEvent({
+      kind: 'FETCH_RESOLVED',
+      result: {
+        ok: bodySignedUrl !== null,
+        status,
+        errorCode: code,
+        signedUrl: bodySignedUrl,
+      },
+    });
+  }, [dispatchEvent]);
+
+  // The failure render is now read straight from the reducer snapshot;
+  // `mapMargotFailure` lives in `voice-panel-state.ts` and is exercised
+  // directly by the state-machine test file.
 
   const widgetProps: Record<string, string> = {
     'signed-url': signedUrl,

@@ -23223,3 +23223,73 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_155238.log'
+
+## 2026-06-15 16:19:17 AEST — Margot voice ready-state duplicate-start guard
+
+### Senior PM autonomous CRM / command-spine tick
+
+Completed a small local Margot voice-panel state-machine slice on the inherited `mesh/mission-control-2026-06-11` lane. Preflight found `gh` auth available, Vercel CLI installed, no open PR for the current branch, and a broad inherited dirty/untracked worktree; no source-control remote publication or deploy was attempted from this tick.
+
+Branch / repo state:
+
+- Branch: `mesh/mission-control-2026-06-11`.
+- Pre-slice head: `319eac6e chore: Margot ops auto-sync [tick 20260615_155238] (ops only — other uncommitted files present)`.
+- Local slice commit: `6f7abec9 test(command-center): preserve ready voice panel state`.
+- Pre-slice upstream compare: `git rev-list --left-right --count @{u}...HEAD` -> `0\t149`.
+- Inherited dirty/untracked state remains broad across Margot, CRM, command-center, security, runtime, marketing/homepage, docs/design, image, API, and test surfaces.
+
+Slice:
+
+- Added a focused RED/GREEN guard for `reduceVoicePanelState`: once the ElevenLabs ConvAI widget is `ready`, a duplicate `START` event must preserve the mounted widget state and signed URL instead of returning to `loading`.
+- Minimal GREEN change: the reducer now returns the previous snapshot for `START` while `prev.state === 'ready'`, while preserving `idle/error -> loading` retry and `loading -> loading` idempotency.
+- This is local UI/state code only; it does not call live providers, read credentials, create client records, write CRM rows, or alter approval/conversion rules.
+
+RED/GREEN evidence:
+
+```bash
+npx jest src/components/command-center/voice/__tests__/voice-panel-state.test.ts --runInBand --runTestsByPath
+# RED before reducer change: 1 failed / 12 passed; expected `ready`, received `loading` for duplicate START from ready.
+
+npx jest src/components/command-center/voice/__tests__/voice-panel-state.test.ts --runInBand --runTestsByPath
+# GREEN after reducer change: 1 suite / 13 tests PASS.
+```
+
+Verification:
+
+```bash
+npx jest src/components/command-center/voice/__tests__/voice-panel-state.test.ts tests/unit/margot-voice-failure-taxonomy.test.ts tests/integration/api/margot-voice-signed-url.test.ts tests/integration/api/margot-voice-task.test.ts --runInBand
+# PASS: 4 suites / 48 tests.
+
+npm run type-check
+# PASS: tsc --noEmit.
+
+npm run security:routes-check
+# PASS: route-inventory check reported 0 unprotected mutating routes.
+
+git diff --check && echo git_diff_check=pass
+# PASS: git_diff_check=pass.
+
+npm run build
+# PASS: compiled successfully; existing warnings only (deprecated middleware convention, Turbopack NFT trace, Sentry auth token absent, and optional integration env tokens absent during static generation).
+```
+
+Review / scan:
+
+- Added-line static scan: `hardcoded_secret_scan=pass`; `injection_scan=pass`.
+- Independent reviewer verdict: `passed=true`, `security_concerns=[]`, `logic_errors=[]`. Non-blocking follow-ups: add reducer coverage for `ok=true` with missing/empty signed URL, and consider a component-level guard/disabled ready-state button to avoid redundant signed-url fetches after ready.
+
+Files changed by this tick:
+
+- `src/components/command-center/voice/MargotVoicePanel.tsx`
+- `src/components/command-center/voice/voice-panel-state.ts`
+- `src/components/command-center/voice/__tests__/voice-panel-state.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety:
+
+- No sandbox wizard subcommand, production DB write/migration, Vercel deploy/env mutation, source-control remote publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+
+Next safe lane:
+
+- If staying on Margot voice UI, add the reviewer's focused follow-up: a RED/GREEN reducer test for `ok=true` with a missing/empty signed URL or a component-level guard preventing redundant ready-state signed-url fetches. Otherwise rotate to another concrete changed read-surface or local report corruption/error-path fixture.
