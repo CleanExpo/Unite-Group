@@ -1,5 +1,13 @@
 # Margot Morning Report
 
+## 2026-06-16 09:57 AEST — Isolated branch PR-gate and timeline guard health read-back
+
+- **Completed safe lane:** Re-read the Senior PM control set and verified the isolated CRM timeline redaction branch remains locally healthy; no new implementation was needed.
+- **Repo/PR read-back:** branch `margot/timeline-subject-label-redaction-20260616`; `HEAD=d7511cf8`; `git status --short` -> clean; `git rev-list --count main..origin/main` -> `10`; `node_modules=present`; `gh pr list --head margot/timeline-subject-label-redaction-20260616 --json number,title,state,url --limit 5` -> `[]`.
+- **Verification:** `CI=1 npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand` -> PASS, 1 suite / 9 tests. Report diff hygiene passed after docs update.
+- **Evidence paths:** `src/lib/crm/activity-timeline.ts`, `tests/unit/lib/crm/activity-timeline.test.ts`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`.
+- **Blockers unchanged / next lane:** PR creation remains blocked by human approval gate `AQ-a775bb`; no PR URL exists. No DB write, deploy/env mutation, PR creation, merge, additional push, live provider action, sandbox wizard action, credential read, client-facing send, or Mac Mini credential prompt occurred.
+
 ## 2026-06-16 09:49 AEST — CRM timeline subject-label redaction guard
 
 - **Completed safe lane:** Used strict RED-GREEN plus reviewer loop on the central CRM timeline helper. Timeline `subjectLabel`, `summary`, `idea_text`, and `agent_actions.payload` now redact email addresses, numeric/alphanumeric Board-style approval refs, and bearer-token fragments while preserving opaque UUID/id fallback labels.

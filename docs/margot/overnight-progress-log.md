@@ -1,5 +1,36 @@
 # Margot Overnight Progress Log
 
+## 2026-06-16 09:57 AEST
+
+### Tick 20260616_0957 — isolated branch PR-gate and timeline guard health read-back
+
+Lane: bounded Senior PM health/read-back check after the CRM timeline subject-label redaction slice. Goal was to verify the isolated branch still has a clean local state, no PR was silently created, dependencies are present, and the focused CRM timeline guard remains green. This was a local/read-only evidence refresh plus report update; no new code, production write, migration, deployment, env mutation, client-facing send, billing/payment action, or cross-client identity decision was in scope.
+
+Completed:
+- Re-read the Senior PM read-first set, Linear mirror, AI-RET-001 evidence, AI candidate/pipeline surfaces, current progress/morning reports, Mac Mini status, and current package scripts before selecting a health/read-back lane rather than repeating a blocked PR/publication attempt.
+- Repo state read-back: branch `margot/timeline-subject-label-redaction-20260616`; `HEAD=d7511cf8` (`docs(margot): record timeline label redaction evidence`); `git rev-list --count main..origin/main` -> `10`; `git status --short` produced no entries; `node_modules=present`.
+- PR-gate read-back: `gh pr list --head margot/timeline-subject-label-redaction-20260616 --json number,title,state,url --limit 5` -> `[]`; the prior PR creation remains blocked by the local human-approval gate (`AQ-a775bb`), so no PR URL exists.
+- Focused guard health: the CRM timeline helper suite still passes on the isolated branch, including the sensitive subject-label redaction fixture.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-16 09:57:26 AEST`.
+- `git status --short` -> no output.
+- `git log -1 --oneline` -> `d7511cf8 docs(margot): record timeline label redaction evidence`.
+- `git rev-list --count main..origin/main` -> `10`.
+- `git branch --show-current` -> `margot/timeline-subject-label-redaction-20260616`.
+- `test -d node_modules && echo node_modules=present || echo node_modules=missing` -> `node_modules=present`.
+- `CI=1 npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand` -> PASS, 1 suite / 9 tests.
+- `git diff --check -- docs/margot/overnight-progress-log.md docs/margot/morning-report.md docs/margot/MARGOT-COMMAND-CENTER.md` -> PASS after report updates.
+
+Files changed:
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+
+Safety/blockers:
+- No production DB write/migration, sandbox wizard subcommand, live provider dispatch/polling, Vercel deploy/env mutation, PR creation, merge, additional push, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Blocker unchanged: PR publication for `margot/timeline-subject-label-redaction-20260616` remains at human approval gate `AQ-a775bb`; next safe lane is to keep this branch green locally or rotate to another small read-surface/control-surface guard.
+
 ## 2026-06-16 09:49 AEST
 
 ### Tick 20260616_0949 — CRM timeline subject-label redaction guard
@@ -24709,3 +24740,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260616_031308.log'
+
+## 2026-06-16 09:58:48 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260616_095638.log'
