@@ -1,5 +1,38 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 10:41 AEST
+
+### Tick 20260615_1041 — Linear mirror / AI-RET local read-back gate
+
+Lane: bounded Senior PM health/read-back check for the current Linear mirror and AI-RET local answer-shape guard. Goal was to verify the local mocked retrieval/report gate still protects the `linear-watch-today` content/self-boundary classes after the latest parent-Hermes Linear mirror sync, without regenerating evidence or touching gated systems.
+
+Completed:
+- Inspected current repo state: branch `mesh/mission-control-2026-06-11`, latest commit `6db72efe chore: log CRM dry-run timeline readback evidence`, `git rev-list --count main..origin/main` -> `8`, and a broad inherited dirty/untracked worktree.
+- Re-read the ordered Senior PM read-first set, current `docs/margot/linear-watch-today.md`, AI-RET-001 evidence/register/pipeline, Mac Mini status, command-center surface, voice gap analysis, active execution plans, package manifest, current progress/morning surfaces, and current test/source surfaces for the retrieval-evaluation gate before lane selection.
+- Ran only the local AI-RET Jest read-back/doc-drift gate plus TypeScript, route-inventory, and whitespace checks. This tick did not run `./scripts/sandbox-wizard.sh` in any mode, regenerate AI-RET evidence, add fixtures, change route behavior, poll a live provider, write any database, deploy, publish, or touch source-control remotes.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 10:41:08 AEST`.
+- `node_modules=present`; `node -v` -> `v22.22.3`; `npm -v` -> `10.9.8`.
+- `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> PASS, 1 suite / 225 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check && echo git_diff_check=pass` -> `git_diff_check=pass`.
+- AI-RET-001 evidence read-back before lane selection remained `overallStatus=pass`, source-citation fixtures `8/8`, answer-shape fixtures `106/106`, report read-back `pass`, generated at `15/06/2026, 09:00:27 AEST`; it was not regenerated because no AI-RET harness/report surface changed.
+
+Files changed:
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live vector/AI call, provider polling, credential read, secret printing/storage, destructive git, cross-client merge, Mac Mini credential prompt, fabricated approval, implicit policy inference, or fabricated history occurred.
+- Mac Mini recovery was not re-probed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts.
+- Sandbox authority/auth gate unchanged and not revalidated.
+
+Next safe lane: rotate away from AI-RET-only unless another retrieval/report or Linear mirror surface changes; prefer a changed read-surface test from the inherited dirty worktree, a named local report corruption/error-path fixture outside the just-verified Linear mirror classes, or a control-surface refresh from existing repo evidence.
+
 ## 2026-06-15 10:25 AEST
 
 ### Tick 20260615_1025 — CRM conversion dry-run timeline read-back slice
@@ -22618,3 +22651,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_100522.log'
+
+## 2026-06-15 10:42:47 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_103943.log'
