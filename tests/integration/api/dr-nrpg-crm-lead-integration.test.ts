@@ -280,6 +280,53 @@ describe('POST /api/integrations/dr-nrpg/crm/leads', () => {
     expect(leadUpdateEq).toHaveBeenCalledWith('id', 'lead-1');
   });
 
+  it('does not persist raw board approval references in CRM metadata', async () => {
+    process.env.DR_NRPG_CRM_LEAD_INTEGRATION_ALLOW_PROD_WRITES = 'true';
+
+    const leadMaybeSingle = jest.fn().mockResolvedValue({ data: null, error: null });
+    const leadSelectExisting = jest.fn(() => ({ maybeSingle: leadMaybeSingle }));
+    const leadContains = jest.fn(() => ({ select: leadSelectExisting }));
+
+    const leadInsertSingle = jest.fn().mockResolvedValue({ data: { id: 'lead-1' }, error: null });
+    const leadInsertSelect = jest.fn(() => ({ single: leadInsertSingle }));
+    const leadInsert = jest.fn(() => ({ select: leadInsertSelect }));
+    const leadUpdateEq = jest.fn().mockResolvedValue({ error: null });
+    const leadUpdate = jest.fn(() => ({ eq: leadUpdateEq }));
+
+    const contactMaybeSingle = jest.fn().mockResolvedValue({ data: null, error: null });
+    const contactEq = jest.fn(() => ({ maybeSingle: contactMaybeSingle }));
+    const contactSelectExisting = jest.fn(() => ({ eq: contactEq }));
+    const contactInsertSingle = jest.fn().mockResolvedValue({ data: { id: 'contact-1' }, error: null });
+    const contactInsertSelect = jest.fn(() => ({ single: contactInsertSingle }));
+    const contactInsert = jest.fn(() => ({ select: contactInsertSelect }));
+
+    const opportunityMaybeSingle = jest.fn().mockResolvedValue({ data: null, error: null });
+    const opportunitySelectExisting = jest.fn(() => ({ maybeSingle: opportunityMaybeSingle }));
+    const opportunityContains = jest.fn(() => ({ select: opportunitySelectExisting }));
+    const opportunityInsertSingle = jest.fn().mockResolvedValue({ data: { id: 'opp-1' }, error: null });
+    const opportunityInsertSelect = jest.fn(() => ({ single: opportunityInsertSingle }));
+    const opportunityInsert = jest.fn(() => ({ select: opportunityInsertSelect }));
+
+    mockCreateClient.mockReturnValue({
+      from: jest.fn((table: string) => {
+        if (table === 'crm_leads') return { contains: leadContains, insert: leadInsert, update: leadUpdate };
+        if (table === 'crm_contacts') return { select: contactSelectExisting, insert: contactInsert };
+        if (table === 'crm_opportunities') return { contains: opportunityContains, insert: opportunityInsert };
+        throw new Error(`unexpected table ${table}`);
+      }),
+    });
+
+    const res = await POST(request(validPayload, { 'x-board-approval-id': 'BOARD-123' }));
+
+    expect(res.status).toBe(201);
+    const leadPayload = leadInsert.mock.calls[0]?.[0];
+    expect(leadPayload.additional_data.gate).toMatchObject({
+      operator_gate_satisfied: true,
+    });
+    expect(leadPayload.additional_data.gate).not.toHaveProperty('board_approval_id');
+    expect(JSON.stringify(leadPayload)).not.toContain('BOARD-123');
+  });
+
   it('returns existing CRM linkage for an idempotent replay instead of inserting duplicates', async () => {
     process.env.DR_NRPG_CRM_LEAD_INTEGRATION_ALLOW_PROD_WRITES = 'true';
 
