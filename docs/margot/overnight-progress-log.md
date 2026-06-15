@@ -1,5 +1,43 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 21:14 AEST
+
+### Tick 20260615_2114 — CRM lead conversion dry-run approval echo guard
+
+Lane: bounded CRM lead-conversion read-back/privacy hardening. Goal was to keep the local dry-run conversion response useful for operator review without echoing the raw Board approval reference back in JSON. No production write, provider call, sandbox wizard action, deploy, env mutation, source-control publication, or client-facing action was needed or attempted.
+
+Completed:
+- Preflighted repo state: branch `mesh/mission-control-2026-06-11`; current-branch PR `#223` is already merged; GitHub auth available; inherited broad dirty/untracked worktree remains unsuitable for push/PR publication.
+- Re-read the Senior PM / connected-teams CRM source-of-truth docs, current progress/morning/command-center surfaces, package scripts, and the lead-conversion route/test surface before selecting this small read-back privacy lane.
+- RED: strengthened the dry-run conversion test to assert the response body has no `board_approval_id` and does not contain the synthetic raw approval ref `BOARD-CRM-APPROVED`; focused Jest failed before the route change because dry-run JSON still echoed `board_approval_id`.
+- GREEN: removed the raw `board_approval_id` field from the dry-run response while preserving `success`, `dry_run`, lead/client ids, `planned_update`, sanitized `planned_timeline_event`, and the no-mutation contract.
+- Local code/test commit created: `ac2b174c test(crm): redact lead conversion dry-run approval echo`. No push/PR/merge was attempted from the broad inherited branch.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 21:14:31 AEST`.
+- RED focused Jest: `npx jest tests/integration/api/crm-lead-conversion.test.ts --runInBand --testNamePattern='dry-run conversions'` -> FAIL before route change; expected no `board_approval_id`, received `"BOARD-CRM-APPROVED"`.
+- GREEN focused Jest: same command -> PASS, 1 selected test / 8 skipped.
+- Full lead-conversion suite: `npx jest tests/integration/api/crm-lead-conversion.test.ts --runInBand` -> PASS, 1 suite / 9 tests.
+- Lead CRM sweep: `npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts --runInBand` -> PASS, 4 suites / 23 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS.
+- Added-line static scan -> PASS/no hardcoded-secret, shell-injection, eval/exec, unsafe deserialization, or SQL-string-format patterns.
+- Independent reviewer -> PASS/no security concerns or logic errors.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace for `next.config.js` via `src/app/api/telegram/approval-callback/route.ts`, missing Sentry auth/source-map token, and missing Railway/DigitalOcean/Vercel/GitHub/Stripe integration env tokens during static generation.
+
+Files changed:
+- `src/app/api/crm/leads/[id]/convert/route.ts`
+- `tests/integration/api/crm-lead-conversion.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication beyond the local commit, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Broad inherited branch remains unsuitable for push/PR without reconciliation/splitting. Next safe lane should rotate away from lead conversion unless a fresh conversion read-back/approval-boundary gap appears.
+
 ## 2026-06-15 21:10 AEST
 
 ### Tick 20260615_2110 — internal homepage metadata/read-surface guard

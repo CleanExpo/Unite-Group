@@ -1,5 +1,13 @@
 # Margot Morning Report
 
+## 2026-06-15 21:14 AEST — CRM lead conversion dry-run approval echo guard
+
+- **Completed safe lane:** Used strict RED-GREEN on the local guarded CRM lead-conversion route. The dry-run response now preserves reviewable planned conversion evidence but no longer echoes the raw Board approval reference as `board_approval_id`.
+- **Repo state read-back:** branch `mesh/mission-control-2026-06-11`; local code/test commit `ac2b174c test(crm): redact lead conversion dry-run approval echo`; current-branch PR `#223` is already merged; inherited broad dirty/untracked worktree remains unsuitable for push/PR publication. No push/PR/merge/deploy/env mutation/sandbox wizard/destructive git action was attempted.
+- **Verification:** RED focused Jest failed before the route change because dry-run JSON still returned `board_approval_id: "BOARD-CRM-APPROVED"`; GREEN focused Jest passed. Full lead-conversion suite -> 1 suite / 9 tests PASS; lead CRM sweep -> 4 suites / 23 tests PASS; independent reviewer PASS/no security or logic issues; `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check` -> PASS; `npm run build` -> PASS with existing warnings only.
+- **Evidence paths:** `src/app/api/crm/leads/[id]/convert/route.ts`, `tests/integration/api/crm-lead-conversion.test.ts`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`.
+- **Blockers unchanged / next lane:** no production DB write/migration, Vercel deploy/env mutation, source-control publication beyond the local commit, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred. Rotate away from lead conversion unless a fresh conversion read-back/approval-boundary gap appears.
+
 ## 2026-06-15 21:10 AEST — internal homepage metadata/read-surface guard
 
 - **Completed safe lane:** Added a local render/metadata test for the inherited internal CRM homepage copy slice. The new guard proves the legacy public SaaS/restoration CTAs (`Start free trial`, `/register`, `/services`, Karen/water-damage copy) stay off the reusable homepage hero, while internal CRM CTAs point to `/en/command-center` and `/en/empire/clients`; metadata remains private and non-indexable.

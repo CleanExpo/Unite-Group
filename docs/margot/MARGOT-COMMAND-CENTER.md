@@ -2,7 +2,16 @@
 |Date: 2026-05-23
 |Project: Unite-Group
 |Root: `/Users/phillmcgurk/Unite-Group`
-|Last update: 2026-06-15 21:10 AEST — internal homepage metadata/read-surface guard
+|Last update: 2026-06-15 21:14 AEST — CRM lead conversion dry-run approval echo guard
+
+## Current Autonomy Rotation Guard — 2026-06-15 21:14 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at local code/test commit `ac2b174c`; current-branch PR `#223` is already merged; inherited broad dirty/untracked worktree remains unsuitable for push/PR publication. No push, PR, merge, deploy, env mutation, sandbox wizard subcommand, destructive git action, provider mutation, client-facing action, or database write was attempted.
+- Completed safe Senior PM lane: hardened the CRM lead-conversion dry-run read-back so it no longer echoes the raw Board approval reference as `board_approval_id`, while preserving `planned_update`, sanitized `planned_timeline_event`, and no-mutation behavior.
+- Verification: RED focused Jest failed before route change with raw `board_approval_id`; GREEN focused Jest passed. Full lead-conversion suite -> PASS (1 suite / 9 tests); lead CRM sweep -> PASS (4 suites / 23 tests); independent reviewer PASS/no blocking correctness or security issues; `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check` -> PASS; `npm run build` -> PASS with existing warnings only.
+- Files changed in this slice: `src/app/api/crm/leads/[id]/convert/route.ts`, `tests/integration/api/crm-lead-conversion.test.ts`, plus this command-center/progress/morning evidence update.
+- Safety: no production DB write/migration, Vercel deploy/env mutation, source-control publication beyond the local commit, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, recursive system-volume scan, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- Next safe lane: rotate away from lead conversion unless a fresh conversion read-back/approval-boundary gap appears; prefer another changed control-surface/test gap from existing repo evidence.
 
 ## Current Autonomy Rotation Guard — 2026-06-15 21:10 AEST
 
