@@ -1,5 +1,13 @@
 # Margot Morning Report
 
+## 2026-06-15 17:36 AEST — runtime stale-sync partial failure read-surface guard
+
+- **Completed safe lane:** Used strict RED-GREEN on the local runtime stale-sync helper. Added a failing regression proving `partial` integration sync rows with `last_sync_error` and a future `next_sync_due_at` were not surfaced; then made those rows report `reason: 'last_error'` immediately.
+- **Repo state read-back:** branch `mesh/mission-control-2026-06-11`; `HEAD=7957c2c0 chore: Margot ops auto-sync [tick 20260615_170008] (ops only — other uncommitted files present)`; `git rev-list --count main..origin/main` -> `8`; inherited broad dirty/untracked worktree remains. No push/PR/merge/deploy/env mutation/sandbox wizard/destructive git action was attempted.
+- **Verification:** RED focused Jest failed before helper change with expected 1 stale result, received 0; GREEN focused Jest passed after the guard. Final gates: `npx jest tests/unit/lib/runtime/stale-sync-check.test.ts --runInBand` -> 1 suite / 13 tests PASS; `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check` -> PASS; `npm run build` -> PASS with existing warnings only.
+- **Evidence paths:** `src/lib/runtime/stale-sync-check.ts`, `tests/unit/lib/runtime/stale-sync-check.test.ts`, `docs/margot/overnight-progress-log.md`.
+- **Blockers unchanged / next lane:** no production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred. Next lane rotates away from runtime stale-sync unless a fresh concrete sync-health gap appears.
+
 ## 2026-06-15 17:02 AEST — Linear issue update issueId fail-closed guard
 
 - **Completed safe lane:** Used strict RED-GREEN on the local admin-gated Linear issue route. Added a failing regression proving `update` requests with non-string `issueId` plus mutable `priority` dispatched to Linear; then made update payloads require a non-blank string issue id before any provider request.

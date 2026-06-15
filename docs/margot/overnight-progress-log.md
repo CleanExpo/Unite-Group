@@ -1,5 +1,37 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 17:36 AEST
+
+### Tick 20260615_1736 — runtime stale-sync partial failure read-surface guard
+
+Lane: bounded runtime/CRM health read-surface hardening. Goal was to ensure integration sync runs recorded as `partial` with failure details are surfaced before the next cadence is missed, instead of looking healthy until overdue.
+
+Completed:
+- Preflighted current repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=7957c2c0 chore: Margot ops auto-sync [tick 20260615_170008] (ops only — other uncommitted files present)`; `git rev-list --count main..origin/main` -> `8`; inherited broad dirty/untracked worktree remains. No push, PR, merge, deploy, env mutation, sandbox wizard subcommand, destructive git action, provider mutation, or client-facing action was attempted.
+- Re-read the ordered Senior PM read-first set, current command-center/progress/morning surfaces, Mac Mini recovery status, AI-RET-001 local report (`overallStatus=pass`, source `8/8`, answerShape `106/106`), package scripts, and the runtime stale-sync helper/test surface before selecting this lane.
+- RED: added `flags partial sync results with failure details before cadence is missed`; focused Jest failed before helper change because `checkStaleSyncs` returned `[]` for a `partial` row with `last_sync_error` and a future `next_sync_due_at`.
+- GREEN: changed `checkStaleSyncs` so `last_sync_status === 'partial'` plus a non-empty `last_sync_error` is surfaced as `reason: 'last_error'`, preserving existing `error`, `missed_cadence`, malformed timestamp, and never-synced behavior.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 17:36:27 AEST`.
+- RED focused Jest: `npx jest tests/unit/lib/runtime/stale-sync-check.test.ts --runInBand --testNamePattern='partial sync results'` -> FAIL before helper change, expected 1 stale result, received 0.
+- GREEN focused Jest: `npx jest tests/unit/lib/runtime/stale-sync-check.test.ts --runInBand` -> PASS, 1 suite / 13 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace for `next.config.js` via `src/app/api/telegram/approval-callback/route.ts`, missing optional Sentry auth/source-map token, and missing Railway/DigitalOcean/Vercel/GitHub/Stripe integration env tokens during static generation.
+
+Files changed:
+- `src/lib/runtime/stale-sync-check.ts`
+- `tests/unit/lib/runtime/stale-sync-check.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- Next safe lane: rotate away from runtime stale-sync unless a fresh concrete sync-health gap appears; prefer another non-Linear changed read-surface test, local report corruption/error-path fixture, or control-surface refresh from existing repo evidence.
+
 ## 2026-06-15 17:02 AEST
 
 ### Tick 20260615_1702 — Linear issue update issueId fail-closed guard
@@ -23413,3 +23445,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_170008.log'
+
+## 2026-06-15 17:37:39 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_173359.log'
