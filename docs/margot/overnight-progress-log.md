@@ -1,5 +1,67 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 22:49 AEST
+
+### Tick 20260615_2249 — AI-RET-001 local read-back refresh
+
+Lane: bounded retrieval/control-surface health check. Goal was to keep AI-RET-001 green after the latest CRM/Linear/DR-NRPG slices and verify the local mocked report read-back before any command-center surfacing, without changing live retrieval thresholds or calling external AI/provider systems.
+
+Completed:
+- Preflighted repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=a53ffcb8`; `git rev-list --count main..origin/main` -> `10`; inherited broad dirty/untracked worktree remains. No commit, push, PR, merge, deploy, env mutation, sandbox wizard subcommand, production DB write, or destructive git action was attempted.
+- Re-read the ordered Senior PM read-first set, Linear mirror, AI-RET-001 evidence/register/pipeline, Mac Mini recovery status, command center, progress log, morning report, and package scripts before selecting the local retrieval read-back lane.
+- Ran the focused AI-RET-001 mocked/static harness: `CI=1 npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> PASS, 1 suite / 225 tests.
+- Regenerated and read back `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`: `overallStatus=pass; source=8/8; answerShape=106/106; readback=pass; reportTitle=true; generatedTimestamp=true; safetyNotes=true; nextSafeAction=true` at `15/06/2026, 22:49:50 AEST`.
+- `git diff --check` -> PASS.
+
+Files changed:
+- `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+
+Safety/blockers:
+- AI-RET-001 remained local-only and mocked/static. No live vector search, embeddings backfill, external AI call, provider polling, credential read, secret printing/storage, connector-platform/new-vendor action, client-facing send, public publishing, paid spend, Vercel deploy/env mutation, production DB write/migration, sandbox wizard subcommand, recursive system-volume scan, Mac Mini credential prompt, cross-client merge, fabricated approval, implicit policy inference, or fabricated history occurred.
+- Mac Mini recovery remains blocked on authenticated transport/export. Sandbox authority/auth gate remains unchanged. Broad inherited branch remains unsuitable for push/PR/merge or bundled commit without reconciliation/splitting. Next safe lane should rotate to another tiny local verified slice or split/reconcile inherited work before any publication lane.
+
+## 2026-06-15 22:39 AEST
+
+### Tick 20260615_2239 — DR/NRPG lead-captured timeline spine
+
+Lane: bounded DR/NRPG CRM integration observability/privacy hardening. Goal was to attach successful approved DR/NRPG CRM lead syncs to the existing `agent_actions` CRM timeline spine without changing the primary lead/contact/opportunity persistence contract, while keeping dry-runs and idempotent replays write-free for timeline events.
+
+Completed:
+- Preflighted repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=a53ffcb8`; upstream ahead/behind `0\t169`; GitHub auth available; open PR `#228` is on `fabel/keystone-install`, not the current branch; inherited broad dirty/untracked worktree remains (`53` status entries). No local commit was created because the branch/worktree already contains broad inherited changes across many unrelated files.
+- Re-read the Connected Teams/Senior PM/CRM read-first docs, package scripts, current progress/morning surfaces, and the DR/NRPG integration route/test surface before selecting this small continuation lane.
+- RED #1: added a focused regression proving approved DR/NRPG CRM sync did not write a `crm_timeline_lead_captured` `agent_actions` row (`timelineInsert` expected once, received zero).
+- GREEN #1: added a sanitized `lead_captured` timeline insert after successful `synced` CRM writes using the existing `buildCrmActivityTimelineEvent` / `buildCrmTimelineAgentActionInsert` helper. The insert is non-fatal: failures are caught and logged with safe hash/dedupe context.
+- Reviewer found a blocking privacy gap: raw `sourceId` flowed into `subjectLabel` / `summary` / `idea_text` when the source id looked like `BOARD-123`. RED #2 reproduced the leak; GREEN #2 changed the subject label to source type only and let metadata sanitization drop sensitive dedupe values.
+- Added idempotent replay coverage proving `already_synced` does not call `agent_actions` or insert a duplicate timeline event.
+
+Verification:
+- `date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 22:39:10 AEST`.
+- Focused RED #1: `CI=1 npx jest tests/integration/api/dr-nrpg-crm-lead-integration.test.ts --runInBand -t "records a sanitized lead_captured timeline action after DR/NRPG CRM sync"` -> FAIL before route change; expected timeline insert once, received zero.
+- Focused GREEN #1: same command -> PASS.
+- Reviewer: independent security/privacy review flagged the source-id subject-label leak; no files edited by reviewer.
+- Focused RED #2: same focused timeline command with `sourceId: 'BOARD-123'` -> FAIL before label fix; `BOARD-123` appeared in `idea_text`, `payload.subjectLabel`, and `payload.summary`.
+- Focused GREEN #2: same command -> PASS, selected test 1 passed / 11 skipped.
+- Idempotent replay coverage: `CI=1 npx jest tests/integration/api/dr-nrpg-crm-lead-integration.test.ts --runInBand -t "idempotent replay"` -> PASS and asserted `agent_actions` was not called.
+- Full DR/NRPG focused sweep: `CI=1 npx jest tests/integration/api/dr-nrpg-crm-lead-integration.test.ts tests/unit/lib/security/crm-lead-integration-gate.test.ts --runInBand` -> PASS, 2 suites / 28 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace via `src/app/api/telegram/approval-callback/route.ts`, missing Sentry auth/source-map token, and missing optional integration env tokens during static generation.
+
+Files changed:
+- `src/app/api/integrations/dr-nrpg/crm/leads/route.ts`
+- `tests/integration/api/dr-nrpg-crm-lead-integration.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- The runtime change adds only a local-code path for an `agent_actions` insert after the existing approved/prod-write gate has already allowed DR/NRPG CRM sync. Dry-run mode creates no Supabase client; `already_synced` replays do not emit a new timeline event. Broad inherited branch remains unsuitable for push/PR/merge or a bundled commit without reconciliation/splitting.
+
 ## 2026-06-15 22:17 AEST
 
 ### Tick 20260615_2217 — Linear update priority pre-dispatch guard
@@ -24080,3 +24142,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_221349.log'
+
+## 2026-06-15 22:51:04 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_224848.log'
