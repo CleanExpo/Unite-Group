@@ -1,5 +1,72 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 15:21 AEST
+
+### Tick 20260615_1521 — CRM daily-digest equals-style quoted CLI flag redaction
+
+Lane: bounded Senior PM CRM digest verification-redaction follow-up from the previous reviewer suggestion. Goal was to preserve quote delimiters for equals-style secret-shaped CLI flags while still redacting values in operator-facing digest evidence copy.
+
+Completed:
+- Preflighted current repo state before the lane: branch `mesh/mission-control-2026-06-11`; latest commit `745e33fe`; `git rev-list --count main..origin/main` -> `8`; inherited broad dirty/untracked worktree remained. No push, PR, merge, deploy, env mutation, sandbox wizard subcommand, or destructive git action was attempted.
+- Re-read the ordered Senior PM read-first set, Linear mirror, AI-RET-001 report (`overallStatus=pass`, source `8/8`, answerShape `106/106`), Mac Mini status, current command-center/progress/morning surfaces, package manifest, and the CRM daily-digest helper/test surface before selecting this small local lane.
+- RED: added `preserves equals-style quoted secret-shaped CLI flag syntax while redacting values`; focused Jest failed before the helper change because the env-assignment regex consumed `--api-key="..."` and `--client_secret='...'` before the CLI-flag regex could preserve quote delimiters.
+- GREEN: narrowed the env-assignment redaction regex in `src/lib/crm/daily-digest.ts` to match only start-of-command or whitespace-prefixed env assignments, so `--flag="quoted"` stays in the CLI-flag branch and redacts to `--flag="[REDACTED]"`.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 15:21:34 AEST`.
+- RED focused Jest: `npx jest tests/unit/lib/crm/daily-digest.test.ts --runInBand --testNamePattern='preserves equals-style quoted secret-shaped CLI flag syntax'` -> FAIL before helper change, received unquoted `[REDACTED]` values.
+- GREEN focused Jest: same command -> PASS, 1 selected test / 10 skipped.
+- Focused CRM digest suite: `npx jest tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-mappers.test.ts tests/unit/lib/crm/digest-read-error.test.ts --runInBand` -> PASS, 3 suites / 30 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS (exit 0).
+
+Files changed:
+- `src/lib/crm/daily-digest.ts`
+- `tests/unit/lib/crm/daily-digest.test.ts`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- No commit was created because the current branch/worktree remains a broad inherited dirty lane and the affected daily-digest files contain prior uncommitted inherited changes. Next safe lane: rotate away from CRM digest redaction unless a fresh concrete leak class is identified; otherwise choose another changed read-surface or control-surface refresh.
+
+## 2026-06-15 15:03 AEST
+
+### Tick 20260615_1503 — CRM daily-digest quoted CLI flag redaction syntax preservation
+
+Lane: bounded Senior PM CRM digest verification-redaction follow-up on the local pure `createCrmDailyDigest` helper. Goal was to preserve shell quote delimiters around secret-shaped CLI flag values while still redacting the values in operator-facing digest evidence copy.
+
+Completed:
+- Preflighted current repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=745e33fe`; upstream comparison `origin/main...HEAD` -> `8\t285`; `gh` auth available; `gh pr list` returned no open PRs; current branch PR `#223` is already `MERGED`; Vercel CLI authenticated and latest branch preview read-back was `Ready` at `https://unite-group-rh9h619ae-unite-group.vercel.app`. Inherited broad dirty/untracked worktree remains (`48` status lines), so no push/PR/merge/deploy/env mutation was attempted.
+- Re-read the Senior PM connected-teams/CRM source-of-truth docs, current progress/morning surfaces, package scripts, and the CRM daily-digest helper/test surfaces before selecting this tiny local redaction syntax lane.
+- RED: added `preserves quoted secret-shaped CLI flag syntax while redacting values` to `tests/unit/lib/crm/daily-digest.test.ts`; focused Jest failed before the helper change because output stripped the quote delimiters (`--api-key [REDACTED] --client_secret [REDACTED]`).
+- GREEN: changed only the CLI-flag redaction branch in `src/lib/crm/daily-digest.ts` to use a replacement callback that preserves double-quoted and single-quoted delimiters while replacing the contained value with `[REDACTED]`; unquoted behavior remains unchanged.
+- Independent review returned `passed=true`, `security_concerns=[]`, `logic_errors=[]`; non-blocking suggestion was to add equals-style quoted flag coverage later.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 15:03:35 AEST`.
+- RED focused Jest: `npx jest tests/unit/lib/crm/daily-digest.test.ts --runInBand --testNamePattern='preserves quoted secret-shaped CLI flag syntax'` -> FAIL before helper change, expected quoted `[REDACTED]` delimiters, received unquoted `[REDACTED]` values.
+- GREEN focused Jest: same command -> PASS, 1 selected test / 9 skipped.
+- Focused CRM digest suite: `npx jest tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-mappers.test.ts tests/unit/lib/crm/digest-read-error.test.ts --runInBand` -> PASS, 3 suites / 29 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS (exit 0).
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace for `next.config.js` via `src/app/api/telegram/approval-callback/route.ts`, missing optional Sentry auth/source-map token, and missing Railway/DigitalOcean/Vercel/GitHub/Stripe integration env tokens during static generation.
+
+Files changed:
+- `src/lib/crm/daily-digest.ts`
+- `tests/unit/lib/crm/daily-digest.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- No commit was created because the current branch/worktree remains a broad inherited dirty lane and the affected daily-digest files contain prior uncommitted inherited changes; publishing this slice requires first separating/reconciling the existing dirty worktree. Next safe lane: rotate away from CRM digest redaction unless taking the reviewer-suggested equals-style quoted flag regression as a test-only/read-surface follow-up; otherwise choose another changed read-surface or local control-surface refresh.
+
 ## 2026-06-15 14:49 AEST
 
 ### Tick 20260615_1449 — route-inventory DR/NRPG gate read-surface pin
@@ -23069,3 +23136,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_144720.log'
+
+## 2026-06-15 15:22:38 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_151951.log'

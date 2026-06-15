@@ -2,7 +2,16 @@
 |Date: 2026-05-23
 |Project: Unite-Group
 |Root: `/Users/phillmcgurk/Unite-Group`
-|Last update: 2026-06-15 14:49 AEST — route-inventory DR/NRPG gate read-surface pin
+|Last update: 2026-06-15 15:21 AEST — CRM daily-digest equals-style quoted CLI flag redaction
+
+## Current Autonomy Rotation Guard — 2026-06-15 15:21 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at `HEAD=745e33fe`; preflight `git rev-list --count main..origin/main` -> `8`; inherited broad dirty/untracked worktree remains. No push, PR, merge, deploy, env mutation, sandbox wizard subcommand, or destructive git action was attempted.
+- Completed safe Senior PM lane: took the reviewer-suggested equals-style quoted CLI flag redaction follow-up. Added a focused local regression proving `--api-key="..."` and `--client_secret='...'` values keep quote delimiters while the values redact, then narrowed the env-assignment redaction regex so CLI flags are not consumed before the CLI-flag branch.
+- Verification: RED focused Jest failed before helper change with unquoted `[REDACTED]` values; GREEN focused Jest passed after the regex change; `npx jest tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-mappers.test.ts tests/unit/lib/crm/digest-read-error.test.ts --runInBand` -> PASS (3 suites / 30 tests); `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check` -> PASS.
+- Files changed in this slice: `src/lib/crm/daily-digest.ts`, `tests/unit/lib/crm/daily-digest.test.ts`, plus this command-center/progress/morning evidence update.
+- Safety: no production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- Next safe lane: rotate away from CRM digest redaction unless a fresh concrete leak class appears; prefer another changed read-surface test, local report corruption/error-path fixture, or control-surface refresh from existing repo evidence.
 
 ## Current Autonomy Rotation Guard — 2026-06-15 14:49 AEST
 
