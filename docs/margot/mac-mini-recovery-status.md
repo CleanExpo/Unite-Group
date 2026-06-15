@@ -1,7 +1,7 @@
 # Mac Mini Margot Recovery Status
 
 Date: 2026-05-22
-Last update: 2026-06-16 01:04 AEST — Senior PM bounded Mac Mini transport read-back: `/Volumes` contains `Macintosh HD,Ollama`; recovered Markdown count remains `0`; SMB port 445 is reachable; SSH port 22 is reachable at the TCP layer, but authenticated noninteractive SSH is not usable (`Permission denied (publickey,password,keyboard-interactive)`). Recovery remains blocked on an authenticated SMB mount containing the approved target files, a usable authenticated SSH session, or an approved export. No credential prompt/read, secret printing/storage, recursive system-volume scan, or credential attempt occurred.
+Last update: 2026-06-16 01:36 AEST — Senior PM bounded Mac Mini transport read-back: `/Volumes` contains `Macintosh HD,Ollama`; recovered Markdown count remains `0`; SMB port 445 is reachable; SSH port 22 is reachable at the TCP layer, but authenticated noninteractive SSH is not usable (`Permission denied (publickey,password,keyboard-interactive)`). Recovery remains blocked on an authenticated SMB mount containing the approved target files, a usable authenticated SSH session, or an approved export. No credential prompt/read, secret printing/storage, recursive system-volume scan, or credential attempt occurred.
 Project: `/Users/phillmcgurk/Unite-Group`
 
 ## AI-RET-001 Mac-Mini-Recovery Citation Contract (bound to AI-RET-001-ANSWER-MAC-MINI-RECOVERY-BOUNDARY)
@@ -29,7 +29,14 @@ This mac-mini-recovery-status doc is now bound to the local, mocked AI-RET-001 r
 
 The `## AI-RET-001 Mac-Mini-Recovery Citation Contract` section above IS the assertion section the doc-drift guard scans. The 9 prohibited phrases are documented only at a meta level (inside this section heading and inside the Senior PM verification checkpoint's wording) so the assertion-section regex check stays green.
 
-## Latest probe (2026-06-16 01:04 AEST — Senior PM bounded Mac Mini transport read-back)
+## Latest probe (2026-06-16 01:36 AEST — Senior PM bounded Mac Mini transport read-back)
+
+- `/Volumes` contains `Macintosh HD,Ollama`; the local recovered artifact count remains `0` Markdown files under `docs/margot/recovered-from-mac-mini/`.
+- `phills-mac-mini.local:445` is reachable (SMB/File Sharing TCP probe succeeded).
+- `phills-mac-mini.local:22` is reachable at the TCP layer, but noninteractive SSH is not a usable authenticated session: `ssh -o BatchMode=yes -o ConnectTimeout=5 phills-mac-mini.local ...` returned `Permission denied (publickey,password,keyboard-interactive)`.
+- Recovery remains blocked on an authenticated SMB mount containing the approved target files, a usable authenticated SSH session, or an approved export. No credential prompt/read, secret printing/storage, recursive system-volume scan, or credential attempt occurred.
+
+## Previous probe (2026-06-16 01:04 AEST — Senior PM bounded Mac Mini transport read-back)
 
 - `/Volumes` contains `Macintosh HD,Ollama`; the local recovered artifact count remains `0` Markdown files under `docs/margot/recovered-from-mac-mini/`.
 - `phills-mac-mini.local:445` is reachable (SMB/File Sharing TCP probe succeeded).
