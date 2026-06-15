@@ -1,5 +1,33 @@
 # Margot Overnight Progress Log
 
+## 2026-06-16 02:08 AEST
+
+### Tick 20260616_0208 — AI-RET-001 report-title/generated-timestamp read-back guards
+
+Lane: bounded Senior PM AI-RET-001 local report corruption/error-path hardening. Goal was to add another local mocked/static read-back guard without live semantic search, external AI calls, provider polling, sandbox wizard subcommands, DB writes, deployments, source-control publication, credentials, or Mac Mini transport retries.
+
+Completed:
+- Preflighted repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=b3eea0e6`; `git rev-list --count main..origin/main` -> `10`; inherited broad dirty/untracked worktree remains, so no commit/push/PR/merge/deploy/env mutation/sandbox wizard/destructive git action was attempted.
+- Re-read the Senior PM read-first set, Linear intake mirror, AI enhancement register/pipeline, AI-RET-001 evidence report, Mac Mini status, progress log, and morning report before selecting this bounded local report-integrity lane.
+- Added two focused AI-RET-001 read-back tests: duplicate report title rows are rejected, and missing/duplicate `Generated:` timestamp rows are rejected before command-center handoff.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-16 02:08:33 AEST`.
+- Focused new guard: `CI=1 npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand -t "report title|generated timestamp"` -> PASS, 2 selected tests.
+- Full AI-RET-001 local mocked/static harness: `CI=1 npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> PASS, 1 suite / 227 tests.
+- `npm run type-check` -> PASS.
+- `npm run security:routes-check` -> PASS, `route-inventory check: 0 unprotected mutating routes`.
+- `git diff --check -- tests/unit/lib/margot/retrieval-evaluation.test.ts` -> PASS.
+
+Files changed:
+- `tests/unit/lib/margot/retrieval-evaluation.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No live vector search, embeddings backfill, external AI call, provider polling, production DB write/migration, sandbox wizard subcommand, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Mac Mini recovery remains blocked on authenticated SMB mount, usable authenticated SSH, or approved export. Broad inherited branch remains unsuitable for publication without reconciliation/splitting. Next safe lane: another tiny local report corruption/error-path guard only if a fresh gap exists; otherwise rotate to a different changed read-surface/control-surface slice.
+
 ## 2026-06-16 01:36 AEST
 
 ### Tick 20260616_0136 — AI-RET-001 health read-back and Mac Mini transport boundary
@@ -24485,3 +24513,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260616_013512.log'
+
+## 2026-06-16 02:09:54 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260616_020654.log'

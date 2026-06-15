@@ -1,5 +1,13 @@
 # Margot Morning Report
 
+## 2026-06-16 02:08 AEST — AI-RET-001 report-title/generated-timestamp read-back guards
+
+- **Completed safe lane:** Added local AI-RET-001 report read-back corruption guards for duplicated report titles and missing/duplicate `Generated:` timestamp rows. This keeps command-center handoff fail-closed on malformed evidence markdown.
+- **Repo state read-back:** branch `mesh/mission-control-2026-06-11`; `HEAD=b3eea0e6`; `git rev-list --count main..origin/main` -> `10`; inherited broad dirty/untracked worktree remains. No commit/push/PR/merge/deploy/env mutation/sandbox wizard/destructive git action was attempted.
+- **Verification:** focused new guard `CI=1 npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand -t "report title|generated timestamp"` -> PASS, 2 selected tests. Full AI-RET-001 harness -> PASS, 1 suite / 227 tests. `npm run type-check` -> PASS. `npm run security:routes-check` -> PASS with 0 unprotected mutating routes. Scoped `git diff --check` -> PASS.
+- **Evidence paths:** `tests/unit/lib/margot/retrieval-evaluation.test.ts`, `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+- **Blockers unchanged / next lane:** Mac Mini recovery remains blocked on authenticated SMB mount, usable authenticated SSH, or approved export. No live vector search, external AI call, provider polling, production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred. Broad inherited branch remains unsuitable for publication without reconciliation/splitting.
+
 ## 2026-06-16 01:36 AEST — AI-RET-001 health read-back and Mac Mini transport boundary
 
 - **Completed safe lane:** Refreshed a bounded Senior PM health/read-back lane. The local mocked/static AI-RET-001 retrieval harness remains green, and the Mac Mini recovery boundary was re-read without attempting credentials or scanning system volumes.
