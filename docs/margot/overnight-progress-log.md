@@ -1,5 +1,67 @@
 # Margot Overnight Progress Log
 
+## 2026-06-16 01:04 AEST
+
+### Tick 20260616_0104 — AI-RET-001 local harness and Mac Mini boundary read-back
+
+Lane: bounded Senior PM health/read-back check. Goal was to refresh the local mocked AI-RET-001 retrieval evidence and current Mac Mini recovery boundary without live semantic search, external AI calls, provider polling, sandbox wizard subcommands, DB writes, deployments, or source-control publication.
+
+Completed:
+- Preflighted repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=519bb32e`; `git rev-list --count main..origin/main` -> `10`; inherited broad dirty/untracked worktree remains, so no commit/push/PR/merge/deploy/env mutation/sandbox wizard/destructive git action was attempted.
+- Re-read the Senior PM read-first set, Linear intake mirror, AI enhancement register/pipeline, AI-RET-001 evidence report, current Mac Mini status, progress log, and morning report before selecting the bounded health lane.
+- Ran focused AI-RET-001 local mocked/static harness. It remained green: 1 suite / 225 tests PASS. Existing report read-back still shows `overallStatus=pass`, source `8/8`, answerShape `106/106`, readback `pass`.
+- Ran bounded Mac Mini transport read-back: `/Volumes=Macintosh HD,Ollama`; recovered Markdown artifact count remains `0`; SMB `:445` is reachable; SSH `:22` is TCP-reachable but noninteractive SSH remains unauthenticated/unusable (`Permission denied (publickey,password,keyboard-interactive)`). No credential prompt/read or recursive system-volume scan occurred.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-16 01:03:39 AEST`.
+- `CI=1 npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` -> PASS, 1 suite / 225 tests.
+- Dependency/read-back probe -> `node_modules=present`; `/Volumes=Macintosh HD,Ollama`; `recovered_markdown_count=0`; `SMB=reachable`; `SSH=reachable` at TCP layer.
+- `ssh -o BatchMode=yes -o ConnectTimeout=5 phills-mac-mini.local ...` -> unauthenticated/unusable: `Permission denied (publickey,password,keyboard-interactive)`.
+
+Files changed:
+- `docs/margot/mac-mini-recovery-status.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No live vector search, embeddings backfill, external AI call, provider polling, production DB write/migration, sandbox wizard subcommand, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or recursive system-volume scan occurred.
+- Mac Mini recovery remains blocked on an authenticated SMB mount containing the approved target files, a usable authenticated SSH session, or an approved export. Broad inherited branch remains unsuitable for publication without reconciliation/splitting.
+
+## 2026-06-16 00:43 AEST
+
+### Tick 20260616_0043 — Linear create priority fail-closed guard
+
+Lane: bounded provider/action route hygiene for the admin-gated Linear issue command spine. Goal was to close the create-path optional `priority` validation gap without calling live Linear, changing provider credentials, changing production data, or widening any external action.
+
+Completed:
+- Preflighted repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=519bb32e`; upstream status `ahead 173`; `git rev-list --count main..origin/main` -> `10`; `git status --short | wc -l` -> `55` after code/test edits. GitHub auth is available; current-branch PR `#223` is merged; open PR `#228` is on `fabel/keystone-install` with 2/7 checks failing. Vercel CLI auth read-only check returned `zenithfresh25-1436`. Inherited broad dirty/untracked worktree remains, so no commit/push/PR/merge/deploy/env mutation/sandbox wizard/destructive git action was attempted.
+- Re-read the Senior PM / Connected Teams / CRM read-first set, current progress/morning surfaces, package scripts, GitHub/Vercel state, and the Linear route/test surface before selecting this tiny local provider-action guard.
+- RED: added `rejects create payloads with a non-numeric priority before Linear requests` to `tests/integration/api/linear-issue-route.test.ts`; focused Jest failed before the route change with expected `400`, received `200`, proving create `priority: '1'` was forwarded to mocked Linear.
+- GREEN: added shared `isValidPriority` and applied it to the create branch before `linearRequest`, while keeping the update branch on the same fail-closed validation and preserving the valid create priority default.
+- Independent reviewer: PASS/no security concerns/no logic errors; static added-line scan over touched route/test files returned no matches.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-16 00:43:48 AEST`.
+- RED focused Jest: `CI=1 npx jest tests/integration/api/linear-issue-route.test.ts --runInBand -t "non-numeric priority"` -> FAIL before route change; expected `400`, received `200` for create `priority: '1'`.
+- GREEN focused Jest: same command -> PASS, 2 selected tests.
+- Full Linear issue route suite: `CI=1 npx jest tests/integration/api/linear-issue-route.test.ts --runInBand` -> PASS, 1 suite / 11 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, `route-inventory check: 0 unprotected mutating routes`.
+- Touched-file static added-line scan -> PASS/no hardcoded-secret, shell-injection, eval/exec, pickle, or SQL-format matches.
+- `git diff --check -- src/app/api/linear/issue/route.ts tests/integration/api/linear-issue-route.test.ts` -> PASS.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace via Telegram approval callback, missing optional integration env names, missing Sentry auth/source-map token, and Stripe webhook secret warning.
+
+Files changed:
+- `src/app/api/linear/issue/route.ts`
+- `tests/integration/api/linear-issue-route.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Broad inherited branch remains unsuitable for push/PR/merge or bundled publication without reconciliation/splitting. Next safe lane should rotate away from Linear unless a fresh provider-action validation gap appears, or split/reconcile inherited work before any publication lane.
+
 ## 2026-06-16 00:29 AEST
 
 ### Tick 20260616_0029 — Margot voice unknown-risk fail-safe guard
@@ -24340,3 +24402,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260616_002728.log'
+
+## 2026-06-16 01:05:12 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260616_010254.log'
