@@ -161,10 +161,15 @@ function buildBlockers(blockers: CrmDigestBlocker[]): string[] {
 }
 
 function redactVerificationCommand(command: string): string {
-  return command.replace(
-    /(\b[A-Z0-9_]*(?:SECRET|TOKEN|PASSWORD|PASSWD|API[_-]?KEY|SERVICE[_-]?ROLE[_-]?KEY)[A-Z0-9_]*=)(?:"[^"]*"|'[^']*'|\S+)/gi,
-    '$1[REDACTED]',
-  );
+  return command
+    .replace(
+      /(\b[A-Z0-9_]*(?:SECRET|TOKEN|PASSWORD|PASSWD|API[_-]?KEY|SERVICE[_-]?ROLE[_-]?KEY)[A-Z0-9_]*=)(?:"[^"]*"|'[^']*'|\S+)/gi,
+      '$1[REDACTED]',
+    )
+    .replace(
+      /(\B--[A-Z0-9_-]*(?:SECRET|TOKEN|PASSWORD|PASSWD|API[-_]?KEY|SERVICE[-_]?ROLE[-_]?KEY)[A-Z0-9_-]*)(=|\s+)(?:"[^"]*"|'[^']*'|\S+)/gi,
+      '$1$2[REDACTED]',
+    );
 }
 
 function buildVerification(verification: CrmDigestVerification[]): string[] {

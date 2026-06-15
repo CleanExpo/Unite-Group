@@ -160,4 +160,27 @@ describe('createCrmDailyDigest', () => {
     expect(digest.markdown).toContain('SUPABASE_SERVICE_ROLE_KEY=[REDACTED]');
     expect(digest.markdown).not.toContain('super-secret-service-role-token');
   });
+
+  it('redacts secret-shaped CLI flags from verification command copy', () => {
+    const digest = createCrmDailyDigest({
+      generatedAt: '2026-05-23T09:30:00+10:00',
+      verification: [
+        {
+          command: 'npx tsx scripts/check.ts --api-key super-secret-api-key --token=super-secret-token --client_secret super-secret-client-value',
+          status: 'blocked',
+        },
+      ],
+    });
+
+    expect(digest.sections.verification).toEqual([
+      'blocked: npx tsx scripts/check.ts --api-key [REDACTED] --token=[REDACTED] --client_secret [REDACTED]',
+    ]);
+    expect(digest.markdown).toContain('--api-key [REDACTED]');
+    expect(digest.markdown).toContain('--token=[REDACTED]');
+    expect(digest.markdown).toContain('--client_secret [REDACTED]');
+    expect(digest.markdown).not.toContain('super-secret-api-key');
+    expect(digest.markdown).not.toContain('super-secret-token');
+    expect(digest.markdown).not.toContain('super-secret-client-value');
+  });
+
 });
