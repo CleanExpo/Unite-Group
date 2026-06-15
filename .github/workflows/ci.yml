@@ -97,3 +97,34 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  spec-board:
+    name: apps/spec-board — type-check, test, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/spec-board
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+        env:
+          # Fabel reads these only at request time, not at build; placeholders
+          # keep the static build verifiable before repo secrets are wired.
+          SUPABASE_URL: ${{ secrets.FABEL_SUPABASE_URL || 'https://example.supabase.co' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.FABEL_SUPABASE_SERVICE_ROLE_KEY || 'ci-placeholder-service-role-key' }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'ci-placeholder-anthropic-key' }}
