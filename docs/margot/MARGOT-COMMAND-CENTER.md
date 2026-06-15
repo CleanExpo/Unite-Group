@@ -2,7 +2,16 @@
 |Date: 2026-05-23
 |Project: Unite-Group
 |Root: `/Users/phillmcgurk/Unite-Group`
-|Last update: 2026-06-15 18:08 AEST — Mac Mini transport flip read-back and bounded artifact probe
+|Last update: 2026-06-15 18:42 AEST — sandbox wizard hash-literal local override guard
+
+## Current Autonomy Rotation Guard — 2026-06-15 18:42 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at `HEAD=d77aab42`; `git rev-list --count main..origin/main` -> `8`; inherited broad dirty/untracked worktree remains. No push, PR, merge, deploy, env mutation, sandbox wizard subcommand, destructive git action, provider mutation, or client-facing action was attempted.
+- Completed safe Senior PM lane: closed the sandbox-wizard local override parser follow-up with a focused test proving `#` remains literal inside an unquoted sandbox override when not preceded by whitespace, while a later whitespace-prefixed `# optional note` is stripped. No parser behavior change was needed; the existing `\s+#.*$` boundary already satisfied the contract.
+- Verification: focused new Jest case -> PASS; full sandbox-wizard credential-boundary suite -> PASS (1 suite / 17 tests); `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check` -> PASS before docs update; `npm run build` -> PASS with existing warnings only.
+- Files changed in this slice: `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`, plus this command-center/progress/morning evidence update.
+- Safety: no production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, recursive system-volume scan, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- Next safe lane: rotate away from sandbox-wizard parser minutiae unless a fresh concrete parser boundary appears; prefer a different changed read-surface/control-surface refresh from existing repo evidence.
 
 ## Current Autonomy Rotation Guard — 2026-06-15 18:08 AEST
 

@@ -1,5 +1,72 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 18:42 AEST
+
+### Tick 20260615_1842 — sandbox wizard hash-literal local override guard
+
+Lane: bounded sandbox-wizard credential-boundary parser hardening. Goal was to close the reviewer-suggested local override edge case: unquoted sandbox password values may contain `#` as literal text when it is not preceded by whitespace, while still stripping whitespace-prefixed trailing operator notes and never sourcing/executing the local override file.
+
+Completed:
+- Preflighted current repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=d77aab42`; `git rev-list --count main..origin/main` -> `8`; inherited broad dirty/untracked worktree remains. No push, PR, merge, deploy, env mutation, sandbox wizard subcommand, destructive git action, provider mutation, or client-facing action was attempted.
+- Re-read the Senior PM read-first set, Linear mirror, AI-RET-001 report (`overallStatus=pass`, source `8/8`, answerShape `106/106`), Mac Mini status, current progress/morning surfaces, package scripts, `scripts/sandbox-wizard.sh`, and the sandbox-wizard credential-boundary test before selecting this tiny safe follow-up.
+- Added `preserves hash characters inside unquoted local sandbox override values when not preceded by whitespace`, proving `sandbox-value#literal-fragment # optional local note` parses as `sandbox-value#literal-fragment`.
+- No production code change was needed: the prior parser already uses `\s+#.*$`, so this was a coverage/read-back guard for the literal-hash boundary rather than a behavioral fix.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 18:42:26 AEST`.
+- Focused Jest: `npx jest tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand --testNamePattern='preserves hash characters'` -> PASS, 1 selected test / 16 skipped.
+- Full focused sandbox-wizard credential suite: `npx jest tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` -> PASS, 1 suite / 17 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS before docs update.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace for `next.config.js` via `src/app/api/telegram/approval-callback/route.ts`, missing optional Sentry auth/source-map token, and missing Railway/DigitalOcean/Vercel/GitHub/Stripe integration env tokens during static generation.
+
+Files changed:
+- `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Sandbox authority/auth gate and Mac Mini authenticated artifact transport remain unchanged. Next safe lane should rotate away from sandbox-wizard parser minutiae unless a fresh parser boundary appears; prefer a different changed read-surface/control-surface refresh.
+
+## 2026-06-15 18:22 AEST
+
+### Tick 20260615_1822 — sandbox wizard local override trailing-comment guard
+
+Lane: bounded sandbox-wizard credential-boundary hardening. Goal was to keep sandbox-only local credential overrides usable when an unquoted assignment carries a trailing operator note, without sourcing the file, reading production-labelled credentials for sandbox-only paths, running any wizard subcommand, or printing/storing secret values.
+
+Completed:
+- Preflighted current repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=d77aab42`; upstream ahead/behind `0\t155`; inherited broad dirty/untracked worktree remains (`49` status entries). GitHub auth and Vercel CLI auth are available; open PR `#227` is on a different branch and remains blocked by Vercel status-context failures. No push, PR, merge, deploy, env mutation, sandbox wizard subcommand, destructive git action, provider mutation, or client-facing action was attempted.
+- Re-read the Senior PM / connected-teams CRM source-of-truth docs, package scripts, progress/morning surfaces, and the sandbox-wizard credential-boundary test surface before selecting this small local parser guard.
+- RED: added `ignores trailing comments on unquoted local sandbox overrides without including comment text in the password`; focused Jest failed before the parser change because the parser returned `sandbox-inline-comment-value # optional local note` instead of `sandbox-inline-comment-value`.
+- GREEN: changed the inert Python parser embedded in `local_credential_value` to strip whitespace-prefixed trailing comments only for unquoted values, while preserving the existing quoted-value, duplicate-key, commented-line, malformed-quote, and no-source/no-exec contracts.
+- Independent reviewer returned PASS with no security concerns and no logic errors. Non-blocking suggestions: add a future `value#not-comment` regression if the hash-boundary behavior needs to be pinned, and add an explicit quoted-assignment-with-trailing-comment test only if that syntax is later supported.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 18:22:29 AEST`.
+- RED focused Jest: `npx jest tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand --testNamePattern='trailing comments'` -> FAIL before parser change, expected `sandbox-inline-comment-value`, received `sandbox-inline-comment-value # optional local note`.
+- GREEN focused Jest: same command -> PASS, 1 selected test / 15 skipped.
+- Full focused sandbox-wizard credential suite: `npx jest tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` -> PASS, 1 suite / 16 tests.
+- Static added-line scan: one false-positive match on a variable assignment name containing `PASSWORD`; no literal secret value was introduced.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace for `next.config.js` via `src/app/api/telegram/approval-callback/route.ts`, missing optional Sentry auth/source-map token, and missing Railway/DigitalOcean/Vercel/GitHub/Stripe integration env tokens during static generation.
+
+Files changed:
+- `scripts/sandbox-wizard.sh`
+- `tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- No commit/push was created because the branch/worktree remains a broad inherited dirty lane and this run only safely advanced the local sandbox-wizard credential-boundary slice. Next safe lane: either continue another small sandbox-wizard credential-parser edge case (`value#not-comment` or quoted trailing-comment policy) or rotate to a different changed read-surface/control-surface refresh.
+
 ## 2026-06-15 18:08 AEST
 
 ### Tick 20260615_1808 — Mac Mini transport flip read-back and bounded artifact probe
@@ -23540,3 +23607,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_180740.log'
+
+## 2026-06-15 18:44:07 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_184055.log'
