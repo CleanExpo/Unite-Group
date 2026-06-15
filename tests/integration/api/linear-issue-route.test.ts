@@ -63,4 +63,21 @@ describe('POST /api/linear/issue', () => {
     expect(await res.json()).toEqual({ error: 'invalid_update_payload' });
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it('rejects create payloads without required title or team before Linear requests', async () => {
+    process.env['LINEAR' + '_API_KEY'] = 'linear-test-key';
+    const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue({
+      json: async () => ({ data: { issueCreate: { success: true } } }),
+    } as Response);
+
+    const res = await POST(linearIssueRequest({
+      action: 'create',
+      title: '   ',
+      description: 'Should not dispatch to Linear without a teamId',
+    }));
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'invalid_create_payload' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });

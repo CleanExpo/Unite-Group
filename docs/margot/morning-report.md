@@ -1,5 +1,13 @@
 # Margot Morning Report
 
+## 2026-06-15 15:39 AEST — Linear issue create payload fail-closed guard
+
+- **Completed safe lane:** Used strict RED-GREEN on the local admin-gated Linear issue route. Added a failing regression proving `create` requests with blank/missing required fields reached the Linear dispatch path; then added a minimal pre-dispatch guard requiring non-blank string `title` and `teamId`, returning typed `400 { error: 'invalid_create_payload' }` before `fetch`.
+- **Repo state read-back:** branch `mesh/mission-control-2026-06-11`; `HEAD=4b1741b5`; upstream ahead/behind `0\t146`; `gh` auth available; Vercel CLI authenticated. Inherited broad dirty/untracked worktree remains, so no push/PR/merge/deploy/env mutation was attempted.
+- **Verification:** RED focused Jest failed before route change with expected `400`, received `200`; GREEN focused Jest passed after the guard. Final gates: `npx jest tests/integration/api/linear-issue-route.test.ts --runInBand` -> 1 suite / 3 tests PASS; `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check` -> PASS; static added-line scan -> PASS; `npm run build` -> PASS with existing warnings only.
+- **Review/evidence:** independent reviewer returned `passed=true`, `security_concerns=[]`, `logic_errors=[]`; suggestions were broader invalid-create parameterized coverage and optional trim-before-send semantics if desired. Evidence paths: `src/app/api/linear/issue/route.ts`, `tests/integration/api/linear-issue-route.test.ts`, `docs/margot/overnight-progress-log.md`.
+- **Blockers unchanged / next lane:** no sandbox wizard subcommand, production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred. Next lane can add the reviewer-suggested parameterized invalid-create cases or rotate to another clean provider/action validation guard.
+
 ## 2026-06-15 15:21 AEST — CRM daily-digest equals-style quoted CLI flag redaction
 
 - **Completed safe lane:** Used strict RED-GREEN on the local pure CRM daily-digest helper. Added a failing regression for equals-style quoted secret-shaped CLI flags (`--api-key="..."`, `--client_secret='...'`), then narrowed the env-assignment redaction regex so those flags stay in the CLI-flag branch and preserve quote delimiters while values become `[REDACTED]`.

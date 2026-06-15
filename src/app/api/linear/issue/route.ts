@@ -59,6 +59,10 @@ export async function POST(req: NextRequest) {
   const { action, issueId, title, teamId, description, priority, state } = body;
 
   if (action === 'create') {
+    if (typeof title !== 'string' || title.trim().length === 0 || typeof teamId !== 'string' || teamId.trim().length === 0) {
+      return NextResponse.json({ error: 'invalid_create_payload' }, { status: 400 });
+    }
+
     const data = await linearRequest(`
       mutation CreateIssue($input: IssueCreateInput!) {
         issueCreate(input: $input) {

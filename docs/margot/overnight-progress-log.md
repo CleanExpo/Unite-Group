@@ -1,5 +1,40 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 15:39 AEST
+
+### Tick 20260615_1539 — Linear issue create payload fail-closed guard
+
+Lane: bounded provider/action route hardening on the local admin-gated Linear issue route. Goal was to reject malformed `create` requests before any Linear provider dispatch when required issue fields are missing or blank.
+
+Completed:
+- Preflighted current repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=4b1741b5`; upstream ahead/behind `0\t146`; `gh` auth available; Vercel CLI authenticated; inherited broad dirty/untracked worktree remains across existing Margot/CRM/command-center lanes. No push, PR, merge, deploy, env mutation, sandbox wizard subcommand, destructive git action, or provider mutation was attempted.
+- Re-read the Senior PM / connected-teams CRM source-of-truth docs, current progress/morning surfaces, package scripts, and the clean Linear issue route/test surface before selecting this tiny fail-closed lane.
+- RED: added `rejects create payloads without required title or team before Linear requests`; focused Jest failed before the route change with expected `400`, received `200`, proving the route would call Linear with an invalid create payload.
+- GREEN: added a minimal pre-dispatch guard in `src/app/api/linear/issue/route.ts` requiring non-blank string `title` and `teamId`; invalid payloads now return typed `400 { error: 'invalid_create_payload' }` before `fetch` is called.
+- Independent review returned `passed=true`, `security_concerns=[]`, `logic_errors=[]`; non-blocking suggestions were broader invalid-create parameterized coverage and optional trimming-before-send if desired later.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 15:39:54 AEST`.
+- RED focused Jest: `npx jest tests/integration/api/linear-issue-route.test.ts --runInBand --testNamePattern='rejects create payloads without required title or team'` -> FAIL before route change, expected `400`, received `200`.
+- GREEN focused Jest: same command -> PASS, 1 selected test / 2 skipped.
+- Focused Linear route suite: `npx jest tests/integration/api/linear-issue-route.test.ts --runInBand` -> PASS, 1 suite / 3 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS.
+- Static added-line scan for hardcoded-secret / shell-injection / eval-exec / pickle / SQL-format patterns -> PASS.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace for `next.config.js` via `src/app/api/telegram/approval-callback/route.ts`, missing optional Sentry auth/source-map token, and missing Railway/DigitalOcean/Vercel/GitHub/Stripe integration env tokens during static generation.
+
+Files changed:
+- `src/app/api/linear/issue/route.ts`
+- `tests/integration/api/linear-issue-route.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- No push/PR/merge was attempted because the current branch/worktree remains a broad inherited dirty publication lane. Next safe lane: either add the review-suggested parameterized invalid-create cases or rotate to another clean provider/action validation guard.
+
 ## 2026-06-15 15:21 AEST
 
 ### Tick 20260615_1521 — CRM daily-digest equals-style quoted CLI flag redaction
