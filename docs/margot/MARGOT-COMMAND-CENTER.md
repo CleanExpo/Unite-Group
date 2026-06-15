@@ -2,7 +2,16 @@
 Date: 2026-05-23
 Project: Unite-Group
 Root: `/Users/phillmcgurk/Unite-Group`
-Last update: 2026-06-15 10:08 AEST — Senior PM CRM conversion post-commit read-back gate
+Last update: 2026-06-15 10:25 AEST — CRM conversion dry-run timeline read-back slice
+
+## Current Autonomy Rotation Guard — 2026-06-15 10:25 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at `643123ab` (`test(crm): add lead conversion dry-run timeline readback`); after the commit, `git rev-list --left-right --count @{u}...HEAD` returned `0\t125`, and `git status --short | wc -l` returned `45` inherited dirty/untracked entries. `gh` was unavailable on the post-commit shell path, so no PR/push/merge was attempted; Vercel CLI is installed at `54.4.1`, but no deployment was triggered.
+- Completed safe Senior PM lane: used strict RED-GREEN on the local guarded lead-to-client conversion dry-run path. Added a failing test that dry-run conversion returns a sanitized `planned_timeline_event` with approval-required timeline metadata and proves dry-run performs no lead update and no `agent_actions` insert; then refactored the route to reuse the sanitized timeline event builder for both dry-run read-back and the real timeline insert path.
+- Verification: `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 10:25:10 AEST`; RED focused Jest failed before the route change because `planned_timeline_event` was absent; GREEN focused Jest passed after the route change; full `npx jest tests/integration/api/crm-lead-conversion.test.ts --runInBand` -> PASS (1 suite / 9 tests); `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check && echo git_diff_check=pass` -> `git_diff_check=pass`; `npm run build` -> PASS with existing warnings about deprecated middleware, Turbopack NFT trace for `next.config.js` via telegram approval callback route, missing optional Sentry auth token, and missing integration env tokens during static generation.
+- Files changed this slice: `src/app/api/crm/leads/[id]/convert/route.ts`, `tests/integration/api/crm-lead-conversion.test.ts`, and `docs/margot/lead-to-client-conversion-plan.md`, committed locally as `643123ab`. This evidence entry and matching progress/morning entries are follow-up documentation only.
+- Safety: no sandbox wizard subcommand, production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live provider polling, Mac Mini credential prompt/read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, or fabricated history occurred. The high-risk added-line grep scan was blocked by the local approval guard because the scan pattern contained database-write terms; manual diff read-back showed only a local response payload/test/doc update, and route-inventory/type/build gates passed.
+- Next safe lane: rotate away from lead conversion unless another concrete fail-closed gap is selected; otherwise use another changed read-surface test or a named local report corruption/error-path fixture from existing repo evidence.
 
 ## Current Autonomy Rotation Guard — 2026-06-15 10:08 AEST
 

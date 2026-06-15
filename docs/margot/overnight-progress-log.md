@@ -1,5 +1,45 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 10:25 AEST
+
+### Tick 20260615_1025 — CRM conversion dry-run timeline read-back slice
+
+Lane: bounded Senior PM CRM command-spine improvement on the local guarded lead-to-client conversion dry-run path. Goal was to make dry-run output expose the same sanitized approval-required timeline read-back that the real conversion path inserts, while proving dry-run performs no lead update and no timeline insert.
+
+Completed:
+- Preflighted the existing in-progress branch/worktree: `mesh/mission-control-2026-06-11`, no open PR output in the initial `gh pr list`, and a broad inherited dirty worktree. Continued the existing lane instead of starting a new branch.
+- RED: added `returns a sanitized planned timeline event and performs no mutation for dry-run conversions` to `tests/integration/api/crm-lead-conversion.test.ts`; the focused test failed because `planned_timeline_event` was absent from the dry-run response.
+- GREEN: refactored `src/app/api/crm/leads/[id]/convert/route.ts` to build the lead-conversion timeline event once and reuse the sanitized `buildCrmTimelineAgentActionInsert(...).payload` as `planned_timeline_event` for dry-run responses, without calling `.update()` or inserting `agent_actions` in dry-run mode.
+- Updated `docs/margot/lead-to-client-conversion-plan.md` with the new local dry-run read-back evidence.
+- Committed the code/test/plan slice locally as `643123ab test(crm): add lead conversion dry-run timeline readback`.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 10:25:10 AEST`.
+- RED focused Jest: `npx jest tests/integration/api/crm-lead-conversion.test.ts --runInBand --testNamePattern='returns a sanitized planned timeline event'` -> FAIL before route change; expected `planned_timeline_event`, received none.
+- GREEN focused Jest: same command -> PASS after route change.
+- Full focused suite: `npx jest tests/integration/api/crm-lead-conversion.test.ts --runInBand` -> PASS, 1 suite / 9 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check && echo git_diff_check=pass` -> `git_diff_check=pass`.
+- `npm run build` -> PASS. Existing/non-blocking warnings: deprecated `middleware` convention, Turbopack NFT trace warning for `next.config.js` imported by `src/app/api/telegram/approval-callback/route.ts`, missing optional Sentry auth token/source-map upload token, and missing integration env tokens for Railway/DigitalOcean/Vercel/GitHub/Stripe during static generation.
+- Post-commit repo read-back: `git rev-list --left-right --count @{u}...HEAD` -> `0\t125`; `git status --short | wc -l` -> `45`; Vercel CLI -> `54.4.1`; `gh` was unavailable on the post-commit shell path, so no PR/push/merge was attempted.
+- High-risk added-line grep scan was blocked by the local approval guard because the scan pattern contained database-write terms; manual diff read-back showed only a local response payload/test/doc update, and type/route/build gates passed.
+
+Files changed:
+- `src/app/api/crm/leads/[id]/convert/route.ts`
+- `tests/integration/api/crm-lead-conversion.test.ts`
+- `docs/margot/lead-to-client-conversion-plan.md`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live provider polling, Mac Mini credential prompt/read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, or fabricated history occurred.
+- Branch remains far ahead of origin and the worktree remains broadly inherited/dirty; no PR or push was attempted from this state.
+
+Next safe lane: rotate away from lead conversion unless another concrete fail-closed conversion gap is selected; otherwise use another changed read-surface test or a named local report corruption/error-path fixture from existing repo evidence.
+
 ## 2026-06-15 10:08 AEST
 
 ### Tick 20260615_1008 — Senior PM CRM conversion post-commit read-back gate
