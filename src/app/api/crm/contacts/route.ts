@@ -337,6 +337,9 @@ export async function PATCH(request: NextRequest) {
   }
   if (contact.email !== undefined) {
     updatePayload.primary_email = contact.email;
+    const dedupeEmailKey = contact.email.toLowerCase();
+    updatePayload.dedupe_email_key = dedupeEmailKey;
+    updatePayload.dedupe_domain_key = dedupeEmailKey.split('@')[1] || null;
     changedFields.changedEmail = true;
   }
   if (contact.phone !== undefined) {

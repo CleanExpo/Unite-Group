@@ -684,6 +684,44 @@ describe('PATCH /api/crm/contacts', () => {
     expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
 
+  it('refreshes contact dedupe keys when a PATCH updates the primary email', async () => {
+    const updateCalls: UpdateCall[] = [];
+    const insertCalls: InsertCall[] = [];
+    const contactId = '44444444-4444-4444-8444-444444444444';
+    mockContactUpdate(updateCalls, insertCalls, [], {
+      data: {
+        id: contactId,
+        display_name: 'Ada Byron',
+        primary_email: 'ada@analytical.example',
+        updated_at: '2026-05-24T00:00:00.000Z',
+      },
+    });
+
+    const res = await PATCH(patchRequest({
+      id: contactId,
+      email: ' Ada@Analytical.Example ',
+    }));
+
+    expect(res.status).toBe(200);
+    expect(updateCalls).toEqual([{
+      table: 'crm_contacts',
+      row: expect.objectContaining({
+        primary_email: 'Ada@Analytical.Example',
+        dedupe_email_key: 'ada@analytical.example',
+        dedupe_domain_key: 'analytical.example',
+        updated_at: expect.any(String),
+      }),
+    }]);
+    expect(insertCalls).toHaveLength(1);
+    expect(insertCalls[0].row).toEqual(expect.objectContaining({
+      action_type: 'crm_timeline_contact_updated',
+      payload: expect.objectContaining({
+        metadata: { changedEmail: true },
+      }),
+    }));
+    expect(JSON.stringify(insertCalls[0].row)).not.toContain('Ada@Analytical.Example');
+  });
+
   it('rejects out-of-scope PATCH fields mixed with valid spec fields before CRM Supabase access', async () => {
     const res = await PATCH(patchRequest({
       id: '44444444-4444-4444-8444-444444444444',
