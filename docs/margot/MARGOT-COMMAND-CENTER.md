@@ -2,7 +2,16 @@
 |Date: 2026-05-23
 |Project: Unite-Group
 |Root: `/Users/phillmcgurk/Unite-Group`
-|Last update: 2026-06-15 20:34 AEST — CRM opportunity multi-link duplicate lookup guard
+|Last update: 2026-06-15 21:10 AEST — internal homepage metadata/read-surface guard
+
+## Current Autonomy Rotation Guard — 2026-06-15 21:10 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at `HEAD=e871bf2c`; `git rev-list --count main..origin/main` -> `10`; inherited broad dirty/untracked worktree remains (`53` status lines after this slice). No push, PR, merge, deploy, env mutation, sandbox wizard subcommand, destructive git action, provider mutation, client-facing action, or database write was attempted.
+- Completed safe Senior PM lane: pinned the inherited internal CRM homepage/metadata read surface. New render/metadata guard proves the reusable homepage hero keeps internal CRM CTAs (`/en/command-center`, `/en/empire/clients`), rejects the legacy public SaaS/restoration funnel CTAs/copy, and keeps default metadata private/non-indexable.
+- Verification: `npx jest src/components/marketing/__tests__/Hero.test.tsx --runInBand` -> PASS (1 suite / 2 tests); `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check` -> PASS; `npm run build` -> PASS with existing warnings only.
+- Files changed in this slice: `src/components/marketing/__tests__/Hero.test.tsx`, plus this command-center/progress/morning evidence update. Inherited homepage/metadata changes remain in `src/components/marketing/Hero.tsx`, `src/app/[locale]/page.tsx`, and `src/lib/metadata.ts`.
+- Safety: no production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, recursive system-volume scan, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- Next safe lane: rotate away from homepage copy unless a fresh read-surface gap appears; prefer another changed control-surface/test gap from existing repo evidence.
 
 ## Current Autonomy Rotation Guard — 2026-06-15 20:34 AEST
 

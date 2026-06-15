@@ -1,5 +1,35 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 21:10 AEST
+
+### Tick 20260615_2110 — internal homepage metadata/read-surface guard
+
+Lane: bounded homepage/control-surface read-back. Goal was to pin the inherited internal CRM homepage copy/metadata change with a local guard so the surface does not drift back to public SaaS/restoration funnel language. No production write, provider call, sandbox wizard action, deploy, env mutation, source-control publication, or client-facing action was needed or attempted.
+
+Completed:
+- Preflighted repo state: branch `mesh/mission-control-2026-06-11`; latest commit `e871bf2c`; `git rev-list --count main..origin/main` -> `10`; inherited broad dirty/untracked worktree remains.
+- Re-read the Senior PM read-first set, current command-center/progress/morning surfaces, package manifest, and the homepage hero/metadata surfaces before selecting this small read-surface lane.
+- Added `src/components/marketing/__tests__/Hero.test.tsx`, a local render/metadata guard proving the reusable homepage hero points to `/en/command-center` and `/en/empire/clients`, uses internal CRM copy, rejects legacy public SaaS CTAs and restoration/Karen story copy, and keeps `defaultMetadata.robots` at `{ index: false, follow: false }`.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 21:10:18 AEST`.
+- `npx jest src/components/marketing/__tests__/Hero.test.tsx --runInBand` -> PASS, 1 suite / 2 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace for `next.config.js` via `src/app/api/telegram/approval-callback/route.ts`, missing Sentry auth/source-map token, and missing Railway/DigitalOcean/Vercel/GitHub/Stripe integration env tokens during static generation.
+
+Files changed:
+- `src/components/marketing/__tests__/Hero.test.tsx`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Broad inherited branch remains unsuitable for push/PR without reconciliation/splitting. Next safe lane should rotate away from homepage copy unless another concrete read-surface/control-surface gap appears.
+
 ## 2026-06-15 20:34 AEST
 
 ### Tick 20260615_2034 — CRM opportunity multi-link duplicate lookup guard
@@ -23878,3 +23908,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_203110.log'
+
+## 2026-06-15 21:11:00 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_210536.log'

@@ -1,5 +1,13 @@
 # Margot Morning Report
 
+## 2026-06-15 21:10 AEST — internal homepage metadata/read-surface guard
+
+- **Completed safe lane:** Added a local render/metadata test for the inherited internal CRM homepage copy slice. The new guard proves the legacy public SaaS/restoration CTAs (`Start free trial`, `/register`, `/services`, Karen/water-damage copy) stay off the reusable homepage hero, while internal CRM CTAs point to `/en/command-center` and `/en/empire/clients`; metadata remains private and non-indexable.
+- **Repo state read-back:** branch `mesh/mission-control-2026-06-11`; latest commit `e871bf2c`; `git rev-list --count main..origin/main` -> `10`; inherited broad dirty/untracked worktree remains (`53` status lines after this slice). No push/PR/merge/deploy/env mutation/sandbox wizard/destructive git action was attempted.
+- **Verification:** `npx jest src/components/marketing/__tests__/Hero.test.tsx --runInBand` -> 1 suite / 2 tests PASS; `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check` -> PASS; `npm run build` -> PASS with existing warnings only.
+- **Evidence paths:** `src/components/marketing/__tests__/Hero.test.tsx`, `src/components/marketing/Hero.tsx`, `src/app/[locale]/page.tsx`, `src/lib/metadata.ts`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`.
+- **Blockers unchanged / next lane:** no production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred. Rotate away from homepage copy unless another concrete read-surface gap appears.
+
 ## 2026-06-15 20:34 AEST — CRM opportunity multi-link duplicate lookup guard
 
 - **Completed safe lane:** Used strict RED-GREEN on the local admin-gated CRM opportunities route. Added a failing assertion proving approved multi-link opportunity creation still checked only the first supplied scoped identity for duplicate same-name opportunities, then changed duplicate lookup to preserve single-link `.eq(...)` and use a scoped `.or(...)` filter across every supplied link when multiple identities are present.
