@@ -1,7 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git *)"
+      "Bash(git *)",
+      "Bash(find ~/.claude -type f -name \"*.json\" 2>/dev/null | head -20)",
+      "Bash(grep -r \"Fabel-Prompt-Engineer\\\\|fable-engine\\\\|ask-the-board\" ~/.hermes --include=\"*.md\" 2>/dev/null | head -20)",
+      "Bash(find ~/.hermes/profiles -type d -name \"*fable*\" -o -type d -name \"*ask*\" -o -type d -name \"*improve*\" -o -type d -name \"*ingest*\" 2>/dev/null)",
+      "Bash(claude plugin *)",
+      "Bash(find ~/2nd-brain -name \"*fabel*\" -o -name \"*fable*\" 2>/dev/null)",
+      "Bash(hermes skills *)",
+      "Bash(hermes version *)"
     ]
   }
 }

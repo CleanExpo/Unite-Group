@@ -167,6 +167,135 @@ describe('POST /api/pi-ceo/margot-voice/task', () => {
     expect(await res.json()).toEqual({ error: 'invalid_packet' });
   });
 
+  it('rejects a packet with missing packet_id', async () => {
+    const { packet_id: _omitted, ...missingPacketId } = packet;
+    const res = await POST(request(missingPacketId));
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'invalid_packet' });
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it('rejects a packet with missing transcript_text', async () => {
+    const { transcript_text: _omitted, ...missingTranscript } = packet;
+    const res = await POST(request(missingTranscript));
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'invalid_packet' });
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it('rejects a null packet body', async () => {
+    const res = await POST(request(null));
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'invalid_packet' });
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it('rejects a non-object packet body', async () => {
+    const res = await POST(request('not-an-object'));
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'invalid_packet' });
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it('applies risk_level, business_context, and route defaults for a truncated packet', async () => {
+    const calls: InsertCall[] = [];
+    mockSupabaseInserts(calls);
+
+    const res = await POST(
+      request({
+        packet_id: 'voice_minimal',
+        summary: 'Minimal summary',
+        transcript_text: 'user: minimal packet',
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const taskCall = calls.find((c) => c.table === 'tasks');
+    const voiceCall = calls.find((c) => c.table === 'voice_command_sessions');
+    expect(taskCall?.row.status).toBe('todo');
+    expect(taskCall?.row.priority).toBe('normal');
+    expect(taskCall?.row.assignee_name).toBe('Margot');
+    expect(taskCall?.row.tags).toEqual(['margot-voice', 'unite-group', 'unite_crm', 'auto-created']);
+    expect(taskCall?.row.description).toContain('Route: unite_crm');
+    expect(taskCall?.row.description).toContain('Business context: unite-group');
+    expect(taskCall?.row.description).toContain('Risk: low');
+    expect(taskCall?.row.description).toContain('Approval required: no');
+    expect(voiceCall?.row.parsed_intent).toEqual(
+      expect.objectContaining({
+        summary: 'Minimal summary',
+        requested_outcome: 'Minimal summary',
+        business_context: 'unite-group',
+        route: 'unite_crm',
+        risk_level: 'low',
+        approval_required: false,
+      }),
+    );
+  });
+
+  it('normalizes padded uppercase risk_level before deriving task priority', async () => {
+    const calls: InsertCall[] = [];
+    mockSupabaseInserts(calls);
+
+    const res = await POST(request({ ...packet, risk_level: ' HIGH ', approval_required: false }));
+
+    expect(res.status).toBe(200);
+    const taskCall = calls.find((c) => c.table === 'tasks');
+    const voiceCall = calls.find((c) => c.table === 'voice_command_sessions');
+    expect(taskCall?.row.status).toBe('todo');
+    expect(taskCall?.row.priority).toBe('high');
+    expect(taskCall?.row.description).toContain('Risk: high');
+    expect(voiceCall?.row.parsed_intent).toEqual(
+      expect.objectContaining({
+        risk_level: 'high',
+        approval_required: false,
+      }),
+    );
+  });
+
+  it('treats critical risk_level as high priority without changing approval status', async () => {
+    const calls: InsertCall[] = [];
+    mockSupabaseInserts(calls);
+
+    const res = await POST(request({ ...packet, risk_level: ' CRITICAL ', approval_required: false }));
+
+    expect(res.status).toBe(200);
+    const taskCall = calls.find((c) => c.table === 'tasks');
+    const voiceCall = calls.find((c) => c.table === 'voice_command_sessions');
+    expect(taskCall?.row.status).toBe('todo');
+    expect(taskCall?.row.priority).toBe('high');
+    expect(taskCall?.row.description).toContain('Risk: critical');
+    expect(voiceCall?.row.parsed_intent).toEqual(
+      expect.objectContaining({
+        risk_level: 'critical',
+        approval_required: false,
+      }),
+    );
+  });
+
+  it('treats unknown risk_level as high-priority unknown instead of downgrading it', async () => {
+    const calls: InsertCall[] = [];
+    mockSupabaseInserts(calls);
+
+    const res = await POST(request({ ...packet, risk_level: ' SEVERE ', approval_required: false }));
+
+    expect(res.status).toBe(200);
+    const taskCall = calls.find((c) => c.table === 'tasks');
+    const voiceCall = calls.find((c) => c.table === 'voice_command_sessions');
+    expect(taskCall?.row.status).toBe('todo');
+    expect(taskCall?.row.priority).toBe('high');
+    expect(taskCall?.row.description).toContain('Risk: unknown');
+    expect(voiceCall?.row.parsed_intent).toEqual(
+      expect.objectContaining({
+        risk_level: 'unknown',
+        approval_required: false,
+      }),
+    );
+  });
+
   it('returns 500 when voice session insert errors', async () => {
     mockSupabaseInserts([], { voice: { error: new Error('insert failed') } });
 
@@ -248,6 +377,84 @@ describe('POST /api/pi-ceo/margot-voice/task', () => {
         risk_level: 'low',
       }),
     );
+  });
+
+  it('pins the end-to-end ElevenLabs -> Supabase chain linkage', async () => {
+    const calls: InsertCall[] = [];
+    mockSupabaseInserts(calls);
+    const insertOrder: string[] = [];
+
+    mockFrom.mockImplementation((table: string) => ({
+      insert: jest.fn((row: Record<string, unknown>) => {
+        insertOrder.push(table);
+        calls.push({ table, row });
+        const result: InsertResult =
+          table === 'tasks'
+            ? { data: { id: 'task-1', title: row.title }, error: null }
+            : { data: { id: 'voice-session-1' }, error: null };
+
+        return {
+          select: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue(result),
+          }),
+        };
+      }),
+    }));
+
+    const res = await POST(request(packet));
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toEqual({
+      ok: true,
+      crm_session_id: 'voice-session-1',
+      crm_task_id: 'task-1',
+      task_title: packet.summary,
+    });
+
+    // ElevenLabs -> Supabase chain ordering: voice session must land before CRM task,
+    // and the CRM task description must cross-link both the voice session id and the
+    // ElevenLabs conversation id so the operator can audit the chain from either side.
+    expect(insertOrder).toEqual(['voice_command_sessions', 'tasks']);
+
+    const taskCall = calls.find((c) => c.table === 'tasks');
+    expect(taskCall?.row.description).toContain('Voice session: voice-session-1');
+    expect(taskCall?.row.description).toContain('ElevenLabs conversation: conv_abc');
+
+    const voiceCall = calls.find((c) => c.table === 'voice_command_sessions');
+    expect(voiceCall?.row.transcript).toBe(packet.transcript_text);
+    expect(voiceCall?.row.parsed_intent).toEqual(
+      expect.objectContaining({
+        conversation_id: 'conv_abc',
+        summary: packet.summary,
+        risk_level: 'low',
+        approval_required: false,
+      }),
+    );
+    expect(voiceCall?.row.user_id).toBe(packet.crm_user_id);
+  });
+
+  it('does not attempt the CRM task insert when the voice session insert fails', async () => {
+    const insertOrder: string[] = [];
+    mockFrom.mockImplementation((table: string) => ({
+      insert: jest.fn(() => {
+        insertOrder.push(table);
+        return {
+          select: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: null,
+              error: new Error('voice insert failed'),
+            }),
+          }),
+        };
+      }),
+    }));
+
+    const res = await POST(request(packet));
+
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ error: 'voice_session_insert_failed' });
+    expect(insertOrder).toEqual(['voice_command_sessions']);
   });
 
   it('creates approval-needed task when approval is required', async () => {

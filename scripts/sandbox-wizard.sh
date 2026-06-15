@@ -87,42 +87,106 @@ require_supabase_token() {
 }
 
 # ─── Credential loading ───────────────────────────────────────────────────────
-load_creds() {
-  step "Loading credentials from 1Password vault: $OP_VAULT"
-
-  # Local override file (used when service account can't write to 1P)
+local_credential_value() {
+  local credential_name="$1"
   local creds_file="$HOME/.hermes/.unite-group-sandbox-creds.env"
-  if [[ -f "$creds_file" ]]; then
-    # shellcheck disable=SC1090
-    source "$creds_file"
-  fi
 
-  # Prod DB password — prefer env var, fall back to 1P
-  PROD_DB_PASSWORD="${UNITE_GROUP_DB_PASSWORD:-}"
-  if [[ -z "$PROD_DB_PASSWORD" ]]; then
-    PROD_DB_PASSWORD=$(op item get "UNITE_GROUP_DB_PASSWORD" --vault "$OP_VAULT" --reveal --field credential 2>/dev/null || true)
-  fi
-  if [[ -z "$PROD_DB_PASSWORD" ]]; then
-    err "Prod DB password missing in both env var and 1P item 'UNITE_GROUP_DB_PASSWORD'"
-    echo "    Reset at: https://supabase.com/dashboard/project/$PROD_REF/settings/database"
-    echo "    Save to:  $creds_file  (export UNITE_GROUP_DB_PASSWORD=...)"
-    echo "    Or to 1P: op item create --vault $OP_VAULT --category 'API Credential' --title UNITE_GROUP_DB_PASSWORD credential=<password>"
-    exit 1
-  fi
+  [[ -f "$creds_file" ]] || return 0
 
-  # Sandbox DB password — prefer env var, fall back to 1P
+  # Read only the requested variable from the local override file. Do not source
+  # the file: sandbox paths must not import or execute production-labelled
+  # credential assignments that may also be present there.
+  python3 - "$creds_file" "$credential_name" <<'PY'
+import pathlib
+import re
+import sys
+
+path = pathlib.Path(sys.argv[1])
+name = sys.argv[2]
+pattern = re.compile(rf'^\s*(?:export\s+)?{re.escape(name)}\s*=\s*(.*)\s*$')
+for line in path.read_text().splitlines():
+    match = pattern.match(line)
+    if not match:
+        continue
+    value = match.group(1).strip()
+    is_quoted = (len(value) >= 2) and value[0] == value[-1] and value[0] in {'"', "'"}
+    if is_quoted:
+        quote = value[0]
+        value = value[1:-1]
+        if quote == '"':
+            # Match the safe shell-subset needed for local env overrides without
+            # sourcing or executing the file: inside double quotes, backslash can
+            # escape $, `, ", and \\; all other backslashes remain literal.
+            unescaped = []
+            index = 0
+            while index < len(value):
+                char = value[index]
+                if char == "\\" and index + 1 < len(value) and value[index + 1] in {'$', '`', '"', "\\"}:
+                    unescaped.append(value[index + 1])
+                    index += 2
+                    continue
+                unescaped.append(char)
+                index += 1
+            value = ''.join(unescaped)
+    else:
+        value = re.sub(r'\s+#.*$', '', value).rstrip()
+    print(value)
+    break
+PY
+}
+
+load_sandbox_creds() {
+  step "Loading sandbox credentials from 1Password vault: $OP_VAULT"
+
+  # Sandbox DB password — prefer env var, then sandbox-only local override,
+  # then sandbox-only 1Password item. This function intentionally never reads
+  # or requests the production-labelled DB credential.
   SANDBOX_DB_PASSWORD="${UNITE_GROUP_SANDBOX_DB_PASSWORD:-}"
+  if [[ -z "$SANDBOX_DB_PASSWORD" ]]; then
+    SANDBOX_DB_PASSWORD=$(local_credential_value "UNITE_GROUP_SANDBOX_DB_PASSWORD")
+  fi
   if [[ -z "$SANDBOX_DB_PASSWORD" ]]; then
     SANDBOX_DB_PASSWORD=$(op item get "UNITE_GROUP_SANDBOX_DB_PASSWORD" --vault "$OP_VAULT" --reveal --field credential 2>/dev/null || true)
   fi
   if [[ -z "$SANDBOX_DB_PASSWORD" ]]; then
-    err "Sandbox DB password missing in both env var and 1P"
+    err "Sandbox DB password missing: UNITE_GROUP_SANDBOX_DB_PASSWORD"
     echo "    Reset at: https://supabase.com/dashboard/project/$SANDBOX_REF/settings/database"
-    echo "    Save to:  $creds_file  (export UNITE_GROUP_SANDBOX_DB_PASSWORD=...)"
+    echo "    Save locally as: export UNITE_GROUP_SANDBOX_DB_PASSWORD=<password>"
+    echo "    Or to 1P item: UNITE_GROUP_SANDBOX_DB_PASSWORD"
     exit 1
   fi
 
-  # Sandbox anon + service keys (pulled from Supabase API)
+  SANDBOX_DB_HOST="db.${SANDBOX_REF}.supabase.co"
+  SANDBOX_DB_URL="postgresql://postgres:***@${SANDBOX_DB_HOST}:5432/postgres"
+  SANDBOX_REST_URL="https://${SANDBOX_REF}.supabase.co"
+
+  ok "Sandbox credentials loaded"
+}
+
+load_creds() {
+  step "Loading production and sandbox credentials from 1Password vault: $OP_VAULT"
+
+  # Production DB password — production-capable paths only. Sandbox apply/status
+  # must call load_sandbox_creds instead of this function.
+  PROD_DB_PASSWORD="${UNITE_GROUP_DB_PASSWORD:-}"
+  if [[ -z "$PROD_DB_PASSWORD" ]]; then
+    PROD_DB_PASSWORD=$(local_credential_value "UNITE_GROUP_DB_PASSWORD")
+  fi
+  if [[ -z "$PROD_DB_PASSWORD" ]]; then
+    PROD_DB_PASSWORD=$(op item get "UNITE_GROUP_DB_PASSWORD" --vault "$OP_VAULT" --reveal --field credential 2>/dev/null || true)
+  fi
+  if [[ -z "$PROD_DB_PASSWORD" ]]; then
+    err "Prod DB password missing: UNITE_GROUP_DB_PASSWORD"
+    echo "    Reset at: https://supabase.com/dashboard/project/$PROD_REF/settings/database"
+    echo "    Save locally as: export UNITE_GROUP_DB_PASSWORD=<password>"
+    echo "    Or to 1P item: UNITE_GROUP_DB_PASSWORD"
+    exit 1
+  fi
+
+  load_sandbox_creds
+
+  # Sandbox anon + service keys (pulled from Supabase API). These are needed for
+  # setup/sync flows that write .env.sandbox; apply/status do not call here.
   SANDBOX_ANON_KEY=$(curl -s -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
     "https://api.supabase.com/v1/projects/$SANDBOX_REF/api-keys?reveal=true" \
     | python3 -c 'import json,sys; ks=json.load(sys.stdin); print(next(k["api_key"] for k in ks if k["name"]=="anon"))' 2>/dev/null || true)
@@ -139,12 +203,9 @@ load_creds() {
   # Use direct connection (not pooler). Pooler tenant routing fails for some
   # projects; direct connection is the canonical pg_dump path.
   PROD_DB_HOST="db.${PROD_REF}.supabase.co"
-  SANDBOX_DB_HOST="db.${SANDBOX_REF}.supabase.co"
-  PROD_DB_URL="postgresql://postgres:${PROD_DB_PASSWORD}@${PROD_DB_HOST}:5432/postgres"
-  SANDBOX_DB_URL="postgresql://postgres:${SANDBOX_DB_PASSWORD}@${SANDBOX_DB_HOST}:5432/postgres"
-  SANDBOX_REST_URL="https://${SANDBOX_REF}.supabase.co"
+  PROD_DB_URL="postgresql://postgres:***@${PROD_DB_HOST}:5432/postgres"
 
-  ok "Prod + sandbox creds loaded"
+  ok "Production and sandbox credentials loaded"
 }
 
 # ─── Write .env.sandbox into the repo ─────────────────────────────────────────
@@ -355,8 +416,7 @@ cmd_apply() {
   fi
   require_op
   require_psql
-  require_supabase_token
-  load_creds
+  load_sandbox_creds
 
   step "Applying $file to sandbox"
   PGPASSWORD="$SANDBOX_DB_PASSWORD" psql \
@@ -371,7 +431,10 @@ cmd_apply() {
   ok "Applied to sandbox without errors"
 
   step "Sandbox advisor (security)"
-  require_supabase_token
+  if [[ -z "${SUPABASE_ACCESS_TOKEN:-}" ]]; then
+    warn "Skipping sandbox advisor: SUPABASE_ACCESS_TOKEN not present in environment"
+    return 0
+  fi
   curl -s -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
     "https://api.supabase.com/v1/projects/$SANDBOX_REF/advisors?type=security" \
     | python3 -c 'import json,sys; data=json.load(sys.stdin); lints=data.get("lints",[]); from collections import Counter; c=Counter(l["level"] for l in lints); print(" ", dict(c) or "no findings")'
@@ -396,8 +459,7 @@ cmd_diff() {
 
 cmd_status() {
   require_op
-  require_supabase_token
-  load_creds
+  load_sandbox_creds
 
   step "Sandbox status"
   echo "  Project:         $SANDBOX_REF (us-west-1)"

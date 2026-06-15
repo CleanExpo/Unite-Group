@@ -152,10 +152,35 @@ function mockContactUpdate(
     timelineError?: Error | null;
     throwTimelineInsert?: boolean;
     throwPrimaryUpdate?: Error;
+    existingContact?: Record<string, unknown> | null;
+    lookupError?: Error | null;
     queryCalls?: QueryCall[];
   } = {},
 ) {
   mockFrom.mockImplementation((table: string) => ({
+    select: jest.fn((columns?: string) => {
+      selectCalls.push({ table, columns });
+      options.queryCalls?.push({ table, method: 'select', columns });
+      let query: SupabaseQueryMock;
+      query = {
+        eq: jest.fn((column: string, value: unknown) => {
+          options.queryCalls?.push({ table, method: 'eq', column, value });
+          return query;
+        }),
+        limit: jest.fn((count: number) => {
+          options.queryCalls?.push({ table, method: 'limit', count });
+          return query;
+        }),
+        maybeSingle: jest.fn(async () => {
+          options.queryCalls?.push({ table, method: 'maybeSingle' });
+          return {
+            data: options.existingContact ?? null,
+            error: options.lookupError ?? null,
+          };
+        }),
+      };
+      return query;
+    }),
     update: jest.fn((row: Record<string, unknown>) => {
       updateCalls.push({ table, row });
       options.queryCalls?.push({ table, method: 'update', row });
@@ -672,10 +697,15 @@ describe('PATCH /api/crm/contacts', () => {
     expect(insertCalls[0].row.payload).not.toHaveProperty('email');
     expect(insertCalls[0].row.payload).not.toHaveProperty('phone');
     expect(selectCalls).toEqual([
+      { table: 'crm_contacts', columns: 'id' },
       { table: 'crm_contacts', columns: CONTACT_PATCH_SELECT_COLUMNS },
       { table: 'agent_actions', columns: 'id' },
     ]);
     expect(queryCalls).toEqual([
+      { table: 'crm_contacts', method: 'select', columns: 'id' },
+      { table: 'crm_contacts', method: 'eq', column: 'dedupe_email_key', value: 'ada@example.com' },
+      { table: 'crm_contacts', method: 'limit', count: 1 },
+      { table: 'crm_contacts', method: 'maybeSingle' },
       { table: 'crm_contacts', method: 'update', row: expect.any(Object) },
       { table: 'crm_contacts', method: 'eq', column: 'id', value: contactId },
       { table: 'crm_contacts', method: 'select', columns: CONTACT_PATCH_SELECT_COLUMNS },
@@ -720,6 +750,66 @@ describe('PATCH /api/crm/contacts', () => {
       }),
     }));
     expect(JSON.stringify(insertCalls[0].row)).not.toContain('Ada@Analytical.Example');
+  });
+
+  it('returns 409 and does not update when a PATCH email collides with another contact dedupe key', async () => {
+    const updateCalls: UpdateCall[] = [];
+    const insertCalls: InsertCall[] = [];
+    const selectCalls: SelectCall[] = [];
+    const queryCalls: QueryCall[] = [];
+    const contactId = '44444444-4444-4444-8444-444444444444';
+    mockContactUpdate(updateCalls, insertCalls, selectCalls, {}, {
+      existingContact: { id: '55555555-5555-4555-8555-555555555555' },
+      queryCalls,
+    });
+
+    const res = await PATCH(patchRequest({
+      id: contactId,
+      email: ' Ada@Analytical.Example ',
+    }));
+
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: 'crm_contact_conflict' });
+    expect(updateCalls).toHaveLength(0);
+    expect(insertCalls).toHaveLength(0);
+    expect(mockFrom).not.toHaveBeenCalledWith('agent_actions');
+    expect(queryCalls).toEqual([
+      { table: 'crm_contacts', method: 'select', columns: 'id' },
+      { table: 'crm_contacts', method: 'eq', column: 'dedupe_email_key', value: 'ada@analytical.example' },
+      { table: 'crm_contacts', method: 'limit', count: 1 },
+      { table: 'crm_contacts', method: 'maybeSingle' },
+    ]);
+  });
+
+  it('allows a PATCH email update when the dedupe lookup finds the same contact id', async () => {
+    const updateCalls: UpdateCall[] = [];
+    const insertCalls: InsertCall[] = [];
+    const selectCalls: SelectCall[] = [];
+    const contactId = '44444444-4444-4444-8444-444444444444';
+    mockContactUpdate(updateCalls, insertCalls, selectCalls, {
+      data: {
+        id: contactId,
+        display_name: 'Ada Byron',
+        primary_email: 'Ada@Analytical.Example',
+        updated_at: '2026-05-24T00:00:00.000Z',
+      },
+    }, {
+      existingContact: { id: contactId },
+    });
+
+    const res = await PATCH(patchRequest({
+      id: contactId,
+      email: ' Ada@Analytical.Example ',
+    }));
+
+    expect(res.status).toBe(200);
+    expect(updateCalls).toHaveLength(1);
+    expect(updateCalls[0].row).toEqual(expect.objectContaining({
+      primary_email: 'Ada@Analytical.Example',
+      dedupe_email_key: 'ada@analytical.example',
+      dedupe_domain_key: 'analytical.example',
+    }));
+    expect(insertCalls).toHaveLength(1);
   });
 
   it('rejects out-of-scope PATCH fields mixed with valid spec fields before CRM Supabase access', async () => {

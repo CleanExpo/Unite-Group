@@ -309,6 +309,32 @@ describe('evaluateCrmApprovalLifecycle', () => {
     expect(result.reasons.join(' ')).toContain('Board/Phill review');
     expect(result.reasons.join(' ')).not.toContain('BOARD-HIGH-RISK-PADDED-1');
   });
+
+  it('normalizes case-variant subjectType values to their canonical lowercase form so a known type is not misclassified as invalid', () => {
+    const result = evaluateCrmApprovalLifecycle({
+      ...baseInput,
+      subjectType: 'LEAD_CONVERSION',
+      status: 'requested',
+    });
+
+    expect(result.subjectType).toBe('lead_conversion');
+    expect(result.normalizedStatus).toBe('requested');
+    expect(result.decision).toBe('await_approval');
+    expect(result.requiresPhillReview).toBe(true);
+  });
+
+  it('normalizes case-variant high-risk subjectType values so they remain high-risk and not misclassified as invalid', () => {
+    const result = evaluateCrmApprovalLifecycle({
+      ...baseInput,
+      subjectType: 'Data_Export',
+      status: 'requested',
+    });
+
+    expect(result.subjectType).toBe('data_export');
+    expect(result.normalizedStatus).toBe('requested');
+    expect(result.requiresPhillReview).toBe(true);
+    expect(result.reasons.join(' ')).toContain('high-risk');
+  });
 });
 
 describe('buildCrmApprovalLifecycleInputFromTaskEvidence', () => {

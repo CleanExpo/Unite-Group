@@ -3,7 +3,8 @@
 // Walks src/app/api/**/route.ts. For every mutating handler (POST / PUT /
 // PATCH / DELETE), confirms at least ONE protection pattern is present:
 //
-//   • Auth wrapper (withAuth / requireAuth / requireAdmin / verifyAdminJwt)
+//   • Auth wrapper (withAuth / requireAuth / requireAdmin / verifyAdminJwt /
+//     requireCrmLeadIntegrationAccess)
 //   • Server-side session check (supabase.auth.getSession / getUser)
 //   • Constant-time token / bearer match (timingSafeBearerMatch / timingSafeTokenMatch
 //     / withSyncLifecycle for cron lifecycle)
@@ -24,7 +25,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const AUTH_PATTERNS = [
-  /withAuth|requireAuth|requireAdmin|verifyAdminJwt|getServerSession|getAdminSession/,
+  /withAuth|requireAuth|requireAdmin|verifyAdminJwt|getServerSession|getAdminSession|requireCrmLeadIntegrationAccess/,
   /timingSafe(Bearer|Token)Match|withSyncLifecycle/,
   /supabase\.auth\.(getSession|getUser)/,
 ];

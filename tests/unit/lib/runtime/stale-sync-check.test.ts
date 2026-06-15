@@ -59,6 +59,144 @@ describe('checkStaleSyncs', () => {
     expect(result[0].reason).toBe('last_error');
   });
 
+  it('flags an integration error even when the next due timestamp has not passed', () => {
+    const rows: SyncStateRow[] = [
+      {
+        integration: 'supabase',
+        last_sync_status: 'error',
+        last_sync_completed_at: '2026-05-30T11:55:00.000Z',
+        next_sync_due_at: '2026-05-30T12:10:00.000Z',
+        rows_upserted: 0,
+        last_sync_error: 'Sync failed without exposing secrets',
+      },
+    ];
+    const result = checkStaleSyncs(rows, now, { supabase: 15 * 60_000 });
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      integration: 'supabase',
+      reason: 'last_error',
+      last_status: 'error',
+      minutes_overdue: 0,
+      last_error: 'Sync failed without exposing secrets',
+    });
+  });
+
+  it('flags an integration error even when next_sync_due_at is missing', () => {
+    const rows: SyncStateRow[] = [
+      {
+        integration: 'linear',
+        last_sync_status: 'error',
+        last_sync_completed_at: '2026-05-30T11:59:00.000Z',
+        next_sync_due_at: null,
+        rows_upserted: 0,
+        last_sync_error: 'Worker reported failure',
+      },
+    ];
+    const result = checkStaleSyncs(rows, now, { linear: 10 * 60_000 });
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      integration: 'linear',
+      reason: 'last_error',
+      minutes_overdue: 0,
+      last_error: 'Worker reported failure',
+    });
+  });
+
+  it('flags partial sync results with failure details before cadence is missed', () => {
+    const rows: SyncStateRow[] = [
+      {
+        integration: 'github',
+        last_sync_status: 'partial',
+        last_sync_completed_at: '2026-05-30T11:59:00.000Z',
+        next_sync_due_at: '2026-05-30T12:10:00.000Z',
+        rows_upserted: 7,
+        last_sync_error: 'repository_a: rate limited',
+      },
+    ];
+
+    const result = checkStaleSyncs(rows, now, { github: 15 * 60_000 });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      integration: 'github',
+      reason: 'last_error',
+      last_status: 'partial',
+      minutes_overdue: 0,
+      last_error: 'repository_a: rate limited',
+    });
+  });
+
+  it('clamps malformed next_sync_due_at error rows to zero overdue minutes', () => {
+    const rows: SyncStateRow[] = [
+      {
+        integration: 'github',
+        last_sync_status: 'error',
+        last_sync_completed_at: '2026-05-30T11:59:00.000Z',
+        next_sync_due_at: 'not-a-date',
+        rows_upserted: 0,
+        last_sync_error: 'Worker returned an invalid next sync timestamp',
+      },
+    ];
+
+    const result = checkStaleSyncs(rows, now, { github: 10 * 60_000 });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      integration: 'github',
+      reason: 'last_error',
+      minutes_overdue: 0,
+      last_error: 'Worker returned an invalid next sync timestamp',
+    });
+  });
+
+  it('falls back to completed_at plus cadence when next_sync_due_at is malformed on ok rows', () => {
+    const rows: SyncStateRow[] = [
+      {
+        integration: 'stripe',
+        last_sync_status: 'ok',
+        last_sync_completed_at: '2026-05-30T11:40:00.000Z',
+        next_sync_due_at: 'not-a-date',
+        rows_upserted: 12,
+        last_sync_error: null,
+      },
+    ];
+
+    const result = checkStaleSyncs(rows, now, { stripe: 10 * 60_000 });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      integration: 'stripe',
+      reason: 'missed_cadence',
+      last_status: 'ok',
+      minutes_overdue: 10,
+      last_error: null,
+    });
+  });
+
+  it('treats malformed last_sync_completed_at as no usable completed sync', () => {
+    const rows: SyncStateRow[] = [
+      {
+        integration: 'linear',
+        last_sync_status: 'ok',
+        last_sync_completed_at: 'not-a-date',
+        next_sync_due_at: null,
+        rows_upserted: 7,
+        last_sync_error: null,
+      },
+    ];
+
+    const result = checkStaleSyncs(rows, now, { linear: 5 * 60_000 });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      integration: 'linear',
+      reason: 'never_synced',
+      last_status: 'ok',
+      minutes_overdue: 0,
+      last_error: null,
+    });
+  });
+
   it('flags an integration that has never completed a sync', () => {
     const rows: SyncStateRow[] = [
       {

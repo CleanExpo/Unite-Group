@@ -43,6 +43,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'elevenlabs_signed_url_failed' }, { status: 502 });
     }
     const data = await upstream.json();
+    if (typeof data?.signed_url !== 'string' || data.signed_url.trim() === '') {
+      return NextResponse.json({ error: 'elevenlabs_signed_url_failed' }, { status: 502 });
+    }
+
     return NextResponse.json(
       {
         signed_url: data.signed_url,

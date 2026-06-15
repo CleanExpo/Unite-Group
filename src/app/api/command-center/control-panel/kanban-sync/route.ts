@@ -42,9 +42,21 @@ function laneFor(task: TaskRow) {
   return 'crm-task';
 }
 
+const SECRET_ASSIGNMENT_PATTERN = /\b([A-Za-z0-9_-]*(?:api[_-]?key|token|secret|password|passwd|service[_-]?role[_-]?key)[A-Za-z0-9_-]*)\s*=\s*(?:"[^"]*"|'[^']*'|[^\s;,]+)/gi;
+
+function redactKanbanText(value: string) {
+  return value
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[REDACTED]')
+    .replace(/\bBOARD-[A-Z0-9-]{4,}\b/gi, '[REDACTED]')
+    .replace(/\b(Bearer\s+)[^\s;,]+/gi, '$1[REDACTED]')
+    .replace(SECRET_ASSIGNMENT_PATTERN, '$1=[REDACTED]')
+    .replace(/\+?\d[\d\s().-]{8,}\d/g, '[REDACTED]')
+    .replace(/\b(?:Visa|Mastercard|Amex|card)\s+(?:card\s+)?(?:ending\s+)?\d{4}\b/gi, '[REDACTED]');
+}
+
 function bodyFor(task: TaskRow) {
   return [
-    task.description ?? task.title,
+    redactKanbanText(task.description ?? task.title),
     '',
     `CRM task: ${task.id}`,
     `CRM status: ${task.status}`,
@@ -60,10 +72,11 @@ function bodyFor(task: TaskRow) {
 }
 
 function toSyncPacket(task: TaskRow) {
+  const safeTitle = redactKanbanText(task.title);
   return {
     crmTaskId: task.id,
     idempotencyKey: `unite-crm-${task.id}`,
-    title: task.title,
+    title: safeTitle,
     lane: laneFor(task),
     status: task.status,
     priority: task.priority ?? 'normal',
@@ -72,7 +85,7 @@ function toSyncPacket(task: TaskRow) {
     obsidianPath: task.obsidian_path,
     updatedAt: task.updated_at ?? task.created_at,
     kanban: {
-      title: task.title,
+      title: safeTitle,
       body: bodyFor(task),
       status: task.status === 'blocked' ? 'blocked' : 'triage',
       priority: task.priority === 'high' ? 100 : 80,

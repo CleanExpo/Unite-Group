@@ -180,6 +180,7 @@ async function recordContactUpdatedTimelineEvent(
 async function existingContactConflictByEmail(
   supabase: ReturnType<typeof createClient<any>>,
   dedupeEmailKey: string | null,
+  currentContactId?: string,
 ) {
   if (!dedupeEmailKey) return false;
 
@@ -195,7 +196,9 @@ async function existingContactConflictByEmail(
     throw new Error('crm_contact_duplicate_check_failed');
   }
 
-  return Boolean(data && typeof data === 'object' && 'id' in data);
+  if (!data || typeof data !== 'object' || !('id' in data)) return false;
+
+  return (data as { id?: unknown }).id !== currentContactId;
 }
 
 export async function POST(request: NextRequest) {
@@ -368,6 +371,13 @@ export async function PATCH(request: NextRequest) {
   );
 
   try {
+    if (
+      typeof updatePayload.dedupe_email_key === 'string'
+      && await existingContactConflictByEmail(supabase, updatePayload.dedupe_email_key, contact.id)
+    ) {
+      return NextResponse.json({ error: 'crm_contact_conflict' }, { status: 409 });
+    }
+
     const { data, error } = await supabase
       .from('crm_contacts')
       .update(updatePayload)

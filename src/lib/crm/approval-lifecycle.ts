@@ -124,7 +124,7 @@ function isKnownSubjectType(subjectType: string): subjectType is CrmApprovalSubj
 }
 
 function normalizedSubjectType(subjectType: string): CrmApprovalLifecycleSubjectType {
-  const cleanedSubjectType = clean(subjectType);
+  const cleanedSubjectType = clean(subjectType).toLowerCase();
   return isKnownSubjectType(cleanedSubjectType) ? cleanedSubjectType : 'invalid';
 }
 

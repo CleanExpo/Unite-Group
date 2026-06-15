@@ -86,6 +86,20 @@ describe('GET /api/pi-ceo/margot-voice/signed-url', () => {
     expect(await res.json()).toEqual({ error: 'elevenlabs_unreachable' });
   });
 
+  it('returns 502 when ElevenLabs returns OK without a signed_url', async () => {
+    jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ conversation_id: 'conv_missing_url' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
+
+    const res = await GET(req());
+
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({ error: 'elevenlabs_signed_url_failed' });
+  });
+
   it('returns a signed url without exposing the api key', async () => {
     const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue(
       new Response(

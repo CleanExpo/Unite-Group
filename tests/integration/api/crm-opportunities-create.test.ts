@@ -24,10 +24,12 @@ type SelectCall = { table: string; columns?: string };
 type QueryCall =
   | { table: string; method: 'select'; columns?: string }
   | { table: string; method: 'eq'; column: string; value: unknown }
+  | { table: string; method: 'or'; filters: string }
   | { table: string; method: 'limit'; count: number }
   | { table: string; method: 'maybeSingle' };
 type SupabaseQueryMock = {
   eq: jest.Mock;
+  or: jest.Mock;
   limit: jest.Mock;
   maybeSingle: jest.Mock;
 };
@@ -93,6 +95,10 @@ function mockOpportunityInsert(
       query = {
         eq: jest.fn((column: string, value: unknown) => {
           options.queryCalls?.push({ table, method: 'eq', column, value });
+          return query;
+        }),
+        or: jest.fn((filters: string) => {
+          options.queryCalls?.push({ table, method: 'or', filters });
           return query;
         }),
         limit: jest.fn((count: number) => {
@@ -509,6 +515,54 @@ describe('POST /api/crm/opportunities', () => {
     expect(mockFrom).not.toHaveBeenCalled();
   });
 
+  it('inserts a multi-link opportunity only when full operator approval evidence is present', async () => {
+    const calls: InsertCall[] = [];
+    const selectCalls: SelectCall[] = [];
+    const queryCalls: QueryCall[] = [];
+    mockOpportunityInsert(calls, selectCalls, {}, { queryCalls });
+
+    const res = await POST(request({
+      name: 'Margot CRM Buildout',
+      linkedLeadId: leadId,
+      linkedClientId: clientId,
+      approvalRequired: true,
+      approvalStatus: 'approved',
+      boardApprovalId: 'BOARD-CROSS-SCOPE-APPROVED',
+    }));
+
+    expect(res.status).toBe(201);
+    expect(calls).toHaveLength(3);
+    expect(calls[0]).toEqual({
+      table: 'crm_opportunities',
+      row: expect.objectContaining({
+        name: 'Margot CRM Buildout',
+        linked_lead_id: leadId,
+        linked_client_id: clientId,
+        approval_required: true,
+        approval_status: 'approved',
+      }),
+    });
+    expect(calls[0].row).not.toHaveProperty('boardApprovalId');
+    expect(calls[0].row).not.toHaveProperty('board_approval_id');
+    expect(queryCalls).toEqual([
+      { table: 'crm_opportunities', method: 'select', columns: 'id' },
+      { table: 'crm_opportunities', method: 'eq', column: 'name', value: 'Margot CRM Buildout' },
+      {
+        table: 'crm_opportunities',
+        method: 'or',
+        filters: `linked_lead_id.eq.${leadId},linked_client_id.eq.${clientId}`,
+      },
+      { table: 'crm_opportunities', method: 'limit', count: 1 },
+      { table: 'crm_opportunities', method: 'maybeSingle' },
+    ]);
+    expect(selectCalls).toEqual([
+      { table: 'crm_opportunities', columns: 'id' },
+      { table: 'crm_opportunities', columns: OPPORTUNITY_SELECT_COLUMNS },
+      { table: 'agent_actions', columns: 'id' },
+      { table: 'agent_actions', columns: 'id' },
+    ]);
+  });
+
   it('returns 403 operator_approval_required and does not insert for won status without approval', async () => {
     const res = await POST(request({
       name: 'Margot CRM Buildout',
@@ -651,6 +705,48 @@ describe('POST /api/crm/opportunities', () => {
     ]);
     expect(mockFrom).not.toHaveBeenCalledWith('agent_actions');
     expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  it('checks every supplied scoped link before approved multi-link opportunity insert', async () => {
+    const calls: InsertCall[] = [];
+    const selectCalls: SelectCall[] = [];
+    const queryCalls: QueryCall[] = [];
+    mockOpportunityInsert(calls, selectCalls, {}, { queryCalls });
+
+    const res = await POST(request({
+      name: 'Margot CRM Buildout',
+      linkedLeadId: leadId,
+      linkedContactId: contactId,
+      linkedClientId: clientId,
+      linkedBusinessId: businessId,
+      approvalRequired: true,
+      approvalStatus: 'approved',
+      boardApprovalId: 'BOARD-CROSS-SCOPE-APPROVED',
+    }));
+
+    expect(res.status).toBe(201);
+    expect(calls[0]).toEqual({
+      table: 'crm_opportunities',
+      row: expect.objectContaining({
+        linked_lead_id: leadId,
+        linked_contact_id: contactId,
+        linked_client_id: clientId,
+        linked_business_id: businessId,
+        approval_required: true,
+        approval_status: 'approved',
+      }),
+    });
+    expect(queryCalls).toEqual([
+      { table: 'crm_opportunities', method: 'select', columns: 'id' },
+      { table: 'crm_opportunities', method: 'eq', column: 'name', value: 'Margot CRM Buildout' },
+      {
+        table: 'crm_opportunities',
+        method: 'or',
+        filters: `linked_lead_id.eq.${leadId},linked_contact_id.eq.${contactId},linked_client_id.eq.${clientId},linked_business_id.eq.${businessId}`,
+      },
+      { table: 'crm_opportunities', method: 'limit', count: 1 },
+      { table: 'crm_opportunities', method: 'maybeSingle' },
+    ]);
   });
 
   it('returns 500 crm_opportunity_duplicate_check_failed when duplicate lookup errors before insert without raw error logging', async () => {

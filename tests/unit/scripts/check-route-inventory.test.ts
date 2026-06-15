@@ -19,4 +19,15 @@ describe('scripts/check-route-inventory', () => {
     expect(`${result.stdout}\n${result.stderr}`).not.toContain('/api/telegram/approval-callback');
     expect(result.status).toBe(0);
   });
+
+  it('treats the DR/NRPG CRM lead integration gate as a protected mutating route', () => {
+    const result = spawnSync('npx', SECURITY_ROUTE_CHECK_COMMAND, {
+      cwd: process.cwd(),
+      env: { ...process.env, ROUTE_INVENTORY_ALLOWLIST: '' },
+      encoding: 'utf8',
+    });
+
+    expect(`${result.stdout}\n${result.stderr}`).not.toContain('/api/integrations/dr-nrpg/crm/leads');
+    expect(result.status).toBe(0);
+  });
 });

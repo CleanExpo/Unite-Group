@@ -360,17 +360,23 @@ async function existingOpportunityConflict(
     ['linked_business_id', opportunity.linkedBusinessId],
   ] as const;
 
-  const firstScopedLink = linkChecks.find(([, value]) => typeof value === 'string' && value.length > 0);
-  if (!firstScopedLink) return false;
+  const scopedLinks = linkChecks.filter((link): link is readonly [typeof linkChecks[number][0], string] => (
+    typeof link[1] === 'string' && link[1].length > 0
+  ));
+  if (scopedLinks.length === 0) return false;
 
-  const [linkColumn, linkValue] = firstScopedLink;
-  const { data, error } = await supabase
+  let query = supabase
     .from('crm_opportunities')
     .select('id')
-    .eq('name', opportunity.name)
-    .eq(linkColumn, linkValue)
-    .limit(1)
-    .maybeSingle();
+    .eq('name', opportunity.name);
+
+  if (scopedLinks.length === 1) {
+    query = query.eq(scopedLinks[0][0], scopedLinks[0][1]);
+  } else {
+    query = query.or(scopedLinks.map(([column, value]) => `${column}.eq.${value}`).join(','));
+  }
+
+  const { data, error } = await query.limit(1).maybeSingle();
 
   if (error) {
     console.error('Error checking CRM opportunity duplicate');

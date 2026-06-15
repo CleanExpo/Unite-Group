@@ -1,0 +1,106 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Login console security illustration</title>
+  <desc id="desc">Dark internal CRM console artwork with cyan command-centre panels and an amber security scan warning.</desc>
+  <defs>
+    <radialGradient id="cyanGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00F5FF" stop-opacity="0.42"/>
+      <stop offset="52%" stop-color="#00F5FF" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#00F5FF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="amberGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFB020" stop-opacity="0.38"/>
+      <stop offset="65%" stop-color="#FFB020" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#FFB020" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#121820" stop-opacity="0.92"/>
+      <stop offset="100%" stop-color="#06080B" stop-opacity="0.88"/>
+    </linearGradient>
+    <linearGradient id="line" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#00F5FF" stop-opacity="0"/>
+      <stop offset="45%" stop-color="#00F5FF" stop-opacity="0.92"/>
+      <stop offset="100%" stop-color="#00F5FF" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="blur24"><feGaussianBlur stdDeviation="24"/></filter>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="22" stdDeviation="30" flood-color="#000000" flood-opacity="0.58"/>
+    </filter>
+    <pattern id="grid" width="56" height="56" patternUnits="userSpaceOnUse">
+      <path d="M 56 0 L 0 0 0 56" stroke="#1B2730" stroke-width="1" opacity="0.42"/>
+    </pattern>
+  </defs>
+
+  <rect width="1600" height="900" fill="#050505"/>
+  <rect width="1600" height="900" fill="url(#grid)" opacity="0.72"/>
+  <circle cx="1110" cy="410" r="420" fill="url(#cyanGlow)" filter="url(#blur24)"/>
+  <circle cx="1265" cy="672" r="210" fill="url(#amberGlow)" filter="url(#blur24)"/>
+
+  <!-- Left-side negative space for login form overlay -->
+  <rect x="0" y="0" width="620" height="900" fill="url(#panel)" opacity="0.28"/>
+  <path d="M620 0V900" stroke="#00F5FF" stroke-opacity="0.10"/>
+
+  <!-- Command centre orbit lines -->
+  <path d="M720 218 C910 130 1145 156 1324 290 C1440 378 1476 514 1398 634 C1295 790 1040 815 834 705" stroke="url(#line)" stroke-width="2" opacity="0.62"/>
+  <path d="M770 640 C900 732 1110 736 1276 620 C1425 516 1420 346 1280 255" stroke="#00F5FF" stroke-opacity="0.18" stroke-width="2"/>
+
+  <!-- Main secure gateway panel -->
+  <g filter="url(#shadow)">
+    <rect x="785" y="196" width="548" height="508" rx="18" fill="url(#panel)" stroke="#21323B"/>
+    <rect x="805" y="216" width="508" height="54" rx="12" fill="#090D11" stroke="#17313A"/>
+    <circle cx="833" cy="243" r="6" fill="#00F5FF"/>
+    <circle cx="856" cy="243" r="6" fill="#25434A"/>
+    <circle cx="879" cy="243" r="6" fill="#25434A"/>
+    <rect x="926" y="235" width="238" height="16" rx="8" fill="#12222A"/>
+    <rect x="926" y="235" width="154" height="16" rx="8" fill="#00F5FF" opacity="0.58"/>
+
+    <!-- Shield -->
+    <path d="M1058 318 L1184 368 V472 C1184 560 1122 617 1058 642 C994 617 932 560 932 472 V368 L1058 318Z" fill="#071015" stroke="#00F5FF" stroke-width="3"/>
+    <path d="M1058 353 L1145 388 V470 C1145 531 1105 574 1058 596 C1011 574 971 531 971 470 V388 L1058 353Z" fill="#091820" stroke="#00F5FF" stroke-opacity="0.34"/>
+    <circle cx="1058" cy="466" r="48" fill="#061014" stroke="#00F5FF" stroke-opacity="0.62"/>
+    <path d="M1037 467 L1052 482 L1082 446" stroke="#00F5FF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Console rows -->
+    <rect x="835" y="610" width="444" height="48" rx="10" fill="#080B0F" stroke="#1D2C34"/>
+    <rect x="858" y="630" width="116" height="8" rx="4" fill="#00F5FF" opacity="0.76"/>
+    <rect x="1000" y="630" width="84" height="8" rx="4" fill="#31444C"/>
+    <rect x="1110" y="630" width="142" height="8" rx="4" fill="#31444C"/>
+  </g>
+
+  <!-- Side cards -->
+  <g filter="url(#shadow)">
+    <rect x="680" y="306" width="232" height="136" rx="16" fill="#070B0F" stroke="#19313A"/>
+    <rect x="704" y="330" width="74" height="10" rx="5" fill="#00F5FF" opacity="0.75"/>
+    <rect x="704" y="360" width="164" height="8" rx="4" fill="#2A3A42"/>
+    <rect x="704" y="384" width="118" height="8" rx="4" fill="#2A3A42"/>
+    <path d="M704 416H874" stroke="#00F5FF" stroke-opacity="0.28"/>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="1192" y="568" width="274" height="128" rx="16" fill="#090B0D" stroke="#45361A"/>
+    <circle cx="1228" cy="604" r="15" fill="#FFB020" opacity="0.92"/>
+    <path d="M1228 593V608" stroke="#050505" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="1228" cy="615" r="2" fill="#050505"/>
+    <rect x="1260" y="594" width="112" height="10" rx="5" fill="#FFB020" opacity="0.78"/>
+    <rect x="1260" y="626" width="166" height="8" rx="4" fill="#3D3321"/>
+    <rect x="1260" y="650" width="122" height="8" rx="4" fill="#3D3321"/>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="1326" y="276" width="170" height="172" rx="16" fill="#070B0F" stroke="#18313A"/>
+    <path d="M1366 374 L1396 405 L1460 331" stroke="#00F5FF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity="0.86"/>
+    <rect x="1350" y="302" width="96" height="8" rx="4" fill="#2B3D45"/>
+    <rect x="1350" y="424" width="108" height="8" rx="4" fill="#2B3D45"/>
+  </g>
+
+  <!-- Data points -->
+  <g opacity="0.72">
+    <circle cx="717" cy="219" r="4" fill="#00F5FF"/>
+    <circle cx="1396" cy="634" r="4" fill="#00F5FF"/>
+    <circle cx="1276" cy="620" r="4" fill="#FFB020"/>
+    <circle cx="834" cy="705" r="4" fill="#00F5FF"/>
+    <path d="M717 219H820" stroke="#00F5FF" stroke-opacity="0.22"/>
+    <path d="M1276 620H1192" stroke="#FFB020" stroke-opacity="0.28"/>
+  </g>
+
+  <!-- Subtle vignette -->
+  <rect width="1600" height="900" fill="url(#panel)" opacity="0.08"/>
+  <path d="M0 880H1600" stroke="#00F5FF" stroke-opacity="0.12"/>
+</svg>

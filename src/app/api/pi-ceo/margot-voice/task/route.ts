@@ -41,6 +41,14 @@ function asStringRecord(value: unknown): Record<string, string> {
   );
 }
 
+function normalizeRiskLevel(value: unknown): 'low' | 'medium' | 'high' | 'critical' | 'unknown' {
+  const riskLevel = asString(value).toLowerCase();
+  if (!riskLevel) return 'low';
+  return riskLevel === 'low' || riskLevel === 'medium' || riskLevel === 'high' || riskLevel === 'critical'
+    ? riskLevel
+    : 'unknown';
+}
+
 function validatePacket(value: unknown): VoicePacket | null {
   if (!isRecord(value)) return null;
 
@@ -59,7 +67,7 @@ function validatePacket(value: unknown): VoicePacket | null {
     requested_outcome: asString(value.requested_outcome) || summary,
     business_context: asString(value.business_context) || 'unite-group',
     route: asString(value.route) || 'unite_crm',
-    risk_level: asString(value.risk_level) || 'low',
+    risk_level: normalizeRiskLevel(value.risk_level),
     approval_required: value.approval_required === true,
     approval_reason: asString(value.approval_reason),
     actions: asRecordArray(value.actions),
@@ -104,7 +112,8 @@ export async function POST(req: NextRequest) {
 
   const supabase = createClient(supabaseUrl, serviceKey);
   const status = packet.approval_required ? 'blocked' : 'todo';
-  const priority = packet.approval_required || packet.risk_level === 'high' ? 'high' : 'normal';
+  const highPriorityRisk = packet.risk_level === 'high' || packet.risk_level === 'critical' || packet.risk_level === 'unknown';
+  const priority = packet.approval_required || highPriorityRisk ? 'high' : 'normal';
   const tags = [
     'margot-voice',
     packet.business_context,

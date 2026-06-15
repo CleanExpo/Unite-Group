@@ -5,14 +5,19 @@
 // PR-1 shipped Zones 1 + 2 LIVE.
 // PR-2 shipped Zone 3 — the agent-topology centrepiece.
 // PR-3 (this commit) lands Zones 4 + 5 (Business 360 + Activity Log).
-//
+// PR-4 (this commit) route-level lazy-loads the daily CRM digest panel so
+// the shell bundle stays shallow and the digest can be loaded after the
+// heavier topology/Business360 surfaces.
+
 // Per [[command-center-redesign-proposal-2026-05-14]] layout spec:
 //   Zone 1 — Global Status Bar (top, h-12)
 //   Zone 2 — KPI strip (below banner, grid of 5)
 //   Zone 3 — Working canvas (agent topology) — LIVE (PR-2)
 //   Zone 4 — Business 360 — LIVE (PR-3)
 //   Zone 5 — Live activity log — LIVE (PR-3)
+//   Zone 6 — Daily CRM digest moved to route-level lazy import (PR-4)
 
+import dynamic from 'next/dynamic';
 import { GlobalStatusBar, type GlobalStatusBarProps } from './GlobalStatusBar';
 import { KpiStrip, type KpiStripProps } from './KpiStrip';
 import { AgentTopology, type AgentTopologyProps } from './topology/AgentTopology';
@@ -20,8 +25,26 @@ import { Business360Grid, type Business360GridProps } from './business-360/Busin
 import { ActivityLog, type ActivityLogProps } from './activity/ActivityLog';
 import { MargotVoicePanel } from './voice/MargotVoicePanel';
 import { HermesControlPanel } from './control-panel/HermesControlPanel';
-import { DailyCrmDigestPanel } from './digest/DailyCrmDigestPanel';
+import { HermesDashboardWrapper } from './hermes-dashboard/HermesDashboardWrapper';
 import type { CommandCenterDailyDigestInitial } from './daily-digest-initial';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const DailyCrmDigestPanel = dynamic(
+  () =>
+    import('./digest/DailyCrmDigestPanel').then((mod) => ({
+      default: mod.DailyCrmDigestPanel,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="space-y-2 p-4">
+        <Skeleton className="h-4 w-3/4" />
+        <Skeleton className="h-4 w-1/2" />
+        <Skeleton className="h-4 w-5/6" />
+      </div>
+    ),
+  },
+);
 
 export interface CommandCenterShellProps {
   /**
@@ -88,6 +111,7 @@ export function CommandCenterShell({
         <div className="flex min-w-0 flex-col">
           <AgentTopology {...topologyInitial} />
           <HermesControlPanel dailyDigestInitial={dailyDigestInitial} />
+          <HermesDashboardWrapper />
         </div>
 
         <aside

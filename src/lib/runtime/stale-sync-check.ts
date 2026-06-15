@@ -33,8 +33,12 @@ export function checkStaleSyncs(
     const cadenceMs = cadenceMap[row.integration];
     if (!cadenceMs) continue; // unknown integration → skip
 
-    // Never synced
-    if (!row.last_sync_completed_at) {
+    const completedAt = row.last_sync_completed_at
+      ? Date.parse(row.last_sync_completed_at)
+      : Number.NaN;
+
+    // Never synced, or no usable completed-sync timestamp from the mirror.
+    if (!Number.isFinite(completedAt)) {
       stale.push({
         integration: row.integration,
         reason: 'never_synced',
@@ -45,19 +49,30 @@ export function checkStaleSyncs(
       continue;
     }
 
-    const completedAt = new Date(row.last_sync_completed_at).getTime();
-    const nextDue = row.next_sync_due_at
-      ? new Date(row.next_sync_due_at).getTime()
-      : completedAt + cadenceMs;
-
+    const explicitNextDue = row.next_sync_due_at ? Date.parse(row.next_sync_due_at) : Number.NaN;
+    const nextDue = Number.isFinite(explicitNextDue) ? explicitNextDue : completedAt + cadenceMs;
     const overdueMs = now.getTime() - nextDue;
+    const minutesOverdue = Number.isFinite(overdueMs)
+      ? Math.max(0, Math.floor(overdueMs / 60_000))
+      : 0;
 
-    if (overdueMs > 0) {
+    if (row.last_sync_status === 'error' || (row.last_sync_status === 'partial' && row.last_sync_error)) {
       stale.push({
         integration: row.integration,
-        reason: row.last_sync_status === 'error' ? 'last_error' : 'missed_cadence',
+        reason: 'last_error',
         last_status: row.last_sync_status,
-        minutes_overdue: Math.max(0, Math.floor(overdueMs / 60_000)),
+        minutes_overdue: minutesOverdue,
+        last_error: row.last_sync_error,
+      });
+      continue;
+    }
+
+    if (Number.isFinite(overdueMs) && overdueMs > 0) {
+      stale.push({
+        integration: row.integration,
+        reason: 'missed_cadence',
+        last_status: row.last_sync_status,
+        minutes_overdue: minutesOverdue,
         last_error: row.last_sync_error,
       });
     }

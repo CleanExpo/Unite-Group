@@ -15,6 +15,10 @@ async function linearRequest(query: string, variables: Record<string, unknown>) 
   return res.json();
 }
 
+function isValidPriority(priority: unknown): priority is number {
+  return typeof priority === 'number' && Number.isInteger(priority) && priority >= 0;
+}
+
 // GET /api/linear/issue?action=teams — get teams list
 // POST /api/linear/issue — create or update issue
 
@@ -62,6 +66,11 @@ export async function POST(req: NextRequest) {
     if (typeof title !== 'string' || title.trim().length === 0 || typeof teamId !== 'string' || teamId.trim().length === 0) {
       return NextResponse.json({ error: 'invalid_create_payload' }, { status: 400 });
     }
+    const trimmedTitle = title.trim();
+    const trimmedTeamId = teamId.trim();
+    if (priority !== undefined && !isValidPriority(priority)) {
+      return NextResponse.json({ error: 'invalid_create_payload' }, { status: 400 });
+    }
 
     const data = await linearRequest(`
       mutation CreateIssue($input: IssueCreateInput!) {
@@ -72,8 +81,8 @@ export async function POST(req: NextRequest) {
       }
     `, {
       input: {
-        title,
-        teamId,
+        title: trimmedTitle,
+        teamId: trimmedTeamId,
         description: description || '',
         priority: priority ?? 2,
       }
@@ -81,9 +90,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(data);
   }
 
-  if (action === 'update' && issueId) {
+  if (action === 'update') {
+    if (typeof issueId !== 'string' || issueId.trim().length === 0) {
+      return NextResponse.json({ error: 'invalid_update_payload' }, { status: 400 });
+    }
+    const trimmedIssueId = issueId.trim();
+
+    if (priority !== undefined && !isValidPriority(priority)) {
+      return NextResponse.json({ error: 'invalid_update_payload' }, { status: 400 });
+    }
+
     const updateInput: Record<string, unknown> = {};
     if (typeof state === 'string') {
+      const requestedState = state.trim().toLowerCase();
+      if (requestedState.length === 0) {
+        return NextResponse.json({ error: 'invalid_update_payload' }, { status: 400 });
+      }
+
+      if (typeof teamId !== 'string' || teamId.trim().length === 0) {
+        return NextResponse.json({ error: 'invalid_update_payload' }, { status: 400 });
+      }
+
+      const trimmedTeamId = teamId.trim();
+
       // Get state ID first
       const stateData = await linearRequest(`
         query GetStates($teamId: String!) {
@@ -91,15 +120,16 @@ export async function POST(req: NextRequest) {
             states { nodes { id name type } }
           }
         }
-      `, { teamId });
+      `, { teamId: trimmedTeamId });
       const states = stateData?.data?.team?.states?.nodes ?? [];
-      const requestedState = state.toLowerCase();
       const matchedState = states.find((s: { name: string }) =>
         s.name.toLowerCase().includes(requestedState)
       );
       if (matchedState) updateInput.stateId = matchedState.id;
     }
-    if (priority !== undefined) updateInput.priority = priority;
+    if (priority !== undefined) {
+      updateInput.priority = priority;
+    }
     if (Object.keys(updateInput).length === 0) {
       return NextResponse.json({ error: 'invalid_update_payload' }, { status: 400 });
     }
@@ -111,7 +141,7 @@ export async function POST(req: NextRequest) {
           issue { id identifier title url state { name } }
         }
       }
-    `, { id: issueId, input: updateInput });
+    `, { id: trimmedIssueId, input: updateInput });
     return NextResponse.json(data);
   }
 

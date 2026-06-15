@@ -202,6 +202,7 @@ describe('POST /api/integrations/dr-nrpg/crm/leads', () => {
 
   it('writes lead/contact/opportunity records once prod-write approval is explicitly allowed', async () => {
     process.env.DR_NRPG_CRM_LEAD_INTEGRATION_ALLOW_PROD_WRITES = 'true';
+    const infoSpy = jest.spyOn(console, 'info').mockImplementation(() => undefined);
 
     const leadMaybeSingle = jest.fn().mockResolvedValue({ data: null, error: null });
     const leadSelectExisting = jest.fn(() => ({ maybeSingle: leadMaybeSingle }));
@@ -226,12 +227,14 @@ describe('POST /api/integrations/dr-nrpg/crm/leads', () => {
     const opportunityInsertSingle = jest.fn().mockResolvedValue({ data: { id: 'opp-1' }, error: null });
     const opportunityInsertSelect = jest.fn(() => ({ single: opportunityInsertSingle }));
     const opportunityInsert = jest.fn(() => ({ select: opportunityInsertSelect }));
+    const timelineInsert = jest.fn().mockResolvedValue({ error: null });
 
     mockCreateClient.mockReturnValue({
       from: jest.fn((table: string) => {
         if (table === 'crm_leads') return { contains: leadContains, insert: leadInsert, update: leadUpdate };
         if (table === 'crm_contacts') return { select: contactSelectExisting, insert: contactInsert };
         if (table === 'crm_opportunities') return { contains: opportunityContains, insert: opportunityInsert };
+        if (table === 'agent_actions') return { insert: timelineInsert };
         throw new Error(`unexpected table ${table}`);
       }),
     });
@@ -279,10 +282,12 @@ describe('POST /api/integrations/dr-nrpg/crm/leads', () => {
       }),
     });
     expect(leadUpdateEq).toHaveBeenCalledWith('id', 'lead-1');
+    infoSpy.mockRestore();
   });
 
-  it('does not persist raw board approval references in CRM metadata', async () => {
+  it('records a sanitized lead_captured timeline action after DR/NRPG CRM sync', async () => {
     process.env.DR_NRPG_CRM_LEAD_INTEGRATION_ALLOW_PROD_WRITES = 'true';
+    const infoSpy = jest.spyOn(console, 'info').mockImplementation(() => undefined);
 
     const leadMaybeSingle = jest.fn().mockResolvedValue({ data: null, error: null });
     const leadSelectExisting = jest.fn(() => ({ maybeSingle: leadMaybeSingle }));
@@ -307,12 +312,85 @@ describe('POST /api/integrations/dr-nrpg/crm/leads', () => {
     const opportunityInsertSingle = jest.fn().mockResolvedValue({ data: { id: 'opp-1' }, error: null });
     const opportunityInsertSelect = jest.fn(() => ({ single: opportunityInsertSingle }));
     const opportunityInsert = jest.fn(() => ({ select: opportunityInsertSelect }));
+    const timelineInsert = jest.fn().mockResolvedValue({ error: null });
 
     mockCreateClient.mockReturnValue({
       from: jest.fn((table: string) => {
         if (table === 'crm_leads') return { contains: leadContains, insert: leadInsert, update: leadUpdate };
         if (table === 'crm_contacts') return { select: contactSelectExisting, insert: contactInsert };
         if (table === 'crm_opportunities') return { contains: opportunityContains, insert: opportunityInsert };
+        if (table === 'agent_actions') return { insert: timelineInsert };
+        throw new Error(`unexpected table ${table}`);
+      }),
+    });
+
+    const res = await POST(request({ ...validPayload, sourceId: 'BOARD-123' }, { 'x-board-approval-id': 'BOARD-999' }));
+
+    expect(res.status).toBe(201);
+    expect(timelineInsert).toHaveBeenCalledTimes(1);
+    const timelineRow = timelineInsert.mock.calls[0]?.[0];
+    expect(timelineRow).toMatchObject({
+      source: 'margot',
+      action_type: 'crm_timeline_lead_captured',
+      status: 'done',
+      payload: expect.objectContaining({
+        type: 'lead_captured',
+        category: 'lead',
+        subjectId: 'lead-1',
+        source: 'dr_contractor_portal',
+        metadata: expect.objectContaining({
+          sourceType: 'public_claim',
+          operatorGateSatisfied: true,
+        }),
+      }),
+    });
+    expect(timelineRow.payload.metadata).not.toHaveProperty('dedupeKey');
+    expect(JSON.stringify(timelineRow)).not.toContain('Ada@Example.COM');
+    expect(JSON.stringify(timelineRow)).not.toContain('ada@example.com');
+    expect(JSON.stringify(timelineRow)).not.toContain('+614****0000');
+    expect(JSON.stringify(timelineRow)).not.toContain('1 Flood St');
+    expect(JSON.stringify(timelineRow)).not.toContain('CLM-SECRET-123');
+    expect(JSON.stringify(timelineRow)).not.toContain('POL-SECRET-456');
+    expect(JSON.stringify(timelineRow)).not.toContain('BOARD-123');
+    expect(JSON.stringify(timelineRow)).not.toContain('BOARD-999');
+    infoSpy.mockRestore();
+  });
+
+  it('does not persist raw board approval references in CRM metadata', async () => {
+    process.env.DR_NRPG_CRM_LEAD_INTEGRATION_ALLOW_PROD_WRITES = 'true';
+    const infoSpy = jest.spyOn(console, 'info').mockImplementation(() => undefined);
+
+    const leadMaybeSingle = jest.fn().mockResolvedValue({ data: null, error: null });
+    const leadSelectExisting = jest.fn(() => ({ maybeSingle: leadMaybeSingle }));
+    const leadContains = jest.fn(() => ({ select: leadSelectExisting }));
+
+    const leadInsertSingle = jest.fn().mockResolvedValue({ data: { id: 'lead-1' }, error: null });
+    const leadInsertSelect = jest.fn(() => ({ single: leadInsertSingle }));
+    const leadInsert = jest.fn(() => ({ select: leadInsertSelect }));
+    const leadUpdateEq = jest.fn().mockResolvedValue({ error: null });
+    const leadUpdate = jest.fn(() => ({ eq: leadUpdateEq }));
+
+    const contactMaybeSingle = jest.fn().mockResolvedValue({ data: null, error: null });
+    const contactEq = jest.fn(() => ({ maybeSingle: contactMaybeSingle }));
+    const contactSelectExisting = jest.fn(() => ({ eq: contactEq }));
+    const contactInsertSingle = jest.fn().mockResolvedValue({ data: { id: 'contact-1' }, error: null });
+    const contactInsertSelect = jest.fn(() => ({ single: contactInsertSingle }));
+    const contactInsert = jest.fn(() => ({ select: contactInsertSelect }));
+
+    const opportunityMaybeSingle = jest.fn().mockResolvedValue({ data: null, error: null });
+    const opportunitySelectExisting = jest.fn(() => ({ maybeSingle: opportunityMaybeSingle }));
+    const opportunityContains = jest.fn(() => ({ select: opportunitySelectExisting }));
+    const opportunityInsertSingle = jest.fn().mockResolvedValue({ data: { id: 'opp-1' }, error: null });
+    const opportunityInsertSelect = jest.fn(() => ({ single: opportunityInsertSingle }));
+    const opportunityInsert = jest.fn(() => ({ select: opportunityInsertSelect }));
+    const timelineInsert = jest.fn().mockResolvedValue({ error: null });
+
+    mockCreateClient.mockReturnValue({
+      from: jest.fn((table: string) => {
+        if (table === 'crm_leads') return { contains: leadContains, insert: leadInsert, update: leadUpdate };
+        if (table === 'crm_contacts') return { select: contactSelectExisting, insert: contactInsert };
+        if (table === 'crm_opportunities') return { contains: opportunityContains, insert: opportunityInsert };
+        if (table === 'agent_actions') return { insert: timelineInsert };
         throw new Error(`unexpected table ${table}`);
       }),
     });
@@ -326,12 +404,15 @@ describe('POST /api/integrations/dr-nrpg/crm/leads', () => {
     });
     expect(leadPayload.additional_data.gate).not.toHaveProperty('board_approval_id');
     expect(JSON.stringify(leadPayload)).not.toContain('BOARD-123');
+    infoSpy.mockRestore();
   });
 
   it('returns existing CRM linkage for an idempotent replay instead of inserting duplicates', async () => {
     process.env.DR_NRPG_CRM_LEAD_INTEGRATION_ALLOW_PROD_WRITES = 'true';
+    const infoSpy = jest.spyOn(console, 'info').mockImplementation(() => undefined);
 
     const leadInsert = jest.fn();
+    const timelineInsert = jest.fn().mockResolvedValue({ error: null });
     const existingLead = {
       id: 'lead-existing',
       additional_data: {
@@ -339,14 +420,16 @@ describe('POST /api/integrations/dr-nrpg/crm/leads', () => {
         opportunity_id: 'opp-existing',
       },
     };
+    const fromSpy = jest.fn((table: string) => {
+      if (table === 'agent_actions') return { insert: timelineInsert };
+      if (table !== 'crm_leads') throw new Error(`unexpected table ${table}`);
+      return {
+        contains: () => ({ select: () => ({ maybeSingle: () => Promise.resolve({ data: existingLead, error: null }) }) }),
+        insert: leadInsert,
+      };
+    });
     mockCreateClient.mockReturnValue({
-      from: jest.fn((table: string) => {
-        if (table !== 'crm_leads') throw new Error(`unexpected table ${table}`);
-        return {
-          contains: () => ({ select: () => ({ maybeSingle: () => Promise.resolve({ data: existingLead, error: null }) }) }),
-          insert: leadInsert,
-        };
-      }),
+      from: fromSpy,
     });
 
     const res = await POST(request(validPayload, { 'x-board-approval-id': 'BOARD-123' }));
@@ -361,11 +444,15 @@ describe('POST /api/integrations/dr-nrpg/crm/leads', () => {
       opportunityId: 'opp-existing',
     });
     expect(leadInsert).not.toHaveBeenCalled();
+    expect(fromSpy).not.toHaveBeenCalledWith('agent_actions');
+    expect(timelineInsert).not.toHaveBeenCalled();
+    infoSpy.mockRestore();
   });
 
   it('classifies Supabase write failures as retryable without leaking policy or claim numbers', async () => {
     process.env.DR_NRPG_CRM_LEAD_INTEGRATION_ALLOW_PROD_WRITES = 'true';
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
 
     mockCreateClient.mockReturnValue({
       from: jest.fn((table: string) => {
@@ -394,6 +481,109 @@ describe('POST /api/integrations/dr-nrpg/crm/leads', () => {
     expect(logs).toContain('claim-123');
     expect(logs).not.toContain('CLM-SECRET-123');
     expect(logs).not.toContain('POL-SECRET-456');
+    expect(warnSpy).toHaveBeenCalledTimes(2);
+    warnSpy.mockRestore();
     consoleSpy.mockRestore();
+  });
+
+  it('retries transient CRM writes with structured retry and success logs that avoid raw PII', async () => {
+    process.env.DR_NRPG_CRM_LEAD_INTEGRATION_ALLOW_PROD_WRITES = 'true';
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const infoSpy = jest.spyOn(console, 'info').mockImplementation(() => undefined);
+
+    const leadMaybeSingle = jest.fn().mockResolvedValue({ data: null, error: null });
+    const leadInsertSingle = jest.fn()
+      .mockResolvedValueOnce({ data: null, error: { message: 'network timeout while writing lead' } })
+      .mockResolvedValueOnce({ data: { id: 'lead-1' }, error: null });
+    const leadUpdateEq = jest.fn().mockResolvedValue({ error: null });
+
+    const contactMaybeSingle = jest.fn().mockResolvedValue({ data: null, error: null });
+    const contactInsertSingle = jest.fn().mockResolvedValue({ data: { id: 'contact-1' }, error: null });
+    const opportunityMaybeSingle = jest.fn().mockResolvedValue({ data: null, error: null });
+    const opportunityInsertSingle = jest.fn().mockResolvedValue({ data: { id: 'opp-1' }, error: null });
+
+    mockCreateClient.mockReturnValue({
+      from: jest.fn((table: string) => {
+        if (table === 'crm_leads') {
+          return {
+            contains: () => ({ select: () => ({ maybeSingle: leadMaybeSingle }) }),
+            insert: () => ({ select: () => ({ single: leadInsertSingle }) }),
+            update: () => ({ eq: leadUpdateEq }),
+          };
+        }
+        if (table === 'crm_contacts') {
+          return {
+            select: () => ({ eq: () => ({ maybeSingle: contactMaybeSingle }) }),
+            insert: () => ({ select: () => ({ single: contactInsertSingle }) }),
+          };
+        }
+        if (table === 'crm_opportunities') {
+          return {
+            contains: () => ({ select: () => ({ maybeSingle: opportunityMaybeSingle }) }),
+            insert: () => ({ select: () => ({ single: opportunityInsertSingle }) }),
+          };
+        }
+        throw new Error(`unexpected table ${table}`);
+      }),
+    });
+
+    const res = await POST(request(validPayload, { 'x-board-approval-id': 'BOARD-123' }));
+    const json = await res.json();
+    const warnLogs = warnSpy.mock.calls.flat().join(' ');
+    const infoLogs = infoSpy.mock.calls.flat().join(' ');
+
+    expect(res.status).toBe(201);
+    expect(json).toMatchObject({ success: true, status: 'synced', retryable: false });
+    expect(leadInsertSingle).toHaveBeenCalledTimes(2);
+    expect(warnLogs).toContain('[DR_NRPG_CRM_LEAD_SYNC_RETRY]');
+    expect(warnLogs).toContain('insert_lead');
+    expect(warnLogs).toContain('attempt');
+    expect(warnLogs).toContain('nextDelayMs');
+    expect(infoLogs).toContain('[DR_NRPG_CRM_LEAD_SYNC_SUCCEEDED]');
+    expect(infoLogs).toContain('synced');
+    expect(`${warnLogs} ${infoLogs}`).toContain('claim-123');
+    expect(`${warnLogs} ${infoLogs}`).not.toContain('Ada@Example.COM');
+    expect(`${warnLogs} ${infoLogs}`).not.toContain('CLM-SECRET-123');
+    warnSpy.mockRestore();
+    infoSpy.mockRestore();
+  });
+
+  it('does not retry terminal validation failures and logs the terminal failure class once', async () => {
+    process.env.DR_NRPG_CRM_LEAD_INTEGRATION_ALLOW_PROD_WRITES = 'true';
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    const leadInsertSingle = jest.fn().mockResolvedValue({
+      data: null,
+      error: { message: 'foreign key constraint violation on crm_leads' },
+    });
+
+    mockCreateClient.mockReturnValue({
+      from: jest.fn((table: string) => {
+        if (table !== 'crm_leads') throw new Error(`unexpected table ${table}`);
+        return {
+          contains: () => ({ select: () => ({ maybeSingle: () => Promise.resolve({ data: null, error: null }) }) }),
+          insert: () => ({ select: () => ({ single: leadInsertSingle }) }),
+        };
+      }),
+    });
+
+    const res = await POST(request(validPayload, { 'x-board-approval-id': 'BOARD-123' }));
+    const json = await res.json();
+    const errorLogs = errorSpy.mock.calls.flat().join(' ');
+
+    expect(res.status).toBe(422);
+    expect(json).toMatchObject({
+      success: false,
+      error: 'crm_lead_sync_failed',
+      errorClass: 'terminal_validation_failure',
+      retryable: false,
+    });
+    expect(leadInsertSingle).toHaveBeenCalledTimes(1);
+    expect(warnSpy).not.toHaveBeenCalled();
+    expect(errorLogs).toContain('[DR_NRPG_CRM_LEAD_SYNC_FAILED]');
+    expect(errorLogs).toContain('terminal_validation_failure');
+    warnSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 });

@@ -8,9 +8,7 @@
 // Spec: Pi-CEO docs/superpowers/specs/2026-06-11-nexus-mesh-design.md
 import 'server-only';
 
-const PI_CEO_API_URL =
-  process.env.PI_CEO_API_URL ?? 'https://pi-dev-ops-production.up.railway.app';
-const PI_CEO_API_KEY = process.env.PI_CEO_API_KEY ?? '';
+const DEFAULT_PI_CEO_API_URL = 'https://pi-dev-ops-production.up.railway.app';
 
 export interface MeshRuntime {
   runtime: string;
@@ -70,9 +68,16 @@ export async function readFleet(): Promise<Fleet> {
     claims: [],
     fetchedAt: new Date().toISOString(),
   };
+  const piCeoApiKey = process.env.PI_CEO_API_KEY?.trim();
+  if (!piCeoApiKey) {
+    return { ...base, ok: false, error: 'pi-ceo api key not configured' };
+  }
+
+  const piCeoApiUrl = process.env.PI_CEO_API_URL?.trim() || DEFAULT_PI_CEO_API_URL;
+
   try {
-    const res = await fetch(`${PI_CEO_API_URL.replace(/\/$/, '')}/api/mesh/fleet`, {
-      headers: { 'X-Pi-CEO-Secret': PI_CEO_API_KEY },
+    const res = await fetch(`${piCeoApiUrl.replace(/\/$/, '')}/api/mesh/fleet`, {
+      headers: { 'X-Pi-CEO-Secret': piCeoApiKey },
       cache: 'no-store',
     });
     if (!res.ok) {

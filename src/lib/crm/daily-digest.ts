@@ -163,12 +163,28 @@ function buildBlockers(blockers: CrmDigestBlocker[]): string[] {
 function redactVerificationCommand(command: string): string {
   return command
     .replace(
-      /(\b[A-Z0-9_]*(?:SECRET|TOKEN|PASSWORD|PASSWD|API[_-]?KEY|SERVICE[_-]?ROLE[_-]?KEY)[A-Z0-9_]*=)(?:"[^"]*"|'[^']*'|\S+)/gi,
+      /(^|[\s;])([A-Z0-9_]*(?:SECRET|TOKEN|PASSWORD|PASSWD|API[_-]?KEY|SERVICE[_-]?ROLE[_-]?KEY)[A-Z0-9_]*=)(?:"[^"]*"|'[^']*'|\S+)/gi,
+      '$1$2[REDACTED]',
+    )
+    .replace(
+      /(\B--[A-Z0-9_-]*(?:SECRET|TOKEN|PASSWORD|PASSWD|API[-_]?KEY|SERVICE[-_]?ROLE[-_]?KEY)[A-Z0-9_-]*)(=|\s+)(?:"([^"]*)"|'([^']*)'|(\S+))/gi,
+      (_match: string, flag: string, separator: string, doubleQuoted?: string, singleQuoted?: string) => {
+        if (doubleQuoted !== undefined) return `${flag}${separator}"[REDACTED]"`;
+        if (singleQuoted !== undefined) return `${flag}${separator}'[REDACTED]'`;
+        return `${flag}${separator}[REDACTED]`;
+      },
+    )
+    .replace(
+      /((?:^|[\s"'=])(?:[A-Z0-9_-]*(?:SECRET|TOKEN|PASSWORD|PASSWD|API[-_]?KEY|SERVICE[-_]?ROLE[-_]?KEY)[A-Z0-9_-]*)(?::|=)\s*)([^\s"']+)(?=[\s"']|$)/gi,
       '$1[REDACTED]',
     )
     .replace(
-      /(\B--[A-Z0-9_-]*(?:SECRET|TOKEN|PASSWORD|PASSWD|API[-_]?KEY|SERVICE[-_]?ROLE[-_]?KEY)[A-Z0-9_-]*)(=|\s+)(?:"[^"]*"|'[^']*'|\S+)/gi,
-      '$1$2[REDACTED]',
+      /(Authorization[:=]\s*Bearer\s+)([^\s"']+)(?=[\s"']|$)/gi,
+      '$1[REDACTED]',
+    )
+    .replace(
+      /([?&][A-Z0-9_-]*(?:SECRET|TOKEN|PASSWORD|PASSWD|API[-_]?KEY|SERVICE[-_]?ROLE[-_]?KEY)[A-Z0-9_-]*=)([^\s"'&#]+)(?=[&#\s"']|$)/gi,
+      '$1[REDACTED]',
     );
 }
 

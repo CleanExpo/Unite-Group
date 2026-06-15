@@ -111,6 +111,68 @@ describe('/api/command-center/control-panel/kanban-sync', () => {
     });
   });
 
+  it('redacts sensitive CRM task text before returning Kanban sync packets', async () => {
+    const bearerCredential = ['sample', '.middle.segment'].join('');
+    const bearerRemainder = 'middle.segment';
+    const apiKeyAssignment = ['api', '_key=abc123'].join('');
+    const phoneNumber = ['+614', '12345678'].join('');
+    mockSelect([
+      {
+        ...task,
+        title: 'Approve ada@example.com BOARD-CRM-APPROVED',
+        description: `Use Authorization: Bearer ${bearerCredential}; ${apiKeyAssignment}; phone ${phoneNumber}; Visa card ending 4242.`,
+      },
+    ]);
+
+    const res = await GET(req());
+    const body = await res.json();
+    const serialized = JSON.stringify(body);
+
+    expect(res.status).toBe(200);
+    expect(body.pendingCount).toBe(1);
+    expect(body.tasks[0]).toMatchObject({
+      crmTaskId: 'task-1',
+      idempotencyKey: 'unite-crm-task-1',
+      lane: 'voice-intake',
+      status: 'todo',
+      priority: 'high',
+    });
+    expect(serialized).toContain('[REDACTED]');
+    expect(serialized).not.toContain('ada@example.com');
+    expect(serialized).not.toContain('BOARD-CRM-APPROVED');
+    expect(serialized).not.toContain(bearerCredential);
+    expect(serialized).not.toContain(bearerRemainder);
+    expect(serialized).not.toContain(apiKeyAssignment);
+    expect(serialized).not.toContain(phoneNumber);
+    expect(serialized).not.toContain('Visa card ending 4242');
+  });
+
+  it('redacts underscored and quoted secret assignments in Kanban sync packets', async () => {
+    const accessTokenAssignment = ['access', '_token="quoted token value"'].join('');
+    const clientSecretAssignment = ['client', '_secret=single-quoted-value'].join('');
+    const dbPasswordAssignment = ['db', '_password=plain-value'].join('');
+    mockSelect([
+      {
+        ...task,
+        title: 'Sync provider credential cleanup',
+        description: `Review ${accessTokenAssignment}; ${clientSecretAssignment}; ${dbPasswordAssignment} before handoff.`,
+      },
+    ]);
+
+    const res = await GET(req());
+    const body = await res.json();
+    const serialized = JSON.stringify(body);
+
+    expect(res.status).toBe(200);
+    expect(serialized).toContain('[REDACTED]');
+    expect(serialized).not.toContain(accessTokenAssignment);
+    expect(serialized).not.toContain(clientSecretAssignment);
+    expect(serialized).not.toContain(dbPasswordAssignment);
+    expect(serialized).not.toContain('quoted token value');
+    expect(serialized).not.toContain('single-quoted-value');
+    expect(serialized).not.toContain('plain-value');
+  });
+
   it('filters tasks already synced after their last update', async () => {
     mockSelect([
       {
