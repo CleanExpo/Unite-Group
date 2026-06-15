@@ -1,5 +1,44 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 13:04 AEST
+
+### Tick 20260615_1304 — CRM daily-digest verification secret redaction slice
+
+Lane: bounded Senior PM CRM digest hardening on the local pure `createCrmDailyDigest` helper. Goal was to stop operator-facing digest verification copy from echoing secret-shaped env assignment values if a future evidence command accidentally includes one.
+
+Completed:
+- Preflighted existing in-progress branch/worktree: `mesh/mission-control-2026-06-11`, inherited broad dirty/untracked worktree, upstream ahead/behind `0\t139` before the slice and `0\t140` after the local commit, `gh` auth unavailable, Vercel CLI `54.4.1` authenticated but not used for deploy/status mutation, and no open PR state available from `gh`. Continued the existing lane; did not start a new branch.
+- Re-read the Senior PM / connected-teams CRM source-of-truth set, current command-center/progress/morning surfaces, package scripts, and the CRM digest helper/test surfaces before selecting this small local read-surface hardening lane.
+- RED: added `redacts secret-shaped values from verification command copy` to `tests/unit/lib/crm/daily-digest.test.ts`; focused Jest failed as expected because `sections.verification` returned `SUPABASE_SERVICE_ROLE_KEY=super-secret-service-role-token` verbatim.
+- GREEN: added `redactVerificationCommand` in `src/lib/crm/daily-digest.ts` and routed verification command copy through it so env-style keys containing `SECRET`, `TOKEN`, `PASSWORD`, `PASSWD`, `API_KEY`, or `SERVICE_ROLE_KEY` emit `[REDACTED]` instead of the value.
+- Committed the local code/test slice as `6ae9ce56 test(crm): redact digest verification secrets`. The two-file commit also includes the already-present uncommitted CRM stale-integration digest wording/NaN guard from the inherited dirty file; the focused verification suite covers both surfaces.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 13:04:50 AEST`.
+- RED focused Jest: `npx jest tests/unit/lib/crm/daily-digest.test.ts --runInBand --testNamePattern='redacts secret-shaped values'` -> FAIL before helper change; expected `[REDACTED]`, received raw synthetic secret-shaped value.
+- GREEN focused Jest: same command -> PASS, 1 selected test / 5 skipped.
+- Focused CRM digest suite: `npx jest tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-mappers.test.ts tests/unit/lib/crm/digest-read-error.test.ts --runInBand` -> PASS, 3 suites / 25 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check && echo git_diff_check=pass` -> `git_diff_check=pass`.
+- Static added-line scan over `src/lib/crm/daily-digest.ts` and `tests/unit/lib/crm/daily-digest.test.ts` -> `static_added_line_scan=pass`.
+- `npm run build` -> PASS. Existing/non-blocking warnings unchanged: deprecated `middleware` convention, Turbopack NFT trace for `next.config.js` via `src/app/api/telegram/approval-callback/route.ts`, missing optional Sentry auth/source-map token, and missing Railway/DigitalOcean/Vercel/GitHub/Stripe integration env tokens during static generation.
+- Independent reviewer: `passed=true`, `security_concerns=[]`, `logic_errors=[]`; suggestions only to consider later redaction for CLI flags/inline arguments and to document additional stale-integration reason mappings if more codes are added.
+
+Files changed:
+- `src/lib/crm/daily-digest.ts`
+- `tests/unit/lib/crm/daily-digest.test.ts`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication beyond the local commit, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- Branch remains far ahead of origin and the worktree remains broadly inherited/dirty; no push/PR/merge was attempted because `gh` auth was unavailable in this shell and this branch is not a clean publication lane.
+
+Next safe lane: add a focused follow-up for CLI-flag/Bearer-token verification redaction if selected, or rotate to another changed read-surface test from the inherited dirty worktree (voice task, sandbox-wizard credential boundary, homepage/metadata, or command-center surfaces) with strict RED-GREEN evidence.
+
 ## 2026-06-15 12:22 AEST
 
 ### Tick 20260615_1222 — DR/NRPG approval metadata redaction slice

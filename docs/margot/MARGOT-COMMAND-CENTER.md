@@ -2,7 +2,16 @@
 |Date: 2026-05-23
 |Project: Unite-Group
 |Root: `/Users/phillmcgurk/Unite-Group`
-|Last update: 2026-06-15 12:22 AEST — DR/NRPG approval metadata redaction slice
+|Last update: 2026-06-15 13:04 AEST — CRM daily-digest verification secret redaction slice
+
+## Current Autonomy Rotation Guard — 2026-06-15 13:04 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at local code/test commit `6ae9ce56` (`test(crm): redact digest verification secrets`); preflight showed inherited broad dirty/untracked worktree, `gh` auth unavailable, Vercel CLI `54.4.1` authenticated but not used for deploy/status mutation, and upstream ahead/behind `0\t140` after the commit. No push, PR, merge, deploy, env mutation, or destructive git action was attempted.
+- Completed safe Senior PM lane: used strict RED-GREEN on the local pure CRM daily-digest helper. Added a failing verification-copy test that proved env-style `SUPABASE_SERVICE_ROLE_KEY=...` values were echoed into `sections.verification` and digest markdown; then added `redactVerificationCommand` so secret-shaped env assignment values are rendered as `[REDACTED]`.
+- Verification: RED focused Jest failed before the helper change with the raw synthetic secret-shaped value; GREEN focused Jest passed; `npx jest tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-mappers.test.ts tests/unit/lib/crm/digest-read-error.test.ts --runInBand` -> PASS (3 suites / 25 tests); `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check` -> PASS; static added-line scan -> PASS; `npm run build` -> PASS with existing warnings only.
+- Review/evidence: independent reviewer returned `passed=true`, no security concerns, no logic errors; suggestions only to consider future CLI-flag/Bearer-token redaction and document future stale-integration reason mappings. Files changed in the code/test commit: `src/lib/crm/daily-digest.ts` and `tests/unit/lib/crm/daily-digest.test.ts`.
+- Safety: no sandbox wizard subcommand, production DB write/migration, Vercel deploy/env mutation, source-control publication beyond the local commit, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- Next safe lane: add a focused CLI-flag/Bearer-token verification-redaction follow-up if selected, or rotate to another changed read-surface test from the inherited dirty worktree.
 
 ## Current Autonomy Rotation Guard — 2026-06-15 12:22 AEST
 
