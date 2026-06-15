@@ -199,7 +199,8 @@ describe('POST /api/crm/leads/[id]/convert', () => {
     const res = await POST(request({ dryRun: true }), context());
 
     expect(res.status).toBe(200);
-    expect(await res.json()).toMatchObject({
+    const body = await res.json();
+    expect(body).toMatchObject({
       success: true,
       dry_run: true,
       lead_id: leadId,
@@ -220,6 +221,8 @@ describe('POST /api/crm/leads/[id]/convert', () => {
         },
       }),
     });
+    expect(body).not.toHaveProperty('board_approval_id');
+    expect(JSON.stringify(body)).not.toContain('BOARD-CRM-APPROVED');
     expect(updateBuilder.update).not.toHaveBeenCalled();
     expect(timelineCalls).toEqual([]);
   });

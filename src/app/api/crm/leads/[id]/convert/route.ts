@@ -162,7 +162,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
         planned_timeline_event: buildCrmTimelineAgentActionInsert(
           buildLeadConversionTimelineEvent(lead, parsed.data.targetClientId),
         ).payload,
-        board_approval_id: parsed.data.boardApprovalId,
       },
       { status: 200 },
     );
