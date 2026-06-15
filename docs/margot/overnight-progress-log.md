@@ -1,5 +1,40 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 20:34 AEST
+
+### Tick 20260615_2034 — CRM opportunity multi-link duplicate lookup guard
+
+Lane: bounded CRM opportunities identity/scope hardening. Goal was to close the next safe follow-up from the prior opportunity approval slice: approved multi-link opportunity creation now checks every supplied scoped link for same-name duplicates before insert, rather than checking only the first supplied link. No production write, provider call, sandbox wizard action, deploy, env mutation, or client-facing action was needed or attempted.
+
+Completed:
+- Preflighted repo state: branch `mesh/mission-control-2026-06-11`; `HEAD=bd74b475`; `git rev-list --count main..origin/main` -> `10`; inherited broad dirty/untracked worktree remains.
+- Re-read the Senior PM read-first set, Linear mirror, AI-RET-001 evidence (`overallStatus=pass`, source `8/8`, answerShape `106/106`), current command-center/progress/morning surfaces, and the CRM opportunities route/test surface before selecting this small identity-boundary lane.
+- RED: added a focused assertion that approved multi-link creates must run the duplicate lookup across every supplied scoped link; the focused Jest gate failed before the route change because the query only checked `linked_lead_id`.
+- GREEN: changed `existingOpportunityConflict` to preserve the single-link `.eq(...)` path and use a scoped `.or(...)` filter across all supplied links when multiple identities are present. Added a four-link regression covering lead/contact/client/business together.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 20:33:54 AEST`.
+- RED focused Jest: `npx jest tests/integration/api/crm-opportunities-create.test.ts --runInBand --testNamePattern='checks every supplied scoped link|inserts a multi-link opportunity only'` -> FAIL before route change; expected `.or(...)`, received first-link-only `.eq('linked_lead_id', ...)`.
+- GREEN focused Jest: same command -> PASS, 2 selected tests / 33 skipped.
+- Full opportunities suite: `npx jest tests/integration/api/crm-opportunities-create.test.ts --runInBand` -> PASS, 1 suite / 35 tests.
+- CRM contacts/opportunities sweep: `npx jest tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts --runInBand` -> PASS, 2 suites / 69 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS before docs update.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace for `next.config.js` via `src/app/api/telegram/approval-callback/route.ts`, missing Sentry auth/source-map token, and missing Railway/DigitalOcean/Vercel/GitHub/Stripe integration env tokens during static generation.
+
+Files changed:
+- `src/app/api/crm/opportunities/route.ts`
+- `tests/integration/api/crm-opportunities-create.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Broad inherited branch remains unsuitable for push/PR without reconciliation/splitting. Next safe lane should rotate away from CRM opportunities unless a fresh scoped identity/approval boundary appears; prefer another changed read-surface/control-surface gap.
+
 ## 2026-06-15 20:29 AEST
 
 ### Tick 20260615_2029 — DR/NRPG dry-run raw-email read-back guard
@@ -23834,3 +23869,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_195729.log'
+
+## 2026-06-15 20:35:36 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260615_203110.log'

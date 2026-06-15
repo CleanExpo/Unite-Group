@@ -2,7 +2,16 @@
 |Date: 2026-05-23
 |Project: Unite-Group
 |Root: `/Users/phillmcgurk/Unite-Group`
-|Last update: 2026-06-15 19:59 AEST — CRM opportunity positive multi-link approval fixture
+|Last update: 2026-06-15 20:34 AEST — CRM opportunity multi-link duplicate lookup guard
+
+## Current Autonomy Rotation Guard — 2026-06-15 20:34 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at `HEAD=bd74b475`; `git rev-list --count main..origin/main` -> `10`; inherited broad dirty/untracked worktree remains. No push, PR, merge, deploy, env mutation, sandbox wizard subcommand, destructive git action, provider mutation, client-facing action, or database write was attempted.
+- Completed safe Senior PM lane: hardened approved CRM opportunity multi-link duplicate lookup. Same-name duplicate checks now preserve the existing single-link `.eq(...)` path and use a scoped `.or(...)` filter across every supplied link when multiple CRM identities are present, so approved lead/contact/client/business cross-scope creates are checked against all supplied scoped links before insert.
+- Verification: RED focused Jest failed before route change with expected `.or(...)`, received first-link-only `.eq('linked_lead_id', ...)`; GREEN focused Jest passed. Full opportunities suite -> PASS (1 suite / 35 tests); CRM contacts/opportunities sweep -> PASS (2 suites / 69 tests); `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check` -> PASS before docs update; `npm run build` -> PASS with existing warnings only.
+- Files changed in this slice: `src/app/api/crm/opportunities/route.ts`, `tests/integration/api/crm-opportunities-create.test.ts`, plus this command-center/progress/morning evidence update.
+- Safety: no production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, recursive system-volume scan, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, or Mac Mini credential prompt occurred.
+- Next safe lane: rotate away from CRM opportunities unless a fresh scoped identity/approval boundary appears; prefer another changed read-surface/control-surface gap.
 
 ## Current Autonomy Rotation Guard — 2026-06-15 19:59 AEST
 
