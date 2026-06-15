@@ -1,5 +1,42 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 19:48 AEST
+
+### Tick 20260615_1948 — CRM opportunity cross-scope full-approval guard
+
+Lane: bounded CRM opportunities identity/scope hardening. Goal was to prevent cross-scope opportunity creation from treating a raw `boardApprovalId` string as sufficient approval when multiple CRM entity links are supplied, without changing production data, widening external automation, or touching billing/client conversion behavior.
+
+Completed:
+- Preflighted repo state: branch `mesh/mission-control-2026-06-11`; pre-slice `HEAD=0444113f`; upstream ahead/behind `0\t158`; current branch PR `#223` is already merged; no open PR exists for this branch. GitHub auth and Vercel CLI auth are available; no push, PR, merge, deploy, env mutation, sandbox wizard subcommand, provider mutation, client-facing send, destructive git action, or database write was attempted.
+- Re-read the Senior PM / connected-teams CRM source-of-truth docs, current progress/morning/command-center surfaces, package scripts, and CRM opportunities route/test surface before selecting this small non-contact follow-up.
+- RED: added `returns 403 operator_approval_required when multiple entity links only provide a boardApprovalId`; focused Jest failed before the route change with expected `403`, received `500` because the route did not fail closed before Supabase/mock access.
+- GREEN: changed the multi-entity-link guard to require the same full operator approval evidence used for conversion-like/won opportunity creation: `approvalRequired: true`, `approvalStatus: 'approved'`, and a non-blank/length-checked `boardApprovalId`. The broad happy-path test was narrowed to a single linked entity so default opportunity creation no longer represents cross-scope linking as auto-execute.
+- Local code/test commit created: `1166356e test(crm): require full approval for cross-scope opportunities`. No source-control publication was attempted from the broad inherited branch.
+- Independent reviewer returned PASS with no blocking correctness/security issues. Non-blocking suggestions: add a future positive multi-link/full-approval fixture and eventually verify approval IDs against an authoritative approval registry if one exists.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 19:48:16 AEST`.
+- RED focused Jest: `npx jest tests/integration/api/crm-opportunities-create.test.ts --runInBand --testNamePattern='multiple entity links only provide a boardApprovalId'` -> FAIL before route change; expected `403`, received `500`.
+- GREEN focused Jest: same command -> PASS, 1 selected test / 32 skipped.
+- Full opportunities suite: `npx jest tests/integration/api/crm-opportunities-create.test.ts --runInBand` -> PASS, 1 suite / 33 tests.
+- Focused CRM contacts/opportunities/timeline sweep: `npx jest tests/integration/api/crm-contacts-create.test.ts tests/integration/api/crm-opportunities-create.test.ts tests/unit/lib/crm/activity-timeline.test.ts --runInBand` -> PASS, 3 suites / 75 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check` -> PASS.
+- `npm run build` -> PASS with existing/non-blocking warnings only: deprecated `middleware` convention, Turbopack NFT trace for `next.config.js` via `src/app/api/telegram/approval-callback/route.ts`, missing Sentry auth/source-map token, and missing Railway/DigitalOcean/Vercel/GitHub/Stripe integration env tokens during static generation.
+
+Files changed:
+- `src/app/api/crm/opportunities/route.ts`
+- `tests/integration/api/crm-opportunities-create.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Broad inherited branch remains unsuitable for push/PR without reconciliation/splitting. Next safe lane: add the positive multi-link/full-approval opportunities fixture, or rotate to another changed read-surface/control-surface gap outside CRM contacts.
+
 ## 2026-06-15 19:17 AEST
 
 ### Tick 20260615_1917 — CRM contact PATCH duplicate-email conflict guard
