@@ -1,8 +1,18 @@
 # Margot Command Center
-Date: 2026-05-23
-Project: Unite-Group
-Root: `/Users/phillmcgurk/Unite-Group`
-Last update: 2026-06-15 11:43 AEST — Linear issue update empty-payload fail-closed slice
+|Date: 2026-05-23
+|Project: Unite-Group
+|Root: `/Users/phillmcgurk/Unite-Group`
+|Last update: 2026-06-15 12:00 AEST — HermesDashboardWrapper readiness/formatNextRun slice
+
+## Current Autonomy Rotation Guard — 2026-06-15 12:00 AEST
+
+- Repo: `mesh/mission-control-2026-06-11` at local commit `62a5126a` (`test(command-center): pin HermesDashboardWrapper readiness/formatNextRun edge cases`); `git rev-list --count main..origin/main` returned `8` during preflight. No push, PR, merge, deploy, env mutation, or destructive git action was attempted.
+- Completed safe Senior PM lane: used strict RED-GREEN on the inherited untracked local Hermes Dashboard Mission Control wrapper. Added 11 focused render-based tests pinning the readiness helper weights (live=1, degraded=0.4, missing=0), the cron.gatewayRunning label flip, the loading=true warming-up branch, formatCountMap filtering of non-positive counts, formatNextRun for both AEST and ISO input shapes, and the empty/undefined nextRunAt contract. The ISO `.123Z` assertion FAILED before the fix, exposing a real bug in `formatNextRun`: the old single-step regex stripped only one seconds segment and left the `.123Z` suffix intact. Rewrote the helper in five bounded steps to strip seconds, optional `.fff` milliseconds, and the trailing `Z` / `AEST` / `+HH:MM` timezone.
+- Verification: `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 12:00:00 AEST` (target); `node -v` -> `v22.22.3`; `npm -v` -> `10.9.8`; `node_modules=present`; RED focused Jest for ISO `.123Z` failed before route change with received `2026-06-11T08:00.123Z`; GREEN focused Jest passed after route change; `npx jest tests/unit/components/command-center/HermesDashboardWrapper.test.tsx --runInBand` -> 1 suite / 12 tests PASS; combined sweep `npx jest tests/unit/components tests/unit/lib/margot tests/unit/lib/mesh tests/unit/lib/security tests/unit/scripts --runInBand` -> 26 suites / 357 tests PASS; `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check && echo git_diff_check=pass` -> `git_diff_check=pass`; `npm run build` -> PASS with existing warnings only.
+- Review/evidence: static added-line scan shows no hardcoded-secret/injection/eval/deserialization/SQL patterns introduced; the two affected files were previously untracked and were committed together. The helper fix is a bounded regex chain with no env reads, no string interpolation into env, no network calls, no destructive operations, and no new dependencies. AI-RET-001 evidence read-back: `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` remains `overallStatus=pass`, source `8/8`, answerShape `106/106`, readback `pass`, generated at `15/06/2026, 09:00:27 AEST`; not regenerated because no AI-RET harness/report surface changed during this tick.
+- Files changed in the slice: `src/components/command-center/hermes-dashboard/HermesDashboardWrapper.tsx` and `tests/unit/components/command-center/HermesDashboardWrapper.test.tsx`. This evidence entry and matching progress/morning entries are follow-up documentation only.
+- Safety: no sandbox wizard subcommand, production DB write/migration, Vercel deploy/env mutation, source-control publication beyond the local commit, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, or fabricated history occurred. Mac Mini was not reprobed per rotation guard; last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts.
+- Next safe lane: rotate away from the HermesDashboardWrapper surface; candidates include another changed read-surface test from the inherited dirty worktree (the `src/app/api/integrations/` slice, the `src/lib/crm/digest-mappers` surface, or the still-uncommitted homepage/metadata/route-inventory files), a named local report corruption/error-path fixture outside the just-verified HermesDashboardWrapper classes, or a control-surface refresh from existing repo evidence.
 
 ## Current Autonomy Rotation Guard — 2026-06-15 11:43 AEST
 

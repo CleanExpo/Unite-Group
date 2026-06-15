@@ -1,5 +1,45 @@
 # Margot Overnight Progress Log
 
+## 2026-06-15 12:00 AEST
+
+### Tick 20260615_1200 — HermesDashboardWrapper readiness/formatNextRun slice
+
+Lane: bounded Senior PM command-spine improvement on the local Hermes Dashboard Mission Control wrapper. Goal was to pin the readiness-percent math and the cron next-run formatter, which were the two remaining un-pinned pure-helper branches on the inherited untracked `src/components/command-center/hermes-dashboard/HermesDashboardWrapper.tsx`.
+
+Completed:
+- Preflighted the existing in-progress branch/worktree: `mesh/mission-control-2026-06-11`, upstream ahead/behind `0\t134` at start, `gh` unavailable, inherited broad dirty/untracked worktree. Continued the existing lane; did not start a new branch.
+- Re-read the Senior PM / connected-teams CRM source-of-truth set, current command-center/progress/morning surfaces, and the HermesDashboardWrapper source + its single happy-path test before selecting this lane.
+- RED: added 11 focused render-based tests to `tests/unit/components/command-center/HermesDashboardWrapper.test.tsx` covering: 6/6 degraded → 40% ready (pin 0.4 weight); 5/6 missing + cron.gateway down → 7% ready (pin cron subcheck semantics); 5/6 missing + cron.gateway up → 17% ready (pin subcheck trusts the gateway bit, not the cron status string); label flip to "connected to live probes" when cron.gatewayRunning=true; loading=true warming-up branch; formatCountMap empty map → "no tasks" + distribution chart hidden; formatCountMap filters non-positive counts; formatNextRun for AEST input; formatNextRun for ISO input (`.123Z` suffix); nextRunAt=undefined hides badge; nextRunAt='' hides badge.
+- The ISO-input test FAILED before the fix: `formatNextRun('2026-06-11T08:00:45.123Z')` returned `'2026-06-11T08:00.123Z'` because the old single-step `/:\d{2}(?=\s|\.|$)/` regex only stripped ONE seconds segment and the trailing `.123Z` was never removed.
+- GREEN: rewrote `formatNextRun` in five bounded steps to strip seconds, optional `.fff` milliseconds, and the trailing `Z` / `AEST` / `+HH:MM` timezone, so the cron card now always shows a compact `YYYY-MM-DD HH:MM` (or `YYYY-MM-DDTHH:MM`).
+- Committed the code+test slice locally as `62a5126a test(command-center): pin HermesDashboardWrapper readiness/formatNextRun edge cases`.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-15 12:00:00 AEST` (target); `node -v` -> `v22.22.3`; `npm -v` -> `10.9.8`; `node_modules=present`.
+- RED focused Jest: ISO `.123Z` assertion failed before route change with received `2026-06-11T08:00.123Z`.
+- GREEN focused Jest: `npx jest tests/unit/components/command-center/HermesDashboardWrapper.test.tsx --runInBand` -> PASS, 1 suite / 12 tests.
+- Combined sweep: `npx jest tests/unit/components tests/unit/lib/margot tests/unit/lib/mesh tests/unit/lib/security tests/unit/scripts --runInBand` -> PASS, 26 suites / 357 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, route-inventory reported 0 unprotected mutating routes.
+- `git diff --check && echo git_diff_check=pass` -> `git_diff_check=pass` (post-commit, no staged diff to lint).
+- `npm run build` -> PASS. Existing/non-blocking warnings unchanged.
+- AI-RET-001 read-back: `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` remains `overallStatus=pass`, source `8/8`, answerShape `106/106`, readback `pass`, generated at `15/06/2026, 09:00:27 AEST`; not regenerated because no AI-RET harness/report surface changed during this tick.
+
+Files changed:
+- `src/components/command-center/hermes-dashboard/HermesDashboardWrapper.tsx` (formatNextRun bug fix; the two files were previously untracked, now both committed together)
+- `tests/unit/components/command-center/HermesDashboardWrapper.test.tsx` (added 11 focused edge-case tests)
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No sandbox wizard subcommand (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote`) was run.
+- No production DB write/migration, Vercel deploy/env mutation, source-control publication beyond the local commit, client-facing send, paid spend, public publishing, connector-platform action, new vendor, live provider polling, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, or fabricated history occurred.
+- Branch remains far ahead of origin and the worktree remains broadly inherited/dirty; with `gh` unavailable in this shell and no clean PR lane, no push/PR/merge was attempted.
+- Mac Mini was not reprobed per rotation guard. Last recorded state remains SMB reachable, SSH unreachable, `/Volumes=Macintosh HD`, and 0 recovered Markdown artifacts. Recovery remains blocked on an authenticated SMB mount, usable SSH session, or approved export.
+
+Next safe lane: rotate away from the HermesDashboardWrapper surface; candidates include another changed read-surface test from the inherited dirty worktree (the `src/app/api/integrations/` slice, the `src/lib/crm/digest-mappers` surface, or the still-uncommitted homepage/metadata/route-inventory files), a named local report corruption/error-path fixture outside the just-verified HermesDashboardWrapper classes, or a control-surface refresh from existing repo evidence.
+
 ## 2026-06-15 11:43 AEST
 
 ### Tick 20260615_1143 — Linear issue update empty-payload fail-closed slice
