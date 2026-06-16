@@ -338,3 +338,85 @@ export async function fetchIssueCountByBusiness(): Promise<Record<string, number
   }
   return counts
 }
+
+// ─── Autonomous claim-loop support (UNI-2143) ──────────────────────────────────
+
+// Resolve a workflow state id by name within a team (e.g. 'In Progress' for 'UNI').
+export async function resolveStateId(teamKey: string, stateName: string): Promise<string> {
+  if (!isLinearConfigured()) {
+    throw new Error('LINEAR_API_KEY is not configured — cannot resolve state ID')
+  }
+  const teams = await fetchTeamStates()
+  const team = teams.find(t => t.key === teamKey)
+  if (!team) throw new Error(`Linear team not found: ${teamKey}`)
+  const state = team.states.nodes.find(s => s.name.toLowerCase() === stateName.toLowerCase())
+  if (!state) throw new Error(`Linear state '${stateName}' not found in team ${teamKey}`)
+  return state.id
+}
+
+// Post a comment (claim receipt, evidence) onto an issue.
+export async function addComment(issueId: string, body: string): Promise<void> {
+  if (!isLinearConfigured()) {
+    console.warn('LINEAR_API_KEY is not configured — skipping comment')
+    return
+  }
+  await gql(`
+    mutation AddComment($issueId: String!, $body: String!) {
+      commentCreate(input: { issueId: $issueId, body: $body }) { success }
+    }
+  `, { issueId, body })
+}
+
+export interface LinearClaimCandidateRaw {
+  id: string
+  identifier: string
+  title: string
+  priority: number
+  description: string | null
+  url: string
+  createdAt: string
+  state: LinearState
+  labels: { nodes: { id: string; name: string }[] }
+}
+
+// Fetch claimable autonomous candidates: issues in the given team/project that
+// are in an unstarted/backlog state and carry one of the autonomous labels.
+// Includes description + labels so the claim filter can evaluate eligibility.
+export async function fetchClaimCandidates(opts: {
+  teamKey: string
+  labelNames: string[]
+  projectName?: string
+}): Promise<LinearClaimCandidateRaw[]> {
+  if (!isLinearConfigured()) {
+    console.warn('LINEAR_API_KEY is not configured — returning empty claim candidates')
+    return []
+  }
+  const projectFilter = opts.projectName
+    ? `project: { name: { eq: ${JSON.stringify(opts.projectName)} } }`
+    : ''
+  const data = await gql<{ issues: { nodes: LinearClaimCandidateRaw[] } }>(`{
+    issues(
+      first: 100
+      filter: {
+        team: { key: { eq: ${JSON.stringify(opts.teamKey)} } }
+        state: { type: { in: ["unstarted", "backlog"] } }
+        labels: { name: { in: ${JSON.stringify(opts.labelNames)} } }
+        ${projectFilter}
+      }
+      orderBy: createdAt
+    ) {
+      nodes {
+        id
+        identifier
+        title
+        priority
+        description
+        url
+        createdAt
+        state { id name type }
+        labels { nodes { id name } }
+      }
+    }
+  }`)
+  return data.issues.nodes
+}
