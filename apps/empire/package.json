@@ -112,6 +112,8 @@
     "mission-control:linear-loop:preflight": "node scripts/mission-control-linear-loop.mjs --preflight",
     "mission-control:linear-loop": "node scripts/mission-control-linear-loop.mjs",
     "mission-control:linear-loop:once": "node scripts/mission-control-linear-loop.mjs --once",
+    "mission-control:linear-handoff-loop": "bash scripts/start-mission-control-handoff-loop.sh",
+    "mission-control:linear-handoff-loop:preflight": "bash scripts/start-mission-control-handoff-loop.sh --preflight",
     "brand:lint": "ts-node --transpile-only -O '{\"module\":\"commonjs\",\"moduleResolution\":\"node\"}' scripts/brand-guardian-lint.ts",
     "brand:lint:csv": "ts-node --transpile-only -O '{\"module\":\"commonjs\",\"moduleResolution\":\"node\"}' scripts/brand-guardian-lint.ts > docs/brand/voice-audit-2026-05-13.csv 2>&1 || true",
     "security:routes-check": "ts-node --transpile-only -O '{\"module\":\"commonjs\",\"moduleResolution\":\"node\"}' scripts/check-route-inventory.ts",
