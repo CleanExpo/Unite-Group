@@ -39,6 +39,33 @@ for (const candidate of ['.env.local', '.env.vercel']) {
 
 const LINEAR_API = 'https://api.linear.app/graphql';
 
+const runnerProfiles = new Map([
+  ['claude', { command: 'claude -p "$(cat {prompt})"', binary: 'claude' }],
+  ['cursor', { command: 'cursor-agent -p "$(cat {prompt})" --output-format text', binary: 'cursor-agent' }],
+]);
+
+function resolveRunnerProfile(name) {
+  const key = name.trim().toLowerCase();
+  if (!key) return null;
+  return runnerProfiles.get(key) ?? { missing: key };
+}
+
+function firstCommandToken(command) {
+  const withoutAssignments = command
+    .trim()
+    .replace(/^([A-Za-z_][A-Za-z0-9_]*=(?:"[^"]*"|'[^']*'|[^\s]+)\s+)*/, '');
+  const match = withoutAssignments.match(/^"([^"]+)"|'([^']+)'|([^\s]+)/);
+  return match?.[1] ?? match?.[2] ?? match?.[3] ?? '';
+}
+
+const runnerProfileName = process.env.MISSION_CONTROL_RUNNER_PROFILE?.trim() ?? '';
+const runnerProfile = resolveRunnerProfile(runnerProfileName);
+const explicitRunnerCommand = process.env.MISSION_CONTROL_RUNNER_CMD?.trim() ?? '';
+const resolvedRunnerCommand = explicitRunnerCommand || (runnerProfile && !runnerProfile.missing ? runnerProfile.command : '');
+const resolvedRunnerBinary = runnerProfile && !runnerProfile.missing
+  ? runnerProfile.binary
+  : firstCommandToken(resolvedRunnerCommand);
+
 const env = {
   token: process.env.LINEAR_API_KEY?.trim() ?? '',
   teamKey: process.env.MISSION_CONTROL_LINEAR_TEAM_KEY?.trim() || 'UNI',
@@ -52,7 +79,10 @@ const env = {
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean),
-  runnerCommand: process.env.MISSION_CONTROL_RUNNER_CMD?.trim() ?? '',
+  runnerProfileName,
+  runnerProfileMissing: runnerProfile?.missing ?? '',
+  runnerCommand: resolvedRunnerCommand,
+  runnerBinary: resolvedRunnerBinary,
   verifyCommand: process.env.MISSION_CONTROL_VERIFY_CMD?.trim() || 'npm run type-check && npm run lint',
   handoffUrl: process.env.MISSION_CONTROL_HANDOFF_URL?.trim() ?? '',
   cronSecret: process.env.MISSION_CONTROL_CRON_SECRET?.trim() || process.env.CRON_SECRET?.trim() || '',
@@ -241,9 +271,10 @@ function commandExists(command) {
 function runPreflight() {
   const checks = [
     ['LINEAR_API_KEY', Boolean(env.token), 'required to claim/update Linear issues'],
-    ['MISSION_CONTROL_RUNNER_CMD', Boolean(env.runnerCommand), 'required to run the local agent CLI'],
+    ['MISSION_CONTROL_RUNNER_PROFILE', !env.runnerProfileMissing, `optional; supported profiles: ${[...runnerProfiles.keys()].join(', ')}`],
+    ['MISSION_CONTROL_RUNNER_CMD/profile', Boolean(env.runnerCommand), 'required to run the local agent CLI'],
     ['MISSION_CONTROL_HANDOFF_URL auth', !env.handoffUrl || Boolean(env.cronSecret), 'required when using the web handoff endpoint'],
-    ['claude', commandExists('claude'), 'required by the recommended runner command'],
+    [env.runnerBinary || 'runner binary', Boolean(env.runnerBinary) && commandExists(env.runnerBinary), 'required by the configured runner command'],
     ['git', commandExists('git'), 'required to commit/push work'],
     ['gh auth', spawnSync('gh', ['auth', 'status'], { stdio: 'ignore' }).status === 0, 'recommended for GitHub push auth'],
   ];
@@ -252,7 +283,13 @@ function runPreflight() {
   for (const [name, passed, why] of checks) {
     const status = passed ? 'ok' : 'missing';
     console.log(`${status.padEnd(8)} ${name} — ${why}`);
-    if (!passed && (name === 'LINEAR_API_KEY' || name === 'MISSION_CONTROL_RUNNER_CMD' || name === 'MISSION_CONTROL_HANDOFF_URL auth')) ok = false;
+    if (!passed && (
+      name === 'LINEAR_API_KEY' ||
+      name === 'MISSION_CONTROL_RUNNER_PROFILE' ||
+      name === 'MISSION_CONTROL_RUNNER_CMD/profile' ||
+      name === 'MISSION_CONTROL_HANDOFF_URL auth' ||
+      name === (env.runnerBinary || 'runner binary')
+    )) ok = false;
   }
   if (!ok) {
     console.log('\nRequired worker configuration is missing. The loop will not start.');

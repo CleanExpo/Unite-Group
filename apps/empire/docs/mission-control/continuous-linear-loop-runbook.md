@@ -26,6 +26,7 @@ The loop is intentionally explicit:
 
 Optional:
 
+- `MISSION_CONTROL_RUNNER_PROFILE`: optional runner shortcut. Supported values: `claude`, `cursor`. Explicit `MISSION_CONTROL_RUNNER_CMD` still wins.
 - `MISSION_CONTROL_HANDOFF_URL`: optional web handoff endpoint, for example `https://<app>/api/cron/linear-handoff`. When set, the worker uses the app’s read-only handoff packet for issue selection and prompt generation.
 - `MISSION_CONTROL_CRON_SECRET` or `CRON_SECRET`: bearer token for `MISSION_CONTROL_HANDOFF_URL`.
 - `MISSION_CONTROL_LINEAR_TEAM_KEY`: defaults to `UNI`.
@@ -87,6 +88,26 @@ MISSION_CONTROL_HANDOFF_URL='https://<app>/api/cron/linear-handoff' \
 MISSION_CONTROL_CRON_SECRET='<same value as CRON_SECRET>' \
 npm --prefix /Users/phillmcgurk/Unite-Group run mission-control:linear-handoff-loop
 ```
+
+## Runner Profiles
+
+Use `MISSION_CONTROL_RUNNER_PROFILE` when testing a known local runner without hand-writing the full command.
+
+Claude remains the proven default:
+
+```bash
+MISSION_CONTROL_RUNNER_PROFILE=claude \
+npm run mission-control:linear-loop:preflight
+```
+
+Cursor can be trialled once `cursor-agent` is installed and authenticated:
+
+```bash
+MISSION_CONTROL_RUNNER_PROFILE=cursor \
+npm run mission-control:linear-loop:preflight
+```
+
+If both `MISSION_CONTROL_RUNNER_PROFILE` and `MISSION_CONTROL_RUNNER_CMD` are set, the explicit command wins.
 
 ## Safer Continuous Mode
 
