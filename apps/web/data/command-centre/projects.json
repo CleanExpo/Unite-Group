@@ -87,6 +87,21 @@
       "production_url": "https://ato-blush.vercel.app"
     },
     {
+      "name": "Dimitri-ITR",
+      "repo_path": "D:/Unite-Group/ITR-Button",
+      "github_repo": "CleanExpo/ITR-Button",
+      "business_purpose": "Embeddable Dimitri ITR button and Duncan Perkins partner journey with mock ATO/XPM/payments/NOAH gates.",
+      "brand_rules_ref": "brand-context/dimitri-itr.md",
+      "deployment_target": "Vercel",
+      "owner": "Phill McGurk",
+      "status": "active",
+      "evidence_vault_path": "raw/command-centre/Dimitri-ITR",
+      "validation_commands": ["npm run verify"],
+      "linear_prefix": "UNI",
+      "production_url": "https://dimitri-itr-sandbox.vercel.app",
+      "integration_status_url": "https://dimitri-itr-sandbox.vercel.app/api/v1/connections/status"
+    },
+    {
       "name": "CCW-CRM",
       "repo_path": "D:/Unite-Group/CCW-CRM",
       "github_repo": "CleanExpo/CCW-CRM",

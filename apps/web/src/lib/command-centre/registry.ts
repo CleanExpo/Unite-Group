@@ -28,6 +28,7 @@ export interface CommandCentreProject {
   validation_commands: string[]
   linear_prefix: string
   production_url: string | null
+  integration_status_url?: string | null
 }
 
 interface RegistryFile {

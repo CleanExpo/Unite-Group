@@ -8,6 +8,7 @@ const EXPECTED_PROJECTS = [
   'Disaster-Recovery',
   'DR-NRPG',
   'ATO-APP',
+  'Dimitri-ITR',
   'CCW-CRM',
   'Authority-Site',
   'Nexus-Hub',
@@ -47,6 +48,9 @@ describe('command-centre registry', () => {
     expect(ra?.production_url).toBe('https://restoreassist.app')
     const synthex = await getProjectByName('Synthex')
     expect(synthex?.production_url).toBe('https://synthex-h4j7.vercel.app')
+    const dimitri = await getProjectByName('Dimitri-ITR')
+    expect(dimitri?.production_url).toBe('https://dimitri-itr-sandbox.vercel.app')
+    expect(dimitri?.integration_status_url).toBe('https://dimitri-itr-sandbox.vercel.app/api/v1/connections/status')
   })
 
   it('looks up projects case-insensitively', async () => {
