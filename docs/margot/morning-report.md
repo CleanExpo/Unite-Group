@@ -1,5 +1,12 @@
 # Margot Morning Report
 
+## 2026-06-16 11:16 AEST — PR publication and merge-gate read-back
+
+- **PR opened:** https://github.com/CleanExpo/Unite-Group/pull/230 (`fix(crm): redact approval and timeline evidence surfaces`) against `mesh/mission-control-2026-06-11` from `margot/timeline-subject-label-redaction-20260616`.
+- **Checks:** `gh pr checks 230 --watch --interval 10` reached green for CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel check URLs: `https://vercel.com/unite-group/unite-group/HUtQ9pSjEYKjY7Gsa6zeo7do1biS` and `https://vercel.com/unite-group/unite-group-sandbox/7Gg1KE9sJA9RGh36C1B7AQRBHiCe`.
+- **Merge gate:** `gh pr merge 230 --squash ...` was blocked by the local human-approval gate for protected-branch merge/push; approval request `AQ-298b9d` was queued and no merge occurred. PR read-back remains `OPEN` / `MERGEABLE`.
+- **Safety:** no production DB write/migration, sandbox wizard subcommand, Vercel env mutation, client-facing send, billing/payment action, credential read, destructive git, cross-client merge, or protected-branch merge occurred.
+
 ## 2026-06-16 11:13 AEST — Lead conversion approval response redaction guard
 
 - **Completed safe lane:** Continued the existing branch and used strict RED-GREEN on the local guarded lead conversion route so successful conversion responses no longer echo raw `board_approval_id`; the operator approval reference remains an input gate only, and timeline metadata stays sanitized with `operatorGateSatisfied: true`.

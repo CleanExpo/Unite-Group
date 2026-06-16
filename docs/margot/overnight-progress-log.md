@@ -1,5 +1,28 @@
 # Margot Overnight Progress Log
 
+## 2026-06-16 11:16 AEST
+
+### Tick 20260616_1116 — PR publication and merge-gate read-back
+
+Lane: source-control follow-through for the already verified local branch. The branch was pushed, a PR was opened against `mesh/mission-control-2026-06-11`, and checks were monitored. Merge was attempted only after all reported checks were green, but the local human-approval gate blocked merge to the protected branch and queued approval request `AQ-298b9d`; no merge occurred.
+
+Completed:
+- Pushed `margot/timeline-subject-label-redaction-20260616` to origin after Husky pre-push `npm run type-check` passed.
+- Opened PR `#230`: https://github.com/CleanExpo/Unite-Group/pull/230 (`fix(crm): redact approval and timeline evidence surfaces`).
+- Monitored PR checks with `gh pr checks 230 --watch --interval 10` until CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, and `Vercel – unite-group-sandbox` reported success.
+- Read back PR state: open, mergeable, base `mesh/mission-control-2026-06-11`, head `margot/timeline-subject-label-redaction-20260616`.
+
+Verification/read-back:
+- `git push origin HEAD` -> PASS; Husky pre-push ran `npm run type-check` and passed.
+- `gh pr create --base mesh/mission-control-2026-06-11 --head margot/timeline-subject-label-redaction-20260616 ...` -> https://github.com/CleanExpo/Unite-Group/pull/230.
+- `gh pr checks 230 --watch --interval 10` -> PASS for CodeRabbit, Vercel Preview Comments, `Vercel – unite-group` (`https://vercel.com/unite-group/unite-group/HUtQ9pSjEYKjY7Gsa6zeo7do1biS`), and `Vercel – unite-group-sandbox` (`https://vercel.com/unite-group/unite-group-sandbox/7Gg1KE9sJA9RGh36C1B7AQRBHiCe`).
+- `gh pr merge 230 --squash ...` -> BLOCKED by human-approval gate (`merge / push to a protected branch`); approval request `AQ-298b9d` queued; PR remains open.
+- `gh pr view 230 --json url,state,mergeable,statusCheckRollup,baseRefName,headRefName` -> state `OPEN`, mergeable `MERGEABLE`, checks success at read-back.
+
+Safety/blockers:
+- No production DB write/migration, sandbox wizard subcommand, Vercel env mutation, client-facing send, billing/payment action, credential read, destructive git, cross-client merge, or protected-branch merge occurred.
+- Blocker: merge requires Phill approval for `AQ-298b9d`; next safe lane is to wait for that sign-off or continue local-only bounded guards.
+
 ## 2026-06-16 11:13 AEST
 
 ### Tick 20260616_1113 — Lead conversion approval response redaction guard
