@@ -15,6 +15,7 @@ vi.mock('@/lib/command-centre/project-integrations', () => ({
 
 vi.mock('@/lib/command-centre/project-integration-work-packets', () => ({
   buildProjectIntegrationWorkPackets: vi.fn(),
+  buildEndpointMissingWorkPackets: vi.fn(),
 }))
 
 vi.mock('@/lib/integrations/linear', () => ({
@@ -33,7 +34,7 @@ vi.mock('@/lib/command-centre/work-packet-store', () => ({
 import { getUser, createClient } from '@/lib/supabase/server'
 import { getProjects } from '@/lib/command-centre/registry'
 import { loadProjectIntegrationStatuses } from '@/lib/command-centre/project-integrations'
-import { buildProjectIntegrationWorkPackets } from '@/lib/command-centre/project-integration-work-packets'
+import { buildEndpointMissingWorkPackets, buildProjectIntegrationWorkPackets } from '@/lib/command-centre/project-integration-work-packets'
 import { createIssue } from '@/lib/integrations/linear'
 import { createPacketLinearWork } from '@/lib/command-centre/work-packet'
 import { listWorkPackets, saveWorkPacket } from '@/lib/command-centre/work-packet-store'
@@ -44,6 +45,7 @@ const mockCreateClient = vi.mocked(createClient)
 const mockGetProjects = vi.mocked(getProjects)
 const mockLoadProjectIntegrationStatuses = vi.mocked(loadProjectIntegrationStatuses)
 const mockBuildProjectIntegrationWorkPackets = vi.mocked(buildProjectIntegrationWorkPackets)
+const mockBuildEndpointMissingWorkPackets = vi.mocked(buildEndpointMissingWorkPackets)
 const mockCreatePacketLinearWork = vi.mocked(createPacketLinearWork)
 const mockListWorkPackets = vi.mocked(listWorkPackets)
 const mockSaveWorkPacket = vi.mocked(saveWorkPacket)
@@ -88,6 +90,7 @@ describe('GET /api/command-centre/project-integrations/work-packets', () => {
     mockCreateClient.mockResolvedValue({ from: vi.fn() } as never)
     mockListWorkPackets.mockResolvedValue([] as never)
     mockSaveWorkPacket.mockImplementation(async (_db, _founderId, packet) => packet as never)
+    mockBuildEndpointMissingWorkPackets.mockReturnValue([] as never)
   })
 
   it('returns 401 when unauthenticated', async () => {
@@ -236,5 +239,37 @@ describe('GET /api/command-centre/project-integrations/work-packets', () => {
     expect(body.queuedCount).toBe(0)
     expect(body.skippedExistingCount).toBe(1)
     expect(mockSaveWorkPacket).not.toHaveBeenCalled()
+  })
+
+  it('concatenates endpoint-missing packets after the connection-gap packets', async () => {
+    const endpointPacket = {
+      projectName: 'RestoreAssist',
+      gapKind: 'endpoint-missing',
+      connectionId: null,
+      connectionLabel: null,
+      packet: {
+        ...packets[0].packet,
+        id: 'endpoint-restoreassist-1',
+        outcome: 'Stand up Mission Control connections/status endpoint for RestoreAssist',
+        projectKey: 'restoreassist',
+        riskLevel: 'low',
+      },
+    }
+    mockGetUser.mockResolvedValue({ id: 'founder-1' } as never)
+    mockGetProjects.mockResolvedValue(projects as never)
+    mockLoadProjectIntegrationStatuses.mockResolvedValue(integrations as never)
+    mockBuildProjectIntegrationWorkPackets.mockReturnValue(packets as never)
+    mockBuildEndpointMissingWorkPackets.mockReturnValue([endpointPacket] as never)
+
+    const res = await GET()
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.count).toBe(2)
+    expect(body.packets).toEqual([packets[0], endpointPacket])
+    expect(mockBuildEndpointMissingWorkPackets).toHaveBeenCalledWith(
+      projects,
+      expect.objectContaining({ now: expect.any(String) }),
+    )
   })
 })
