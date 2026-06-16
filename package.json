@@ -9,7 +9,12 @@
     "verify:mcp": "cd packages/pi-ceo-operator-mcp && npm ci && npm run build",
     "verify:spec-board": "cd apps/spec-board && npm ci && npx tsc --noEmit && npm test && npm run build",
     "verify": "npm run verify:web && npm run verify:workspace && npm run verify:mcp && npm run verify:spec-board",
-    "env:check": "node scripts/check-env.mjs --package all"
+    "env:check": "node scripts/check-env.mjs --package all",
+    "mission-control:linear-loop:preflight": "npm --prefix apps/empire run mission-control:linear-loop:preflight",
+    "mission-control:linear-loop": "npm --prefix apps/empire run mission-control:linear-loop",
+    "mission-control:linear-loop:once": "npm --prefix apps/empire run mission-control:linear-loop:once",
+    "mission-control:linear-handoff-loop": "npm --prefix apps/empire run mission-control:linear-handoff-loop",
+    "mission-control:linear-handoff-loop:preflight": "npm --prefix apps/empire run mission-control:linear-handoff-loop:preflight"
   },
   "engines": {
     "node": ">=22"

@@ -62,6 +62,8 @@ npm run mission-control:linear-loop
 
 Use this when the Unite-Group web app should own the next-work selection and runner prompt, while the local worker still owns the local CLI execution, verification, commit, push, and Linear status updates:
 
+From the Unite-Group repo root, use the root alias so the command does not depend on `cd apps/empire`.
+
 Preflight first:
 
 ```bash
@@ -76,6 +78,14 @@ Then start the continuous handoff loop:
 MISSION_CONTROL_HANDOFF_URL='https://<app>/api/cron/linear-handoff' \
 MISSION_CONTROL_CRON_SECRET='<same value as CRON_SECRET>' \
 npm run mission-control:linear-handoff-loop
+```
+
+From any other directory, point npm at the repo root:
+
+```bash
+MISSION_CONTROL_HANDOFF_URL='https://<app>/api/cron/linear-handoff' \
+MISSION_CONTROL_CRON_SECRET='<same value as CRON_SECRET>' \
+npm --prefix /Users/phillmcgurk/Unite-Group run mission-control:linear-handoff-loop
 ```
 
 ## Safer Continuous Mode
