@@ -11,10 +11,31 @@
  * specific paid-plan CLI.
  */
 
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+
+// Self-load the repo-root env file. The worker is environment-driven but had no
+// way to read LINEAR_API_KEY unless the caller pre-exported it — so launching
+// via `npm run`, launchd, or cron left process.env.LINEAR_API_KEY empty and the
+// preflight failed with "missing LINEAR_API_KEY" even though the key was present
+// in .env.local. Node applies env-file vars at LOWER precedence than vars
+// already in process.env, so an explicit export by a launcher still wins. We
+// load the first file that exists; both are gitignored. [UNI-2151]
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+for (const candidate of ['.env.local', '.env.vercel']) {
+  const envPath = join(repoRoot, candidate);
+  if (existsSync(envPath)) {
+    try {
+      process.loadEnvFile(envPath);
+    } catch {
+      // Malformed env file — skip rather than crash the worker.
+    }
+    break;
+  }
+}
 
 const LINEAR_API = 'https://api.linear.app/graphql';
 
