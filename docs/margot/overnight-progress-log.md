@@ -1,5 +1,31 @@
 # Margot Overnight Progress Log
 
+## 2026-06-16 11:02 AEST
+
+### Tick 20260616_1102 — RestoreAssist readiness tier guard read-back
+
+Lane: bounded Senior PM health/read-back check on the existing RestoreAssist readiness-tier guard surface. Goal was to confirm the fail-closed tier handling remains green locally after the prior branch updates, without repeating the blocked PR/publication gate or running RestoreAssist target-repo commands.
+
+Completed:
+- Re-read the Senior PM read-first set, Linear mirror, AI-RET-001 evidence, AI candidate/pipeline surfaces, command center, Mac Mini status, progress log, morning report, package scripts, and the readiness-loop script/test before selecting this health lane.
+- Repo state read-back: branch `margot/timeline-subject-label-redaction-20260616`; `git status --short` -> no output; `git log -1 --oneline` -> `80ff957e <task-notification> <task-id>wayp631cp</task-id> <tool-use-id>toolu_0...`; `git rev-list --count main..origin/main` -> `10`; `node_modules=present`.
+- Focused guard health remains green: CLI unknown tier exits `2` without appending state, pilot tier defers production command gates without evaluating them, and malformed registry tiers (`prodution`, empty string, `null`) fail closed before state append.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-16 11:02:24 AEST`.
+- `CI=1 npx jest tests/unit/scripts/readiness-loop.test.ts --runInBand` -> PASS, 1 suite / 5 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, `route-inventory check: 0 unprotected mutating routes`.
+
+Files changed:
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No production DB write/migration, sandbox wizard subcommand, RestoreAssist target repo command execution, live provider dispatch/polling, Vercel deploy/env mutation, PR creation, merge, additional push, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- PR publication for `margot/timeline-subject-label-redaction-20260616` remains gated by explicit human approval; next safe lane is another small local read-surface/control-surface guard unless that approval is granted.
+
 ## 2026-06-16 10:36 AEST
 
 ### Tick 20260616_1036 — RestoreAssist readiness tier fail-closed guards
@@ -24819,3 +24845,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260616_102848.log'
+
+## 2026-06-16 11:04:30 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260616_110121.log'

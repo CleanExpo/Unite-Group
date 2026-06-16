@@ -1,5 +1,13 @@
 # Margot Morning Report
 
+## 2026-06-16 11:02 AEST — RestoreAssist readiness tier guard read-back
+
+- **Completed safe lane:** Re-read the Senior PM control set and ran a bounded local health check on the RestoreAssist readiness-tier guard surface; no new code implementation, publication, or target-repo execution was needed.
+- **Repo read-back:** branch `margot/timeline-subject-label-redaction-20260616`; `git status --short` -> clean; `git log -1 --oneline` -> `80ff957e <task-notification> <task-id>wayp631cp</task-id> <tool-use-id>toolu_0...`; `git rev-list --count main..origin/main` -> `10`; `node_modules=present`.
+- **Verification:** `CI=1 npx jest tests/unit/scripts/readiness-loop.test.ts --runInBand` -> PASS, 1 suite / 5 tests. `npm run type-check` -> PASS. `npm run security:routes-check` -> PASS with 0 unprotected mutating routes.
+- **Evidence paths:** `scripts/readiness-loop.mjs`, `tests/unit/scripts/readiness-loop.test.ts`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`.
+- **Safety/blockers:** no production DB write/migration, sandbox wizard subcommand, RestoreAssist target command execution, Vercel deploy/env mutation, PR creation, merge, additional push, live provider action, credential read, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, destructive git, or Mac Mini credential prompt occurred. PR publication remains gated by explicit human approval.
+
 ## 2026-06-16 10:36 AEST — RestoreAssist readiness tier fail-closed guards
 
 - **Completed safe lane:** Continued the existing branch and hardened the RestoreAssist readiness runner tier logic with strict RED-GREEN tests. Pilot runs now defer production-only gates before command evaluation; malformed registry tiers (`prodution`, empty string, `null`) exit fail-closed before state append.
