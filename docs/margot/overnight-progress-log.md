@@ -34,7 +34,8 @@ Files changed:
 
 Safety/blockers:
 - No production DB write/migration, sandbox wizard subcommand, RestoreAssist target repo command execution, live provider dispatch/polling, Vercel deploy/env mutation, PR creation, merge, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, or Mac Mini credential prompt occurred.
-- Current branch still has no PR URL. Next safe lane is to commit this follow-up, then push/open/monitor only if the publication gate remains explicitly in scope and the branch contents are acceptable as a combined RestoreAssist-readiness + prior CRM-timeline branch.
+- Committed follow-up as `03b76496` (`fix(restoreassist): fail closed on readiness tiers`) and pushed to `origin/margot/timeline-subject-label-redaction-20260616`; Husky pre-push `npm run type-check` passed.
+- PR creation was attempted with base `mesh/mission-control-2026-06-11`, but the local human-approval gate classified it as publish/deploy and blocked execution. Approval request `AQ-0e06a9` was queued for Phill. `gh pr list --head margot/timeline-subject-label-redaction-20260616 --json number,title,state,url --limit 5` -> `[]`, so no PR URL exists yet.
 
 ## 2026-06-16 10:29 AEST
 
