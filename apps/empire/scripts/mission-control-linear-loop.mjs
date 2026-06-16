@@ -17,6 +17,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
+import { parseRunnerRegistry, resolveRunnerForIssue } from './lib/runner-registry.mjs';
+
 // Self-load the repo-root env file. The worker is environment-driven but had no
 // way to read LINEAR_API_KEY unless the caller pre-exported it — so launching
 // via `npm run`, launchd, or cron left process.env.LINEAR_API_KEY empty and the
@@ -52,7 +54,6 @@ const env = {
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean),
-  runnerCommand: process.env.MISSION_CONTROL_RUNNER_CMD?.trim() ?? '',
   verifyCommand: process.env.MISSION_CONTROL_VERIFY_CMD?.trim() || 'npm run type-check && npm run lint',
   handoffUrl: process.env.MISSION_CONTROL_HANDOFF_URL?.trim() ?? '',
   cronSecret: process.env.MISSION_CONTROL_CRON_SECRET?.trim() || process.env.CRON_SECRET?.trim() || '',
@@ -64,6 +65,16 @@ const env = {
   once: process.argv.includes('--once') || process.env.MISSION_CONTROL_LOOP !== '1',
   intervalMs: Number(process.env.MISSION_CONTROL_LOOP_INTERVAL_MS ?? 60_000),
 };
+
+// Multi-runner registry, built once from the environment. With only the legacy
+// MISSION_CONTROL_RUNNER_CMD set, this yields a single `default` runner and the
+// loop behaves exactly as it did before. [UNI-2135]
+const runnerRegistry = parseRunnerRegistry(process.env);
+
+// True when at least one runner has a command (legacy default or a named one).
+function hasConfiguredRunner() {
+  return runnerRegistry.runners.some((runner) => runner.configured);
+}
 
 function log(message) {
   const at = new Date().toISOString();
@@ -239,9 +250,12 @@ function commandExists(command) {
 }
 
 function runPreflight() {
+  // The "a runner is configured" gate is satisfied by the legacy
+  // MISSION_CONTROL_RUNNER_CMD OR any configured named runner in the registry.
+  const runnerConfigured = hasConfiguredRunner();
   const checks = [
     ['LINEAR_API_KEY', Boolean(env.token), 'required to claim/update Linear issues'],
-    ['MISSION_CONTROL_RUNNER_CMD', Boolean(env.runnerCommand), 'required to run the local agent CLI'],
+    ['MISSION_CONTROL_RUNNER_CMD', runnerConfigured, 'required to run the local agent CLI (legacy var or a named runner)'],
     ['MISSION_CONTROL_HANDOFF_URL auth', !env.handoffUrl || Boolean(env.cronSecret), 'required when using the web handoff endpoint'],
     ['claude', commandExists('claude'), 'required by the recommended runner command'],
     ['git', commandExists('git'), 'required to commit/push work'],
@@ -254,6 +268,28 @@ function runPreflight() {
     console.log(`${status.padEnd(8)} ${name} — ${why}`);
     if (!passed && (name === 'LINEAR_API_KEY' || name === 'MISSION_CONTROL_RUNNER_CMD' || name === 'MISSION_CONTROL_HANDOFF_URL auth')) ok = false;
   }
+
+  // Honest per-runner reporting: for each configured named runner (i.e. not the
+  // legacy `default`), show whether its CLI (first token of the command) exists.
+  // Never print command values beyond the leading token — env var names only.
+  const namedRunners = runnerRegistry.runners.filter((runner) => runner.name !== 'default');
+  if (namedRunners.length > 0) {
+    console.log('\nRunners:');
+    for (const runner of namedRunners) {
+      if (!runner.configured) {
+        console.log(`${'missing'.padEnd(8)} runner:${runner.name} — no MISSION_CONTROL_RUNNER_CMD_${runner.name.toUpperCase()} configured`);
+        continue;
+      }
+      const cli = runner.command.split(/\s+/)[0] ?? '';
+      const present = commandExists(cli);
+      const status = present ? 'ok' : 'missing';
+      console.log(`${status.padEnd(8)} runner:${runner.name} — CLI \`${cli}\` ${present ? 'found' : 'not on PATH'}`);
+    }
+    if (runnerRegistry.defaultRunner) {
+      console.log(`default runner: ${runnerRegistry.defaultRunner}`);
+    }
+  }
+
   if (!ok) {
     console.log('\nRequired worker configuration is missing. The loop will not start.');
     process.exitCode = 1;
@@ -338,17 +374,19 @@ async function runOnce() {
   if (inProgress) await updateIssue(issue.id, { stateId: inProgress.id });
   await comment(issue.id, `Mission Control loop claimed this issue at ${new Date().toISOString()}.`);
 
-  if (!env.runnerCommand) {
+  const runner = resolveRunnerForIssue(labelNames(issue), runnerRegistry);
+  if (!runner || !runner.configured) {
     const promptFile = writePrompt(issue);
     await comment(
       issue.id,
-      `Mission Control loop found this issue, but \`MISSION_CONTROL_RUNNER_CMD\` is not configured. Prompt written locally: \`${promptFile}\`.`,
+      `Mission Control loop found this issue, but no runner is configured (set \`MISSION_CONTROL_RUNNER_CMD\` or a named runner via \`MISSION_CONTROL_RUNNERS\` + \`MISSION_CONTROL_RUNNER_CMD_<NAME>\`). Prompt written locally: \`${promptFile}\`.`,
     );
-    throw new Error('MISSION_CONTROL_RUNNER_CMD is not configured');
+    throw new Error('no runner configured (MISSION_CONTROL_RUNNER_CMD or a named MISSION_CONTROL_RUNNERS entry)');
   }
 
+  log(`using runner: ${runner.name}`);
   const promptFile = writePrompt(issue);
-  const command = env.runnerCommand
+  const command = runner.command
     .replaceAll('{issue}', issue.identifier)
     .replaceAll('{title}', issue.title)
     .replaceAll('{prompt}', promptFile);
