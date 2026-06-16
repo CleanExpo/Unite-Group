@@ -266,7 +266,6 @@ export default async function CommandDeckPage() {
                         <span className={styles.led} data-state={connectionLedState(connection.state)} />
                         <span className={styles.connectionName}>{connection.label}</span>
                         <span className={styles.connectionState}>{connection.state}</span>
-                        {connection.nextAction && <span className={styles.connectionAction}>{connection.nextAction}</span>}
                       </div>
                     ))}
                   </div>

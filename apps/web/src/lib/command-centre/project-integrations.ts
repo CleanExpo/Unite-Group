@@ -6,10 +6,6 @@ export interface ProjectConnection {
   id: string
   label: string
   state: ProjectConnectionState
-  safeForMissionControl: boolean
-  detail: string
-  endpoint?: string
-  nextAction?: string
 }
 
 export interface ProjectIntegrationStatus {
@@ -32,6 +28,10 @@ const EMPTY_SUMMARY: ProjectIntegrationStatus['summary'] = {
   unknown: 0,
 }
 
+const APPROVED_INTEGRATION_STATUS_HOSTS = new Set([
+  'dimitri-itr-sandbox.vercel.app',
+])
+
 function emptyStatus(projectName: string, statusUrl: string, error: string): ProjectIntegrationStatus {
   return {
     projectName,
@@ -53,15 +53,12 @@ function normaliseConnection(value: unknown): ProjectConnection | null {
   if (typeof value !== 'object' || value === null) return null
   const row = value as Record<string, unknown>
   if (typeof row.id !== 'string' || typeof row.label !== 'string') return null
+  if (row.safeForMissionControl !== true) return null
   const state = isConnectionState(row.state) ? row.state : 'unknown'
   return {
     id: row.id,
     label: row.label,
     state,
-    safeForMissionControl: row.safeForMissionControl === true,
-    detail: typeof row.detail === 'string' ? row.detail : '',
-    endpoint: typeof row.endpoint === 'string' ? row.endpoint : undefined,
-    nextAction: typeof row.nextAction === 'string' ? row.nextAction : undefined,
   }
 }
 
@@ -85,6 +82,17 @@ async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Respons
   }
 }
 
+function getApprovedStatusUrl(rawUrl: string): URL | null {
+  try {
+    const url = new URL(rawUrl)
+    if (url.protocol !== 'https:') return null
+    if (!APPROVED_INTEGRATION_STATUS_HOSTS.has(url.hostname)) return null
+    return url
+  } catch {
+    return null
+  }
+}
+
 export async function loadProjectIntegrationStatus(
   project: Pick<CommandCentreProject, 'name' | 'integration_status_url'>,
   timeoutMs = 2500,
@@ -92,8 +100,11 @@ export async function loadProjectIntegrationStatus(
   const statusUrl = project.integration_status_url?.trim()
   if (!statusUrl) return null
 
+  const approvedUrl = getApprovedStatusUrl(statusUrl)
+  if (!approvedUrl) return emptyStatus(project.name, statusUrl, 'status endpoint host is not approved')
+
   try {
-    const response = await fetchWithTimeout(statusUrl, timeoutMs)
+    const response = await fetchWithTimeout(approvedUrl.toString(), timeoutMs)
     if (!response.ok) {
       return emptyStatus(project.name, statusUrl, `status endpoint returned ${response.status}`)
     }
