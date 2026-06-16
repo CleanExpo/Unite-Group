@@ -1,0 +1,294 @@
+import { describe, it, expect } from 'vitest'
+import { buildWorkPacket, type WorkPacket } from '@/lib/command-centre/work-packet'
+import {
+  CC_TASKS_TABLE,
+  CC_TASK_EVENTS_TABLE,
+  type CommandCentreTask,
+  type SupabaseLike,
+} from '@/lib/command-centre/tasks'
+import {
+  packetToCreateTaskInput,
+  taskToPacket,
+  saveWorkPacket,
+  getWorkPacket,
+  listWorkPackets,
+  applyPacketTransition,
+  packetStatusToTaskStatus,
+  taskStatusToPacketStatus,
+} from '@/lib/command-centre/work-packet-store'
+
+// ─── In-memory fake implementing SupabaseLike ────────────────────────────────
+//
+// A stateful store (not a single-result mock): rows persist across insert →
+// select → update so the store functions can be exercised end-to-end. Only the
+// chains the accessors actually use are implemented.
+
+interface FakeRow extends Record<string, unknown> {
+  id: string
+  founder_id: string
+}
+
+function makeFakeDb() {
+  const tables: Record<string, FakeRow[]> = {
+    [CC_TASKS_TABLE]: [],
+    [CC_TASK_EVENTS_TABLE]: [],
+  }
+  let seq = 0
+
+  function nowIso(): string {
+    return new Date().toISOString()
+  }
+
+  const client: SupabaseLike = {
+    from(table: string) {
+      const rows = (tables[table] ??= [])
+
+      return {
+        insert(values: unknown) {
+          const ts = nowIso()
+          const row: FakeRow = {
+            id: `${table}-${++seq}`,
+            created_at: ts,
+            updated_at: ts,
+            metadata: {},
+            ...(values as Record<string, unknown>),
+          } as FakeRow
+          rows.push(row)
+          return {
+            select() {
+              return { single: () => Promise.resolve({ data: row, error: null }) }
+            },
+          }
+        },
+        update(values: unknown) {
+          return {
+            eq(_c1: string, v1: unknown) {
+              return {
+                eq(_c2: string, v2: unknown) {
+                  return {
+                    select() {
+                      return {
+                        single() {
+                          const match = rows.find((r) => r.founder_id === v1 && r.id === v2)
+                          if (!match) return Promise.resolve({ data: null, error: { message: 'no row' } })
+                          Object.assign(match, values as Record<string, unknown>, { updated_at: nowIso() })
+                          return Promise.resolve({ data: match, error: null })
+                        },
+                      }
+                    },
+                  }
+                },
+              }
+            },
+          }
+        },
+        select() {
+          return {
+            eq(c1: string, v1: unknown) {
+              const filters: Array<[string, unknown]> = [[c1, v1]]
+              const run = () => {
+                const matched = rows.filter((r) => filters.every(([c, v]) => r[c] === v))
+                return matched
+              }
+              const orderLimit = {
+                order(_col: string, _opts: { ascending: boolean }) {
+                  return {
+                    limit(n: number) {
+                      return Promise.resolve({ data: run().slice(0, n), error: null })
+                    },
+                  }
+                },
+              }
+              const chain = {
+                eq(c2: string, v2: unknown) {
+                  filters.push([c2, v2])
+                  return chain
+                },
+                order: orderLimit.order,
+                single() {
+                  const matched = run()
+                  return Promise.resolve({ data: matched[0] ?? null, error: matched[0] ? null : { message: 'no row' } })
+                },
+              }
+              return chain
+            },
+          }
+        },
+      }
+    },
+  } as unknown as SupabaseLike
+
+  return { client, tables }
+}
+
+const FOUNDER = 'founder-1'
+
+function samplePacket(overrides: Partial<Parameters<typeof buildWorkPacket>[0]> = {}): WorkPacket {
+  return buildWorkPacket(
+    { outcome: 'Ship the synthex landing refresh', projectKey: 'synthex', lane: 'coding', ...overrides },
+    { now: '20260616T000000' },
+  )
+}
+
+describe('work-packet-store', () => {
+  it('packetToCreateTaskInput maps stable fields to columns and the rest into metadata.packet', () => {
+    const packet = samplePacket()
+    const input = packetToCreateTaskInput(packet, FOUNDER)
+
+    expect(input.founderId).toBe(FOUNDER)
+    expect(input.externalRef).toBe(packet.id)
+    expect(input.projectKey).toBe('synthex')
+    expect(input.status).toBe('proposed') // a fresh packet is 'draft' -> 'proposed'
+    const meta = (input.metadata as Record<string, unknown>).packet as Record<string, unknown>
+    expect(meta.lane).toBe('coding')
+    expect(meta.outcome).toBe(packet.outcome)
+    expect(meta.labels).toEqual(packet.labels)
+  })
+
+  it('status mapping is consistent both directions', () => {
+    expect(packetStatusToTaskStatus('draft')).toBe('proposed')
+    expect(packetStatusToTaskStatus('routed')).toBe('queued')
+    expect(packetStatusToTaskStatus('completed')).toBe('done')
+    expect(taskStatusToPacketStatus('proposed')).toBe('draft')
+    expect(taskStatusToPacketStatus('done')).toBe('completed')
+    expect(taskStatusToPacketStatus('failed')).toBe('blocked')
+  })
+
+  it('saveWorkPacket round-trips through taskToPacket', async () => {
+    const { client } = makeFakeDb()
+    const packet = samplePacket()
+
+    const saved = await saveWorkPacket(client, FOUNDER, packet)
+
+    expect(saved.id).toBe(packet.id)
+    expect(saved.outcome).toBe(packet.outcome)
+    expect(saved.projectKey).toBe('synthex')
+    expect(saved.lane).toBe('coding')
+    expect(saved.riskLevel).toBe(packet.riskLevel)
+    expect(saved.nextActionOwner).toBe(packet.nextActionOwner)
+    expect(saved.status).toBe('draft')
+    expect(saved.labels).toEqual(packet.labels)
+    expect(saved.approvalRequired).toBe(packet.approvalRequired)
+  })
+
+  it('getWorkPacket fetches a persisted packet by id, null when absent', async () => {
+    const { client } = makeFakeDb()
+    const packet = samplePacket()
+    await saveWorkPacket(client, FOUNDER, packet)
+
+    const fetched = await getWorkPacket(client, FOUNDER, packet.id)
+    expect(fetched?.id).toBe(packet.id)
+    expect(fetched?.outcome).toBe(packet.outcome)
+
+    const missing = await getWorkPacket(client, FOUNDER, 'does-not-exist')
+    expect(missing).toBeNull()
+  })
+
+  it('listWorkPackets returns the founder packets', async () => {
+    const { client } = makeFakeDb()
+    const a = samplePacket({ outcome: 'Packet A' })
+    const b = samplePacket({ outcome: 'Packet B', projectKey: 'dr' })
+    await saveWorkPacket(client, FOUNDER, a)
+    await saveWorkPacket(client, FOUNDER, b)
+
+    const all = await listWorkPackets(client, FOUNDER)
+    const ids = all.map((p) => p.id).sort()
+    expect(ids).toEqual([a.id, b.id].sort())
+  })
+
+  it('applyPacketTransition persists a successful route transition + audit event', async () => {
+    const { client, tables } = makeFakeDb()
+    const packet = samplePacket()
+    await saveWorkPacket(client, FOUNDER, packet)
+
+    const result = await applyPacketTransition(client, FOUNDER, packet.id, { type: 'route' })
+
+    expect(result.ok).toBe(true)
+    expect(result.packet?.status).toBe('routed')
+
+    // Status persisted on the underlying row (mapped to 'queued').
+    const stored = tables[CC_TASKS_TABLE][0] as unknown as CommandCentreTask
+    expect(stored.status).toBe('queued')
+    // An append-only audit event was written.
+    expect(tables[CC_TASK_EVENTS_TABLE]).toHaveLength(1)
+    expect(tables[CC_TASK_EVENTS_TABLE][0].type).toBe('status_changed')
+
+    // Reloading reflects the durable new status.
+    const reloaded = await getWorkPacket(client, FOUNDER, packet.id)
+    expect(reloaded?.status).toBe('routed')
+  })
+
+  it('applyPacketTransition refuses completing an approval-required packet and writes nothing', async () => {
+    const { client, tables } = makeFakeDb()
+    // touchesCrmWrite forces approvalRequired; drive it to running without approval.
+    const packet = samplePacket({ touchesCrmWrite: true })
+    expect(packet.approvalRequired).toBe(true)
+
+    await saveWorkPacket(client, FOUNDER, packet)
+    // Manually move the stored row into 'running' so 'complete' is otherwise allowed.
+    ;(tables[CC_TASKS_TABLE][0] as Record<string, unknown>).status = packetStatusToTaskStatus('running')
+
+    const result = await applyPacketTransition(client, FOUNDER, packet.id, { type: 'complete' })
+
+    expect(result.ok).toBe(false)
+    expect(result.reason).toMatch(/approval required/)
+    expect(result.packet?.status).toBe('running') // unchanged in-memory packet
+    // No audit event written on a refused transition.
+    expect(tables[CC_TASK_EVENTS_TABLE]).toHaveLength(0)
+  })
+
+  it('applyPacketTransition returns ok=false, packet=null for a missing packet', async () => {
+    const { client } = makeFakeDb()
+    const result = await applyPacketTransition(client, FOUNDER, 'nope', { type: 'route' })
+    expect(result.ok).toBe(false)
+    expect(result.packet).toBeNull()
+  })
+
+  it('persisted metadata contains no secret/key-ish strings', async () => {
+    const { client, tables } = makeFakeDb()
+    const packet = samplePacket()
+    await saveWorkPacket(client, FOUNDER, packet)
+
+    const stored = tables[CC_TASKS_TABLE][0] as Record<string, unknown>
+    const serialised = JSON.stringify(stored.metadata).toLowerCase()
+    for (const banned of ['secret', 'token', 'password', 'api_key', 'apikey', 'service_role', 'bearer']) {
+      expect(serialised).not.toContain(banned)
+    }
+  })
+
+  it('taskToPacket reconstructs a packet from a raw row', () => {
+    const packet = samplePacket()
+    const input = packetToCreateTaskInput(packet, FOUNDER)
+    const row: CommandCentreTask = {
+      id: 'row-1',
+      founder_id: FOUNDER,
+      external_ref: input.externalRef ?? null,
+      queue_id: null,
+      project_id: null,
+      project_key: input.projectKey ?? null,
+      title: input.title,
+      objective: input.objective ?? '',
+      priority: 'P2',
+      status: input.status ?? 'proposed',
+      agent_owner: input.agentOwner ?? null,
+      risk_level: 'low',
+      execution_mode: 'advisory',
+      origin: 'idea',
+      dependencies: [],
+      human_approval_required: input.humanApprovalRequired ?? true,
+      evidence_path: input.evidencePath ?? null,
+      validation_required: [],
+      linear_id: input.linearId ?? null,
+      preview_url: null,
+      metadata: input.metadata ?? {},
+      created_at: '2026-06-16T00:00:00.000Z',
+      updated_at: '2026-06-16T00:00:00.000Z',
+    }
+
+    const rebuilt = taskToPacket(row)
+    expect(rebuilt.id).toBe(packet.id)
+    expect(rebuilt.outcome).toBe(packet.outcome)
+    expect(rebuilt.lane).toBe(packet.lane)
+    expect(rebuilt.status).toBe('draft')
+  })
+})
