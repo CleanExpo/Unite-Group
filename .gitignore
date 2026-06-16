@@ -69,3 +69,6 @@ vercel-export-*/
 # Transient agent run artifacts (raw logs / exit codes — never canonical)
 .shipit_evidence/
 outputs/sandbox_voice_migration/
+
+# Local git worktrees (never canonical repo content)
+.worktrees/

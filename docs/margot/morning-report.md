@@ -1,5 +1,20 @@
 # Margot Morning Report
 
+## 2026-06-16 14:50 AEST — CRM timeline card-number redaction guard
+
+- **Completed safe lane:** Used strict RED-GREEN on the central CRM timeline helper so structurally constructed timeline/agent-action inserts redact `card number ####` payment evidence alongside the existing phone/email/Board/bearer/API-key/billing-card/payment-card/card-ending patterns.
+- **Repo/PR read-back:** branch `margot/timeline-phone-payment-redaction-20260616`; preflight `git status --short` -> clean; current branch had no PR; unrelated PR `#228` remains outside this lane; local code/test commit `248d13a8` (`fix(crm): redact timeline card number evidence`) was created.
+- **Verification:** RED focused Jest failed before the helper change because `card number 9999` remained in `idea_text`; GREEN focused Jest passed. Full activity timeline suite -> PASS, 1 suite / 9 tests. Focused CRM timeline/conversion sweep -> PASS, 2 suites / 18 tests. `npm run type-check` -> PASS after clearing stale generated `.next` validator references. `npm run security:routes-check` -> PASS with 0 unprotected mutating routes. `git diff --check` -> PASS. Targeted ESLint -> PASS. Added-line static scan -> PASS. Independent reviewer -> PASS/no blockers.
+- **Evidence paths:** `src/lib/crm/activity-timeline.ts`, `tests/unit/lib/crm/activity-timeline.test.ts`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`.
+- **Safety/blockers:** no production DB write/migration, sandbox wizard subcommand, Vercel deploy/env mutation, PR creation, push, merge, live provider action, client-facing send, billing/payment action, credential read, destructive git, or cross-client merge occurred. Publication remains local-only because the inherited branch diff still includes a pre-existing `.worktrees/main-canonical` gitlink plus prior ops/Linear mirror changes; next safe lane is branch hygiene/splitting before PR publication.
+
+## 2026-06-16 14:38 AEST — PR #230 merged-state and CRM redaction guard health read-back
+
+- **Completed safe lane:** Re-read the Senior PM control set plus Linear and AI-RET-001 evidence, then ran a bounded read-only PR/source-control health check. PR `#230` is now `MERGED`; this tick did not perform that merge.
+- **Repo/PR read-back:** current branch `margot/timeline-phone-payment-redaction-20260616`; `git status --short` -> clean; `git log -1 --oneline` -> `9f8cecdf yes, back to the real blockers /loop`; `git rev-list --count main..origin/main` -> `11`; `gh pr view 230 --json ...` -> `state=MERGED`, base `mesh/mission-control-2026-06-11`, head `margot/timeline-subject-label-redaction-20260616`.
+- **Verification:** `CI=1 npx jest tests/unit/lib/crm/activity-timeline.test.ts tests/integration/api/crm-lead-conversion.test.ts --runInBand` -> PASS, 2 suites / 18 tests. AI-RET-001 report remains `overallStatus=pass`, source `8/8`, answerShape `106/106`, readback `pass`.
+- **Safety/blockers:** no production DB write/migration, sandbox wizard subcommand, Vercel deploy/env mutation, PR creation, merge, push, client-facing send, billing/payment action, credential read, destructive git, connector-platform/new-vendor action, cross-client merge, or Mac Mini credential prompt occurred. The old `AQ-298b9d` merge blocker is historical for PR #230; next safe lane is local-only bounded guard work on the current phone-payment redaction branch.
+
 ## 2026-06-16 11:16 AEST — PR publication and merge-gate read-back
 
 - **PR opened:** https://github.com/CleanExpo/Unite-Group/pull/230 (`fix(crm): redact approval and timeline evidence surfaces`) against `mesh/mission-control-2026-06-11` from `margot/timeline-subject-label-redaction-20260616`.

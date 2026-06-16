@@ -1,6 +1,6 @@
 # Linear Watch — Margot Today Queue
 
-Last synced: 2026-06-15 09:44:29 AEST
+Last synced: 2026-06-16 12:15:03 AEST
 Source: Linear team `UNI` / Unite-Group
 Purpose: Make parent-Hermes-pushed Linear work visible to Margot for today's task list.
 
@@ -97,6 +97,69 @@ Summary / Linear description excerpt:
 > * All 4 decisions documented
 > * Stakeholders (design + eng lead + product) signed off
 > * Decision posted as a comment on this issue and on parent [UNI-2057](https://linear.app/unite-group/issue/UNI-2057/unite-hub-layer
+> …
+
+### UNI-2140 — [CCW-CRM][Build] NSW feasibility + ElevenLabs/Twilio AI phone agent add-on
+
+- State: In Progress (started)
+- Priority: High
+- Project: CCW CRM
+- Assignee: Phill McGurk
+- Updated: 2026-06-16T02:14:37.899Z
+- Labels: none
+- Linear: https://linear.app/unite-group/issue/UNI-2140/ccw-crmbuild-nsw-feasibility-elevenlabstwilio-ai-phone-agent-add-on
+
+Summary / Linear description excerpt:
+
+> ## Goal
+
+> Answer Toby's question in product terms and start the CCW-CRM build:
+
+> > **Increase profitable customer access and sales conversion while protecting the Seven Hills cost advantage.**
+
+> ## Context
+
+> Toby challenged the pitch with: **“What are we trying to achieve?”**
+
+> This issue converts the feasibility statement, parcel collection model, and ElevenLabs/Twilio phone-agent concept into a buildable CCW-CRM add-on.
+
+> ## GitHub
+
+> Draft PR: [CleanExpo/CCW-CRM#214](https://linear.app/unite-group/review/feat-ccw-feasibility-and-ai-phone-agent-spec-4d0f31cf84a4)
+
+> Branch: `feature/ccw-feasibility-ai-phone-agent-20260616`
+
+> Changed files:
+
+> * `docs/specs/ccw-feasibility-ai-phone-agent/spec.md`
+> * `docs/specs/ccw-feasibility-ai-phone-agent/codex-task.md`
+> * `docs/specs/ccw-feasibility-ai-phone-agent/addon-manifest.json`
+> * `docs/specs/ccw-feasibility-ai-phone-agent/migration_stub.sql`
+
+> ## Codex setting
+
+> ```yaml
+> codex_access_mode: read:write
+> repository_permission: read:write
+> base_branch: main
+> feature_branch: feature/ccw-feasibility-ai-phone-agent-20260616
+> ```
+
+> ## Build scope
+
+> ### Phase 1 — Foundation
+
+> * Add schema/migration using repo conventions.
+> * Add safe feature flags.
+> * Add baseline Seven Hills and scenario seed data.
+> * Add feature-status endpoint.
+
+> ### Phase 2 — Feasibility engine
+
+> * Scenario CRUD.
+> * Scenario score calculator.
+> * Required extra monthly contribution calculation.
+> * Tests
 > …
 
 ### UNI-2060 — Phase 2 · Extract UI primitives (Card, KPI, Chip, Tier, Ticker, FAB, LiveIndicator, etc.)
@@ -397,24 +460,6 @@ Summary / Linear description excerpt:
 
 > Then: `pnpm intake:gmail`
 
-### UNI-2120 — [CCW P2 Wave 2] Decide and Wire AI Quote Generation into Quote Workflow or Feature-Flag It
-
-- State: Todo (unstarted)
-- Priority: Medium
-- Project: CCW CRM
-- Assignee: ranamuzamil1199@gmail.com
-- Updated: 2026-06-01T03:36:15.106Z
-- Labels: none
-- Linear: https://linear.app/unite-group/issue/UNI-2120/ccw-p2-wave-2-decide-and-wire-ai-quote-generation-into-quote-workflow
-
-Summary / Linear description excerpt:
-
-> Evidence: `quotes.py` TODO to integrate `/api/ai/generate/quote`. Acceptance: either connected with tests or explicitly feature-flagged/non-MVP.
-
-> Report: `D:\CCW-CRM\docs\CCW-MISSING-ENDPOINTS-CONNECTIONS-WAVE2-2026-06-01.md`
-
-> Senior Engineer loop: reproduce/confirm gap, write failing test or failing gate, implement smallest safe slice, rerun targeted tests, record evidence before moving on. Sandbox only until verified.
-
 ## Full open queue snapshot
 
 | Issue | State | Priority | Project | Updated | Title |
@@ -422,6 +467,7 @@ Summary / Linear description excerpt:
 | [UNI-2117](https://linear.app/unite-group/issue/UNI-2117/ccw-p0-wave-2-harden-team-invites-and-session-invalidation) | In Review | Urgent | CCW CRM | 2026-06-01T04:13:41.183Z | [CCW P0 Wave 2] Harden Team Invites and Session Invalidation |
 | [UNI-2103](https://linear.app/unite-group/issue/UNI-2103/ccw-p0-build-loop-green-gates-and-repo-stabilisation) | In Review | Urgent | CCW CRM | 2026-06-01T04:07:07.949Z | [CCW P0 Build Loop] Green Gates and Repo Stabilisation |
 | [UNI-2058](https://linear.app/unite-group/issue/UNI-2058/phase-0-engineering-review-and-adoption-decision-replace-parallel) | In Progress | Urgent | Unite-Group | 2026-05-30T11:44:06.770Z | Phase 0 · Engineering review & adoption decision (replace / parallel / cherry-pick) |
+| [UNI-2140](https://linear.app/unite-group/issue/UNI-2140/ccw-crmbuild-nsw-feasibility-elevenlabstwilio-ai-phone-agent-add-on) | In Progress | High | CCW CRM | 2026-06-16T02:14:37.899Z | [CCW-CRM][Build] NSW feasibility + ElevenLabs/Twilio AI phone agent add-on |
 | [UNI-2060](https://linear.app/unite-group/issue/UNI-2060/phase-2-extract-ui-primitives-card-kpi-chip-tier-ticker-fab) | In Progress | High | Unite-Group | 2026-05-30T11:44:06.774Z | Phase 2 · Extract UI primitives (Card, KPI, Chip, Tier, Ticker, FAB, LiveIndicator, etc.) |
 | [UNI-2059](https://linear.app/unite-group/issue/UNI-2059/phase-1-port-design-tokens-into-globalscss-tailwind-config) | In Progress | High | Unite-Group | 2026-05-30T11:44:06.771Z | Phase 1 · Port design tokens into globals.css + tailwind config |
 | [UNI-2108](https://linear.app/unite-group/issue/UNI-2108/ccw-p1-build-loop-core-erp-smoke-pack-products-customers-quotes-orders) | Todo | Urgent | CCW CRM | 2026-06-01T03:28:31.117Z | [CCW P1 Build Loop] Core ERP Smoke Pack: Products, Customers, Quotes, Orders, POS, Inventory, Invoices |
@@ -458,7 +504,6 @@ Summary / Linear description excerpt:
 | [UNI-2057](https://linear.app/unite-group/issue/UNI-2057/unite-hub-layered-design-system-handoff-and-integration) | Backlog | High | Unite-Group | 2026-05-25T06:31:14.792Z | Unite-Hub · Layered Design System — Handoff & Integration |
 | [UNI-2133](https://linear.app/unite-group/issue/UNI-2133/mission-station-visual-command-console-for-unite-group-nexus) | Backlog | Medium | Unite-Group | 2026-06-11T02:03:43.301Z | Mission Station: visual command console for Unite Group Nexus (graphs/3D/voice, minimal text) |
 | [UNI-2132](https://linear.app/unite-group/issue/UNI-2132/ato-repo-pr-pileup-5-duplicate-pi-ceo-full-analysis-prs-deepsec-cron) | Backlog | Medium | Unite-Group | 2026-06-11T00:09:36.428Z | ATO repo PR pileup: 5 duplicate "Pi CEO full analysis" PRs + Deepsec cron PR rotting since 14 May |
-| [UNI-2130](https://linear.app/unite-group/issue/UNI-2130/duncan-telegram-q6-looks-like-stripe-is-the-only-way-to-go-sadly-one) | Backlog | Medium | Dimitri ITR Platform | 2026-06-04T17:38:13.885Z | [Duncan Telegram] Q6 Looks like STRIPE is the only way to go - sadly. One option only hey? |
 
 ## Watcher metadata
 

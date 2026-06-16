@@ -2,7 +2,23 @@
 |Date: 2026-05-23
 |Project: Unite-Group
 |Root: `/Users/phillmcgurk/Unite-Group`
-|Last update: 2026-06-16 11:02 AEST — RestoreAssist readiness tier guard read-back
+|Last update: 2026-06-16 14:50 AEST — CRM timeline card-number redaction guard
+
+## Current Autonomy Rotation Guard — 2026-06-16 14:50 AEST
+
+- Repo: `margot/timeline-phone-payment-redaction-20260616`; preflight `git status --short` -> clean; current branch had no PR; GitHub auth available; Vercel CLI read-back returned a username only; local code/test commit `248d13a8` created.
+- Completed safe Senior PM lane: strict RED-GREEN guard for the central CRM timeline helper so structurally constructed agent-action inserts redact `card number ####` payment evidence from `subjectLabel`, `summary`, `idea_text`, and serialized payloads.
+- Verification: RED focused Jest failed before the helper change with raw `card number 9999`; GREEN passed. Full activity timeline suite -> PASS (1 suite / 9 tests). Timeline + lead-conversion sweep -> PASS (2 suites / 18 tests). `npm run type-check` -> PASS after clearing stale generated `.next` validator references; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; scoped diff check, targeted ESLint, added-line static scan, and independent reviewer all passed.
+- Files changed in this slice: `src/lib/crm/activity-timeline.ts`, `tests/unit/lib/crm/activity-timeline.test.ts`, this command-center update, `docs/margot/overnight-progress-log.md`, and `docs/margot/morning-report.md`.
+- Safety/blocker: no production DB write/migration, sandbox wizard subcommand, Vercel deploy/env mutation, PR creation, push, merge, live provider dispatch/polling, client-facing send, billing/payment action, credential read, secret printing/storage, destructive git, cross-client merge, connector-platform/new-vendor action, recursive system-volume scan, or Mac Mini credential prompt occurred. Publication remains local-only because the inherited branch diff still includes a pre-existing `.worktrees/main-canonical` gitlink plus prior ops/Linear mirror changes; next safe lane is branch hygiene/splitting before PR publication.
+
+## Current Autonomy Rotation Guard — 2026-06-16 14:38 AEST
+
+- Repo: `margot/timeline-phone-payment-redaction-20260616`; `git status --short` -> clean; `git log -1 --oneline` -> `9f8cecdf yes, back to the real blockers /loop`; `git rev-list --count main..origin/main` -> `11`; `node_modules=present`.
+- Completed safe Senior PM lane: re-read the Senior PM control set plus Linear and AI-RET-001 evidence, then performed a bounded read-only PR/source-control read-back. PR `#230` is now `MERGED`; this tick did not perform the merge, push, deploy, or protected-branch mutation.
+- Verification: `gh pr view 230 --json ...` -> state `MERGED`, head `margot/timeline-subject-label-redaction-20260616`, base `mesh/mission-control-2026-06-11`; `CI=1 npx jest tests/unit/lib/crm/activity-timeline.test.ts tests/integration/api/crm-lead-conversion.test.ts --runInBand` -> PASS (2 suites / 18 tests).
+- Files changed in this slice: this command-center update plus `docs/margot/overnight-progress-log.md` and `docs/margot/morning-report.md`.
+- Safety/blocker: no production DB write/migration, sandbox wizard subcommand, Vercel env mutation, PR creation, merge, push, client-facing send, billing/payment action, credential read, secret printing/storage, destructive git, cross-client merge, connector-platform/new-vendor action, recursive system-volume scan, or Mac Mini credential prompt occurred. Next safe lane is local-only bounded guard work on the current phone-payment redaction branch or read-only follow-through on any fresh branch/PR state.
 
 ## Current Autonomy Rotation Guard — 2026-06-16 11:02 AEST
 

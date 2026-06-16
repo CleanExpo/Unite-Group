@@ -222,10 +222,18 @@ describe('buildCrmActivityTimelineEvent', () => {
       actionClass: 'auto',
       actor: 'website_form',
       subjectId: 'lead-3',
-      subjectLabel: 'Katherine / Orbital Labs',
+      subjectLabel:
+        'Katherine / Orbital Labs 400-222-333 billing card ' +
+        '4242 payment card ' +
+        '1111 card number ' +
+        '9999',
       occurredAt: '2026-05-23T12:35:00+10:00',
       source: 'manual_test',
-      summary: 'Lead captured: Katherine / Orbital Labs via manual_test.',
+      summary:
+        'Lead captured: Katherine / Orbital Labs 400-222-333 billing card ' +
+        '4242 payment card ' +
+        '1111 card number ' +
+        '9999 via manual_test.',
       metadata: {
         safeCount: 1,
         stage: 'captured',
@@ -247,7 +255,19 @@ describe('buildCrmActivityTimelineEvent', () => {
     };
 
     const insert = buildCrmTimelineAgentActionInsert(manuallyConstructedEvent);
+    const serialized = JSON.stringify(insert);
 
+    expect(insert.idea_text).toBe(
+      'Lead captured: Katherine / Orbital Labs [REDACTED] [REDACTED] [REDACTED] [REDACTED] via manual_test.',
+    );
+    expect(insert.payload.subjectLabel).toBe(
+      'Katherine / Orbital Labs [REDACTED] [REDACTED] [REDACTED] [REDACTED]',
+    );
+    expect(insert.payload.summary).toBe(insert.idea_text);
+    expect(serialized).not.toContain('400-222-333');
+    expect(serialized).not.toContain('billing card ' + '4242');
+    expect(serialized).not.toContain('payment card ' + '1111');
+    expect(serialized).not.toContain('card number ' + '9999');
     expect(insert.payload.metadata).toEqual({ safeCount: 1, stage: 'captured' });
   });
 
