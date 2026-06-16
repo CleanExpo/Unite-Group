@@ -1,5 +1,12 @@
 # Margot Morning Report
 
+## 2026-06-16 14:38 AEST — PR #230 merged-state and CRM redaction guard health read-back
+
+- **Completed safe lane:** Re-read the Senior PM control set plus Linear and AI-RET-001 evidence, then ran a bounded read-only PR/source-control health check. PR `#230` is now `MERGED`; this tick did not perform that merge.
+- **Repo/PR read-back:** current branch `margot/timeline-phone-payment-redaction-20260616`; `git status --short` -> clean; `git log -1 --oneline` -> `9f8cecdf yes, back to the real blockers /loop`; `git rev-list --count main..origin/main` -> `11`; `gh pr view 230 --json ...` -> `state=MERGED`, base `mesh/mission-control-2026-06-11`, head `margot/timeline-subject-label-redaction-20260616`.
+- **Verification:** `CI=1 npx jest tests/unit/lib/crm/activity-timeline.test.ts tests/integration/api/crm-lead-conversion.test.ts --runInBand` -> PASS, 2 suites / 18 tests. AI-RET-001 report remains `overallStatus=pass`, source `8/8`, answerShape `106/106`, readback `pass`.
+- **Safety/blockers:** no production DB write/migration, sandbox wizard subcommand, Vercel deploy/env mutation, PR creation, merge, push, client-facing send, billing/payment action, credential read, destructive git, connector-platform/new-vendor action, cross-client merge, or Mac Mini credential prompt occurred. The old `AQ-298b9d` merge blocker is historical for PR #230; next safe lane is local-only bounded guard work on the current phone-payment redaction branch.
+
 ## 2026-06-16 11:16 AEST — PR publication and merge-gate read-back
 
 - **PR opened:** https://github.com/CleanExpo/Unite-Group/pull/230 (`fix(crm): redact approval and timeline evidence surfaces`) against `mesh/mission-control-2026-06-11` from `margot/timeline-subject-label-redaction-20260616`.

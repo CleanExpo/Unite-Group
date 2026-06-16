@@ -1,5 +1,30 @@
 # Margot Overnight Progress Log
 
+## 2026-06-16 14:38 AEST
+
+### Tick 20260616_1438 — PR #230 merged-state and CRM redaction guard health read-back
+
+Lane: bounded Senior PM health/read-back after the prior PR publication lane. PR `#230` is now reported by GitHub as `MERGED`; this tick treated that as a read-only state change and did not perform a merge, push, deploy, protected-branch mutation, or production action.
+
+Completed:
+- Re-read the Senior PM read-first set, Linear mirror, AI-RET-001 evidence, AI candidate/pipeline surfaces, current command center, Mac Mini status, progress log, morning report, and plans before selecting a read-back lane.
+- Repo state read-back: branch `margot/timeline-phone-payment-redaction-20260616`; `git status --short` -> no output; `git log -1 --oneline` -> `9f8cecdf yes, back to the real blockers /loop`; `git rev-list --count main..origin/main` -> `11`.
+- GitHub PR read-back: `gh pr view 230 --json ...` -> `state=MERGED`, base `mesh/mission-control-2026-06-11`, head `margot/timeline-subject-label-redaction-20260616`, title `fix(crm): redact approval and timeline evidence surfaces`. The earlier `AQ-298b9d` merge blocker is now historical for this PR, not a current blocker.
+
+Verification/read-back:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-16 14:38:47 AEST`.
+- `CI=1 npx jest tests/unit/lib/crm/activity-timeline.test.ts tests/integration/api/crm-lead-conversion.test.ts --runInBand` -> PASS, 2 suites / 18 tests.
+- `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` remains `overallStatus=pass`, source `8/8`, answerShape `106/106`, readback `pass` from the current local report; no live retrieval or report regeneration was needed.
+
+Files changed:
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No production DB write/migration, sandbox wizard subcommand, Vercel deploy/env mutation, PR creation, merge, push, client-facing send, billing/payment action, credential read, secret printing/storage, destructive git, cross-client merge, connector-platform/new-vendor action, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Next safe lane: continue local-only bounded guard work on the current phone-payment redaction branch, or run read-only follow-through if a fresh branch/PR state changes.
+
 ## 2026-06-16 11:16 AEST
 
 ### Tick 20260616_1116 — PR publication and merge-gate read-back
@@ -24912,3 +24937,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260616_110121.log'
+
+## 2026-06-16 14:39:43 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260616_143756.log'
