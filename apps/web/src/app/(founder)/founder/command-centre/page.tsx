@@ -12,6 +12,7 @@ import { getToolCatalogue } from '@/lib/command-centre/tools/catalogue'
 import { summariseDashboard } from '@/lib/command-centre/dashboard-summary'
 import { tailEvidence } from '@/lib/command-centre/evidence-stream'
 import { listInProgressPRs } from '@/lib/command-centre/in-progress-prs'
+import { loadProjectIntegrationStatuses } from '@/lib/command-centre/project-integrations'
 import { loadActionQueueData } from './ActionQueueTile'
 import { loadBlockedLanesData } from './BlockedLanesTile'
 import { LiveClock } from './LiveClock'
@@ -71,6 +72,12 @@ function ledState(status: string): 'active' | 'stub' | 'idle' {
   return 'idle'
 }
 
+function connectionLedState(state: string): 'active' | 'stub' | 'idle' {
+  if (state === 'connected' || state === 'ready') return 'active'
+  if (state === 'mock' || state === 'unknown') return 'stub'
+  return 'idle'
+}
+
 function hostOf(url?: string): string {
   return url ? url.replace(/^https?:\/\//, '').replace(/\/$/, '') : ''
 }
@@ -85,6 +92,7 @@ export default async function CommandDeckPage() {
     loadBlockedLanesData(),
     listInProgressPRs(),
   ])
+  const integrationStatuses = await loadProjectIntegrationStatuses(projects)
 
   const activeCount = projects.filter((p) => p.status === 'active').length
   const sources = tools.reduce<Record<string, number>>((acc, t) => {
@@ -220,6 +228,58 @@ export default async function CommandDeckPage() {
           </article>
         ))}
       </section>
+
+      {/* ── Project integrations ─────────────────────────────────────── */}
+      {integrationStatuses.length > 0 && (
+        <>
+          <div className={styles.sectionHead} id="project-integrations">
+            <span className={styles.sectionLabel}>Project Integrations</span>
+            <span className={styles.sectionMeta}>{integrationStatuses.length} manifests · metadata-only</span>
+          </div>
+
+          <section className={styles.integrationGrid}>
+            {integrationStatuses.map((status, i) => (
+              <article
+                key={status.projectName}
+                className={`${styles.panel} ${styles.reveal}`}
+                style={{ '--swatch': swatchFor(status.projectName), animationDelay: `${0.04 * i}s` } as React.CSSProperties}
+              >
+                <div className={styles.panelHead}>
+                  <span className={styles.led} data-state={status.ok ? 'active' : 'idle'} />
+                  <span className={styles.pname}>{status.projectName}</span>
+                  <span className={styles.statusTag}>{status.ok ? 'manifest' : 'degraded'}</span>
+                </div>
+
+                <div className={styles.integrationSummary}>
+                  <span><b>{status.summary.connected + status.summary.ready}</b> usable</span>
+                  <span><b>{status.summary.blocked}</b> blocked</span>
+                  <span><b>{status.summary.mock}</b> mock</span>
+                  <span><b>{status.summary.unknown}</b> unknown</span>
+                </div>
+
+                {status.error ? (
+                  <p className={styles.ppurpose}>Manifest unavailable: {status.error}</p>
+                ) : (
+                  <div className={styles.connectionList}>
+                    {status.connections.map((connection) => (
+                      <div key={connection.id} className={styles.connectionRow}>
+                        <span className={styles.led} data-state={connectionLedState(connection.state)} />
+                        <span className={styles.connectionName}>{connection.label}</span>
+                        <span className={styles.connectionState}>{connection.state}</span>
+                        {connection.nextAction && <span className={styles.connectionAction}>{connection.nextAction}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <a className={styles.plink} href={status.statusUrl} target="_blank" rel="noopener noreferrer">
+                  ↗ manifest
+                </a>
+              </article>
+            ))}
+          </section>
+        </>
+      )}
 
       {/* ── Capability bus ───────────────────────────────────────────── */}
       <div className={styles.sectionHead} id="capability-bus">
