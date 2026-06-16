@@ -47,6 +47,11 @@ export interface LinearTeamStates {
   states: { nodes: LinearState[] }
 }
 
+export interface LinearIssueLabel {
+  id: string
+  name: string
+}
+
 // ─── Column mapping ───────────────────────────────────────────────────────────
 
 // Kanban column → Linear state name (used when updating issue on drag)
@@ -214,8 +219,7 @@ export interface CreateIssueInput {
   description?: string
   teamKey: string       // e.g. 'SYN', 'DR', 'GP'
   priority?: number     // 0=no priority, 1=urgent, 2=high, 3=medium, 4=low
-  labelNames?: string[] // Linear label names (best-effort — skip if label not found)
-  // TODO: wire labelNames into the GraphQL mutation once Linear label lookup is implemented
+  labelNames?: string[] // Linear label names to apply at creation time
 }
 
 export async function resolveTeamId(teamKey: string): Promise<string> {
@@ -228,21 +232,84 @@ export async function resolveTeamId(teamKey: string): Promise<string> {
   return team.id
 }
 
+export async function fetchIssueLabels(): Promise<LinearIssueLabel[]> {
+  if (!isLinearConfigured()) {
+    console.warn('LINEAR_API_KEY is not configured — returning empty issue labels')
+    return []
+  }
+
+  const labels: LinearIssueLabel[] = []
+  let cursor: string | null = null
+  const MAX_PAGES = 4 // Cap at 1,000 labels
+
+  interface LabelsResponse {
+    issueLabels: {
+      nodes: LinearIssueLabel[]
+      pageInfo: { hasNextPage: boolean; endCursor: string | null }
+    }
+  }
+
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const afterClause: string = cursor ? `, after: "${cursor}"` : ''
+    const data: LabelsResponse = await gql<LabelsResponse>(`{
+      issueLabels(first: 250${afterClause}) {
+        nodes { id name }
+        pageInfo { hasNextPage endCursor }
+      }
+    }`)
+
+    labels.push(...data.issueLabels.nodes)
+
+    if (!data.issueLabels.pageInfo.hasNextPage) break
+    cursor = data.issueLabels.pageInfo.endCursor
+  }
+
+  return labels
+}
+
+export async function resolveLabelIds(labelNames: string[] = []): Promise<string[]> {
+  const wantedLabels = Array.from(new Set(labelNames.map(label => label.trim()).filter(Boolean)))
+  if (wantedLabels.length === 0) return []
+
+  const labels = await fetchIssueLabels()
+  const labelsByName = new Map(labels.map(label => [label.name.toLowerCase(), label.id]))
+  const missingLabels: string[] = []
+  const labelIds: string[] = []
+
+  for (const name of wantedLabels) {
+    const labelId = labelsByName.get(name.toLowerCase())
+    if (!labelId) missingLabels.push(name)
+    else labelIds.push(labelId)
+  }
+
+  if (missingLabels.length > 0) {
+    throw new Error(`Linear label not found: ${missingLabels.join(', ')}`)
+  }
+
+  return labelIds
+}
+
 export async function createIssue(input: CreateIssueInput): Promise<{ id: string; url?: string }> {
   if (!isLinearConfigured()) {
     throw new Error('LINEAR_API_KEY is not configured — cannot create issue')
   }
-  // TODO: Wire labelNames into the mutation once Linear label ID resolution is built
-  // Labels are accepted here but not yet applied — see issue tracker
   const teamId = await resolveTeamId(input.teamKey)
+  const labelIds = await resolveLabelIds(input.labelNames)
 
   const data = await gql<{ issueCreate: { issue: { id: string; identifier: string; url: string } } }>(`
-    mutation CreateIssue($teamId: String!, $title: String!, $description: String, $priority: Int) {
+    mutation CreateIssue(
+      $teamId: String!
+      $title: String!
+      $description: String
+      $priority: Int
+      $labelIds: [String!]
+    ) {
       issueCreate(input: {
         teamId: $teamId
         title: $title
         description: $description
         priority: $priority
+        labelIds: $labelIds
       }) {
         issue { id identifier url }
       }
@@ -252,6 +319,7 @@ export async function createIssue(input: CreateIssueInput): Promise<{ id: string
     title: input.title,
     description: input.description,
     priority: input.priority,
+    labelIds,
   })
 
   return { id: data.issueCreate.issue.identifier, url: data.issueCreate.issue.url }
