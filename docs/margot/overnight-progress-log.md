@@ -1,5 +1,29 @@
 # Margot Overnight Progress Log
 
+## 2026-06-16 10:29 AEST
+
+### Tick 20260616_1029 — isolated branch CRM timeline guard health read-back
+
+Lane: bounded Senior PM health/read-back check. Goal was to verify the isolated CRM timeline subject-label redaction branch still has dependencies present and the focused CRM timeline guard remains green, without repeating the blocked PR/publication gate or changing code.
+
+Completed:
+- Re-read the Senior PM read-first set, Linear mirror, AI-RET-001 evidence, AI candidate/pipeline surfaces, current command center, Mac Mini status, progress log, morning report, and package scripts before selecting a local health lane.
+- Repo state read-back: branch `margot/timeline-subject-label-redaction-20260616`; `git status --short` -> no output; `git log -1 --oneline` -> `fcfe4e19 Lets walk through these requirements together, 1 at a time`; `git rev-list --count main..origin/main` -> `10`; `node_modules=present`.
+- Focused guard health remains green: CRM activity timeline tests still prove sensitive subject-label redaction and safe agent_actions payload construction.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-16 10:29:30 AEST`.
+- `CI=1 npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand` -> PASS, 1 suite / 9 tests.
+
+Files changed:
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+
+Safety/blockers:
+- No production DB write/migration, sandbox wizard subcommand, live provider dispatch/polling, Vercel deploy/env mutation, PR creation, merge, additional push, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Blocker unchanged: PR publication for `margot/timeline-subject-label-redaction-20260616` remains gated by explicit human approval; next safe lane is another local read-surface/control-surface guard or branch-publication follow-up only if approval is granted.
+
 ## 2026-06-16 09:57 AEST
 
 ### Tick 20260616_0957 — isolated branch PR-gate and timeline guard health read-back
@@ -24749,3 +24773,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260616_095638.log'
+
+## 2026-06-16 10:31:21 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260616_102848.log'

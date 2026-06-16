@@ -1,5 +1,13 @@
 # Margot Morning Report
 
+## 2026-06-16 10:29 AEST — Isolated branch CRM timeline guard health read-back
+
+- **Completed safe lane:** Re-read the Senior PM control set and ran a bounded local health check on the isolated CRM timeline subject-label redaction branch; no new code implementation was needed.
+- **Repo read-back:** branch `margot/timeline-subject-label-redaction-20260616`; `git status --short` -> clean; `git log -1 --oneline` -> `fcfe4e19 Lets walk through these requirements together, 1 at a time`; `git rev-list --count main..origin/main` -> `10`; `node_modules=present`.
+- **Verification:** `CI=1 npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand` -> PASS, 1 suite / 9 tests.
+- **Evidence paths:** `tests/unit/lib/crm/activity-timeline.test.ts`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`.
+- **Blockers unchanged / next lane:** PR publication remains gated by explicit human approval; no DB write, deploy/env mutation, PR creation, merge, additional push, live provider action, sandbox wizard action, credential read, client-facing send, connector-platform/new-vendor action, or Mac Mini credential prompt occurred.
+
 ## 2026-06-16 09:57 AEST — Isolated branch PR-gate and timeline guard health read-back
 
 - **Completed safe lane:** Re-read the Senior PM control set and verified the isolated CRM timeline redaction branch remains locally healthy; no new implementation was needed.
