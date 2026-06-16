@@ -82,6 +82,19 @@ function clean(value: string | null | undefined): string {
   return typeof value === 'string' && value.trim() ? value.trim() : '';
 }
 
+function redactSensitiveDigestText(value: string): string {
+  return value
+    .replace(/\bBOARD-[A-Z0-9-]+\b/gi, '[REDACTED]')
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[REDACTED]')
+    .replace(
+      /\b([A-Z0-9_]*(?:SECRET|TOKEN|PASSWORD|PASSWD|API[_-]?KEY|SERVICE[_-]?ROLE[_-]?KEY)[A-Z0-9_]*=)(?:"[^"]*"|'[^']*'|\S+)/gi,
+      '$1[REDACTED]',
+    )
+    .replace(/\bbearer\s+[a-z0-9._~+/=-]+\b/gi, 'Bearer [REDACTED]')
+    .replace(/(?:\+\d[\d ().-]{7,}\d|\b\d[\d ().]{7,}\d\b)/g, '[REDACTED]')
+    .replace(/\bcard\s+(?:ending|number)\s+\d{4}\b/gi, '[REDACTED]');
+}
+
 function money(value: number | null | undefined): string | null {
   if (typeof value !== 'number' || !Number.isFinite(value)) return null;
   return new Intl.NumberFormat('en-AU', {
@@ -97,8 +110,8 @@ function percent(value: number | null | undefined): string | null {
 }
 
 function leadLabel(lead: CrmDigestLead): string {
-  const name = clean(lead.name) || `lead ${lead.id}`;
-  const company = clean(lead.company);
+  const name = redactSensitiveDigestText(clean(lead.name) || `lead ${lead.id}`);
+  const company = redactSensitiveDigestText(clean(lead.company));
   return company ? `${name} / ${company}` : name;
 }
 
@@ -110,7 +123,7 @@ function buildOperatorPriorities(leads: CrmDigestLead[], opportunities: CrmDiges
     .slice(0, 5)
     .forEach((lead) => {
       const score = typeof lead.score === 'number' ? ` score ${lead.score}` : '';
-      const next = clean(lead.nextAction) || 'Review and decide next CRM action';
+      const next = redactSensitiveDigestText(clean(lead.nextAction) || 'Review and decide next CRM action');
       priorities.push(`Lead ${lead.id} (${leadLabel(lead)}): ${clean(lead.qualificationBand) || clean(lead.status) || 'unclassified'}${score}. Next: ${next}`);
     });
 
@@ -120,8 +133,9 @@ function buildOperatorPriorities(leads: CrmDigestLead[], opportunities: CrmDiges
       money(opportunity.valueEstimate),
       percent(opportunity.probability),
     ].filter(Boolean).join(', ');
-    const next = clean(opportunity.nextAction) || 'Confirm owner and next commercial action';
-    priorities.push(`Opportunity ${opportunity.id} (${opportunity.name})${details ? `: ${details}` : ''}. Next: ${next}`);
+    const next = redactSensitiveDigestText(clean(opportunity.nextAction) || 'Confirm owner and next commercial action');
+    const opportunityName = redactSensitiveDigestText(opportunity.name);
+    priorities.push(`Opportunity ${opportunity.id} (${opportunityName})${details ? `: ${details}` : ''}. Next: ${next}`);
   });
 
   tasks
@@ -129,7 +143,9 @@ function buildOperatorPriorities(leads: CrmDigestLead[], opportunities: CrmDiges
     .slice(0, 5)
     .forEach((task) => {
       const taskLabel = task.source === 'margot_voice' ? 'Voice task' : 'Task';
-      priorities.push(`${taskLabel} ${task.id} (${task.title}): owner ${clean(task.owner) || 'unassigned'}, status ${clean(task.status) || 'unknown'}, priority ${clean(task.priority)}.`);
+      const title = redactSensitiveDigestText(task.title);
+      const owner = redactSensitiveDigestText(clean(task.owner) || 'unassigned');
+      priorities.push(`${taskLabel} ${task.id} (${title}): owner ${owner}, status ${clean(task.status) || 'unknown'}, priority ${clean(task.priority)}.`);
     });
 
   return priorities.length ? priorities : ['No CRM priorities supplied for this digest window.'];
@@ -139,12 +155,18 @@ function buildApprovals(opportunities: CrmDigestOpportunity[], tasks: CrmDigestT
   const approvals = [
     ...opportunities
       .filter((opportunity) => opportunity.requiresApproval === true)
-      .map((opportunity) => `Opportunity ${opportunity.id} (${opportunity.name}): approval required before commercial commitment. Next: ${clean(opportunity.nextAction) || 'Draft approval decision for Phill'}`),
+      .map((opportunity) => {
+        const opportunityName = redactSensitiveDigestText(opportunity.name);
+        const next = redactSensitiveDigestText(clean(opportunity.nextAction) || 'Draft approval decision for Phill');
+        return `Opportunity ${opportunity.id} (${opportunityName}): approval required before commercial commitment. Next: ${next}`;
+      }),
     ...tasks
       .filter((task) => clean(task.owner).toLowerCase() === 'phill' || clean(task.status) === 'blocked')
       .map((task) => {
         const taskLabel = task.source === 'margot_voice' ? 'Voice task' : 'Task';
-        return `${taskLabel} ${task.id} (${task.title}): blocked for ${clean(task.owner) || 'operator approval'}. Priority: ${clean(task.priority) || 'normal'}`;
+        const title = redactSensitiveDigestText(task.title);
+        const owner = redactSensitiveDigestText(clean(task.owner) || 'operator approval');
+        return `${taskLabel} ${task.id} (${title}): blocked for ${owner}. Priority: ${clean(task.priority) || 'normal'}`;
       }),
   ];
 
@@ -153,8 +175,10 @@ function buildApprovals(opportunities: CrmDigestOpportunity[], tasks: CrmDigestT
 
 function buildBlockers(blockers: CrmDigestBlocker[]): string[] {
   const lines = blockers.map((blocker) => {
-    const needed = clean(blocker.neededFrom);
-    return `${blocker.area}: ${blocker.detail}.${needed ? ` Needed: ${needed}` : ''}`;
+    const area = redactSensitiveDigestText(blocker.area);
+    const detail = redactSensitiveDigestText(blocker.detail);
+    const needed = redactSensitiveDigestText(clean(blocker.neededFrom));
+    return `${area}: ${detail}.${needed ? ` Needed: ${needed}` : ''}`;
   });
 
   return lines.length ? lines : ['No blockers supplied for this digest window.'];

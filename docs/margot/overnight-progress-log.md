@@ -1,5 +1,37 @@
 # Margot Overnight Progress Log
 
+## 2026-06-16 16:16 AEST
+
+### Tick 20260616_1616 — CRM daily-digest sensitive-copy redaction read-back
+
+Lane: bounded Senior PM health/read-back on the current `margot/digest-sensitive-copy-redaction-20260616` branch. Scope stayed inside local CRM daily-digest helper/tests and Margot reports; no source publication, production action, provider call, or client-facing action was attempted.
+
+Completed:
+- Preflight: workdir `/Users/phillmcgurk/Unite-Group`; branch `margot/digest-sensitive-copy-redaction-20260616`; initial `git status --short` showed inherited index conflict labels (`UU src/lib/crm/daily-digest.ts`, `UU tests/unit/lib/crm/daily-digest.test.ts`); `git log -1 --oneline` -> `96216e23 fix(crm): redact timeline payment card evidence (#232)`; `git rev-list --count main..origin/main` -> `11`.
+- Re-read the Senior PM read-first set, Linear mirror, AI-RET-001 report/candidate/pipeline surfaces, current command center, Mac Mini status, progress log, morning report, and the exact daily-digest helper/test surface before selecting this verification lane.
+- Conflict/read-back: no conflict markers remained in `src/lib/crm/daily-digest.ts` or `tests/unit/lib/crm/daily-digest.test.ts`; `git ls-files -u -- ...` returned no unmerged entries; `git status --porcelain=v2 -- ...` showed both files as staged modifications (`1 M.`), not unresolved unmerged records.
+- The current local daily-digest changes add shared operator-facing copy redaction for lead labels/next actions, opportunity names/next actions, task titles/owners, and blockers, covering email, Board refs, bearer values, phone numbers, card ending/card number text, and secret-shaped assignments while preserving existing verification command redaction.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-16 16:16:45 AEST`.
+- `CI=1 npx jest tests/unit/lib/crm/daily-digest.test.ts --runInBand` -> PASS, 1 suite / 18 tests.
+- `CI=1 npx jest tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-edge-cases.test.ts tests/integration/api/crm-daily-digest.test.ts --runInBand` -> PASS, 3 suites / 51 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, `route-inventory check: 0 unprotected mutating routes`.
+- `git diff --check -- src/lib/crm/daily-digest.ts tests/unit/lib/crm/daily-digest.test.ts` -> PASS.
+- `git diff --check` -> PASS before report-doc updates.
+
+Files changed/read-back:
+- `src/lib/crm/daily-digest.ts`
+- `tests/unit/lib/crm/daily-digest.test.ts`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No production DB write/migration, sandbox wizard subcommand, Vercel deploy/env mutation, PR creation, push, merge, live provider dispatch/polling, client-facing send, billing/payment action, credential read, secret printing/storage, destructive git, cross-client merge, connector-platform/new-vendor action, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Publication remains local-only until this branch/index state is reconciled deliberately; next safe lane is branch hygiene/read-back or another small local-only CRM read-surface guard if publication remains gated.
+
 ## 2026-06-16 14:50 AEST
 
 ### Tick 20260616_1450 — CRM timeline card-number redaction guard
@@ -24983,3 +25015,12 @@ Native macOS Margot orchestrator tick completed.
 
 Log:
 '/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260616_143756.log'
+
+## 2026-06-16 16:17:57 AEST
+
+### LaunchAgent tick
+
+Native macOS Margot orchestrator tick completed.
+
+Log:
+'/Users/phillmcgurk/Unite-Group/docs/margot/automation-logs/margot-tick-20260616_161532.log'

@@ -4,6 +4,14 @@
 |Root: `/Users/phillmcgurk/Unite-Group`
 |Last update: 2026-06-16 14:50 AEST — CRM timeline card-number redaction guard
 
+## Current Autonomy Rotation Guard — 2026-06-16 16:16 AEST
+
+- Repo: `margot/digest-sensitive-copy-redaction-20260616`; initial `git status --short` showed inherited conflicted paths (`UU src/lib/crm/daily-digest.ts`, `UU tests/unit/lib/crm/daily-digest.test.ts`), but conflict markers were absent and the index read-back now shows both files as staged modifications (`1 M.`). `git log -1 --oneline` -> `96216e23 fix(crm): redact timeline payment card evidence (#232)`; `git rev-list --count main..origin/main` -> `11`.
+- Completed safe Senior PM lane: bounded health/read-back on the CRM daily-digest redaction surface. The already-present local daily-digest helper/test changes redact sensitive operator-facing lead/opportunity/task/blocker copy (email, Board refs, bearer values, phone, payment-card text, and secret-shaped assignments) and preserve verification-command redaction coverage.
+- Verification: `CI=1 npx jest tests/unit/lib/crm/daily-digest.test.ts --runInBand` -> PASS (1 suite / 18 tests); digest sweep `CI=1 npx jest tests/unit/lib/crm/daily-digest.test.ts tests/unit/lib/crm/digest-edge-cases.test.ts tests/integration/api/crm-daily-digest.test.ts --runInBand` -> PASS (3 suites / 51 tests); `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; `git diff --check -- src/lib/crm/daily-digest.ts tests/unit/lib/crm/daily-digest.test.ts` -> PASS.
+- Files changed/read-back in this slice: `src/lib/crm/daily-digest.ts`, `tests/unit/lib/crm/daily-digest.test.ts`, this command-center update, `docs/margot/overnight-progress-log.md`, and `docs/margot/morning-report.md`.
+- Safety/blocker: no production DB write/migration, sandbox wizard subcommand, Vercel deploy/env mutation, PR creation, push, merge, live provider dispatch/polling, client-facing send, billing/payment action, credential read, secret printing/storage, destructive git, cross-client merge, connector-platform/new-vendor action, recursive system-volume scan, or Mac Mini credential prompt occurred. Publication remains local-only until the branch/index state is reconciled deliberately.
+
 ## Current Autonomy Rotation Guard — 2026-06-16 14:50 AEST
 
 - Repo: `margot/timeline-phone-payment-redaction-20260616`; preflight `git status --short` -> clean; current branch had no PR; GitHub auth available; Vercel CLI read-back returned a username only; local code/test commit `248d13a8` created.

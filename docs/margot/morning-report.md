@@ -1,5 +1,13 @@
 # Margot Morning Report
 
+## 2026-06-16 16:16 AEST — CRM daily-digest sensitive-copy redaction read-back
+
+- **Completed safe lane:** Re-read the Senior PM control set and verified the current CRM daily-digest sensitive-copy redaction slice. The local helper/test changes redact sensitive operator-facing lead/opportunity/task/blocker copy while keeping verification command redaction intact.
+- **Repo/index read-back:** branch `margot/digest-sensitive-copy-redaction-20260616`; initial `git status --short` showed `UU src/lib/crm/daily-digest.ts` and `UU tests/unit/lib/crm/daily-digest.test.ts`, but conflict markers were absent and `git ls-files -u -- ...` returned no unmerged entries. Current read-back for those files is staged modifications (`1 M.`), not unresolved unmerged records.
+- **Verification:** focused daily-digest Jest -> PASS (1 suite / 18 tests); digest sweep -> PASS (3 suites / 51 tests); `npm run type-check` -> PASS; `npm run security:routes-check` -> PASS with 0 unprotected mutating routes; scoped `git diff --check` -> PASS; full `git diff --check` passed before report-doc updates.
+- **Evidence paths:** `src/lib/crm/daily-digest.ts`, `tests/unit/lib/crm/daily-digest.test.ts`, `docs/margot/MARGOT-COMMAND-CENTER.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+- **Safety/blockers:** no production DB write/migration, sandbox wizard subcommand, Vercel deploy/env mutation, PR creation, push, merge, live provider action, client-facing send, billing/payment action, credential read, destructive git, connector-platform/new-vendor action, cross-client merge, or Mac Mini credential prompt occurred. Publication remains local-only until branch/index hygiene is deliberately reconciled.
+
 ## 2026-06-16 14:50 AEST — CRM timeline card-number redaction guard
 
 - **Completed safe lane:** Used strict RED-GREEN on the central CRM timeline helper so structurally constructed timeline/agent-action inserts redact `card number ####` payment evidence alongside the existing phone/email/Board/bearer/API-key/billing-card/payment-card/card-ending patterns.

@@ -90,6 +90,69 @@ describe('createCrmDailyDigest', () => {
     expect(digest.markdown).not.toContain('private.contact@example.com');
   });
 
+  it('redacts sensitive opportunity approval copy from operator-facing digest text', () => {
+    const email = ['client', 'example.test'].join('@');
+    const phone = ['+61', '400', '000', '000'].join(' ');
+    const cardText = ['card', 'ending', '4242'].join(' ');
+    const querySecret = 'LINEAR_' + ['API', 'KEY'].join('_') + '=opaque-digest-fixture';
+    const serviceRoleSecret = 'SUPABASE_' + ['SERVICE', 'ROLE', 'KEY'].join('_') + '=service-role-digest-fixture';
+    const boardRef = ['BOARD', 'CRM', '123'].join('-');
+    const safeDate = '2026-06-20';
+    const digest = createCrmDailyDigest({
+      generatedAt: '2026-05-23T09:08:00+10:00',
+      opportunities: [
+        {
+          id: 'opp-sensitive-copy',
+          name: `Renewal ${boardRef} for ${email}`,
+          stage: 'decision_needed',
+          requiresApproval: true,
+          nextAction: `Follow up on ${safeDate}; call ${phone} about ${cardText}, ${querySecret}, and ${serviceRoleSecret}`,
+        },
+      ],
+    });
+
+    expect(digest.sections.operatorPriorities[0]).toContain(safeDate);
+    expect(digest.sections.operatorPriorities[0]).toContain('[REDACTED]');
+    expect(digest.sections.approvals[0]).toContain('[REDACTED]');
+    const serialized = JSON.stringify(digest);
+    expect(serialized).not.toContain(email);
+    expect(serialized).not.toContain(phone);
+    expect(serialized).not.toContain(cardText);
+    expect(serialized).not.toContain('opaque-digest-fixture');
+    expect(serialized).not.toContain('service-role-digest-fixture');
+    expect(serialized).not.toContain(boardRef);
+  });
+
+  it('redacts sensitive lead task and blocker copy from operator-facing digest text', () => {
+    const email = ['lead', 'example.test'].join('@');
+    const boardRef = ['BOARD', 'LEAD', '456'].join('-');
+    const bearer = ['Bearer', 'lead.task.blocker.fixture'].join(' ');
+    const digest = createCrmDailyDigest({
+      generatedAt: '2026-05-23T09:09:00+10:00',
+      leads: [
+        {
+          id: 'lead-sensitive-copy',
+          name: `Lead ${email}`,
+          company: boardRef,
+          status: 'new',
+          nextAction: `Review ${bearer}`,
+        },
+      ],
+      tasks: [
+        { id: 'task-sensitive-copy', title: `Approve ${email}`, owner: 'Phill', status: 'blocked', priority: 'high' },
+      ],
+      blockers: [
+        { area: `Access ${boardRef}`, detail: `Token ${bearer}`, neededFrom: email },
+      ],
+    });
+
+    const serialized = JSON.stringify(digest);
+    expect(serialized).toContain('[REDACTED]');
+    expect(serialized).not.toContain(email);
+    expect(serialized).not.toContain(boardRef);
+    expect(serialized).not.toContain('lead.task.blocker.fixture');
+  });
+
   it('uses explicit empty-state copy when no CRM inputs exist', () => {
     const digest = createCrmDailyDigest({ generatedAt: '2026-05-23T09:10:00+10:00' });
 
