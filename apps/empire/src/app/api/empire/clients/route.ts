@@ -16,6 +16,7 @@ import { parseContactEmail } from './_validate-email';
 import { parseWebsiteUrl } from './_validate-website';
 import { recordClientAction } from './_record-action';
 import { mapUniqueViolation } from './_map-unique-violation';
+import { buildClientLaunchPacket } from '@/lib/empire/client-launch-packet';
 
 export const dynamic = 'force-dynamic';
 
@@ -144,7 +145,7 @@ export async function POST(req: NextRequest) {
   // locale-stamped URL from the server was the bug — see the wizard's
   // useParams<{ locale }>() lookup.
   return NextResponse.json(
-    { ok: true, client: inserted.data },
+    { ok: true, client: inserted.data, launch_packet: buildClientLaunchPacket(inserted.data) },
     { status: 201, headers: { 'Cache-Control': 'no-store' } },
   );
 }
