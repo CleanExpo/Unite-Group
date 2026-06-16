@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Login to Console — Command Center Vision v3</title>
+<style>
+  :root {
+    --cc-bg: #0a0c10;
+    --cc-bg-soft: #11141b;
+    --cc-panel: #1a2030;
+    --cc-panel-2: #232b3a;
+    --cc-panel-3: #2d3748;
+    --cc-grid: #2a3447;
+    --cc-grid-strong: #435168;
+    --cc-ink: #e8edf6;
+    --cc-ink-dim: #a7b2c3;
+    --cc-ink-hush: #6e7a8c;
+    --cc-signal: #dc143c;
+    --cc-signal-soft: rgba(220,20,60,.16);
+    --cc-warning: #f59e0b;
+    --cc-ok: #d8dee8;
+    --cc-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --cc-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 15% 18%, rgba(216,222,232,.13), transparent 30%),
+      radial-gradient(circle at 78% 12%, rgba(220,20,60,.20), transparent 35%),
+      linear-gradient(135deg, #151b26 0%, #0e1219 48%, #090b0f 100%);
+    color: var(--cc-ink);
+    font-family: var(--cc-sans);
+    overflow: hidden;
+  }
+  .stage {
+    width: 1600px;
+    height: 900px;
+    position: relative;
+    overflow: hidden;
+    background-image:
+      linear-gradient(rgba(67,81,104,.32) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(67,81,104,.32) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .stage:before {
+    content: "";
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(90deg, rgba(10,12,16,.12) 0%, rgba(10,12,16,.03) 44%, rgba(10,12,16,.25) 100%),
+      radial-gradient(circle at 1040px 450px, rgba(216,222,232,.08), transparent 520px);
+    pointer-events: none;
+  }
+  .login {
+    position: absolute;
+    left: 74px; top: 92px;
+    width: 460px; height: 716px;
+    border: 1px solid var(--cc-grid-strong);
+    border-radius: 28px;
+    background: linear-gradient(180deg, rgba(45,55,72,.96), rgba(20,26,36,.98));
+    box-shadow: 0 30px 80px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.06);
+    padding: 38px;
+  }
+  .eyebrow, .mono { font-family: var(--cc-mono); text-transform: uppercase; letter-spacing: .18em; }
+  .eyebrow { color: var(--cc-signal); font-size: 11px; font-weight: 800; }
+  h1 { margin: 14px 0 10px; font-size: 48px; line-height: .95; letter-spacing: -.055em; }
+  .sub { color: var(--cc-ink-dim); font-size: 15px; line-height: 1.45; margin: 0 0 30px; max-width: 330px; }
+  .error {
+    display: flex; gap: 11px; align-items: flex-start;
+    padding: 13px 14px;
+    margin-bottom: 22px;
+    border: 1px solid rgba(245,158,11,.44);
+    border-radius: 14px;
+    background: rgba(245,158,11,.10);
+    color: #ffd89a;
+    font: 12px/1.45 var(--cc-mono);
+  }
+  .field { margin: 0 0 17px; }
+  label { display:block; color: var(--cc-ink-hush); font: 10px/1 var(--cc-mono); letter-spacing:.18em; text-transform: uppercase; margin: 0 0 8px; }
+  .input {
+    height: 56px;
+    border: 1px solid var(--cc-grid-strong);
+    border-radius: 14px;
+    background: #111722;
+    display: flex; align-items: center;
+    padding: 0 16px;
+    color: var(--cc-ink-dim);
+    font: 13px var(--cc-mono);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  .button {
+    height: 58px; margin-top: 8px;
+    border-radius: 16px;
+    background: var(--cc-signal);
+    color: white;
+    display:flex; align-items:center; justify-content:center;
+    font: 800 12px var(--cc-mono);
+    letter-spacing:.18em; text-transform: uppercase;
+    box-shadow: 0 18px 44px rgba(220,20,60,.27), inset 0 1px 0 rgba(255,255,255,.18);
+  }
+  .google {
+    height: 52px; margin-top: 14px;
+    border: 1px solid var(--cc-grid-strong); border-radius: 15px;
+    color: var(--cc-ink-dim); display:flex; align-items:center; justify-content:center; gap:10px;
+    background: rgba(17,20,27,.72);
+    font: 700 11px var(--cc-mono); letter-spacing:.13em; text-transform: uppercase;
+  }
+  .session {
+    position: absolute; left: 38px; right: 38px; bottom: 34px;
+    border-top: 1px solid var(--cc-grid);
+    padding-top: 18px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+    color: var(--cc-ink-hush);
+    font: 10px var(--cc-mono); letter-spacing:.12em; text-transform: uppercase;
+  }
+  .session b { display:block; color: var(--cc-ink); font-size: 13px; margin-top: 5px; letter-spacing:0; }
+  .console {
+    position: absolute;
+    left: 590px; top: 70px;
+    width: 930px; height: 760px;
+    border-radius: 30px;
+    border: 1px solid var(--cc-grid-strong);
+    background: linear-gradient(180deg, #151b25, #0f131b 55%, #0a0c10);
+    box-shadow: 0 36px 100px rgba(0,0,0,.48), inset 0 1px 0 rgba(255,255,255,.05);
+    overflow: hidden;
+  }
+  .topbar { height: 58px; display:flex; align-items:center; justify-content:space-between; padding:0 24px; border-bottom:1px solid var(--cc-grid); background:#121822; }
+  .brand { font: 800 11px var(--cc-mono); letter-spacing:.22em; text-transform:uppercase; }
+  .brand span { color: var(--cc-signal); }
+  .pips { display:flex; gap: 16px; align-items:center; font: 10px var(--cc-mono); color: var(--cc-ink-dim); text-transform:uppercase; letter-spacing:.14em; }
+  .pip:before { content:""; display:inline-block; width:7px; height:7px; margin-right:7px; border-radius:50%; background:var(--cc-ok); vertical-align:middle; }
+  .pip.signal:before { background: var(--cc-signal); box-shadow: 0 0 0 5px var(--cc-signal-soft); }
+  .kpis { display:grid; grid-template-columns: repeat(5, 1fr); gap:1px; background:var(--cc-grid); border-bottom:1px solid var(--cc-grid); }
+  .kpi { background: linear-gradient(180deg, #202837, #151b25); padding:18px 16px; height:116px; }
+  .kpi .name { color: var(--cc-ink-hush); font: 10px var(--cc-mono); letter-spacing:.18em; text-transform:uppercase; }
+  .kpi .value { margin-top:14px; color:var(--cc-ink); font: 800 25px/1 var(--cc-mono); letter-spacing:-.04em; }
+  .kpi .delta { margin-top:10px; color: var(--cc-ink-hush); font: 10px var(--cc-mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .body { display:grid; grid-template-columns: 1fr 292px; height: 586px; }
+  .main { border-right:1px solid var(--cc-grid); display:grid; grid-template-rows: 380px 206px; }
+  .zone-title { position:absolute; color: var(--cc-ink-hush); font: 10px var(--cc-mono); letter-spacing:.18em; text-transform:uppercase; }
+  .topology { position:relative; background: #11141b; border-bottom:1px solid var(--cc-grid); overflow:hidden; }
+  .topology:before { content:""; position:absolute; inset:0; background-image: radial-gradient(var(--cc-grid-strong) 1px, transparent 1px); background-size: 28px 28px; opacity:.52; }
+  .node { position:absolute; width:116px; min-height:58px; border:1px solid var(--cc-grid-strong); border-radius:16px; background:#202837; display:flex; flex-direction:column; justify-content:center; padding:11px 13px; box-shadow:0 10px 24px rgba(0,0,0,.26); }
+  .node.core { width:152px; height:76px; border-color: var(--cc-ink); background:#293344; }
+  .node.signal { border-color: var(--cc-signal); background:#2a1d29; box-shadow:0 0 0 5px var(--cc-signal-soft), 0 12px 26px rgba(0,0,0,.25); }
+  .node b { color:var(--cc-ink); font: 800 12px var(--cc-mono); letter-spacing:.08em; text-transform:uppercase; }
+  .node small { margin-top:5px; color: var(--cc-ink-hush); font: 10px var(--cc-mono); text-transform:uppercase; }
+  svg.edges { position:absolute; inset:0; width:100%; height:100%; }
+  .activity { position:relative; padding: 42px 24px 20px; background:#0f131b; }
+  .row { display:grid; grid-template-columns: 76px 1fr 90px; gap:14px; align-items:center; min-height:34px; color:var(--cc-ink-dim); font: 11px var(--cc-mono); border-bottom:1px solid rgba(42,52,71,.45); }
+  .dot { width:8px; height:8px; border-radius:50%; background:var(--cc-ok); display:inline-block; margin-right:8px; }
+  .dot.red { background: var(--cc-signal); }
+  .rail { background:#111722; }
+  .panel { margin:16px; padding:17px; border:1px solid var(--cc-grid); border-radius:18px; background:linear-gradient(180deg, #202837, #151b24); }
+  .panel h3 { margin:0 0 12px; color: var(--cc-ink); font:800 12px var(--cc-mono); letter-spacing:.14em; text-transform:uppercase; }
+  .voice { display:flex; gap:13px; align-items:center; }
+  .avatar { width:42px; height:42px; border-radius:50%; background: var(--cc-signal); box-shadow:0 0 0 6px var(--cc-signal-soft); }
+  .bar { height:8px; border-radius:10px; background: var(--cc-grid-strong); margin:8px 0; overflow:hidden; }
+  .bar span { display:block; height:100%; background:var(--cc-ink); border-radius:inherit; }
+  .spark { width:100%; height:74px; }
+  .chip { display:inline-flex; padding:6px 8px; border:1px solid var(--cc-grid-strong); border-radius:999px; color:var(--cc-ink-dim); font: 9px var(--cc-mono); letter-spacing:.12em; text-transform:uppercase; margin:4px 4px 0 0; }
+  .caption { position:absolute; right:82px; bottom:36px; color:rgba(232,237,246,.42); font: 10px var(--cc-mono); letter-spacing:.2em; text-transform:uppercase; }
+</style>
+</head>
+<body>
+  <main class="stage">
+    <section class="login" aria-label="Login to Console design vision">
+      <div class="eyebrow">Private founder CRM</div>
+      <h1>Login to<br>Console</h1>
+      <p class="sub">A secure entry point into the same operating cockpit: clients, follow-ups, approvals, evidence, portfolio signals.</p>
+      <div class="error"><strong>!</strong><span>Google sign-in did not complete. Email/password stays available as the clean fallback path.</span></div>
+      <div class="field"><label>Email identifier</label><div class="input">phill.mcgurk@gmail.com</div></div>
+      <div class="field"><label>Access code</label><div class="input">••••••••••••••••</div></div>
+      <div class="button">Open command center</div>
+      <div class="google"><span style="width:14px;height:14px;border-radius:50%;background:conic-gradient(#4285f4,#34a853,#fbbc05,#ea4335,#4285f4);"></span>Continue with Google</div>
+      <div class="session"><span>Route target <b>/en/command-center</b></span><span>Access model <b>Admin only</b></span></div>
+    </section>
+
+    <section class="console" aria-label="Command Center reference surface">
+      <header class="topbar">
+        <div class="brand">UNITE-GROUP / <span>COMMAND CENTER</span></div>
+        <div class="pips"><span class="pip">Agents 12 alive</span><span class="pip signal">Alerts 0</span><span class="pip">Build main</span><span class="pip">Data room ok</span></div>
+      </header>
+      <div class="kpis">
+        <div class="kpi"><div class="name">ARR</div><div class="value">$33K</div><div class="delta">portfolio total</div></div>
+        <div class="kpi"><div class="name">Pipeline</div><div class="value">$250K</div><div class="delta">Duncan · CCW · Ivi</div></div>
+        <div class="kpi"><div class="name">Cost/day</div><div class="value">$0.05</div><div class="delta">max-first cascade</div></div>
+        <div class="kpi"><div class="name">Blocked</div><div class="value" style="color:var(--cc-signal)">3</div><div class="delta">needs Phill</div></div>
+        <div class="kpi"><div class="name">CCW SLA</div><div class="value">GREEN</div><div class="delta">client lane</div></div>
+      </div>
+      <div class="body">
+        <div class="main">
+          <section class="topology">
+            <div class="zone-title" style="left:24px;top:20px;">Zone 3 — agent topology · live graph</div>
+            <svg class="edges" viewBox="0 0 638 380" preserveAspectRatio="none">
+              <path d="M318 90 C250 125 210 175 178 238" stroke="#6e7a8c" stroke-width="2" fill="none" opacity=".75"/>
+              <path d="M318 90 C316 148 316 198 318 258" stroke="#dc143c" stroke-width="3" fill="none" opacity=".95"/>
+              <path d="M318 90 C400 120 456 168 498 240" stroke="#6e7a8c" stroke-width="2" fill="none" opacity=".75"/>
+              <path d="M178 238 C238 290 360 300 498 240" stroke="#435168" stroke-width="2" fill="none" opacity=".72"/>
+            </svg>
+            <div class="node core" style="left:245px;top:54px"><b>Margot</b><small>orchestrator</small></div>
+            <div class="node" style="left:112px;top:214px"><b>CRM Ops</b><small>running</small></div>
+            <div class="node signal" style="left:260px;top:238px"><b>Security</b><small>Trivy failed</small></div>
+            <div class="node" style="left:444px;top:216px"><b>Product</b><small>running</small></div>
+            <div class="node" style="left:72px;top:112px"><b>Budget</b><small>quiet</small></div>
+            <div class="node" style="left:476px;top:112px"><b>Nexus</b><small>syncing</small></div>
+          </section>
+          <section class="activity">
+            <div class="zone-title" style="left:24px;top:18px;">Zone 5 — live activity log</div>
+            <div class="row"><span>01:42</span><span><i class="dot"></i>GitHub mirror updated pull request state</span><span>evidence</span></div>
+            <div class="row"><span>01:44</span><span><i class="dot red"></i>Code scanning / Trivy needs attention</span><span>blocked</span></div>
+            <div class="row"><span>01:50</span><span><i class="dot"></i>Vercel production deploy ready</span><span>verified</span></div>
+            <div class="row"><span>01:53</span><span><i class="dot"></i>CRM digest refreshed for command center</span><span>live</span></div>
+          </section>
+        </div>
+        <aside class="rail">
+          <div class="panel">
+            <h3>Margot voice</h3>
+            <div class="voice"><div class="avatar"></div><div><div class="mono" style="font-size:10px;color:var(--cc-ink)">ready</div><div style="font:11px var(--cc-mono);color:var(--cc-ink-hush);margin-top:5px">approval-safe console</div></div></div>
+          </div>
+          <div class="panel">
+            <h3>Business 360</h3>
+            <svg class="spark" viewBox="0 0 250 74"><path d="M4 55 L40 46 L76 51 L112 30 L148 35 L184 18 L226 24" stroke="#d8dee8" stroke-width="4" fill="none"/><circle cx="184" cy="18" r="6" fill="#dc143c"/></svg>
+            <span class="chip">health snapshots</span><span class="chip">90d</span>
+          </div>
+          <div class="panel">
+            <h3>Daily CRM digest</h3>
+            <div class="bar"><span style="width:82%"></span></div>
+            <div class="bar"><span style="width:58%"></span></div>
+            <div class="bar"><span style="width:70%;background:var(--cc-signal)"></span></div>
+          </div>
+          <div class="panel">
+            <h3>Mirror health</h3>
+            <span class="chip">Linear ok</span><span class="chip">GitHub signal</span><span class="chip">Vercel ok</span><span class="chip">Supabase ok</span>
+          </div>
+        </aside>
+      </div>
+    </section>
+    <div class="caption">concept v3 · command-center-derived · not production wiring</div>
+  </main>
+</body>
+</html>

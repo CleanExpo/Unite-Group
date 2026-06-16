@@ -1,0 +1,424 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* CANVAS & SURFACE */
+  --canvas:     #0e1014;
+  --surface-1:  #141820;
+  --surface-2:  #1c2230;
+  --surface-3:  #232b3a;
+  --surface-4:  #2d3748;
+  --surface-5:  #3a4556;
+
+  /* BORDERS */
+  --border-hairline: #1e2636;
+  --border-default:  #2a3347;
+  --border-strong:   #3d4f65;
+  --border-accent:   #8b0000;
+
+  /* INK
+   * Contrast on --canvas (#0e1014):
+   *   --ink-primary:   ~17:1  (AAA)
+   *   --ink-secondary: ~8.3:1 (AAA)
+   *   --ink-tertiary:  ~6.5:1 (AAA) — bumped from #5c6a7e (3.23:1, AA fail) for WCAG AA compliance
+   *   --ink-disabled:  ~5.0:1 (AA)  — bumped from #384050 (1.70:1) so disabled text is still readable
+   * Lighthouse audit 2026-05-14 flagged the previous values on 14/14 pages.
+   * Tertiary picked at #8a96a8 (not #9ba8bc) to preserve visible hierarchy below secondary.
+   */
+  --ink-primary:   #f0f2f5;
+  --ink-secondary: #9ba8bc;
+  --ink-tertiary:  #8a96a8;
+  --ink-disabled:  #7a8595;
+  --ink-inverse:   #0e1014;
+
+  /* CANDY RED */
+  --red-900: #3d0000;
+  --red-800: #5c0000;
+  --red-700: #7a0000;
+  --red-600: #990000;
+  --red-500: #b30000;
+  --red-400: #cc1a1a;
+  --red-300: #e03333;
+  --red-200: #f06666;
+  --red-100: #fcc2c2;
+  --red-a20: rgba(179, 0, 0, 0.20);
+  --red-a12: rgba(179, 0, 0, 0.12);
+  --red-a08: rgba(179, 0, 0, 0.08);
+  --red-a04: rgba(179, 0, 0, 0.04);
+
+  /* ORANGE */
+  --orange-500: #bf5c00;
+  --orange-400: #e07020;
+  --orange-300: #f5923a;
+
+  /* GREEN */
+  --green-500: #00a854;
+  --green-400: #1fc76e;
+  --green-300: #4dde8f;
+
+  /* SEMANTIC */
+  --color-success:        #00a854;
+  --color-success-subtle: rgba(0, 168, 84, 0.12);
+  --color-success-text:   #4dde8f;
+  --color-warning:        #e07020;
+  --color-warning-subtle: rgba(224, 112, 32, 0.12);
+  --color-warning-text:   #f5923a;
+  --color-error:          #b30000;
+  --color-error-subtle:   rgba(179, 0, 0, 0.12);
+  --color-error-text:     #f06666;
+  --color-info:           #3a7bd5;
+  --color-info-subtle:    rgba(58, 123, 213, 0.12);
+  --color-info-text:      #7aabec;
+
+  /* CHART */
+  --chart-1: #cc1a1a;
+  --chart-2: #3a7bd5;
+  --chart-3: #e07020;
+  --chart-4: #00a854;
+  --chart-5: #8b5cf6;
+  --chart-6: #14b8a6;
+
+  /* TYPOGRAPHY */
+  --font-display: 'Syne', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', 'Fira Code', monospace;
+  --text-2xs:  0.6875rem;
+  --text-xs:   0.75rem;
+  --text-sm:   0.8125rem;
+  --text-base: 0.875rem;
+  --text-md:   1rem;
+  --text-lg:   1.125rem;
+  --text-xl:   1.25rem;
+  --text-2xl:  1.5rem;
+  --text-3xl:  1.875rem;
+  --text-4xl:  2.25rem;
+  --text-5xl:  3rem;
+  --weight-regular:   400;
+  --weight-medium:    500;
+  --weight-semibold:  600;
+  --weight-bold:      700;
+  --weight-extrabold: 800;
+  --leading-none:    1;
+  --leading-tight:   1.2;
+  --leading-snug:    1.35;
+  --leading-normal:  1.5;
+  --leading-relaxed: 1.65;
+  --tracking-display: -0.025em;
+  --tracking-heading: -0.015em;
+  --tracking-body:    0em;
+  --tracking-label:   0.01em;
+  --tracking-caps:    0.08em;
+  --tracking-mono:    0.02em;
+
+  /* SPACING */
+  --space-0:  0;
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* BORDER RADIUS */
+  --radius-sharp: 2px;
+  --radius-sm:    4px;
+  --radius-md:    6px;
+  --radius-lg:    8px;
+  --radius-full:  9999px;
+  --radius-client-sm:   6px;
+  --radius-client-md:   10px;
+  --radius-client-lg:   14px;
+
+  /* SHADOWS */
+  --shadow-0: none;
+  --shadow-1: 0 1px 3px rgba(0,0,0,0.40), 0 1px 2px rgba(0,0,0,0.30);
+  --shadow-2: 0 4px 12px rgba(0,0,0,0.50), 0 2px 4px rgba(0,0,0,0.40);
+  --shadow-3: 0 8px 24px rgba(0,0,0,0.60), 0 4px 8px rgba(0,0,0,0.50);
+  --shadow-4: 0 16px 48px rgba(0,0,0,0.70), 0 8px 16px rgba(0,0,0,0.50);
+  --shadow-red-glow:   0 0 0 3px rgba(179,0,0,0.20), 0 4px 12px rgba(179,0,0,0.25);
+  --shadow-green-glow: 0 0 0 3px rgba(0,168,84,0.20), 0 4px 12px rgba(0,168,84,0.20);
+
+  /* MOTION */
+  --ease-out:      cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out:   cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast:   80ms;
+  --duration-base:   150ms;
+  --duration-slow:   300ms;
+
+  /* LAYOUT */
+  --sidebar-width:        240px;
+  --client-sidebar-width: 220px;
+  --header-height:        64px;
+  --client-header-height: 72px;
+
+  /* LEGACY BRIDGE - remove after full migration */
+  --canvas-legacy:    #0e1014;
+  --surface-legacy:   #141820;
+  --ink-legacy:       #f0f2f5;
+  --ink-muted-legacy: #9ba8bc;
+  --primary-legacy:   #b30000;
+
+  /* SHADCN HSL BRIDGE */
+  --background:           10 15% 7%;
+  --foreground:           220 14% 95%;
+  --card:                 220 18% 10%;
+  --card-foreground:      220 14% 95%;
+  --popover:              220 18% 14%;
+  --popover-foreground:   220 14% 95%;
+  --primary:              0 100% 35%;
+  --primary-foreground:   0 0% 100%;
+  --secondary:            220 22% 17%;
+  --secondary-foreground: 220 14% 95%;
+  --muted:                220 22% 17%;
+  --muted-foreground:     215 14% 55%;
+  --accent:               0 100% 35%;
+  --accent-foreground:    0 0% 100%;
+  --destructive:          0 100% 35%;
+  --destructive-foreground: 0 0% 100%;
+  --border:               220 24% 22%;
+  --input:                220 22% 17%;
+  --ring:                 0 100% 35%;
+  --radius:               0.375rem;
+  --chart-hsl-1: 0 100% 45%;
+  --chart-hsl-2: 213 64% 55%;
+  --chart-hsl-3: 28 100% 44%;
+  --chart-hsl-4: 152 100% 33%;
+  --chart-hsl-5: 262 80% 65%;
+  --sidebar-background:         220 18% 14%;
+  --sidebar-foreground:         220 14% 95%;
+  --sidebar-primary:            0 100% 35%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent:             220 22% 17%;
+  --sidebar-accent-foreground:  220 14% 95%;
+  --sidebar-border:             220 24% 18%;
+  --sidebar-ring:               0 100% 35%;
+
+  /* COMMAND CENTER (cc-*)
+   * Locked palette for the /command-center surface — Gun Metal ground +
+   * Candy Red as SIGNAL ONLY (live / blocked / pulsing). Everything else
+   * is greyscale + monospace. Anti-AI-slop guardrail per
+   * [[command-center-redesign-proposal-2026-05-14]] and
+   * [[feedback-design-preferences]]. */
+  --cc-bg:            #0a0c10;            /* deeper than --canvas; cockpit ground */
+  --cc-bg-soft:       #11141b;            /* tile background, slightly raised */
+  --cc-grid:          #1a2030;            /* hairline grid + tile borders */
+  --cc-grid-strong:   #2a3447;            /* on-hover borders, active zones */
+  --cc-ink:           #d8dee8;            /* primary text, mid-density not full white */
+  --cc-ink-dim:       #6e7a8c;            /* secondary text */
+  --cc-ink-hush:      #3d4654;            /* tertiary / inactive — far below ink-dim */
+  --cc-signal:        #dc143c;            /* Candy Red — SIGNAL ONLY (live, blocked, pulsing) */
+  --cc-signal-soft:   rgba(220, 20, 60, 0.14);  /* glow base */
+  --cc-signal-hush:   rgba(220, 20, 60, 0.04);  /* very subtle backplate when active */
+  --cc-running:       #d8dee8;            /* running state = neutral ink, not green */
+  --cc-done:          #3d4654;            /* completed / archived state = hush ink */
+  --cc-pulse-duration: 1.5s;              /* breathing-pulse animation timing */
+  --cc-flow-duration:  0.3s;              /* edge-flow animation timing on data movement */
+  --cc-mono:          ui-monospace, "JetBrains Mono", "SF Mono", Menlo, monospace;
+}
+
+/* Command Center — breathing pulse for `running` nodes/tiles */
+@keyframes cc-breathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.78; transform: scale(0.98); }
+}
+
+/* Command Center — single-pulse alert when state transitions to blocked */
+@keyframes cc-alert-pulse {
+  0%   { box-shadow: 0 0 0 0 var(--cc-signal-soft); }
+  100% { box-shadow: 0 0 0 12px transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes cc-breathe { 0%,100% { opacity: 1; transform: none; } }
+  @keyframes cc-alert-pulse { 0%,100% { box-shadow: none; } }
+}
+
+* { box-sizing: border-box; }
+html { font-feature-settings: "cv02","cv03","cv04","cv11"; color-scheme: dark; }
+
+body {
+  background: var(--canvas);
+  color: var(--ink-primary);
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar        { width: 4px; height: 4px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: var(--border-default); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+::selection { background: var(--red-a20); color: var(--ink-primary); }
+
+.command-center-side-rail {
+  border-top: 1px solid var(--cc-grid);
+}
+
+.command-center-topology {
+  /* Viewport-relative so the topology grows on 1440p/4K displays and stays
+   * legible on smaller laptops. Without this the xyflow canvas was pinned
+   * to 600px regardless of available height. */
+  height: clamp(420px, 55vh, 880px);
+}
+
+@media (min-width: 1280px) {
+  .command-center-side-rail {
+    border-top: none;
+    border-left: 1px solid var(--cc-grid);
+  }
+}
+
+@media (max-width: 767px) {
+  .empire-sidebar-command-center {
+    display: none !important;
+  }
+
+  .command-center-topology {
+    /* Fixed shorter ceiling on phones — saves vertical real-estate for the
+     * mobile-card fallback below xyflow's sm:block container. */
+    height: 420px;
+  }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.85); }
+}
+@keyframes empire-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes score-reveal {
+  from { stroke-dashoffset: 251; }
+}
+@keyframes pulse-green-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 168, 84, 0.25); }
+  50%       { box-shadow: 0 0 0 6px rgba(0, 168, 84, 0); }
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface-1) 25%,
+    var(--surface-2) 50%,
+    var(--surface-1) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.status-dot {
+  display: inline-block;
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: pulse-dot 2.5s ease-in-out infinite;
+}
+
+.spin { animation: spin 1s linear infinite; }
+
+@layer base {
+  * { @apply border-border; }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   .theme-layered  —  Unite-Hub Layered Design System v1
+   Ports the light/paper-aesthetic tokens into a scoped class.
+   Activated by adding class="theme-layered" to <html> or a
+   route wrapper.  Does NOT affect existing dark theme.
+   ═══════════════════════════════════════════════════════════ */
+
+.theme-layered {
+  /* SURFACE STACK — paper/cream elevation */
+  --layered-surface-canvas:     oklch(98% 0.01 85);
+  --layered-surface-sidebar:    oklch(96% 0.01 85);
+  --layered-surface-card:       oklch(99% 0.005 85);
+  --layered-surface-elevated:   oklch(100% 0 85);
+
+  /* TEXT INK — navy hierarchy */
+  --layered-text-primary:   #162D5B;
+  --layered-text-secondary: #3d5a8a;
+  --layered-text-muted:     #6b82a8;
+  --layered-text-faint:     #a0b1c8;
+
+  /* BRAND */
+  --layered-brand-navy:  #162D5B;
+  --layered-brand-teal:  #2BA3B5;
+  --layered-brand-slate: #7b8fa8;
+
+  /* STATUS CHIPS — deep (filled) + soft (ghost / background) */
+  --layered-status-green-deep:  #00a854;
+  --layered-status-green-soft:  rgba(0, 168, 84, 0.12);
+  --layered-status-coral-deep:  #e07020;
+  --layered-status-coral-soft:  rgba(224, 112, 32, 0.12);
+  --layered-status-plum-deep:   #8b5cf6;
+  --layered-status-plum-soft:   rgba(139, 92, 246, 0.12);
+  --layered-status-amber-deep:  #f59e0b;
+  --layered-status-amber-soft:  rgba(245, 158, 11, 0.12);
+  --layered-status-red-deep:    #ef4444;
+  --layered-status-red-soft:    rgba(239, 68, 68, 0.12);
+
+  /* LINES */
+  --layered-line:        #e2e8f0;
+  --layered-line-strong: #cbd5e1;
+
+  /* RADIUS */
+  --layered-radius-card:  10px;
+  --layered-radius-panel: 16px;
+  --layered-radius-tile:  22px;
+  --layered-radius-page:  28px;
+
+  /* 3-LAYER OKLCH SHADOW STACKS — paper elevation */
+  --layered-shadow-1:
+    0 1px 2px  oklch(0% 0 0 / 0.04),
+    0 2px 4px  oklch(0% 0 0 / 0.04),
+    inset 0 1px 0 oklch(100% 0 0 / 0.6);
+  --layered-shadow-2:
+    0 2px 6px  oklch(0% 0 0 / 0.05),
+    0 8px 16px oklch(0% 0 0 / 0.05),
+    inset 0 1px 0 oklch(100% 0 0 / 0.6);
+  --layered-shadow-3:
+    0 4px 12px oklch(0% 0 0 / 0.06),
+    0 16px 40px oklch(0% 0 0 / 0.06),
+    inset 0 1px 0 oklch(100% 0 0 / 0.6);
+
+  /* TYPOGRAPHY — Poppins + IBM Plex Mono (loaded in layout.tsx) */
+  --layered-font-primary: 'Poppins', system-ui, sans-serif;
+  --layered-font-mono:    'IBM Plex Mono', 'Fira Code', monospace;
+
+  /* TOKENS EXPOSED FOR TAILWIND */
+  --layered-canvas:      var(--layered-surface-canvas);
+  --layered-sidebar:     var(--layered-surface-sidebar);
+  --layered-card:        var(--layered-surface-card);
+  --layered-elevated:    var(--layered-surface-elevated);
+  --layered-navy:        var(--layered-brand-navy);
+  --layered-teal:        var(--layered-brand-teal);
+  --layered-green-deep:  var(--layered-status-green-deep);
+  --layered-green-soft:  var(--layered-status-green-soft);
+  --layered-coral-deep:  var(--layered-status-coral-deep);
+  --layered-coral-soft:  var(--layered-status-coral-soft);
+  --layered-plum-deep:   var(--layered-status-plum-deep);
+  --layered-plum-soft:   var(--layered-status-plum-soft);
+  --layered-amber-deep:  var(--layered-status-amber-deep);
+  --layered-amber-soft:  var(--layered-status-amber-soft);
+  --layered-red-deep:    var(--layered-status-red-deep);
+  --layered-red-soft:    var(--layered-status-red-soft);
+}

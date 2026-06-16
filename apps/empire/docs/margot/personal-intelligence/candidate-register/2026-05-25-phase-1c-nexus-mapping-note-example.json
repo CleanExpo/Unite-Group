@@ -1,0 +1,61 @@
+{
+  "generatedAt": "2026-05-25T14:00:00.000Z",
+  "sourceNotePath": "docs/margot/personal-intelligence/nexus-mapping-notes/2026-05-25-phase-1c-nexus-mapping-note-example.md",
+  "entries": [
+    {
+      "candidateId": "phase-1c001-memory-1",
+      "candidateType": "memory",
+      "approvalStatus": "needs_approval",
+      "nexusDestination": "memory_candidate",
+      "title": "Memory proposal: user_preference",
+      "usefulSignal": "Phill values long-horizon strategic intelligence that converts learning into Nexus execution leverage.",
+      "smallestNextAction": "Review and explicitly approve or reject this memory proposal before durable storage.",
+      "verificationStep": "Confirm the memory is distilled, durable, non-raw, and explicitly approved before saving.",
+      "retentionPrivacyGuardrails": [
+        "proposal only",
+        "Memory candidate is a proposal only; do not write durable memory from this register.",
+        "Durability reason: Stable founder operating preference.",
+        "Reject or rewrite if it contains raw transcript, private search, credential, billing, or client-sensitive content."
+      ],
+      "sourceNotePath": "docs/margot/personal-intelligence/nexus-mapping-notes/2026-05-25-phase-1c-nexus-mapping-note-example.md",
+      "createdAt": "2026-05-25T14:00:00.000Z",
+      "updatedAt": "2026-05-25T14:00:00.000Z"
+    },
+    {
+      "candidateId": "phase-1c001-task-1",
+      "candidateType": "task",
+      "approvalStatus": "draft",
+      "nexusDestination": "task_candidate",
+      "title": "Review Nexus application of: AI agents for SEO GEO AEO CRM and 25 steps ahead planning",
+      "usefulSignal": "Practical workflow for converting AI agent, SEO, GEO, AEO, CRM, and 25 steps ahead scenario planning into tested Nexus experiments.",
+      "smallestNextAction": "Create a short Nexus mapping note with one experiment, one risk, and one verification step.",
+      "verificationStep": "Read back the mapping note and confirm source, signal, waste decision, and destination.",
+      "retentionPrivacyGuardrails": [
+        "Task candidate is local draft decision support only; do not execute without a separate implementation plan and approval gate where required.",
+        "Lane: marketing",
+        "Source privacy class: public"
+      ],
+      "sourceNotePath": "docs/margot/personal-intelligence/nexus-mapping-notes/2026-05-25-phase-1c-nexus-mapping-note-example.md",
+      "createdAt": "2026-05-25T14:00:00.000Z",
+      "updatedAt": "2026-05-25T14:00:00.000Z"
+    },
+    {
+      "candidateId": "phase-1c001-experiment-1",
+      "candidateType": "experiment",
+      "approvalStatus": "needs_approval",
+      "nexusDestination": "marketing_strategy",
+      "title": "Local Nexus experiment: AI agents for SEO GEO AEO CRM and 25 steps ahead planning",
+      "usefulSignal": "Practical workflow for converting AI agent, SEO, GEO, AEO, CRM, and 25 steps ahead scenario planning into tested Nexus experiments.",
+      "smallestNextAction": "Create one local marketing_strategy draft experiment from the distilled signal; do not deploy or publish it.",
+      "verificationStep": "Read back the draft and confirm source, useful signal, waste decision, and approval state.",
+      "retentionPrivacyGuardrails": [
+        "Local draft experiment only; no production writes, client-facing actions, publishing, or durable memory writes.",
+        "Use distilled summary and source note path only; do not store raw transcripts, private notes, or source exports.",
+        "Approval required before storage, routing, or task execution."
+      ],
+      "sourceNotePath": "docs/margot/personal-intelligence/nexus-mapping-notes/2026-05-25-phase-1c-nexus-mapping-note-example.md",
+      "createdAt": "2026-05-25T14:00:00.000Z",
+      "updatedAt": "2026-05-25T14:00:00.000Z"
+    }
+  ]
+}

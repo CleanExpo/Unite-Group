@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 40" fill="none">
+  <!-- Mark -->
+  <path d="M20 2L36 11v18L20 38 4 29V11L20 2z" fill="#1d4ed8"/>
+  <path d="M13 13v9.5a7 7 0 0014 0V13" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <circle cx="20" cy="32.5" r="1.8" fill="#f59e0b"/>
+  <!-- Wordmark -->
+  <text x="48" y="22" font-family="-apple-system,system-ui,sans-serif" font-size="14" font-weight="700" fill="#fafafa" letter-spacing="-0.3">Unite Group</text>
+  <text x="48" y="34" font-family="-apple-system,system-ui,sans-serif" font-size="8" font-weight="600" fill="#f59e0b" letter-spacing="1.2">EMPIRE</text>
+</svg>
