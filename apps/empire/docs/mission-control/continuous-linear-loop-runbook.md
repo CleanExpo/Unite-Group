@@ -26,6 +26,8 @@ The loop is intentionally explicit:
 
 Optional:
 
+- `MISSION_CONTROL_HANDOFF_URL`: optional web handoff endpoint, for example `https://<app>/api/cron/linear-handoff`. When set, the worker uses the app’s read-only handoff packet for issue selection and prompt generation.
+- `MISSION_CONTROL_CRON_SECRET` or `CRON_SECRET`: bearer token for `MISSION_CONTROL_HANDOFF_URL`.
 - `MISSION_CONTROL_LINEAR_TEAM_KEY`: defaults to `UNI`.
 - `MISSION_CONTROL_LINEAR_PROJECT`: defaults to `Unite-Group`.
 - `MISSION_CONTROL_LINEAR_LABELS`: defaults to `mesh:auto,pi-dev:autonomous`.
@@ -56,6 +58,19 @@ MISSION_CONTROL_RUNNER_CMD='claude -p "$(cat {prompt})"' \
 npm run mission-control:linear-loop
 ```
 
+## Continuous Mode With Web Handoff
+
+Use this when the Unite-Group web app should own the next-work selection and runner prompt, while the local worker still owns the local CLI execution, verification, commit, push, and Linear status updates:
+
+```bash
+MISSION_CONTROL_HANDOFF_URL='https://<app>/api/cron/linear-handoff' \
+MISSION_CONTROL_CRON_SECRET='<same value as CRON_SECRET>' \
+MISSION_CONTROL_LOOP=1 \
+MISSION_CONTROL_PUSH=1 \
+MISSION_CONTROL_RUNNER_CMD='claude -p "$(cat {prompt})"' \
+npm run mission-control:linear-loop
+```
+
 ## Safer Continuous Mode
 
 Use this when you want the loop to push the current feature branch but stop at In Review:
@@ -70,6 +85,7 @@ npm run mission-control:linear-loop
 ## Guardrails
 
 - The loop does not run if `MISSION_CONTROL_RUNNER_CMD` is missing.
+- If `MISSION_CONTROL_HANDOFF_URL` is set, the loop does not run unless `MISSION_CONTROL_CRON_SECRET` or `CRON_SECRET` is also available.
 - The loop does not push unless `MISSION_CONTROL_PUSH=1`.
 - The loop does not mark Done unless `MISSION_CONTROL_COMPLETE_ON_SUCCESS=1`.
 - Do not expose secrets in prompts, Linear comments, logs, or commits.
