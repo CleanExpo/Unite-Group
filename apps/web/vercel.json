@@ -1,8 +1,8 @@
 {
   "framework": "nextjs",
-  "buildCommand": "pnpm build",
+  "buildCommand": "corepack pnpm@9.15.0 build",
   "outputDirectory": ".next",
-  "installCommand": "pnpm install",
+  "installCommand": "corepack enable && corepack pnpm@9.15.0 install",
   "crons": [
     {
       "path": "/api/cron/bookkeeper",
