@@ -44,10 +44,10 @@
       "evidence": null
     },
     "p57_load_target": {
-      "signed": false,
-      "by": null,
-      "date": null,
-      "evidence": null
+      "signed": true,
+      "by": "Phill McGurk",
+      "date": "2026-06-16",
+      "evidence": "Production load target set: ~100 concurrent intakes, ~10x baseline (local-event) + degrade ladder. See P5.7-LOAD-TARGET done_definition."
     },
     "p57_tests_matter": {
       "signed": false,
@@ -124,6 +124,54 @@
       "passing": 0,
       "blockers": 25,
       "majors": 18,
+      "minors": 0,
+      "done": false
+    },
+    {
+      "at": "2026-06-16T00:05:16.273Z",
+      "tier": "pilot",
+      "target": null,
+      "total": 43,
+      "in_scope": 39,
+      "passing": 0,
+      "blockers": 24,
+      "majors": 15,
+      "minors": 0,
+      "done": false
+    },
+    {
+      "at": "2026-06-16T00:05:16.305Z",
+      "tier": "production",
+      "target": null,
+      "total": 43,
+      "in_scope": 43,
+      "passing": 0,
+      "blockers": 25,
+      "majors": 18,
+      "minors": 0,
+      "done": false
+    },
+    {
+      "at": "2026-06-16T00:24:33.665Z",
+      "tier": "production",
+      "target": null,
+      "total": 43,
+      "in_scope": 43,
+      "passing": 1,
+      "blockers": 25,
+      "majors": 17,
+      "minors": 0,
+      "done": false
+    },
+    {
+      "at": "2026-06-16T00:24:33.695Z",
+      "tier": "pilot",
+      "target": null,
+      "total": 43,
+      "in_scope": 39,
+      "passing": 0,
+      "blockers": 24,
+      "majors": 15,
       "minors": 0,
       "done": false
     }

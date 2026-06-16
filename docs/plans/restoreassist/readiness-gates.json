@@ -3,7 +3,9 @@
     "product": "RestoreAssist (P1)",
     "spec": "Unite Group — Completion & Production-Readiness Specification",
     "authored": "2026-06-16",
-    "done_rule": "zero open blockers AND zero open majors (spec §5 loop-until-done, §7 sign-off)",
+    "done_rule": "zero open blockers AND zero open majors in the selected tier (spec §5 loop-until-done, §7 sign-off)",
+    "tiers": { "pilot": "first real RestoreAssist job, capped volume — §4 + §5.1,5.3-5.6,5.8-5.11. Gates without a 'tier' default to pilot.", "production": "public / surge-exposed — adds the production-tier gates: full UX (§5.2) + surge/load (§5.7). The owned, surge-ready bar." },
+    "default_tier": "production",
     "target_repo_env": "TARGET_REPO",
     "target_repo_note": "command/gap-scan checks run inside $TARGET_REPO (the RestoreAssist codebase, CleanExpo/Unite-Hub). With no TARGET_REPO set, command checks report 'open' (unevaluated) — which is the correct starting state.",
     "severity_levels": ["blocker", "major", "minor"],
@@ -18,19 +20,19 @@
     {
       "id": "G4-DISPATCH", "phase": "§4 Consequential-action", "title": "Dispatch cannot fire on an unverified match",
       "type": "hard", "severity": "blocker", "consequential": true, "owner": "Nova+Lens",
-      "done_definition": "No code path dispatches a contractor to a property until the match is verified against vetting + coverage rules.",
+      "done_definition": "No code path dispatches a contractor to a property until the match is verified against vetting + coverage rules AND the contractor's licence/insurance/police check are re-verified as current (not lapsed since onboarding) at dispatch time.",
       "check": { "kind": "command", "run": "npm test -- --testPathPattern=dispatch-gate", "todo": "confirm the dispatch-gate test name in RestoreAssist" }
     },
     {
       "id": "G4-PAYMENT", "phase": "§4 Consequential-action", "title": "Payment cannot exceed threshold without human approval",
       "type": "hard", "severity": "blocker", "consequential": true, "owner": "Nova",
-      "done_definition": "Amount + payee validated; any payment above the configured threshold pauses for a human approve before money moves.",
+      "done_definition": "Amount + payee validated; PILOT auto-approve cap = AUD $0 — every payment pauses for a named human before money moves (PAYMENT_AUTO_APPROVE_MAX=0 enforced server-side). Production cap to be set once validation + audit are proven.",
       "check": { "kind": "command", "run": "npm test -- --testPathPattern=payment-threshold", "todo": "confirm test name + that PAYMENT_AUTO_APPROVE_MAX is enforced server-side" }
     },
     {
       "id": "G4-INSURANCE", "phase": "§4 Consequential-action", "title": "Insurance claim submit/alter requires Lens check + human confirm",
       "type": "hard", "severity": "blocker", "consequential": true, "owner": "Lens",
-      "done_definition": "No claim is submitted or altered without a legal/ethics (Lens) check AND an explicit human confirmation.",
+      "done_definition": "No claim is submitted or altered without ALL of: (1) Lens legal/ethics auto-check passes, (2) DUAL named-human sign-off (two distinct approvers), (3) the action logged. Never auto-fire.",
       "check": { "kind": "command", "run": "npm test -- --testPathPattern=insurance-gate", "todo": "confirm test name" }
     },
     {
@@ -42,13 +44,13 @@
     {
       "id": "G4-ONBOARD", "phase": "§4 Consequential-action", "title": "Contractor onboarding verifies credentials + insurance (not self-attestation)",
       "type": "hard", "severity": "blocker", "consequential": true, "owner": "Lens",
-      "done_definition": "Contractor approval requires verified credential + current insurance evidence; self-attestation alone cannot approve.",
+      "done_definition": "Contractor approval requires ALL of (verified, not self-attested): trade licence (state body, e.g. QBCC in QLD) + current public-liability AND workers-comp insurance + identity + police/background check + at least one reference. Re-verified before EVERY dispatch so nothing has lapsed.",
       "check": { "kind": "command", "run": "npm test -- --testPathPattern=contractor-onboard", "todo": "confirm test name" }
     },
     {
       "id": "G4-SURGE-FALLBACK", "phase": "§4 Consequential-action", "title": "Surge fallback + 24/7 escalation SLA defined (no-human-available rule)",
       "type": "hard", "severity": "blocker", "consequential": true, "owner": "Atlas+Nova",
-      "done_definition": "Documented + tested rule for when no human is available during a surge: either auto-approve within tight bounds OR queue-and-degrade — never silent auto-fire. Pager/on-call owner + escalation SLA named (resolves the 3am-during-a-disaster gap).",
+      "done_definition": "DECIDED policy (2026-06-16): during a DECLARED surge with no human available, ONLY a fully-rule-verified contractor dispatch (vetting current + match passes all coverage/vetting rules) may auto-proceed within tight bounds (capped count, coverage-area-bounded), logged + flagged for human post-review within hours. Payments and insurance actions ALWAYS queue-and-degrade (never auto-fire). Pager: named primary (Phill to start) acknowledges within 15 min; unacknowledged auto-escalates up the chain (Bron -> Atlas). Attestation opens when this policy is implemented + tested in RestoreAssist.",
       "check": { "kind": "attestation", "attestation_key": "surge_fallback_signed" }
     },
 
@@ -60,8 +62,8 @@
     },
     { "id": "P5.1-REVIEW", "phase": "§5.1 Discovery & Requirements", "title": "Nova confirms scope realistic", "type": "soft", "severity": "major", "owner": "Nova", "done_definition": "Senior PM (Nova) sign-off that the scope is realistic.", "check": { "kind": "attestation", "attestation_key": "p51_nova_scope" } },
 
-    { "id": "P5.2-TRACE", "phase": "§5.2 UX/UI", "title": "Every requirement maps to a screen/flow", "type": "hard", "severity": "major", "owner": "Pixel", "done_definition": "Each requirement traces to a designed screen/flow incl. the stressed-customer path; empty/loading/error/failure states covered.", "check": { "kind": "command", "run": "npm run ux:traceability", "todo": "add a requirement→flow traceability check in RestoreAssist, or convert to attestation" } },
-    { "id": "P5.2-REVIEW", "phase": "§5.2 UX/UI", "title": "Pixel + Nova confirm crisis flow is usable under stress", "type": "soft", "severity": "major", "owner": "Pixel+Nova", "done_definition": "Design review confirms the stressed-customer path is genuinely usable under stress.", "check": { "kind": "attestation", "attestation_key": "p52_crisis_flow" } },
+    { "id": "P5.2-TRACE", "tier": "production", "phase": "§5.2 UX/UI", "title": "Every requirement maps to a screen/flow", "type": "hard", "severity": "major", "owner": "Pixel", "done_definition": "Each requirement traces to a designed screen/flow incl. the stressed-customer path; empty/loading/error/failure states covered.", "check": { "kind": "command", "run": "npm run ux:traceability", "todo": "add a requirement→flow traceability check in RestoreAssist, or convert to attestation" } },
+    { "id": "P5.2-REVIEW", "tier": "production", "phase": "§5.2 UX/UI", "title": "Pixel + Nova confirm crisis flow is usable under stress", "type": "soft", "severity": "major", "owner": "Pixel+Nova", "done_definition": "Design review confirms the stressed-customer path is genuinely usable under stress.", "check": { "kind": "attestation", "attestation_key": "p52_crisis_flow" } },
 
     { "id": "P5.3-SCHEMA", "phase": "§5.3 Architecture", "title": "Schema validates", "type": "hard", "severity": "blocker", "owner": "Forge", "done_definition": "Data model defined; schema validates clean.", "check": { "kind": "command", "run": "npm run db:validate", "todo": "confirm schema-validate script name" } },
     { "id": "P5.3-APISPEC", "phase": "§5.3 Architecture", "title": "API spec is machine-readable", "type": "hard", "severity": "major", "owner": "Forge", "done_definition": "Every API endpoint specified in a machine-readable contract (e.g. OpenAPI) that lints clean.", "check": { "kind": "command", "run": "npm run api:lint", "todo": "confirm OpenAPI lint script" } },
@@ -81,14 +83,14 @@
     { "id": "P5.6-REVIEW", "phase": "§5.6 Cloud & Deployment", "title": "Grid confirms no undocumented manual steps", "type": "soft", "severity": "major", "owner": "Grid", "done_definition": "DevOps review confirms the deploy has no undocumented manual steps.", "check": { "kind": "attestation", "attestation_key": "p56_no_manual_steps" } },
 
     { "id": "P5.7-SUITE", "phase": "§5.7 QA & Testing", "title": "Full suite green on a clean checkout", "type": "hard", "severity": "blocker", "owner": "Forge", "done_definition": "Unit + integration + regression suite passes on a fresh clone.", "check": { "kind": "command", "run": "npm ci && npm test", "todo": "confirm" } },
-    { "id": "P5.7-LOAD", "phase": "§5.7 QA & Testing", "title": "Surge/load test passes at the named target", "type": "hard", "severity": "blocker", "owner": "Grid", "done_definition": "Load test passes at the documented surge target (e.g. 50× baseline concurrent intakes in a regional event) with a defined degradation policy. The target number MUST be set (see attestation p57_load_target).", "check": { "kind": "command", "run": "npm run test:load", "todo": "confirm load harness; encode the surge multiple" } },
-    { "id": "P5.7-LOAD-TARGET", "phase": "§5.7 QA & Testing", "title": "Surge target number is defined", "type": "hard", "severity": "major", "owner": "Grid", "done_definition": "The peak concurrent-intake target + surge multiple + degradation policy are written down (otherwise the load gate is not falsifiable).", "check": { "kind": "attestation", "attestation_key": "p57_load_target" } },
+    { "id": "P5.7-LOAD", "tier": "production", "phase": "§5.7 QA & Testing", "title": "Surge/load test passes at the named target", "type": "hard", "severity": "blocker", "owner": "Grid", "done_definition": "Load test passes at the documented surge target: ~100 concurrent intakes / ~10x baseline (local-event; see P5.7-LOAD-TARGET) with the defined degrade ladder. Production-tier.", "check": { "kind": "command", "run": "npm run test:load", "todo": "confirm load harness; encode the surge multiple" } },
+    { "id": "P5.7-LOAD-TARGET", "tier": "production", "phase": "§5.7 QA & Testing", "title": "Surge target number is defined", "type": "hard", "severity": "major", "owner": "Grid", "done_definition": "DECIDED + SIGNED (2026-06-16): production load target = ~100 concurrent customer intakes, ~10x a ~10/day baseline (local/single-town event), with the degrade ladder (protect intake+triage+dispatch; shed non-critical; throttle comms to template-only; transparent 'high demand' status; first-contact SLA may explicitly relax under extreme surge, never silently). Revisit upward as the market grows.", "check": { "kind": "attestation", "attestation_key": "p57_load_target" } },
     { "id": "P5.7-REVIEW", "phase": "§5.7 QA & Testing", "title": "Nova confirms tests cover behaviour that matters", "type": "soft", "severity": "major", "owner": "Nova", "done_definition": "PM review confirms tests cover the behaviour that matters, not just coverage %.", "check": { "kind": "attestation", "attestation_key": "p57_tests_matter" } },
 
     { "id": "P5.8-SECREVIEW", "phase": "§5.8 Security/Privacy/Compliance", "title": "Security review passes", "type": "hard", "severity": "blocker", "owner": "Grid", "done_definition": "Security review passes (deps audited, advisors clean); access controls tested.", "check": { "kind": "command", "run": "npm audit --audit-level=high", "todo": "swap for the real security gate (deepsec/snyk)" } },
     { "id": "P5.8-SECRETS", "phase": "§5.8 Security/Privacy/Compliance", "title": "No secrets in code or logs", "type": "hard", "severity": "blocker", "owner": "Grid", "done_definition": "Secret scan finds nothing in code or logs.", "check": { "kind": "command", "run": "gitleaks detect --no-banner", "todo": "confirm gitleaks present in target" } },
     { "id": "P5.8-ACCESS", "phase": "§5.8 Security/Privacy/Compliance", "title": "Access controls tested", "type": "hard", "severity": "major", "owner": "Grid", "done_definition": "AuthN/AuthZ and access controls have passing tests.", "check": { "kind": "command", "run": "npm test -- --testPathPattern=access-control", "todo": "confirm test name" } },
-    { "id": "P5.8-REGIME", "phase": "§5.8 Security/Privacy/Compliance", "title": "Named compliance regime documented + Lens sign-off (PHASE-0 BLOCKER)", "type": "hard", "severity": "blocker", "owner": "Lens", "done_definition": "The applicable regimes are named, scoped, and signed by Lens: PCI-DSS (payments), Privacy Act 1988 + APPs (vulnerable-person data), insurance claims-handling (ASIC/AFCA considerations), and state contractor licensing (e.g. QBCC). Elevated from 'open item' to a blocking gate.", "check": { "kind": "attestation", "attestation_key": "p58_compliance_regime" } },
+    { "id": "P5.8-REGIME", "phase": "§5.8 Security/Privacy/Compliance", "title": "Named compliance regime documented + Lens sign-off (PHASE-0 BLOCKER)", "type": "hard", "severity": "blocker", "owner": "Lens", "done_definition": "DECIDED (2026-06-16) — named regimes, pending Lens + LAWYER sign-off: PCI-DSS (likely SAQ-A via a hosted processor); Privacy Act 1988 + APPs incl. OAIC mandatory data-breach notification (sensitive, vulnerable-person data); state contractor licensing (e.g. QBCC) + WHS duties for dispatched workers. INSURANCE POSTURE = FACILITATE/REFER ONLY (RestoreAssist coordinates restoration work; the customer/insurer handle the claim) so AFSL claims-handling regulation is NOT triggered — MUST be confirmed by a lawyer; any drift toward submitting/negotiating claims on a customer's behalf re-triggers AFS licensing. Additions to confirm: ACL/consumer guarantees, per-state licensing for each operating state, GST. Attestation opens on Lens + lawyer sign-off.", "check": { "kind": "attestation", "attestation_key": "p58_compliance_regime" } },
     { "id": "P5.8-REVIEW", "phase": "§5.8 Security/Privacy/Compliance", "title": "Lens confirms posture fits disaster-recovery + insurance + payments", "type": "soft", "severity": "blocker", "owner": "Lens", "done_definition": "Legal/ethics review confirms the compliance posture fits the domain.", "check": { "kind": "attestation", "attestation_key": "p58_lens_posture" } },
 
     { "id": "P5.9-RESTORE", "phase": "§5.9 Data", "title": "Restore-from-backup tested", "type": "hard", "severity": "blocker", "owner": "Grid", "done_definition": "A backup restore is tested and succeeds.", "check": { "kind": "command", "run": "npm run data:restore-test", "todo": "confirm restore-test command" } },

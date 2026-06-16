@@ -6,6 +6,17 @@
 >
 > **Cross-repo note:** RestoreAssist's code lives in `CleanExpo/Unite-Hub` (the OpenClaw agent OS). This artifact is authored at the **Empire/portfolio level in this repo** (Authority-Site), and its automated checks execute against the RestoreAssist codebase via `TARGET_REPO`. Authoring here, executing there.
 
+## Two completion tiers (Item 1 — decided 2026-06-16)
+
+"Done" has two bars, so a safe first job isn't blocked on flood-scale load testing, and the higher bar stays visible:
+
+- **🟡 Pilot-ready** (first real RestoreAssist job, capped volume) — `--tier=pilot`. Requires all **§4** consequential gates + **§5.1, 5.3, 5.4, 5.5, 5.6, 5.8 (incl. compliance regime), 5.9, 5.10, 5.11**. **39 of 43 gates.**
+- **🟢 Production-ready** (public, surge-exposed) — default. Adds the **4 production-tier gates**: full UX (`P5.2-TRACE`, `P5.2-REVIEW`) + surge/load (`P5.7-LOAD`, `P5.7-LOAD-TARGET`).
+
+A gate's `tier` is set in the registry (absent = `pilot`). The runner counts only in-tier gates toward "done"; deferred gates are shown, not hidden.
+
+> **Pilot named-gap:** UX completeness is production-tier, but the **crisis flow must still be functionally usable** for a real pilot customer — track that as a named gap, not a skipped one. Non-negotiable in *both* tiers: every §4 gate and `P5.8-REGIME` (compliance).
+
 ## The three files
 
 | File | Role |
@@ -17,8 +28,11 @@
 ## How to run
 
 ```bash
-# Evaluate from this repo (attestations + any local checks). Command checks show "open" until a target is set.
+# Evaluate from this repo (attestations + any local checks). Default tier = production (full bar).
 node scripts/readiness-loop.mjs
+
+# Pilot bar (first real job) — the 4 production-only gates show as deferred:
+node scripts/readiness-loop.mjs --tier=pilot
 
 # Run the real command/gap-scan checks against the RestoreAssist codebase:
 TARGET_REPO=/path/to/Unite-Hub node scripts/readiness-loop.mjs
@@ -73,7 +87,7 @@ These were missing or under-specified in draft v1 and are now gates, so the loop
 
 1. **`G4-SURGE-FALLBACK`** — resolves the human-gate-vs-~60-min-promise tension: a tested rule for when no human is available during a 3am surge (auto-approve within tight bounds **or** queue-and-degrade — never silent auto-fire) plus a named pager/escalation SLA.
 2. **`P5.8-REGIME`** — compliance was an "open item" but it gates §5.8/§5.9, so it's elevated to a **phase-0 blocker** with an AU-specific regime list (PCI-DSS, Privacy Act 1988 + APPs, insurance claims-handling/ASIC, state contractor licensing e.g. QBCC).
-3. **`P5.7-LOAD-TARGET`** — the surge/load gate now requires a written target number + degradation policy, or it isn't falsifiable.
+3. **`P5.7-LOAD-TARGET`** — the surge/load gate now requires a written target number + degradation policy, or it isn't falsifiable. **Set + signed 2026-06-16: ~100 concurrent intakes, ~10× baseline (local-event) + degrade ladder.**
 4. **`P5.3-MATCH`** — the matching gate now also asserts **fairness + vetting-freshness** (insurance/licence not lapsed since vetting), since this dispatches a stranger to a vulnerable home.
 5. **`P5.11-DOCS-RUN`** — the "non-builder runs from docs" ownership test must run **without** the OpenClaw agent stack, otherwise "100% owned" is contradicted by the AI-OS dependency.
 
@@ -83,10 +97,10 @@ These were missing or under-specified in draft v1 and are now gates, so the loop
 |---|---|---|
 | 1 | Platform-level vs RestoreAssist-first | **RestoreAssist-first** (this artifact); generalize to the platform once validated on P1. |
 | 2 | Which §5 phases define "complete" | Must-pass for first real job: **5.3, 5.4, 5.5, 5.8, 5.9, 5.10, 5.11**; 5.2/5.7 may be "partial-with-named-gaps." |
-| 3 | §4 thresholds | `PAYMENT_AUTO_APPROVE_MAX` (human approves above it); contractor vetting = licence + current insurance + ID + reference; **insurance action always human + Lens**. *Set the $ figure.* |
-| 4 | Compliance regime | PCI-DSS (payments), Privacy Act 1988 + APPs (vulnerable-person data), insurance claims-handling (ASIC/AFCA), state contractor licensing (QBCC/equiv). *Lens / a lawyer confirms.* |
-| 5 | Who holds the 5%-oversight pager | A named on-call owner + the `G4-SURGE-FALLBACK` degrade-safe rule for 3am surges. *Name the human(s).* |
-| 6 | Pitch figures (86%/95%) | **Retired** from all gates until §7's checklist defines "complete" — then a % is just `passing/total` from the runner. |
+| 3 | §4 thresholds | **Decided 2026-06-16:** payment auto-cap = **AUD $0 in pilot** (all human-approved); vetting = **licence + public-liability & workers-comp insurance + ID + police check + reference, re-verified before every dispatch**; insurance = **Lens auto-check + dual named-human sign-off + logged**. |
+| 4 | Compliance regime | **Decided 2026-06-16:** PCI-DSS (SAQ-A), Privacy Act 1988 + APPs (+ OAIC breach notification), state contractor licensing (QBCC/equiv) + WHS. **Insurance = facilitate/refer only** (avoids AFSL claims-handling). Adds: ACL, per-state licensing, GST. **Lens + a lawyer must sign.** |
+| 5 | Who holds the 5%-oversight pager | **Decided 2026-06-16:** Phill primary on-call, **15-min ack** → auto-escalate (Bron → Atlas). Surge rule: **auto-dispatch only fully-rule-verified matches within bounds; payments & insurance always queue.** |
+| 6 | Pitch figures (86%/95%) | **Decided 2026-06-16: retired from readiness.** The only number quoted is the loop's `passing/total` (now ~2%). 86%/95% stay marketing-only, labelled non-engineering. |
 
 ## What the runner does NOT replace
 
