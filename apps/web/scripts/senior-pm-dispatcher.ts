@@ -24,10 +24,19 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-const TWO_BRAIN_ROOT = '/Users/phillmcgurk/2nd-brain/.agentic_nexus'
-const BACKLOG_PATH = join(TWO_BRAIN_ROOT, 'ACTIVE_PROGRAMME_BACKLOG.md')
-const QUEUE_PATH = join(TWO_BRAIN_ROOT, 'SENIOR_PM_NEXT_ACTION_QUEUE.md')
-const WORKER_REGISTRY_PATH = join(TWO_BRAIN_ROOT, 'worker_registry.jsonl')
+// Root of the canonical senior-PM inputs. Defaults to the operator's 2nd-brain
+// path for production runs; override with SENIOR_PM_ROOT so the dispatcher never
+// depends on a machine-specific path (used by tests and any non-default host).
+const DEFAULT_TWO_BRAIN_ROOT = '/Users/phillmcgurk/2nd-brain/.agentic_nexus'
+
+function resolveInputPaths(): { backlog: string; queue: string; workerRegistry: string } {
+  const root = process.env.SENIOR_PM_ROOT || DEFAULT_TWO_BRAIN_ROOT
+  return {
+    backlog: join(root, 'ACTIVE_PROGRAMME_BACKLOG.md'),
+    queue: join(root, 'SENIOR_PM_NEXT_ACTION_QUEUE.md'),
+    workerRegistry: join(root, 'worker_registry.jsonl'),
+  }
+}
 
 export interface SeniorPmBacklogLane {
   id: number
@@ -165,8 +174,8 @@ function parseQueueActions(md: string): SeniorPmQueueAction[] {
   return actions
 }
 
-async function parseWorkerRegistry(): Promise<WorkerInfo[]> {
-  const content = await readIfExists(WORKER_REGISTRY_PATH)
+async function parseWorkerRegistry(registryPath: string): Promise<WorkerInfo[]> {
+  const content = await readIfExists(registryPath)
   if (!content) return []
   return content
     .split('\n')
@@ -255,6 +264,7 @@ function rankBatches(
 export async function runSeniorPmDispatcher(
   profile: DispatcherReport['profile'] = 'nexus-senior-pm',
 ): Promise<DispatcherReport> {
+  const { backlog: BACKLOG_PATH, queue: QUEUE_PATH, workerRegistry: WORKER_REGISTRY_PATH } = resolveInputPaths()
   const [backlogMd, queueMd, registryMd] = await Promise.all([
     readIfExists(BACKLOG_PATH),
     readIfExists(QUEUE_PATH),
@@ -287,7 +297,7 @@ export async function runSeniorPmDispatcher(
 
   const lanes = parseBacklogLanes(backlogMd)
   const actions = parseQueueActions(queueMd)
-  const workers = await parseWorkerRegistry()
+  const workers = await parseWorkerRegistry(WORKER_REGISTRY_PATH)
   const ranked = rankBatches(actions, workers, lanes)
 
   const lanesDone = lanes.filter((l) => l.autonomous === 'done').length
