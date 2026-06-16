@@ -420,3 +420,35 @@ export async function fetchClaimCandidates(opts: {
   }`)
   return data.issues.nodes
 }
+
+// Timestamp of the most recently started (claimed) autonomous issue, or null.
+// Used by the queue-health surface to detect a stalled loop.
+export async function fetchMostRecentClaimAt(opts: {
+  teamKey: string
+  labelNames: string[]
+  projectName?: string
+}): Promise<string | null> {
+  if (!isLinearConfigured()) return null
+  const projectFilter = opts.projectName
+    ? `project: { name: { eq: ${JSON.stringify(opts.projectName)} } }`
+    : ''
+  const data = await gql<{
+    issues: { nodes: { startedAt: string | null; updatedAt: string }[] }
+  }>(`{
+    issues(
+      first: 1
+      filter: {
+        team: { key: { eq: ${JSON.stringify(opts.teamKey)} } }
+        state: { type: { eq: "started" } }
+        labels: { name: { in: ${JSON.stringify(opts.labelNames)} } }
+        ${projectFilter}
+      }
+      orderBy: updatedAt
+    ) {
+      nodes { startedAt updatedAt }
+    }
+  }`)
+  const node = data.issues.nodes[0]
+  if (!node) return null
+  return node.startedAt ?? node.updatedAt
+}
