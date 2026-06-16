@@ -41,6 +41,14 @@ const C = { reset: '\x1b[0m', dim: '\x1b[2m', red: '\x1b[31m', yellow: '\x1b[33m
 const paint = (s, c) => (process.stdout.isTTY ? c + s + C.reset : s);
 
 const reg = JSON.parse(readFileSync(REG, 'utf8'));
+const gateHasTier = (g) => Object.prototype.hasOwnProperty.call(g, 'tier');
+const gateTier = (g) => (gateHasTier(g) ? g.tier : 'pilot');
+const invalidGate = reg.gates.find((g) => !['pilot', 'production'].includes(gateTier(g)));
+if (invalidGate) {
+  const tierLabel = invalidGate.tier === null ? 'null' : `'${invalidGate.tier}'`;
+  console.error(`Invalid gate tier ${tierLabel} on gate ${invalidGate.id || '(missing id)'}. Expected 'pilot' or 'production'.`);
+  process.exit(2);
+}
 const state = existsSync(STATE) ? JSON.parse(readFileSync(STATE, 'utf8')) : { attestations: {}, runs: [] };
 const att = state.attestations || {};
 
@@ -63,25 +71,26 @@ function evalGate(g) {
   return { status: 'open', reason: `unknown check kind '${c.kind}'` };
 }
 
-const results = reg.gates.map((g) => ({ ...g, _tier: g.tier || 'pilot', result: evalGate(g) }));
+const prepared = reg.gates.map((g) => ({ ...g, _tier: gateTier(g) }));
 const inScope = (r) => TIER === 'production' || r._tier === 'pilot';
-const scoped = results.filter(inScope);
-const deferred = results.filter((r) => !inScope(r));
-const passing = scoped.filter((r) => r.result.status === 'pass');
-const open = scoped.filter((r) => r.result.status !== 'pass');
+const scoped = prepared.filter(inScope);
+const deferred = prepared.filter((r) => !inScope(r));
+const results = scoped.map((g) => ({ ...g, result: evalGate(g) }));
+const passing = results.filter((r) => r.result.status === 'pass');
+const open = results.filter((r) => r.result.status !== 'pass');
 const bySev = (s) => open.filter((r) => r.severity === s);
 const blockers = bySev('blocker'), majors = bySev('major'), minors = bySev('minor');
 const done = blockers.length === 0 && majors.length === 0;
 
 // Record this pass (last 50). new Date() is fine — this is a normal Node script.
 state.runs = (state.runs || []).slice(-49);
-state.runs.push({ at: new Date().toISOString(), tier: TIER, target: TARGET || null, total: results.length, in_scope: scoped.length, passing: passing.length, blockers: blockers.length, majors: majors.length, minors: minors.length, done });
+state.runs.push({ at: new Date().toISOString(), tier: TIER, target: TARGET || null, total: prepared.length, in_scope: scoped.length, passing: passing.length, blockers: blockers.length, majors: majors.length, minors: minors.length, done });
 writeFileSync(STATE, JSON.stringify(state, null, 2) + '\n');
 
 if (asJson) {
   console.log(JSON.stringify({
     product: reg.meta.product, tier: TIER, done, target_repo: TARGET || null,
-    summary: { total: results.length, in_scope: scoped.length, deferred_to_production: deferred.length, passing: passing.length, open: open.length, blockers: blockers.length, majors: majors.length, minors: minors.length },
+    summary: { total: prepared.length, in_scope: scoped.length, deferred_to_production: deferred.length, passing: passing.length, open: open.length, blockers: blockers.length, majors: majors.length, minors: minors.length },
     gaps: open.map((r) => ({ id: r.id, phase: r.phase, title: r.title, severity: r.severity, tier: r._tier, owner: r.owner, consequential: !!r.consequential, reason: r.result.reason }))
   }, null, 2));
   process.exit(done ? 0 : 1);

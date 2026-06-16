@@ -1,5 +1,41 @@
 # Margot Overnight Progress Log
 
+## 2026-06-16 10:36 AEST
+
+### Tick 20260616_1036 — RestoreAssist readiness tier fail-closed guards
+
+Lane: continued the existing in-progress branch rather than starting a new one. The inherited branch already contained RestoreAssist readiness-loop tier work, so this tick tightened the local readiness runner with RED-GREEN coverage for fail-closed tier handling. Scope stayed local/docs/tests/script only; no RestoreAssist target repo command checks were run against a live target, and no production write/deploy/provider action was taken.
+
+Completed:
+- Preflight read-back: branch `margot/timeline-subject-label-redaction-20260616`; GitHub auth available; no current-branch PR (`gh pr list --head margot/timeline-subject-label-redaction-20260616` -> `[]`); unrelated open PR `#228` (`fabel/keystone-install`) has GitHub Actions/CodeRabbit success but Vercel status contexts failing; Vercel CLI project list was read-only and showed `restoreassist`, `unite-group`, and sandbox projects.
+- Continued inherited RestoreAssist readiness-tier changes already committed in `fcfe4e19` / `2ef198f3`, then added follow-up RED-GREEN guards in `tests/unit/scripts/readiness-loop.test.ts` and `scripts/readiness-loop.mjs`.
+- RED #1: invalid CLI tier already covered from the first pass; expected exit `2`, no stdout, and no state run append.
+- RED #2: reviewer found `--tier=pilot` still evaluated production-only command gates before deferring them. Added a marker-file command fixture and watched focused Jest fail because the marker was created.
+- GREEN #2: filtered scoped/deferred gates before `evalGate`, so pilot-mode deferred production commands are not executed while still reporting `deferred_to_production`.
+- RED #3: reviewer found unknown registry tiers were not fail-closed. Added fixtures for misspelled `prodution`, empty string, and `null`; watched focused Jest fail for falsy invalid values.
+- GREEN #3: defaulted only when the `tier` property is absent; present invalid values now exit `2` before state load/append.
+- Independent final re-review passed: no security concerns or logic blockers; optional suggestion only to add numeric/boolean/object tier fixtures later.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-16 10:35:59 AEST`.
+- RED focused Jest #2/#3 failed before the corresponding fixes as expected (marker file created for deferred production command; invalid empty/null registry tiers exited `1` and appended state before fix).
+- `pwd && npx jest tests/unit/scripts/readiness-loop.test.ts --runInBand` -> PASS, 1 suite / 5 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, `route-inventory check: 0 unprotected mutating routes`.
+- `git diff --check` -> PASS.
+- `npx eslint tests/unit/scripts/readiness-loop.test.ts scripts/readiness-loop.mjs --max-warnings=0` -> PASS.
+- Temp-state real fixture checks: `--tier=pilot --json` -> exit `1`, `total=43`, `in_scope=39`, `deferred_to_production=4`; `--tier=production --json` -> exit `1`, `in_scope=43`, `deferred_to_production=0`; `--tier=staging --json` -> exit `2` with invalid-tier message. Temp state files under `/tmp` were used to avoid mutating the canonical state during these probes.
+
+Files changed:
+- `scripts/readiness-loop.mjs`
+- `tests/unit/scripts/readiness-loop.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No production DB write/migration, sandbox wizard subcommand, RestoreAssist target repo command execution, live provider dispatch/polling, Vercel deploy/env mutation, PR creation, merge, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, or Mac Mini credential prompt occurred.
+- Current branch still has no PR URL. Next safe lane is to commit this follow-up, then push/open/monitor only if the publication gate remains explicitly in scope and the branch contents are acceptable as a combined RestoreAssist-readiness + prior CRM-timeline branch.
+
 ## 2026-06-16 10:29 AEST
 
 ### Tick 20260616_1029 — isolated branch CRM timeline guard health read-back

@@ -1,5 +1,13 @@
 # Margot Morning Report
 
+## 2026-06-16 10:36 AEST — RestoreAssist readiness tier fail-closed guards
+
+- **Completed safe lane:** Continued the existing branch and hardened the RestoreAssist readiness runner tier logic with strict RED-GREEN tests. Pilot runs now defer production-only gates before command evaluation; malformed registry tiers (`prodution`, empty string, `null`) exit fail-closed before state append.
+- **Repo/PR/Vercel read-back:** branch `margot/timeline-subject-label-redaction-20260616`; preflight found no current-branch PR; unrelated PR `#228` remains on `fabel/keystone-install` with GitHub Actions/CodeRabbit success and Vercel status failures. Vercel project list was read-only and showed RestoreAssist/Unite-Group projects; no deploy/env action occurred.
+- **Verification:** RED marker fixture failed before scoped evaluation fix; RED malformed-tier fixtures failed before present-invalid tier validation fix. Final `npx jest tests/unit/scripts/readiness-loop.test.ts --runInBand` -> PASS, 1 suite / 5 tests. `npm run type-check` -> PASS. `npm run security:routes-check` -> PASS, 0 unprotected mutating routes. `git diff --check` -> PASS. Targeted ESLint -> PASS. Independent final re-review -> PASS/no blockers.
+- **Evidence paths:** `scripts/readiness-loop.mjs`, `tests/unit/scripts/readiness-loop.test.ts`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+- **Safety/blockers:** no production DB write/migration, sandbox wizard subcommand, RestoreAssist target command execution, Vercel deploy/env mutation, PR creation, merge, live provider action, credential read, client-facing send, paid spend, or destructive git occurred. Current branch still has no PR URL.
+
 ## 2026-06-16 10:29 AEST — Isolated branch CRM timeline guard health read-back
 
 - **Completed safe lane:** Re-read the Senior PM control set and ran a bounded local health check on the isolated CRM timeline subject-label redaction branch; no new code implementation was needed.
