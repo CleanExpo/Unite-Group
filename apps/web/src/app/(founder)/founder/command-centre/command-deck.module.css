@@ -273,6 +273,89 @@
 }
 .plink:hover { text-shadow: 0 0 10px rgba(56, 225, 255, 0.5); text-decoration: underline; }
 
+/* ── Project integration manifests ───────────────────────────────────── */
+.integrationGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 0.9rem;
+}
+
+.integrationSummary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
+  padding: 0.55rem;
+  border: 1px solid var(--deck-line-soft);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.integrationSummary span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.54rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--deck-muted);
+}
+
+.integrationSummary b {
+  color: #eaf4fb;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.connectionList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.38rem;
+  max-height: 260px;
+  overflow: auto;
+  padding-right: 0.1rem;
+}
+
+.connectionRow {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.5rem;
+  border: 1px solid var(--deck-line-soft);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.connectionName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.68rem;
+  color: #cfe0ec;
+}
+
+.connectionState {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.52rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--deck-muted);
+}
+
+.connectionAction {
+  grid-column: 2 / 4;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.62rem;
+  color: var(--deck-amber);
+}
+
 /* ── Capability bus (tools) ───────────────────────────────────────────── */
 .bus {
   border: 1px solid var(--deck-line);
