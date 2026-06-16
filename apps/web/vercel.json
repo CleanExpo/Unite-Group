@@ -154,6 +154,9 @@
     "src/app/api/cron/linear-claim/route.ts": {
       "maxDuration": 60
     },
+    "src/app/api/cron/linear-handoff/route.ts": {
+      "maxDuration": 30
+    },
     "src/app/api/cron/linear-queue-health/route.ts": {
       "maxDuration": 30
     },
