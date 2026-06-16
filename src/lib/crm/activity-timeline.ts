@@ -160,7 +160,7 @@ function redactSensitiveTimelineText(value: string): string {
     .replace(/\bapi[_ -]?key[_ :=-]*[a-z0-9._-]+\b/gi, '[REDACTED]')
     .replace(/(?:\+\d[\d ().-]{7,}\d|\b\d{3}[-. ]\d{3}[-. ]\d{3,4}\b|\b\d(?=[\d ().-]{7,}\d)(?=[\d().-]*[ .()]\d)[\d ().-]*\d\b)/g, '[REDACTED]')
     .replace(
-      /\b(?:billing\s+card\s+(?:ending\s+)?\d{4}|payment\s+card\s+\d{4}|card\s+ending\s+\d{4}|payment\s+method\s+(?:visa|mastercard|amex|discover)|(?:visa|mastercard|amex|discover)\s+(?:card|ending\s+\d{4}|\d{4}))\b/gi,
+      /\b(?:billing\s+card\s+(?:ending\s+)?\d{4}|payment\s+card\s+\d{4}|card\s+(?:ending|number)\s+\d{4}|payment\s+method\s+(?:visa|mastercard|amex|discover)|(?:visa|mastercard|amex|discover)\s+(?:card|ending\s+\d{4}|\d{4}))\b/gi,
       '[REDACTED]',
     );
 }

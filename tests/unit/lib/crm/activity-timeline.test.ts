@@ -225,13 +225,15 @@ describe('buildCrmActivityTimelineEvent', () => {
       subjectLabel:
         'Katherine / Orbital Labs 400-222-333 billing card ' +
         '4242 payment card ' +
-        '1111',
+        '1111 card number ' +
+        '9999',
       occurredAt: '2026-05-23T12:35:00+10:00',
       source: 'manual_test',
       summary:
         'Lead captured: Katherine / Orbital Labs 400-222-333 billing card ' +
         '4242 payment card ' +
-        '1111 via manual_test.',
+        '1111 card number ' +
+        '9999 via manual_test.',
       metadata: {
         safeCount: 1,
         stage: 'captured',
@@ -256,15 +258,16 @@ describe('buildCrmActivityTimelineEvent', () => {
     const serialized = JSON.stringify(insert);
 
     expect(insert.idea_text).toBe(
-      'Lead captured: Katherine / Orbital Labs [REDACTED] [REDACTED] [REDACTED] via manual_test.',
+      'Lead captured: Katherine / Orbital Labs [REDACTED] [REDACTED] [REDACTED] [REDACTED] via manual_test.',
     );
     expect(insert.payload.subjectLabel).toBe(
-      'Katherine / Orbital Labs [REDACTED] [REDACTED] [REDACTED]',
+      'Katherine / Orbital Labs [REDACTED] [REDACTED] [REDACTED] [REDACTED]',
     );
     expect(insert.payload.summary).toBe(insert.idea_text);
     expect(serialized).not.toContain('400-222-333');
     expect(serialized).not.toContain('billing card ' + '4242');
     expect(serialized).not.toContain('payment card ' + '1111');
+    expect(serialized).not.toContain('card number ' + '9999');
     expect(insert.payload.metadata).toEqual({ safeCount: 1, stage: 'captured' });
   });
 
