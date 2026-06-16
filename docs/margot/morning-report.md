@@ -1,5 +1,13 @@
 # Margot Morning Report
 
+## 2026-06-16 11:13 AEST — Lead conversion approval response redaction guard
+
+- **Completed safe lane:** Continued the existing branch and used strict RED-GREEN on the local guarded lead conversion route so successful conversion responses no longer echo raw `board_approval_id`; the operator approval reference remains an input gate only, and timeline metadata stays sanitized with `operatorGateSatisfied: true`.
+- **Repo/PR read-back:** branch `margot/timeline-subject-label-redaction-20260616`; started at `9d912a4c` and committed code/test as `9f253571`; `gh pr list --head margot/timeline-subject-label-redaction-20260616 --json number,title,state,url --limit 5` -> `[]` before publication; unrelated PR `#228` is outside this lane.
+- **Verification:** RED focused Jest failed before the route change because `board_approval_id` was present in the success response. GREEN focused Jest passed. Full lead conversion suite -> PASS, 1 suite / 9 tests. Focused CRM lead sweep -> PASS, 4 suites / 23 tests. `npm run type-check` -> PASS. `npm run security:routes-check` -> PASS with 0 unprotected mutating routes. `git diff --check` -> PASS. Targeted ESLint -> PASS with max warnings 0.
+- **Evidence paths:** `src/app/api/crm/leads/[id]/convert/route.ts`, `tests/integration/api/crm-lead-conversion.test.ts`, `docs/margot/lead-to-client-conversion-plan.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+- **Safety/blockers:** no production DB write/migration, sandbox wizard subcommand, live provider dispatch/polling, Vercel deploy/env mutation, client-facing send, paid spend, credential read, secret printing/storage, destructive git, cross-client merge, or Mac Mini credential prompt occurred. Next safe lane is to publish/monitor this isolated branch if source-control publication is accepted, otherwise keep the branch green locally.
+
 ## 2026-06-16 11:02 AEST — RestoreAssist readiness tier guard read-back
 
 - **Completed safe lane:** Re-read the Senior PM control set and ran a bounded local health check on the RestoreAssist readiness-tier guard surface; no new code implementation, publication, or target-repo execution was needed.

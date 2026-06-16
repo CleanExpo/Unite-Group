@@ -86,6 +86,7 @@ The local guarded conversion endpoint (`src/app/api/crm/leads/[id]/convert/route
 - Missing or blank `boardApprovalId` returns `403` with `{ error: 'operator_approval_required' }` before Supabase conversion/update is attempted.
 - Successful local conversion timeline inserts now persist only a non-sensitive `operatorGateSatisfied: true` metadata flag; the raw board approval reference remains out of the persisted timeline payload.
 - Dry-run conversion now returns a sanitized `planned_timeline_event` read-back with the same approval-required timeline shape and `operatorGateSatisfied: true`, while the focused test proves dry-run performs no lead update and no `agent_actions` insert.
+- Successful non-dry-run conversion responses no longer echo `board_approval_id`; the route consumes the operator approval reference only as an input gate, then returns the converted lead and target client evidence without the raw approval reference.
 - Production qualification remains precise: this is a local guarded route/test contract only; no production conversion promotion, migration, deploy, or production DB write/application has been verified from this plan.
 - Verification on 2026-05-23:
   - RED before route change: `npx jest tests/integration/api/crm-lead-conversion.test.ts --runInBand` failed only the new missing-approval expectation: expected HTTP `403`, received `400`.

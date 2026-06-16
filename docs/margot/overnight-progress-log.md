@@ -1,5 +1,40 @@
 # Margot Overnight Progress Log
 
+## 2026-06-16 11:13 AEST
+
+### Tick 20260616_1113 — Lead conversion approval response redaction guard
+
+Lane: continued the existing `margot/timeline-subject-label-redaction-20260616` branch and tightened the local guarded lead-to-client conversion response surface. Scope stayed inside mocked CRM route/test/docs only; no Supabase write, sandbox wizard action, Vercel mutation, live provider call, client-facing action, billing/payment action, or cross-client identity decision was attempted.
+
+Completed:
+- Preflight: workdir `/Users/phillmcgurk/Unite-Group`; branch `margot/timeline-subject-label-redaction-20260616`; GitHub auth available; Vercel CLI installed; no PR for current branch (`gh pr list --head ...` -> `[]`); unrelated PR `#228` remains outside this lane. Branch started this tick at `9d912a4c` and was ahead of origin by 1 ops-doc commit.
+- Re-read the Margot connected-teams/Senior PM/CRM operating docs, CRM schema/conversion/contact-opportunity docs, current progress/morning reports, package scripts, and the exact lead-conversion route/test surface before choosing this bounded guard.
+- RED: changed `tests/integration/api/crm-lead-conversion.test.ts` so the successful conversion response must not contain `board_approval_id` or the raw approval fixture. Focused Jest failed as expected because the route still returned `board_approval_id`.
+- GREEN: removed the raw approval echo from `src/app/api/crm/leads/[id]/convert/route.ts` while preserving the operator approval input gate, conversion update, and sanitized timeline event. Refactor: typed the local Jest Supabase builders to keep targeted ESLint warning-free; retained the existing route Supabase generic with a scoped eslint suppression because generated CRM table types are not present locally.
+- Updated `docs/margot/lead-to-client-conversion-plan.md` so the durable plan records that successful non-dry-run conversion responses no longer echo raw approval refs.
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-16 11:13:23 AEST`.
+- RED focused Jest: `CI=1 npx jest tests/integration/api/crm-lead-conversion.test.ts --runInBand -t "updates the exact lead conversion fields"` -> FAIL before route change; expected no `board_approval_id`, received the raw approval fixture.
+- GREEN focused Jest: same command -> PASS, 1 selected test.
+- Full lead conversion route suite: `CI=1 npx jest tests/integration/api/crm-lead-conversion.test.ts --runInBand` -> PASS, 1 suite / 9 tests.
+- Focused CRM lead sweep: `CI=1 npx jest tests/integration/api/marketing-leads.test.ts tests/integration/api/crm-leads-list.test.ts tests/unit/lib/crm/qualify-lead.test.ts tests/integration/api/crm-lead-conversion.test.ts --runInBand` -> PASS, 4 suites / 23 tests.
+- `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, `route-inventory check: 0 unprotected mutating routes`.
+- `git diff --check -- src/app/api/crm/leads/[id]/convert/route.ts tests/integration/api/crm-lead-conversion.test.ts` -> PASS.
+- `npx eslint src/app/api/crm/leads/[id]/convert/route.ts tests/integration/api/crm-lead-conversion.test.ts --max-warnings=0` -> PASS after the typed-builder refactor/scoped suppression.
+
+Files changed:
+- `src/app/api/crm/leads/[id]/convert/route.ts`
+- `tests/integration/api/crm-lead-conversion.test.ts`
+- `docs/margot/lead-to-client-conversion-plan.md`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+
+Safety/blockers:
+- No production DB write/migration, sandbox wizard subcommand, live provider dispatch/polling, Vercel deploy/env mutation, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, or Mac Mini credential prompt occurred.
+- Code/test commit created locally as `9f253571` (`fix(crm): redact conversion approval response`). Evidence/doc commit will follow this append; branch remains without a PR until source-control publication is attempted after checks.
+
 ## 2026-06-16 11:02 AEST
 
 ### Tick 20260616_1102 — RestoreAssist readiness tier guard read-back
