@@ -6,7 +6,7 @@ import { getUser, createClient } from '@/lib/supabase/server'
 import { createIssue } from '@/lib/integrations/linear'
 import { getProjects } from '@/lib/command-centre/registry'
 import { loadProjectIntegrationStatuses } from '@/lib/command-centre/project-integrations'
-import { buildProjectIntegrationWorkPackets } from '@/lib/command-centre/project-integration-work-packets'
+import { buildEndpointMissingWorkPackets, buildProjectIntegrationWorkPackets } from '@/lib/command-centre/project-integration-work-packets'
 import { createPacketLinearWork, type CreatePacketResult, type WorkPacket } from '@/lib/command-centre/work-packet'
 import { listWorkPackets, saveWorkPacket } from '@/lib/command-centre/work-packet-store'
 import type { SupabaseLike } from '@/lib/command-centre/tasks'
@@ -20,10 +20,19 @@ interface CreateWorkPacketsRequest {
 
 async function loadGapPackets() {
   const projects = await getProjects()
+  const now = new Date().toISOString()
+
   const integrations = await loadProjectIntegrationStatuses(projects)
-  return buildProjectIntegrationWorkPackets(integrations, {
-    now: new Date().toISOString(),
-  })
+  const connectionGapPackets = buildProjectIntegrationWorkPackets(integrations, { now })
+
+  // Projects with an integration status URL are covered by the connection-gap
+  // pass above; only projects WITHOUT one (silently dropped by
+  // loadProjectIntegrationStatuses) need an endpoint-missing packet. The builder
+  // itself excludes any project with a non-empty integration_status_url, so the
+  // two passes never overlap.
+  const endpointMissingPackets = buildEndpointMissingWorkPackets(projects, { now })
+
+  return [...connectionGapPackets, ...endpointMissingPackets]
 }
 
 function packetKey(packet: WorkPacket): string {
