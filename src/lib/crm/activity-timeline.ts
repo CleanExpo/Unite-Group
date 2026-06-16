@@ -157,7 +157,12 @@ function redactSensitiveTimelineText(value: string): string {
     .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[REDACTED]')
     .replace(/\bBOARD-[A-Z0-9-]+\b/gi, '[REDACTED]')
     .replace(/\bbearer\s+[a-z0-9._~+/=-]+\b/gi, '[REDACTED]')
-    .replace(/\bapi[_ -]?key[_ :=-]*[a-z0-9._-]+\b/gi, '[REDACTED]');
+    .replace(/\bapi[_ -]?key[_ :=-]*[a-z0-9._-]+\b/gi, '[REDACTED]')
+    .replace(/(?:\+\d[\d ().-]{7,}\d|\b\d{3}[-. ]\d{3}[-. ]\d{3,4}\b|\b\d(?=[\d ().-]{7,}\d)(?=[\d().-]*[ .()]\d)[\d ().-]*\d\b)/g, '[REDACTED]')
+    .replace(
+      /\b(?:billing\s+card\s+(?:ending\s+)?\d{4}|payment\s+card\s+\d{4}|card\s+ending\s+\d{4}|payment\s+method\s+(?:visa|mastercard|amex|discover)|(?:visa|mastercard|amex|discover)\s+(?:card|ending\s+\d{4}|\d{4}))\b/gi,
+      '[REDACTED]',
+    );
 }
 
 function sanitizeMetadata(metadata: Record<string, unknown> | null | undefined): Record<string, unknown> {
@@ -234,12 +239,14 @@ export function buildCrmTimelineAgentActionInsert(
     || configuredActionClass === 'investigate'
     ? 'pending'
     : 'done';
+  const subjectLabel = redactSensitiveTimelineText(event.subjectLabel);
+  const summary = redactSensitiveTimelineText(event.summary);
 
   return {
     source: 'margot',
     action_type: `crm_timeline_${event.type}`,
     status,
-    idea_text: event.summary,
+    idea_text: summary,
     client_id: null,
     business_id: null,
     linear_ticket_id: null,
@@ -251,10 +258,10 @@ export function buildCrmTimelineAgentActionInsert(
       actionClass: event.actionClass,
       actor: event.actor,
       subjectId: event.subjectId,
-      subjectLabel: event.subjectLabel,
+      subjectLabel,
       occurredAt: event.occurredAt,
       source: event.source,
-      summary: event.summary,
+      summary,
       requiresApproval,
       clientSlug: event.clientSlug ?? null,
       businessSlug: event.businessSlug ?? null,
