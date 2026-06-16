@@ -1,5 +1,7 @@
 # RestoreAssist — Production-Readiness Loop (operationalized)
 
+> ⚠️ **SCOPE — RestoreAssist product (portfolio planning), NOT the Unite-Group Nexus CRM.** This lives in the Empire/Authority-Site repo only because it tracks portfolio-level planning. RestoreAssist is a *separate product* (its code is in `CleanExpo/Unite-Hub`); the loop's checks run against that codebase via `TARGET_REPO`. Do **not** confuse this with the Nexus CRM build spec (`/spec.md`).
+
 > **Source spec:** "Unite Group — Completion & Production-Readiness Specification" (Phill McGurk, Senior PM draft v1).
 > **Scope:** narrowed to **RestoreAssist (P1)** per the spec's own scope note; re-run per product later.
 > **What this is:** the spec's prose gates turned into a **runnable loop-until-done harness**. Brainstorming finds the work; the spec defines done; **this loop drives to done and verifies it** — mechanically, so it can't run on optimism (spec §3).

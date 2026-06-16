@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // RestoreAssist Production-Readiness Loop runner.
+// SCOPE: RestoreAssist PRODUCT (portfolio planning) — NOT the Unite-Group Nexus CRM.
 //
 // Reads the gate registry, evaluates every gate, prints a gap report, and exits 0
 // ONLY when zero blockers AND zero majors remain open in the selected tier. That

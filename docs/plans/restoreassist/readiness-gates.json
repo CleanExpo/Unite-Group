@@ -1,6 +1,7 @@
 {
   "meta": {
     "product": "RestoreAssist (P1)",
+    "scope": "RestoreAssist PRODUCT / portfolio planning — NOT the Unite-Group Nexus CRM. Lives in the Empire repo as portfolio planning only; the product's code is in CleanExpo/Unite-Hub.",
     "spec": "Unite Group — Completion & Production-Readiness Specification",
     "authored": "2026-06-16",
     "done_rule": "zero open blockers AND zero open majors in the selected tier (spec §5 loop-until-done, §7 sign-off)",
