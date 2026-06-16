@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import type { Contact } from '@/types/database'
 
 const STATUS_COLOURS: Record<Contact['status'], string> = {
@@ -55,7 +56,14 @@ export function ContactsTable({ contacts, loading, onEdit, onDelete }: ContactsT
                 key={contact.id}
                 className="group border-b border-[var(--color-border)] transition-colors hover:bg-[var(--surface-elevated)]"
               >
-                <td className="px-4 py-3 text-[var(--color-text-primary)]">{name}</td>
+                <td className="px-4 py-3">
+                  <Link
+                    href={`/founder/contacts/${contact.id}`}
+                    className="text-[var(--color-text-primary)] transition-colors hover:text-[#00F5FF]"
+                  >
+                    {name}
+                  </Link>
+                </td>
                 <td className="px-4 py-3 text-[var(--color-text-muted)]">{contact.email ?? '—'}</td>
                 <td className="px-4 py-3 text-[var(--color-text-muted)]">{contact.company ?? '—'}</td>
                 <td className="px-4 py-3">
