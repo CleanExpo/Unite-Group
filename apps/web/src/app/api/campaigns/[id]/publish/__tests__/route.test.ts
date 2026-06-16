@@ -33,4 +33,22 @@ describe('POST /api/campaigns/[id]/publish', () => {
     expect(res.status).toBe(200)
     expect(everyUpdateFounderScoped(chain, 'user-123')).toBe(true)
   })
+
+  it('fails loud instead of falling back to Synthex when selected brand has no business key', async () => {
+    const chain = makeServiceChain([
+      { data: [{ id: 'asset-1', platform: 'facebook', copy: 'hi', image_url: null }], error: null },
+      { data: { brand_profiles: { business_key: null } }, error: null },
+    ])
+    vi.mocked(createServiceClient).mockReturnValue(chain as never)
+
+    const res = await POST(
+      new Request('http://localhost/publish', { method: 'POST', body: JSON.stringify({}) }),
+      { params: Promise.resolve({ id: 'camp-1' }) }
+    )
+    const body = await res.json() as { error?: string }
+
+    expect(res.status).toBe(400)
+    expect(body.error).toContain('falling back to Synthex')
+    expect(chain.from).not.toHaveBeenCalledWith('social_posts')
+  })
 })

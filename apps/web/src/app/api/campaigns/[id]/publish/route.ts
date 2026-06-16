@@ -47,13 +47,21 @@ export async function POST(
     .from('campaigns')
     .select('brand_profile_id, brand_profiles(business_key, client_name)')
     .eq('id', id)
+    .eq('founder_id', user.id)
     .single()
 
   const brandProfileRaw = campaign?.['brand_profiles'] as unknown
   const brandProfile = Array.isArray(brandProfileRaw)
     ? (brandProfileRaw[0] as Record<string, unknown> | undefined) ?? null
     : (brandProfileRaw as Record<string, unknown> | null)
-  const businessKey = (brandProfile?.['business_key'] as string | null) ?? 'synthex'
+  const businessKey = brandProfile?.['business_key'] as string | null
+
+  if (!businessKey) {
+    return NextResponse.json(
+      { error: 'Selected brand is missing business_key; publish aborted instead of falling back to Synthex' },
+      { status: 400 }
+    )
+  }
 
   // Group assets by platform — create one social_post per platform with all assets as variants
   const byPlatform = new Map<string, typeof assets>()

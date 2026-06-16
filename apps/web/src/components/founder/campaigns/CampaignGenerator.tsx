@@ -40,6 +40,7 @@ type UIState = 'config' | 'generating' | 'complete'
 
 export interface CampaignGeneratorProps {
   brandProfileId: string
+  organizationId: string
   brandName: string
   onGenerated: (campaignId: string) => void
   onBack: () => void
@@ -47,6 +48,7 @@ export interface CampaignGeneratorProps {
 
 export function CampaignGenerator({
   brandProfileId,
+  organizationId,
   brandName,
   onGenerated,
   onBack,
@@ -82,6 +84,7 @@ export function CampaignGenerator({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           brandProfileId,
+          organizationId,
           theme: theme.trim(),
           objective,
           platforms,
@@ -121,6 +124,7 @@ export function CampaignGenerator({
   }, [
     canSubmit,
     brandProfileId,
+    organizationId,
     theme,
     objective,
     platforms,
