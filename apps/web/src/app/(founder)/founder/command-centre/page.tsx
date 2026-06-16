@@ -1,8 +1,7 @@
 // src/app/(founder)/founder/command-centre/page.tsx
 //
 // Nexus Command Deck — flight-deck console for the Unite-Group Nexus.
-// Read-only starter slice: portfolio registry + read-only capability bus.
-// No mutations, no queue, no tool invocation. Auth enforced by the (founder) layout.
+// Auth enforced by the (founder) layout.
 
 export const dynamic = 'force-dynamic'
 
@@ -25,6 +24,7 @@ import { EvidenceStreamTile } from './EvidenceStreamTile'
 import { ActionQueueTile } from './ActionQueueTile'
 import { BlockedLanesTile } from './BlockedLanesTile'
 import { InProgressPRsTile } from './InProgressPRsTile'
+import { ProjectIntegrationWorkPacketControl } from './ProjectIntegrationWorkPacketControl'
 import styles from './command-deck.module.css'
 
 const chakra = Chakra_Petch({
@@ -233,8 +233,11 @@ export default async function CommandDeckPage() {
       {integrationStatuses.length > 0 && (
         <>
           <div className={styles.sectionHead} id="project-integrations">
-            <span className={styles.sectionLabel}>Project Integrations</span>
-            <span className={styles.sectionMeta}>{integrationStatuses.length} manifests · metadata-only</span>
+            <div className={styles.sectionTitleGroup}>
+              <span className={styles.sectionLabel}>Project Integrations</span>
+              <span className={styles.sectionMeta}>{integrationStatuses.length} manifests · metadata-only</span>
+            </div>
+            <ProjectIntegrationWorkPacketControl />
           </div>
 
           <section className={styles.integrationGrid}>
@@ -266,7 +269,6 @@ export default async function CommandDeckPage() {
                         <span className={styles.led} data-state={connectionLedState(connection.state)} />
                         <span className={styles.connectionName}>{connection.label}</span>
                         <span className={styles.connectionState}>{connection.state}</span>
-                        {connection.nextAction && <span className={styles.connectionAction}>{connection.nextAction}</span>}
                       </div>
                     ))}
                   </div>

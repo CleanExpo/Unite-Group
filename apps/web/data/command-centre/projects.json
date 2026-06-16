@@ -42,7 +42,8 @@
       "evidence_vault_path": "raw/command-centre/Synthex",
       "validation_commands": ["pnpm type-check", "pnpm lint", "pnpm test", "pnpm build"],
       "linear_prefix": "UNI",
-      "production_url": "https://synthex-h4j7.vercel.app"
+      "production_url": "https://synthex-h4j7.vercel.app",
+      "integration_status_url": "https://synthex.social/api/v1/connections/status"
     },
     {
       "name": "Disaster-Recovery",

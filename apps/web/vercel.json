@@ -61,6 +61,14 @@
       "schedule": "0 13 * * *"
     },
     {
+      "path": "/api/cron/linear-claim",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/linear-queue-health",
+      "schedule": "*/30 * * * *"
+    },
+    {
       "path": "/api/cron/ceo-board-meeting",
       "schedule": "50 1 * * *"
     },
@@ -142,6 +150,12 @@
     },
     "src/app/api/cron/hub-sweep/route.ts": {
       "maxDuration": 60
+    },
+    "src/app/api/cron/linear-claim/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/linear-queue-health/route.ts": {
+      "maxDuration": 30
     },
     "src/app/api/cron/strategy-daily/route.ts": {
       "maxDuration": 120
