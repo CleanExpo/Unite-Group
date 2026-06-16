@@ -61,6 +61,7 @@ function buildLeadConversionTimelineEvent(
 }
 
 async function recordLeadConversionTimelineEvent(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- CRM table types are not generated for this local mocked route yet.
   supabase: ReturnType<typeof createClient<any>>,
   lead: CrmLeadConversionRow,
   targetClientId: string,
@@ -187,7 +188,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
       lead_id: lead.id,
       target_client_id: parsed.data.targetClientId,
       converted_lead: updatedLead,
-      board_approval_id: parsed.data.boardApprovalId,
     },
     { status: 200 },
   );
