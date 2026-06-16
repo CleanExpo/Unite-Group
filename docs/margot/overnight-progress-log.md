@@ -1,5 +1,42 @@
 # Margot Overnight Progress Log
 
+## 2026-06-16 14:50 AEST
+
+### Tick 20260616_1450 — CRM timeline card-number redaction guard
+
+Lane: continued the local `margot/timeline-phone-payment-redaction-20260616` branch with a tiny mocked CRM timeline redaction guard. Scope stayed inside the central timeline helper and unit test; no Supabase write, sandbox wizard action, Vercel mutation, live provider call, client-facing action, billing/payment action, or cross-client identity decision was attempted.
+
+Completed:
+- Preflight: workdir `/Users/phillmcgurk/Unite-Group`; branch `margot/timeline-phone-payment-redaction-20260616`; `git status --short` -> clean; current branch had no PR; GitHub auth was available; Vercel CLI auth read-back returned a username only; unrelated PR `#228` remains outside this lane.
+- Re-read the Margot connected-teams/Senior PM/CRM operating docs, CRM schema/conversion/contact-opportunity docs, current progress/morning reports, Linear watch, package scripts, and the exact `activity-timeline` helper/test surface before selecting this bounded guard.
+- RED: extended `tests/unit/lib/crm/activity-timeline.test.ts` so structurally constructed timeline inserts containing `card number 9999` must redact the phrase before `idea_text`, `payload.subjectLabel`, `payload.summary`, or serialized payload exposure. Focused Jest failed as expected before the helper change because `card number 9999` remained in `idea_text`.
+- GREEN: widened the existing payment-text redaction regex in `src/lib/crm/activity-timeline.ts` from `card ending ####` only to `card (ending|number) ####`, preserving the existing phone, email, Board-ref, bearer, API-key, billing-card, payment-card, payment-method, and card-ending redaction behavior.
+- Local code/test commit created: `248d13a8` (`fix(crm): redact timeline card number evidence`).
+
+Verification:
+- `TZ=Australia/Sydney date '+%Y-%m-%d %H:%M:%S %Z'` -> `2026-06-16 14:50:31 AEST`.
+- RED focused Jest: `CI=1 npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand -t "defensively re-sanitizes metadata"` -> FAIL before helper change; expected four `[REDACTED]` fragments, received raw `card number 9999`.
+- GREEN focused Jest: same command -> PASS, 1 selected test.
+- Full activity timeline suite: `CI=1 npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand` -> PASS, 1 suite / 9 tests.
+- Focused CRM timeline/conversion sweep: `CI=1 npx jest tests/unit/lib/crm/activity-timeline.test.ts tests/integration/api/crm-lead-conversion.test.ts --runInBand` -> PASS, 2 suites / 18 tests.
+- `npm run type-check` initially failed on stale gitignored `.next/*/types/validator.ts` references to a removed `capability-approvals` route; after moving the cache aside and then restoring it without those stale generated validator files, `npm run type-check` -> PASS (`tsc --noEmit`).
+- `npm run security:routes-check` -> PASS, `route-inventory check: 0 unprotected mutating routes`.
+- `git diff --check -- src/lib/crm/activity-timeline.ts tests/unit/lib/crm/activity-timeline.test.ts` -> PASS.
+- `npx eslint src/lib/crm/activity-timeline.ts tests/unit/lib/crm/activity-timeline.test.ts --max-warnings=0` -> PASS.
+- Added-line static scan -> PASS: no hardcoded secret assignment matches and no dangerous shell/eval/pickle/SQL patterns.
+- Independent reviewer -> PASS/no blocking security or logic concerns.
+
+Files changed:
+- `src/lib/crm/activity-timeline.ts`
+- `tests/unit/lib/crm/activity-timeline.test.ts`
+- `docs/margot/overnight-progress-log.md`
+- `docs/margot/morning-report.md`
+- `docs/margot/MARGOT-COMMAND-CENTER.md`
+
+Safety/blockers:
+- No production DB write/migration, sandbox wizard subcommand, Vercel deploy/env mutation, PR creation, push, merge, live provider dispatch/polling, client-facing send, billing/payment action, credential read, secret printing/storage, destructive git, cross-client merge, connector-platform/new-vendor action, recursive system-volume scan, or Mac Mini credential prompt occurred.
+- Publication blocker: the inherited branch diff versus `origin/mesh/mission-control-2026-06-11` still includes a pre-existing `.worktrees/main-canonical` gitlink plus prior ops-doc/Linear mirror changes, so this tick kept publication local rather than opening a broad PR that would bundle unrelated state. Next safe lane is to split/reconcile that branch hygiene before any PR, or continue another small local-only guard if publication remains gated.
+
 ## 2026-06-16 14:38 AEST
 
 ### Tick 20260616_1438 — PR #230 merged-state and CRM redaction guard health read-back
