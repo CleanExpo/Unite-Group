@@ -54,6 +54,8 @@ const env = {
     .filter(Boolean),
   runnerCommand: process.env.MISSION_CONTROL_RUNNER_CMD?.trim() ?? '',
   verifyCommand: process.env.MISSION_CONTROL_VERIFY_CMD?.trim() || 'npm run type-check && npm run lint',
+  handoffUrl: process.env.MISSION_CONTROL_HANDOFF_URL?.trim() ?? '',
+  cronSecret: process.env.MISSION_CONTROL_CRON_SECRET?.trim() || process.env.CRON_SECRET?.trim() || '',
   commit: process.env.MISSION_CONTROL_COMMIT !== '0',
   push: process.env.MISSION_CONTROL_PUSH === '1',
   pushTarget: process.env.MISSION_CONTROL_PUSH_TARGET?.trim() || '',
@@ -88,6 +90,19 @@ async function linear(query, variables = {}) {
     throw new Error(JSON.stringify(json.errors ?? json, null, 2));
   }
   return json.data;
+}
+
+async function fetchHandoff() {
+  if (!env.handoffUrl) return null;
+  if (!env.cronSecret) throw new Error('MISSION_CONTROL_HANDOFF_URL requires MISSION_CONTROL_CRON_SECRET or CRON_SECRET');
+  const res = await fetch(env.handoffUrl, {
+    headers: { Authorization: `Bearer ${env.cronSecret}` },
+  });
+  const json = await res.json();
+  if (!res.ok || json.ok === false) {
+    throw new Error(`handoff failed: ${JSON.stringify(json)}`);
+  }
+  return json;
 }
 
 async function getLinearContext() {
@@ -129,6 +144,24 @@ function isClaimable(issue) {
 }
 
 async function findNextIssue(context) {
+  const handoff = await fetchHandoff();
+  if (handoff) {
+    const packet = handoff.execution_packet;
+    if (!packet) return null;
+    return {
+      id: packet.issue.id,
+      identifier: packet.issue.identifier,
+      title: packet.issue.title,
+      description: packet.prompt,
+      priority: packet.issue.priority,
+      url: packet.issue.url,
+      branchName: packet.branchName,
+      state: { name: 'Todo', type: 'unstarted' },
+      labels: { nodes: env.requiredLabels.map((name) => ({ id: name, name })) },
+      handoffPacket: packet,
+    };
+  }
+
   const data = await linear(
     `query NextIssues($teamId: ID!, $projectId: ID!) {
       issues(
@@ -209,6 +242,7 @@ function runPreflight() {
   const checks = [
     ['LINEAR_API_KEY', Boolean(env.token), 'required to claim/update Linear issues'],
     ['MISSION_CONTROL_RUNNER_CMD', Boolean(env.runnerCommand), 'required to run the local agent CLI'],
+    ['MISSION_CONTROL_HANDOFF_URL auth', !env.handoffUrl || Boolean(env.cronSecret), 'required when using the web handoff endpoint'],
     ['claude', commandExists('claude'), 'required by the recommended runner command'],
     ['git', commandExists('git'), 'required to commit/push work'],
     ['gh auth', spawnSync('gh', ['auth', 'status'], { stdio: 'ignore' }).status === 0, 'recommended for GitHub push auth'],
@@ -218,7 +252,7 @@ function runPreflight() {
   for (const [name, passed, why] of checks) {
     const status = passed ? 'ok' : 'missing';
     console.log(`${status.padEnd(8)} ${name} — ${why}`);
-    if (!passed && (name === 'LINEAR_API_KEY' || name === 'MISSION_CONTROL_RUNNER_CMD')) ok = false;
+    if (!passed && (name === 'LINEAR_API_KEY' || name === 'MISSION_CONTROL_RUNNER_CMD' || name === 'MISSION_CONTROL_HANDOFF_URL auth')) ok = false;
   }
   if (!ok) {
     console.log('\nRequired worker configuration is missing. The loop will not start.');
@@ -232,7 +266,7 @@ function runPreflight() {
 function writePrompt(issue) {
   const dir = mkdtempSync(join(tmpdir(), 'mission-control-linear-'));
   const file = join(dir, `${issue.identifier}.md`);
-  const prompt = `# ${issue.identifier}: ${issue.title}
+  const prompt = issue.handoffPacket?.prompt ?? `# ${issue.identifier}: ${issue.title}
 
 Linear: ${issue.url}
 
