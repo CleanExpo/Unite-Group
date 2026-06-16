@@ -166,8 +166,15 @@ const LANE_PRIORITY: Record<WorkLane, number> = { deep_reasoning: 2, coding: 2, 
 export function toLinearIssueInput(packet: WorkPacket): CreateIssueInput {
   const teamKey = BUSINESS_TO_TEAM[packet.projectKey] ?? 'UNI'
   const description = [
+    '## Overview',
     packet.outcome,
     '',
+    '## Acceptance Criteria',
+    '- [ ] Implement the smallest production-safe slice that satisfies the requested outcome.',
+    '- [ ] Run the relevant focused tests plus type-check/lint where the project supports them.',
+    '- [ ] Post branch, PR, verification evidence, and any blockers back to Linear.',
+    '',
+    '## Routing',
     `Project: ${packet.projectKey}${packet.clientId ? ` · client ${packet.clientId}` : ''}`,
     `Lane: ${packet.lane} · risk: ${packet.riskLevel}`,
     `Next action owner: ${packet.nextActionOwner}`,

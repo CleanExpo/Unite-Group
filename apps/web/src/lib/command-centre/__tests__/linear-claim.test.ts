@@ -170,6 +170,20 @@ describe('claimNextEligibleIssue — orchestration', () => {
     expect(result.stop_reason).toBe('dry-run')
     expect(result.claimed).toBeNull()
     expect(result.receipt).toContain('UNI-2143')
+    expect(result.execution_packet).toMatchObject({
+      source: 'command-centre:linear-claim',
+      runId: 'claim-2026-06-16T08:00:00.000Z',
+      runner: 'pi-dev-autopilot',
+      branchName: 'pidev/auto-uni-2143',
+      issue: { identifier: 'UNI-2143' },
+    })
+    expect(result.execution_packet?.prompt).toContain('satisfy the Acceptance Criteria')
+    expect(result.execution_packet?.steps.map(step => step.id)).toEqual([
+      'read-linear-issue',
+      'create-branch',
+      'build-and-verify',
+      'push-pr',
+    ])
     expect(result.eligible_total).toBe(1)
     expect(deps.moveToInProgress).not.toHaveBeenCalled()
     expect(deps.postComment).not.toHaveBeenCalled()
@@ -185,6 +199,7 @@ describe('claimNextEligibleIssue — orchestration', () => {
 
     expect(result.stop_reason).toBe('no-eligible-work')
     expect(result.claimed).toBeNull()
+    expect(result.execution_packet).toBeNull()
     expect(result.eligible_total).toBe(0)
     expect(result.skipped).toHaveLength(2)
     expect(deps.moveToInProgress).not.toHaveBeenCalled()

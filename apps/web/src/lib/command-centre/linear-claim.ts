@@ -23,6 +23,8 @@
 // Blocked work is recognised by the EXISTING blocker-reason label convention
 // (e.g. pi-dev:blocked-reason:credentials) and/or open blockedBy relations.
 
+import { buildLinearExecutionPacket, type LinearExecutionPacket } from './linear-execution-packet'
+
 export type LinearStateType =
   | 'triage'
   | 'backlog'
@@ -209,6 +211,8 @@ export interface ClaimLoopResult {
   } | null
   /** The receipt that was (live) or would be (dry-run) posted. */
   receipt: string | null
+  /** Dry-run-safe runner handoff for the selected issue. */
+  execution_packet: LinearExecutionPacket | null
   skipped: { identifier: string; reason: SkipReason }[]
 }
 
@@ -245,11 +249,13 @@ export async function claimNextEligibleIssue(
       eligible_total: 0,
       claimed: null,
       receipt: null,
+      execution_packet: null,
       skipped,
     }
   }
 
   const receipt = buildClaimReceipt(next, { runner, runId, at: ranAt })
+  const executionPacket = buildLinearExecutionPacket(next, { runner, runId })
 
   if (!isLive) {
     return {
@@ -260,6 +266,7 @@ export async function claimNextEligibleIssue(
       eligible_total: eligibleCount,
       claimed: null,
       receipt,
+      execution_packet: executionPacket,
       skipped,
     }
   }
@@ -282,6 +289,7 @@ export async function claimNextEligibleIssue(
       from_state: next.stateName,
     },
     receipt,
+    execution_packet: executionPacket,
     skipped,
   }
 }

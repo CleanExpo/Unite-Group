@@ -51,6 +51,8 @@ describe('toLinearIssueInput — claimable metadata', () => {
     expect(input.teamKey).toBe('DR') // dr → DR via BUSINESS_TO_TEAM
     expect(input.labelNames).toEqual(['pi-dev:autonomous', 'mesh:auto'])
     expect(input.title).toBe('Ship the onboarding flow')
+    expect(input.description).toContain('## Acceptance Criteria')
+    expect(input.description).toContain('- [ ] Implement the smallest production-safe slice')
     expect(input.description).toContain('Next action owner')
   })
 
