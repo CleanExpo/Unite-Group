@@ -1,0 +1,15 @@
+{
+  "workspace": "unite-group",
+  "team": {
+    "key": "UNI",
+    "name": "Unite-Group",
+    "id": "ab9c7810-4dd6-4ce2-8e8f-e1fc94c6b88b"
+  },
+  "project": {
+    "name": "Unite-Group",
+    "id": "b62d9b14-9d9c-46c7-a3f4-05fbd49550ff",
+    "state": "started",
+    "url": "https://linear.app/unite-group/project/unite-group-af6312a91054"
+  },
+  "notes": "No API keys or secrets are stored here. LINEAR_API_KEY is configured in Hermes env."
+}

@@ -1,0 +1,156 @@
+{
+  "gateName": "2026-05-25-phase-1h-approval-gate-example",
+  "generatedAt": "2026-05-25T19:00:00.000Z",
+  "preparedBy": "Margot",
+  "approvalDryRunPath": "docs/margot/personal-intelligence/approval-dry-run/2026-05-25-phase-1g-approval-dry-run-example.json",
+  "approvalHandoffPath": "docs/margot/personal-intelligence/approval-handoff/2026-05-25-phase-1f-approval-handoff-example.json",
+  "approvalLedgerPath": "docs/margot/personal-intelligence/approval-ledger/2026-05-25-phase-1e-candidate-approval-ledger-example.json",
+  "sourceRegisterPath": "docs/margot/personal-intelligence/candidate-register/2026-05-25-phase-1c-nexus-mapping-note-example.json",
+  "sourceNotePath": "docs/margot/personal-intelligence/nexus-mapping-notes/2026-05-25-phase-1c-nexus-mapping-note-example.md",
+  "applyRequests": [
+    {
+      "id": "phase-1c001-memory-1-memory-apply-request-2026-05-25t19-00-00-000z",
+      "phase": "1H",
+      "sourceDryRunId": "phase-1c001-memory-1-memory-write-proposal-2026-05-25t17-00-00-000z-dry-run-memo",
+      "sourceCandidateId": "phase-1c001-memory-1",
+      "sourceReviewStatus": "approved",
+      "sourceDecisionType": "dry_run_memory_write_request",
+      "requestedActionType": "memory_apply_request",
+      "rationale": "Prepare a human approval record for a possible durable-memory apply path only; do not write memory: Would draft a separate durable-memory write request for human approval: Memory write proposal only: Phill values long-horizon strategic intelligence that converts learning into Nexus execution leverage.",
+      "riskLevel": "high",
+      "requiresHumanApproval": true,
+      "applyState": "pending_human_gate",
+      "createdAt": "2026-05-25T19:00:00.000Z",
+      "evidenceRefs": [
+        "docs/margot/personal-intelligence/approval-dry-run/2026-05-25-phase-1g-approval-dry-run-example.json",
+        "docs/margot/personal-intelligence/approval-handoff/2026-05-25-phase-1f-approval-handoff-example.json",
+        "docs/margot/personal-intelligence/approval-ledger/2026-05-25-phase-1e-candidate-approval-ledger-example.json",
+        "docs/margot/personal-intelligence/nexus-mapping-notes/2026-05-25-phase-1c-nexus-mapping-note-example.md"
+      ],
+      "guardrailFlags": [
+        "human_gate_required",
+        "no_side_effects_declared",
+        "durable_memory_write_blocked_until_separate_approval"
+      ],
+      "noSideEffectDeclaration": true,
+      "title": "Memory proposal: user_preference"
+    },
+    {
+      "id": "phase-1c001-task-1-task-apply-request-2026-05-25t19-00-00-000z",
+      "phase": "1H",
+      "sourceDryRunId": "phase-1c001-task-1-task-draft-proposal-2026-05-25t17-00-00-000z-dry-run-task-dra",
+      "sourceCandidateId": "phase-1c001-task-1",
+      "sourceReviewStatus": "approved",
+      "sourceDecisionType": "dry_run_task_draft",
+      "requestedActionType": "task_apply_request",
+      "rationale": "Prepare a human approval record for a possible local task apply path only; do not create or execute tasks: Would draft a separate local task proposal for human approval: Task draft proposal only: Review Nexus application of: AI agents for SEO GEO AEO CRM and 25 steps ahead planning. Signal: Practical workflow for converting AI agent, SEO, GEO, AEO, CRM, and 25 steps ahead scenario planning into tested Nexus experiments.",
+      "riskLevel": "high",
+      "requiresHumanApproval": true,
+      "applyState": "pending_human_gate",
+      "createdAt": "2026-05-25T19:00:00.000Z",
+      "evidenceRefs": [
+        "docs/margot/personal-intelligence/approval-dry-run/2026-05-25-phase-1g-approval-dry-run-example.json",
+        "docs/margot/personal-intelligence/approval-handoff/2026-05-25-phase-1f-approval-handoff-example.json",
+        "docs/margot/personal-intelligence/approval-ledger/2026-05-25-phase-1e-candidate-approval-ledger-example.json",
+        "docs/margot/personal-intelligence/nexus-mapping-notes/2026-05-25-phase-1c-nexus-mapping-note-example.md"
+      ],
+      "guardrailFlags": [
+        "human_gate_required",
+        "no_side_effects_declared",
+        "task_creation_execution_blocked_until_separate_approval"
+      ],
+      "noSideEffectDeclaration": true,
+      "title": "Review Nexus application of: AI agents for SEO GEO AEO CRM and 25 steps ahead planning"
+    },
+    {
+      "id": "phase-1c001-experiment-1-future-queue-apply-request-2026-05-25t19-00-00-000z",
+      "phase": "1H",
+      "sourceDryRunId": "phase-1c001-experiment-1-future-review-proposal-2026-05-25t17-00-00-000z-dry-run",
+      "sourceCandidateId": "phase-1c001-experiment-1",
+      "sourceReviewStatus": "parked",
+      "sourceDecisionType": "dry_run_future_review_queue_item",
+      "requestedActionType": "future_queue_apply_request",
+      "rationale": "Prepare a human approval record for future review queue consideration only; do not mutate queues or create experiments: Would preserve as a future review queue item only: Future review proposal only: Local Nexus experiment: AI agents for SEO GEO AEO CRM and 25 steps ahead planning. Preserve signal without execution.",
+      "riskLevel": "medium",
+      "requiresHumanApproval": true,
+      "applyState": "pending_human_gate",
+      "createdAt": "2026-05-25T19:00:00.000Z",
+      "evidenceRefs": [
+        "docs/margot/personal-intelligence/approval-dry-run/2026-05-25-phase-1g-approval-dry-run-example.json",
+        "docs/margot/personal-intelligence/approval-handoff/2026-05-25-phase-1f-approval-handoff-example.json",
+        "docs/margot/personal-intelligence/approval-ledger/2026-05-25-phase-1e-candidate-approval-ledger-example.json",
+        "docs/margot/personal-intelligence/nexus-mapping-notes/2026-05-25-phase-1c-nexus-mapping-note-example.md"
+      ],
+      "guardrailFlags": [
+        "human_gate_required",
+        "no_side_effects_declared",
+        "queue_mutation_blocked_local_request_only"
+      ],
+      "noSideEffectDeclaration": true,
+      "title": "Local Nexus experiment: AI agents for SEO GEO AEO CRM and 25 steps ahead planning"
+    },
+    {
+      "id": "phase-1c001-waste-1-archive-marker-apply-request-2026-05-25t19-00-00-000z",
+      "phase": "1H",
+      "sourceDryRunId": "phase-1c001-waste-1-evidence-only-2026-05-25t17-00-00-000z-dry-run-archive-evide",
+      "sourceCandidateId": "phase-1c001-waste-1",
+      "sourceReviewStatus": "rejected",
+      "sourceDecisionType": "dry_run_archive_evidence_marker",
+      "requestedActionType": "archive_marker_apply_request",
+      "rationale": "Prepare a human approval record for local archive/evidence marking only; keep non-operational: Would mark as local archive/evidence only: Evidence-only record: Waste-register evidence: repeated model-release hype. Keep closed unless separately re-approved.",
+      "riskLevel": "low",
+      "requiresHumanApproval": true,
+      "applyState": "pending_human_gate",
+      "createdAt": "2026-05-25T19:00:00.000Z",
+      "evidenceRefs": [
+        "docs/margot/personal-intelligence/approval-dry-run/2026-05-25-phase-1g-approval-dry-run-example.json",
+        "docs/margot/personal-intelligence/approval-handoff/2026-05-25-phase-1f-approval-handoff-example.json",
+        "docs/margot/personal-intelligence/approval-ledger/2026-05-25-phase-1e-candidate-approval-ledger-example.json",
+        "docs/margot/personal-intelligence/nexus-mapping-notes/2026-05-25-phase-1c-nexus-mapping-note-example.md"
+      ],
+      "guardrailFlags": [
+        "human_gate_required",
+        "no_side_effects_declared",
+        "waste_or_rejected_non_operational"
+      ],
+      "noSideEffectDeclaration": true,
+      "title": "Waste-register evidence: repeated model-release hype"
+    },
+    {
+      "id": "phase-1c001-memory-2-hold-apply-request-2026-05-25t19-00-00-000z",
+      "phase": "1H",
+      "sourceDryRunId": "phase-1c001-memory-2-pending-review-hold-2026-05-25t17-00-00-000z-dry-run-no-op-",
+      "sourceCandidateId": "phase-1c001-memory-2",
+      "sourceReviewStatus": "pending_review",
+      "sourceDecisionType": "dry_run_no_op_hold",
+      "requestedActionType": "hold_apply_request",
+      "rationale": "Prepare a human approval record for a no-op hold only; await explicit review before any downstream step: Would hold as a no-op pending decision: Pending review hold: Pending memory proposal: founder filter preference. Await explicit ledger decision.",
+      "riskLevel": "low",
+      "requiresHumanApproval": true,
+      "applyState": "pending_human_gate",
+      "createdAt": "2026-05-25T19:00:00.000Z",
+      "evidenceRefs": [
+        "docs/margot/personal-intelligence/approval-dry-run/2026-05-25-phase-1g-approval-dry-run-example.json",
+        "docs/margot/personal-intelligence/approval-handoff/2026-05-25-phase-1f-approval-handoff-example.json",
+        "docs/margot/personal-intelligence/approval-ledger/2026-05-25-phase-1e-candidate-approval-ledger-example.json",
+        "docs/margot/personal-intelligence/nexus-mapping-notes/2026-05-25-phase-1c-nexus-mapping-note-example.md"
+      ],
+      "guardrailFlags": [
+        "human_gate_required",
+        "no_side_effects_declared",
+        "pending_review_hold_no_op"
+      ],
+      "noSideEffectDeclaration": true,
+      "title": "Pending memory proposal: founder filter preference"
+    }
+  ],
+  "sideEffectBoundaries": [
+    "No durable memory writes occurred.",
+    "No task creation or execution occurred.",
+    "No experiment creation occurred.",
+    "No routing or queue mutation outside local draft artifacts occurred.",
+    "No external API mutation, production DB write, deployment, or client-facing output occurred.",
+    "No apply execution path was created or invoked.",
+    "Phase 1H apply-request records remain pending_human_gate and require separate explicit human approval before any future side effect."
+  ]
+}

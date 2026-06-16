@@ -1,0 +1,28 @@
+{
+  "intakeName": "phase-1a-example-intake",
+  "generatedAt": "2026-05-25T10:00:00.000Z",
+  "items": [
+    {
+      "id": "yt-geo-001",
+      "sourceType": "youtube",
+      "sourceUrl": "https://www.youtube.com/watch?v=geo001",
+      "title": "AI agents for SEO, GEO, AEO, CRM and content workflows",
+      "creatorOrAuthor": "AI Strategy Lab",
+      "summary": "Practical workflow to build AI agent automations for SEO, GEO, AEO, CRM follow-up, content briefs, testing and implementation.",
+      "transcriptExcerpt": "Fixture excerpt only. Raw transcripts should not be retained in reports. Build repeatable workflows and tests for AI search, answer engines, CRM follow-up and content operations."
+    },
+    {
+      "id": "search-private-001",
+      "sourceType": "search",
+      "title": "private search history export about CRM AI automation",
+      "summary": "Personal search-history pattern around AI automation, CRM workflows, and operations. This should be approval-gated because omitted privacy defaults to personal for search sources."
+    },
+    {
+      "id": "downtime-001",
+      "sourceType": "youtube",
+      "title": "Football highlights and comedy reactions",
+      "summary": "Entertainment video watched for downtime.",
+      "consumedForDowntime": true
+    }
+  ]
+}

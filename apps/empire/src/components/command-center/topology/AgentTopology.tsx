@@ -1,0 +1,251 @@
+'use client';
+
+// AgentTopology — Zone 3 of /command-center.
+//
+// Renders the Pi-CEO agent swarm as a live graph: Margot at the top, the
+// Pi-CEO Board mid-tier, six senior agents fanned along the bottom row.
+// Custom node + edge components carry the Gun-Metal/Candy-Red signal
+// vocabulary; xyflow handles layout + viewport.
+//
+// PR-2 ships with a static seed (topology-data.ts). Live wiring to
+// /api/empire/senior-agents + /api/empire/integrations is a later PR per
+// [[command-center-redesign-proposal-2026-05-14]].
+//
+// Anti-AI-slop checks: no Lucide, no gradient, no glass-morphism, no emoji,
+// single-accent Candy Red signal only.
+
+import { useMemo } from 'react';
+import {
+  ReactFlow,
+  Background,
+  BackgroundVariant,
+  type Edge,
+  type Node,
+} from '@xyflow/react';
+
+import '@xyflow/react/dist/style.css';
+
+import { AgentNode } from './AgentNode';
+import { MessageEdge } from './MessageEdge';
+import {
+  seedAgents,
+  seedEdges,
+  type AgentNodeData,
+  type AgentEdgeData,
+} from './topology-data';
+import { SourceBadge } from '../SourceBadge';
+
+export interface AgentTopologyProps {
+  /** Override seed nodes for tests / live wiring. */
+  agents?: AgentNodeData[];
+  /** Override seed edges for tests / live wiring. */
+  edges?: AgentEdgeData[];
+  /**
+   * When set, the SourceBadge flips from `seed` to `live`. Comes from the
+   * server-rendered page after reading agent_actions.
+   */
+  sourceLiveAt?: string;
+}
+
+const nodeTypes = {
+  agent: AgentNode,
+};
+
+const edgeTypes = {
+  message: MessageEdge,
+};
+
+export function AgentTopology({
+  agents = seedAgents,
+  edges = seedEdges,
+  sourceLiveAt,
+}: AgentTopologyProps) {
+  const isLive = !!sourceLiveAt;
+  const flowNodes = useMemo<Node[]>(
+    () =>
+      agents.map((a) => ({
+        id: a.id,
+        type: 'agent',
+        position: a.position,
+        data: a,
+        // Disable drag in PR-2 — the static seed is the design statement;
+        // freedom to drag would let the user wreck the layout.
+        draggable: false,
+        selectable: false,
+      })),
+    [agents],
+  );
+
+  const flowEdges = useMemo<Edge[]>(
+    () =>
+      edges.map((e) => ({
+        id: e.id,
+        source: e.source,
+        target: e.target,
+        type: 'message',
+        data: { active: e.active, label: e.label },
+      })),
+    [edges],
+  );
+
+  const aliveCount = agents.filter((a) => a.state === 'running').length;
+  const blockedCount = agents.filter((a) => a.state === 'blocked-on-you').length;
+
+  return (
+    <section
+      aria-label="Agent topology — Pi-CEO swarm"
+      className="command-center-topology"
+      style={{
+        position: 'relative',
+        background: 'var(--cc-bg-soft)',
+        borderTop: '1px solid var(--cc-grid)',
+        borderBottom: '1px solid var(--cc-grid)',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Zone header — mono caps, hush ink. Matches Zone 4/5 placeholder style. */}
+      <header
+        style={{
+          position: 'absolute',
+          top: 16,
+          left: 24,
+          zIndex: 5,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 4,
+          pointerEvents: 'none',
+        }}
+      >
+        <span
+          style={{
+            fontFamily: 'var(--cc-mono)',
+            fontSize: 11,
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: 'var(--cc-ink-dim)',
+          }}
+        >
+          Zone 3 — Agent topology
+        </span>
+        <span
+          style={{
+            fontFamily: 'var(--cc-mono)',
+            fontSize: 10,
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            color: 'var(--cc-ink-hush)',
+          }}
+        >
+          {agents.length} agents · {aliveCount} running ·{' '}
+          <span
+            style={{
+              color: blockedCount > 0 ? 'var(--cc-signal)' : 'var(--cc-ink-hush)',
+            }}
+          >
+            {blockedCount} blocked
+          </span>
+        </span>
+        <span style={{ marginTop: 6 }}>
+          {isLive ? (
+            <SourceBadge
+              mode="live"
+              label="agent_actions · last 24h"
+              lastUpdatedAt={sourceLiveAt}
+            />
+          ) : (
+            <SourceBadge mode="seed" label="static · awaits /api/empire/senior-agents" />
+          )}
+        </span>
+      </header>
+
+      <div className="hidden h-full sm:block">
+        <ReactFlow
+          nodes={flowNodes}
+          edges={flowEdges}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          fitView
+          fitViewOptions={{ padding: 0.15, includeHiddenNodes: true }}
+          minZoom={0.25}
+          nodesDraggable={false}
+          nodesConnectable={false}
+          elementsSelectable={false}
+          panOnDrag={false}
+          panOnScroll={false}
+          zoomOnScroll={false}
+          zoomOnPinch={false}
+          zoomOnDoubleClick={false}
+          proOptions={{ hideAttribution: true }}
+          style={{ background: 'transparent' }}
+        >
+          <Background
+            variant={BackgroundVariant.Dots}
+            gap={28}
+            size={1}
+            color="var(--cc-grid)"
+          />
+        </ReactFlow>
+      </div>
+
+      <div
+        aria-label="Agent topology list"
+        className="grid h-full grid-cols-2 gap-px px-4 pb-4 pt-24 sm:hidden"
+        style={{ background: 'var(--cc-grid)' }}
+      >
+        {agents.map((agent) => (
+          <MobileAgentCard key={agent.id} agent={agent} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function MobileAgentCard({ agent }: { agent: AgentNodeData }) {
+  const isBlocked = agent.state === 'blocked-on-you';
+  const isRunning = agent.state === 'running';
+  const borderColor = isBlocked ? 'var(--cc-signal)' : 'var(--cc-grid)';
+  const pipColor = isBlocked
+    ? 'var(--cc-signal)'
+    : isRunning
+      ? 'var(--cc-ink)'
+      : 'var(--cc-ink-hush)';
+
+  return (
+    <article
+      data-cc-state={agent.state}
+      className="min-h-16 p-3"
+      style={{
+        background: 'var(--cc-bg-soft)',
+        borderLeft: `2px solid ${borderColor}`,
+        color: 'var(--cc-ink)',
+        fontFamily: 'var(--cc-mono)',
+      }}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <span
+          className="break-words text-[10px] uppercase leading-tight tracking-[0.16em]"
+          style={{ color: 'var(--cc-ink)' }}
+        >
+          {agent.label}
+        </span>
+        <span
+          aria-hidden
+          className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full"
+          style={{
+            background: pipColor,
+            animation:
+              isBlocked || isRunning
+                ? 'cc-breathe var(--cc-pulse-duration) ease-in-out infinite'
+                : 'none',
+          }}
+        />
+      </div>
+      <span
+        className="mt-2 block break-words text-[9px] uppercase leading-tight tracking-[0.12em]"
+        style={{ color: 'var(--cc-ink-hush)' }}
+      >
+        {agent.role}
+      </span>
+    </article>
+  );
+}

@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(vercel env ls*)",
+      "Bash(vercel whoami)",
+      "Bash(vercel project ls*)",
+      "Bash(vercel projects ls*)",
+      "Bash(vercel inspect *)",
+      "Bash(op whoami)",
+      "Bash(op account list*)",
+      "Bash(launchctl list*)",
+      "Bash(claude mcp list*)",
+      "Bash(claude mcp get *)",
+      "Bash(pnpm type-check)",
+      "Bash(pnpm lint)",
+      "mcp__8777c965-460d-4500-92f4-872faed47b19__list_tables",
+      "mcp__8777c965-460d-4500-92f4-872faed47b19__list_projects",
+      "mcp__8777c965-460d-4500-92f4-872faed47b19__get_project",
+      "mcp__8777c965-460d-4500-92f4-872faed47b19__get_advisors",
+      "mcp__8777c965-460d-4500-92f4-872faed47b19__list_migrations"
+    ]
+  }
+}

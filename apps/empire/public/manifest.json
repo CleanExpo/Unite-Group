@@ -1,0 +1,61 @@
+{
+  "name": "Unite Group — Empire",
+  "short_name": "Empire",
+  "description": "Professional business consulting and technology services - $550 consultation model",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#08080a",
+  "theme_color": "#f59e0b",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/logo-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Book Consultation",
+      "short_name": "Book",
+      "description": "Book a $550 consultation session",
+      "url": "/book-consultation",
+      "icons": [
+        {
+          "src": "/logo-mark.svg",
+          "sizes": "any"
+        }
+      ]
+    },
+    {
+      "name": "Contact Us",
+      "short_name": "Contact",
+      "description": "Get in touch with our team",
+      "url": "/contact",
+      "icons": [
+        {
+          "src": "/logo-mark.svg",
+          "sizes": "any"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/home.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Unite Group Empire Home Page"
+    },
+    {
+      "src": "/screenshots/mobile-home.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Unite Group Empire Mobile Home Page"
+    }
+  ],
+  "categories": ["business", "consulting", "technology", "productivity"]
+}

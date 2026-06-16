@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Phill McGurk | AU Restoration Stack</title>
+  <meta name="description" content="CARSI, RestoreAssist, and DR-NRPG — one AU restoration stack prototype with honest gaps, pricing anchors, and a clear CTA tree.">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f5f2;
+      --surface: #ffffff;
+      --text: #0b0b0b;
+      --muted: #545454;
+      --line: #d7d7d1;
+      --accent: #00f5ff;
+      --accent-ink: #00363a;
+      --black: #050505;
+      --radius: 6px;
+      --max: 1180px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme: dark;
+        --bg: #050505;
+        --surface: #0c0c0c;
+        --text: #f1f1ec;
+        --muted: #b3b3ab;
+        --line: #2a2a2a;
+        --accent-ink: #001d1f;
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 16px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 0.18em; }
+    .wrap { width: min(var(--max), calc(100% - 32px)); margin: 0 auto; }
+    .topbar {
+      position: sticky; top: 0; z-index: 30;
+      background: color-mix(in srgb, var(--bg) 92%, transparent);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: none;
+    }
+    .topbar .wrap { display: flex; gap: 16px; align-items: center; justify-content: space-between; padding: 14px 0; }
+    .brand { display: flex; flex-direction: column; gap: 2px; }
+    .brand strong { letter-spacing: 0.08em; text-transform: uppercase; font-size: 12px; }
+    .brand span { color: var(--muted); font-size: 13px; }
+    .nav { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: flex-end; }
+    .nav a, .button, .chip, .tag {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      background: var(--surface);
+      text-decoration: none;
+    }
+    .button.primary, .cta-tree a.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+    .nav a.cta { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+    main { padding: 28px 0 64px; }
+    .hero {
+      padding: 42px 0 24px;
+      display: grid;
+      gap: 22px;
+      grid-template-columns: 1.2fr .8fr;
+      align-items: start;
+    }
+    h1 { font-size: clamp(2.5rem, 6vw, 5.1rem); line-height: .96; margin: 0; max-width: 12ch; }
+    .lede { font-size: 1.15rem; max-width: 62ch; color: var(--muted); margin: 0; }
+    .hero-actions, .cta-tree { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+    .hero-card, .panel, .product, .diagram, .gaplist, .pricing-strip, .final-cta { border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); }
+    .hero-card { padding: 18px; }
+    .hero-card h2, .section h2 { margin: 0 0 10px; font-size: 1.35rem; }
+    .hero-card p, .section p { margin: 0; color: var(--muted); }
+    .pricing-strip { margin: 24px 0 44px; padding: 14px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .price { padding: 14px; border: 1px solid var(--line); border-radius: var(--radius); }
+    .price strong { display: block; font-size: 1.15rem; margin-bottom: 4px; }
+    .section { margin: 54px 0 0; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .product { padding: 18px; }
+    .product h3 { margin: 0 0 8px; font-size: 1.35rem; }
+    .meta { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 14px; }
+    .meta span, .tag { font-size: .9rem; }
+    .list { margin: 14px 0 0; padding: 0 0 0 18px; color: var(--muted); }
+    .diagram { padding: 18px; }
+    .flow { display: grid; grid-template-columns: 1fr 28px 1fr 28px 1fr; gap: 10px; align-items: stretch; }
+    .box { border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; min-height: 146px; }
+    .arrow { display:flex; align-items:center; justify-content:center; color: var(--accent); font-size: 1.6rem; }
+    .box h3 { margin: 0 0 8px; }
+    .box p { margin: 0; color: var(--muted); }
+    .gaplist { padding: 18px; }
+    .gaplist ul { margin: 10px 0 0; padding-left: 18px; color: var(--muted); }
+    .final-cta { margin-top: 54px; padding: 22px; display: grid; gap: 14px; }
+    .footer { padding: 20px 0 40px; color: var(--muted); font-size: .95rem; }
+    .tiny { font-size: .92rem; color: var(--muted); }
+    .sr-only { position:absolute; left:-9999px; }
+    @media (max-width: 920px) {
+      .hero, .grid-3, .pricing-strip, .flow { grid-template-columns: 1fr; }
+      .topbar .wrap { flex-direction: column; align-items: flex-start; }
+      .nav { justify-content: flex-start; }
+      .arrow { transform: rotate(90deg); }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap">
+      <div class="brand">
+        <strong>AU Restoration Stack</strong>
+        <span>Scientific Luxury prototype for Phill McGurk</span>
+      </div>
+      <nav class="nav" aria-label="Primary">
+        <a href="#carsi">CARSI</a>
+        <a href="#restoreassist">RestoreAssist</a>
+        <a href="#nrpg">DR-NRPG</a>
+        <a class="cta" href="#get-the-stack">Get the stack</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="hero" aria-labelledby="hero-title">
+      <div>
+        <h1 id="hero-title">Three AU restoration products, one buyer ecosystem, one stack.</h1>
+        <p class="lede">CARSI keeps technicians renewing. RestoreAssist keeps companies compliant. DR-NRPG keeps contractors matched to work. Same industry, same channel logic, three offers that reinforce each other.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="#get-the-stack">Get the stack</a>
+          <a class="button" href="#products">See each product</a>
+        </div>
+      </div>
+      <aside class="hero-card" aria-label="Prototype note">
+        <h2>Prototype, not production</h2>
+        <p>This page is intentionally blunt: it shows the promise, the pricing anchors, and the real gaps Phill still needs to approve or reject.</p>
+      </aside>
+    </section>
+
+    <section class="pricing-strip" aria-label="Pricing anchors">
+      <div class="price"><strong>DR-NRPG</strong>Rural $395/mo to Tier 3 $1,095/mo.</div>
+      <div class="price"><strong>RestoreAssist</strong>$79 per tech per month, per the current pricing anchor.</div>
+      <div class="price"><strong>CARSI</strong>Subscription product; per-seat checkout already in play.</div>
+      <div class="price"><strong>Shared logic</strong>Same AU restoration buyer ecosystem across all three.</div>
+    </section>
+
+    <section class="section" id="products">
+      <h2>Products</h2>
+      <div class="grid-3">
+        <article class="product" id="carsi">
+          <div class="meta"><span class="tag">Training</span><span class="tag">IICRC</span><span class="tag">CEC renewal cockpit</span></div>
+          <h3>CARSI</h3>
+          <p>For time-poor restoration technicians who need clear progress towards renewal, stronger employer proof, and less guesswork between jobs.</p>
+          <ul class="list">
+            <li>CEC earned this cycle vs required.</li>
+            <li>Suggested next courses based on gaps.</li>
+            <li>Public course catalogue and live industry pages.</li>
+          </ul>
+        </article>
+
+        <article class="product" id="restoreassist">
+          <div class="meta"><span class="tag">Compliance</span><span class="tag">NIR / IICRC citations</span><span class="tag">Stripe sub</span></div>
+          <h3>RestoreAssist</h3>
+          <p>For restoration company owners and managers who need reporting that is defensible, structured, and shaped for Australian compliance work.</p>
+          <ul class="list">
+            <li>AU GST and ABN handling.</li>
+            <li>Magic-byte uploads for file validation.</li>
+            <li>Production live, with a real pilot and EOFY pressure ahead.</li>
+          </ul>
+        </article>
+
+        <article class="product" id="nrpg">
+          <div class="meta"><span class="tag">Marketplace</span><span class="tag">No phone contact</span><span class="tag">Pop-tiered monthly</span></div>
+          <h3>DR-NRPG</h3>
+          <p>For restoration contractors who want matched work through an online, marketing-agency model rather than a phone-sales model.</p>
+          <ul class="list">
+            <li>Population-tiered pricing bands.</li>
+            <li>Online forms only, email-led contact.</li>
+            <li>Contractor recruitment workflow already drafted.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="fit-title">
+      <h2 id="fit-title">How they fit together</h2>
+      <div class="diagram">
+        <div class="flow" role="img" aria-label="Diagram showing CARSI, RestoreAssist, and DR-NRPG linked by shared industry and buyer ecosystem">
+          <div class="box">
+            <h3>CARSI</h3>
+            <p>Technicians renew, stay credible, and keep their discipline mix current.</p>
+          </div>
+          <div class="arrow" aria-hidden="true">→</div>
+          <div class="box">
+            <h3>RestoreAssist</h3>
+            <p>Companies turn those same technicians into cleaner records, stronger reporting, and better compliance.</p>
+          </div>
+          <div class="arrow" aria-hidden="true">→</div>
+          <div class="box">
+            <h3>DR-NRPG</h3>
+            <p>Contractors and companies feed the network that matches work, demand, and geography.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="honest-title">
+      <h2 id="honest-title">What we do not have yet</h2>
+      <div class="gaplist">
+        <p class="tiny">Honesty beats hype. These gaps are real, taken from the working plans and audits.</p>
+        <ul>
+          <li>RestoreAssist still has the RLS gap on the production tables, and the go-live gate is not fully closed.</li>
+          <li>RestoreAssist pilot cutover is owner-gated; the soft-launch and full rollout are not done.</li>
+          <li>RestoreAssist EOFY Xero stability work is still ahead and time-bound.</li>
+          <li>CARSI’s renewal cockpit is the headline, but it is not fully built yet.</li>
+          <li>CARSI still lacks a single canonical master plan file in the source set reviewed here.</li>
+          <li>DR-NRPG is drafted and priced, but the live contractor send path still needs owner approval.</li>
+          <li>None of this is a claim of perfection; it is a prototype package for approval.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="final-cta" id="get-the-stack">
+      <h2>Get the stack</h2>
+      <p>Phill, if you want this as a live offer tree, the only honest next step is to choose which product goes first and which inbox handles enquiries.</p>
+      <div class="cta-tree">
+        <a class="button primary" href="mailto:support@disasterrecovery.com.au?subject=DR-NRPG%20stack%20prototype">Email Phill for DR-NRPG</a>
+        <a class="button" href="mailto:?subject=CARSI%20stack%20prototype">CARSI mailto placeholder</a>
+        <a class="button" href="mailto:?subject=RestoreAssist%20stack%20prototype">RestoreAssist mailto placeholder</a>
+      </div>
+      <p class="tiny">If the CARSI and RestoreAssist addresses are not already approved in the source docs, keep them as placeholders until Phill confirms the correct inboxes.</p>
+    </section>
+  </main>
+
+  <footer class="wrap footer">
+    <div>Time zone: AEST / AEDT. Currency: AUD. ABN: 00 000 000 000.</div>
+    <div>Australian English, DD/MM/YYYY, and no fabricated claims.</div>
+  </footer>
+</body>
+</html>
