@@ -17,6 +17,10 @@ import { parseWebsiteUrl } from './_validate-website';
 import { recordClientAction } from './_record-action';
 import { mapUniqueViolation } from './_map-unique-violation';
 import { buildClientLaunchPacket } from '@/lib/empire/client-launch-packet';
+import {
+  computeClientReadinessSignals,
+  type ClientReadinessRow,
+} from '@/lib/empire/client-onboarding-readiness';
 
 export const dynamic = 'force-dynamic';
 
@@ -104,7 +108,7 @@ export async function POST(req: NextRequest) {
       brand_config: parsed.brand_config ?? {},
       status: 'onboarding',
     })
-    .select('id, slug, company_name, status')
+    .select('id, slug, company_name, status, linear_project_id, brand_config, portal_content')
     .single();
 
   if (inserted.error || !inserted.data) {
@@ -140,12 +144,29 @@ export async function POST(req: NextRequest) {
     companyName: parsed.company_name,
   });
 
+  // UNI-2148: carry the full signals-driven onboarding packet on create, with
+  // each task status computed honestly from env presence + the new row's
+  // existing columns. Strip the readiness-only columns out of the client echoed
+  // back so the create response shape stays the 4-field identity object.
+  const row = inserted.data as ClientReadinessRow & {
+    id: string;
+    company_name: string;
+    status: string;
+  };
+  const client = {
+    id: row.id,
+    slug: row.slug,
+    company_name: row.company_name,
+    status: row.status,
+  };
+  const signals = computeClientReadinessSignals(row, process.env);
+
   // No portal_url in the response: the wizard owns the redirect target
   // because only the wizard knows the current locale. Returning a
   // locale-stamped URL from the server was the bug — see the wizard's
   // useParams<{ locale }>() lookup.
   return NextResponse.json(
-    { ok: true, client: inserted.data, launch_packet: buildClientLaunchPacket(inserted.data) },
+    { ok: true, client, launch_packet: buildClientLaunchPacket(client, signals) },
     { status: 201, headers: { 'Cache-Control': 'no-store' } },
   );
 }
