@@ -9,6 +9,15 @@
 
 export type ActivitySeverity = 'running' | 'signal' | 'hush'
 
+// Where the agent sourced/acted — the "sourcing information" dimension. Kept a
+// small closed enum so a row can never invent a rogue origin:
+//   - 'linear'   — work tracked in / synced to a Linear issue.
+//   - 'github'   — a commit, branch or PR on GitHub.
+//   - 'evidence' — backed by an evidence record / wiki note in this repo.
+//   - 'provider' — an external integration (Xero, Stripe, Gmail, …).
+//   - 'cc'       — internal Command Centre task, no external system of record.
+export type ActivityOrigin = 'linear' | 'github' | 'evidence' | 'provider' | 'cc'
+
 export interface ActivityDatum {
   id: string
   ts: string
@@ -16,6 +25,8 @@ export interface ActivityDatum {
   verb: string
   target: string
   severity: ActivitySeverity
+  /** Where the agent sourced/acted — rendered as a small source chip. */
+  origin: ActivityOrigin
   /** Optional external link (GitHub commit, Linear ticket, Stripe dashboard). */
   url?: string
 }
