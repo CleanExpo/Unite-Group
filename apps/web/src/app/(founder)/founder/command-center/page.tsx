@@ -10,6 +10,7 @@
 // apps/web and No-Invaders rule #3 forbids adding dependencies.
 
 import { HermesControlPanel } from '@/components/command-center/control-panel/HermesControlPanel'
+import { LiveAgentOperationsMap } from '@/components/command-center/live-agent-operations/LiveAgentOperationsMap'
 import { ActivityLog } from '@/components/command-center/activity/ActivityLog'
 import { DailyCrmDigestPanel } from '@/components/command-center/digest/DailyCrmDigestPanel'
 import styles from '@/components/command-center/command-center.module.css'
@@ -32,6 +33,7 @@ export default function CommandCenterPage() {
       </header>
 
       <HermesControlPanel />
+      <LiveAgentOperationsMap />
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_22rem]" style={{ gap: 1, background: 'var(--cc-grid)' }}>
         <ActivityLog />
