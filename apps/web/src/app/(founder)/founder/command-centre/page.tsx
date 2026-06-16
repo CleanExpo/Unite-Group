@@ -9,11 +9,21 @@ export const dynamic = 'force-dynamic'
 import { Chakra_Petch } from 'next/font/google'
 import { getProjects, type CommandCentreProject } from '@/lib/command-centre/registry'
 import { getToolCatalogue } from '@/lib/command-centre/tools/catalogue'
+import { summariseDashboard } from '@/lib/command-centre/dashboard-summary'
+import { tailEvidence } from '@/lib/command-centre/evidence-stream'
+import { listInProgressPRs } from '@/lib/command-centre/in-progress-prs'
+import { loadActionQueueData } from './ActionQueueTile'
+import { loadBlockedLanesData } from './BlockedLanesTile'
 import { LiveClock } from './LiveClock'
 import { CommandPalette } from './CommandPalette'
 import { IdeaConsole } from './IdeaConsole'
 import { QueueBoard } from './QueueBoard'
 import { DigestBanner } from './DigestBanner'
+import { OperatingHealthTile } from './OperatingHealthTile'
+import { EvidenceStreamTile } from './EvidenceStreamTile'
+import { ActionQueueTile } from './ActionQueueTile'
+import { BlockedLanesTile } from './BlockedLanesTile'
+import { InProgressPRsTile } from './InProgressPRsTile'
 import styles from './command-deck.module.css'
 
 const chakra = Chakra_Petch({
@@ -66,7 +76,15 @@ function hostOf(url?: string): string {
 }
 
 export default async function CommandDeckPage() {
-  const [projects, tools] = await Promise.all([getProjects(), getToolCatalogue()])
+  const [projects, tools, dashboard, evidence, actionQueue, blockedLanes, inProgressPRs] = await Promise.all([
+    getProjects(),
+    getToolCatalogue(),
+    summariseDashboard(),
+    tailEvidence(),
+    loadActionQueueData(),
+    loadBlockedLanesData(),
+    listInProgressPRs(),
+  ])
 
   const activeCount = projects.filter((p) => p.status === 'active').length
   const sources = tools.reduce<Record<string, number>>((acc, t) => {
@@ -242,6 +260,67 @@ export default async function CommandDeckPage() {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* ── Operating System Health (Lane 16) ─────────────────────────── */}
+      <div className={styles.sectionHead} id="os-health">
+        <span className={styles.sectionLabel}>Operating System Health</span>
+        <span className={styles.sectionMeta}>
+          {dashboard.entries.length} sources · {dashboard.red_count} red · {dashboard.amber_count} amber ·{' '}
+          {dashboard.green_count} green · {dashboard.error_count} errors
+        </span>
+      </div>
+
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.12s' }}>
+        <OperatingHealthTile data={dashboard} />
+      </section>
+
+      {/* ── Live Evidence Stream (Lane 16) ────────────────────────────── */}
+      <div className={styles.sectionHead} id="evidence-stream">
+        <span className={styles.sectionLabel}>Live Evidence Stream</span>
+        <span className={styles.sectionMeta}>
+          last {evidence.entries.length} of {evidence.total_lines} ledger entries
+        </span>
+      </div>
+
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.14s' }}>
+        <EvidenceStreamTile data={evidence} />
+      </section>
+
+      {/* ── Action Queue (Lane 16) ─────────────────────────────────────── */}
+      <div className={styles.sectionHead} id="action-queue">
+        <span className={styles.sectionLabel}>Action Queue</span>
+        <span className={styles.sectionMeta}>
+          top {actionQueue.shown_rows} of {actionQueue.total_rows} senior-PM actions
+        </span>
+      </div>
+
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.16s' }}>
+        <ActionQueueTile data={actionQueue} />
+      </section>
+
+      {/* ── Blocked Lanes (Lane 16) ────────────────────────────────────── */}
+      <div className={styles.sectionHead} id="blocked-lanes">
+        <span className={styles.sectionLabel}>Blocked Lanes</span>
+        <span className={styles.sectionMeta}>
+          {blockedLanes.blocked_count} of {blockedLanes.total_lanes} lanes need Phill action
+        </span>
+      </div>
+
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.18s' }}>
+        <BlockedLanesTile data={blockedLanes} />
+      </section>
+
+      {/* ── In-Progress PRs (Lane 16.5) ─────────────────────────────────── */}
+      <div className={styles.sectionHead} id="in-progress-prs">
+        <span className={styles.sectionLabel}>In-Progress PRs</span>
+        <span className={styles.sectionMeta}>
+          {inProgressPRs.status_message} · via <code style={{ fontSize: '0.7rem' }}>{inProgressPRs.gh_path}</code>
+        </span>
+      </div>
+
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.2s' }}>
+        <InProgressPRsTile data={inProgressPRs} />
       </section>
     </div>
   )
