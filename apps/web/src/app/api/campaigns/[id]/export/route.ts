@@ -9,10 +9,17 @@ import type { Campaign, CampaignAsset } from '@/lib/campaigns/types'
 export const dynamic = 'force-dynamic'
 
 function mapCampaignRow(row: Record<string, unknown>): Campaign {
+  const brandProfileRaw = row['brand_profiles'] as unknown
+  const brandProfile = Array.isArray(brandProfileRaw)
+    ? (brandProfileRaw[0] as Record<string, unknown> | undefined) ?? null
+    : (brandProfileRaw as Record<string, unknown> | null)
+
   return {
     id: row['id'] as string,
     founderId: row['founder_id'] as string,
     brandProfileId: row['brand_profile_id'] as string,
+    brandName: (brandProfile?.['client_name'] as string | null) ?? null,
+    businessKey: (brandProfile?.['business_key'] as string | null) ?? null,
     theme: row['theme'] as string,
     objective: row['objective'] as Campaign['objective'],
     platforms: (row['platforms'] as string[]) as Campaign['platforms'],
@@ -126,7 +133,7 @@ export async function GET(
 
   const { data: campaignRow, error } = await supabase
     .from('campaigns')
-    .select('*')
+    .select('*, brand_profiles(business_key, client_name)')
     .eq('id', id)
     .eq('founder_id', user.id)
     .single()
@@ -141,6 +148,7 @@ export async function GET(
     .from('campaign_assets')
     .select('*')
     .eq('campaign_id', id)
+    .eq('founder_id', user.id)
     .order('platform')
     .order('variant')
 

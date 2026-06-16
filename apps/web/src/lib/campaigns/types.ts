@@ -77,6 +77,8 @@ export interface Campaign {
   id: string
   founderId: string
   brandProfileId: string
+  brandName: string | null
+  businessKey: string | null
   theme: string
   objective: CampaignObjective
   platforms: SocialPlatform[]
@@ -140,6 +142,7 @@ export interface ScanRequest {
 
 export interface CreateCampaignRequest {
   brandProfileId: string
+  organizationId?: string
   theme: string
   objective: CampaignObjective
   platforms: SocialPlatform[]

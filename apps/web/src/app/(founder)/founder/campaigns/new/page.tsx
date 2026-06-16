@@ -8,6 +8,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { BrandProfileSelector, type BrandProfileOption } from '@/components/founder/campaigns/BrandProfileSelector'
 import { BrandScanner } from '@/components/founder/campaigns/BrandScanner'
 import { CampaignGenerator } from '@/components/founder/campaigns/CampaignGenerator'
 
@@ -20,20 +21,26 @@ function ArrowLeft({ size = 14, className, ...props }: { size?: number; classNam
   )
 }
 
-type Step = 'scan' | 'generate'
+type Step = 'select' | 'scan' | 'generate'
 
 interface ScanResult {
   profileId: string
+  organizationId: string
   clientName: string
 }
 
 export default function NewCampaignPage() {
   const router = useRouter()
-  const [step, setStep] = useState<Step>('scan')
+  const [step, setStep] = useState<Step>('select')
   const [scan, setScan] = useState<ScanResult | null>(null)
 
   function handleScanComplete(profileId: string, clientName?: string) {
-    setScan({ profileId, clientName: clientName ?? 'Your Brand' })
+    setScan({ profileId, organizationId: '', clientName: clientName ?? 'Your Brand' })
+    setStep('generate')
+  }
+
+  function handleBrandSelected(profile: BrandProfileOption) {
+    setScan({ profileId: profile.id, organizationId: profile.organizationId, clientName: profile.clientName })
     setStep('generate')
   }
 
@@ -42,9 +49,20 @@ export default function NewCampaignPage() {
   }
 
   function handleBack() {
+    setStep('select')
+    setScan(null)
+  }
+
+  function handleScanNew() {
     setStep('scan')
     setScan(null)
   }
+
+  const subtitle = step === 'select'
+    ? 'Step 1 — Select child brand'
+    : step === 'scan'
+      ? 'Step 2 — Scan website for Brand DNA'
+      : `Step 3 — Configure campaign for ${scan?.clientName}`
 
   return (
     <div className="p-6 flex flex-col gap-6 max-w-3xl mx-auto">
@@ -63,33 +81,38 @@ export default function NewCampaignPage() {
             New Campaign
           </h1>
           <p className="text-[12px]" style={{ color: 'var(--color-text-disabled)' }}>
-            {step === 'scan' ? 'Step 1 — Scan website for Brand DNA' : `Step 2 — Configure campaign for ${scan?.clientName}`}
+            {subtitle}
           </p>
         </div>
       </div>
 
       {/* Step indicator */}
       <div className="flex items-center gap-2">
-        {(['scan', 'generate'] as const).map((s, i) => (
-          <div key={s} className="flex items-center gap-2">
+        {(['select', 'scan', 'generate'] as const).map((s, i) => {
+          const isComplete = (step === 'scan' && s === 'select') || (step === 'generate' && s !== 'generate')
+          return <div key={s} className="flex items-center gap-2">
             <div
               className="w-6 h-6 rounded-sm flex items-center justify-center text-[11px] font-medium"
               style={{
-                background: step === s ? '#00F5FF' : step === 'generate' && s === 'scan' ? 'rgba(0,245,255,0.15)' : 'var(--surface-elevated)',
-                color: step === s ? '#050505' : step === 'generate' && s === 'scan' ? '#00F5FF' : 'var(--color-text-disabled)',
+                background: step === s ? '#00F5FF' : isComplete ? 'rgba(0,245,255,0.15)' : 'var(--surface-elevated)',
+                color: step === s ? '#050505' : isComplete ? '#00F5FF' : 'var(--color-text-disabled)',
               }}
             >
               {i + 1}
             </div>
             <span className="text-[12px]" style={{ color: step === s ? 'var(--color-text-primary)' : 'var(--color-text-disabled)' }}>
-              {s === 'scan' ? 'Brand Scan' : 'Generate'}
+              {s === 'select' ? 'Brand' : s === 'scan' ? 'Scan' : 'Generate'}
             </span>
-            {i === 0 && <div className="w-8 h-px" style={{ background: 'var(--color-border)' }} />}
+            {i < 2 && <div className="w-8 h-px" style={{ background: 'var(--color-border)' }} />}
           </div>
-        ))}
+        })}
       </div>
 
       {/* Step content */}
+      {step === 'select' && (
+        <BrandProfileSelector onSelect={handleBrandSelected} onScanNew={handleScanNew} />
+      )}
+
       {step === 'scan' && (
         <BrandScanner onScanComplete={(profileId, clientName) => handleScanComplete(profileId, clientName)} />
       )}
@@ -97,6 +120,7 @@ export default function NewCampaignPage() {
       {step === 'generate' && scan && (
         <CampaignGenerator
           brandProfileId={scan.profileId}
+          organizationId={scan.organizationId}
           brandName={scan.clientName}
           onGenerated={handleGenerated}
           onBack={handleBack}

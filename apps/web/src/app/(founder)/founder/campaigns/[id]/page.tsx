@@ -166,6 +166,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
             </span>
           </div>
           <div className="flex items-center gap-3 mt-1 flex-wrap text-[12px]" style={{ color: 'var(--color-text-disabled)' }}>
+            {campaign.brandName && <span>{campaign.brandName}</span>}
             {platforms && <span>{platforms}</span>}
             <span>{assets.length} assets</span>
             {ready > 0 && <span style={{ color: '#22c55e' }}>{ready} ready</span>}
@@ -212,6 +213,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
             <AssetPreview
               key={asset.id}
               asset={asset}
+              businessKey={campaign.businessKey}
               onPublished={(postId) => handlePublished(asset.id, postId)}
               onRegenerateImage={() => handleRegenerateImage(asset.id)}
               onApprove={() => handleApprove(asset.id)}

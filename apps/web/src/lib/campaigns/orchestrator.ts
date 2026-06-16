@@ -136,6 +136,7 @@ export async function generateCampaign(
     .from('campaigns')
     .update({ status: 'generating' })
     .eq('id', campaignId)
+    .eq('founder_id', founderId)
 
   // 3. Generate copy for all platforms × variants
   let copyResults
@@ -151,6 +152,7 @@ export async function generateCampaign(
       .from('campaigns')
       .update({ status: 'draft', metadata: { error: err instanceof Error ? err.message : String(err) } })
       .eq('id', campaignId)
+      .eq('founder_id', founderId)
     throw err
   }
 
@@ -228,6 +230,7 @@ export async function generateCampaign(
           quality_status: result.qualityStatus,
         })
         .eq('id', asset['id'])
+        .eq('founder_id', founderId)
 
       return { assetId: asset['id'], imageUrl, error: result.error }
     })
@@ -244,6 +247,7 @@ export async function generateCampaign(
     .from('campaigns')
     .update({ status: 'ready' })
     .eq('id', campaignId)
+    .eq('founder_id', founderId)
 
   return {
     campaignId,

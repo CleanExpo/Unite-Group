@@ -7,6 +7,7 @@ import type { SocialPlatform } from '@/lib/integrations/social/types'
 
 interface AssetPreviewProps {
   asset: CampaignAsset
+  businessKey: string | null
   onPublished?: (postId: string) => void
   onRegenerateImage?: (assetId: string) => void
   onApprove?: (assetId: string) => void
@@ -71,7 +72,7 @@ function QualityScorePill({ score }: { score: number }) {
   )
 }
 
-export function AssetPreview({ asset, onPublished, onRegenerateImage, onApprove }: AssetPreviewProps) {
+export function AssetPreview({ asset, businessKey, onPublished, onRegenerateImage, onApprove }: AssetPreviewProps) {
   const [expanded, setExpanded] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [approving, setApproving] = useState(false)
@@ -82,6 +83,11 @@ export function AssetPreview({ asset, onPublished, onRegenerateImage, onApprove 
     : asset.copy
 
   async function handlePublish() {
+    if (!businessKey) {
+      setPublishError('Selected brand is missing a business key. Publish from the campaign-level publish action after fixing brand metadata.')
+      return
+    }
+
     setPublishing(true)
     setPublishError(null)
     try {
@@ -90,7 +96,7 @@ export function AssetPreview({ asset, onPublished, onRegenerateImage, onApprove 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          businessKey: 'synthex',
+          businessKey,
           content: asset.copy,
           mediaUrls,
           platforms: [asset.platform],
