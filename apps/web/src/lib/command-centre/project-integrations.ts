@@ -30,6 +30,7 @@ const EMPTY_SUMMARY: ProjectIntegrationStatus['summary'] = {
 
 const APPROVED_INTEGRATION_STATUS_HOSTS = new Set([
   'dimitri-itr-sandbox.vercel.app',
+  'synthex.social',
 ])
 
 function emptyStatus(projectName: string, statusUrl: string, error: string): ProjectIntegrationStatus {

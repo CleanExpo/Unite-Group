@@ -68,9 +68,10 @@ describe('project integration manifests', () => {
 
     const statuses = await loadProjectIntegrationStatuses([
       { name: 'Dimitri-ITR', integration_status_url: 'https://dimitri-itr-sandbox.vercel.app/status' },
+      { name: 'Synthex', integration_status_url: 'https://synthex.social/api/v1/connections/status' },
       { name: 'RestoreAssist', integration_status_url: null },
     ])
 
-    expect(statuses.map((status) => status.projectName)).toEqual(['Dimitri-ITR'])
+    expect(statuses.map((status) => status.projectName)).toEqual(['Dimitri-ITR', 'Synthex'])
   })
 })
