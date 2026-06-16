@@ -1,5 +1,3 @@
-<!-- Ported from Authority-Site docs/margot, 12/06/2026; schema/API assumptions not yet validated against apps/web — see docs/convergence/migration-map.md -->
-
 # Margot CRM Schema Inventory
 
 Date: 2026-05-23 07:24 AEST

@@ -1,5 +1,3 @@
-<!-- Ported from Authority-Site docs/margot, 12/06/2026; schema/API assumptions not yet validated against apps/web — see docs/convergence/migration-map.md -->
-
 # Daily CRM Digest Template
 
 Date: 2026-05-23
@@ -35,7 +33,7 @@ Focused test:
 
 - `tests/unit/lib/crm/daily-digest.test.ts`
 
-Current behaviour:
+Current behavior:
 
 - Pure TypeScript function only.
 - No network calls.
