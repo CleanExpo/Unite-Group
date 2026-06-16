@@ -12,6 +12,20 @@ const leadId = '11111111-1111-4111-8111-111111111111';
 const targetClientId = '22222222-2222-4222-8222-222222222222';
 const otherClientId = '33333333-3333-4333-8333-333333333333';
 
+type LeadSelectBuilder = {
+  select: jest.Mock;
+  eq: jest.Mock;
+  single: jest.Mock;
+};
+
+type LeadUpdateBuilder = {
+  update: jest.Mock;
+  eq: jest.Mock;
+  is: jest.Mock;
+  select: jest.Mock;
+  single: jest.Mock;
+};
+
 function request(body: Record<string, unknown> = {}) {
   return new NextRequest(`https://unite-group.in/api/crm/leads/${leadId}/convert`, {
     method: 'POST',
@@ -41,7 +55,8 @@ function expectConsoleErrorNotToExposeTimelineDetails(consoleErrorSpy: jest.SpyI
 }
 
 function makeSelectBuilder(lead: Record<string, unknown> | null) {
-  const builder: any = {
+  let builder: LeadSelectBuilder;
+  builder = {
     select: jest.fn(() => builder),
     eq: jest.fn(() => builder),
     single: jest.fn(() => Promise.resolve({ data: lead, error: lead ? null : new Error('not found') })),
@@ -50,7 +65,8 @@ function makeSelectBuilder(lead: Record<string, unknown> | null) {
 }
 
 function makeUpdateBuilder(updatedLead: Record<string, unknown>) {
-  const builder: any = {
+  let builder: LeadUpdateBuilder;
+  builder = {
     update: jest.fn(() => builder),
     eq: jest.fn(() => builder),
     is: jest.fn(() => builder),
@@ -242,17 +258,19 @@ describe('POST /api/crm/leads/[id]/convert', () => {
     const res = await POST(request(), context());
 
     expect(res.status).toBe(200);
-    expect(await res.json()).toMatchObject({
+    const body = await res.json();
+    expect(body).toMatchObject({
       success: true,
       lead_id: leadId,
       target_client_id: targetClientId,
-      board_approval_id: 'BOARD-CRM-APPROVED',
       converted_lead: {
         id: leadId,
         status: 'converted',
         converted_client_id: targetClientId,
       },
     });
+    expect(body).not.toHaveProperty('board_approval_id');
+    expect(JSON.stringify(body)).not.toContain('BOARD-CRM-APPROVED');
     expect(updateBuilder.update).toHaveBeenCalledWith({
       status: 'converted',
       converted_client_id: targetClientId,

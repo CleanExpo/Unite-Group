@@ -152,6 +152,14 @@ function isSensitiveMetadataValue(value: string): boolean {
     || PAYMENT_VALUE_PATTERN.test(value);
 }
 
+function redactSensitiveTimelineText(value: string): string {
+  return value
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[REDACTED]')
+    .replace(/\bBOARD-[A-Z0-9-]+\b/gi, '[REDACTED]')
+    .replace(/\bbearer\s+[a-z0-9._~+/=-]+\b/gi, '[REDACTED]')
+    .replace(/\bapi[_ -]?key[_ :=-]*[a-z0-9._-]+\b/gi, '[REDACTED]');
+}
+
 function sanitizeMetadata(metadata: Record<string, unknown> | null | undefined): Record<string, unknown> {
   const sanitized: Record<string, unknown> = {};
 
@@ -179,7 +187,7 @@ export function buildCrmActivityTimelineEvent(input: CrmActivityTimelineEventInp
 
   const actor = clean(input.actor);
   const subjectId = clean(input.subjectId);
-  const subjectLabel = clean(input.subjectLabel);
+  const subjectLabel = redactSensitiveTimelineText(clean(input.subjectLabel));
   const occurredAt = clean(input.occurredAt);
   const source = clean(input.source);
 

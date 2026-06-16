@@ -1,5 +1,60 @@
 # Margot Morning Report
 
+## 2026-06-16 11:16 AEST — PR publication and merge-gate read-back
+
+- **PR opened:** https://github.com/CleanExpo/Unite-Group/pull/230 (`fix(crm): redact approval and timeline evidence surfaces`) against `mesh/mission-control-2026-06-11` from `margot/timeline-subject-label-redaction-20260616`.
+- **Checks:** `gh pr checks 230 --watch --interval 10` reached green for CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`. Vercel check URLs: `https://vercel.com/unite-group/unite-group/HUtQ9pSjEYKjY7Gsa6zeo7do1biS` and `https://vercel.com/unite-group/unite-group-sandbox/7Gg1KE9sJA9RGh36C1B7AQRBHiCe`.
+- **Merge gate:** `gh pr merge 230 --squash ...` was blocked by the local human-approval gate for protected-branch merge/push; approval request `AQ-298b9d` was queued and no merge occurred. PR read-back remains `OPEN` / `MERGEABLE`.
+- **Safety:** no production DB write/migration, sandbox wizard subcommand, Vercel env mutation, client-facing send, billing/payment action, credential read, destructive git, cross-client merge, or protected-branch merge occurred.
+
+## 2026-06-16 11:13 AEST — Lead conversion approval response redaction guard
+
+- **Completed safe lane:** Continued the existing branch and used strict RED-GREEN on the local guarded lead conversion route so successful conversion responses no longer echo raw `board_approval_id`; the operator approval reference remains an input gate only, and timeline metadata stays sanitized with `operatorGateSatisfied: true`.
+- **Repo/PR read-back:** branch `margot/timeline-subject-label-redaction-20260616`; started at `9d912a4c` and committed code/test as `9f253571`; `gh pr list --head margot/timeline-subject-label-redaction-20260616 --json number,title,state,url --limit 5` -> `[]` before publication; unrelated PR `#228` is outside this lane.
+- **Verification:** RED focused Jest failed before the route change because `board_approval_id` was present in the success response. GREEN focused Jest passed. Full lead conversion suite -> PASS, 1 suite / 9 tests. Focused CRM lead sweep -> PASS, 4 suites / 23 tests. `npm run type-check` -> PASS. `npm run security:routes-check` -> PASS with 0 unprotected mutating routes. `git diff --check` -> PASS. Targeted ESLint -> PASS with max warnings 0.
+- **Evidence paths:** `src/app/api/crm/leads/[id]/convert/route.ts`, `tests/integration/api/crm-lead-conversion.test.ts`, `docs/margot/lead-to-client-conversion-plan.md`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+- **Safety/blockers:** no production DB write/migration, sandbox wizard subcommand, live provider dispatch/polling, Vercel deploy/env mutation, client-facing send, paid spend, credential read, secret printing/storage, destructive git, cross-client merge, or Mac Mini credential prompt occurred. Next safe lane is to publish/monitor this isolated branch if source-control publication is accepted, otherwise keep the branch green locally.
+
+## 2026-06-16 11:02 AEST — RestoreAssist readiness tier guard read-back
+
+- **Completed safe lane:** Re-read the Senior PM control set and ran a bounded local health check on the RestoreAssist readiness-tier guard surface; no new code implementation, publication, or target-repo execution was needed.
+- **Repo read-back:** branch `margot/timeline-subject-label-redaction-20260616`; `git status --short` -> clean; `git log -1 --oneline` -> `80ff957e <task-notification> <task-id>wayp631cp</task-id> <tool-use-id>toolu_0...`; `git rev-list --count main..origin/main` -> `10`; `node_modules=present`.
+- **Verification:** `CI=1 npx jest tests/unit/scripts/readiness-loop.test.ts --runInBand` -> PASS, 1 suite / 5 tests. `npm run type-check` -> PASS. `npm run security:routes-check` -> PASS with 0 unprotected mutating routes.
+- **Evidence paths:** `scripts/readiness-loop.mjs`, `tests/unit/scripts/readiness-loop.test.ts`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`.
+- **Safety/blockers:** no production DB write/migration, sandbox wizard subcommand, RestoreAssist target command execution, Vercel deploy/env mutation, PR creation, merge, additional push, live provider action, credential read, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, destructive git, or Mac Mini credential prompt occurred. PR publication remains gated by explicit human approval.
+
+## 2026-06-16 10:36 AEST — RestoreAssist readiness tier fail-closed guards
+
+- **Completed safe lane:** Continued the existing branch and hardened the RestoreAssist readiness runner tier logic with strict RED-GREEN tests. Pilot runs now defer production-only gates before command evaluation; malformed registry tiers (`prodution`, empty string, `null`) exit fail-closed before state append.
+- **Repo/PR/Vercel read-back:** branch `margot/timeline-subject-label-redaction-20260616`; preflight found no current-branch PR; unrelated PR `#228` remains on `fabel/keystone-install` with GitHub Actions/CodeRabbit success and Vercel status failures. Vercel project list was read-only and showed RestoreAssist/Unite-Group projects; no deploy/env action occurred.
+- **Verification:** RED marker fixture failed before scoped evaluation fix; RED malformed-tier fixtures failed before present-invalid tier validation fix. Final `npx jest tests/unit/scripts/readiness-loop.test.ts --runInBand` -> PASS, 1 suite / 5 tests. `npm run type-check` -> PASS. `npm run security:routes-check` -> PASS, 0 unprotected mutating routes. `git diff --check` -> PASS. Targeted ESLint -> PASS. Independent final re-review -> PASS/no blockers.
+- **Evidence paths:** `scripts/readiness-loop.mjs`, `tests/unit/scripts/readiness-loop.test.ts`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+- **Safety/blockers:** no production DB write/migration, sandbox wizard subcommand, RestoreAssist target command execution, Vercel deploy/env mutation, merge, live provider action, credential read, client-facing send, paid spend, or destructive git occurred. Commit `03b76496` was pushed after Husky type-check passed. PR creation against `mesh/mission-control-2026-06-11` was blocked by the local human-approval gate; approval request `AQ-0e06a9` queued, and no PR URL exists (`gh pr list --head ...` -> `[]`).
+
+## 2026-06-16 10:29 AEST — Isolated branch CRM timeline guard health read-back
+
+- **Completed safe lane:** Re-read the Senior PM control set and ran a bounded local health check on the isolated CRM timeline subject-label redaction branch; no new code implementation was needed.
+- **Repo read-back:** branch `margot/timeline-subject-label-redaction-20260616`; `git status --short` -> clean; `git log -1 --oneline` -> `fcfe4e19 Lets walk through these requirements together, 1 at a time`; `git rev-list --count main..origin/main` -> `10`; `node_modules=present`.
+- **Verification:** `CI=1 npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand` -> PASS, 1 suite / 9 tests.
+- **Evidence paths:** `tests/unit/lib/crm/activity-timeline.test.ts`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`.
+- **Blockers unchanged / next lane:** PR publication remains gated by explicit human approval; no DB write, deploy/env mutation, PR creation, merge, additional push, live provider action, sandbox wizard action, credential read, client-facing send, connector-platform/new-vendor action, or Mac Mini credential prompt occurred.
+
+## 2026-06-16 09:57 AEST — Isolated branch PR-gate and timeline guard health read-back
+
+- **Completed safe lane:** Re-read the Senior PM control set and verified the isolated CRM timeline redaction branch remains locally healthy; no new implementation was needed.
+- **Repo/PR read-back:** branch `margot/timeline-subject-label-redaction-20260616`; `HEAD=d7511cf8`; `git status --short` -> clean; `git rev-list --count main..origin/main` -> `10`; `node_modules=present`; `gh pr list --head margot/timeline-subject-label-redaction-20260616 --json number,title,state,url --limit 5` -> `[]`.
+- **Verification:** `CI=1 npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand` -> PASS, 1 suite / 9 tests. Report diff hygiene passed after docs update.
+- **Evidence paths:** `src/lib/crm/activity-timeline.ts`, `tests/unit/lib/crm/activity-timeline.test.ts`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`, `docs/margot/MARGOT-COMMAND-CENTER.md`.
+- **Blockers unchanged / next lane:** PR creation remains blocked by human approval gate `AQ-a775bb`; no PR URL exists. No DB write, deploy/env mutation, PR creation, merge, additional push, live provider action, sandbox wizard action, credential read, client-facing send, or Mac Mini credential prompt occurred.
+
+## 2026-06-16 09:49 AEST — CRM timeline subject-label redaction guard
+
+- **Completed safe lane:** Used strict RED-GREEN plus reviewer loop on the central CRM timeline helper. Timeline `subjectLabel`, `summary`, `idea_text`, and `agent_actions.payload` now redact email addresses, numeric/alphanumeric Board-style approval refs, and bearer-token fragments while preserving opaque UUID/id fallback labels.
+- **Repo state read-back:** started from `mesh/mission-control-2026-06-11` at `HEAD=be1f515c`, clean working tree, upstream ahead/behind `0\t0`; created isolated branch `margot/timeline-subject-label-redaction-20260616`. GitHub CLI auth available; no current-branch PR before this slice; unrelated open PR `#228` remains on `fabel/keystone-install`; Vercel CLI read-only auth returned `zenithfresh25-1436`. Committed `84662b31` and pushed the branch after Husky pre-push type-check passed; PR creation was blocked by the local human-approval gate (`AQ-a775bb`), so no PR URL exists yet.
+- **Verification:** RED #1 `CI=1 npx jest tests/unit/lib/crm/activity-timeline.test.ts --runInBand -t "sensitive subject labels"` failed before helper change with raw email/Board/bearer values; GREEN passed. Reviewer RED #2 then failed for second occurrences and alphanumeric Board refs; GREEN passed after global/alphanumeric regex fix. CRM timeline focused sweep -> PASS, 6 suites / 107 tests. `npm run type-check` -> PASS. `npm run security:routes-check` -> PASS with 0 unprotected mutating routes. `git diff --check` -> PASS. Targeted `npx eslint ... --max-warnings=0` -> PASS. `npm run build` -> PASS with existing/non-blocking warnings only.
+- **Evidence paths:** `src/lib/crm/activity-timeline.ts`, `tests/unit/lib/crm/activity-timeline.test.ts`, `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+- **Safety/blockers:** no production DB write/migration, sandbox wizard subcommand, live provider dispatch/polling, Vercel deploy/env mutation, client-facing send, paid spend, public publishing, connector-platform/new-vendor action, credential read, secret printing/storage, destructive git, cross-client merge, fabricated approval, implicit policy inference, fabricated history, recursive system-volume scan, or Mac Mini credential prompt occurred. Next safe lane is either publish/monitor this isolated branch or continue small audit/read-surface guards.
+
 ## 2026-06-16 03:14 AEST — CRM digest URL query-secret redaction guard
 
 - **Completed safe lane:** Used strict RED-GREEN on the local CRM daily-digest read surface. Verification command copy now redacts secret-shaped URL query parameters such as `api_key=[REDACTED]` while preserving the URL and non-secret query parameters.
