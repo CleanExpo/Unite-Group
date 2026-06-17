@@ -11,6 +11,7 @@
 
 import { HermesControlPanel } from '@/components/command-center/control-panel/HermesControlPanel'
 import { LiveAgentOperationsMap } from '@/components/command-center/live-agent-operations/LiveAgentOperationsMap'
+import { ProviderUsageCockpit } from '@/components/command-center/provider-usage/ProviderUsageCockpit'
 import { ActivityFeedPanel } from '@/components/command-center/activity/ActivityFeedPanel'
 import { DailyCrmDigestPanel } from '@/components/command-center/digest/DailyCrmDigestPanel'
 import styles from '@/components/command-center/command-center.module.css'
@@ -33,7 +34,17 @@ export default function CommandCenterPage() {
       </header>
 
       <HermesControlPanel />
-      <LiveAgentOperationsMap />
+
+      <div className="grid grid-cols-1 xl:grid-cols-[22rem_minmax(0,1fr)]" style={{ gap: 1, background: 'var(--cc-grid)' }}>
+        <aside
+          className="px-5 py-5"
+          style={{ background: 'var(--cc-bg-soft)', borderTop: '1px solid var(--cc-grid)' }}
+          aria-label="AI provider capacity"
+        >
+          <ProviderUsageCockpit />
+        </aside>
+        <LiveAgentOperationsMap />
+      </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_22rem]" style={{ gap: 1, background: 'var(--cc-grid)' }}>
         <ActivityFeedPanel />
