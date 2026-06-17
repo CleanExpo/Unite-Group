@@ -23,6 +23,7 @@ const STATUS_SYMBOLS: Record<string, string> = {
 
 const TASK_ID_PATTERN = /^t_[a-z0-9]+$/i
 const SAFE_TEXT_LIMIT = 2_000
+const HERMES_AUTONOMY_LABELS = ['mesh:auto', 'pi-dev:autonomous', 'source:hermes-kanban']
 
 interface LinearBacklink {
   identifier: string
@@ -145,8 +146,16 @@ function buildLinearIssueInput(payload: HermesActionPayload): CreateIssueInput {
   return {
     teamKey,
     title: `[Hermes ${taskId}] ${title}`,
-    description: `Hermes Task: ${taskId}\nSource: Unite-Hub dual-board controls\n\n${body}`,
+    description: [
+      `Hermes Task: ${taskId}`,
+      'Source: Hermes Kanban',
+      'Mission Control Eligible: yes',
+      `Required Labels: ${HERMES_AUTONOMY_LABELS.join(', ')}`,
+      '',
+      body,
+    ].join('\n'),
     priority: 3,
+    labelNames: HERMES_AUTONOMY_LABELS,
   }
 }
 

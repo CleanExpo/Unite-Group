@@ -19,10 +19,24 @@ The loop is intentionally explicit:
 9. Move the issue to In Review or Done.
 10. Repeat.
 
+## Source Queues
+
+Linear is the canonical execution queue. Hermes Kanban is the visual/operator queue.
+
+When Founder OS links a Hermes Kanban task to Linear through `/api/hermes/kanban` with `action=linkLinear`, the created Linear issue is stamped with:
+
+- `mesh:auto`
+- `pi-dev:autonomous`
+- `source:hermes-kanban`
+
+That makes Hermes-originated work directly claimable by the Mission Control loop without a manual relabel step. The Hermes task receives a backlink comment in the form `Linear link: UNI-123 <url>`, so the operator board stays readable while Linear remains the worker source of truth.
+
+Use this rule for cleanup: do not create a second autonomous queue. Create or discover work in Hermes when that is the easiest visual surface, link it to Linear, and let Mission Control claim the Linear issue.
+
 ## Required Environment
 
 - `LINEAR_API_KEY`: Linear API token.
-- `MISSION_CONTROL_RUNNER_CMD`: local agent command. The token `{prompt}` is replaced with the generated issue prompt file.
+- `MISSION_CONTROL_RUNNER_CMD`: legacy local agent command. The token `{prompt}` is replaced with the generated issue prompt file.
 
 Optional:
 
@@ -32,6 +46,9 @@ Optional:
 - `MISSION_CONTROL_LINEAR_PROJECT`: defaults to `Unite-Group`.
 - `MISSION_CONTROL_LINEAR_LABELS`: defaults to `mesh:auto,pi-dev:autonomous`.
 - `MISSION_CONTROL_VERIFY_CMD`: defaults to `npm run type-check && npm run lint`.
+- `MISSION_CONTROL_RUNNERS`: comma-separated runner lanes, for example `claude,codex,gemini`.
+- `MISSION_CONTROL_RUNNER_CMD_<NAME>`: command template for a named runner, for example `MISSION_CONTROL_RUNNER_CMD_CLAUDE`.
+- `MISSION_CONTROL_DEFAULT_RUNNER`: default runner lane when an issue has no `runner:<name>` label.
 - `MISSION_CONTROL_PUSH`: set to `1` to push after commit.
 - `MISSION_CONTROL_PUSH_TARGET`: optional push target, for example `origin HEAD:main`.
 - `MISSION_CONTROL_COMPLETE_ON_SUCCESS`: set to `1` to mark Done instead of In Review.
@@ -57,6 +74,23 @@ MISSION_CONTROL_PUSH_TARGET='origin HEAD:main' \
 MISSION_CONTROL_RUNNER_CMD='claude -p "$(cat {prompt})"' \
 npm run mission-control:linear-loop
 ```
+
+## Multi-Runner Mode
+
+Use named runner lanes when you want Claude, Codex, Cursor, Gemini, OpenRouter, or other CLIs to operate as separate execution lanes under the same queue contract:
+
+```bash
+MISSION_CONTROL_LOOP=1 \
+MISSION_CONTROL_PUSH=1 \
+MISSION_CONTROL_RUNNERS='claude,codex,gemini' \
+MISSION_CONTROL_DEFAULT_RUNNER='claude' \
+MISSION_CONTROL_RUNNER_CMD_CLAUDE='claude -p "$(cat {prompt})"' \
+MISSION_CONTROL_RUNNER_CMD_CODEX='codex exec "$(cat {prompt})"' \
+MISSION_CONTROL_RUNNER_CMD_GEMINI='gemini -p "$(cat {prompt})"' \
+npm run mission-control:linear-loop
+```
+
+Add `runner:codex`, `runner:gemini`, or another `runner:<name>` label to force a specific lane. If no runner label is present, the loop uses `MISSION_CONTROL_DEFAULT_RUNNER`.
 
 ## Continuous Mode With Web Handoff
 
@@ -107,3 +141,5 @@ npm run mission-control:linear-loop
 - The loop does not mark Done unless `MISSION_CONTROL_COMPLETE_ON_SUCCESS=1`.
 - Do not expose secrets in prompts, Linear comments, logs, or commits.
 - Keep provider-specific CLIs behind `MISSION_CONTROL_RUNNER_CMD`; this script is the queue/ship contract, not the model runtime.
+- Keep Hermes Kanban and Linear linked. Hermes is allowed to be the visual capture surface, but Linear must hold the claimable execution issue before the worker runs.
+- Prefer one reusable capability or workflow improvement over a pile of one-off generated artifacts.
