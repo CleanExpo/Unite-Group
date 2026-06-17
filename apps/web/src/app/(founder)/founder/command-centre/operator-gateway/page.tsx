@@ -210,6 +210,7 @@ export default async function OperatorGatewayPage() {
           <p>Research expansion enabled: {boolLabel(view.mobileVoiceIntake.researchExpansionEnabled, false)}</p>
           <p>Packet persistence enabled: {boolLabel(view.mobileVoiceIntake.packetPersistenceEnabled, false)}</p>
           <p>Source note writing enabled: {boolLabel(view.mobileVoiceIntake.sourceNoteWriteEnabled, false)}</p>
+          <p>Board packet generation enabled: {boolLabel(view.mobileVoiceIntake.boardPacketGenerationEnabled, false)}</p>
           <p>Board review required: {boolLabel(view.mobileVoiceIntake.boardReviewRequired, false)}</p>
           <p>Hermes queue required: {boolLabel(view.mobileVoiceIntake.hermesQueueRequired, false)}</p>
           <p>No raw audio storage: {boolLabel(view.mobileVoiceIntake.noRawAudioStorage, false)}</p>

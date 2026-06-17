@@ -5,6 +5,7 @@ import {
   getMobileVoiceIntakeStatus,
   type MobileVoiceCaptureInput,
 } from '@/lib/operator-gateway/mobile-voice-intake'
+import { writeMobileVoiceBoardPacket, type MobileVoiceBoardPacketUpdateClient } from '@/lib/operator-gateway/mobile-voice-board-packets'
 import { persistMobileVoicePacket, type MobileVoicePacketWriteClient } from '@/lib/operator-gateway/mobile-voice-packets'
 import { writeMobileVoiceSourceNote, type MobileVoiceSourceNoteUpdateClient } from '@/lib/operator-gateway/mobile-voice-source-notes'
 
@@ -32,7 +33,7 @@ export async function GET() {
 }
 
 // POST — founder/session guarded mobile/Plaud transcript packet builder.
-// Persists a review packet and writes a source note only; it does not publish, dispatch, or create tasks.
+// Persists review material only; it does not publish, dispatch, queue Hermes, or create tasks.
 export async function POST(request: Request) {
   try {
     const user = await getUser()
@@ -97,17 +98,31 @@ export async function POST(request: Request) {
       client: supabase as unknown as MobileVoiceSourceNoteUpdateClient,
       record: persistence.record,
     })
+    const boardPacket = sourceNote.ok
+      ? await writeMobileVoiceBoardPacket({
+          founderId: user.id,
+          client: supabase as unknown as MobileVoiceBoardPacketUpdateClient,
+          record: persistence.record,
+          sourceNote: sourceNote.note,
+        })
+      : null
 
     return NextResponse.json({
       packet,
       record: persistence.record,
       sourceNote: sourceNote.ok ? sourceNote.note : null,
+      boardPacket: boardPacket?.ok ? boardPacket.boardPacket : null,
       founderOnly: true,
       persisted: true,
       obsidianSourceNoteWritten: sourceNote.ok,
       obsidianSourceNoteError: sourceNote.ok ? null : sourceNote.error,
       obsidianSourceNoteReasons: sourceNote.ok ? [] : sourceNote.reasons,
+      boardReviewPacketWritten: boardPacket?.ok === true,
+      boardReviewPacketError: boardPacket && !boardPacket.ok ? boardPacket.error : null,
+      boardReviewPacketReasons: boardPacket && !boardPacket.ok ? boardPacket.reasons : [],
       tasksCreated: false,
+      hermesQueueEnabled: false,
+      linearTaskCreated: false,
       externalDispatchEnabled: false,
       autoPublishEnabled: false,
       productionExecutionEnabled: false,

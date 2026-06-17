@@ -48,6 +48,7 @@ export interface MobileVoiceIntakeStatusView {
   researchExpansionEnabled: true
   packetPersistenceEnabled: true
   sourceNoteWriteEnabled: true
+  boardPacketGenerationEnabled: true
   boardReviewRequired: true
   hermesQueueRequired: true
   externalDispatchEnabled: false
@@ -132,6 +133,7 @@ export function getMobileVoiceIntakeStatus(): MobileVoiceIntakeStatusView {
     researchExpansionEnabled: true,
     packetPersistenceEnabled: true,
     sourceNoteWriteEnabled: true,
+    boardPacketGenerationEnabled: true,
     boardReviewRequired: true,
     hermesQueueRequired: true,
     externalDispatchEnabled: false,
@@ -156,8 +158,8 @@ export function getMobileVoiceIntakeStatus(): MobileVoiceIntakeStatusView {
     openGates: [
       'configure_plaud_dev_api_or_zapier_ingress',
       'connect_obsidian_mobile_capture_folder',
-      'enable_board_review_to_hermes_queue',
+      'approve_board_review_to_hermes_queue',
     ],
-    nextAction: 'Enable Board review packets from written source notes before any automated Hermes or Linear task creation.',
+    nextAction: 'Approve Board-reviewed packets before any automated Hermes queue or Linear task creation.',
   }
 }

@@ -27,11 +27,17 @@ function request(body: unknown) {
 describe('/api/hermes/operator-gateway/mobile-voice-intake', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockWriteEvidence.mockResolvedValue({
-      notePath: '/tmp/wiki/raw/command-centre/mobile-voice-intake/mobile-voice-source.md',
-      relativePath: 'raw/command-centre/mobile-voice-intake/mobile-voice-source.md',
-      suffixed: false,
-    })
+    mockWriteEvidence
+      .mockResolvedValueOnce({
+        notePath: '/tmp/wiki/raw/command-centre/mobile-voice-intake/mobile-voice-source.md',
+        relativePath: 'raw/command-centre/mobile-voice-intake/mobile-voice-source.md',
+        suffixed: false,
+      })
+      .mockResolvedValueOnce({
+        notePath: '/tmp/wiki/raw/command-centre/mobile-voice-intake/mobile-voice-board.md',
+        relativePath: 'raw/command-centre/mobile-voice-intake/mobile-voice-board.md',
+        suffixed: false,
+      })
   })
 
   function mockPacketStore() {
@@ -101,12 +107,13 @@ describe('/api/hermes/operator-gateway/mobile-voice-intake', () => {
     expect(json.founderOnly).toBe(true)
     expect(json.plaudSupported).toBe(true)
     expect(json.sourceNoteWriteEnabled).toBe(true)
+    expect(json.boardPacketGenerationEnabled).toBe(true)
     expect(json.externalDispatchEnabled).toBe(false)
     expect(json.autoPublishEnabled).toBe(false)
     expect(json.productionExecutionEnabled).toBe(false)
   })
 
-  it('builds, persists, and writes a source note from a Plaud transcript without creating tasks', async () => {
+  it('builds, persists, and writes source and Board packets from a Plaud transcript without creating tasks', async () => {
     mockGetUser.mockResolvedValue({ id: 'founder-1' } as never)
     const { insert, update } = mockPacketStore()
 
@@ -123,7 +130,10 @@ describe('/api/hermes/operator-gateway/mobile-voice-intake', () => {
     expect(res.status).toBe(201)
     expect(json.persisted).toBe(true)
     expect(json.obsidianSourceNoteWritten).toBe(true)
+    expect(json.boardReviewPacketWritten).toBe(true)
     expect(json.tasksCreated).toBe(false)
+    expect(json.hermesQueueEnabled).toBe(false)
+    expect(json.linearTaskCreated).toBe(false)
     expect(json.externalDispatchEnabled).toBe(false)
     expect(json.packet.source).toBe('plaud_zapier_export')
     expect(json.packet.obsidianTargetPath).toContain('2nd-brain/Mobile Voice Captures/')
@@ -133,6 +143,7 @@ describe('/api/hermes/operator-gateway/mobile-voice-intake', () => {
     expect(json.record.packetId).toBe(json.packet.packetId)
     expect(json.record.rawAudioStored).toBe(false)
     expect(json.sourceNote.relativePath).toBe('raw/command-centre/mobile-voice-intake/mobile-voice-source.md')
+    expect(json.boardPacket.relativePath).toBe('raw/command-centre/mobile-voice-intake/mobile-voice-board.md')
     expect(insert).toHaveBeenCalledWith(expect.objectContaining({
       founder_id: 'founder-1',
       source: 'plaud_zapier_export',
@@ -143,14 +154,23 @@ describe('/api/hermes/operator-gateway/mobile-voice-intake', () => {
       production_execution_enabled: false,
       raw_audio_stored: false,
     }))
-    expect(mockWriteEvidence).toHaveBeenCalledWith(expect.objectContaining({
+    expect(mockWriteEvidence).toHaveBeenNthCalledWith(1, expect.objectContaining({
       project: 'mobile-voice-intake',
       kind: 'source-note',
       body: expect.stringContaining('## Transcript'),
     }))
+    expect(mockWriteEvidence).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      project: 'mobile-voice-intake',
+      kind: 'board-packet',
+      body: expect.stringContaining('## Decision Ask'),
+    }))
     expect(update).toHaveBeenCalledWith(expect.objectContaining({
       status: 'source_note_ready',
       obsidian_source_note_path: 'raw/command-centre/mobile-voice-intake/mobile-voice-source.md',
+    }))
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'board_review_ready',
+      board_review_packet_path: 'raw/command-centre/mobile-voice-intake/mobile-voice-board.md',
     }))
   })
 

@@ -13,6 +13,7 @@ describe('mobile voice intake', () => {
     expect(status.researchExpansionEnabled).toBe(true)
     expect(status.packetPersistenceEnabled).toBe(true)
     expect(status.sourceNoteWriteEnabled).toBe(true)
+    expect(status.boardPacketGenerationEnabled).toBe(true)
     expect(status.boardReviewRequired).toBe(true)
     expect(status.hermesQueueRequired).toBe(true)
     expect(status.externalDispatchEnabled).toBe(false)
@@ -27,9 +28,11 @@ describe('mobile voice intake', () => {
       'mobile_voice_note',
     ]))
     expect(status.openGates).toContain('connect_obsidian_mobile_capture_folder')
+    expect(status.openGates).toContain('approve_board_review_to_hermes_queue')
     expect(status.openGates).not.toContain('write_obsidian_source_notes_from_packets')
+    expect(status.openGates).not.toContain('enable_board_review_to_hermes_queue')
     expect(status.openGates).not.toContain('persist_mobile_voice_packets')
-    expect(status.nextAction).toContain('Enable Board review packets')
+    expect(status.nextAction).toContain('Approve Board-reviewed packets')
   })
 
   it('builds an Obsidian/research/Board packet without creating tasks', () => {
