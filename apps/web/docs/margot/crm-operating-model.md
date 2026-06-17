@@ -68,9 +68,9 @@ Domains:
 | --- | --- | --- | --- |
 | Business | Unite-Group portfolio business or operating unit | `businesses` table extended by `20260510000001_nexus_businesses.sql`; Business 360 helper | Supabase `businesses` |
 | Client | Paying/active/onboarding external client | `nexus_clients`; client create/update APIs | Supabase `nexus_clients` |
-| Contact | Person tied to a business/client/lead | Draft `crm_contacts` migration exists locally; `src/app/api/crm/contacts/route.ts` and `tests/integration/api/crm-contacts-create.test.ts` cover guarded local contact creation with mocks | Proposed Supabase `crm_contacts` after sandbox-first application; local route/test contract exists now |
+| Contact | Person tied to a business/client/lead | Draft `crm_contacts` migration exists locally; `src/app/api/crm/contacts/route.ts` and `tests/integration/api/crm-contacts-create.test.ts` cover guarded local contact creation with mocks | Proposed Supabase `crm_contacts` after branch-first validation and promotion via a merged approved branch; local route/test contract exists now |
 | Lead | Prospect or inbound form submission before qualification | `src/app/api/marketing/leads/route.ts` validates, optionally subscribes to SendGrid, and writes `crm_leads`; `src/app/api/crm/leads/route.ts` lists recent leads for command-center visibility; `src/lib/crm/qualify-lead.ts` provides recommendation-only scoring | Supabase `crm_leads` once the local migration is applied to the target environment; SendGrid remains a side integration |
-| Opportunity | Qualified commercial possibility with value/stage/probability | Draft `crm_opportunities` migration exists locally; `src/app/api/crm/opportunities/route.ts` and `tests/integration/api/crm-opportunities-create.test.ts` cover guarded local forecast-only creation with mocks | Proposed Supabase `crm_opportunities` after sandbox-first application; local route/test contract exists now |
+| Opportunity | Qualified commercial possibility with value/stage/probability | Draft `crm_opportunities` migration exists locally; `src/app/api/crm/opportunities/route.ts` and `tests/integration/api/crm-opportunities-create.test.ts` cover guarded local forecast-only creation with mocks | Proposed Supabase `crm_opportunities` after branch-first validation and promotion via a merged approved branch; local route/test contract exists now |
 | Task | Work item for Margot, Phill, agent, or human owner | Margot voice route writes `tasks`; Linear mirror exists | Supabase `tasks` for app tasks, Linear for execution queue |
 | Approval | Human decision or permission gate | Voice route blocks approval-required work by assignee/status; `src/lib/crm/approval-lifecycle.ts` provides pure local classification/recommendation for requested, approved, rejected, cancelled, expired, and executed states; no dedicated approval table yet | Proposed `crm_approvals` or task subtype |
 | Project | Delivery initiative connected to client/business/revenue | Linear mirror tables; local project docs | Linear for execution status, Supabase mirror for cockpit |
@@ -86,7 +86,7 @@ Domains:
 | --- | --- | --- | --- |
 | Client identity and CRM client lifecycle | Supabase `nexus_clients` | Command Center, client portal, daily digest | Supabase wins over derived UI state; manual changes require audit event |
 | Portfolio business identity | Supabase `businesses` | Business 360 / command-center tiles | Supabase wins; integrations enrich but do not overwrite identity |
-| Lead intake | Proposed Supabase `crm_leads` | SendGrid subscription and command-center queue | CRM lead record must exist even if marketing email sync fails; migration remains sandbox-first before target-environment truth |
+| Lead intake | Proposed Supabase `crm_leads` | SendGrid subscription and command-center queue | CRM lead record must exist even if marketing email sync fails; migration stays branch-first (validated on a Supabase database branch, never prod) before target-environment truth |
 | Billing/revenue truth | Stripe | `integration_stripe_*` mirror | Stripe wins; CRM stores links/status summaries only |
 | Engineering/project execution | Linear and GitHub | `integration_linear_*`, `integration_github_*` | Execution system wins for state; CRM stores operator interpretation and next action |
 | Deployment/runtime health | Vercel/Railway/DigitalOcean/Supabase | `integration_vercel_*`, `integration_railway_*`, `integration_do_*`, `integration_supabase_*` | Provider wins; CRM surfaces risk and owner action |
@@ -127,7 +127,7 @@ Rules:
 | Delegate | Send focused scoped work to a subagent/tool | Code review, schema inventory, doc reconstruction, test analysis | Yes when scope is local/safe |
 | Ask Phill | Needs business judgment or permission | pipeline stages, urgent thresholds, send action, client-facing communication | Only when genuinely blocked |
 | Block | Missing access, identity, or safety prerequisite | Mac Mini auth, prod DB migration, Vercel env mutation, unclear client identity | Record blocker and switch lane |
-| Never do | Disallowed action | print secrets, destructive git, production DB write without wizard/approval, deploy without approval | No |
+| Never do | Disallowed action | print secrets, destructive git, applying a migration directly/autonomously to prod (lksfwktwtmyznckodsau) instead of promoting via a merged + approved branch, deploy without approval | No |
 
 ## Lead Persistence Operating Plan
 
@@ -142,8 +142,8 @@ Current evidence as of 2026-05-23 07:35 AEST:
 Safe default:
 
 1. Treat website leads as first-class CRM records, not just email-list subscribers.
-2. Keep the local `crm_leads` migration draft and code path behind sandbox-first discipline before any production application.
-3. Run any schema change through `./scripts/sandbox-wizard.sh apply migration.sql` before promotion.
+2. Keep the local `crm_leads` migration draft and code path behind branch-first discipline before any production application.
+3. Write any schema change as a migration in `apps/web/supabase/migrations/`, validate it on a Supabase database branch (ephemeral per-branch DB; never validate against prod), then promote to prod (lksfwktwtmyznckodsau) ONLY by merging an approved branch — never apply to prod directly or autonomously.
 4. Preserve SendGrid as a side integration; CRM persistence must not depend on SendGrid success.
 5. Keep tests around validation failure, rate limit, SendGrid failure with CRM capture, CRM insert failure, listing filters, missing env, read failure, and no secret leakage.
 
@@ -238,7 +238,7 @@ npx jest tests/integration/api/margot-voice-signed-url.test.ts tests/integration
 4. Add integration stale-sync threshold tests for Linear/GitHub/Vercel/Supabase mirrors.
 5. Add a digest reader linkage test for voice-created `tasks` once the command-center read surface is wired.
 6. Run wider existing client route regression before any `nexus_clients` conversion work.
-7. Recover original migrations or reconstruct sandbox-only migration proposals for `tasks` and `voice_command_sessions` before schema-affecting work.
+7. Recover original migrations or reconstruct branch-validated migration proposals (validated on a Supabase database branch, never prod) for `tasks` and `voice_command_sessions` before schema-affecting work.
 8. Keep the focused CRM matrix gate, Margot voice gate when touched, `npm run type-check`, and `npm run security:routes-check` green.
 9. Continue Mac Mini recovery only through authenticated SMB/SSH or manual approved export.
 

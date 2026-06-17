@@ -75,7 +75,7 @@ Plus two Pillar-15 over-claims in the working/broken sense: **Sentry traces samp
 
 ## 2. THE TRUE-STATE PICTURE
 
-**What genuinely works today** is the perimeter, the agent-ingress, and the pure-logic engines — not the CRM record surfaces. Verified-working items are: public lead intake (`/api/marketing/leads`), lead list + lead→client conversion routes, the Margot voice task/signed-url pipeline, the deterministic `qualifyLead` scorer, the recommendation-only approval-lifecycle engine, the sanitized timeline mapper, the `requireAdmin` gate (logic), the integration mirrors plumbing, the sandbox-wizard credential boundary, the CI gate, and the 227-test AI-RET-001 read-back harness. These are real, tested, and wired.
+**What genuinely works today** is the perimeter, the agent-ingress, and the pure-logic engines — not the CRM record surfaces. Verified-working items are: public lead intake (`/api/marketing/leads`), lead list + lead→client conversion routes, the Margot voice task/signed-url pipeline, the deterministic `qualifyLead` scorer, the recommendation-only approval-lifecycle engine, the sanitized timeline mapper, the `requireAdmin` gate (logic), the integration mirrors plumbing, the DB credential boundary, the CI gate, and the 227-test AI-RET-001 read-back harness. These are real, tested, and wired.
 
 **The biggest gaps to a complete CRM** are the entire human-facing surface and the data layer's prod state. There is **no CRM UI whatsoever** — no contacts list, no contact detail, no pipeline board, no forecast dashboard, no approval queue, no CRM nav cluster (Pillars 1/3/9/12/13 UI rows are all missing). Read paths are thin: `GET /api/crm/contacts` and `GET /api/crm/opportunities` + forecast rollup do not exist. The approval **execution** endpoint that would make the (verified) lifecycle engine the single runtime authority is missing, leaving that engine orphaned. Email/calendar sync — the named V1 long-pole — is connection-mirror only.
 
@@ -91,7 +91,7 @@ Ordered punch-list. Do the tiers in order — Tier 0 unblocks the whole built-un
 
 1. **Regenerate `types/supabase.ts` from prod (ref `lksfwktwtmyznckodsau`)** — it is stale (May 22). This is BLOCKER B1; it invalidates every "applied/live" claim until done.
 2. **Confirm the dependency chain exists in prod:** `nexus_clients` → `crm_leads` / `crm_contacts` / `crm_opportunities` → `agent_actions`. The CRM tables FK to `public.nexus_clients`; promote will fail referentially if it is absent.
-3. **Promote the CRM migrations sandbox-first** (`20260523100000_crm_leads.sql`, `20260523103000_crm_contacts_opportunities.sql`, `20260510000004_nexus_agent_actions.sql`) via `scripts/sandbox-wizard.sh promote`, then re-regenerate types and diff.
+3. **Validate the CRM migrations on a Supabase database branch** (`20260523100000_crm_leads.sql`, `20260523103000_crm_contacts_opportunities.sql`, `20260510000004_nexus_agent_actions.sql`) — never against prod — then promote to prod only by merging the approved branch (never apply to prod directly or autonomously), and re-regenerate types and diff.
 4. **Wire `check:schema-drift` into CI** — the script exists but is not a CI step and would currently fail (types already diverge). Add it with `SUPABASE_ACCESS_TOKEN` so drift can never silently recur.
 
 ### Tier 1 — Connect / finish the built-unverified & partial (turn near-done into working)
@@ -291,7 +291,7 @@ Products/line-items, drag-and-drop pipeline, full mailbox round-trip, win/loss +
 | Stripe billing mirror + signature-verified webhook | V1 | exists | built-unverified | yes | yes | code-only | Webhook verifies sig, idempotent, atomic; tables absent from prod types; no dedicated webhook test; @ts-nocheck. |
 | Linear execution mirror + issue create/update | V1 | exists | built-unverified | yes | yes | code-only | Admin-gated, tested (mocked fetch); integration_linear_* absent from prod types; no negative-auth assert. |
 | DR/NRPG external lead intake | V1 | exists | built-unverified | yes | partial | code-only | Least-privilege gate, dedupe idempotency, retry classification, tested (mocked supabase); downstream CRM tables absent from prod → would 503. |
-| 1Password secret mgmt + sandbox-first creds | V1 | exists | **working** | yes | yes | verified | Credential-boundary test (~20 cases) over the real shell script. No prod-table dependency. |
+| 1Password secret mgmt + branch-first creds | V1 | exists | **working** | yes | yes | verified | Credential-boundary test (~20 cases) over the real shell script. No prod-table dependency. |
 | Apify data-acquisition connection | V2 | partial | partial | no | no | n/a | Zero apify refs in repo; "partial" is external Vercel/Apify state only. |
 | Apify enrichment → suggested edits | V2 | missing | missing | no | no | n/a | No code. |
 | Apify prospecting/monitoring → advisory leads | V2 | missing | missing | no | no | n/a | No code. |
@@ -304,7 +304,7 @@ Products/line-items, drag-and-drop pipeline, full mailbox round-trip, win/loss +
 | RLS on all CRM tables (service-role floor) | V1 | exists | built-unverified | yes | partial | unverified | Migrations enable RLS; tables absent from prod types; only string-assert test. |
 | authenticated SELECT RLS for command-center reads | V1 | missing | missing | no | n/a | n/a | Only service_role ALL exists. |
 | Tighten agent_actions read to founder-only (HARD gate) | V1 | missing | missing | no | n/a | broken | Policy is `TO authenticated USING (true)` — full audit trail readable. |
-| Sandbox-first migration pipeline | V1 | exists | **working** | yes | yes | verified | wizard apply/diff/promote + credential-boundary test. |
+| Branch-first migration pipeline | V1 | exists | **working** | yes | yes | verified | Migrations validated on a Supabase database branch (never prod); promote to prod only via merged + approved branch + credential-boundary test. |
 | crm_leads IP/user-agent retention decision | V1 | missing | missing | no | n/a | n/a | Raw ip/user_agent text, no retention. |
 | Shared additional_data redaction across routes | V1 | missing | missing | no | no | n/a | Filter only in opportunities; contacts hardcodes {}. |
 | safeAdditionalData secret-redaction (opportunities) | V1 | exists | **working** | yes | yes | verified | Regex + recursive scan + rejection; tested. |
@@ -314,8 +314,8 @@ Products/line-items, drag-and-drop pipeline, full mailbox round-trip, win/loss +
 | Wire security route-inventory check into CI | V1 | partial | partial | partial | no | code-only | Script + test exist; NOT a ci.yml step. |
 | Wire schema-drift check into CI | V1 | partial | partial | partial | no | unverified | Script exists; not in CI; types already drift. |
 | Remove typescript.ignoreBuildErrors | V1 | missing | missing | no | n/a | broken | next.config.js L15 `true`. |
-| CI migration-check on sandbox before promote | V1 | missing | missing | no | n/a | n/a | No CI migration job. |
-| Vercel preview pinned to sandbox Supabase ref | V1 | missing | missing | no | n/a | unverified | vercel.json has no preview override. |
+| CI migration-check on a DB branch before promote | V1 | missing | missing | no | n/a | n/a | No CI migration job. |
+| Vercel preview pinned to a Supabase DB-branch ref | V1 | missing | missing | no | n/a | unverified | vercel.json has no preview override. |
 | Sentry traces sample rate env-driven | V1 | partial | **over-claimed** | no | n/a | broken | All 3 configs hardcode `1.0`. |
 | Sentry release tagging + sourcemap upload | V1 | partial | partial | partial | partial | unverified | Plumbing present; needs SENTRY_AUTH_TOKEN (env fact). |
 | PII scrubbing on Sentry events (beforeSend) | V1 | missing | missing | no | n/a | n/a | No beforeSend hook. |
@@ -329,8 +329,8 @@ Products/line-items, drag-and-drop pipeline, full mailbox round-trip, win/loss +
 | Weekly Deepsec security scan | V1 | partial | partial | partial | partial | code-only | Scheduled workflow opens issue; not a blocking PR check. |
 | AI review board PR gate | V1 | exists | built-unverified | yes | yes | unverified | review-board.yml + chief-reviewer; blocking depends on branch protection. |
 | Pure-logic unit tier (CRM engines) | V1 | exists | **working** | yes | yes | verified | 4 suites exist and run in CI. |
-| DB-backed dedupe unique-index test (Tier 3) | V1 | missing | missing | no | n/a | n/a | Index non-unique; no sandbox-backed test. |
-| Sandbox-apply migration smoke test (Tier 3) | V1 | partial | partial | partial | no | code-only | Only string-assert test; no live apply. |
+| DB-backed dedupe unique-index test (Tier 3) | V1 | missing | missing | no | n/a | n/a | Index non-unique; no DB-branch-backed test. |
+| DB-branch migration smoke test (Tier 3) | V1 | partial | partial | partial | no | code-only | Only string-assert test; no live apply on a DB branch. |
 | pre-commit lint-staged + related-tests hook | V1 | missing | missing | no | n/a | n/a | No .husky/pre-commit; no lint-staged dep. |
 | Playwright smoke harness (e2e) | V1 | missing | missing | no | n/a | n/a | No playwright dep/config. |
 | Unified error envelope (errorClass+retryable) (P25) | V1 | partial | partial | partial | partial | code-only | DR route uses different enum; contacts/opps emit none. |
@@ -340,9 +340,9 @@ Products/line-items, drag-and-drop pipeline, full mailbox round-trip, win/loss +
 | Composio inbound webhook sig verify + idempotency (P24) | V1 | missing | missing | no | n/a | n/a | Composio is outbound poller; no inbound receiver. |
 | auth-before-config route-convention rule | V1 | missing | missing | no | n/a | broken | daily-digest 503s before requireAdmin (config leak). |
 | jest-axe WCAG AA contrast assertion (P14) | V1 | missing | missing | no | n/a | n/a | No jest-axe; --cc-ink-hush #3d4654 used for text. |
-| Migration rollback runbook + down-migrations (P23) | V1 | missing | missing | no | n/a | n/a | No runbook; wizard has no down path. |
+| Migration rollback runbook + down-migrations (P23) | V1 | missing | missing | no | n/a | n/a | No runbook; no down path in the branching workflow. |
 | Mutating-surface state coverage for CRM UIs (P-UX) | V1 | missing | missing | no | n/a | n/a | No loading/success/error/focus tests. |
-| Quarterly DR restore-to-sandbox drill | V2 | partial | partial | partial | n/a | unverified | DR runbook DRAFT v0.2; no recorded drill. |
+| Quarterly DR restore-to-non-prod drill | V2 | partial | partial | partial | n/a | unverified | DR runbook DRAFT v0.2; no recorded drill. |
 | Multi-region failover doc/toggle | V2 | missing | missing | no | n/a | n/a | regions:["syd1"] only. |
 | Cron stall alerting + Supavisor pooling | V2 | missing | missing | no | n/a | n/a | No stall alert; no Supavisor. |
 | Post-deploy smoke + uptime heartbeat | V2 | missing | missing | no | n/a | n/a | No smoke workflow/heartbeat. |

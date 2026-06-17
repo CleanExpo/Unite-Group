@@ -3,7 +3,7 @@
 Date: 2026-05-23
 Owner: Margot
 Project: Unite-Group
-Status: Local proposal plus sandbox-only migration draft. `supabase/migrations/20260523103000_crm_contacts_opportunities.sql` now drafts the schema, guarded by `tests/unit/margot-crm-contacts-opportunities-migration.test.ts`. No migration has been applied. No production database write, production schema change, deployment, GitHub push, or client-facing action is authorized by this proposal.
+Status: Local proposal plus branch-validation migration draft. `supabase/migrations/20260523103000_crm_contacts_opportunities.sql` now drafts the schema, guarded by `tests/unit/margot-crm-contacts-opportunities-migration.test.ts`. No migration has been applied. No production database write, production schema change, deployment, GitHub push, or client-facing action is authorized by this proposal.
 
 ## 1. Purpose
 
@@ -20,7 +20,7 @@ The proposal is grounded only in existing repository evidence:
 - `supabase/migrations/20260510000002_nexus_clients.sql` creates `nexus_clients` with client identity, embedded contact fields, Stripe IDs, plan/status, Linear project ID, Pi-CEO key, brand config, and timestamps.
 - `supabase/migrations/20260523100000_crm_leads.sql` creates `crm_leads` with lead person/company/contact fields, marketing consent, source, status, qualification score, owner, matched client/business links, converted client link, privacy-sensitive request metadata, and timestamps.
 
-This is a planning document for future mocked tests and sandbox-first migration drafting. It is not an implementation.
+This is a planning document for future mocked tests and branch-first migration drafting. It is not an implementation.
 
 ## 2. Why contacts and opportunities come before broader automation or client conversion
 
@@ -59,7 +59,7 @@ Lead captured
 
 Target role: canonical person/contact map for leads, clients, businesses, stakeholders, and future relationship memory.
 
-Target source-of-truth status: proposed Supabase CRM table with local draft migration `supabase/migrations/20260523103000_crm_contacts_opportunities.sql`. It remains unapplied and sandbox-first.
+Target source-of-truth status: proposed Supabase CRM table with local draft migration `supabase/migrations/20260523103000_crm_contacts_opportunities.sql`. It remains unapplied and branch-first (validated on a Supabase database branch, never against prod).
 
 | Field | Type / shape | Required? | Grounded reason / rule |
 | --- | --- | --- | --- |
@@ -109,7 +109,7 @@ blocked_review
 
 Target role: qualified commercial possibility with stage, value, probability, source, owner, next action, and linked lead/contact/client/business context.
 
-Target source-of-truth status: proposed Supabase CRM table with local draft migration `supabase/migrations/20260523103000_crm_contacts_opportunities.sql`. It remains unapplied and sandbox-first.
+Target source-of-truth status: proposed Supabase CRM table with local draft migration `supabase/migrations/20260523103000_crm_contacts_opportunities.sql`. It remains unapplied and branch-first (validated on a Supabase database branch, never against prod).
 
 | Field | Type / shape | Required? | Grounded reason / rule |
 | --- | --- | --- | --- |
@@ -299,7 +299,7 @@ Stripe separation rules:
 4. CRM may surface Stripe mirror status for client/revenue health, but must not perform billing writes from contacts/opportunities.
 5. Financial writes, refunds, payments, subscription changes, or billing messages require explicit approval and are outside this lane.
 
-## 10. Board approval gates and sandbox-first migration rule
+## 10. Board approval gates and branch-first migration rule
 
 Allowed now by default in this lane:
 
@@ -313,7 +313,7 @@ Requires Phill/Board approval before action:
 
 - Production database migration or schema change.
 - Any production `supabase db push`, direct `psql` write, or service-role data mutation outside already scoped/tested paths.
-- Applying the future `crm_contacts` or `crm_opportunities` migration beyond sandbox.
+- Promoting the future `crm_contacts` or `crm_opportunities` migration to prod (`lksfwktwtmyznckodsau`); promotion happens only by merging an approved branch, never by applying to prod directly or autonomously.
 - Cross-client merge or permanent identity decision.
 - Client creation/update from a lead or opportunity.
 - Client-facing communication.
@@ -321,30 +321,29 @@ Requires Phill/Board approval before action:
 - Deployments, Vercel env mutations, GitHub pushes/PRs unless explicitly scoped.
 - Permanent rules for auto-conversion, auto-assignment, auto-approval, or financial action.
 
-Sandbox-first rule:
+Branch-first rule:
 
 ```text
-Draft migration
+Draft migration in apps/web/supabase/migrations/
   -> write mocked tests first
-  -> apply only through sandbox wizard
+  -> validate on a Supabase database branch (ephemeral per-branch DB; never against prod)
   -> verify schema, RLS, server route, and abort behavior
   -> review Board gates
-  -> only then consider production promotion with explicit approval
+  -> only then promote to prod by merging an approved branch with explicit approval
 ```
 
-Any future schema change must go through the repo sandbox wizard before production promotion:
+Any future schema change must be validated on a Supabase database branch before production
+promotion. Promotion to prod (`lksfwktwtmyznckodsau`) happens only by merging an approved
+branch — never by applying to prod directly or autonomously. Canonical DB-safety rules:
+`CLAUDE.md` / `apps/empire/CLAUDE.md`.
 
-```bash
-./scripts/sandbox-wizard.sh apply <migration.sql>
-```
-
-This document does not run that command and does not apply any migration.
+This document does not validate, merge, or apply any migration.
 
 ## 11. Future mocked test matrix
 
 | Area | Future mocked test focus | Expected safety behavior |
 | --- | --- | --- |
-| Contact migration shape | Required fields, status check, indexes for normalized email/status/linked IDs, timestamps | Migration runs in sandbox only; no production apply. |
+| Contact migration shape | Required fields, status check, indexes for normalized email/status/linked IDs, timestamps | Migration validated on a Supabase database branch only; no production apply. |
 | Contact RLS | Service-role server route can write; browser/client cannot directly write sensitive CRM contacts | Public/client-side writes blocked. |
 | Contact create from lead | Creates contact from `crm_leads` fields, preserves lead, defaults marketing consent from lead | Original lead remains intact; no client conversion. |
 | Contact consent defaults | Missing consent defaults false; explicit lead consent maps to contact fields | No assumed marketing consent. |
@@ -368,14 +367,14 @@ This document does not run that command and does not apply any migration.
 ## 12. Next implementation steps
 
 1. Keep this proposal as the local planning source for the contacts/opportunities lane.
-2. Draft a sandbox-only `crm_contacts` migration with status checks, indexes, RLS, and no production apply.
-3. Draft a sandbox-only `crm_opportunities` migration with stage/status/probability checks, indexes, RLS, and no production apply.
+2. Draft a `crm_contacts` migration in `apps/web/supabase/migrations/` with status checks, indexes, RLS, validated on a Supabase database branch and no production apply.
+3. Draft a `crm_opportunities` migration in `apps/web/supabase/migrations/` with stage/status/probability checks, indexes, RLS, validated on a Supabase database branch and no production apply.
 4. Write mocked tests before route implementation for contact creation/linking/dedupe/cross-client abort behavior.
 5. Write mocked tests before route implementation for opportunity creation/stage transitions/Stripe separation/approval gates.
 6. Draft server-only API route contracts; do not allow browser/client direct writes to sensitive CRM tables.
 7. Define minimal event taxonomy for future contact/opportunity audit entries, likely via `agent_actions` until a dedicated timeline is approved.
 8. Decide whether approvals remain a `tasks` subtype or become `crm_approvals` before any automatic approval workflow.
-9. Run future migrations through `./scripts/sandbox-wizard.sh apply <migration.sql>` only after tests and review.
+9. Validate future migrations on a Supabase database branch (never against prod) only after tests and review; promote to prod only by merging an approved branch.
 10. Request Phill/Board approval only when a specific promotion, production write, cross-client identity decision, client-facing action, or billing/deployment action is genuinely needed.
 
 ## 13. Verification for this document
