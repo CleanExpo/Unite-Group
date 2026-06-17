@@ -1,5 +1,7 @@
 -- Dedicated drip campaign lifecycle tables.
--- Additive only: no existing tables, columns, constraints, or policies are altered.
+-- Additive only: creates dedicated drip_* tables and adds the
+-- contacts(id, founder_id) composite key required for scoped foreign keys.
+-- No existing tables, columns, constraints, or policies are altered.
 
 DO $$
 BEGIN

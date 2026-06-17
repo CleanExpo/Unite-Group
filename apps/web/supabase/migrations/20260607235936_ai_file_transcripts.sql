@@ -1,10 +1,10 @@
 -- AI File Transcripts — durable transcript artefacts for founder-owned cached files.
 -- Additive to ai_file_cache; mock-provider tests can prove persistence without live provider cost.
 
-CREATE TABLE IF NOT EXISTS ai_file_transcripts (
+CREATE TABLE IF NOT EXISTS public.ai_file_transcripts (
   id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   founder_id      UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  file_cache_id   UUID        REFERENCES ai_file_cache(id) ON DELETE SET NULL,
+  file_cache_id   UUID        REFERENCES public.ai_file_cache(id) ON DELETE SET NULL,
   cache_key       TEXT        NOT NULL,
   file_id         TEXT        NOT NULL,
   filename        TEXT        NOT NULL,
@@ -24,12 +24,12 @@ CREATE TABLE IF NOT EXISTS ai_file_transcripts (
   )
 );
 
-COMMENT ON TABLE  ai_file_transcripts                 IS 'Durable transcript results for founder-owned ai_file_cache rows.';
-COMMENT ON COLUMN ai_file_transcripts.file_cache_id   IS 'Source ai_file_cache row when present; set null if the cached file is removed so transcript artefacts remain durable.';
-COMMENT ON COLUMN ai_file_transcripts.provider        IS 'Transcription provider identifier. Only mock is currently enabled.';
-COMMENT ON COLUMN ai_file_transcripts.source          IS 'Honest source marker for fake-vs-real detection.';
-COMMENT ON COLUMN ai_file_transcripts.transcript_text IS 'Plain text transcript for search and review.';
-COMMENT ON COLUMN ai_file_transcripts.transcript      IS 'Full transcript payload returned by the provider adapter.';
+COMMENT ON TABLE  public.ai_file_transcripts                 IS 'Durable transcript results for founder-owned ai_file_cache rows.';
+COMMENT ON COLUMN public.ai_file_transcripts.file_cache_id   IS 'Source ai_file_cache row when present; set null if the cached file is removed so transcript artefacts remain durable.';
+COMMENT ON COLUMN public.ai_file_transcripts.provider        IS 'Transcription provider identifier. Only mock is currently enabled.';
+COMMENT ON COLUMN public.ai_file_transcripts.source          IS 'Honest source marker for fake-vs-real detection.';
+COMMENT ON COLUMN public.ai_file_transcripts.transcript_text IS 'Plain text transcript for search and review.';
+COMMENT ON COLUMN public.ai_file_transcripts.transcript      IS 'Full transcript payload returned by the provider adapter.';
 
 CREATE UNIQUE INDEX IF NOT EXISTS ai_file_transcripts_founder_cache_key
   ON ai_file_transcripts (founder_id, cache_key);
@@ -38,7 +38,7 @@ CREATE INDEX IF NOT EXISTS ai_file_transcripts_file_cache_idx
 CREATE INDEX IF NOT EXISTS ai_file_transcripts_founder_created_idx
   ON ai_file_transcripts (founder_id, created_at DESC);
 
-ALTER TABLE ai_file_transcripts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ai_file_transcripts ENABLE ROW LEVEL SECURITY;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.ai_file_transcripts
 TO authenticated, service_role;
@@ -52,7 +52,7 @@ BEGIN
       AND policyname = 'founders_own_transcripts'
   ) THEN
     CREATE POLICY "founders_own_transcripts"
-      ON ai_file_transcripts FOR ALL TO authenticated
+      ON public.ai_file_transcripts FOR ALL TO authenticated
       USING (founder_id = auth.uid()) WITH CHECK (founder_id = auth.uid());
   END IF;
 
@@ -63,7 +63,7 @@ BEGIN
       AND policyname = 'service_role_full_access'
   ) THEN
     CREATE POLICY "service_role_full_access"
-      ON ai_file_transcripts FOR ALL TO service_role
+      ON public.ai_file_transcripts FOR ALL TO service_role
       USING (true) WITH CHECK (true);
   END IF;
 END $$;

@@ -1,7 +1,7 @@
 -- AI File Cache — persistent mapping of founder-owned files uploaded to the Anthropic Files API.
 -- Replaces the in-memory Map in files.ts; survives cold starts and is shared across all instances.
 
-CREATE TABLE ai_file_cache (
+CREATE TABLE IF NOT EXISTS ai_file_cache (
   id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   founder_id    UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   cache_key     TEXT        NOT NULL,
@@ -18,15 +18,35 @@ COMMENT ON COLUMN ai_file_cache.cache_key    IS 'Caller-defined key for lookup (
 COMMENT ON COLUMN ai_file_cache.file_id      IS 'Anthropic Files API file ID (file_abc123).';
 COMMENT ON COLUMN ai_file_cache.expires_at   IS 'Optional TTL — caller can set to force re-upload after N days.';
 
-CREATE UNIQUE INDEX ai_file_cache_upsert_key ON ai_file_cache (founder_id, cache_key);
-CREATE INDEX ai_file_cache_founder_idx ON ai_file_cache (founder_id, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS ai_file_cache_upsert_key ON ai_file_cache (founder_id, cache_key);
+CREATE INDEX IF NOT EXISTS ai_file_cache_founder_idx ON ai_file_cache (founder_id, created_at DESC);
 
 ALTER TABLE ai_file_cache ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "founders_own_files"
-  ON ai_file_cache FOR ALL TO authenticated
-  USING (founder_id = auth.uid()) WITH CHECK (founder_id = auth.uid());
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE ai_file_cache
+TO authenticated, service_role;
 
-CREATE POLICY "service_role_full_access"
-  ON ai_file_cache FOR ALL TO service_role
-  USING (true) WITH CHECK (true);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'ai_file_cache'
+      AND policyname = 'founders_own_files'
+  ) THEN
+    CREATE POLICY "founders_own_files"
+      ON ai_file_cache FOR ALL TO authenticated
+      USING (founder_id = auth.uid()) WITH CHECK (founder_id = auth.uid());
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'ai_file_cache'
+      AND policyname = 'service_role_full_access'
+  ) THEN
+    CREATE POLICY "service_role_full_access"
+      ON ai_file_cache FOR ALL TO service_role
+      USING (true) WITH CHECK (true);
+  END IF;
+END $$;
