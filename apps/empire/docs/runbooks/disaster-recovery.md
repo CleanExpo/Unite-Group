@@ -202,9 +202,9 @@ curl -s https://unite-group.vercel.app/api/health
    - Retrieve credentials from 1Password (Unite-Group-Infrastructure vault)
    - Create new .env.local
    - Copy required values from 1Password
-3. Verify sandbox access:
+3. Verify Supabase access (database changes are validated on a Supabase database branch — never against prod):
    ```bash
-   ./scripts/sandbox-wizard.sh status
+   supabase projects list
    ```
 4. Run build:
    ```bash

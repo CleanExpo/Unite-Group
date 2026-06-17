@@ -296,7 +296,7 @@ export function getCommandCentreOperatorSurfaceView(
           ? 'Controlled real-local execution foundation is design-ready/local-foundation-ready; actual dispatch remains disabled.'
           : jobsView.source === 'sandbox_select'
             ? 'Sandbox persistence is connected for read-only visibility; job creation remains disabled until a later Board gate.'
-            : 'operator_jobs/operator_events migration remains sandbox-first and unapplied; no DB writes are allowed here.',
+            : 'operator_jobs/operator_events migration lives in apps/web/supabase/migrations and is validated on a Supabase database branch (never against prod); no DB writes are allowed here, and prod (lksfwktwtmyznckodsau) is reached only via a merged + approved branch.',
       },
       {
         gateId: 'install_claude_code_minimax_and_cursor_lanes',
@@ -352,7 +352,7 @@ export function getCommandCentreOperatorSurfaceView(
             ? 'Prepare controlled real local operator execution design packet; keep external execution disabled.'
             : jobsView.source === 'sandbox_select'
               ? 'Board grant required before enabling sandbox job creation writes.'
-              : 'Board grant required before sandbox migration apply.',
+              : 'Board grant required before validating the migration on a Supabase database branch; prod is promoted only via a merged + approved branch, never applied directly.',
         },
         {
           id: 'install_claude_code_minimax_and_cursor_lanes',

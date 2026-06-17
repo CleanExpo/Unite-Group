@@ -96,9 +96,12 @@ on real infra. Everything else is incremental on a proven spine.
 **Phase 0 — Consolidate + schema + idempotency.**
 Unify the two systems behind one `PlatformAdapter` interface + one queue with a
 documented cutover (dual-run window, rollback, in-flight-post handling). Define
-schema (§6) sandbox-first, **including the idempotency constraint**. Add
+schema (§6) branch-first — write the migration in `apps/web/supabase/migrations/`
+and validate it on a Supabase database branch (never against prod) —
+**including the idempotency constraint**. Add
 `social_post_publish` to `CrmApprovalSubjectType`. *DoD:* one adapter interface
-both apps import; schema in sandbox + `check:schema-drift` clean; unique
+both apps import; migration validated on a Supabase database branch +
+`check:schema-drift` clean; unique
 `(post_id, platform)` partial index live; approval subject wired; existing social
 tests green.
 
@@ -143,7 +146,7 @@ FM-001..008 `[VERIFIED]` each with a test proving its safety rule (esp. FM-006
 never-double-publish, reconciled with Reddit's retry); `post_performance_metrics`
 time-series + proactive per-account quota accounting.
 
-## 6. Data model (sandbox-first → `xgqwfwqumliuguzhshwv` before prod `lksfwktwtmyznckodsau`, then `check:schema-drift`)
+## 6. Data model (branch-first → write migration in `apps/web/supabase/migrations/`, validate on a Supabase database branch, promote to prod `lksfwktwtmyznckodsau` ONLY via a merged + approved branch, then `check:schema-drift`)
 
 Reuse `social_channels` (Vault-encrypted tokens `[VERIFIED]`), `social_posts`,
 `social_engagements`. Add:
@@ -153,8 +156,9 @@ Reuse `social_channels` (Vault-encrypted tokens `[VERIFIED]`), `social_posts`,
 - `content_calendar_posts` — `id, founder_id, business_key, title, body, media_asset_ids jsonb, platforms jsonb, utm jsonb, approval_status, scheduled_at, scheduled_tz, …`.
 - `media_assets` — `id, founder_id, source_url, master_url, renditions jsonb ({platform→{url,w,h,bytes,duration,validated}}), alt_text, transcode_status (queued|processing|ready|error), error`.
 - `post_performance_metrics` — per-platform time-series.
-All founder-scoped + RLS; tokens never plaintext. **No prod migration without
-Phill's typed approval.**
+All founder-scoped + RLS; tokens never plaintext. **No direct or autonomous prod
+migration: promote to prod ONLY by merging an approved Supabase database branch,
+with Phill's typed approval.**
 
 ## 7. Security & cost guardrails (structural)
 
@@ -215,7 +219,7 @@ Phill's typed approval.**
 ## 10. Verification plan (a claim isn't done until its tool result says so)
 
 - `npm run verify:web` (+ empire equivalents); `npm run build` both apps.
-- `npm run check:schema-drift` after any sandbox migration.
+- `npm run check:schema-drift` after validating any migration on a Supabase database branch.
 - `npm run security:routes-check` after new routes.
 - Per platform: a publish to a sandbox/test account (or mocked-fetch test of the
   resumable state machine) proving resume-from-offset, no-hang, and

@@ -15,7 +15,6 @@
 set -euo pipefail
 
 readonly PROD_REF="lksfwktwtmyznckodsau"
-readonly SANDBOX_REF="xgqwfwqumliuguzhshwv"
 readonly OP_VAULT="Unite-Group-Infrastructure"
 readonly REPORT_FILE="/tmp/restoreassist-report-$(date +%Y%m%d-%H%M%S).md"
 
@@ -116,24 +115,16 @@ else:
   fi
   echo ""
 
-  # ═══ 2. Sandbox Backup Status ═══════════════════════════════════════════
-  echo "## 2. Sandbox Backup Status"
-  if command -v supabase &> /dev/null; then
-    SANDBOX_BACKUP_JSON=$(supabase backups list --project-ref "$SANDBOX_REF" -o json 2>/dev/null || echo "FAILED")
-    if [[ "$SANDBOX_BACKUP_JSON" == "FAILED" ]]; then
-      echo "- **FAILED** — Could not retrieve sandbox backup list"
-      check_fail
-    else
-      SANDBOX_BACKUP_COUNT=$(echo "$SANDBOX_BACKUP_JSON" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(len(d["backups"]))' 2>/dev/null || echo "0")
-      SANDBOX_PITR=$(echo "$SANDBOX_BACKUP_JSON" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("pitr_enabled", False))' 2>/dev/null || echo "false")
-      echo "- Sandbox backups: **${SANDBOX_BACKUP_COUNT} physical backups** available"
-      echo "- PITR enabled: **${SANDBOX_PITR}**"
-      check_pass
-    fi
-  else
-    echo "- **SKIPPED** — Supabase CLI not installed"
-    check_skip
-  fi
+  # ═══ 2. DB-Safety Model: Supabase Database Branching ════════════════════
+  echo "## 2. DB-Safety Model (Supabase Database Branching)"
+  echo "- DB safety is enforced by **Supabase database branching**, not a standing"
+  echo "  mirror sandbox. The old mirror sandbox project was deleted 2026-06-15 and"
+  echo "  will not be replaced — there are no separate sandbox backups to verify."
+  echo "- Schema changes: write migrations in \`apps/web/supabase/migrations/\`,"
+  echo "  validate on an ephemeral per-branch DB (never against prod), then promote"
+  echo "  to prod (\`${PROD_REF}\`) ONLY by merging an approved branch — never apply"
+  echo "  to prod directly or autonomously."
+  check_pass
   echo ""
 
   # ═══ 3. Production pg_dump Test (Schema Only) ═══════════════════════════
@@ -178,38 +169,17 @@ else:
   fi
   echo ""
 
-  # ═══ 4. Sandbox Connectivity Test ═══════════════════════════════════════
-  echo "## 4. Sandbox Connectivity Test"
-  if command -v psql &> /dev/null; then
-    SANDBOX_PASSWORD=""
-    if command -v op &> /dev/null; then
-      SANDBOX_PASSWORD=$(op item get "UNITE_GROUP_SANDBOX_DB_PASSWORD" --vault "$OP_VAULT" --reveal --field credential 2>/dev/null || echo "")
-    fi
-    SANDBOX_PASSWORD="${SANDBOX_PASSWORD:-${UNITE_GROUP_SANDBOX_DB_PASSWORD:-}}"
-
-    if [[ -n "$SANDBOX_PASSWORD" ]]; then
-      SANDBOX_VERSION=$(PGPASSWORD="$SANDBOX_PASSWORD" psql \
-        --host="db.${SANDBOX_REF}.supabase.co" \
-        --port=5432 \
-        --username=postgres \
-        --dbname=postgres \
-        -tAc "SELECT version();" 2>&1 || echo "CONN_FAILED")
-      if [[ "$SANDBOX_VERSION" != "CONN_FAILED" && -n "$SANDBOX_VERSION" ]]; then
-        echo "- **OK** — Connected to sandbox"
-        echo "- Version: ${SANDBOX_VERSION}"
-        check_pass
-      else
-        echo "- **FAILED** — Could not connect to sandbox"
-        check_fail
-      fi
-    else
-      echo "- **SKIPPED** — Sandbox password not available"
-      check_skip
-    fi
-  else
-    echo "- **SKIPPED** — psql not installed (brew install postgresql@17)"
-    check_skip
-  fi
+  # ═══ 4. Migration Validation Path (Database Branching) ══════════════════
+  echo "## 4. Migration Validation Path (Database Branching)"
+  echo "- No standing sandbox DB to connect to — validation happens on an"
+  echo "  ephemeral Supabase database branch that replays"
+  echo "  \`apps/web/supabase/migrations/\`."
+  echo "- Create the branch via the Supabase GitHub integration or"
+  echo "  \`create_branch\` (Supabase CLI / MCP); verify schema + data behaviour"
+  echo "  there. **Never validate against prod.**"
+  echo "- Promote by merging the approved branch into prod (\`${PROD_REF}\`) — only"
+  echo "  with explicit typed approval; no agent writes to prod autonomously."
+  check_pass
   echo ""
 
   # ═══ 5. Production Table Count ═════════════════════════════════════════
@@ -237,34 +207,21 @@ else:
   fi
   echo ""
 
-  # ═══ 6. Sandbox Schema Parity ══════════════════════════════════════════
-  echo "## 6. Sandbox Schema Parity (Last Sync)"
-  STATE_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/.sandbox-cache/state.json"
-  if [[ -f "$STATE_FILE" ]]; then
-    LAST_SYNC=$(python3 -c "import json; print(json.load(open('$STATE_FILE'))['last_sync_at'])" 2>/dev/null || echo "PARSE_ERROR")
-    CACHED_TABLES=$(python3 -c "import json; print(json.load(open('$STATE_FILE'))['sandbox_table_count'])" 2>/dev/null || echo "?")
-    CACHED_PROD=$(python3 -c "import json; print(json.load(open('$STATE_FILE'))['prod_table_count'])" 2>/dev/null || echo "?")
-    SHA=$(python3 -c "import json; print(json.load(open('$STATE_FILE'))['schema_dump_sha256'][:16])" 2>/dev/null || echo "?")
-    echo "- Last sync: ${LAST_SYNC}"
-    echo "- Prod tables at sync: ${CACHED_PROD}"
-    echo "- Sandbox tables at sync: ${CACHED_TABLES}"
-    echo "- Dump SHA256: ${SHA}..."
-
-    # Check if sync is stale (>7 days)
-    SYNC_AGE_DAYS=$(python3 -c "
-from datetime import datetime, timezone
-ts = datetime.fromisoformat('${LAST_SYNC}'.replace('Z','+00:00'))
-age = (datetime.now(timezone.utc) - ts).total_seconds() / 86400
-print(f'{age:.1f}')
-" 2>/dev/null || echo "999")
-    if (( $(echo "$SYNC_AGE_DAYS > 7" | bc -l 2>/dev/null || echo 1) )); then
-      echo "- **WARNING** — Last sync was ${SYNC_AGE_DAYS} days ago (>7 days). Recommend running sandbox-wizard.sh sync."
-    else
-      echo "- Sync freshness: **OK** (${SYNC_AGE_DAYS} days)"
-    fi
+  # ═══ 6. Migration Baseline Integrity ═══════════════════════════════════
+  echo "## 6. Migration Baseline Integrity"
+  MIGRATIONS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../web/supabase/migrations" 2>/dev/null && pwd || echo "")"
+  if [[ -n "$MIGRATIONS_DIR" && -d "$MIGRATIONS_DIR" ]]; then
+    MIGRATION_COUNT=$(find "$MIGRATIONS_DIR" -maxdepth 1 -name '*.sql' | wc -l | tr -d ' ')
+    echo "- Migrations dir: \`apps/web/supabase/migrations/\`"
+    echo "- Migration files: **${MIGRATION_COUNT}**"
+    echo "- Schema parity is no longer measured against a mirror sandbox. Every"
+    echo "  change is validated on a Supabase database branch that replays these"
+    echo "  migrations, then promoted to prod only via a merged, approved branch."
+    echo "- If a branch fails to provision, fix the migration baseline here — do"
+    echo "  NOT apply on prod as a workaround."
     check_pass
   else
-    echo "- **NEVER SYNCED** — No state.json found. Run: ./scripts/sandbox-wizard.sh setup"
+    echo "- **FAILED** — Could not locate apps/web/supabase/migrations/"
     check_fail
   fi
   echo ""

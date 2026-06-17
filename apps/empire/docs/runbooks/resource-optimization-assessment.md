@@ -208,22 +208,21 @@ auxiliary:
 
 **VERDICT: ENABLE IMMEDIATELY.** This is the single highest-ROI infrastructure investment. $10/mo for <1-hour RPO is a no-brainer for a business handling client financial data.
 
-### 4.2 Sandbox DB — Unverified
+### 4.2 DB Branching Workflow — Migration Validation
 
-**Current state:** Sandbox exists (ref `xgqwfwqumliuguzhshwv`) but has NEVER been synced. No `state.json` in `.sandbox-cache/`.
+**Current state:** DB-safety is now **Supabase database branching**. The old mirror sandbox project (`xgqwfwqumliuguzhshwv`) was deleted ~15/06/2026 and will NOT be replaced; the `sandbox-wizard.sh` toolchain has been removed. Canonical rules: `CLAUDE.md` / `apps/empire/CLAUDE.md`.
 
-**Verification steps (estimated 2 hours):**
+**Validation steps (estimated 2 hours):**
 
-1. Install postgresql@17: `brew install postgresql@17 && brew link postgresql@17 --force`
-2. Sign into 1Password: `eval $(op signin)`
-3. Run sandbox wizard: `./scripts/sandbox-wizard.sh setup`
-4. Verify parity: `./scripts/sandbox-wizard.sh diff`
-5. Test a schema change in sandbox: `./scripts/sandbox-wizard.sh apply <test-migration>`
-6. Document results in runbook
+1. Write the migration in `apps/web/supabase/migrations/` — one PR, based on latest `main`.
+2. Create a Supabase database branch (ephemeral per-branch DB) via the Supabase GitHub integration or `create_branch` (Supabase CLI / MCP).
+3. Verify the schema + any data behaviour on the branch. **Never validate against prod.**
+4. Promote to prod (`lksfwktwtmyznckodsau`) ONLY by merging an approved branch — never apply to prod directly or autonomously.
+5. Document results in runbook
 
-**Risk if not verified:** All migrations, schema changes, and new features are tested directly against production (or not tested at all). A bad migration could corrupt the 1,665-table database.
+**Risk if branch-first is skipped:** Untested migrations, schema changes, and new features could reach production directly. A bad migration could corrupt the 1,665-table database.
 
-**VERDICT: Schedule verification within 7 days.** Blocker is postgresql@17 installation (manual step).
+**VERDICT: Adopt the branch-first DB rule for all schema work.** No standing sandbox project to maintain.
 
 ### 4.3 pg_dump/psql Auth Failure
 
@@ -242,7 +241,7 @@ The auth failure is caused by THREE compounding issues:
 - Install: `brew install postgresql@17`
 - Auth: `eval $(op signin)` or set `UNITE_GROUP_DB_PASSWORD` env var
 
-**VERDICT: Same as sandbox verification — resolved when postgresql@17 is installed.**
+**VERDICT: Same as DB branch validation — resolved when postgresql@17 is installed.**
 
 ### 4.4 Outdated Packages Assessment
 
@@ -312,7 +311,7 @@ The auth failure is caused by THREE compounding issues:
 | 3 | **SSL/DNS Expiry Check** | `0 9 * * 1,4` (Mon/Thu 9am) | Tier 1 (shell only) | curl SSL cert + dig DNS, report changes | $0 |
 | 4 | **Cost Report** | `0 10 * * 1` (Mon 10am) | Tier 2 (qwen3.7-max) | Run cost_tracker.py --week, alert if >80% budget | $0.03 |
 | 5 | **DeepSec Scan Review** | `0 7 * * 3` (Wed 7am) | Tier 2 (qwen3.7-max) | Review security scan results, prioritize fixes | $0.05 |
-| 6 | **Sandbox Parity Check** | `0 5 * * 6` (Sat 5am) | Tier 2 (qwen3.7-max) | Verify sandbox schema matches prod after weekly sync | $0.05 |
+| 6 | **Migration Baseline Check** | `0 5 * * 6` (Sat 5am) | Tier 2 (qwen3.7-max) | Verify `supabase/migrations/` reproduces prod schema (branch-provisioning health) | $0.05 |
 
 ### Monthly Cron Cost Estimate
 
@@ -355,9 +354,9 @@ jobs:
     command: "cd ~/Unite-Group && npm audit && echo '---' && ls -la docs/runbooks/"
     model: "qwen/qwen3.7-max"
     
-  - name: "sandbox-parity"
+  - name: "migration-baseline"
     schedule: "0 5 * * 6"          # Saturday 5am
-    command: "cd ~/Unite-Group && bash scripts/sandbox-wizard.sh status"
+    command: "cd ~/Unite-Group && ls -la apps/web/supabase/migrations/ && supabase migration list"
     model: "qwen/qwen3.7-max"
 ```
 
@@ -375,7 +374,7 @@ jobs:
 **Time: 15 min | Cost: $10/mo | ROI: 40x-400x**
 
 ### Priority 2: Install postgresql@17 — Free, 15 minutes
-**Impact: HIGH** — Unblocks all DB verification, sandbox sync, and backup testing
+**Impact: HIGH** — Unblocks all DB verification, branch validation, and backup testing
 1. `brew install postgresql@17 && brew link postgresql@17 --force`
 2. Verify: `psql --version && pg_dump --version`
 3. Test: `PGPASSWORD=$UNITE_GROUP_DB_PASSWORD psql $DATABASE_URL -c "SELECT 1;"`
@@ -395,7 +394,7 @@ jobs:
 **Impact: MEDIUM** — Automated daily verification that backup system works
 1. `eval $(op signin)` — sign into 1Password
 2. `cd ~/Unite-Group && bash scripts/backup-healthcheck.sh`
-3. Confirm green status for both prod and sandbox
+3. Confirm green status for prod (no standing sandbox project)
 4. Add to Hermes cron schedule (see Section 5)
 
 **Time: 1 hour | Cost: $0 | ROI: Daily automated backup verification**
@@ -430,11 +429,11 @@ jobs:
 | Week | Task | Hours | Cost | Priority | Expected ROI |
 |------|------|-------|------|----------|-------------|
 | 1 | Enable PITR + verify | 2 | $10/mo | P0 | RPO: 24h → <1s |
-| 1 | Install postgresql@17 + sandbox sync | 4 | $0 | P0 | DR readiness +50% |
+| 1 | Install postgresql@17 + exercise DB branch validation | 4 | $0 | P0 | DR readiness +50% |
 | 1 | Configure Hermes cron matrix (Section 5) | 2 | $2-5/mo | P1 | Automated monitoring |
 | 2 | Security package updates + test restore | 6 | $0 | P0 | Vulns fixed, DR verified |
 | 2 | Model routing optimization | 1 | $0 | P1 | $240-480/yr savings |
-| 3 | Test PITR restore to sandbox | 2 | $0 | P0 | Validate DR capability |
+| 3 | Test PITR restore to a database branch | 2 | $0 | P0 | Validate DR capability |
 | 3 | Review Stripe billing dashboard (verify fees) | 1 | $0 | P2 | Cost visibility |
 | 4 | @supabase/ssr major upgrade (0.6→0.10) | 4 | $0 | P1 | Auth security improvement |
 | 4 | Document all costs in a living spreadsheet | 2 | $0 | P2 | Budget tracking |
@@ -503,8 +502,8 @@ At $8,250 AUD MRR with 3 clients, the trajectory to $2B requires:
 ### Issues Found (ranked by severity)
 
 1. ❌ **PITR DISABLED** — 24-hour RPO for client financial data ($10/mo fix)
-2. ⚠️ **postgresql@17 not installed** — Cannot verify backups or run sandbox
-3. ⚠️ **Sandbox never synced** — No validated staging environment
+2. ⚠️ **postgresql@17 not installed** — Cannot verify backups or validate DB branches
+3. ⚠️ **DB branch workflow unverified** — Branch-first migration validation not yet exercised end-to-end
 4. ⚠️ **Kimi K2.6 overspend** — 68% of AI budget on 2% of sessions ($44/mo)
 5. ⚠️ **No Hermes cron automation** — All monitoring is manual
 6. ⚠️ **2 npm moderate vulnerabilities** — Security patches available
@@ -513,7 +512,7 @@ At $8,250 AUD MRR with 3 clients, the trajectory to $2B requires:
 9. ✅ **Backup healthcheck script** — Exists and works
 10. ✅ **DR runbook** — Comprehensive (16 scenarios, 800+ lines)
 11. ✅ **Cron stagger** — Intentional offsets prevent DB overload
-12. ✅ **Sandbox wizard** — Comprehensive (497 lines), well-designed
+12. ✅ **Supabase database branching** — DB-safety model for branch-first migration validation
 
 ### Decision Required from Board
 
