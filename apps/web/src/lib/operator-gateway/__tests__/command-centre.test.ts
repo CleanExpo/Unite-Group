@@ -81,7 +81,8 @@ describe('command centre operator execution surface view', () => {
     expect(view.mobileVoiceIntake.plaudSupported).toBe(true)
     expect(view.mobileVoiceIntake.secondBrainTarget).toBe('Obsidian/2nd-brain')
     expect(view.mobileVoiceIntake.packetPersistenceEnabled).toBe(true)
-    expect(view.mobileVoiceIntake.openGates).toContain('write_obsidian_source_notes_from_packets')
+    expect(view.mobileVoiceIntake.sourceNoteWriteEnabled).toBe(true)
+    expect(view.mobileVoiceIntake.openGates).not.toContain('write_obsidian_source_notes_from_packets')
     expect(view.mobileVoiceIntake.externalDispatchEnabled).toBe(false)
     expect(view.evidencePointers).toEqual(expect.arrayContaining([
       expect.objectContaining({ href: '/api/hermes/operator-gateway/runner-telemetry' }),

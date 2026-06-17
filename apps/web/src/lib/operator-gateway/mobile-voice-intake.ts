@@ -47,6 +47,7 @@ export interface MobileVoiceIntakeStatusView {
   secondBrainTarget: 'Obsidian/2nd-brain'
   researchExpansionEnabled: true
   packetPersistenceEnabled: true
+  sourceNoteWriteEnabled: true
   boardReviewRequired: true
   hermesQueueRequired: true
   externalDispatchEnabled: false
@@ -130,6 +131,7 @@ export function getMobileVoiceIntakeStatus(): MobileVoiceIntakeStatusView {
     secondBrainTarget: 'Obsidian/2nd-brain',
     researchExpansionEnabled: true,
     packetPersistenceEnabled: true,
+    sourceNoteWriteEnabled: true,
     boardReviewRequired: true,
     hermesQueueRequired: true,
     externalDispatchEnabled: false,
@@ -154,9 +156,8 @@ export function getMobileVoiceIntakeStatus(): MobileVoiceIntakeStatusView {
     openGates: [
       'configure_plaud_dev_api_or_zapier_ingress',
       'connect_obsidian_mobile_capture_folder',
-      'write_obsidian_source_notes_from_packets',
       'enable_board_review_to_hermes_queue',
     ],
-    nextAction: 'Write Obsidian source notes from persisted mobile voice packets before enabling any automated task creation.',
+    nextAction: 'Enable Board review packets from written source notes before any automated Hermes or Linear task creation.',
   }
 }

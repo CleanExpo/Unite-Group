@@ -6,6 +6,7 @@ import {
   type MobileVoiceCaptureInput,
 } from '@/lib/operator-gateway/mobile-voice-intake'
 import { persistMobileVoicePacket, type MobileVoicePacketWriteClient } from '@/lib/operator-gateway/mobile-voice-packets'
+import { writeMobileVoiceSourceNote, type MobileVoiceSourceNoteUpdateClient } from '@/lib/operator-gateway/mobile-voice-source-notes'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,7 +32,7 @@ export async function GET() {
 }
 
 // POST — founder/session guarded mobile/Plaud transcript packet builder.
-// Persists a review packet only; it does not publish, dispatch, or create tasks.
+// Persists a review packet and writes a source note only; it does not publish, dispatch, or create tasks.
 export async function POST(request: Request) {
   try {
     const user = await getUser()
@@ -84,18 +85,28 @@ export async function POST(request: Request) {
         error: persistence.error,
         reasons: persistence.reasons,
         persisted: false,
+        obsidianSourceNoteWritten: false,
         tasksCreated: false,
         externalDispatchEnabled: false,
         autoPublishEnabled: false,
         productionExecutionEnabled: false,
       }, { status: persistence.status })
     }
+    const sourceNote = await writeMobileVoiceSourceNote({
+      founderId: user.id,
+      client: supabase as unknown as MobileVoiceSourceNoteUpdateClient,
+      record: persistence.record,
+    })
 
     return NextResponse.json({
       packet,
       record: persistence.record,
+      sourceNote: sourceNote.ok ? sourceNote.note : null,
       founderOnly: true,
       persisted: true,
+      obsidianSourceNoteWritten: sourceNote.ok,
+      obsidianSourceNoteError: sourceNote.ok ? null : sourceNote.error,
+      obsidianSourceNoteReasons: sourceNote.ok ? [] : sourceNote.reasons,
       tasksCreated: false,
       externalDispatchEnabled: false,
       autoPublishEnabled: false,
