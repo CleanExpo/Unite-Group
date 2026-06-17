@@ -28,6 +28,9 @@ describe('command centre operator execution surface view', () => {
     expect(laneIds).toEqual(expect.arrayContaining([
       'openai_codex_max',
       'claude_code_max_primary',
+      'claude_code_max_secondary',
+      'claude_code_max_tertiary',
+      'minimax_cli',
       'cursor_cli',
       'hermes_local',
       'agentic_nexus_skill_exec',
@@ -46,7 +49,7 @@ describe('command centre operator execution surface view', () => {
     expect(view.dailyOps.externalDispatchEnabled).toBe(false)
     expect(view.blockedGates).toEqual(expect.arrayContaining([
       expect.objectContaining({ gateId: 'approve_operator_gateway_sandbox_apply' }),
-      expect.objectContaining({ gateId: 'install_claude_code_and_cursor_lanes' }),
+      expect.objectContaining({ gateId: 'install_claude_code_minimax_and_cursor_lanes' }),
       expect.objectContaining({ gateId: 'enable_external_operator_execution' }),
     ]))
     expect(view.evidencePointers.length).toBeGreaterThanOrEqual(4)
@@ -67,11 +70,27 @@ describe('command centre operator execution surface view', () => {
     expect(view.missionRouter.sampleRoute.actions.length).toBeGreaterThanOrEqual(15)
     expect(view.missionRouter.sampleRoute.actions.length).toBeLessThanOrEqual(20)
     expect(view.missionRouter.externalExecutionEnabled).toBe(false)
+    expect(view.runtimeTopology.operatorDashboardNode).toBe('phill_main_cli_dashboard')
+    expect(view.runtimeTopology.openGates).toContain('install_and_login_minimax_cli_or_mcp')
+    expect(view.runnerTelemetry.source).toBe('static_runner_monitor_telemetry')
+    expect(view.runnerTelemetry.telemetryEndpoint).toBe('/api/hermes/operator-gateway/runner-telemetry')
+    expect(view.runnerTelemetry.dispatchEnabled).toBe(false)
+    expect(view.runnerTelemetry.nextGate).toBe('connect_runner_heartbeat_events')
+    expect(view.mobileVoiceIntake.source).toBe('static_mobile_voice_intake')
+    expect(view.mobileVoiceIntake.endpoint).toBe('/api/hermes/operator-gateway/mobile-voice-intake')
+    expect(view.mobileVoiceIntake.plaudSupported).toBe(true)
+    expect(view.mobileVoiceIntake.secondBrainTarget).toBe('Obsidian/2nd-brain')
+    expect(view.mobileVoiceIntake.externalDispatchEnabled).toBe(false)
+    expect(view.evidencePointers).toEqual(expect.arrayContaining([
+      expect.objectContaining({ href: '/api/hermes/operator-gateway/runner-telemetry' }),
+      expect.objectContaining({ href: '/api/hermes/operator-gateway/mobile-voice-intake' }),
+    ]))
   })
 
   it('keeps blocked-lane messaging honest for Max-plan operator sessions', () => {
     const view = getCommandCentreOperatorSurfaceView()
     const claude = view.lanes.find((lane) => lane.laneId === 'claude_code_max_primary')!
+    const minimax = view.lanes.find((lane) => lane.laneId === 'minimax_cli')!
     const cursor = view.lanes.find((lane) => lane.laneId === 'cursor_cli')!
     const codex = view.lanes.find((lane) => lane.laneId === 'openai_codex_max')!
 
@@ -79,6 +98,8 @@ describe('command centre operator execution surface view', () => {
     expect(codex.authMode).toBe('plan_session')
     expect(claude.visibleInCommandCentre).toBe(true)
     expect(claude.blockedReason).toContain('operator install/login')
+    expect(minimax.visibleInCommandCentre).toBe(true)
+    expect(minimax.blockedReason).toContain('operator install/login')
     expect(cursor.visibleInCommandCentre).toBe(true)
     expect(cursor.blockedReason).toContain('operator install/login')
   })
@@ -118,7 +139,13 @@ describe('command centre sandbox job creation state', () => {
     expect(view.controlledLocalExecution.liveRunnerEnabled).toBe(false)
     expect(view.controlledLocalExecution.productionConnected).toBe(false)
     expect(view.controlledLocalExecution.activeLanes).toEqual(['hermes_local', 'openai_codex_max', 'agentic_nexus_skill_exec'])
-    expect(view.controlledLocalExecution.pendingLanes).toEqual(['claude_code_max_primary', 'claude_code_max_secondary', 'cursor_cli'])
+    expect(view.controlledLocalExecution.pendingLanes).toEqual([
+      'claude_code_max_primary',
+      'claude_code_max_secondary',
+      'claude_code_max_tertiary',
+      'minimax_cli',
+      'cursor_cli',
+    ])
   })
 
 })

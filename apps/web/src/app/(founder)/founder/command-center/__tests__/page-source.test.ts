@@ -8,6 +8,7 @@ describe('command center page source', () => {
   it('surfaces provider capacity beside live agent operations', () => {
     const page = readFileSync(join(root, 'src/app/(founder)/founder/command-center/page.tsx'), 'utf8')
 
+    expect(page).toContain('BusinessFocusRail')
     expect(page).toContain('ProviderUsageCockpit')
     expect(page).toContain('AI provider capacity')
     expect(page).toContain('LiveAgentOperationsMap')

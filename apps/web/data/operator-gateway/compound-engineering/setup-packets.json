@@ -1,0 +1,266 @@
+{
+  "$schema_version": "1.0",
+  "generated_note": "Read-only Compound Engineering setup packets for Unite-Group Mission Control. No secrets, no auto-install, no external execution.",
+  "source_refs": [
+    "https://github.com/EveryInc/compound-engineering-plugin",
+    "https://github.com/EveryInc/compound-knowledge-plugin",
+    "https://github.com/mvanhorn/last30days-skill"
+  ],
+  "packets": [
+    {
+      "packet_id": "ce-setup-unite-group",
+      "project_key": "unite-group",
+      "project_name": "Unite-Group",
+      "repo_hint": "CleanExpo/Unite-Group",
+      "priority": "P0",
+      "status": "ready",
+      "objective": "Make Mission Control the portfolio front door for Compound Engineering setup, review, research, design, workflow, and knowledge-capture connectors.",
+      "recommended_connectors": [
+        "ce_setup_auditor",
+        "ce_serial_review_bridge",
+        "ce_research_scout_bridge",
+        "ce_design_studio_bridge",
+        "ce_workflow_loop_bridge",
+        "ck_knowledge_capture_bridge"
+      ],
+      "safe_local_checks": [
+        "pnpm run test -- src/lib/operator-gateway/__tests__",
+        "pnpm run type-check",
+        "pnpm run lint"
+      ],
+      "blocked_install_commands": [
+        "codex plugin marketplace add EveryInc/compound-engineering-plugin",
+        "bunx @every-env/compound-plugin install compound-engineering --to codex"
+      ],
+      "evidence_outputs": [
+        "operator-gateway compound connector status",
+        "Mission Control setup packet API response",
+        "2nd-brain Compound Engineering adoption note",
+        "Linear tasks for any blocked setup gates"
+      ],
+      "linear_labels": [
+        "compound-engineering",
+        "mission-control",
+        "connector-setup"
+      ],
+      "hard_gates": [
+        "operator_approval_before_install",
+        "no_api_key_mode",
+        "no_external_execution",
+        "no_production_db"
+      ],
+      "next_action": "Create Linear/Hermes setup tasks from this packet, then wait for explicit operator approval before running install commands."
+    },
+    {
+      "packet_id": "ce-setup-restoreassist",
+      "project_key": "restoreassist",
+      "project_name": "RestoreAssist",
+      "repo_hint": "CleanExpo/RestoreAssist",
+      "priority": "P0",
+      "status": "ready",
+      "objective": "Use Compound Engineering review, design, and workflow loops to close RestoreAssist launch-readiness gaps without letting agents skip product, UX, AI, or safety gates.",
+      "recommended_connectors": [
+        "ce_setup_auditor",
+        "ce_serial_review_bridge",
+        "ce_design_studio_bridge",
+        "ce_workflow_loop_bridge",
+        "ck_knowledge_capture_bridge"
+      ],
+      "safe_local_checks": [
+        "pnpm run type-check",
+        "pnpm run lint",
+        "pnpm run test",
+        "pnpm run build"
+      ],
+      "blocked_install_commands": [
+        "codex plugin marketplace add EveryInc/compound-engineering-plugin",
+        "bunx @every-env/compound-plugin install compound-engineering --to codex"
+      ],
+      "evidence_outputs": [
+        "RestoreAssist launch-readiness packet",
+        "UX/design variants and acceptance criteria",
+        "serial review findings",
+        "2nd-brain RestoreAssist Compound Engineering note"
+      ],
+      "linear_labels": [
+        "compound-engineering",
+        "restoreassist",
+        "launch-readiness"
+      ],
+      "hard_gates": [
+        "operator_approval_before_install",
+        "no_public_launch_without_human_gate",
+        "no_api_key_mode",
+        "no_external_execution"
+      ],
+      "next_action": "Run a read-only setup audit, then generate review and design tasks for missing launch-readiness promises."
+    },
+    {
+      "packet_id": "ce-setup-synthex",
+      "project_key": "synthex",
+      "project_name": "Synthex",
+      "repo_hint": "CleanExpo/Synthex",
+      "priority": "P1",
+      "status": "ready",
+      "objective": "Use Compound Engineering research scout and serial review loops to harden publishing, integration status, and creator-market research workflows.",
+      "recommended_connectors": [
+        "ce_setup_auditor",
+        "ce_research_scout_bridge",
+        "ce_serial_review_bridge",
+        "ce_workflow_loop_bridge",
+        "ck_knowledge_capture_bridge"
+      ],
+      "safe_local_checks": [
+        "pnpm run type-check",
+        "pnpm run lint",
+        "pnpm run test",
+        "pnpm run build"
+      ],
+      "blocked_install_commands": [
+        "codex plugin marketplace add EveryInc/compound-engineering-plugin",
+        "bunx @every-env/compound-plugin install compound-engineering --to codex"
+      ],
+      "evidence_outputs": [
+        "Synthex publishing readiness packet",
+        "research-source scoring evidence",
+        "social/integration status review",
+        "2nd-brain Synthex Compound Engineering note"
+      ],
+      "linear_labels": [
+        "compound-engineering",
+        "synthex",
+        "research-scout"
+      ],
+      "hard_gates": [
+        "operator_approval_before_install",
+        "no_public_publishing_without_human_gate",
+        "no_api_key_mode",
+        "no_external_execution"
+      ],
+      "next_action": "Create research-scout and serial-review tasks around publishing reliability and market-source ingestion."
+    },
+    {
+      "packet_id": "ce-setup-itr-button",
+      "project_key": "itr-button",
+      "project_name": "ITR-Button",
+      "repo_hint": "CleanExpo/ITR-Button",
+      "priority": "P1",
+      "status": "ready",
+      "objective": "Use Compound Engineering design and review loops to improve the Dimitri ITR partner journey, API gates, and product proof before production expansion.",
+      "recommended_connectors": [
+        "ce_setup_auditor",
+        "ce_design_studio_bridge",
+        "ce_serial_review_bridge",
+        "ce_workflow_loop_bridge"
+      ],
+      "safe_local_checks": [
+        "npm run verify",
+        "npm run test",
+        "npm run build"
+      ],
+      "blocked_install_commands": [
+        "codex plugin marketplace add EveryInc/compound-engineering-plugin",
+        "bunx @every-env/compound-plugin install compound-engineering --to codex"
+      ],
+      "evidence_outputs": [
+        "ITR-Button journey review packet",
+        "API gate checklist",
+        "partner UX acceptance criteria",
+        "2nd-brain Dimitri ITR Compound Engineering note"
+      ],
+      "linear_labels": [
+        "compound-engineering",
+        "itr-button",
+        "partner-journey"
+      ],
+      "hard_gates": [
+        "operator_approval_before_install",
+        "no_payments_without_human_gate",
+        "no_api_key_mode",
+        "no_external_execution"
+      ],
+      "next_action": "Create a design-studio packet for the partner journey and route it through serial review before implementation."
+    },
+    {
+      "packet_id": "ce-setup-pi-ceo",
+      "project_key": "pi-ceo",
+      "project_name": "Pi-CEO",
+      "repo_hint": "CleanExpo/Pi-CEO",
+      "priority": "P0",
+      "status": "ready",
+      "objective": "Connect Pi-CEO as the local senior-agent execution and governance layer for Compound Engineering packet generation, evidence capture, and safe handoff.",
+      "recommended_connectors": [
+        "ce_setup_auditor",
+        "ce_workflow_loop_bridge",
+        "ck_knowledge_capture_bridge"
+      ],
+      "safe_local_checks": [
+        "python -m pytest tests/ -x -q",
+        "python -c \"from app.server.main import app; print(type(app))\""
+      ],
+      "blocked_install_commands": [
+        "codex plugin marketplace add EveryInc/compound-engineering-plugin",
+        "bunx @every-env/compound-plugin install compound-engineering --to codex"
+      ],
+      "evidence_outputs": [
+        "Pi-CEO AGENTS.md boundary compliance note",
+        "compound packet generator dry-run output",
+        "2nd-brain Pi-CEO Compound Engineering note",
+        "Linear handoff tasks"
+      ],
+      "linear_labels": [
+        "compound-engineering",
+        "pi-ceo",
+        "agent-governance"
+      ],
+      "hard_gates": [
+        "operator_approval_before_install",
+        "respect_agents_boundary_matrix",
+        "no_api_key_mode",
+        "no_external_execution"
+      ],
+      "next_action": "Generate a Pi-CEO-safe packet generator plan that respects AGENTS.md boundaries before any runtime connector work."
+    },
+    {
+      "packet_id": "ce-setup-second-brain",
+      "project_key": "second-brain",
+      "project_name": "2nd-brain",
+      "repo_hint": "local:/Users/phillmcgurk/2nd-brain",
+      "priority": "P0",
+      "status": "ready",
+      "objective": "Use Compound Knowledge and research-scout patterns to capture decisions, setup results, source links, and reusable learnings into the Obsidian/2nd-brain source pipeline.",
+      "recommended_connectors": [
+        "ck_knowledge_capture_bridge",
+        "ce_research_scout_bridge",
+        "ce_setup_auditor"
+      ],
+      "safe_local_checks": [
+        "verify active vault path",
+        "verify source sync credentials are present before sync",
+        "dry-run note generation"
+      ],
+      "blocked_install_commands": [
+        "codex plugin marketplace add EveryInc/compound-engineering-plugin",
+        "bunx @every-env/compound-plugin install compound-engineering --to codex"
+      ],
+      "evidence_outputs": [
+        "Compound Engineering source note",
+        "per-project setup packet note",
+        "research scout evidence note",
+        "sync status record"
+      ],
+      "linear_labels": [
+        "compound-engineering",
+        "2nd-brain",
+        "knowledge-capture"
+      ],
+      "hard_gates": [
+        "operator_approval_before_install",
+        "no_secret_reading",
+        "no_sync_without_service_key",
+        "no_external_execution"
+      ],
+      "next_action": "Create Obsidian-ready setup and research notes, then sync only when the approved service credential is available."
+    }
+  ]
+}
