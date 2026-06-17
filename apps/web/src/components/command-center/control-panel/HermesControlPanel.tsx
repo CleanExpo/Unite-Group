@@ -71,6 +71,7 @@ export function HermesControlPanel({ initialPayload }: HermesControlPanelProps =
   const [localAddOns, setLocalAddOns] = useState<AddOnGate[] | null>(initialPayload?.addOns ?? null)
   const [pendingAddOnId, setPendingAddOnId] = useState<string | null>(null)
   const [addOnOutcome, setAddOnOutcome] = useState<AddOnOutcome | null>(null)
+  const [activeWorkstreamId, setActiveWorkstreamId] = useState<string>(CONTROL_WORKSTREAMS[0]?.id ?? '')
 
   useEffect(() => {
     if (initialPayload) return
@@ -152,10 +153,11 @@ export function HermesControlPanel({ initialPayload }: HermesControlPanelProps =
       : sourceState === 'loading'
         ? 'CC · requesting'
         : 'CC unreachable · seed plan'
+  const activeWorkstream = workstreams.find((item) => item.id === activeWorkstreamId) ?? workstreams[0]
 
   return (
     <section
-      className="flex flex-col"
+      className="flex min-h-[42rem] flex-col"
       style={{ background: 'var(--cc-bg-soft)', borderTop: '1px solid var(--cc-grid)' }}
       aria-label="CEO Control Panel"
     >
@@ -193,63 +195,157 @@ export function HermesControlPanel({ initialPayload }: HermesControlPanelProps =
       )}
 
       <div
-        className="grid grid-cols-1 xl:grid-cols-[1fr_20rem]"
+        className="grid grid-cols-1 lg:grid-cols-[18rem_1fr]"
         style={{ gap: 1, background: 'var(--cc-grid)' }}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 1, background: 'var(--cc-grid)' }}>
-          {workstreams.map((item) => (
-            <WorkstreamRow key={item.id} item={item} />
-          ))}
-        </div>
-
         <aside
           className="flex flex-col"
-          style={{ background: 'var(--cc-bg-soft)' }}
-          aria-label="Add-on registry approval gates"
+          style={{ background: 'var(--cc-bg)' }}
+          aria-label="Mission Control navigation"
         >
-          <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--cc-grid)' }}>
+          <div className="px-4 py-4" style={{ borderBottom: '1px solid var(--cc-grid)' }}>
             <span
-              className="font-mono text-[10px] uppercase tracking-[0.22em]"
-              style={{ color: 'var(--cc-ink-dim)' }}
-            >
-              Add-on registry
-            </span>
-            <p
-              className="mt-2 font-mono text-[11px] leading-relaxed"
+              className="font-mono text-[10px] uppercase tracking-[0.2em]"
               style={{ color: 'var(--cc-ink-hush)' }}
             >
-              Approval first. The command centre remains source of truth.
+              Mission Control
+            </span>
+            <p className="mt-2 text-sm font-medium leading-snug" style={{ color: 'var(--cc-ink)' }}>
+              Hermes operating lanes
             </p>
-            {addOnOutcome && (
-              <div
-                role={addOnOutcome.ok ? 'status' : 'alert'}
-                data-outcome-kind={addOnOutcome.kind}
-                className="mt-3 flex flex-col gap-1 font-mono text-[11px] leading-relaxed"
-                aria-live="polite"
-              >
-                <span
-                  className="font-semibold"
-                  style={{ color: addOnOutcome.ok ? 'var(--cc-ink)' : 'var(--cc-signal)' }}
-                >
-                  {addOnOutcome.title}
-                </span>
-                <span style={{ color: 'var(--cc-ink-dim)' }}>{addOnOutcome.message}</span>
-                <span style={{ color: 'var(--cc-ink)' }}>{addOnOutcome.nextAction}</span>
-              </div>
-            )}
           </div>
 
-          {addOns.map((item) => (
-            <AddOnRow
-              key={item.id}
-              item={item}
-              pending={pendingAddOnId === item.id}
-              onRequest={requestAddOnGate}
-            />
-          ))}
+          <nav className="flex flex-col p-2" aria-label="Hermes workstreams">
+            {workstreams.map((item) => (
+              <WorkstreamNavItem
+                key={item.id}
+                item={item}
+                active={item.id === activeWorkstream?.id}
+                onSelect={() => setActiveWorkstreamId(item.id)}
+              />
+            ))}
+          </nav>
+
+          <div className="mt-auto grid grid-cols-3 gap-px p-2" style={{ background: 'var(--cc-grid)' }}>
+            <SidebarMetric label="Green" value={green} />
+            <SidebarMetric label="Yellow" value={yellow} />
+            <SidebarMetric label="Red" value={red} signal />
+          </div>
         </aside>
+
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_22rem]" style={{ gap: 1, background: 'var(--cc-grid)' }}>
+          <main className="min-w-0" style={{ background: 'var(--cc-bg-soft)' }} aria-label="Selected Hermes lane">
+            {activeWorkstream ? (
+              <WorkstreamDetail item={activeWorkstream} />
+            ) : (
+              <div className="px-6 py-8 font-mono text-sm" style={{ color: 'var(--cc-ink-dim)' }}>
+                Waiting for command-centre workstreams.
+              </div>
+            )}
+          </main>
+
+          <aside
+            className="flex flex-col"
+            style={{ background: 'var(--cc-bg-soft)' }}
+            aria-label="Add-on registry approval gates"
+          >
+            <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--cc-grid)' }}>
+              <span
+                className="font-mono text-[10px] uppercase tracking-[0.22em]"
+                style={{ color: 'var(--cc-ink-dim)' }}
+              >
+                Approval Queue
+              </span>
+              <p
+                className="mt-2 font-mono text-[11px] leading-relaxed"
+                style={{ color: 'var(--cc-ink-hush)' }}
+              >
+                Add-ons file command-centre tasks before anything goes live.
+              </p>
+              {addOnOutcome && (
+                <div
+                  role={addOnOutcome.ok ? 'status' : 'alert'}
+                  data-outcome-kind={addOnOutcome.kind}
+                  className="mt-3 flex flex-col gap-1 font-mono text-[11px] leading-relaxed"
+                  aria-live="polite"
+                >
+                  <span
+                    className="font-semibold"
+                    style={{ color: addOnOutcome.ok ? 'var(--cc-ink)' : 'var(--cc-signal)' }}
+                  >
+                    {addOnOutcome.title}
+                  </span>
+                  <span style={{ color: 'var(--cc-ink-dim)' }}>{addOnOutcome.message}</span>
+                  <span style={{ color: 'var(--cc-ink)' }}>{addOnOutcome.nextAction}</span>
+                </div>
+              )}
+            </div>
+
+            {addOns.map((item) => (
+              <AddOnRow
+                key={item.id}
+                item={item}
+                pending={pendingAddOnId === item.id}
+                onRequest={requestAddOnGate}
+              />
+            ))}
+          </aside>
+        </div>
       </div>
     </section>
+  )
+}
+
+function WorkstreamNavItem({
+  item,
+  active,
+  onSelect,
+}: {
+  item: LiveControlWorkstream
+  active: boolean
+  onSelect: () => void
+}) {
+  const color = statusColor(item.status, item.ryg)
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className="flex min-h-14 w-full items-center gap-3 border px-3 py-2 text-left transition-opacity hover:opacity-90"
+      style={{
+        borderColor: active ? 'var(--cc-grid)' : 'transparent',
+        background: active ? 'var(--cc-bg-soft)' : 'transparent',
+        color: 'var(--cc-ink)',
+      }}
+      aria-label={`${item.lane}: ${item.label}`}
+      aria-current={active ? 'page' : undefined}
+    >
+      <span
+        aria-hidden
+        className={item.ryg === 'red' || item.status === 'gated' ? styles.breathe : undefined}
+        style={{ width: 6, height: 6, background: color, flex: '0 0 6px' }}
+      />
+      <span className="min-w-0">
+        <span className="block truncate font-mono text-[10px] uppercase tracking-[0.14em]" style={{ color: 'var(--cc-ink-hush)' }}>
+          {item.lane}
+        </span>
+        <span className="block truncate text-sm font-medium" style={{ color: active ? 'var(--cc-ink)' : 'var(--cc-ink-dim)' }}>
+          {item.label}
+        </span>
+      </span>
+    </button>
+  )
+}
+
+function SidebarMetric({ label, value, signal = false }: { label: string; value: number; signal?: boolean }) {
+  return (
+    <div className="px-2 py-3 text-center" style={{ background: 'var(--cc-bg-soft)' }}>
+      <span className="block font-mono text-[9px] uppercase tracking-[0.12em]" style={{ color: 'var(--cc-ink-hush)' }}>
+        {label}
+      </span>
+      <span className="mt-1 block font-mono text-lg leading-none" style={{ color: signal ? 'var(--cc-signal)' : 'var(--cc-ink)' }}>
+        {value}
+      </span>
+    </div>
   )
 }
 
@@ -273,7 +369,7 @@ function SummaryCell({ label, value, tone }: { label: string; value: number; ton
   )
 }
 
-function WorkstreamRow({ item }: { item: LiveControlWorkstream }) {
+function WorkstreamDetail({ item }: { item: LiveControlWorkstream }) {
   const color = statusColor(item.status, item.ryg)
   const isSignal = item.ryg === 'red' || item.status === 'gated'
   const ccTaskEvidence = item.ccTaskId
@@ -282,7 +378,7 @@ function WorkstreamRow({ item }: { item: LiveControlWorkstream }) {
 
   return (
     <article
-      className="relative flex min-h-[12rem] flex-col gap-3 px-5 py-4"
+      className="relative flex min-h-full flex-col gap-5 px-6 py-6"
       style={{ background: 'var(--cc-bg-soft)', borderLeft: `2px solid ${color}` }}
       data-cc-state={item.status}
       aria-label={`${item.label}: ${stateLabel(item.status, item.ryg)}`}
@@ -310,19 +406,19 @@ function WorkstreamRow({ item }: { item: LiveControlWorkstream }) {
         >
           {item.id} / {item.lane}
         </span>
-        <h3 className="text-sm font-semibold leading-snug" style={{ color: 'var(--cc-ink)' }}>
+        <h3 className="max-w-3xl text-2xl font-semibold leading-tight" style={{ color: 'var(--cc-ink)' }}>
           {item.label}
         </h3>
       </header>
 
-      <div className="grid gap-2 font-mono text-[11px] leading-relaxed">
+      <div className="grid max-w-4xl gap-2 font-mono text-[11px] leading-relaxed md:grid-cols-2">
         <MetaLine label="state" value={stateLabel(item.status, item.ryg)} color={color} />
         <MetaLine label="owner" value={item.owner} />
         <MetaLine label="depends" value={item.dependency} />
         <MetaLine label="gate" value={item.gate} color={isSignal ? 'var(--cc-signal)' : undefined} />
       </div>
 
-      <p className="mt-auto font-mono text-[11px] leading-relaxed" style={{ color: 'var(--cc-ink-dim)' }}>
+      <p className="max-w-3xl border px-5 py-4 text-sm leading-relaxed" style={{ borderColor: 'var(--cc-grid)', color: 'var(--cc-ink-dim)' }}>
         {item.nextAction}
       </p>
       {ccTaskEvidence && (
