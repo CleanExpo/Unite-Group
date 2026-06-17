@@ -77,6 +77,26 @@ describe('command centre operator gateway UI source', () => {
     expect(source).not.toContain('Real execute job')
   })
 
+  it('shows the multi-CLI runtime monitor without enabling dispatch or shared credentials', () => {
+    const source = readFileSync(
+      join(root, 'src/app/(founder)/founder/command-centre/operator-gateway/page.tsx'),
+      'utf8',
+    )
+
+    expect(source).toContain('Mission Control Runtime Monitor')
+    expect(source).toContain('Multi-CLI topology')
+    expect(source).toContain('/api/hermes/operator-gateway/runtime-topology')
+    expect(source).toContain('Hermes runs through Codex')
+    expect(source).toContain('Claude Max builders and MiniMax run in isolated monitors')
+    expect(source).toContain('Obsidian captures research/evidence')
+    expect(source).toContain('No shared credentials')
+    expect(source).toContain('Production execution enabled')
+    expect(source).toContain('Browser automation requires main operator')
+    expect(source).toContain('Evidence flow')
+    expect(source).toContain('Open gates')
+    expect(source).not.toContain('Start runner dispatch')
+  })
+
   it('shows specialized skill mesh and business mission router without live execution', () => {
     const source = readFileSync(
       join(root, 'src/app/(founder)/founder/command-centre/operator-gateway/page.tsx'),

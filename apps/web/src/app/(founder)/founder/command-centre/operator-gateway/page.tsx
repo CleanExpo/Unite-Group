@@ -95,6 +95,13 @@ function boolLabel(value: boolean, safeWhenFalse = true) {
   return <span style={pill(safe ? 'green' : 'red')}>{value ? 'yes' : 'no'}</span>
 }
 
+function runtimeTone(status: string): 'green' | 'amber' | 'blue' | 'red' {
+  if (status === 'active') return 'green'
+  if (status === 'design_only') return 'blue'
+  if (status === 'blocked_install') return 'amber'
+  return 'red'
+}
+
 export default async function OperatorGatewayPage() {
   const user = await getUser()
   const jobsView = user
@@ -121,7 +128,58 @@ export default async function OperatorGatewayPage() {
         stored subscription credentials, browser automation, payments, email, claims, and orders remain blocked unless Phill grants a later named gate.
       </div>
 
-
+      <section style={card} aria-label="multi cli runtime monitor">
+        <h2 style={{ fontSize: 18, marginTop: 0 }}>Mission Control Runtime Monitor · Multi-CLI topology</h2>
+        <p style={{ color: '#3fb950', fontSize: 14 }}>
+          Single operator dashboard active: Hermes runs through Codex, Claude Max builders and MiniMax run in isolated monitors, and Obsidian captures research/evidence for the second brain.
+        </p>
+        <p style={{ color: '#8b949e', fontSize: 13 }}>Status endpoint: <code>/api/hermes/operator-gateway/runtime-topology</code></p>
+        <div style={grid}>
+          <p>Runtime nodes: <b>{view.runtimeTopology.nodeCount}</b></p>
+          <p>Active nodes: <b>{view.runtimeTopology.activeNodeCount}</b></p>
+          <p>Install-blocked nodes: <b>{view.runtimeTopology.blockedInstallCount}</b></p>
+          <p>No shared credentials: {boolLabel(view.runtimeTopology.noSharedCredentials, false)}</p>
+          <p>No API-key mode: {boolLabel(view.runtimeTopology.noApiKeyMode, false)}</p>
+          <p>Production execution enabled: {boolLabel(view.runtimeTopology.productionExecutionEnabled)}</p>
+          <p>Browser automation requires main operator: {boolLabel(view.runtimeTopology.browserAutomationRequiresMainOperator, false)}</p>
+          <p>Board governance required: {boolLabel(view.runtimeTopology.boardGovernanceRequired, false)}</p>
+        </div>
+        <div style={grid}>
+          {view.runtimeTopology.nodes.map((node) => (
+            <div key={node.nodeId} style={{ border: '1px solid #21262d', borderRadius: 4, padding: '0.85rem' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                <div>
+                  <h3 style={{ fontSize: 15, margin: 0 }}>{node.displayName}</h3>
+                  <p style={{ color: '#8b949e', fontSize: 12, margin: '0.2rem 0 0' }}>{node.monitorSlot} · {node.role} · reports to {node.reportsTo ?? 'operator'}</p>
+                </div>
+                <span style={pill(runtimeTone(node.status))}>{node.status}</span>
+              </div>
+              <p style={{ margin: '0.35rem 0' }}><b>{node.tool}</b></p>
+              <p style={{ color: '#8b949e', fontSize: 13, margin: '0.35rem 0' }}>{node.planAllocation}</p>
+              <p style={{ color: '#8b949e', fontSize: 13, margin: '0.35rem 0' }}>{node.workspaceIsolation}</p>
+              <p style={{ color: node.status === 'active' ? '#3fb950' : '#f97316', fontSize: 13, marginBottom: 0 }}>{node.nextAction}</p>
+            </div>
+          ))}
+        </div>
+        <div style={{ ...grid, marginTop: '1rem' }}>
+          <div>
+            <h3 style={{ fontSize: 15 }}>Evidence flow</h3>
+            <ol style={{ color: '#8b949e', fontSize: 14, paddingLeft: '1.25rem' }}>
+              {view.runtimeTopology.dataFlow.map((step) => <li key={step} style={{ marginBottom: '0.35rem' }}>{step}</li>)}
+            </ol>
+          </div>
+          <div>
+            <h3 style={{ fontSize: 15 }}>Open gates</h3>
+            {view.runtimeTopology.openGates.map((gate) => (
+              <div key={gate} style={{ marginBottom: '0.5rem' }}>
+                <span style={pill('amber')}>blocked</span>{' '}
+                <code style={{ color: '#8b949e', fontSize: 12 }}>{gate}</code>
+              </div>
+            ))}
+          </div>
+        </div>
+        <p style={{ color: '#8b949e', fontSize: 13 }}>{view.runtimeTopology.nextBuildStep}</p>
+      </section>
 
       <section style={card} aria-label="project definition of done coverage">
         <h2 style={{ fontSize: 18, marginTop: 0 }}>Project Definition of Done Engine · Project coverage</h2>
