@@ -30,6 +30,7 @@ export function EmailWorkbench({ accounts }: Props) {
   const [triageMap, setTriageMap] = useState<Record<string, { category: TriageCategory; action: string }>>({})
   const [loading, setLoading] = useState(false)
   const [bulkLoading, setBulkLoading] = useState(false)
+  const [error, setError] = useState(false)
 
   // Unread counts per account tab
   const unreadCounts = accounts.map(acc => ({
@@ -44,6 +45,7 @@ export function EmailWorkbench({ accounts }: Props) {
       if (pageToken) params.set('pageToken', pageToken)
 
       const res = await fetch(`/api/email/threads?${params}`)
+      if (!res.ok) throw new Error(`Email threads API returned ${res.status}`)
       const data = await res.json() as { threads?: GmailThread[]; nextPageToken?: string; error?: string }
 
       if (data.error) throw new Error(data.error)
@@ -51,8 +53,11 @@ export function EmailWorkbench({ accounts }: Props) {
 
       setThreads(prev => pageToken ? [...prev, ...incoming] : incoming)
       setNextPageToken(data.nextPageToken)
+      setError(false)
     } catch (e) {
       console.error('[EmailWorkbench] load threads failed:', e)
+      // Honest error state — never present a failed load as an empty inbox (No-Invaders #1).
+      setError(true)
     } finally {
       setLoading(false)
     }
@@ -81,6 +86,7 @@ export function EmailWorkbench({ accounts }: Props) {
     setNextPageToken(undefined)
     setActiveThreadId(null)
     setCheckedIds(new Set())
+    setError(false)
     loadThreads(activeAccount)
     loadTriageResults(activeAccount)
   }, [activeAccount, loadThreads, loadTriageResults])
@@ -192,17 +198,25 @@ export function EmailWorkbench({ accounts }: Props) {
           <div className="flex flex-1 min-h-0">
             {/* Thread list — 35% */}
             <div className="w-[35%] min-w-[260px] border-r border-white/[0.06] flex flex-col overflow-hidden">
-              <ThreadList
-                threads={threads.filter(t => t.email === activeAccount)}
-                activeThreadId={activeThreadId}
-                checkedIds={checkedIds}
-                triageMap={triageMap}
-                hasMore={Boolean(nextPageToken)}
-                loading={loading}
-                onCheck={handleCheck}
-                onThreadClick={setActiveThreadId}
-                onLoadMore={() => loadThreads(activeAccount, nextPageToken)}
-              />
+              {error && !loading && threads.filter(t => t.email === activeAccount).length === 0 ? (
+                <div role="alert" className="flex flex-1 items-center justify-center p-6 text-center">
+                  <p className="text-sm" style={{ color: 'var(--color-danger, #ef4444)' }}>
+                    Inbox unavailable — couldn’t load threads. Refresh to try again.
+                  </p>
+                </div>
+              ) : (
+                <ThreadList
+                  threads={threads.filter(t => t.email === activeAccount)}
+                  activeThreadId={activeThreadId}
+                  checkedIds={checkedIds}
+                  triageMap={triageMap}
+                  hasMore={Boolean(nextPageToken)}
+                  loading={loading}
+                  onCheck={handleCheck}
+                  onThreadClick={setActiveThreadId}
+                  onLoadMore={() => loadThreads(activeAccount, nextPageToken)}
+                />
+              )}
             </div>
 
             {/* Thread viewer — 65% */}
