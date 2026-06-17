@@ -181,6 +181,15 @@
   text-transform: uppercase;
   color: var(--deck-muted);
 }
+/* Honesty caption — clarifies a panel's data provenance (e.g. configured registry
+   vs. live monitoring). Full-width so it wraps below the section head row. */
+.sectionCaption {
+  flex-basis: 100%;
+  font-size: 0.62rem;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  color: var(--deck-muted);
+}
 
 /* ── Panel grid ───────────────────────────────────────────────────────── */
 .panelGrid {
