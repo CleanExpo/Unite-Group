@@ -72,7 +72,7 @@ describe('command centre operator gateway UI source', () => {
     expect(source).toContain('local_foundation_ready')
     expect(source).toContain('/api/hermes/operator-gateway/jobs/local-execution')
     expect(source).toContain('Hard-gated actions refused')
-    expect(source).toContain('pending Claude/Cursor lanes')
+    expect(source).toContain('pending Claude/MiniMax/Cursor lanes')
     expect(source).toContain('active Hermes/Codex/skill-exec lanes')
     expect(source).not.toContain('Real execute job')
   })

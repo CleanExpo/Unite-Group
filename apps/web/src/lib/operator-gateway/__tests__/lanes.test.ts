@@ -2,15 +2,17 @@ import { describe, it, expect } from 'vitest'
 import { getOperatorLanes, getGatewayStatus, OPERATOR_LANES } from '../lanes'
 
 describe('model operator gateway lane registry', () => {
-  it('exposes the six starter lanes', () => {
+  it('exposes the eight starter lanes', () => {
     const ids = getOperatorLanes().map((l) => l.laneId).sort()
     expect(ids).toEqual(
       [
         'agentic_nexus_skill_exec',
         'claude_code_max_primary',
         'claude_code_max_secondary',
+        'claude_code_max_tertiary',
         'cursor_cli',
         'hermes_local',
+        'minimax_cli',
         'openai_codex_max',
       ].sort(),
     )
@@ -37,6 +39,8 @@ describe('model operator gateway lane registry', () => {
     expect(byId['hermes_local'].status).toBe('active')
     expect(byId['agentic_nexus_skill_exec'].status).toBe('active')
     expect(byId['claude_code_max_primary'].status).toBe('design_only')
+    expect(byId['claude_code_max_tertiary'].status).toBe('design_only')
+    expect(byId['minimax_cli'].status).toBe('design_only')
     expect(byId['cursor_cli'].status).toBe('not_installed')
     expect(status.activeLaneCount).toBe(3)
     expect(status.noApiKeyMode).toBe(true)

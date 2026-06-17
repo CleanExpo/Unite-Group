@@ -8,6 +8,7 @@ import {
 } from './specialized-skill-mesh'
 import { getSkillEvolutionStatus } from './skill-evolution'
 import { getProjectDodCoverageStatus } from './project-dod'
+import { getRuntimeTopologyStatus } from './runtime-topology'
 import { runFirstBoardDecisionSimulation, type BoardDecisionSimulation } from './board-decision'
 
 export interface CommandCentreLaneView extends OperatorLane {
@@ -113,6 +114,7 @@ export interface CommandCentreOperatorSurfaceView {
   skillMesh: ReturnType<typeof getSpecializedSkillMeshStatus>
   skillEvolution: ReturnType<typeof getSkillEvolutionStatus>
   projectCoverage: ReturnType<typeof getProjectDodCoverageStatus>
+  runtimeTopology: ReturnType<typeof getRuntimeTopologyStatus>
   missionRouter: {
     source: 'static_registry'
     status: 'static_local_router_ready'
@@ -144,7 +146,9 @@ function displayNameFor(lane: OperatorLane): string {
     openai_codex_max: 'Codex CLI / ChatGPT Max plan lane',
     claude_code_max_primary: 'Claude Code / Claude Max primary lane',
     claude_code_max_secondary: 'Claude Code / Claude Max secondary lane',
+    claude_code_max_tertiary: 'Claude Code / Claude Max tertiary lane',
     cursor_cli: 'Cursor CLI operator lane',
+    minimax_cli: 'MiniMax CLI / MiniMax Max media-agent lane',
     hermes_local: 'Hermes local orchestration lane',
     agentic_nexus_skill_exec: 'Agentic Nexus registered skill-exec lane',
   }
@@ -153,7 +157,7 @@ function displayNameFor(lane: OperatorLane): string {
 
 function blockedReasonFor(lane: OperatorLane): string | null {
   if (lane.status === 'active') return null
-  if (lane.laneId.startsWith('claude_code') || lane.laneId === 'cursor_cli') {
+  if (lane.laneId.startsWith('claude_code') || lane.laneId === 'cursor_cli' || lane.laneId === 'minimax_cli') {
     return 'Blocked on operator install/login; plan session only, no API keys or stored credentials.'
   }
   return `Lane is ${lane.status}; activation is a separate Board/operator gate.`
@@ -170,6 +174,7 @@ export function getCommandCentreOperatorSurfaceView(
   const skillMesh = getSpecializedSkillMeshStatus()
   const skillEvolution = getSkillEvolutionStatus()
   const projectCoverage = getProjectDodCoverageStatus()
+  const runtimeTopology = getRuntimeTopologyStatus()
   const boardDecisionEngine = runFirstBoardDecisionSimulation()
   const nextBoardDecision = boardDecisionEngine.nextRecommendedMove
   const sampleObjective = 'Prepare CARSI course product launch readiness'
@@ -209,7 +214,7 @@ export function getCommandCentreOperatorSurfaceView(
       liveRunnerEnabled: false,
       productionConnected: false,
       activeLanes: ['hermes_local', 'openai_codex_max', 'agentic_nexus_skill_exec'],
-      pendingLanes: ['claude_code_max_primary', 'claude_code_max_secondary', 'cursor_cli'],
+      pendingLanes: ['claude_code_max_primary', 'claude_code_max_secondary', 'claude_code_max_tertiary', 'minimax_cli', 'cursor_cli'],
       disabledReason: sandboxJobCreationEnabled
         ? 'Controlled real-local execution policy/types foundation is ready. It may append sandbox events and mark jobs running, but dispatch remains disabled until a later Board/ShipIt execution gate.'
         : 'Controlled real-local execution foundation is disabled until sandbox persistence/job creation is connected.',
@@ -261,6 +266,7 @@ export function getCommandCentreOperatorSurfaceView(
       { label: 'Agentic Nexus dashboard summary', href: '2nd-brain/.agentic_nexus/DASHBOARD_STATUS_SUMMARY.md', source: 'agentic_nexus' },
       { label: 'Project DoD coverage registry', href: 'project_dod_registry.jsonl', source: 'static_registry' },
       { label: 'Project DoD coverage status API', href: '/api/hermes/operator-gateway/project-coverage', source: 'crm_route' },
+      { label: 'Multi-CLI runtime topology API', href: '/api/hermes/operator-gateway/runtime-topology', source: 'crm_route' },
     ],
     blockedGates: [
       {
@@ -277,14 +283,14 @@ export function getCommandCentreOperatorSurfaceView(
             : 'operator_jobs/operator_events migration remains sandbox-first and unapplied; no DB writes are allowed here.',
       },
       {
-        gateId: 'install_claude_code_and_cursor_lanes',
+        gateId: 'install_claude_code_minimax_and_cursor_lanes',
         status: 'operator_action_required',
-        reason: 'Claude Code and Cursor CLI require operator-side install/login only; no secrets exposed to CRM.',
+        reason: 'Claude Code, MiniMax CLI, and Cursor CLI require operator-side install/login only; no secrets exposed to CRM.',
       },
       {
         gateId: 'enable_external_operator_execution',
         status: 'needs_board_grant',
-        reason: 'Launching real Codex/Claude/Cursor/Hermes jobs from CRM is deliberately disabled until a named Board gate.',
+        reason: 'Launching real Codex/Claude/MiniMax/Cursor/Hermes jobs from CRM is deliberately disabled until a named Board gate.',
       },
       {
         gateId: 'production_db_or_deploy',
@@ -333,8 +339,8 @@ export function getCommandCentreOperatorSurfaceView(
               : 'Board grant required before sandbox migration apply.',
         },
         {
-          id: 'install_claude_code_and_cursor_lanes',
-          title: 'Install/login Claude Code and Cursor CLI lanes',
+          id: 'install_claude_code_minimax_and_cursor_lanes',
+          title: 'Install/login Claude Code, MiniMax CLI, and Cursor CLI lanes',
           status: 'blocked_gate',
           nextAction: 'Operator-side install/login only; no CRM-stored credentials.',
         },
@@ -354,7 +360,7 @@ export function getCommandCentreOperatorSurfaceView(
         ? 'approve_controlled_real_local_execution_dispatch_gate'
         : jobsView.source === 'sandbox_select'
           ? 'approve_operator_gateway_sandbox_job_creation'
-          : 'approve_operator_gateway_sandbox_apply or install_claude_code_and_cursor_lanes',
+          : 'approve_operator_gateway_sandbox_apply or install_claude_code_minimax_and_cursor_lanes',
       engine: {
         status: boardDecisionEngine.status,
         source: boardDecisionEngine.source,
@@ -380,6 +386,7 @@ export function getCommandCentreOperatorSurfaceView(
     skillMesh,
     skillEvolution,
     projectCoverage,
+    runtimeTopology,
     missionRouter: {
       source: 'static_registry',
       status: 'static_local_router_ready',

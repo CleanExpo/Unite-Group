@@ -113,7 +113,7 @@ export default async function OperatorGatewayPage() {
 
       <div style={banner}>
         <strong>Operator-session lanes only.</strong> No API keys. Max/Pro plans are not backend credentials. No external execution yet.
-        The CRM may show lanes, plan jobs, display evidence, and expose blocked gates — it does not run Codex/Claude/Cursor/Hermes jobs from this page. Controlled real-local execution is policy-gated; dispatch is still disabled.
+        The CRM may show lanes, plan jobs, display evidence, and expose blocked gates — it does not run Codex/Claude/MiniMax/Cursor/Hermes jobs from this page. Controlled real-local execution is policy-gated; dispatch is still disabled.
       </div>
 
       <div style={warning}>
@@ -225,7 +225,7 @@ export default async function OperatorGatewayPage() {
         <p style={{ color: '#3fb950', fontSize: 14 }}>Controlled real-local execution design status is local_foundation_ready. The foundation validates policy, appends sandbox events, and can update sandbox job status, but dispatch remains disabled.</p>
         <p style={{ color: '#f97316', fontSize: 13 }}>Hard-gated actions refused: production DB, deploy, migrations, secrets/OP/1Password, API keys, external services, browser automation, Computer Use, email, payments, claims, orders, and public/client actions.</p>
         <p style={{ color: '#8b949e', fontSize: 13 }}>active Hermes/Codex/skill-exec lanes: {view.controlledLocalExecution.activeLanes.join(', ')}</p>
-        <p style={{ color: '#8b949e', fontSize: 13 }}>pending Claude/Cursor lanes: {view.controlledLocalExecution.pendingLanes.join(', ')}</p>
+        <p style={{ color: '#8b949e', fontSize: 13 }}>pending Claude/MiniMax/Cursor lanes: {view.controlledLocalExecution.pendingLanes.join(', ')}</p>
         <p>External execution enabled: {boolLabel(view.controlledLocalExecution.externalExecutionEnabled)}</p>
         <p>Live runner enabled: {boolLabel(view.controlledLocalExecution.liveRunnerEnabled)}</p>
         <p>Production connected: {boolLabel(view.controlledLocalExecution.productionConnected, false)}</p>
