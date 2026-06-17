@@ -327,6 +327,7 @@ Work this issue end-to-end in the current repository.
 - Inspect the existing code before editing.
 - Keep changes scoped to this Linear issue.
 - Run the repo verification command before committing.
+- When opening a pull request, base it on \`main\` — never stack it on another feature branch. Stacked PRs strand their work on the base branch and never reach \`main\`.
 - Do not read or print secrets.
 - If blocked, stop with a clear blocker comment in Linear.
 - If successful, leave a concise completion note with verification evidence.

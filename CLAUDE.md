@@ -41,4 +41,10 @@ then delete the legacy app. Operate per the skill:
   pi-ceo-operator-mcp) — they are frozen pending deletion per the runbook.
 - **Deletion** of any repo/Supabase/Vercel resource: runbook gates + Phill's
   typed approval only. Never autonomous.
+- **PR base = `main`, always.** Every pull request must target `main` — never
+  stack a PR on another feature branch. Stacked PRs merge into their base
+  branch and strand the work there (it never reaches `main`); see the
+  mobile-voice incident (PRs #281/#282/#283 stranded on
+  `codex/mobile-voice-intake`, recovered via #285). One issue → one branch off
+  the latest `main` → one PR into `main`.
 - Locale: en-AU | DD/MM/YYYY | AUD | AEST/AEDT.
