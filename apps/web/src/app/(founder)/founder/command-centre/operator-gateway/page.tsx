@@ -138,6 +138,9 @@ export default async function OperatorGatewayPage() {
           <p>Runtime nodes: <b>{view.runtimeTopology.nodeCount}</b></p>
           <p>Active nodes: <b>{view.runtimeTopology.activeNodeCount}</b></p>
           <p>Install-blocked nodes: <b>{view.runtimeTopology.blockedInstallCount}</b></p>
+          <p>Telemetry monitors: <b>{view.runnerTelemetry.monitorCount}</b></p>
+          <p>Telemetry connected: <b>{view.runnerTelemetry.connectedMonitorCount}</b></p>
+          <p>Telemetry blocked: <b>{view.runnerTelemetry.blockedMonitorCount}</b></p>
           <p>No shared credentials: {boolLabel(view.runtimeTopology.noSharedCredentials, false)}</p>
           <p>No API-key mode: {boolLabel(view.runtimeTopology.noApiKeyMode, false)}</p>
           <p>Production execution enabled: {boolLabel(view.runtimeTopology.productionExecutionEnabled)}</p>
@@ -162,6 +165,20 @@ export default async function OperatorGatewayPage() {
           ))}
         </div>
         <div style={{ ...grid, marginTop: '1rem' }}>
+          <div>
+            <h3 style={{ fontSize: 15 }}>Telemetry contract</h3>
+            <p style={{ color: '#8b949e', fontSize: 13 }}>Endpoint: <code>/api/hermes/operator-gateway/runner-telemetry</code></p>
+            <p>Dispatch enabled: {boolLabel(view.runnerTelemetry.dispatchEnabled)}</p>
+            <p>Live runner enabled: {boolLabel(view.runnerTelemetry.liveRunnerEnabled)}</p>
+            <p>Next gate: <code>{view.runnerTelemetry.nextGate}</code></p>
+            {view.runnerTelemetry.monitors.slice(0, 5).map((monitor) => (
+              <div key={monitor.nodeId} style={{ borderTop: '1px solid #21262d', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
+                <b>{monitor.monitorSlot}</b>{' '}
+                <span style={pill(runtimeTone(monitor.heartbeatStatus === 'local_status_only' || monitor.heartbeatStatus === 'operator_visible' ? 'active' : monitor.heartbeatStatus))}>{monitor.heartbeatStatus}</span>
+                <p style={{ color: '#8b949e', fontSize: 12, margin: '0.25rem 0 0' }}>{monitor.requiredEvidence.join(', ')}</p>
+              </div>
+            ))}
+          </div>
           <div>
             <h3 style={{ fontSize: 15 }}>Evidence flow</h3>
             <ol style={{ color: '#8b949e', fontSize: 14, paddingLeft: '1.25rem' }}>
