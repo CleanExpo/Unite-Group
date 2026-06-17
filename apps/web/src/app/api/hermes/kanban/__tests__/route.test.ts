@@ -99,12 +99,21 @@ describe('Hermes Kanban route parsing', () => {
     })).toEqual({
       teamKey: 'UNI',
       title: '[Hermes t_176bb1b0] Unite-Hub: keep Hermes Kanban mirrored in Founder OS',
-      description: 'Hermes Task: t_176bb1b0\nSource: Unite-Hub dual-board controls\n\nEvidence loop required',
+      description: [
+        'Hermes Task: t_176bb1b0',
+        'Source: Hermes Kanban',
+        'Mission Control Eligible: yes',
+        'Required Labels: mesh:auto, pi-dev:autonomous, source:hermes-kanban',
+        '',
+        'Evidence loop required',
+      ].join('\n'),
       priority: 3,
+      labelNames: ['mesh:auto', 'pi-dev:autonomous', 'source:hermes-kanban'],
     })
   })
 
   it('links a Hermes task to a new Linear issue and records the backlink as a Hermes comment', async () => {
+    const createIssueMock = vi.fn().mockResolvedValue({ id: 'UNI-777', url: 'https://linear.app/unite-group/issue/UNI-777/test' })
     const execMock = vi.fn()
       .mockResolvedValueOnce({ stdout: JSON.stringify({ task: { id: 't_176bb1b0' }, comments: [] }), stderr: '' })
       .mockResolvedValueOnce({ stdout: 'commented t_176bb1b0\n', stderr: '' })
@@ -112,7 +121,7 @@ describe('Hermes Kanban route parsing', () => {
       .mockResolvedValueOnce({ stdout: '▶ t_176bb1b0  ready     default               Unite-Hub: keep Hermes Kanban mirrored in Founder OS\n', stderr: '' })
       .mockResolvedValueOnce({ stdout: JSON.stringify({ task: { id: 't_176bb1b0' }, comments: [{ body: 'Linear link: UNI-777 https://linear.app/unite-group/issue/UNI-777/test' }] }), stderr: '' })
     __test__.setExecFileForTest(execMock)
-    __test__.setCreateIssueForTest(vi.fn().mockResolvedValue({ id: 'UNI-777', url: 'https://linear.app/unite-group/issue/UNI-777/test' }))
+    __test__.setCreateIssueForTest(createIssueMock)
 
     const response = await POST(new Request('http://localhost/api/hermes/kanban', {
       method: 'POST',
@@ -129,6 +138,9 @@ describe('Hermes Kanban route parsing', () => {
     expect(response.status).toBe(200)
     expect(payload.action).toBe('linkLinear')
     expect(payload.linkedIssue).toEqual({ identifier: 'UNI-777', url: 'https://linear.app/unite-group/issue/UNI-777/test' })
+    expect(createIssueMock).toHaveBeenCalledWith(expect.objectContaining({
+      labelNames: ['mesh:auto', 'pi-dev:autonomous', 'source:hermes-kanban'],
+    }))
     expect(execMock).toHaveBeenCalledWith('hermes', [
       'kanban',
       'comment',
