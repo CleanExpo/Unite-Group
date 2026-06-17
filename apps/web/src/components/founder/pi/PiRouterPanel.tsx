@@ -281,6 +281,9 @@ export function PiRouterPanel() {
                 <ResultRow label="Role" value={activeItem.machineAssignment.assignedRole ?? 'Unassigned'} />
                 <ResultRow label="Approvals" value={`${activeItem.approvals.length}`} />
                 <ResultRow label="Receipts" value={`${activeItem.receipts.length}`} />
+                <p className="mt-2 text-[11px] leading-5 text-white/40">
+                  Planned routing from a static device registry — device statuses are configured, not live-monitored. No work is dispatched.
+                </p>
               </ResultCard>
 
               <ResultCard title="Next action">
