@@ -4,9 +4,11 @@
 // Requires an authenticated session. If the user has TOTP enrolled,
 // also requires AAL2 (verified via MFAGate before reaching this route).
 
+import { randomUUID } from 'crypto'
 import { NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
 import { getXeroCredentials } from '@/lib/integrations/xero'
+import { signOAuthState } from '@/lib/oauth-state'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,13 +46,21 @@ export async function GET(request: Request) {
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? '').trim()
   const redirectUri = `${appUrl}/api/xero/callback`
 
+  // Signed, founder-bound, time-limited state — prevents OAuth CSRF on the callback.
+  const state = signOAuthState({
+    businessKey,
+    founderId: user.id,
+    nonce: randomUUID(),
+    expiresAt: String(Date.now() + 10 * 60 * 1000),
+  })
+
   const params = new URLSearchParams({
     response_type: 'code',
     client_id: clientId,
     redirect_uri: redirectUri,
     scope:
       'openid profile email offline_access accounting.reports.profitandloss.read accounting.invoices.read accounting.banktransactions accounting.contacts.read accounting.settings.read',
-    state: businessKey,
+    state,
   })
 
   return NextResponse.redirect(

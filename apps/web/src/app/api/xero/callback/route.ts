@@ -4,25 +4,46 @@
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { getXeroCredentials, selectXeroTenantForBusiness } from '@/lib/integrations/xero'
+import { verifyOAuthState } from '@/lib/oauth-state'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
-  const state = searchParams.get('state') // businessKey passed via OAuth state param
-  const businessKey = state ?? 'default'
+  const rawState = searchParams.get('state')
 
   if (!code) {
     return NextResponse.redirect(new URL('/founder/xero?error=no_code', request.url))
   }
 
-  const { clientId, clientSecret } = getXeroCredentials(businessKey)
-  if (!clientId || !clientSecret) {
-    return NextResponse.redirect(new URL('/founder/xero?error=not_configured', request.url))
-  }
-
   const user = await getUser()
   if (!user) {
     return NextResponse.redirect(new URL('/auth/login', request.url))
+  }
+
+  // Anti-CSRF: the state must be a signed token bound to THIS founder, carrying a
+  // nonce and an unexpired timestamp. Reject anything else before trusting it
+  // (previously the state was an unsigned businessKey — an attacker-initiated
+  // callback could bind an attacker-controlled Xero org to the founder's session).
+  let businessKey: string
+  try {
+    if (!rawState) throw new Error('missing state')
+    const stateData = verifyOAuthState(rawState)
+    if (
+      stateData.founderId !== user.id ||
+      !stateData.nonce ||
+      !stateData.expiresAt ||
+      Number(stateData.expiresAt) < Date.now()
+    ) {
+      throw new Error('state validation failed')
+    }
+    businessKey = stateData.businessKey ?? 'default'
+  } catch {
+    return NextResponse.redirect(new URL('/founder/xero?error=invalid_state', request.url))
+  }
+
+  const { clientId, clientSecret } = getXeroCredentials(businessKey)
+  if (!clientId || !clientSecret) {
+    return NextResponse.redirect(new URL('/founder/xero?error=not_configured', request.url))
   }
 
   try {
