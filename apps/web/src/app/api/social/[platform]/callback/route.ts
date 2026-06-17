@@ -3,7 +3,9 @@
 // Handles OAuth callback, exchanges code for token, stores in vault
 
 import { NextResponse } from 'next/server'
+import { getUser } from '@/lib/supabase/server'
 import { exchangeCode, savePlatformTokens } from '@/lib/integrations/social'
+import { verifyOAuthState } from '@/lib/oauth-state'
 
 export async function GET(
   request: Request,
@@ -27,9 +29,26 @@ export async function GET(
     )
   }
 
-  let stateData: { founderId: string; platform: string; nonce: string }
+  const user = await getUser()
+  if (!user) {
+    return NextResponse.redirect(new URL('/auth/login', request.url))
+  }
+
+  // Anti-CSRF: the state must be a signed token bound to THIS founder and THIS
+  // platform, carrying a nonce and an unexpired timestamp. Reject anything else
+  // before trusting it (previously the state was an unsigned base64url blob, so
+  // the callback bound tokens to an attacker-controllable founderId).
   try {
-    stateData = JSON.parse(Buffer.from(state, 'base64url').toString())
+    const stateData = verifyOAuthState(state)
+    if (
+      stateData.founderId !== user.id ||
+      stateData.platform !== platform ||
+      !stateData.nonce ||
+      !stateData.expiresAt ||
+      Number(stateData.expiresAt) < Date.now()
+    ) {
+      throw new Error('state validation failed')
+    }
   } catch {
     return NextResponse.redirect(
       new URL(`/founder/social?error=invalid_state&platform=${platform}`, request.url)
@@ -47,7 +66,7 @@ export async function GET(
     )
   }
 
-  await savePlatformTokens(stateData.founderId, platform, {
+  await savePlatformTokens(user.id, platform, {
     access_token: tokens.access_token,
     ...(tokens.refresh_token && { refresh_token: tokens.refresh_token }),
     ...(tokens.expires_in && { expires_at: Date.now() + tokens.expires_in * 1000 }),
