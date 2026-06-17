@@ -24,6 +24,9 @@ const STATUS_SYMBOLS: Record<string, string> = {
 const TASK_ID_PATTERN = /^t_[a-z0-9]+$/i
 const SAFE_TEXT_LIMIT = 2_000
 const HERMES_AUTONOMY_LABELS = ['mesh:auto', 'pi-dev:autonomous', 'source:hermes-kanban']
+const AUTO_LINKABLE_STATUSES = new Set(['ready', 'todo', 'scheduled'])
+const DEFAULT_BATCH_LINK_LIMIT = 10
+const MAX_BATCH_LINK_LIMIT = 25
 
 interface LinearBacklink {
   identifier: string
@@ -46,6 +49,7 @@ type HermesActionPayload = {
   note?: string
   assignee?: string
   teamKey?: string
+  limit?: number
 }
 
 function parseTaskLine(line: string): HermesKanbanTask | null {
@@ -95,6 +99,13 @@ function safeTaskId(value: unknown) {
   const taskId = safeText(value, 'taskId', true)
   if (!TASK_ID_PATTERN.test(taskId)) throw new Error('valid taskId is required')
   return taskId
+}
+
+function safeLimit(value: unknown) {
+  if (value === undefined) return DEFAULT_BATCH_LINK_LIMIT
+  if (typeof value !== 'number' || !Number.isInteger(value)) throw new Error('limit must be an integer')
+  if (value < 1 || value > MAX_BATCH_LINK_LIMIT) throw new Error(`limit must be between 1 and ${MAX_BATCH_LINK_LIMIT}`)
+  return value
 }
 
 function buildHermesActionCommand(payload: HermesActionPayload) {
@@ -219,6 +230,30 @@ async function readHermesBoard() {
   }
 }
 
+async function linkTaskToLinear(payload: HermesActionPayload, existingLink?: LinearBacklink | null) {
+  const taskId = safeTaskId(payload.taskId)
+  const linearLink = existingLink === undefined ? await readExistingLinearBacklink(taskId) : existingLink
+  if (linearLink) {
+    return {
+      taskId,
+      linkedIssue: linearLink,
+      reused: true,
+      receipt: { command: ['hermes', 'kanban', 'show', '--json', taskId], stdout: 'Existing Linear backlink reused', stderr: '' },
+    }
+  }
+
+  const issue = await createLinearIssue(buildLinearIssueInput(payload))
+  const backlink = `Linear link: ${issue.id}${issue.url ? ` ${issue.url}` : ''}`
+  const args = ['kanban', 'comment', '--author', 'unite-hub', taskId, backlink]
+  const { stdout, stderr } = await execFileAsync('hermes', args, { timeout: 20_000, windowsHide: true })
+  return {
+    taskId,
+    linkedIssue: { identifier: issue.id, url: issue.url },
+    reused: false,
+    receipt: { command: ['hermes', ...args], stdout: stdout.trim(), stderr: stderr?.trim() ?? '' },
+  }
+}
+
 export async function GET() {
   try {
     return NextResponse.json(await readHermesBoard())
@@ -237,27 +272,42 @@ export async function POST(request: Request) {
     const action = safeText(payload.action, 'action', true)
 
     if (action === 'linkLinear') {
-      const taskId = safeTaskId(payload.taskId)
-      const existingLink = await readExistingLinearBacklink(taskId)
-      if (existingLink) {
-        return NextResponse.json({
-          source: 'hermes-kanban',
-          action,
-          linkedIssue: existingLink,
-          receipt: { command: ['hermes', 'kanban', 'show', '--json', taskId], stdout: 'Existing Linear backlink reused', stderr: '' },
-          board: await readHermesBoard(),
-        })
-      }
-
-      const issue = await createLinearIssue(buildLinearIssueInput(payload))
-      const backlink = `Linear link: ${issue.id}${issue.url ? ` ${issue.url}` : ''}`
-      const args = ['kanban', 'comment', '--author', 'unite-hub', taskId, backlink]
-      const { stdout, stderr } = await execFileAsync('hermes', args, { timeout: 20_000, windowsHide: true })
+      const linkResult = await linkTaskToLinear(payload)
       return NextResponse.json({
         source: 'hermes-kanban',
         action,
-        linkedIssue: { identifier: issue.id, url: issue.url },
-        receipt: { command: ['hermes', ...args], stdout: stdout.trim(), stderr: stderr?.trim() ?? '' },
+        linkedIssue: linkResult.linkedIssue,
+        receipt: linkResult.receipt,
+        board: await readHermesBoard(),
+      })
+    }
+
+    if (action === 'linkReadyLinear') {
+      const teamKey = safeText(payload.teamKey, 'teamKey') ?? 'UNI'
+      const limit = safeLimit(payload.limit)
+      const board = await readHermesBoard()
+      const candidates = board.tasks
+        .filter((task) => AUTO_LINKABLE_STATUSES.has(task.status.toLowerCase()) && !task.linearLink)
+        .slice(0, limit)
+
+      const linkedIssues = []
+      for (const task of candidates) {
+        linkedIssues.push(await linkTaskToLinear({
+          action: 'linkLinear',
+          taskId: task.id,
+          title: task.title,
+          body: `Auto-linked from Hermes Kanban status: ${task.status}.`,
+          teamKey,
+        }, task.linearLink ?? null))
+      }
+
+      return NextResponse.json({
+        source: 'hermes-kanban',
+        action,
+        scanned: board.tasks.length,
+        linkedCount: linkedIssues.filter((issue) => !issue.reused).length,
+        reusedCount: linkedIssues.filter((issue) => issue.reused).length,
+        linkedIssues,
         board: await readHermesBoard(),
       })
     }

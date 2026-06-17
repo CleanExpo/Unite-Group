@@ -186,6 +186,85 @@ describe('Hermes Kanban route parsing', () => {
     expect(execMock).not.toHaveBeenCalledWith('hermes', expect.arrayContaining(['comment']), expect.any(Object))
   })
 
+  it('batch-links ready Hermes tasks into Linear without duplicating linked tasks', async () => {
+    const createIssueMock = vi.fn().mockResolvedValue({ id: 'UNI-888', url: 'https://linear.app/unite-group/issue/UNI-888/batch' })
+    const execMock = vi.fn()
+      .mockResolvedValueOnce({ stdout: 'Current board: default\n', stderr: '' })
+      .mockResolvedValueOnce({
+        stdout: [
+          '▶ t_ready01  ready     default               Build batch Hermes link',
+          '○ t_todo02   todo      default               Already linked task',
+          '✓ t_done03   done      default               Completed task',
+        ].join('\n'),
+        stderr: '',
+      })
+      .mockResolvedValueOnce({ stdout: JSON.stringify({ task: { id: 't_ready01' }, comments: [] }), stderr: '' })
+      .mockResolvedValueOnce({
+        stdout: JSON.stringify({
+          task: { id: 't_todo02' },
+          comments: [{ body: 'Linear link: UNI-777 https://linear.app/unite-group/issue/UNI-777/existing' }],
+        }),
+        stderr: '',
+      })
+      .mockResolvedValueOnce({ stdout: 'commented t_ready01\n', stderr: '' })
+      .mockResolvedValueOnce({ stdout: 'Current board: default\n', stderr: '' })
+      .mockResolvedValueOnce({
+        stdout: [
+          '▶ t_ready01  ready     default               Build batch Hermes link',
+          '○ t_todo02   todo      default               Already linked task',
+        ].join('\n'),
+        stderr: '',
+      })
+      .mockResolvedValueOnce({
+        stdout: JSON.stringify({
+          task: { id: 't_ready01' },
+          comments: [{ body: 'Linear link: UNI-888 https://linear.app/unite-group/issue/UNI-888/batch' }],
+        }),
+        stderr: '',
+      })
+      .mockResolvedValueOnce({
+        stdout: JSON.stringify({
+          task: { id: 't_todo02' },
+          comments: [{ body: 'Linear link: UNI-777 https://linear.app/unite-group/issue/UNI-777/existing' }],
+        }),
+        stderr: '',
+      })
+    __test__.setExecFileForTest(execMock)
+    __test__.setCreateIssueForTest(createIssueMock)
+
+    const response = await POST(new Request('http://localhost/api/hermes/kanban', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'linkReadyLinear', teamKey: 'UNI', limit: 5 }),
+    }))
+    const payload = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(payload.action).toBe('linkReadyLinear')
+    expect(payload.scanned).toBe(3)
+    expect(payload.linkedCount).toBe(1)
+    expect(payload.reusedCount).toBe(0)
+    expect(payload.linkedIssues).toEqual([
+      expect.objectContaining({
+        taskId: 't_ready01',
+        linkedIssue: { identifier: 'UNI-888', url: 'https://linear.app/unite-group/issue/UNI-888/batch' },
+        reused: false,
+      }),
+    ])
+    expect(createIssueMock).toHaveBeenCalledTimes(1)
+    expect(createIssueMock).toHaveBeenCalledWith(expect.objectContaining({
+      title: '[Hermes t_ready01] Build batch Hermes link',
+      labelNames: ['mesh:auto', 'pi-dev:autonomous', 'source:hermes-kanban'],
+    }))
+    expect(execMock).toHaveBeenCalledWith('hermes', [
+      'kanban',
+      'comment',
+      '--author',
+      'unite-hub',
+      't_ready01',
+      'Linear link: UNI-888 https://linear.app/unite-group/issue/UNI-888/batch',
+    ], expect.any(Object))
+  })
+
   it('parses Linear backlinks from Hermes task comments', () => {
     expect(__test__.parseLinearBacklink([
       { body: 'Operator note' },
