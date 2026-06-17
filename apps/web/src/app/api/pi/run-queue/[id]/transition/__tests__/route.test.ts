@@ -1,4 +1,8 @@
-import { describe, expect, it, beforeEach } from 'vitest'
+import { describe, expect, it, beforeEach, vi } from 'vitest'
+
+vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn() }))
+
+import { getUser } from '@/lib/supabase/server'
 import { POST as enqueuePost } from '../../../route'
 import { POST } from '../route'
 import { founderRunQueueStore } from '../../../../../../../lib/founder-os'
@@ -28,6 +32,15 @@ async function enqueue(message: string, idSeed: string) {
 describe('POST /api/pi/run-queue/[id]/transition', () => {
   beforeEach(() => {
     founderRunQueueStore.clear()
+    vi.mocked(getUser).mockResolvedValue({ id: 'founder-1' } as any)
+  })
+
+  it('returns 401 when unauthenticated', async () => {
+    vi.mocked(getUser).mockResolvedValue(null)
+
+    const response = await POST(transitionRequest({ action: 'approve', actor: 'Margot', now: '2026-06-02T00:01:00.000Z' }), { params: Promise.resolve({ id: 'run_task' }) })
+
+    expect(response.status).toBe(401)
   })
 
   it('approves and starts an approval-gated task', async () => {

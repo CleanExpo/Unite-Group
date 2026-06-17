@@ -1,7 +1,30 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn() }))
+
+import { getUser } from '@/lib/supabase/server'
 import { GET, POST, __test__ } from '../route'
 
 describe('Hermes Kanban route parsing', () => {
+  beforeEach(() => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'founder-1' } as never)
+  })
+
+  it('returns 401 from GET when unauthenticated', async () => {
+    vi.mocked(getUser).mockResolvedValue(null)
+    const response = await GET()
+    expect(response.status).toBe(401)
+  })
+
+  it('returns 401 from POST when unauthenticated', async () => {
+    vi.mocked(getUser).mockResolvedValue(null)
+    const response = await POST(new Request('http://localhost/api/hermes/kanban', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'create', title: 'Unauthorised attempt' }),
+    }))
+    expect(response.status).toBe(401)
+  })
+
   it('parses assigned Hermes task rows', () => {
     const task = __test__.parseTaskLine('✓ t_cae06971  done      default               RA continuation: reconcile Linear + dirty repo lanes')
 

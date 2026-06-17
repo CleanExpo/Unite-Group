@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { getUser } from '@/lib/supabase/server'
 import { buildContinuationEnforcement, founderRunQueueStore, type FounderRunQueueAction } from '../../../../../../lib/founder-os'
 
 export const dynamic = 'force-dynamic'
@@ -18,6 +19,9 @@ interface TransitionRequestBody {
 const VALID_ACTIONS: FounderRunQueueAction[] = ['approve', 'start', 'block', 'complete']
 
 export async function POST(request: Request, { params }: RouteParams) {
+  const user = await getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+
   const { id } = await params
   let body: TransitionRequestBody
 

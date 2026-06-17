@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { getUser } from '@/lib/supabase/server'
 import {
   assignMachineForTask,
   buildContinuationEnforcement,
@@ -46,6 +47,9 @@ const DEFAULT_FOUNDER_DEVICES: FounderDevice[] = [
 ]
 
 export async function GET() {
+  const user = await getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+
   const items = founderRunQueueStore.list()
 
   return NextResponse.json({
@@ -56,6 +60,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const user = await getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+
   let body: PiRunQueueRequestBody
 
   try {

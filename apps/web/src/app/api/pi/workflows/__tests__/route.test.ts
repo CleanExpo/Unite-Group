@@ -1,5 +1,13 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn() }))
+
+import { getUser } from '@/lib/supabase/server'
 import { GET } from '../route'
+
+beforeEach(() => {
+  vi.mocked(getUser).mockResolvedValue({ id: 'founder-1' } as any)
+})
 
 describe('GET /api/pi/workflows', () => {
   it('returns the Pi-Dev-Ops dynamic workflow state for Founder OS visibility', async () => {
@@ -14,5 +22,11 @@ describe('GET /api/pi/workflows', () => {
     expect(body.workflow.modelRoute.challenger).toBe('kimi-2.5-class')
     expect(body.workflow.changedFileCount).toBeGreaterThan(0)
     expect(body.workflow.verificationSummary).toContain('pnpm build')
+  })
+
+  it('returns 401 when unauthenticated', async () => {
+    vi.mocked(getUser).mockResolvedValue(null)
+    const response = await GET()
+    expect(response.status).toBe(401)
   })
 })

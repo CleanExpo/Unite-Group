@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import * as path from 'node:path'
 import { NextResponse } from 'next/server'
+import { getUser } from '@/lib/supabase/server'
 import {
   buildPiDevOpsWorkflowState,
   type PiDevOpsWorkflowEvidence,
@@ -14,6 +15,9 @@ const MANIFEST_PATH = path.join(WORKFLOW_DIR, 'manifest.template.json')
 const EVIDENCE_PATH = path.join(WORKFLOW_DIR, 'evidence.pathway.json')
 
 export async function GET() {
+  const user = await getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+
   try {
     const [manifest, evidence] = await Promise.all([
       readJson<PiDevOpsWorkflowManifest>(MANIFEST_PATH),
