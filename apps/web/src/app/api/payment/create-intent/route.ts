@@ -33,7 +33,7 @@ const createIntentSchema = z.object({
 export async function POST(request: NextRequest) {
   const user = await getUser();
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
   }
 
   if (!process.env.STRIPE_SECRET_KEY) {

@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   const user = await getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const supabase = await createClient()
   const body = await request.json()
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(_request: NextRequest) {
   const user = await getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const supabase = await createClient()
 

@@ -56,7 +56,7 @@ function rowToBrandIdentity(row: BrandIdentityRow): BrandIdentity & { businessNa
 
 export async function GET() {
   const user = await getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const supabase = createServiceClient()
   const { data, error } = await supabase
@@ -90,7 +90,7 @@ interface UpsertPersonaInput {
 
 export async function POST(request: Request) {
   const user = await getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   let body: UpsertPersonaInput
   try {

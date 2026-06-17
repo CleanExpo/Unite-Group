@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 // GET — list skill health records (latest per skill)
 export async function GET() {
   const user = await getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -29,7 +29,7 @@ export async function GET() {
 // POST — record a new eval run
 export async function POST(request: NextRequest) {
   const user = await getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const supabase = await createClient()
   const body = await request.json()

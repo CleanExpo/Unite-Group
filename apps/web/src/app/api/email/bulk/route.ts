@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
   const user = await getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const { account, threadIds, action } = await request.json() as {
     account: string

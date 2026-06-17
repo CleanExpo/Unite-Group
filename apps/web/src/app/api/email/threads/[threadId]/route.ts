@@ -13,7 +13,7 @@ export async function GET(
   { params }: { params: Promise<{ threadId: string }> }
 ) {
   const user = await getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const { threadId } = await params
   const { searchParams } = new URL(request.url)
