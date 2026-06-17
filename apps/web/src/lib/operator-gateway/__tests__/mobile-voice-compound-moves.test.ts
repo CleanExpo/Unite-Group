@@ -1,5 +1,9 @@
-import { describe, expect, it } from 'vitest'
-import { buildMobileVoiceCompoundMovePreview } from '../mobile-voice-compound-moves'
+import { describe, expect, it, vi } from 'vitest'
+import {
+  buildMobileVoiceCompoundMoveArtifactInput,
+  buildMobileVoiceCompoundMovePreview,
+  writeMobileVoiceCompoundMoveArtifact,
+} from '../mobile-voice-compound-moves'
 
 const boardPacket = `---
 title: "Board review packet — Terminal exchange proof"
@@ -54,5 +58,30 @@ describe('mobile voice compound moves', () => {
   it('clamps move count to the 15-20 operating window', () => {
     expect(buildMobileVoiceCompoundMovePreview({ boardPacketText: boardPacket, maxMoves: 1 }).moveCount).toBe(15)
     expect(buildMobileVoiceCompoundMovePreview({ boardPacketText: boardPacket, maxMoves: 50 }).moveCount).toBe(20)
+  })
+
+  it('formats and writes the Next 20 Moves artifact without enabling execution', async () => {
+    const preview = buildMobileVoiceCompoundMovePreview({ boardPacketText: boardPacket, maxMoves: 20 })
+    const input = buildMobileVoiceCompoundMoveArtifactInput(preview)
+
+    expect(input.kind).toBe('compound-moves')
+    expect(input.frontmatter.title).toContain('Next 20 compound moves')
+    expect(input.body).toContain('## Next Moves')
+    expect(input.body).toContain('Hermes queue enabled: `false`')
+    expect(input.body).toContain('Linear task created: `false`')
+    expect(input.body).toContain('Founder/Board approval is required')
+
+    const writer = vi.fn(async () => ({
+      notePath: '/tmp/wiki/raw/command-centre/mobile-voice-intake/next-20.md',
+      relativePath: 'raw/command-centre/mobile-voice-intake/next-20.md',
+      suffixed: false,
+    }))
+    await expect(writeMobileVoiceCompoundMoveArtifact(preview, writer)).resolves.toEqual({
+      written: true,
+      notePath: '/tmp/wiki/raw/command-centre/mobile-voice-intake/next-20.md',
+      relativePath: 'raw/command-centre/mobile-voice-intake/next-20.md',
+      suffixed: false,
+    })
+    expect(writer).toHaveBeenCalledWith(input)
   })
 })

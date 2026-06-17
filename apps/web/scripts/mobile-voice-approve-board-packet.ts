@@ -2,7 +2,10 @@
 
 import { readFile } from 'node:fs/promises'
 import process from 'node:process'
-import { buildMobileVoiceCompoundMovePreview } from '../src/lib/operator-gateway/mobile-voice-compound-moves'
+import {
+  buildMobileVoiceCompoundMovePreview,
+  writeMobileVoiceCompoundMoveArtifact,
+} from '../src/lib/operator-gateway/mobile-voice-compound-moves'
 
 interface Args {
   boardPacket?: string
@@ -10,6 +13,7 @@ interface Args {
   packetId?: string
   title?: string
   maxMoves?: number
+  writeArtifact?: boolean
   pretty?: boolean
 }
 
@@ -25,6 +29,7 @@ function usage(): string {
     '  --packet-id <id>        Override/inject packet id',
     '  --title <title>         Override/inject title',
     '  --max-moves <15-20>     Number of moves to emit, clamped to 15-20',
+    '  --write-artifact        Write the Next 20 Moves artifact to WIKI_PATH',
     '  --pretty                Pretty-print JSON output',
   ].join('\n')
 }
@@ -48,6 +53,7 @@ function parseArgs(argv: string[]): Args {
     else if (arg === '--packet-id') args.packetId = next()
     else if (arg === '--title') args.title = next()
     else if (arg === '--max-moves') args.maxMoves = Number(next())
+    else if (arg === '--write-artifact') args.writeArtifact = true
     else if (arg === '--pretty') args.pretty = true
     else if (arg === '--') continue
     else throw new Error(`Unknown argument: ${arg}`)
@@ -80,7 +86,10 @@ async function main() {
       title: args.title,
       maxMoves: args.maxMoves,
     })
-    console.log(JSON.stringify(preview, null, args.pretty ? 2 : 0))
+    const artifact = args.writeArtifact
+      ? await writeMobileVoiceCompoundMoveArtifact(preview)
+      : null
+    console.log(JSON.stringify({ ...preview, artifact }, null, args.pretty ? 2 : 0))
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error))
     console.error('')

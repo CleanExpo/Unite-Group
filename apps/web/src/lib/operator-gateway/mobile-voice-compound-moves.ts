@@ -51,6 +51,13 @@ export interface MobileVoiceCompoundMovePreview {
   moves: MobileVoiceCompoundMove[]
 }
 
+export interface MobileVoiceCompoundMoveArtifact {
+  written: true
+  relativePath: string
+  notePath: string
+  suffixed: boolean
+}
+
 function compact(value: string): string {
   return value.trim().replace(/\s+/g, ' ')
 }
@@ -122,7 +129,7 @@ export function buildMobileVoiceCompoundMovePreview(
     move(1, 'second_brain', 'Obsidian Librarian', 'Normalize Board packet into a source-linked project note', 'Create a single canonical second-brain project note with source, Board packet, packet id, and provenance links.', ['obsidian-source-notes', 'evidence-ledger'], ['canonical project note path', 'source links'], 'stop_if_source_note_missing'),
     move(2, 'research', 'Research Scout', 'Expand adjacent products and creator references', 'Research GitHub, Hugging Face, creator repos, and market references related to the Board packet idea.', ['github-research', 'huggingface-research', 'web-research'], ['source citation list', 'competitor/adjacent map'], 'stop_if_sources_are_uncited'),
     move(3, 'research', 'Market Scout', 'Map business fit across Unite-Group portfolio', 'Map the idea to Unite-Group CRM, RestoreAssist, Synthex, ITR-Button, and client-service workflows.', ['portfolio-mapping', 'market-sizing-lite'], ['business fit matrix'], 'stop_if_no_business_owner'),
-    move(4, 'board', 'Contrarian Board', 'Identify stop reasons and hidden costs', 'Produce the strongest reasons not to proceed, including privacy, compliance, maintenance, and operator-load risks.', ['board-risk-review', 'contrarian-review'], ['risk register'], 'stop_if_unbounded_risk'),
+    move(4, 'board', 'Contrarian Board', 'Identify stop reasons and hidden costs', 'Produce the strongest reasons not to proceed, including privacy, compliance, maintenance, and operator-load risks.', ['board_risk_review', 'contrarian-review'], ['risk register'], 'stop_if_unbounded_risk'),
     move(5, 'senior_pm', 'Senior PM', 'Define the smallest valuable product slice', 'Turn the idea into a bounded MVP slice with acceptance criteria and explicit non-goals.', ['compound-development-loop', 'scope-control'], ['MVP brief', 'non-goals'], 'stop_if_scope_exceeds_mvp'),
     move(6, 'second_brain', 'Training Librarian', 'Create training-center learning object', 'Transform the idea and research into an internal training artifact for repeatable operator learning.', ['training-center', 'knowledge-distillation'], ['training note', 'learning objectives'], 'stop_if_claims_uncited'),
     move(7, 'hermes_preview', 'Hermes Planner', 'Draft Hermes Kanban preview payloads', 'Create Hermes-ready task previews for each approved workstream without creating tasks.', ['hermes-kanban-preview', 'dry-run-routing'], ['Hermes payload preview'], 'requires_board_approval_before_create'),
@@ -155,3 +162,76 @@ export function buildMobileVoiceCompoundMovePreview(
     moves,
   }
 }
+
+function formatMove(move: MobileVoiceCompoundMove): string {
+  return [
+    `### ${move.rank}. ${move.title}`,
+    '',
+    `- Lane: \`${move.lane}\``,
+    `- Agent: ${move.agent}`,
+    `- Skills: ${move.skillStack.map((skill) => `\`${skill}\``).join(', ')}`,
+    `- Stop gate: \`${move.stopGate}\``,
+    `- Hermes create task: \`${move.hermesPreview.createTask ? 'true' : 'false'}\``,
+    `- Linear create issue: \`${move.linearPreview.createIssue ? 'true' : 'false'}\``,
+    '',
+    move.objective,
+    '',
+    '**Evidence expected**',
+    '',
+    move.evidenceExpected.map((evidence) => `- ${evidence}`).join('\n'),
+  ].join('\n')
+}
+
+export function buildMobileVoiceCompoundMoveArtifactInput(
+  preview: MobileVoiceCompoundMovePreview,
+): WriteEvidenceInput {
+  return {
+    project: 'mobile-voice-intake',
+    taskId: `${preview.packetId}-next-20`,
+    kind: 'compound-moves',
+    frontmatter: {
+      title: `Next ${preview.moveCount} compound moves — ${preview.title}`,
+      type: 'compound-moves',
+      tags: ['mobile-voice', 'compound-engineering', 'pi-ceo', 'next-20', 'board-preview'],
+      confidence: 'medium',
+      packetId: preview.packetId,
+      moveCount: preview.moveCount,
+      hermesQueueEnabled: preview.hermesQueueEnabled,
+      linearTaskCreated: preview.linearTaskCreated,
+      productionExecutionEnabled: preview.productionExecutionEnabled,
+    },
+    body: [
+      '## Operating State',
+      '',
+      `- Packet: \`${preview.packetId}\``,
+      `- Board preview approved: \`${preview.boardApprovedForPreview ? 'true' : 'false'}\``,
+      `- Hermes queue enabled: \`${preview.hermesQueueEnabled ? 'true' : 'false'}\``,
+      `- Linear task created: \`${preview.linearTaskCreated ? 'true' : 'false'}\``,
+      `- External dispatch enabled: \`${preview.externalDispatchEnabled ? 'true' : 'false'}\``,
+      `- Production execution enabled: \`${preview.productionExecutionEnabled ? 'true' : 'false'}\``,
+      '',
+      '## Next Moves',
+      '',
+      ...preview.moves.map(formatMove),
+      '',
+      '## Next Approval Gate',
+      '',
+      'Founder/Board approval is required before any Hermes task, Linear issue, external dispatch, or production execution is created from this preview.',
+    ].join('\n'),
+    sources: [`mobile_voice_packet:${preview.packetId}`, 'terminal:mobile-voice:approve-board-packet'],
+  }
+}
+
+export async function writeMobileVoiceCompoundMoveArtifact(
+  preview: MobileVoiceCompoundMovePreview,
+  writer: (input: WriteEvidenceInput) => Promise<WriteEvidenceResult> = writeEvidence,
+): Promise<MobileVoiceCompoundMoveArtifact> {
+  const result = await writer(buildMobileVoiceCompoundMoveArtifactInput(preview))
+  return {
+    written: true,
+    relativePath: result.relativePath,
+    notePath: result.notePath,
+    suffixed: result.suffixed,
+  }
+}
+import { writeEvidence, type WriteEvidenceInput, type WriteEvidenceResult } from '../obsidian/evidence'
