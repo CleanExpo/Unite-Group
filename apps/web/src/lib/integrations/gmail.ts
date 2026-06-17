@@ -50,7 +50,9 @@ export interface ThreadPage {
 
 export interface GmailThreadsResult {
   data: GmailThread[]
-  source: 'gmail' | 'not_connected'
+  // 'error' = connected, but every account's live fetch failed — the caller MUST
+  // surface this rather than render an empty "no threads" state (No-Invaders #1).
+  source: 'gmail' | 'not_connected' | 'error'
 }
 
 // ─── Internal types ──────────────────────────────────────────────────────────
@@ -146,7 +148,9 @@ async function fetchThreadsForAccount(
     'https://gmail.googleapis.com/gmail/v1/users/me/threads?maxResults=10&q=in:inbox',
     { headers: { Authorization: `Bearer ${accessToken}` } }
   )
-  if (!listRes.ok) return []
+  // Throw on a live API failure so the caller can distinguish "genuinely no threads"
+  // from "the fetch failed" — never swallow into an empty list.
+  if (!listRes.ok) throw new Error(`Gmail threads.list responded ${listRes.status}`)
 
   const listData = await listRes.json() as { threads?: Array<{ id: string }> }
   const threadIds = (listData.threads ?? []).slice(0, 10).map(t => t.id)
@@ -204,7 +208,7 @@ export async function fetchGmailThreads(founderId: string): Promise<GmailThreads
 
   if (!vaultRows?.length) return { data: [], source: 'not_connected' }
 
-  const allThreads = await Promise.all(
+  const perAccount = await Promise.all(
     vaultRows.map(async (row) => {
       try {
         const tokens: StoredTokens = JSON.parse(
@@ -213,15 +217,24 @@ export async function fetchGmailThreads(founderId: string): Promise<GmailThreads
         const accessToken = await getValidToken(tokens)
         const email = row.notes ?? ''
         const businessKey = (row.metadata as { businessKey?: string })?.businessKey ?? 'personal'
-        return fetchThreadsForAccount(accessToken, email, businessKey)
+        const threads = await fetchThreadsForAccount(accessToken, email, businessKey)
+        return { ok: true as const, threads }
       } catch (err) {
         console.error('[Google] Gmail fetch failed for', row.notes, err)
-        return []
+        return { ok: false as const, threads: [] as GmailThread[] }
       }
     })
   )
 
-  const threads = allThreads.flat().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  // If every connected account failed, report an honest error rather than an empty
+  // "no threads" state. Partial success still returns the threads we did get.
+  if (!perAccount.some((r) => r.ok)) {
+    return { data: [], source: 'error' }
+  }
+
+  const threads = perAccount
+    .flatMap((r) => r.threads)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
   setCache(cacheKey, threads, GOOGLE_CACHE_TTL_MS)
   return { data: threads, source: 'gmail' }
 }
