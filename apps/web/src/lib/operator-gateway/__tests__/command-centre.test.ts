@@ -76,8 +76,14 @@ describe('command centre operator execution surface view', () => {
     expect(view.runnerTelemetry.telemetryEndpoint).toBe('/api/hermes/operator-gateway/runner-telemetry')
     expect(view.runnerTelemetry.dispatchEnabled).toBe(false)
     expect(view.runnerTelemetry.nextGate).toBe('connect_runner_heartbeat_events')
+    expect(view.mobileVoiceIntake.source).toBe('static_mobile_voice_intake')
+    expect(view.mobileVoiceIntake.endpoint).toBe('/api/hermes/operator-gateway/mobile-voice-intake')
+    expect(view.mobileVoiceIntake.plaudSupported).toBe(true)
+    expect(view.mobileVoiceIntake.secondBrainTarget).toBe('Obsidian/2nd-brain')
+    expect(view.mobileVoiceIntake.externalDispatchEnabled).toBe(false)
     expect(view.evidencePointers).toEqual(expect.arrayContaining([
       expect.objectContaining({ href: '/api/hermes/operator-gateway/runner-telemetry' }),
+      expect.objectContaining({ href: '/api/hermes/operator-gateway/mobile-voice-intake' }),
     ]))
   })
 

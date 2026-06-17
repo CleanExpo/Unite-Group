@@ -10,6 +10,7 @@ import { getSkillEvolutionStatus } from './skill-evolution'
 import { getProjectDodCoverageStatus } from './project-dod'
 import { getRuntimeTopologyStatus } from './runtime-topology'
 import { getRunnerTelemetryStatus } from './runner-telemetry'
+import { getMobileVoiceIntakeStatus } from './mobile-voice-intake'
 import { runFirstBoardDecisionSimulation, type BoardDecisionSimulation } from './board-decision'
 
 export interface CommandCentreLaneView extends OperatorLane {
@@ -117,6 +118,7 @@ export interface CommandCentreOperatorSurfaceView {
   projectCoverage: ReturnType<typeof getProjectDodCoverageStatus>
   runtimeTopology: ReturnType<typeof getRuntimeTopologyStatus>
   runnerTelemetry: ReturnType<typeof getRunnerTelemetryStatus>
+  mobileVoiceIntake: ReturnType<typeof getMobileVoiceIntakeStatus>
   missionRouter: {
     source: 'static_registry'
     status: 'static_local_router_ready'
@@ -178,6 +180,7 @@ export function getCommandCentreOperatorSurfaceView(
   const projectCoverage = getProjectDodCoverageStatus()
   const runtimeTopology = getRuntimeTopologyStatus()
   const runnerTelemetry = getRunnerTelemetryStatus()
+  const mobileVoiceIntake = getMobileVoiceIntakeStatus()
   const boardDecisionEngine = runFirstBoardDecisionSimulation()
   const nextBoardDecision = boardDecisionEngine.nextRecommendedMove
   const sampleObjective = 'Prepare CARSI course product launch readiness'
@@ -271,6 +274,7 @@ export function getCommandCentreOperatorSurfaceView(
       { label: 'Project DoD coverage status API', href: '/api/hermes/operator-gateway/project-coverage', source: 'crm_route' },
       { label: 'Multi-CLI runtime topology API', href: '/api/hermes/operator-gateway/runtime-topology', source: 'crm_route' },
       { label: 'Runner monitor telemetry API', href: '/api/hermes/operator-gateway/runner-telemetry', source: 'crm_route' },
+      { label: 'Mobile voice intake API', href: '/api/hermes/operator-gateway/mobile-voice-intake', source: 'crm_route' },
     ],
     blockedGates: [
       {
@@ -392,6 +396,7 @@ export function getCommandCentreOperatorSurfaceView(
     projectCoverage,
     runtimeTopology,
     runnerTelemetry,
+    mobileVoiceIntake,
     missionRouter: {
       source: 'static_registry',
       status: 'static_local_router_ready',
