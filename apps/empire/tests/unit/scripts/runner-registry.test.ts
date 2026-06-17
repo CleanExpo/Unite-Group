@@ -55,12 +55,31 @@ describe('parseRunnerRegistry', () => {
 
   it('marks a listed name without a command env as configured:false', () => {
     const registry = parseRunnerRegistry({
-      MISSION_CONTROL_RUNNERS: 'claude,minimax',
-      MISSION_CONTROL_RUNNER_CMD_CLAUDE: 'claude -p "{prompt}"',
+      MISSION_CONTROL_RUNNERS: 'codex,minimax',
+      MISSION_CONTROL_RUNNER_CMD_CODEX: 'codex run {issue}',
       // No MISSION_CONTROL_RUNNER_CMD_MINIMAX.
     });
     const minimax = registry.runners.find((r) => r.name === 'minimax');
     expect(minimax).toEqual({ name: 'minimax', command: '', configured: false });
+  });
+
+  it('uses built-in commands for known runner presets', () => {
+    const registry = parseRunnerRegistry({ MISSION_CONTROL_RUNNERS: 'claude,cursor' });
+    expect(registry.runners).toEqual([
+      { name: 'claude', command: 'claude -p "$(cat {prompt})"', configured: true },
+      { name: 'cursor', command: 'cursor-agent -p "$(cat {prompt})" --output-format text', configured: true },
+    ]);
+    expect(registry.defaultRunner).toBe('claude');
+  });
+
+  it('lets explicit named runner commands override built-in presets', () => {
+    const registry = parseRunnerRegistry({
+      MISSION_CONTROL_RUNNERS: 'cursor',
+      MISSION_CONTROL_RUNNER_CMD_CURSOR: 'cursor-agent -p "$(cat {prompt})" --model composer-2.5',
+    });
+    expect(registry.runners).toEqual([
+      { name: 'cursor', command: 'cursor-agent -p "$(cat {prompt})" --model composer-2.5', configured: true },
+    ]);
   });
 
   it('returns an empty registry with null default for zero config', () => {

@@ -40,6 +40,9 @@ Use this rule for cleanup: do not create a second autonomous queue. Create or di
 
 Optional:
 
+- `MISSION_CONTROL_RUNNERS`: comma-separated named runner registry, for example `claude,cursor`. Built-in presets exist for `claude` and `cursor`.
+- `MISSION_CONTROL_RUNNER_CMD_<NAME>`: command override for a named runner, for example `MISSION_CONTROL_RUNNER_CMD_CURSOR`.
+- `MISSION_CONTROL_DEFAULT_RUNNER`: default named runner when no `runner:<name>` Linear label is present.
 - `MISSION_CONTROL_HANDOFF_URL`: optional web handoff endpoint, for example `https://<app>/api/cron/linear-handoff`. When set, the worker uses the app’s read-only handoff packet for issue selection and prompt generation.
 - `MISSION_CONTROL_CRON_SECRET` or `CRON_SECRET`: bearer token for `MISSION_CONTROL_HANDOFF_URL`.
 - `MISSION_CONTROL_LINEAR_TEAM_KEY`: defaults to `UNI`.
@@ -122,6 +125,33 @@ MISSION_CONTROL_CRON_SECRET='<same value as CRON_SECRET>' \
 npm --prefix /Users/phillmcgurk/Unite-Group run mission-control:linear-handoff-loop
 ```
 
+## Runner Registry
+
+Use named runners when Mission Control should choose between local CLIs. A Linear label like `runner:cursor` selects that runner for a task; otherwise `MISSION_CONTROL_DEFAULT_RUNNER` or the first configured runner is used.
+
+Built-in presets:
+
+- `claude`: `claude -p "$(cat {prompt})"`
+- `cursor`: `cursor-agent -p "$(cat {prompt})" --output-format text`
+
+Claude default with Cursor available for labelled frontend/UI tasks:
+
+```bash
+MISSION_CONTROL_RUNNERS=claude,cursor \
+MISSION_CONTROL_DEFAULT_RUNNER=claude \
+npm run mission-control:linear-loop:preflight
+```
+
+If Cursor is not installed yet, preflight will report `runner:cursor` as missing. It only blocks startup when Cursor is the default runner.
+
+Override any preset with `MISSION_CONTROL_RUNNER_CMD_<NAME>`:
+
+```bash
+MISSION_CONTROL_RUNNERS=cursor \
+MISSION_CONTROL_RUNNER_CMD_CURSOR='cursor-agent -p "$(cat {prompt})" --model Composer-2.5' \
+npm run mission-control:linear-loop:preflight
+```
+
 ## Safer Continuous Mode
 
 Use this when you want the loop to push the current feature branch but stop at In Review:
@@ -135,7 +165,8 @@ npm run mission-control:linear-loop
 
 ## Guardrails
 
-- The loop does not run if `MISSION_CONTROL_RUNNER_CMD` is missing.
+- The loop does not run if no legacy runner command or named runner is configured.
+- The loop does not run if the default runner CLI is missing.
 - If `MISSION_CONTROL_HANDOFF_URL` is set, the loop does not run unless `MISSION_CONTROL_CRON_SECRET` or `CRON_SECRET` is also available.
 - The loop does not push unless `MISSION_CONTROL_PUSH=1`.
 - The loop does not mark Done unless `MISSION_CONTROL_COMPLETE_ON_SUCCESS=1`.
