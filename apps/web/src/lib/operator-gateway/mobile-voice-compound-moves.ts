@@ -1,3 +1,7 @@
+import { readdirSync, readFileSync, statSync } from 'node:fs'
+import path from 'node:path'
+import { resolveWikiPath, writeEvidence, type WriteEvidenceInput, type WriteEvidenceResult } from '../obsidian/evidence'
+
 export type CompoundMoveLane =
   | 'research'
   | 'second_brain'
@@ -56,6 +60,25 @@ export interface MobileVoiceCompoundMoveArtifact {
   relativePath: string
   notePath: string
   suffixed: boolean
+}
+
+export interface LatestMobileVoiceCompoundMoveArtifactView {
+  source: 'mobile_voice_compound_moves_artifact_reader'
+  status: 'available' | 'not_found' | 'vault_unavailable'
+  secondBrainRoot: string
+  project: 'mobile-voice-intake'
+  relativePath: string | null
+  notePath: string | null
+  title: string | null
+  packetId: string | null
+  moveCount: number
+  previewMoves: { rank: number; title: string; lane: string | null; agent: string | null; stopGate: string | null }[]
+  updatedAt: string | null
+  nextApprovalGate: string
+  hermesQueueEnabled: false
+  linearTaskCreated: false
+  externalDispatchEnabled: false
+  note: string
 }
 
 function compact(value: string): string {
@@ -234,4 +257,94 @@ export async function writeMobileVoiceCompoundMoveArtifact(
     suffixed: result.suffixed,
   }
 }
-import { writeEvidence, type WriteEvidenceInput, type WriteEvidenceResult } from '../obsidian/evidence'
+
+function frontmatterValue(markdown: string, key: string): string | null {
+  const match = markdown.match(new RegExp(`^${key}:\\s*(.+)$`, 'm'))
+  if (!match) return null
+  return match[1].trim().replace(/^"|"$/g, '')
+}
+
+function previewMoveSummaries(markdown: string): LatestMobileVoiceCompoundMoveArtifactView['previewMoves'] {
+  const sections = markdown.match(/^###\s+\d+\.\s+.+?(?=^###\s+\d+\.|(?![\s\S]))/gms) ?? []
+  return sections.slice(0, 5).map((section) => {
+    const heading = section.match(/^###\s+(\d+)\.\s+(.+)$/m)
+    return {
+      rank: Number(heading?.[1] ?? 0),
+      title: compact(heading?.[2] ?? 'Untitled move'),
+      lane: section.match(/^- Lane:\s+`([^`]+)`/m)?.[1] ?? null,
+      agent: section.match(/^- Agent:\s+(.+)$/m)?.[1]?.trim() ?? null,
+      stopGate: section.match(/^- Stop gate:\s+`([^`]+)`/m)?.[1] ?? null,
+    }
+  }).filter((move) => move.rank > 0)
+}
+
+export function getLatestMobileVoiceCompoundMoveArtifactView(): LatestMobileVoiceCompoundMoveArtifactView {
+  const secondBrainRoot = resolveWikiPath()
+  const project = 'mobile-voice-intake'
+  const dir = path.join(secondBrainRoot, 'raw', 'command-centre', project)
+  const unavailable = (status: 'not_found' | 'vault_unavailable', note: string): LatestMobileVoiceCompoundMoveArtifactView => ({
+    source: 'mobile_voice_compound_moves_artifact_reader',
+    status,
+    secondBrainRoot,
+    project,
+    relativePath: null,
+    notePath: null,
+    title: null,
+    packetId: null,
+    moveCount: 0,
+    previewMoves: [],
+    updatedAt: null,
+    nextApprovalGate: 'generate_mobile_voice_next_20_artifact',
+    hermesQueueEnabled: false,
+    linearTaskCreated: false,
+    externalDispatchEnabled: false,
+    note,
+  })
+
+  try {
+    const candidates = readdirSync(dir)
+      .filter((file) => file.endsWith('.md') && file.includes('next-20-compound-moves'))
+      .map((file) => {
+        const notePath = path.join(dir, file)
+        const stat = statSync(notePath)
+        return { file, notePath, mtimeMs: stat.mtimeMs }
+      })
+      .sort((a, b) => b.mtimeMs - a.mtimeMs)
+
+    const latest = candidates[0]
+    if (!latest) {
+      return unavailable('not_found', 'No Next 20 compound moves artifact has been written to the mobile voice 2nd-brain folder yet.')
+    }
+
+    const markdown = readFileSync(latest.notePath, 'utf8')
+    const relativePath = path.relative(secondBrainRoot, latest.notePath).replace(/\\/g, '/')
+    const title = frontmatterValue(markdown, 'title') ?? markdown.match(/^#\s+(.+)$/m)?.[1]?.trim() ?? 'Latest mobile voice Next 20'
+    const packetId = frontmatterValue(markdown, 'packetId')
+    const moveCount = Number(frontmatterValue(markdown, 'moveCount') ?? markdown.match(/^###\s+\d+\./gm)?.length ?? 0)
+
+    return {
+      source: 'mobile_voice_compound_moves_artifact_reader',
+      status: 'available',
+      secondBrainRoot,
+      project,
+      relativePath,
+      notePath: latest.notePath,
+      title,
+      packetId,
+      moveCount,
+      previewMoves: previewMoveSummaries(markdown),
+      updatedAt: new Date(latest.mtimeMs).toISOString(),
+      nextApprovalGate: 'approve_selected_next_20_moves_to_hermes_or_linear_preview',
+      hermesQueueEnabled: false,
+      linearTaskCreated: false,
+      externalDispatchEnabled: false,
+      note: 'Latest 2nd-brain Next 20 artifact is visible in Mission Control. Hermes/Linear creation remains disabled until explicit approval.',
+    }
+  } catch (error) {
+    const code = typeof error === 'object' && error && 'code' in error ? String((error as { code?: unknown }).code) : ''
+    if (code === 'ENOENT') {
+      return unavailable('not_found', 'Mobile voice 2nd-brain artifact folder is not present yet.')
+    }
+    return unavailable('vault_unavailable', 'Mobile voice 2nd-brain artifact folder could not be read in this runtime.')
+  }
+}

@@ -1,7 +1,11 @@
-import { describe, expect, it, vi } from 'vitest'
+import { mkdtemp, rm } from 'node:fs/promises'
+import path from 'node:path'
+import { tmpdir } from 'node:os'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   buildMobileVoiceCompoundMoveArtifactInput,
   buildMobileVoiceCompoundMovePreview,
+  getLatestMobileVoiceCompoundMoveArtifactView,
   writeMobileVoiceCompoundMoveArtifact,
 } from '../mobile-voice-compound-moves'
 
@@ -25,6 +29,14 @@ Turn a driving idea into a researched product path.
 
 Research adjacent creator tooling, GitHub repos, Hugging Face resources, and implementation paths.
 `
+
+const originalWikiPath = process.env.WIKI_PATH
+const tempDirs: string[] = []
+
+afterEach(async () => {
+  process.env.WIKI_PATH = originalWikiPath
+  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
+})
 
 describe('mobile voice compound moves', () => {
   it('generates 15-20 gated compound-engineering moves from a Board packet', () => {
@@ -83,5 +95,33 @@ describe('mobile voice compound moves', () => {
       suffixed: false,
     })
     expect(writer).toHaveBeenCalledWith(input)
+  })
+
+  it('reads the latest written Next 20 Moves artifact for Mission Control', async () => {
+    const tempWiki = await mkdtemp(path.join(tmpdir(), 'mobile-voice-next20-'))
+    tempDirs.push(tempWiki)
+    process.env.WIKI_PATH = tempWiki
+
+    const preview = buildMobileVoiceCompoundMovePreview({ boardPacketText: boardPacket, maxMoves: 20 })
+    await writeMobileVoiceCompoundMoveArtifact(preview)
+
+    const view = getLatestMobileVoiceCompoundMoveArtifactView()
+
+    expect(view.status).toBe('available')
+    expect(view.secondBrainRoot).toBe(tempWiki)
+    expect(view.relativePath).toContain('raw/command-centre/mobile-voice-intake/')
+    expect(view.title).toContain('Next 20 compound moves')
+    expect(view.packetId).toBe('mobile_voice_terminal-proof')
+    expect(view.moveCount).toBe(20)
+    expect(view.previewMoves).toHaveLength(5)
+    expect(view.previewMoves[0]).toMatchObject({
+      rank: 1,
+      lane: 'second_brain',
+      agent: 'Obsidian Librarian',
+      stopGate: 'stop_if_source_note_missing',
+    })
+    expect(view.hermesQueueEnabled).toBe(false)
+    expect(view.linearTaskCreated).toBe(false)
+    expect(view.nextApprovalGate).toBe('approve_selected_next_20_moves_to_hermes_or_linear_preview')
   })
 })
