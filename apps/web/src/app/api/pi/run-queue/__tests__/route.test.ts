@@ -1,4 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi, beforeEach } from 'vitest'
+
+vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn() }))
+
+import { getUser } from '@/lib/supabase/server'
 import { GET, POST } from '../route'
 
 function request(body: unknown): Request {
@@ -9,7 +13,25 @@ function request(body: unknown): Request {
   })
 }
 
+beforeEach(() => {
+  vi.mocked(getUser).mockResolvedValue({ id: 'founder-1' } as any)
+})
+
+describe('GET /api/pi/run-queue', () => {
+  it('returns 401 when not authenticated', async () => {
+    vi.mocked(getUser).mockResolvedValue(null)
+    const response = await GET()
+    expect(response.status).toBe(401)
+  })
+})
+
 describe('POST /api/pi/run-queue', () => {
+  it('returns 401 when not authenticated', async () => {
+    vi.mocked(getUser).mockResolvedValue(null)
+    const response = await POST(request({ message: 'Whatever.' }))
+    expect(response.status).toBe(401)
+  })
+
   it('routes and enqueues a founder message in one call', async () => {
     const response = await POST(
       request({

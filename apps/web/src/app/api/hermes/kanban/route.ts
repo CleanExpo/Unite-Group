@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { NextResponse } from 'next/server'
 import { createIssue, type CreateIssueInput } from '@/lib/integrations/linear'
+import { getUser } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -255,6 +256,9 @@ async function linkTaskToLinear(payload: HermesActionPayload, existingLink?: Lin
 }
 
 export async function GET() {
+  const user = await getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+
   try {
     return NextResponse.json(await readHermesBoard())
   } catch (error) {
@@ -267,6 +271,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const user = await getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+
   try {
     const payload = await request.json() as HermesActionPayload
     const action = safeText(payload.action, 'action', true)

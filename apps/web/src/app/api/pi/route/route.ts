@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { getUser } from '@/lib/supabase/server'
 import {
   assignMachineForTask,
   buildTaskPacketFromIdea,
@@ -44,6 +45,9 @@ const DEFAULT_FOUNDER_DEVICES: FounderDevice[] = [
 ]
 
 export async function POST(request: Request) {
+  const user = await getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+
   let body: PiRouteRequestBody
 
   try {
