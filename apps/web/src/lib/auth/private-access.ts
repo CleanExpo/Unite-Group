@@ -3,6 +3,12 @@ export type PrivateAccessUser = {
   email?: string | null
 }
 
+// FLAG: legacy 'unite-hub' naming inherited from the Unite-Hub WIP source.
+// Consider renaming the domain + the UNITE_HUB_TEST_ALLOW_PRIVATE_ACCESS env
+// flag to a Unite-Group convention in a later pass. Both must change together,
+// and the e2e harness that sets them must be updated in lockstep.
+const TEST_EMAIL_DOMAIN = '@unite-hub.test'
+
 function parseAllowList(value: string | undefined): string[] {
   return (value ?? '')
     .split(',')
@@ -37,6 +43,18 @@ export function hasPrivateAccess(
 
   const userId = user?.id?.trim().toLowerCase()
   const email = user?.email?.trim().toLowerCase()
+
+  // Non-production test-only bypass: lets the e2e harness authenticate as a
+  // synthetic founder without provisioning a real allow-listed account. Triple
+  // guard — NEVER reachable in production: requires NODE_ENV !== 'production',
+  // an explicit opt-in env flag, AND the dedicated test email domain.
+  if (
+    env.NODE_ENV !== 'production'
+    && env.UNITE_HUB_TEST_ALLOW_PRIVATE_ACCESS === '1'
+    && email?.endsWith(TEST_EMAIL_DOMAIN)
+  ) {
+    return true
+  }
 
   return Boolean(
     (userId && config.allowedUserIds.includes(userId))
