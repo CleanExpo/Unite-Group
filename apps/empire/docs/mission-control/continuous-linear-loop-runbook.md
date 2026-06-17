@@ -33,6 +33,8 @@ That makes Hermes-originated work directly claimable by the Mission Control loop
 
 Use this rule for cleanup: do not create a second autonomous queue. Create or discover work in Hermes when that is the easiest visual surface, link it to Linear, and let Mission Control claim the Linear issue.
 
+For continuous queue cleanup, call `/api/hermes/kanban` with `action=linkReadyLinear`. It scans the visible Hermes board, skips completed or already linked tasks, creates loop-eligible Linear issues for ready/todo/scheduled work, and writes the Linear backlink to Hermes.
+
 ## Required Environment
 
 - `LINEAR_API_KEY`: Linear API token.
@@ -49,9 +51,6 @@ Optional:
 - `MISSION_CONTROL_LINEAR_PROJECT`: defaults to `Unite-Group`.
 - `MISSION_CONTROL_LINEAR_LABELS`: defaults to `mesh:auto,pi-dev:autonomous`.
 - `MISSION_CONTROL_VERIFY_CMD`: defaults to `npm run type-check && npm run lint`.
-- `MISSION_CONTROL_RUNNERS`: comma-separated runner lanes, for example `claude,codex,gemini`.
-- `MISSION_CONTROL_RUNNER_CMD_<NAME>`: command template for a named runner, for example `MISSION_CONTROL_RUNNER_CMD_CLAUDE`.
-- `MISSION_CONTROL_DEFAULT_RUNNER`: default runner lane when an issue has no `runner:<name>` label.
 - `MISSION_CONTROL_PUSH`: set to `1` to push after commit.
 - `MISSION_CONTROL_PUSH_TARGET`: optional push target, for example `origin HEAD:main`.
 - `MISSION_CONTROL_COMPLETE_ON_SUCCESS`: set to `1` to mark Done instead of In Review.
