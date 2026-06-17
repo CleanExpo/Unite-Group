@@ -70,8 +70,11 @@ export default async function ExperimentsPage() {
     .eq('founder_id', user.id)
     .order('created_at', { ascending: false })
 
+  // No-Invaders #1: a query FAILURE must NEVER fall through to an empty state —
+  // that makes a broken backend look like a real empty CRM. Throw so the route's
+  // error.tsx boundary renders an honest "couldn't load" state instead.
   if (error) {
-    console.error('[experiments] Failed to load experiments:', error)
+    throw new Error(`Failed to load experiments: ${error.message}`)
   }
 
   const experimentRows = (rows ?? []) as ExperimentRow[]

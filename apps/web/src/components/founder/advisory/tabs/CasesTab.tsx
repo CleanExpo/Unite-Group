@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 export function CasesTab() {
   const [cases, setCases] = useState<AdvisoryCase[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
 
@@ -20,8 +21,11 @@ export function CasesTab() {
         if (!res.ok) throw new Error('Failed to fetch')
         const data = await res.json()
         setCases(data.cases ?? [])
+        setError(false)
       } catch (err) {
         console.error('[CasesTab] fetch error:', err)
+        // Honest hard-error state — never fabricate an empty CRM (No-Invaders #1).
+        setError(true)
       } finally {
         setLoading(false)
       }
@@ -34,6 +38,20 @@ export function CasesTab() {
       <div className="flex items-center justify-center py-16">
         <span className="text-[12px]" style={{ color: 'var(--color-text-disabled)' }}>
           Loading cases...
+        </span>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div
+        className="rounded-sm p-4"
+        style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)' }}
+        role="alert"
+      >
+        <span className="text-[13px]" style={{ color: 'var(--color-danger, #ef4444)' }}>
+          Advisory cases unavailable — couldn’t load. Refresh to try again.
         </span>
       </div>
     )

@@ -16,6 +16,7 @@ export function InsightsBoard() {
   const [insights, setInsights] = useState<Insight[]>([])
   const [businessFilter, setBusinessFilter] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
 
   const fetchInsights = useCallback(async () => {
@@ -24,11 +25,15 @@ export function InsightsBoard() {
       const params = new URLSearchParams()
       if (businessFilter) params.set('business', businessFilter)
       const res = await fetch(`/api/strategy/insights?${params}`)
+      if (!res.ok) throw new Error('Failed to load insights')
       const d = await res.json() as { insights: Insight[] }
       setInsights(d.insights ?? [])
+      setError(false)
       setLastRefresh(new Date())
     } catch {
-      // Silently fail — board shows stale data
+      // No-Invaders #1: a fetch FAILURE must never render as an empty board.
+      // Surface an honest error state — do NOT fabricate empty/zero data.
+      setError(true)
     } finally {
       setLoading(false)
     }
@@ -73,7 +78,19 @@ export function InsightsBoard() {
         </div>
       </div>
 
-      {/* Kanban columns */}
+      {/* Honest hard-error state — never render an empty board on failure (No-Invaders #1) */}
+      {error && insights.length === 0 ? (
+        <div
+          className="rounded-sm p-4"
+          style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)' }}
+          role="alert"
+        >
+          <span className="text-[13px]" style={{ color: 'var(--color-danger, #ef4444)' }}>
+            Insights unavailable — couldn’t load. Refresh to try again.
+          </span>
+        </div>
+      ) : (
+      /* Kanban columns */
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {COLUMNS.map(({ status, label }) => {
           const cards = byStatus(status)
@@ -110,6 +127,7 @@ export function InsightsBoard() {
           )
         })}
       </div>
+      )}
 
       {loading && insights.length === 0 && (
         <div className="flex items-center justify-center py-12">
