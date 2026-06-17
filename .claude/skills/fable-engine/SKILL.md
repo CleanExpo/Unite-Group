@@ -22,11 +22,11 @@ Emit: `[STATUS] finish-line: locked — <one sentence>`
 
 ### 2. Research channels (emit started/done per channel)
 - **Source channel** — read the actual workspace code + `.claude/` rules +
-  `CLAUDE.md` (the sandbox-first rule is load-bearing) that constrain or
+  `CLAUDE.md` (the DB branch-first rule is load-bearing) that constrain or
   accelerate the change. Docs are stale; the source is truth.
 - **Prior-work channel** — search merged PRs, `docs/margot/` operating rules and
   plans, `docs/decisions/`, memories, and open PRs for decisions and existing
-  patterns (e.g. the CRM approval-lifecycle, the sandbox wizard, route
+  patterns (e.g. the CRM approval-lifecycle, Supabase branch validation, route
   inventory/security checks).
 - **Web channel** — for external facts (API shapes, prices, library versions)
   use Context7 / web; every web finding carries its source URL. No web access →
@@ -60,8 +60,8 @@ Emit: `[STATUS] gate: awaiting approval`
 5. **Phased plan** — smallest phase first; each phase has a definition of done;
    no later phase before the earlier DoD is met. For a fleet wave: the disjoint
    agent lanes + their file boundaries.
-6. **Data model** — if it stores anything, respect the sandbox-first rule:
-   prove the schema/migration in the sandbox (`xgqwfwqumliuguzhshwv`) before
+6. **Data model** — if it stores anything, respect the branch-first DB rule:
+   prove the schema/migration on a **Supabase database branch** before
    prod (`lksfwktwtmyznckodsau`); run `npm run check:schema-drift` after.
 7. **Security & cost guardrails** — secrets, org-scoping, route inventory
    (`npm run security:routes-check`), spend; structural not advisory.
