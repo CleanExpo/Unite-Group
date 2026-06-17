@@ -25,8 +25,11 @@ Correct flow:
 
 ## Other load-bearing rules (see `CLAUDE.md` for detail)
 
-- **Sandbox-first DB**: no production Supabase migrations without explicit typed
-  approval. Migration *files* may land in `main`; *applying* them is gated.
+- **DB — Supabase branching**: validate every schema change/migration on a
+  **Supabase database branch** before prod. There is no standing sandbox (the
+  mirror project was deleted 15/06/2026 and won't be replaced). Prod moves only
+  via a merged, approved branch — never apply to prod directly or autonomously.
+  Migration *files* may land in `main`; *applying* them is gated.
 - **Toolchain**: each package keeps its own lockfile/package manager. Verify via
   root `package.json` scripts (`npm run verify:web`, etc.).
 - **No writes to the former repos** (Unite-Hub, brain-1, Spine, hermes-workspace,
