@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server'
-import { getUser } from '@/lib/supabase/server'
+import { createClient, getUser } from '@/lib/supabase/server'
 import {
   buildMobileVoiceCapturePacket,
   getMobileVoiceIntakeStatus,
   type MobileVoiceCaptureInput,
 } from '@/lib/operator-gateway/mobile-voice-intake'
+import { writeMobileVoiceBoardPacket, type MobileVoiceBoardPacketUpdateClient } from '@/lib/operator-gateway/mobile-voice-board-packets'
+import { persistMobileVoicePacket, type MobileVoicePacketWriteClient } from '@/lib/operator-gateway/mobile-voice-packets'
+import { writeMobileVoiceSourceNote, type MobileVoiceSourceNoteUpdateClient } from '@/lib/operator-gateway/mobile-voice-source-notes'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,7 +33,7 @@ export async function GET() {
 }
 
 // POST — founder/session guarded mobile/Plaud transcript packet builder.
-// Returns an Obsidian/research/Board packet only; it does not persist, publish, or create tasks.
+// Persists review material only; it does not publish, dispatch, queue Hermes, or create tasks.
 export async function POST(request: Request) {
   try {
     const user = await getUser()
@@ -68,16 +71,62 @@ export async function POST(request: Request) {
       timestampsIncluded: body.timestampsIncluded === true,
       sourceUrl: typeof body.sourceUrl === 'string' ? body.sourceUrl : undefined,
     })
+    const supabase = await createClient()
+    const persistence = await persistMobileVoicePacket({
+      founderId: user.id,
+      client: supabase as unknown as MobileVoicePacketWriteClient,
+      packet,
+      transcript,
+      summary: typeof body.summary === 'string' ? body.summary : null,
+      sourceUrl: typeof body.sourceUrl === 'string' ? body.sourceUrl : null,
+    })
+
+    if (!persistence.ok) {
+      return NextResponse.json({
+        error: persistence.error,
+        reasons: persistence.reasons,
+        persisted: false,
+        obsidianSourceNoteWritten: false,
+        tasksCreated: false,
+        externalDispatchEnabled: false,
+        autoPublishEnabled: false,
+        productionExecutionEnabled: false,
+      }, { status: persistence.status })
+    }
+    const sourceNote = await writeMobileVoiceSourceNote({
+      founderId: user.id,
+      client: supabase as unknown as MobileVoiceSourceNoteUpdateClient,
+      record: persistence.record,
+    })
+    const boardPacket = sourceNote.ok
+      ? await writeMobileVoiceBoardPacket({
+          founderId: user.id,
+          client: supabase as unknown as MobileVoiceBoardPacketUpdateClient,
+          record: persistence.record,
+          sourceNote: sourceNote.note,
+        })
+      : null
 
     return NextResponse.json({
       packet,
+      record: persistence.record,
+      sourceNote: sourceNote.ok ? sourceNote.note : null,
+      boardPacket: boardPacket?.ok ? boardPacket.boardPacket : null,
       founderOnly: true,
-      persisted: false,
+      persisted: true,
+      obsidianSourceNoteWritten: sourceNote.ok,
+      obsidianSourceNoteError: sourceNote.ok ? null : sourceNote.error,
+      obsidianSourceNoteReasons: sourceNote.ok ? [] : sourceNote.reasons,
+      boardReviewPacketWritten: boardPacket?.ok === true,
+      boardReviewPacketError: boardPacket && !boardPacket.ok ? boardPacket.error : null,
+      boardReviewPacketReasons: boardPacket && !boardPacket.ok ? boardPacket.reasons : [],
       tasksCreated: false,
+      hermesQueueEnabled: false,
+      linearTaskCreated: false,
       externalDispatchEnabled: false,
       autoPublishEnabled: false,
       productionExecutionEnabled: false,
-    })
+    }, { status: 201 })
   } catch {
     return NextResponse.json({ error: 'Failed to build mobile voice packet' }, { status: 500 })
   }
