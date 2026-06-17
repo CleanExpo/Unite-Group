@@ -7,6 +7,7 @@ import {
   type MissionRouteResult,
 } from './specialized-skill-mesh'
 import { getSkillEvolutionStatus } from './skill-evolution'
+import { getCompoundEngineeringConnectorStatus } from './compound-engineering-connectors'
 import { getProjectDodCoverageStatus } from './project-dod'
 import { runFirstBoardDecisionSimulation, type BoardDecisionSimulation } from './board-decision'
 
@@ -112,6 +113,7 @@ export interface CommandCentreOperatorSurfaceView {
   }
   skillMesh: ReturnType<typeof getSpecializedSkillMeshStatus>
   skillEvolution: ReturnType<typeof getSkillEvolutionStatus>
+  compoundEngineering: ReturnType<typeof getCompoundEngineeringConnectorStatus>
   projectCoverage: ReturnType<typeof getProjectDodCoverageStatus>
   missionRouter: {
     source: 'static_registry'
@@ -169,6 +171,7 @@ export function getCommandCentreOperatorSurfaceView(
   const control = getControlPanelView()
   const skillMesh = getSpecializedSkillMeshStatus()
   const skillEvolution = getSkillEvolutionStatus()
+  const compoundEngineering = getCompoundEngineeringConnectorStatus()
   const projectCoverage = getProjectDodCoverageStatus()
   const boardDecisionEngine = runFirstBoardDecisionSimulation()
   const nextBoardDecision = boardDecisionEngine.nextRecommendedMove
@@ -261,6 +264,7 @@ export function getCommandCentreOperatorSurfaceView(
       { label: 'Agentic Nexus dashboard summary', href: '2nd-brain/.agentic_nexus/DASHBOARD_STATUS_SUMMARY.md', source: 'agentic_nexus' },
       { label: 'Project DoD coverage registry', href: 'project_dod_registry.jsonl', source: 'static_registry' },
       { label: 'Project DoD coverage status API', href: '/api/hermes/operator-gateway/project-coverage', source: 'crm_route' },
+      { label: 'Compound Engineering connector status API', href: '/api/hermes/operator-gateway/compound-engineering', source: 'crm_route' },
     ],
     blockedGates: [
       {
@@ -379,6 +383,7 @@ export function getCommandCentreOperatorSurfaceView(
     },
     skillMesh,
     skillEvolution,
+    compoundEngineering,
     projectCoverage,
     missionRouter: {
       source: 'static_registry',

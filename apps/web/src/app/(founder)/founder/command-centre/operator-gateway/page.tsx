@@ -258,6 +258,29 @@ export default async function OperatorGatewayPage() {
         <p style={{ color: '#8b949e', fontSize: 13 }}>Status endpoint: <code>/api/hermes/operator-gateway/skill-evolution</code></p>
       </section>
 
+      <section style={card} aria-label="compound engineering connectors">
+        <h2 style={{ fontSize: 18, marginTop: 0 }}>Compound Engineering Connectors</h2>
+        <p style={{ color: '#3fb950', fontSize: 14 }}>
+          Matt Van Horn / Every pattern mapped into Unite-Group: setup, serial review, research scout, design studio, workflow loop, and 2nd-brain knowledge capture connectors.
+        </p>
+        <p style={{ color: '#8b949e', fontSize: 13 }}>Source: <code>{view.compoundEngineering.source}</code></p>
+        <div style={grid}>
+          <p>Connectors mapped: <b>{view.compoundEngineering.connectorCount}</b></p>
+          <p>Ready connectors: <b>{view.compoundEngineering.readyConnectors}</b></p>
+          <p>Pending install: <b>{view.compoundEngineering.pendingInstallConnectors}</b></p>
+          <p>Blocked gates: <b>{view.compoundEngineering.blockedGateConnectors}</b></p>
+          <p>Upstream skills: <b>{view.compoundEngineering.upstream.observedCapabilities.skills}</b></p>
+          <p>Upstream agents: <b>{view.compoundEngineering.upstream.observedCapabilities.agents}</b></p>
+        </div>
+        <p>Next connector: <b>{view.compoundEngineering.nextRecommendedConnector}</b></p>
+        <p>{view.compoundEngineering.nextPortfolioAction}</p>
+        <p>No API-key mode: {boolLabel(view.compoundEngineering.noApiKeyMode, false)}</p>
+        <p>Auto-install enabled: {boolLabel(view.compoundEngineering.autoInstallEnabled)}</p>
+        <p>External execution enabled: {boolLabel(view.compoundEngineering.externalExecutionEnabled)}</p>
+        <p>Production DB touched: {boolLabel(view.compoundEngineering.productionDbTouched)}</p>
+        <p style={{ color: '#8b949e', fontSize: 13 }}>Status endpoint: <code>/api/hermes/operator-gateway/compound-engineering</code></p>
+      </section>
+
       <section style={grid} aria-label="specialized skill mesh">
         <div style={card}>
           <h2 style={{ fontSize: 18, marginTop: 0 }}>Specialised Skill Mesh</h2>
