@@ -27,6 +27,14 @@ through **the sandbox** before touching prod. The sandbox is an isolated
 Supabase project (ref `xgqwfwqumliuguzhshwv`) whose schema is mirrored
 from prod (ref `lksfwktwtmyznckodsau`) on demand.
 
+> **⚠️ SANDBOX DELETED (~15/06/2026).** The sandbox project
+> (`xgqwfwqumliuguzhshwv`) was removed during a cleanup/cull. **There is no
+> sandbox right now** — `sandbox-wizard.sh` halts by design, and all DB schema
+> work is **FROZEN**. Do NOT apply migrations to prod (`lksfwktwtmyznckodsau`)
+> as a workaround. To resume: provision a new sandbox project, update
+> `SANDBOX_REF` in the wizard + the `UNITE_GROUP_SANDBOX_DB_PASSWORD` 1Password
+> item, then run `setup`.
+
 ### The wizard
 
 `scripts/sandbox-wizard.sh` is the single entry point. Never reach for `psql`,

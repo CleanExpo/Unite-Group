@@ -523,6 +523,27 @@ cmd_promote() {
   ok "Applied to prod"
 }
 
+# ─── SAFETY GUARD: sandbox project DELETED ~2026-06-15 ────────────────────────
+# The sandbox project (SANDBOX_REF) was deleted during a cleanup/cull and no
+# longer exists (no DNS, absent from the Supabase project list). Every real
+# subcommand depends on it and would otherwise fail with a confusing DNS error.
+# DB schema work is FROZEN until a replacement sandbox is provisioned. When you
+# create one, update SANDBOX_REF above and this guard clears itself.
+# NEVER apply migrations to prod as a workaround.
+case "${1:-}" in
+  ""|help|-h|--help) : ;;
+  *)
+    if [ "$SANDBOX_REF" = "xgqwfwqumliuguzhshwv" ]; then
+      err "Sandbox project '$SANDBOX_REF' was DELETED (~2026-06-15) — it no longer exists."
+      err "DB schema work is FROZEN until a new sandbox is provisioned."
+      err "Fix: create a new Supabase sandbox, update SANDBOX_REF + the 1Password"
+      err "'UNITE_GROUP_SANDBOX_DB_PASSWORD' item, then run 'setup'."
+      err "Do NOT apply migrations to prod ($PROD_REF) as a workaround — that stays gated."
+      exit 1
+    fi
+    ;;
+esac
+
 # ─── Dispatch ─────────────────────────────────────────────────────────────────
 case "${1:-}" in
   setup)    shift; cmd_setup    "$@" ;;
