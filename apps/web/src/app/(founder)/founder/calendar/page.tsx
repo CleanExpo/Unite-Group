@@ -20,6 +20,7 @@ export default async function CalendarPage() {
   const result = user ? await fetchCalendarEvents(user.id) : null
   const events = result?.data ?? []
   const notConnected = !result || result.source === 'not_connected'
+  const loadFailed = result?.source === 'error'
 
   return (
     <div className="p-6 space-y-6">
@@ -52,6 +53,13 @@ export default async function CalendarPage() {
             Email settings
           </Link>{' '}
           to see events.
+        </div>
+      )}
+
+      {loadFailed && (
+        <div role="alert" className="border px-4 py-3 rounded-sm text-sm" style={{ borderColor: '#EF4444', color: '#FCA5A5' }}>
+          Calendar unavailable — couldn&apos;t load events from your connected Google
+          accounts. This is a load error, not an empty calendar. Try again shortly.
         </div>
       )}
 
@@ -89,7 +97,7 @@ export default async function CalendarPage() {
           ))}
         </div>
       ) : (
-        configured && connectedAccounts.length > 0 && !notConnected && (
+        configured && connectedAccounts.length > 0 && !notConnected && !loadFailed && (
           <p className="text-sm text-center py-8" style={{ color: 'var(--color-text-muted)' }}>
             No upcoming events across your connected calendars.
           </p>
