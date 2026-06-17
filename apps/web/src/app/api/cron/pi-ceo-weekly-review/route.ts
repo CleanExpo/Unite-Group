@@ -117,7 +117,10 @@ export async function GET(request: Request) {
     const avgDuration = agentDurations.length > 0
       ? Math.round(agentDurations.reduce((sum: number, d: number) => sum + d, 0) / agentDurations.length / 1000)
       : 0
-    const successRate = agentData.length > 0 ? successfulAgents.length / agentData.length : 1
+    // Honest: with no agent executions tracked, success rate is unknown (null),
+    // NOT a fabricated 100%. agent_executions has no writer yet, so this is the
+    // normal case — don't report perfect success on zero data (No-Invaders #1).
+    const successRate: number | null = agentData.length > 0 ? successfulAgents.length / agentData.length : null
 
     // Process vault metrics
     const vaultData = vaultResult.status === 'fulfilled' ? (vaultResult.value.data ?? []) : []
@@ -152,7 +155,7 @@ export async function GET(request: Request) {
     // Determine velocity score (0-100) — now includes video pipeline
     const velocityScore = Math.min(100, Math.round(
       (shipped / Math.max(inFlight, 1)) * 30 +
-      (successRate * 25) +
+      ((successRate ?? 0) * 25) +
       (Math.min(vaultCount, 100) / 100) * 15 +
       (githubCommits > 0 ? 10 : 0) +
       (videoJobsPublished > 0 ? 20 : 0)
@@ -190,7 +193,7 @@ export async function GET(request: Request) {
         linear: { shipped, inFlight, overdue, created: shipped + inFlight },
         github: { commits: githubCommits, openPRs: githubOpenPRs, configured: githubConfigured },
         vault: { notesAdded, notesTotal: vaultCount, projectsActive: projectsSet.size },
-        agents: { executions: agentData.length, avgDurationSec: avgDuration, successRate: Math.round(successRate * 100) },
+        agents: { executions: agentData.length, avgDurationSec: avgDuration, successRate: successRate === null ? null : Math.round(successRate * 100) },
         decisions: { open: openDecisions, blocked: blockedDecisions },
         video: {
           totalJobs: videoJobsTotal,
@@ -261,7 +264,7 @@ export async function GET(request: Request) {
   }
 }
 
-function formatBriefMarkdown(brief: {
+export function formatBriefMarkdown(brief: {
   headline: string
   executiveSummary: string
   velocityScore: number
@@ -309,7 +312,7 @@ function formatBriefMarkdown(brief: {
     `| Vault Notes Total | ${m.vault?.notesTotal ?? 0} |`,
     `| Vault Notes Added | ${m.vault?.notesAdded ?? 0} |`,
     `| Agent Executions | ${m.agents?.executions ?? 0} |`,
-    `| Agent Success Rate | ${m.agents?.successRate ?? 0}% |`,
+    `| Agent Success Rate | ${m.agents?.successRate == null ? 'N/A (no agent runs tracked)' : `${m.agents.successRate}%`} |`,
     `| Open Decisions | ${m.decisions?.open ?? 0} |`,
     `| Blocked Decisions | ${m.decisions?.blocked ?? 0} |`,
   ].join('\n')
