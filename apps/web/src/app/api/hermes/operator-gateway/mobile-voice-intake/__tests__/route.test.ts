@@ -5,11 +5,17 @@ vi.mock('@/lib/supabase/server', () => ({
   getUser: vi.fn(),
 }))
 
+vi.mock('@/lib/obsidian/evidence', () => ({
+  writeEvidence: vi.fn(),
+}))
+
+import { writeEvidence } from '@/lib/obsidian/evidence'
 import { createClient, getUser } from '@/lib/supabase/server'
 import { GET, POST } from '../route'
 
 const mockCreateClient = vi.mocked(createClient)
 const mockGetUser = vi.mocked(getUser)
+const mockWriteEvidence = vi.mocked(writeEvidence)
 
 function request(body: unknown) {
   return new Request('https://example.test/api/hermes/operator-gateway/mobile-voice-intake', {
@@ -21,6 +27,11 @@ function request(body: unknown) {
 describe('/api/hermes/operator-gateway/mobile-voice-intake', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockWriteEvidence.mockResolvedValue({
+      notePath: '/tmp/wiki/raw/command-centre/mobile-voice-intake/mobile-voice-source.md',
+      relativePath: 'raw/command-centre/mobile-voice-intake/mobile-voice-source.md',
+      suffixed: false,
+    })
   })
 
   function mockPacketStore() {
@@ -57,12 +68,17 @@ describe('/api/hermes/operator-gateway/mobile-voice-intake', () => {
         })),
       })),
     }))
+    const update = vi.fn(() => ({
+      eq: vi.fn(() => ({
+        eq: vi.fn(async () => ({ error: null })),
+      })),
+    }))
 
     mockCreateClient.mockResolvedValue({
-      from: vi.fn(() => ({ insert })),
+      from: vi.fn(() => ({ insert, update })),
     } as never)
 
-    return insert
+    return { insert, update }
   }
 
   it('guards GET by founder/session', async () => {
@@ -84,14 +100,15 @@ describe('/api/hermes/operator-gateway/mobile-voice-intake', () => {
     expect(json.source).toBe('static_mobile_voice_intake')
     expect(json.founderOnly).toBe(true)
     expect(json.plaudSupported).toBe(true)
+    expect(json.sourceNoteWriteEnabled).toBe(true)
     expect(json.externalDispatchEnabled).toBe(false)
     expect(json.autoPublishEnabled).toBe(false)
     expect(json.productionExecutionEnabled).toBe(false)
   })
 
-  it('builds and persists a packet from a Plaud transcript without creating tasks', async () => {
+  it('builds, persists, and writes a source note from a Plaud transcript without creating tasks', async () => {
     mockGetUser.mockResolvedValue({ id: 'founder-1' } as never)
-    const insert = mockPacketStore()
+    const { insert, update } = mockPacketStore()
 
     const res = await POST(request({
       source: 'plaud_zapier_export',
@@ -105,6 +122,7 @@ describe('/api/hermes/operator-gateway/mobile-voice-intake', () => {
 
     expect(res.status).toBe(201)
     expect(json.persisted).toBe(true)
+    expect(json.obsidianSourceNoteWritten).toBe(true)
     expect(json.tasksCreated).toBe(false)
     expect(json.externalDispatchEnabled).toBe(false)
     expect(json.packet.source).toBe('plaud_zapier_export')
@@ -114,6 +132,7 @@ describe('/api/hermes/operator-gateway/mobile-voice-intake', () => {
     expect(json.record.founderId).toBe('founder-1')
     expect(json.record.packetId).toBe(json.packet.packetId)
     expect(json.record.rawAudioStored).toBe(false)
+    expect(json.sourceNote.relativePath).toBe('raw/command-centre/mobile-voice-intake/mobile-voice-source.md')
     expect(insert).toHaveBeenCalledWith(expect.objectContaining({
       founder_id: 'founder-1',
       source: 'plaud_zapier_export',
@@ -123,6 +142,15 @@ describe('/api/hermes/operator-gateway/mobile-voice-intake', () => {
       auto_publish_enabled: false,
       production_execution_enabled: false,
       raw_audio_stored: false,
+    }))
+    expect(mockWriteEvidence).toHaveBeenCalledWith(expect.objectContaining({
+      project: 'mobile-voice-intake',
+      kind: 'source-note',
+      body: expect.stringContaining('## Transcript'),
+    }))
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'source_note_ready',
+      obsidian_source_note_path: 'raw/command-centre/mobile-voice-intake/mobile-voice-source.md',
     }))
   })
 
