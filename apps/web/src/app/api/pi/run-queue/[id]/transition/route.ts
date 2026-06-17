@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
-import { buildContinuationEnforcement, founderRunQueueStore, type FounderRunQueueAction } from '../../../../../../lib/founder-os'
+import { buildContinuationEnforcement, createRunQueueStore, type FounderRunQueueAction } from '../../../../../../lib/founder-os'
+import {
+  listFounderRunQueueItems,
+  saveFounderRunQueueItem,
+} from '@/lib/founder-os/run-queue-persistence'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,7 +45,9 @@ export async function POST(request: Request, { params }: RouteParams) {
   }
 
   try {
-    const queueItem = founderRunQueueStore.transition({
+    // Load → transition (pure logic) → persist the changed item, founder-scoped.
+    const store = createRunQueueStore(await listFounderRunQueueItems(user.id))
+    const queueItem = store.transition({
       id,
       action: body.action,
       actor,
@@ -49,11 +55,12 @@ export async function POST(request: Request, { params }: RouteParams) {
       evidenceLink: body.evidenceLink,
       now: body.now,
     })
+    await saveFounderRunQueueItem(user.id, queueItem)
 
     return NextResponse.json({
       queueItem,
-      summary: founderRunQueueStore.summary(),
-      enforcement: buildContinuationEnforcement(founderRunQueueStore.list()),
+      summary: store.summary(),
+      enforcement: buildContinuationEnforcement(store.list()),
       receipt: queueItem.receipts.at(-1) ?? null,
     })
   } catch (error) {

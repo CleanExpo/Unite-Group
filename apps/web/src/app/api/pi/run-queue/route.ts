@@ -4,9 +4,13 @@ import {
   assignMachineForTask,
   buildContinuationEnforcement,
   buildTaskPacketFromIdea,
-  founderRunQueueStore,
+  createRunQueueStore,
   type FounderDevice,
 } from '../../../../lib/founder-os'
+import {
+  listFounderRunQueueItems,
+  saveFounderRunQueueItem,
+} from '@/lib/founder-os/run-queue-persistence'
 
 export const dynamic = 'force-dynamic'
 
@@ -50,11 +54,13 @@ export async function GET() {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
-  const items = founderRunQueueStore.list()
+  // Durable, founder-scoped: rehydrate from pi_run_queue (survives cold starts).
+  const store = createRunQueueStore(await listFounderRunQueueItems(user.id))
+  const items = store.list()
 
   return NextResponse.json({
     items,
-    summary: founderRunQueueStore.summary(),
+    summary: store.summary(),
     enforcement: buildContinuationEnforcement(items),
   })
 }
@@ -86,17 +92,21 @@ export async function POST(request: Request) {
     idSeed: body.idSeed,
   })
   const machineAssignment = assignMachineForTask(routeResult.taskPacket, DEFAULT_FOUNDER_DEVICES)
-  const queueItem = founderRunQueueStore.enqueue({
+
+  // Load → enqueue (pure logic) → persist the new item, all founder-scoped.
+  const store = createRunQueueStore(await listFounderRunQueueItems(user.id))
+  const queueItem = store.enqueue({
     taskPacket: routeResult.taskPacket,
     contextPack: routeResult.contextPack,
     machineAssignment,
     now: body.now,
   })
+  await saveFounderRunQueueItem(user.id, queueItem)
 
   return NextResponse.json({
     queueItem,
     routingReasons: routeResult.routingReasons,
-    enforcement: buildContinuationEnforcement(founderRunQueueStore.list()),
+    enforcement: buildContinuationEnforcement(store.list()),
     receipt: {
       id: `receipt_${queueItem.id}`,
       status: 'queued',

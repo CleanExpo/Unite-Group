@@ -1,11 +1,11 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest'
 
-vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn() }))
+vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn(), createClient: vi.fn() }))
 
-import { getUser } from '@/lib/supabase/server'
+import { getUser, createClient } from '@/lib/supabase/server'
 import { POST as enqueuePost } from '../../../route'
 import { POST } from '../route'
-import { founderRunQueueStore } from '../../../../../../../lib/founder-os'
+import { makeFakeRunQueueDb } from '@/lib/founder-os/__tests__/fake-run-queue-db'
 
 function enqueueRequest(body: unknown): Request {
   return new Request('http://localhost/api/pi/run-queue', {
@@ -29,21 +29,31 @@ async function enqueue(message: string, idSeed: string) {
   return body.queueItem
 }
 
+let db: ReturnType<typeof makeFakeRunQueueDb>
+
 describe('POST /api/pi/run-queue/[id]/transition', () => {
   beforeEach(() => {
-    founderRunQueueStore.clear()
-    vi.mocked(getUser).mockResolvedValue({ id: 'founder-1' } as any)
+    db = makeFakeRunQueueDb()
+    vi.mocked(getUser).mockResolvedValue({ id: 'founder-1' } as never)
+    vi.mocked(createClient).mockResolvedValue(db.client as never)
   })
 
   it('returns 401 when unauthenticated', async () => {
-    vi.mocked(getUser).mockResolvedValue(null)
+    vi.mocked(getUser).mockResolvedValue(null as never)
 
     const response = await POST(transitionRequest({ action: 'approve', actor: 'Margot', now: '2026-06-02T00:01:00.000Z' }), { params: Promise.resolve({ id: 'run_task' }) })
 
     expect(response.status).toBe(401)
   })
 
-  it('approves and starts an approval-gated task', async () => {
+  it('returns 404 when transitioning an unknown id (durable store has no such item)', async () => {
+    const response = await POST(transitionRequest({ action: 'start', actor: 'Pi-Dev-Ops', now: '2026-06-02T00:01:00.000Z' }), { params: Promise.resolve({ id: 'run_missing' }) })
+    const body = await response.json()
+    expect(response.status).toBe(404)
+    expect(body.error).toBe('queue item not found')
+  })
+
+  it('approves and starts an approval-gated task, persisting each transition', async () => {
     const queued = await enqueue('Connect Synthex LinkedIn for publishing.', 'approval-transition')
 
     const approveResponse = await POST(transitionRequest({ action: 'approve', actor: 'Margot', note: 'Approved.', now: '2026-06-02T00:01:00.000Z' }), { params: Promise.resolve({ id: queued.id }) })
@@ -58,6 +68,8 @@ describe('POST /api/pi/run-queue/[id]/transition', () => {
 
     expect(startResponse.status).toBe(200)
     expect(startedBody.queueItem.status).toBe('in_progress')
+    // The transition was written back to the durable store.
+    expect(db.rows.find((r) => r.queue_id === queued.id)?.status).toBe('in_progress')
   })
 
   it('blocks and completes with evidence', async () => {
