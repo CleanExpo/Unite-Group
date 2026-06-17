@@ -26,6 +26,7 @@ const STAT_ITEMS = [
 export function FounderStats() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -35,21 +36,34 @@ export function FounderStats() {
         if (!res.ok) throw new Error('Failed')
         return res.json() as Promise<DashboardStats>
       })
-      .then(setStats)
+      .then((data) => {
+        setStats(data)
+        setError(false)
+      })
       .catch((err) => {
         if (err instanceof DOMException && err.name === 'AbortError') return
-        setStats({
-          contacts: 0,
-          vaultEntries: 0,
-          pendingApprovals: 0,
-          activeCases: 0,
-          lastBookkeeperRun: null,
-        })
+        // Honest hard-error state — never fabricate zeroes (No-Invaders #1).
+        setStats(null)
+        setError(true)
       })
       .finally(() => setLoading(false))
 
     return () => controller.abort()
   }, [])
+
+  if (error) {
+    return (
+      <div
+        className="rounded-sm p-4"
+        style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)' }}
+        role="alert"
+      >
+        <span className="text-[13px]" style={{ color: 'var(--color-danger, #ef4444)' }}>
+          Founder overview unavailable — couldn’t load stats. Refresh to try again.
+        </span>
+      </div>
+    )
+  }
 
   const bookkeeperLabel = stats?.lastBookkeeperRun
     ? `Last run: ${new Date(stats.lastBookkeeperRun.createdAt).toLocaleDateString('en-AU', { day: '2-digit', month: 'short' })}`

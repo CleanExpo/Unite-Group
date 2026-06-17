@@ -44,14 +44,17 @@ describe('FounderStats', () => {
     expect(screen.getByText('Cases')).toBeDefined()
   })
 
-  it('renders zero values on fetch error', async () => {
+  it('renders an honest error state on fetch error — never fabricated zeroes', async () => {
     global.fetch = vi.fn().mockResolvedValue({ ok: false })
 
     render(<FounderStats />)
 
     await waitFor(() => {
-      const zeros = screen.getAllByText('0')
-      expect(zeros.length).toBeGreaterThanOrEqual(4)
+      expect(screen.getByRole('alert')).toBeDefined()
     })
+    expect(screen.getByText(/overview unavailable/i)).toBeDefined()
+    // No-Invaders #1: a server failure must NOT render as a real-looking empty CRM
+    expect(screen.queryByText('0')).toBeNull()
+    expect(screen.queryByText('Founder Overview')).toBeNull()
   })
 })
