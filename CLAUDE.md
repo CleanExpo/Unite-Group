@@ -37,6 +37,10 @@ then delete the legacy app. Operate per the skill:
   via root `package.json` scripts (`npm run verify:web` etc.).
 - **DB**: all schema work sandbox-first; no production Supabase migrations
   without explicit approval. founder_id scoping only in apps/web.
+  **⚠️ The sandbox project (`xgqwfwqumliuguzhshwv`) was DELETED ~15/06/2026** —
+  there is currently NO sandbox, so DB schema work is FROZEN until a replacement
+  is provisioned. Never apply to prod (`lksfwktwtmyznckodsau`) as a workaround.
+  See `apps/empire/CLAUDE.md` to re-provision.
 - **No writes to the former repos** (Unite-Hub, brain-1, Spine, hermes-workspace,
   pi-ceo-operator-mcp) — they are frozen pending deletion per the runbook.
 - **Deletion** of any repo/Supabase/Vercel resource: runbook gates + Phill's
