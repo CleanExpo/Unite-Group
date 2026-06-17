@@ -145,7 +145,7 @@ Rules:
 | Delegate | Send focused scoped work to a subagent/tool | Code review, schema inventory, doc reconstruction, test analysis | Yes when scope is local/safe |
 | Ask Phill | Needs business judgment or permission | pipeline stages, urgent thresholds, send action, client-facing communication | Only when genuinely blocked |
 | Block | Missing access, identity, or safety prerequisite | Mac Mini auth, prod DB migration, Vercel env mutation, unclear client identity | Record blocker and switch lane |
-| Never do | Disallowed action | print secrets, destructive git, production DB write without wizard/approval, deploy without approval | No |
+| Never do | Disallowed action | print secrets, destructive git, production DB write outside a merged + approved Supabase branch, deploy without approval | No |
 
 ## Lead Persistence Operating Plan
 
@@ -165,8 +165,8 @@ Current evidence as of 2026-06-09 20:09 AEST:
 Safe default:
 
 1. Treat website leads as first-class CRM records, not just email-list subscribers.
-2. Keep the local `crm_leads` migration draft and code path behind sandbox-first discipline before any production application. Production application of any CRM/tasks/voice schema must be preceded by an explicit sandbox authority/auth gate and the existing `docs/margot/evidence/SANDBOX_VOICE_TASKS_AUTHORITY_HANDOFF.md` packet.
-3. Run any schema change through `./scripts/sandbox-wizard.sh apply migration.sql` before promotion. Do not run `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` without explicit authority for that exact wizard action.
+2. Keep the local `crm_leads` migration draft and code path behind branch-first discipline before any production application: validate on a Supabase database branch (never prod), then promote to prod only via a merged + approved branch. Production application of any CRM/tasks/voice schema must be preceded by Phill's explicit typed approval to merge the branch and the existing `docs/margot/evidence/SANDBOX_VOICE_TASKS_AUTHORITY_HANDOFF.md` packet.
+3. Validate any schema change on a Supabase database branch before promotion (the ephemeral per-branch DB replays `apps/web/supabase/migrations/`; never validate against prod). Promote to prod (`lksfwktwtmyznckodsau`) only by merging an approved branch with Phill's explicit typed approval — never apply to prod directly or autonomously. The old mirror sandbox (`xgqwfwqumliuguzhshwv`) and `scripts/sandbox-wizard.sh` were deleted ~15/06/2026 and will not be replaced; see `apps/empire/CLAUDE.md` / `CLAUDE.md` for the canonical branching rules.
 4. Preserve SendGrid as a side integration; CRM persistence must not depend on SendGrid success.
 5. Keep tests around validation failure, rate limit, SendGrid failure with CRM capture, CRM insert failure, listing filters, missing env, read failure, and no secret leakage.
 

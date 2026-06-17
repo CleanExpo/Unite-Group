@@ -14,7 +14,7 @@ Status: Local proposal plus sandbox-only migration draft. `supabase/migrations/2
 
 This proposal is bound to the new `AI-RET-001-CONTACTS-OPPORTUNITIES-MODEL` source-citation fixture and the new `AI-RET-001-ANSWER-CONTACTS-OPPORTUNITIES-SAFETY-BOUNDARY` answer-shape fixture. Any future answer about `crm_contacts` or `crm_opportunities` must:
 
-1. State that the migration is a **sandbox-only draft** with **no production apply** until the sandbox-wizard authority/auth gate is granted and a specific promotion decision is approved.
+1. State that the migration is a **branch-validated draft** with **no production apply** until it is validated on a Supabase database branch and a specific promotion decision (merge of an approved branch) is approved.
 2. State that opportunity value, probability, and expected close are **forecast-only** and that **stripe remains billing truth**; the CRM mirror must not write billing fields from contacts/opportunities.
 3. Require **strong identity gates** and explicit **operator approval** before any contact or opportunity creation, link, update, dedupe merge, or cross-client action that could affect a client, lead, or business.
 4. Apply **cross-client leakage abort** rules: abort immediately on ambiguous identity, weak dedupe proof, or any conflict between lead/contact/client/business scope; mark drafts `blocked_review` and require explicit approval before any resume.
@@ -53,7 +53,7 @@ The proposal is grounded only in existing repository evidence:
 - `supabase/migrations/20260510000002_nexus_clients.sql` creates `nexus_clients` with client identity, embedded contact fields, Stripe IDs, plan/status, Linear project ID, Pi-CEO key, brand config, and timestamps.
 - `supabase/migrations/20260523100000_crm_leads.sql` creates `crm_leads` with lead person/company/contact fields, marketing consent, source, status, qualification score, owner, matched client/business links, converted client link, privacy-sensitive request metadata, and timestamps.
 
-This is a planning document for future mocked tests and sandbox-first migration drafting. It is not an implementation.
+This is a planning document for future mocked tests and branch-first migration drafting. It is not an implementation.
 
 ## 2. Why contacts and opportunities come before broader automation or client conversion
 
@@ -92,7 +92,7 @@ Lead captured
 
 Target role: canonical person/contact map for leads, clients, businesses, stakeholders, and future relationship memory.
 
-Target source-of-truth status: proposed Supabase CRM table with local draft migration `supabase/migrations/20260523103000_crm_contacts_opportunities.sql`. It remains unapplied and sandbox-first.
+Target source-of-truth status: proposed Supabase CRM table with local draft migration `supabase/migrations/20260523103000_crm_contacts_opportunities.sql`. It remains unapplied and branch-first (validated on a Supabase database branch before any prod promotion).
 
 | Field | Type / shape | Required? | Grounded reason / rule |
 | --- | --- | --- | --- |
@@ -142,7 +142,7 @@ blocked_review
 
 Target role: qualified commercial possibility with stage, value, probability, source, owner, next action, and linked lead/contact/client/business context.
 
-Target source-of-truth status: proposed Supabase CRM table with local draft migration `supabase/migrations/20260523103000_crm_contacts_opportunities.sql`. It remains unapplied and sandbox-first.
+Target source-of-truth status: proposed Supabase CRM table with local draft migration `supabase/migrations/20260523103000_crm_contacts_opportunities.sql`. It remains unapplied and branch-first (validated on a Supabase database branch before any prod promotion).
 
 | Field | Type / shape | Required? | Grounded reason / rule |
 | --- | --- | --- | --- |
@@ -332,7 +332,7 @@ Stripe separation rules:
 4. CRM may surface Stripe mirror status for client/revenue health, but must not perform billing writes from contacts/opportunities.
 5. Financial writes, refunds, payments, subscription changes, or billing messages require explicit approval and are outside this lane.
 
-## 10. Board approval gates and sandbox-first migration rule
+## 10. Board approval gates and branch-first migration rule
 
 Allowed now by default in this lane:
 
@@ -346,7 +346,7 @@ Requires Phill/Board approval before action:
 
 - Production database migration or schema change.
 - Any production `supabase db push`, direct `psql` write, or service-role data mutation outside already scoped/tested paths.
-- Applying the future `crm_contacts` or `crm_opportunities` migration beyond sandbox.
+- Promoting the future `crm_contacts` or `crm_opportunities` migration to prod (merging the validated branch).
 - Cross-client merge or permanent identity decision.
 - Client creation/update from a lead or opportunity.
 - Client-facing communication.
@@ -354,30 +354,33 @@ Requires Phill/Board approval before action:
 - Deployments, Vercel env mutations, GitHub pushes/PRs unless explicitly scoped.
 - Permanent rules for auto-conversion, auto-assignment, auto-approval, or financial action.
 
-Sandbox-first rule:
+Branch-first rule:
 
 ```text
 Draft migration
   -> write mocked tests first
-  -> apply only through sandbox wizard
-  -> verify schema, RLS, server route, and abort behavior
+  -> write the migration in apps/web/supabase/migrations/
+  -> validate only on a Supabase database branch (never against prod)
+  -> verify schema, RLS, server route, and abort behavior on the branch
   -> review Board gates
-  -> only then consider production promotion with explicit approval
+  -> only then promote to prod by merging the approved branch with explicit approval
 ```
 
-Any future schema change must go through the repo sandbox wizard before production promotion:
+Any future schema change must be validated on a Supabase database branch before
+prod promotion. Prod (`lksfwktwtmyznckodsau`) is reached only by merging an
+approved branch — never by applying a migration to prod directly or
+autonomously. There is no standing sandbox project; the old mirror sandbox
+(`xgqwfwqumliuguzhshwv`) and the `sandbox-wizard.sh` toolchain were deleted on
+2026-06-15 and will not be replaced. Canonical rules: `CLAUDE.md` /
+`apps/empire/CLAUDE.md`.
 
-```bash
-./scripts/sandbox-wizard.sh apply <migration.sql>
-```
-
-This document does not run that command and does not apply any migration.
+This document does not create or merge any branch and does not apply any migration.
 
 ## 11. Future mocked test matrix
 
 | Area | Future mocked test focus | Expected safety behavior |
 | --- | --- | --- |
-| Contact migration shape | Required fields, status check, indexes for normalized email/status/linked IDs, timestamps | Migration runs in sandbox only; no production apply. |
+| Contact migration shape | Required fields, status check, indexes for normalized email/status/linked IDs, timestamps | Migration validated on a Supabase database branch only; no production apply. |
 | Contact RLS | Service-role server route can write; browser/client cannot directly write sensitive CRM contacts | Public/client-side writes blocked. |
 | Contact create from lead | Creates contact from `crm_leads` fields, preserves lead, defaults marketing consent from lead | Original lead remains intact; no client conversion. |
 | Contact consent defaults | Missing consent defaults false; explicit lead consent maps to contact fields | No assumed marketing consent. |
@@ -401,14 +404,14 @@ This document does not run that command and does not apply any migration.
 ## 12. Next implementation steps
 
 1. Keep this proposal as the local planning source for the contacts/opportunities lane.
-2. Draft a sandbox-only `crm_contacts` migration with status checks, indexes, RLS, and no production apply.
-3. Draft a sandbox-only `crm_opportunities` migration with stage/status/probability checks, indexes, RLS, and no production apply.
+2. Draft a branch-validated `crm_contacts` migration with status checks, indexes, RLS, and no production apply.
+3. Draft a branch-validated `crm_opportunities` migration with stage/status/probability checks, indexes, RLS, and no production apply.
 4. Write mocked tests before route implementation for contact creation/linking/dedupe/cross-client abort behavior.
 5. Write mocked tests before route implementation for opportunity creation/stage transitions/Stripe separation/approval gates.
 6. Draft server-only API route contracts; do not allow browser/client direct writes to sensitive CRM tables.
 7. Define minimal event taxonomy for future contact/opportunity audit entries, likely via `agent_actions` until a dedicated timeline is approved.
 8. Decide whether approvals remain a `tasks` subtype or become `crm_approvals` before any automatic approval workflow.
-9. Run future migrations through `./scripts/sandbox-wizard.sh apply <migration.sql>` only after tests and review.
+9. Validate future migrations on a Supabase database branch (never against prod) only after tests and review, then promote to prod only by merging the approved branch.
 10. Request Phill/Board approval only when a specific promotion, production write, cross-client identity decision, client-facing action, or billing/deployment action is genuinely needed.
 
 ## 13. Verification for this document
@@ -430,7 +433,7 @@ This lane was a safe Senior PM control-surface refresh, not a schema change, not
 - Why it exists: the previous version of this doc was last touched `2026-05-23`, before the AI-RET-001 7/7 source-citation + 7/7 answer-shape mocked report, the case-insensitive `normalizedSubjectType` approval-lifecycle lane, the `logCrmDigestReadError` fail-closed guard, the `digest-mappers` positive coverage, the case-insensitive `approval-lifecycle` lane, the deterministic `stale-sync` `last_error` + NaN guard, the daily-digest `staleReasonLabel` / `staleReasonDetail` / `normalizedMinutes` privacy hardening, the lead-to-client conversion plan refresh (which named the recommendation-only contract), the CRM operating model refresh (which named the modern binding safety rules), the crm-approval-persistence-plan decision (which chose Stage 1 task subtype and deferred a dedicated `crm_approvals` table), and the modern binding hard safety rules. A future agent could have re-derived that the proposed `crm_contacts` and `crm_opportunities` migration was already production-ready and could be promoted without sandbox-wizard authority, or that opportunity value is billing truth, or that contact or opportunity auto-creation was already wired to leads or voice commands. This refresh binds the proposal to the new fixture, names the prohibited overclaims (`contact auto-created`, `opportunity auto-created`, `cross-client merge applied`, `production migration applied`, `billing field written`), and adds the doc-drift guard test so future drift is caught locally.
 - Missing/unclear: live retrieval threshold, embedding model, and vector DB contract remain unverified. The local harness is mocked. Sandbox authority/auth for the future `crm_contacts` / `crm_opportunities` promotion is still missing. Phill/Board decisions on contact ownership, opportunity stage taxonomy, identity-resolution policy between `pi_ceo_key` / slug / Linear project ID / Stripe customer ID / website domain, and transcript retention/privacy policy for voice-derived client memory are still gaps. The migration draft at `supabase/migrations/20260523103000_crm_contacts_opportunities.sql` has not been applied to the sandbox target Supabase environment in this tick; production promotion remains explicitly out of scope. The cross-client leakage abort policy is documented but not yet enforced by a server route or a test; future tests must cover the abort behavior.
 - Current health evidence: `npx jest tests/unit/lib/margot/retrieval-evaluation.test.ts --runInBand` is expected to return 1 suite / 38 tests PASS (was 37 before this lane; +1 for the new doc-drift guard). Combined local CRM + Margot + runtime + credential-boundary gate `npx jest tests/unit/lib/crm/ tests/unit/lib/margot/ tests/unit/lib/runtime/stale-sync-check.test.ts tests/unit/scripts/sandbox-wizard-credential-boundary.test.ts --runInBand` is expected to return 11 suites / 162 tests PASS. `npm run type-check` is expected to pass. `npm run security:routes-check` is expected to report 0 unprotected mutating routes. AI-RET-001 evidence report regenerated at `docs/margot/evidence/AI_RET_001_LOCAL_RETRIEVAL_REPORT.md` (expected 47 lines, now lists the 8th source-citation row and the 9th answer-shape row). Voice test counts unchanged: focused Margot voice suite remains 3 suites / 28 tests. Mac Mini recovery remains opportunistic only: `/Volumes` contains `Macintosh HD` only, recovered Markdown count = 0, SMB reachable (probe at `2026-06-09 23:50 AEST` confirmed `nc` exit `0` for `:445`), SSH unreachable (probe at `2026-06-09 23:50 AEST` confirmed `nc` exit `1` for `:22`); no credential prompt/read, secret printing/storage, or recursive system-volume scan occurred.
-- Smallest next action: rotate to another bounded Senior PM lane (e.g. close a voice-test gap from `docs/margot/voice-test-gap-analysis.md`, refresh `crm-approval-persistence-plan.md` (still pinned at `2026-05-23 16:38 AEST`) or `crm-schema-inventory.md` (still pinned at `2026-05-23 07:24 AEST`) with their own doc-drift guard tests, or run a deeper voice-test gap-closure sweep). Do not run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until the specific authority/auth gate is granted. Do not adopt Nango or any third-party connector platform; do not perform a live vector search, embeddings backfill, or live AI call against production.
+- Smallest next action: rotate to another bounded Senior PM lane (e.g. close a voice-test gap from `docs/margot/voice-test-gap-analysis.md`, refresh `crm-approval-persistence-plan.md` (still pinned at `2026-05-23 16:38 AEST`) or `crm-schema-inventory.md` (still pinned at `2026-05-23 07:24 AEST`) with their own doc-drift guard tests, or run a deeper voice-test gap-closure sweep). Do not apply or promote the future `crm_contacts` / `crm_opportunities` migration to prod until it is validated on a Supabase database branch and an approved branch is merged with explicit authority (the old `scripts/sandbox-wizard.sh` toolchain and mirror sandbox `xgqwfwqumliuguzhshwv` were deleted on 2026-06-15 and will not be replaced). Do not adopt Nango or any third-party connector platform; do not perform a live vector search, embeddings backfill, or live AI call against production.
 
 ## AI-RET-001 CRM-Contacts-Opportunities-Model Self-Boundary (91st answer-shape fixture)
 

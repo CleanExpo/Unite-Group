@@ -93,7 +93,7 @@ Ordered punch-list. Do the tiers in order — Tier 0 unblocks the whole built-un
 
 1. **Regenerate `types/supabase.ts` from prod (ref `lksfwktwtmyznckodsau`)** — it is stale (May 22). This is BLOCKER B1; it invalidates every "applied/live" claim until done.
 2. ✅ **DONE (2026-06-16) — dependency chain CONFIRMED in prod:** `nexus_clients` (FK target, present), `agent_actions` (present + compatible), and the integration/security/voice tables all exist; only `crm_leads` / `crm_contacts` / `crm_opportunities` are absent. The promote will **not** fail referentially.
-3. **Promote the CRM migrations sandbox-first** (`20260523100000_crm_leads.sql`, `20260523103000_crm_contacts_opportunities.sql`, `20260510000004_nexus_agent_actions.sql`) via `scripts/sandbox-wizard.sh promote`, then re-regenerate types and diff.
+3. **Promote the CRM migrations branch-first** (`20260523100000_crm_leads.sql`, `20260523103000_crm_contacts_opportunities.sql`, `20260510000004_nexus_agent_actions.sql`): write/keep the migrations in `apps/web/supabase/migrations/`, validate them on a Supabase database branch (ephemeral per-branch DB; never against prod), then promote to prod (`lksfwktwtmyznckodsau`) ONLY by merging the approved branch — never apply to prod directly or autonomously. Re-regenerate types and diff after the merge.
 4. **Wire `check:schema-drift` into CI** — the script exists but is not a CI step and would currently fail (types already diverge). Add it with `SUPABASE_ACCESS_TOKEN` so drift can never silently recur.
 
 ### Tier 1 — Connect / finish the built-unverified & partial (turn near-done into working)
@@ -306,7 +306,7 @@ Products/line-items, drag-and-drop pipeline, full mailbox round-trip, win/loss +
 | RLS on all CRM tables (service-role floor) | V1 | exists | built-unverified | yes | partial | unverified | Migrations enable RLS; tables absent from prod types; only string-assert test. |
 | authenticated SELECT RLS for command-center reads | V1 | missing | missing | no | n/a | n/a | Only service_role ALL exists. |
 | Tighten agent_actions read to founder-only (HARD gate) | V1 | missing | missing | no | n/a | broken | Policy is `TO authenticated USING (true)` — full audit trail readable. |
-| Sandbox-first migration pipeline | V1 | exists | **working** | yes | yes | verified | wizard apply/diff/promote + credential-boundary test. |
+| Branch-first migration pipeline | V1 | exists | **working** | yes | yes | verified | Migrations in `apps/web/supabase/migrations/`, validated on a Supabase database branch (never prod), promoted to prod only via a merged + approved branch. |
 | crm_leads IP/user-agent retention decision | V1 | missing | missing | no | n/a | n/a | Raw ip/user_agent text, no retention. |
 | Shared additional_data redaction across routes | V1 | missing | missing | no | no | n/a | Filter only in opportunities; contacts hardcodes {}. |
 | safeAdditionalData secret-redaction (opportunities) | V1 | exists | **working** | yes | yes | verified | Regex + recursive scan + rejection; tested. |
@@ -317,7 +317,7 @@ Products/line-items, drag-and-drop pipeline, full mailbox round-trip, win/loss +
 | Wire schema-drift check into CI | V1 | partial | partial | partial | no | unverified | Script exists; not in CI; types already drift. |
 | Remove typescript.ignoreBuildErrors | V1 | missing | missing | no | n/a | broken | next.config.js L15 `true`. |
 | CI migration-check on sandbox before promote | V1 | missing | missing | no | n/a | n/a | No CI migration job. |
-| Vercel preview pinned to sandbox Supabase ref | V1 | missing | missing | no | n/a | unverified | vercel.json has no preview override. |
+| Vercel preview wired to per-branch Supabase database branch | V1 | missing | missing | no | n/a | unverified | vercel.json has no preview override; previews should target the PR's Supabase database branch, never prod. |
 | Sentry traces sample rate env-driven | V1 | partial | **over-claimed** | no | n/a | broken | All 3 configs hardcode `1.0`. |
 | Sentry release tagging + sourcemap upload | V1 | partial | partial | partial | partial | unverified | Plumbing present; needs SENTRY_AUTH_TOKEN (env fact). |
 | PII scrubbing on Sentry events (beforeSend) | V1 | missing | missing | no | n/a | n/a | No beforeSend hook. |
@@ -331,8 +331,8 @@ Products/line-items, drag-and-drop pipeline, full mailbox round-trip, win/loss +
 | Weekly Deepsec security scan | V1 | partial | partial | partial | partial | code-only | Scheduled workflow opens issue; not a blocking PR check. |
 | AI review board PR gate | V1 | exists | built-unverified | yes | yes | unverified | review-board.yml + chief-reviewer; blocking depends on branch protection. |
 | Pure-logic unit tier (CRM engines) | V1 | exists | **working** | yes | yes | verified | 4 suites exist and run in CI. |
-| DB-backed dedupe unique-index test (Tier 3) | V1 | missing | missing | no | n/a | n/a | Index non-unique; no sandbox-backed test. |
-| Sandbox-apply migration smoke test (Tier 3) | V1 | partial | partial | partial | no | code-only | Only string-assert test; no live apply. |
+| DB-backed dedupe unique-index test (Tier 3) | V1 | missing | missing | no | n/a | n/a | Index non-unique; no database-branch-backed test. |
+| Branch-apply migration smoke test (Tier 3) | V1 | partial | partial | partial | no | code-only | Only string-assert test; no live apply on a Supabase database branch. |
 | pre-commit lint-staged + related-tests hook | V1 | missing | missing | no | n/a | n/a | No .husky/pre-commit; no lint-staged dep. |
 | Playwright smoke harness (e2e) | V1 | missing | missing | no | n/a | n/a | No playwright dep/config. |
 | Unified error envelope (errorClass+retryable) (P25) | V1 | partial | partial | partial | partial | code-only | DR route uses different enum; contacts/opps emit none. |
@@ -344,7 +344,7 @@ Products/line-items, drag-and-drop pipeline, full mailbox round-trip, win/loss +
 | jest-axe WCAG AA contrast assertion (P14) | V1 | missing | missing | no | n/a | n/a | No jest-axe; --cc-ink-hush #3d4654 used for text. |
 | Migration rollback runbook + down-migrations (P23) | V1 | missing | missing | no | n/a | n/a | No runbook; wizard has no down path. |
 | Mutating-surface state coverage for CRM UIs (P-UX) | V1 | missing | missing | no | n/a | n/a | No loading/success/error/focus tests. |
-| Quarterly DR restore-to-sandbox drill | V2 | partial | partial | partial | n/a | unverified | DR runbook DRAFT v0.2; no recorded drill. |
+| Quarterly DR restore-to-branch drill | V2 | partial | partial | partial | n/a | unverified | DR runbook DRAFT v0.2; no recorded drill. Restore to a Supabase database branch / fresh project, never to prod. |
 | Multi-region failover doc/toggle | V2 | missing | missing | no | n/a | n/a | regions:["syd1"] only. |
 | Cron stall alerting + Supavisor pooling | V2 | missing | missing | no | n/a | n/a | No stall alert; no Supavisor. |
 | Post-deploy smoke + uptime heartbeat | V2 | missing | missing | no | n/a | n/a | No smoke workflow/heartbeat. |

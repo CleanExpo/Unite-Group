@@ -14,7 +14,7 @@
 | Backup retention (7 days) | ✅ CONFIRMED | Board decision: extend to 30 days? |
 | PITR (sub-day recovery) | ❌ DISABLED | Enable via Supabase Pro addon |
 | pg_dump schema verification | ⚠ BLOCKED | Install postgresql@17 |
-| Sandbox schema parity | ⚠ NOT SYNCED | Run sandbox-wizard.sh setup |
+| Schema validation | ⚠ NOT VALIDATED | Validate migrations on a Supabase database branch (never prod) |
 | RestoreAssist script | ✅ FIXED | 5 bugs resolved |
 | Lightweight health check | ✅ NEW | Can run now in CI |
 | 1Password credential access | ⚠ BLOCKED | Requires interactive signin |
@@ -35,12 +35,15 @@ in COMPLETED status:
 - `supabase backups restore --project-ref <ref> --timestamp <epoch>` is available
 - JSON output includes backup metadata, PITR flag, WAL status
 
-### 3. Sandbox Wizard
-- `scripts/sandbox-wizard.sh` exists and is comprehensive (497 lines)
-- Supports: setup, sync, apply, diff, status, reset, promote
-- Handles the 1,665-table schema via per-object DROP (avoids max_locks overflow)
-- Mirrors extensions, validates name-diff parity
-- Promote to prod requires explicit "promote to prod" typed confirmation
+### 3. Schema Validation via Supabase Database Branching
+- Migrations live in `apps/web/supabase/migrations/` and are validated on a
+  Supabase database branch (ephemeral per-branch DB) — never against prod
+- Create the branch via the Supabase GitHub integration or `create_branch`
+  (Supabase CLI / MCP); it replays the migrations from `supabase/migrations/`
+- Verify the 1,665-table schema, extensions, and any data behaviour on the
+  branch before promotion
+- Promote to prod ONLY by merging an approved branch with Phill's explicit
+  typed approval — never apply to prod directly or autonomously
 
 ### 4. RestoreAssist Verification Script (Fixed)
 - `scripts/restoreassist-verify.sh` — fully functional after bug fixes
@@ -109,10 +112,13 @@ in COMPLETED status:
 **Note:** This is by design (security). Cannot be automated for cron.
 **Workaround:** Set `UNITE_GROUP_DB_PASSWORD` and `UNITE_GROUP_SANDBOX_DB_PASSWORD` env vars, or use `$HOME/.hermes/.unite-group-sandbox-creds.env`
 
-### Blocker 3: Sandbox never synced (MEDIUM)
-**Problem:** No state.json in `.sandbox-cache/` — setup has never been run
-**Impact:** Cannot verify schema parity between prod and sandbox
-**Fix:** `./scripts/sandbox-wizard.sh setup` (requires blockers 1+2 resolved first)
+### Blocker 3: Schema not validated on a branch (MEDIUM)
+**Problem:** No Supabase database branch has been provisioned to replay the
+         migrations from `apps/web/supabase/migrations/`
+**Impact:** Cannot verify the migration baseline / schema before it reaches prod
+**Fix:** Create a Supabase database branch (Supabase GitHub integration or
+         `create_branch`) and validate the migrations there — never against
+         prod (requires blockers 1+2 resolved first)
 
 ### Blocker 4: PITR not enabled (RISK)
 **Problem:** Both prod and sandbox have `pitr_enabled: false`
@@ -159,11 +165,11 @@ in COMPLETED status:
 
 1. **Install PostgreSQL tools** — `brew install postgresql@17` on developer Mac
 2. **Sign into 1Password** — `eval $(op signin)` for credential access
-3. **Run sandbox setup** — `./scripts/sandbox-wizard.sh setup`
+3. **Validate schema on a database branch** — create a Supabase database branch and replay `apps/web/supabase/migrations/` there (never prod)
 4. **Schedule backup-healthcheck.sh** — Add to CI or weekly cron (works now!)
 5. **Board decision: Enable PITR** — Reduce RPO from 24h to seconds
 6. **Schedule restoreassist-verify.sh** — Full weekly verification after prereqs met
-7. **Test actual restore** — `supabase backups restore` to sandbox (NOT to prod)
+7. **Test actual restore** — `supabase backups restore` to a non-prod target such as a Supabase database branch (NEVER to prod)
 
 ---
 

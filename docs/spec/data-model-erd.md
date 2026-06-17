@@ -1,10 +1,10 @@
 # Data Model & ERD — Authority-Site In-House CRM
 
-> **Companion artifact to [`/spec.md`](../../spec.md) §6 (Domain & Data Architecture).** Full entity model, ERD, dedupe-key strategy, privacy scopes, RLS posture, and the sandbox-first migration plan for the V1 tables.
+> **Companion artifact to [`/spec.md`](../../spec.md) §6 (Domain & Data Architecture).** Full entity model, ERD, dedupe-key strategy, privacy scopes, RLS posture, and the branch-first migration plan for the V1 tables.
 >
 > **Source-of-truth law (locked):** Supabase = CRM truth; Stripe = billing truth; Linear = execution truth. CRM objects mirror but never overwrite the truth source.
 >
-> **Migration law (locked):** every schema change routes through `scripts/sandbox-wizard.sh` (sandbox `apply` → `diff` → `promote` with typed `promote to prod`). No direct `psql`, `supabase db push`, or MCP `apply_migration` against prod ref `lksfwktwtmyznckodsau`. Sandbox ref `xgqwfwqumliuguzhshwv` mirrors prod via `pg_dump --schema-only`.
+> **Migration law (locked):** every schema change is authored as a migration in `apps/web/supabase/migrations/`, validated on a Supabase **database branch** (ephemeral per-branch DB), then promoted to prod ref `lksfwktwtmyznckodsau` **only by merging an approved branch** — never applied to prod directly or autonomously. NEVER validate against prod. No direct `psql`, `supabase db push`, or MCP `apply_migration` against prod ref `lksfwktwtmyznckodsau`. (The mirror sandbox project `xgqwfwqumliuguzhshwv` was deleted 2026-06-15 and is not replaced; canonical rules: `CLAUDE.md` / `apps/empire/CLAUDE.md`.)
 >
 > **Cross-links:** [spec.md](../../spec.md) · [feature-coverage-matrix.md](./feature-coverage-matrix.md) · [phase-plan.md](./phase-plan.md)
 >
@@ -16,7 +16,7 @@
 
 The CRM spine layers on the existing Nexus identity tables. Three identity anchors are expected to exist in prod (`businesses`, `nexus_clients`, `agent_actions`); the CRM extends them rather than replacing them. **Prod-applied state is `[UNCONFIRMED]` (see the evidence-integrity note below)** — migration files are present in the repo, but the only machine-readable prod-schema artifact does not corroborate them, so M1.1 must verify each FK-target table exists in prod **before** promoting contacts/opportunities. There is **no separate `accounts`/`organizations` table in V1** — org identity is carried by `businesses` (portfolio operating units) and `nexus_clients` (paying clients); `crm_contacts.company_name` is a free-text label until a V2 `crm_accounts` table normalizes it. `[INFERENCE — grounded in the single-tenant lock and the existing businesses/nexus_clients split]`
 
-> **⚠ Evidence-integrity note (BLOCKER B1 — Data Architecture).** The only machine-readable prod-schema artifact in the repo, `types/supabase.ts` (generated from prod ref `lksfwktwtmyznckodsau`, **dated 2026-05-22 19:03** `[VERIFIED — file mtime + header]`), contains **no `public.Tables` definition** for `crm_leads`, `agent_actions`, or `nexus_clients` — only an unrelated `client_agent_actions` table and `businesses` are present `[VERIFIED — grep over types/supabase.ts]`. The migration *files* exist in `supabase/migrations/`, but "file in repo" is **not** "applied in prod." Every table below tagged "prod-applied" is therefore **`[UNCONFIRMED]` against the prod source of truth**, not `[VERIFIED]`. **Mandatory pre-M1.1 step:** regenerate `types/supabase.ts` from prod (`npm run gen:types` or `sandbox-wizard sync` + `diff`), commit it as the §17 evidence baseline, and have M1.1 explicitly verify each FK-target table (`crm_leads`, `nexus_clients`, `businesses`) exists in prod before the promote transaction runs — its FK references will fail otherwise.
+> **⚠ Evidence-integrity note (BLOCKER B1 — Data Architecture).** The only machine-readable prod-schema artifact in the repo, `types/supabase.ts` (generated from prod ref `lksfwktwtmyznckodsau`, **dated 2026-05-22 19:03** `[VERIFIED — file mtime + header]`), contains **no `public.Tables` definition** for `crm_leads`, `agent_actions`, or `nexus_clients` — only an unrelated `client_agent_actions` table and `businesses` are present `[VERIFIED — grep over types/supabase.ts]`. The migration *files* exist in `supabase/migrations/`, but "file in repo" is **not** "applied in prod." Every table below tagged "prod-applied" is therefore **`[UNCONFIRMED]` against the prod source of truth**, not `[VERIFIED]`. **Mandatory pre-M1.1 step:** regenerate `types/supabase.ts` from prod (`npm run gen:types`), commit it as the §17 evidence baseline, and have M1.1 explicitly verify each FK-target table (`crm_leads`, `nexus_clients`, `businesses`) exists in prod before the promote transaction runs — its FK references will fail otherwise.
 
 | Entity | Status | Role | Migration |
 |---|---|---|---|
@@ -24,8 +24,8 @@ The CRM spine layers on the existing Nexus identity tables. Three identity ancho
 | `nexus_clients` | `[UNCONFIRMED prod-applied]` — **absent from `types/supabase.ts`** | Paying clients (org identity, billing links) | migration in repo (nexus_clients) |
 | `agent_actions` | `[UNCONFIRMED prod-applied]` — **absent from `types/supabase.ts`** (only `client_agent_actions` present) | Unified audit / activity timeline | `20260510000004_nexus_agent_actions.sql` `[VERIFIED file]` |
 | `crm_leads` | migration in repo; **prod-applied state to be confirmed by `gen:types` before M1.1** | Inbound lead capture | `20260523100000_crm_leads.sql` `[VERIFIED file]` |
-| `crm_contacts` | DRAFTED, not applied to sandbox or prod | Canonical people record | `20260523103000_crm_contacts_opportunities.sql` `[VERIFIED file]` |
-| `crm_opportunities` | DRAFTED, not applied to sandbox or prod | Pipeline / forecast (forecast-only, NOT billing truth) | `20260523103000_crm_contacts_opportunities.sql` `[VERIFIED file]` |
+| `crm_contacts` | DRAFTED, not applied to a branch or prod | Canonical people record | `20260523103000_crm_contacts_opportunities.sql` `[VERIFIED file]` |
+| `crm_opportunities` | DRAFTED, not applied to a branch or prod | Pipeline / forecast (forecast-only, NOT billing truth) | `20260523103000_crm_contacts_opportunities.sql` `[VERIFIED file]` |
 | `crm_accounts` | not built | Normalized org entity | V2 |
 | `crm_opportunity_line_items` | not built | Products/quotes on opportunities | V2 |
 | `crm_approvals` | not built | Dedicated approval history/query store | V2 (Stage-2; V1 uses task-subtype model) |
@@ -139,7 +139,7 @@ Dedupe is **detect-and-block on write** in V1 (no auto-merge — auto-merge is a
 
 **Dedupe-key stability decision (P21 — Data Architecture):** `dedupe_name_company_key` MUST be derived from a **stable normalized full-name** (`first_name`+`last_name`), not from the mutable/derived `display_name` (which `deriveDisplayName` recomputes on rename, silently changing dedupe identity). Because the name+company key is weak and rename-sensitive, it is **advisory-only**: it surfaces a possible-duplicate pip in the UI but never triggers an automatic 409 by itself — a 409 always requires a strong (email) or corroborated (phone+name) match. **PATCH must recompute `dedupe_phone_key` and `dedupe_name_company_key`** alongside the email keys (today PATCH recomputes only email keys), so the keys never drift out of sync with the row.
 
-**V1 hardening (NEW additive migration, sandbox-first):**
+**V1 hardening (NEW additive migration, branch-first):**
 1. Add a **partial UNIQUE index** on `dedupe_email_key` (`WHERE dedupe_email_key IS NOT NULL`) so the DB is the authoritative backstop, closing the route-layer TOCTOU race.
 2. Populate **all four** dedupe keys in the contacts route (name+company from the stable full-name, per the stability decision above); back phone/name_company with indexes; recompute phone/name_company keys on PATCH.
 3. Add a `set_updated_at` **BEFORE UPDATE trigger** on `crm_contacts`/`crm_opportunities` (reuse the proven pattern in `supabase/migrations/20260514142500_client_approvals.sql`) — `updated_at` is currently only refreshed by app code. `[VERIFIED gap]`
@@ -176,7 +176,7 @@ Privacy obligations carried into the data layer:
 - **Tighten `agent_actions` SELECT** to founder-email-only (mirror `data_room_documents`) before any second authenticated principal (V2 ops team) exists — today's `authenticated SELECT USING(true)` is over-broad read of the entire audit trail. `[VERIFIED gap — G-RLS-1]`
 - Add a **BEFORE UPDATE OR DELETE trigger** on `agent_actions` to enforce append-only at the DB layer (audit is currently append-only by convention only). Pattern: `enforce_profiles_role_immutability` in `20260513000001_ra3008_security_hardening.sql:28`. `[VERIFIED]`
 
-**RLS acceptance (verify in sandbox post-apply):**
+**RLS acceptance (verify on the database branch post-apply):**
 - Anon key against `crm_contacts`/`crm_opportunities`/`crm_leads` returns **0 rows**.
 - Authenticated non-founder key returns **0 rows** from CRM truth tables and `agent_actions` (after tightening).
 - Every CRM table has `rowsecurity = true` and ≥1 policy.
@@ -188,15 +188,15 @@ Privacy obligations carried into the data layer:
 ## 6. Approvals & timeline persistence (data-layer view)
 
 - **Approvals (V1): no dedicated table.** Decision is locked to the **Stage-1 task-subtype** model (`docs/margot/crm-schema-inventory.md:65,238`); the approval *decision* engine is pure-logic (`src/lib/crm/approval-lifecycle.ts`) and `safeToAutoExecute` is hard-`false` everywhere — the recommendation-only safety contract is structurally enforced. `crm_opportunities` already carries `approval_required`/`approval_status` for inline pipeline gating. No `crm_approvals` migration exists. `[VERIFIED]`
-- **`crm_approvals` table is V2** — built sandbox-first only when structured approval history/query needs are proven (states requested/approved/rejected/expired/cancelled/executed; links requester/approver/reason/scope/risk/related-object/audit-event). `[VERIFIED plan]`
+- **`crm_approvals` table is V2** — built branch-first only when structured approval history/query needs are proven (states requested/approved/rejected/expired/cancelled/executed; links requester/approver/reason/scope/risk/related-object/audit-event). `[VERIFIED plan]`
 - **Timeline (V1): extend `agent_actions`**, do not add a table. The 16-event taxonomy is fixed in `src/lib/crm/activity-timeline.ts:1-17`. A dedicated timeline table is V3+ and only if query/RLS needs justify it. `[VERIFIED]`
-- **Known FK gap (R6 — promoted to a V1 hardening line item).** `agent_actions.client_id REFERENCES public.clients(id) ON DELETE SET NULL` (`…nexus_agent_actions.sql:13`), **NOT `nexus_clients`** `[VERIFIED]`. Since the unified `agent_actions` timeline is the V1 backbone for per-entity filtering, a client-id pointing at a legacy/empty `public.clients` table is a silent referential-integrity hole. **V1 fix (in the M1.1 hardening migration, sandbox-first):** add a corrected `nexus_clients`-referencing column (or repoint the FK), with an acceptance that timeline events resolve to `nexus_clients`, not `public.clients`. This earns a feature-matrix Pillar 4 row. **Per-entity timeline reads filter on `payload->>'slug'` (and `payload->>'subjectId'`)** — add a **GIN/expression index** on `payload->>'slug'` in the same hardening migration so the timeline read path is indexed, not a full-jsonb scan. If any part is deferred to V2, the spec must justify why V1 per-entity filtering is unaffected. `[VERIFIED gap]`
+- **Known FK gap (R6 — promoted to a V1 hardening line item).** `agent_actions.client_id REFERENCES public.clients(id) ON DELETE SET NULL` (`…nexus_agent_actions.sql:13`), **NOT `nexus_clients`** `[VERIFIED]`. Since the unified `agent_actions` timeline is the V1 backbone for per-entity filtering, a client-id pointing at a legacy/empty `public.clients` table is a silent referential-integrity hole. **V1 fix (in the M1.1 hardening migration, branch-first):** add a corrected `nexus_clients`-referencing column (or repoint the FK), with an acceptance that timeline events resolve to `nexus_clients`, not `public.clients`. This earns a feature-matrix Pillar 4 row. **Per-entity timeline reads filter on `payload->>'slug'` (and `payload->>'subjectId'`)** — add a **GIN/expression index** on `payload->>'slug'` in the same hardening migration so the timeline read path is indexed, not a full-jsonb scan. If any part is deferred to V2, the spec must justify why V1 per-entity filtering is unaffected. `[VERIFIED gap]`
 
 ### 6.1 Conversion atomicity — single SECURITY DEFINER RPC (P5, platform constraint)
 
 **Platform constraint stated explicitly:** the supabase-js client has **no multi-statement transaction primitive** across separate REST calls. The existing convert route proves the problem — it does a non-transactional `.update()` on `crm_leads` (`…convert/route.ts:172`) then a *best-effort* `recordLeadConversionTimelineEvent` insert wrapped in try/catch that swallows failures (`:63-82,182`) `[VERIFIED]`. A lead→contact(+opportunity)→lead-status→audit chain built as chained SDK calls is **partially committable** (e.g. contact created, opportunity insert fails → orphaned contact, lead half-converted), so the §8 acceptance "atomically or with compensating cleanup" is **unmeetable as chained SDK calls**.
 
-**Decision (closes OQ-6):** multi-row CRM conversion runs inside **one Postgres transaction** via a **`SECURITY DEFINER` RPC `crm_convert_lead_to_contact(...)`**, promoted sandbox-first in the M1.1/M1.2 scope, invoked via `supabase.rpc()`. The RPC performs, in a single transaction: deduped `crm_contacts` upsert ← lead fields → optional `crm_opportunities` seed → `crm_leads` status update → exactly one `agent_actions` audit insert. Compensating-saga is the *only* fallback if an RPC is rejected, and must be specified with explicit partial-failure ordering if chosen. Request/response JSON schema (lead→contact field mapping, opportunity-seed opt-in, `dryRun`, 409/partial shapes) is defined in spec.md §7.5.
+**Decision (closes OQ-6):** multi-row CRM conversion runs inside **one Postgres transaction** via a **`SECURITY DEFINER` RPC `crm_convert_lead_to_contact(...)`**, promoted branch-first in the M1.1/M1.2 scope, invoked via `supabase.rpc()`. The RPC performs, in a single transaction: deduped `crm_contacts` upsert ← lead fields → optional `crm_opportunities` seed → `crm_leads` status update → exactly one `agent_actions` audit insert. Compensating-saga is the *only* fallback if an RPC is rejected, and must be specified with explicit partial-failure ordering if chosen. Request/response JSON schema (lead→contact field mapping, opportunity-seed opt-in, `dryRun`, 409/partial shapes) is defined in spec.md §7.5.
 
 ### 6.2 Forecast currency model (P6, single-currency by construction)
 
@@ -204,35 +204,35 @@ Privacy obligations carried into the data layer:
 
 ---
 
-## 7. Sandbox-first migration plan (V1 tables → prod)
+## 7. Branch-first migration plan (V1 tables → prod)
 
-Every step runs against sandbox ref `xgqwfwqumliuguzhshwv`; prod ref `lksfwktwtmyznckodsau` is touched only by `promote`. Sourced from `scripts/sandbox-wizard.sh:10-17,411-431,489-523` and `CLAUDE.md`. `[VERIFIED]`
+Every step is validated on a Supabase **database branch** (ephemeral per-branch DB); prod ref `lksfwktwtmyznckodsau` is touched **only by merging an approved branch**, never directly or autonomously, and is **never** validated against. Canonical rules: `CLAUDE.md` / `apps/empire/CLAUDE.md`.
 
 ```mermaid
 flowchart TD
-    A["M0: Prereqs — op signin; SUPABASE_ACCESS_TOKEN; psql/pg_dump 17+"] --> B["M1: sandbox-wizard.sh sync — re-mirror prod schema to sandbox"]
-    B --> C["M2: apply 20260523100000_crm_leads.sql (if not already in prod schema)"]
-    C --> D["M3: apply 20260523103000_crm_contacts_opportunities.sql"]
-    D --> E["M4: apply NEW hardening migration: dedupe UNIQUE index + phone/name_company keys + updated_at trigger + agent_actions append-only trigger + agent_actions SELECT founder-only + value_currency NOT NULL DEFAULT 'AUD' + CHECK + R6 nexus_clients ref column + payload->>slug GIN index + crm_convert_lead_to_contact() RPC + (deferred) authenticated SELECT policy"]
-    E --> F["M5: sandbox-wizard.sh diff — prod vs sandbox review"]
-    F --> G["M6: sandbox security advisor (auto-run by apply)"]
+    A["M0: Prereqs — SUPABASE_ACCESS_TOKEN; migrations authored in apps/web/supabase/migrations/"] --> B["M1: create a Supabase database branch off prod (ephemeral per-branch DB)"]
+    B --> C["M2: validate 20260523100000_crm_leads.sql on the branch (if not already in prod schema)"]
+    C --> D["M3: validate 20260523103000_crm_contacts_opportunities.sql on the branch"]
+    D --> E["M4: validate NEW hardening migration: dedupe UNIQUE index + phone/name_company keys + updated_at trigger + agent_actions append-only trigger + agent_actions SELECT founder-only + value_currency NOT NULL DEFAULT 'AUD' + CHECK + R6 nexus_clients ref column + payload->>slug GIN index + crm_convert_lead_to_contact() RPC + (deferred) authenticated SELECT policy"]
+    E --> F["M5: review branch diff vs prod"]
+    F --> G["M6: branch security advisor"]
     G --> H{"Clean diff + 0 new security findings?"}
     H -->|no| D
     H -->|yes| I["M7: Board/Phill approval recorded"]
-    I --> J["M8: promote each .sql — type 'promote to prod'"]
-    J --> K["M9: post-promote verify — generate_typescript_types; smoke read via routes; pg_policies/rowsecurity assertions"]
+    I --> J["M8: promote to prod by merging the approved branch — never apply to prod directly"]
+    J --> K["M9: post-merge verify — generate_typescript_types; smoke read via routes; pg_policies/rowsecurity assertions"]
 ```
 
-**Ordering constraint (verified):** `crm_contacts` must exist before `crm_opportunities` (FK `linked_contact_id → crm_contacts(id)`), and both must exist after `crm_leads` and `nexus_clients`/`businesses`. The combined migration already orders contacts (`…103000.sql:6`) before opportunities (`:80`) and applies as one transaction (`sandbox-wizard apply` runs `--single-transaction --set ON_ERROR_STOP=on`). `[VERIFIED]`
+**Ordering constraint (verified):** `crm_contacts` must exist before `crm_opportunities` (FK `linked_contact_id → crm_contacts(id)`), and both must exist after `crm_leads` and `nexus_clients`/`businesses`. The combined migration already orders contacts (`…103000.sql:6`) before opportunities (`:80`) and applies as one transaction (`--single-transaction --set ON_ERROR_STOP=on`). `[VERIFIED]`
 
-**Idempotency note:** all CRM migrations use `create table if not exists` + `do $$ … if not exists … create policy …` guards, so re-apply to an already-seeded sandbox is safe. The new hardening migration must follow the same discipline. `[VERIFIED]`
+**Idempotency note:** all CRM migrations use `create table if not exists` + `do $$ … if not exists … create policy …` guards, so re-validating against an already-seeded branch is safe. The new hardening migration must follow the same discipline. `[VERIFIED]`
 
 ---
 
 ## 8. "Data layer is done when" (V1 acceptance)
 
 0. **(Pre-M1.1, mandatory) `types/supabase.ts` regenerated from prod ref `lksfwktwtmyznckodsau` and committed as the §17 evidence baseline; M1.1 verifies `crm_leads`, `nexus_clients`, `businesses` exist in prod BEFORE the contacts/opportunities promote transaction runs.**
-1. `crm_contacts` and `crm_opportunities` exist in prod, applied **only** via `sandbox-wizard promote`, with a clean `diff` and zero new security-advisor findings captured as evidence.
+1. `crm_contacts` and `crm_opportunities` exist in prod, promoted **only** by merging an approved database branch (never applied to prod directly), with a clean branch `diff` and zero new security-advisor findings captured as evidence.
 2. A partial UNIQUE index on `dedupe_email_key` exists in prod; all four dedupe keys are populated by the contacts route (name+company from the stable full-name, advisory-only); phone/name_company keys are indexed; PATCH recomputes phone/name_company keys.
 3. `crm_contacts`/`crm_opportunities` each have a working `updated_at` BEFORE-UPDATE trigger.
 4. Lead→contact conversion runs through the **`crm_convert_lead_to_contact()` SECURITY DEFINER RPC** (single Postgres transaction — chained supabase-js SDK calls are NOT acceptable): materializes a deduped `crm_contacts` row (and optional opportunity), updates lead status, and emits exactly one `agent_actions` timeline event, all-or-nothing; double-convert returns 409; no orphaned-contact partial commit is possible.

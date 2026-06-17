@@ -68,7 +68,7 @@ Introduce a dedicated `crm_approvals` draft migration only after one of these tr
 5. Command-center UI needs structured filters by subject, risk, requester, approver, or expiry.
 6. Legal/compliance/revenue governance needs durable non-secret approval metadata.
 
-The dedicated table should be sandbox-first and should not be promoted without explicit Phill/Board approval.
+The dedicated table should be branch-first (validated on a Supabase database branch, never against prod) and should not be promoted to prod without explicit Phill/Board approval via a merged, approved branch.
 
 ## Proposed `crm_approvals` shape when Stage 2 is justified
 
@@ -143,10 +143,8 @@ Do not jump straight to a migration. Use this sequence:
 2. Add route-level tests that assert approval-required actions write sanitised timeline events to `agent_actions` when event writes are introduced.
 3. Add a pure mapping helper from task/approval evidence into `evaluateCrmApprovalLifecycle` input, with tests.
 4. Add command-center/digest read surfaces for approval-needed tasks using the existing task convention.
-5. Only if structured approval history is still needed, draft `crm_approvals` migration and run it through:
-   - `./scripts/sandbox-wizard.sh apply <migration.sql>`
-   - `./scripts/sandbox-wizard.sh diff`
-6. Promotion to production requires explicit typed approval through the sandbox wizard.
+5. Only if structured approval history is still needed, write the `crm_approvals` migration in `apps/web/supabase/migrations/` and validate it on a Supabase database branch (an ephemeral per-branch DB; never validate against prod).
+6. Promotion to production (`lksfwktwtmyznckodsau`) happens ONLY by merging an approved branch — never apply to prod directly or autonomously, and only with explicit typed Phill/Board approval.
 
 ## Test plan
 
@@ -187,7 +185,7 @@ Decision for current autonomous lane:
 
 Blocked / draft-first:
 
-- Dedicated `crm_approvals` migration: needs sandbox-first apply/diff and explicit promotion approval.
+- Dedicated `crm_approvals` migration: needs branch-first validation on a Supabase database branch (never prod) and explicit promotion approval via a merged, approved branch.
 - Approval outcome writes: need a route contract and sanitised timeline events first.
 - Production execution after approval: requires scoped Phill/Board authorisation and must remain manual, auditable, and least-privilege.
 
@@ -209,7 +207,7 @@ This control surface is now bound to the `AI-RET-001-ANSWER-APPROVAL-PERSISTENCE
   - `sanitized approval reason` — task descriptions and `reason` fields must not store secret values, bearer tokens, payment details, full approval references, or Board IDs.
   - `no board approval id persisted` — by default, the `crm_approvals` table stores an optional one-way `approval_reference_hash` only and never the raw Board approval ID.
   - `phill or board review for high risk` — `client_merge`, `data_export`, billing/payment, deployment, and client-facing-send subjects remain high-risk even when marked approved.
-  - `sandbox-first apply` — any future `crm_approvals` migration must be applied through `./scripts/sandbox-wizard.sh apply` and `./scripts/sandbox-wizard.sh diff` before production promotion; promotion itself is still gated on explicit Phill/Board approval.
+  - `branch-first validation` — any future `crm_approvals` migration is written in `apps/web/supabase/migrations/` and validated on a Supabase database branch (an ephemeral per-branch DB; never against prod) before production promotion; promotion to prod happens ONLY by merging an approved branch and is still gated on explicit Phill/Board approval.
 - Reject the 6 prohibited overclaims (`crm_approvals migration applied`, `crm_approvals production applied`, `auto-execution enabled`, `safe to auto execute`, `board id persisted`, `nango`) before any command-center surfacing.
 
 The new doc-drift guard test in `tests/unit/lib/margot/retrieval-evaluation.test.ts` (`keeps the crm approval persistence plan source doc aligned with the AI-RET-001 approval-persistence answer-shape contract`) reads this file from disk and asserts that all 7 required answer phrases and all 4 required citation sources are present, and that none of the 6 prohibited phrases appear in the assertion section (everything before `## Senior PM verification checkpoint`). This is the fifth doc-drift guard in the retrieval suite (after the lead-to-client plan guard, the command-centre guard, the daily-digest-template guard, and the contacts/opportunities model guard).
@@ -222,7 +220,7 @@ This control-surface refresh is a docs-only, mock-only, local-only Senior PM lan
 - Create, alter, or seed the `crm_approvals` table in any environment.
 - Write, mutate, or read production database records.
 - Persist any Board approval ID, secret, token, payment detail, or full approval reference.
-- Touch the sandbox wizard (`apply`, `status`, `diff`, `sync`, `setup`, `reset`, `promote`).
+- Create, validate, or merge any Supabase database branch, or apply/promote any migration to prod.
 - Deploy to Vercel or mutate Vercel env / GitHub repository state.
 - Trigger any client-facing send, public publishing, billing/payment action, or campaign auto-launch.
 - Adopt Nango, any new vendor, or any new connector platform.
@@ -233,7 +231,7 @@ This control-surface refresh is a docs-only, mock-only, local-only Senior PM lan
 What exists (this tick, `2026-06-10 00:58 AEST`):
 
 - The new `AI-RET-001-ANSWER-APPROVAL-PERSISTENCE-BOUNDARY` answer-shape fixture in `src/lib/margot/retrieval-evaluation.ts` (10th in the array; pinned by `pins mocked answer-shape fixtures` and `can evaluate all mocked answer-shape fixtures` tests; type-safe via the extended `MargotRetrievalAnswerShapeFixtureId` union).
-- A new pass-test case `passes approval-persistence answer shape only when stage-1/stage-2 boundary and citations are present` proving the contract evaluates to `pass` when the future answer uses the stage-1/stage-2 phrasing, the sanitised-reason rule, the no-Board-id rule, the Phill/Board high-risk review, the sandbox-first apply, and the four required citation sources.
+- A new pass-test case `passes approval-persistence answer shape only when stage-1/stage-2 boundary and citations are present` proving the contract evaluates to `pass` when the future answer uses the stage-1/stage-2 phrasing, the sanitised-reason rule, the no-Board-id rule, the Phill/Board high-risk review, the branch-first validation rule, and the four required citation sources.
 - A new reject-test case `rejects approval-persistence answer shape when it overclaims crm_approvals applied or auto-execution` proving the contract evaluates to `shape_mismatch` when an answer claims the `crm_approvals` migration was applied, claims production apply, claims auto-execution, claims `safe to auto execute`, persists the Board ID, or mentions `nango`.
 - A new doc-drift guard test `keeps the crm approval persistence plan source doc aligned with the AI-RET-001 approval-persistence answer-shape contract` that reads `docs/margot/crm-approval-persistence-plan.md` from disk and asserts the 7 required answer phrases, the 4 required citation sources, and the absence of the 6 prohibited phrases in the assertion section.
 - The default-answer entry for the new fixture in `scripts/margot-retrieval-evaluation-report.ts` so the local report runner emits `answerShape=10/10` for the new fixture.
@@ -248,7 +246,7 @@ Why it exists:
 
 Missing/unclear/pending external authority:
 
-- Dedicated `crm_approvals` migration (Stage 2): not drafted in this lane; remains blocked on sandbox-first apply/diff and explicit Phill/Board promotion approval.
+- Dedicated `crm_approvals` migration (Stage 2): not drafted in this lane; remains blocked on branch-first validation on a Supabase database branch (never prod) and explicit Phill/Board promotion approval via a merged, approved branch.
 - Approval outcome writes: still need a route contract and sanitised timeline events before any task/agent action can persist an approval decision.
 - Voice transcript retention/privacy policy (carried forward): still blocks richer AI-RET-001 answer shapes for voice-derived approval data.
 - Mac Mini authenticated artifact transport: still blocked; no credential prompt, secret read, or recursive system-volume scan.
@@ -263,4 +261,4 @@ Smallest next action:
 
 - Re-run the focused retrieval-evaluation Jest gate and the AI-RET-001 report runner to confirm `answerShape=10/10` and the GREEN status of the new doc-drift guard.
 - Continue rotating other still-stale control surfaces (e.g. `crm-schema-inventory.md` at `2026-05-23 07:24 AEST`, `marketing-strategy-operating-model.md` and `ai-enhancement-pipeline.md` at `2026-05-23 07:33 AEST`) into the same doc-drift guard pattern on future ticks.
-- Do NOT run sandbox wizard `apply`, `status`, `diff`, `sync`, `setup`, `reset`, or `promote` until a specific authority/auth gate is granted for that exact wizard action.
+- Do NOT create, validate, or merge any Supabase database branch, and do NOT apply or promote any migration to prod (`lksfwktwtmyznckodsau`), until a specific authority/auth gate is granted for that exact action. Promotion to prod is only ever via a merged, approved branch — never a direct or autonomous apply.

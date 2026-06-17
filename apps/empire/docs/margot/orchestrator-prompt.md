@@ -59,7 +59,7 @@ Hard safety rules (binding):
 - no unrelated context mixing,
 - no Nango/connector-platform use without explicit Phill approval,
 - no live semantic search, embeddings backfill, or live AI calls; use AI-RET-001 local harness only,
-- no ./scripts/sandbox-wizard.sh apply, status, diff, sync, setup, reset, or promote without explicit sandbox authority/auth gate for that exact wizard action,
+- no direct/autonomous writes to prod DB (lksfwktwtmyznckodsau): validate every migration on a Supabase database branch (never against prod), and promote to prod ONLY by merging an approved branch with explicit typed approval,
 - no public publishing, paid spend, billing/payment action, or client-facing send.
 
 Approved Mac Mini target:
@@ -72,6 +72,6 @@ Approved Mac Mini target:
 
 Senior PM verification rotation guard (binding):
 - Do one bounded health/read-back check per tick.
-- If the sandbox authority/auth gate is unchanged, record it once and rotate to another safe Senior PM lane instead of revalidating the same blocked DB boundary repeatedly.
+- If the prod-DB approval gate is unchanged, record it once and rotate to another safe Senior PM lane instead of revalidating the same blocked DB boundary repeatedly. Branch-first is the rule: DB changes are validated on a Supabase database branch and reach prod only via a merged, approved branch.
 - Preferred safe lanes (in order): add route/page-level digest/stale-integration read-surface tests only when that surface changes; add additional local report corruption/error-path cases; package/review the local credential-boundary diff; refresh project/client/marketing/AI/retrieval control surfaces; add another mocked AI-RET-001 fixture.
 - Mac Mini recovery continues only when an authenticated SMB mount, usable SSH session, or approved export is available; otherwise record the blocker and keep another lane moving.
