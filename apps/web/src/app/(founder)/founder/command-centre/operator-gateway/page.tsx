@@ -138,6 +138,9 @@ export default async function OperatorGatewayPage() {
           <p>Runtime nodes: <b>{view.runtimeTopology.nodeCount}</b></p>
           <p>Active nodes: <b>{view.runtimeTopology.activeNodeCount}</b></p>
           <p>Install-blocked nodes: <b>{view.runtimeTopology.blockedInstallCount}</b></p>
+          <p>Telemetry monitors: <b>{view.runnerTelemetry.monitorCount}</b></p>
+          <p>Telemetry connected: <b>{view.runnerTelemetry.connectedMonitorCount}</b></p>
+          <p>Telemetry blocked: <b>{view.runnerTelemetry.blockedMonitorCount}</b></p>
           <p>No shared credentials: {boolLabel(view.runtimeTopology.noSharedCredentials, false)}</p>
           <p>No API-key mode: {boolLabel(view.runtimeTopology.noApiKeyMode, false)}</p>
           <p>Production execution enabled: {boolLabel(view.runtimeTopology.productionExecutionEnabled)}</p>
@@ -163,6 +166,20 @@ export default async function OperatorGatewayPage() {
         </div>
         <div style={{ ...grid, marginTop: '1rem' }}>
           <div>
+            <h3 style={{ fontSize: 15 }}>Telemetry contract</h3>
+            <p style={{ color: '#8b949e', fontSize: 13 }}>Endpoint: <code>/api/hermes/operator-gateway/runner-telemetry</code></p>
+            <p>Dispatch enabled: {boolLabel(view.runnerTelemetry.dispatchEnabled)}</p>
+            <p>Live runner enabled: {boolLabel(view.runnerTelemetry.liveRunnerEnabled)}</p>
+            <p>Next gate: <code>{view.runnerTelemetry.nextGate}</code></p>
+            {view.runnerTelemetry.monitors.slice(0, 5).map((monitor) => (
+              <div key={monitor.nodeId} style={{ borderTop: '1px solid #21262d', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
+                <b>{monitor.monitorSlot}</b>{' '}
+                <span style={pill(runtimeTone(monitor.heartbeatStatus === 'local_status_only' || monitor.heartbeatStatus === 'operator_visible' ? 'active' : monitor.heartbeatStatus))}>{monitor.heartbeatStatus}</span>
+                <p style={{ color: '#8b949e', fontSize: 12, margin: '0.25rem 0 0' }}>{monitor.requiredEvidence.join(', ')}</p>
+              </div>
+            ))}
+          </div>
+          <div>
             <h3 style={{ fontSize: 15 }}>Evidence flow</h3>
             <ol style={{ color: '#8b949e', fontSize: 14, paddingLeft: '1.25rem' }}>
               {view.runtimeTopology.dataFlow.map((step) => <li key={step} style={{ marginBottom: '0.35rem' }}>{step}</li>)}
@@ -179,6 +196,49 @@ export default async function OperatorGatewayPage() {
           </div>
         </div>
         <p style={{ color: '#8b949e', fontSize: 13 }}>{view.runtimeTopology.nextBuildStep}</p>
+      </section>
+
+      <section style={card} aria-label="mobile voice intake">
+        <h2 style={{ fontSize: 18, marginTop: 0 }}>Mobile Voice Intake · Plaud to 2nd brain</h2>
+        <p style={{ color: '#3fb950', fontSize: 14 }}>
+          Mobile-first capture is ready for Plaud transcripts, driving thoughts, podcast notes, audio-book ideas, and field conversations. Captures become Obsidian source notes, research prompts, and Board review packets before Hermes creates tasks.
+        </p>
+        <p style={{ color: '#8b949e', fontSize: 13 }}>Status endpoint: <code>/api/hermes/operator-gateway/mobile-voice-intake</code></p>
+        <div style={grid}>
+          <p>Mobile first: {boolLabel(view.mobileVoiceIntake.mobileFirst, false)}</p>
+          <p>Plaud supported: {boolLabel(view.mobileVoiceIntake.plaudSupported, false)}</p>
+          <p>Research expansion enabled: {boolLabel(view.mobileVoiceIntake.researchExpansionEnabled, false)}</p>
+          <p>Board review required: {boolLabel(view.mobileVoiceIntake.boardReviewRequired, false)}</p>
+          <p>Hermes queue required: {boolLabel(view.mobileVoiceIntake.hermesQueueRequired, false)}</p>
+          <p>No raw audio storage: {boolLabel(view.mobileVoiceIntake.noRawAudioStorage, false)}</p>
+          <p>External dispatch enabled: {boolLabel(view.mobileVoiceIntake.externalDispatchEnabled)}</p>
+          <p>Auto publish enabled: {boolLabel(view.mobileVoiceIntake.autoPublishEnabled)}</p>
+        </div>
+        <div style={grid}>
+          <div>
+            <h3 style={{ fontSize: 15 }}>Ingress modes</h3>
+            <ul style={{ color: '#8b949e', fontSize: 14 }}>
+              {view.mobileVoiceIntake.plaudIngressModes.map((mode) => <li key={mode}><code>{mode}</code></li>)}
+            </ul>
+          </div>
+          <div>
+            <h3 style={{ fontSize: 15 }}>2nd brain evidence</h3>
+            <p style={{ color: '#8b949e', fontSize: 13 }}>{view.mobileVoiceIntake.secondBrainTarget} · {view.mobileVoiceIntake.obsidianCaptureMode}</p>
+            <ul style={{ color: '#8b949e', fontSize: 14 }}>
+              {view.mobileVoiceIntake.requiredEvidence.map((evidence) => <li key={evidence}><code>{evidence}</code></li>)}
+            </ul>
+          </div>
+          <div>
+            <h3 style={{ fontSize: 15 }}>Open gates</h3>
+            {view.mobileVoiceIntake.openGates.map((gate) => (
+              <div key={gate} style={{ marginBottom: '0.5rem' }}>
+                <span style={pill('amber')}>blocked</span>{' '}
+                <code style={{ color: '#8b949e', fontSize: 12 }}>{gate}</code>
+              </div>
+            ))}
+          </div>
+        </div>
+        <p style={{ color: '#8b949e', fontSize: 13 }}>{view.mobileVoiceIntake.nextAction}</p>
       </section>
 
       <section style={card} aria-label="project definition of done coverage">
