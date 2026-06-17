@@ -35,6 +35,7 @@ export async function GET(request: Request) {
   let totalTriaged = 0
   let totalAutoArchived = 0
   let totalTasksCreated = 0
+  let accountErrors = 0
   const accountSummaries: string[] = []
 
   for (const account of accounts) {
@@ -71,9 +72,15 @@ export async function GET(request: Request) {
       }))
 
       if (rows.length > 0) {
-        await supabase
+        // Persistence must not fail silently — if the triage results can't be
+        // saved, surface it per-account rather than reporting success on unsaved
+        // work (No-Invaders #1). Caught by this account's try/catch below.
+        const { error: persistErr } = await supabase
           .from('email_triage_results')
           .upsert(rows, { onConflict: 'founder_id,account_email,thread_id' })
+        if (persistErr) {
+          throw new Error(`email_triage_results persistence failed: ${persistErr.message}`)
+        }
       }
 
       // AUTO-APPLY: archive NEWSLETTER / PROMOTIONAL / SPAM
@@ -121,6 +128,7 @@ export async function GET(request: Request) {
         `${account.email}: ${allResults.length} triaged, ${archived} archived, ${tasksCreated} tasks`
       )
     } catch (err) {
+      accountErrors++
       console.error(`[Email Triage CRON] Failed for ${account.email}:`, err)
       accountSummaries.push(`${account.email}: ERROR — ${err instanceof Error ? err.message : 'unknown'}`)
     }
@@ -140,8 +148,11 @@ export async function GET(request: Request) {
   }).catch(() => {})
 
   return NextResponse.json({
-    success: true,
+    // Honest: not every account silently "succeeded" — reflect failures (e.g. a
+    // persistence error) instead of always reporting success.
+    success: accountErrors === 0,
     accounts: accounts.length,
+    accountErrors,
     totalTriaged,
     totalAutoArchived,
     totalTasksCreated,
