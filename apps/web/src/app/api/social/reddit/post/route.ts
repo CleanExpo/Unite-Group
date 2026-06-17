@@ -15,7 +15,7 @@ interface RedditPostBody {
 export async function POST(request: Request) {
   const user = await getUser()
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
   }
 
   let payload: RedditPostBody

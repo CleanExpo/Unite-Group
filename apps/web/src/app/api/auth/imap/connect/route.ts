@@ -21,7 +21,7 @@ function getImapConfig(email: string) {
 
 export async function POST(request: Request) {
   const user = await getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   let email: string, password: string
   try {

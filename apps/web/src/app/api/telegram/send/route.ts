@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   // Auth gate — founder-only (apps/web convention).
   const user = await getUser();
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
   }
 
   const { text, persist } = await req.json();

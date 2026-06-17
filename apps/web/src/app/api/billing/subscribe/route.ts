@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
   // 1. Validate user session.
   const user = await getUser();
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
   }
 
   // 2. Parse and validate body.

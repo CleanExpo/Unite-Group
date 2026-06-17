@@ -62,7 +62,7 @@ interface RouteParams {
 
 export async function GET(_request: Request, { params }: RouteParams) {
   const user = await getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const { businessKey } = await params
 
@@ -98,7 +98,7 @@ interface UpdatePersonaInput {
 
 export async function PUT(request: Request, { params }: RouteParams) {
   const user = await getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const { businessKey } = await params
 
