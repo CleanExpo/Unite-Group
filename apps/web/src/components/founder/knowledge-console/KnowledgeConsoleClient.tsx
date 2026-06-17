@@ -231,12 +231,14 @@ function fallbackNotesFor(projectKey: string, query: string) {
 export function KnowledgeConsoleClient() {
   const pathname = usePathname()
   const previewMode = pathname.startsWith('/preview/')
-  const [projects, setProjects] = useState<ConsoleProject[]>(FALLBACK_PROJECTS)
-  const [activeProjectKey, setActiveProjectKey] = useState(FALLBACK_PROJECTS[2].key)
-  const [notes, setNotes] = useState<NoteSummary[]>(fallbackNotesFor(FALLBACK_PROJECTS[2].key, ''))
-  const [selectedNoteId, setSelectedNoteId] = useState<string>(FALLBACK_NOTES[2].id)
-  const [selectedNote, setSelectedNote] = useState<NoteDetail | null>(FALLBACK_NOTES[2])
-  const [source, setSource] = useState<LoadSource>('fallback')
+  // Mock FALLBACK_* data is used ONLY in the explicit /preview/ route (previewMode).
+  // The founder route never substitutes it for a failed/empty API (No-Invaders #1).
+  const [projects, setProjects] = useState<ConsoleProject[]>([])
+  const [activeProjectKey, setActiveProjectKey] = useState('')
+  const [notes, setNotes] = useState<NoteSummary[]>([])
+  const [selectedNoteId, setSelectedNoteId] = useState<string>('')
+  const [selectedNote, setSelectedNote] = useState<NoteDetail | null>(null)
+  const [source, setSource] = useState<LoadSource>('api')
   const [searchQuery, setSearchQuery] = useState('')
   const [loadingProjects, setLoadingProjects] = useState(true)
   const [loadingNotes, setLoadingNotes] = useState(false)
@@ -268,14 +270,15 @@ export function KnowledgeConsoleClient() {
         const payload = await response.json() as { projects?: KnowledgeProject[] }
         const loadedProjects = payload.projects?.map(normalizeProject) ?? []
 
+        setSource('api')
+
         if (loadedProjects.length === 0) {
-          setSource('fallback')
-          setProjects(FALLBACK_PROJECTS)
-          setActiveProjectKey((current) => current || FALLBACK_PROJECTS[0].key)
+          // Honest empty — real DB has no projects yet (not a fabricated list).
+          setProjects([])
+          setActiveProjectKey('')
           return
         }
 
-        setSource('api')
         setProjects(loadedProjects)
         setActiveProjectKey((current) => {
           if (loadedProjects.some((project) => project.key === current)) return current
@@ -283,8 +286,9 @@ export function KnowledgeConsoleClient() {
         })
       } catch (loadError) {
         if (controller.signal.aborted) return
-        setSource('fallback')
-        setProjects(FALLBACK_PROJECTS)
+        // Honest error — never substitute fabricated projects for a failed load.
+        setProjects([])
+        setActiveProjectKey('')
         setError(loadError instanceof Error ? loadError.message : 'Knowledge API unavailable')
       } finally {
         if (!controller.signal.aborted) setLoadingProjects(false)
@@ -332,11 +336,10 @@ export function KnowledgeConsoleClient() {
         setSelectedNote(null)
       } catch (loadError) {
         if (controller.signal.aborted) return
-        const fallbackNotes = fallbackNotesFor(activeProjectKey, searchQuery)
-        setSource('fallback')
-        setNotes(fallbackNotes)
-        setSelectedNoteId(fallbackNotes[0]?.id ?? '')
-        setSelectedNote(fallbackNotes[0] ?? null)
+        // Honest error — never substitute fabricated notes for a failed load.
+        setNotes([])
+        setSelectedNoteId('')
+        setSelectedNote(null)
         setError(loadError instanceof Error ? loadError.message : 'Knowledge notes unavailable')
       } finally {
         if (!controller.signal.aborted) setLoadingNotes(false)
@@ -374,7 +377,7 @@ export function KnowledgeConsoleClient() {
         setSelectedNote(note)
       } catch (loadError) {
         if (controller.signal.aborted) return
-        setSelectedNote(notes.find((note) => note.id === selectedNoteId) as NoteDetail | undefined ?? null)
+        setSelectedNote(null)
         setError(loadError instanceof Error ? loadError.message : 'Selected note unavailable')
       } finally {
         if (!controller.signal.aborted) setLoadingSelectedNote(false)
@@ -434,7 +437,7 @@ export function KnowledgeConsoleClient() {
           }}
         >
           <AlertCircle size={14} className="mt-0.5 shrink-0" strokeWidth={1.7} />
-          <span>Knowledge API fallback active: {error}</span>
+          <span>Knowledge unavailable — couldn’t load: {error}</span>
         </div>
       )}
 
