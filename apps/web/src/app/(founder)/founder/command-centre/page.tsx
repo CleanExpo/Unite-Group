@@ -181,7 +181,11 @@ export default async function CommandDeckPage() {
       {/* ── Portfolio ────────────────────────────────────────────────── */}
       <div className={styles.sectionHead} id="portfolio">
         <span className={styles.sectionLabel}>Portfolio Registry</span>
-        <span className={styles.sectionMeta}>{projects.length} units · {activeCount} live</span>
+        <span className={styles.sectionMeta}>{projects.length} units · {activeCount} active</span>
+        <span className={styles.sectionCaption}>
+          Declared from the static project registry — status is each project&apos;s
+          configured lifecycle state (active / stub / paused), not a live health probe.
+        </span>
       </div>
 
       <section className={styles.panelGrid}>
