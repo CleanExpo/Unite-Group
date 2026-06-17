@@ -198,6 +198,49 @@ export default async function OperatorGatewayPage() {
         <p style={{ color: '#8b949e', fontSize: 13 }}>{view.runtimeTopology.nextBuildStep}</p>
       </section>
 
+      <section style={card} aria-label="mobile voice intake">
+        <h2 style={{ fontSize: 18, marginTop: 0 }}>Mobile Voice Intake · Plaud to 2nd brain</h2>
+        <p style={{ color: '#3fb950', fontSize: 14 }}>
+          Mobile-first capture is ready for Plaud transcripts, driving thoughts, podcast notes, audio-book ideas, and field conversations. Captures become Obsidian source notes, research prompts, and Board review packets before Hermes creates tasks.
+        </p>
+        <p style={{ color: '#8b949e', fontSize: 13 }}>Status endpoint: <code>/api/hermes/operator-gateway/mobile-voice-intake</code></p>
+        <div style={grid}>
+          <p>Mobile first: {boolLabel(view.mobileVoiceIntake.mobileFirst, false)}</p>
+          <p>Plaud supported: {boolLabel(view.mobileVoiceIntake.plaudSupported, false)}</p>
+          <p>Research expansion enabled: {boolLabel(view.mobileVoiceIntake.researchExpansionEnabled, false)}</p>
+          <p>Board review required: {boolLabel(view.mobileVoiceIntake.boardReviewRequired, false)}</p>
+          <p>Hermes queue required: {boolLabel(view.mobileVoiceIntake.hermesQueueRequired, false)}</p>
+          <p>No raw audio storage: {boolLabel(view.mobileVoiceIntake.noRawAudioStorage, false)}</p>
+          <p>External dispatch enabled: {boolLabel(view.mobileVoiceIntake.externalDispatchEnabled)}</p>
+          <p>Auto publish enabled: {boolLabel(view.mobileVoiceIntake.autoPublishEnabled)}</p>
+        </div>
+        <div style={grid}>
+          <div>
+            <h3 style={{ fontSize: 15 }}>Ingress modes</h3>
+            <ul style={{ color: '#8b949e', fontSize: 14 }}>
+              {view.mobileVoiceIntake.plaudIngressModes.map((mode) => <li key={mode}><code>{mode}</code></li>)}
+            </ul>
+          </div>
+          <div>
+            <h3 style={{ fontSize: 15 }}>2nd brain evidence</h3>
+            <p style={{ color: '#8b949e', fontSize: 13 }}>{view.mobileVoiceIntake.secondBrainTarget} · {view.mobileVoiceIntake.obsidianCaptureMode}</p>
+            <ul style={{ color: '#8b949e', fontSize: 14 }}>
+              {view.mobileVoiceIntake.requiredEvidence.map((evidence) => <li key={evidence}><code>{evidence}</code></li>)}
+            </ul>
+          </div>
+          <div>
+            <h3 style={{ fontSize: 15 }}>Open gates</h3>
+            {view.mobileVoiceIntake.openGates.map((gate) => (
+              <div key={gate} style={{ marginBottom: '0.5rem' }}>
+                <span style={pill('amber')}>blocked</span>{' '}
+                <code style={{ color: '#8b949e', fontSize: 12 }}>{gate}</code>
+              </div>
+            ))}
+          </div>
+        </div>
+        <p style={{ color: '#8b949e', fontSize: 13 }}>{view.mobileVoiceIntake.nextAction}</p>
+      </section>
+
       <section style={card} aria-label="project definition of done coverage">
         <h2 style={{ fontSize: 18, marginTop: 0 }}>Project Definition of Done Engine · Project coverage</h2>
         <p style={{ color: '#3fb950', fontSize: 14 }}>
