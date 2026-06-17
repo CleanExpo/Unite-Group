@@ -35,12 +35,12 @@ then delete the legacy app. Operate per the skill:
 - **Toolchain**: each package keeps its own lockfile/package manager. The root
   is NOT a pnpm workspace (apps/web is one itself; pnpm cannot nest). Verify
   via root `package.json` scripts (`npm run verify:web` etc.).
-- **DB**: all schema work sandbox-first; no production Supabase migrations
-  without explicit approval. founder_id scoping only in apps/web.
-  **⚠️ The sandbox project (`xgqwfwqumliuguzhshwv`) was DELETED ~15/06/2026** —
-  there is currently NO sandbox, so DB schema work is FROZEN until a replacement
-  is provisioned. Never apply to prod (`lksfwktwtmyznckodsau`) as a workaround.
-  See `apps/empire/CLAUDE.md` to re-provision.
+- **DB**: validate every schema change/migration on a **Supabase database
+  branch** before prod. There is no standing sandbox — the old mirror project
+  (`xgqwfwqumliuguzhshwv`) was deleted 15/06/2026 and won't be replaced. Prod
+  (`lksfwktwtmyznckodsau`) moves only via a merged, approved branch — never apply
+  to prod directly, never autonomously. founder_id scoping only in apps/web.
+  See `apps/empire/CLAUDE.md` for the workflow.
 - **No writes to the former repos** (Unite-Hub, brain-1, Spine, hermes-workspace,
   pi-ceo-operator-mcp) — they are frozen pending deletion per the runbook.
 - **Deletion** of any repo/Supabase/Vercel resource: runbook gates + Phill's

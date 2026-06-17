@@ -38,7 +38,7 @@
 4. **Pause only when genuinely blocked.** Destructive/irreversible action, real
    scope change, or input only the user has. Never end on a promise. *Apply: a
    prod migration or prod deploy is a genuine block (founder decides
-   irreversible — and it goes through the sandbox first); a lint or coverage
+   irreversible — and it goes through a Supabase database branch first); a lint or coverage
    floor is not — fix it and move on.*
 
 5. **Ground every progress claim against a tool result.** Audit each claim
@@ -84,10 +84,10 @@ legacy skills instead of obeying them.
 - **Verify, don't trust.** Directive 5 is non-negotiable here: a subagent's
   "all green" is `[UNCONFIRMED]` until the orchestrator re-runs the gauntlet
   (`npm run build`, `npm run type-check`, `npm test`) on the integrated tree.
-- **Sandbox-first for data.** Per `CLAUDE.md`, every schema change, migration, or
-  DB-writing experiment proves out in the sandbox (`xgqwfwqumliuguzhshwv`) before
-  prod (`lksfwktwtmyznckodsau`). A prod data claim is `[UNCONFIRMED]` until the
-  sandbox run proves it.
+- **Branch-first for data.** Per `CLAUDE.md`, every schema change, migration, or
+  DB-writing experiment proves out on a **Supabase database branch** before prod
+  (`lksfwktwtmyznckodsau`); there is no standing sandbox. A prod data claim is
+  `[UNCONFIRMED]` until the branch run proves it.
 - **Board critique before high-stakes merges.** Run the existing `review-board` /
   `chief-reviewer` lens on the spec or the diff; it informs the human gate, never
   bypasses it. Label its output `[INFERENCE] — persona synthesis, not fact`.

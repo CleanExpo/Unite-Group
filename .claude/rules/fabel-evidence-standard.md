@@ -28,11 +28,10 @@ is a defect; when in doubt, downgrade.
   the divergence is exactly where breaks hide.*
 - **Status / done claims.** "Deployed", "live", "passing", "no schema drift"
   require the tool output that proves it (the Vercel state, the `Tests:` line,
-  `npm run check:schema-drift` output). Pair with the sandbox-first rule: schema
-  / DB-writing claims are `[UNCONFIRMED]` until proven in the sandbox before prod
-  (`lksfwktwtmyznckodsau`). **Note: the sandbox project (`xgqwfwqumliuguzhshwv`)
-  was DELETED ~15/06/2026** — until a replacement exists, schema/DB claims cannot
-  be proven and DB schema work is FROZEN (never prove against prod as a shortcut).
+  `npm run check:schema-drift` output). Pair with the DB rule: schema / DB-writing
+  claims are `[UNCONFIRMED]` until proven on a **Supabase database branch** before
+  prod (`lksfwktwtmyznckodsau`). There is no standing sandbox (the mirror project
+  was deleted 15/06/2026); never "prove" a DB claim against prod as a shortcut.
 - **Specs.** Every `[UNCONFIRMED]` item in a `fable-engine` spec lands in the
   spec's risk/assumption register, not the body.
 
