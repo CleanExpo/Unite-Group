@@ -32,8 +32,10 @@ Correct flow:
   Migration *files* may land in `main`; *applying* them is gated.
 - **Toolchain**: each package keeps its own lockfile/package manager. Verify via
   root `package.json` scripts (`npm run verify:web`, etc.).
-- **No writes to the former repos** (Unite-Hub, brain-1, Spine, hermes-workspace,
-  pi-ceo-operator-mcp) — frozen pending deletion.
+- **No writes to other repos.** `brain-1`, `Spine`, `hermes-workspace`,
+  `pi-ceo-operator-mcp` — frozen pending deletion. **Unite-Hub is a SEPARATE LIVE
+  parallel product (not frozen, not deleted, no migration here — per Phill
+  2026-06-18); never write to it from this repo.**
 - **Deletion** of any repo/Supabase/Vercel resource: runbook gates + typed
   approval only. Never autonomous.
 - Do not read or print secrets. Locale: en-AU | DD/MM/YYYY | AUD | AEST/AEDT.

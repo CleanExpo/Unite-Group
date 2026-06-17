@@ -105,14 +105,21 @@ project; export Vercel env vars to 1Password). Store bundles in the
 `Unite-Group-Infrastructure` vault or offline drive. Then, only with a typed
 "DELETE <item>" from Phill, per item:
 
+> **CORRECTION 2026-06-18 (Phill, authoritative): D1 and D6 are CANCELLED.**
+> `CleanExpo/Unite-Hub` is a **separate, live, independently-developed product**
+> running in parallel with Unite-Group — it is **NOT** to be deleted, and its
+> Vercel projects stay. The 12/06 absorption was a one-time git-history snapshot;
+> the two have diverged. The remaining D-items (Spine, brain-1, pi-ceo, hermes,
+> the old Authority-Site Supabase) are unaffected.
+
 | # | Item | Command/console |
 |---|---|---|
-| D1 | repo `CleanExpo/Unite-Hub` | GitHub → Settings → Delete |
+| ~~D1~~ | ~~repo `CleanExpo/Unite-Hub`~~ — **CANCELLED 2026-06-18: live parallel product, do NOT delete** | — |
 | D2 | repo `CleanExpo/Unite-Group-Spine` | (spine code lives in packages/spine) |
 | D3 | repo `CleanExpo/brain-1` | (vault lives in docs/brain) |
 | D4 | repo `CleanExpo/pi-ceo-operator-mcp` | (lives in packages/) |
 | D5 | repo `outsourc-e/hermes-workspace` | (lives in apps/workspace) |
-| D6 | Vercel `unite-hub` + `unite-hub-sandbox` projects | Vercel → Settings → Delete |
+| ~~D6~~ | ~~Vercel `unite-hub` + `unite-hub-sandbox` projects~~ — **CANCELLED 2026-06-18: Unite-Hub stays live** | — |
 | D7 | Vercel `unite-group-sandbox` (if replaced by monorepo preview flow) | Vercel |
 | D8 | Supabase `uqfgdezadpkiadugufbs` | Supabase → Settings → Delete project |
 
