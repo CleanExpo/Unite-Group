@@ -43,6 +43,7 @@
     "stripe:audit": "node scripts/run-stripe-agent.mjs audit",
     "integrity:check": "node scripts/run-integrity-check.mjs",
     "linear": "node scripts/linear-update.mjs",
+    "mobile-voice:approve-board-packet": "tsx scripts/mobile-voice-approve-board-packet.ts",
     "mobile-voice:terminal-exchange": "tsx scripts/mobile-voice-terminal-exchange.ts",
     "test:e2e": "playwright test",
     "test:e2e:contact-crud": "tsx e2e/support/run-with-supabase-admin.ts playwright test e2e/contact-crud.spec.ts",
