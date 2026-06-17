@@ -12,6 +12,7 @@ import { getProjectDodCoverageStatus } from './project-dod'
 import { getRuntimeTopologyStatus } from './runtime-topology'
 import { getRunnerTelemetryStatus } from './runner-telemetry'
 import { getMobileVoiceIntakeStatus } from './mobile-voice-intake'
+import { getLatestMobileVoiceCompoundMoveArtifactView } from './mobile-voice-compound-moves'
 import { runFirstBoardDecisionSimulation, type BoardDecisionSimulation } from './board-decision'
 
 export interface CommandCentreLaneView extends OperatorLane {
@@ -121,6 +122,7 @@ export interface CommandCentreOperatorSurfaceView {
   runtimeTopology: ReturnType<typeof getRuntimeTopologyStatus>
   runnerTelemetry: ReturnType<typeof getRunnerTelemetryStatus>
   mobileVoiceIntake: ReturnType<typeof getMobileVoiceIntakeStatus>
+  latestMobileVoiceCompoundMoves: ReturnType<typeof getLatestMobileVoiceCompoundMoveArtifactView>
   missionRouter: {
     source: 'static_registry'
     status: 'static_local_router_ready'
@@ -184,6 +186,7 @@ export function getCommandCentreOperatorSurfaceView(
   const runtimeTopology = getRuntimeTopologyStatus()
   const runnerTelemetry = getRunnerTelemetryStatus()
   const mobileVoiceIntake = getMobileVoiceIntakeStatus()
+  const latestMobileVoiceCompoundMoves = getLatestMobileVoiceCompoundMoveArtifactView()
   const boardDecisionEngine = runFirstBoardDecisionSimulation()
   const nextBoardDecision = boardDecisionEngine.nextRecommendedMove
   const sampleObjective = 'Prepare CARSI course product launch readiness'
@@ -279,6 +282,7 @@ export function getCommandCentreOperatorSurfaceView(
       { label: 'Multi-CLI runtime topology API', href: '/api/hermes/operator-gateway/runtime-topology', source: 'crm_route' },
       { label: 'Runner monitor telemetry API', href: '/api/hermes/operator-gateway/runner-telemetry', source: 'crm_route' },
       { label: 'Mobile voice intake API', href: '/api/hermes/operator-gateway/mobile-voice-intake', source: 'crm_route' },
+      { label: 'Mobile voice Next 20 artifact reader', href: 'src/lib/operator-gateway/mobile-voice-compound-moves.ts', source: 'static_registry' },
     ],
     blockedGates: [
       {
@@ -402,6 +406,7 @@ export function getCommandCentreOperatorSurfaceView(
     runtimeTopology,
     runnerTelemetry,
     mobileVoiceIntake,
+    latestMobileVoiceCompoundMoves,
     missionRouter: {
       source: 'static_registry',
       status: 'static_local_router_ready',
