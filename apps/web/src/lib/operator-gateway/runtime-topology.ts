@@ -215,9 +215,9 @@ export function getRuntimeTopologyStatus(): RuntimeTopologyStatus {
       'install_and_login_claude_max_builder_3',
       'install_and_login_minimax_cli_or_mcp',
       'wire_obsidian_research_capture_to_source_sync',
-      'create_runtime_monitor_ui',
+      'wire_runner_monitor_telemetry',
       'enable_safe_runner_dispatch_after_board_gate',
     ],
-    nextBuildStep: 'Build the Mission Control runtime monitor UI from this topology and keep dispatch disabled until each runner proves isolated evidence return.',
+    nextBuildStep: 'Wire runner monitor telemetry and keep dispatch disabled until each runner proves isolated evidence return.',
   }
 }

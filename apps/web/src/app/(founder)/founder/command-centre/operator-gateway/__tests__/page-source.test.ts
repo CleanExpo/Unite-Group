@@ -77,6 +77,50 @@ describe('command centre operator gateway UI source', () => {
     expect(source).not.toContain('Real execute job')
   })
 
+  it('shows the multi-CLI runtime monitor without enabling dispatch or shared credentials', () => {
+    const source = readFileSync(
+      join(root, 'src/app/(founder)/founder/command-centre/operator-gateway/page.tsx'),
+      'utf8',
+    )
+
+    expect(source).toContain('Mission Control Runtime Monitor')
+    expect(source).toContain('Multi-CLI topology')
+    expect(source).toContain('/api/hermes/operator-gateway/runtime-topology')
+    expect(source).toContain('/api/hermes/operator-gateway/runner-telemetry')
+    expect(source).toContain('Hermes runs through Codex')
+    expect(source).toContain('Claude Max builders and MiniMax run in isolated monitors')
+    expect(source).toContain('Obsidian captures research/evidence')
+    expect(source).toContain('Telemetry contract')
+    expect(source).toContain('Telemetry monitors')
+    expect(source).toContain('Telemetry connected')
+    expect(source).toContain('Next gate')
+    expect(source).toContain('No shared credentials')
+    expect(source).toContain('Production execution enabled')
+    expect(source).toContain('Browser automation requires main operator')
+    expect(source).toContain('Evidence flow')
+    expect(source).toContain('Open gates')
+    expect(source).not.toContain('Start runner dispatch')
+  })
+
+  it('shows mobile voice intake from Plaud to the second brain without auto-dispatch', () => {
+    const source = readFileSync(
+      join(root, 'src/app/(founder)/founder/command-centre/operator-gateway/page.tsx'),
+      'utf8',
+    )
+
+    expect(source).toContain('Mobile Voice Intake')
+    expect(source).toContain('Plaud to 2nd brain')
+    expect(source).toContain('/api/hermes/operator-gateway/mobile-voice-intake')
+    expect(source).toContain('podcast notes')
+    expect(source).toContain('audio-book ideas')
+    expect(source).toContain('Obsidian source notes')
+    expect(source).toContain('Board review packets')
+    expect(source).toContain('Ingress modes')
+    expect(source).toContain('No raw audio storage')
+    expect(source).toContain('Auto publish enabled')
+    expect(source).not.toContain('Auto-create Linear task from Plaud')
+  })
+
   it('shows specialized skill mesh and business mission router without live execution', () => {
     const source = readFileSync(
       join(root, 'src/app/(founder)/founder/command-centre/operator-gateway/page.tsx'),

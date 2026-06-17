@@ -34,7 +34,10 @@ describe('multi-CLI runtime topology', () => {
       'install_and_login_claude_max_builder_3',
       'install_and_login_minimax_cli_or_mcp',
       'wire_obsidian_research_capture_to_source_sync',
+      'wire_runner_monitor_telemetry',
     ]))
+    expect(topology.openGates).not.toContain('create_runtime_monitor_ui')
+    expect(topology.nextBuildStep).toContain('Wire runner monitor telemetry')
     expect(topology.dataFlow.some((step) => step.includes('Obsidian/2nd-brain'))).toBe(true)
     expect(topology.gstackEnabled).toBe(true)
     expect(topology.compoundEngineeringEnabled).toBe(true)
