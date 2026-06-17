@@ -42,7 +42,7 @@ Decisions:
 | P4 | Telegram webhooks | Telegram handlers | **migrated** — commit d9006c1b; `apps/web/src/app/api/telegram/` (feed, send, approval-callback); `approval-callback` degrades to 501 — personal-intelligence subsystem **DEFERRED** (see D-04 below) |
 | P5 | CRM helpers + tests | `src/lib/crm/approval-lifecycle.ts`, activity-timeline helpers, unit tests | **migrated** — commit 511a2a11; verified at `apps/web/src/lib/crm/approval-lifecycle.ts`, `apps/web/src/lib/crm/activity-timeline.ts`, `apps/web/src/lib/crm/qualify-lead.ts`, `apps/web/src/lib/crm/__tests__/` |
 | P6 | Margot CRM docs | `docs/legacy/authority-site/margot/` | **migrated** — commit 511a2a11; core CRM operating docs at `apps/web/docs/margot/`; personal-intelligence sub-tree (approval-dry-run, approval-gate fixtures, evidence packets) remains in legacy as source of record only — no runtime dependency |
-| P7 | Needed Supabase migrations | `supabase/migrations/` (selected, re-timestamped, sandbox-only) | **migrated as files, pending sandbox verification** — `20260514150000_stripe_events.sql`, `20260523100000_crm_leads.sql`, `20260523103000_crm_contacts_opportunities.sql` ported (commit d9006c1b / 511a2a11); sandbox apply not yet confirmed |
+| P7 | Needed Supabase migrations | `apps/web/supabase/migrations/` (selected, re-timestamped) | **migrated as files, pending branch validation** — `20260514150000_stripe_events.sql`, `20260523100000_crm_leads.sql`, `20260523103000_crm_contacts_opportunities.sql` ported (commit d9006c1b / 511a2a11); not yet validated on a Supabase database branch, and promotion to prod (`lksfwktwtmyznckodsau`) is only via a merged + approved branch — never applied directly |
 
 ### Supabase migrations detail
 
@@ -296,7 +296,7 @@ One row per remaining path-group. Classification verified against `apps/web` pat
 | `README.md` | obsolete | Old repo README; monorepo root has own |
 | `Research.md` | deferred | Research notes from old app; move to `docs/brain/` |
 | `ROADMAP.md` | deferred | Old app roadmap; review and merge into `docs/convergence/` or `docs/brain/` |
-| `scripts/` | deferred | Operational scripts (backfill embeddings, personal-intelligence pipeline, sandbox wizard, brand-guardian-lint, review scripts, seed scripts, etc.); `sandbox-wizard.sh` is referenced from root `CLAUDE.md` — **do not delete** until root wizard is updated; personal-intelligence scripts deferred alongside D-04 |
+| `scripts/` | deferred | Operational scripts (backfill embeddings, personal-intelligence pipeline, brand-guardian-lint, review scripts, seed scripts, etc.). The old sandbox helpers (`sandbox-wizard.sh`, `sandbox-bootstrap.sh`) were **deleted** on 15/06/2026 along with the mirror sandbox project (`xgqwfwqumliuguzhshwv`); DB safety is now Supabase database branching (validate migrations on a database branch, promote to prod only via a merged + approved branch — never directly). Personal-intelligence scripts deferred alongside D-04 |
 | `sentry.client.config.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts` | obsolete | Sentry configs for old app; apps/web has own |
 | `ShadCN-context.md` | obsolete | ShadCN context doc for old app design; superseded |
 | `supabase/` (config + migrations — see migration detail table above) | mixed | 3 migrations migrated (P7); 29 deferred; supabase config obsolete |
@@ -318,7 +318,7 @@ One row per remaining path-group. Classification verified against `apps/web` pat
 | `integrations/` | deferred | Integration specs (Composio, Railway, etc.); reference for deferred cron integrations |
 | `margot/` (CRM operating docs) | **migrated** | P6 — commit 511a2a11; core CRM docs at `apps/web/docs/margot/` |
 | `margot/evidence/` | deferred | Sandbox migration evidence packets; retain as audit trail — do not delete |
-| `margot/migration-proposals/` | deferred | SQL migration proposals (voice/tasks); not yet promoted |
+| `margot/migration-proposals/` | deferred | SQL migration proposals (voice/tasks); not yet validated on a database branch or promoted to prod |
 | `margot/personal-intelligence/` | deferred | Personal intelligence test fixtures and reports; deferred alongside D-04 |
 | `margot/recovered-from-mac-mini/` | deferred | Mac mini recovery placeholder; empty directory |
 | `operations/` | deferred | Ops runbooks for old app; review and merge relevant items |

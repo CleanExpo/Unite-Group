@@ -15,7 +15,7 @@ and the migration map is CLOSED.
 - [ ] Convergence PR merged to `main`; monorepo CI green on `main`
 - [ ] `docs/convergence/migration-map.md` status: CLOSED (zero unclassified paths)
 - [ ] `apps/authority-legacy/` deleted from the tree
-- [ ] CRM + Stripe migrations verified on the sandbox Supabase (`xgqwfwqumliuguzhshwv`)
+- [ ] CRM + Stripe migrations validated on a Supabase database branch (ephemeral per-branch DB; never against prod)
 
 ## Step 1 — Vercel: repoint the product (reversible)
 
@@ -54,9 +54,11 @@ Authority-Site's `uqfgdezadpkiadugufbs` holds the old app's data.
    command-centre/billing port needs (audit list: stripe_events, client
    approvals, businesses/organisations, data-room documents). `pg_dump --data-only`
    per table.
-2. Apply the new migrations (stripe_events, crm_leads, crm_contacts_opportunities,
-   any command-centre delta) to **sandbox `xgqwfwqumliuguzhshwv` first**, diff,
-   then to prod `lksfwktwtmyznckodsau` with explicit approval.
+2. Write the new migrations (stripe_events, crm_leads, crm_contacts_opportunities,
+   any command-centre delta) in `apps/web/supabase/migrations/` and validate them
+   on a **Supabase database branch first** (ephemeral per-branch DB; never validate
+   against prod), then promote to prod `lksfwktwtmyznckodsau` ONLY by merging an
+   approved branch — never apply to prod directly or autonomously.
 3. Import the exported data with founder_id mapping.
 4. Point ALL env vars at the canonical project only.
    **Rollback:** old project untouched until Step 6.

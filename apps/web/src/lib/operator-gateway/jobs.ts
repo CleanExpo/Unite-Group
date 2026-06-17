@@ -4,8 +4,11 @@
  * Phase OPG-4: in-repo types + pure validation helpers for the founder-scoped
  * operator_jobs / operator_events surface. There is NO live job runner and NO
  * production DB in this layer — these types define the contract that the
- * sandbox-first migration (supabase/migrations/_proposed/...) will back once
- * Board-approved and applied to the sandbox project.
+ * branch-validated migration (apps/web/supabase/migrations/...) will back once
+ * Board-approved: write the migration, validate it on a Supabase database
+ * branch (ephemeral per-branch DB — never validate against prod), then promote
+ * to prod (lksfwktwtmyznckodsau) only by merging the approved branch — never
+ * apply to prod directly or autonomously.
  *
  * Safety invariants enforced here:
  *  - no operator job may request an API key (no-API-key gateway principle);

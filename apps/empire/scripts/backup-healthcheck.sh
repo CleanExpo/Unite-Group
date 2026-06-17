@@ -17,7 +17,6 @@
 set -euo pipefail
 
 readonly PROD_REF="lksfwktwtmyznckodsau"
-readonly SANDBOX_REF="xgqwfwqumliuguzhshwv"
 readonly MAX_BACKUP_AGE_HOURS=26  # 24h + 2h grace
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
@@ -108,9 +107,13 @@ fi
 ok "Prerequisites: supabase CLI + python3"
 echo ""
 
-# Check both projects
+# Check prod. There is no standing sandbox project: the old mirror sandbox
+# (xgqwfwqumliuguzhshwv) was deleted 2026-06-15 and will not be replaced.
+# DB safety is now branch-first — schema changes are validated on ephemeral
+# Supabase database branches and promoted to prod only via a merged, approved
+# branch (never applied to prod directly/autonomously). Per-branch DBs are
+# ephemeral and have no standing backups to monitor, so only prod is checked.
 check_project_backups "$PROD_REF" "Production"
-check_project_backups "$SANDBOX_REF" "Sandbox"
 
 # Final verdict
 if [[ $FAILURES -eq 0 ]]; then

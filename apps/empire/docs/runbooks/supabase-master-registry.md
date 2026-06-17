@@ -108,9 +108,16 @@ I need answers to these before designing the consolidation:
 
 ## TEST / SANDBOX PROJECTS
 
+> **DB-safety model: Supabase database branching.** There is no standing
+> sandbox project. Schema changes are written in `apps/web/supabase/migrations/`,
+> validated on an ephemeral per-branch Supabase database (never against prod),
+> and promoted to prod (`lksfwktwtmyznckodsau`) ONLY by merging an approved
+> branch — never applied to prod directly or autonomously. Canonical rules:
+> `CLAUDE.md` / `apps/empire/CLAUDE.md`.
+
 | Project Ref | Name | Region | Purpose | Status |
 |-------------|------|--------|---------|--------|
-| `xgqwfwqumliuguzhshwv` | Unite-Group Test | us-west-1 | Sandbox/testing | KEEP |
+| `xgqwfwqumliuguzhshwv` | Unite-Group Test | us-west-1 | Former mirror sandbox | DELETED 2026-06-15 — not replaced (use database branching) |
 
 ---
 
@@ -148,7 +155,7 @@ I need answers to these before designing the consolidation:
 | **Client Instances** | 1 | Dimitri ITR (or merge if productized) |
 | **Operations Tools** | 0-1 | Pi-CEO (merge into CRM as internal tenant) |
 | **DR+NRPG** | 0 | Merge into CRM as module |
-| **Test/Sandbox** | 1 | Unite-Group Test |
+| **Test/Sandbox** | 0 | No standing sandbox — DB changes validated on ephemeral Supabase database branches |
 
 ### Migration Phases
 
@@ -194,7 +201,7 @@ I need answers to these before designing the consolidation:
 | `SUPABASE_ACCESS_TOKEN` | 1Password (Unite-Group-Infrastructure) | CLI-scoped | All (but 403 on management API) |
 | `SUPABASE_URL` | 1Password | Connection string | Unite-Group production |
 | `SUPABASE_SERVICE_ROLE_KEY` | 1Password | Server-side | Unite-Group production |
-| `UNITE_GROUP_SANDBOX_DB_PASSWORD` | 1Password | Direct DB | Test/sandbox |
+| `UNITE_GROUP_SANDBOX_DB_PASSWORD` | 1Password | Direct DB | ORPHANED — mirror sandbox deleted 2026-06-15; safe to remove (DB changes now use branching) |
 | **Management API Token** | **NEEDS CREATION** | Organization admin | All (for automation) |
 
 ---

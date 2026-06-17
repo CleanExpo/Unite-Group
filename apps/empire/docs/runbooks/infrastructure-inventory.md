@@ -63,7 +63,8 @@
 |-----------|-------|
 | **Provider** | Supabase (AWS-backed) |
 | **Production Project Ref** | `lksfwktwtmyznckodsau` — *see [Supabase Master Registry](supabase-master-registry.md)* |
-| **Sandbox Project Ref** | `xgqwfwqumliuguzhshwv` |
+| **DB-Safety Model** | Supabase database branching — validate every migration on an ephemeral per-branch DB; promote to prod ONLY via a merged + approved branch (never apply to prod directly/autonomously). See [CLAUDE.md](../../CLAUDE.md). |
+| **Sandbox Project Ref** | ~~`xgqwfwqumliuguzhshwv`~~ — **DELETED 2026-06-15, not replaced.** The mirror sandbox and `sandbox-wizard.sh`/`sandbox-bootstrap.sh` are gone; use Supabase database branching (above). |
 | **Third Project Ref (legacy?)** | `uqfgdezadpkiadugufbs` — **STALE — DELETE PER REGISTRY** |
 | **Database** | PostgreSQL (managed) |
 | **Table Count** | ~1,665 |

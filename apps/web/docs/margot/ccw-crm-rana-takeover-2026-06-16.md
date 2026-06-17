@@ -14,7 +14,7 @@ Current state is **contacts MVP live + tested**, not full CRM complete.
 
 Rana's next job is to take the existing contacts foundation and finish the CRM spine in this order:
 
-1. Verify and promote CRM schema safely.
+1. Verify the CRM schema on a Supabase database branch, then promote to prod only via a merged, approved branch.
 2. Unify the current `contacts` MVP with the richer `crm_contacts` model, or explicitly bridge them.
 3. Build opportunities/pipeline + forecast.
 4. Build approval execution so risky CRM writes are not convention-only.
@@ -40,7 +40,7 @@ Rana's next job is to take the existing contacts foundation and finish the CRM s
 
 ### Not Yet Complete
 
-- Rich CRM tables are present as migrations but are still marked pending sandbox verification:
+- Rich CRM tables are present as migrations but are still marked pending validation on a Supabase database branch:
   - `supabase/migrations/20260612020000_crm_leads.sql`
   - `supabase/migrations/20260612021000_crm_contacts_opportunities.sql`
 - No production-confirmed `crm_leads`, `crm_contacts`, or `crm_opportunities` usage path is wired into the UI.
@@ -55,7 +55,7 @@ Rana's next job is to take the existing contacts foundation and finish the CRM s
 
 - Do not touch secrets or `.env*` files.
 - Do not apply production DB changes directly.
-- Use sandbox-first migration verification.
+- Use branch-first migration verification: write migrations in `apps/web/supabase/migrations/`, validate on a Supabase database branch (never against prod), and promote to prod (`lksfwktwtmyznckodsau`) only by merging an approved branch.
 - Use founder-scoped reads/writes only.
 - Keep Scientific Luxury UI (`#050505`, `#00F5FF`, `rounded-sm`) unless a design decision says otherwise.
 - Avoid speculative new tables when existing tables can be safely bridged.
@@ -143,7 +143,7 @@ Goal: turn the CRM from a contact list into an operating pipeline.
 
 Build:
 
-1. Confirm or apply `crm_opportunities`.
+1. Confirm `crm_opportunities`, or add it via a migration validated on a Supabase database branch and promoted to prod only by merging an approved branch.
 2. Add route:
    - `GET /api/crm/opportunities`
    - `POST /api/crm/opportunities`
@@ -295,4 +295,4 @@ Rana is done when:
 - Do not add Stripe billing to CRM.
 - Do not add products/line-items until pipeline V1 is green.
 - Do not build drag-and-drop stage changes until approval-gated action changes work.
-- Do not perform production migration without sandbox evidence.
+- Do not apply migrations to prod directly or autonomously; promote only by merging a branch validated on a Supabase database branch and approved.

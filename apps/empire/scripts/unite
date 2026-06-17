@@ -23,7 +23,7 @@ Vercel
 
 Supabase
   supabase-status       prod project health snapshot
-  sandbox <cmd> [args]  passthrough to scripts/sandbox-wizard.sh
+  db-branch-help        how to validate migrations on a Supabase database branch
 
 Hermes
   hermes-jobs           list Unite-Group cron jobs
@@ -80,12 +80,24 @@ cmd_deploy() {
 cmd_supabase_status() {
   require supabase
   cd "$REPO_ROOT"
-  supabase projects list 2>/dev/null | grep -E "unite|lksfwktwtmyznckodsau|xgqwfwqumliuguzhshwv" || \
+  supabase projects list 2>/dev/null | grep -E "unite|lksfwktwtmyznckodsau" || \
     echo "supabase CLI not linked — run 'supabase login' then 'supabase link --project-ref lksfwktwtmyznckodsau'"
 }
 
-cmd_sandbox() {
-  "$REPO_ROOT/scripts/sandbox-wizard.sh" "$@"
+cmd_db_branch_help() {
+  cat <<'EOF'
+Database changes are validated on Supabase database branches — branch-first,
+never prod-first. There is no standing sandbox project.
+
+  1. Write the migration in apps/web/supabase/migrations/ (one PR off main).
+  2. Validate on a Supabase database branch (ephemeral per-branch DB that
+     replays supabase/migrations/). Create via the Supabase GitHub integration
+     or the MCP/CLI 'create_branch'. NEVER validate against prod.
+  3. Promote to prod (lksfwktwtmyznckodsau) ONLY by merging an approved branch
+     — never apply to prod directly or autonomously.
+
+Canonical rules: CLAUDE.md / apps/empire/CLAUDE.md.
+EOF
 }
 
 cmd_hermes_jobs() {
@@ -208,7 +220,7 @@ main() {
     vercel-status)    cmd_vercel_status "$@" ;;
     deploy)           cmd_deploy "$@" ;;
     supabase-status)  cmd_supabase_status "$@" ;;
-    sandbox)          cmd_sandbox "$@" ;;
+    db-branch-help)   cmd_db_branch_help "$@" ;;
     hermes-jobs)      cmd_hermes_jobs "$@" ;;
     onepassword-sync) cmd_onepassword_sync "$@" ;;
     vault-status)     cmd_vault_status "$@" ;;
