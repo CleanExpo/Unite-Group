@@ -12,7 +12,8 @@
  *                                         `claude,codex,gemini,minimax`.
  *   MISSION_CONTROL_RUNNER_CMD_<NAME>   → command for a named runner, name
  *                                         upper-cased (e.g. ..._CODEX). A listed
- *                                         name with no command env is configured:false.
+ *                                         name with no command env falls back to
+ *                                         a known preset if one exists.
  *   MISSION_CONTROL_DEFAULT_RUNNER      → explicit default runner name (optional).
  *
  * Default-runner precedence:
@@ -40,6 +41,17 @@ function commandEnvKey(name) {
   return `MISSION_CONTROL_RUNNER_CMD_${name.toUpperCase()}`;
 }
 
+const presetCommands = new Map([
+  ['claude', 'claude -p "$(cat {prompt})"'],
+  ['cursor', 'cursor-agent -p "$(cat {prompt})" --output-format text'],
+]);
+
+function resolveCommand(name, command) {
+  const explicit = (command ?? '').trim();
+  if (explicit) return explicit;
+  return presetCommands.get(name) ?? '';
+}
+
 /**
  * Build the runner registry from an environment-like object.
  *
@@ -53,7 +65,7 @@ export function parseRunnerRegistry(env = {}) {
   const order = [];
 
   const add = (name, command) => {
-    const trimmedCommand = (command ?? '').trim();
+    const trimmedCommand = resolveCommand(name, command);
     if (!byName.has(name)) order.push(name);
     byName.set(name, {
       name,

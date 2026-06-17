@@ -249,15 +249,22 @@ function commandExists(command) {
   return result.status === 0;
 }
 
+function firstCommandToken(command) {
+  return command.trim().split(/\s+/)[0] ?? '';
+}
+
 function runPreflight() {
   // The "a runner is configured" gate is satisfied by the legacy
   // MISSION_CONTROL_RUNNER_CMD OR any configured named runner in the registry.
   const runnerConfigured = hasConfiguredRunner();
+  const defaultRunner = runnerRegistry.runners.find((runner) => runner.name === runnerRegistry.defaultRunner);
+  const defaultRunnerCli = defaultRunner?.configured ? firstCommandToken(defaultRunner.command) : '';
+  const defaultRunnerCliPresent = !defaultRunnerCli || commandExists(defaultRunnerCli);
   const checks = [
     ['LINEAR_API_KEY', Boolean(env.token), 'required to claim/update Linear issues'],
     ['MISSION_CONTROL_RUNNER_CMD', runnerConfigured, 'required to run the local agent CLI (legacy var or a named runner)'],
+    ['default runner CLI', !runnerConfigured || defaultRunnerCliPresent, `required for default runner${defaultRunner ? ` (${defaultRunner.name})` : ''}`],
     ['MISSION_CONTROL_HANDOFF_URL auth', !env.handoffUrl || Boolean(env.cronSecret), 'required when using the web handoff endpoint'],
-    ['claude', commandExists('claude'), 'required by the recommended runner command'],
     ['git', commandExists('git'), 'required to commit/push work'],
     ['gh auth', spawnSync('gh', ['auth', 'status'], { stdio: 'ignore' }).status === 0, 'recommended for GitHub push auth'],
   ];
@@ -266,7 +273,12 @@ function runPreflight() {
   for (const [name, passed, why] of checks) {
     const status = passed ? 'ok' : 'missing';
     console.log(`${status.padEnd(8)} ${name} — ${why}`);
-    if (!passed && (name === 'LINEAR_API_KEY' || name === 'MISSION_CONTROL_RUNNER_CMD' || name === 'MISSION_CONTROL_HANDOFF_URL auth')) ok = false;
+    if (!passed && (
+      name === 'LINEAR_API_KEY' ||
+      name === 'MISSION_CONTROL_RUNNER_CMD' ||
+      name === 'default runner CLI' ||
+      name === 'MISSION_CONTROL_HANDOFF_URL auth'
+    )) ok = false;
   }
 
   // Honest per-runner reporting: for each configured named runner (i.e. not the
@@ -280,7 +292,7 @@ function runPreflight() {
         console.log(`${'missing'.padEnd(8)} runner:${runner.name} — no MISSION_CONTROL_RUNNER_CMD_${runner.name.toUpperCase()} configured`);
         continue;
       }
-      const cli = runner.command.split(/\s+/)[0] ?? '';
+      const cli = firstCommandToken(runner.command);
       const present = commandExists(cli);
       const status = present ? 'ok' : 'missing';
       console.log(`${status.padEnd(8)} runner:${runner.name} — CLI \`${cli}\` ${present ? 'found' : 'not on PATH'}`);
