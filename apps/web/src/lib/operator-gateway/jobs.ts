@@ -150,7 +150,14 @@ export function canTransition(from: OperatorJobStatus, to: OperatorJobStatus): b
   return ALLOWED_TRANSITIONS[from]?.includes(to) ?? false
 }
 
-export const OPERATOR_GATEWAY_SANDBOX_PROJECT_REF = 'xgqwfwqumliuguzhshwv'
+// The approved operator-gateway sandbox project ref is configured via env. The
+// old hardcoded mirror project (xgqwfwqumliuguzhshwv) was DELETED on 15/06/2026,
+// so referencing it was a dead-project landmine. When this env var is unset, no
+// sandbox URL is approved and the operator gateway stays honestly not_connected;
+// provisioning a new sandbox is an env change, not a code change.
+export function getApprovedSandboxProjectRef(): string | null {
+  return process.env.OPERATOR_GATEWAY_SANDBOX_PROJECT_REF?.trim() || null
+}
 
 export interface OperatorJobsView {
   source: 'static_registry' | 'not_connected' | 'sandbox_select' | 'production'
@@ -318,7 +325,8 @@ const OPERATOR_JOBS_SELECT = [
 ].join(',')
 
 export function isApprovedSandboxSupabaseUrl(url: string | undefined): boolean {
-  return Boolean(url && url.includes(`${OPERATOR_GATEWAY_SANDBOX_PROJECT_REF}.supabase.co`))
+  const ref = getApprovedSandboxProjectRef()
+  return Boolean(ref && url && url.includes(`${ref}.supabase.co`))
 }
 
 export function getSandboxOperatorJobsClient(): (OperatorJobsReadClient & OperatorJobsWriteClient & OperatorJobsDryRunClient) | null {
