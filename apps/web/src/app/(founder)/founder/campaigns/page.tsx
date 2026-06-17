@@ -171,8 +171,12 @@ export default async function CampaignsPage() {
     .eq('founder_id', user.id)
     .order('created_at', { ascending: false })
 
+  // No-Invaders #1: a query FAILURE must never render as an empty CRM.
+  // Throw so the route's error.tsx boundary catches it and shows an honest
+  // error state — only render EmptyState when the request genuinely succeeded
+  // with zero rows.
   if (error) {
-    console.error('[campaigns] Failed to load campaigns:', error)
+    throw new Error(`Failed to load campaigns: ${error.message}`)
   }
 
   const campaigns = (rows ?? []).map(r => mapRow(r as CampaignRow))

@@ -22,16 +22,20 @@ interface VaultGridProps {
 export function VaultGrid({ unlocked }: VaultGridProps) {
   const [credentials, setCredentials] = useState<Credential[]>([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(false)
   const [addingEntry, setAddingEntry] = useState(false)
 
   const fetchEntries = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch('/api/vault/entries')
-      if (res.ok) {
-        const data = await res.json() as Credential[]
-        setCredentials(data)
-      }
+      if (!res.ok) throw new Error('Failed to load vault entries')
+      const data = await res.json() as Credential[]
+      setCredentials(data)
+      setError(false)
+    } catch {
+      // Honest hard-error state — never fabricate an empty vault (No-Invaders #1).
+      setError(true)
     } finally {
       setLoading(false)
     }
@@ -72,13 +76,25 @@ export function VaultGrid({ unlocked }: VaultGridProps) {
         </p>
       )}
 
-      {!loading && credentials.length === 0 && (
+      {!loading && error && (
+        <div
+          className="rounded-sm p-4 text-center"
+          style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)' }}
+          role="alert"
+        >
+          <span className="text-[13px]" style={{ color: 'var(--color-danger, #ef4444)' }}>
+            Vault unavailable — couldn’t load your credentials. Refresh to try again.
+          </span>
+        </div>
+      )}
+
+      {!loading && !error && credentials.length === 0 && (
         <p className="text-[13px] text-center py-8" style={{ color: 'var(--color-text-muted)' }}>
           No credentials stored yet. Add your first entry above.
         </p>
       )}
 
-      {!loading && grouped.length > 0 && (
+      {!loading && !error && grouped.length > 0 && (
         <div className="flex flex-col gap-6">
           {grouped.map(({ business, credentials: creds }) => (
             <div key={business.key}>

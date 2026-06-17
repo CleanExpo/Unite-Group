@@ -13,6 +13,7 @@ const STATUS_OPTIONS = ['all', 'lead', 'prospect', 'client', 'churned', 'archive
 export function ContactsPageClient() {
   const [contacts, setContacts] = useState<Contact[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [showModal, setShowModal] = useState(false)
@@ -22,12 +23,14 @@ export function ContactsPageClient() {
     setLoading(true)
     try {
       const res = await fetch('/api/contacts')
-      if (res.ok) {
-        const data = await res.json()
-        setContacts(data.contacts ?? data)
-      }
+      if (!res.ok) throw new Error('Failed to load contacts')
+      const data = await res.json()
+      setContacts(data.contacts ?? data)
+      setError(false)
     } catch {
-      // Silently handle — table will show empty state
+      // Honest hard-error state — never fabricate an empty CRM (No-Invaders #1).
+      // Do NOT reset contacts to []: a failed fetch must not masquerade as "no contacts yet".
+      setError(true)
     } finally {
       setLoading(false)
     }
@@ -120,7 +123,17 @@ export function ContactsPageClient() {
         }
       />
 
-      {!loading && contacts.length === 0 ? (
+      {!loading && error ? (
+        <div
+          className="rounded-sm p-4"
+          style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)' }}
+          role="alert"
+        >
+          <span className="text-[13px]" style={{ color: 'var(--color-danger, #ef4444)' }}>
+            Contacts unavailable — couldn’t load. Refresh to try again.
+          </span>
+        </div>
+      ) : !loading && contacts.length === 0 ? (
         <EmptyState
           icon={Users}
           title="No contacts yet"
