@@ -298,7 +298,7 @@ export function getFirstSimulationCandidates(): BoardMoveCandidate[] {
     },
     {
       moveId: 'claude_cursor_lane_install',
-      objective: 'Prepare Claude/Cursor lane install packet',
+      objective: 'Prepare Claude/MiniMax/Cursor lane install packet',
       projectId: 'operator_gateway',
       pSuccess: 0.72,
       valueScore: 8,
