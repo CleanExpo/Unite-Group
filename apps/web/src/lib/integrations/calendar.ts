@@ -18,7 +18,9 @@ export interface CalendarEvent {
 
 export interface CalendarEventsResult {
   data: CalendarEvent[]
-  source: 'google' | 'not_connected'
+  // 'error' = connected, but every account's live fetch failed — the caller MUST
+  // surface this rather than render an empty "no events" state (No-Invaders #1).
+  source: 'google' | 'not_connected' | 'error'
 }
 
 const BUSINESS_COLOURS: Record<string, string> = {
@@ -48,7 +50,9 @@ async function fetchEventsForAccount(
     `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&maxResults=10&orderBy=startTime&singleEvents=true`,
     { headers: { Authorization: `Bearer ${accessToken}` } }
   )
-  if (!res.ok) return []
+  // Throw on a live API failure so the caller can distinguish "genuinely no events"
+  // from "the fetch failed" — never swallow into an empty list.
+  if (!res.ok) throw new Error(`Google Calendar API responded ${res.status}`)
 
   const data = await res.json() as { items?: GoogleCalendarEvent[] }
   return (data.items ?? []).map(e => ({
@@ -81,7 +85,7 @@ export async function fetchCalendarEvents(founderId: string): Promise<CalendarEv
 
   if (!vaultRows?.length) return { data: [], source: 'not_connected' }
 
-  const allEvents = await Promise.all(
+  const perAccount = await Promise.all(
     vaultRows.map(async (row) => {
       try {
         const tokens: StoredTokens = JSON.parse(
@@ -90,15 +94,24 @@ export async function fetchCalendarEvents(founderId: string): Promise<CalendarEv
         const accessToken = await getValidToken(tokens)
         const email = row.notes ?? ''
         const businessKey = (row.metadata as { businessKey?: string })?.businessKey ?? 'personal'
-        return fetchEventsForAccount(accessToken, email, businessKey)
+        const events = await fetchEventsForAccount(accessToken, email, businessKey)
+        return { ok: true as const, events }
       } catch (err) {
         console.error('[Google] Calendar fetch failed for', row.notes, err)
-        return []
+        return { ok: false as const, events: [] as CalendarEvent[] }
       }
     })
   )
 
-  const events = allEvents.flat().sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
+  // If every connected account failed, report an honest error rather than an empty
+  // "no events" state. Partial success still returns the events we did get.
+  if (!perAccount.some((r) => r.ok)) {
+    return { data: [], source: 'error' }
+  }
+
+  const events = perAccount
+    .flatMap((r) => r.events)
+    .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
   setCache(cacheKey, events, GOOGLE_CACHE_TTL_MS)
   return { data: events, source: 'google' }
 }

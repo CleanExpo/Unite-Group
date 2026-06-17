@@ -28,7 +28,9 @@ async function listFolderContents(
     { headers: { Authorization: `Bearer ${accessToken}` } }
   )
 
-  if (!res.ok) return []
+  // Throw on a live API failure so callers surface an honest error instead of an
+  // empty "no files" list (No-Invaders #1 — never present a failed load as empty).
+  if (!res.ok) throw new Error(`Google Drive list responded ${res.status}`)
   const data = await res.json() as { files?: DriveFile[] }
   return (data.files ?? []).sort((a, b) =>
     new Date(b.modifiedTime).getTime() - new Date(a.modifiedTime).getTime()
@@ -44,7 +46,8 @@ async function getFileContent(
     { headers: { Authorization: `Bearer ${accessToken}` } }
   )
 
-  if (!res.ok) return ''
+  // Throw on a live API failure so the caller returns a real error, not empty content.
+  if (!res.ok) throw new Error(`Google Drive fetch responded ${res.status}`)
   return res.text()
 }
 
@@ -69,24 +72,23 @@ export async function getVaultFiles(founderId: string): Promise<DriveFile[]> {
 
   if (!vaultRows?.length) return []
 
-  try {
-    const tokens = JSON.parse(
-      decrypt({
-        encryptedValue: vaultRows[0].encrypted_value,
-        iv: vaultRows[0].iv,
-        salt: vaultRows[0].salt,
-      })
-    )
-    const accessToken = await getValidToken(tokens)
-    const files = await listFolderContents(
-      accessToken,
-      process.env.GOOGLE_DRIVE_VAULT_FOLDER_ID!
-    )
-    setCache(cacheKey, files, GOOGLE_DRIVE_CACHE_TTL_MS)
-    return files
-  } catch {
-    return []
-  }
+  // No swallowing catch: a decrypt/token/API failure propagates so the caller
+  // (notes/page.tsx → error.tsx) shows an honest "couldn't load" state rather than
+  // an empty file tree that reads as "you have no notes".
+  const tokens = JSON.parse(
+    decrypt({
+      encryptedValue: vaultRows[0].encrypted_value,
+      iv: vaultRows[0].iv,
+      salt: vaultRows[0].salt,
+    })
+  )
+  const accessToken = await getValidToken(tokens)
+  const files = await listFolderContents(
+    accessToken,
+    process.env.GOOGLE_DRIVE_VAULT_FOLDER_ID!
+  )
+  setCache(cacheKey, files, GOOGLE_DRIVE_CACHE_TTL_MS)
+  return files
 }
 
 export async function getVaultFileContent(
@@ -113,21 +115,19 @@ export async function getVaultFileContent(
 
   if (!vaultRows?.length) return ''
 
-  try {
-    const tokens = JSON.parse(
-      decrypt({
-        encryptedValue: vaultRows[0].encrypted_value,
-        iv: vaultRows[0].iv,
-        salt: vaultRows[0].salt,
-      })
-    )
-    const accessToken = await getValidToken(tokens)
-    const content = await getFileContent(accessToken, fileId)
-    setCache(cacheKey, content, GOOGLE_DRIVE_CACHE_TTL_MS)
-    return content
-  } catch {
-    return ''
-  }
+  // No swallowing catch: a decrypt/token/API failure propagates so the caller
+  // (api/notes/content → 500) returns a real error instead of empty note content.
+  const tokens = JSON.parse(
+    decrypt({
+      encryptedValue: vaultRows[0].encrypted_value,
+      iv: vaultRows[0].iv,
+      salt: vaultRows[0].salt,
+    })
+  )
+  const accessToken = await getValidToken(tokens)
+  const content = await getFileContent(accessToken, fileId)
+  setCache(cacheKey, content, GOOGLE_DRIVE_CACHE_TTL_MS)
+  return content
 }
 
 export function invalidateVaultCache(founderId: string): void {
