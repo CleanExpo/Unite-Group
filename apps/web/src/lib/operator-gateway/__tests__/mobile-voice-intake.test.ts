@@ -11,6 +11,7 @@ describe('mobile voice intake', () => {
     expect(status.endpoint).toBe('/api/hermes/operator-gateway/mobile-voice-intake')
     expect(status.secondBrainTarget).toBe('Obsidian/2nd-brain')
     expect(status.researchExpansionEnabled).toBe(true)
+    expect(status.packetPersistenceEnabled).toBe(true)
     expect(status.boardReviewRequired).toBe(true)
     expect(status.hermesQueueRequired).toBe(true)
     expect(status.externalDispatchEnabled).toBe(false)
@@ -25,6 +26,9 @@ describe('mobile voice intake', () => {
       'mobile_voice_note',
     ]))
     expect(status.openGates).toContain('connect_obsidian_mobile_capture_folder')
+    expect(status.openGates).toContain('write_obsidian_source_notes_from_packets')
+    expect(status.openGates).not.toContain('persist_mobile_voice_packets')
+    expect(status.nextAction).toContain('Write Obsidian source notes')
   })
 
   it('builds an Obsidian/research/Board packet without creating tasks', () => {

@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
-import { getUser } from '@/lib/supabase/server'
+import { createClient, getUser } from '@/lib/supabase/server'
 import {
   buildMobileVoiceCapturePacket,
   getMobileVoiceIntakeStatus,
   type MobileVoiceCaptureInput,
 } from '@/lib/operator-gateway/mobile-voice-intake'
+import { persistMobileVoicePacket, type MobileVoicePacketWriteClient } from '@/lib/operator-gateway/mobile-voice-packets'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,7 +31,7 @@ export async function GET() {
 }
 
 // POST — founder/session guarded mobile/Plaud transcript packet builder.
-// Returns an Obsidian/research/Board packet only; it does not persist, publish, or create tasks.
+// Persists a review packet only; it does not publish, dispatch, or create tasks.
 export async function POST(request: Request) {
   try {
     const user = await getUser()
@@ -68,16 +69,38 @@ export async function POST(request: Request) {
       timestampsIncluded: body.timestampsIncluded === true,
       sourceUrl: typeof body.sourceUrl === 'string' ? body.sourceUrl : undefined,
     })
+    const supabase = await createClient()
+    const persistence = await persistMobileVoicePacket({
+      founderId: user.id,
+      client: supabase as unknown as MobileVoicePacketWriteClient,
+      packet,
+      transcript,
+      summary: typeof body.summary === 'string' ? body.summary : null,
+      sourceUrl: typeof body.sourceUrl === 'string' ? body.sourceUrl : null,
+    })
+
+    if (!persistence.ok) {
+      return NextResponse.json({
+        error: persistence.error,
+        reasons: persistence.reasons,
+        persisted: false,
+        tasksCreated: false,
+        externalDispatchEnabled: false,
+        autoPublishEnabled: false,
+        productionExecutionEnabled: false,
+      }, { status: persistence.status })
+    }
 
     return NextResponse.json({
       packet,
+      record: persistence.record,
       founderOnly: true,
-      persisted: false,
+      persisted: true,
       tasksCreated: false,
       externalDispatchEnabled: false,
       autoPublishEnabled: false,
       productionExecutionEnabled: false,
-    })
+    }, { status: 201 })
   } catch {
     return NextResponse.json({ error: 'Failed to build mobile voice packet' }, { status: 500 })
   }
