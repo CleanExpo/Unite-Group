@@ -115,6 +115,7 @@ describe('command centre operator gateway UI source', () => {
     expect(source).toContain('audio-book ideas')
     expect(source).toContain('Obsidian source notes')
     expect(source).toContain('Board review packets')
+    expect(source).toContain('Packet persistence enabled')
     expect(source).toContain('Ingress modes')
     expect(source).toContain('No raw audio storage')
     expect(source).toContain('Auto publish enabled')
