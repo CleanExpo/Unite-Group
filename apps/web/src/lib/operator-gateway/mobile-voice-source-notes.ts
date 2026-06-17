@@ -1,4 +1,4 @@
-import { writeEvidence, type WriteEvidenceInput, type WriteEvidenceResult } from '@/lib/obsidian/evidence'
+import { writeEvidence, type WriteEvidenceInput, type WriteEvidenceResult } from '../obsidian/evidence'
 import type { MobileVoicePacketRecord } from './mobile-voice-packets'
 
 export interface MobileVoiceSourceNoteRecord {
