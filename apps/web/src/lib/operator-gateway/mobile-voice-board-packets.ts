@@ -1,4 +1,4 @@
-import { writeEvidence, type WriteEvidenceInput, type WriteEvidenceResult } from '@/lib/obsidian/evidence'
+import { writeEvidence, type WriteEvidenceInput, type WriteEvidenceResult } from '../obsidian/evidence'
 import type { MobileVoicePacketRecord } from './mobile-voice-packets'
 import type { MobileVoiceSourceNoteRecord } from './mobile-voice-source-notes'
 
@@ -152,7 +152,7 @@ export function buildMobileVoiceBoardPacketInput(
 
   return {
     project: 'mobile-voice-intake',
-    taskId: `${record.packetId}-board`,
+    taskId: record.packetId,
     kind: 'board-packet',
     frontmatter: {
       title: `Board review packet — ${record.title}`,
