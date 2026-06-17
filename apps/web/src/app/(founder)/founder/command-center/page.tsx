@@ -10,6 +10,7 @@
 // apps/web and No-Invaders rule #3 forbids adding dependencies.
 
 import { HermesControlPanel } from '@/components/command-center/control-panel/HermesControlPanel'
+import { BusinessFocusRail } from '@/components/command-center/business-focus/BusinessFocusRail'
 import { LiveAgentOperationsMap } from '@/components/command-center/live-agent-operations/LiveAgentOperationsMap'
 import { ProviderUsageCockpit } from '@/components/command-center/provider-usage/ProviderUsageCockpit'
 import { ActivityFeedPanel } from '@/components/command-center/activity/ActivityFeedPanel'
@@ -18,7 +19,7 @@ import styles from '@/components/command-center/command-center.module.css'
 
 export const dynamic = 'force-dynamic'
 
-export default function CommandCenterPage() {
+export default async function CommandCenterPage() {
   return (
     <div className={styles.scope}>
       <header className="px-6 py-5" style={{ borderBottom: '1px solid var(--cc-grid)' }}>
@@ -33,6 +34,7 @@ export default function CommandCenterPage() {
         </h1>
       </header>
 
+      <BusinessFocusRail />
       <HermesControlPanel />
 
       <div className="grid grid-cols-1 xl:grid-cols-[22rem_minmax(0,1fr)]" style={{ gap: 1, background: 'var(--cc-grid)' }}>
