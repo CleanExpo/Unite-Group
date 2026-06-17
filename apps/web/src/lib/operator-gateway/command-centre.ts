@@ -7,6 +7,7 @@ import {
   type MissionRouteResult,
 } from './specialized-skill-mesh'
 import { getSkillEvolutionStatus } from './skill-evolution'
+import { getCompoundEngineeringConnectorStatus } from './compound-engineering-connectors'
 import { getProjectDodCoverageStatus } from './project-dod'
 import { getRuntimeTopologyStatus } from './runtime-topology'
 import { getRunnerTelemetryStatus } from './runner-telemetry'
@@ -115,6 +116,7 @@ export interface CommandCentreOperatorSurfaceView {
   }
   skillMesh: ReturnType<typeof getSpecializedSkillMeshStatus>
   skillEvolution: ReturnType<typeof getSkillEvolutionStatus>
+  compoundEngineering: ReturnType<typeof getCompoundEngineeringConnectorStatus>
   projectCoverage: ReturnType<typeof getProjectDodCoverageStatus>
   runtimeTopology: ReturnType<typeof getRuntimeTopologyStatus>
   runnerTelemetry: ReturnType<typeof getRunnerTelemetryStatus>
@@ -177,6 +179,7 @@ export function getCommandCentreOperatorSurfaceView(
   const control = getControlPanelView()
   const skillMesh = getSpecializedSkillMeshStatus()
   const skillEvolution = getSkillEvolutionStatus()
+  const compoundEngineering = getCompoundEngineeringConnectorStatus()
   const projectCoverage = getProjectDodCoverageStatus()
   const runtimeTopology = getRuntimeTopologyStatus()
   const runnerTelemetry = getRunnerTelemetryStatus()
@@ -272,6 +275,7 @@ export function getCommandCentreOperatorSurfaceView(
       { label: 'Agentic Nexus dashboard summary', href: '2nd-brain/.agentic_nexus/DASHBOARD_STATUS_SUMMARY.md', source: 'agentic_nexus' },
       { label: 'Project DoD coverage registry', href: 'project_dod_registry.jsonl', source: 'static_registry' },
       { label: 'Project DoD coverage status API', href: '/api/hermes/operator-gateway/project-coverage', source: 'crm_route' },
+      { label: 'Compound Engineering connector status API', href: '/api/hermes/operator-gateway/compound-engineering', source: 'crm_route' },
       { label: 'Multi-CLI runtime topology API', href: '/api/hermes/operator-gateway/runtime-topology', source: 'crm_route' },
       { label: 'Runner monitor telemetry API', href: '/api/hermes/operator-gateway/runner-telemetry', source: 'crm_route' },
       { label: 'Mobile voice intake API', href: '/api/hermes/operator-gateway/mobile-voice-intake', source: 'crm_route' },
@@ -393,6 +397,7 @@ export function getCommandCentreOperatorSurfaceView(
     },
     skillMesh,
     skillEvolution,
+    compoundEngineering,
     projectCoverage,
     runtimeTopology,
     runnerTelemetry,

@@ -158,6 +158,21 @@ describe('command centre operator gateway UI source', () => {
     expect(source).not.toContain('Auto-promote live skill')
   })
 
+  it('shows Compound Engineering connectors without install or external execution', () => {
+    const source = readFileSync(
+      join(root, 'src/app/(founder)/founder/command-centre/operator-gateway/page.tsx'),
+      'utf8',
+    )
+
+    expect(source).toContain('Compound Engineering Connectors')
+    expect(source).toContain('Matt Van Horn / Every pattern')
+    expect(source).toContain('setup, serial review, research scout, design studio, workflow loop, and 2nd-brain knowledge capture')
+    expect(source).toContain('/api/hermes/operator-gateway/compound-engineering')
+    expect(source).toContain('Auto-install enabled')
+    expect(source).toContain('External execution enabled')
+    expect(source).not.toContain('Install Compound Engineering now')
+  })
+
 
   it('shows Board Decision Mathematics Engine status without hard-gate bypass', () => {
     const source = readFileSync(
