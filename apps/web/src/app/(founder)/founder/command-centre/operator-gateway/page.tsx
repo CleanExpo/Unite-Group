@@ -244,6 +244,50 @@ export default async function OperatorGatewayPage() {
         <p style={{ color: '#8b949e', fontSize: 13 }}>{view.mobileVoiceIntake.nextAction}</p>
       </section>
 
+      <section style={card} aria-label="latest mobile voice next 20 compound moves">
+        <h2 style={{ fontSize: 18, marginTop: 0 }}>Latest Next 20 · 2nd-brain compound moves</h2>
+        <p style={{ color: view.latestMobileVoiceCompoundMoves.status === 'available' ? '#3fb950' : '#f97316', fontSize: 14 }}>
+          {view.latestMobileVoiceCompoundMoves.note}
+        </p>
+        <div style={grid}>
+          <p>Status: <span style={pill(view.latestMobileVoiceCompoundMoves.status === 'available' ? 'green' : 'amber')}>{view.latestMobileVoiceCompoundMoves.status}</span></p>
+          <p>Move count: <b>{view.latestMobileVoiceCompoundMoves.moveCount}</b></p>
+          <p>Hermes queue enabled: {boolLabel(view.latestMobileVoiceCompoundMoves.hermesQueueEnabled)}</p>
+          <p>Linear task created: {boolLabel(view.latestMobileVoiceCompoundMoves.linearTaskCreated)}</p>
+          <p>External dispatch enabled: {boolLabel(view.latestMobileVoiceCompoundMoves.externalDispatchEnabled)}</p>
+          <p>Next gate: <code>{view.latestMobileVoiceCompoundMoves.nextApprovalGate}</code></p>
+        </div>
+        <p style={{ color: '#8b949e', fontSize: 13 }}>
+          2nd-brain root: <code>{view.latestMobileVoiceCompoundMoves.secondBrainRoot}</code>
+        </p>
+        {view.latestMobileVoiceCompoundMoves.relativePath ? (
+          <p style={{ color: '#8b949e', fontSize: 13 }}>
+            Artifact: <code>{view.latestMobileVoiceCompoundMoves.relativePath}</code>
+          </p>
+        ) : null}
+        {view.latestMobileVoiceCompoundMoves.title ? (
+          <p><b>{view.latestMobileVoiceCompoundMoves.title}</b></p>
+        ) : null}
+        {view.latestMobileVoiceCompoundMoves.previewMoves.length ? (
+          <div style={grid}>
+            {view.latestMobileVoiceCompoundMoves.previewMoves.map((move) => (
+              <div key={`${move.rank}-${move.title}`} style={{ border: '1px solid #21262d', borderRadius: 4, padding: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.65rem' }}>
+                  <b>{move.rank}. {move.title}</b>
+                  <span style={pill('blue')}>{move.lane ?? 'move'}</span>
+                </div>
+                <p style={{ color: '#8b949e', fontSize: 13, margin: '0.35rem 0' }}>{move.agent ?? 'unassigned agent'}</p>
+                <p style={{ color: '#f97316', fontSize: 12, marginBottom: 0 }}>Gate: <code>{move.stopGate ?? 'approval_required'}</code></p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p style={{ color: '#8b949e', fontSize: 14 }}>
+            Run <code>pnpm mobile-voice:approve-board-packet -- --write-artifact</code> after a Board packet is created to populate this panel.
+          </p>
+        )}
+      </section>
+
       <section style={card} aria-label="project definition of done coverage">
         <h2 style={{ fontSize: 18, marginTop: 0 }}>Project Definition of Done Engine · Project coverage</h2>
         <p style={{ color: '#3fb950', fontSize: 14 }}>

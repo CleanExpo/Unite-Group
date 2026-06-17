@@ -86,6 +86,12 @@ describe('command centre operator execution surface view', () => {
     expect(view.mobileVoiceIntake.openGates).toContain('approve_board_review_to_hermes_queue')
     expect(view.mobileVoiceIntake.openGates).not.toContain('write_obsidian_source_notes_from_packets')
     expect(view.mobileVoiceIntake.externalDispatchEnabled).toBe(false)
+    expect(view.latestMobileVoiceCompoundMoves.source).toBe('mobile_voice_compound_moves_artifact_reader')
+    expect(view.latestMobileVoiceCompoundMoves.project).toBe('mobile-voice-intake')
+    expect(view.latestMobileVoiceCompoundMoves.hermesQueueEnabled).toBe(false)
+    expect(view.latestMobileVoiceCompoundMoves.linearTaskCreated).toBe(false)
+    expect(view.latestMobileVoiceCompoundMoves.externalDispatchEnabled).toBe(false)
+    expect(view.latestMobileVoiceCompoundMoves.nextApprovalGate).toMatch(/generate_mobile_voice_next_20_artifact|approve_selected_next_20_moves/)
     expect(view.evidencePointers).toEqual(expect.arrayContaining([
       expect.objectContaining({ href: '/api/hermes/operator-gateway/runner-telemetry' }),
       expect.objectContaining({ href: '/api/hermes/operator-gateway/mobile-voice-intake' }),
