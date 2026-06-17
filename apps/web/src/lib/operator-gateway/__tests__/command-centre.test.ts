@@ -82,6 +82,8 @@ describe('command centre operator execution surface view', () => {
     expect(view.mobileVoiceIntake.secondBrainTarget).toBe('Obsidian/2nd-brain')
     expect(view.mobileVoiceIntake.packetPersistenceEnabled).toBe(true)
     expect(view.mobileVoiceIntake.sourceNoteWriteEnabled).toBe(true)
+    expect(view.mobileVoiceIntake.boardPacketGenerationEnabled).toBe(true)
+    expect(view.mobileVoiceIntake.openGates).toContain('approve_board_review_to_hermes_queue')
     expect(view.mobileVoiceIntake.openGates).not.toContain('write_obsidian_source_notes_from_packets')
     expect(view.mobileVoiceIntake.externalDispatchEnabled).toBe(false)
     expect(view.evidencePointers).toEqual(expect.arrayContaining([
