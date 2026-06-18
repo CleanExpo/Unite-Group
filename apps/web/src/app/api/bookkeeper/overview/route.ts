@@ -99,16 +99,15 @@ export async function GET() {
       netGstCents: lastRunData.net_gst_cents,
     } : null,
     totals: {
-      pendingReconciliation: pendingReconciliation ?? 0,
-      pendingApproval: pendingApproval ?? 0,
-      totalTransactions12m: totalTransactions12m ?? 0,
-      totalDeductibleCents,
+      // null when the query failed — callers must distinguish null (error) from 0 (genuine zero)
+      pendingReconciliation: reconError ? null : (pendingReconciliation ?? 0),
+      pendingApproval: approvalError ? null : (pendingApproval ?? 0),
+      totalTransactions12m: totalError ? null : (totalTransactions12m ?? 0),
+      totalDeductibleCents: deductibleError ? null : totalDeductibleCents,
     },
     alertCount,
+    ...(queryErrors.length > 0 ? { _queryErrors: queryErrors } : {}),
   }
 
-  return NextResponse.json({
-    ...overview,
-    ...(queryErrors.length > 0 ? { _queryErrors: queryErrors } : {}),
-  })
+  return NextResponse.json(overview)
 }

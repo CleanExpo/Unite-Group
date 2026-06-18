@@ -78,6 +78,7 @@ export function OverviewTab() {
   }
 
   const { lastRun, totals, alertCount } = data
+  const hasPartialError = !!(data._queryErrors?.length)
   const netGstCents = lastRun.netGstCents
   const isRefund = netGstCents < 0
 
@@ -97,7 +98,7 @@ export function OverviewTab() {
       label: 'Total Transactions (12m)',
       value: (
         <span className="text-[22px] font-semibold tabular-nums" style={{ color: 'var(--color-text-primary)' }}>
-          {totals.totalTransactions12m.toLocaleString('en-AU')}
+          {totals.totalTransactions12m === null ? '—' : totals.totalTransactions12m.toLocaleString('en-AU')}
         </span>
       ),
     },
@@ -106,9 +107,13 @@ export function OverviewTab() {
       value: (
         <span
           className="text-[22px] font-semibold tabular-nums"
-          style={{ color: totals.pendingReconciliation > 0 ? '#eab308' : 'var(--color-text-primary)' }}
+          style={{
+            color: totals.pendingReconciliation === null
+              ? 'var(--color-text-disabled)'
+              : totals.pendingReconciliation > 0 ? '#eab308' : 'var(--color-text-primary)',
+          }}
         >
-          {totals.pendingReconciliation}
+          {totals.pendingReconciliation === null ? '—' : totals.pendingReconciliation}
         </span>
       ),
     },
@@ -117,9 +122,13 @@ export function OverviewTab() {
       value: (
         <span
           className="text-[22px] font-semibold tabular-nums"
-          style={{ color: totals.pendingApproval > 0 ? '#eab308' : 'var(--color-text-primary)' }}
+          style={{
+            color: totals.pendingApproval === null
+              ? 'var(--color-text-disabled)'
+              : totals.pendingApproval > 0 ? '#eab308' : 'var(--color-text-primary)',
+          }}
         >
-          {totals.pendingApproval}
+          {totals.pendingApproval === null ? '—' : totals.pendingApproval}
         </span>
       ),
     },
@@ -127,7 +136,7 @@ export function OverviewTab() {
       label: 'Total Deductible',
       value: (
         <span className="text-[22px] font-semibold tabular-nums" style={{ color: 'var(--color-text-primary)' }}>
-          {formatAUD(totals.totalDeductibleCents)}
+          {totals.totalDeductibleCents === null ? '—' : formatAUD(totals.totalDeductibleCents)}
         </span>
       ),
     },
@@ -149,6 +158,16 @@ export function OverviewTab() {
 
   return (
     <div className="space-y-4">
+      {hasPartialError && (
+        <div
+          role="alert"
+          className="border rounded-sm px-4 py-2.5 text-[12px]"
+          style={{ borderColor: 'rgba(239,68,68,0.25)', backgroundColor: 'rgba(239,68,68,0.06)', color: 'var(--color-danger)' }}
+        >
+          Some bookkeeper data couldn&apos;t be loaded — counts showing <strong>—</strong> are load errors, not genuine zeros.
+        </div>
+      )}
+
       {alertCount > 0 && (
         <motion.div
           initial={{ opacity: 0, y: -4 }}
