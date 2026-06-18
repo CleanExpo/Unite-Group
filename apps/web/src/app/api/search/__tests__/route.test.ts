@@ -59,6 +59,16 @@ describe('GET /api/search', () => {
     })
   })
 
+  it('scopes nexus_pages by owner_id (its real column), not founder_id', async () => {
+    // nexus_* is owner_id-scoped on prod; filtering founder_id errored. Guard the fix.
+    const { readFileSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const src = readFileSync(join(process.cwd(), 'src/app/api/search/route.ts'), 'utf8')
+    const nexusBlock = src.slice(src.indexOf("from('nexus_pages')"))
+    expect(nexusBlock).toContain(".eq('owner_id', user.id)")
+    expect(nexusBlock.slice(0, 200)).not.toContain("founder_id")
+  })
+
   it('returns 401 when unauthenticated', async () => {
     mockGetUser.mockResolvedValue(null)
     const res = await GET(makeRequest('test'))
