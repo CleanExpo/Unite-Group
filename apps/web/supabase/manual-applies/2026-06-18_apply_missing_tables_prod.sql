@@ -278,8 +278,11 @@ CREATE TABLE IF NOT EXISTS public.video_jobs (
   error_message TEXT,
   retry_count INT DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  CONSTRAINT fk_knowledge_project FOREIGN KEY (project_key) REFERENCES public.knowledge_projects(key) ON DELETE SET DEFAULT
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+  -- NOTE: no FK on project_key. Prod's knowledge_projects is unique on
+  -- (founder_id, key), NOT key alone, so `REFERENCES knowledge_projects(key)`
+  -- fails (42830). project_key is used as a plain string ('nexus' default) — kept
+  -- as a soft reference, matching how the code uses it.
 );
 CREATE INDEX IF NOT EXISTS idx_video_jobs_founder ON public.video_jobs(founder_id);
 CREATE INDEX IF NOT EXISTS idx_video_jobs_status ON public.video_jobs(status);
