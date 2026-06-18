@@ -20,11 +20,13 @@ export interface BookkeeperOverview {
     netGstCents: number
   } | null
   totals: {
-    pendingReconciliation: number
-    pendingApproval: number
-    totalTransactions12m: number
-    totalDeductibleCents: number
+    pendingReconciliation: number | null
+    pendingApproval: number | null
+    totalTransactions12m: number | null
+    totalDeductibleCents: number | null
   }
+  /** Present when one or more DB queries partially failed. Non-null means data may be inaccurate. */
+  _queryErrors?: string[]
   alertCount: number
 }
 

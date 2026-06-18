@@ -91,4 +91,25 @@ describe('GET /api/bookkeeper/overview', () => {
     expect(Array.isArray(json._queryErrors)).toBe(true)
     expect(json._queryErrors.join(' ')).toContain('boom')
   })
+
+  it('returns null for each totals field whose query failed (null ≠ zero)', async () => {
+    vi.mocked(createClient).mockResolvedValue(makeSupabase([
+      { data: RUN_ROW, error: null },
+      { count: null, error: { message: 'recon-fail' } },
+      { count: null, error: { message: 'approval-fail' } },
+      { count: null, error: { message: 'total-fail' } },
+      { data: null, error: { message: 'deductible-fail' } },
+    ]) as never)
+
+    const res = await GET()
+    const json = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(json.totals.pendingReconciliation).toBeNull()
+    expect(json.totals.pendingApproval).toBeNull()
+    expect(json.totals.totalTransactions12m).toBeNull()
+    expect(json.totals.totalDeductibleCents).toBeNull()
+    expect(Array.isArray(json._queryErrors)).toBe(true)
+    expect(json._queryErrors).toHaveLength(4)
+  })
 })
