@@ -1,5 +1,6 @@
 // GET /api/auth/youtube/authorize?business={key}
 // Uses GOOGLE_CLIENT_ID/SECRET — stores in social_channels (not credentials_vault)
+import { randomUUID } from 'crypto'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { signOAuthState } from '@/lib/oauth-state'
@@ -21,7 +22,13 @@ export async function GET(request: Request) {
   if (!businessKey) return NextResponse.json({ error: 'business param required' }, { status: 400 })
 
   const APP_URL = process.env.NEXT_PUBLIC_APP_URL!.trim()
-  const state = signOAuthState({ businessKey })
+  // Signed, founder-bound, time-limited state — prevents OAuth CSRF on the callback.
+  const state = signOAuthState({
+    businessKey,
+    founderId: user.id,
+    nonce: randomUUID(),
+    expiresAt: String(Date.now() + 10 * 60 * 1000),
+  })
 
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID!.trim(),
