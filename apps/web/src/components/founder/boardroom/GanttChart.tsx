@@ -21,6 +21,8 @@ interface GanttItem {
 interface GanttData {
   items: GanttItem[]
   today: string
+  source?: 'linear' | 'not_connected' | 'error'
+  error?: string
 }
 
 // SVG dimensions
@@ -32,13 +34,17 @@ const WINDOW_DAYS = 90
 export function GanttChart() {
   const [data, setData] = useState<GanttData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const [containerWidth, setContainerWidth] = useState(800)
 
   useEffect(() => {
     fetch('/api/boardroom/gantt')
-      .then((r) => r.json())
-      .then((d: GanttData) => setData(d))
-      .catch(() => {})
+      .then((r) => {
+        if (!r.ok) throw new Error(`Gantt fetch failed: ${r.status}`)
+        return r.json() as Promise<GanttData>
+      })
+      .then((d) => setData(d))
+      .catch((err: unknown) => setFetchError(err instanceof Error ? err.message : 'Failed to load Gantt'))
       .finally(() => setLoading(false))
   }, [])
 
@@ -52,6 +58,14 @@ export function GanttChart() {
     window.addEventListener('resize', measure)
     return () => window.removeEventListener('resize', measure)
   }, [])
+
+  if (fetchError) {
+    return (
+      <div role="alert" className="border rounded-sm px-4 py-3 text-[12px]" style={{ borderColor: 'rgba(239,68,68,0.25)', backgroundColor: 'rgba(239,68,68,0.06)', color: 'var(--color-danger)' }}>
+        Gantt unavailable — {fetchError}
+      </div>
+    )
+  }
 
   if (loading) return (
     <div className="space-y-2 py-4 animate-pulse" aria-label="Loading Gantt chart">
@@ -70,6 +84,22 @@ export function GanttChart() {
       ))}
     </div>
   )
+  if (data?.source === 'not_connected') {
+    return (
+      <div className="border rounded-sm px-4 py-3 text-[12px]" style={{ borderColor: 'rgba(107,114,128,0.25)', backgroundColor: 'rgba(107,114,128,0.06)', color: 'var(--color-text-secondary)' }}>
+        Linear not connected — add <code className="text-[11px]">LINEAR_API_KEY</code> to enable the Gantt chart.
+      </div>
+    )
+  }
+
+  if (data?.source === 'error') {
+    return (
+      <div role="alert" className="border rounded-sm px-4 py-3 text-[12px]" style={{ borderColor: 'rgba(239,68,68,0.25)', backgroundColor: 'rgba(239,68,68,0.06)', color: 'var(--color-danger)' }}>
+        Gantt unavailable — {data.error ?? 'Linear fetch failed'}
+      </div>
+    )
+  }
+
   if (!data || data.items.length === 0) {
     return (
       <div className="py-12 text-center space-y-2">

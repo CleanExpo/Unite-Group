@@ -80,19 +80,18 @@ tree (`apps/web` type-check + lint + full vitest) before merge. Test count rose
 | [#303](https://github.com/CleanExpo/Unite-Group/pull/303) | **B2** (part) | `pi` Machine-assignment card caption: planned routing from a static device registry, not live-monitored, no work dispatched. |
 | [#304](https://github.com/CleanExpo/Unite-Group/pull/304) | **B5** (part) | `xero` OAuth: signed founder-bound state (`signOAuthState`) on connect; `verifyOAuthState` + `founderId===user.id` + nonce + expiry on callback; CSRF tests. |
 | [#305](https://github.com/CleanExpo/Unite-Group/pull/305) | **B4** (lib) | `calendar.ts` `source:'error'` discriminator + page banner; `google-drive.ts` throws-not-swallows → existing `error.tsx`/500; 12 tests. |
+| [#331](https://github.com/CleanExpo/Unite-Group/pull/331) | **B5 ✅** | TikTok/Meta/YouTube authorize routes sign `{businessKey,founderId,nonce,expiresAt}`; callbacks verify founderId===user.id + nonce + expiry; 6 new tests (anti-CSRF + anti-replay). |
+| [#332](https://github.com/CleanExpo/Unite-Group/pull/332) | **B4** (residual) | Bookkeeper overview totals return `null` on partial DB failure (not `0`); UI shows `—` + red banner; 4 tests assert null-vs-zero contract. |
+| [#333](https://github.com/CleanExpo/Unite-Group/pull/333) | infra | Consolidated duplicate Stripe webhook routes into single `/api/webhooks/stripe`; deleted `/api/billing/webhook`; subscription sync handlers merged in; 6 tests. |
 
 **Blocker roll-up:**
 - **B1 (auth)** — ✅ **closed** (#298).
-- **B4 (swallowed-fetch-as-empty)** — ✅ **closed for the founder-facing surface**
-  (#299/#300/#301/#305 cover FounderStats, contacts, campaigns, experiments,
-  EmailWorkbench, calendar, drive, vault, advisory, strategy). `[UNCONFIRMED]`
-  residual: `bookkeeper` `overview` zeros-on-partial-error and `boardroom` Gantt
-  not-connected were not separately re-verified — re-check in the next audit.
+- **B4 (swallowed-fetch-as-empty)** — ✅ **closed** (#299/#300/#301/#305/#332).
+  Remaining residual: `boardroom` Gantt not-connected — not yet verified.
+- **B5 (OAuth state)** — ✅ **closed** (#304 Xero, #331 TikTok/Meta/YouTube social).
 - **B2 (fake-as-real)** — 🟡 **partial**: `knowledge-console` closed (#302); `pi`
-  telemetry now *captioned* honest (#303) but `DEFAULT_FOUNDER_DEVICES` is still
-  rendered; `command-centre` seed-as-live untouched.
-- **B5 (OAuth state)** — 🟡 **partial**: `xero` closed (#304); **`social` callback
-  signed-state hardening still open**.
+  telemetry captioned honest (#303) but `DEFAULT_FOUNDER_DEVICES` still rendered;
+  `command-centre` seed-as-live untouched.
 - **B3 (non-durable Pi run queue)** — 🔴 **open**: still an in-memory `Map`, not
   `founder_id`-fenced, lost on cold start. (Security is closed by B1; durability
   is not.)
@@ -100,9 +99,8 @@ tree (`apps/web` type-check + lint + full vitest) before merge. Test count rose
   every section touched above; `social`, `bookkeeper`, `invoices`, `skills`,
   `settings`, and the name-match `command-center` tests still need behavioural guards.
 
-**Frontier reached**: every **non-gated honest-states / security** item that an
-agent can close autonomously is done. Remaining agent-actionable work is **B2 tail**
-(pi device registry, command-centre seed), **B3** (durable queue), **B5 social**,
+**Remaining agent-actionable work**: **B2 tail** (pi `DEFAULT_FOUNDER_DEVICES`,
+command-centre seed), **B3** (durable queue), **boardroom Gantt** (B4 residual),
 and **B6** test sweep. Everything else is human-gated (§7).
 
 ---
