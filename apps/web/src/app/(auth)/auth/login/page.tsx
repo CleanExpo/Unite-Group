@@ -62,6 +62,13 @@ export default function LoginPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(queryString);
+    if (params.get("access") === "denied") {
+      setError(
+        "Access denied. Your account is not on the allow-list. " +
+        "Verify that FOUNDER_USER_ID (or FOUNDER_ALLOWED_EMAILS) in Vercel matches your Supabase user."
+      );
+      return;
+    }
     const message = oauthErrorMessage(params.get("error"));
     if (message) setError(message);
   }, [queryString]);
