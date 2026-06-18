@@ -1,14 +1,17 @@
-// POST /api/webhooks/stripe — Stripe webhook receiver
+// POST /api/webhooks/stripe — Stripe webhook receiver (consolidated)
 //
-// Ported from apps/authority-legacy/src/app/api/webhooks/stripe/route.ts (P1 —
-// docs/convergence/migration-map.md).
+// Single endpoint for ALL Stripe events. Replaces the former split between
+// this route (payments) and /api/billing/webhook (subscriptions).
+// Register one Stripe webhook endpoint → one STRIPE_WEBHOOK_SECRET.
 //
 // Verifies the signature via stripe.webhooks.constructEvent then dispatches:
-//   - checkout.session.completed     → first payment / payment-link deposit
-//   - payment_intent.succeeded       → card capture success
-//   - invoice.paid                   → milestone invoice payment cleared
-//   - invoice.payment_failed         → milestone payment failed
-//   - invoice.payment_succeeded      → branded receipt email generation
+//   - checkout.session.completed          → first payment / payment-link deposit
+//   - payment_intent.succeeded            → card capture success
+//   - invoice.paid                        → milestone cleared + subscription sync
+//   - invoice.payment_failed              → milestone failed + subscription sync
+//   - invoice.payment_succeeded           → branded receipt email generation
+//   - customer.subscription.created/
+//     updated/deleted                     → businesses subscription state sync
 //
 // Every event is persisted to public.stripe_events (idempotent insert against a
 // UNIQUE constraint) for replay/forensics.
@@ -19,9 +22,11 @@
 //   - The legacy "activate nexus_clients + enqueue provisioning" side effect
 //     depends on the `nexus_clients` table, which is NOT migrated in apps/web.
 //     That side effect degrades honestly: the event is still recorded, but the
-//     client-activation join is skipped with a TODO. The stripe_provisioning_queue
-//     table IS migrated (20260612000000_stripe_events.sql) and will receive rows
-//     once nexus_clients lands. See docs/convergence/migration-map.md.
+//     client-activation join is skipped with a TODO.
+//   - The businesses.{stripe_subscription_id, subscription_status,
+//     subscription_current_period_end} columns are not yet migrated — subscription
+//     sync degrades to not_connected (42703/42P01) without throwing.
+//     See docs/convergence/migration-map.md.
 //
 // Webhook secret lives in STRIPE_WEBHOOK_SECRET (shown ONCE when the endpoint is
 // registered via /v1/webhook_endpoints).
@@ -51,6 +56,12 @@ function safeError(code: string, err: unknown): { error: string; detail?: string
   const detail =
     err instanceof Error ? err.message : typeof err === 'string' ? err : undefined;
   return detail ? { error: code, detail } : { error: code };
+}
+
+// 42703 = column does not exist, 42P01 = relation does not exist.
+// Used to detect subscription columns not yet migrated in apps/web.
+function isMissingSchema(err: { code?: string } | null): boolean {
+  return err?.code === '42703' || err?.code === '42P01';
 }
 
 type ServiceClient = ReturnType<typeof createServiceClient>;
@@ -102,16 +113,27 @@ export async function POST(request: NextRequest) {
         await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session, admin);
         break;
       case 'invoice.paid':
-        await handleInvoicePaid(event.data.object as Stripe.Invoice, admin);
+        await Promise.all([
+          handleSubscriptionInvoicePaid(event.data.object as Stripe.Invoice, admin),
+          handleInvoicePaid(event.data.object as Stripe.Invoice, admin),
+        ]);
         break;
       case 'payment_intent.succeeded':
         await handlePaymentIntentSucceeded(event.data.object as Stripe.PaymentIntent, admin);
         break;
       case 'invoice.payment_failed':
-        await handleInvoiceFailed(event.data.object as Stripe.Invoice, admin);
+        await Promise.all([
+          handleSubscriptionPaymentFailed(event.data.object as Stripe.Invoice, admin),
+          handleInvoiceFailed(event.data.object as Stripe.Invoice, admin),
+        ]);
         break;
       case 'invoice.payment_succeeded':
         await handleInvoicePaymentSucceeded(event.data.object as Stripe.Invoice, admin);
+        break;
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated':
+      case 'customer.subscription.deleted':
+        await handleSubscriptionChanged(event.data.object as Stripe.Subscription, admin);
         break;
       default:
         break;
@@ -175,6 +197,69 @@ async function handleInvoiceFailed(invoice: Stripe.Invoice, _admin: ServiceClien
       'status update skipped (not_connected).',
   );
 }
+
+// ── Subscription sync handlers (merged from /api/billing/webhook) ─────────────
+// These update businesses.{subscription_status, subscription_current_period_end}
+// when Stripe subscription state changes. The columns are not yet migrated in
+// apps/web — failures with code 42703/42P01 are noted honestly, not thrown.
+//
+// Cast via SubscriptionRaw / InvoiceRaw because Stripe's 2026-05-27.dahlia
+// API typedefs moved current_period_end and subscription off the top-level
+// objects. The wire payload still has them.
+
+interface SubscriptionRaw { id: string; status: string; current_period_end?: number }
+interface InvoiceRaw { subscription?: string | { id: string } }
+
+async function handleSubscriptionChanged(sub: Stripe.Subscription, admin: ServiceClient) {
+  const raw = sub as unknown as SubscriptionRaw;
+  const periodEnd = raw.current_period_end
+    ? new Date(raw.current_period_end * 1000).toISOString()
+    : null;
+  const { error } = await admin
+    .from('businesses')
+    .update({
+      subscription_status: raw.status,
+      subscription_current_period_end: periodEnd,
+    })
+    .eq('stripe_subscription_id', raw.id);
+  if (error && isMissingSchema(error)) {
+    console.warn('[stripe webhook] subscription sync skipped — businesses subscription columns not migrated in apps/web');
+  } else if (error) {
+    throw new Error(`subscription sync failed: ${error.message}`);
+  }
+}
+
+async function handleSubscriptionInvoicePaid(invoice: Stripe.Invoice, admin: ServiceClient) {
+  const raw = invoice as unknown as InvoiceRaw;
+  const subId = typeof raw.subscription === 'string' ? raw.subscription : raw.subscription?.id;
+  if (!subId) return;
+  const { error } = await admin
+    .from('businesses')
+    .update({ subscription_status: 'active' })
+    .eq('stripe_subscription_id', subId);
+  if (error && isMissingSchema(error)) {
+    console.warn('[stripe webhook] subscription sync (invoice.paid) skipped — businesses subscription columns not migrated');
+  } else if (error) {
+    throw new Error(`subscription active sync failed: ${error.message}`);
+  }
+}
+
+async function handleSubscriptionPaymentFailed(invoice: Stripe.Invoice, admin: ServiceClient) {
+  const raw = invoice as unknown as InvoiceRaw;
+  const subId = typeof raw.subscription === 'string' ? raw.subscription : raw.subscription?.id;
+  if (!subId) return;
+  const { error } = await admin
+    .from('businesses')
+    .update({ subscription_status: 'past_due' })
+    .eq('stripe_subscription_id', subId);
+  if (error && isMissingSchema(error)) {
+    console.warn('[stripe webhook] subscription sync (invoice.payment_failed) skipped — businesses subscription columns not migrated');
+  } else if (error) {
+    throw new Error(`subscription past_due sync failed: ${error.message}`);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 async function activateClientByStripeCustomer(
   customerId: string,
