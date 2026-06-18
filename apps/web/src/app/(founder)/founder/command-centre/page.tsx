@@ -100,6 +100,10 @@ export default async function CommandDeckPage() {
     return acc
   }, {})
   const pad2 = (n: number) => String(n).padStart(2, '0')
+  // Deck state: degraded if any integration manifest failed to load, otherwise ready.
+  const hasDegradedManifest = integrationStatuses.some((s) => !s.ok)
+  const deckState = hasDegradedManifest ? 'stub' : 'active'
+  const deckLabel = hasDegradedManifest ? 'Some manifests degraded' : 'Deck loaded'
 
   return (
     <div className={`${chakra.variable} ${styles.deck}`}>
@@ -144,8 +148,8 @@ export default async function CommandDeckPage() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end' }}>
           <span className={styles.sys}>
-            <span className={styles.led} data-state="active" />
-            <span className={styles.sysText}>All systems nominal</span>
+            <span className={styles.led} data-state={deckState} />
+            <span className={styles.sysText}>{deckLabel}</span>
           </span>
           <span className={styles.kbd}>
             <b>⌘K</b> command palette
