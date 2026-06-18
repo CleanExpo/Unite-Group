@@ -10,13 +10,14 @@
 --
 -- IT DELIBERATELY EXCLUDES objects that ALREADY EXIST or CONFLICT on prod (verified 18/06/2026):
 --   • team_members  (already exists — only board_meetings/notes/ceo_decisions here)
---   • campaigns     (already exists with 8 policies — only campaign_assets here)
+--   • campaigns + campaign_assets (§3 — MOVED to the campaigns reconciliation: prod's
+--                    legacy campaigns is workspace-scoped, same conflict as drip)
 --   • drip_*        (BLOCKED §8 — prod's legacy drip_campaigns lacks founder_id, so the
 --                    repo's composite-key drip model is incompatible; needs reconciliation)
 --
--- CREATES 11 tables: user_settings, brand_profiles, campaign_assets, email_triage_results,
--- ai_memories, board_meetings, board_meeting_notes, ceo_decisions, video_jobs,
--- syntax_publish_queue, weekly_reviews.
+-- CREATES 10 tables: user_settings, brand_profiles, email_triage_results, ai_memories,
+-- board_meetings, board_meeting_notes, ceo_decisions, video_jobs, syntax_publish_queue,
+-- weekly_reviews.  (campaigns/campaign_assets → campaigns_reconciliation.sql; drip → §8)
 --
 -- SAFE TO RE-RUN: every object is guarded (IF NOT EXISTS / DROP POLICY IF EXISTS /
 -- guarded constraints + triggers). It only CREATES; it never DROPs prod data or
@@ -115,44 +116,15 @@ DROP POLICY IF EXISTS "brand_profiles_service_role" ON public.brand_profiles;
 CREATE POLICY "brand_profiles_service_role" ON public.brand_profiles FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 -- ════════════════════════════════════════════════════════════════════════════
--- 3. campaign_assets  (campaigns table itself ALREADY EXISTS on prod — excluded)
+-- 3. campaign_assets  —  ⚠️ MOVED to 2026-06-18_campaigns_reconciliation.sql
+-- ────────────────────────────────────────────────────────────────────────────
+-- REMOVED from this apply. Verified 18/06/2026: prod's `campaigns` is ALSO a dead
+-- workspace-era table (workspace_id-scoped, 0 rows) — same conflict as drip. The
+-- founder-scoped campaigns + campaign_assets are created together in
+-- 2026-06-18_campaigns_reconciliation.sql (gated rename). Creating campaign_assets
+-- here would FK it to the WRONG (legacy workspace) campaigns. Apply this file first
+-- (for brand_profiles), then the campaigns reconciliation.
 -- ════════════════════════════════════════════════════════════════════════════
-CREATE TABLE IF NOT EXISTS public.campaign_assets (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  campaign_id UUID NOT NULL REFERENCES public.campaigns(id) ON DELETE CASCADE,
-  founder_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  platform TEXT NOT NULL CHECK (platform IN ('facebook', 'instagram', 'linkedin', 'tiktok', 'youtube')),
-  copy TEXT NOT NULL,
-  headline TEXT NULL,
-  cta TEXT NULL,
-  hashtags TEXT[] NOT NULL DEFAULT '{}',
-  image_url TEXT NULL,
-  image_prompt TEXT NOT NULL DEFAULT '',
-  width INTEGER NOT NULL DEFAULT 1080,
-  height INTEGER NOT NULL DEFAULT 1080,
-  variant INTEGER NOT NULL DEFAULT 1,
-  social_post_id UUID NULL REFERENCES public.social_posts(id) ON DELETE SET NULL,
-  status TEXT NOT NULL DEFAULT 'pending_image' CHECK (status IN ('pending_image', 'generating_image', 'ready', 'published')),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-CREATE INDEX IF NOT EXISTS campaign_assets_campaign_idx ON public.campaign_assets (campaign_id);
-CREATE INDEX IF NOT EXISTS campaign_assets_founder_status_idx ON public.campaign_assets (founder_id, status);
-DROP TRIGGER IF EXISTS set_campaign_assets_updated_at ON public.campaign_assets;
-CREATE TRIGGER set_campaign_assets_updated_at BEFORE UPDATE ON public.campaign_assets
-  FOR EACH ROW EXECUTE PROCEDURE moddatetime(updated_at);
-ALTER TABLE public.campaign_assets ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "campaign_assets_select_own" ON public.campaign_assets;
-CREATE POLICY "campaign_assets_select_own" ON public.campaign_assets FOR SELECT TO authenticated USING (founder_id = auth.uid());
-DROP POLICY IF EXISTS "campaign_assets_insert_own" ON public.campaign_assets;
-CREATE POLICY "campaign_assets_insert_own" ON public.campaign_assets FOR INSERT TO authenticated WITH CHECK (founder_id = auth.uid());
-DROP POLICY IF EXISTS "campaign_assets_update_own" ON public.campaign_assets;
-CREATE POLICY "campaign_assets_update_own" ON public.campaign_assets FOR UPDATE TO authenticated USING (founder_id = auth.uid()) WITH CHECK (founder_id = auth.uid());
-DROP POLICY IF EXISTS "campaign_assets_delete_own" ON public.campaign_assets;
-CREATE POLICY "campaign_assets_delete_own" ON public.campaign_assets FOR DELETE TO authenticated USING (founder_id = auth.uid());
-DROP POLICY IF EXISTS "campaign_assets_service_role" ON public.campaign_assets;
-CREATE POLICY "campaign_assets_service_role" ON public.campaign_assets FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 -- ════════════════════════════════════════════════════════════════════════════
 -- 4. email_triage_results
@@ -438,7 +410,6 @@ COMMIT;
 SELECT
   to_regclass('public.user_settings')        AS user_settings,
   to_regclass('public.brand_profiles')       AS brand_profiles,
-  to_regclass('public.campaign_assets')      AS campaign_assets,
   to_regclass('public.email_triage_results') AS email_triage_results,
   to_regclass('public.ai_memories')          AS ai_memories,
   to_regclass('public.board_meetings')       AS board_meetings,
