@@ -31,8 +31,24 @@ export async function GET() {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
-  const issues = await fetchIssuesWithDueDates()
   const today = new Date().toISOString().split('T')[0]
+
+  if (!process.env.LINEAR_API_KEY?.trim()) {
+    return NextResponse.json({ items: [], source: 'not_connected', today })
+  }
+
+  let issues: Awaited<ReturnType<typeof fetchIssuesWithDueDates>>
+  try {
+    issues = await fetchIssuesWithDueDates()
+  } catch (err) {
+    console.error('[boardroom/gantt] Linear fetch failed:', err)
+    return NextResponse.json({
+      items: [],
+      source: 'error',
+      error: err instanceof Error ? err.message : 'Linear fetch failed',
+      today,
+    })
+  }
 
   const ganttItems = issues.map((issue) => ({
     id: issue.id,
@@ -58,5 +74,5 @@ export async function GET() {
     return a.dueDate.localeCompare(b.dueDate)
   })
 
-  return NextResponse.json({ items: ganttItems, today })
+  return NextResponse.json({ items: ganttItems, source: 'linear', today })
 }
