@@ -130,9 +130,12 @@ export default async function BusinessHubPage({ params }: Props) {
       : Promise.resolve({ count: 0 }),
     businessId
       ? supabase
+          // nexus_* is an older Notion-like sub-system scoped by owner_id (the
+          // founder, single-tenant) — it has no founder_id column. Filtering
+          // founder_id here errored against the real schema.
           .from('nexus_pages')
           .select('id, title, updated_at')
-          .eq('founder_id', user.id)
+          .eq('owner_id', user.id)
           .eq('business_id', businessId)
           .order('updated_at', { ascending: false })
           .limit(20)

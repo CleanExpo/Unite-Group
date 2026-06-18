@@ -55,9 +55,11 @@ export async function GET(request: NextRequest) {
       .limit(5),
 
     supabase
+      // nexus_* is an older Notion-like sub-system scoped by owner_id (the founder,
+      // single-tenant) — it has no founder_id column; filtering founder_id errored.
       .from('nexus_pages')
       .select('id, title')
-      .eq('founder_id', user.id)
+      .eq('owner_id', user.id)
       .ilike('title', pattern)
       .limit(5),
 
