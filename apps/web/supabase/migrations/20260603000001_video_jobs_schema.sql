@@ -96,11 +96,10 @@ CREATE TABLE IF NOT EXISTS video_jobs (
   CONSTRAINT fk_knowledge_note
     FOREIGN KEY (source_note_id)
     REFERENCES knowledge_notes(id)
-    ON DELETE SET NULL,
-  CONSTRAINT fk_knowledge_project
-    FOREIGN KEY (project_key)
-    REFERENCES knowledge_projects(key)
-    ON DELETE SET DEFAULT
+    ON DELETE SET NULL
+  -- NOTE: no FK on project_key. knowledge_projects is unique on (founder_id, key),
+  -- not key alone, so REFERENCES knowledge_projects(key) fails (42830). project_key
+  -- is a plain string ('nexus' default) used as a soft reference.
 );
 
 -- Indexes for performance
