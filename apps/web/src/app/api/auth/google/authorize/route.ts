@@ -12,6 +12,9 @@ const SCOPES = [
   'https://www.googleapis.com/auth/gmail.modify',
   'https://www.googleapis.com/auth/gmail.send',
   'https://www.googleapis.com/auth/calendar.readonly',
+  // Drive (read-only) so a single Google connect also powers the Notes vault
+  // (google-drive.ts). Requires the Drive API enabled + GOOGLE_DRIVE_VAULT_FOLDER_ID.
+  'https://www.googleapis.com/auth/drive.readonly',
   'openid',
   'email',
   'profile',
