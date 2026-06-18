@@ -1,4 +1,5 @@
 // GET /api/auth/tiktok/authorize?business={key}
+import { randomUUID } from 'crypto'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { signOAuthState } from '@/lib/oauth-state'
@@ -23,7 +24,14 @@ export async function GET(request: Request) {
   if (!envCheck.ok) return envCheck.response
 
   const APP_URL = process.env.NEXT_PUBLIC_APP_URL!
-  const state = signOAuthState({ businessKey })
+  // Signed, founder-bound, time-limited state — prevents OAuth CSRF on the callback.
+  // founderId binding ensures the callback can't be replayed by a different session.
+  const state = signOAuthState({
+    businessKey,
+    founderId: user.id,
+    nonce: randomUUID(),
+    expiresAt: String(Date.now() + 10 * 60 * 1000),
+  })
 
   const params = new URLSearchParams({
     client_key: process.env.TIKTOK_CLIENT_KEY!,

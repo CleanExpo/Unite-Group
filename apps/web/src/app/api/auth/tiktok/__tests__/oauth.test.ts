@@ -1,11 +1,8 @@
 // src/app/api/auth/tiktok/__tests__/oauth.test.ts
-//
-// Lane #1 (dead code first) — bounded work item: missing-env graceful-fail
-// tests for the TikTok OAuth route. Same pattern as the LinkedIn test.
-
 import { describe, it, expect, vi } from 'vitest'
 import { GET as authorize } from '../authorize/route'
 import { GET as callback } from '../callback/route'
+import { signOAuthState } from '@/lib/oauth-state'
 
 vi.mock('@/lib/supabase/server', () => ({
   getUser: vi.fn().mockResolvedValue({ id: 'user-123' }),
@@ -91,6 +88,34 @@ describe('TikTok callback route', () => {
     expect(res.status).toBe(307)
     const location = res.headers.get('location') ?? ''
     expect(location).toContain('/founder/social?error=missing_params')
+  })
+
+  it('redirects to invalid_state when state has wrong founderId (anti-CSRF)', async () => {
+    process.env.VAULT_ENCRYPTION_KEY = 'test-encryption-key-32-bytes-ok!'
+    process.env.NEXT_PUBLIC_APP_URL = 'https://app.test'
+    const state = signOAuthState({
+      businessKey: 'synthex',
+      founderId: 'attacker-id',
+      nonce: 'abc',
+      expiresAt: String(Date.now() + 60_000),
+    })
+    const req = new Request(`https://app.test/api/auth/tiktok/callback?code=c&state=${state}`)
+    const res = await callback(req)
+    expect(res.headers.get('location')).toContain('error=invalid_state')
+  })
+
+  it('redirects to invalid_state when state is expired (anti-replay)', async () => {
+    process.env.VAULT_ENCRYPTION_KEY = 'test-encryption-key-32-bytes-ok!'
+    process.env.NEXT_PUBLIC_APP_URL = 'https://app.test'
+    const state = signOAuthState({
+      businessKey: 'synthex',
+      founderId: 'user-123',
+      nonce: 'abc',
+      expiresAt: String(Date.now() - 1),
+    })
+    const req = new Request(`https://app.test/api/auth/tiktok/callback?code=c&state=${state}`)
+    const res = await callback(req)
+    expect(res.headers.get('location')).toContain('error=invalid_state')
   })
 
   afterEach(() => {

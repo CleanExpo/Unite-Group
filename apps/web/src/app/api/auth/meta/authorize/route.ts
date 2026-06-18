@@ -1,5 +1,6 @@
 // GET /api/auth/meta/authorize?business={key}
 // Initiates Facebook Login OAuth — covers both Facebook Pages and Instagram Business
+import { randomUUID } from 'crypto'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { signOAuthState } from '@/lib/oauth-state'
@@ -33,7 +34,13 @@ export async function GET(request: Request) {
   if (!envCheck.ok) return envCheck.response
 
   const APP_URL = process.env.NEXT_PUBLIC_APP_URL!
-  const state = signOAuthState({ businessKey })
+  // Signed, founder-bound, time-limited state — prevents OAuth CSRF on the callback.
+  const state = signOAuthState({
+    businessKey,
+    founderId: user.id,
+    nonce: randomUUID(),
+    expiresAt: String(Date.now() + 10 * 60 * 1000),
+  })
 
   const params = new URLSearchParams({
     client_id: process.env.FACEBOOK_APP_ID!,
