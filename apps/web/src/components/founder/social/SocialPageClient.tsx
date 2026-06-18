@@ -92,6 +92,7 @@ interface ExperimentSummary {
 function SocialAnalyticsPanel({ channels }: { channels: SocialChannel[] }) {
   const [experiments, setExperiments] = useState<ExperimentSummary[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
     // Derive business key from first connected channel if available
@@ -101,9 +102,13 @@ function SocialAnalyticsPanel({ channels }: { channels: SocialChannel[] }) {
       : '/api/experiments'
 
     fetch(url)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error(`Failed to load experiments: ${res.status}`)
+        return res.json()
+      })
       .then((data: { experiments: ExperimentSummary[] }) => setExperiments(data.experiments ?? []))
-      .catch(() => setExperiments([]))
+      // Honest: a load failure must not render as zero stats + "no experiments yet".
+      .catch(() => setError(true))
       .finally(() => setLoading(false))
   }, [channels])
 
@@ -119,6 +124,14 @@ function SocialAnalyticsPanel({ channels }: { channels: SocialChannel[] }) {
     return (
       <div className="py-12 text-center text-[13px]" style={{ color: 'var(--color-text-secondary)' }}>
         Loading analytics...
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div role="alert" className="border px-4 py-3 rounded-sm text-[13px]" style={{ borderColor: '#EF4444', color: '#FCA5A5' }}>
+        Analytics unavailable — couldn&apos;t load experiments. This is a load error, not zero activity.
       </div>
     )
   }
@@ -165,6 +178,7 @@ function SocialAnalyticsPanel({ channels }: { channels: SocialChannel[] }) {
 function SocialExperimentsPanel({ channels }: { channels: SocialChannel[] }) {
   const [experiments, setExperiments] = useState<ExperimentSummary[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
     const businessKey = channels.length > 0 ? (channels[0] as SocialChannel & { businessKey?: string }).businessKey : undefined
@@ -173,9 +187,13 @@ function SocialExperimentsPanel({ channels }: { channels: SocialChannel[] }) {
       : '/api/experiments'
 
     fetch(url)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error(`Failed to load experiments: ${res.status}`)
+        return res.json()
+      })
       .then((data: { experiments: ExperimentSummary[] }) => setExperiments(data.experiments ?? []))
-      .catch(() => setExperiments([]))
+      // Honest: a load failure must not render as the "No experiments yet" empty state.
+      .catch(() => setError(true))
       .finally(() => setLoading(false))
   }, [channels])
 
@@ -183,6 +201,14 @@ function SocialExperimentsPanel({ channels }: { channels: SocialChannel[] }) {
     return (
       <div className="py-12 text-center text-[13px]" style={{ color: 'var(--color-text-secondary)' }}>
         Loading experiments...
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div role="alert" className="border px-4 py-3 rounded-sm text-[13px]" style={{ borderColor: '#EF4444', color: '#FCA5A5' }}>
+        Experiments unavailable — couldn&apos;t load. This is a load error, not an empty set.
       </div>
     )
   }

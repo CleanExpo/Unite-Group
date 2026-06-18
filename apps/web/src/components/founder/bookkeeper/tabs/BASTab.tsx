@@ -121,6 +121,7 @@ export function BASTab() {
   const [expandedQuarter, setExpandedQuarter] = useState<string | null>(null)
   const [quarterTransactions, setQuarterTransactions] = useState<BookkeeperTransaction[]>([])
   const [loadingTransactions, setLoadingTransactions] = useState(false)
+  const [transactionsError, setTransactionsError] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -142,6 +143,7 @@ export function BASTab() {
 
   const fetchQuarterTransactions = useCallback(async (q: BASQuarterSummary) => {
     setLoadingTransactions(true)
+    setTransactionsError(false)
     try {
       const params = new URLSearchParams({
         from: q.startDate,
@@ -153,7 +155,9 @@ export function BASTab() {
       const json = (await res.json()) as TransactionsResponse
       setQuarterTransactions(json.transactions)
     } catch {
+      // Honest: a load failure must not render as "No transactions in this quarter".
       setQuarterTransactions([])
+      setTransactionsError(true)
     } finally {
       setLoadingTransactions(false)
     }
@@ -274,7 +278,14 @@ export function BASTab() {
                     <p className="text-[10px] uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-disabled)' }}>
                       Contributing Transactions
                     </p>
-                    <MiniTransactionTable transactions={quarterTransactions} loading={loadingTransactions} />
+                    {transactionsError ? (
+                      <p role="alert" className="text-[12px] py-2" style={{ color: '#FCA5A5' }}>
+                        Couldn&apos;t load transactions for this quarter — this is a load
+                        error, not an empty quarter.
+                      </p>
+                    ) : (
+                      <MiniTransactionTable transactions={quarterTransactions} loading={loadingTransactions} />
+                    )}
                   </div>
                 </motion.div>
               )}

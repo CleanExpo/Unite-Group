@@ -282,6 +282,7 @@ function MarkdownBrief({ content }: { content: string }) {
 export function CoachBriefs() {
   const [reports, setReports] = useState<CoachReport[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
     fetch('/api/coaches/reports')
@@ -290,7 +291,8 @@ export function CoachBriefs() {
         return res.json() as Promise<{ reports: CoachReport[] }>
       })
       .then((data) => setReports(data.reports))
-      .catch(() => setReports([]))
+      // Honest: a load failure must not render as empty "no briefs" cards (No-Invaders #1).
+      .catch(() => setError(true))
       .finally(() => setLoading(false))
   }, [])
 
@@ -311,6 +313,11 @@ export function CoachBriefs() {
         <div className="flex items-center gap-2 text-sm py-4" style={{ color: 'var(--color-text-muted)' }}>
           <Loader2 size={14} className="animate-spin" />
           Loading coach briefs...
+        </div>
+      ) : error ? (
+        <div role="alert" className="border px-4 py-3 rounded-sm text-sm" style={{ borderColor: '#EF4444', color: '#FCA5A5' }}>
+          Coach briefs unavailable — couldn&apos;t load. This is a load error, not an
+          empty set.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
