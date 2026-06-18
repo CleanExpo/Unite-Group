@@ -122,4 +122,37 @@ describe('POST /api/webhooks/stripe', () => {
     const json = await res.json();
     expect(json.idempotent).toBe(true);
   });
+
+  it('dispatches customer.subscription.updated and calls businesses update', async () => {
+    mockConstructEvent.mockReturnValue({
+      id: 'evt_sub',
+      type: 'customer.subscription.updated',
+      api_version: '2026-05-27.dahlia',
+      livemode: false,
+      data: { object: { id: 'sub_123', status: 'active', current_period_end: 1893456000 } },
+    });
+    const res = await POST(makeRequest() as never);
+    expect(res.status).toBe(200);
+    expect(mockFrom).toHaveBeenCalledWith('businesses');
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ subscription_status: 'active' }),
+    );
+    expect(mockEq).toHaveBeenCalledWith('stripe_subscription_id', 'sub_123');
+  });
+
+  it('handles subscription sync gracefully when businesses columns are missing (42703)', async () => {
+    mockConstructEvent.mockReturnValue({
+      id: 'evt_sub2',
+      type: 'customer.subscription.created',
+      api_version: '2026-05-27.dahlia',
+      livemode: false,
+      data: { object: { id: 'sub_456', status: 'trialing' } },
+    });
+    mockEq.mockResolvedValue({ error: { code: '42703', message: 'column does not exist' } });
+    const res = await POST(makeRequest() as never);
+    // Degrades honestly — still 200, not a 500
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.received).toBe(true);
+  });
 });
