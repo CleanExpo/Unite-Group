@@ -64,6 +64,11 @@ describe('Google authorize route', () => {
     expect(location).toContain('client_id=valid-client.apps.googleusercontent.com')
     expect(location).toContain('login_hint=phill%40example.com')
     expect(location).toContain('redirect_uri=https%3A%2F%2Fapp.test%2Fapi%2Fauth%2Fgoogle%2Fcallback')
+    // refresh-token flow + Gmail/Calendar/Drive coverage in one consent
+    expect(location).toContain('access_type=offline')
+    expect(location).toContain('gmail.readonly')
+    expect(location).toContain('calendar.readonly')
+    expect(location).toContain('drive.readonly')
   })
 
   it('uses the request origin for redirects when NEXT_PUBLIC_APP_URL is absent', async () => {

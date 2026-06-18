@@ -88,7 +88,7 @@ export async function GET(request: Request) {
     .maybeSingle()
 
   // Upsert into credentials_vault (unique on founder_id, service, label)
-  await supabase.from('credentials_vault').upsert(
+  const { error: vaultError } = await supabase.from('credentials_vault').upsert(
     {
       founder_id: user.id,
       business_id: business?.id ?? null,
@@ -103,6 +103,12 @@ export async function GET(request: Request) {
     },
     { onConflict: 'founder_id,service,label' }
   )
+
+  // Don't report "connected" if the token never persisted (No-Invaders #1).
+  if (vaultError) {
+    console.error('[Google OAuth] Vault upsert failed:', vaultError.message)
+    return NextResponse.redirect(`${APP_URL}/founder/email?error=vault_save_failed`)
+  }
 
   return NextResponse.redirect(
     `${APP_URL}/founder/email?connected=${encodeURIComponent(email)}`
