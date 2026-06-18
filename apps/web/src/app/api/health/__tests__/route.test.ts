@@ -120,6 +120,20 @@ describe('GET /api/health', () => {
     }
   });
 
+  it('reports integration config presence (booleans/keys, never secrets)', async () => {
+    const response = await GET();
+    const body = await response.json();
+
+    expect(body.integrations).toBeDefined();
+    expect(typeof body.integrations.google).toBe('boolean');
+    expect(typeof body.integrations.xero).toBe('boolean');
+    expect(Array.isArray(body.integrations.social)).toBe(true);
+    // No secret values should ever appear in the health payload.
+    const serialised = JSON.stringify(body).toLowerCase();
+    expect(serialised).not.toContain('secret');
+    expect(serialised).not.toContain('client_secret');
+  });
+
   it('includes a timestamp in the response', async () => {
     const before = new Date().toISOString();
     const response = await GET();
