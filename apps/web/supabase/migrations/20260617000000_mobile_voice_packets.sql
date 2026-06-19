@@ -70,12 +70,15 @@ CREATE INDEX IF NOT EXISTS mobile_voice_packets_tags_idx
 
 ALTER TABLE public.mobile_voice_packets ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS mobile_voice_packets_select ON public.mobile_voice_packets;
 CREATE POLICY mobile_voice_packets_select ON public.mobile_voice_packets
   FOR SELECT USING (founder_id = auth.uid());
 
+DROP POLICY IF EXISTS mobile_voice_packets_insert ON public.mobile_voice_packets;
 CREATE POLICY mobile_voice_packets_insert ON public.mobile_voice_packets
   FOR INSERT WITH CHECK (founder_id = auth.uid());
 
+DROP POLICY IF EXISTS mobile_voice_packets_update ON public.mobile_voice_packets;
 CREATE POLICY mobile_voice_packets_update ON public.mobile_voice_packets
   FOR UPDATE USING (founder_id = auth.uid())
   WITH CHECK (founder_id = auth.uid());

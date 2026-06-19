@@ -40,12 +40,15 @@ CREATE INDEX IF NOT EXISTS pi_run_queue_founder_status_idx
 
 ALTER TABLE public.pi_run_queue ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS pi_run_queue_select ON public.pi_run_queue;
 CREATE POLICY pi_run_queue_select ON public.pi_run_queue
   FOR SELECT USING (founder_id = auth.uid());
 
+DROP POLICY IF EXISTS pi_run_queue_insert ON public.pi_run_queue;
 CREATE POLICY pi_run_queue_insert ON public.pi_run_queue
   FOR INSERT WITH CHECK (founder_id = auth.uid());
 
+DROP POLICY IF EXISTS pi_run_queue_update ON public.pi_run_queue;
 CREATE POLICY pi_run_queue_update ON public.pi_run_queue
   FOR UPDATE USING (founder_id = auth.uid())
   WITH CHECK (founder_id = auth.uid());

@@ -33,12 +33,15 @@ CREATE INDEX IF NOT EXISTS weekly_reviews_founder_period_idx
 
 ALTER TABLE public.weekly_reviews ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS weekly_reviews_select ON public.weekly_reviews;
 CREATE POLICY weekly_reviews_select ON public.weekly_reviews
   FOR SELECT USING (founder_id = auth.uid());
 
+DROP POLICY IF EXISTS weekly_reviews_insert ON public.weekly_reviews;
 CREATE POLICY weekly_reviews_insert ON public.weekly_reviews
   FOR INSERT WITH CHECK (founder_id = auth.uid());
 
+DROP POLICY IF EXISTS weekly_reviews_update ON public.weekly_reviews;
 CREATE POLICY weekly_reviews_update ON public.weekly_reviews
   FOR UPDATE USING (founder_id = auth.uid())
   WITH CHECK (founder_id = auth.uid());
