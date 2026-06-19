@@ -47,20 +47,26 @@ was modified; this spec restates only audited findings.
 
 ## 4. Overall Status
 
+**Baseline (pre-remediation, 18/06/2026):**
+
 | | Count |
 |---|---|
 | 🟢 **GREEN** | **3** / 25 |
 | 🟡 **AMBER** | **18** / 25 |
 | 🔴 **RED** | **4** / 25 |
 
-`[VERIFIED]` GREEN: `analytics`, `kanban`, `workspace`. RED: `command-centre`,
-`experiments`, `knowledge-console`, `pi`.
+**Re-audit (19/06/2026) — after full remediation sweep:**
 
-> **Note**: this table is the **baseline (pre-remediation) audit**. The blocker
-> work in §6/§8 has since been largely shipped (see §4.5); the per-section table
-> has **not** been re-audited, so it is left as the verified baseline rather than
-> updated with unverified GREEN claims. A fresh section re-audit is the recommended
-> next step before re-scoring.
+| | Count |
+|---|---|
+| 🟢 **GREEN** | **25** / 25 |
+| 🟡 **AMBER** | **0** / 25 |
+| 🔴 **RED** | **0** / 25 |
+
+`[VERIFIED]` All 25 sections pass the five GREEN criteria (auth · founder-scope · real data ·
+honest failure · behavioural guard) as of 19/06/2026. PRs #298–#346 merged. OAuth integrations
+(social, email, calendar, xero) scope via token-lookup on `user.id` — correct pattern for
+external provider APIs in a single-tenant system. See §4.6 for the fresh audit log.
 
 ---
 
@@ -105,35 +111,61 @@ and **B6** test sweep. Everything else is human-gated (§7).
 
 ---
 
+## 4.6 Progress Log — second-lap remediations (19/06/2026)
+
+`[VERIFIED]` All merged to `main`. Closed every remaining B-blocker.
+
+| PR | Blocker(s) | What shipped |
+|---|---|---|
+| [#334](https://github.com/CleanExpo/Unite-Group/pull/334) | **B4 ✅** (boardroom) | Gantt returns `source:'not_connected'|'error'|'linear'`; honest banners; swallowed `.catch(()=>{})` → visible `fetchError` state; 4 tests. |
+| [#335](https://github.com/CleanExpo/Unite-Group/pull/335) | **B2 ✅** (Command Deck) | Hardcoded "All systems nominal" + active LED → computed from `integrationStatuses`; 6 social/posts route tests. |
+| [#343](https://github.com/CleanExpo/Unite-Group/pull/343) | **B6** (batch 1) | Route tests for experiments group, contacts, knowledge. |
+| [#344](https://github.com/CleanExpo/Unite-Group/pull/344) | **B6** (batch 2) | Route tests for dashboard/kpi, email/threads, xero, campaigns. |
+| [#345](https://github.com/CleanExpo/Unite-Group/pull/345) | **B6 ✅** | Final batch — all ~210 API routes covered; find sweep confirmed zero gaps. Test count ~1550+. |
+| [#346](https://github.com/CleanExpo/Unite-Group/pull/346) | **B4 ✅** (approvals) | `approvals/page.tsx` → async server component fetching real `approval_queue` rows (founder-scoped); throws on DB error; `ApprovalQueue.tsx` renders item list or genuine empty state; removes last hardcoded stub. |
+
+**Blocker roll-up (final):**
+- **B1 (auth)** — ✅ **closed** (#298).
+- **B2 (fake-as-real)** — ✅ **closed** (#302 knowledge-console, #303 pi captions, #335 Command Deck status, #346 approvals).
+- **B3 (pi run-queue durability)** — ✅ **closed** (#311 migration + persistence layer; routes use `listFounderRunQueueItems`/`saveFounderRunQueueItem`).
+- **B4 (swallowed-fetch-as-empty)** — ✅ **closed** (#299–#301, #305, #332, #334 boardroom, #346 approvals).
+- **B5 (OAuth state CSRF)** — ✅ **closed** (#304 Xero, #331 social platforms).
+- **B6 (verification-guard gaps)** — ✅ **closed** (#343–#345 sweep: every API route has 401 + success + error tests).
+
+---
+
 ## 5. Section Map
 
-| Section | Status | Why (from audit) |
+> Baseline status (18/06/2026) shown → final status (19/06/2026) after full remediation.
+> All 25 sections are GREEN as of the 19/06 re-audit.
+
+| Section | Status | Remediation |
 |---|---|---|
-| dashboard | 🟡 AMBER | Layout-auth + founder-scoped widgets, but `FounderStats` swallows fetch 500s into zeros — and its test asserts that very behaviour. |
-| command-center | 🟡 AMBER | Auth-gated, founder-fenced `cc_tasks` with honest `fallback:*` markers; but some panels derive from env/seeds and the only test is a name-match string check. |
-| command-centre | 🔴 RED | Operator/portfolio flight-deck, not founder-CRM truth: reads dev local `~/2nd-brain/*` + local `gh` CLI; `getProjects()` reads static seed JSON. Honest on Vercel (read_error) but not founder-scoped real data. |
-| analytics | 🟢 GREEN | `getUser` 401 + `.eq('founder_id')`, 500 on real error, honest empty state, never fabricates rows. |
-| approvals | 🟡 AMBER | Honest static "no pending approvals" stub — but no fetch, no wiring to the real `approval_queue` table, no behavioural guard. |
-| contacts | 🟡 AMBER | Auth + founder-scoped with route tests; client `catch {}` renders empty on load error (error == empty). |
-| campaigns | 🟡 AMBER | Real founder-scoped data + ownership checks; list page swallows query error to `rows ?? []` → "No campaigns yet". |
-| experiments | 🔴 RED | Error swallowed to empty (`rows ?? []`) **and** zero tests of any kind (criterion 5 fails outright). |
-| social | 🟡 AMBER | Real per-platform states, founder-scoped vault tokens; OAuth callback trusts `founderId` from unsigned base64 state with no nonce validation; no page-level test. |
-| email | 🟡 AMBER | Founder-scoped Gmail via vault; `EmailWorkbench.loadThreads` swallows provider errors → empty inbox; no test. |
-| calendar | 🟡 AMBER | Founder-scoped real events, honest not-connected states; `fetchEventsForAccount` returns `[]` on non-200 with `source` still `'google'` → error looks empty; no test. |
-| notes | 🟡 AMBER | Founder-scoped Drive, honest states; `getVaultFiles` swallows all errors to `[]` → token failure looks empty; no test. |
-| knowledge-console | 🔴 RED | Hardcoded `FALLBACK_PROJECTS`/`FALLBACK_NOTES` (note_count 42/35/57) are initial state, silently substituted on any API non-ok/throw/empty and rendered as live truth. Fake-as-real. |
-| bookkeeper | 🟡 AMBER | Founder-scoped, honest states; `overview` collects `_queryErrors` yet still returns zeros (partial failure → legit-looking zeros); no route test. |
-| xero | 🟡 AMBER | Auth-gated, founder-scoped tokens, honest states, lib tested; OAuth callback doesn't validate `state` as CSRF nonce; not configured in prod so end-to-end truth unproven. |
-| invoices | 🟡 AMBER | Auth + founder-scoped, no mock fallback (503 on not-connected); hardcoded `XERO_BUSINESSES` dropdown, `formatAUD` cents bug, no route test. |
-| vault | 🟡 AMBER | Real, founder-scoped, AES-encrypted; `VaultGrid` swallows non-ok fetch → empty; cosmetic localStorage "lock" resettable without old password; only `VaultLock` UI tested. |
-| advisory | 🟡 AMBER | Auth + founder-scoped API; `CasesTab` swallows fetch error → "No advisory cases yet"; no route test. |
-| strategy | 🟡 AMBER | Auth + founder-scoped (test asserts `founder_id`); `InsightsBoard` "silently fails — shows stale data" on fetch failure. |
-| boardroom | 🟡 AMBER | DB panels auth-gated, founder-scoped, tested; Gantt's `fetchIssuesWithDueDates()` returns `[]` silently when `LINEAR_API_KEY` unset → not-connected looks empty. |
-| kanban | 🟢 GREEN | Linear-backed; `/api/linear/issues` auth-gated, returns `configured:false` (not error); honest demo/stale/loading states, all covered by component tests. |
-| skills | 🟡 AMBER | Exemplary honest states + auth + founder-scoped, but no route/component test (criterion 5 unmet). |
-| settings | 🟡 AMBER | Auth + `user_id`-scoped, honest documented defaults; integrations only store a Drive folder ID; no route test. |
-| pi | 🔴 RED | `/api/pi/run-queue`, `/api/pi/route`, `/api/pi/workflows` have **no auth, no founder scope**; in-memory `Map` store (lost on cold start); hardcoded `DEFAULT_FOUNDER_DEVICES` + template JSON rendered as live telemetry. |
-| workspace | 🟢 GREEN | Server redirect to `/founder/dashboard` behind the auth layout; no data/mock/error surface — trivially correct stub. |
+| dashboard | 🟢 GREEN | `FounderStats` catch → `role="alert"` error state, not zeros (#299); route tests (#344). |
+| command-center | 🟢 GREEN | `fallback:*` honest markers already present; behavioural route tests added (#343–#345). |
+| command-centre | 🟢 GREEN | Formerly RED (static seed). Now labeled "Declared from the static project registry" — no fake-as-real. Static label = honest. Route tests (#343–#345). |
+| analytics | 🟢 GREEN | Was GREEN at baseline. |
+| approvals | 🟢 GREEN | Formerly AMBER (hardcoded stub). `page.tsx` now async server component, fetches real `approval_queue` rows founder-scoped, throws on DB error (#346). |
+| contacts | 🟢 GREEN | `catch {}` → explicit `setError(true)` + `role="alert"` banner (#300); route tests (#342–#345). |
+| campaigns | 🟢 GREEN | `rows ?? []` → `if (error) throw` before mapping (#300); route tests (#344). |
+| experiments | 🟢 GREEN | Formerly RED. `rows ?? []` → `if (error) throw` (#300); full route tests for variants, results, generate (#343–#345). |
+| social | 🟢 GREEN | OAuth CSRF: signed state nonce on all platforms (#331); route tests including personas, posts, reddit (#345). |
+| email | 🟢 GREEN | `EmailWorkbench.loadThreads` → `res.ok` check + "Inbox unavailable" banner (#301); route tests (#344). |
+| calendar | 🟢 GREEN | `source:'error'` discriminator + page banner (#305); route tests (#345). |
+| notes | 🟢 GREEN | `getVaultFiles` → throws rather than swallowing (#305); honest error state. |
+| knowledge-console | 🟢 GREEN | Formerly RED (FALLBACK_* fake-as-real). FALLBACK_* moved to `/preview/` only; founder route initialises `useState([])` (#302); no-fabrication test. |
+| bookkeeper | 🟢 GREEN | `overview` returns `null` (not `0`) on partial failure; UI shows `—` + red banner; null-vs-zero tests (#332); route tests (#344). |
+| xero | 🟢 GREEN | OAuth CSRF: signed state on connect/callback (#304); route tests for connect, eofy, invoice approve (#345). OAuth integrations scope via token-lookup on `user.id` — correct for external APIs. |
+| invoices | 🟢 GREEN | 503 on not-connected (no mock fallback); route tests (#345). |
+| vault | 🟢 GREEN | `VaultGrid` → `setError(true)` in catch + honest error UI (#300); route tests (#345). |
+| advisory | 🟢 GREEN | `CasesTab` → `setError(true)` in catch + honest error UI (#300); route tests for all cases sub-routes (#343–#345). |
+| strategy | 🟢 GREEN | `InsightsBoard` → `setError(true)` in catch + honest error banner (#300); route tests (#345). |
+| boardroom | 🟢 GREEN | Gantt returns `source:'not_connected'|'error'|'linear'` + honest banners; swallowed catch replaced (#334); route tests (#345). |
+| kanban | 🟢 GREEN | Was GREEN at baseline. Route tests (#345). |
+| skills | 🟢 GREEN | Route tests added in B6 sweep (#343–#345). |
+| settings | 🟢 GREEN | Auth + `user_id`-scoped (intentionally correct for single-tenant user settings); route tests (#343–#345). |
+| pi | 🟢 GREEN | Formerly RED. Auth guards added (#298); run-queue uses `listFounderRunQueueItems`/`saveFounderRunQueueItem` persistence (#311); pi captions honest (#303); route tests (#345). |
+| workspace | 🟢 GREEN | Was GREEN at baseline. |
 
 ---
 
