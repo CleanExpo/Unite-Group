@@ -1,0 +1,43 @@
+# @unite/autopilot-runner
+
+Stage-3 Autopilot Runner — the hosted executor that lets the deployed Unite-Group
+app run the Linear autonomous loop **unattended, off the Mac**.
+
+**Spec:** [`apps/spec-board/projects/stage3-autopilot-runner/spec.md`](../spec-board/projects/stage3-autopilot-runner/spec.md)
+**Linear:** epic context under the [Duncan Perkins Ventures] / autopilot work; build issue [UNI-2143] lineage.
+
+> Auto-push infrastructure. The security model is the centre of gravity — see spec §7.
+
+## Status
+
+Early build. This package currently ships the **safety core** only:
+
+- `src/merge-policy.ts` — the pure, fail-closed predicate that decides whether a
+  runner-authored PR may merge, must wait, or must be left for a human. The only
+  path to `merge` is: green CI ∧ adversarial-evaluator approval ∧ an existing
+  autonomous-contract label (`mesh:auto` / `pi-dev:autonomous`) ∧ base `main` ∧
+  linear history ∧ live gate on ∧ runner-authored.
+
+Not yet built (see spec §5): packet ingestion from `/api/cron/linear-handoff`,
+ephemeral worktree + gauntlet, GitHub-App PR/merge wiring, tiered-context Claude
+authoring, audit + kill switch, Railway deploy. Each lands as its own PR.
+
+## Develop
+
+```bash
+cd apps/autopilot-runner
+npm install
+npm test          # vitest
+npm run type-check
+```
+
+This package keeps its own lockfile/toolchain (root is not a pnpm workspace).
+
+## Guardrails (non-negotiable, from the spec)
+
+- No prod DB writes, no prod deploys, no deletions, no secret handling, no
+  access-control changes — these capabilities are absent from the runner's
+  environment, not merely "not called".
+- `main` branch protection (1 required review) is kept; a distinct reviewer
+  GitHub App satisfies it only after an independent gauntlet re-passes.
+- `CC_LINEAR_LIVE=0` drains the loop instantly.
