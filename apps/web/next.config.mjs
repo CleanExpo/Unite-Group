@@ -76,6 +76,20 @@ const nextConfig = {
     qualities: [75, 85],
   },
 
+  // Redirect policy PDF URLs to canonical HTML pages
+  redirects: async () => [
+    {
+      source: '/policies/unite-group-application-privacy-policy.pdf',
+      destination: '/privacy-policy',
+      permanent: true,
+    },
+    {
+      source: '/policies/unite-group-application-terms-of-service.pdf',
+      destination: '/terms-of-service',
+      permanent: true,
+    },
+  ],
+
   // Security and caching headers
   headers: async () => [
     // Retired Founder OS service worker must always revalidate so old clients
