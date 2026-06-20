@@ -43,10 +43,11 @@ then delete the legacy app. Operate per the skill:
   See `apps/empire/CLAUDE.md` for the workflow.
 - **No writes to other repos.** `brain-1`, `Spine`, `hermes-workspace`, and
   `pi-ceo-operator-mcp` are frozen pending deletion per the runbook. **Unite-Hub
-  (`CleanExpo/Unite-Hub`) is a SEPARATE, LIVE, independently-developed product —
-  NOT frozen, NOT being deleted, and NOT migrating here** (per Phill 2026-06-18;
-  the 12/06 absorption was a one-time git-history snapshot into `apps/web`, since
-  diverged). Never write to Unite-Hub from this repo; never port between them.
+  (`CleanExpo/Unite-Hub`) is being wound down and closed** (per Phill 2026-06-20;
+  supersedes the 2026-06-18 "keep separate" instruction). All env vars have been
+  confirmed present in `apps/web`. The Vercel `unite-hub` project and
+  `CleanExpo/Unite-Hub` repo are pending decommission — deletion requires Phill's
+  typed approval per the runbook. Do not start new work in Unite-Hub.
 - **Deletion** of any repo/Supabase/Vercel resource: runbook gates + Phill's
   typed approval only. Never autonomous.
 - **PR base = `main`, always.** Every pull request must target `main` — never
