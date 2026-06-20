@@ -1,7 +1,7 @@
 // src/app/api/bookkeeper/transactions/[id]/reconcile/route.ts
 import { NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
-import { reconcileTransaction } from '@/lib/integrations/xero/client'
+import { reconcileTransaction, isXeroConfigured } from '@/lib/integrations/xero/client'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,6 +11,7 @@ export async function POST(
 ) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+  if (!isXeroConfigured()) return NextResponse.json({ error: 'Xero not configured' }, { status: 503 })
 
   const { id } = await params
   const body = await request.json() as { invoiceId?: string }
