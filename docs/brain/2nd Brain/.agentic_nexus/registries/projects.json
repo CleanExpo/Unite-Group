@@ -35,6 +35,18 @@
       "kind": "product",
       "path": "/Users/phillmcgurk/Disaster-Recovery",
       "project": "disaster-recovery"
+    },
+    {
+      "default_worker": "build-worker",
+      "kind": "fintech-product",
+      "path": "/Users/phillmcgurk/Unite-Group",
+      "project": "duncan-perkins-ventures",
+      "linear_project": "Duncan Perkins Ventures",
+      "linear_project_id": "d518b78d-0e12-4314-8280-732b486bf9b4",
+      "specs": [
+        "apps/spec-board/projects/duncan-itr-button/spec.md",
+        "apps/spec-board/projects/duncan-diy-home-loan/spec.md"
+      ]
     }
   ]
 }
