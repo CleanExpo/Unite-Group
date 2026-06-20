@@ -13,7 +13,7 @@ having been met.
 |---|---|
 | `apps/web/` | **The product** — Unite-Group (formerly Unite-Hub CRM engine). Next.js 16, React 19, Supabase, pnpm workspace. Its own `apps/web/CLAUDE.md` rules (NorthStar, No-Invaders, founder_id scoping, Scientific Luxury) still apply inside it. |
 | `apps/workspace/` | Hermes workspace — agent command centre (Vite/React 19) |
-| `apps/authority-legacy/` | Old Authority-Site app — TEMPORARY harvest source for the C-then-A port. Do not build features here. |
+| `apps/empire/` | Pi-CEO / Margot voice / CEO activity app — source of voice + activity routes now ported to `apps/web`. Retained for reference only; do not build new features here. |
 | `apps/spec-board/` | Fabel-Prompt-Engineer — plain-English vision → verified, build-ready spec (Next.js 15, npm, own Supabase project `yhteftfnoegmdkimzzjd`). Keeps its own lockfile/toolchain. Live founder data (visions/specs/board) untouched by the fold-in. |
 | `packages/spine/` | Unite-Group-Spine — greenfield shared-identity schema (gated, non-prod) |
 | `packages/pi-ceo-operator-mcp/` | Portfolio-health MCP server |
@@ -24,11 +24,12 @@ having been met.
 
 ## Convergence programme
 
-Active programme: port `apps/authority-legacy` unique surface (Stripe billing/
-webhooks, command-centre dashboard, GitHub/Telegram webhooks) into `apps/web`,
-then delete the legacy app. Operate per the skill:
-`.claude/skills/fable-prompt-engineer/` (orchestration rules) and its
-`playbooks/convergence.md` (port list, conflict rules, gates).
+**COMPLETE as of 20/06/2026.** All `apps/authority-legacy` unique surface has been
+ported to `apps/web` (Margot Voice, Notifications inbox, Wiki/knowledge base,
+Pi-CEO activity — PRs #355/#356). `apps/authority-legacy` never existed locally
+in this checkout; `apps/empire` was the actual source and is retained for reference.
+Unite-Hub (`CleanExpo/Unite-Hub`) fully wound down (env vars confirmed in `apps/web`,
+GitHub repo + Vercel project deleted 20/06/2026 — per Phill's typed approval).
 
 ## Hard rules
 
