@@ -1,8 +1,9 @@
--- Migration: voice_command_sessions
+-- Migration: margot_voice_sessions
 -- Stores Margot Voice (ElevenLabs conversational AI) session packets ingested
 -- via the /api/pi-ceo/margot-voice/task endpoint.
+-- Note: voice_command_sessions already exists in the shared DB with a different schema.
 
-CREATE TABLE IF NOT EXISTS public.voice_command_sessions (
+CREATE TABLE IF NOT EXISTS public.margot_voice_sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   founder_id UUID NOT NULL REFERENCES auth.users(id),
   packet_id TEXT NOT NULL,
@@ -19,9 +20,9 @@ CREATE TABLE IF NOT EXISTS public.voice_command_sessions (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-ALTER TABLE public.voice_command_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.margot_voice_sessions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "founder_all" ON public.voice_command_sessions
+CREATE POLICY "founder_all" ON public.margot_voice_sessions
   FOR ALL USING (founder_id = auth.uid()) WITH CHECK (founder_id = auth.uid());
 
-CREATE INDEX ON public.voice_command_sessions (founder_id, created_at DESC);
+CREATE INDEX ON public.margot_voice_sessions (founder_id, created_at DESC);

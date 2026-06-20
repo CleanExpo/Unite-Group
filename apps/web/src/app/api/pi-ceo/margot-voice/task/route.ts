@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
   const approvalRequired = packet.approval_required || highPriorityRisk;
 
   const { data: session, error: sessionError } = await supabase
-    .from('voice_command_sessions')
+    .from('margot_voice_sessions')
     .insert({
       founder_id: founderId,
       packet_id: packet.packet_id,
