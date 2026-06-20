@@ -53,6 +53,8 @@ function buildCSP(nonce: string): string {
 const PUBLIC_PATHS = [
   '/auth',
   '/forgot-password',
+  '/privacy-policy',
+  '/terms-of-service',
   '/api/auth',     // OAuth callbacks — must be public so Supabase can return auth codes
   '/api/health',
   '/api/cron',
