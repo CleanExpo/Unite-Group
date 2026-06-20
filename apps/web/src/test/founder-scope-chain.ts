@@ -36,6 +36,8 @@ export function makeServiceChain(results: Result[] = []): ServiceChain {
   chain.delete = vi.fn(() => chain)
   chain.eq = vi.fn(() => chain)
   chain.in = vi.fn(() => chain)
+  chain.limit = vi.fn(() => chain)
+  chain.order = vi.fn(() => chain)
   chain.single = vi.fn(() => Promise.resolve(next()))
   chain.maybeSingle = vi.fn(() => Promise.resolve(next()))
   chain.then = (resolve: Resolve) => resolve(next())
