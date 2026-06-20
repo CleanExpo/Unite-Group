@@ -357,6 +357,53 @@ products:
       ci_required_checks:
         - typecheck
         - build
+  - canonical_name: Duncan-Perkins-Ventures
+    aliases:
+      - Duncan
+      - Duncan Perkins
+      - FITR
+      - ITR Button
+      - Lodgey
+      - DIY Home Loan
+    purpose: >-
+      Duncan Perkins' financial-services ventures — ITR Button (Lodgey) +
+      DIY Home Loan. Independent Next.js + Supabase apps (Sydney region); IP
+      Duncan's / Home Loan Essentials'; NOT part of apps/web. Single Linear
+      home: "Duncan Perkins Ventures" (Unite-Group / UNI team). Build-ready
+      specs in apps/spec-board/projects/duncan-itr-button +
+      duncan-diy-home-loan (produced via fable-engine, stop at human gate).
+    status: planned
+    owner: phill
+    github:
+      org: CleanExpo
+      repo: TBD
+      default_branch: main
+    local:
+      canonical_path: null
+      access_via: /Users/phillmcgurk/Unite-Group/apps/spec-board/projects
+      do_not_clone_to: []
+    linear:
+      team: Unite-Group
+      team_key: UNI
+      project: Duncan Perkins Ventures
+      project_id: d518b78d-0e12-4314-8280-732b486bf9b4
+      url: https://linear.app/unite-group/project/duncan-perkins-ventures-b0b5365ca099
+      epics:
+        - UNI-2158  # ITR Button (Lodgey)
+        - UNI-2159  # DIY Home Loan
+    vercel:
+      team_id: team_KMZACI5rIltoCRhAtGCXlxUf
+      production:
+        project_id: TBD
+        project_name: TBD
+        domain: TBD
+    workflow:
+      sandbox_first: true
+      pr_required_for_prod: true
+      ci_required_checks:
+        - typecheck
+        - lint
+        - build
   - canonical_name: Pi-Dev-Ops
     aliases:
       - Pi DevOps
