@@ -1,0 +1,16 @@
+{
+  "name": "@unite/autopilot-runner",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Stage-3 Autopilot Runner — hosted executor for the Linear autonomous loop. Spec: apps/spec-board/projects/stage3-autopilot-runner/spec.md",
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  }
+}
