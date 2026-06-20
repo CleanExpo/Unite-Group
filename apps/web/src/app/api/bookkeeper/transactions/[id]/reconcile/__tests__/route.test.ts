@@ -37,10 +37,11 @@ vi.mock('@/lib/supabase/server', () => ({
 
 vi.mock('@/lib/integrations/xero/client', () => ({
   reconcileTransaction: vi.fn(),
+  isXeroConfigured: vi.fn().mockReturnValue(true),
 }))
 
 import { getUser, createClient } from '@/lib/supabase/server'
-import { reconcileTransaction } from '@/lib/integrations/xero/client'
+import { reconcileTransaction, isXeroConfigured } from '@/lib/integrations/xero/client'
 import { POST } from '../route'
 
 const params = Promise.resolve({ id: 'txn-1' })
@@ -106,5 +107,15 @@ describe('POST /api/bookkeeper/transactions/[id]/reconcile', () => {
     expect(res.status).toBe(500)
     const body = await res.json()
     expect(body.error).toBe('Xero API error')
+  })
+
+  it('returns 503 when Xero is not configured', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
+    vi.mocked(isXeroConfigured).mockReturnValueOnce(false)
+
+    const res = await POST(req(), { params })
+    expect(res.status).toBe(503)
+    const body = await res.json()
+    expect(body.error).toBe('Xero not configured')
   })
 })
