@@ -600,3 +600,113 @@ export function buildSwarmStartupSnapshot(input: SwarmStartupSnapshotInput): Swa
 export function readSwarmProjectContext(): string {
   return readTextIfExists(SWARM_PROJECT_CONTEXT_PATH)
 }
+
+// ---------------------------------------------------------------------------
+// Tiered context retrieval
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns a concatenated markdown string of memory context for `agentId` at
+ * the requested depth tier.
+ *
+ * - depth 0 (default): injected tier — profile identity + durable memory +
+ *   active mission summary + latest handoff. Zero search cost.
+ * - depth 1: tier-0 output plus the last 10 episodic log entries for the agent.
+ * - depth 2: tier-1 output plus all shared swarm memory entries.
+ *
+ * The function is read-only and does not modify any existing memory files or
+ * exports.
+ *
+ * See `docs/memory-retrieval-contract.md` for the full retrieval contract.
+ */
+export async function getTieredContext(
+  agentId: string,
+  opts?: { depth?: 0 | 1 | 2 },
+): Promise<string> {
+  if (!validateSwarmId(agentId)) throw new Error(`Invalid agentId: ${agentId}`)
+  const depth = opts?.depth ?? 0
+  const sections: Array<string> = []
+
+  // ── Tier 0: profile identity + durable memory + active mission + handoff ──
+
+  const identityPath = join(swarmWorkerMemoryRoot(agentId), 'IDENTITY.md')
+  const identity = readTextIfExists(identityPath)
+  if (identity) {
+    sections.push('## Identity\n\n' + identity.trim())
+  }
+
+  const memoryPath = join(profileRoot(agentId), 'MEMORY.md')
+  const durableMemory = readTextIfExists(memoryPath)
+  if (durableMemory) {
+    sections.push('## Durable memory\n\n' + durableMemory.trim())
+  }
+
+  const activeMissionId = readActiveMissionId(agentId)
+  if (activeMissionId) {
+    const summaryPath = join(swarmWorkerMissionMemoryRoot(agentId, activeMissionId), 'SUMMARY.md')
+    const missionSummary = readTextIfExists(summaryPath)
+    if (missionSummary) {
+      sections.push(`## Active mission (${activeMissionId})\n\n` + missionSummary.trim())
+    }
+  }
+
+  const sharedHandoff = join(SWARM_SHARED_HANDOFF_ROOT, `${agentId}-latest.md`)
+  const localHandoff = activeMissionId
+    ? join(swarmWorkerHandoffsRoot(agentId), `${activeMissionId}.md`)
+    : null
+  const handoffContent = existsSync(sharedHandoff)
+    ? readTextIfExists(sharedHandoff)
+    : localHandoff && existsSync(localHandoff)
+      ? readTextIfExists(localHandoff)
+      : ''
+  if (handoffContent) {
+    sections.push('## Latest handoff\n\n' + handoffContent.trim())
+  }
+
+  if (depth < 1) return sections.join('\n\n---\n\n')
+
+  // ── Tier 1: last 10 episodic entries ──────────────────────────────────────
+
+  const episodesRoot = swarmWorkerEpisodesRoot(agentId)
+  if (existsSync(episodesRoot)) {
+    const episodeFiles = readdirSync(episodesRoot)
+      .filter((name) => /^\d{4}-\d{2}-\d{2}\.md$/.test(name))
+      .sort()
+      .reverse()
+
+    const episodicLines: Array<string> = []
+    for (const file of episodeFiles) {
+      if (episodicLines.length >= 10) break
+      const content = readTextIfExists(join(episodesRoot, file))
+      const entries = content.split(/\n(?=## )/).filter(Boolean)
+      for (const entry of entries.reverse()) {
+        if (episodicLines.length >= 10) break
+        episodicLines.push(entry.trim())
+      }
+    }
+
+    if (episodicLines.length) {
+      sections.push('## Recent episodic entries (last 10)\n\n' + episodicLines.join('\n\n'))
+    }
+  }
+
+  if (depth < 2) return sections.join('\n\n---\n\n')
+
+  // ── Tier 2: shared swarm memory ───────────────────────────────────────────
+
+  const sharedFiles = listFiles(SWARM_SHARED_MEMORY_ROOT, 4)
+  if (sharedFiles.length) {
+    const sharedContent = sharedFiles
+      .map((file) => {
+        const text = readTextIfExists(file).trim()
+        return text ? `### ${basename(file)}\n\n${text}` : ''
+      })
+      .filter(Boolean)
+      .join('\n\n')
+    if (sharedContent) {
+      sections.push('## Shared swarm memory\n\n' + sharedContent)
+    }
+  }
+
+  return sections.join('\n\n---\n\n')
+}
