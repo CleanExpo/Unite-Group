@@ -5,6 +5,34 @@
 import { sendSlack, formatSlackNotification } from './slack'
 import { createServiceClient, hasSupabaseServiceConfig } from '@/lib/supabase/service'
 
+/**
+ * Persist a notification into the founder_notifications inbox.
+ * Uses the service client so it can be called from cron/agent contexts
+ * where the founder is not the active session user.
+ * Never throws — fire-and-forget.
+ */
+export async function saveNotification(
+  founderId: string,
+  type: string,
+  payload: Record<string, unknown> = {}
+): Promise<void> {
+  try {
+    if (!hasSupabaseServiceConfig()) {
+      console.warn('[saveNotification] Supabase service config not set — skipping DB insert')
+      return
+    }
+    const supabase = createServiceClient()
+    const { error } = await supabase
+      .from('founder_notifications')
+      .insert({ founder_id: founderId, type, payload })
+    if (error) {
+      console.error('[saveNotification] Insert failed:', error.message)
+    }
+  } catch (err) {
+    console.error('[saveNotification] Unhandled error:', err instanceof Error ? err.message : err)
+  }
+}
+
 export type NotificationType =
   | 'cron_complete'
   | 'advisory_update'

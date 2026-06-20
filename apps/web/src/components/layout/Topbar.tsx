@@ -5,6 +5,7 @@ import { Menu, HelpCircle, Zap } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { useUIStore } from '@/store/ui'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import { NotificationBell } from '@/components/founder/notifications/NotificationBell'
 
 const BREADCRUMB_MAP: Record<string, string> = {
   '/founder/dashboard':   'Dashboard',
@@ -94,6 +95,8 @@ export function Topbar() {
 
       {/* Right actions */}
       <div className="ml-auto flex items-center gap-3">
+        <NotificationBell />
+
         <button
           onClick={toggleCapture}
           className="transition-colors"
