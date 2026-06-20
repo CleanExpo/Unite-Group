@@ -4,6 +4,9 @@
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { scorePOET, checkSurvivalFactors } from '@/lib/content/quality-gate'
+import { packageForGEO } from '@/lib/content/geo-schema'
+import type { POETScore, SurvivalCheck } from '@/lib/content/quality-gate'
 
 export const dynamic = 'force-dynamic'
 
@@ -71,6 +74,31 @@ export async function POST(
     byPlatform.get(platform)!.push(asset)
   }
 
+  // Quality gate — POET + GEO (warn only, non-blocking)
+  const primaryContent = assets[0]?.['copy'] as string | undefined
+  let qualityGate: { poet: POETScore; survival: SurvivalCheck; geo: ReturnType<typeof packageForGEO> } | null = null
+  if (primaryContent) {
+    const [poet, survival] = await Promise.all([
+      scorePOET({ content: primaryContent, contentType: 'social_post', topic: (campaign as Record<string, unknown> | null)?.['client_name'] as string ?? 'brand' }),
+      Promise.resolve(checkSurvivalFactors(primaryContent)),
+    ])
+    const geo = packageForGEO(primaryContent, {
+      title: (campaign as Record<string, unknown> | null)?.['title'] as string ?? brandProfile?.['client_name'] as string ?? 'Brand Post',
+      description: primaryContent.slice(0, 160),
+      author: brandProfile?.['client_name'] as string ?? 'Unite Group',
+      organisation: 'Unite Group',
+      datePublished: new Date().toISOString(),
+      topics: [],
+    })
+    qualityGate = { poet, survival, geo }
+    if (!poet.pass) {
+      console.warn('[Publish] POET score below threshold:', poet.total, poet.failReasons)
+    }
+    if (!survival.pass) {
+      console.warn('[Publish] Survival check failed:', survival.issues)
+    }
+  }
+
   let postsCreated = 0
   const postIds: string[] = []
 
@@ -121,5 +149,16 @@ export async function POST(
       .eq('founder_id', user.id)
   }
 
-  return NextResponse.json({ postsCreated, postIds })
+  return NextResponse.json({
+    postsCreated,
+    postIds,
+    ...(qualityGate ? {
+      qualityGate: {
+        poetScore: qualityGate.poet.total,
+        poetPass: qualityGate.poet.pass,
+        survivalPass: qualityGate.survival.pass,
+        geoAiSnippet: qualityGate.geo.aiSnippet,
+      },
+    } : {}),
+  })
 }

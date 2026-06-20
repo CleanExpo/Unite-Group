@@ -3,7 +3,7 @@ import { json } from '@tanstack/react-start'
 import { execFile } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { isAuthenticated } from '../../server/auth-middleware'
 import { newestCheckpointFromMessages, type ParsedSwarmCheckpoint } from '../../server/swarm-checkpoints'
 import { readWorkerMessages } from '../../server/swarm-chat-reader'
@@ -334,6 +334,22 @@ export function checkpointFromRuntimeSnapshot(snapshot: RuntimeCheckpointSnapsho
   return checkpoint
 }
 
+// Reads soul.md from the workspace root (apps/workspace/) for always-injected context.
+// Falls back silently if the file does not exist.
+function readWorkspaceSoul(): string {
+  const candidates = [
+    resolve(dirname(dirname(dirname(dirname(__dirname)))), 'soul.md'),
+    resolve(process.cwd(), 'soul.md'),
+    resolve(process.cwd(), '..', 'soul.md'),
+  ]
+  for (const p of candidates) {
+    if (existsSync(p)) {
+      try { return readFileSync(p, 'utf-8') } catch { continue }
+    }
+  }
+  return ''
+}
+
 function buildWorkerPrompt(input: {
   workerId: string
   task: string
@@ -366,6 +382,8 @@ function buildWorkerPrompt(input: {
     snapshotSection = ''
   }
 
+  const soulContext = readWorkspaceSoul()
+
   const lines: Array<string> = [
     '## Swarm Orchestrator Dispatch',
     `Worker: ${input.workerId} — ${role}`,
@@ -379,6 +397,9 @@ function buildWorkerPrompt(input: {
   if (snapshotSection) {
     lines.push(snapshotSection)
     lines.push('')
+  }
+  if (soulContext) {
+    lines.push('## Workspace Identity (soul.md)', soulContext, '')
   }
   lines.push(
     '## Assigned Task',
