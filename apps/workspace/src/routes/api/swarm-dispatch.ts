@@ -8,7 +8,7 @@ import { isAuthenticated } from '../../server/auth-middleware'
 import { newestCheckpointFromMessages, type ParsedSwarmCheckpoint } from '../../server/swarm-checkpoints'
 import { readWorkerMessages } from '../../server/swarm-chat-reader'
 import { createOrUpdateMission, markMissionAssignmentDispatched, recordMissionCheckpoint } from '../../server/swarm-missions'
-import { appendSwarmMemoryEvent } from '../../server/swarm-memory'
+import { appendSwarmMemoryEvent, buildSwarmStartupSnapshot } from '../../server/swarm-memory'
 import { rosterByWorkerId, type SwarmRosterWorker } from '../../server/swarm-roster'
 import { publishSwarmCheckpointNotification } from '../../server/swarm-notifications'
 
