@@ -74,9 +74,11 @@ runner cannot push to `main` or bypass CI.
 
 **Phase 0 — Design gate (THIS doc) + Phill-only setup.**
 **DoD:** Phill signs the architecture + security model; Phill (a) provisions the Railway service shell,
-(b) creates the **least-privilege GitHub credential** (fine-grained PAT or a GitHub App — see OQ2),
-(c) sets the runner secrets (Anthropic, Linear, GitHub, `CRON_SECRET`), (d) enables **branch protection
-on `main`** (require green CI, no direct push). *No runner code before this.*
+(b) creates **two least-privilege GitHub Apps** — a *runner* App (author: contents + PR) and a *reviewer*
+App (approver: PR reviews) — installed on `CleanExpo/Unite-Group`, (c) sets the runner secrets (Anthropic,
+Linear, both GitHub App keys, `CRON_SECRET`), (d) confirms `main` branch protection stays as-is (1 required
+review — the reviewer App satisfies it; no direct push). *No runner code before this.* `main` protection
+verified 2026-06-21 via `gh api`: `required_approving_review_count: 1`, repo auto-merge disabled.
 
 **Phase 1 — Extract `@unite/autopilot-core` (pure, in-repo, safe).**
 Move the pure claim/packet/Linear logic out of `apps/web/src/lib/command-centre` + `integrations/linear.ts`
@@ -119,7 +121,7 @@ makes prod-DB/secret/delete/deploy operations impossible in the runner image).
 ## 7. Security & cost guardrails (the heart of this spec)
 
 - **Branch protection on `main` = PR-only is structural.** The runner cannot push to `main` or bypass CI.
-- **Auto-merge predicate (all required):** CI green ∧ `autonomous` label ∧ base=`main` ∧ linear history. Anything else → leave the PR for a human.
+- **Merge predicate (all required):** CI green ∧ **adversarial-evaluator approving review posted** ∧ `autonomous` label ∧ base=`main` ∧ linear history. The approving review comes from a **distinct reviewer-bot identity** (separate GitHub App), never the runner's author identity — GitHub disallows self-approval. **`main` branch protection (1 required review) is KEPT, not relaxed**; the bot satisfies it. Anything else → leave the PR for a human.
 - **Least-privilege credential:** GitHub access scoped to the one repo, contents+PR only, **no admin/settings**; prefer a **GitHub App** (short-lived tokens) over a long-lived PAT (OQ2).
 - **Capability floor:** the runner image holds Anthropic + the scoped GitHub creds + Linear + `CRON_SECRET` **only**. It does **not** hold Supabase service-role/admin, prod DB creds, or any deploy/delete/access-control capability — the prohibited set is absent from its environment, not merely "not called".
 - **Kill switch:** `CC_LINEAR_LIVE=0` drains immediately; a max-concurrent + per-hour rate cap prevents runaway.
@@ -142,12 +144,13 @@ makes prod-DB/secret/delete/deploy operations impossible in the runner image).
 
 **Locked by Phill 2026-06-21:**
 1. **Host: Railway** (alongside Pi-CEO). `[VERIFIED — Phill]`
-2. **GitHub auth: a GitHub App** — short-lived, repo-scoped, revocable installation tokens. `[VERIFIED — Phill]`
-3. **Auto-merge: requires the adversarial-evaluator second pass** — a second independent gauntlet must re-verify green, on top of CI, before any squash-merge. `[VERIFIED — Phill]`
+2. **GitHub auth: GitHub Apps** — short-lived, repo-scoped, revocable installation tokens. **Two identities**: a *runner* App (author) + a *reviewer* App (approver). `[VERIFIED — Phill]`
+3. **Auto-merge: requires the adversarial-evaluator second pass** — a second independent gauntlet must re-verify green, on top of CI, before any merge. `[VERIFIED — Phill]`
+4. **Merge policy: reviewer-bot approval; branch protection KEPT.** `main` requires 1 approving review (verified via `gh api`; repo auto-merge disabled) — **not relaxed**. The adversarial-evaluator runs as the **reviewer App** and posts the approving review **only** when its independent gauntlet re-passes. The runner (author) and reviewer (approver) are distinct Apps — GitHub disallows self-approval. The human review gate becomes an auditable second-bot gate; kill switch + full audit retained. `[VERIFIED — Phill]`
 
 **Defaults assumed unless Phill says otherwise:**
-4. **Repo scope (v1):** runner acts only on `CleanExpo/Unite-Group`, only on `autonomous`-labelled issues.
-5. **Audit store:** a branch-first, founder-scoped `autopilot_runs` table in `apps/web` prod (additive; promoted via approved branch).
+5. **Repo scope (v1):** runner acts only on `CleanExpo/Unite-Group`, only on `autonomous`-labelled issues.
+6. **Audit store:** a branch-first, founder-scoped `autopilot_runs` table in `apps/web` prod (additive; promoted via approved branch).
 
 ## 10. Verification plan
 
