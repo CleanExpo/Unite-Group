@@ -48,10 +48,17 @@ export async function POST(
   // Load campaign for businessKey
   const { data: campaign } = await supabase
     .from('campaigns')
-    .select('brand_profile_id, brand_profiles(business_key, client_name)')
+    .select('status, brand_profile_id, brand_profiles(business_key, client_name)')
     .eq('id', id)
     .eq('founder_id', user.id)
     .single()
+
+  // Idempotency guard (audit 2.8): a campaign already published is a no-op, so a
+  // retry or concurrent double-click cannot create duplicate social_posts for the
+  // same campaign (the audience is never double-posted to).
+  if ((campaign as { status?: string } | null)?.status === 'published') {
+    return NextResponse.json({ postsCreated: 0, postIds: [], alreadyPublished: true })
+  }
 
   const brandProfileRaw = campaign?.['brand_profiles'] as unknown
   const brandProfile = Array.isArray(brandProfileRaw)

@@ -54,7 +54,7 @@ export interface ExecuteChatDeps {
   /** Optional override of the chat client factory (for tests). */
   makeClient?: (baseUrl: string, apiKey: string | undefined) => (req: ChatRequest) => Promise<ChatResult>
   /** Record the usage event (and rate-limit cool-downs). */
-  logUsage?: (e: { accountId: string; lane: WorkKind; inputTokens: number; outputTokens: number; outcome: 'ok' | 'rate_limited' | 'error'; resetAt?: string | null }) => Promise<void>
+  logUsage: (e: { accountId: string; lane: WorkKind; inputTokens: number; outputTokens: number; outcome: 'ok' | 'rate_limited' | 'error'; resetAt?: string | null }) => Promise<void>
 }
 
 /**
@@ -81,10 +81,10 @@ export async function executeChat(kind: WorkKind, req: ChatRequest, deps: Execut
 
   if (!result.ok) {
     const rateLimited = result.reason === 'rate_limited'
-    await deps.logUsage?.({ accountId, lane: kind, inputTokens: 0, outputTokens: 0, outcome: rateLimited ? 'rate_limited' : 'error', resetAt: result.resetAt ?? null })
+    await deps.logUsage({ accountId, lane: kind, inputTokens: 0, outputTokens: 0, outcome: rateLimited ? 'rate_limited' : 'error', resetAt: result.resetAt ?? null })
     return { status: 'error', provider, reason: result.detail ?? result.reason, rateLimited, resetAt: result.resetAt ?? null }
   }
 
-  await deps.logUsage?.({ accountId, lane: kind, inputTokens: result.usage.inputTokens, outputTokens: result.usage.outputTokens, outcome: 'ok' })
+  await deps.logUsage({ accountId, lane: kind, inputTokens: result.usage.inputTokens, outputTokens: result.usage.outputTokens, outcome: 'ok' })
   return { status: 'ok', provider, accountId, text: result.text, usage: result.usage }
 }
