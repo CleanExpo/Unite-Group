@@ -286,15 +286,21 @@ describe('summariseDashboard', () => {
     expect(r.entries.map((e) => e.id)).toEqual(['included'])
   })
 
-  it('throws if the dashboard directory does not exist', async () => {
+  it('degrades to an empty summary if the dashboard directory does not exist', async () => {
+    // In serverless/prod the local 2nd-brain dir is absent. Must NOT throw —
+    // that would crash the entire Command Centre render. Returns empty instead.
     process.env.UNITE_DASHBOARD_DIR = '/this/does/not/exist/anywhere'
-    await expect(summariseDashboard()).rejects.toThrow(/not accessible/)
+    const r = await summariseDashboard()
+    expect(r.entries).toEqual([])
+    expect(r.red_count + r.amber_count + r.green_count + r.error_count).toBe(0)
   })
 
-  it('throws if the dashboard path is a file rather than a directory', async () => {
+  it('degrades to an empty summary if the dashboard path is a file rather than a directory', async () => {
     const file = path.join(tempDir, 'not-a-dir.json')
     await writeFile(file, '{}', 'utf-8')
-    await expect(summariseDashboard(file)).rejects.toThrow(/not a directory/)
+    const r = await summariseDashboard(file)
+    expect(r.entries).toEqual([])
+    expect(r.dashboard_dir).toBe(file)
   })
 
   it('records the scanned_at timestamp from the injected clock', async () => {

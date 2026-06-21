@@ -177,12 +177,22 @@ export async function summariseDashboard(
   dir: string = resolveDashboardDir(),
   now: () => Date = () => new Date(),
 ): Promise<DashboardSummaryResult> {
-  const dirStat = await stat(dir).catch((err: unknown) => {
-    const reason = err instanceof Error ? err.message : String(err)
-    throw new Error(`Dashboard directory not accessible: ${dir} (${reason})`)
-  })
-  if (!dirStat.isDirectory()) {
-    throw new Error(`Dashboard path is not a directory: ${dir}`)
+  // The dashboard vault is a LOCAL 2nd-brain directory (default
+  // `~/2nd-brain/.agentic_nexus/dashboard`). In serverless/prod it simply isn't
+  // present — `stat()` throws ENOENT. Degrade honestly to an empty summary
+  // instead of throwing, which would crash the entire Command Centre render
+  // (NorthStar: render the source path / "not connected", never crash the page).
+  const dirStat = await stat(dir).catch(() => null)
+  if (!dirStat || !dirStat.isDirectory()) {
+    return {
+      dashboard_dir: dir,
+      scanned_at: now().toISOString(),
+      entries: [],
+      red_count: 0,
+      amber_count: 0,
+      green_count: 0,
+      error_count: 0,
+    }
   }
 
   const all = await readdir(dir)
