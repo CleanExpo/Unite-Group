@@ -62,7 +62,7 @@ export function ProviderAccountsTile() {
   useEffect(() => { load() }, [load])
 
   async function addAccount() {
-    if (!form.label || !form.vaultEntryId) { setError('label and a vault entry are required'); return }
+    if (!form.label) { setError('a label is required'); return }
     setSaving(true)
     try {
       const res = await fetch('/api/command-center/provider-accounts', {
@@ -111,7 +111,7 @@ export function ProviderAccountsTile() {
         </select>
         <input placeholder="label" value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} style={inputStyle} />
         <select value={form.vaultEntryId} onChange={(e) => setForm({ ...form, vaultEntryId: e.target.value })} style={inputStyle}>
-          <option value="">— vault key —</option>
+          <option value="">— use env var key —</option>
           {vault.map((v) => <option key={v.id} value={v.id}>{v.label} ({v.service})</option>)}
         </select>
         <button onClick={addAccount} disabled={saving} style={{ ...inputStyle, cursor: 'pointer', color: 'var(--cc-ink)' }}>

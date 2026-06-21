@@ -12,6 +12,7 @@
 import type { AccountRuntimeState } from './router'
 import { toRuntimeState, type ProviderAccountRow } from './accounts'
 import type { QuotaEvent } from './quota'
+import { hasEnvKey } from './credentials'
 
 /** A usage event to record after a provider call. */
 export interface QuotaEventInput {
@@ -49,6 +50,8 @@ export async function loadAccounts(
   store: ProviderPoolStore,
   founderId: string,
   now: string,
+  /** Env for resolving env-backed account keys (presence only). Defaults to process.env. */
+  env: Record<string, string | undefined> = process.env,
 ): Promise<AccountRuntimeState[]> {
   const accounts = await store.listAccounts(founderId)
   if (accounts.length === 0) return []
@@ -63,10 +66,13 @@ export async function loadAccounts(
     byAccount.set(e.accountId, list)
   }
 
+  // Env-backed accounts (no vault entry) are "present" when their provider key is in env.
+  const present = (a: ProviderAccountRow): boolean => a.vaultEntryId !== null || hasEnvKey(a.provider, env)
+
   return accounts.map((a) =>
     a.plan.kind === 'prepaid'
-      ? toRuntimeState(a, [], now, spend[a.accountId] ?? 0)
-      : toRuntimeState(a, byAccount.get(a.accountId) ?? [], now),
+      ? toRuntimeState(a, [], now, spend[a.accountId] ?? 0, present(a))
+      : toRuntimeState(a, byAccount.get(a.accountId) ?? [], now, undefined, present(a)),
   )
 }
 

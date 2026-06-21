@@ -50,8 +50,10 @@ export function toRuntimeState(
   events: QuotaEvent[],
   now: string,
   spentUnits?: number,
+  /** True when the key is present in env (for env-backed accounts with no vault entry). */
+  credentialPresent?: boolean,
 ): AccountRuntimeState {
-  const configured = row.enabled && row.vaultEntryId !== null
+  const configured = row.enabled && (row.vaultEntryId !== null || credentialPresent === true)
 
   if (!configured) {
     return { provider: row.provider, accountId: row.accountId, configured: false, state: 'blocked' }

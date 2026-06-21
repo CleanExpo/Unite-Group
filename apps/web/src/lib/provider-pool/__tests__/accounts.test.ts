@@ -33,9 +33,15 @@ describe('toRuntimeState — not configured', () => {
     const r = toRuntimeState({ ...claudeRow, enabled: false }, [], NOW)
     expect(r).toMatchObject({ configured: false, state: 'blocked' })
   })
-  it('is blocked when no vault entry', () => {
+  it('is blocked when no vault entry and no env key', () => {
     const r = toRuntimeState({ ...claudeRow, vaultEntryId: null }, [], NOW)
     expect(r.configured).toBe(false)
+  })
+
+  it('is configured when env-backed (no vault entry, key present in env)', () => {
+    const r = toRuntimeState({ ...minimaxRow, vaultEntryId: null }, [{ at: NOW, units: 100 }], NOW, undefined, true)
+    expect(r.configured).toBe(true)
+    expect(r.state).toBe('available')
   })
 })
 

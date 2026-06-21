@@ -32,10 +32,12 @@ export type ExecuteChatResult =
 export interface ExecuteChatDeps {
   /** Live account states (from loadAccounts). */
   accounts: AccountRuntimeState[]
-  /** Map an accountId → its vault entry id (from the loaded ProviderAccountRow). */
-  vaultEntryFor: (accountId: string) => string | null
-  /** Decrypt a vault entry → the API key. */
-  resolveCredential: (vaultEntryId: string) => Promise<string | null>
+  /**
+   * Resolve an account's API key — from its Vercel env var (env-backed) or by
+   * decrypting its vault entry. Returns null when neither is available (→ a
+   * clean error, never a silent uncredentialed call).
+   */
+  resolveKey: (accountId: string) => Promise<string | null>
   now: string
   /** Optional override of the chat client factory (for tests). */
   makeClient?: (baseUrl: string, apiKey: string | undefined) => (req: ChatRequest) => Promise<ChatResult>
@@ -57,9 +59,8 @@ export async function executeChat(kind: WorkKind, req: ChatRequest, deps: Execut
     return { status: 'needs_anthropic_path', provider, accountId }
   }
 
-  const vaultId = deps.vaultEntryFor(accountId)
-  const key = vaultId ? await deps.resolveCredential(vaultId) : null
-  if (!key) return { status: 'error', provider, reason: 'credential not resolvable from vault' }
+  const key = await deps.resolveKey(accountId)
+  if (!key) return { status: 'error', provider, reason: 'credential not resolvable (no env var or vault entry)' }
 
   const client = (deps.makeClient ?? ((b, k) => makeOpenAICompatibleClient({ baseUrl: b, apiKey: k })))(base, key)
   const result = await client(req)

@@ -46,8 +46,12 @@ const PROVIDERS: ReadonlySet<ProviderId> = new Set(['claude', 'openai', 'minimax
 export interface NewAccountInput {
   provider: ProviderId
   label: string
-  /** Vault entry id holding the key/token. Required — secrets live in the vault. */
-  vaultEntryId: string
+  /**
+   * Vault entry id holding the key. Optional: when omitted, the account is
+   * "env-backed" — its key is read from the provider's Vercel env var
+   * (e.g. MINIMAX_API_KEY). Either path keeps the secret out of this row.
+   */
+  vaultEntryId?: string | null
   /** Optional plan override; defaults from defaultPlanFor. */
   plan?: PlanShape
   allowMetered?: boolean
@@ -56,7 +60,7 @@ export interface NewAccountInput {
 export type ValidatedAccount = {
   provider: ProviderId
   label: string
-  vaultEntryId: string
+  vaultEntryId: string | null
   plan: PlanShape
   allowMetered: boolean
 }
@@ -81,8 +85,11 @@ export function validateNewAccount(input: unknown): ValidationResult {
   }
   const provider = v.provider as ProviderId
   if (typeof v.label !== 'string' || v.label.trim().length === 0) return { ok: false, error: 'label is required' }
-  if (typeof v.vaultEntryId !== 'string' || v.vaultEntryId.trim().length === 0) {
-    return { ok: false, error: 'vaultEntryId is required (the key must live in the vault)' }
+  // vaultEntryId is optional: omit it for an env-backed account (key in a Vercel env var).
+  let vaultEntryId: string | null = null
+  if (v.vaultEntryId !== undefined && v.vaultEntryId !== null && v.vaultEntryId !== '') {
+    if (typeof v.vaultEntryId !== 'string') return { ok: false, error: 'vaultEntryId must be a string' }
+    vaultEntryId = v.vaultEntryId.trim()
   }
   if (v.plan !== undefined && !isPlanShape(v.plan)) return { ok: false, error: 'plan is malformed' }
 
@@ -91,7 +98,7 @@ export function validateNewAccount(input: unknown): ValidationResult {
     value: {
       provider,
       label: v.label.trim(),
-      vaultEntryId: v.vaultEntryId.trim(),
+      vaultEntryId,
       plan: (v.plan as PlanShape | undefined) ?? defaultPlanFor(provider),
       allowMetered: v.allowMetered === true,
     },

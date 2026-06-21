@@ -30,9 +30,18 @@ describe('validateNewAccount', () => {
     expect(validateNewAccount({ ...base, provider: 'grok' }).ok).toBe(false)
   })
 
-  it('requires a label and a vault entry (no inline secrets)', () => {
+  it('requires a label', () => {
     expect(validateNewAccount({ ...base, label: '' }).ok).toBe(false)
-    expect(validateNewAccount({ ...base, vaultEntryId: '' }).ok).toBe(false)
+  })
+
+  it('allows an env-backed account (no vault entry → key from env var)', () => {
+    const r = validateNewAccount({ provider: 'minimax', label: 'MiniMax (env)' })
+    expect(r.ok).toBe(true)
+    if (r.ok) expect(r.value.vaultEntryId).toBeNull()
+    // empty string also means env-backed
+    const r2 = validateNewAccount({ ...base, vaultEntryId: '' })
+    expect(r2.ok).toBe(true)
+    if (r2.ok) expect(r2.value.vaultEntryId).toBeNull()
   })
 
   it('accepts a valid plan override', () => {

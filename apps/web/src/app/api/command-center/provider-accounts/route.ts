@@ -60,14 +60,18 @@ export async function POST(request: NextRequest) {
 
   try {
     const supabase = await createClient()
-    // The referenced vault entry must belong to the founder (defence in depth).
-    const { data: vaultEntry } = await supabase
-      .from('credentials_vault')
-      .select('id')
-      .eq('founder_id', user.id)
-      .eq('id', validated.value.vaultEntryId)
-      .maybeSingle()
-    if (!vaultEntry) return NextResponse.json({ error: 'vault entry not found for this founder' }, { status: 400 })
+    // If a vault entry is referenced, it must belong to the founder (defence in
+    // depth). An env-backed account (no vault entry) skips this — its key lives
+    // in a Vercel env var resolved at call time.
+    if (validated.value.vaultEntryId) {
+      const { data: vaultEntry } = await supabase
+        .from('credentials_vault')
+        .select('id')
+        .eq('founder_id', user.id)
+        .eq('id', validated.value.vaultEntryId)
+        .maybeSingle()
+      if (!vaultEntry) return NextResponse.json({ error: 'vault entry not found for this founder' }, { status: 400 })
+    }
 
     const { data, error } = await supabase
       .from('provider_accounts')
