@@ -23,7 +23,23 @@ function msg(err: unknown): string {
 
 /** Default headless Claude Code invocation. Exact flags verified at deploy. */
 export function defaultClaudeCommand(promptFile: string): string {
-  return `claude -p "$(cat ${promptFile})" --permission-mode acceptEdits`
+  return `claude -p "$(cat ${promptFile})" --dangerously-skip-permissions`
+}
+
+/**
+ * The authoring prompt: implement-only. The runner does the commit/push/PR, so
+ * the worker must NOT touch git — it just makes the code changes.
+ */
+export function buildAuthoringPrompt(packet: LinearExecutionPacket): string {
+  const link = packet.issue.url ? `\nLink: ${packet.issue.url}` : ''
+  return [
+    'You are an autonomous coding worker inside an isolated checkout of this repository.',
+    'Implement the task below. Make CODE CHANGES ONLY — do NOT commit, push, create branches, or open a PR (that is handled for you). Do not touch secrets or destructive production paths.',
+    '',
+    `Task: ${packet.issue.identifier} — ${packet.issue.title}${link}`,
+    '',
+    'Read the issue\'s Acceptance Criteria and implement the smallest change that satisfies them. Keep changes scoped to the task.',
+  ].join('\n')
 }
 
 /** author: implement the packet's DoD in the worktree via the Claude worker. */
@@ -32,7 +48,7 @@ export function makeAuthor(deps: AuthorDeps): (packet: LinearExecutionPacket, wo
   return async (packet, worktreePath) => {
     let promptFile: string
     try {
-      promptFile = await deps.writePrompt(worktreePath, packet.prompt)
+      promptFile = await deps.writePrompt(worktreePath, buildAuthoringPrompt(packet))
     } catch (err) {
       return { ok: false, error: `failed to stage prompt: ${msg(err)}` }
     }
