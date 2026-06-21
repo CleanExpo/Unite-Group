@@ -29,9 +29,14 @@ const WORK = path.join(os.tmpdir(), 'autopilot')
 const REPO_DIR = path.join(WORK, 'repo')
 const WORKTREES = path.join(WORK, 'worktrees')
 
-/** Stage the worker prompt to a file inside the worktree. */
-async function writePromptFile(worktreePath: string, prompt: string): Promise<string> {
-  const p = path.join(worktreePath, '.autopilot-prompt.md')
+/**
+ * Stage the worker prompt to a file OUTSIDE the worktree (under WORK), so the
+ * runner's `git add -A` never commits the scratch prompt into the PR. The worker
+ * command reads it by absolute path. (PR #378 leaked `.autopilot-prompt.md` when
+ * this lived inside the worktree.)
+ */
+async function writePromptFile(_worktreePath: string, prompt: string): Promise<string> {
+  const p = path.join(WORK, '.autopilot-prompt.md')
   await fs.writeFile(p, prompt, 'utf-8')
   return p
 }

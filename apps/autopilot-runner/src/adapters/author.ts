@@ -39,17 +39,23 @@ export function defaultClaudeCommand(promptFile: string): string {
 
 /**
  * The authoring prompt: implement-only. The runner does the commit/push/PR, so
- * the worker must NOT touch git — it just makes the code changes.
+ * the worker must NOT touch git — it just makes the code changes. The worker is
+ * offline (no Linear/network), so the full task — including the Acceptance
+ * Criteria — must come from packet.prompt, which the handoff builds with the
+ * issue body embedded. (Previously this used only the title, so the worker had
+ * to guess the task; see the UNI-2176 smoke-test PR #378.)
  */
 export function buildAuthoringPrompt(packet: LinearExecutionPacket): string {
   const link = packet.issue.url ? `\nLink: ${packet.issue.url}` : ''
   return [
     'You are an autonomous coding worker inside an isolated checkout of this repository.',
-    'Implement the task below. Make CODE CHANGES ONLY — do NOT commit, push, create branches, or open a PR (that is handled for you). Do not touch secrets or destructive production paths.',
+    'Make CODE CHANGES ONLY — do NOT commit, push, create branches, or open a PR (that is handled for you). Do not touch secrets or destructive production paths.',
+    'Implement the smallest change that satisfies the task below, then stop. Keep changes scoped to the task.',
     '',
     `Task: ${packet.issue.identifier} — ${packet.issue.title}${link}`,
     '',
-    'Read the issue\'s Acceptance Criteria and implement the smallest change that satisfies them. Keep changes scoped to the task.',
+    '--- Full task & Acceptance Criteria ---',
+    packet.prompt,
   ].join('\n')
 }
 
