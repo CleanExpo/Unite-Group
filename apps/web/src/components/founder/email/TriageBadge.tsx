@@ -6,8 +6,8 @@ const BADGE_STYLES: Record<TriageCategory, { bg: string; text: string; label: st
   IMPORTANT:   { bg: 'bg-cyan-500/20',   text: 'text-cyan-700',  label: 'Important' },
   INVOICE:     { bg: 'bg-amber-500/20',  text: 'text-amber-700', label: 'Invoice' },
   TASK:        { bg: 'bg-violet-500/20', text: 'text-violet-700',label: 'Task' },
-  NEWSLETTER:  { bg: 'bg-zinc-500/20',   text: 'text-zinc-400',  label: 'Newsletter' },
-  PROMOTIONAL: { bg: 'bg-zinc-500/20',   text: 'text-zinc-400',  label: 'Promo' },
+  NEWSLETTER:  { bg: 'bg-zinc-500/20',   text: 'text-[#52525b]',  label: 'Newsletter' },
+  PROMOTIONAL: { bg: 'bg-zinc-500/20',   text: 'text-[#52525b]',  label: 'Promo' },
   SOCIAL:      { bg: 'bg-blue-500/20',   text: 'text-blue-700',  label: 'Social' },
   SPAM:        { bg: 'bg-red-500/20',    text: 'text-red-700',   label: 'Spam' },
 }

@@ -120,7 +120,7 @@ export function ThreadViewer({ threadId, account, onArchive, onDelete, onClose }
                   <iframe
                     srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:sans-serif;font-size:14px;color:#ccc;background:#fff7ec;margin:0;padding:12px}a{color:#16a34a}</style></head><body>${DOMPurify.sanitize(msg.bodyHtml, { FORCE_BODY: true })}</body></html>`}
                     sandbox=""
-                    className="w-full min-h-[200px] border-0 rounded-sm bg-zinc-900"
+                    className="w-full min-h-[200px] border-0 rounded-sm bg-[var(--surface-card)]"
                     style={{ height: i === thread.messages.length - 1 ? '400px' : '200px' }}
                     title={`Message ${msg.id}`}
                   />

@@ -63,7 +63,7 @@ function ColourSwatch({ colour, label }: ColourSwatchProps) {
   return (
     <div className="flex flex-col items-center gap-1.5">
       <div
-        className="w-8 h-8 rounded-sm border border-white/10"
+        className="w-8 h-8 rounded-sm border border-[var(--color-border)]"
         style={{ backgroundColor: colour }}
         title={colour}
       />
@@ -241,7 +241,7 @@ export function BrandScanner({ onScanComplete }: BrandScannerProps) {
             onChange={e => setClientName(e.target.value)}
             disabled={isDisabled}
             placeholder="Acme Pty Ltd"
-            className="bg-[#111] border border-white/10 rounded-sm px-3 py-2 text-[13px] text-white placeholder-white/30 focus:border-[#16a34a]/50 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-100"
+            className="bg-[var(--surface-card)] border border-[var(--color-border)] rounded-sm px-3 py-2 text-[13px] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:border-[#16a34a]/50 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-100"
           />
         </div>
 
@@ -256,7 +256,7 @@ export function BrandScanner({ onScanComplete }: BrandScannerProps) {
             onChange={e => setWebsiteUrl(e.target.value)}
             disabled={isDisabled}
             placeholder="https://example.com.au"
-            className="bg-[#111] border border-white/10 rounded-sm px-3 py-2 text-[13px] text-white placeholder-white/30 focus:border-[#16a34a]/50 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-100"
+            className="bg-[var(--surface-card)] border border-[var(--color-border)] rounded-sm px-3 py-2 text-[13px] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:border-[#16a34a]/50 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-100"
           />
         </div>
       </div>
