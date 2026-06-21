@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { KeyRound, X } from 'lucide-react'
 import { changeVaultPassword } from '@/lib/vault-password'
+import { PasswordField } from './PasswordField'
 
 interface VaultChangePasswordProps {
   onClose: () => void
@@ -15,6 +16,8 @@ export function VaultChangePassword({ onClose }: VaultChangePasswordProps) {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [showPw, setShowPw] = useState(false)
+  const toggle = () => setShowPw((s) => !s)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -76,14 +79,14 @@ export function VaultChangePassword({ onClose }: VaultChangePasswordProps) {
               <label className="text-[11px] font-medium uppercase tracking-wider block mb-1" style={{ color: 'var(--color-text-muted)' }}>
                 Current Password
               </label>
-              <input
-                type="password"
+              <PasswordField
                 value={current}
                 onChange={(e) => { setCurrent(e.target.value); setError(null) }}
                 placeholder="Current master password"
+                show={showPw}
+                onToggle={toggle}
+                bg="var(--surface-elevated)"
                 autoFocus
-                className="w-full px-3 h-9 rounded-sm text-[13px] text-[#0A0A0A] outline-none"
-                style={{ background: 'var(--surface-elevated)', border: '1px solid var(--color-border)' }}
               />
             </div>
 
@@ -91,13 +94,13 @@ export function VaultChangePassword({ onClose }: VaultChangePasswordProps) {
               <label className="text-[11px] font-medium uppercase tracking-wider block mb-1" style={{ color: 'var(--color-text-muted)' }}>
                 New Password
               </label>
-              <input
-                type="password"
+              <PasswordField
                 value={next}
                 onChange={(e) => { setNext(e.target.value); setError(null) }}
                 placeholder="Min. 8 characters"
-                className="w-full px-3 h-9 rounded-sm text-[13px] text-[#0A0A0A] outline-none"
-                style={{ background: 'var(--surface-elevated)', border: '1px solid var(--color-border)' }}
+                show={showPw}
+                onToggle={toggle}
+                bg="var(--surface-elevated)"
               />
             </div>
 
@@ -105,13 +108,13 @@ export function VaultChangePassword({ onClose }: VaultChangePasswordProps) {
               <label className="text-[11px] font-medium uppercase tracking-wider block mb-1" style={{ color: 'var(--color-text-muted)' }}>
                 Confirm New Password
               </label>
-              <input
-                type="password"
+              <PasswordField
                 value={confirm}
                 onChange={(e) => { setConfirm(e.target.value); setError(null) }}
                 placeholder="Repeat new password"
-                className="w-full px-3 h-9 rounded-sm text-[13px] text-[#0A0A0A] outline-none"
-                style={{ background: 'var(--surface-elevated)', border: '1px solid var(--color-border)' }}
+                show={showPw}
+                onToggle={toggle}
+                bg="var(--surface-elevated)"
               />
             </div>
 

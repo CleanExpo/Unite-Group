@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Plus, X } from 'lucide-react'
 import { BUSINESSES } from '@/lib/businesses'
+import { PasswordField } from './PasswordField'
 
 interface VaultAddEntryProps {
   onClose: () => void
@@ -18,6 +19,7 @@ export function VaultAddEntry({ onClose, onAdded }: VaultAddEntryProps) {
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showSecret, setShowSecret] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -133,13 +135,13 @@ export function VaultAddEntry({ onClose, onAdded }: VaultAddEntryProps) {
           {/* Secret */}
           <div>
             <label className={labelClass} style={labelStyle}>Secret Value</label>
-            <input
-              type="password"
+            <PasswordField
               value={secret}
               onChange={(e) => { setSecret(e.target.value); setError(null) }}
               placeholder="API key, password, token…"
-              className={inputClass}
-              style={inputStyle}
+              show={showSecret}
+              onToggle={() => setShowSecret((s) => !s)}
+              bg="var(--surface-elevated)"
             />
           </div>
 
