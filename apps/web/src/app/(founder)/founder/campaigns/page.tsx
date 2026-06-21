@@ -171,25 +171,22 @@ export default async function CampaignsPage() {
     .eq('founder_id', user.id)
     .order('created_at', { ascending: false })
 
-  // No-Invaders #1: a query FAILURE must never render as an empty CRM.
-  // Throw so the route's error.tsx boundary catches it and shows an honest
-  // error state — only render EmptyState when the request genuinely succeeded
-  // with zero rows.
-  if (error) {
-    throw new Error(`Failed to load campaigns: ${error.message}`)
-  }
-
-  const campaigns = (rows ?? []).map(r => mapRow(r as CampaignRow))
+  // No-Invaders #1: a query FAILURE must never render as an empty CRM — but it
+  // must also not crash the whole route to the generic error boundary. Capture
+  // the real reason and render an honest in-page error panel below (never a fake
+  // empty). EmptyState only shows when the request genuinely returned zero rows.
+  const loadError = error ? error.message : null
+  const campaigns = error ? [] : (rows ?? []).map(r => mapRow(r as CampaignRow))
 
   return (
     <div className="p-6 flex flex-col gap-6">
       {/* Page header */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex flex-col gap-0.5">
-          <h1 className="text-[22px] font-semibold text-white tracking-tight">
+          <h1 className="text-[22px] font-semibold tracking-tight" style={{ color: 'var(--color-text-primary)' }}>
             Campaigns
           </h1>
-          <p className="text-[12px] text-white/30">
+          <p className="text-[12px]" style={{ color: 'var(--color-text-muted)' }}>
             Synthex AI-generated multi-platform campaigns
           </p>
         </div>
@@ -201,8 +198,19 @@ export default async function CampaignsPage() {
         </Link>
       </div>
 
-      {/* Campaign grid or empty state */}
-      {campaigns.length === 0 ? (
+      {/* Honest error panel — query failed; never a fake-empty CRM */}
+      {loadError ? (
+        <div
+          className="rounded-sm p-4"
+          style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)' }}
+          role="alert"
+        >
+          <p className="text-[13px]" style={{ color: 'var(--color-danger)' }}>
+            Campaigns couldn’t load — {loadError}. This is a real error, not an empty
+            list. Refresh to try again.
+          </p>
+        </div>
+      ) : campaigns.length === 0 ? (
         <EmptyState />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
