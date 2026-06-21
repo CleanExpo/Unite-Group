@@ -29,7 +29,7 @@ function BillStatusBadge({ status, dueDate }: { status: string; dueDate: string 
     return (
       <span
         className="text-[10px] font-medium tracking-widest uppercase px-2 py-0.5 rounded-sm"
-        style={{ color: '#16a34a', backgroundColor: 'rgba(22, 163, 74,0.08)', border: '1px solid rgba(22, 163, 74,0.2)' }}
+        style={{ color: '#15803d', backgroundColor: 'rgba(22, 163, 74,0.08)', border: '1px solid rgba(22, 163, 74,0.2)' }}
       >
         Paid
       </span>
@@ -167,7 +167,7 @@ export function PayablesTab() {
                     <motion.tr
                       key={inv.InvoiceID}
                       layout
-                      className="border-b border-[var(--color-border)] hover:bg-white/[0.02] transition-colors"
+                      className="border-b border-[var(--color-border)] hover:bg-black/[0.05] transition-colors"
                     >
                       <td className="px-3 py-2.5" style={{ color: 'var(--color-text-primary)' }}>
                         {inv.Contact?.Name ?? '--'}

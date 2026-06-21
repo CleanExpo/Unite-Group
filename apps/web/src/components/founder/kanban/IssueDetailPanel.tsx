@@ -236,7 +236,7 @@ export function IssueDetailPanel({ issueId, onClose }: IssueDetailPanelProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 text-[11px] mt-2 transition-opacity duration-150 hover:opacity-80"
-                style={{ color: '#16a34a' }}
+                style={{ color: '#15803d' }}
               >
                 Open in Linear
                 <span style={{ fontSize: '10px' }}>↗</span>

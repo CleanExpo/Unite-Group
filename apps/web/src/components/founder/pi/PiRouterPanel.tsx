@@ -194,7 +194,7 @@ export function PiRouterPanel() {
             value={message}
             onChange={(event) => setMessage(event.target.value)}
             rows={7}
-            className="border-white/[0.08] bg-black/30 text-white/90 placeholder:text-white/30"
+            className="border-white/[0.08] bg-black/30 text-[#0A0A0A] placeholder:text-[#71717a]"
             placeholder="Tell Pi what you want built, checked, researched, routed, or approved..."
           />
 
@@ -202,7 +202,7 @@ export function PiRouterPanel() {
             <Button onClick={routeMessage} loading={isRouting} disabled={!message.trim()}>
               Route + queue
             </Button>
-            <span className="text-xs text-white/45">Founder-safe: queue first, execute after evidence path is clear.</span>
+            <span className="text-xs text-[#71717a]">Founder-safe: queue first, execute after evidence path is clear.</span>
           </div>
 
           {error && <div className="rounded-sm border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{error}</div>}
@@ -210,7 +210,7 @@ export function PiRouterPanel() {
 
         <Card variant="bordered" padding="lg" className="space-y-4">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.24em] text-white/35">Run queue</p>
+            <p className="text-xs font-medium uppercase tracking-[0.24em] text-[#71717a]">Run queue</p>
             <CardTitle className="mt-2">Control tower</CardTitle>
             <CardDescription>Select one queued run to inspect context, controls, and evidence.</CardDescription>
           </div>
@@ -232,15 +232,15 @@ export function PiRouterPanel() {
                   className={`w-full rounded-sm border p-3 text-left transition ${
                     selected
                       ? 'border-cyan-300/40 bg-cyan-300/[0.07]'
-                      : 'border-white/[0.08] bg-white/[0.02] hover:border-white/[0.18] hover:bg-white/[0.04]'
+                      : 'border-white/[0.08] bg-white/[0.02] hover:border-white/[0.18] hover:bg-black/[0.05]'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs uppercase tracking-[0.18em] text-white/35">{item.taskPacket.portfolioTarget}</span>
+                    <span className="text-xs uppercase tracking-[0.18em] text-[#71717a]">{item.taskPacket.portfolioTarget}</span>
                     <StatusPill status={item.status} />
                   </div>
-                  <div className="mt-2 line-clamp-2 text-sm text-white/78">{item.taskPacket.objective}</div>
-                  <div className="mt-3 flex items-center justify-between text-xs text-white/40">
+                  <div className="mt-2 line-clamp-2 text-sm text-[#3f3f46]">{item.taskPacket.objective}</div>
+                  <div className="mt-3 flex items-center justify-between text-xs text-[#71717a]">
                     <span>{item.machineAssignment.assignedDeviceName ?? 'Device pending'}</span>
                     <span>{item.receipts.length} receipts</span>
                   </div>
@@ -248,7 +248,7 @@ export function PiRouterPanel() {
               )
             })}
             {queueItems.length === 0 && (
-              <div className="rounded-sm border border-dashed border-white/[0.12] bg-white/[0.02] p-4 text-sm text-white/45">
+              <div className="rounded-sm border border-dashed border-white/[0.12] bg-white/[0.02] p-4 text-sm text-[#71717a]">
                 No queued Pi tasks yet. Route a command to create the first operational run.
               </div>
             )}
@@ -263,7 +263,7 @@ export function PiRouterPanel() {
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="text-xs font-medium uppercase tracking-[0.24em] text-cyan-200/60">Selected run</p>
-                  <h2 className="mt-2 text-2xl font-semibold leading-tight text-white/90">{activeItem.taskPacket.objective}</h2>
+                  <h2 className="mt-2 text-2xl font-semibold leading-tight text-[#0A0A0A]">{activeItem.taskPacket.objective}</h2>
                 </div>
                 <StatusPill status={activeItem.status} />
               </div>
@@ -281,14 +281,14 @@ export function PiRouterPanel() {
                 <ResultRow label="Role" value={activeItem.machineAssignment.assignedRole ?? 'Unassigned'} />
                 <ResultRow label="Approvals" value={`${activeItem.approvals.length}`} />
                 <ResultRow label="Receipts" value={`${activeItem.receipts.length}`} />
-                <p className="mt-2 text-[11px] leading-5 text-white/40">
+                <p className="mt-2 text-[11px] leading-5 text-[#71717a]">
                   Planned routing from a static device registry — device statuses are configured, not live-monitored. No work is dispatched.
                 </p>
               </ResultCard>
 
               <ResultCard title="Next action">
-                <p className="text-sm leading-6 text-white/76">{activeItem.contextPack.nextRecommendedAction}</p>
-                <div className="mt-4 rounded-sm border border-white/[0.08] bg-black/20 p-3 font-mono text-xs text-white/45">
+                <p className="text-sm leading-6 text-[#3f3f46]">{activeItem.contextPack.nextRecommendedAction}</p>
+                <div className="mt-4 rounded-sm border border-white/[0.08] bg-black/20 p-3 font-mono text-xs text-[#71717a]">
                   {latestReceipt?.id ?? 'receipt pending'}
                 </div>
               </ResultCard>
@@ -299,10 +299,10 @@ export function PiRouterPanel() {
                 <CardTitle>Context pack</CardTitle>
                 <CardDescription>Durable summary, constraints, blockers, and evidence attached to the run.</CardDescription>
               </div>
-              <p className="text-sm leading-6 text-white/70">{activeItem.contextPack.durableSummary}</p>
+              <p className="text-sm leading-6 text-[#3f3f46]">{activeItem.contextPack.durableSummary}</p>
               <div className="grid gap-2 md:grid-cols-2">
                 {activeItem.contextPack.constraints.map((constraint) => (
-                  <div key={constraint} className="rounded-sm border border-white/[0.08] bg-white/[0.02] p-3 text-sm text-white/62">
+                  <div key={constraint} className="rounded-sm border border-white/[0.08] bg-white/[0.02] p-3 text-sm text-[#52525b]">
                     {constraint}
                   </div>
                 ))}
@@ -311,9 +311,9 @@ export function PiRouterPanel() {
           </>
         ) : (
           <Card variant="bordered" padding="lg" className="flex min-h-[360px] flex-col justify-center border-dashed text-center">
-            <p className="text-xs font-medium uppercase tracking-[0.24em] text-white/35">No selected run</p>
-            <h2 className="mt-3 text-2xl font-semibold text-white/90">Route or select a task</h2>
-            <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-white/50">
+            <p className="text-xs font-medium uppercase tracking-[0.24em] text-[#71717a]">No selected run</p>
+            <h2 className="mt-3 text-2xl font-semibold text-[#0A0A0A]">Route or select a task</h2>
+            <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[#52525b]">
               The cockpit keeps the queue visible while one selected run exposes task packet, context, machine assignment, and evidence controls.
             </p>
           </Card>
@@ -346,7 +346,7 @@ export function PiRouterPanel() {
               </div>
             </div>
           ) : (
-            <div className="rounded-sm border border-dashed border-white/[0.12] p-3 text-sm text-white/45">
+            <div className="rounded-sm border border-dashed border-white/[0.12] p-3 text-sm text-[#71717a]">
               Workflow evidence not loaded yet.
             </div>
           )}
@@ -354,7 +354,7 @@ export function PiRouterPanel() {
 
         <Card variant="bordered" padding="lg" className="space-y-4">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.24em] text-white/35">Control rail</p>
+            <p className="text-xs font-medium uppercase tracking-[0.24em] text-[#71717a]">Control rail</p>
             <CardTitle className="mt-2">Approvals + evidence</CardTitle>
             <CardDescription>Completion requires evidence. Blocking requires a clear note.</CardDescription>
           </div>
@@ -365,9 +365,9 @@ export function PiRouterPanel() {
                 ? 'border-green-400/20 bg-green-500/10 text-green-100/85'
                 : 'border-amber-300/25 bg-amber-400/10 text-amber-100/85'
             }`}>
-              <div className="text-xs font-medium uppercase tracking-[0.18em] text-white/45">Continue-until-complete enforcement</div>
+              <div className="text-xs font-medium uppercase tracking-[0.18em] text-[#71717a]">Continue-until-complete enforcement</div>
               <div className="mt-2">{enforcement.requiredAction}</div>
-              <div className="mt-2 font-mono text-xs text-white/45">
+              <div className="mt-2 font-mono text-xs text-[#71717a]">
                 open={enforcement.openWorkCount} blocked={enforcement.blockedCount} completed={enforcement.completedCount}
               </div>
             </div>
@@ -414,11 +414,11 @@ export function PiRouterPanel() {
           {latestReceipt ? (
             <div className="rounded-sm border border-cyan-300/20 bg-cyan-300/[0.05] p-3">
               <div className="font-mono text-xs text-cyan-100/80">{latestReceipt.id}</div>
-              <div className="mt-2 text-sm text-white/70">{latestReceipt.note ?? latestReceipt.type ?? 'Receipt recorded'}</div>
+              <div className="mt-2 text-sm text-[#3f3f46]">{latestReceipt.note ?? latestReceipt.type ?? 'Receipt recorded'}</div>
               {latestReceipt.evidenceLink && <div className="mt-2 break-all text-xs text-green-200">{latestReceipt.evidenceLink}</div>}
             </div>
           ) : (
-            <div className="rounded-sm border border-dashed border-white/[0.12] p-3 text-sm text-white/45">No receipt selected yet.</div>
+            <div className="rounded-sm border border-dashed border-white/[0.12] p-3 text-sm text-[#71717a]">No receipt selected yet.</div>
           )}
 
           {activeItem?.contextPack.evidenceLinks.map((link) => (
@@ -438,10 +438,10 @@ export function PiRouterPanel() {
 }
 
 function Metric({ label, value, tone }: { label: string; value: number; tone: 'neutral' | 'warning' | 'info' }) {
-  const toneClass = tone === 'warning' ? 'text-amber-200' : tone === 'info' ? 'text-sky-200' : 'text-white/85'
+  const toneClass = tone === 'warning' ? 'text-amber-200' : tone === 'info' ? 'text-sky-200' : 'text-[#3f3f46]'
   return (
     <div className="rounded-sm border border-white/[0.08] bg-white/[0.02] p-3">
-      <div className="text-xs text-white/40">{label}</div>
+      <div className="text-xs text-[#71717a]">{label}</div>
       <div className={`mt-1 text-2xl font-semibold tabular-nums ${toneClass}`}>{value}</div>
     </div>
   )
@@ -459,8 +459,8 @@ function ResultCard({ title, children }: { title: string; children: React.ReactN
 function ResultRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-4 border-b border-white/[0.06] pb-2 text-sm last:border-0">
-      <span className="text-white/42">{label}</span>
-      <span className="text-right text-white/80">{value}</span>
+      <span className="text-[#71717a]">{label}</span>
+      <span className="text-right text-[#3f3f46]">{value}</span>
     </div>
   )
 }
@@ -468,8 +468,8 @@ function ResultRow({ label, value }: { label: string; value: string }) {
 function InfoTile({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-sm border border-white/[0.08] bg-white/[0.025] p-3">
-      <div className="text-xs uppercase tracking-[0.16em] text-white/35">{label}</div>
-      <div className="mt-2 line-clamp-2 text-sm text-white/78">{value}</div>
+      <div className="text-xs uppercase tracking-[0.16em] text-[#71717a]">{label}</div>
+      <div className="mt-2 line-clamp-2 text-sm text-[#3f3f46]">{value}</div>
     </div>
   )
 }
@@ -484,7 +484,7 @@ function StatusPill({ status, label }: { status: string; label?: string }) {
           ? 'border-sky-300/30 bg-sky-400/10 text-sky-100'
           : status.includes('completed')
             ? 'border-green-300/30 bg-green-400/10 text-green-100'
-            : 'border-white/[0.12] bg-white/[0.04] text-white/60'
+            : 'border-white/[0.12] bg-white/[0.04] text-[#52525b]'
 
   return (
     <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.16em] ${color}`}>

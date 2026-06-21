@@ -49,7 +49,7 @@ export function SpinnerOverlay({ message }: { message?: string }) {
       <div className="bg-[#fffdf7] border border-white/[0.08] rounded-sm p-8 text-center">
         <Spinner size="xl" />
         {message && (
-          <p className="mt-4 text-white/50 font-medium">
+          <p className="mt-4 text-[#52525b] font-medium">
             {message}
           </p>
         )}

@@ -73,12 +73,13 @@
 
     /* Colour Tokens — candy green primary, dark ink on cream */
     --color-accent:         #16a34a;
+    --color-accent-text:    #15803d; /* darker green for TEXT on light (AA ~4.8:1); #16a34a stays for fills/buttons */
     --color-accent-dim:     rgba(22, 163, 74, 0.08);
     --color-accent-border:  rgba(22, 163, 74, 0.3);
     --color-text-primary:   #0A0A0A;
     --color-text-secondary: #52525B;
     --color-text-muted:     #71717A;
-    --color-text-disabled:  #767676;
+    --color-text-disabled:  #6b6b6b;
     --color-border:         rgba(0, 0, 0, 0.08);
     --color-border-strong:  rgba(0, 0, 0, 0.15);
     --color-success:        #16a34a;
@@ -146,7 +147,7 @@
     --color-text-primary:   #0A0A0A;
     --color-text-secondary: #52525B;
     --color-text-muted:     #71717A;
-    --color-text-disabled:  #767676;
+    --color-text-disabled:  #6b6b6b;
 
     /* Borders */
     --color-border:        rgba(0, 0, 0, 0.08);

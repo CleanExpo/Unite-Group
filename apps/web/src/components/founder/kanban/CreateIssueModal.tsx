@@ -129,7 +129,7 @@ export function CreateIssueModal({ open, onClose, onCreated }: CreateIssueModalP
               {/* Title */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] font-medium uppercase tracking-wider" style={{ color: '#64748b' }}>
-                  Title <span style={{ color: '#16a34a' }}>*</span>
+                  Title <span style={{ color: '#15803d' }}>*</span>
                 </label>
                 <input
                   ref={titleRef}

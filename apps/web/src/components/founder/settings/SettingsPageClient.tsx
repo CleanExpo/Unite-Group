@@ -86,7 +86,7 @@ export function SettingsPageClient() {
           <button
             onClick={() => setShowPwModal(true)}
             className="flex items-center gap-2 px-4 h-9 rounded-sm text-[13px] font-medium transition-opacity hover:opacity-90"
-            style={{ background: '#16a34a18', color: '#16a34a', border: '1px solid #16a34a30' }}
+            style={{ background: '#16a34a18', color: '#15803d', border: '1px solid #16a34a30' }}
           >
             <KeyRound size={14} strokeWidth={1.5} />
             Change Password

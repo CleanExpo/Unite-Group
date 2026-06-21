@@ -34,7 +34,7 @@ export default function Input({
       {label && (
         <label
           htmlFor={inputId}
-          className="block text-sm font-medium text-white/60 mb-2"
+          className="block text-sm font-medium text-[#52525b] mb-2"
         >
           {label}
           {props.required && <span className="text-[var(--color-danger)] ml-1">*</span>}
@@ -43,7 +43,7 @@ export default function Input({
 
       <div className="relative">
         {leftIcon && (
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-white/30">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#71717a]">
             {leftIcon}
           </div>
         )}
@@ -51,7 +51,7 @@ export default function Input({
         <input
           id={inputId}
           className={`
-            block w-full rounded-sm border-[0.5px] bg-white/[0.02] text-white/90 placeholder-white/30 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed
+            block w-full rounded-sm border-[0.5px] bg-white/[0.02] text-[#0A0A0A] placeholder-white/30 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed
             ${hasError ? 'input-focus-error' : 'input-focus'}
             ${leftIcon ? 'pl-10' : 'pl-4'}
             ${rightIcon ? 'pr-10' : 'pr-4'}
@@ -66,7 +66,7 @@ export default function Input({
         />
 
         {rightIcon && (
-          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-white/30">
+          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-[#71717a]">
             {rightIcon}
           </div>
         )}
@@ -85,7 +85,7 @@ export default function Input({
       {helpText && !error && (
         <p
           id={`${inputId}-help`}
-          className="mt-2 text-sm text-white/40"
+          className="mt-2 text-sm text-[#71717a]"
         >
           {helpText}
         </p>

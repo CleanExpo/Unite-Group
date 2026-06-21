@@ -34,8 +34,8 @@ function mapRow(row: CampaignRow): Pick<Campaign, 'id' | 'theme' | 'objective' |
 }
 
 const STATUS_STYLES: Record<CampaignStatus, { label: string; className: string }> = {
-  draft:      { label: 'Draft',      className: 'text-white/40 bg-white/[0.06] border border-white/10' },
-  generating: { label: 'Generating', className: 'text-[#16a34a] bg-[#16a34a]/10 border border-[#16a34a]/20 animate-pulse' },
+  draft:      { label: 'Draft',      className: 'text-[#71717a] bg-white/[0.06] border border-white/10' },
+  generating: { label: 'Generating', className: 'text-[#15803d] bg-[#16a34a]/10 border border-[#16a34a]/20 animate-pulse' },
   ready:      { label: 'Ready',      className: 'text-emerald-400 bg-emerald-400/10 border border-emerald-400/20' },
   published:  { label: 'Published',  className: 'text-blue-400 bg-blue-400/10 border border-blue-400/20' },
 }
@@ -89,7 +89,7 @@ function CampaignCard({ campaign }: CampaignCardProps) {
       >
         {/* Theme + status row */}
         <div className="flex items-start justify-between gap-3">
-          <p className="text-[14px] font-medium text-white leading-snug line-clamp-2 flex-1">
+          <p className="text-[14px] font-medium text-[#0A0A0A] leading-snug line-clamp-2 flex-1">
             {campaign.theme}
           </p>
           <span className={`shrink-0 text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-sm ${status.className}`}>
@@ -104,23 +104,23 @@ function CampaignCard({ campaign }: CampaignCardProps) {
           </span>
 
           {campaign.platforms.length > 0 && (
-            <span className="text-[11px] font-mono text-white/40">
+            <span className="text-[11px] font-mono text-[#71717a]">
               {formatPlatforms(campaign.platforms)}
             </span>
           )}
 
-          <span className="text-[11px] font-mono text-white/25">
+          <span className="text-[11px] font-mono text-[#6b6b6b]">
             {campaign.postCount} post{campaign.postCount !== 1 ? 's' : ''}
           </span>
         </div>
 
         {/* Footer */}
         <div className="flex items-center justify-between">
-          <span className="text-[11px] text-white/25 font-mono">
+          <span className="text-[11px] text-[#6b6b6b] font-mono">
             {formatDate(campaign.createdAt)}
           </span>
           <span
-            className="text-[11px] text-[#16a34a]/0 group-hover:text-[#16a34a]/60 transition-colors duration-150"
+            className="text-[11px] text-[#15803d]/0 group-hover:text-[#15803d]/60 transition-colors duration-150"
           >
             View →
           </span>
@@ -139,17 +139,17 @@ function EmptyState() {
       style={{ border: '1px dashed rgba(22, 163, 74,0.15)' }}
     >
       <div className="w-10 h-10 rounded-sm bg-[#16a34a]/[0.06] border border-[#16a34a]/20 flex items-center justify-center">
-        <span className="text-[#16a34a] text-lg">⚡</span>
+        <span className="text-[#15803d] text-lg">⚡</span>
       </div>
       <div className="flex flex-col gap-1">
-        <p className="text-[14px] font-medium text-white/60">No campaigns yet</p>
-        <p className="text-[12px] text-white/25 max-w-xs">
+        <p className="text-[14px] font-medium text-[#52525b]">No campaigns yet</p>
+        <p className="text-[12px] text-[#6b6b6b] max-w-xs">
           Scan a website to get started — the engine will extract Brand DNA and generate a full campaign.
         </p>
       </div>
       <Link
         href="/founder/campaigns/new"
-        className="mt-2 text-[12px] font-medium text-[#16a34a] hover:text-[#16a34a]/80 transition-colors duration-150"
+        className="mt-2 text-[12px] font-medium text-[#15803d] hover:text-[#15803d]/80 transition-colors duration-150"
       >
         Scan your first website →
       </Link>
@@ -186,10 +186,10 @@ export default async function CampaignsPage() {
       {/* Page header */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex flex-col gap-0.5">
-          <h1 className="text-[22px] font-semibold text-white tracking-tight">
+          <h1 className="text-[22px] font-semibold text-[#0A0A0A] tracking-tight">
             Campaigns
           </h1>
-          <p className="text-[12px] text-white/30">
+          <p className="text-[12px] text-[#71717a]">
             Synthex AI-generated multi-platform campaigns
           </p>
         </div>

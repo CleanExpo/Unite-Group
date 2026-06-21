@@ -121,7 +121,7 @@ export function ContactsPageClient() {
             className="rounded-sm px-4 py-2 text-sm font-medium transition-colors"
             style={{
               background: '#16a34a18',
-              color: '#16a34a',
+              color: '#15803d',
               border: '1px solid #16a34a30',
             }}
           >

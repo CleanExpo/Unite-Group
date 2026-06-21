@@ -63,7 +63,7 @@ function MiniTransactionTable({ transactions, loading }: { transactions: Bookkee
           {transactions.slice(0, 50).map((tx) => {
             const biz = BUSINESSES.find(b => b.key === tx.businessKey)
             return (
-              <tr key={tx.id} className="border-b border-[var(--color-border)] hover:bg-white/[0.02] transition-colors">
+              <tr key={tx.id} className="border-b border-[var(--color-border)] hover:bg-black/[0.05] transition-colors">
                 <td className="px-2.5 py-1.5 tabular-nums whitespace-nowrap" style={{ color: 'var(--color-text-secondary)' }}>
                   {formatDate(tx.transactionDate)}
                 </td>
@@ -210,7 +210,7 @@ export function BASTab() {
           <motion.div
             key={q.label}
             layout
-            className="bg-[var(--surface-card)] border rounded-sm p-4 cursor-pointer transition-colors hover:bg-white/[0.02]"
+            className="bg-[var(--surface-card)] border rounded-sm p-4 cursor-pointer transition-colors hover:bg-black/[0.05]"
             style={{
               borderColor: current ? 'rgba(22, 163, 74,0.3)' : 'var(--color-border)',
             }}
@@ -225,7 +225,7 @@ export function BASTab() {
                 {current && (
                   <span
                     className="text-[9px] font-medium tracking-widest uppercase px-1.5 py-0.5 rounded-sm"
-                    style={{ color: '#16a34a', backgroundColor: 'rgba(22, 163, 74,0.08)', border: '1px solid rgba(22, 163, 74,0.2)' }}
+                    style={{ color: '#15803d', backgroundColor: 'rgba(22, 163, 74,0.08)', border: '1px solid rgba(22, 163, 74,0.2)' }}
                   >
                     Current
                   </span>

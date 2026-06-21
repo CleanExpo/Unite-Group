@@ -55,7 +55,7 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
   if (!active || !payload) return null
   return (
     <div className="rounded-sm border p-3" style={{ backgroundColor: '#fff7ec', borderColor: 'var(--color-border)' }}>
-      <p className="text-[11px] text-white/60 mb-1">{label}</p>
+      <p className="text-[11px] text-[#52525b] mb-1">{label}</p>
       {payload.map((p) => (
         <p key={p.dataKey} className="text-[12px]" style={{ color: p.color }}>
           {p.dataKey === 'revenue' ? 'Revenue' : 'Expenses'}: {formatAUD(p.value)}
@@ -221,7 +221,7 @@ export function PLTab() {
                 <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-disabled)' }}>
                   Total Revenue
                 </p>
-                <p className="text-[18px] font-semibold tabular-nums" style={{ color: '#16a34a' }}>
+                <p className="text-[18px] font-semibold tabular-nums" style={{ color: '#15803d' }}>
                   {formatAUD(totals.revenue)}
                 </p>
               </div>

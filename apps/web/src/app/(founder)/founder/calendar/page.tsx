@@ -39,7 +39,7 @@ export default async function CalendarPage() {
       {configured && connectedAccounts.length === 0 && (
         <div className="border px-4 py-3 rounded-sm text-sm" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}>
           No Google accounts connected — visit{' '}
-          <Link href="/founder/email" className="text-[#16a34a] hover:underline">
+          <Link href="/founder/email" className="text-[#15803d] hover:underline">
             Email settings
           </Link>{' '}
           to connect.
@@ -49,7 +49,7 @@ export default async function CalendarPage() {
       {configured && connectedAccounts.length > 0 && notConnected && (
         <div className="border px-4 py-3 rounded-sm text-sm" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}>
           Google Calendar not connected — reconnect via{' '}
-          <Link href="/founder/email" className="text-[#16a34a] hover:underline">
+          <Link href="/founder/email" className="text-[#15803d] hover:underline">
             Email settings
           </Link>{' '}
           to see events.
@@ -77,7 +77,7 @@ export default async function CalendarPage() {
                 style={{ backgroundColor: event.colour }}
               />
               <div className="min-w-0 flex-1">
-                <p className="text-sm text-white/90 truncate">{event.title}</p>
+                <p className="text-sm text-[#0A0A0A] truncate">{event.title}</p>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
                   {new Date(event.start).toLocaleString('en-AU', {
                     dateStyle: 'short',

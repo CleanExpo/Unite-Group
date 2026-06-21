@@ -65,7 +65,7 @@ export function JudgeScorecard({ scores, winner }: JudgeScorecardProps) {
                   {meta?.name}
                 </span>
                 {isWinner && (
-                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-sm" style={{ background: '#16a34a18', color: '#16a34a' }}>
+                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-sm" style={{ background: '#16a34a18', color: '#15803d' }}>
                     WINNER
                   </span>
                 )}

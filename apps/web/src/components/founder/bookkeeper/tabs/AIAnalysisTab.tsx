@@ -173,7 +173,7 @@ export function AIAnalysisTab() {
     <div className="space-y-6 max-w-3xl">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <Brain size={16} style={{ color: '#16a34a' }} />
+        <Brain size={16} style={{ color: '#15803d' }} />
         <span className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--color-text-disabled)' }}>
           AI Financial Analysis
         </span>

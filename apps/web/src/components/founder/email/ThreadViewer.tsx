@@ -56,12 +56,12 @@ export function ThreadViewer({ threadId, account, onArchive, onDelete, onClose }
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06] flex-shrink-0">
         {thread && (
-          <h2 className="text-sm font-medium text-white/90 truncate flex-1 mr-4">{thread.subject}</h2>
+          <h2 className="text-sm font-medium text-[#0A0A0A] truncate flex-1 mr-4">{thread.subject}</h2>
         )}
         <div className="flex items-center gap-2 flex-shrink-0">
           <button
             onClick={() => setShowReply(v => !v)}
-            className="text-xs border border-white/20 px-3 py-1 rounded-sm text-white/60 hover:text-white hover:border-white/40 transition-colors"
+            className="text-xs border border-white/20 px-3 py-1 rounded-sm text-[#52525b] hover:text-[#0A0A0A] hover:border-white/40 transition-colors"
           >
             Reply
           </button>
@@ -69,7 +69,7 @@ export function ThreadViewer({ threadId, account, onArchive, onDelete, onClose }
             onClick={() => doAction('archive')}
             disabled={actionLoading}
             title="Archive"
-            className="text-xs border border-white/20 px-3 py-1 rounded-sm text-white/60 hover:text-white hover:border-white/40 transition-colors disabled:opacity-40"
+            className="text-xs border border-white/20 px-3 py-1 rounded-sm text-[#52525b] hover:text-[#0A0A0A] hover:border-white/40 transition-colors disabled:opacity-40"
           >
             Archive
           </button>
@@ -83,7 +83,7 @@ export function ThreadViewer({ threadId, account, onArchive, onDelete, onClose }
           </button>
           <button
             onClick={onClose}
-            className="text-white/30 hover:text-white/60 transition-colors text-lg leading-none ml-1"
+            className="text-[#71717a] hover:text-[#52525b] transition-colors text-lg leading-none ml-1"
             aria-label="Close"
           >
             ×
@@ -95,7 +95,7 @@ export function ThreadViewer({ threadId, account, onArchive, onDelete, onClose }
       <div className="flex-1 overflow-y-auto">
         {loading && (
           <div className="flex items-center justify-center h-full">
-            <span className="text-sm text-white/30">Loading…</span>
+            <span className="text-sm text-[#71717a]">Loading…</span>
           </div>
         )}
 
@@ -110,10 +110,10 @@ export function ThreadViewer({ threadId, account, onArchive, onDelete, onClose }
                 {/* Message meta */}
                 <div className="flex items-start justify-between gap-4 mb-3">
                   <div>
-                    <p className="text-xs text-white/70 font-medium">{msg.from}</p>
-                    <p className="text-[10px] text-white/30 mt-0.5">To: {msg.to}</p>
+                    <p className="text-xs text-[#3f3f46] font-medium">{msg.from}</p>
+                    <p className="text-[10px] text-[#71717a] mt-0.5">To: {msg.to}</p>
                   </div>
-                  <span className="text-[10px] text-white/30 flex-shrink-0">{msg.date}</span>
+                  <span className="text-[10px] text-[#71717a] flex-shrink-0">{msg.date}</span>
                 </div>
                 {/* Message body — DOMPurify sanitises before iframe injection; sandbox="" blocks scripts */}
                 {msg.bodyHtml ? (
@@ -125,7 +125,7 @@ export function ThreadViewer({ threadId, account, onArchive, onDelete, onClose }
                     title={`Message ${msg.id}`}
                   />
                 ) : (
-                  <pre className="text-xs text-white/50 whitespace-pre-wrap break-words">
+                  <pre className="text-xs text-[#52525b] whitespace-pre-wrap break-words">
                     {msg.bodyText ?? '(no content)'}
                   </pre>
                 )}
@@ -133,7 +133,7 @@ export function ThreadViewer({ threadId, account, onArchive, onDelete, onClose }
                 {msg.attachments.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-2">
                     {msg.attachments.map((att, j) => (
-                      <span key={j} className="text-[10px] bg-zinc-800 text-white/50 px-2 py-1 rounded-sm">
+                      <span key={j} className="text-[10px] bg-zinc-800 text-[#52525b] px-2 py-1 rounded-sm">
                         📎 {att.filename} ({(att.size / 1024).toFixed(0)} KB)
                       </span>
                     ))}

@@ -84,7 +84,7 @@ function TagList({ items, onChange, placeholder }: TagListProps) {
           <span
             key={idx}
             className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px]"
-            style={{ background: 'rgba(22, 163, 74,0.08)', color: '#16a34a', border: '1px solid rgba(22, 163, 74,0.2)' }}
+            style={{ background: 'rgba(22, 163, 74,0.08)', color: '#15803d', border: '1px solid rgba(22, 163, 74,0.2)' }}
           >
             {item}
             <button
@@ -117,7 +117,7 @@ function TagList({ items, onChange, placeholder }: TagListProps) {
           className="px-3 py-1.5 text-[11px] rounded-sm transition-colors"
           style={{
             border: '1px solid rgba(22, 163, 74,0.3)',
-            color: '#16a34a',
+            color: '#15803d',
           }}
         >
           Add
@@ -195,7 +195,7 @@ function StringList({ items, onChange, placeholder }: StringListProps) {
           className="px-3 py-1.5 text-[11px] rounded-sm transition-colors"
           style={{
             border: '1px solid rgba(22, 163, 74,0.3)',
-            color: '#16a34a',
+            color: '#15803d',
           }}
         >
           + Add
@@ -259,7 +259,7 @@ function CharacterEditor({ label, value, onChange }: CharacterEditorProps) {
       className="rounded-sm p-3 space-y-2"
       style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--color-border)' }}
     >
-      <p className="text-[10px] uppercase tracking-wider font-medium" style={{ color: '#16a34a' }}>
+      <p className="text-[10px] uppercase tracking-wider font-medium" style={{ color: '#15803d' }}>
         {label}
       </p>
       <div className="grid grid-cols-2 gap-2">
@@ -597,7 +597,7 @@ export function BrandPersonas() {
                   style={{
                     background: 'rgba(22, 163, 74,0.08)',
                     border: '1px solid rgba(22, 163, 74,0.3)',
-                    color: '#16a34a',
+                    color: '#15803d',
                   }}
                 >
                   {saving ? 'Saving...' : 'Save Persona'}

@@ -76,7 +76,7 @@ function LineItemRow({
   return (
     <div className="grid grid-cols-[1fr_60px_90px_80px_32px] gap-2 items-center">
       <input
-        className="bg-white/5 border border-white/10 rounded-sm px-2 py-1.5 text-[12px] text-[#f0f0f0] placeholder-white/30 focus:outline-none focus:border-[#16a34a]/40"
+        className="bg-white/5 border border-white/10 rounded-sm px-2 py-1.5 text-[12px] text-[#0A0A0A] placeholder-white/30 focus:outline-none focus:border-[#16a34a]/40"
         placeholder="Description"
         value={item.description}
         onChange={(e) => onChange(index, 'description', e.target.value)}
@@ -84,7 +84,7 @@ function LineItemRow({
       <input
         type="number"
         min={1}
-        className="bg-white/5 border border-white/10 rounded-sm px-2 py-1.5 text-[12px] text-[#f0f0f0] text-right focus:outline-none focus:border-[#16a34a]/40"
+        className="bg-white/5 border border-white/10 rounded-sm px-2 py-1.5 text-[12px] text-[#0A0A0A] text-right focus:outline-none focus:border-[#16a34a]/40"
         placeholder="Qty"
         value={item.quantity}
         onChange={(e) => onChange(index, 'quantity', parseFloat(e.target.value) || 1)}
@@ -93,13 +93,13 @@ function LineItemRow({
         type="number"
         min={0}
         step={0.01}
-        className="bg-white/5 border border-white/10 rounded-sm px-2 py-1.5 text-[12px] text-[#f0f0f0] text-right focus:outline-none focus:border-[#16a34a]/40"
+        className="bg-white/5 border border-white/10 rounded-sm px-2 py-1.5 text-[12px] text-[#0A0A0A] text-right focus:outline-none focus:border-[#16a34a]/40"
         placeholder="Unit $"
         value={item.unitAmount}
         onChange={(e) => onChange(index, 'unitAmount', parseFloat(e.target.value) || 0)}
       />
       <input
-        className="bg-white/5 border border-white/10 rounded-sm px-2 py-1.5 text-[12px] text-[#f0f0f0] focus:outline-none focus:border-[#16a34a]/40"
+        className="bg-white/5 border border-white/10 rounded-sm px-2 py-1.5 text-[12px] text-[#0A0A0A] focus:outline-none focus:border-[#16a34a]/40"
         placeholder="Code"
         value={item.accountCode}
         onChange={(e) => onChange(index, 'accountCode', e.target.value)}
@@ -107,7 +107,7 @@ function LineItemRow({
       {canRemove ? (
         <button
           onClick={() => onRemove(index)}
-          className="text-white/30 hover:text-red-400 transition-colors"
+          className="text-[#71717a] hover:text-red-400 transition-colors"
         >
           <X size={14} />
         </button>
@@ -183,35 +183,35 @@ function CreateInvoicePanel({
       style={{ background: 'rgba(22, 163, 74,0.03)', borderColor: 'rgba(22, 163, 74,0.2)' }}
     >
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[13px] font-medium text-[#f0f0f0]">New Invoice (Draft)</h3>
-        <button onClick={onClose} className="text-white/30 hover:text-white/60 transition-colors">
+        <h3 className="text-[13px] font-medium text-[#0A0A0A]">New Invoice (Draft)</h3>
+        <button onClick={onClose} className="text-[#71717a] hover:text-[#52525b] transition-colors">
           <X size={16} />
         </button>
       </div>
 
       <div className="grid grid-cols-3 gap-3 mb-4">
         <div className="col-span-1">
-          <label className="block text-[11px] text-white/50 mb-1">Contact *</label>
+          <label className="block text-[11px] text-[#52525b] mb-1">Contact *</label>
           <input
-            className="w-full bg-white/5 border border-white/10 rounded-sm px-3 py-1.5 text-[12px] text-[#f0f0f0] placeholder-white/30 focus:outline-none focus:border-[#16a34a]/40"
+            className="w-full bg-white/5 border border-white/10 rounded-sm px-3 py-1.5 text-[12px] text-[#0A0A0A] placeholder-white/30 focus:outline-none focus:border-[#16a34a]/40"
             placeholder="Client name"
             value={contactName}
             onChange={(e) => setContactName(e.target.value)}
           />
         </div>
         <div>
-          <label className="block text-[11px] text-white/50 mb-1">Due Date *</label>
+          <label className="block text-[11px] text-[#52525b] mb-1">Due Date *</label>
           <input
             type="date"
-            className="w-full bg-white/5 border border-white/10 rounded-sm px-3 py-1.5 text-[12px] text-[#f0f0f0] focus:outline-none focus:border-[#16a34a]/40"
+            className="w-full bg-white/5 border border-white/10 rounded-sm px-3 py-1.5 text-[12px] text-[#0A0A0A] focus:outline-none focus:border-[#16a34a]/40"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
           />
         </div>
         <div>
-          <label className="block text-[11px] text-white/50 mb-1">Reference</label>
+          <label className="block text-[11px] text-[#52525b] mb-1">Reference</label>
           <input
-            className="w-full bg-white/5 border border-white/10 rounded-sm px-3 py-1.5 text-[12px] text-[#f0f0f0] placeholder-white/30 focus:outline-none focus:border-[#16a34a]/40"
+            className="w-full bg-white/5 border border-white/10 rounded-sm px-3 py-1.5 text-[12px] text-[#0A0A0A] placeholder-white/30 focus:outline-none focus:border-[#16a34a]/40"
             placeholder="INV-001"
             value={reference}
             onChange={(e) => setReference(e.target.value)}
@@ -222,7 +222,7 @@ function CreateInvoicePanel({
       {/* Line items header */}
       <div className="grid grid-cols-[1fr_60px_90px_80px_32px] gap-2 mb-1.5 px-0">
         {['Description', 'Qty', 'Unit $', 'Code', ''].map((h) => (
-          <span key={h} className="text-[10px] text-white/30 font-medium uppercase tracking-wide">{h}</span>
+          <span key={h} className="text-[10px] text-[#71717a] font-medium uppercase tracking-wide">{h}</span>
         ))}
       </div>
 
@@ -242,11 +242,11 @@ function CreateInvoicePanel({
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={addItem}
-          className="text-[11px] text-white/40 hover:text-[#16a34a] transition-colors flex items-center gap-1"
+          className="text-[11px] text-[#71717a] hover:text-[#15803d] transition-colors flex items-center gap-1"
         >
           <Plus size={12} /> Add line
         </button>
-        <div className="text-[13px] font-medium" style={{ color: '#16a34a' }}>
+        <div className="text-[13px] font-medium" style={{ color: '#15803d' }}>
           Total: {formatAUD(total)}
         </div>
       </div>
@@ -301,12 +301,12 @@ function InvoiceRow({
   }
 
   return (
-    <tr className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
-      <td className="py-3 px-4 text-[12px] text-white/60">{invoice.InvoiceNumber || '—'}</td>
-      <td className="py-3 px-4 text-[12px] text-[#f0f0f0]">{invoice.Contact?.Name ?? '—'}</td>
-      <td className="py-3 px-4 text-[12px] text-white/60">{parseXeroDate(invoice.DateString)}</td>
-      <td className="py-3 px-4 text-[12px] text-white/60">{parseXeroDate(invoice.DueDateString)}</td>
-      <td className="py-3 px-4 text-[12px] text-right font-medium text-[#f0f0f0]">
+    <tr className="border-b border-white/5 hover:bg-black/[0.05] transition-colors">
+      <td className="py-3 px-4 text-[12px] text-[#52525b]">{invoice.InvoiceNumber || '—'}</td>
+      <td className="py-3 px-4 text-[12px] text-[#0A0A0A]">{invoice.Contact?.Name ?? '—'}</td>
+      <td className="py-3 px-4 text-[12px] text-[#52525b]">{parseXeroDate(invoice.DateString)}</td>
+      <td className="py-3 px-4 text-[12px] text-[#52525b]">{parseXeroDate(invoice.DueDateString)}</td>
+      <td className="py-3 px-4 text-[12px] text-right font-medium text-[#0A0A0A]">
         {formatAUD(invoice.Total ?? 0)}
       </td>
       <td className="py-3 px-4">
@@ -319,7 +319,7 @@ function InvoiceRow({
               onClick={handleApprove}
               disabled={approving}
               className="flex items-center gap-1 px-2.5 py-1 rounded-sm text-[11px] font-medium transition-all disabled:opacity-50"
-              style={{ background: 'rgba(22, 163, 74,0.12)', color: '#16a34a' }}
+              style={{ background: 'rgba(22, 163, 74,0.12)', color: '#15803d' }}
             >
               {approving ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle size={11} />}
               {approving ? 'Approving…' : 'Approve'}
@@ -330,7 +330,7 @@ function InvoiceRow({
               href={invoice.Url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-white/30 hover:text-white/60 transition-colors"
+              className="text-[#71717a] hover:text-[#52525b] transition-colors"
               title="Open in Xero"
             >
               <ExternalLink size={13} />
@@ -396,7 +396,7 @@ export function InvoicesClient() {
             <select
               value={business}
               onChange={(e) => setBusiness(e.target.value)}
-              className="appearance-none bg-white/5 border border-white/10 rounded-sm pl-3 pr-8 py-1.5 text-[12px] text-[#f0f0f0] focus:outline-none focus:border-[#16a34a]/40 cursor-pointer"
+              className="appearance-none bg-white/5 border border-white/10 rounded-sm pl-3 pr-8 py-1.5 text-[12px] text-[#0A0A0A] focus:outline-none focus:border-[#16a34a]/40 cursor-pointer"
             >
               {XERO_BUSINESSES.map((b) => (
                 <option key={b.key} value={b.key} style={{ background: '#111' }}>
@@ -404,7 +404,7 @@ export function InvoicesClient() {
                 </option>
               ))}
             </select>
-            <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+            <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#71717a] pointer-events-none" />
           </div>
 
           {/* Status filter */}
@@ -430,7 +430,7 @@ export function InvoicesClient() {
           <button
             onClick={loadInvoices}
             disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[12px] transition-colors border border-white/10 text-white/50 hover:text-white/80 hover:border-white/20 disabled:opacity-40"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[12px] transition-colors border border-white/10 text-[#52525b] hover:text-[#3f3f46] hover:border-white/20 disabled:opacity-40"
           >
             <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
             Refresh
@@ -467,17 +467,17 @@ export function InvoicesClient() {
 
       {/* Invoice table */}
       {loading ? (
-        <div className="flex items-center justify-center py-20 text-white/30">
+        <div className="flex items-center justify-center py-20 text-[#71717a]">
           <Loader2 size={20} className="animate-spin mr-2" />
           <span className="text-[13px]">Loading invoices…</span>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-white/30">
+        <div className="flex flex-col items-center justify-center py-20 text-[#71717a]">
           <p className="text-[13px]">No invoices found</p>
           {filterStatus !== 'ALL' && (
             <button
               onClick={() => setFilterStatus('ALL')}
-              className="mt-2 text-[11px] text-[#16a34a]/60 hover:text-[#16a34a] transition-colors"
+              className="mt-2 text-[11px] text-[#15803d]/60 hover:text-[#15803d] transition-colors"
             >
               Clear filter
             </button>
@@ -491,7 +491,7 @@ export function InvoicesClient() {
                 {['Number', 'Contact', 'Date', 'Due', 'Total', 'Status', 'Actions'].map((h) => (
                   <th
                     key={h}
-                    className="py-2.5 px-4 text-left text-[10px] font-medium uppercase tracking-wide text-white/30"
+                    className="py-2.5 px-4 text-left text-[10px] font-medium uppercase tracking-wide text-[#71717a]"
                   >
                     {h}
                   </th>
@@ -513,7 +513,7 @@ export function InvoicesClient() {
       )}
 
       {filtered.length > 0 && (
-        <p className="mt-3 text-[11px] text-white/25 text-right">
+        <p className="mt-3 text-[11px] text-[#6b6b6b] text-right">
           {filtered.length} invoice{filtered.length !== 1 ? 's' : ''}
           {filterStatus !== 'ALL' ? ` (${filterStatus.toLowerCase()})` : ''}
         </p>

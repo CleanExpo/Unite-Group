@@ -447,7 +447,7 @@ export function KnowledgeConsoleClient() {
           style={{ background: 'var(--surface-card)', borderColor: 'var(--color-border)' }}
         >
           <div className="border-b p-4" style={{ borderColor: 'var(--color-border)' }}>
-            <div className="flex items-center gap-2 text-[12px] font-medium uppercase tracking-[0.16em]" style={{ color: 'var(--color-accent)' }}>
+            <div className="flex items-center gap-2 text-[12px] font-medium uppercase tracking-[0.16em]" style={{ color: 'var(--color-accent-text)' }}>
               <Boxes size={14} strokeWidth={1.7} />
               Vault Explorer
             </div>
@@ -507,7 +507,7 @@ export function KnowledgeConsoleClient() {
           >
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
-                <div className="flex items-center gap-2 text-[12px] font-medium uppercase tracking-[0.16em]" style={{ color: 'var(--color-accent)' }}>
+                <div className="flex items-center gap-2 text-[12px] font-medium uppercase tracking-[0.16em]" style={{ color: 'var(--color-accent-text)' }}>
                   <Map size={14} strokeWidth={1.7} />
                   Project Knowledge Map
                 </div>
@@ -539,7 +539,7 @@ export function KnowledgeConsoleClient() {
               style={{ background: 'var(--surface-card)', borderColor: 'var(--color-border)' }}
             >
               <div className="border-b p-3" style={{ borderColor: 'var(--color-border)' }}>
-                <p className="text-[12px] font-medium uppercase tracking-[0.16em]" style={{ color: 'var(--color-accent)' }}>
+                <p className="text-[12px] font-medium uppercase tracking-[0.16em]" style={{ color: 'var(--color-accent-text)' }}>
                   Notes
                 </p>
               </div>
@@ -587,7 +587,7 @@ export function KnowledgeConsoleClient() {
             >
               <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: 'var(--color-border)' }}>
                 <div className="min-w-0">
-                  <p className="text-[12px] font-medium uppercase tracking-[0.16em]" style={{ color: 'var(--color-accent)' }}>
+                  <p className="text-[12px] font-medium uppercase tracking-[0.16em]" style={{ color: 'var(--color-accent-text)' }}>
                     Markdown Note Preview
                   </p>
                   <p className="mt-1 truncate text-[12px]" style={{ color: 'var(--color-text-muted)' }}>
@@ -675,7 +675,7 @@ export function KnowledgeConsoleClient() {
               `Last ingest: ${formatDate(activeProject?.last_ingested_at ?? null)}`,
             ].map((item) => (
               <div key={item} className="flex items-center gap-2 text-[12px]" style={{ color: 'var(--color-text-secondary)' }}>
-                <CheckCircle2 size={13} strokeWidth={1.7} style={{ color: 'var(--color-accent)' }} />
+                <CheckCircle2 size={13} strokeWidth={1.7} style={{ color: 'var(--color-accent-text)' }} />
                 {item}
               </div>
             ))}
@@ -704,7 +704,7 @@ function MetricCard({
         <p className="text-[11px] uppercase tracking-[0.16em]" style={{ color: 'var(--color-text-muted)' }}>
           {label}
         </p>
-        <Icon size={14} strokeWidth={1.7} style={{ color: 'var(--color-accent)' }} />
+        <Icon size={14} strokeWidth={1.7} style={{ color: 'var(--color-accent-text)' }} />
       </div>
       <p className="mt-2 truncate text-[18px] font-light" style={{ color: 'var(--color-text-primary)' }}>
         {value}
@@ -745,7 +745,7 @@ function Panel({
       className="rounded-sm border p-4"
       style={{ background: 'var(--surface-card)', borderColor: 'var(--color-border)' }}
     >
-      <div className="mb-3 flex items-center gap-2 text-[12px] font-medium uppercase tracking-[0.16em]" style={{ color: 'var(--color-accent)' }}>
+      <div className="mb-3 flex items-center gap-2 text-[12px] font-medium uppercase tracking-[0.16em]" style={{ color: 'var(--color-accent-text)' }}>
         <Icon size={14} strokeWidth={1.7} />
         {title}
       </div>

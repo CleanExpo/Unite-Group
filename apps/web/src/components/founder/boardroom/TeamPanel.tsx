@@ -18,7 +18,7 @@ interface TeamMember {
 }
 
 const ROLE_ICONS: Record<string, React.ReactNode> = {
-  'ai-agent':  <Zap size={13} style={{ color: '#16a34a' }} />,
+  'ai-agent':  <Zap size={13} style={{ color: '#15803d' }} />,
   'developer': <Code2 size={13} style={{ color: '#f97316' }} />,
   'designer':  <Palette size={13} style={{ color: '#f97316' }} />,
   'advisor':   <Lightbulb size={13} style={{ color: '#eab308' }} />,

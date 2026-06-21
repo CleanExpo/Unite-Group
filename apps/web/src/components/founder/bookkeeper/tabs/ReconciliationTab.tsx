@@ -226,7 +226,7 @@ export function ReconciliationTab() {
               className="ml-auto text-[11px] px-3 py-1.5 rounded-sm border font-medium transition-colors disabled:opacity-50"
               style={{
                 borderColor: 'rgba(22, 163, 74,0.3)',
-                color: '#16a34a',
+                color: '#15803d',
                 backgroundColor: 'rgba(22, 163, 74,0.06)',
               }}
             >
@@ -340,7 +340,7 @@ function TransactionRow({
   return (
     <motion.tr
       layout
-      className="border-b border-[var(--color-border)] hover:bg-white/[0.02] transition-colors"
+      className="border-b border-[var(--color-border)] hover:bg-black/[0.05] transition-colors"
     >
       <td className="px-3 py-2.5 w-8">
         {isApprovable ? (
@@ -396,7 +396,7 @@ function TransactionRow({
             <button
               onClick={onReconcile}
               className="text-[11px] px-2 py-0.5 rounded-sm border hover:border-[#16a34a]/40 transition-colors"
-              style={{ borderColor: 'var(--color-border)', color: '#16a34a' }}
+              style={{ borderColor: 'var(--color-border)', color: '#15803d' }}
             >
               Reconcile
             </button>
@@ -405,7 +405,7 @@ function TransactionRow({
             <button
               onClick={onApprove}
               className="text-[11px] px-2 py-0.5 rounded-sm border hover:border-[#16a34a]/40 transition-colors"
-              style={{ borderColor: 'var(--color-border)', color: '#16a34a' }}
+              style={{ borderColor: 'var(--color-border)', color: '#15803d' }}
             >
               Approve
             </button>

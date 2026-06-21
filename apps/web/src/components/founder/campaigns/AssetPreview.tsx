@@ -17,7 +17,7 @@ const PLATFORM_BADGE: Record<SocialPlatform, string> = {
   instagram: 'bg-pink-500/20 text-pink-400',
   facebook:  'bg-blue-500/20 text-blue-400',
   linkedin:  'bg-sky-600/20 text-sky-400',
-  tiktok:    'bg-white/10 text-white/70',
+  tiktok:    'bg-white/10 text-[#3f3f46]',
   youtube:   'bg-red-500/20 text-red-400',
 }
 
@@ -46,7 +46,7 @@ const STATUS_LABEL: Record<CampaignAsset['status'], string> = {
 }
 
 const VISUAL_TYPE_BADGE: Record<VisualType, string> = {
-  photo:        'bg-white/5 text-white/50',
+  photo:        'bg-white/5 text-[#52525b]',
   infographic:  'bg-violet-500/20 text-violet-400',
   diagram:      'bg-emerald-500/20 text-emerald-400',
   data_viz:     'bg-sky-500/20 text-sky-400',
@@ -154,7 +154,7 @@ export function AssetPreview({ asset, businessKey, onPublished, onRegenerateImag
         />
       ) : (
         <div className="w-full aspect-square bg-white/[0.03] border border-white/[0.06] rounded-sm flex items-center justify-center">
-          <span className="text-white/30 text-sm">
+          <span className="text-[#71717a] text-sm">
             {asset.status === 'generating_image' ? 'Image generating…' : 'No image'}
           </span>
         </div>
@@ -162,20 +162,20 @@ export function AssetPreview({ asset, businessKey, onPublished, onRegenerateImag
 
       {/* Headline */}
       {asset.headline && (
-        <p className="text-white text-sm font-semibold leading-snug">
+        <p className="text-[#0A0A0A] text-sm font-semibold leading-snug">
           {asset.headline}
         </p>
       )}
 
       {/* Copy text */}
       <div className="flex flex-col gap-1">
-        <p className="text-white/70 text-sm leading-relaxed whitespace-pre-line">
+        <p className="text-[#3f3f46] text-sm leading-relaxed whitespace-pre-line">
           {copyTruncated}
         </p>
         {asset.copy.length > 150 && (
           <button
             onClick={() => setExpanded(prev => !prev)}
-            className="text-xs text-white/40 hover:text-white/60 transition-colors text-left"
+            className="text-xs text-[#71717a] hover:text-[#52525b] transition-colors text-left"
           >
             {expanded ? 'Show less' : 'Show more'}
           </button>
@@ -184,7 +184,7 @@ export function AssetPreview({ asset, businessKey, onPublished, onRegenerateImag
 
       {/* CTA */}
       {asset.cta && (
-        <p className="text-[#16a34a] text-xs font-medium">
+        <p className="text-[#15803d] text-xs font-medium">
           {asset.cta}
         </p>
       )}
@@ -195,7 +195,7 @@ export function AssetPreview({ asset, businessKey, onPublished, onRegenerateImag
           {asset.hashtags.map(tag => (
             <span
               key={tag}
-              className="bg-white/5 text-white/60 text-xs px-2 py-0.5 rounded-sm"
+              className="bg-white/5 text-[#52525b] text-xs px-2 py-0.5 rounded-sm"
             >
               {tag.startsWith('#') ? tag : `#${tag}`}
             </span>
@@ -204,7 +204,7 @@ export function AssetPreview({ asset, businessKey, onPublished, onRegenerateImag
       )}
 
       {/* Dimensions + engine */}
-      <p className="font-mono text-white/30 text-xs">
+      <p className="font-mono text-[#71717a] text-xs">
         {asset.width}×{asset.height}
         {asset.imageEngine && ` · ${asset.imageEngine === 'paper_banana' ? 'PaperBanana' : 'Gemini'}`}
       </p>
@@ -214,7 +214,7 @@ export function AssetPreview({ asset, businessKey, onPublished, onRegenerateImag
         {(asset.status === 'pending_image' || asset.status === 'review') && onRegenerateImage && (
           <button
             onClick={() => onRegenerateImage(asset.id)}
-            className="border border-white/10 text-white/60 hover:border-white/20 hover:text-white/80 text-xs px-3 py-1.5 rounded-sm transition-colors"
+            className="border border-white/10 text-[#52525b] hover:border-white/20 hover:text-[#3f3f46] text-xs px-3 py-1.5 rounded-sm transition-colors"
           >
             Regenerate
           </button>

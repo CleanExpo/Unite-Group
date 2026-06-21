@@ -26,7 +26,7 @@ const TYPE_COLORS: Record<string, string> = {
 
 const STATUS_ICONS = {
   open: <Circle size={12} style={{ color: '#f97316' }} />,
-  decided: <Circle size={12} style={{ color: '#16a34a' }} />,
+  decided: <Circle size={12} style={{ color: '#15803d' }} />,
   completed: <CheckCircle2 size={12} style={{ color: '#22c55e' }} />,
   cancelled: <XCircle size={12} style={{ color: 'var(--color-text-disabled)' }} />,
 }

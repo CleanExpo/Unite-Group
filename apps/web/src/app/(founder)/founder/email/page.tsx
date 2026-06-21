@@ -27,7 +27,7 @@ export default async function EmailPage({
       />
 
       {params.connected && (
-        <div className="border border-[#16a34a]/30 bg-[#16a34a]/5 px-4 py-3 rounded-sm text-sm text-[#16a34a]">
+        <div className="border border-[#16a34a]/30 bg-[#16a34a]/5 px-4 py-3 rounded-sm text-sm text-[#15803d]">
           ✓ Connected {decodeURIComponent(params.connected)}
         </div>
       )}
@@ -46,8 +46,8 @@ export default async function EmailPage({
 
       {configured && accounts.length === 0 && (
         <div className="border border-white/[0.06] px-4 py-8 rounded-sm text-center">
-          <p className="text-sm text-white/30 mb-3">No Gmail accounts connected</p>
-          <p className="text-xs text-white/20">
+          <p className="text-sm text-[#71717a] mb-3">No Gmail accounts connected</p>
+          <p className="text-xs text-[#6b6b6b]">
             Connect accounts via Settings → Integrations → Google
           </p>
         </div>

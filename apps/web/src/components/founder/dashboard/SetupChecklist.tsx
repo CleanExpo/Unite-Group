@@ -139,7 +139,7 @@ export async function SetupChecklist({ founderId }: { founderId: string }) {
             {item.complete ? (
               <span
                 className="flex-shrink-0 text-sm font-bold"
-                style={{ color: 'var(--color-accent)' }}
+                style={{ color: 'var(--color-accent-text)' }}
               >
                 ✓
               </span>
@@ -164,7 +164,7 @@ export async function SetupChecklist({ founderId }: { founderId: string }) {
               <Link
                 href={item.href}
                 className="ml-auto text-xs font-medium hover:underline"
-                style={{ color: 'var(--color-accent)' }}
+                style={{ color: 'var(--color-accent-text)' }}
               >
                 {item.linkText} →
               </Link>
@@ -177,7 +177,7 @@ export async function SetupChecklist({ founderId }: { founderId: string }) {
       {allComplete && (
         <p
           className="mt-4 text-sm font-medium"
-          style={{ color: 'var(--color-accent)' }}
+          style={{ color: 'var(--color-accent-text)' }}
         >
           All set — Nexus is fully configured
         </p>

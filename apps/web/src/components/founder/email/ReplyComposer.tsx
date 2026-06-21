@@ -50,10 +50,10 @@ export function ReplyComposer({ threadId, account, defaultTo, defaultSubject, in
   return (
     <div className="border-t border-white/[0.06] p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-white/40">
-          Reply to <span className="text-white/60">{defaultTo}</span>
+        <p className="text-xs text-[#71717a]">
+          Reply to <span className="text-[#52525b]">{defaultTo}</span>
         </p>
-        <button onClick={onCancel} className="text-xs text-white/30 hover:text-white/60 transition-colors">
+        <button onClick={onCancel} className="text-xs text-[#71717a] hover:text-[#52525b] transition-colors">
           Cancel
         </button>
       </div>

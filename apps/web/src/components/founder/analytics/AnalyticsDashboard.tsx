@@ -98,7 +98,7 @@ function StatCard({ label, value, index }: StatCardProps) {
       <span className="text-[11px] uppercase tracking-widest font-medium" style={{ color: 'var(--color-text-disabled)' }}>
         {label}
       </span>
-      <span className="text-[26px] font-semibold leading-none tracking-tight text-[#16a34a]">
+      <span className="text-[26px] font-semibold leading-none tracking-tight text-[#15803d]">
         {value}
       </span>
     </motion.div>
@@ -176,7 +176,7 @@ export default function AnalyticsDashboard() {
     <div className="flex flex-col gap-6">
       {/* Header row */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-[22px] font-semibold text-white tracking-tight">Analytics</h1>
+        <h1 className="text-[22px] font-semibold text-[#0A0A0A] tracking-tight">Analytics</h1>
 
         {/* Date range toggle */}
         <div
@@ -286,7 +286,7 @@ export default function AnalyticsDashboard() {
             className="px-4 py-3 border-b"
             style={{ background: 'var(--surface-card)', borderColor: 'var(--color-border)' }}
           >
-            <h2 className="text-[13px] font-semibold text-white">Platform Breakdown</h2>
+            <h2 className="text-[13px] font-semibold text-[#0A0A0A]">Platform Breakdown</h2>
           </div>
           <table className="w-full text-[12px]" style={{ background: 'var(--surface-card)' }}>
             <thead>
@@ -320,7 +320,7 @@ export default function AnalyticsDashboard() {
                     }}
                     style={{ borderBottom: '1px solid var(--color-border)' }}
                   >
-                    <td className="px-4 py-2.5 capitalize font-medium text-white">{platform}</td>
+                    <td className="px-4 py-2.5 capitalize font-medium text-[#0A0A0A]">{platform}</td>
                     <td className="px-4 py-2.5" style={{ color: 'var(--color-text-muted)' }}>
                       {stats.postCount.toLocaleString('en-AU')}
                     </td>
@@ -330,7 +330,7 @@ export default function AnalyticsDashboard() {
                     <td className="px-4 py-2.5" style={{ color: 'var(--color-text-muted)' }}>
                       {formatNumber(stats.engagements)}
                     </td>
-                    <td className="px-4 py-2.5 font-medium text-[#16a34a]">{engRate}%</td>
+                    <td className="px-4 py-2.5 font-medium text-[#15803d]">{engRate}%</td>
                   </motion.tr>
                 )
               })}
@@ -349,7 +349,7 @@ export default function AnalyticsDashboard() {
             className="px-4 py-3 border-b"
             style={{ background: 'var(--surface-card)', borderColor: 'var(--color-border)' }}
           >
-            <h2 className="text-[13px] font-semibold text-white">Top Posts</h2>
+            <h2 className="text-[13px] font-semibold text-[#0A0A0A]">Top Posts</h2>
           </div>
           <table className="w-full text-[12px]" style={{ background: 'var(--surface-card)' }}>
             <thead>
@@ -379,7 +379,7 @@ export default function AnalyticsDashboard() {
                   }}
                   style={{ borderBottom: '1px solid var(--color-border)' }}
                 >
-                  <td className="px-4 py-2.5 capitalize font-medium text-white">{post.platform}</td>
+                  <td className="px-4 py-2.5 capitalize font-medium text-[#0A0A0A]">{post.platform}</td>
                   <td
                     className="px-4 py-2.5 font-mono max-w-[120px] truncate"
                     style={{ color: 'var(--color-text-muted)' }}
@@ -396,7 +396,7 @@ export default function AnalyticsDashboard() {
                   <td className="px-4 py-2.5" style={{ color: 'var(--color-text-muted)' }}>
                     {formatNumber(post.engagements)}
                   </td>
-                  <td className="px-4 py-2.5 font-medium text-[#16a34a]">
+                  <td className="px-4 py-2.5 font-medium text-[#15803d]">
                     {post.engagementRate.toFixed(2)}%
                   </td>
                 </motion.tr>

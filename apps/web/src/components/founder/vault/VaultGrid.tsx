@@ -63,7 +63,7 @@ export function VaultGrid({ unlocked }: VaultGridProps) {
         <button
           onClick={() => setAddingEntry(true)}
           className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-sm transition-opacity hover:opacity-80"
-          style={{ background: '#16a34a18', color: '#16a34a', border: '1px solid #16a34a30' }}
+          style={{ background: '#16a34a18', color: '#15803d', border: '1px solid #16a34a30' }}
         >
           <Plus size={13} strokeWidth={1.5} />
           Add Entry

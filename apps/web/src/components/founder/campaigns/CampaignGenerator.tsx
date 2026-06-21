@@ -140,15 +140,15 @@ export function CampaignGenerator({
       <div className="flex items-center gap-3">
         <button
           onClick={onBack}
-          className="text-white/40 hover:text-white/70 transition-colors text-[11px] flex items-center gap-1.5"
+          className="text-[#71717a] hover:text-[#3f3f46] transition-colors text-[11px] flex items-center gap-1.5"
         >
           <ArrowLeft size={13} />
           Back
         </button>
-        <span className="text-white/[0.15] text-[11px]">/</span>
-        <span className="text-white/80 text-[13px] font-medium">{brandName}</span>
-        <span className="text-white/[0.15] text-[11px]">/</span>
-        <span className="text-white/50 text-[13px]">New Campaign</span>
+        <span className="text-[#6b6b6b] text-[11px]">/</span>
+        <span className="text-[#3f3f46] text-[13px] font-medium">{brandName}</span>
+        <span className="text-[#6b6b6b] text-[11px]">/</span>
+        <span className="text-[#52525b] text-[13px]">New Campaign</span>
       </div>
 
       {/* Error banner */}
@@ -168,7 +168,7 @@ export function CampaignGenerator({
       {/* Config state */}
       {uiState === 'config' && (
         <div className="space-y-5">
-          <h2 className="text-white/80 text-[15px] font-medium">Configure Campaign</h2>
+          <h2 className="text-[#3f3f46] text-[15px] font-medium">Configure Campaign</h2>
 
           {/* Theme */}
           <div className="space-y-1.5">
@@ -176,7 +176,7 @@ export function CampaignGenerator({
               className="text-[10px] uppercase tracking-[0.15em] block"
               style={{ color: 'rgba(255,255,255,0.35)' }}
             >
-              Theme <span style={{ color: '#16a34a' }}>*</span>
+              Theme <span style={{ color: '#15803d' }}>*</span>
             </label>
             <input
               type="text"
@@ -224,7 +224,7 @@ export function CampaignGenerator({
               className="text-[10px] uppercase tracking-[0.15em] block"
               style={{ color: 'rgba(255,255,255,0.35)' }}
             >
-              Platforms <span style={{ color: '#16a34a' }}>*</span>
+              Platforms <span style={{ color: '#15803d' }}>*</span>
             </label>
             <div className="flex flex-wrap gap-2">
               {PLATFORMS.map((platform) => {
@@ -357,7 +357,7 @@ export function CampaignGenerator({
       {/* Generating state */}
       {uiState === 'generating' && (
         <div className="flex flex-col items-center justify-center py-16 gap-4">
-          <Loader2 size={28} className="animate-spin" style={{ color: '#16a34a' }} />
+          <Loader2 size={28} className="animate-spin" style={{ color: '#15803d' }} />
           <div className="text-center space-y-1">
             <p className="text-[13px]" style={{ color: 'rgba(255,255,255,0.7)' }}>
               Generating copy and images...
@@ -373,8 +373,8 @@ export function CampaignGenerator({
       {uiState === 'complete' && generateResult && (
         <div className="space-y-5">
           <div className="flex items-center gap-2">
-            <CheckCircle2 size={16} style={{ color: '#16a34a' }} />
-            <h2 className="text-white/80 text-[15px] font-medium">Campaign Generated</h2>
+            <CheckCircle2 size={16} style={{ color: '#15803d' }} />
+            <h2 className="text-[#3f3f46] text-[15px] font-medium">Campaign Generated</h2>
           </div>
 
           {/* Stats card */}
@@ -393,7 +393,7 @@ export function CampaignGenerator({
             <div className="grid grid-cols-3 gap-4">
               {/* Assets created */}
               <div className="space-y-1 text-center">
-                <p className="text-[22px] font-semibold tabular-nums" style={{ color: '#16a34a' }}>
+                <p className="text-[22px] font-semibold tabular-nums" style={{ color: '#15803d' }}>
                   {generateResult.assetsCreated}
                 </p>
                 <p className="text-[10px] uppercase tracking-[0.12em]" style={{ color: 'rgba(255,255,255,0.35)' }}>
@@ -438,7 +438,7 @@ export function CampaignGenerator({
             </button>
             <button
               onClick={onBack}
-              className="text-white/40 hover:text-white/70 transition-colors text-[12px]"
+              className="text-[#71717a] hover:text-[#3f3f46] transition-colors text-[12px]"
             >
               Back to Campaigns
             </button>

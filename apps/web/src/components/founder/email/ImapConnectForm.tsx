@@ -43,7 +43,7 @@ export function ImapConnectForm({ email, label }: Props) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="text-[10px] uppercase tracking-wider hover:text-white/70 transition-colors flex-shrink-0"
+        className="text-[10px] uppercase tracking-wider hover:text-[#3f3f46] transition-colors flex-shrink-0"
         style={{ color: 'var(--color-text-secondary)' }}
       >
         Connect →

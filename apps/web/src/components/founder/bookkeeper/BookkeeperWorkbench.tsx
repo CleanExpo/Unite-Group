@@ -83,7 +83,7 @@ export function BookkeeperWorkbench() {
                   className={
                     isActive
                       ? ''
-                      : 'hover:text-white/60 transition-colors'
+                      : 'hover:text-[#52525b] transition-colors'
                   }
                   style={isActive ? undefined : { color: 'var(--color-text-secondary)' }}
                 >

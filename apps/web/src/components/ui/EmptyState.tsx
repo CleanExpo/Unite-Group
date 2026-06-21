@@ -40,7 +40,7 @@ export function EmptyState({ icon: Icon, title, description, action, hint }: Emp
             className="text-[12px] font-medium px-4 py-2 rounded-sm transition-colors"
             style={{
               background: '#16a34a18',
-              color: '#16a34a',
+              color: '#15803d',
               border: '1px solid #16a34a30',
             }}
           >
@@ -52,7 +52,7 @@ export function EmptyState({ icon: Icon, title, description, action, hint }: Emp
             className="text-[12px] font-medium px-4 py-2 rounded-sm transition-colors"
             style={{
               background: '#16a34a18',
-              color: '#16a34a',
+              color: '#15803d',
               border: '1px solid #16a34a30',
             }}
           >

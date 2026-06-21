@@ -14,11 +14,11 @@ export const buttonVariants = cva(
     variants: {
       variant: {
         primary: 'bg-[var(--color-accent-10)] border border-[var(--color-accent-border)] text-[var(--color-accent)] hover:bg-[var(--color-accent-20)]',
-        secondary: 'bg-white/[0.04] border border-white/[0.1] text-white/70 hover:bg-white/[0.06] hover:text-white/90',
+        secondary: 'bg-white/[0.04] border border-white/[0.1] text-[#3f3f46] hover:bg-black/[0.05] hover:text-[#0A0A0A]',
         danger: 'bg-[var(--color-danger-dim)] border border-[var(--color-danger)]/40 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/20',
         success: 'bg-[var(--color-success-dim)] border border-[var(--color-success)]/40 text-[var(--color-success)] hover:bg-[var(--color-success)]/20',
-        outline: 'bg-transparent border border-white/[0.1] text-white/70 hover:border-white/[0.2] hover:text-white/90',
-        ghost: 'bg-transparent text-white/50 hover:bg-white/[0.03] hover:text-white/70',
+        outline: 'bg-transparent border border-white/[0.1] text-[#3f3f46] hover:border-white/[0.2] hover:text-[#0A0A0A]',
+        ghost: 'bg-transparent text-[#52525b] hover:bg-black/[0.05] hover:text-[#3f3f46]',
       },
       size: {
         sm: 'px-3 py-1.5 text-sm',

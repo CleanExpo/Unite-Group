@@ -56,7 +56,7 @@ export function VaultChangePassword({ onClose }: VaultChangePasswordProps) {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <KeyRound size={16} strokeWidth={1.5} style={{ color: '#16a34a' }} />
+            <KeyRound size={16} strokeWidth={1.5} style={{ color: '#15803d' }} />
             <span className="text-[14px] font-medium" style={{ color: 'var(--color-text-primary)' }}>
               Change Vault Password
             </span>
@@ -82,7 +82,7 @@ export function VaultChangePassword({ onClose }: VaultChangePasswordProps) {
                 onChange={(e) => { setCurrent(e.target.value); setError(null) }}
                 placeholder="Current master password"
                 autoFocus
-                className="w-full px-3 h-9 rounded-sm text-[13px] text-[#f0f0f0] outline-none"
+                className="w-full px-3 h-9 rounded-sm text-[13px] text-[#0A0A0A] outline-none"
                 style={{ background: 'var(--surface-elevated)', border: '1px solid var(--color-border)' }}
               />
             </div>
@@ -96,7 +96,7 @@ export function VaultChangePassword({ onClose }: VaultChangePasswordProps) {
                 value={next}
                 onChange={(e) => { setNext(e.target.value); setError(null) }}
                 placeholder="Min. 8 characters"
-                className="w-full px-3 h-9 rounded-sm text-[13px] text-[#f0f0f0] outline-none"
+                className="w-full px-3 h-9 rounded-sm text-[13px] text-[#0A0A0A] outline-none"
                 style={{ background: 'var(--surface-elevated)', border: '1px solid var(--color-border)' }}
               />
             </div>
@@ -110,7 +110,7 @@ export function VaultChangePassword({ onClose }: VaultChangePasswordProps) {
                 value={confirm}
                 onChange={(e) => { setConfirm(e.target.value); setError(null) }}
                 placeholder="Repeat new password"
-                className="w-full px-3 h-9 rounded-sm text-[13px] text-[#f0f0f0] outline-none"
+                className="w-full px-3 h-9 rounded-sm text-[13px] text-[#0A0A0A] outline-none"
                 style={{ background: 'var(--surface-elevated)', border: '1px solid var(--color-border)' }}
               />
             </div>
@@ -123,7 +123,7 @@ export function VaultChangePassword({ onClose }: VaultChangePasswordProps) {
               type="submit"
               disabled={saving}
               className="h-9 rounded-sm text-[13px] font-medium transition-opacity hover:opacity-90 disabled:opacity-50 mt-1"
-              style={{ background: '#16a34a18', color: '#16a34a', border: '1px solid #16a34a30' }}
+              style={{ background: '#16a34a18', color: '#15803d', border: '1px solid #16a34a30' }}
             >
               {saving ? 'Saving...' : 'Update Password'}
             </button>

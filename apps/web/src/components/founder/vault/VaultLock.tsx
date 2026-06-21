@@ -56,8 +56,8 @@ export function VaultLock({ onUnlock }: VaultLockProps) {
         {/* Icon + title */}
         <div className="flex flex-col items-center gap-3">
           {mode === 'unlock'
-            ? <Lock size={32} strokeWidth={1.5} style={{ color: '#16a34a' }} />
-            : <KeyRound size={32} strokeWidth={1.5} style={{ color: '#16a34a' }} />
+            ? <Lock size={32} strokeWidth={1.5} style={{ color: '#15803d' }} />
+            : <KeyRound size={32} strokeWidth={1.5} style={{ color: '#15803d' }} />
           }
           <p className="text-[14px] text-center" style={{ color: 'var(--color-text-secondary)' }}>
             {mode === 'unlock'
@@ -76,7 +76,7 @@ export function VaultLock({ onUnlock }: VaultLockProps) {
               onChange={(e) => { setValue(e.target.value); setError(null) }}
               placeholder="Master password"
               autoFocus
-              className="w-full px-3 h-9 rounded-sm text-[13px] text-[#f0f0f0] outline-none transition-colors"
+              className="w-full px-3 h-9 rounded-sm text-[13px] text-[#0A0A0A] outline-none transition-colors"
               style={{
                 background: 'var(--surface-card)',
                 border: `1px solid ${error ? 'var(--color-danger)' : 'var(--color-border)'}`,
@@ -115,7 +115,7 @@ export function VaultLock({ onUnlock }: VaultLockProps) {
               onChange={(e) => { setValue(e.target.value); setError(null) }}
               placeholder="New password (min 6 chars)"
               autoFocus
-              className="w-full px-3 h-9 rounded-sm text-[13px] text-[#f0f0f0] outline-none transition-colors"
+              className="w-full px-3 h-9 rounded-sm text-[13px] text-[#0A0A0A] outline-none transition-colors"
               style={{
                 background: 'var(--surface-card)',
                 border: `1px solid ${error ? 'var(--color-danger)' : 'var(--color-border)'}`,
@@ -126,7 +126,7 @@ export function VaultLock({ onUnlock }: VaultLockProps) {
               value={confirm}
               onChange={(e) => { setConfirm(e.target.value); setError(null) }}
               placeholder="Confirm new password"
-              className="w-full px-3 h-9 rounded-sm text-[13px] text-[#f0f0f0] outline-none transition-colors"
+              className="w-full px-3 h-9 rounded-sm text-[13px] text-[#0A0A0A] outline-none transition-colors"
               style={{
                 background: 'var(--surface-card)',
                 border: `1px solid ${error ? 'var(--color-danger)' : 'var(--color-border)'}`,

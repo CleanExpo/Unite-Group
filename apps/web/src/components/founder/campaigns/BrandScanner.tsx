@@ -67,7 +67,7 @@ function ColourSwatch({ colour, label }: ColourSwatchProps) {
         style={{ backgroundColor: colour }}
         title={colour}
       />
-      <span className="text-[10px] font-mono text-white/30 uppercase">{label}</span>
+      <span className="text-[10px] font-mono text-[#71717a] uppercase">{label}</span>
     </div>
   )
 }
@@ -85,7 +85,7 @@ function BrandDNACard({ result, onCreateCampaign }: BrandDNACardProps) {
       {/* Section label */}
       <div className="flex items-center gap-2">
         <div className="w-1.5 h-1.5 rounded-sm bg-[#16a34a]" />
-        <span className="text-[11px] font-semibold uppercase tracking-widest text-[#16a34a]">
+        <span className="text-[11px] font-semibold uppercase tracking-widest text-[#15803d]">
           Brand DNA extracted
         </span>
       </div>
@@ -131,11 +131,11 @@ interface DataRowProps {
 function DataRow({ label, value, highlight = false }: DataRowProps) {
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="text-[10px] font-medium uppercase tracking-widest text-white/25">
+      <span className="text-[10px] font-medium uppercase tracking-widest text-[#6b6b6b]">
         {label}
       </span>
       <span
-        className={`text-[12px] font-mono ${highlight ? 'text-[#16a34a]' : 'text-white/60'}`}
+        className={`text-[12px] font-mono ${highlight ? 'text-[#15803d]' : 'text-[#52525b]'}`}
       >
         {value}
       </span>
@@ -220,10 +220,10 @@ export function BrandScanner({ onScanComplete }: BrandScannerProps) {
     <div className="bg-[#fff7ec] border border-white/[0.06] rounded-sm p-6 flex flex-col gap-5">
       {/* Header */}
       <div className="flex flex-col gap-1">
-        <h2 className="text-[15px] font-semibold text-white tracking-tight">
+        <h2 className="text-[15px] font-semibold text-[#0A0A0A] tracking-tight">
           Brand Scanner
         </h2>
-        <p className="text-[12px] text-white/30">
+        <p className="text-[12px] text-[#71717a]">
           Enter a website URL to extract Brand DNA — colours, tone, audience, and imagery.
         </p>
       </div>
@@ -231,7 +231,7 @@ export function BrandScanner({ onScanComplete }: BrandScannerProps) {
       {/* Inputs */}
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="bs-client-name" className="text-[11px] font-medium uppercase tracking-widest text-white/30">
+          <label htmlFor="bs-client-name" className="text-[11px] font-medium uppercase tracking-widest text-[#71717a]">
             Client name
           </label>
           <input
@@ -246,7 +246,7 @@ export function BrandScanner({ onScanComplete }: BrandScannerProps) {
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="bs-website-url" className="text-[11px] font-medium uppercase tracking-widest text-white/30">
+          <label htmlFor="bs-website-url" className="text-[11px] font-medium uppercase tracking-widest text-[#71717a]">
             Website URL
           </label>
           <input
@@ -291,7 +291,7 @@ export function BrandScanner({ onScanComplete }: BrandScannerProps) {
           <button
             type="button"
             onClick={handleReset}
-            className="shrink-0 text-[11px] font-medium text-white/40 hover:text-white/70 transition-colors duration-100"
+            className="shrink-0 text-[11px] font-medium text-[#71717a] hover:text-[#3f3f46] transition-colors duration-100"
           >
             Reset
           </button>

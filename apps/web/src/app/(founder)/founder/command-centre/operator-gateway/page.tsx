@@ -576,7 +576,7 @@ export default async function OperatorGatewayPage() {
                   disabled={!view.dryRunExecution.enabled || job.status !== 'planned' || job.externalActionRequested || job.productionActionRequested || job.apiKeyRequested}
                   style={{
                     ...inputStyle,
-                    color: '#16a34a',
+                    color: '#15803d',
                     fontWeight: 700,
                     opacity: view.dryRunExecution.enabled && job.status === 'planned' ? 1 : 0.6,
                     cursor: view.dryRunExecution.enabled && job.status === 'planned' ? 'pointer' : 'not-allowed',

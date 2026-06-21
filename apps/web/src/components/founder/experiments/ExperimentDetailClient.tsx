@@ -104,7 +104,7 @@ export function ExperimentDetailClient({
             <button
               onClick={() => handleStatusChange('active')}
               disabled={actionLoading}
-              className="px-4 py-2 text-[10px] uppercase tracking-[0.15em] text-[#16a34a] border border-[#16a34a]/30 rounded-sm hover:bg-[#16a34a]/5 transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-[10px] uppercase tracking-[0.15em] text-[#15803d] border border-[#16a34a]/30 rounded-sm hover:bg-[#16a34a]/5 transition-colors disabled:opacity-50"
             >
               Activate
             </button>
@@ -113,7 +113,7 @@ export function ExperimentDetailClient({
             <button
               onClick={() => handleStatusChange('completed')}
               disabled={actionLoading}
-              className="px-4 py-2 text-[10px] uppercase tracking-[0.15em] text-[#16a34a] border border-[#16a34a]/30 rounded-sm hover:bg-[#16a34a]/5 transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-[10px] uppercase tracking-[0.15em] text-[#15803d] border border-[#16a34a]/30 rounded-sm hover:bg-[#16a34a]/5 transition-colors disabled:opacity-50"
             >
               Complete
             </button>
@@ -121,7 +121,7 @@ export function ExperimentDetailClient({
           {variants.length === 0 && (
             <button
               onClick={() => setShowGenerator(true)}
-              className="px-4 py-2 text-[10px] uppercase tracking-[0.15em] text-[#16a34a] border border-[#16a34a]/30 rounded-sm hover:bg-[#16a34a]/5 transition-colors"
+              className="px-4 py-2 text-[10px] uppercase tracking-[0.15em] text-[#15803d] border border-[#16a34a]/30 rounded-sm hover:bg-[#16a34a]/5 transition-colors"
             >
               Generate with Synthex
             </button>
