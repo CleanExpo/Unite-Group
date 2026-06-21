@@ -13,8 +13,7 @@ function acct(provider: AccountRuntimeState['provider'], over: Partial<AccountRu
 function deps(over: Partial<ExecuteChatDeps> = {}): ExecuteChatDeps {
   return {
     accounts: [acct('minimax'), acct('openrouter'), acct('claude')],
-    vaultEntryFor: (id) => `vault-${id}`,
-    resolveCredential: async () => 'sk-key',
+    resolveKey: async () => 'sk-key',
     now: NOW,
     ...over,
   }
@@ -48,7 +47,7 @@ describe('executeChat', () => {
 
   it('errors when the credential cannot be resolved (no spend)', async () => {
     const client = okClient()
-    const r = await executeChat('bulk_text', REQ, deps({ resolveCredential: async () => null, makeClient: () => client }))
+    const r = await executeChat('bulk_text', REQ, deps({ resolveKey: async () => null, makeClient: () => client }))
     expect(r).toMatchObject({ status: 'error', reason: expect.stringContaining('credential') })
     expect(client).not.toHaveBeenCalled()
   })

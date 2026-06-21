@@ -23,6 +23,18 @@ export const OPENAI_COMPATIBLE_BASE: Partial<Record<ProviderId, string>> = {
   gemini: 'https://generativelanguage.googleapis.com/v1beta/openai',
 }
 
+/**
+ * A sensible default chat model per provider, used when the caller doesn't pin
+ * one (the model must match whichever provider routing picks). Adjustable; the
+ * exact ids are verified against each provider at call time.
+ */
+export const DEFAULT_MODEL: Partial<Record<ProviderId, string>> = {
+  openai: 'gpt-4o-mini',
+  minimax: 'MiniMax-Text-01',
+  openrouter: 'openai/gpt-4o-mini',
+  gemini: 'gemini-1.5-flash',
+}
+
 export type ExecuteChatResult =
   | { status: 'ok'; provider: ProviderId; accountId: string; text: string; usage: { inputTokens: number; outputTokens: number } }
   | { status: 'queued'; reason: string }
@@ -32,10 +44,12 @@ export type ExecuteChatResult =
 export interface ExecuteChatDeps {
   /** Live account states (from loadAccounts). */
   accounts: AccountRuntimeState[]
-  /** Map an accountId → its vault entry id (from the loaded ProviderAccountRow). */
-  vaultEntryFor: (accountId: string) => string | null
-  /** Decrypt a vault entry → the API key. */
-  resolveCredential: (vaultEntryId: string) => Promise<string | null>
+  /**
+   * Resolve an account's API key — from its Vercel env var (env-backed) or by
+   * decrypting its vault entry. Returns null when neither is available (→ a
+   * clean error, never a silent uncredentialed call).
+   */
+  resolveKey: (accountId: string) => Promise<string | null>
   now: string
   /** Optional override of the chat client factory (for tests). */
   makeClient?: (baseUrl: string, apiKey: string | undefined) => (req: ChatRequest) => Promise<ChatResult>
@@ -57,12 +71,13 @@ export async function executeChat(kind: WorkKind, req: ChatRequest, deps: Execut
     return { status: 'needs_anthropic_path', provider, accountId }
   }
 
-  const vaultId = deps.vaultEntryFor(accountId)
-  const key = vaultId ? await deps.resolveCredential(vaultId) : null
-  if (!key) return { status: 'error', provider, reason: 'credential not resolvable from vault' }
+  const key = await deps.resolveKey(accountId)
+  if (!key) return { status: 'error', provider, reason: 'credential not resolvable (no env var or vault entry)' }
 
+  // Pin a provider-appropriate model when the caller didn't specify one.
+  const reqForProvider = { ...req, model: req.model || DEFAULT_MODEL[provider] || req.model }
   const client = (deps.makeClient ?? ((b, k) => makeOpenAICompatibleClient({ baseUrl: b, apiKey: k })))(base, key)
-  const result = await client(req)
+  const result = await client(reqForProvider)
 
   if (!result.ok) {
     const rateLimited = result.reason === 'rate_limited'

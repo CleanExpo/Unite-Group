@@ -37,6 +37,8 @@ export function ProviderAccountsTile() {
   const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState({ provider: 'minimax', label: '', vaultEntryId: '' })
   const [saving, setSaving] = useState(false)
+  const [testResult, setTestResult] = useState<string | null>(null)
+  const [testing, setTesting] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -62,7 +64,7 @@ export function ProviderAccountsTile() {
   useEffect(() => { load() }, [load])
 
   async function addAccount() {
-    if (!form.label || !form.vaultEntryId) { setError('label and a vault entry are required'); return }
+    if (!form.label) { setError('a label is required'); return }
     setSaving(true)
     try {
       const res = await fetch('/api/command-center/provider-accounts', {
@@ -74,6 +76,21 @@ export function ProviderAccountsTile() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'add failed')
     } finally { setSaving(false) }
+  }
+
+  async function testPool() {
+    setTesting(true); setTestResult(null)
+    try {
+      const res = await fetch('/api/command-center/provider-test', { method: 'POST' })
+      const j = await res.json()
+      if (j.status === 'ok') setTestResult(`✓ ${j.provider} replied: "${(j.text ?? '').trim().slice(0, 40)}"`)
+      else if (j.status === 'queued') setTestResult(`queued — no usable provider (${j.reason ?? ''})`)
+      else if (j.status === 'needs_anthropic_path') setTestResult(`routed to ${j.provider} (uses the Claude path, not this test)`)
+      else if (j.status === 'no_accounts') setTestResult('register a provider account first')
+      else setTestResult(`error: ${j.reason ?? 'unknown'}`)
+    } catch (e) {
+      setTestResult(`error: ${e instanceof Error ? e.message : 'request failed'}`)
+    } finally { setTesting(false) }
   }
 
   const mode: SourceMode = loading ? 'loading' : error ? 'degraded' : 'live'
@@ -111,13 +128,17 @@ export function ProviderAccountsTile() {
         </select>
         <input placeholder="label" value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} style={inputStyle} />
         <select value={form.vaultEntryId} onChange={(e) => setForm({ ...form, vaultEntryId: e.target.value })} style={inputStyle}>
-          <option value="">— vault key —</option>
+          <option value="">— use env var key —</option>
           {vault.map((v) => <option key={v.id} value={v.id}>{v.label} ({v.service})</option>)}
         </select>
         <button onClick={addAccount} disabled={saving} style={{ ...inputStyle, cursor: 'pointer', color: 'var(--cc-ink)' }}>
           {saving ? 'adding…' : 'add account'}
         </button>
+        <button onClick={testPool} disabled={testing || accounts.length === 0} style={{ ...inputStyle, cursor: 'pointer', color: 'var(--cc-ink)' }}>
+          {testing ? 'testing…' : 'test the pool'}
+        </button>
       </div>
+      {testResult && <p style={{ color: 'var(--cc-ink-dim)', fontSize: 12, margin: 0 }}>{testResult}</p>}
     </section>
   )
 }
