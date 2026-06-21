@@ -23,17 +23,18 @@ function msg(err: unknown): string {
 
 /**
  * Default headless Claude Code invocation. Exact flags verified at deploy.
- * - `--bare`: minimal mode — auth is STRICTLY ANTHROPIC_API_KEY (OAuth/keychain
- *   are never read), and it skips hooks/LSP/plugins/MCP/CLAUDE.md auto-discovery.
- *   Essential here because the worker runs inside a checkout of this repo, whose
- *   heavy `.claude/` config (hooks, MCP, plugins) would otherwise hang/fail in the
- *   container. Without `--bare` the CLI tries keychain/OAuth first and reports
- *   "Not logged in" despite ANTHROPIC_API_KEY being set.
+ * - `--safe-mode`: disables the worktree repo's settings files (CLAUDE.md, hooks,
+ *   MCP servers, plugins, skills, custom agents) — essential because the worker
+ *   runs inside a checkout of THIS repo, whose `.claude/` config (PowerShell
+ *   hooks, MCP servers) would otherwise hang/fail in the Linux container. Unlike
+ *   `--bare`, safe-mode leaves auth working normally, so the runner can
+ *   authenticate via the Max-plan token (CLAUDE_CODE_OAUTH_TOKEN). Verified
+ *   end-to-end locally (exit 0, model responded).
  * - `--dangerously-skip-permissions`: no permission prompts (needs non-root user).
  * - `< /dev/null`: close stdin so the CLI doesn't stall (prompt is passed via -p).
  */
 export function defaultClaudeCommand(promptFile: string): string {
-  return `claude --bare -p "$(cat ${promptFile})" --dangerously-skip-permissions < /dev/null`
+  return `claude --safe-mode -p "$(cat ${promptFile})" --dangerously-skip-permissions < /dev/null`
 }
 
 /**
