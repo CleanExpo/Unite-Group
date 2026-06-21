@@ -147,6 +147,25 @@ export async function fetchIssues(): Promise<LinearIssue[]> {
   return allIssues
 }
 
+/**
+ * Issues carrying a given label. Used by the Hermes Kanban serverless fallback to
+ * show Hermes-created tasks (the `hermes` CLI doesn't exist in Vercel runtime).
+ */
+export async function fetchIssuesByLabel(labelName: string): Promise<Array<LinearIssue & { url: string }>> {
+  if (!isLinearConfigured()) return []
+  const safe = labelName.replace(/"/g, '')
+  const data = await gql<{ issues: { nodes: Array<LinearIssue & { url: string }> } }>(`{
+    issues(
+      first: 50
+      filter: { labels: { name: { eq: "${safe}" } }, state: { type: { nin: ["canceled"] } } }
+      orderBy: updatedAt
+    ) {
+      nodes { id identifier title url priority team { id key name } state { id name type } }
+    }
+  }`)
+  return data.issues.nodes
+}
+
 // ─── Single issue detail ──────────────────────────────────────────────────────
 
 export interface LinearIssueDetail extends LinearIssue {
@@ -287,6 +306,32 @@ export async function resolveLabelIds(labelNames: string[] = []): Promise<string
   }
 
   return labelIds
+}
+
+async function createIssueLabel(name: string): Promise<string> {
+  const data = await gql<{ issueLabelCreate: { issueLabel: { id: string } } }>(`
+    mutation CreateLabel($name: String!) {
+      issueLabelCreate(input: { name: $name }) { issueLabel { id } }
+    }
+  `, { name })
+  return data.issueLabelCreate.issueLabel.id
+}
+
+/**
+ * Like resolveLabelIds, but creates any label that doesn't exist yet (instead of
+ * throwing). Used so a Hermes task always gets its autopilot labels even on a
+ * fresh workspace.
+ */
+export async function resolveOrCreateLabelIds(labelNames: string[] = []): Promise<string[]> {
+  const wanted = Array.from(new Set(labelNames.map((l) => l.trim()).filter(Boolean)))
+  if (wanted.length === 0) return []
+  const existing = await fetchIssueLabels()
+  const byName = new Map(existing.map((l) => [l.name.toLowerCase(), l.id]))
+  const ids: string[] = []
+  for (const name of wanted) {
+    ids.push(byName.get(name.toLowerCase()) ?? (await createIssueLabel(name)))
+  }
+  return ids
 }
 
 export async function createIssue(input: CreateIssueInput): Promise<{ id: string; url?: string }> {

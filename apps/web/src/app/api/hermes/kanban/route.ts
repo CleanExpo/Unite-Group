@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { NextResponse } from 'next/server'
-import { createIssue, type CreateIssueInput } from '@/lib/integrations/linear'
+import { createIssue, fetchIssuesByLabel, resolveOrCreateLabelIds, type CreateIssueInput } from '@/lib/integrations/linear'
 import { getUser } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -210,7 +210,68 @@ async function hydrateLinearBacklinks(tasks: HermesKanbanTask[]) {
   }))
 }
 
-async function readHermesBoard() {
+const HERMES_SOURCE_LABEL = 'source:hermes-kanban'
+
+/** True when the failure is "the `hermes` binary isn't installed" (always so in serverless). */
+function isCliMissing(error: unknown): boolean {
+  return Boolean(error && typeof error === 'object' && 'code' in error && (error as { code?: string }).code === 'ENOENT')
+}
+
+function linearStateToHermes(stateType: string): string {
+  if (stateType === 'completed') return 'done'
+  if (stateType === 'started') return 'running'
+  if (stateType === 'backlog') return 'scheduled'
+  return 'todo'
+}
+
+/** Serverless board: read the Hermes-labelled Linear issues as the execution board. */
+async function readHermesBoardFromLinear() {
+  let issues: Awaited<ReturnType<typeof fetchIssuesByLabel>> = []
+  try {
+    issues = await fetchIssuesByLabel(HERMES_SOURCE_LABEL)
+  } catch {
+    issues = [] // a label-filter hiccup must not make create/board appear to fail
+  }
+  const tasks: HermesKanbanTask[] = issues.map((issue) => ({
+    id: issue.identifier,
+    status: linearStateToHermes(issue.state?.type ?? ''),
+    assignee: null,
+    title: issue.title,
+    linearLink: { identifier: issue.identifier, url: issue.url },
+  }))
+  return {
+    source: 'linear',
+    configured: true,
+    mode: 'linear' as const,
+    board: 'linear',
+    summary: summarise(tasks),
+    tasks,
+    lastSyncedAt: new Date().toISOString(),
+  }
+}
+
+/** Create a Hermes task as a labelled Linear issue (the prod push-to-execution path). */
+async function createTaskViaLinear(payload: HermesActionPayload) {
+  const title = safeText(payload.title, 'title', true)
+  const body = safeText(payload.body, 'body')
+  // Ensure the autopilot labels exist so the new issue is pipeline-eligible.
+  await resolveOrCreateLabelIds(HERMES_AUTONOMY_LABELS)
+  return createLinearIssue({
+    teamKey: safeText(payload.teamKey, 'teamKey') ?? 'UNI',
+    title,
+    description: [
+      body ?? 'No additional Hermes task context supplied.',
+      '',
+      'Source: Hermes Kanban (Founder OS)',
+      'Mission Control Eligible: yes',
+      `Autonomy labels: ${HERMES_AUTONOMY_LABELS.join(', ')}`,
+    ].join('\n'),
+    priority: 3,
+    labelNames: HERMES_AUTONOMY_LABELS,
+  })
+}
+
+async function readHermesBoardViaCli() {
   const [{ stdout: boardsStdout }, { stdout: listStdout }] = await Promise.all([
     execFileAsync('hermes', ['kanban', 'boards', 'list'], { timeout: 15_000, windowsHide: true }),
     execFileAsync('hermes', ['kanban', 'list'], { timeout: 15_000, windowsHide: true }),
@@ -224,10 +285,21 @@ async function readHermesBoard() {
   return {
     source: 'hermes-kanban',
     configured: true,
+    mode: 'cli' as const,
     board: boardsStdout.includes('Current board:') ? boardsStdout.match(/Current board:\s*(\S+)/)?.[1] ?? 'default' : 'default',
     summary: summarise(tasks),
     tasks,
     lastSyncedAt: new Date().toISOString(),
+  }
+}
+
+/** Read the board via the Hermes CLI, falling back to the Linear-backed board in serverless. */
+async function readHermesBoard() {
+  try {
+    return await readHermesBoardViaCli()
+  } catch (error) {
+    if (!isCliMissing(error)) throw error
+    return readHermesBoardFromLinear()
   }
 }
 
@@ -319,14 +391,38 @@ export async function POST(request: Request) {
       })
     }
 
-    const args = buildHermesActionCommand(payload)
-    const { stdout, stderr } = await execFileAsync('hermes', args, { timeout: 20_000, windowsHide: true })
-    return NextResponse.json({
-      source: 'hermes-kanban',
-      action,
-      receipt: { command: ['hermes', ...args], stdout: stdout.trim(), stderr: stderr?.trim() ?? '' },
-      board: await readHermesBoard(),
-    })
+    // Generic Hermes CLI action — with a serverless Linear fallback when the
+    // `hermes` binary isn't present. `create` becomes a labelled Linear issue
+    // (the push-to-production path); other actions defer to Linear for state.
+    try {
+      const args = buildHermesActionCommand(payload)
+      const { stdout, stderr } = await execFileAsync('hermes', args, { timeout: 20_000, windowsHide: true })
+      return NextResponse.json({
+        source: 'hermes-kanban',
+        action,
+        receipt: { command: ['hermes', ...args], stdout: stdout.trim(), stderr: stderr?.trim() ?? '' },
+        board: await readHermesBoard(),
+      })
+    } catch (error) {
+      if (!isCliMissing(error)) throw error
+      if (action === 'create') {
+        const issue = await createTaskViaLinear(payload)
+        return NextResponse.json({
+          source: 'linear',
+          action,
+          mode: 'linear',
+          linkedIssue: { identifier: issue.id, url: issue.url },
+          board: await readHermesBoardFromLinear(),
+        })
+      }
+      return NextResponse.json({
+        source: 'linear',
+        action,
+        mode: 'linear',
+        note: 'This task lives in Linear — open it there to change its state.',
+        board: await readHermesBoardFromLinear(),
+      })
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown Hermes Kanban action error'
     return NextResponse.json({ source: 'hermes-kanban', configured: false, error: message }, { status: 400 })
