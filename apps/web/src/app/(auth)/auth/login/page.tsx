@@ -15,7 +15,7 @@ function getSupabase() {
 }
 
 const GoogleIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
     <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
     <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
@@ -34,7 +34,7 @@ function normaliseRedirectPath(value: string | null): string {
 function oauthErrorMessage(value: string | null): string {
   switch (value) {
     case "oauth_failed":
-      return "Google sign-in did not complete. Try again, or use email and password.";
+      return "Google sign-in did not complete. Please try again.";
     case "access_denied":
       return "Google sign-in was cancelled before access was granted.";
     default:
@@ -50,6 +50,10 @@ export default function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
   const [queryString, setQueryString] = useState("");
+  // Google is the only sign-in Phill uses. Email/password stays as a hidden
+  // fallback (revealed on demand) purely so a Google outage can never lock the
+  // founder out of his own CRM.
+  const [showEmail, setShowEmail] = useState(false);
 
   useEffect(() => {
     setQueryString(window.location.search);
@@ -114,7 +118,15 @@ export default function LoginPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-extralight text-white/90 mb-8">Sign in</h1>
+      <h1
+        className="text-2xl font-light mb-1"
+        style={{ color: "var(--color-text-primary)" }}
+      >
+        Sign in
+      </h1>
+      <p className="text-sm mb-8" style={{ color: "var(--color-text-muted)" }}>
+        Continue to your Pi-CEO command centre.
+      </p>
 
       {error && (
         <p className="text-sm text-[var(--color-danger)] mb-4 border border-[var(--color-danger)]/20 bg-[var(--color-danger-dim)] px-3 py-2 rounded-sm">
@@ -122,74 +134,92 @@ export default function LoginPage() {
         </p>
       )}
 
-      {/* Google OAuth */}
-      <Button
-        variant="secondary"
-        size="md"
-        fullWidth
+      {/* Google OAuth — the primary (and only required) method */}
+      <button
+        type="button"
         disabled={googleLoading || loading}
         onClick={handleGoogleSignIn}
-        leftIcon={<GoogleIcon />}
-        className="mb-6 text-xs uppercase tracking-[0.2em]"
+        className="w-full flex items-center justify-center gap-3 h-12 rounded-sm text-sm font-medium transition-colors disabled:opacity-60"
+        style={{
+          background: "#ffffff",
+          border: "1px solid var(--color-border-strong)",
+          color: "#1f2328",
+          boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
+        }}
       >
+        <GoogleIcon />
         {googleLoading ? "Redirecting…" : "Continue with Google"}
-      </Button>
+      </button>
 
-      {/* Divider */}
-      <div className="relative mb-6">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-white/[0.08]" />
-        </div>
-        <div className="relative flex justify-center">
-          <span
-            className="px-3 text-xs uppercase tracking-widest text-white/50"
-            style={{ background: 'var(--surface-sidebar)' }}
-          >
-            or
-          </span>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <Input
-          id="login-email"
-          label="Email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          autoComplete="email"
-        />
-        <Input
-          id="login-password"
-          label="Password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          autoComplete="current-password"
-        />
-        <Button
-          type="submit"
-          variant="primary"
-          size="md"
-          fullWidth
-          loading={loading}
-          disabled={googleLoading}
-          className="mt-2 text-xs uppercase tracking-[0.2em]"
+      {/* Email fallback — hidden by default; only here so a Google outage can't lock you out */}
+      {!showEmail ? (
+        <button
+          type="button"
+          onClick={() => setShowEmail(true)}
+          className="mt-5 mx-auto block text-[11px] font-mono tracking-wider transition-colors"
+          style={{ color: "var(--color-text-disabled)" }}
         >
-          Sign in
-        </Button>
-      </form>
+          Use email instead
+        </button>
+      ) : (
+        <div className="mt-6">
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t" style={{ borderColor: "var(--color-border)" }} />
+            </div>
+            <div className="relative flex justify-center">
+              <span
+                className="px-3 text-xs uppercase tracking-widest"
+                style={{ background: "var(--surface-card)", color: "var(--color-text-muted)" }}
+              >
+                or email
+              </span>
+            </div>
+          </div>
 
-      <div className="mt-5 text-center">
-        <Link
-          href="/forgot-password"
-          className="text-[11px] font-mono tracking-wider text-white/35 hover:text-white/55 transition-colors"
-        >
-          Forgot password?
-        </Link>
-      </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              id="login-email"
+              label="Email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+            />
+            <Input
+              id="login-password"
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+            />
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              fullWidth
+              loading={loading}
+              disabled={googleLoading}
+              className="mt-2 text-xs uppercase tracking-[0.2em]"
+            >
+              Sign in
+            </Button>
+          </form>
+
+          <div className="mt-5 text-center">
+            <Link
+              href="/forgot-password"
+              className="text-[11px] font-mono tracking-wider transition-colors"
+              style={{ color: "var(--color-text-disabled)" }}
+            >
+              Forgot password?
+            </Link>
+          </div>
+        </div>
+      )}
     </>
   );
 }
