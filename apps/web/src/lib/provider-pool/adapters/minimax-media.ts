@@ -114,6 +114,7 @@ export function makeMiniMaxMediaClient(cfg: MiniMaxMediaConfig): {
         const url = withGroupId(`${baseUrl}${CREATE_PATH[req.kind]}`, req.groupId)
         const res = await fetchFn(url, {
           method: 'POST',
+          signal: AbortSignal.timeout(45000),
           headers: {
             authorization: `Bearer ${apiKey}`,
             'content-type': 'application/json',
@@ -141,6 +142,7 @@ export function makeMiniMaxMediaClient(cfg: MiniMaxMediaConfig): {
         const base = `${baseUrl}/v1/query/generation?task_id=${encodeURIComponent(taskId)}`
         const res = await fetchFn(withGroupId(base, groupId), {
           method: 'GET',
+          signal: AbortSignal.timeout(20000),
           headers: { authorization: `Bearer ${apiKey}` },
         })
 

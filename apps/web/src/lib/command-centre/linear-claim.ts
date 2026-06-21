@@ -194,7 +194,7 @@ export interface ClaimLoopOptions {
   now?: () => string
 }
 
-export type StopReason = 'claimed' | 'no-eligible-work' | 'dry-run'
+export type StopReason = 'claimed' | 'no-eligible-work' | 'dry-run' | 'lost-race'
 
 export interface ClaimLoopResult {
   ran_at: string
@@ -272,6 +272,11 @@ export async function claimNextEligibleIssue(
   }
 
   // Live claim. Move state first (the idempotency gate), then write the receipt.
+  // 4.4: re-validate the issue is still claimable immediately before claiming, shrinking the read->claim race so overlapping ticks do not double-claim.
+  const stillClaimable = (await deps.listCandidates()).some((c) => c.id === next.id)
+  if (!stillClaimable) {
+    return { ran_at: ranAt, mode: 'live', stop_reason: 'lost-race', candidates_total: candidates.length, eligible_total: eligibleCount, claimed: null, receipt, execution_packet: executionPacket, skipped }
+  }
   await deps.moveToInProgress(next.id)
   await deps.postComment(next.id, receipt)
 

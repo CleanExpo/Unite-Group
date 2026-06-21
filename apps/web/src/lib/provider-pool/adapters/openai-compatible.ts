@@ -82,6 +82,7 @@ export function makeOpenAICompatibleClient(
     try {
       const res = await fetchFn(`${baseUrl}/chat/completions`, {
         method: 'POST',
+        signal: AbortSignal.timeout(60000),
         headers: {
           authorization: `Bearer ${apiKey}`,
           'content-type': 'application/json',

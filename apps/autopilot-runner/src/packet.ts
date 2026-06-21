@@ -129,6 +129,7 @@ export async function fetchPacket(deps: FetchPacketDeps): Promise<FetchPacketRes
   try {
     res = await deps.fetchFn(deps.endpoint, {
       method: 'GET',
+      signal: AbortSignal.timeout(20000),
       headers: { authorization: `Bearer ${deps.cronSecret}` },
     })
   } catch (err) {
