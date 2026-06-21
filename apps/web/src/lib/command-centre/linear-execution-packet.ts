@@ -53,7 +53,13 @@ export function buildLinearExecutionPacket(
       '',
       `Title: ${issue.title}`,
       '',
-      'Read the Linear issue description, satisfy the Acceptance Criteria, run the relevant verification gates, commit to a feature branch, push, and open a draft PR for RANA review.',
+      // Embed the full issue body so an offline worker (no Linear access) has the
+      // actual task + Acceptance Criteria, rather than being told to "read Linear".
+      '--- Issue description ---',
+      issue.description?.trim() || '(no description provided)',
+      '--- End of issue description ---',
+      '',
+      'Using the issue description above, satisfy the Acceptance Criteria, run the relevant verification gates, commit to a feature branch, push, and open a draft PR for RANA review.',
       'Do not touch secrets or destructive production paths. If the work requires blocked credentials or human approval, stop and report the blocker back to Linear.',
     ].join('\n'),
     steps: [
