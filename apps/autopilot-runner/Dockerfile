@@ -24,8 +24,15 @@ RUN npm run build
 # node:20-slim ships a non-root `node` user (uid 1000); run as it. /app build
 # artifacts are world-readable; the runner's work dirs live under /tmp (writable
 # by any user). HOME must point at the node user's writable home for CLI config.
-RUN chown -R node:node /app
-ENV NODE_ENV=production HOME=/home/node
+RUN chown -R node:node /app && mkdir -p /home/node/.claude && chown -R node:node /home/node
+# CI/headless Claude Code hygiene: no auto-update, no telemetry/non-essential
+# traffic (recommended for unattended runs). Auth is via ANTHROPIC_API_KEY (set on
+# the Railway service), which the CLI uses directly in non-interactive -p mode.
+ENV NODE_ENV=production \
+    HOME=/home/node \
+    DISABLE_AUTOUPDATER=1 \
+    DISABLE_TELEMETRY=1 \
+    CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
 USER node
 
 # Kill switch: the runner drains unless CC_LINEAR_LIVE=1 is set on the service.

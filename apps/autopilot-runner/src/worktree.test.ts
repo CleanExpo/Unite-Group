@@ -36,7 +36,7 @@ describe('createWorktree', () => {
     const git = vi.fn<GitRunner>(async () => ok)
     await createWorktree({ git }, base)
     expect(git).toHaveBeenCalledWith(
-      ['worktree', 'add', '-b', 'pidev/auto-uni-1', '/tmp/wt/b', DEFAULT_BASE_REF],
+      ['worktree', 'add', '-B', 'pidev/auto-uni-1', '/tmp/wt/b', DEFAULT_BASE_REF],
       '/repo',
     )
   })

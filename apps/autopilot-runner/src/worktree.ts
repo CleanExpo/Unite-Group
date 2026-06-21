@@ -59,7 +59,12 @@ export async function createWorktree(
 
   let outcome: GitOutcome
   try {
-    outcome = await deps.git(['worktree', 'add', '-b', opts.branch, opts.worktreePath, baseRef], opts.repoDir)
+    // -B (not -b): create-or-reset the branch to baseRef. The Railway cron reuses
+    // the container filesystem across ticks, so a stale feature branch from a prior
+    // run can linger in the clone; -B makes worktree creation idempotent rather than
+    // failing with "a branch named '…' already exists". (ensureClone prunes stale
+    // worktree registrations first.)
+    outcome = await deps.git(['worktree', 'add', '-B', opts.branch, opts.worktreePath, baseRef], opts.repoDir)
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) }
   }
