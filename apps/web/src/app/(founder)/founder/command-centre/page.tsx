@@ -25,6 +25,7 @@ import { ActionQueueTile } from './ActionQueueTile'
 import { BlockedLanesTile } from './BlockedLanesTile'
 import { InProgressPRsTile } from './InProgressPRsTile'
 import { RepoCampaignsTile } from '@/components/command-center/repo-campaigns/RepoCampaignsTile'
+import { ProviderAccountsTile } from '@/components/command-center/provider-accounts/ProviderAccountsTile'
 import { ProjectIntegrationWorkPacketControl } from './ProjectIntegrationWorkPacketControl'
 import styles from './command-deck.module.css'
 
@@ -196,6 +197,11 @@ export default async function CommandDeckPage() {
       {/* Live "campaigns" view — repos with open PRs / recent commits = agents at work. */}
       <section className={`${styles.reveal}`} style={{ animationDelay: '0.07s' }}>
         <RepoCampaignsTile />
+      </section>
+
+      {/* The LLM provider pool — register plans, see live routing state. */}
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.08s' }}>
+        <ProviderAccountsTile />
       </section>
 
       <section className={styles.panelGrid}>
