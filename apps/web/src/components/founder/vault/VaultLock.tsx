@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Lock, KeyRound, Eye, EyeOff } from 'lucide-react'
 import { verifyVaultPassword, resetVaultPassword } from '@/lib/vault-password'
+import { PasswordField } from './PasswordField'
 
 interface VaultLockProps { onUnlock: () => void }
 
