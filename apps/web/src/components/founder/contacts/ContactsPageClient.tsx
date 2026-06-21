@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Users } from 'lucide-react'
 import type { Contact } from '@/types/database'
 import { ContactsTable } from './ContactsTable'
@@ -18,6 +18,7 @@ export function ContactsPageClient() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [showModal, setShowModal] = useState(false)
   const [editingContact, setEditingContact] = useState<Contact | null>(null)
+  const deletingRef = useRef<Set<string>>(new Set())
 
   const fetchContacts = useCallback(async () => {
     setLoading(true)
@@ -76,6 +77,10 @@ export function ContactsPageClient() {
   }
 
   async function handleDelete(id: string) {
+    // In-flight guard (audit 4.3): a fast double-click must not fire duplicate
+    // DELETE requests for the same contact.
+    if (deletingRef.current.has(id)) return
+    deletingRef.current.add(id)
     try {
       const res = await fetch(`/api/contacts/${id}`, { method: 'DELETE' })
       if (res.ok) {
@@ -83,6 +88,8 @@ export function ContactsPageClient() {
       }
     } catch {
       // Silently handle
+    } finally {
+      deletingRef.current.delete(id)
     }
   }
 
