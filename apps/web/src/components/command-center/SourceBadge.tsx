@@ -29,9 +29,9 @@ const MODE_LABEL: Record<SourceMode, string> = {
 }
 
 function colorFor(mode: SourceMode): string {
-  if (mode === 'live') return 'var(--cc-ink)'
-  if (mode === 'degraded') return 'var(--cc-signal)'
-  return 'var(--cc-ink-hush)'
+  if (mode === 'live') return 'var(--cc-ink, #cfe0ec)'
+  if (mode === 'degraded') return 'var(--cc-signal, #f87171)'
+  return 'var(--cc-ink-hush, rgba(207,224,236,0.45))'
 }
 
 function formatTimestamp(iso: string): string | null {
@@ -52,7 +52,7 @@ export function SourceBadge({ mode, label, lastUpdatedAt }: SourceBadgeProps) {
     <span
       data-source-mode={mode}
       className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em]"
-      style={{ color: 'var(--cc-ink-hush)' }}
+      style={{ color: 'var(--cc-ink-hush, rgba(207,224,236,0.45))' }}
       aria-label={`Source: ${MODE_LABEL[mode]}. ${label}${stamp ? `. Updated ${stamp}.` : ''}`}
     >
       <span
@@ -67,11 +67,11 @@ export function SourceBadge({ mode, label, lastUpdatedAt }: SourceBadgeProps) {
       />
       <span style={{ color }}>{MODE_LABEL[mode]}</span>
       <span>·</span>
-      <span style={{ color: 'var(--cc-ink-dim)' }}>{label}</span>
+      <span style={{ color: 'var(--cc-ink-dim, #6f879b)' }}>{label}</span>
       {stamp && (
         <>
           <span>·</span>
-          <span style={{ color: 'var(--cc-ink-hush)' }}>{stamp}</span>
+          <span style={{ color: 'var(--cc-ink-hush, rgba(207,224,236,0.45))' }}>{stamp}</span>
         </>
       )}
     </span>
