@@ -217,7 +217,7 @@ export function BrandScanner({ onScanComplete }: BrandScannerProps) {
   }, [result, onScanComplete])
 
   return (
-    <div className="bg-[#0a0a0a] border border-white/[0.06] rounded-sm p-6 flex flex-col gap-5">
+    <div className="bg-[#fff7ec] border border-white/[0.06] rounded-sm p-6 flex flex-col gap-5">
       {/* Header */}
       <div className="flex flex-col gap-1">
         <h2 className="text-[15px] font-semibold text-white tracking-tight">

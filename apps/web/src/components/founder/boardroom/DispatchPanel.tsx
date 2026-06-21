@@ -154,7 +154,7 @@ export function DispatchPanel() {
         <button
           onClick={() => setShowForm(v => !v)}
           className="ml-auto flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-sm"
-          style={{ background: '#00F5FF', color: '#050505' }}
+          style={{ background: '#00F5FF', color: '#fffdf7' }}
         >
           <Plus size={11} />
           Dispatch Work
@@ -245,7 +245,7 @@ export function DispatchPanel() {
               onClick={() => void handleDispatch()}
               disabled={!form.title.trim() || submitting}
               className="flex items-center gap-1.5 px-4 h-8 rounded-sm text-[12px] font-medium disabled:opacity-40"
-              style={{ background: '#00F5FF', color: '#050505' }}
+              style={{ background: '#00F5FF', color: '#fffdf7' }}
             >
               <Send size={11} />
               {submitting ? 'Dispatching…' : 'Dispatch to Linear'}

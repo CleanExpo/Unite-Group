@@ -28,13 +28,13 @@
 
     /* Unite-Hub Theme (Deep Slate Dark) */
     --unite-bg-primary: #050505;
-    --unite-bg-surface: #111111;
+    --unite-bg-surface: #ffffff;
     --unite-accent: #3b82f6;
     --unite-status-ok: #10b981;
 
     /* Synthex Theme (Midnight Neon) */
     --synthex-bg-primary: #000000;
-    --synthex-bg-surface: #0a0a0a;
+    --synthex-bg-surface: #fff7ec;
     --synthex-accent: #a855f7;
     --synthex-agent-active: #f472b6;
 
@@ -61,12 +61,12 @@
     --radius: 0.5rem;
 
     /* Nexus 2.0 — Surface Stack */
-    --surface-canvas:    #050505;
-    --surface-sidebar:   #0d0d0d;
-    --surface-card:      #111111;
-    --surface-elevated:  #161616;
-    --surface-overlay:   #1f1f1f;
-    --surface-selected:  #2a2a2a;
+    --surface-canvas:    #fffdf7;
+    --surface-sidebar:   #fffdf7;
+    --surface-card:      #ffffff;
+    --surface-elevated:  #ffffff;
+    --surface-overlay:   #f3f3ee;
+    --surface-selected:  #ebebe6;
 
     /* Colour Tokens */
     --color-accent:         #00F5FF;
@@ -132,8 +132,8 @@
     color-scheme: light;
 
     /* Surface stack */
-    --surface-canvas:   #FAFAFA;
-    --surface-sidebar:  #F4F4F5;
+    --surface-canvas:   #FFFDF7;
+    --surface-sidebar:  #F6F3EC;
     --surface-card:     #FFFFFF;
     --surface-elevated: #FFFFFF;
     --surface-overlay:  #E4E4E7;
@@ -264,7 +264,7 @@
 
   /* Bento Tile — no box-shadow (elevation via surface lightness only) */
   .bento-tile {
-    background: var(--bg-surface, #111111);
+    background: var(--bg-surface, #ffffff);
     border: var(--border-style);
     border-radius: var(--radius-bento);
     transition: all 0.3s ease;

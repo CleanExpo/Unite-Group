@@ -6,7 +6,7 @@ export default function Loading() {
         <div className="h-3 w-64 bg-white/[0.06] rounded-sm animate-pulse" />
       </div>
       <div className="flex flex-col gap-4 max-w-3xl">
-        <div className="bg-[#0a0a0a] border border-white/[0.06] rounded-sm p-6 flex flex-col gap-4">
+        <div className="bg-[#fff7ec] border border-white/[0.06] rounded-sm p-6 flex flex-col gap-4">
           <div className="h-5 w-1/2 bg-white/[0.06] rounded-sm animate-pulse" />
           <div className="flex flex-col gap-3">
             {[0, 1, 2, 3, 4].map((i) => (
@@ -14,7 +14,7 @@ export default function Loading() {
             ))}
           </div>
         </div>
-        <div className="bg-[#0a0a0a] border border-white/[0.06] rounded-sm p-6 flex flex-col gap-4">
+        <div className="bg-[#fff7ec] border border-white/[0.06] rounded-sm p-6 flex flex-col gap-4">
           <div className="h-4 w-1/3 bg-white/[0.06] rounded-sm animate-pulse" />
           <div className="flex flex-col gap-3">
             {[0, 1, 2].map((i) => (

@@ -146,7 +146,7 @@ export function NotificationBell() {
             top: 'calc(100% + 8px)',
             right: 0,
             width: 320,
-            background: '#050505',
+            background: '#fffdf7',
             border: '1px solid var(--color-border)',
             borderRadius: '2px',
             zIndex: 1000,

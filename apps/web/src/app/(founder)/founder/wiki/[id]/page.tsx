@@ -35,7 +35,7 @@ export default async function WikiPageDetail({
   if (!page) notFound()
 
   return (
-    <div className="p-6 flex flex-col gap-6" style={{ background: '#050505', minHeight: '100vh' }}>
+    <div className="p-6 flex flex-col gap-6" style={{ background: '#fffdf7', minHeight: '100vh' }}>
       <div className="flex flex-col gap-2">
         <Link
           href="/founder/wiki"

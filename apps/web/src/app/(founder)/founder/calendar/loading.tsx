@@ -5,7 +5,7 @@ export default function Loading() {
         <div className="h-5 w-48 bg-white/[0.06] rounded-sm animate-pulse" />
         <div className="h-3 w-64 bg-white/[0.06] rounded-sm animate-pulse" />
       </div>
-      <div className="bg-[#0a0a0a] border border-white/[0.06] rounded-sm p-4">
+      <div className="bg-[#fff7ec] border border-white/[0.06] rounded-sm p-4">
         <div className="flex justify-between items-center mb-4">
           <div className="h-5 w-32 bg-white/[0.06] rounded-sm animate-pulse" />
           <div className="flex gap-2">

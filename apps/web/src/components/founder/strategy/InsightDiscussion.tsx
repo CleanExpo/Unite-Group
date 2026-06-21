@@ -104,7 +104,7 @@ export function InsightDiscussion({ insightId }: InsightDiscussionProps) {
           onClick={submit}
           disabled={!text.trim() || submitting}
           className="px-3 rounded-sm flex items-center transition-colors disabled:opacity-40"
-          style={{ background: '#00F5FF', color: '#050505' }}
+          style={{ background: '#00F5FF', color: '#fffdf7' }}
           aria-label="Send note"
         >
           <Send size={13} />

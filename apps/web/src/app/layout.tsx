@@ -19,7 +19,7 @@ export default async function RootLayout({
   const nonce = (await headers()).get('x-nonce') ?? '';
 
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable} light`} suppressHydrationWarning>
       <body nonce={nonce} suppressHydrationWarning>
         <ThemeProvider>{children}</ThemeProvider>
         <Analytics />

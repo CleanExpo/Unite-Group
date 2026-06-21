@@ -239,7 +239,7 @@ export function StrategyRoomClient() {
         onClick={analyze}
         disabled={!prompt.trim() || loading}
         className="flex items-center gap-2 px-4 h-9 rounded-sm text-[13px] font-medium transition-colors disabled:opacity-40"
-        style={{ background: '#00F5FF', color: '#050505' }}
+        style={{ background: '#00F5FF', color: '#fffdf7' }}
       >
         {researchMode ? <Globe size={14} /> : <Brain size={14} />}
         {buttonLabel}

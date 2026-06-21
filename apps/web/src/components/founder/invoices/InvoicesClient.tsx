@@ -259,7 +259,7 @@ function CreateInvoicePanel({
         onClick={handleSubmit}
         disabled={saving}
         className="flex items-center gap-2 px-4 py-2 rounded-sm text-[12px] font-medium transition-opacity disabled:opacity-50"
-        style={{ background: '#00F5FF', color: '#050505' }}
+        style={{ background: '#00F5FF', color: '#fffdf7' }}
       >
         {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
         {saving ? 'Creating…' : 'Create Draft Invoice'}
@@ -438,7 +438,7 @@ export function InvoicesClient() {
           <button
             onClick={() => setShowCreate((v) => !v)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[12px] font-medium transition-all"
-            style={{ background: '#00F5FF', color: '#050505' }}
+            style={{ background: '#00F5FF', color: '#fffdf7' }}
           >
             <Plus size={13} />
             New Invoice

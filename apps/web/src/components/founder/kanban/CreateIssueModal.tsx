@@ -97,7 +97,7 @@ export function CreateIssueModal({ open, onClose, onCreated }: CreateIssueModalP
           <motion.div
             className="relative w-full max-w-md mx-4 rounded-sm"
             style={{
-              background: '#0a0a0a',
+              background: '#fff7ec',
               border: '1px solid rgba(0, 245, 255, 0.15)',
             }}
             initial={{ y: 40, opacity: 0 }}
@@ -140,7 +140,7 @@ export function CreateIssueModal({ open, onClose, onCreated }: CreateIssueModalP
                   required
                   className="rounded-sm px-3 py-2 text-[13px] outline-none transition-colors"
                   style={{
-                    background: '#050505',
+                    background: '#fffdf7',
                     border: '1px solid rgba(255, 255, 255, 0.08)',
                     color: '#e2e8f0',
                   }}
@@ -161,7 +161,7 @@ export function CreateIssueModal({ open, onClose, onCreated }: CreateIssueModalP
                   rows={3}
                   className="rounded-sm px-3 py-2 text-[13px] outline-none resize-none transition-colors"
                   style={{
-                    background: '#050505',
+                    background: '#fffdf7',
                     border: '1px solid rgba(255, 255, 255, 0.08)',
                     color: '#e2e8f0',
                   }}
@@ -183,7 +183,7 @@ export function CreateIssueModal({ open, onClose, onCreated }: CreateIssueModalP
                       onChange={(e) => setBusinessKey(e.target.value)}
                       className="w-full rounded-sm pl-7 pr-3 py-2 text-[13px] outline-none appearance-none transition-colors"
                       style={{
-                        background: '#050505',
+                        background: '#fffdf7',
                         border: '1px solid rgba(255, 255, 255, 0.08)',
                         color: '#e2e8f0',
                       }}
@@ -216,7 +216,7 @@ export function CreateIssueModal({ open, onClose, onCreated }: CreateIssueModalP
                     onChange={(e) => setPriority(Number(e.target.value))}
                     className="w-full rounded-sm px-3 py-2 text-[13px] outline-none appearance-none transition-colors"
                     style={{
-                      background: '#050505',
+                      background: '#fffdf7',
                       border: '1px solid rgba(255, 255, 255, 0.08)',
                       color: '#e2e8f0',
                     }}

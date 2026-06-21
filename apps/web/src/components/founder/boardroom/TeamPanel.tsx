@@ -89,7 +89,7 @@ export function TeamPanel() {
         <button
           onClick={() => setShowForm((v) => !v)}
           className="flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-sm"
-          style={{ background: '#00F5FF', color: '#050505' }}
+          style={{ background: '#00F5FF', color: '#fffdf7' }}
         >
           <Plus size={11} />
           Add Member
@@ -145,7 +145,7 @@ export function TeamPanel() {
               onClick={() => void addMember()}
               disabled={!form.name.trim() || submitting}
               className="px-4 h-8 rounded-sm text-[12px] font-medium disabled:opacity-40"
-              style={{ background: '#00F5FF', color: '#050505' }}
+              style={{ background: '#00F5FF', color: '#fffdf7' }}
             >
               Add to Team
             </button>

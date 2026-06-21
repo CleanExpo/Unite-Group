@@ -107,7 +107,7 @@ export function SettingsPageClient() {
           <div className="flex items-center gap-3 mb-4">
             <div
               className="w-9 h-9 rounded-sm flex items-center justify-center shrink-0"
-              style={{ background: '#00F5FF', color: '#050505' }}
+              style={{ background: '#00F5FF', color: '#fffdf7' }}
             >
               <User size={16} strokeWidth={1.75} />
             </div>

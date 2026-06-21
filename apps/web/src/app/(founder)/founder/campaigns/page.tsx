@@ -85,7 +85,7 @@ function CampaignCard({ campaign }: CampaignCardProps) {
       className="block group"
     >
       <div
-        className="rounded-sm border border-white/[0.06] bg-[#0a0a0a] p-5 flex flex-col gap-3 transition-colors duration-150 hover:border-[#00F5FF]/30 hover:bg-[#00F5FF]/[0.02]"
+        className="rounded-sm border border-white/[0.06] bg-[#fff7ec] p-5 flex flex-col gap-3 transition-colors duration-150 hover:border-[#00F5FF]/30 hover:bg-[#00F5FF]/[0.02]"
       >
         {/* Theme + status row */}
         <div className="flex items-start justify-between gap-3">

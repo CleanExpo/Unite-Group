@@ -193,7 +193,7 @@ export function MFAGate({ businessKey, businessName, onCancel }: MFAGateProps) {
   // ── Shared styles ─────────────────────────────────────────────────────────
 
   const inputCls =
-    'w-full bg-[#0d0d0d] border border-white/[0.12] px-3 py-2.5 text-sm outline-none focus:border-[#00F5FF]/40 rounded-sm tracking-[0.25em] font-mono text-center'
+    'w-full bg-[#fffdf7] border border-white/[0.12] px-3 py-2.5 text-sm outline-none focus:border-[#00F5FF]/40 rounded-sm tracking-[0.25em] font-mono text-center'
 
   // Explicit inline styles defeat browser autofill overrides (white-on-white bug)
   const inputStyle: React.CSSProperties = {
