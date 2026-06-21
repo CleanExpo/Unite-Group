@@ -40,7 +40,7 @@ function CampaignRow({ c }: { c: CampaignEntry }) {
         </span>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, color: 'rgba(207,224,236,0.45)', fontSize: 11 }}>
-        <span>{c.repo ?? c.purpose}</span>
+        <span>{c.repo ? <a href={`https://github.com/${c.repo}`} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>{c.repo}</a> : c.purpose}</span>
         <span>{c.openPRs !== null ? `${c.openPRs} open PR${c.openPRs === 1 ? '' : 's'}` : (c.detail ?? '')}</span>
       </div>
     </div>

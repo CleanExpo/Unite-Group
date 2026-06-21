@@ -125,7 +125,7 @@ export default async function CommandDeckPage() {
       {/* Clean 1-2-3 front. The dense console moves into "System detail" below. */}
       <CommandSteps />
 
-      <details className={styles.systemDetail}>
+      <details id="system-detail" className={styles.systemDetail}>
         <summary className={styles.systemSummary}>System detail — providers, repos, agents &amp; logs</summary>
 
       {/* ── Status strip ─────────────────────────────────────────────── */}
