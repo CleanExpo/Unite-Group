@@ -1,0 +1,73 @@
+/* Clean 1-2-3 hero for the Command Centre — light, uncluttered, green + orange.
+   Deliberately NOT the dense console look: generous whitespace, clear steps. */
+
+.hero { margin: 0 0 1.75rem; }
+
+.kicker {
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #2f9e44;
+  font-weight: 600;
+  margin: 0 0 0.45rem;
+}
+.title {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #14241b;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.sub {
+  font-size: 0.98rem;
+  line-height: 1.5;
+  color: #5a6b62;
+  margin: 0.5rem 0 0;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.9rem;
+  margin-top: 1.4rem;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid rgba(45, 187, 87, 0.16);
+  border-top: 3px solid var(--accent, #37b24d);
+  border-radius: 16px;
+  padding: 1.2rem 1.25rem 1.3rem;
+  box-shadow: 0 4px 16px rgba(45, 120, 70, 0.07);
+}
+
+.num {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: var(--numbg, #e7f7ec);
+  color: var(--numfg, #2b8a3e);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 0.85rem;
+}
+
+.cardTitle {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #14241b;
+  margin: 0 0 0.35rem;
+}
+.cardText {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #5a6b62;
+  margin: 0;
+}
+
+.note {
+  margin-top: 1.1rem;
+  display: flex; align-items: center; gap: 0.5rem;
+  font-size: 0.82rem;
+  color: #8a978f;
+}
