@@ -23,11 +23,11 @@ interface VaultEntry { id: string; label: string; service: string }
 const PROVIDERS = ['claude', 'openai', 'minimax', 'gemini', 'openrouter'] as const
 
 function stateColor(state: string, usable: boolean): string {
-  if (state === 'available') return 'var(--cc-ink)'
-  if (state === 'watching') return 'var(--cc-ink-dim)'
-  if (state === 'near_limit' || state === 'blocked') return 'var(--cc-signal)'
-  if (usable) return 'var(--cc-ink)'
-  return 'var(--cc-ink-hush)'
+  if (state === 'available') return 'var(--deck-text)'
+  if (state === 'watching') return 'var(--deck-muted)'
+  if (state === 'near_limit' || state === 'blocked') return 'var(--deck-abort)'
+  if (usable) return 'var(--deck-text)'
+  return 'rgba(207,224,236,0.45)'
 }
 
 export function ProviderAccountsTile() {
@@ -94,25 +94,25 @@ export function ProviderAccountsTile() {
   }
 
   const mode: SourceMode = loading ? 'loading' : error ? 'degraded' : 'live'
-  const inputStyle = { background: 'transparent', border: '1px solid var(--cc-line, rgba(255,255,255,0.12))', color: 'var(--cc-ink)', borderRadius: 2, padding: '4px 6px', fontSize: 12 }
+  const inputStyle = { background: 'transparent', border: '1px solid var(--deck-line)', color: 'var(--deck-text)', borderRadius: 2, padding: '4px 6px', fontSize: 12 }
 
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h3 style={{ color: 'var(--cc-ink)', fontSize: 14, fontWeight: 700, margin: 0 }}>Provider accounts — LLM pool</h3>
+        <h3 style={{ color: 'var(--deck-text)', fontSize: 14, fontWeight: 700, margin: 0 }}>Provider accounts — LLM pool</h3>
         <SourceBadge mode={mode} label="Accounts" />
       </div>
 
       {accounts.length === 0 && !loading && (
-        <p style={{ color: 'var(--cc-ink-hush)', fontSize: 12, margin: 0 }}>
+        <p style={{ color: 'rgba(207,224,236,0.45)', fontSize: 12, margin: 0 }}>
           No provider accounts yet. Add a vault entry for each key, then register it below — the router pools across them.
         </p>
       )}
 
       <div>
         {accounts.map((a) => (
-          <div key={a.accountId} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--cc-line, rgba(255,255,255,0.06))', fontSize: 12 }}>
-            <span style={{ color: 'var(--cc-ink)' }}>{a.label} <span style={{ color: 'var(--cc-ink-hush)' }}>· {a.provider} · {a.planKind}</span></span>
+          <div key={a.accountId} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--deck-line)', fontSize: 12 }}>
+            <span style={{ color: 'var(--deck-text)' }}>{a.label} <span style={{ color: 'rgba(207,224,236,0.45)' }}>· {a.provider} · {a.planKind}</span></span>
             <span data-testid={`account-state-${a.accountId}`} style={{ color: stateColor(a.state, a.usable), textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: 11 }}>
               {a.prepaidExhausted ? 'exhausted' : a.coolingUntil ? 'cooling' : a.state}
             </span>
@@ -120,7 +120,7 @@ export function ProviderAccountsTile() {
         ))}
       </div>
 
-      {error && <p style={{ color: 'var(--cc-signal)', fontSize: 12, margin: 0 }}>{error}</p>}
+      {error && <p style={{ color: 'var(--deck-abort)', fontSize: 12, margin: 0 }}>{error}</p>}
 
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginTop: 4 }}>
         <select value={form.provider} onChange={(e) => setForm({ ...form, provider: e.target.value })} style={inputStyle}>
@@ -131,14 +131,14 @@ export function ProviderAccountsTile() {
           <option value="">— use env var key —</option>
           {vault.map((v) => <option key={v.id} value={v.id}>{v.label} ({v.service})</option>)}
         </select>
-        <button onClick={addAccount} disabled={saving} style={{ ...inputStyle, cursor: 'pointer', color: 'var(--cc-ink)' }}>
+        <button onClick={addAccount} disabled={saving} style={{ ...inputStyle, cursor: 'pointer', color: 'var(--deck-text)' }}>
           {saving ? 'adding…' : 'add account'}
         </button>
-        <button onClick={testPool} disabled={testing || accounts.length === 0} style={{ ...inputStyle, cursor: 'pointer', color: 'var(--cc-ink)' }}>
+        <button onClick={testPool} disabled={testing || accounts.length === 0} style={{ ...inputStyle, cursor: 'pointer', color: 'var(--deck-text)' }}>
           {testing ? 'testing…' : 'test the pool'}
         </button>
       </div>
-      {testResult && <p style={{ color: 'var(--cc-ink-dim)', fontSize: 12, margin: 0 }}>{testResult}</p>}
+      {testResult && <p style={{ color: 'var(--deck-muted)', fontSize: 12, margin: 0 }}>{testResult}</p>}
     </section>
   )
 }
