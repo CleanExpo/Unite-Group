@@ -19,8 +19,8 @@ export function Breadcrumbs() {
   if (segments.length === 0) return null
 
   return (
-    <nav aria-label="Breadcrumb" className="text-xs text-slate-500 flex items-center gap-1">
-      <Link href="/dashboard/overview" className="hover:text-slate-300 transition-colors">
+    <nav aria-label="Breadcrumb" className="text-xs text-[#52525b] flex items-center gap-1">
+      <Link href="/dashboard/overview" className="hover:text-[#52525b] transition-colors">
         Dashboard
       </Link>
       {segments.map((segment, index) => {
@@ -30,9 +30,9 @@ export function Breadcrumbs() {
           <span key={href} className="flex items-center gap-1">
             <span aria-hidden="true">/</span>
             {isLast ? (
-              <span className="text-slate-300">{labelFor(segment)}</span>
+              <span className="text-[#52525b]">{labelFor(segment)}</span>
             ) : (
-              <Link href={href} className="hover:text-slate-300 transition-colors">
+              <Link href={href} className="hover:text-[#52525b] transition-colors">
                 {labelFor(segment)}
               </Link>
             )}

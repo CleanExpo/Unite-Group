@@ -186,7 +186,7 @@ export function EmailWorkbench({ accounts }: Props) {
       ) : (
         <div className="flex flex-col flex-1 min-h-0 border border-white/[0.08] rounded-sm overflow-hidden">
           {/* Account tabs */}
-          <div className="px-4 pt-3 pb-0 bg-zinc-950">
+          <div className="px-4 pt-3 pb-0 bg-[var(--surface-sidebar)]">
             <AccountTabs
               accounts={unreadCounts}
               activeAccount={activeAccount}

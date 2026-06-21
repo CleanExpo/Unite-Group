@@ -63,7 +63,7 @@ export function ImapConnectForm({ email, label }: Props) {
         onChange={e => setPassword(e.target.value)}
         required
         autoFocus
-        className="bg-zinc-900 border border-zinc-700 rounded-sm px-2 py-1 text-xs text-white placeholder-zinc-500 focus:border-[#16a34a] focus:outline-none"
+        className="bg-[var(--surface-card)] border border-[var(--color-border)] rounded-sm px-2 py-1 text-xs text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:border-[#16a34a] focus:outline-none"
       />
       {error && <p className="text-red-700 text-xs">{error}</p>}
       <div className="flex gap-2">
@@ -77,7 +77,7 @@ export function ImapConnectForm({ email, label }: Props) {
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="text-xs text-zinc-500 hover:text-zinc-300"
+          className="text-xs text-[#52525b] hover:text-[#52525b]"
         >
           Cancel
         </button>

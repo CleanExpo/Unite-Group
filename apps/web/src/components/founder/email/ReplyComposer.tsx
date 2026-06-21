@@ -63,7 +63,7 @@ export function ReplyComposer({ threadId, account, defaultTo, defaultSubject, in
         placeholder="Write your reply…"
         rows={5}
         autoFocus
-        className="w-full bg-zinc-900 border border-zinc-700 rounded-sm px-3 py-2 text-sm text-white placeholder-zinc-500 focus:border-[#16a34a] focus:outline-none resize-none"
+        className="w-full bg-[var(--surface-card)] border border-[var(--color-border)] rounded-sm px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:border-[#16a34a] focus:outline-none resize-none"
       />
       {error && <p className="text-red-700 text-xs">{error}</p>}
       <div className="flex justify-end">
