@@ -33,7 +33,7 @@ export default async function EmailPage({
       )}
 
       {params.error && (
-        <div className="border border-red-500/30 bg-red-500/5 px-4 py-3 rounded-sm text-sm text-red-400">
+        <div className="border border-red-500/30 bg-red-500/5 px-4 py-3 rounded-sm text-sm text-red-700">
           Connection failed: {params.error}
         </div>
       )}
@@ -46,7 +46,7 @@ export default async function EmailPage({
 
       {configured && accounts.length === 0 && (
         <div className="border border-white/[0.06] px-4 py-8 rounded-sm text-center">
-          <p className="text-sm text-[#71717a] mb-3">No Gmail accounts connected</p>
+          <p className="text-sm text-[#5f5f66] mb-3">No Gmail accounts connected</p>
           <p className="text-xs text-[#6b6b6b]">
             Connect accounts via Settings → Integrations → Google
           </p>

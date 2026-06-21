@@ -65,7 +65,7 @@ export function ImapConnectForm({ email, label }: Props) {
         autoFocus
         className="bg-zinc-900 border border-zinc-700 rounded-sm px-2 py-1 text-xs text-white placeholder-zinc-500 focus:border-[#16a34a] focus:outline-none"
       />
-      {error && <p className="text-red-400 text-xs">{error}</p>}
+      {error && <p className="text-red-700 text-xs">{error}</p>}
       <div className="flex gap-2">
         <button
           type="submit"

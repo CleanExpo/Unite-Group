@@ -50,11 +50,11 @@ export function ApprovalQueue({ items }: { items: ApprovalItem[] }) {
               </span>
             </div>
             {item.description && (
-              <p className="text-[11px] text-[#71717a] line-clamp-2">{item.description}</p>
+              <p className="text-[11px] text-[#5f5f66] line-clamp-2">{item.description}</p>
             )}
           </div>
           <time
-            className="text-[11px] text-[#71717a] shrink-0 pt-0.5"
+            className="text-[11px] text-[#5f5f66] shrink-0 pt-0.5"
             dateTime={item.created_at}
           >
             {formatDate(item.created_at)}

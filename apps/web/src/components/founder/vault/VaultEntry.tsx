@@ -102,7 +102,7 @@ export function VaultEntry({ id, label, username, businessColor, onDelete }: Vau
         <button
           onClick={handleDelete}
           disabled={deleting}
-          className="transition-colors hover:text-red-400 disabled:opacity-40"
+          className="transition-colors hover:text-red-700 disabled:opacity-40"
           style={{ color: 'var(--color-text-muted)' }}
           aria-label="Delete"
         >

@@ -50,10 +50,10 @@ export function ReplyComposer({ threadId, account, defaultTo, defaultSubject, in
   return (
     <div className="border-t border-white/[0.06] p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-[#71717a]">
+        <p className="text-xs text-[#5f5f66]">
           Reply to <span className="text-[#52525b]">{defaultTo}</span>
         </p>
-        <button onClick={onCancel} className="text-xs text-[#71717a] hover:text-[#52525b] transition-colors">
+        <button onClick={onCancel} className="text-xs text-[#5f5f66] hover:text-[#52525b] transition-colors">
           Cancel
         </button>
       </div>
@@ -65,7 +65,7 @@ export function ReplyComposer({ threadId, account, defaultTo, defaultSubject, in
         autoFocus
         className="w-full bg-zinc-900 border border-zinc-700 rounded-sm px-3 py-2 text-sm text-white placeholder-zinc-500 focus:border-[#16a34a] focus:outline-none resize-none"
       />
-      {error && <p className="text-red-400 text-xs">{error}</p>}
+      {error && <p className="text-red-700 text-xs">{error}</p>}
       <div className="flex justify-end">
         <button
           onClick={handleSend}

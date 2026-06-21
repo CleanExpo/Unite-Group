@@ -42,7 +42,7 @@ export function BulkActionBar({ selectedCount, onArchive, onDelete, onMarkRead, 
       <button
         onClick={onDelete}
         disabled={loading}
-        className="text-xs text-red-400 hover:text-red-300 transition-colors disabled:opacity-40"
+        className="text-xs text-red-700 hover:text-red-700 transition-colors disabled:opacity-40"
       >
         Delete All
       </button>

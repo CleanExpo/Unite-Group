@@ -249,7 +249,7 @@ export function AIAnalysisTab() {
 
       {/* Error */}
       {error && (
-        <p className="text-sm text-red-400/80">{error}</p>
+        <p className="text-sm text-red-700/80">{error}</p>
       )}
 
       {/* Direct mode results */}

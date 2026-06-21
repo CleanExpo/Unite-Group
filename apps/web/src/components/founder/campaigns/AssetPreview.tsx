@@ -14,11 +14,11 @@ interface AssetPreviewProps {
 }
 
 const PLATFORM_BADGE: Record<SocialPlatform, string> = {
-  instagram: 'bg-pink-500/20 text-pink-400',
-  facebook:  'bg-blue-500/20 text-blue-400',
-  linkedin:  'bg-sky-600/20 text-sky-400',
+  instagram: 'bg-pink-500/20 text-pink-700',
+  facebook:  'bg-blue-500/20 text-blue-700',
+  linkedin:  'bg-sky-600/20 text-sky-700',
   tiktok:    'bg-white/10 text-[#3f3f46]',
-  youtube:   'bg-red-500/20 text-red-400',
+  youtube:   'bg-red-500/20 text-red-700',
 }
 
 const PLATFORM_LABEL: Record<SocialPlatform, string> = {
@@ -30,11 +30,11 @@ const PLATFORM_LABEL: Record<SocialPlatform, string> = {
 }
 
 const STATUS_BADGE: Record<CampaignAsset['status'], string> = {
-  pending_image:    'bg-amber-500/20 text-amber-400',
-  generating_image: 'bg-cyan-500/20 text-cyan-400 animate-pulse',
-  ready:            'bg-green-500/20 text-green-400',
-  review:           'bg-amber-500/20 text-amber-400',
-  published:        'bg-blue-500/20 text-blue-400',
+  pending_image:    'bg-amber-500/20 text-amber-700',
+  generating_image: 'bg-cyan-500/20 text-cyan-700 animate-pulse',
+  ready:            'bg-green-500/20 text-green-700',
+  review:           'bg-amber-500/20 text-amber-700',
+  published:        'bg-blue-500/20 text-blue-700',
 }
 
 const STATUS_LABEL: Record<CampaignAsset['status'], string> = {
@@ -47,10 +47,10 @@ const STATUS_LABEL: Record<CampaignAsset['status'], string> = {
 
 const VISUAL_TYPE_BADGE: Record<VisualType, string> = {
   photo:        'bg-white/5 text-[#52525b]',
-  infographic:  'bg-violet-500/20 text-violet-400',
-  diagram:      'bg-emerald-500/20 text-emerald-400',
-  data_viz:     'bg-sky-500/20 text-sky-400',
-  process_flow: 'bg-amber-500/20 text-amber-400',
+  infographic:  'bg-violet-500/20 text-violet-700',
+  diagram:      'bg-emerald-500/20 text-emerald-700',
+  data_viz:     'bg-sky-500/20 text-sky-700',
+  process_flow: 'bg-amber-500/20 text-amber-700',
 }
 
 const VISUAL_TYPE_LABEL: Record<VisualType, string> = {
@@ -63,8 +63,8 @@ const VISUAL_TYPE_LABEL: Record<VisualType, string> = {
 
 function QualityScorePill({ score }: { score: number }) {
   const colour = score >= 70
-    ? 'bg-green-500/20 text-green-400'
-    : 'bg-amber-500/20 text-amber-400'
+    ? 'bg-green-500/20 text-green-700'
+    : 'bg-amber-500/20 text-amber-700'
   return (
     <span className={`text-xs font-mono px-1.5 py-0.5 rounded-sm ${colour}`}>
       Q:{score}
@@ -154,7 +154,7 @@ export function AssetPreview({ asset, businessKey, onPublished, onRegenerateImag
         />
       ) : (
         <div className="w-full aspect-square bg-white/[0.03] border border-white/[0.06] rounded-sm flex items-center justify-center">
-          <span className="text-[#71717a] text-sm">
+          <span className="text-[#5f5f66] text-sm">
             {asset.status === 'generating_image' ? 'Image generating…' : 'No image'}
           </span>
         </div>
@@ -175,7 +175,7 @@ export function AssetPreview({ asset, businessKey, onPublished, onRegenerateImag
         {asset.copy.length > 150 && (
           <button
             onClick={() => setExpanded(prev => !prev)}
-            className="text-xs text-[#71717a] hover:text-[#52525b] transition-colors text-left"
+            className="text-xs text-[#5f5f66] hover:text-[#52525b] transition-colors text-left"
           >
             {expanded ? 'Show less' : 'Show more'}
           </button>
@@ -204,7 +204,7 @@ export function AssetPreview({ asset, businessKey, onPublished, onRegenerateImag
       )}
 
       {/* Dimensions + engine */}
-      <p className="font-mono text-[#71717a] text-xs">
+      <p className="font-mono text-[#5f5f66] text-xs">
         {asset.width}×{asset.height}
         {asset.imageEngine && ` · ${asset.imageEngine === 'paper_banana' ? 'PaperBanana' : 'Gemini'}`}
       </p>
@@ -243,7 +243,7 @@ export function AssetPreview({ asset, businessKey, onPublished, onRegenerateImag
 
       {/* Publish error */}
       {publishError && (
-        <p className="text-red-400 text-xs">
+        <p className="text-red-700 text-xs">
           {publishError}
         </p>
       )}

@@ -67,7 +67,7 @@ function ColourSwatch({ colour, label }: ColourSwatchProps) {
         style={{ backgroundColor: colour }}
         title={colour}
       />
-      <span className="text-[10px] font-mono text-[#71717a] uppercase">{label}</span>
+      <span className="text-[10px] font-mono text-[#5f5f66] uppercase">{label}</span>
     </div>
   )
 }
@@ -223,7 +223,7 @@ export function BrandScanner({ onScanComplete }: BrandScannerProps) {
         <h2 className="text-[15px] font-semibold text-[#0A0A0A] tracking-tight">
           Brand Scanner
         </h2>
-        <p className="text-[12px] text-[#71717a]">
+        <p className="text-[12px] text-[#5f5f66]">
           Enter a website URL to extract Brand DNA — colours, tone, audience, and imagery.
         </p>
       </div>
@@ -231,7 +231,7 @@ export function BrandScanner({ onScanComplete }: BrandScannerProps) {
       {/* Inputs */}
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="bs-client-name" className="text-[11px] font-medium uppercase tracking-widest text-[#71717a]">
+          <label htmlFor="bs-client-name" className="text-[11px] font-medium uppercase tracking-widest text-[#5f5f66]">
             Client name
           </label>
           <input
@@ -246,7 +246,7 @@ export function BrandScanner({ onScanComplete }: BrandScannerProps) {
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="bs-website-url" className="text-[11px] font-medium uppercase tracking-widest text-[#71717a]">
+          <label htmlFor="bs-website-url" className="text-[11px] font-medium uppercase tracking-widest text-[#5f5f66]">
             Website URL
           </label>
           <input
@@ -285,13 +285,13 @@ export function BrandScanner({ onScanComplete }: BrandScannerProps) {
       {/* Error state */}
       {scanState === 'error' && (
         <div className="flex items-start justify-between gap-3 bg-red-500/10 border border-red-500/20 rounded-sm px-4 py-3">
-          <p className="text-[12px] text-red-400 flex-1">
+          <p className="text-[12px] text-red-700 flex-1">
             {errorMessage}
           </p>
           <button
             type="button"
             onClick={handleReset}
-            className="shrink-0 text-[11px] font-medium text-[#71717a] hover:text-[#3f3f46] transition-colors duration-100"
+            className="shrink-0 text-[11px] font-medium text-[#5f5f66] hover:text-[#3f3f46] transition-colors duration-100"
           >
             Reset
           </button>

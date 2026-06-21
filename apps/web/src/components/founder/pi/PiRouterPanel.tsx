@@ -181,7 +181,7 @@ export function PiRouterPanel() {
         <Card variant="bordered" padding="lg" className="space-y-5">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-medium uppercase tracking-[0.24em] text-cyan-200/60">Command intake</p>
+              <p className="text-xs font-medium uppercase tracking-[0.24em] text-cyan-700/60">Command intake</p>
               <CardTitle className="mt-2">Route before execution</CardTitle>
               <CardDescription>
                 One founder instruction becomes a task packet, context pack, risk gate, machine assignment, and queue item.
@@ -194,7 +194,7 @@ export function PiRouterPanel() {
             value={message}
             onChange={(event) => setMessage(event.target.value)}
             rows={7}
-            className="border-white/[0.08] bg-black/30 text-[#0A0A0A] placeholder:text-[#71717a]"
+            className="border-white/[0.08] bg-black/30 text-[#0A0A0A] placeholder:text-[#5f5f66]"
             placeholder="Tell Pi what you want built, checked, researched, routed, or approved..."
           />
 
@@ -202,15 +202,15 @@ export function PiRouterPanel() {
             <Button onClick={routeMessage} loading={isRouting} disabled={!message.trim()}>
               Route + queue
             </Button>
-            <span className="text-xs text-[#71717a]">Founder-safe: queue first, execute after evidence path is clear.</span>
+            <span className="text-xs text-[#5f5f66]">Founder-safe: queue first, execute after evidence path is clear.</span>
           </div>
 
-          {error && <div className="rounded-sm border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{error}</div>}
+          {error && <div className="rounded-sm border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700">{error}</div>}
         </Card>
 
         <Card variant="bordered" padding="lg" className="space-y-4">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.24em] text-[#71717a]">Run queue</p>
+            <p className="text-xs font-medium uppercase tracking-[0.24em] text-[#5f5f66]">Run queue</p>
             <CardTitle className="mt-2">Control tower</CardTitle>
             <CardDescription>Select one queued run to inspect context, controls, and evidence.</CardDescription>
           </div>
@@ -236,11 +236,11 @@ export function PiRouterPanel() {
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs uppercase tracking-[0.18em] text-[#71717a]">{item.taskPacket.portfolioTarget}</span>
+                    <span className="text-xs uppercase tracking-[0.18em] text-[#5f5f66]">{item.taskPacket.portfolioTarget}</span>
                     <StatusPill status={item.status} />
                   </div>
                   <div className="mt-2 line-clamp-2 text-sm text-[#3f3f46]">{item.taskPacket.objective}</div>
-                  <div className="mt-3 flex items-center justify-between text-xs text-[#71717a]">
+                  <div className="mt-3 flex items-center justify-between text-xs text-[#5f5f66]">
                     <span>{item.machineAssignment.assignedDeviceName ?? 'Device pending'}</span>
                     <span>{item.receipts.length} receipts</span>
                   </div>
@@ -248,7 +248,7 @@ export function PiRouterPanel() {
               )
             })}
             {queueItems.length === 0 && (
-              <div className="rounded-sm border border-dashed border-white/[0.12] bg-white/[0.02] p-4 text-sm text-[#71717a]">
+              <div className="rounded-sm border border-dashed border-white/[0.12] bg-white/[0.02] p-4 text-sm text-[#5f5f66]">
                 No queued Pi tasks yet. Route a command to create the first operational run.
               </div>
             )}
@@ -262,7 +262,7 @@ export function PiRouterPanel() {
             <Card variant="bordered" padding="lg" className="space-y-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.24em] text-cyan-200/60">Selected run</p>
+                  <p className="text-xs font-medium uppercase tracking-[0.24em] text-cyan-700/60">Selected run</p>
                   <h2 className="mt-2 text-2xl font-semibold leading-tight text-[#0A0A0A]">{activeItem.taskPacket.objective}</h2>
                 </div>
                 <StatusPill status={activeItem.status} />
@@ -281,14 +281,14 @@ export function PiRouterPanel() {
                 <ResultRow label="Role" value={activeItem.machineAssignment.assignedRole ?? 'Unassigned'} />
                 <ResultRow label="Approvals" value={`${activeItem.approvals.length}`} />
                 <ResultRow label="Receipts" value={`${activeItem.receipts.length}`} />
-                <p className="mt-2 text-[11px] leading-5 text-[#71717a]">
+                <p className="mt-2 text-[11px] leading-5 text-[#5f5f66]">
                   Planned routing from a static device registry — device statuses are configured, not live-monitored. No work is dispatched.
                 </p>
               </ResultCard>
 
               <ResultCard title="Next action">
                 <p className="text-sm leading-6 text-[#3f3f46]">{activeItem.contextPack.nextRecommendedAction}</p>
-                <div className="mt-4 rounded-sm border border-white/[0.08] bg-black/20 p-3 font-mono text-xs text-[#71717a]">
+                <div className="mt-4 rounded-sm border border-white/[0.08] bg-black/20 p-3 font-mono text-xs text-[#5f5f66]">
                   {latestReceipt?.id ?? 'receipt pending'}
                 </div>
               </ResultCard>
@@ -311,7 +311,7 @@ export function PiRouterPanel() {
           </>
         ) : (
           <Card variant="bordered" padding="lg" className="flex min-h-[360px] flex-col justify-center border-dashed text-center">
-            <p className="text-xs font-medium uppercase tracking-[0.24em] text-[#71717a]">No selected run</p>
+            <p className="text-xs font-medium uppercase tracking-[0.24em] text-[#5f5f66]">No selected run</p>
             <h2 className="mt-3 text-2xl font-semibold text-[#0A0A0A]">Route or select a task</h2>
             <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[#52525b]">
               The cockpit keeps the queue visible while one selected run exposes task packet, context, machine assignment, and evidence controls.
@@ -324,7 +324,7 @@ export function PiRouterPanel() {
         <Card variant="bordered" padding="lg" className="space-y-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-medium uppercase tracking-[0.24em] text-cyan-200/60">Pi-Dev-Ops workflow</p>
+              <p className="text-xs font-medium uppercase tracking-[0.24em] text-cyan-700/60">Pi-Dev-Ops workflow</p>
               <CardTitle className="mt-2">Senior engineer gate</CardTitle>
               <CardDescription>Dynamic Workflow evidence surfaced before the next build lane moves.</CardDescription>
             </div>
@@ -338,15 +338,15 @@ export function PiRouterPanel() {
               <ResultRow label="Changed files" value={`${workflowState.changedFileCount}`} />
               <ResultRow label="Planner" value={workflowState.modelRoute.planner} />
               <ResultRow label="Challenger" value={workflowState.modelRoute.challenger} />
-              <div className="rounded-sm border border-green-400/20 bg-green-500/10 p-3 text-xs leading-5 text-green-100/80">
+              <div className="rounded-sm border border-green-400/20 bg-green-500/10 p-3 text-xs leading-5 text-green-700/80">
                 {workflowState.verificationSummary}
               </div>
-              <div className="rounded-sm border border-cyan-300/20 bg-cyan-300/[0.06] p-3 text-sm leading-6 text-cyan-50/80">
+              <div className="rounded-sm border border-cyan-300/20 bg-cyan-300/[0.06] p-3 text-sm leading-6 text-cyan-700/80">
                 {workflowState.nextAction}
               </div>
             </div>
           ) : (
-            <div className="rounded-sm border border-dashed border-white/[0.12] p-3 text-sm text-[#71717a]">
+            <div className="rounded-sm border border-dashed border-white/[0.12] p-3 text-sm text-[#5f5f66]">
               Workflow evidence not loaded yet.
             </div>
           )}
@@ -354,7 +354,7 @@ export function PiRouterPanel() {
 
         <Card variant="bordered" padding="lg" className="space-y-4">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.24em] text-[#71717a]">Control rail</p>
+            <p className="text-xs font-medium uppercase tracking-[0.24em] text-[#5f5f66]">Control rail</p>
             <CardTitle className="mt-2">Approvals + evidence</CardTitle>
             <CardDescription>Completion requires evidence. Blocking requires a clear note.</CardDescription>
           </div>
@@ -362,12 +362,12 @@ export function PiRouterPanel() {
           {enforcement && (
             <div className={`rounded-sm border p-3 text-sm leading-6 ${
               enforcement.canOpenNextLane
-                ? 'border-green-400/20 bg-green-500/10 text-green-100/85'
-                : 'border-amber-300/25 bg-amber-400/10 text-amber-100/85'
+                ? 'border-green-400/20 bg-green-500/10 text-green-700/85'
+                : 'border-amber-300/25 bg-amber-400/10 text-amber-700/85'
             }`}>
-              <div className="text-xs font-medium uppercase tracking-[0.18em] text-[#71717a]">Continue-until-complete enforcement</div>
+              <div className="text-xs font-medium uppercase tracking-[0.18em] text-[#5f5f66]">Continue-until-complete enforcement</div>
               <div className="mt-2">{enforcement.requiredAction}</div>
-              <div className="mt-2 font-mono text-xs text-[#71717a]">
+              <div className="mt-2 font-mono text-xs text-[#5f5f66]">
                 open={enforcement.openWorkCount} blocked={enforcement.blockedCount} completed={enforcement.completedCount}
               </div>
             </div>
@@ -413,21 +413,21 @@ export function PiRouterPanel() {
           </div>
           {latestReceipt ? (
             <div className="rounded-sm border border-cyan-300/20 bg-cyan-300/[0.05] p-3">
-              <div className="font-mono text-xs text-cyan-100/80">{latestReceipt.id}</div>
+              <div className="font-mono text-xs text-cyan-700/80">{latestReceipt.id}</div>
               <div className="mt-2 text-sm text-[#3f3f46]">{latestReceipt.note ?? latestReceipt.type ?? 'Receipt recorded'}</div>
-              {latestReceipt.evidenceLink && <div className="mt-2 break-all text-xs text-green-200">{latestReceipt.evidenceLink}</div>}
+              {latestReceipt.evidenceLink && <div className="mt-2 break-all text-xs text-green-700">{latestReceipt.evidenceLink}</div>}
             </div>
           ) : (
-            <div className="rounded-sm border border-dashed border-white/[0.12] p-3 text-sm text-[#71717a]">No receipt selected yet.</div>
+            <div className="rounded-sm border border-dashed border-white/[0.12] p-3 text-sm text-[#5f5f66]">No receipt selected yet.</div>
           )}
 
           {activeItem?.contextPack.evidenceLinks.map((link) => (
-            <div key={link} className="rounded-sm border border-green-500/20 bg-green-500/10 p-3 text-sm text-green-200">
+            <div key={link} className="rounded-sm border border-green-500/20 bg-green-500/10 p-3 text-sm text-green-700">
               Evidence: {link}
             </div>
           ))}
           {activeItem?.blockers.map((blocker) => (
-            <div key={blocker} className="rounded-sm border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-200">
+            <div key={blocker} className="rounded-sm border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-700">
               Blocker: {blocker}
             </div>
           ))}
@@ -438,10 +438,10 @@ export function PiRouterPanel() {
 }
 
 function Metric({ label, value, tone }: { label: string; value: number; tone: 'neutral' | 'warning' | 'info' }) {
-  const toneClass = tone === 'warning' ? 'text-amber-200' : tone === 'info' ? 'text-sky-200' : 'text-[#3f3f46]'
+  const toneClass = tone === 'warning' ? 'text-amber-700' : tone === 'info' ? 'text-sky-700' : 'text-[#3f3f46]'
   return (
     <div className="rounded-sm border border-white/[0.08] bg-white/[0.02] p-3">
-      <div className="text-xs text-[#71717a]">{label}</div>
+      <div className="text-xs text-[#5f5f66]">{label}</div>
       <div className={`mt-1 text-2xl font-semibold tabular-nums ${toneClass}`}>{value}</div>
     </div>
   )
@@ -459,7 +459,7 @@ function ResultCard({ title, children }: { title: string; children: React.ReactN
 function ResultRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-4 border-b border-white/[0.06] pb-2 text-sm last:border-0">
-      <span className="text-[#71717a]">{label}</span>
+      <span className="text-[#5f5f66]">{label}</span>
       <span className="text-right text-[#3f3f46]">{value}</span>
     </div>
   )
@@ -468,7 +468,7 @@ function ResultRow({ label, value }: { label: string; value: string }) {
 function InfoTile({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-sm border border-white/[0.08] bg-white/[0.025] p-3">
-      <div className="text-xs uppercase tracking-[0.16em] text-[#71717a]">{label}</div>
+      <div className="text-xs uppercase tracking-[0.16em] text-[#5f5f66]">{label}</div>
       <div className="mt-2 line-clamp-2 text-sm text-[#3f3f46]">{value}</div>
     </div>
   )
@@ -477,13 +477,13 @@ function InfoTile({ label, value }: { label: string; value: string }) {
 function StatusPill({ status, label }: { status: string; label?: string }) {
   const color =
     status.includes('blocked')
-      ? 'border-red-400/30 bg-red-500/10 text-red-200'
+      ? 'border-red-400/30 bg-red-500/10 text-red-700'
       : status.includes('approval') || status.includes('waiting')
-        ? 'border-amber-300/30 bg-amber-400/10 text-amber-100'
+        ? 'border-amber-300/30 bg-amber-400/10 text-amber-700'
         : status.includes('running') || status.includes('ready')
-          ? 'border-sky-300/30 bg-sky-400/10 text-sky-100'
+          ? 'border-sky-300/30 bg-sky-400/10 text-sky-700'
           : status.includes('completed')
-            ? 'border-green-300/30 bg-green-400/10 text-green-100'
+            ? 'border-green-300/30 bg-green-400/10 text-green-700'
             : 'border-white/[0.12] bg-white/[0.04] text-[#52525b]'
 
   return (

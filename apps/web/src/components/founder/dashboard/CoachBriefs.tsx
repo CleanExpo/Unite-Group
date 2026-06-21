@@ -47,20 +47,20 @@ function StatusBadge({ status }: { status: CoachReport['status'] }) {
   switch (status) {
     case 'completed':
       return (
-        <span className="flex items-center gap-1 text-xs text-emerald-400">
+        <span className="flex items-center gap-1 text-xs text-emerald-700">
           <CheckCircle2 size={12} /> Done
         </span>
       )
     case 'running':
     case 'pending':
       return (
-        <span className="flex items-center gap-1 text-xs text-amber-400">
+        <span className="flex items-center gap-1 text-xs text-amber-700">
           <Clock size={12} /> {status === 'running' ? 'Running' : 'Pending'}
         </span>
       )
     case 'failed':
       return (
-        <span className="flex items-center gap-1 text-xs text-red-400">
+        <span className="flex items-center gap-1 text-xs text-red-700">
           <AlertCircle size={12} /> Failed
         </span>
       )
@@ -154,11 +154,11 @@ function CoachCard({
           {report?.status === 'completed' && report.brief_markdown ? (
             <MarkdownBrief content={report.brief_markdown} />
           ) : report?.status === 'failed' ? (
-            <p className="mt-3 text-sm text-red-400/80">
+            <p className="mt-3 text-sm text-red-700/80">
               {report.error_message ?? 'Coach run failed — check logs.'}
             </p>
           ) : report?.status === 'running' || report?.status === 'pending' ? (
-            <p className="mt-3 text-sm text-amber-400/70 flex items-center gap-2">
+            <p className="mt-3 text-sm text-amber-700/70 flex items-center gap-2">
               <Loader2 size={14} className="animate-spin" />
               Coach is generating today&apos;s brief...
             </p>
@@ -209,7 +209,7 @@ function CoachCard({
 
             {/* Error */}
             {askError && (
-              <p className="mt-2 text-[12px] text-red-400/80">{askError}</p>
+              <p className="mt-2 text-[12px] text-red-700/80">{askError}</p>
             )}
           </div>
         </div>

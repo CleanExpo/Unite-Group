@@ -232,7 +232,7 @@ export function MFAGate({ businessKey, businessName, onCancel }: MFAGateProps) {
           <button
             onClick={onCancel}
             aria-label="Cancel"
-            className="text-[#71717a] hover:text-[#52525b] transition-colors text-xl leading-none mt-0.5"
+            className="text-[#5f5f66] hover:text-[#52525b] transition-colors text-xl leading-none mt-0.5"
           >
             ×
           </button>
@@ -384,7 +384,7 @@ export function MFAGate({ businessKey, businessName, onCancel }: MFAGateProps) {
 
         {/* Error */}
         {error && (
-          <p className="mt-4 text-xs text-red-400/90 border border-red-400/20 bg-red-400/5 px-3 py-2 rounded-sm">
+          <p className="mt-4 text-xs text-red-700/90 border border-red-400/20 bg-red-400/5 px-3 py-2 rounded-sm">
             {error}
           </p>
         )}
