@@ -30,7 +30,9 @@ describe('makeAuthor', () => {
     const writePrompt = vi.fn(async () => '/wt/.autopilot-prompt.txt')
     const run = vi.fn(async () => ({ exitCode: 0, stdout: '', stderr: '' }))
     await makeAuthor(fakeDeps({ writePrompt, run }))(packet, '/wt')
-    expect(writePrompt).toHaveBeenCalledWith('/wt', 'implement the acceptance criteria')
+    // composes an implement-only prompt carrying the issue ref
+    expect(writePrompt).toHaveBeenCalledWith('/wt', expect.stringContaining('UNI-9'))
+    expect(writePrompt).toHaveBeenCalledWith('/wt', expect.stringContaining('CODE CHANGES ONLY'))
     expect(run).toHaveBeenCalledWith(expect.stringContaining('/wt/.autopilot-prompt.txt'), '/wt')
   })
 

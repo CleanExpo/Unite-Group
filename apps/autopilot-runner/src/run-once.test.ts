@@ -32,6 +32,7 @@ function makeDeps(overrides: Partial<RunOnceDeps> = {}): RunOnceDeps {
     cleanupWorktree: vi.fn(async () => {}),
     author: async () => ({ ok: true }),
     runGauntlet: async () => ({ passed: true, results: [], failedAt: null }),
+    publishBranch: async () => ({ ok: true, hasChanges: true }),
     openPr: async () => ({ ok: true, prNumber: 42, url: 'https://github.com/x/y/pull/42' }),
     evaluateMerge: async () => clearedCtx,
     mergePr: async () => ({ ok: true }),
@@ -90,6 +91,18 @@ describe('runOnce — fail-closed gates (worktree always cleaned up)', () => {
       openPr,
     }))
     expect(r).toEqual({ status: 'left_for_human', reason: 'gauntlet failed at pnpm type-check' })
+    expect(openPr).not.toHaveBeenCalled()
+  })
+
+  it('errors at the publish stage when the push fails', async () => {
+    const r = await runOnce(makeDeps({ publishBranch: async () => ({ ok: false as const, error: 'push rejected' }) }))
+    expect(r).toEqual({ status: 'error', stage: 'publish', error: 'push rejected' })
+  })
+
+  it('leaves for human when the worker authored no changes — never opens a PR', async () => {
+    const openPr = vi.fn(async () => ({ ok: true as const, prNumber: 1, url: 'u' }))
+    const r = await runOnce(makeDeps({ publishBranch: async () => ({ ok: true, hasChanges: false }), openPr }))
+    expect(r).toEqual({ status: 'left_for_human', reason: 'no changes authored' })
     expect(openPr).not.toHaveBeenCalled()
   })
 

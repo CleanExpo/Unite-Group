@@ -130,3 +130,17 @@ export async function octokitGithubOpsFromEnv(env: NodeJS.ProcessEnv): Promise<G
   })
   return createGithubOps(octokit as unknown as OctokitLike, parseRepo(env.GH_REPO ?? 'CleanExpo/Unite-Group'))
 }
+
+/** Mint a short-lived runner-App installation token for git (clone/push) auth. */
+export async function getRunnerInstallationToken(env: NodeJS.ProcessEnv): Promise<string> {
+  const appId = env.GH_RUNNER_APP_ID
+  const privateKey = env.GH_RUNNER_PRIVATE_KEY
+  const installationId = env.GH_RUNNER_INSTALLATION_ID
+  if (!appId || !privateKey || !installationId) {
+    throw new Error('runner GitHub App env missing for token mint')
+  }
+  const { createAppAuth } = await import('@octokit/auth-app')
+  const auth = createAppAuth({ appId: Number(appId), privateKey, installationId: Number(installationId) })
+  const result = await auth({ type: 'installation' })
+  return result.token
+}

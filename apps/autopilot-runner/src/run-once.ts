@@ -27,6 +27,8 @@ export interface RunOnceDeps {
   author: (packet: LinearExecutionPacket, worktreePath: string) => Promise<{ ok: boolean; error?: string }>
   /** Re-run the verification gauntlet in the worktree (a worker's green is unconfirmed). */
   runGauntlet: (worktreePath: string) => Promise<GauntletResult>
+  /** Stage, commit, and push the branch. hasChanges:false means the worker authored nothing. */
+  publishBranch: (packet: LinearExecutionPacket, worktreePath: string) => Promise<{ ok: true; hasChanges: boolean } | { ok: false; error: string }>
   /** Open the PR (GitHub App, author identity). */
   openPr: (packet: LinearExecutionPacket) => Promise<OpenPrResult>
   /** Build the merge context (CI status, reviewer verdict, labels, …) for the PR. */
@@ -35,7 +37,7 @@ export interface RunOnceDeps {
   mergePr: (prNumber: number) => Promise<{ ok: boolean; error?: string }>
 }
 
-export type RunStage = 'fetch' | 'worktree' | 'open_pr' | 'merge'
+export type RunStage = 'fetch' | 'worktree' | 'publish' | 'open_pr' | 'merge'
 
 export type RunOutcome =
   | { status: 'idle' }
@@ -67,6 +69,14 @@ export async function runOnce(deps: RunOnceDeps): Promise<RunOutcome> {
     const gauntlet = await deps.runGauntlet(wt.path)
     if (!gauntlet.passed) {
       return { status: 'left_for_human', reason: `gauntlet failed at ${gauntlet.failedAt}` }
+    }
+
+    const published = await deps.publishBranch(packet, wt.path)
+    if (!published.ok) {
+      return { status: 'error', stage: 'publish', error: published.error ?? 'publish failed' }
+    }
+    if (!published.hasChanges) {
+      return { status: 'left_for_human', reason: 'no changes authored' }
     }
 
     const pr = await deps.openPr(packet)
