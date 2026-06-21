@@ -46,17 +46,17 @@ const chakra = Chakra_Petch({
 
 // Stable per-project accent (instrument swatch) — purely visual brand separation.
 const BRAND_SWATCH: Record<string, string> = {
-  'Unite-Hub': '#38e1ff',
+  'Unite-Hub': '#16a34a',
   RestoreAssist: '#34d399',
   Synthex: '#f97316',
   'Disaster-Recovery': '#fb7185',
   'DR-NRPG': '#f97316',
   'ATO-APP': '#facc15',
-  'CCW-CRM': '#22d3ee',
-  'Authority-Site': '#818cf8',
-  'Nexus-Hub': '#38e1ff',
+  'CCW-CRM': '#16a34a',
+  'Authority-Site': '#16a34a',
+  'Nexus-Hub': '#16a34a',
   'Pi-CEO-Dev': '#4ade80',
-  CARSI: '#e879f9',
+  CARSI: '#f97316',
 }
 function swatchFor(name: string): string {
   if (BRAND_SWATCH[name]) return BRAND_SWATCH[name]
@@ -66,7 +66,7 @@ function swatchFor(name: string): string {
 }
 
 const RISK_RAIL: Record<string, string> = {
-  read: '#38e1ff',
+  read: '#16a34a',
   'write-local': '#34d399',
   'write-shared': '#fbbf24',
   external: '#fb923c',

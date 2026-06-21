@@ -4,7 +4,7 @@
    alone if rendered outside the .deck scope. */
 
 .console {
-  --c-cyan: #38e1ff;
+  --c-cyan: #16a34a;
   --c-go: #34d399;
   --c-amber: #fbbf24;
   --c-abort: #f87171;

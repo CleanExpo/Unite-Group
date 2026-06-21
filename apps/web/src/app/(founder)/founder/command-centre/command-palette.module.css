@@ -33,7 +33,7 @@
 }
 .caret {
   font-family: var(--font-geist-mono), monospace;
-  color: #38e1ff;
+  color: #16a34a;
   font-size: 0.9rem;
   text-shadow: 0 0 10px rgba(56, 225, 255, 0.5);
 }
@@ -73,13 +73,13 @@
 .row:hover { background: rgba(56, 225, 255, 0.05); }
 .rowActive {
   background: rgba(56, 225, 255, 0.1);
-  border-left-color: #38e1ff;
+  border-left-color: #16a34a;
   color: #eaf4fb;
 }
 .rowIcon {
   font-family: var(--font-geist-mono), monospace;
   font-size: 0.72rem;
-  color: #38e1ff;
+  color: #16a34a;
   width: 1.1rem;
   text-align: center;
   flex-shrink: 0;

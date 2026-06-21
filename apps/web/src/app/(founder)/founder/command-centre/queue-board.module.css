@@ -124,7 +124,7 @@
   background: #6f879b;
   box-shadow: 0 0 6px currentColor;
 }
-.led[data-status='proposed'] { background: #38e1ff; color: #38e1ff; }
+.led[data-status='proposed'] { background: #16a34a; color: #16a34a; }
 .led[data-status='awaiting_approval'] { background: #fbbf24; color: #fbbf24; }
 .led[data-status='queued'] { background: #34d399; color: #34d399; }
 .led[data-status='running'] { background: #60a5fa; color: #60a5fa; animation: pulse 1.4s ease-in-out infinite; }

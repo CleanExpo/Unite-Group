@@ -65,7 +65,7 @@ export function InProgressPRsTile({ data }: { data: InProgressPRsResult }) {
               alignItems: 'baseline',
               padding: '0.3rem 0.5rem',
               border: '1px solid rgba(56, 225, 255, 0.18)',
-              borderLeft: '3px solid #38e1ff',
+              borderLeft: '3px solid #16a34a',
               background: 'rgba(0,0,0,0.25)',
               borderRadius: '2px',
               fontSize: '0.78rem',
