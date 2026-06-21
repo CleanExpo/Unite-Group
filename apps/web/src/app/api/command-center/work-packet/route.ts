@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   }
 
   const packet = buildWorkPacket(body, { now: new Date().toISOString() })
-  const result = await createPacketLinearWork(packet, { createIssue })
+  const result = await createPacketLinearWork(packet, { createIssue }, { live: true })
 
   // Persist the (possibly Linear-stamped) packet so it is durable. Read back
   // through the store so the response reflects exactly what was stored.
