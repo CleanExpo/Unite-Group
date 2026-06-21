@@ -54,7 +54,7 @@ export function ExperimentsDashboardWidget() {
           {/* Active */}
           <div className="flex items-center justify-between">
             <span className="text-[12px]" style={{ color: 'var(--color-text-muted)' }}>Active</span>
-            <span className="text-[18px] font-semibold" style={{ color: '#16a34a' }}>
+            <span className="text-[18px] font-semibold" style={{ color: '#15803d' }}>
               {activeCount}
             </span>
           </div>
@@ -73,7 +73,7 @@ export function ExperimentsDashboardWidget() {
               className="rounded-sm px-3 py-2 mt-1"
               style={{ background: 'rgba(22, 163, 74, 0.06)', border: '1px solid rgba(22, 163, 74, 0.12)' }}
             >
-              <p className="text-[11px] font-medium" style={{ color: '#16a34a' }}>
+              <p className="text-[11px] font-medium" style={{ color: '#15803d' }}>
                 {significantCount} result{significantCount !== 1 ? 's' : ''} ready for review
               </p>
             </div>
@@ -84,7 +84,7 @@ export function ExperimentsDashboardWidget() {
             <Link
               href="/founder/experiments"
               className="text-[11px] font-medium"
-              style={{ color: '#16a34a' }}
+              style={{ color: '#15803d' }}
             >
               View Experiments →
             </Link>

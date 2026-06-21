@@ -221,7 +221,7 @@ export function PLTab() {
                 <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-disabled)' }}>
                   Total Revenue
                 </p>
-                <p className="text-[18px] font-semibold tabular-nums" style={{ color: '#16a34a' }}>
+                <p className="text-[18px] font-semibold tabular-nums" style={{ color: '#15803d' }}>
                   {formatAUD(totals.revenue)}
                 </p>
               </div>

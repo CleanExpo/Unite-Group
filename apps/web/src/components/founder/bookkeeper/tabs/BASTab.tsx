@@ -225,7 +225,7 @@ export function BASTab() {
                 {current && (
                   <span
                     className="text-[9px] font-medium tracking-widest uppercase px-1.5 py-0.5 rounded-sm"
-                    style={{ color: '#16a34a', backgroundColor: 'rgba(22, 163, 74,0.08)', border: '1px solid rgba(22, 163, 74,0.2)' }}
+                    style={{ color: '#15803d', backgroundColor: 'rgba(22, 163, 74,0.08)', border: '1px solid rgba(22, 163, 74,0.2)' }}
                   >
                     Current
                   </span>

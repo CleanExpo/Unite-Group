@@ -113,7 +113,7 @@ export function ContactDetailClient({ id }: ContactDetailClientProps) {
   const backLink = (
     <Link
       href="/founder/contacts"
-      className="inline-flex items-center gap-1.5 text-[13px] text-[var(--color-text-muted)] hover:text-[#16a34a] transition-colors"
+      className="inline-flex items-center gap-1.5 text-[13px] text-[var(--color-text-muted)] hover:text-[#15803d] transition-colors"
     >
       <ArrowLeft /> Contacts
     </Link>
@@ -194,7 +194,7 @@ export function ContactDetailClient({ id }: ContactDetailClientProps) {
           <button
             onClick={() => setShowEdit(true)}
             className="inline-flex items-center gap-1.5 rounded-sm px-3 py-2 text-[13px] font-medium transition-colors"
-            style={{ background: '#16a34a18', color: '#16a34a', border: '1px solid #16a34a30' }}
+            style={{ background: '#16a34a18', color: '#15803d', border: '1px solid #16a34a30' }}
           >
             <Pencil /> Edit
           </button>

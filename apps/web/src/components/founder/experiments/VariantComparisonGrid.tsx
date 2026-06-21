@@ -46,7 +46,7 @@ export function VariantComparisonGrid({ variants, significance }: Props) {
                 className="text-[10px] px-2 py-0.5 rounded-sm font-medium uppercase tracking-wider"
                 style={{
                   background: 'rgba(22, 163, 74,0.15)',
-                  color: '#16a34a',
+                  color: '#15803d',
                 }}
               >
                 {variant.variantKey}

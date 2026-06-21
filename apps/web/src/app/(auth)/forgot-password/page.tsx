@@ -50,7 +50,7 @@ export default function ForgotPasswordPage() {
       )}
 
       {sent ? (
-        <p className="text-sm mb-4" style={{ color: 'var(--color-accent)' }}>
+        <p className="text-sm mb-4" style={{ color: 'var(--color-accent-text)' }}>
           Check your email for a reset link.
         </p>
       ) : (

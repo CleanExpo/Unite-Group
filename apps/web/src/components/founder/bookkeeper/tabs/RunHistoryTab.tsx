@@ -9,10 +9,10 @@ import type { BookkeeperRun, RunsResponse } from '@/lib/bookkeeper/types'
 const PAGE_SIZE = 20
 
 const RUN_STATUS_CONFIG: Record<string, { color: string; bg: string; border: string; pulse?: boolean }> = {
-  completed: { color: '#16a34a', bg: 'rgba(22, 163, 74,0.08)', border: 'rgba(22, 163, 74,0.2)' },
+  completed: { color: '#15803d', bg: 'rgba(22, 163, 74,0.08)', border: 'rgba(22, 163, 74,0.2)' },
   partial:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' },
   failed:    { color: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)' },
-  running:   { color: '#16a34a', bg: 'rgba(22, 163, 74,0.08)', border: 'rgba(22, 163, 74,0.2)', pulse: true },
+  running:   { color: '#15803d', bg: 'rgba(22, 163, 74,0.08)', border: 'rgba(22, 163, 74,0.2)', pulse: true },
 }
 
 function RunStatusBadge({ status }: { status: string }) {
@@ -179,7 +179,7 @@ function RunRow({ run, expanded, onToggle }: { run: BookkeeperRun; expanded: boo
         <td className="px-3 py-2.5 text-right tabular-nums" style={{ color: 'var(--color-text-primary)' }}>
           {run.totalTransactions}
         </td>
-        <td className="px-3 py-2.5 text-right tabular-nums" style={{ color: '#16a34a' }}>
+        <td className="px-3 py-2.5 text-right tabular-nums" style={{ color: '#15803d' }}>
           {run.autoReconciled}
         </td>
         <td className="px-3 py-2.5 text-right tabular-nums" style={{ color: run.flaggedForReview > 0 ? '#f59e0b' : 'var(--color-text-disabled)' }}>

@@ -65,7 +65,7 @@ export default function ResetPasswordPage() {
       )}
 
       {success ? (
-        <p className="text-sm mb-4" style={{ color: 'var(--color-accent)' }}>
+        <p className="text-sm mb-4" style={{ color: 'var(--color-accent-text)' }}>
           Password updated. Redirecting to dashboard…
         </p>
       ) : (

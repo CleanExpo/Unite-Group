@@ -232,7 +232,7 @@ export function EmailWorkbench({ accounts }: Props) {
                 />
               ) : (
                 <div className="flex items-center justify-center h-full">
-                  <p className="text-sm text-[#a1a1aa]">Select a thread to read</p>
+                  <p className="text-sm text-[#6b6b6b]">Select a thread to read</p>
                 </div>
               )}
             </div>

@@ -132,7 +132,7 @@ export function CapabilityMap() {
               className="flex items-center gap-2 mb-3"
               style={{ color: 'var(--color-text-primary)' }}
             >
-              <span style={{ color: 'var(--color-accent)' }}>
+              <span style={{ color: 'var(--color-accent-text)' }}>
                 {category.icon}
               </span>
               <span className="text-sm font-medium">{category.name}</span>
@@ -150,7 +150,7 @@ export function CapabilityMap() {
                       <Link
                         href={feature.href}
                         className="text-sm font-medium hover:underline"
-                        style={{ color: 'var(--color-accent)' }}
+                        style={{ color: 'var(--color-accent-text)' }}
                       >
                         {feature.name}
                       </Link>

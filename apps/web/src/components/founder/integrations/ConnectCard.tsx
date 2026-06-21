@@ -30,7 +30,7 @@ export function ConnectCard({
       ) : (
         <a
           href={connectUrl}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#16a34a]/10 border border-[#16a34a]/30 text-[#16a34a] text-[11px] uppercase tracking-[0.2em] hover:bg-[#16a34a]/20 transition-colors rounded-sm"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#16a34a]/10 border border-[#16a34a]/30 text-[#15803d] text-[11px] uppercase tracking-[0.2em] hover:bg-[#16a34a]/20 transition-colors rounded-sm"
         >
           Connect {service} →
         </a>

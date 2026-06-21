@@ -177,7 +177,7 @@ export function NotificationBell() {
               <span
                 style={{
                   fontSize: 10,
-                  color: '#16a34a',
+                  color: '#15803d',
                   fontWeight: 600,
                 }}
               >

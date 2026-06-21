@@ -85,7 +85,7 @@ function BrandDNACard({ result, onCreateCampaign }: BrandDNACardProps) {
       {/* Section label */}
       <div className="flex items-center gap-2">
         <div className="w-1.5 h-1.5 rounded-sm bg-[#16a34a]" />
-        <span className="text-[11px] font-semibold uppercase tracking-widest text-[#16a34a]">
+        <span className="text-[11px] font-semibold uppercase tracking-widest text-[#15803d]">
           Brand DNA extracted
         </span>
       </div>
@@ -131,11 +131,11 @@ interface DataRowProps {
 function DataRow({ label, value, highlight = false }: DataRowProps) {
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="text-[10px] font-medium uppercase tracking-widest text-[#a1a1aa]">
+      <span className="text-[10px] font-medium uppercase tracking-widest text-[#6b6b6b]">
         {label}
       </span>
       <span
-        className={`text-[12px] font-mono ${highlight ? 'text-[#16a34a]' : 'text-[#52525b]'}`}
+        className={`text-[12px] font-mono ${highlight ? 'text-[#15803d]' : 'text-[#52525b]'}`}
       >
         {value}
       </span>

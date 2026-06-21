@@ -65,7 +65,7 @@ export function VaultAddEntry({ onClose, onAdded }: VaultAddEntryProps) {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Plus size={16} strokeWidth={1.5} style={{ color: '#16a34a' }} />
+            <Plus size={16} strokeWidth={1.5} style={{ color: '#15803d' }} />
             <span className="text-[14px] font-medium" style={{ color: 'var(--color-text-primary)' }}>
               New Vault Entry
             </span>
@@ -164,7 +164,7 @@ export function VaultAddEntry({ onClose, onAdded }: VaultAddEntryProps) {
             type="submit"
             disabled={saving}
             className="h-9 rounded-sm text-[13px] font-medium transition-opacity hover:opacity-90 disabled:opacity-50 mt-1"
-            style={{ background: '#16a34a18', color: '#16a34a', border: '1px solid #16a34a30' }}
+            style={{ background: '#16a34a18', color: '#15803d', border: '1px solid #16a34a30' }}
           >
             {saving ? 'Saving…' : 'Add Entry'}
           </button>

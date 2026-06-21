@@ -52,7 +52,7 @@ export function ProposalCard({ proposal }: ProposalCardProps) {
           {data?.strategies?.length ?? 0} strategies
         </span>
         {data?.confidenceScore != null && (
-          <span className="text-[10px]" style={{ color: '#16a34a' }}>
+          <span className="text-[10px]" style={{ color: '#15803d' }}>
             {data.confidenceScore}% confidence
           </span>
         )}

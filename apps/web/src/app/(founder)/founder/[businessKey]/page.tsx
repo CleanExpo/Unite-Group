@@ -188,7 +188,7 @@ export default async function BusinessHubPage({ params }: Props) {
           className="text-[11px] px-2 py-0.5 rounded-sm font-medium uppercase tracking-wider"
           style={{
             background: 'rgba(22, 163, 74, 0.08)',
-            color: '#16a34a',
+            color: '#15803d',
             border: '1px solid rgba(22, 163, 74, 0.15)',
           }}
         >
@@ -242,7 +242,7 @@ export default async function BusinessHubPage({ params }: Props) {
           <h2 className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
             Experiments
           </h2>
-          <Link href="/founder/experiments" className="text-[11px]" style={{ color: '#16a34a' }}>
+          <Link href="/founder/experiments" className="text-[11px]" style={{ color: '#15803d' }}>
             View all →
           </Link>
         </div>
@@ -314,7 +314,7 @@ export default async function BusinessHubPage({ params }: Props) {
           <Link
             href={`/founder/${businessKey}/page/new`}
             className="flex items-center gap-2 px-4 py-3 transition-colors duration-100"
-            style={{ color: '#16a34a' }}
+            style={{ color: '#15803d' }}
           >
             <Plus size={14} strokeWidth={2} />
             <span className="text-[13px] font-medium">New Page</span>

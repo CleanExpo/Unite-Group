@@ -32,7 +32,7 @@ export function SocialPageClient({ channels, posts }: Props) {
         actions={
           <button
             onClick={() => setComposerOpen(true)}
-            className="px-4 py-2 text-[10px] uppercase tracking-[0.15em] text-[#16a34a] border border-[#16a34a]/30 rounded-sm hover:bg-[#16a34a]/5 transition-colors"
+            className="px-4 py-2 text-[10px] uppercase tracking-[0.15em] text-[#15803d] border border-[#16a34a]/30 rounded-sm hover:bg-[#16a34a]/5 transition-colors"
           >
             + New Post
           </button>
@@ -49,7 +49,7 @@ export function SocialPageClient({ channels, posts }: Props) {
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-2 text-[11px] uppercase tracking-[0.12em] transition-colors ${
               activeTab === tab
-                ? 'text-[#16a34a] border-b border-[#16a34a] -mb-px'
+                ? 'text-[#15803d] border-b border-[#16a34a] -mb-px'
                 : 'text-[#52525b] hover:text-[#0A0A0A]'
             }`}
           >
@@ -258,7 +258,7 @@ function SocialExperimentsPanel({ channels }: { channels: SocialChannel[] }) {
       <Link
         href="/founder/experiments"
         className="inline-block text-[11px] font-medium"
-        style={{ color: '#16a34a' }}
+        style={{ color: '#15803d' }}
       >
         View all experiments →
       </Link>

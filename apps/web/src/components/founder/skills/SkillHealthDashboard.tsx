@@ -92,7 +92,7 @@ export function SkillHealthDashboard() {
           No skill evaluations recorded yet. Run{' '}
           <code
             className="rounded-sm px-1.5 py-0.5 text-xs"
-            style={{ background: 'rgba(22, 163, 74, 0.1)', color: '#16a34a' }}
+            style={{ background: 'rgba(22, 163, 74, 0.1)', color: '#15803d' }}
           >
             node scripts/skill-eval-runner.mjs --all
           </code>{' '}

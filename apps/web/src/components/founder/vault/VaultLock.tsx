@@ -56,8 +56,8 @@ export function VaultLock({ onUnlock }: VaultLockProps) {
         {/* Icon + title */}
         <div className="flex flex-col items-center gap-3">
           {mode === 'unlock'
-            ? <Lock size={32} strokeWidth={1.5} style={{ color: '#16a34a' }} />
-            : <KeyRound size={32} strokeWidth={1.5} style={{ color: '#16a34a' }} />
+            ? <Lock size={32} strokeWidth={1.5} style={{ color: '#15803d' }} />
+            : <KeyRound size={32} strokeWidth={1.5} style={{ color: '#15803d' }} />
           }
           <p className="text-[14px] text-center" style={{ color: 'var(--color-text-secondary)' }}>
             {mode === 'unlock'

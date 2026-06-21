@@ -104,7 +104,7 @@ export function EvidenceTab() {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[10px] mt-0.5 inline-block"
-                    style={{ color: '#16a34a' }}
+                    style={{ color: '#15803d' }}
                   >
                     View on ATO
                   </a>

@@ -153,7 +153,7 @@ export function InsightCard({ insight, onStatusChange }: InsightCardProps) {
               </span>
             )}
             {insight.metadata.bidScore !== undefined && (
-              <span className="text-[10px] px-2 py-0.5 rounded-sm border" style={{ color: '#16a34a', borderColor: 'rgba(22, 163, 74,0.3)' }}>
+              <span className="text-[10px] px-2 py-0.5 rounded-sm border" style={{ color: '#15803d', borderColor: 'rgba(22, 163, 74,0.3)' }}>
                 B.I.D. {insight.metadata.bidScore.toFixed(1)}
               </span>
             )}
@@ -177,7 +177,7 @@ export function InsightCard({ insight, onStatusChange }: InsightCardProps) {
               className="flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-sm border transition-colors disabled:opacity-40"
               style={{
                 borderColor: 'rgba(22, 163, 74,0.3)',
-                color: '#16a34a',
+                color: '#15803d',
                 background: 'rgba(22, 163, 74,0.06)',
               }}
             >

@@ -44,7 +44,7 @@ export default async function WikiPageDetail({
         >
           &larr; Knowledge Base
         </Link>
-        <h1 className="text-2xl font-semibold tracking-tight" style={{ color: '#16a34a' }}>
+        <h1 className="text-2xl font-semibold tracking-tight" style={{ color: '#15803d' }}>
           {page.title}
         </h1>
         <div className="flex flex-wrap items-center gap-3 text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>

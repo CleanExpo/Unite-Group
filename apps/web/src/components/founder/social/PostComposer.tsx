@@ -216,7 +216,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
                       onClick={() => setAiCharacter(c.key)}
                       className={`flex-1 px-2 py-1.5 text-[10px] rounded-sm border transition-colors ${
                         aiCharacter === c.key
-                          ? 'border-[#16a34a]/40 text-[#16a34a] bg-[#16a34a]/5'
+                          ? 'border-[#16a34a]/40 text-[#15803d] bg-[#16a34a]/5'
                           : 'hover:border-[rgba(255,255,255,0.18)]'
                       }`}
                       style={aiCharacter === c.key ? undefined : { background: 'var(--surface-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
@@ -302,7 +302,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
                         {v.body.length > 100 ? v.body.slice(0, 100) + '...' : v.body}
                       </p>
                       {v.hashtags.length > 0 && (
-                        <p className="text-[10px] mt-1 opacity-80" style={{ color: '#16a34a' }}>
+                        <p className="text-[10px] mt-1 opacity-80" style={{ color: '#15803d' }}>
                           {v.hashtags.slice(0, 4).map(h => h.startsWith('#') ? h : `#${h}`).join(' ')}
                         </p>
                       )}
@@ -341,7 +341,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
                   onClick={() => togglePlatform(p)}
                   className={`px-3 py-1 text-[10px] rounded-sm border transition-colors ${
                     isSelected
-                      ? 'border-[#16a34a]/40 text-[#16a34a] bg-[#16a34a]/5'
+                      ? 'border-[#16a34a]/40 text-[#15803d] bg-[#16a34a]/5'
                       : 'hover:border-[rgba(255,255,255,0.18)]'
                   }`}
                   style={isSelected ? undefined : { background: 'var(--surface-card)', borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
@@ -381,7 +381,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
             <button
               onClick={() => handleSubmit('schedule')}
               disabled={saving}
-              className="px-4 py-2 text-[10px] uppercase tracking-wider text-[#16a34a] border border-[#16a34a]/30 rounded-sm hover:bg-[#16a34a]/5 transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-[10px] uppercase tracking-wider text-[#15803d] border border-[#16a34a]/30 rounded-sm hover:bg-[#16a34a]/5 transition-colors disabled:opacity-50"
             >
               {saving ? 'Scheduling...' : 'Schedule'}
             </button>

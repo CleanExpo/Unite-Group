@@ -98,7 +98,7 @@ function StatCard({ label, value, index }: StatCardProps) {
       <span className="text-[11px] uppercase tracking-widest font-medium" style={{ color: 'var(--color-text-disabled)' }}>
         {label}
       </span>
-      <span className="text-[26px] font-semibold leading-none tracking-tight text-[#16a34a]">
+      <span className="text-[26px] font-semibold leading-none tracking-tight text-[#15803d]">
         {value}
       </span>
     </motion.div>
@@ -330,7 +330,7 @@ export default function AnalyticsDashboard() {
                     <td className="px-4 py-2.5" style={{ color: 'var(--color-text-muted)' }}>
                       {formatNumber(stats.engagements)}
                     </td>
-                    <td className="px-4 py-2.5 font-medium text-[#16a34a]">{engRate}%</td>
+                    <td className="px-4 py-2.5 font-medium text-[#15803d]">{engRate}%</td>
                   </motion.tr>
                 )
               })}
@@ -396,7 +396,7 @@ export default function AnalyticsDashboard() {
                   <td className="px-4 py-2.5" style={{ color: 'var(--color-text-muted)' }}>
                     {formatNumber(post.engagements)}
                   </td>
-                  <td className="px-4 py-2.5 font-medium text-[#16a34a]">
+                  <td className="px-4 py-2.5 font-medium text-[#15803d]">
                     {post.engagementRate.toFixed(2)}%
                   </td>
                 </motion.tr>

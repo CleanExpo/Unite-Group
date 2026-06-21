@@ -30,7 +30,7 @@ export function Sidebar({ user }: SidebarProps) {
         className="flex items-center h-11 px-3 shrink-0 border-b"
         style={{ borderColor: 'var(--color-border)' }}
       >
-        <span className="text-[15px] font-semibold select-none" style={{ color: 'var(--color-accent)' }}>
+        <span className="text-[15px] font-semibold select-none" style={{ color: 'var(--color-accent-text)' }}>
           ◈
         </span>
         {sidebarOpen && (

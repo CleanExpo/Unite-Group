@@ -150,7 +150,7 @@ export function KPICard({
                     boxShadow: '0 0 4px #16a34a',
                   }}
                 />
-                <span className="text-[10px] font-medium tracking-widest uppercase text-[#16a34a]">
+                <span className="text-[10px] font-medium tracking-widest uppercase text-[#15803d]">
                   Live
                 </span>
               </>

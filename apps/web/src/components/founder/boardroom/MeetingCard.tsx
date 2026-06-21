@@ -143,7 +143,7 @@ export function MeetingCard({ meeting, onStatusChange }: MeetingCardProps) {
                 {section.title}
               </p>
               {section.highlight && (
-                <p className="text-[12px] mb-1 font-medium" style={{ color: '#16a34a' }}>
+                <p className="text-[12px] mb-1 font-medium" style={{ color: '#15803d' }}>
                   {section.highlight}
                 </p>
               )}

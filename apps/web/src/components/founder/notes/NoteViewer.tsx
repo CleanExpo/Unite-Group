@@ -66,7 +66,7 @@ export function NoteViewer({ fileId }: NoteViewerProps) {
           h2: ({ children }) => <h2 className="text-[20px] font-bold mt-5 mb-3" style={{ color: 'var(--color-text-primary)' }}>{children}</h2>,
           h3: ({ children }) => <h3 className="text-[16px] font-semibold mt-4 mb-2" style={{ color: 'var(--color-text-primary)' }}>{children}</h3>,
           code: ({ children }) => <code className="text-[12px] px-2 py-1 rounded-sm" style={{ background: 'var(--surface-elevated)', color: 'var(--color-text-primary)' }}>{children}</code>,
-          a: ({ href, children }) => <a href={href} className="text-[#16a34a] hover:underline">{children}</a>,
+          a: ({ href, children }) => <a href={href} className="text-[#15803d] hover:underline">{children}</a>,
         }}
       >
         {content}

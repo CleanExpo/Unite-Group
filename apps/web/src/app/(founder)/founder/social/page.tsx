@@ -53,7 +53,7 @@ export default async function SocialPage({
       />
 
       {params.connected && (
-        <div className="text-xs text-[#16a34a]/80 border border-[#16a34a]/20 bg-[#16a34a]/5 px-4 py-2.5 rounded-sm">
+        <div className="text-xs text-[#15803d]/80 border border-[#16a34a]/20 bg-[#16a34a]/5 px-4 py-2.5 rounded-sm">
           {params.connected} connected successfully
         </div>
       )}
@@ -68,11 +68,11 @@ export default async function SocialPage({
       <div className="flex items-center gap-4 text-sm">
         <div className="border border-white/[0.08] px-4 py-2 rounded-sm" style={{ background: 'var(--surface-card)' }}>
           <span className="text-muted">Configured:</span>{' '}
-          <span className="text-[#16a34a]">{configuredCount}/{platforms.length}</span>
+          <span className="text-[#15803d]">{configuredCount}/{platforms.length}</span>
         </div>
         <div className="border border-white/[0.08] px-4 py-2 rounded-sm" style={{ background: 'var(--surface-card)' }}>
           <span className="text-muted">Connected:</span>{' '}
-          <span className="text-[#16a34a]">{connectedCount}/{platforms.length}</span>
+          <span className="text-[#15803d]">{connectedCount}/{platforms.length}</span>
         </div>
       </div>
 
@@ -104,7 +104,7 @@ export default async function SocialPage({
                   {platform.description}
                 </p>
                 {platform.connected && platform.connectedAt && (
-                  <p className="text-[10px] mt-1 text-[#16a34a]/70">
+                  <p className="text-[10px] mt-1 text-[#15803d]/70">
                     Connected {new Date(platform.connectedAt).toLocaleDateString()}
                   </p>
                 )}
@@ -122,7 +122,7 @@ export default async function SocialPage({
                   Setup
                 </a>
               ) : platform.connected ? (
-                <span className="text-[10px] uppercase tracking-widest text-[#16a34a]/80 border border-[#16a34a]/30 px-2.5 py-1 rounded-sm">
+                <span className="text-[10px] uppercase tracking-widest text-[#15803d]/80 border border-[#16a34a]/30 px-2.5 py-1 rounded-sm">
                   Live
                 </span>
               ) : (

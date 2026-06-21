@@ -242,11 +242,11 @@ function CreateInvoicePanel({
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={addItem}
-          className="text-[11px] text-[#71717a] hover:text-[#16a34a] transition-colors flex items-center gap-1"
+          className="text-[11px] text-[#71717a] hover:text-[#15803d] transition-colors flex items-center gap-1"
         >
           <Plus size={12} /> Add line
         </button>
-        <div className="text-[13px] font-medium" style={{ color: '#16a34a' }}>
+        <div className="text-[13px] font-medium" style={{ color: '#15803d' }}>
           Total: {formatAUD(total)}
         </div>
       </div>
@@ -319,7 +319,7 @@ function InvoiceRow({
               onClick={handleApprove}
               disabled={approving}
               className="flex items-center gap-1 px-2.5 py-1 rounded-sm text-[11px] font-medium transition-all disabled:opacity-50"
-              style={{ background: 'rgba(22, 163, 74,0.12)', color: '#16a34a' }}
+              style={{ background: 'rgba(22, 163, 74,0.12)', color: '#15803d' }}
             >
               {approving ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle size={11} />}
               {approving ? 'Approving…' : 'Approve'}
@@ -477,7 +477,7 @@ export function InvoicesClient() {
           {filterStatus !== 'ALL' && (
             <button
               onClick={() => setFilterStatus('ALL')}
-              className="mt-2 text-[11px] text-[#16a34a]/60 hover:text-[#16a34a] transition-colors"
+              className="mt-2 text-[11px] text-[#15803d]/60 hover:text-[#15803d] transition-colors"
             >
               Clear filter
             </button>
@@ -513,7 +513,7 @@ export function InvoicesClient() {
       )}
 
       {filtered.length > 0 && (
-        <p className="mt-3 text-[11px] text-[#a1a1aa] text-right">
+        <p className="mt-3 text-[11px] text-[#6b6b6b] text-right">
           {filtered.length} invoice{filtered.length !== 1 ? 's' : ''}
           {filterStatus !== 'ALL' ? ` (${filterStatus.toLowerCase()})` : ''}
         </p>

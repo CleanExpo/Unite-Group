@@ -213,7 +213,7 @@ export function SynthexGeneratorPanel({ onClose }: Props) {
 
             <button
               onClick={handleGenerate}
-              className="w-full px-4 py-2 text-[10px] uppercase tracking-[0.15em] text-[#16a34a] border border-[#16a34a]/30 rounded-sm hover:bg-[#16a34a]/5 transition-colors"
+              className="w-full px-4 py-2 text-[10px] uppercase tracking-[0.15em] text-[#15803d] border border-[#16a34a]/30 rounded-sm hover:bg-[#16a34a]/5 transition-colors"
             >
               Generate
             </button>
@@ -226,7 +226,7 @@ export function SynthexGeneratorPanel({ onClose }: Props) {
             <Loader2
               size={24}
               className="animate-spin"
-              style={{ color: '#16a34a' }}
+              style={{ color: '#15803d' }}
             />
             <span
               className="text-[11px]"
@@ -301,7 +301,7 @@ export function SynthexGeneratorPanel({ onClose }: Props) {
                       className="text-[10px] px-2 py-0.5 rounded-sm font-medium uppercase tracking-wider"
                       style={{
                         background: 'rgba(22, 163, 74,0.15)',
-                        color: '#16a34a',
+                        color: '#15803d',
                       }}
                     >
                       {v.variantKey}
@@ -351,7 +351,7 @@ export function SynthexGeneratorPanel({ onClose }: Props) {
               <button
                 onClick={handleGenerate}
                 disabled={creating}
-                className="px-4 py-2 text-[10px] uppercase tracking-[0.15em] text-[#16a34a] border border-[#16a34a]/30 rounded-sm hover:bg-[#16a34a]/5 transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-[10px] uppercase tracking-[0.15em] text-[#15803d] border border-[#16a34a]/30 rounded-sm hover:bg-[#16a34a]/5 transition-colors disabled:opacity-50"
               >
                 Regenerate
               </button>

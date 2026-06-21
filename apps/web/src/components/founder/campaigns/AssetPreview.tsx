@@ -184,7 +184,7 @@ export function AssetPreview({ asset, businessKey, onPublished, onRegenerateImag
 
       {/* CTA */}
       {asset.cta && (
-        <p className="text-[#16a34a] text-xs font-medium">
+        <p className="text-[#15803d] text-xs font-medium">
           {asset.cta}
         </p>
       )}
