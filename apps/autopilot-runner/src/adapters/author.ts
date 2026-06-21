@@ -21,9 +21,14 @@ function msg(err: unknown): string {
   return err instanceof Error ? err.message : String(err)
 }
 
-/** Default headless Claude Code invocation. Exact flags verified at deploy. */
+/**
+ * Default headless Claude Code invocation. Exact flags verified at deploy.
+ * `< /dev/null` closes stdin so the CLI doesn't stall waiting on a pipe (the
+ * prompt is passed via -p). `--dangerously-skip-permissions` requires a
+ * non-root user (the container runs as `node`, not root — see Dockerfile).
+ */
 export function defaultClaudeCommand(promptFile: string): string {
-  return `claude -p "$(cat ${promptFile})" --dangerously-skip-permissions`
+  return `claude -p "$(cat ${promptFile})" --dangerously-skip-permissions < /dev/null`
 }
 
 /**

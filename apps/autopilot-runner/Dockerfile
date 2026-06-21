@@ -20,6 +20,13 @@ COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
 RUN npm run build
 
-ENV NODE_ENV=production
+# The Claude CLI refuses --dangerously-skip-permissions under root for security.
+# node:20-slim ships a non-root `node` user (uid 1000); run as it. /app build
+# artifacts are world-readable; the runner's work dirs live under /tmp (writable
+# by any user). HOME must point at the node user's writable home for CLI config.
+RUN chown -R node:node /app
+ENV NODE_ENV=production HOME=/home/node
+USER node
+
 # Kill switch: the runner drains unless CC_LINEAR_LIVE=1 is set on the service.
 CMD ["node", "dist/index.js"]
