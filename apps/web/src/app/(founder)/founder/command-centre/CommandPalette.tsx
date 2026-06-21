@@ -21,7 +21,7 @@ type Item = {
 }
 
 const RISK_TONE: Record<string, string> = {
-  read: '#38e1ff',
+  read: '#16a34a',
   'write-local': '#34d399',
   'write-shared': '#fbbf24',
   external: '#fb923c',

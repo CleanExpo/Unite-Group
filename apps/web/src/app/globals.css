@@ -32,7 +32,7 @@
     /* Unite-Hub Theme (Deep Slate Dark) */
     --unite-bg-primary: #050505;
     --unite-bg-surface: #ffffff;
-    --unite-accent: #3b82f6;
+    --unite-accent: #16a34a;
     --unite-status-ok: #10b981;
 
     /* Synthex Theme (Midnight Neon) */
@@ -255,6 +255,23 @@
   .nav-item-hover:hover {
     background: var(--surface-card);
     color: var(--color-text-secondary);
+  }
+
+  /* 3D icon depth — give every icon a subtle embossed lift (dark drop below +
+     faint light highlight above) so the line icons read with depth, not flat. */
+  svg.lucide {
+    filter:
+      drop-shadow(0 1px 0.5px rgba(0, 0, 0, 0.22))
+      drop-shadow(0 -0.5px 0.5px rgba(255, 255, 255, 0.45));
+  }
+  .nav-item-hover svg.lucide {
+    transition: filter 0.12s ease, transform 0.12s ease;
+  }
+  .nav-item-hover:hover svg.lucide {
+    filter:
+      drop-shadow(0 1.5px 1px rgba(0, 0, 0, 0.28))
+      drop-shadow(0 -0.5px 0.5px rgba(255, 255, 255, 0.5));
+    transform: translateY(-0.5px);
   }
 
   /* Glassmorphism Utility */
