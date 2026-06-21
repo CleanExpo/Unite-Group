@@ -1,5 +1,4 @@
 import React from "react";
-import Image from "next/image";
 
 // Force dynamic rendering for all auth pages — they require session context
 export const dynamic = 'force-dynamic';
@@ -15,26 +14,44 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       }}
     >
       <div className="w-full max-w-md relative z-10">
-        {/* Pi-CEO logo (official brand image — sphere + wordmark) */}
-        <div className="flex justify-center mb-8">
+        {/* Pi-CEO brand mark — the π symbol */}
+        <div className="flex flex-col items-center mb-8">
           <div
-            className="overflow-hidden rounded-md"
+            className="mb-3 flex items-center justify-center"
             style={{
-              border: '1px solid var(--color-border)',
-              boxShadow: '0 14px 36px rgba(20, 28, 64, 0.28)',
-              lineHeight: 0,
+              width: 76,
+              height: 76,
+              borderRadius: 20,
+              background: 'linear-gradient(160deg, #22c55e 0%, #16a34a 55%, #15803d 100%)',
+              boxShadow:
+                '0 10px 26px rgba(22,163,74,0.32), inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -2px 8px rgba(0,0,0,0.20)',
             }}
           >
-            <Image
-              src="/logos/pi-ceo.png"
-              alt="Pi-CEO — AI Operations Platform · Unite-Group"
-              width={800}
-              height={480}
-              priority
-              className="block"
-              style={{ width: 400, height: 'auto' }}
-            />
+            <span
+              style={{
+                fontFamily: 'var(--font-mono, monospace)',
+                fontSize: 44,
+                fontWeight: 700,
+                lineHeight: 1,
+                color: '#ffffff',
+                textShadow: '0 1px 0 rgba(0,0,0,0.28), 0 -1px 0 rgba(255,255,255,0.35)',
+              }}
+            >
+              π
+            </span>
           </div>
+          <p
+            className="text-[16px] font-semibold tracking-[0.18em] uppercase"
+            style={{ color: 'var(--color-text-primary)' }}
+          >
+            Pi-CEO
+          </p>
+          <p
+            className="text-[10px] font-mono tracking-[0.3em] uppercase mt-1"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            Unite-Group
+          </p>
         </div>
 
         {/* Auth Card — elevated with green top accent */}
