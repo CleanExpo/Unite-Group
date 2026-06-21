@@ -14,6 +14,7 @@ function deps(over: Partial<ExecuteChatDeps> = {}): ExecuteChatDeps {
   return {
     accounts: [acct('minimax'), acct('openrouter'), acct('claude')],
     resolveKey: async () => 'sk-key',
+    logUsage: async () => {},
     now: NOW,
     ...over,
   }
