@@ -14,8 +14,12 @@ function makeChain() {
 }
 const mockFrom = vi.fn()
 vi.mock('@/lib/supabase/service', () => ({ createServiceClient: vi.fn() }))
+// The route is auth-gated (getUser() → 401). Mock an authenticated founder so
+// the tests exercise the data paths, not the auth gate.
+vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn() }))
 
 import { createServiceClient } from '@/lib/supabase/service'
+import { getUser } from '@/lib/supabase/server'
 import { GET } from '../route'
 
 function req() {
@@ -28,6 +32,7 @@ describe('GET /api/telegram/feed', () => {
     chainResolve = { data: [], error: null }
     mockFrom.mockReturnValue(makeChain())
     vi.mocked(createServiceClient).mockReturnValue({ from: mockFrom } as any)
+    vi.mocked(getUser).mockResolvedValue({ id: 'founder-1' } as any)
   })
 
   it('returns 200 with not_connected when table missing (42P01)', async () => {
