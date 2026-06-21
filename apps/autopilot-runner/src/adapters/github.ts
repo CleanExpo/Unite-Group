@@ -8,10 +8,10 @@
 // (it needs the real GitHub Apps; see SETUP.md), so it is intentionally not
 // implemented here yet.
 
-import type { LinearExecutionPacket } from '../packet'
-import type { OpenPrResult } from '../run-once'
-import type { MergeContext } from '../merge-policy'
-import { AUTONOMOUS_LABELS, DEFAULT_BASE_BRANCH } from '../merge-policy'
+import type { LinearExecutionPacket } from '../packet.js'
+import type { OpenPrResult } from '../run-once.js'
+import type { MergeContext } from '../merge-policy.js'
+import { AUTONOMOUS_LABELS, DEFAULT_BASE_BRANCH } from '../merge-policy.js'
 
 /** The PR label the runner stamps so the merge gate can verify it at the PR layer. */
 export const RUNNER_PR_LABEL = AUTONOMOUS_LABELS[1] // 'pi-dev:autonomous'

@@ -5,7 +5,7 @@ import {
   latestReviewVerdict,
   parseRepo,
   type OctokitLike,
-} from './github-octokit'
+} from './github-octokit.js'
 
 describe('aggregateCi', () => {
   it('fails on a failing combined status', () => {

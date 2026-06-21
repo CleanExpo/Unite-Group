@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
-import { makeAuthor, defaultClaudeCommand, type AuthorDeps } from './author'
-import type { LinearExecutionPacket } from '../packet'
+import { makeAuthor, defaultClaudeCommand, type AuthorDeps } from './author.js'
+import type { LinearExecutionPacket } from '../packet.js'
 
 const packet: LinearExecutionPacket = {
   source: 'command-centre:linear-claim',

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { runGauntlet, type CommandRunner, type CommandOutcome } from './gauntlet'
+import { runGauntlet, type CommandRunner, type CommandOutcome } from './gauntlet.js'
 
 const ok: CommandOutcome = { exitCode: 0, stdout: 'ok', stderr: '' }
 const fail: CommandOutcome = { exitCode: 1, stdout: '', stderr: 'boom' }

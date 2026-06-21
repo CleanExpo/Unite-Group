@@ -6,7 +6,7 @@
 // `claude` CLI invocation (flags) is verified at deploy against the real binary
 // + ANTHROPIC_API_KEY; it lives in defaultClaudeCommand and is overridable.
 
-import type { LinearExecutionPacket } from '../packet'
+import type { LinearExecutionPacket } from '../packet.js'
 
 export interface AuthorDeps {
   /** Run a shell command in cwd. (adapters/exec runCommand in prod.) */

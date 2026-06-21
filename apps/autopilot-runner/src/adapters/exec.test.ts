@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { runCommand, runGit } from './exec'
+import { runCommand, runGit } from './exec.js'
 
 const cwd = process.cwd()
 

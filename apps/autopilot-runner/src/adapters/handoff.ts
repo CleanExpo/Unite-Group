@@ -4,7 +4,7 @@
 // HANDOFF_URL + CRON_SECRET and binds fetchPacket to the global fetch. Config
 // loading is pure + tested; the bound fetcher uses the real network at runtime.
 
-import { fetchPacket, type FetchPacketResult } from '../packet'
+import { fetchPacket, type FetchPacketResult } from '../packet.js'
 
 export interface HandoffConfig {
   endpoint: string

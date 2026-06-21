@@ -4,7 +4,7 @@ import {
   parseHandoffResponse,
   fetchPacket,
   type LinearExecutionPacket,
-} from './packet'
+} from './packet.js'
 
 const validPacket: LinearExecutionPacket = {
   source: 'command-centre:linear-claim',

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { main } from './index'
+import { main } from './index.js'
 
 afterEach(() => vi.restoreAllMocks())
 

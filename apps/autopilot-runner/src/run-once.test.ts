@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
-import { runOnce, type RunOnceDeps } from './run-once'
-import type { LinearExecutionPacket } from './packet'
-import type { MergeContext } from './merge-policy'
+import { runOnce, type RunOnceDeps } from './run-once.js'
+import type { LinearExecutionPacket } from './packet.js'
+import type { MergeContext } from './merge-policy.js'
 
 const packet: LinearExecutionPacket = {
   source: 'command-centre:linear-claim',
