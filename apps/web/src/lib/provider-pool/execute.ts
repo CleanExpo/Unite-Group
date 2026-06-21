@@ -23,6 +23,18 @@ export const OPENAI_COMPATIBLE_BASE: Partial<Record<ProviderId, string>> = {
   gemini: 'https://generativelanguage.googleapis.com/v1beta/openai',
 }
 
+/**
+ * A sensible default chat model per provider, used when the caller doesn't pin
+ * one (the model must match whichever provider routing picks). Adjustable; the
+ * exact ids are verified against each provider at call time.
+ */
+export const DEFAULT_MODEL: Partial<Record<ProviderId, string>> = {
+  openai: 'gpt-4o-mini',
+  minimax: 'MiniMax-Text-01',
+  openrouter: 'openai/gpt-4o-mini',
+  gemini: 'gemini-1.5-flash',
+}
+
 export type ExecuteChatResult =
   | { status: 'ok'; provider: ProviderId; accountId: string; text: string; usage: { inputTokens: number; outputTokens: number } }
   | { status: 'queued'; reason: string }
@@ -62,8 +74,10 @@ export async function executeChat(kind: WorkKind, req: ChatRequest, deps: Execut
   const key = await deps.resolveKey(accountId)
   if (!key) return { status: 'error', provider, reason: 'credential not resolvable (no env var or vault entry)' }
 
+  // Pin a provider-appropriate model when the caller didn't specify one.
+  const reqForProvider = { ...req, model: req.model || DEFAULT_MODEL[provider] || req.model }
   const client = (deps.makeClient ?? ((b, k) => makeOpenAICompatibleClient({ baseUrl: b, apiKey: k })))(base, key)
-  const result = await client(req)
+  const result = await client(reqForProvider)
 
   if (!result.ok) {
     const rateLimited = result.reason === 'rate_limited'
