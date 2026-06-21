@@ -3,7 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 // ── Mocks (hoisted above all imports by Vitest transform) ────────────────────
 
 const mockSingle = vi.fn()
-const mockOrder = vi.fn(() => ({ data: [], error: null }))
+const mockRange = vi.fn(() => ({ data: [], error: null }))
+const mockOrder = vi.fn(() => ({ range: mockRange }))
 const mockEq = vi.fn(() => ({ order: mockOrder }))
 const mockSelect = vi.fn(() => ({ eq: mockEq }))
 const mockInsertSingle = vi.fn()
@@ -51,9 +52,9 @@ describe('GET /api/contacts', () => {
       { id: 'c1', first_name: 'Alice', status: 'lead' },
       { id: 'c2', first_name: 'Bob', status: 'client' },
     ]
-    mockOrder.mockReturnValue({ data: mockContacts, error: null })
+    mockRange.mockReturnValue({ data: mockContacts, error: null })
 
-    const res = await GET()
+    const res = await GET(new Request('https://app.test/api/contacts') as never)
     const body = await res.json()
 
     expect(res.status).toBe(200)

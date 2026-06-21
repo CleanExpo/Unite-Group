@@ -13,6 +13,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
+import { getUser } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +26,8 @@ interface FeedTurn {
 }
 
 export async function GET(req: NextRequest) {
+  const user = await getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
   const supabase = createServiceClient();
   const limit = parseInt(req.nextUrl.searchParams.get('limit') || '20', 10);
 

@@ -3,9 +3,15 @@ import { getUser, createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+
+  // Pagination cap (audit 4.2): never serialise the entire contact book in one
+  // payload — that hangs/crashes the tab at scale. Default 100, max 500.
+  const params = new URL(request.url).searchParams
+  const limit = Math.min(Math.max(parseInt(params.get('limit') ?? '100', 10) || 100, 1), 500)
+  const offset = Math.max(parseInt(params.get('offset') ?? '0', 10) || 0, 0)
 
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -13,6 +19,7 @@ export async function GET() {
     .select('*')
     .eq('founder_id', user.id)
     .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data ?? [])
