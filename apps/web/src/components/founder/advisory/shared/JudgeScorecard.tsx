@@ -51,7 +51,7 @@ export function JudgeScorecard({ scores, winner }: JudgeScorecardProps) {
             style={{
               background: 'var(--surface-card)',
               border: isWinner
-                ? `1px solid ${meta?.color ?? '#00F5FF'}`
+                ? `1px solid ${meta?.color ?? '#16a34a'}`
                 : '1px solid var(--color-border)',
             }}
           >
@@ -65,7 +65,7 @@ export function JudgeScorecard({ scores, winner }: JudgeScorecardProps) {
                   {meta?.name}
                 </span>
                 {isWinner && (
-                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-sm" style={{ background: '#00F5FF18', color: '#00F5FF' }}>
+                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-sm" style={{ background: '#16a34a18', color: '#16a34a' }}>
                     WINNER
                   </span>
                 )}

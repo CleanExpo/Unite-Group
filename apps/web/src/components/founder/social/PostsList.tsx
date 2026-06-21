@@ -4,7 +4,7 @@ import type { SocialPost, SocialPlatform } from '@/lib/integrations/social/types
 
 const STATUS_COLOURS: Record<string, string> = {
   draft: 'text-[#999999] border-[#999999]/30',
-  scheduled: 'text-[#00F5FF] border-[#00F5FF]/30',
+  scheduled: 'text-[#16a34a] border-[#16a34a]/30',
   publishing: 'text-[#f59e0b] border-[#f59e0b]/30',
   published: 'text-[#22c55e] border-[#22c55e]/30',
   failed: 'text-[#ef4444] border-[#ef4444]/30',
@@ -26,7 +26,7 @@ export function PostsList({ posts }: Props) {
   if (posts.length === 0) {
     return (
       <div className="text-[13px] py-12 text-center" style={{ color: 'var(--color-text-secondary)' }}>
-        No posts yet — click <span className="text-[#00F5FF]">+ New Post</span> to get started
+        No posts yet — click <span className="text-[#16a34a]">+ New Post</span> to get started
       </div>
     )
   }

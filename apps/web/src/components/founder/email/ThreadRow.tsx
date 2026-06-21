@@ -37,7 +37,7 @@ export function ThreadRow({ thread, selected, active, triageInfo, onCheck, onCli
       className={[
         'flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors border-l-2',
         active
-          ? 'bg-[#00F5FF]/5 border-l-[#00F5FF]'
+          ? 'bg-[#16a34a]/5 border-l-[#16a34a]'
           : 'border-l-transparent hover:bg-white/[0.03]',
         thread.unread ? 'border-b border-white/[0.06]' : 'border-b border-white/[0.04]',
       ].join(' ')}
@@ -50,7 +50,7 @@ export function ThreadRow({ thread, selected, active, triageInfo, onCheck, onCli
       >
         <div className={[
           'w-4 h-4 rounded-sm border flex items-center justify-center transition-colors',
-          selected ? 'bg-[#00F5FF] border-[#00F5FF]' : 'border-white/20 hover:border-white/40',
+          selected ? 'bg-[#16a34a] border-[#16a34a]' : 'border-white/20 hover:border-white/40',
         ].join(' ')}>
           {selected && (
             <svg className="w-2.5 h-2.5 text-black" fill="currentColor" viewBox="0 0 12 12">
@@ -64,7 +64,7 @@ export function ThreadRow({ thread, selected, active, triageInfo, onCheck, onCli
       <div
         className="mt-2 w-1.5 h-1.5 rounded-full flex-shrink-0"
         style={{
-          backgroundColor: thread.unread ? '#00F5FF' : 'transparent',
+          backgroundColor: thread.unread ? '#16a34a' : 'transparent',
           border: thread.unread ? 'none' : '1px solid rgba(255,255,255,0.15)',
         }}
       />

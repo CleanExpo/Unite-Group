@@ -53,7 +53,7 @@ export default async function SocialPage({
       />
 
       {params.connected && (
-        <div className="text-xs text-[#00F5FF]/80 border border-[#00F5FF]/20 bg-[#00F5FF]/5 px-4 py-2.5 rounded-sm">
+        <div className="text-xs text-[#16a34a]/80 border border-[#16a34a]/20 bg-[#16a34a]/5 px-4 py-2.5 rounded-sm">
           {params.connected} connected successfully
         </div>
       )}
@@ -68,11 +68,11 @@ export default async function SocialPage({
       <div className="flex items-center gap-4 text-sm">
         <div className="border border-white/[0.08] px-4 py-2 rounded-sm" style={{ background: 'var(--surface-card)' }}>
           <span className="text-muted">Configured:</span>{' '}
-          <span className="text-[#00F5FF]">{configuredCount}/{platforms.length}</span>
+          <span className="text-[#16a34a]">{configuredCount}/{platforms.length}</span>
         </div>
         <div className="border border-white/[0.08] px-4 py-2 rounded-sm" style={{ background: 'var(--surface-card)' }}>
           <span className="text-muted">Connected:</span>{' '}
-          <span className="text-[#00F5FF]">{connectedCount}/{platforms.length}</span>
+          <span className="text-[#16a34a]">{connectedCount}/{platforms.length}</span>
         </div>
       </div>
 
@@ -88,10 +88,10 @@ export default async function SocialPage({
                 className="w-10 h-10 rounded-sm flex items-center justify-center text-sm font-bold flex-shrink-0"
                 style={{
                   background: platform.connected
-                    ? 'rgba(0, 245, 255, 0.1)'
+                    ? 'rgba(22, 163, 74, 0.1)'
                     : 'rgba(255, 255, 255, 0.05)',
-                  color: platform.connected ? '#00F5FF' : 'var(--color-text-muted)',
-                  border: `1px solid ${platform.connected ? 'rgba(0, 245, 255, 0.2)' : 'rgba(255,255,255,0.08)'}`,
+                  color: platform.connected ? '#16a34a' : 'var(--color-text-muted)',
+                  border: `1px solid ${platform.connected ? 'rgba(22, 163, 74, 0.2)' : 'rgba(255,255,255,0.08)'}`,
                 }}
               >
                 {platform.icon}
@@ -104,7 +104,7 @@ export default async function SocialPage({
                   {platform.description}
                 </p>
                 {platform.connected && platform.connectedAt && (
-                  <p className="text-[10px] mt-1 text-[#00F5FF]/70">
+                  <p className="text-[10px] mt-1 text-[#16a34a]/70">
                     Connected {new Date(platform.connectedAt).toLocaleDateString()}
                   </p>
                 )}
@@ -122,7 +122,7 @@ export default async function SocialPage({
                   Setup
                 </a>
               ) : platform.connected ? (
-                <span className="text-[10px] uppercase tracking-widest text-[#00F5FF]/80 border border-[#00F5FF]/30 px-2.5 py-1 rounded-sm">
+                <span className="text-[10px] uppercase tracking-widest text-[#16a34a]/80 border border-[#16a34a]/30 px-2.5 py-1 rounded-sm">
                   Live
                 </span>
               ) : (
@@ -147,13 +147,13 @@ export default async function SocialPage({
                 className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                 style={{
                   background: platform.connected
-                    ? '#00F5FF'
+                    ? '#16a34a'
                     : platform.configured
                     ? 'rgba(255, 255, 255, 0.3)'
                     : 'rgba(255, 255, 255, 0.1)',
                 }}
               />
-              <span style={{ color: platform.connected ? '#00F5FF' : 'var(--color-text-muted)' }}>
+              <span style={{ color: platform.connected ? '#16a34a' : 'var(--color-text-muted)' }}>
                 {platform.name}
               </span>
               <span className="text-[10px] ml-auto" style={{ color: 'var(--color-text-muted)' }}>

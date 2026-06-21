@@ -44,7 +44,7 @@ function Trash2({ size = 13, className, ...props }: IconProps) {
 
 const STATUS_STYLE: Record<string, { bg: string; fg: string }> = {
   lead: { bg: '#8b8b8b18', fg: '#b0b0b0' },
-  prospect: { bg: '#00F5FF18', fg: '#00F5FF' },
+  prospect: { bg: '#16a34a18', fg: '#16a34a' },
   client: { bg: '#22c55e18', fg: '#4ade80' },
   churned: { bg: '#ef444418', fg: '#f87171' },
   archived: { bg: '#6b728018', fg: '#9ca3af' },
@@ -113,7 +113,7 @@ export function ContactDetailClient({ id }: ContactDetailClientProps) {
   const backLink = (
     <Link
       href="/founder/contacts"
-      className="inline-flex items-center gap-1.5 text-[13px] text-[var(--color-text-muted)] hover:text-[#00F5FF] transition-colors"
+      className="inline-flex items-center gap-1.5 text-[13px] text-[var(--color-text-muted)] hover:text-[#16a34a] transition-colors"
     >
       <ArrowLeft /> Contacts
     </Link>
@@ -194,7 +194,7 @@ export function ContactDetailClient({ id }: ContactDetailClientProps) {
           <button
             onClick={() => setShowEdit(true)}
             className="inline-flex items-center gap-1.5 rounded-sm px-3 py-2 text-[13px] font-medium transition-colors"
-            style={{ background: '#00F5FF18', color: '#00F5FF', border: '1px solid #00F5FF30' }}
+            style={{ background: '#16a34a18', color: '#16a34a', border: '1px solid #16a34a30' }}
           >
             <Pencil /> Edit
           </button>

@@ -176,7 +176,7 @@ export function CampaignGenerator({
               className="text-[10px] uppercase tracking-[0.15em] block"
               style={{ color: 'rgba(255,255,255,0.35)' }}
             >
-              Theme <span style={{ color: '#00F5FF' }}>*</span>
+              Theme <span style={{ color: '#16a34a' }}>*</span>
             </label>
             <input
               type="text"
@@ -224,7 +224,7 @@ export function CampaignGenerator({
               className="text-[10px] uppercase tracking-[0.15em] block"
               style={{ color: 'rgba(255,255,255,0.35)' }}
             >
-              Platforms <span style={{ color: '#00F5FF' }}>*</span>
+              Platforms <span style={{ color: '#16a34a' }}>*</span>
             </label>
             <div className="flex flex-wrap gap-2">
               {PLATFORMS.map((platform) => {
@@ -236,17 +236,17 @@ export function CampaignGenerator({
                     onClick={() => togglePlatform(platform)}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-sm border text-[11px] transition-colors"
                     style={{
-                      background: checked ? 'rgba(0,245,255,0.08)' : 'rgba(255,255,255,0.03)',
-                      borderColor: checked ? 'rgba(0,245,255,0.35)' : 'rgba(255,255,255,0.08)',
-                      color: checked ? '#00F5FF' : 'rgba(255,255,255,0.45)',
+                      background: checked ? 'rgba(22, 163, 74,0.08)' : 'rgba(255,255,255,0.03)',
+                      borderColor: checked ? 'rgba(22, 163, 74,0.35)' : 'rgba(255,255,255,0.08)',
+                      color: checked ? '#16a34a' : 'rgba(255,255,255,0.45)',
                     }}
                   >
                     {/* Custom checkbox dot */}
                     <span
                       className="w-3 h-3 rounded-[2px] border flex items-center justify-center flex-shrink-0"
                       style={{
-                        background: checked ? '#00F5FF' : 'transparent',
-                        borderColor: checked ? '#00F5FF' : 'rgba(255,255,255,0.2)',
+                        background: checked ? '#16a34a' : 'transparent',
+                        borderColor: checked ? '#16a34a' : 'rgba(255,255,255,0.2)',
                       }}
                     >
                       {checked && (
@@ -341,7 +341,7 @@ export function CampaignGenerator({
             <button
               onClick={handleGenerate}
               disabled={!canSubmit}
-              className="bg-[#00F5FF] text-black font-medium rounded-sm px-6 py-2.5 text-[13px] transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+              className="bg-[#16a34a] text-black font-medium rounded-sm px-6 py-2.5 text-[13px] transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Generate Campaign
             </button>
@@ -357,7 +357,7 @@ export function CampaignGenerator({
       {/* Generating state */}
       {uiState === 'generating' && (
         <div className="flex flex-col items-center justify-center py-16 gap-4">
-          <Loader2 size={28} className="animate-spin" style={{ color: '#00F5FF' }} />
+          <Loader2 size={28} className="animate-spin" style={{ color: '#16a34a' }} />
           <div className="text-center space-y-1">
             <p className="text-[13px]" style={{ color: 'rgba(255,255,255,0.7)' }}>
               Generating copy and images...
@@ -373,7 +373,7 @@ export function CampaignGenerator({
       {uiState === 'complete' && generateResult && (
         <div className="space-y-5">
           <div className="flex items-center gap-2">
-            <CheckCircle2 size={16} style={{ color: '#00F5FF' }} />
+            <CheckCircle2 size={16} style={{ color: '#16a34a' }} />
             <h2 className="text-white/80 text-[15px] font-medium">Campaign Generated</h2>
           </div>
 
@@ -381,8 +381,8 @@ export function CampaignGenerator({
           <div
             className="rounded-sm border p-5 space-y-4"
             style={{
-              background: 'rgba(0,245,255,0.03)',
-              borderColor: 'rgba(0,245,255,0.15)',
+              background: 'rgba(22, 163, 74,0.03)',
+              borderColor: 'rgba(22, 163, 74,0.15)',
             }}
           >
             <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.45)' }}>
@@ -393,7 +393,7 @@ export function CampaignGenerator({
             <div className="grid grid-cols-3 gap-4">
               {/* Assets created */}
               <div className="space-y-1 text-center">
-                <p className="text-[22px] font-semibold tabular-nums" style={{ color: '#00F5FF' }}>
+                <p className="text-[22px] font-semibold tabular-nums" style={{ color: '#16a34a' }}>
                   {generateResult.assetsCreated}
                 </p>
                 <p className="text-[10px] uppercase tracking-[0.12em]" style={{ color: 'rgba(255,255,255,0.35)' }}>
@@ -432,7 +432,7 @@ export function CampaignGenerator({
           <div className="flex items-center gap-3">
             <button
               onClick={() => campaignId && onGenerated(campaignId)}
-              className="bg-[#00F5FF] text-black font-medium rounded-sm px-6 py-2.5 text-[13px] transition-opacity"
+              className="bg-[#16a34a] text-black font-medium rounded-sm px-6 py-2.5 text-[13px] transition-opacity"
             >
               View Campaign
             </button>

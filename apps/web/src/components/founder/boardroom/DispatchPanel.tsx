@@ -30,12 +30,12 @@ const TYPE_OPTIONS = ['task', 'feature', 'bug', 'research', 'content', 'strategy
 const PRIORITY_COLOURS: Record<number, string> = {
   1: '#ef4444',
   2: '#f97316',
-  3: '#00F5FF',
+  3: '#16a34a',
   4: '#808080',
 }
 
 const STATUS_COLOURS: Record<string, string> = {
-  dispatched:    '#00F5FF',
+  dispatched:    '#16a34a',
   in_progress:   '#f97316',
   completed:     '#22c55e',
   cancelled:     '#808080',
@@ -129,7 +129,7 @@ export function DispatchPanel() {
           onClick={() => setFilterBiz(null)}
           className="text-[11px] px-3 py-1 rounded-sm border transition-colors"
           style={{
-            borderColor: filterBiz === null ? '#00F5FF' : 'var(--color-border)',
+            borderColor: filterBiz === null ? '#16a34a' : 'var(--color-border)',
             color: filterBiz === null ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
             background: 'var(--surface-card)',
           }}
@@ -154,7 +154,7 @@ export function DispatchPanel() {
         <button
           onClick={() => setShowForm(v => !v)}
           className="ml-auto flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-sm"
-          style={{ background: '#00F5FF', color: '#fffdf7' }}
+          style={{ background: '#16a34a', color: '#fffdf7' }}
         >
           <Plus size={11} />
           Dispatch Work
@@ -176,7 +176,7 @@ export function DispatchPanel() {
 
       {/* Dispatch form */}
       {showForm && (
-        <div className="rounded-sm border p-4 space-y-3" style={{ borderColor: 'rgba(0,245,255,0.2)', background: 'var(--surface-card)' }}>
+        <div className="rounded-sm border p-4 space-y-3" style={{ borderColor: 'rgba(22, 163, 74,0.2)', background: 'var(--surface-card)' }}>
           <p className="text-[11px] font-medium tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>New Work Package</p>
 
           <input
@@ -245,7 +245,7 @@ export function DispatchPanel() {
               onClick={() => void handleDispatch()}
               disabled={!form.title.trim() || submitting}
               className="flex items-center gap-1.5 px-4 h-8 rounded-sm text-[12px] font-medium disabled:opacity-40"
-              style={{ background: '#00F5FF', color: '#fffdf7' }}
+              style={{ background: '#16a34a', color: '#fffdf7' }}
             >
               <Send size={11} />
               {submitting ? 'Dispatching…' : 'Dispatch to Linear'}

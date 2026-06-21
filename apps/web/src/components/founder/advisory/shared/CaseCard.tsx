@@ -12,10 +12,10 @@ const STATUS_COLOURS: Record<string, string> = {
   draft: '#6b7280',
   debating: '#f59e0b',
   judged: '#3b82f6',
-  pending_review: '#a855f7',
+  pending_review: '#f97316',
   approved: '#22c55e',
   rejected: '#ef4444',
-  executed: '#00F5FF',
+  executed: '#16a34a',
   closed: '#6b7280',
 }
 

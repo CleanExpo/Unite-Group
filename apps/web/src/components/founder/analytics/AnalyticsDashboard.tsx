@@ -98,7 +98,7 @@ function StatCard({ label, value, index }: StatCardProps) {
       <span className="text-[11px] uppercase tracking-widest font-medium" style={{ color: 'var(--color-text-disabled)' }}>
         {label}
       </span>
-      <span className="text-[26px] font-semibold leading-none tracking-tight text-[#00F5FF]">
+      <span className="text-[26px] font-semibold leading-none tracking-tight text-[#16a34a]">
         {value}
       </span>
     </motion.div>
@@ -189,8 +189,8 @@ export default function AnalyticsDashboard() {
               onClick={() => setDateRange(value)}
               className="px-3 h-8 text-[12px] font-medium transition-colors duration-100"
               style={{
-                background: dateRange === value ? 'rgba(0,245,255,0.12)' : 'transparent',
-                color: dateRange === value ? '#00F5FF' : 'var(--color-text-muted)',
+                background: dateRange === value ? 'rgba(22, 163, 74,0.12)' : 'transparent',
+                color: dateRange === value ? '#16a34a' : 'var(--color-text-muted)',
                 borderRight: value !== '90d' ? '1px solid var(--color-border)' : 'none',
               }}
             >
@@ -268,7 +268,7 @@ export default function AnalyticsDashboard() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
           className="rounded-sm py-12 flex items-center justify-center text-center"
-          style={{ border: '1px dashed #00F5FF33' }}
+          style={{ border: '1px dashed #16a34a33' }}
         >
           <p className="text-[13px] max-w-sm" style={{ color: 'var(--color-text-muted)' }}>
             No analytics data yet — connect your social channels and publish content to see metrics here.
@@ -330,7 +330,7 @@ export default function AnalyticsDashboard() {
                     <td className="px-4 py-2.5" style={{ color: 'var(--color-text-muted)' }}>
                       {formatNumber(stats.engagements)}
                     </td>
-                    <td className="px-4 py-2.5 font-medium text-[#00F5FF]">{engRate}%</td>
+                    <td className="px-4 py-2.5 font-medium text-[#16a34a]">{engRate}%</td>
                   </motion.tr>
                 )
               })}
@@ -396,7 +396,7 @@ export default function AnalyticsDashboard() {
                   <td className="px-4 py-2.5" style={{ color: 'var(--color-text-muted)' }}>
                     {formatNumber(post.engagements)}
                   </td>
-                  <td className="px-4 py-2.5 font-medium text-[#00F5FF]">
+                  <td className="px-4 py-2.5 font-medium text-[#16a34a]">
                     {post.engagementRate.toFixed(2)}%
                   </td>
                 </motion.tr>

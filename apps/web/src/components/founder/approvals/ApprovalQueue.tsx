@@ -41,9 +41,9 @@ export function ApprovalQueue({ items }: { items: ApprovalItem[] }) {
               <span
                 className="text-[10px] px-1.5 py-0.5 rounded-sm shrink-0"
                 style={{
-                  background: 'rgba(0, 245, 255, 0.08)',
-                  color: 'var(--color-accent, #00F5FF)',
-                  border: '1px solid rgba(0, 245, 255, 0.15)',
+                  background: 'rgba(22, 163, 74, 0.08)',
+                  color: 'var(--color-accent, #16a34a)',
+                  border: '1px solid rgba(22, 163, 74, 0.15)',
                 }}
               >
                 {formatType(item.type)}

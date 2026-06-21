@@ -120,7 +120,7 @@ export function IdeaCapture() {
             {/* Header */}
             <div className="flex items-center gap-2 px-4 h-12 border-b shrink-0"
               style={{ borderColor: 'var(--color-border)' }}>
-              <Zap size={14} style={{ color: '#00F5FF' }} />
+              <Zap size={14} style={{ color: '#16a34a' }} />
               <span className="text-[13px] font-medium" style={{ color: 'var(--color-text-primary)' }}>
                 Capture Idea
               </span>
@@ -166,7 +166,7 @@ export function IdeaCapture() {
                       <div
                         className="max-w-[85%] rounded-sm px-3 py-2 text-[12px] leading-relaxed"
                         style={{
-                          background: msg.role === 'user' ? 'rgba(0,245,255,0.08)' : 'var(--surface-card)',
+                          background: msg.role === 'user' ? 'rgba(22, 163, 74,0.08)' : 'var(--surface-card)',
                           color: 'var(--color-text-primary)',
                           border: '1px solid var(--color-border)',
                         }}
@@ -188,7 +188,7 @@ export function IdeaCapture() {
               {/* Spec state */}
               {state === 'spec' && spec && (
                 <div className="space-y-3">
-                  <p className="text-[11px] uppercase tracking-widest" style={{ color: '#00F5FF' }}>
+                  <p className="text-[11px] uppercase tracking-widest" style={{ color: '#16a34a' }}>
                     Ready to create
                   </p>
                   <div className="rounded-sm border p-4 space-y-3 text-[12px]"
@@ -217,7 +217,7 @@ export function IdeaCapture() {
                       <ul className="space-y-1 list-none">
                         {spec.acceptanceCriteria.map((c, i) => (
                           <li key={i} className="flex gap-2" style={{ color: 'var(--color-text-secondary)' }}>
-                            <span style={{ color: '#00F5FF' }}>✓</span> {c}
+                            <span style={{ color: '#16a34a' }}>✓</span> {c}
                           </li>
                         ))}
                       </ul>
@@ -229,7 +229,7 @@ export function IdeaCapture() {
               {/* Success state */}
               {state === 'success' && (
                 <div className="flex flex-col items-center justify-center h-40 gap-3">
-                  <CheckCircle size={32} style={{ color: '#00F5FF' }} />
+                  <CheckCircle size={32} style={{ color: '#16a34a' }} />
                   <p className="text-[13px] font-medium" style={{ color: 'var(--color-text-primary)' }}>
                     Issue created
                   </p>
@@ -251,7 +251,7 @@ export function IdeaCapture() {
                   onClick={handleInitialSubmit}
                   disabled={!rawIdea.trim() || loading}
                   className="w-full flex items-center justify-center gap-2 h-8 rounded-sm text-[12px] font-medium transition-colors disabled:opacity-40"
-                  style={{ background: '#00F5FF', color: '#fffdf7' }}
+                  style={{ background: '#16a34a', color: '#fffdf7' }}
                 >
                   <Send size={12} />
                   Send to Claude
@@ -283,7 +283,7 @@ export function IdeaCapture() {
                     onClick={handleCreate}
                     disabled={loading}
                     className="flex-1 flex items-center justify-center gap-2 h-8 rounded-sm text-[12px] font-medium transition-colors disabled:opacity-40"
-                    style={{ background: '#00F5FF', color: '#fffdf7' }}
+                    style={{ background: '#16a34a', color: '#fffdf7' }}
                   >
                     Create in Linear
                   </button>

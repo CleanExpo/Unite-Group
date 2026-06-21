@@ -86,7 +86,7 @@ export function SettingsPageClient() {
           <button
             onClick={() => setShowPwModal(true)}
             className="flex items-center gap-2 px-4 h-9 rounded-sm text-[13px] font-medium transition-opacity hover:opacity-90"
-            style={{ background: '#00F5FF18', color: '#00F5FF', border: '1px solid #00F5FF30' }}
+            style={{ background: '#16a34a18', color: '#16a34a', border: '1px solid #16a34a30' }}
           >
             <KeyRound size={14} strokeWidth={1.5} />
             Change Password
@@ -107,7 +107,7 @@ export function SettingsPageClient() {
           <div className="flex items-center gap-3 mb-4">
             <div
               className="w-9 h-9 rounded-sm flex items-center justify-center shrink-0"
-              style={{ background: '#00F5FF', color: '#fffdf7' }}
+              style={{ background: '#16a34a', color: '#fffdf7' }}
             >
               <User size={16} strokeWidth={1.75} />
             </div>
@@ -158,9 +158,9 @@ function ThemeCard({
       onClick={onClick}
       className="flex flex-col items-center gap-2 w-28 py-4 rounded-sm text-[12px] font-medium transition-all"
       style={{
-        background: active ? '#00F5FF10' : 'var(--surface-elevated)',
-        border: `1px solid ${active ? '#00F5FF' : 'var(--color-border)'}`,
-        color: active ? '#00F5FF' : 'var(--color-text-muted)',
+        background: active ? '#16a34a10' : 'var(--surface-elevated)',
+        border: `1px solid ${active ? '#16a34a' : 'var(--color-border)'}`,
+        color: active ? '#16a34a' : 'var(--color-text-muted)',
       }}
     >
       {icon}

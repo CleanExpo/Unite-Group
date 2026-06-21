@@ -10,7 +10,7 @@ interface Props {
   metricKey: 'impressions' | 'clicks' | 'likes' | 'conversions'
 }
 
-const VARIANT_COLOURS = ['#666666', '#00F5FF', '#a855f7', '#22c55e', '#f59e0b']
+const VARIANT_COLOURS = ['#666666', '#16a34a', '#f97316', '#22c55e', '#f59e0b']
 
 export function ExperimentResultsChart({ results, variants, metricKey }: Props) {
   if (results.length === 0) {

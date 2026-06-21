@@ -191,7 +191,7 @@ export function StrategyRoomClient() {
           <Switch
             checked={researchMode}
             onCheckedChange={(v) => { setResearchMode(v); resetOutputs() }}
-            className="data-[state=checked]:bg-[#00F5FF]"
+            className="data-[state=checked]:bg-[#16a34a]"
           />
           <span className="text-[13px]" style={{ color: 'var(--color-text-secondary)' }}>
             Pipeline mode
@@ -205,9 +205,9 @@ export function StrategyRoomClient() {
                 onClick={() => { setPipelineId(p.id); resetOutputs() }}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm border text-[11px] transition-colors"
                 style={{
-                  borderColor: pipelineId === p.id ? '#00F5FF' : 'var(--color-border)',
-                  background: pipelineId === p.id ? 'rgba(0,245,255,0.06)' : 'var(--surface-card)',
-                  color: pipelineId === p.id ? '#00F5FF' : 'var(--color-text-muted)',
+                  borderColor: pipelineId === p.id ? '#16a34a' : 'var(--color-border)',
+                  background: pipelineId === p.id ? 'rgba(22, 163, 74,0.06)' : 'var(--surface-card)',
+                  color: pipelineId === p.id ? '#16a34a' : 'var(--color-text-muted)',
                 }}
                 title={p.hint}
               >
@@ -239,7 +239,7 @@ export function StrategyRoomClient() {
         onClick={analyze}
         disabled={!prompt.trim() || loading}
         className="flex items-center gap-2 px-4 h-9 rounded-sm text-[13px] font-medium transition-colors disabled:opacity-40"
-        style={{ background: '#00F5FF', color: '#fffdf7' }}
+        style={{ background: '#16a34a', color: '#fffdf7' }}
       >
         {researchMode ? <Globe size={14} /> : <Brain size={14} />}
         {buttonLabel}
@@ -313,11 +313,11 @@ export function StrategyRoomClient() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             className="rounded-sm border p-5"
-            style={{ borderColor: 'rgba(0,245,255,0.2)', background: 'var(--surface-card)' }}
+            style={{ borderColor: 'rgba(22, 163, 74,0.2)', background: 'var(--surface-card)' }}
           >
             <div className="flex items-center gap-2 mb-3">
-              <Brain size={13} style={{ color: 'rgba(0,245,255,0.6)' }} />
-              <span className="text-[11px] uppercase tracking-widest" style={{ color: 'rgba(0,245,255,0.6)' }}>
+              <Brain size={13} style={{ color: 'rgba(22, 163, 74,0.6)' }} />
+              <span className="text-[11px] uppercase tracking-widest" style={{ color: 'rgba(22, 163, 74,0.6)' }}>
                 Strategic Analysis
               </span>
             </div>

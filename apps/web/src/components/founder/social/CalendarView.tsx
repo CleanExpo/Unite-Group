@@ -68,7 +68,7 @@ export function CalendarView({ posts }: Props) {
             key={i}
             className={`min-h-[64px] p-1 border rounded-sm ${
               day === today.getDate() && month === today.getMonth() && year === today.getFullYear()
-                ? 'border-[#00F5FF]/30'
+                ? 'border-[#16a34a]/30'
                 : ''
             }`}
             style={day === today.getDate() && month === today.getMonth() && year === today.getFullYear() ? undefined : { borderColor: 'var(--color-border)' }}

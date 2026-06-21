@@ -17,16 +17,16 @@ interface Decision {
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  strategic: '#00F5FF',
+  strategic: '#16a34a',
   budget: '#22c55e',
   timeline: '#f97316',
-  shipping: '#a855f7',
+  shipping: '#f97316',
   hiring: '#eab308',
 }
 
 const STATUS_ICONS = {
   open: <Circle size={12} style={{ color: '#f97316' }} />,
-  decided: <Circle size={12} style={{ color: '#00F5FF' }} />,
+  decided: <Circle size={12} style={{ color: '#16a34a' }} />,
   completed: <CheckCircle2 size={12} style={{ color: '#22c55e' }} />,
   cancelled: <XCircle size={12} style={{ color: 'var(--color-text-disabled)' }} />,
 }
@@ -124,7 +124,7 @@ export function DecisionLog() {
             onClick={() => setFilterStatus(s)}
             className="text-[11px] px-3 py-1 rounded-sm border transition-colors"
             style={{
-              borderColor: filterStatus === s ? '#00F5FF' : 'var(--color-border)',
+              borderColor: filterStatus === s ? '#16a34a' : 'var(--color-border)',
               color: filterStatus === s ? '#e2e8f0' : 'var(--color-text-muted)',
               background: 'var(--surface-card)',
             }}
@@ -135,7 +135,7 @@ export function DecisionLog() {
         <button
           onClick={() => setShowForm((v) => !v)}
           className="ml-auto flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-sm transition-colors"
-          style={{ background: '#00F5FF', color: '#fffdf7' }}
+          style={{ background: '#16a34a', color: '#fffdf7' }}
         >
           <Plus size={11} />
           New Decision
@@ -144,7 +144,7 @@ export function DecisionLog() {
 
       {/* Add form */}
       {showForm && (
-        <div className="rounded-sm border p-4 space-y-3" style={{ borderColor: 'rgba(0,245,255,0.2)', background: 'var(--surface-card)' }}>
+        <div className="rounded-sm border p-4 space-y-3" style={{ borderColor: 'rgba(22, 163, 74,0.2)', background: 'var(--surface-card)' }}>
           <input
             value={form.title}
             onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
@@ -206,7 +206,7 @@ export function DecisionLog() {
               onClick={() => void createDecision()}
               disabled={!form.title.trim() || submitting}
               className="px-4 h-8 rounded-sm text-[12px] font-medium disabled:opacity-40"
-              style={{ background: '#00F5FF', color: '#fffdf7' }}
+              style={{ background: '#16a34a', color: '#fffdf7' }}
             >
               Save Decision
             </button>

@@ -42,7 +42,7 @@ export function ExperimentsPageClient({ experiments }: Props) {
         actions={
           <button
             onClick={() => setShowGenerator(true)}
-            className="px-4 py-2 text-[10px] uppercase tracking-[0.15em] text-[#00F5FF] border border-[#00F5FF]/30 rounded-sm hover:bg-[#00F5FF]/5 transition-colors"
+            className="px-4 py-2 text-[10px] uppercase tracking-[0.15em] text-[#16a34a] border border-[#16a34a]/30 rounded-sm hover:bg-[#16a34a]/5 transition-colors"
           >
             Generate Experiment
           </button>

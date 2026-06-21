@@ -63,8 +63,8 @@ export function ExperimentTimeline({ experiment, winnerVariant }: Props) {
               style={{
                 width: 8,
                 height: 8,
-                background: event.active ? '#00F5FF' : 'rgba(255,255,255,0.1)',
-                boxShadow: event.active ? '0 0 6px rgba(0,245,255,0.4)' : 'none',
+                background: event.active ? '#16a34a' : 'rgba(255,255,255,0.1)',
+                boxShadow: event.active ? '0 0 6px rgba(22, 163, 74,0.4)' : 'none',
                 marginTop: 3,
               }}
             />

@@ -63,14 +63,14 @@ export function ReplyComposer({ threadId, account, defaultTo, defaultSubject, in
         placeholder="Write your reply…"
         rows={5}
         autoFocus
-        className="w-full bg-zinc-900 border border-zinc-700 rounded-sm px-3 py-2 text-sm text-white placeholder-zinc-500 focus:border-[#00F5FF] focus:outline-none resize-none"
+        className="w-full bg-zinc-900 border border-zinc-700 rounded-sm px-3 py-2 text-sm text-white placeholder-zinc-500 focus:border-[#16a34a] focus:outline-none resize-none"
       />
       {error && <p className="text-red-400 text-xs">{error}</p>}
       <div className="flex justify-end">
         <button
           onClick={handleSend}
           disabled={sending || !body.trim()}
-          className="text-xs bg-[#00F5FF] text-black px-4 py-1.5 rounded-sm font-medium hover:opacity-80 disabled:opacity-40 transition-opacity"
+          className="text-xs bg-[#16a34a] text-black px-4 py-1.5 rounded-sm font-medium hover:opacity-80 disabled:opacity-40 transition-opacity"
         >
           {sending ? 'Sending…' : 'Send Reply'}
         </button>

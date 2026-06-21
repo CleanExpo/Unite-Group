@@ -73,7 +73,7 @@ export function ContactFormModal({ contact, onClose, onSave }: ContactFormModalP
   }
 
   const inputClass =
-    'w-full rounded-sm border border-[var(--color-border)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-[#00F5FF] focus:outline-none'
+    'w-full rounded-sm border border-[var(--color-border)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-[#16a34a] focus:outline-none'
   const labelClass = 'block text-xs font-medium text-[var(--color-text-muted)] mb-1'
 
   return (
@@ -225,9 +225,9 @@ export function ContactFormModal({ contact, onClose, onSave }: ContactFormModalP
               disabled={saving}
               className="rounded-sm px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
               style={{
-                background: '#00F5FF18',
-                color: '#00F5FF',
-                border: '1px solid #00F5FF30',
+                background: '#16a34a18',
+                color: '#16a34a',
+                border: '1px solid #16a34a30',
               }}
             >
               {saving ? 'Saving...' : isEdit ? 'Update Contact' : 'Create Contact'}

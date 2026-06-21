@@ -56,7 +56,7 @@ export function VaultChangePassword({ onClose }: VaultChangePasswordProps) {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <KeyRound size={16} strokeWidth={1.5} style={{ color: '#00F5FF' }} />
+            <KeyRound size={16} strokeWidth={1.5} style={{ color: '#16a34a' }} />
             <span className="text-[14px] font-medium" style={{ color: 'var(--color-text-primary)' }}>
               Change Vault Password
             </span>
@@ -123,7 +123,7 @@ export function VaultChangePassword({ onClose }: VaultChangePasswordProps) {
               type="submit"
               disabled={saving}
               className="h-9 rounded-sm text-[13px] font-medium transition-opacity hover:opacity-90 disabled:opacity-50 mt-1"
-              style={{ background: '#00F5FF18', color: '#00F5FF', border: '1px solid #00F5FF30' }}
+              style={{ background: '#16a34a18', color: '#16a34a', border: '1px solid #16a34a30' }}
             >
               {saving ? 'Saving...' : 'Update Password'}
             </button>

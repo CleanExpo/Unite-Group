@@ -134,7 +134,7 @@ export function BrandProfileSelector({
           <button
             type="button"
             onClick={onScanNew}
-            className="self-start bg-[#00F5FF] text-black text-[12px] font-semibold rounded-sm px-4 py-2 hover:bg-[#00F5FF]/90 transition-colors"
+            className="self-start bg-[#16a34a] text-black text-[12px] font-semibold rounded-sm px-4 py-2 hover:bg-[#16a34a]/90 transition-colors"
           >
             Scan Brand DNA
           </button>
@@ -148,7 +148,7 @@ export function BrandProfileSelector({
               key={profile.id}
               type="button"
               onClick={() => onSelect(profile)}
-              className="text-left rounded-sm border border-white/[0.08] bg-white/[0.02] hover:border-[#00F5FF]/40 hover:bg-[#00F5FF]/[0.04] px-4 py-3 transition-colors"
+              className="text-left rounded-sm border border-white/[0.08] bg-white/[0.02] hover:border-[#16a34a]/40 hover:bg-[#16a34a]/[0.04] px-4 py-3 transition-colors"
             >
               <span className="block text-[13px] font-medium text-white/80">
                 {profile.clientName}

@@ -153,7 +153,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
           <select
             value={businessKey}
             onChange={e => setBusinessKey(e.target.value)}
-            className="w-full rounded-sm px-3 py-2 text-[13px] focus:outline-none focus:border-[#00F5FF]/30"
+            className="w-full rounded-sm px-3 py-2 text-[13px] focus:outline-none focus:border-[#16a34a]/30"
             style={{ background: 'var(--surface-elevated)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
           >
             {BUSINESSES.map(b => <option key={b.key} value={b.key}>{b.name}</option>)}
@@ -163,14 +163,14 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
         {/* AI Generate section */}
         <div
           className="rounded-sm overflow-hidden"
-          style={{ border: '1px solid', borderColor: showAI ? 'rgba(0, 245, 255, 0.25)' : 'var(--color-border)' }}
+          style={{ border: '1px solid', borderColor: showAI ? 'rgba(22, 163, 74, 0.25)' : 'var(--color-border)' }}
         >
           <button
             onClick={() => setShowAI(!showAI)}
             className="w-full flex items-center justify-between px-3 py-2 text-[10px] uppercase tracking-wider transition-colors"
             style={{
-              background: showAI ? 'rgba(0, 245, 255, 0.05)' : 'var(--surface-card)',
-              color: showAI ? '#00F5FF' : 'var(--color-text-secondary)',
+              background: showAI ? 'rgba(22, 163, 74, 0.05)' : 'var(--surface-card)',
+              color: showAI ? '#16a34a' : 'var(--color-text-secondary)',
             }}
           >
             <span className="flex items-center gap-2">
@@ -201,7 +201,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
                   value={aiTopic}
                   onChange={e => setAiTopic(e.target.value)}
                   placeholder="e.g. Summer road safety tips"
-                  className="w-full rounded-sm px-3 py-1.5 text-[12px] placeholder:text-white/40 focus:outline-none focus:border-[#00F5FF]/30"
+                  className="w-full rounded-sm px-3 py-1.5 text-[12px] placeholder:text-white/40 focus:outline-none focus:border-[#16a34a]/30"
                   style={{ background: 'var(--surface-elevated)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
                 />
               </div>
@@ -216,7 +216,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
                       onClick={() => setAiCharacter(c.key)}
                       className={`flex-1 px-2 py-1.5 text-[10px] rounded-sm border transition-colors ${
                         aiCharacter === c.key
-                          ? 'border-[#00F5FF]/40 text-[#00F5FF] bg-[#00F5FF]/5'
+                          ? 'border-[#16a34a]/40 text-[#16a34a] bg-[#16a34a]/5'
                           : 'hover:border-[rgba(255,255,255,0.18)]'
                       }`}
                       style={aiCharacter === c.key ? undefined : { background: 'var(--surface-elevated)', borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
@@ -234,7 +234,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
                 <select
                   value={aiPlatform}
                   onChange={e => setAiPlatform(e.target.value)}
-                  className="w-full rounded-sm px-3 py-1.5 text-[12px] focus:outline-none focus:border-[#00F5FF]/30"
+                  className="w-full rounded-sm px-3 py-1.5 text-[12px] focus:outline-none focus:border-[#16a34a]/30"
                   style={{ background: 'var(--surface-elevated)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
                 >
                   <option value="">Multi-platform</option>
@@ -250,15 +250,15 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
                 disabled={generating}
                 className="w-full py-2 text-[10px] uppercase tracking-wider rounded-sm transition-all disabled:opacity-50"
                 style={{
-                  background: generating ? 'rgba(0, 245, 255, 0.1)' : 'linear-gradient(135deg, #00F5FF, #00C4CC)',
-                  color: generating ? '#00F5FF' : '#050505',
-                  boxShadow: generating ? 'none' : '0 0 20px rgba(0, 245, 255, 0.15)',
+                  background: generating ? 'rgba(22, 163, 74, 0.1)' : 'linear-gradient(135deg, #16a34a, #00C4CC)',
+                  color: generating ? '#16a34a' : '#050505',
+                  boxShadow: generating ? 'none' : '0 0 20px rgba(22, 163, 74, 0.15)',
                   fontWeight: 600,
                 }}
               >
                 {generating ? (
                   <span className="inline-flex items-center gap-2">
-                    <span className="inline-block w-3 h-3 rounded-sm border-2 border-[#00F5FF]/30 border-t-[#00F5FF] animate-spin" />
+                    <span className="inline-block w-3 h-3 rounded-sm border-2 border-[#16a34a]/30 border-t-[#16a34a] animate-spin" />
                     Generating...
                   </span>
                 ) : (
@@ -274,7 +274,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
                     <button
                       key={i}
                       onClick={() => selectVariant(v)}
-                      className="w-full text-left rounded-sm px-3 py-2.5 transition-all hover:border-[#00F5FF]/40 group"
+                      className="w-full text-left rounded-sm px-3 py-2.5 transition-all hover:border-[#16a34a]/40 group"
                       style={{
                         background: 'var(--surface-elevated)',
                         borderWidth: '1px',
@@ -282,8 +282,8 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
                         borderColor: 'var(--color-border)',
                       }}
                       onMouseEnter={e => {
-                        (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(0, 245, 255, 0.4)'
-                        ;(e.currentTarget as HTMLButtonElement).style.boxShadow = '0 0 12px rgba(0, 245, 255, 0.08)'
+                        (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(22, 163, 74, 0.4)'
+                        ;(e.currentTarget as HTMLButtonElement).style.boxShadow = '0 0 12px rgba(22, 163, 74, 0.08)'
                       }}
                       onMouseLeave={e => {
                         (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border)'
@@ -302,7 +302,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
                         {v.body.length > 100 ? v.body.slice(0, 100) + '...' : v.body}
                       </p>
                       {v.hashtags.length > 0 && (
-                        <p className="text-[10px] mt-1 opacity-80" style={{ color: '#00F5FF' }}>
+                        <p className="text-[10px] mt-1 opacity-80" style={{ color: '#16a34a' }}>
                           {v.hashtags.slice(0, 4).map(h => h.startsWith('#') ? h : `#${h}`).join(' ')}
                         </p>
                       )}
@@ -322,7 +322,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
             onChange={e => setContent(e.target.value)}
             rows={4}
             placeholder="What do you want to share?"
-            className="w-full rounded-sm px-3 py-2 text-[13px] placeholder:text-white/40 focus:outline-none focus:border-[#00F5FF]/30 resize-none"
+            className="w-full rounded-sm px-3 py-2 text-[13px] placeholder:text-white/40 focus:outline-none focus:border-[#16a34a]/30 resize-none"
             style={{ background: 'var(--surface-elevated)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
           />
           <p className="text-[10px] mt-1" style={{ color: 'var(--color-text-secondary)' }}>{content.length} chars</p>
@@ -341,7 +341,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
                   onClick={() => togglePlatform(p)}
                   className={`px-3 py-1 text-[10px] rounded-sm border transition-colors ${
                     isSelected
-                      ? 'border-[#00F5FF]/40 text-[#00F5FF] bg-[#00F5FF]/5'
+                      ? 'border-[#16a34a]/40 text-[#16a34a] bg-[#16a34a]/5'
                       : 'hover:border-[rgba(255,255,255,0.18)]'
                   }`}
                   style={isSelected ? undefined : { background: 'var(--surface-card)', borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
@@ -361,7 +361,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
             type="datetime-local"
             value={scheduledAt}
             onChange={e => setScheduledAt(e.target.value)}
-            className="w-full rounded-sm px-3 py-2 text-[13px] focus:outline-none focus:border-[#00F5FF]/30"
+            className="w-full rounded-sm px-3 py-2 text-[13px] focus:outline-none focus:border-[#16a34a]/30"
             style={{ background: 'var(--surface-elevated)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
           />
         </div>
@@ -381,7 +381,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
             <button
               onClick={() => handleSubmit('schedule')}
               disabled={saving}
-              className="px-4 py-2 text-[10px] uppercase tracking-wider text-[#00F5FF] border border-[#00F5FF]/30 rounded-sm hover:bg-[#00F5FF]/5 transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-[10px] uppercase tracking-wider text-[#16a34a] border border-[#16a34a]/30 rounded-sm hover:bg-[#16a34a]/5 transition-colors disabled:opacity-50"
             >
               {saving ? 'Scheduling...' : 'Schedule'}
             </button>
@@ -389,7 +389,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
             <button
               onClick={() => handleSubmit('publish')}
               disabled={saving || connectedPlatforms.length === 0}
-              className="px-4 py-2 text-[10px] uppercase tracking-wider text-[#fffdf7] bg-[#00F5FF] rounded-sm hover:bg-[#00F5FF]/90 transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-[10px] uppercase tracking-wider text-[#fffdf7] bg-[#16a34a] rounded-sm hover:bg-[#16a34a]/90 transition-colors disabled:opacity-50"
             >
               {saving ? 'Publishing...' : 'Post Now'}
             </button>

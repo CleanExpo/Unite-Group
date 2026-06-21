@@ -40,11 +40,11 @@ export default async function WikiPageDetail({
         <Link
           href="/founder/wiki"
           className="text-xs transition-colors"
-          style={{ color: 'rgba(0,245,255,0.6)' }}
+          style={{ color: 'rgba(22, 163, 74,0.6)' }}
         >
           &larr; Knowledge Base
         </Link>
-        <h1 className="text-2xl font-semibold tracking-tight" style={{ color: '#00F5FF' }}>
+        <h1 className="text-2xl font-semibold tracking-tight" style={{ color: '#16a34a' }}>
           {page.title}
         </h1>
         <div className="flex flex-wrap items-center gap-3 text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
@@ -60,9 +60,9 @@ export default async function WikiPageDetail({
                     key={tag}
                     className="px-1.5 py-0.5 rounded-sm"
                     style={{
-                      background: 'rgba(0,245,255,0.08)',
-                      color: 'rgba(0,245,255,0.7)',
-                      border: '1px solid rgba(0,245,255,0.15)',
+                      background: 'rgba(22, 163, 74,0.08)',
+                      color: 'rgba(22, 163, 74,0.7)',
+                      border: '1px solid rgba(22, 163, 74,0.15)',
                     }}
                   >
                     {tag}
@@ -76,7 +76,7 @@ export default async function WikiPageDetail({
 
       <div
         className="rounded-sm border p-6"
-        style={{ borderColor: 'rgba(0,245,255,0.15)', background: 'rgba(255,255,255,0.02)' }}
+        style={{ borderColor: 'rgba(22, 163, 74,0.15)', background: 'rgba(255,255,255,0.02)' }}
       >
         <pre
           className="text-sm whitespace-pre-wrap font-mono leading-relaxed"

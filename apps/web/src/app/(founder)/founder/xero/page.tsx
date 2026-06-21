@@ -65,7 +65,7 @@ export default async function XeroPage({
       />
 
       {params.connected && (
-        <div className="text-xs text-[#00F5FF]/80 border border-[#00F5FF]/20 bg-[#00F5FF]/5 px-4 py-2.5 rounded-sm">
+        <div className="text-xs text-[#16a34a]/80 border border-[#16a34a]/20 bg-[#16a34a]/5 px-4 py-2.5 rounded-sm">
           {connectedName} connected to Xero
         </div>
       )}
@@ -131,7 +131,7 @@ export default async function XeroPage({
                           <p
                             className="text-xs mt-0.5"
                             style={{
-                              color: isConnected ? '#00F5FF' : 'var(--color-text-muted)',
+                              color: isConnected ? '#16a34a' : 'var(--color-text-muted)',
                             }}
                           >
                             {isConnected
@@ -146,7 +146,7 @@ export default async function XeroPage({
                       </div>
 
                       {isConnected ? (
-                        <span className="text-[10px] uppercase tracking-widest text-[#00F5FF]/80 border border-[#00F5FF]/30 px-2.5 py-1 rounded-sm">
+                        <span className="text-[10px] uppercase tracking-widest text-[#16a34a]/80 border border-[#16a34a]/30 px-2.5 py-1 rounded-sm">
                           Live
                         </span>
                       ) : (
