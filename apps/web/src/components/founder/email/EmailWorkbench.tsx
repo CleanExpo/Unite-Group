@@ -181,7 +181,7 @@ export function EmailWorkbench({ accounts }: Props) {
 
       {connectedAccounts.length === 0 ? (
         <div className="flex items-center justify-center py-16">
-          <p className="text-sm text-white/30">No Gmail accounts with write access. Reconnect above.</p>
+          <p className="text-sm text-[#71717a]">No Gmail accounts with write access. Reconnect above.</p>
         </div>
       ) : (
         <div className="flex flex-col flex-1 min-h-0 border border-white/[0.08] rounded-sm overflow-hidden">
@@ -232,7 +232,7 @@ export function EmailWorkbench({ accounts }: Props) {
                 />
               ) : (
                 <div className="flex items-center justify-center h-full">
-                  <p className="text-sm text-white/20">Select a thread to read</p>
+                  <p className="text-sm text-[#a1a1aa]">Select a thread to read</p>
                 </div>
               )}
             </div>

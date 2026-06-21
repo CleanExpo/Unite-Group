@@ -48,12 +48,12 @@ export function CalendarView({ posts }: Props) {
         <div className="flex gap-2">
           <button
             onClick={() => { if (month === 0) { setMonth(11); setYear(y => y - 1) } else setMonth(m => m - 1) }}
-            className="px-2 py-1 text-xs hover:text-[#f0f0f0] rounded-sm"
+            className="px-2 py-1 text-xs hover:text-[#0A0A0A] rounded-sm"
             style={{ color: 'var(--color-text-secondary)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--color-border)' }}
           >{'\u2190'}</button>
           <button
             onClick={() => { if (month === 11) { setMonth(0); setYear(y => y + 1) } else setMonth(m => m + 1) }}
-            className="px-2 py-1 text-xs hover:text-[#f0f0f0] rounded-sm"
+            className="px-2 py-1 text-xs hover:text-[#0A0A0A] rounded-sm"
             style={{ color: 'var(--color-text-secondary)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--color-border)' }}
           >{'\u2192'}</button>
         </div>

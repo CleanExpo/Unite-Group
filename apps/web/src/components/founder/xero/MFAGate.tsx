@@ -205,7 +205,7 @@ export function MFAGate({ businessKey, businessName, onCancel }: MFAGateProps) {
   const btnCyan =
     'w-full py-2.5 bg-[#16a34a]/10 border border-[#16a34a]/30 text-[#16a34a] text-[11px] uppercase tracking-[0.2em] hover:bg-[#16a34a]/20 disabled:opacity-40 rounded-sm transition-colors'
   const btnGhost =
-    'w-full py-2.5 bg-white/[0.04] border border-white/[0.08] text-[11px] uppercase tracking-[0.15em] disabled:opacity-40 rounded-sm transition-colors hover:bg-white/[0.06]'
+    'w-full py-2.5 bg-white/[0.04] border border-white/[0.08] text-[11px] uppercase tracking-[0.15em] disabled:opacity-40 rounded-sm transition-colors hover:bg-black/[0.05]'
   const mutedText = { color: 'var(--color-text-muted)' } as const
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -232,7 +232,7 @@ export function MFAGate({ businessKey, businessName, onCancel }: MFAGateProps) {
           <button
             onClick={onCancel}
             aria-label="Cancel"
-            className="text-white/30 hover:text-white/60 transition-colors text-xl leading-none mt-0.5"
+            className="text-[#71717a] hover:text-[#52525b] transition-colors text-xl leading-none mt-0.5"
           >
             ×
           </button>

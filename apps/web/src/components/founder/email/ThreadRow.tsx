@@ -38,7 +38,7 @@ export function ThreadRow({ thread, selected, active, triageInfo, onCheck, onCli
         'flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors border-l-2',
         active
           ? 'bg-[#16a34a]/5 border-l-[#16a34a]'
-          : 'border-l-transparent hover:bg-white/[0.03]',
+          : 'border-l-transparent hover:bg-black/[0.05]',
         thread.unread ? 'border-b border-white/[0.06]' : 'border-b border-white/[0.04]',
       ].join(' ')}
       onClick={() => onClick(thread.id)}
@@ -72,13 +72,13 @@ export function ThreadRow({ thread, selected, active, triageInfo, onCheck, onCli
       {/* Content */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 mb-0.5">
-          <p className={`text-sm truncate flex-1 ${thread.unread ? 'text-white font-medium' : 'text-white/60'}`}>
+          <p className={`text-sm truncate flex-1 ${thread.unread ? 'text-[#0A0A0A] font-medium' : 'text-[#52525b]'}`}>
             {thread.subject}
           </p>
-          <span className="text-[10px] text-white/30 flex-shrink-0">{formatDate(thread.date)}</span>
+          <span className="text-[10px] text-[#71717a] flex-shrink-0">{formatDate(thread.date)}</span>
         </div>
         <div className="flex items-center gap-2">
-          <p className="text-xs text-white/40 truncate flex-1">{thread.from} · {thread.snippet}</p>
+          <p className="text-xs text-[#71717a] truncate flex-1">{thread.from} · {thread.snippet}</p>
           {triageInfo && <TriageBadge category={triageInfo.category} />}
         </div>
       </div>

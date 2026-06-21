@@ -17,7 +17,7 @@ export function BASLabel({ label, amountCents }: { label: string; amountCents: n
     <div className="flex items-center justify-between py-2">
       <div className="flex items-center gap-2">
         <span className="text-[11px] font-mono w-6" style={{ color: 'var(--color-text-secondary)' }}>{label}</span>
-        <span className="text-[12px] text-white/60">{LABEL_DESCRIPTIONS[label] ?? label}</span>
+        <span className="text-[12px] text-[#52525b]">{LABEL_DESCRIPTIONS[label] ?? label}</span>
       </div>
       <span
         className="text-[13px] font-medium tabular-nums"

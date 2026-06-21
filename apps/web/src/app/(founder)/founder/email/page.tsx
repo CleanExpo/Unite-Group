@@ -46,8 +46,8 @@ export default async function EmailPage({
 
       {configured && accounts.length === 0 && (
         <div className="border border-white/[0.06] px-4 py-8 rounded-sm text-center">
-          <p className="text-sm text-white/30 mb-3">No Gmail accounts connected</p>
-          <p className="text-xs text-white/20">
+          <p className="text-sm text-[#71717a] mb-3">No Gmail accounts connected</p>
+          <p className="text-xs text-[#a1a1aa]">
             Connect accounts via Settings → Integrations → Google
           </p>
         </div>

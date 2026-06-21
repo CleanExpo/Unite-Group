@@ -140,15 +140,15 @@ export function CampaignGenerator({
       <div className="flex items-center gap-3">
         <button
           onClick={onBack}
-          className="text-white/40 hover:text-white/70 transition-colors text-[11px] flex items-center gap-1.5"
+          className="text-[#71717a] hover:text-[#3f3f46] transition-colors text-[11px] flex items-center gap-1.5"
         >
           <ArrowLeft size={13} />
           Back
         </button>
-        <span className="text-white/[0.15] text-[11px]">/</span>
-        <span className="text-white/80 text-[13px] font-medium">{brandName}</span>
-        <span className="text-white/[0.15] text-[11px]">/</span>
-        <span className="text-white/50 text-[13px]">New Campaign</span>
+        <span className="text-[#a1a1aa] text-[11px]">/</span>
+        <span className="text-[#3f3f46] text-[13px] font-medium">{brandName}</span>
+        <span className="text-[#a1a1aa] text-[11px]">/</span>
+        <span className="text-[#52525b] text-[13px]">New Campaign</span>
       </div>
 
       {/* Error banner */}
@@ -168,7 +168,7 @@ export function CampaignGenerator({
       {/* Config state */}
       {uiState === 'config' && (
         <div className="space-y-5">
-          <h2 className="text-white/80 text-[15px] font-medium">Configure Campaign</h2>
+          <h2 className="text-[#3f3f46] text-[15px] font-medium">Configure Campaign</h2>
 
           {/* Theme */}
           <div className="space-y-1.5">
@@ -374,7 +374,7 @@ export function CampaignGenerator({
         <div className="space-y-5">
           <div className="flex items-center gap-2">
             <CheckCircle2 size={16} style={{ color: '#16a34a' }} />
-            <h2 className="text-white/80 text-[15px] font-medium">Campaign Generated</h2>
+            <h2 className="text-[#3f3f46] text-[15px] font-medium">Campaign Generated</h2>
           </div>
 
           {/* Stats card */}
@@ -438,7 +438,7 @@ export function CampaignGenerator({
             </button>
             <button
               onClick={onBack}
-              className="text-white/40 hover:text-white/70 transition-colors text-[12px]"
+              className="text-[#71717a] hover:text-[#3f3f46] transition-colors text-[12px]"
             >
               Back to Campaigns
             </button>

@@ -77,7 +77,7 @@ export default async function CalendarPage() {
                 style={{ backgroundColor: event.colour }}
               />
               <div className="min-w-0 flex-1">
-                <p className="text-sm text-white/90 truncate">{event.title}</p>
+                <p className="text-sm text-[#0A0A0A] truncate">{event.title}</p>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
                   {new Date(event.start).toLocaleString('en-AU', {
                     dateStyle: 'short',

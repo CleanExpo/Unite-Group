@@ -34,7 +34,7 @@ export function ThreadList({
   if (threads.length === 0 && !loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-sm text-white/30">No threads found</p>
+        <p className="text-sm text-[#71717a]">No threads found</p>
       </div>
     )
   }
@@ -56,14 +56,14 @@ export function ThreadList({
 
         {loading && (
           <div className="flex items-center justify-center py-6">
-            <span className="text-xs text-white/30">Loading…</span>
+            <span className="text-xs text-[#71717a]">Loading…</span>
           </div>
         )}
 
         {hasMore && !loading && (
           <button
             onClick={onLoadMore}
-            className="w-full py-3 text-xs text-white/40 hover:text-white/70 transition-colors border-t border-white/[0.04]"
+            className="w-full py-3 text-xs text-[#71717a] hover:text-[#3f3f46] transition-colors border-t border-white/[0.04]"
           >
             Load more
           </button>

@@ -165,7 +165,7 @@ function RunRow({ run, expanded, onToggle }: { run: BookkeeperRun; expanded: boo
     <>
       <tr
         onClick={onToggle}
-        className="border-b border-[var(--color-border)] cursor-pointer hover:bg-white/[0.02] transition-colors"
+        className="border-b border-[var(--color-border)] cursor-pointer hover:bg-black/[0.05] transition-colors"
       >
         <td className="px-3 py-2.5 tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>
           {formatDate(run.startedAt)}

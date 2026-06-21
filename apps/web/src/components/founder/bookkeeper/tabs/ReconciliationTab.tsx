@@ -340,7 +340,7 @@ function TransactionRow({
   return (
     <motion.tr
       layout
-      className="border-b border-[var(--color-border)] hover:bg-white/[0.02] transition-colors"
+      className="border-b border-[var(--color-border)] hover:bg-black/[0.05] transition-colors"
     >
       <td className="px-3 py-2.5 w-8">
         {isApprovable ? (

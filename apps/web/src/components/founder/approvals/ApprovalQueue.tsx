@@ -37,7 +37,7 @@ export function ApprovalQueue({ items }: { items: ApprovalItem[] }) {
         >
           <div className="flex flex-col gap-1 flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[13px] font-medium text-white truncate">{item.title}</span>
+              <span className="text-[13px] font-medium text-[#0A0A0A] truncate">{item.title}</span>
               <span
                 className="text-[10px] px-1.5 py-0.5 rounded-sm shrink-0"
                 style={{
@@ -50,11 +50,11 @@ export function ApprovalQueue({ items }: { items: ApprovalItem[] }) {
               </span>
             </div>
             {item.description && (
-              <p className="text-[11px] text-white/40 line-clamp-2">{item.description}</p>
+              <p className="text-[11px] text-[#71717a] line-clamp-2">{item.description}</p>
             )}
           </div>
           <time
-            className="text-[11px] text-white/30 shrink-0 pt-0.5"
+            className="text-[11px] text-[#71717a] shrink-0 pt-0.5"
             dateTime={item.created_at}
           >
             {formatDate(item.created_at)}

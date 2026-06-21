@@ -13,7 +13,7 @@ export default async function InvoicesPage() {
   return (
     <div className="px-6 py-8 max-w-6xl">
       <div className="mb-8">
-        <h1 className="text-xl font-semibold text-[#f0f0f0] tracking-tight">Invoices</h1>
+        <h1 className="text-xl font-semibold text-[#0A0A0A] tracking-tight">Invoices</h1>
         <p className="mt-1 text-[13px]" style={{ color: 'var(--color-text-muted)' }}>
           Create and manage sales invoices across your Xero accounts.
         </p>

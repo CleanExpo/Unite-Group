@@ -50,7 +50,7 @@ export function SocialPageClient({ channels, posts }: Props) {
             className={`px-4 py-2 text-[11px] uppercase tracking-[0.12em] transition-colors ${
               activeTab === tab
                 ? 'text-[#16a34a] border-b border-[#16a34a] -mb-px'
-                : 'text-[#999999] hover:text-[#f0f0f0]'
+                : 'text-[#52525b] hover:text-[#0A0A0A]'
             }`}
           >
             {tab}

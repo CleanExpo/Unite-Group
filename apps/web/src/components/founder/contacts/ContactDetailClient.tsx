@@ -152,10 +152,10 @@ export function ContactDetailClient({ id }: ContactDetailClientProps) {
       <div className="space-y-6">
         {backLink}
         <div className="flex flex-col items-center justify-center min-h-[300px] gap-3 text-center">
-          <p className="text-[13px] text-white/60">{error}</p>
+          <p className="text-[13px] text-[#52525b]">{error}</p>
           <button
             onClick={fetchContact}
-            className="border border-white/[0.12] text-white/60 text-[13px] rounded-sm px-4 py-2 hover:border-white/20 hover:text-white/80 transition-colors"
+            className="border border-white/[0.12] text-[#52525b] text-[13px] rounded-sm px-4 py-2 hover:border-white/20 hover:text-[#3f3f46] transition-colors"
           >
             Try again
           </button>
@@ -201,7 +201,7 @@ export function ContactDetailClient({ id }: ContactDetailClientProps) {
           <button
             onClick={handleDelete}
             disabled={deleting}
-            className="inline-flex items-center gap-1.5 rounded-sm border border-white/[0.12] px-3 py-2 text-[13px] text-white/60 hover:border-[#ef4444]/40 hover:text-[#f87171] transition-colors disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 rounded-sm border border-white/[0.12] px-3 py-2 text-[13px] text-[#52525b] hover:border-[#ef4444]/40 hover:text-[#f87171] transition-colors disabled:opacity-40"
           >
             <Trash2 /> {deleting ? 'Deleting…' : 'Delete'}
           </button>

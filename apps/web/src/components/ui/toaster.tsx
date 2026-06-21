@@ -22,7 +22,7 @@ export function Toaster() {
             className={`group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-sm border p-6 pr-8 transition-all ${
               toast.variant === "destructive"
                 ? "border-[#ef4444]/50 bg-[#ef4444]/10 text-[#ef4444]"
-                : "border-white/[0.08] bg-[#fffdf7] text-white/90"
+                : "border-white/[0.08] bg-[#fffdf7] text-[#0A0A0A]"
             }`}
           >
             <div className="flex items-start gap-3 flex-1">
@@ -45,14 +45,14 @@ export function Toaster() {
             {toast.action && (
               <button
                 onClick={toast.action.onClick}
-                className="inline-flex h-8 shrink-0 items-center justify-center rounded-sm border border-white/[0.08] bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-white/[0.04] focus:outline-none focus:ring-2 focus:ring-[#16a34a]/20 focus:ring-offset-2"
+                className="inline-flex h-8 shrink-0 items-center justify-center rounded-sm border border-white/[0.08] bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-black/[0.05] focus:outline-none focus:ring-2 focus:ring-[#16a34a]/20 focus:ring-offset-2"
               >
                 {toast.action.label}
               </button>
             )}
             <button
               onClick={() => dismiss(toast.id)}
-              className="absolute right-2 top-2 rounded-sm p-1 text-white/50 opacity-0 transition-opacity hover:text-white/90 focus:opacity-100 group-hover:opacity-100"
+              className="absolute right-2 top-2 rounded-sm p-1 text-[#52525b] opacity-0 transition-opacity hover:text-[#0A0A0A] focus:opacity-100 group-hover:opacity-100"
             >
               <X className="h-4 w-4" />
             </button>

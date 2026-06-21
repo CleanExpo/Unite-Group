@@ -171,7 +171,7 @@ export function KPICard({
 
       {/* Primary metric */}
       <div>
-        <div className="text-[30px] font-semibold text-[#f0f0f0] leading-none tracking-tight">
+        <div className="text-[30px] font-semibold text-[#0A0A0A] leading-none tracking-tight">
           {live.loading ? (
             <span style={{ color: 'var(--color-text-muted)' }}>—</span>
           ) : (

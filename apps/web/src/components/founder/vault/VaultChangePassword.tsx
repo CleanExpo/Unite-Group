@@ -82,7 +82,7 @@ export function VaultChangePassword({ onClose }: VaultChangePasswordProps) {
                 onChange={(e) => { setCurrent(e.target.value); setError(null) }}
                 placeholder="Current master password"
                 autoFocus
-                className="w-full px-3 h-9 rounded-sm text-[13px] text-[#f0f0f0] outline-none"
+                className="w-full px-3 h-9 rounded-sm text-[13px] text-[#0A0A0A] outline-none"
                 style={{ background: 'var(--surface-elevated)', border: '1px solid var(--color-border)' }}
               />
             </div>
@@ -96,7 +96,7 @@ export function VaultChangePassword({ onClose }: VaultChangePasswordProps) {
                 value={next}
                 onChange={(e) => { setNext(e.target.value); setError(null) }}
                 placeholder="Min. 8 characters"
-                className="w-full px-3 h-9 rounded-sm text-[13px] text-[#f0f0f0] outline-none"
+                className="w-full px-3 h-9 rounded-sm text-[13px] text-[#0A0A0A] outline-none"
                 style={{ background: 'var(--surface-elevated)', border: '1px solid var(--color-border)' }}
               />
             </div>
@@ -110,7 +110,7 @@ export function VaultChangePassword({ onClose }: VaultChangePasswordProps) {
                 value={confirm}
                 onChange={(e) => { setConfirm(e.target.value); setError(null) }}
                 placeholder="Repeat new password"
-                className="w-full px-3 h-9 rounded-sm text-[13px] text-[#f0f0f0] outline-none"
+                className="w-full px-3 h-9 rounded-sm text-[13px] text-[#0A0A0A] outline-none"
                 style={{ background: 'var(--surface-elevated)', border: '1px solid var(--color-border)' }}
               />
             </div>

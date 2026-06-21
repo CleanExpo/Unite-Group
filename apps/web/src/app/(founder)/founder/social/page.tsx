@@ -128,7 +128,7 @@ export default async function SocialPage({
               ) : (
                 <a
                   href={`/api/social/${platform.key}/connect`}
-                  className="text-[10px] uppercase tracking-widest text-white border border-white/20 bg-white/[0.03] px-3 py-1.5 rounded-sm hover:bg-white/[0.06] transition-colors"
+                  className="text-[10px] uppercase tracking-widest text-white border border-white/20 bg-white/[0.03] px-3 py-1.5 rounded-sm hover:bg-black/[0.05] transition-colors"
                 >
                   Connect
                 </a>

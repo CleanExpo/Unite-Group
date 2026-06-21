@@ -128,11 +128,11 @@ function CoachCard({
     >
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/[0.02] transition-colors"
+        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-black/[0.05] transition-colors"
       >
         <Icon size={18} style={{ color: colour }} />
         <div className="flex-1 min-w-0">
-          <span className="text-sm font-medium text-[#f0f0f0]">
+          <span className="text-sm font-medium text-[#0A0A0A]">
             {config.name}
           </span>
         </div>
@@ -232,7 +232,7 @@ function MarkdownBrief({ content }: { content: string }) {
   const flushList = () => {
     if (listItems.length > 0) {
       elements.push(
-        <ul key={key++} className="mt-1 space-y-0.5 pl-4 list-disc text-sm text-white/70">
+        <ul key={key++} className="mt-1 space-y-0.5 pl-4 list-disc text-sm text-[#3f3f46]">
           {listItems.map((item, i) => (
             <li key={i}>{item}</li>
           ))}
@@ -248,14 +248,14 @@ function MarkdownBrief({ content }: { content: string }) {
     if (trimmed.startsWith('## ')) {
       flushList()
       elements.push(
-        <h3 key={key++} className="text-sm font-medium text-white/90 mt-3 mb-1">
+        <h3 key={key++} className="text-sm font-medium text-[#0A0A0A] mt-3 mb-1">
           {trimmed.slice(3)}
         </h3>
       )
     } else if (trimmed.startsWith('### ')) {
       flushList()
       elements.push(
-        <h4 key={key++} className="text-sm font-medium text-white/80 mt-2 mb-1">
+        <h4 key={key++} className="text-sm font-medium text-[#3f3f46] mt-2 mb-1">
           {trimmed.slice(4)}
         </h4>
       )
@@ -266,7 +266,7 @@ function MarkdownBrief({ content }: { content: string }) {
     } else {
       flushList()
       elements.push(
-        <p key={key++} className="text-sm text-white/70 mt-1">
+        <p key={key++} className="text-sm text-[#3f3f46] mt-1">
           {trimmed}
         </p>
       )
@@ -306,7 +306,7 @@ export function CoachBriefs() {
 
   return (
     <div>
-      <h2 className="text-base font-medium text-white/60 mb-3 tracking-tight">
+      <h2 className="text-base font-medium text-[#52525b] mb-3 tracking-tight">
         Daily Coaches
       </h2>
       {loading ? (

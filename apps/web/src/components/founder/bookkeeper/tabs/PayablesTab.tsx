@@ -167,7 +167,7 @@ export function PayablesTab() {
                     <motion.tr
                       key={inv.InvoiceID}
                       layout
-                      className="border-b border-[var(--color-border)] hover:bg-white/[0.02] transition-colors"
+                      className="border-b border-[var(--color-border)] hover:bg-black/[0.05] transition-colors"
                     >
                       <td className="px-3 py-2.5" style={{ color: 'var(--color-text-primary)' }}>
                         {inv.Contact?.Name ?? '--'}
