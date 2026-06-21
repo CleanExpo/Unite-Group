@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
-import { makeOpenPr, makeEvaluateMerge, makeMergePr, RUNNER_PR_LABEL, type GithubOps } from './github'
-import type { LinearExecutionPacket } from '../packet'
+import { makeOpenPr, makeEvaluateMerge, makeMergePr, RUNNER_PR_LABEL, type GithubOps } from './github.js'
+import type { LinearExecutionPacket } from '../packet.js'
 
 const packet: LinearExecutionPacket = {
   source: 'command-centre:linear-claim',

@@ -7,10 +7,10 @@
 // and every fail-closed branch — is unit-tested with fakes. The worktree is
 // always cleaned up (finally), and any failure short-circuits without merging.
 
-import type { FetchPacketResult, LinearExecutionPacket } from './packet'
-import type { WorktreeResult } from './worktree'
-import type { GauntletResult } from './gauntlet'
-import { decideMerge, type MergeContext } from './merge-policy'
+import type { FetchPacketResult, LinearExecutionPacket } from './packet.js'
+import type { WorktreeResult } from './worktree.js'
+import type { GauntletResult } from './gauntlet.js'
+import { decideMerge, type MergeContext } from './merge-policy.js'
 
 export type OpenPrResult =
   | { ok: true; prNumber: number; url: string }

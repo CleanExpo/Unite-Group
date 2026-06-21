@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { loadHandoffConfig, makeFetchPacket } from './handoff'
+import { loadHandoffConfig, makeFetchPacket } from './handoff.js'
 
 describe('loadHandoffConfig', () => {
   it('returns config when both vars are present', () => {

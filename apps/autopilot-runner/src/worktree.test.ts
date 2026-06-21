@@ -6,7 +6,7 @@ import {
   DEFAULT_BASE_REF,
   type GitRunner,
   type GitOutcome,
-} from './worktree'
+} from './worktree.js'
 
 const ok: GitOutcome = { exitCode: 0, stdout: '', stderr: '' }
 const fail: GitOutcome = { exitCode: 1, stdout: '', stderr: 'fatal: already exists' }

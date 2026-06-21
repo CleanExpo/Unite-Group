@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { ensureClone, publishBranch, tokenRemoteUrl, type GitRunner, type GitOutcome } from './git-repo'
+import { ensureClone, publishBranch, tokenRemoteUrl, type GitRunner, type GitOutcome } from './git-repo.js'
 
 const OK: GitOutcome = { exitCode: 0, stdout: '', stderr: '' }
 const FAIL: GitOutcome = { exitCode: 1, stdout: '', stderr: 'git error' }

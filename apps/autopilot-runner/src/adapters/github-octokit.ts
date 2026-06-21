@@ -6,8 +6,8 @@
 // real App-authed client. Verified end-to-end against the live App on the first
 // supervised run.
 
-import type { GithubOps } from './github'
-import type { MergeContext } from '../merge-policy'
+import type { GithubOps } from './github.js'
+import type { MergeContext } from '../merge-policy.js'
 
 /** The subset of the Octokit REST surface the runner uses. */
 export interface OctokitLike {

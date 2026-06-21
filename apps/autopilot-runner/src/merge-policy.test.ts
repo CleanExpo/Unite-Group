@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { decideMerge, AUTONOMOUS_LABELS, type MergeContext } from './merge-policy'
+import { decideMerge, AUTONOMOUS_LABELS, type MergeContext } from './merge-policy.js'
 
 /** A fully-cleared context: every safety condition met. */
 const cleared: MergeContext = {
