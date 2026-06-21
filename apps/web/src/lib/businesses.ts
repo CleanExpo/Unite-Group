@@ -4,8 +4,8 @@ export const BUSINESSES = [
   { key: 'nrpg',   name: 'NRPG',                color: '#f97316', status: 'active', type: 'owned'  },
   { key: 'carsi',  name: 'CARSI',               color: '#eab308', status: 'active', type: 'owned'  },
   { key: 'restore', name: 'RestoreAssist',       color: '#22c55e', status: 'active', type: 'owned'  },
-  { key: 'synthex', name: 'SYNTHEX',             color: '#a855f7', status: 'active', type: 'owned'  },
-  { key: 'ato',    name: 'ATO App',              color: '#3b82f6', status: 'active', type: 'owned'  },
+  { key: 'synthex', name: 'SYNTHEX',             color: '#f59f00', status: 'active', type: 'owned'  },
+  { key: 'ato',    name: 'ATO App',              color: '#2f9e44', status: 'active', type: 'owned'  },
   { key: 'ccw',    name: 'CCW-ERP/CRM',          color: '#DDA0DD', status: 'active', type: 'client' },
 ] as const
 

@@ -187,9 +187,9 @@ export default async function BusinessHubPage({ params }: Props) {
         <span
           className="text-[11px] px-2 py-0.5 rounded-sm font-medium uppercase tracking-wider"
           style={{
-            background: 'rgba(0, 245, 255, 0.08)',
-            color: '#00F5FF',
-            border: '1px solid rgba(0, 245, 255, 0.15)',
+            background: 'rgba(47, 158, 68, 0.08)',
+            color: '#2f9e44',
+            border: '1px solid rgba(47, 158, 68, 0.15)',
           }}
         >
           {business.status}
@@ -207,7 +207,7 @@ export default async function BusinessHubPage({ params }: Props) {
           </p>
           <p
             className="text-sm font-medium"
-            style={{ color: xeroConnected ? '#00F5FF' : 'var(--color-text-muted)' }}
+            style={{ color: xeroConnected ? '#2f9e44' : 'var(--color-text-muted)' }}
           >
             {xeroConnected ? 'Connected' : 'Not connected'}
           </p>
@@ -242,7 +242,7 @@ export default async function BusinessHubPage({ params }: Props) {
           <h2 className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
             Experiments
           </h2>
-          <Link href="/founder/experiments" className="text-[11px]" style={{ color: '#00F5FF' }}>
+          <Link href="/founder/experiments" className="text-[11px]" style={{ color: '#2f9e44' }}>
             View all →
           </Link>
         </div>
@@ -262,8 +262,8 @@ export default async function BusinessHubPage({ params }: Props) {
                 </div>
                 <span className="text-[10px] px-2 py-0.5 rounded-sm font-medium uppercase tracking-wider"
                   style={{
-                    background: exp.status === 'active' ? 'rgba(0, 245, 255, 0.08)' : exp.status === 'completed' ? 'rgba(34, 197, 94, 0.08)' : 'rgba(255, 255, 255, 0.05)',
-                    color: exp.status === 'active' ? '#00F5FF' : exp.status === 'completed' ? '#22c55e' : 'var(--color-text-muted)',
+                    background: exp.status === 'active' ? 'rgba(47, 158, 68, 0.08)' : exp.status === 'completed' ? 'rgba(34, 197, 94, 0.08)' : 'rgba(255, 255, 255, 0.05)',
+                    color: exp.status === 'active' ? '#2f9e44' : exp.status === 'completed' ? '#22c55e' : 'var(--color-text-muted)',
                   }}>
                   {exp.status}
                 </span>
@@ -314,7 +314,7 @@ export default async function BusinessHubPage({ params }: Props) {
           <Link
             href={`/founder/${businessKey}/page/new`}
             className="flex items-center gap-2 px-4 py-3 transition-colors duration-100"
-            style={{ color: '#00F5FF' }}
+            style={{ color: '#2f9e44' }}
           >
             <Plus size={14} strokeWidth={2} />
             <span className="text-[13px] font-medium">New Page</span>

@@ -94,8 +94,8 @@ export default function NewCampaignPage() {
             <div
               className="w-6 h-6 rounded-sm flex items-center justify-center text-[11px] font-medium"
               style={{
-                background: step === s ? '#00F5FF' : isComplete ? 'rgba(0,245,255,0.15)' : 'var(--surface-elevated)',
-                color: step === s ? '#050505' : isComplete ? '#00F5FF' : 'var(--color-text-disabled)',
+                background: step === s ? '#2f9e44' : isComplete ? 'rgba(47, 158, 68,0.15)' : 'var(--surface-elevated)',
+                color: step === s ? '#050505' : isComplete ? '#2f9e44' : 'var(--color-text-disabled)',
               }}
             >
               {i + 1}

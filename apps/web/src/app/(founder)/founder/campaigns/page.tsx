@@ -35,7 +35,7 @@ function mapRow(row: CampaignRow): Pick<Campaign, 'id' | 'theme' | 'objective' |
 
 const STATUS_STYLES: Record<CampaignStatus, { label: string; className: string }> = {
   draft:      { label: 'Draft',      className: 'text-white/40 bg-white/[0.06] border border-white/10' },
-  generating: { label: 'Generating', className: 'text-[#00F5FF] bg-[#00F5FF]/10 border border-[#00F5FF]/20 animate-pulse' },
+  generating: { label: 'Generating', className: 'text-[#2f9e44] bg-[#2f9e44]/10 border border-[#2f9e44]/20 animate-pulse' },
   ready:      { label: 'Ready',      className: 'text-emerald-400 bg-emerald-400/10 border border-emerald-400/20' },
   published:  { label: 'Published',  className: 'text-blue-400 bg-blue-400/10 border border-blue-400/20' },
 }
@@ -85,7 +85,7 @@ function CampaignCard({ campaign }: CampaignCardProps) {
       className="block group"
     >
       <div
-        className="rounded-sm border border-white/[0.06] bg-[#0a0a0a] p-5 flex flex-col gap-3 transition-colors duration-150 hover:border-[#00F5FF]/30 hover:bg-[#00F5FF]/[0.02]"
+        className="rounded-sm border border-white/[0.06] bg-[#0a0a0a] p-5 flex flex-col gap-3 transition-colors duration-150 hover:border-[#2f9e44]/30 hover:bg-[#2f9e44]/[0.02]"
       >
         {/* Theme + status row */}
         <div className="flex items-start justify-between gap-3">
@@ -120,7 +120,7 @@ function CampaignCard({ campaign }: CampaignCardProps) {
             {formatDate(campaign.createdAt)}
           </span>
           <span
-            className="text-[11px] text-[#00F5FF]/0 group-hover:text-[#00F5FF]/60 transition-colors duration-150"
+            className="text-[11px] text-[#2f9e44]/0 group-hover:text-[#2f9e44]/60 transition-colors duration-150"
           >
             View →
           </span>
@@ -136,10 +136,10 @@ function EmptyState() {
   return (
     <div
       className="rounded-sm py-20 flex flex-col items-center justify-center text-center gap-4"
-      style={{ border: '1px dashed rgba(0,245,255,0.15)' }}
+      style={{ border: '1px dashed rgba(47, 158, 68,0.15)' }}
     >
-      <div className="w-10 h-10 rounded-sm bg-[#00F5FF]/[0.06] border border-[#00F5FF]/20 flex items-center justify-center">
-        <span className="text-[#00F5FF] text-lg">⚡</span>
+      <div className="w-10 h-10 rounded-sm bg-[#2f9e44]/[0.06] border border-[#2f9e44]/20 flex items-center justify-center">
+        <span className="text-[#2f9e44] text-lg">⚡</span>
       </div>
       <div className="flex flex-col gap-1">
         <p className="text-[14px] font-medium text-white/60">No campaigns yet</p>
@@ -149,7 +149,7 @@ function EmptyState() {
       </div>
       <Link
         href="/founder/campaigns/new"
-        className="mt-2 text-[12px] font-medium text-[#00F5FF] hover:text-[#00F5FF]/80 transition-colors duration-150"
+        className="mt-2 text-[12px] font-medium text-[#2f9e44] hover:text-[#2f9e44]/80 transition-colors duration-150"
       >
         Scan your first website →
       </Link>
@@ -195,7 +195,7 @@ export default async function CampaignsPage() {
         </div>
         <Link
           href="/founder/campaigns/new"
-          className="shrink-0 bg-[#00F5FF] text-black text-[12px] font-semibold rounded-sm px-4 py-2 hover:bg-[#00F5FF]/90 transition-colors duration-150"
+          className="shrink-0 bg-[#2f9e44] text-black text-[12px] font-semibold rounded-sm px-4 py-2 hover:bg-[#2f9e44]/90 transition-colors duration-150"
         >
           New Campaign
         </Link>

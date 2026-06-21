@@ -17,7 +17,7 @@ export function BusinessFilter({ value, onChange }: BusinessFilterProps) {
     <select
       value={value}
       onChange={(e) => onChange(e.target.value as BusinessKey | 'all')}
-      className="text-[12px] bg-transparent border rounded-sm px-2 py-1.5 appearance-none cursor-pointer focus:outline-none focus:border-[#00F5FF]/40"
+      className="text-[12px] bg-transparent border rounded-sm px-2 py-1.5 appearance-none cursor-pointer focus:outline-none focus:border-[#2f9e44]/40"
       style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
     >
       <option value="all">All businesses</option>

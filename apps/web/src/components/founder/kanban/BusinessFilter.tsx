@@ -16,7 +16,7 @@ export function BusinessFilter({ activeFilter, onFilterChange }: BusinessFilterP
         className="flex items-center gap-1.5 px-3 py-1 rounded-sm flex-shrink-0 transition-colors duration-150"
         style={{
           border: activeFilter === null
-            ? '1px solid #00F5FF'
+            ? '1px solid #2f9e44'
             : '1px solid var(--color-border)',
           background: 'var(--surface-card)',
           color: activeFilter === null
@@ -38,7 +38,7 @@ export function BusinessFilter({ activeFilter, onFilterChange }: BusinessFilterP
             className="flex items-center gap-1.5 px-3 py-1 rounded-sm flex-shrink-0 transition-colors duration-150"
             style={{
               border: isActive
-                ? '1px solid #00F5FF'
+                ? '1px solid #2f9e44'
                 : '1px solid var(--color-border)',
               background: 'var(--surface-card)',
               color: isActive

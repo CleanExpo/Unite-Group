@@ -258,15 +258,15 @@ export function GanttChart() {
           })()}
 
           {/* Today line */}
-          <line x1={todayX} y1={0} x2={todayX} y2={svgHeight} stroke="#00F5FF" strokeWidth={1.5} />
-          <text x={todayX + 3} y={14} fontSize={9} fill="#00F5FF" fontWeight="600">TODAY</text>
+          <line x1={todayX} y1={0} x2={todayX} y2={svgHeight} stroke="#2f9e44" strokeWidth={1.5} />
+          <text x={todayX + 3} y={14} fontSize={9} fill="#2f9e44" fontWeight="600">TODAY</text>
         </svg>
       </div>
 
       {/* Legend */}
       <div className="flex items-center gap-4 mt-3 px-2 flex-wrap">
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm border" style={{ background: 'rgba(0,245,255,0.2)', borderColor: '#00F5FF' }} />
+          <div className="w-3 h-3 rounded-sm border" style={{ background: 'rgba(47, 158, 68,0.2)', borderColor: '#2f9e44' }} />
           <span className="text-[10px]" style={{ color: 'var(--color-text-disabled)' }}>In progress</span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -274,7 +274,7 @@ export function GanttChart() {
           <span className="text-[10px]" style={{ color: 'var(--color-text-disabled)' }}>Overdue</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-0.5 h-3" style={{ background: '#00F5FF' }} />
+          <div className="w-0.5 h-3" style={{ background: '#2f9e44' }} />
           <span className="text-[10px]" style={{ color: 'var(--color-text-disabled)' }}>Today</span>
         </div>
         <span className="text-[10px] ml-auto" style={{ color: 'var(--color-text-disabled)' }}>Click any bar to open in Linear</span>

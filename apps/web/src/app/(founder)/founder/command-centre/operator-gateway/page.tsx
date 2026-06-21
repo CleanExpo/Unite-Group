@@ -31,7 +31,7 @@ const card: React.CSSProperties = {
 }
 const banner: React.CSSProperties = {
   background: '#071b24',
-  border: '1px solid #00F5FF',
+  border: '1px solid #2f9e44',
   borderRadius: 4,
   padding: '0.85rem 1rem',
   marginBottom: '1.5rem',
@@ -74,7 +74,7 @@ function pill(tone: 'green' | 'red' | 'amber' | 'blue'): React.CSSProperties {
     green: ['#12361f', '#3fb950', '#238636'],
     red: ['#3a1d1d', '#f85149', '#da3633'],
     amber: ['#3a300f', '#d29922', '#9e6a03'],
-    blue: ['#071b24', '#00F5FF', '#00a3b5'],
+    blue: ['#071b24', '#2f9e44', '#00a3b5'],
   } as const
   const [bg, fg, bd] = tones[tone]
   return {
@@ -576,7 +576,7 @@ export default async function OperatorGatewayPage() {
                   disabled={!view.dryRunExecution.enabled || job.status !== 'planned' || job.externalActionRequested || job.productionActionRequested || job.apiKeyRequested}
                   style={{
                     ...inputStyle,
-                    color: '#00F5FF',
+                    color: '#2f9e44',
                     fontWeight: 700,
                     opacity: view.dryRunExecution.enabled && job.status === 'planned' ? 1 : 0.6,
                     cursor: view.dryRunExecution.enabled && job.status === 'planned' ? 'pointer' : 'not-allowed',

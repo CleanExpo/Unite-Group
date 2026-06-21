@@ -119,7 +119,7 @@ export function LiveDebateTab() {
               onClick={startDebate}
               disabled={loading}
               className="text-[12px] font-medium px-3 py-1.5 rounded-sm transition-colors shrink-0"
-              style={{ background: '#00F5FF18', color: '#00F5FF', border: '1px solid #00F5FF30' }}
+              style={{ background: '#2f9e4418', color: '#2f9e44', border: '1px solid #2f9e4430' }}
             >
               {loading ? 'Starting...' : 'Start Debate'}
             </button>
@@ -174,8 +174,8 @@ export function LiveDebateTab() {
           </AnimatePresence>
           {(isDebating || started) && events.length > 0 && events[events.length - 1].event !== 'case_complete' && (
             <div className="flex items-center gap-1 py-1">
-              <span className="inline-block w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: '#00F5FF' }} />
-              <span className="text-[10px]" style={{ color: '#00F5FF' }}>Processing...</span>
+              <span className="inline-block w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: '#2f9e44' }} />
+              <span className="text-[10px]" style={{ color: '#2f9e44' }}>Processing...</span>
             </div>
           )}
         </div>

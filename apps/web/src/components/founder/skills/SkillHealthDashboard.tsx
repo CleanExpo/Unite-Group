@@ -59,7 +59,7 @@ export function SkillHealthDashboard() {
         <div className="flex items-center gap-3">
           <div
             className="h-4 w-4 rounded-sm animate-pulse"
-            style={{ background: '#00F5FF', opacity: 0.6 }}
+            style={{ background: '#2f9e44', opacity: 0.6 }}
           />
           <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
             Loading skill evaluations...
@@ -92,7 +92,7 @@ export function SkillHealthDashboard() {
           No skill evaluations recorded yet. Run{' '}
           <code
             className="rounded-sm px-1.5 py-0.5 text-xs"
-            style={{ background: 'rgba(0, 245, 255, 0.1)', color: '#00F5FF' }}
+            style={{ background: 'rgba(47, 158, 68, 0.1)', color: '#2f9e44' }}
           >
             node scripts/skill-eval-runner.mjs --all
           </code>{' '}

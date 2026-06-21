@@ -97,7 +97,7 @@ export function ContactsPageClient() {
   }
 
   const inputClass =
-    'rounded-sm border border-[var(--color-border)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-[#00F5FF] focus:outline-none'
+    'rounded-sm border border-[var(--color-border)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-[#2f9e44] focus:outline-none'
 
   return (
     <div className="space-y-6">
@@ -113,9 +113,9 @@ export function ContactsPageClient() {
             }}
             className="rounded-sm px-4 py-2 text-sm font-medium transition-colors"
             style={{
-              background: '#00F5FF18',
-              color: '#00F5FF',
-              border: '1px solid #00F5FF30',
+              background: '#2f9e4418',
+              color: '#2f9e44',
+              border: '1px solid #2f9e4430',
             }}
           >
             Add Contact
@@ -152,7 +152,7 @@ export function ContactsPageClient() {
           {/* Summary stat badges */}
           <div className="flex gap-3">
             {([
-              { label: 'Leads', count: stats.lead, colour: '#3b82f6' },
+              { label: 'Leads', count: stats.lead, colour: '#2f9e44' },
               { label: 'Prospects', count: stats.prospect, colour: '#f97316' },
               { label: 'Clients', count: stats.client, colour: '#22c55e' },
             ] as const).map(({ label, count, colour }) => (

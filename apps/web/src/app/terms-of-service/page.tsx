@@ -27,7 +27,7 @@ export default function TermsOfServicePage() {
         <div className="max-w-3xl mx-auto px-6 py-5 flex items-center justify-between">
           <a
             href={APP_URL}
-            style={{ color: '#00F5FF', fontFamily: 'var(--font-mono)', fontSize: '13px', letterSpacing: '0.15em', textDecoration: 'none' }}
+            style={{ color: '#2f9e44', fontFamily: 'var(--font-mono)', fontSize: '13px', letterSpacing: '0.15em', textDecoration: 'none' }}
           >
             UNITE-GROUP
           </a>
@@ -59,11 +59,11 @@ export default function TermsOfServicePage() {
             These Terms of Service (&#8220;Terms&#8221;) govern your use of the Unite-Group Application
             (the &#8220;Application&#8221;) operated by {COMPANY} (&#8220;we&#8221;, &#8220;our&#8221;,
             &#8220;us&#8221;) and available at{' '}
-            <a href={APP_URL} style={{ color: '#00F5FF' }}>{APP_URL}</a>.
+            <a href={APP_URL} style={{ color: '#2f9e44' }}>{APP_URL}</a>.
           </p>
           <p>
             By accessing or using the Application, you agree to be bound by these Terms and our{' '}
-            <a href="/privacy-policy" style={{ color: '#00F5FF' }}>Privacy Policy</a>. If you do not agree,
+            <a href="/privacy-policy" style={{ color: '#2f9e44' }}>Privacy Policy</a>. If you do not agree,
             do not use the Application.
           </p>
           <p>
@@ -138,7 +138,7 @@ export default function TermsOfServicePage() {
         <Section title="6. Data and Privacy">
           <p>
             Our collection and handling of personal information is governed by our{' '}
-            <a href="/privacy-policy" style={{ color: '#00F5FF' }}>Privacy Policy</a>, which forms part of
+            <a href="/privacy-policy" style={{ color: '#2f9e44' }}>Privacy Policy</a>, which forms part of
             these Terms. By using the Application, you consent to the data practices described in that policy.
           </p>
           <p>
@@ -203,7 +203,7 @@ export default function TermsOfServicePage() {
           <p>
             You are responsible for maintaining the confidentiality of your account credentials and for all
             activity that occurs under your account. You must notify us immediately at{' '}
-            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#00F5FF' }}>{CONTACT_EMAIL}</a> if you
+            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#2f9e44' }}>{CONTACT_EMAIL}</a> if you
             suspect unauthorised access to your account.
           </p>
         </Section>
@@ -246,7 +246,7 @@ export default function TermsOfServicePage() {
             <strong>{COMPANY}</strong><br />
             Australia<br />
             Email:{' '}
-            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#00F5FF' }}>
+            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#2f9e44' }}>
               {CONTACT_EMAIL}
             </a>
           </address>
@@ -278,11 +278,11 @@ function Section({ title, children }: { title: string; children: React.ReactNode
         style={{
           fontSize: '15px',
           fontWeight: 600,
-          color: '#00F5FF',
+          color: '#2f9e44',
           letterSpacing: '0.02em',
           marginBottom: '14px',
           paddingBottom: '8px',
-          borderBottom: '1px solid rgba(0,245,255,0.10)',
+          borderBottom: '1px solid rgba(47, 158, 68,0.10)',
         }}
       >
         {title}

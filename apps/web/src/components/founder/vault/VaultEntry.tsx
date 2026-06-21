@@ -94,7 +94,7 @@ export function VaultEntry({ id, label, username, businessColor, onDelete }: Vau
           onClick={handleCopy}
           disabled={!revealed || secret === null}
           className="transition-colors disabled:opacity-40"
-          style={{ color: copied ? '#00F5FF' : 'var(--color-text-muted)' }}
+          style={{ color: copied ? '#2f9e44' : 'var(--color-text-muted)' }}
           aria-label="Copy"
         >
           <Copy size={14} />

@@ -29,7 +29,7 @@ function BillStatusBadge({ status, dueDate }: { status: string; dueDate: string 
     return (
       <span
         className="text-[10px] font-medium tracking-widest uppercase px-2 py-0.5 rounded-sm"
-        style={{ color: '#00F5FF', backgroundColor: 'rgba(0,245,255,0.08)', border: '1px solid rgba(0,245,255,0.2)' }}
+        style={{ color: '#2f9e44', backgroundColor: 'rgba(47, 158, 68,0.08)', border: '1px solid rgba(47, 158, 68,0.2)' }}
       >
         Paid
       </span>

@@ -65,7 +65,7 @@ export default function GlobalError({
             <button
               onClick={() => window.location.reload()}
               style={{
-                backgroundColor: '#3b82f6',
+                backgroundColor: '#2f9e44',
                 color: 'white',
                 padding: '0.75rem 2rem',
                 borderRadius: '0.5rem',
@@ -75,7 +75,7 @@ export default function GlobalError({
                 fontWeight: '500',
               }}
               onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
-              onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#2f9e44'}
             >
               Reload Page
             </button>

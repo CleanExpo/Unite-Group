@@ -24,13 +24,13 @@ export function AccountTabs({ accounts, activeAccount, onSelect }: Props) {
             className={[
               'flex items-center gap-1.5 px-3 py-2 text-xs rounded-sm transition-colors flex-shrink-0',
               active
-                ? 'bg-[#00F5FF]/10 text-[#00F5FF] border border-[#00F5FF]/30'
+                ? 'bg-[#2f9e44]/10 text-[#2f9e44] border border-[#2f9e44]/30'
                 : 'text-white/50 hover:text-white/80 border border-transparent hover:border-white/10',
             ].join(' ')}
           >
             <span className="truncate max-w-[160px]">{account.label || account.email.split('@')[0]}</span>
             {(account.unreadCount ?? 0) > 0 && (
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${active ? 'bg-[#00F5FF]/20 text-[#00F5FF]' : 'bg-white/10 text-white/60'}`}>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${active ? 'bg-[#2f9e44]/20 text-[#2f9e44]' : 'bg-white/10 text-white/60'}`}>
                 {account.unreadCount}
               </span>
             )}

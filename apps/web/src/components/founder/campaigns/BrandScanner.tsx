@@ -84,8 +84,8 @@ function BrandDNACard({ result, onCreateCampaign }: BrandDNACardProps) {
     <div className="flex flex-col gap-5 pt-5 border-t border-white/[0.06]">
       {/* Section label */}
       <div className="flex items-center gap-2">
-        <div className="w-1.5 h-1.5 rounded-sm bg-[#00F5FF]" />
-        <span className="text-[11px] font-semibold uppercase tracking-widest text-[#00F5FF]">
+        <div className="w-1.5 h-1.5 rounded-sm bg-[#2f9e44]" />
+        <span className="text-[11px] font-semibold uppercase tracking-widest text-[#2f9e44]">
           Brand DNA extracted
         </span>
       </div>
@@ -114,7 +114,7 @@ function BrandDNACard({ result, onCreateCampaign }: BrandDNACardProps) {
       <button
         type="button"
         onClick={onCreateCampaign}
-        className="w-full bg-[#00F5FF] text-black text-[13px] font-semibold rounded-sm px-4 py-2.5 hover:bg-[#00F5FF]/90 transition-colors duration-150"
+        className="w-full bg-[#2f9e44] text-black text-[13px] font-semibold rounded-sm px-4 py-2.5 hover:bg-[#2f9e44]/90 transition-colors duration-150"
       >
         Create Campaign →
       </button>
@@ -135,7 +135,7 @@ function DataRow({ label, value, highlight = false }: DataRowProps) {
         {label}
       </span>
       <span
-        className={`text-[12px] font-mono ${highlight ? 'text-[#00F5FF]' : 'text-white/60'}`}
+        className={`text-[12px] font-mono ${highlight ? 'text-[#2f9e44]' : 'text-white/60'}`}
       >
         {value}
       </span>
@@ -241,7 +241,7 @@ export function BrandScanner({ onScanComplete }: BrandScannerProps) {
             onChange={e => setClientName(e.target.value)}
             disabled={isDisabled}
             placeholder="Acme Pty Ltd"
-            className="bg-[#111] border border-white/10 rounded-sm px-3 py-2 text-[13px] text-white placeholder-white/30 focus:border-[#00F5FF]/50 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-100"
+            className="bg-[#111] border border-white/10 rounded-sm px-3 py-2 text-[13px] text-white placeholder-white/30 focus:border-[#2f9e44]/50 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-100"
           />
         </div>
 
@@ -256,7 +256,7 @@ export function BrandScanner({ onScanComplete }: BrandScannerProps) {
             onChange={e => setWebsiteUrl(e.target.value)}
             disabled={isDisabled}
             placeholder="https://example.com.au"
-            className="bg-[#111] border border-white/10 rounded-sm px-3 py-2 text-[13px] text-white placeholder-white/30 focus:border-[#00F5FF]/50 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-100"
+            className="bg-[#111] border border-white/10 rounded-sm px-3 py-2 text-[13px] text-white placeholder-white/30 focus:border-[#2f9e44]/50 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-100"
           />
         </div>
       </div>
@@ -267,7 +267,7 @@ export function BrandScanner({ onScanComplete }: BrandScannerProps) {
           type="button"
           onClick={handleScan}
           disabled={!canSubmit}
-          className="bg-[#00F5FF] text-black text-[13px] font-semibold rounded-sm px-4 py-2 hover:bg-[#00F5FF]/90 transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="bg-[#2f9e44] text-black text-[13px] font-semibold rounded-sm px-4 py-2 hover:bg-[#2f9e44]/90 transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {scanState === 'scanning' ? (
             <>

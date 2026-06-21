@@ -39,9 +39,9 @@ export function EmptyState({ icon: Icon, title, description, action, hint }: Emp
             onClick={action.onClick}
             className="text-[12px] font-medium px-4 py-2 rounded-sm transition-colors"
             style={{
-              background: '#00F5FF18',
-              color: '#00F5FF',
-              border: '1px solid #00F5FF30',
+              background: '#2f9e4418',
+              color: '#2f9e44',
+              border: '1px solid #2f9e4430',
             }}
           >
             {action.label}
@@ -51,9 +51,9 @@ export function EmptyState({ icon: Icon, title, description, action, hint }: Emp
             href={action.href}
             className="text-[12px] font-medium px-4 py-2 rounded-sm transition-colors"
             style={{
-              background: '#00F5FF18',
-              color: '#00F5FF',
-              border: '1px solid #00F5FF30',
+              background: '#2f9e4418',
+              color: '#2f9e44',
+              border: '1px solid #2f9e4430',
             }}
           >
             {action.label}

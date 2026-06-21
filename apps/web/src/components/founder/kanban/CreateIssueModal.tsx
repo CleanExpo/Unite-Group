@@ -98,7 +98,7 @@ export function CreateIssueModal({ open, onClose, onCreated }: CreateIssueModalP
             className="relative w-full max-w-md mx-4 rounded-sm"
             style={{
               background: '#0a0a0a',
-              border: '1px solid rgba(0, 245, 255, 0.15)',
+              border: '1px solid rgba(47, 158, 68, 0.15)',
             }}
             initial={{ y: 40, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -129,7 +129,7 @@ export function CreateIssueModal({ open, onClose, onCreated }: CreateIssueModalP
               {/* Title */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] font-medium uppercase tracking-wider" style={{ color: '#64748b' }}>
-                  Title <span style={{ color: '#00F5FF' }}>*</span>
+                  Title <span style={{ color: '#2f9e44' }}>*</span>
                 </label>
                 <input
                   ref={titleRef}
@@ -144,7 +144,7 @@ export function CreateIssueModal({ open, onClose, onCreated }: CreateIssueModalP
                     border: '1px solid rgba(255, 255, 255, 0.08)',
                     color: '#e2e8f0',
                   }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(0, 245, 255, 0.4)')}
+                  onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(47, 158, 68, 0.4)')}
                   onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)')}
                 />
               </div>
@@ -165,7 +165,7 @@ export function CreateIssueModal({ open, onClose, onCreated }: CreateIssueModalP
                     border: '1px solid rgba(255, 255, 255, 0.08)',
                     color: '#e2e8f0',
                   }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(0, 245, 255, 0.4)')}
+                  onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(47, 158, 68, 0.4)')}
                   onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)')}
                 />
               </div>
@@ -187,7 +187,7 @@ export function CreateIssueModal({ open, onClose, onCreated }: CreateIssueModalP
                         border: '1px solid rgba(255, 255, 255, 0.08)',
                         color: '#e2e8f0',
                       }}
-                      onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(0, 245, 255, 0.4)')}
+                      onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(47, 158, 68, 0.4)')}
                       onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)')}
                     >
                       {BUSINESSES.map((biz) => (
@@ -220,7 +220,7 @@ export function CreateIssueModal({ open, onClose, onCreated }: CreateIssueModalP
                       border: '1px solid rgba(255, 255, 255, 0.08)',
                       color: '#e2e8f0',
                     }}
-                    onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(0, 245, 255, 0.4)')}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(47, 158, 68, 0.4)')}
                     onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)')}
                   >
                     {PRIORITIES.map((p) => (
@@ -258,7 +258,7 @@ export function CreateIssueModal({ open, onClose, onCreated }: CreateIssueModalP
                   disabled={submitting || !title.trim()}
                   className="px-4 py-1.5 text-[11px] font-medium rounded-sm transition-opacity"
                   style={{
-                    background: '#00F5FF',
+                    background: '#2f9e44',
                     color: '#050505',
                     opacity: submitting || !title.trim() ? 0.5 : 1,
                   }}

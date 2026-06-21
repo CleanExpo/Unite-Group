@@ -15,7 +15,7 @@ import type {
 
 const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
   draft: { bg: 'rgba(153,153,153,0.15)', text: '#999999' },
-  active: { bg: 'rgba(0,245,255,0.15)', text: '#00F5FF' },
+  active: { bg: 'rgba(47, 158, 68,0.15)', text: '#2f9e44' },
   paused: { bg: 'rgba(245,158,11,0.15)', text: '#f59e0b' },
   completed: { bg: 'rgba(34,197,94,0.15)', text: '#22c55e' },
   cancelled: { bg: 'rgba(239,68,68,0.15)', text: '#ef4444' },
@@ -104,7 +104,7 @@ export function ExperimentDetailClient({
             <button
               onClick={() => handleStatusChange('active')}
               disabled={actionLoading}
-              className="px-4 py-2 text-[10px] uppercase tracking-[0.15em] text-[#00F5FF] border border-[#00F5FF]/30 rounded-sm hover:bg-[#00F5FF]/5 transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-[10px] uppercase tracking-[0.15em] text-[#2f9e44] border border-[#2f9e44]/30 rounded-sm hover:bg-[#2f9e44]/5 transition-colors disabled:opacity-50"
             >
               Activate
             </button>
@@ -113,7 +113,7 @@ export function ExperimentDetailClient({
             <button
               onClick={() => handleStatusChange('completed')}
               disabled={actionLoading}
-              className="px-4 py-2 text-[10px] uppercase tracking-[0.15em] text-[#00F5FF] border border-[#00F5FF]/30 rounded-sm hover:bg-[#00F5FF]/5 transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-[10px] uppercase tracking-[0.15em] text-[#2f9e44] border border-[#2f9e44]/30 rounded-sm hover:bg-[#2f9e44]/5 transition-colors disabled:opacity-50"
             >
               Complete
             </button>
@@ -121,7 +121,7 @@ export function ExperimentDetailClient({
           {variants.length === 0 && (
             <button
               onClick={() => setShowGenerator(true)}
-              className="px-4 py-2 text-[10px] uppercase tracking-[0.15em] text-[#00F5FF] border border-[#00F5FF]/30 rounded-sm hover:bg-[#00F5FF]/5 transition-colors"
+              className="px-4 py-2 text-[10px] uppercase tracking-[0.15em] text-[#2f9e44] border border-[#2f9e44]/30 rounded-sm hover:bg-[#2f9e44]/5 transition-colors"
             >
               Generate with Synthex
             </button>

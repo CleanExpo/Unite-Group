@@ -30,7 +30,7 @@ export default async function WikiIndexPage() {
   return (
     <div className="p-6 flex flex-col gap-6" style={{ background: '#050505', minHeight: '100vh' }}>
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight" style={{ color: '#00F5FF' }}>
+        <h1 className="text-2xl font-semibold tracking-tight" style={{ color: '#2f9e44' }}>
           Knowledge Base
         </h1>
         <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
@@ -41,7 +41,7 @@ export default async function WikiIndexPage() {
       {pages.length === 0 ? (
         <div
           className="rounded-sm border p-8 text-center text-sm"
-          style={{ borderColor: 'rgba(0,245,255,0.15)', color: 'rgba(255,255,255,0.4)' }}
+          style={{ borderColor: 'rgba(47, 158, 68,0.15)', color: 'rgba(255,255,255,0.4)' }}
         >
           No wiki pages found.
         </div>
@@ -53,14 +53,14 @@ export default async function WikiIndexPage() {
               href={`/founder/wiki/${page.id}`}
               className="group block rounded-sm border p-4 transition-colors"
               style={{
-                borderColor: 'rgba(0,245,255,0.15)',
+                borderColor: 'rgba(47, 158, 68,0.15)',
                 background: 'rgba(255,255,255,0.02)',
               }}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex flex-col gap-1 min-w-0">
                   <span
-                    className="font-medium text-sm truncate transition-colors group-hover:text-[#00F5FF]"
+                    className="font-medium text-sm truncate transition-colors group-hover:text-[#2f9e44]"
                     style={{ color: 'rgba(255,255,255,0.9)' }}
                   >
                     {page.title}
@@ -72,9 +72,9 @@ export default async function WikiIndexPage() {
                           key={tag}
                           className="text-xs px-1.5 py-0.5 rounded-sm"
                           style={{
-                            background: 'rgba(0,245,255,0.08)',
-                            color: 'rgba(0,245,255,0.7)',
-                            border: '1px solid rgba(0,245,255,0.15)',
+                            background: 'rgba(47, 158, 68,0.08)',
+                            color: 'rgba(47, 158, 68,0.7)',
+                            border: '1px solid rgba(47, 158, 68,0.15)',
                           }}
                         >
                           {tag}

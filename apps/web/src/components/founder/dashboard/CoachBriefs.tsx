@@ -34,8 +34,8 @@ const COACH_ICONS: Record<CoachType, typeof DollarSign> = {
 
 const COACH_COLOURS: Record<CoachType, string> = {
   revenue: '#22c55e',
-  build: '#3b82f6',
-  marketing: '#a855f7',
+  build: '#2f9e44',
+  marketing: '#f59f00',
   life: '#f97316',
 }
 
@@ -187,7 +187,7 @@ function CoachCard({
                 onClick={askCoach}
                 disabled={!question.trim() || asking}
                 className="flex items-center gap-2 px-3 h-8 rounded-sm text-[12px] font-medium transition-colors disabled:opacity-40"
-                style={{ background: '#00F5FF', color: '#050505' }}
+                style={{ background: '#2f9e44', color: '#050505' }}
               >
                 {asking ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
                 {asking ? 'Asking…' : 'Ask Coach'}

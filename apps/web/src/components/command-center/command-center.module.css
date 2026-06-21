@@ -6,20 +6,20 @@
  * the components or pollute globals.css, this module declares the tokens once
  * on a wrapper. Every child inherits them via the custom-property cascade.
  *
- * Palette: Scientific Luxury — OLED Black #050505, Cyan #00F5FF.
+ * Palette: Scientific Luxury — OLED Black #050505, Cyan #2f9e44.
  * Borders: rounded-sm only (2px) — no other radii. */
 
 .scope {
   /* surfaces */
   --cc-bg: #050505;
   --cc-bg-soft: #0a0a0c;
-  --cc-grid: rgba(0, 245, 255, 0.14);
+  --cc-grid: rgba(47, 158, 68, 0.14);
   /* ink */
   --cc-ink: #f4fbfc;
   --cc-ink-dim: rgba(244, 251, 252, 0.62);
   --cc-ink-hush: rgba(244, 251, 252, 0.38);
   /* single accent — cyan signal */
-  --cc-signal: #00f5ff;
+  --cc-signal: #2f9e44;
   /* motion */
   --cc-pulse-duration: 2.4s;
 

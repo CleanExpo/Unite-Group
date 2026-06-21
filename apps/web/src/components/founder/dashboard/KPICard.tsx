@@ -146,11 +146,11 @@ export function KPICard({
                   style={{
                     width: 6,
                     height: 6,
-                    background: '#00F5FF',
-                    boxShadow: '0 0 4px #00F5FF',
+                    background: '#2f9e44',
+                    boxShadow: '0 0 4px #2f9e44',
                   }}
                 />
-                <span className="text-[10px] font-medium tracking-widest uppercase text-[#00F5FF]">
+                <span className="text-[10px] font-medium tracking-widest uppercase text-[#2f9e44]">
                   Live
                 </span>
               </>

@@ -25,10 +25,10 @@ export interface CalendarEventsResult {
 
 const BUSINESS_COLOURS: Record<string, string> = {
   dr:       '#EF4444',
-  restore:  '#3B82F6',
+  restore:  '#2f9e44',
   carsi:    '#F59E0B',
   ccw:      '#8B5CF6',
-  synthex:  '#00F5FF',
+  synthex:  '#2f9e44',
   nrpg:     '#10B981',
   personal: '#6B7280',
 }
@@ -119,7 +119,7 @@ export async function fetchCalendarEvents(founderId: string): Promise<CalendarEv
 export function getMockEvents(): CalendarEvent[] {
   const now = new Date()
   return [
-    { id: '1', title: 'Synthex Client Call', start: now.toISOString(), end: new Date(now.getTime() + 3600000).toISOString(), businessKey: 'synthex', colour: '#00F5FF', email: 'support@synthex.social' },
+    { id: '1', title: 'Synthex Client Call', start: now.toISOString(), end: new Date(now.getTime() + 3600000).toISOString(), businessKey: 'synthex', colour: '#2f9e44', email: 'support@synthex.social' },
     { id: '2', title: 'CARSI Course Launch', start: new Date(now.getTime() + 86400000).toISOString(), end: new Date(now.getTime() + 90000000).toISOString(), businessKey: 'carsi', colour: '#F59E0B', email: 'support@carsi.com.au' },
   ]
 }

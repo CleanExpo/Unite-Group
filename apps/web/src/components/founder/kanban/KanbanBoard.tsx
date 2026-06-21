@@ -209,7 +209,7 @@ export function KanbanBoard() {
           <button
             onClick={() => setCreateOpen(true)}
             className="text-[11px] font-medium px-3 py-1 rounded-sm transition-opacity hover:opacity-80"
-            style={{ background: '#00F5FF', color: '#050505' }}
+            style={{ background: '#2f9e44', color: '#050505' }}
           >
             + New Issue
           </button>

@@ -63,14 +63,14 @@ export function ImapConnectForm({ email, label }: Props) {
         onChange={e => setPassword(e.target.value)}
         required
         autoFocus
-        className="bg-zinc-900 border border-zinc-700 rounded-sm px-2 py-1 text-xs text-white placeholder-zinc-500 focus:border-[#00F5FF] focus:outline-none"
+        className="bg-zinc-900 border border-zinc-700 rounded-sm px-2 py-1 text-xs text-white placeholder-zinc-500 focus:border-[#2f9e44] focus:outline-none"
       />
       {error && <p className="text-red-400 text-xs">{error}</p>}
       <div className="flex gap-2">
         <button
           type="submit"
           disabled={loading}
-          className="text-xs bg-[#00F5FF] text-black px-3 py-1 rounded-sm font-medium hover:opacity-80 disabled:opacity-40"
+          className="text-xs bg-[#2f9e44] text-black px-3 py-1 rounded-sm font-medium hover:opacity-80 disabled:opacity-40"
         >
           {loading ? 'Connecting…' : 'Connect'}
         </button>

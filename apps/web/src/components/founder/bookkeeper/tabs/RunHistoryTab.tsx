@@ -9,10 +9,10 @@ import type { BookkeeperRun, RunsResponse } from '@/lib/bookkeeper/types'
 const PAGE_SIZE = 20
 
 const RUN_STATUS_CONFIG: Record<string, { color: string; bg: string; border: string; pulse?: boolean }> = {
-  completed: { color: '#00F5FF', bg: 'rgba(0,245,255,0.08)', border: 'rgba(0,245,255,0.2)' },
+  completed: { color: '#2f9e44', bg: 'rgba(47, 158, 68,0.08)', border: 'rgba(47, 158, 68,0.2)' },
   partial:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' },
   failed:    { color: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)' },
-  running:   { color: '#00F5FF', bg: 'rgba(0,245,255,0.08)', border: 'rgba(0,245,255,0.2)', pulse: true },
+  running:   { color: '#2f9e44', bg: 'rgba(47, 158, 68,0.08)', border: 'rgba(47, 158, 68,0.2)', pulse: true },
 }
 
 function RunStatusBadge({ status }: { status: string }) {
@@ -137,7 +137,7 @@ export function RunHistoryTab() {
             <button
               onClick={() => setPage(Math.max(1, page - 1))}
               disabled={page <= 1}
-              className="text-[11px] px-3 py-1 border rounded-sm disabled:opacity-30 hover:border-[#00F5FF]/40 transition-colors"
+              className="text-[11px] px-3 py-1 border rounded-sm disabled:opacity-30 hover:border-[#2f9e44]/40 transition-colors"
               style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
             >
               Previous
@@ -145,7 +145,7 @@ export function RunHistoryTab() {
             <button
               onClick={() => setPage(Math.min(totalPages, page + 1))}
               disabled={page >= totalPages}
-              className="text-[11px] px-3 py-1 border rounded-sm disabled:opacity-30 hover:border-[#00F5FF]/40 transition-colors"
+              className="text-[11px] px-3 py-1 border rounded-sm disabled:opacity-30 hover:border-[#2f9e44]/40 transition-colors"
               style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
             >
               Next
@@ -179,7 +179,7 @@ function RunRow({ run, expanded, onToggle }: { run: BookkeeperRun; expanded: boo
         <td className="px-3 py-2.5 text-right tabular-nums" style={{ color: 'var(--color-text-primary)' }}>
           {run.totalTransactions}
         </td>
-        <td className="px-3 py-2.5 text-right tabular-nums" style={{ color: '#00F5FF' }}>
+        <td className="px-3 py-2.5 text-right tabular-nums" style={{ color: '#2f9e44' }}>
           {run.autoReconciled}
         </td>
         <td className="px-3 py-2.5 text-right tabular-nums" style={{ color: run.flaggedForReview > 0 ? '#f59e0b' : 'var(--color-text-disabled)' }}>
@@ -200,7 +200,7 @@ function RunRow({ run, expanded, onToggle }: { run: BookkeeperRun; expanded: boo
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
-                <div className="px-4 py-3 space-y-2" style={{ backgroundColor: 'rgba(0,245,255,0.02)' }}>
+                <div className="px-4 py-3 space-y-2" style={{ backgroundColor: 'rgba(47, 158, 68,0.02)' }}>
                   <p className="text-[10px] uppercase tracking-widest mb-2" style={{ color: 'var(--color-text-disabled)' }}>
                     Businesses processed
                   </p>

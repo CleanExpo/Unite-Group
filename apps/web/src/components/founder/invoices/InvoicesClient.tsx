@@ -46,7 +46,7 @@ function parseXeroDate(val?: string): string {
 function StatusBadge({ status }: { status: XeroInvoice['Status'] }) {
   const map: Record<XeroInvoice['Status'], { bg: string; label: string }> = {
     DRAFT:      { bg: 'rgba(255,255,255,0.08)', label: 'Draft' },
-    AUTHORISED: { bg: 'rgba(0,245,255,0.15)',   label: 'Authorised' },
+    AUTHORISED: { bg: 'rgba(47, 158, 68,0.15)',   label: 'Authorised' },
     SUBMITTED:  { bg: 'rgba(255,198,0,0.15)',    label: 'Submitted' },
     PAID:       { bg: 'rgba(0,200,100,0.15)',    label: 'Paid' },
     VOIDED:     { bg: 'rgba(255,80,80,0.15)',    label: 'Voided' },
@@ -76,7 +76,7 @@ function LineItemRow({
   return (
     <div className="grid grid-cols-[1fr_60px_90px_80px_32px] gap-2 items-center">
       <input
-        className="bg-white/5 border border-white/10 rounded-sm px-2 py-1.5 text-[12px] text-[#f0f0f0] placeholder-white/30 focus:outline-none focus:border-[#00F5FF]/40"
+        className="bg-white/5 border border-white/10 rounded-sm px-2 py-1.5 text-[12px] text-[#f0f0f0] placeholder-white/30 focus:outline-none focus:border-[#2f9e44]/40"
         placeholder="Description"
         value={item.description}
         onChange={(e) => onChange(index, 'description', e.target.value)}
@@ -84,7 +84,7 @@ function LineItemRow({
       <input
         type="number"
         min={1}
-        className="bg-white/5 border border-white/10 rounded-sm px-2 py-1.5 text-[12px] text-[#f0f0f0] text-right focus:outline-none focus:border-[#00F5FF]/40"
+        className="bg-white/5 border border-white/10 rounded-sm px-2 py-1.5 text-[12px] text-[#f0f0f0] text-right focus:outline-none focus:border-[#2f9e44]/40"
         placeholder="Qty"
         value={item.quantity}
         onChange={(e) => onChange(index, 'quantity', parseFloat(e.target.value) || 1)}
@@ -93,13 +93,13 @@ function LineItemRow({
         type="number"
         min={0}
         step={0.01}
-        className="bg-white/5 border border-white/10 rounded-sm px-2 py-1.5 text-[12px] text-[#f0f0f0] text-right focus:outline-none focus:border-[#00F5FF]/40"
+        className="bg-white/5 border border-white/10 rounded-sm px-2 py-1.5 text-[12px] text-[#f0f0f0] text-right focus:outline-none focus:border-[#2f9e44]/40"
         placeholder="Unit $"
         value={item.unitAmount}
         onChange={(e) => onChange(index, 'unitAmount', parseFloat(e.target.value) || 0)}
       />
       <input
-        className="bg-white/5 border border-white/10 rounded-sm px-2 py-1.5 text-[12px] text-[#f0f0f0] focus:outline-none focus:border-[#00F5FF]/40"
+        className="bg-white/5 border border-white/10 rounded-sm px-2 py-1.5 text-[12px] text-[#f0f0f0] focus:outline-none focus:border-[#2f9e44]/40"
         placeholder="Code"
         value={item.accountCode}
         onChange={(e) => onChange(index, 'accountCode', e.target.value)}
@@ -180,7 +180,7 @@ function CreateInvoicePanel({
   return (
     <div
       className="mb-6 rounded-sm border p-5"
-      style={{ background: 'rgba(0,245,255,0.03)', borderColor: 'rgba(0,245,255,0.2)' }}
+      style={{ background: 'rgba(47, 158, 68,0.03)', borderColor: 'rgba(47, 158, 68,0.2)' }}
     >
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-[13px] font-medium text-[#f0f0f0]">New Invoice (Draft)</h3>
@@ -193,7 +193,7 @@ function CreateInvoicePanel({
         <div className="col-span-1">
           <label className="block text-[11px] text-white/50 mb-1">Contact *</label>
           <input
-            className="w-full bg-white/5 border border-white/10 rounded-sm px-3 py-1.5 text-[12px] text-[#f0f0f0] placeholder-white/30 focus:outline-none focus:border-[#00F5FF]/40"
+            className="w-full bg-white/5 border border-white/10 rounded-sm px-3 py-1.5 text-[12px] text-[#f0f0f0] placeholder-white/30 focus:outline-none focus:border-[#2f9e44]/40"
             placeholder="Client name"
             value={contactName}
             onChange={(e) => setContactName(e.target.value)}
@@ -203,7 +203,7 @@ function CreateInvoicePanel({
           <label className="block text-[11px] text-white/50 mb-1">Due Date *</label>
           <input
             type="date"
-            className="w-full bg-white/5 border border-white/10 rounded-sm px-3 py-1.5 text-[12px] text-[#f0f0f0] focus:outline-none focus:border-[#00F5FF]/40"
+            className="w-full bg-white/5 border border-white/10 rounded-sm px-3 py-1.5 text-[12px] text-[#f0f0f0] focus:outline-none focus:border-[#2f9e44]/40"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
           />
@@ -211,7 +211,7 @@ function CreateInvoicePanel({
         <div>
           <label className="block text-[11px] text-white/50 mb-1">Reference</label>
           <input
-            className="w-full bg-white/5 border border-white/10 rounded-sm px-3 py-1.5 text-[12px] text-[#f0f0f0] placeholder-white/30 focus:outline-none focus:border-[#00F5FF]/40"
+            className="w-full bg-white/5 border border-white/10 rounded-sm px-3 py-1.5 text-[12px] text-[#f0f0f0] placeholder-white/30 focus:outline-none focus:border-[#2f9e44]/40"
             placeholder="INV-001"
             value={reference}
             onChange={(e) => setReference(e.target.value)}
@@ -242,11 +242,11 @@ function CreateInvoicePanel({
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={addItem}
-          className="text-[11px] text-white/40 hover:text-[#00F5FF] transition-colors flex items-center gap-1"
+          className="text-[11px] text-white/40 hover:text-[#2f9e44] transition-colors flex items-center gap-1"
         >
           <Plus size={12} /> Add line
         </button>
-        <div className="text-[13px] font-medium" style={{ color: '#00F5FF' }}>
+        <div className="text-[13px] font-medium" style={{ color: '#2f9e44' }}>
           Total: {formatAUD(total)}
         </div>
       </div>
@@ -259,7 +259,7 @@ function CreateInvoicePanel({
         onClick={handleSubmit}
         disabled={saving}
         className="flex items-center gap-2 px-4 py-2 rounded-sm text-[12px] font-medium transition-opacity disabled:opacity-50"
-        style={{ background: '#00F5FF', color: '#050505' }}
+        style={{ background: '#2f9e44', color: '#050505' }}
       >
         {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
         {saving ? 'Creating…' : 'Create Draft Invoice'}
@@ -319,7 +319,7 @@ function InvoiceRow({
               onClick={handleApprove}
               disabled={approving}
               className="flex items-center gap-1 px-2.5 py-1 rounded-sm text-[11px] font-medium transition-all disabled:opacity-50"
-              style={{ background: 'rgba(0,245,255,0.12)', color: '#00F5FF' }}
+              style={{ background: 'rgba(47, 158, 68,0.12)', color: '#2f9e44' }}
             >
               {approving ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle size={11} />}
               {approving ? 'Approving…' : 'Approve'}
@@ -396,7 +396,7 @@ export function InvoicesClient() {
             <select
               value={business}
               onChange={(e) => setBusiness(e.target.value)}
-              className="appearance-none bg-white/5 border border-white/10 rounded-sm pl-3 pr-8 py-1.5 text-[12px] text-[#f0f0f0] focus:outline-none focus:border-[#00F5FF]/40 cursor-pointer"
+              className="appearance-none bg-white/5 border border-white/10 rounded-sm pl-3 pr-8 py-1.5 text-[12px] text-[#f0f0f0] focus:outline-none focus:border-[#2f9e44]/40 cursor-pointer"
             >
               {XERO_BUSINESSES.map((b) => (
                 <option key={b.key} value={b.key} style={{ background: '#111' }}>
@@ -415,8 +415,8 @@ export function InvoicesClient() {
                 onClick={() => setFilterStatus(s)}
                 className="px-2.5 py-1 rounded-sm text-[11px] font-medium transition-all"
                 style={{
-                  background: filterStatus === s ? 'rgba(0,245,255,0.15)' : 'rgba(255,255,255,0.05)',
-                  color: filterStatus === s ? '#00F5FF' : 'rgba(255,255,255,0.4)',
+                  background: filterStatus === s ? 'rgba(47, 158, 68,0.15)' : 'rgba(255,255,255,0.05)',
+                  color: filterStatus === s ? '#2f9e44' : 'rgba(255,255,255,0.4)',
                 }}
               >
                 {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
@@ -438,7 +438,7 @@ export function InvoicesClient() {
           <button
             onClick={() => setShowCreate((v) => !v)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[12px] font-medium transition-all"
-            style={{ background: '#00F5FF', color: '#050505' }}
+            style={{ background: '#2f9e44', color: '#050505' }}
           >
             <Plus size={13} />
             New Invoice
@@ -477,7 +477,7 @@ export function InvoicesClient() {
           {filterStatus !== 'ALL' && (
             <button
               onClick={() => setFilterStatus('ALL')}
-              className="mt-2 text-[11px] text-[#00F5FF]/60 hover:text-[#00F5FF] transition-colors"
+              className="mt-2 text-[11px] text-[#2f9e44]/60 hover:text-[#2f9e44] transition-colors"
             >
               Clear filter
             </button>

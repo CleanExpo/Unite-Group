@@ -1,11 +1,11 @@
 'use client'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  auto_matched:    { label: 'Auto',       color: '#00F5FF', bg: 'rgba(0,245,255,0.08)', border: 'rgba(0,245,255,0.2)' },
+  auto_matched:    { label: 'Auto',       color: '#2f9e44', bg: 'rgba(47, 158, 68,0.08)', border: 'rgba(47, 158, 68,0.2)' },
   suggested_match: { label: 'Suggested',  color: '#eab308', bg: 'rgba(234,179,8,0.08)', border: 'rgba(234,179,8,0.2)' },
   unmatched:       { label: 'Unmatched',  color: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)' },
   manual_review:   { label: 'Review',     color: '#f97316', bg: 'rgba(249,115,22,0.08)', border: 'rgba(249,115,22,0.2)' },
-  reconciled:      { label: 'Reconciled', color: '#00F5FF', bg: 'rgba(0,245,255,0.12)', border: 'rgba(0,245,255,0.3)' },
+  reconciled:      { label: 'Reconciled', color: '#2f9e44', bg: 'rgba(47, 158, 68,0.12)', border: 'rgba(47, 158, 68,0.3)' },
 }
 
 export function StatusBadge({ status }: { status: string }) {

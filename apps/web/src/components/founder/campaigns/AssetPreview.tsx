@@ -184,7 +184,7 @@ export function AssetPreview({ asset, businessKey, onPublished, onRegenerateImag
 
       {/* CTA */}
       {asset.cta && (
-        <p className="text-[#00F5FF] text-xs font-medium">
+        <p className="text-[#2f9e44] text-xs font-medium">
           {asset.cta}
         </p>
       )}
@@ -234,7 +234,7 @@ export function AssetPreview({ asset, businessKey, onPublished, onRegenerateImag
           <button
             onClick={handlePublish}
             disabled={publishing}
-            className="bg-[#00F5FF] text-black text-sm font-medium rounded-sm px-3 py-1.5 hover:bg-[#00F5FF]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+            className="bg-[#2f9e44] text-black text-sm font-medium rounded-sm px-3 py-1.5 hover:bg-[#2f9e44]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
           >
             {publishing ? 'Publishing…' : 'Promote →'}
           </button>

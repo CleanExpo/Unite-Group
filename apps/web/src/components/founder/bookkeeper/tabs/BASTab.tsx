@@ -212,7 +212,7 @@ export function BASTab() {
             layout
             className="bg-[var(--surface-card)] border rounded-sm p-4 cursor-pointer transition-colors hover:bg-white/[0.02]"
             style={{
-              borderColor: current ? 'rgba(0,245,255,0.3)' : 'var(--color-border)',
+              borderColor: current ? 'rgba(47, 158, 68,0.3)' : 'var(--color-border)',
             }}
             onClick={() => handleToggle(q)}
           >
@@ -225,7 +225,7 @@ export function BASTab() {
                 {current && (
                   <span
                     className="text-[9px] font-medium tracking-widest uppercase px-1.5 py-0.5 rounded-sm"
-                    style={{ color: '#00F5FF', backgroundColor: 'rgba(0,245,255,0.08)', border: '1px solid rgba(0,245,255,0.2)' }}
+                    style={{ color: '#2f9e44', backgroundColor: 'rgba(47, 158, 68,0.08)', border: '1px solid rgba(47, 158, 68,0.2)' }}
                   >
                     Current
                   </span>

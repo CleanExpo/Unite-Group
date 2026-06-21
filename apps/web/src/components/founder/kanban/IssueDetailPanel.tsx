@@ -28,7 +28,7 @@ interface IssueDetailPanelProps {
 const PRIORITY_CONFIG: Record<number, { label: string; colour: string }> = {
   1: { label: 'Urgent', colour: '#ef4444' },
   2: { label: 'High', colour: '#f97316' },
-  3: { label: 'Normal', colour: '#3b82f6' },
+  3: { label: 'Normal', colour: '#2f9e44' },
   4: { label: 'Low', colour: '#6b7280' },
   0: { label: 'None', colour: '#6b7280' },
 }
@@ -236,7 +236,7 @@ export function IssueDetailPanel({ issueId, onClose }: IssueDetailPanelProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 text-[11px] mt-2 transition-opacity duration-150 hover:opacity-80"
-                style={{ color: '#00F5FF' }}
+                style={{ color: '#2f9e44' }}
               >
                 Open in Linear
                 <span style={{ fontSize: '10px' }}>↗</span>

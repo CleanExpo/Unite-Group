@@ -77,7 +77,7 @@ export function BookkeeperWorkbench() {
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className="text-[12px] font-medium tracking-wide uppercase px-4 py-3 relative cursor-pointer transition-colors shrink-0"
-                style={{ color: isActive ? '#00F5FF' : undefined }}
+                style={{ color: isActive ? '#2f9e44' : undefined }}
               >
                 <span
                   className={
@@ -92,8 +92,8 @@ export function BookkeeperWorkbench() {
                 {isActive && (
                   <motion.div
                     layoutId="tab-underline"
-                    className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#00F5FF]"
-                    style={{ boxShadow: '0 2px 4px rgba(0,245,255,0.3)' }}
+                    className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#2f9e44]"
+                    style={{ boxShadow: '0 2px 4px rgba(47, 158, 68,0.3)' }}
                     transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                   />
                 )}

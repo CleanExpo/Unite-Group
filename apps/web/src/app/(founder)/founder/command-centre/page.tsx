@@ -48,7 +48,7 @@ const chakra = Chakra_Petch({
 const BRAND_SWATCH: Record<string, string> = {
   'Unite-Hub': '#38e1ff',
   RestoreAssist: '#34d399',
-  Synthex: '#a855f7',
+  Synthex: '#f59f00',
   'Disaster-Recovery': '#fb7185',
   'DR-NRPG': '#f97316',
   'ATO-APP': '#facc15',

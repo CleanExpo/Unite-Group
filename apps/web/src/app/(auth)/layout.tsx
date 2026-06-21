@@ -19,7 +19,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="flex flex-col items-center mb-8">
           <div
             className="mb-3"
-            style={{ filter: 'drop-shadow(0 0 20px rgba(0, 245, 255, 0.10))' }}
+            style={{ filter: 'drop-shadow(0 0 20px rgba(47, 158, 68, 0.10))' }}
           >
             <Image
               src="/logos/unite-hub-logo.png"
@@ -43,7 +43,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             borderLeft:   '1px solid var(--color-border)',
             borderRight:  '1px solid var(--color-border)',
             borderBottom: '1px solid var(--color-border)',
-            borderTop:    '1px solid rgba(0, 245, 255, 0.18)',
+            borderTop:    '1px solid rgba(47, 158, 68, 0.18)',
           }}
         >
           {children}

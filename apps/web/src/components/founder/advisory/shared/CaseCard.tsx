@@ -11,11 +11,11 @@ interface CaseCardProps {
 const STATUS_COLOURS: Record<string, string> = {
   draft: '#6b7280',
   debating: '#f59e0b',
-  judged: '#3b82f6',
-  pending_review: '#a855f7',
+  judged: '#2f9e44',
+  pending_review: '#f59f00',
   approved: '#22c55e',
   rejected: '#ef4444',
-  executed: '#00F5FF',
+  executed: '#2f9e44',
   closed: '#6b7280',
 }
 

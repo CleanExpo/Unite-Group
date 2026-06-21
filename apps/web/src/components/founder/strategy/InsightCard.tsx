@@ -39,10 +39,10 @@ const TYPE_LABELS: Record<string, string> = {
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  'seo-opportunity': '#00F5FF',
-  'content-gap': '#a855f7',
+  'seo-opportunity': '#2f9e44',
+  'content-gap': '#f59f00',
   'strategy': '#f97316',
-  'technical': '#3b82f6',
+  'technical': '#2f9e44',
   'quick-win': '#22c55e',
 }
 
@@ -96,7 +96,7 @@ export function InsightCard({ insight, onStatusChange }: InsightCardProps) {
     <div
       className="rounded-sm border overflow-hidden transition-all"
       style={{
-        borderColor: expanded ? 'rgba(0,245,255,0.2)' : 'var(--color-border)',
+        borderColor: expanded ? 'rgba(47, 158, 68,0.2)' : 'var(--color-border)',
         background: 'var(--surface-card)',
         borderLeft: `3px solid ${bizColor}`,
       }}
@@ -153,7 +153,7 @@ export function InsightCard({ insight, onStatusChange }: InsightCardProps) {
               </span>
             )}
             {insight.metadata.bidScore !== undefined && (
-              <span className="text-[10px] px-2 py-0.5 rounded-sm border" style={{ color: '#00F5FF', borderColor: 'rgba(0,245,255,0.3)' }}>
+              <span className="text-[10px] px-2 py-0.5 rounded-sm border" style={{ color: '#2f9e44', borderColor: 'rgba(47, 158, 68,0.3)' }}>
                 B.I.D. {insight.metadata.bidScore.toFixed(1)}
               </span>
             )}
@@ -176,9 +176,9 @@ export function InsightCard({ insight, onStatusChange }: InsightCardProps) {
               disabled={advancing}
               className="flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-sm border transition-colors disabled:opacity-40"
               style={{
-                borderColor: 'rgba(0,245,255,0.3)',
-                color: '#00F5FF',
-                background: 'rgba(0,245,255,0.06)',
+                borderColor: 'rgba(47, 158, 68,0.3)',
+                color: '#2f9e44',
+                background: 'rgba(47, 158, 68,0.06)',
               }}
             >
               <ArrowRight size={11} />

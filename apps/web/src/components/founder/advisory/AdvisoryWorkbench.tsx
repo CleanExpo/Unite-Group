@@ -55,7 +55,7 @@ export function AdvisoryWorkbench() {
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className="text-[12px] font-medium tracking-wide uppercase px-4 py-3 relative cursor-pointer transition-colors shrink-0"
-                style={{ color: isActive ? '#00F5FF' : undefined }}
+                style={{ color: isActive ? '#2f9e44' : undefined }}
               >
                 <span
                   className={
@@ -70,7 +70,7 @@ export function AdvisoryWorkbench() {
                   <motion.div
                     layoutId="advisory-tab-underline"
                     className="absolute bottom-0 left-0 right-0 h-[2px]"
-                    style={{ background: '#00F5FF' }}
+                    style={{ background: '#2f9e44' }}
                     transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                   />
                 )}

@@ -84,7 +84,7 @@ function TagList({ items, onChange, placeholder }: TagListProps) {
           <span
             key={idx}
             className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px]"
-            style={{ background: 'rgba(0,245,255,0.08)', color: '#00F5FF', border: '1px solid rgba(0,245,255,0.2)' }}
+            style={{ background: 'rgba(47, 158, 68,0.08)', color: '#2f9e44', border: '1px solid rgba(47, 158, 68,0.2)' }}
           >
             {item}
             <button
@@ -116,8 +116,8 @@ function TagList({ items, onChange, placeholder }: TagListProps) {
           onClick={addTag}
           className="px-3 py-1.5 text-[11px] rounded-sm transition-colors"
           style={{
-            border: '1px solid rgba(0,245,255,0.3)',
-            color: '#00F5FF',
+            border: '1px solid rgba(47, 158, 68,0.3)',
+            color: '#2f9e44',
           }}
         >
           Add
@@ -194,8 +194,8 @@ function StringList({ items, onChange, placeholder }: StringListProps) {
           onClick={addItem}
           className="px-3 py-1.5 text-[11px] rounded-sm transition-colors"
           style={{
-            border: '1px solid rgba(0,245,255,0.3)',
-            color: '#00F5FF',
+            border: '1px solid rgba(47, 158, 68,0.3)',
+            color: '#2f9e44',
           }}
         >
           + Add
@@ -259,7 +259,7 @@ function CharacterEditor({ label, value, onChange }: CharacterEditorProps) {
       className="rounded-sm p-3 space-y-2"
       style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--color-border)' }}
     >
-      <p className="text-[10px] uppercase tracking-wider font-medium" style={{ color: '#00F5FF' }}>
+      <p className="text-[10px] uppercase tracking-wider font-medium" style={{ color: '#2f9e44' }}>
         {label}
       </p>
       <div className="grid grid-cols-2 gap-2">
@@ -509,8 +509,8 @@ export function BrandPersonas() {
                     onClick={() => selectBusiness(biz.key)}
                     className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors"
                     style={{
-                      background: isActive ? 'rgba(0,245,255,0.06)' : 'transparent',
-                      borderLeft: isActive ? '2px solid #00F5FF' : '2px solid transparent',
+                      background: isActive ? 'rgba(47, 158, 68,0.06)' : 'transparent',
+                      borderLeft: isActive ? '2px solid #2f9e44' : '2px solid transparent',
                     }}
                   >
                     <span
@@ -519,7 +519,7 @@ export function BrandPersonas() {
                     />
                     <span
                       className="flex-1 text-[12px] truncate"
-                      style={{ color: isActive ? '#00F5FF' : 'var(--color-text-primary)' }}
+                      style={{ color: isActive ? '#2f9e44' : 'var(--color-text-primary)' }}
                     >
                       {biz.name}
                     </span>
@@ -595,9 +595,9 @@ export function BrandPersonas() {
                   disabled={saving}
                   className="px-4 py-1.5 text-[11px] uppercase tracking-[0.1em] rounded-sm transition-colors disabled:opacity-50"
                   style={{
-                    background: 'rgba(0,245,255,0.08)',
-                    border: '1px solid rgba(0,245,255,0.3)',
-                    color: '#00F5FF',
+                    background: 'rgba(47, 158, 68,0.08)',
+                    border: '1px solid rgba(47, 158, 68,0.3)',
+                    color: '#2f9e44',
                   }}
                 >
                   {saving ? 'Saving...' : 'Save Persona'}

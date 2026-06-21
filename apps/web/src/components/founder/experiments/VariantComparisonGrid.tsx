@@ -45,8 +45,8 @@ export function VariantComparisonGrid({ variants, significance }: Props) {
               <span
                 className="text-[10px] px-2 py-0.5 rounded-sm font-medium uppercase tracking-wider"
                 style={{
-                  background: 'rgba(0,245,255,0.15)',
-                  color: '#00F5FF',
+                  background: 'rgba(47, 158, 68,0.15)',
+                  color: '#2f9e44',
                 }}
               >
                 {variant.variantKey}
@@ -173,7 +173,7 @@ export function VariantComparisonGrid({ variants, significance }: Props) {
                   className="h-1 rounded-sm transition-all duration-500"
                   style={{
                     width: `${barWidth}%`,
-                    background: variant.isControl ? '#666' : '#00F5FF',
+                    background: variant.isControl ? '#666' : '#2f9e44',
                   }}
                 />
               </div>

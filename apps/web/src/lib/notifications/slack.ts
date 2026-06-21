@@ -50,7 +50,7 @@ export async function sendSlack(
 }
 
 const SEVERITY_COLOURS: Record<string, string> = {
-  info: '#00F5FF',     // Cyan — Scientific Luxury palette
+  info: '#2f9e44',     // Cyan — Scientific Luxury palette
   warning: '#FFB800',  // Amber
   critical: '#ef4444', // Red
 }

@@ -118,7 +118,7 @@ export function ThreadViewer({ threadId, account, onArchive, onDelete, onClose }
                 {/* Message body — DOMPurify sanitises before iframe injection; sandbox="" blocks scripts */}
                 {msg.bodyHtml ? (
                   <iframe
-                    srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:sans-serif;font-size:14px;color:#ccc;background:#0a0a0a;margin:0;padding:12px}a{color:#00F5FF}</style></head><body>${DOMPurify.sanitize(msg.bodyHtml, { FORCE_BODY: true })}</body></html>`}
+                    srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:sans-serif;font-size:14px;color:#ccc;background:#0a0a0a;margin:0;padding:12px}a{color:#2f9e44}</style></head><body>${DOMPurify.sanitize(msg.bodyHtml, { FORCE_BODY: true })}</body></html>`}
                     sandbox=""
                     className="w-full min-h-[200px] border-0 rounded-sm bg-zinc-900"
                     style={{ height: i === thread.messages.length - 1 ? '400px' : '200px' }}

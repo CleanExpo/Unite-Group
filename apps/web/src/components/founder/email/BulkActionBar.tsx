@@ -28,7 +28,7 @@ export function BulkActionBar({ selectedCount, onArchive, onDelete, onMarkRead, 
       <button
         onClick={onTriage}
         disabled={loading}
-        className="text-xs text-[#00F5FF] hover:text-[#00F5FF]/70 transition-colors disabled:opacity-40"
+        className="text-xs text-[#2f9e44] hover:text-[#2f9e44]/70 transition-colors disabled:opacity-40"
       >
         AI Triage
       </button>

@@ -49,9 +49,9 @@ const PLATFORM_LABEL: Record<string, string> = {
 
 const STATUS_STYLES: Record<string, { label: string; color: string }> = {
   draft:      { label: 'Draft',      color: 'var(--color-text-disabled)' },
-  generating: { label: 'Generating', color: '#00F5FF' },
+  generating: { label: 'Generating', color: '#2f9e44' },
   ready:      { label: 'Ready',      color: '#22c55e' },
-  published:  { label: 'Published',  color: '#3b82f6' },
+  published:  { label: 'Published',  color: '#2f9e44' },
 }
 
 export default function CampaignDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -129,7 +129,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
     return (
       <div className="p-6 flex flex-col items-center justify-center gap-4 py-20">
         <p className="text-[14px]" style={{ color: 'var(--color-text-muted)' }}>{error ?? 'Campaign not found.'}</p>
-        <Link href="/founder/campaigns" className="text-[12px]" style={{ color: '#00F5FF' }}>
+        <Link href="/founder/campaigns" className="text-[12px]" style={{ color: '#2f9e44' }}>
           ← Back to campaigns
         </Link>
       </div>
@@ -170,7 +170,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
             {platforms && <span>{platforms}</span>}
             <span>{assets.length} assets</span>
             {ready > 0 && <span style={{ color: '#22c55e' }}>{ready} ready</span>}
-            {published > 0 && <span style={{ color: '#3b82f6' }}>{published} published</span>}
+            {published > 0 && <span style={{ color: '#2f9e44' }}>{published} published</span>}
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -202,7 +202,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
             {campaign.status === 'generating' ? 'Assets are being generated…' : 'No assets yet.'}
           </p>
           {campaign.status === 'generating' && (
-            <button onClick={() => void load()} className="text-[11px]" style={{ color: '#00F5FF' }}>
+            <button onClick={() => void load()} className="text-[11px]" style={{ color: '#2f9e44' }}>
               Refresh
             </button>
           )}

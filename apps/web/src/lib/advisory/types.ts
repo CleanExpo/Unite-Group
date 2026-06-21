@@ -15,7 +15,7 @@ export const FIRM_KEYS = [
 export type FirmKey = (typeof FIRM_KEYS)[number]
 
 export const FIRM_META: Record<FirmKey, { name: string; color: string; icon: string }> = {
-  tax_strategy:           { name: 'Tax Strategy',           color: '#3b82f6', icon: 'Calculator' },
+  tax_strategy:           { name: 'Tax Strategy',           color: '#2f9e44', icon: 'Calculator' },
   grants_incentives:      { name: 'Grants & Incentives',    color: '#22c55e', icon: 'Gift' },
   cashflow_optimisation:  { name: 'Cashflow Optimisation',  color: '#f59e0b', icon: 'TrendingUp' },
   compliance:             { name: 'Compliance',             color: '#ef4444', icon: 'ShieldCheck' },

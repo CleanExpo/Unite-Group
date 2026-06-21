@@ -173,7 +173,7 @@ export function AIAnalysisTab() {
     <div className="space-y-6 max-w-3xl">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <Brain size={16} style={{ color: '#00F5FF' }} />
+        <Brain size={16} style={{ color: '#2f9e44' }} />
         <span className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--color-text-disabled)' }}>
           AI Financial Analysis
         </span>
@@ -187,7 +187,7 @@ export function AIAnalysisTab() {
             onClick={() => { setMode(m); reset() }}
             className="flex-1 py-1.5 text-[12px] font-medium rounded-sm transition-colors"
             style={mode === m
-              ? { background: '#00F5FF', color: '#050505' }
+              ? { background: '#2f9e44', color: '#050505' }
               : { color: 'var(--color-text-secondary)' }}
           >
             {m === 'analyze' ? 'Direct Analysis' : 'Full Advisory Pipeline'}
@@ -219,7 +219,7 @@ export function AIAnalysisTab() {
           type="checkbox"
           checked={includeData}
           onChange={e => setIncludeData(e.target.checked)}
-          className="rounded-sm accent-[#00F5FF]"
+          className="rounded-sm accent-[#2f9e44]"
         />
         <span className="text-[13px]" style={{ color: 'var(--color-text-secondary)' }}>
           Include financial snapshot
@@ -235,7 +235,7 @@ export function AIAnalysisTab() {
           onClick={run}
           disabled={!question.trim() || loading}
           className="flex items-center gap-2 px-4 h-9 rounded-sm text-[13px] font-medium transition-colors disabled:opacity-40"
-          style={{ background: '#00F5FF', color: '#050505' }}
+          style={{ background: '#2f9e44', color: '#050505' }}
         >
           {loading ? <Loader2 size={14} className="animate-spin" /> : <Brain size={14} />}
           {loading ? PHASE_LABELS[phase] : 'Run Analysis'}
@@ -311,11 +311,11 @@ export function AIAnalysisTab() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             className="rounded-sm border p-5"
-            style={{ borderColor: 'rgba(0,245,255,0.2)', background: 'var(--surface-card)' }}
+            style={{ borderColor: 'rgba(47, 158, 68,0.2)', background: 'var(--surface-card)' }}
           >
             <div className="flex items-center gap-2 mb-3">
-              <Brain size={13} style={{ color: 'rgba(0,245,255,0.6)' }} />
-              <p className="text-[11px] uppercase tracking-widest" style={{ color: 'rgba(0,245,255,0.6)' }}>
+              <Brain size={13} style={{ color: 'rgba(47, 158, 68,0.6)' }} />
+              <p className="text-[11px] uppercase tracking-widest" style={{ color: 'rgba(47, 158, 68,0.6)' }}>
                 Strategic Advisory Brief
               </p>
             </div>

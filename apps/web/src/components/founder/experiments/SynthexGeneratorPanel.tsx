@@ -213,7 +213,7 @@ export function SynthexGeneratorPanel({ onClose }: Props) {
 
             <button
               onClick={handleGenerate}
-              className="w-full px-4 py-2 text-[10px] uppercase tracking-[0.15em] text-[#00F5FF] border border-[#00F5FF]/30 rounded-sm hover:bg-[#00F5FF]/5 transition-colors"
+              className="w-full px-4 py-2 text-[10px] uppercase tracking-[0.15em] text-[#2f9e44] border border-[#2f9e44]/30 rounded-sm hover:bg-[#2f9e44]/5 transition-colors"
             >
               Generate
             </button>
@@ -226,7 +226,7 @@ export function SynthexGeneratorPanel({ onClose }: Props) {
             <Loader2
               size={24}
               className="animate-spin"
-              style={{ color: '#00F5FF' }}
+              style={{ color: '#2f9e44' }}
             />
             <span
               className="text-[11px]"
@@ -300,8 +300,8 @@ export function SynthexGeneratorPanel({ onClose }: Props) {
                     <span
                       className="text-[10px] px-2 py-0.5 rounded-sm font-medium uppercase tracking-wider"
                       style={{
-                        background: 'rgba(0,245,255,0.15)',
-                        color: '#00F5FF',
+                        background: 'rgba(47, 158, 68,0.15)',
+                        color: '#2f9e44',
                       }}
                     >
                       {v.variantKey}
@@ -341,7 +341,7 @@ export function SynthexGeneratorPanel({ onClose }: Props) {
                 disabled={creating}
                 className="flex-1 px-4 py-2 text-[10px] uppercase tracking-[0.15em] rounded-sm transition-colors disabled:opacity-50"
                 style={{
-                  background: '#00F5FF',
+                  background: '#2f9e44',
                   color: '#050505',
                   fontWeight: 600,
                 }}
@@ -351,7 +351,7 @@ export function SynthexGeneratorPanel({ onClose }: Props) {
               <button
                 onClick={handleGenerate}
                 disabled={creating}
-                className="px-4 py-2 text-[10px] uppercase tracking-[0.15em] text-[#00F5FF] border border-[#00F5FF]/30 rounded-sm hover:bg-[#00F5FF]/5 transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-[10px] uppercase tracking-[0.15em] text-[#2f9e44] border border-[#2f9e44]/30 rounded-sm hover:bg-[#2f9e44]/5 transition-colors disabled:opacity-50"
               >
                 Regenerate
               </button>

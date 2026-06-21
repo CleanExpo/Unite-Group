@@ -12,7 +12,7 @@ vi.mock('framer-motion', () => ({
 
 const mockProps = {
   id: '1',
-  businessColor: '#a855f7',
+  businessColor: '#f59f00',
   action: 'Post to LinkedIn',
   detail: 'Monthly performance update',
   requestedBy: 'Nexus AI',

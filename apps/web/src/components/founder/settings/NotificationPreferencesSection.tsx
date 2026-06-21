@@ -98,7 +98,7 @@ export function NotificationPreferencesSection({ settings, onSave, loading }: No
                   onChange={(e) => setSlackChannel(e.target.value)}
                   disabled={loading || saving}
                   placeholder="#nexus-alerts"
-                  className="w-full max-w-xs px-3 py-1.5 text-[13px] bg-surface-elevated border border-color-text-muted rounded-sm text-color-text-primary placeholder:text-color-text-muted/50 focus:outline-none focus:border-[#00F5FF]"
+                  className="w-full max-w-xs px-3 py-1.5 text-[13px] bg-surface-elevated border border-color-text-muted rounded-sm text-color-text-primary placeholder:text-color-text-muted/50 focus:outline-none focus:border-[#2f9e44]"
                 />
               </div>
               <div>
@@ -109,7 +109,7 @@ export function NotificationPreferencesSection({ settings, onSave, loading }: No
                   onChange={(e) => setSlackWebhookUrl(e.target.value)}
                   disabled={loading || saving}
                   placeholder="https://hooks.slack.com/services/..."
-                  className="w-full max-w-md px-3 py-1.5 text-[13px] bg-surface-elevated border border-color-text-muted rounded-sm text-color-text-primary placeholder:text-color-text-muted/50 focus:outline-none focus:border-[#00F5FF]"
+                  className="w-full max-w-md px-3 py-1.5 text-[13px] bg-surface-elevated border border-color-text-muted rounded-sm text-color-text-primary placeholder:text-color-text-muted/50 focus:outline-none focus:border-[#2f9e44]"
                 />
               </div>
             </div>
