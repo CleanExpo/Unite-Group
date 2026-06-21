@@ -7,20 +7,20 @@
 @layer base {
   /* Modern Design Tokens & Light Mode (default) */
   :root {
-    color-scheme: dark;
+    color-scheme: light;
 
     /* Typography */
     --font-primary: 'Geist Sans', 'Inter', sans-serif;
     --font-mono: 'Geist Mono', 'Fira Code', monospace;
 
     /* Borders */
-    --border-style: 1px solid rgba(255, 255, 255, 0.10);
+    --border-style: 1px solid rgba(0, 0, 0, 0.08);
     --radius-container: 12px;
     --radius-component: 8px;
     --radius-bento: 16px;
 
     /* Glassmorphism */
-    --glass-bg: rgba(10, 10, 10, 0.7);
+    --glass-bg: rgba(255, 255, 255, 0.72);
     --glass-blur: 12px;
 
     /* Bento Grid */
@@ -29,13 +29,13 @@
     /* Unite-Hub Theme (Deep Slate Dark) */
     --unite-bg-primary: #050505;
     --unite-bg-surface: #ffffff;
-    --unite-accent: #3b82f6;
+    --unite-accent: #2f9e44;
     --unite-status-ok: #10b981;
 
     /* Synthex Theme (Midnight Neon) */
     --synthex-bg-primary: #000000;
     --synthex-bg-surface: #fff7ec;
-    --synthex-accent: #a855f7;
+    --synthex-accent: #f59f00;
     --synthex-agent-active: #f472b6;
 
     /* shadcn/ui Light Mode Variables */
@@ -69,38 +69,38 @@
     --surface-selected:  #ebebe6;
 
     /* Colour Tokens */
-    --color-accent:         #00F5FF;
-    --color-accent-dim:     rgba(0, 245, 255, 0.08);
-    --color-accent-border:  rgba(0, 245, 255, 0.3);
-    --color-text-primary:   #f0f0f0;
-    --color-text-secondary: #999999;
-    --color-text-muted:     #888888;
-    --color-text-disabled:  #808080;
-    --color-border:         rgba(255, 255, 255, 0.10);
-    --color-border-strong:  rgba(255, 255, 255, 0.18);
+    --color-accent:         #2f9e44;
+    --color-accent-dim:     rgba(47, 158, 68, 0.08);
+    --color-accent-border:  rgba(47, 158, 68, 0.3);
+    --color-text-primary:   #14241b;
+    --color-text-secondary: #52525b;
+    --color-text-muted:     #71717a;
+    --color-text-disabled:  #767676;
+    --color-border:         rgba(0, 0, 0, 0.08);
+    --color-border-strong:  rgba(0, 0, 0, 0.15);
     --color-success:        #22c55e;
     --color-danger:         #ef4444;
     --color-warning:        #f97316;
 
     /* Derived alpha tokens */
-    --color-accent-5:    rgba(0, 245, 255, 0.05);
-    --color-accent-10:   rgba(0, 245, 255, 0.10);
-    --color-accent-20:   rgba(0, 245, 255, 0.20);
+    --color-accent-5:    rgba(47, 158, 68, 0.05);
+    --color-accent-10:   rgba(47, 158, 68, 0.10);
+    --color-accent-20:   rgba(47, 158, 68, 0.20);
     --color-danger-dim:  rgba(239, 68, 68, 0.10);
     --color-success-dim: rgba(34, 197, 94, 0.10);
 
     /* Auth ambient pattern */
-    --auth-bg-pattern: radial-gradient(circle, rgba(255,255,255,0.025) 1px, transparent 1px);
+    --auth-bg-pattern: radial-gradient(circle, rgba(0,0,0,0.03) 1px, transparent 1px);
     --auth-bg-size:    28px 28px;
-    --auth-glow:       radial-gradient(ellipse 60% 40% at 50% 50%, rgba(0,245,255,0.04) 0%, transparent 100%);
+    --auth-glow:       radial-gradient(ellipse 60% 40% at 50% 50%, rgba(47, 158, 68,0.04) 0%, transparent 100%);
 
     /* Business Dot Colours */
     --biz-dr:      #ef4444;
     --biz-nrpg:    #f97316;
     --biz-carsi:   #eab308;
     --biz-restore: #22c55e;
-    --biz-synthex: #a855f7;
-    --biz-ato:     #3b82f6;
+    --biz-synthex: #f59f00;
+    --biz-ato:     #2f9e44;
     --biz-ccw:     #06b6d4;
   }
 
@@ -170,7 +170,7 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
 
-    /* Accent #00F5FF and business dot colours are intentionally unchanged */
+    /* Accent #2f9e44 and business dot colours are intentionally unchanged */
   }
 
   * {
@@ -290,7 +290,7 @@
 
     /* Radial background grid */
     background-image:
-      radial-gradient(circle at 25% 25%, rgba(168, 85, 247, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 25% 25%, rgba(245, 159, 0, 0.1) 0%, transparent 50%),
       radial-gradient(circle at 75% 75%, rgba(244, 114, 182, 0.1) 0%, transparent 50%);
   }
 
@@ -298,7 +298,7 @@
 
 /* Focus ring — keyboard nav only */
 :focus-visible {
-  outline: 2px solid #00F5FF;
+  outline: 2px solid #2f9e44;
   outline-offset: 2px;
 }
 

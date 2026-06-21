@@ -114,7 +114,7 @@ export default function LoginPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-extralight text-white/90 mb-8">Sign in</h1>
+      <h1 className="text-2xl font-extralight text-[#14241b] mb-8">Sign in</h1>
 
       {error && (
         <p className="text-sm text-[var(--color-danger)] mb-4 border border-[var(--color-danger)]/20 bg-[var(--color-danger-dim)] px-3 py-2 rounded-sm">
@@ -142,7 +142,7 @@ export default function LoginPage() {
         </div>
         <div className="relative flex justify-center">
           <span
-            className="px-3 text-xs uppercase tracking-widest text-white/50"
+            className="px-3 text-xs uppercase tracking-widest text-[#5a6b62]"
             style={{ background: 'var(--surface-sidebar)' }}
           >
             or
@@ -185,7 +185,7 @@ export default function LoginPage() {
       <div className="mt-5 text-center">
         <Link
           href="/forgot-password"
-          className="text-[11px] font-mono tracking-wider text-white/35 hover:text-white/55 transition-colors"
+          className="text-[11px] font-mono tracking-wider text-[#5a6b62] hover:text-[#14241b] transition-colors"
         >
           Forgot password?
         </Link>

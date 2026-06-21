@@ -30,7 +30,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
               className="object-contain"
             />
           </div>
-          <p className="text-white/40 text-[11px] font-mono tracking-[0.3em] uppercase">
+          <p className="text-[#5a6b62] text-[11px] font-mono tracking-[0.3em] uppercase">
             Unite-Hub
           </p>
         </div>
@@ -50,7 +50,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
 
         {/* Footer */}
-        <p className="text-center text-white/25 text-[11px] mt-6 font-mono tracking-wider">
+        <p className="text-center text-[#5a6b62] text-[11px] mt-6 font-mono tracking-wider">
           © 2026 Unite-Hub. All rights reserved.
         </p>
       </div>

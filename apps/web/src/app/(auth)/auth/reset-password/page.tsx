@@ -56,7 +56,7 @@ export default function ResetPasswordPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-extralight text-white/90 mb-8">Set new password</h1>
+      <h1 className="text-2xl font-extralight text-[#14241b] mb-8">Set new password</h1>
 
       {error && (
         <p className="text-sm text-[var(--color-danger)] mb-4 border border-[var(--color-danger)]/20 bg-[var(--color-danger-dim)] px-3 py-2 rounded-sm">
@@ -106,7 +106,7 @@ export default function ResetPasswordPage() {
       <div className="mt-6 text-center">
         <Link
           href="/auth/login"
-          className="text-[11px] font-mono tracking-wider text-white/35 hover:text-white/55 transition-colors"
+          className="text-[11px] font-mono tracking-wider text-[#5a6b62] hover:text-[#14241b] transition-colors"
         >
           Back to sign in
         </Link>
