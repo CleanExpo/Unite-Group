@@ -34,6 +34,7 @@ import { ProviderUsageCockpit } from '@/components/command-center/provider-usage
 import { ActivityFeedPanel } from '@/components/command-center/activity/ActivityFeedPanel'
 import { DailyCrmDigestPanel } from '@/components/command-center/digest/DailyCrmDigestPanel'
 import { ProjectIntegrationWorkPacketControl } from './ProjectIntegrationWorkPacketControl'
+import { CommandSteps } from './CommandSteps'
 import styles from './command-deck.module.css'
 
 const chakra = Chakra_Petch({
@@ -120,6 +121,12 @@ export default async function CommandDeckPage() {
         projects={projects.map((p) => ({ name: p.name, status: p.status, production_url: p.production_url }))}
         tools={tools.map((t) => ({ tool_key: t.tool_key, source: t.source, risk_class: t.risk_class }))}
       />
+
+      {/* Clean 1-2-3 front. The dense console moves into "System detail" below. */}
+      <CommandSteps />
+
+      <details className={styles.systemDetail}>
+        <summary className={styles.systemSummary}>System detail — providers, repos, agents &amp; logs</summary>
 
       {/* ── Status strip ─────────────────────────────────────────────── */}
       <header className={`${styles.statusStrip} ${styles.reveal}`}>
@@ -433,6 +440,7 @@ export default async function CommandDeckPage() {
       <section className={`${styles.reveal}`} style={{ animationDelay: '0.2s' }}>
         <InProgressPRsTile data={inProgressPRs} />
       </section>
+      </details>
     </div>
   )
 }

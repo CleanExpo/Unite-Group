@@ -511,6 +511,34 @@
   color: var(--deck-amber); margin-top: 0.2rem; display: block; text-align: right;
 }
 
+/* ── System detail expander (keeps the dense console out of the clean front) ── */
+.systemDetail {
+  margin-top: 1.75rem;
+  border-top: 1px solid var(--deck-line);
+  padding-top: 0.75rem;
+}
+.systemSummary {
+  cursor: pointer;
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--deck-muted);
+  padding: 0.5rem 0.25rem;
+  user-select: none;
+}
+.systemSummary::-webkit-details-marker { display: none; }
+.systemSummary::before {
+  content: "▸";
+  color: #2f9e44;
+}
+.systemDetail[open] .systemSummary::before { content: "▾"; }
+.systemSummary:hover { color: var(--deck-text); }
+
 /* ── Reveal + pulse ───────────────────────────────────────────────────── */
 .reveal { opacity: 0; transform: translateY(8px); animation: rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
 
