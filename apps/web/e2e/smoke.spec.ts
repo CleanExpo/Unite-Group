@@ -8,6 +8,11 @@ import { test, expect } from '@playwright/test';
  * Tests 4–8 are skipped until Playwright auth setup is completed in Phase 12.
  *
  * Run: pnpm test:e2e --grep "Smoke"
+ *
+ * First-run note: on initial deployment, crm_contacts and crm_opportunities are
+ * freshly promoted and empty. The unauthenticated tests (1–3) remain valid in
+ * this state. Authenticated tests (4–8) will show empty states — the pipeline
+ * board and forecast surface intentional empty-state UI, not errors.
  */
 
 test.describe('Smoke — No Auth Required', () => {
