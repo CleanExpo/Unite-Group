@@ -24,6 +24,7 @@ import { EvidenceStreamTile } from './EvidenceStreamTile'
 import { ActionQueueTile } from './ActionQueueTile'
 import { BlockedLanesTile } from './BlockedLanesTile'
 import { InProgressPRsTile } from './InProgressPRsTile'
+import { RepoCampaignsTile } from '@/components/command-center/repo-campaigns/RepoCampaignsTile'
 import { ProjectIntegrationWorkPacketControl } from './ProjectIntegrationWorkPacketControl'
 import styles from './command-deck.module.css'
 
@@ -191,6 +192,11 @@ export default async function CommandDeckPage() {
           configured lifecycle state (active / stub / paused), not a live health probe.
         </span>
       </div>
+
+      {/* Live "campaigns" view — repos with open PRs / recent commits = agents at work. */}
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.07s' }}>
+        <RepoCampaignsTile />
+      </section>
 
       <section className={styles.panelGrid}>
         {projects.map((project: CommandCentreProject, i: number) => (
