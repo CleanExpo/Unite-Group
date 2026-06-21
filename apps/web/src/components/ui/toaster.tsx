@@ -45,7 +45,7 @@ export function Toaster() {
             {toast.action && (
               <button
                 onClick={toast.action.onClick}
-                className="inline-flex h-8 shrink-0 items-center justify-center rounded-sm border border-white/[0.08] bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-white/[0.04] focus:outline-none focus:ring-2 focus:ring-[#00F5FF]/20 focus:ring-offset-2"
+                className="inline-flex h-8 shrink-0 items-center justify-center rounded-sm border border-white/[0.08] bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-white/[0.04] focus:outline-none focus:ring-2 focus:ring-[#16a34a]/20 focus:ring-offset-2"
               >
                 {toast.action.label}
               </button>

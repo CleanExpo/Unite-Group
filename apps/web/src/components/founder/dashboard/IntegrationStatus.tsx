@@ -21,14 +21,14 @@ function StatusDot({ connected, label, detail, href }: IntegrationDot) {
     <div className="flex items-center gap-2">
       <span
         className="w-1.5 h-1.5 rounded-sm flex-shrink-0"
-        style={{ background: connected ? '#00F5FF' : '#4a5568' }}
+        style={{ background: connected ? '#16a34a' : '#4a5568' }}
       />
       <span className="text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>
         {label}
       </span>
       <span
         className="text-[11px]"
-        style={{ color: connected ? '#00F5FF' : 'var(--color-text-muted)' }}
+        style={{ color: connected ? '#16a34a' : 'var(--color-text-muted)' }}
       >
         {detail}
       </span>

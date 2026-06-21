@@ -27,7 +27,7 @@ export default async function EmailPage({
       />
 
       {params.connected && (
-        <div className="border border-[#00F5FF]/30 bg-[#00F5FF]/5 px-4 py-3 rounded-sm text-sm text-[#00F5FF]">
+        <div className="border border-[#16a34a]/30 bg-[#16a34a]/5 px-4 py-3 rounded-sm text-sm text-[#16a34a]">
           ✓ Connected {decodeURIComponent(params.connected)}
         </div>
       )}

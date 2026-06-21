@@ -18,15 +18,15 @@ interface TeamMember {
 }
 
 const ROLE_ICONS: Record<string, React.ReactNode> = {
-  'ai-agent':  <Zap size={13} style={{ color: '#00F5FF' }} />,
-  'developer': <Code2 size={13} style={{ color: '#a855f7' }} />,
+  'ai-agent':  <Zap size={13} style={{ color: '#16a34a' }} />,
+  'developer': <Code2 size={13} style={{ color: '#f97316' }} />,
   'designer':  <Palette size={13} style={{ color: '#f97316' }} />,
   'advisor':   <Lightbulb size={13} style={{ color: '#eab308' }} />,
 }
 
 const ROLE_COLORS: Record<string, string> = {
-  'ai-agent':  '#00F5FF',
-  'developer': '#a855f7',
+  'ai-agent':  '#16a34a',
+  'developer': '#f97316',
   'designer':  '#f97316',
   'advisor':   '#eab308',
 }
@@ -89,7 +89,7 @@ export function TeamPanel() {
         <button
           onClick={() => setShowForm((v) => !v)}
           className="flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-sm"
-          style={{ background: '#00F5FF', color: '#fffdf7' }}
+          style={{ background: '#16a34a', color: '#fffdf7' }}
         >
           <Plus size={11} />
           Add Member
@@ -97,7 +97,7 @@ export function TeamPanel() {
       </div>
 
       {showForm && (
-        <div className="rounded-sm border p-4 space-y-3" style={{ borderColor: 'rgba(0,245,255,0.2)', background: 'var(--surface-card)' }}>
+        <div className="rounded-sm border p-4 space-y-3" style={{ borderColor: 'rgba(22, 163, 74,0.2)', background: 'var(--surface-card)' }}>
           <div className="grid grid-cols-2 gap-2">
             <input
               value={form.name}
@@ -145,7 +145,7 @@ export function TeamPanel() {
               onClick={() => void addMember()}
               disabled={!form.name.trim() || submitting}
               className="px-4 h-8 rounded-sm text-[12px] font-medium disabled:opacity-40"
-              style={{ background: '#00F5FF', color: '#fffdf7' }}
+              style={{ background: '#16a34a', color: '#fffdf7' }}
             >
               Add to Team
             </button>
@@ -182,7 +182,7 @@ export function TeamPanel() {
               key={m.id}
               className="rounded-sm border p-4"
               style={{
-                borderColor: isAI ? 'rgba(0,245,255,0.3)' : 'var(--color-border)',
+                borderColor: isAI ? 'rgba(22, 163, 74,0.3)' : 'var(--color-border)',
                 background: 'var(--surface-card)',
                 borderLeft: `3px solid ${roleColor}`,
               }}

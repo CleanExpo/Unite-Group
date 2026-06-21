@@ -193,17 +193,17 @@ export function MFAGate({ businessKey, businessName, onCancel }: MFAGateProps) {
   // ── Shared styles ─────────────────────────────────────────────────────────
 
   const inputCls =
-    'w-full bg-[#fffdf7] border border-white/[0.12] px-3 py-2.5 text-sm outline-none focus:border-[#00F5FF]/40 rounded-sm tracking-[0.25em] font-mono text-center'
+    'w-full bg-[#fffdf7] border border-white/[0.12] px-3 py-2.5 text-sm outline-none focus:border-[#16a34a]/40 rounded-sm tracking-[0.25em] font-mono text-center'
 
   // Explicit inline styles defeat browser autofill overrides (white-on-white bug)
   const inputStyle: React.CSSProperties = {
     color: 'rgba(255,255,255,0.9)',
     WebkitTextFillColor: 'rgba(255,255,255,0.9)',
-    caretColor: '#00F5FF',
+    caretColor: '#16a34a',
     WebkitBoxShadow: '0 0 0 1000px #0d0d0d inset',
   }
   const btnCyan =
-    'w-full py-2.5 bg-[#00F5FF]/10 border border-[#00F5FF]/30 text-[#00F5FF] text-[11px] uppercase tracking-[0.2em] hover:bg-[#00F5FF]/20 disabled:opacity-40 rounded-sm transition-colors'
+    'w-full py-2.5 bg-[#16a34a]/10 border border-[#16a34a]/30 text-[#16a34a] text-[11px] uppercase tracking-[0.2em] hover:bg-[#16a34a]/20 disabled:opacity-40 rounded-sm transition-colors'
   const btnGhost =
     'w-full py-2.5 bg-white/[0.04] border border-white/[0.08] text-[11px] uppercase tracking-[0.15em] disabled:opacity-40 rounded-sm transition-colors hover:bg-white/[0.06]'
   const mutedText = { color: 'var(--color-text-muted)' } as const

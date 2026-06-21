@@ -39,7 +39,7 @@ export default async function CalendarPage() {
       {configured && connectedAccounts.length === 0 && (
         <div className="border px-4 py-3 rounded-sm text-sm" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}>
           No Google accounts connected — visit{' '}
-          <Link href="/founder/email" className="text-[#00F5FF] hover:underline">
+          <Link href="/founder/email" className="text-[#16a34a] hover:underline">
             Email settings
           </Link>{' '}
           to connect.
@@ -49,7 +49,7 @@ export default async function CalendarPage() {
       {configured && connectedAccounts.length > 0 && notConnected && (
         <div className="border px-4 py-3 rounded-sm text-sm" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}>
           Google Calendar not connected — reconnect via{' '}
-          <Link href="/founder/email" className="text-[#00F5FF] hover:underline">
+          <Link href="/founder/email" className="text-[#16a34a] hover:underline">
             Email settings
           </Link>{' '}
           to see events.

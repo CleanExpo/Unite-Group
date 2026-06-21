@@ -49,7 +49,7 @@ const PLATFORM_LABEL: Record<string, string> = {
 
 const STATUS_STYLES: Record<string, { label: string; color: string }> = {
   draft:      { label: 'Draft',      color: 'var(--color-text-disabled)' },
-  generating: { label: 'Generating', color: '#00F5FF' },
+  generating: { label: 'Generating', color: '#16a34a' },
   ready:      { label: 'Ready',      color: '#22c55e' },
   published:  { label: 'Published',  color: '#3b82f6' },
 }
@@ -129,7 +129,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
     return (
       <div className="p-6 flex flex-col items-center justify-center gap-4 py-20">
         <p className="text-[14px]" style={{ color: 'var(--color-text-muted)' }}>{error ?? 'Campaign not found.'}</p>
-        <Link href="/founder/campaigns" className="text-[12px]" style={{ color: '#00F5FF' }}>
+        <Link href="/founder/campaigns" className="text-[12px]" style={{ color: '#16a34a' }}>
           ← Back to campaigns
         </Link>
       </div>
@@ -202,7 +202,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
             {campaign.status === 'generating' ? 'Assets are being generated…' : 'No assets yet.'}
           </p>
           {campaign.status === 'generating' && (
-            <button onClick={() => void load()} className="text-[11px]" style={{ color: '#00F5FF' }}>
+            <button onClick={() => void load()} className="text-[11px]" style={{ color: '#16a34a' }}>
               Refresh
             </button>
           )}

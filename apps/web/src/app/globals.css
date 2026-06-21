@@ -7,20 +7,23 @@
 @layer base {
   /* Modern Design Tokens & Light Mode (default) */
   :root {
-    color-scheme: dark;
+    /* Light is the canonical default. The whole app is governed by :root because
+       the UI store defaults theme:'dark' and never applies a .light class — so the
+       default tokens MUST be light, or you get white text on a cream canvas. */
+    color-scheme: light;
 
     /* Typography */
     --font-primary: 'Geist Sans', 'Inter', sans-serif;
     --font-mono: 'Geist Mono', 'Fira Code', monospace;
 
     /* Borders */
-    --border-style: 1px solid rgba(255, 255, 255, 0.10);
+    --border-style: 1px solid rgba(0, 0, 0, 0.08);
     --radius-container: 12px;
     --radius-component: 8px;
     --radius-bento: 16px;
 
     /* Glassmorphism */
-    --glass-bg: rgba(10, 10, 10, 0.7);
+    --glass-bg: rgba(255, 255, 255, 0.8);
     --glass-blur: 12px;
 
     /* Bento Grid */
@@ -35,8 +38,8 @@
     /* Synthex Theme (Midnight Neon) */
     --synthex-bg-primary: #000000;
     --synthex-bg-surface: #fff7ec;
-    --synthex-accent: #a855f7;
-    --synthex-agent-active: #f472b6;
+    --synthex-accent: #f97316;
+    --synthex-agent-active: #fb923c;
 
     /* shadcn/ui Light Mode Variables */
     --background: 0 0% 100%;
@@ -68,38 +71,38 @@
     --surface-overlay:   #f3f3ee;
     --surface-selected:  #ebebe6;
 
-    /* Colour Tokens */
-    --color-accent:         #00F5FF;
-    --color-accent-dim:     rgba(0, 245, 255, 0.08);
-    --color-accent-border:  rgba(0, 245, 255, 0.3);
-    --color-text-primary:   #f0f0f0;
-    --color-text-secondary: #999999;
-    --color-text-muted:     #888888;
-    --color-text-disabled:  #808080;
-    --color-border:         rgba(255, 255, 255, 0.10);
-    --color-border-strong:  rgba(255, 255, 255, 0.18);
-    --color-success:        #22c55e;
+    /* Colour Tokens — candy green primary, dark ink on cream */
+    --color-accent:         #16a34a;
+    --color-accent-dim:     rgba(22, 163, 74, 0.08);
+    --color-accent-border:  rgba(22, 163, 74, 0.3);
+    --color-text-primary:   #0A0A0A;
+    --color-text-secondary: #52525B;
+    --color-text-muted:     #71717A;
+    --color-text-disabled:  #767676;
+    --color-border:         rgba(0, 0, 0, 0.08);
+    --color-border-strong:  rgba(0, 0, 0, 0.15);
+    --color-success:        #16a34a;
     --color-danger:         #ef4444;
     --color-warning:        #f97316;
 
     /* Derived alpha tokens */
-    --color-accent-5:    rgba(0, 245, 255, 0.05);
-    --color-accent-10:   rgba(0, 245, 255, 0.10);
-    --color-accent-20:   rgba(0, 245, 255, 0.20);
+    --color-accent-5:    rgba(22, 163, 74, 0.05);
+    --color-accent-10:   rgba(22, 163, 74, 0.10);
+    --color-accent-20:   rgba(22, 163, 74, 0.20);
     --color-danger-dim:  rgba(239, 68, 68, 0.10);
     --color-success-dim: rgba(34, 197, 94, 0.10);
 
     /* Auth ambient pattern */
-    --auth-bg-pattern: radial-gradient(circle, rgba(255,255,255,0.025) 1px, transparent 1px);
+    --auth-bg-pattern: radial-gradient(circle, rgba(0,0,0,0.04) 1px, transparent 1px);
     --auth-bg-size:    28px 28px;
-    --auth-glow:       radial-gradient(ellipse 60% 40% at 50% 50%, rgba(0,245,255,0.04) 0%, transparent 100%);
+    --auth-glow:       radial-gradient(ellipse 60% 40% at 50% 50%, rgba(22,163,74,0.05) 0%, transparent 100%);
 
     /* Business Dot Colours */
     --biz-dr:      #ef4444;
     --biz-nrpg:    #f97316;
     --biz-carsi:   #eab308;
     --biz-restore: #22c55e;
-    --biz-synthex: #a855f7;
+    --biz-synthex: #f97316;
     --biz-ato:     #3b82f6;
     --biz-ccw:     #06b6d4;
   }
@@ -170,7 +173,7 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
 
-    /* Accent #00F5FF and business dot colours are intentionally unchanged */
+    /* Accent #16a34a and business dot colours are intentionally unchanged */
   }
 
   * {
@@ -243,7 +246,7 @@
   }
 
   /* Input focus/error border utilities — avoids Tailwind opacity-modifier + CSS var limitation */
-  .input-focus { border-color: rgba(255,255,255,0.06); }
+  .input-focus { border-color: rgba(0,0,0,0.08); }
   .input-focus:focus { border-color: var(--color-accent-border); }
   .input-focus-error { border-color: rgba(239,68,68,0.4); }
   .input-focus-error:focus { border-color: rgba(239,68,68,0.6); }
@@ -298,7 +301,7 @@
 
 /* Focus ring — keyboard nav only */
 :focus-visible {
-  outline: 2px solid #00F5FF;
+  outline: 2px solid #16a34a;
   outline-offset: 2px;
 }
 

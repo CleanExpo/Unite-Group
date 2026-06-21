@@ -56,8 +56,8 @@ export function VaultLock({ onUnlock }: VaultLockProps) {
         {/* Icon + title */}
         <div className="flex flex-col items-center gap-3">
           {mode === 'unlock'
-            ? <Lock size={32} strokeWidth={1.5} style={{ color: '#00F5FF' }} />
-            : <KeyRound size={32} strokeWidth={1.5} style={{ color: '#00F5FF' }} />
+            ? <Lock size={32} strokeWidth={1.5} style={{ color: '#16a34a' }} />
+            : <KeyRound size={32} strokeWidth={1.5} style={{ color: '#16a34a' }} />
           }
           <p className="text-[14px] text-center" style={{ color: 'var(--color-text-secondary)' }}>
             {mode === 'unlock'
@@ -91,7 +91,7 @@ export function VaultLock({ onUnlock }: VaultLockProps) {
               type="submit"
               disabled={checking || !value}
               className="h-9 rounded-sm text-[13px] font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
-              style={{ background: '#00F5FF', color: '#fffdf7' }}
+              style={{ background: '#16a34a', color: '#fffdf7' }}
             >
               {checking ? 'Checking...' : 'Unlock Vault'}
             </button>
@@ -141,7 +141,7 @@ export function VaultLock({ onUnlock }: VaultLockProps) {
               type="submit"
               disabled={checking || !value || !confirm}
               className="h-9 rounded-sm text-[13px] font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
-              style={{ background: '#00F5FF', color: '#fffdf7' }}
+              style={{ background: '#16a34a', color: '#fffdf7' }}
             >
               {checking ? 'Saving...' : 'Set Password & Unlock'}
             </button>

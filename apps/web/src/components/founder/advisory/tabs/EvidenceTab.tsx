@@ -7,7 +7,7 @@ import type { AdvisoryEvidence } from '@/lib/advisory/types'
 const TYPE_COLOURS: Record<string, string> = {
   ato_ruling: '#3b82f6',
   legislation: '#22c55e',
-  case_law: '#a855f7',
+  case_law: '#f97316',
   ato_guidance: '#f59e0b',
   industry_standard: '#6b7280',
 }
@@ -104,7 +104,7 @@ export function EvidenceTab() {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[10px] mt-0.5 inline-block"
-                    style={{ color: '#00F5FF' }}
+                    style={{ color: '#16a34a' }}
                   >
                     View on ATO
                   </a>

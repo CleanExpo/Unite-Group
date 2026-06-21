@@ -59,7 +59,7 @@ export function ContactsTable({ contacts, loading, onEdit, onDelete }: ContactsT
                 <td className="px-4 py-3">
                   <Link
                     href={`/founder/contacts/${contact.id}`}
-                    className="text-[var(--color-text-primary)] transition-colors hover:text-[#00F5FF]"
+                    className="text-[var(--color-text-primary)] transition-colors hover:text-[#16a34a]"
                   >
                     {name}
                   </Link>
@@ -85,9 +85,9 @@ export function ContactsTable({ contacts, loading, onEdit, onDelete }: ContactsT
                         key={tag}
                         className="inline-block rounded-sm px-2 py-0.5 text-xs"
                         style={{
-                          background: '#00F5FF18',
-                          color: '#00F5FF',
-                          border: '1px solid #00F5FF30',
+                          background: '#16a34a18',
+                          color: '#16a34a',
+                          border: '1px solid #16a34a30',
                         }}
                       >
                         {tag}
@@ -99,7 +99,7 @@ export function ContactsTable({ contacts, loading, onEdit, onDelete }: ContactsT
                   <div className="flex items-center justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100">
                     <button
                       onClick={() => onEdit(contact)}
-                      className="rounded-sm px-2 py-1 text-xs text-[var(--color-text-muted)] transition-colors hover:text-[#00F5FF]"
+                      className="rounded-sm px-2 py-1 text-xs text-[var(--color-text-muted)] transition-colors hover:text-[#16a34a]"
                     >
                       Edit
                     </button>

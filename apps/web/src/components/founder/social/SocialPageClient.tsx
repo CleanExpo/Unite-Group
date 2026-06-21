@@ -32,7 +32,7 @@ export function SocialPageClient({ channels, posts }: Props) {
         actions={
           <button
             onClick={() => setComposerOpen(true)}
-            className="px-4 py-2 text-[10px] uppercase tracking-[0.15em] text-[#00F5FF] border border-[#00F5FF]/30 rounded-sm hover:bg-[#00F5FF]/5 transition-colors"
+            className="px-4 py-2 text-[10px] uppercase tracking-[0.15em] text-[#16a34a] border border-[#16a34a]/30 rounded-sm hover:bg-[#16a34a]/5 transition-colors"
           >
             + New Post
           </button>
@@ -49,7 +49,7 @@ export function SocialPageClient({ channels, posts }: Props) {
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-2 text-[11px] uppercase tracking-[0.12em] transition-colors ${
               activeTab === tab
-                ? 'text-[#00F5FF] border-b border-[#00F5FF] -mb-px'
+                ? 'text-[#16a34a] border-b border-[#16a34a] -mb-px'
                 : 'text-[#999999] hover:text-[#f0f0f0]'
             }`}
           >
@@ -157,7 +157,7 @@ function SocialAnalyticsPanel({ channels }: { channels: SocialChannel[] }) {
             </p>
             <p
               className="text-[18px] font-semibold"
-              style={{ color: stat.highlight ? '#00F5FF' : 'var(--color-text-primary)' }}
+              style={{ color: stat.highlight ? '#16a34a' : 'var(--color-text-primary)' }}
             >
               {stat.value}
             </p>
@@ -246,8 +246,8 @@ function SocialExperimentsPanel({ channels }: { channels: SocialChannel[] }) {
             <span
               className="text-[10px] px-2 py-0.5 rounded-sm font-medium uppercase tracking-wider"
               style={{
-                background: exp.status === 'active' ? 'rgba(0, 245, 255, 0.08)' : exp.status === 'completed' ? 'rgba(34, 197, 94, 0.08)' : 'rgba(255, 255, 255, 0.05)',
-                color: exp.status === 'active' ? '#00F5FF' : exp.status === 'completed' ? '#22c55e' : 'var(--color-text-secondary)',
+                background: exp.status === 'active' ? 'rgba(22, 163, 74, 0.08)' : exp.status === 'completed' ? 'rgba(34, 197, 94, 0.08)' : 'rgba(255, 255, 255, 0.05)',
+                color: exp.status === 'active' ? '#16a34a' : exp.status === 'completed' ? '#22c55e' : 'var(--color-text-secondary)',
               }}
             >
               {exp.status}
@@ -258,7 +258,7 @@ function SocialExperimentsPanel({ channels }: { channels: SocialChannel[] }) {
       <Link
         href="/founder/experiments"
         className="inline-block text-[11px] font-medium"
-        style={{ color: '#00F5FF' }}
+        style={{ color: '#16a34a' }}
       >
         View all experiments →
       </Link>

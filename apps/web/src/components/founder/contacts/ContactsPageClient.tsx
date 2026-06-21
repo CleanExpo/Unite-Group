@@ -104,7 +104,7 @@ export function ContactsPageClient() {
   }
 
   const inputClass =
-    'rounded-sm border border-[var(--color-border)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-[#00F5FF] focus:outline-none'
+    'rounded-sm border border-[var(--color-border)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-[#16a34a] focus:outline-none'
 
   return (
     <div className="space-y-6">
@@ -120,9 +120,9 @@ export function ContactsPageClient() {
             }}
             className="rounded-sm px-4 py-2 text-sm font-medium transition-colors"
             style={{
-              background: '#00F5FF18',
-              color: '#00F5FF',
-              border: '1px solid #00F5FF30',
+              background: '#16a34a18',
+              color: '#16a34a',
+              border: '1px solid #16a34a30',
             }}
           >
             Add Contact

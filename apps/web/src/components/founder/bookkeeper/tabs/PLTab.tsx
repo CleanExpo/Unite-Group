@@ -202,7 +202,7 @@ export function PLTab() {
                     width={50}
                   />
                   <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-                  <Bar dataKey="revenue" fill="#00F5FF" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="revenue" fill="#16a34a" radius={[2, 2, 0, 0]} />
                   <Bar dataKey="expenses" fill="#ef4444" radius={[2, 2, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -221,7 +221,7 @@ export function PLTab() {
                 <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-disabled)' }}>
                   Total Revenue
                 </p>
-                <p className="text-[18px] font-semibold tabular-nums" style={{ color: '#00F5FF' }}>
+                <p className="text-[18px] font-semibold tabular-nums" style={{ color: '#16a34a' }}>
                   {formatAUD(totals.revenue)}
                 </p>
               </div>

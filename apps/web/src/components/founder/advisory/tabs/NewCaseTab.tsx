@@ -117,9 +117,9 @@ export function NewCaseTab() {
         disabled={submitting}
         className="text-[12px] font-medium px-4 py-2 rounded-sm transition-colors disabled:opacity-50"
         style={{
-          background: '#00F5FF18',
-          color: '#00F5FF',
-          border: '1px solid #00F5FF30',
+          background: '#16a34a18',
+          color: '#16a34a',
+          border: '1px solid #16a34a30',
         }}
       >
         {submitting ? 'Creating...' : 'Create Case & Start Debate'}

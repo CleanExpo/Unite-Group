@@ -27,7 +27,7 @@ export default function PrivacyPolicyPage() {
         <div className="max-w-3xl mx-auto px-6 py-5 flex items-center justify-between">
           <a
             href={APP_URL}
-            style={{ color: '#00F5FF', fontFamily: 'var(--font-mono)', fontSize: '13px', letterSpacing: '0.15em', textDecoration: 'none' }}
+            style={{ color: '#16a34a', fontFamily: 'var(--font-mono)', fontSize: '13px', letterSpacing: '0.15em', textDecoration: 'none' }}
           >
             UNITE-GROUP
           </a>
@@ -58,7 +58,7 @@ export default function PrivacyPolicyPage() {
           <p>
             {COMPANY} ABN (&#8220;we&#8221;, &#8220;our&#8221;, &#8220;us&#8221;) operates the Unite-Group Application
             (the &#8220;Application&#8221;) available at{' '}
-            <a href={APP_URL} style={{ color: '#00F5FF' }}>{APP_URL}</a>. This Privacy Policy explains
+            <a href={APP_URL} style={{ color: '#16a34a' }}>{APP_URL}</a>. This Privacy Policy explains
             how we collect, use, disclose, and safeguard information in connection with the Application.
           </p>
           <p>
@@ -126,7 +126,7 @@ export default function PrivacyPolicyPage() {
           <p>
             The Application requests the following Google OAuth scopes to provide its features. Use of
             information received from Google APIs adheres to the{' '}
-            <a href="https://developers.google.com/terms/api-services-user-data-policy" style={{ color: '#00F5FF' }}>
+            <a href="https://developers.google.com/terms/api-services-user-data-policy" style={{ color: '#16a34a' }}>
               Google API Services User Data Policy
             </a>
             , including the Limited Use requirements.
@@ -194,7 +194,7 @@ export default function PrivacyPolicyPage() {
             <li>Correct inaccurate information</li>
             <li>Request deletion of your account and associated data (subject to legal retention requirements)</li>
             <li>Withdraw consent for third-party integrations at any time (by disconnecting them within the Application or revoking OAuth access at the provider)</li>
-            <li>Lodge a complaint with the Office of the Australian Information Commissioner (OAIC) at <a href="https://www.oaic.gov.au" style={{ color: '#00F5FF' }}>oaic.gov.au</a></li>
+            <li>Lodge a complaint with the Office of the Australian Information Commissioner (OAIC) at <a href="https://www.oaic.gov.au" style={{ color: '#16a34a' }}>oaic.gov.au</a></li>
           </ul>
           <p>
             If you are located in the EEA or UK, you may also have rights under GDPR / UK GDPR including
@@ -233,7 +233,7 @@ export default function PrivacyPolicyPage() {
             <strong>{COMPANY}</strong><br />
             Australia<br />
             Email:{' '}
-            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#00F5FF' }}>
+            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#16a34a' }}>
               {CONTACT_EMAIL}
             </a>
           </address>
@@ -269,11 +269,11 @@ function Section({ title, children }: { title: string; children: React.ReactNode
         style={{
           fontSize: '15px',
           fontWeight: 600,
-          color: '#00F5FF',
+          color: '#16a34a',
           letterSpacing: '0.02em',
           marginBottom: '14px',
           paddingBottom: '8px',
-          borderBottom: '1px solid rgba(0,245,255,0.10)',
+          borderBottom: '1px solid rgba(22, 163, 74,0.10)',
         }}
       >
         {title}

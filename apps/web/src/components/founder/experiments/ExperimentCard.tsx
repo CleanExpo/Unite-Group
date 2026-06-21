@@ -6,7 +6,7 @@ import type { Experiment } from '@/lib/experiments/types'
 
 const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
   draft: { bg: 'rgba(153,153,153,0.15)', text: '#999999' },
-  active: { bg: 'rgba(0,245,255,0.15)', text: '#00F5FF' },
+  active: { bg: 'rgba(22, 163, 74,0.15)', text: '#16a34a' },
   paused: { bg: 'rgba(245,158,11,0.15)', text: '#f59e0b' },
   completed: { bg: 'rgba(34,197,94,0.15)', text: '#22c55e' },
   cancelled: { bg: 'rgba(239,68,68,0.15)', text: '#ef4444' },

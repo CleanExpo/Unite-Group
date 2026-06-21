@@ -64,7 +64,7 @@ export function InsightDiscussion({ insightId }: InsightDiscussionProps) {
               key={c.id}
               className="rounded-sm px-3 py-2 text-[12px] leading-relaxed"
               style={{
-                borderLeft: c.author === 'ai' ? '2px solid #00F5FF' : '2px solid var(--color-border)',
+                borderLeft: c.author === 'ai' ? '2px solid #16a34a' : '2px solid var(--color-border)',
                 background: 'var(--surface-canvas)',
                 color: 'var(--color-text-primary)',
               }}
@@ -104,7 +104,7 @@ export function InsightDiscussion({ insightId }: InsightDiscussionProps) {
           onClick={submit}
           disabled={!text.trim() || submitting}
           className="px-3 rounded-sm flex items-center transition-colors disabled:opacity-40"
-          style={{ background: '#00F5FF', color: '#fffdf7' }}
+          style={{ background: '#16a34a', color: '#fffdf7' }}
           aria-label="Send note"
         >
           <Send size={13} />

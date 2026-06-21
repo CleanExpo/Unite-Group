@@ -34,7 +34,7 @@ interface MeetingCardProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  new: '#00F5FF',
+  new: '#16a34a',
   reviewing: '#f97316',
   acted: '#22c55e',
   archived: 'var(--color-text-disabled)',
@@ -98,7 +98,7 @@ export function MeetingCard({ meeting, onStatusChange }: MeetingCardProps) {
     <div
       className="rounded-sm border overflow-hidden transition-all"
       style={{
-        borderColor: expanded ? 'rgba(0,245,255,0.2)' : 'var(--color-border)',
+        borderColor: expanded ? 'rgba(22, 163, 74,0.2)' : 'var(--color-border)',
         background: 'var(--surface-card)',
         borderLeft: `3px solid ${STATUS_COLORS[meeting.status]}`,
       }}
@@ -143,7 +143,7 @@ export function MeetingCard({ meeting, onStatusChange }: MeetingCardProps) {
                 {section.title}
               </p>
               {section.highlight && (
-                <p className="text-[12px] mb-1 font-medium" style={{ color: '#00F5FF' }}>
+                <p className="text-[12px] mb-1 font-medium" style={{ color: '#16a34a' }}>
                   {section.highlight}
                 </p>
               )}
@@ -203,7 +203,7 @@ export function MeetingCard({ meeting, onStatusChange }: MeetingCardProps) {
                 onClick={() => void submitNote()}
                 disabled={!noteText.trim() || submittingNote}
                 className="px-3 rounded-sm flex items-center transition-colors disabled:opacity-40"
-                style={{ background: '#00F5FF', color: '#fffdf7' }}
+                style={{ background: '#16a34a', color: '#fffdf7' }}
                 aria-label="Submit board note"
               >
                 {submittingNote ? <Plus size={12} className="animate-spin" /> : <Send size={12} />}

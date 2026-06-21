@@ -177,7 +177,7 @@ export function NotificationBell() {
               <span
                 style={{
                   fontSize: 10,
-                  color: '#00F5FF',
+                  color: '#16a34a',
                   fontWeight: 600,
                 }}
               >
@@ -207,7 +207,7 @@ export function NotificationBell() {
                     padding: '10px 14px',
                     borderBottom: '1px solid var(--color-border)',
                     cursor: n.read ? 'default' : 'pointer',
-                    background: n.read ? 'transparent' : 'rgba(0, 245, 255, 0.03)',
+                    background: n.read ? 'transparent' : 'rgba(22, 163, 74, 0.03)',
                     display: 'flex',
                     gap: 10,
                     alignItems: 'flex-start',
@@ -219,7 +219,7 @@ export function NotificationBell() {
                       width: 6,
                       height: 6,
                       borderRadius: '1px',
-                      background: n.read ? 'transparent' : '#00F5FF',
+                      background: n.read ? 'transparent' : '#16a34a',
                       flexShrink: 0,
                       marginTop: 4,
                     }}
