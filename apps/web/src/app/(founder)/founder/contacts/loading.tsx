@@ -8,7 +8,7 @@ export default function Loading() {
       <div className="h-9 w-full max-w-sm bg-white/[0.06] rounded-sm animate-pulse" />
       <div className="flex flex-col gap-2">
         {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-          <div key={i} className="bg-[#0a0a0a] border border-white/[0.06] rounded-sm px-4 py-3 flex items-center gap-4">
+          <div key={i} className="bg-[#fff7ec] border border-white/[0.06] rounded-sm px-4 py-3 flex items-center gap-4">
             <div className="h-8 w-8 bg-white/[0.06] rounded-sm animate-pulse flex-shrink-0" />
             <div className="flex flex-col gap-2 flex-1">
               <div className="h-3 w-1/3 bg-white/[0.06] rounded-sm animate-pulse" />

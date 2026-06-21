@@ -138,7 +138,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="bg-[#0A0A0A] rounded-sm w-full max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+        className="bg-[#fff7ec] rounded-sm w-full max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto"
         style={{ border: '1px solid var(--color-border-strong)' }}
         onClick={e => e.stopPropagation()}
       >
@@ -389,7 +389,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
             <button
               onClick={() => handleSubmit('publish')}
               disabled={saving || connectedPlatforms.length === 0}
-              className="px-4 py-2 text-[10px] uppercase tracking-wider text-[#050505] bg-[#00F5FF] rounded-sm hover:bg-[#00F5FF]/90 transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-[10px] uppercase tracking-wider text-[#fffdf7] bg-[#00F5FF] rounded-sm hover:bg-[#00F5FF]/90 transition-colors disabled:opacity-50"
             >
               {saving ? 'Publishing...' : 'Post Now'}
             </button>

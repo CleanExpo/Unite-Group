@@ -123,7 +123,7 @@ function CoachCard({
 
   return (
     <div
-      className="rounded-sm border border-white/5 bg-[#0a0a0a] overflow-hidden transition-all duration-200"
+      className="rounded-sm border border-white/5 bg-[#fff7ec] overflow-hidden transition-all duration-200"
       style={{ borderLeftColor: colour, borderLeftWidth: 2 }}
     >
       <button
@@ -187,7 +187,7 @@ function CoachCard({
                 onClick={askCoach}
                 disabled={!question.trim() || asking}
                 className="flex items-center gap-2 px-3 h-8 rounded-sm text-[12px] font-medium transition-colors disabled:opacity-40"
-                style={{ background: '#00F5FF', color: '#050505' }}
+                style={{ background: '#00F5FF', color: '#fffdf7' }}
               >
                 {asking ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
                 {asking ? 'Asking…' : 'Ask Coach'}

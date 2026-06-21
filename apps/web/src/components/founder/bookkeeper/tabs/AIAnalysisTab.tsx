@@ -187,7 +187,7 @@ export function AIAnalysisTab() {
             onClick={() => { setMode(m); reset() }}
             className="flex-1 py-1.5 text-[12px] font-medium rounded-sm transition-colors"
             style={mode === m
-              ? { background: '#00F5FF', color: '#050505' }
+              ? { background: '#00F5FF', color: '#fffdf7' }
               : { color: 'var(--color-text-secondary)' }}
           >
             {m === 'analyze' ? 'Direct Analysis' : 'Full Advisory Pipeline'}
@@ -235,7 +235,7 @@ export function AIAnalysisTab() {
           onClick={run}
           disabled={!question.trim() || loading}
           className="flex items-center gap-2 px-4 h-9 rounded-sm text-[13px] font-medium transition-colors disabled:opacity-40"
-          style={{ background: '#00F5FF', color: '#050505' }}
+          style={{ background: '#00F5FF', color: '#fffdf7' }}
         >
           {loading ? <Loader2 size={14} className="animate-spin" /> : <Brain size={14} />}
           {loading ? PHASE_LABELS[phase] : 'Run Analysis'}

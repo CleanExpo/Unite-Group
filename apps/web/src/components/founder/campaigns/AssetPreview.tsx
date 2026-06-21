@@ -124,7 +124,7 @@ export function AssetPreview({ asset, businessKey, onPublished, onRegenerateImag
   }
 
   return (
-    <div className="bg-[#0a0a0a] border border-white/[0.06] rounded-sm p-4 flex flex-col gap-3">
+    <div className="bg-[#fff7ec] border border-white/[0.06] rounded-sm p-4 flex flex-col gap-3">
       {/* Header row — platform + visual type + status badges */}
       <div className="flex items-center gap-2 flex-wrap">
         <span className={`text-xs font-medium px-2 py-0.5 rounded-sm ${PLATFORM_BADGE[asset.platform]}`}>

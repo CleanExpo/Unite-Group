@@ -54,7 +54,7 @@ function formatAxisTick(cents: number): string {
 function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ dataKey: string; value: number; color: string }>; label?: string }) {
   if (!active || !payload) return null
   return (
-    <div className="rounded-sm border p-3" style={{ backgroundColor: '#0a0a0a', borderColor: 'var(--color-border)' }}>
+    <div className="rounded-sm border p-3" style={{ backgroundColor: '#fff7ec', borderColor: 'var(--color-border)' }}>
       <p className="text-[11px] text-white/60 mb-1">{label}</p>
       {payload.map((p) => (
         <p key={p.dataKey} className="text-[12px]" style={{ color: p.color }}>

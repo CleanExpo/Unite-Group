@@ -103,7 +103,7 @@ export function IssueDetailPanel({ issueId, onClose }: IssueDetailPanelProps) {
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-sm transition-colors duration-150 hover:bg-[#1a1a1a]"
+          className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-sm transition-colors duration-150 hover:bg-[#f3f3ee]"
           style={{ color: 'var(--color-text-muted)', fontSize: '13px' }}
           aria-label="Close panel"
         >

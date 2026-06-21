@@ -251,7 +251,7 @@ export function IdeaCapture() {
                   onClick={handleInitialSubmit}
                   disabled={!rawIdea.trim() || loading}
                   className="w-full flex items-center justify-center gap-2 h-8 rounded-sm text-[12px] font-medium transition-colors disabled:opacity-40"
-                  style={{ background: '#00F5FF', color: '#050505' }}
+                  style={{ background: '#00F5FF', color: '#fffdf7' }}
                 >
                   <Send size={12} />
                   Send to Claude
@@ -283,7 +283,7 @@ export function IdeaCapture() {
                     onClick={handleCreate}
                     disabled={loading}
                     className="flex-1 flex items-center justify-center gap-2 h-8 rounded-sm text-[12px] font-medium transition-colors disabled:opacity-40"
-                    style={{ background: '#00F5FF', color: '#050505' }}
+                    style={{ background: '#00F5FF', color: '#fffdf7' }}
                   >
                     Create in Linear
                   </button>

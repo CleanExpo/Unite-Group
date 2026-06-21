@@ -13,7 +13,7 @@ export default function Loading() {
         </div>
         <div className="flex-1 flex flex-col gap-4">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="bg-[#0a0a0a] border border-white/[0.06] rounded-sm p-4 flex flex-col gap-4">
+            <div key={i} className="bg-[#fff7ec] border border-white/[0.06] rounded-sm p-4 flex flex-col gap-4">
               <div className="h-4 w-1/4 bg-white/[0.06] rounded-sm animate-pulse" />
               <div className="flex flex-col gap-3">
                 <div className="h-9 w-full bg-white/[0.06] rounded-sm animate-pulse" />

@@ -135,7 +135,7 @@ export function DecisionLog() {
         <button
           onClick={() => setShowForm((v) => !v)}
           className="ml-auto flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-sm transition-colors"
-          style={{ background: '#00F5FF', color: '#050505' }}
+          style={{ background: '#00F5FF', color: '#fffdf7' }}
         >
           <Plus size={11} />
           New Decision
@@ -206,7 +206,7 @@ export function DecisionLog() {
               onClick={() => void createDecision()}
               disabled={!form.title.trim() || submitting}
               className="px-4 h-8 rounded-sm text-[12px] font-medium disabled:opacity-40"
-              style={{ background: '#00F5FF', color: '#050505' }}
+              style={{ background: '#00F5FF', color: '#fffdf7' }}
             >
               Save Decision
             </button>

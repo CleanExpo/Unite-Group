@@ -44,7 +44,7 @@ export function KanbanCard({ id, title, businessKey, businessColor, isDone, onCl
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onClick={handleClick}
-      className="rounded-sm p-3 cursor-grab active:cursor-grabbing select-none hover:bg-[#161616] transition-colors duration-150"
+      className="rounded-sm p-3 cursor-grab active:cursor-grabbing select-none hover:bg-[#ffffff] transition-colors duration-150"
     >
       <div className={`flex items-center gap-2 ${isDone ? 'opacity-50' : ''}`}>
         <span

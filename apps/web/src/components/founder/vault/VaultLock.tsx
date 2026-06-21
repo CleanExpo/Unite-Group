@@ -91,7 +91,7 @@ export function VaultLock({ onUnlock }: VaultLockProps) {
               type="submit"
               disabled={checking || !value}
               className="h-9 rounded-sm text-[13px] font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
-              style={{ background: '#00F5FF', color: '#050505' }}
+              style={{ background: '#00F5FF', color: '#fffdf7' }}
             >
               {checking ? 'Checking...' : 'Unlock Vault'}
             </button>
@@ -141,7 +141,7 @@ export function VaultLock({ onUnlock }: VaultLockProps) {
               type="submit"
               disabled={checking || !value || !confirm}
               className="h-9 rounded-sm text-[13px] font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
-              style={{ background: '#00F5FF', color: '#050505' }}
+              style={{ background: '#00F5FF', color: '#fffdf7' }}
             >
               {checking ? 'Saving...' : 'Set Password & Unlock'}
             </button>

@@ -203,7 +203,7 @@ export function MeetingCard({ meeting, onStatusChange }: MeetingCardProps) {
                 onClick={() => void submitNote()}
                 disabled={!noteText.trim() || submittingNote}
                 className="px-3 rounded-sm flex items-center transition-colors disabled:opacity-40"
-                style={{ background: '#00F5FF', color: '#050505' }}
+                style={{ background: '#00F5FF', color: '#fffdf7' }}
                 aria-label="Submit board note"
               >
                 {submittingNote ? <Plus size={12} className="animate-spin" /> : <Send size={12} />}

@@ -22,7 +22,7 @@ export function Toaster() {
             className={`group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-sm border p-6 pr-8 transition-all ${
               toast.variant === "destructive"
                 ? "border-[#ef4444]/50 bg-[#ef4444]/10 text-[#ef4444]"
-                : "border-white/[0.08] bg-[#050505] text-white/90"
+                : "border-white/[0.08] bg-[#fffdf7] text-white/90"
             }`}
           >
             <div className="flex items-start gap-3 flex-1">

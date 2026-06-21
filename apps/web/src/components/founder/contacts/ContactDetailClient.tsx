@@ -124,7 +124,7 @@ export function ContactDetailClient({ id }: ContactDetailClientProps) {
       <div className="space-y-6">
         {backLink}
         <div className="h-5 w-48 bg-white/[0.06] rounded-sm animate-pulse" />
-        <div className="bg-[#0a0a0a] border border-white/[0.06] rounded-sm p-4 flex flex-col gap-3">
+        <div className="bg-[#fff7ec] border border-white/[0.06] rounded-sm p-4 flex flex-col gap-3">
           <div className="h-2 w-2/3 bg-white/[0.06] rounded-sm animate-pulse" />
           <div className="h-2 w-1/2 bg-white/[0.06] rounded-sm animate-pulse" />
           <div className="h-2 w-3/4 bg-white/[0.06] rounded-sm animate-pulse" />
@@ -209,7 +209,7 @@ export function ContactDetailClient({ id }: ContactDetailClientProps) {
       </div>
 
       {/* Detail fields */}
-      <div className="bg-[#0a0a0a] border border-white/[0.06] rounded-sm divide-y divide-white/[0.06]">
+      <div className="bg-[#fff7ec] border border-white/[0.06] rounded-sm divide-y divide-white/[0.06]">
         {fields.map((f) => (
           <div key={f.label} className="flex items-center justify-between gap-4 px-4 py-3">
             <span className="text-[13px] text-[var(--color-text-muted)]">{f.label}</span>

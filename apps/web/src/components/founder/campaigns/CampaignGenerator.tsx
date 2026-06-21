@@ -135,7 +135,7 @@ export function CampaignGenerator({
   ])
 
   return (
-    <div className="bg-[#0a0a0a] border border-white/[0.06] rounded-sm p-6 space-y-6">
+    <div className="bg-[#fff7ec] border border-white/[0.06] rounded-sm p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
         <button

@@ -15,13 +15,13 @@ export default function TermsOfServicePage() {
   return (
     <div
       className="min-h-screen"
-      style={{ background: '#050505', color: 'rgba(255,255,255,0.88)' }}
+      style={{ background: '#fffdf7', color: 'rgba(255,255,255,0.88)' }}
     >
       {/* Header */}
       <header
         style={{
           borderBottom: '1px solid rgba(255,255,255,0.08)',
-          background: '#0a0a0a',
+          background: '#fff7ec',
         }}
       >
         <div className="max-w-3xl mx-auto px-6 py-5 flex items-center justify-between">

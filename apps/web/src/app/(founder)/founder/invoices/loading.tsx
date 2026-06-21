@@ -5,7 +5,7 @@ export default function Loading() {
         <div className="h-5 w-48 bg-white/[0.06] rounded-sm animate-pulse" />
         <div className="h-3 w-64 bg-white/[0.06] rounded-sm animate-pulse" />
       </div>
-      <div className="bg-[#0a0a0a] border border-white/[0.06] rounded-sm overflow-hidden">
+      <div className="bg-[#fff7ec] border border-white/[0.06] rounded-sm overflow-hidden">
         <div className="flex gap-4 px-4 py-3 border-b border-white/[0.06]">
           {["40%", "20%", "15%", "15%", "10%"].map((w, i) => (
             <div key={i} className="h-2 bg-white/[0.06] rounded-sm animate-pulse" style={{ width: w }} />

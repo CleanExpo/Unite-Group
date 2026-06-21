@@ -28,7 +28,7 @@ export default async function WikiIndexPage() {
   const pages = await getWikiPages()
 
   return (
-    <div className="p-6 flex flex-col gap-6" style={{ background: '#050505', minHeight: '100vh' }}>
+    <div className="p-6 flex flex-col gap-6" style={{ background: '#fffdf7', minHeight: '100vh' }}>
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight" style={{ color: '#00F5FF' }}>
           Knowledge Base

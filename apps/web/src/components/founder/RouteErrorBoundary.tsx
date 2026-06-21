@@ -63,7 +63,7 @@ export function RouteErrorBoundary({
         <button
           onClick={reset}
           className="px-4 py-2 rounded-sm text-sm font-medium transition-colors duration-150"
-          style={{ background: 'var(--color-accent)', color: '#050505' }}
+          style={{ background: 'var(--color-accent)', color: '#fffdf7' }}
         >
           Try again
         </button>
