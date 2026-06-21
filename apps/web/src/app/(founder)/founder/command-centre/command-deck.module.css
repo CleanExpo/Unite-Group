@@ -3,25 +3,26 @@
    Signal palette: cyan (primary) / go-green / caution-amber / abort-red. */
 
 .deck {
-  --deck-cyan: #38e1ff;
-  --deck-go: #34d399;
-  --deck-amber: #fbbf24;
-  --deck-abort: #f87171;
-  --deck-line: rgba(120, 170, 210, 0.14);
-  --deck-line-soft: rgba(120, 170, 210, 0.07);
-  --deck-panel: rgba(10, 18, 28, 0.72);
-  --deck-panel-hi: rgba(16, 26, 38, 0.9);
-  --deck-text: #cfe0ec;
-  --deck-muted: #708 aa;
-  --deck-muted: #6f879b;
+  /* Candy theme — light, glossy, green + orange (supersedes the dark cyan deck).
+     First pass: tuned via tokens so the whole console re-skins from here. */
+  --deck-cyan: #2dbb57;     /* primary accent → candy green */
+  --deck-go: #2dbb57;       /* go → candy green */
+  --deck-amber: #f4820f;    /* caution → candy orange */
+  --deck-abort: #e5484d;    /* abort → candy red */
+  --deck-line: rgba(45, 187, 87, 0.20);
+  --deck-line-soft: rgba(45, 187, 87, 0.10);
+  --deck-panel: #ffffff;
+  --deck-panel-hi: #fffdf7;
+  --deck-text: #14241b;     /* deep green-charcoal (dark text on light) */
+  --deck-muted: #5a6b62;
 
   /* Aliases so panels consolidated from the retired command-center page (which
      use the --cc-* namespace) resolve their colours on this deck. */
   --cc-bg: var(--deck-panel);
-  --cc-bg-soft: #0a0a0c;
+  --cc-bg-soft: #fff7ec;
   --cc-grid: var(--deck-line);
   --cc-ink: var(--deck-text);
-  --cc-ink-dim: #9fb3c4;
+  --cc-ink-dim: #3f574a;
   --cc-ink-hush: var(--deck-muted);
   --cc-signal: var(--deck-cyan);
   --cc-pulse-duration: 2.4s;
@@ -31,27 +32,20 @@
   padding: 1.75rem 1.75rem 3rem;
   color: var(--deck-text);
   font-family: var(--font-chakra), var(--font-geist-sans), system-ui, sans-serif;
-  background-color: #04080d;
+  background-color: #fffdf7;
   background-image:
-    radial-gradient(120% 80% at 50% -10%, rgba(56, 225, 255, 0.06), transparent 60%),
-    repeating-linear-gradient(0deg, var(--deck-line-soft) 0 1px, transparent 1px 40px),
-    repeating-linear-gradient(90deg, var(--deck-line-soft) 0 1px, transparent 1px 40px);
+    radial-gradient(120% 80% at 50% -10%, rgba(244, 130, 15, 0.12), transparent 60%),
+    radial-gradient(100% 70% at 100% 0%, rgba(45, 187, 87, 0.10), transparent 55%);
   overflow: hidden;
 }
 
-/* Scanline overlay */
+/* Top gloss sheen (replaces the dark scanline — candy = shiny, not matte) */
 .deck::after {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: repeating-linear-gradient(
-    0deg,
-    rgba(0, 0, 0, 0) 0 2px,
-    rgba(0, 0, 0, 0.16) 2px 3px
-  );
-  mix-blend-mode: overlay;
-  opacity: 0.5;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), transparent 28%);
   z-index: 0;
 }
 
@@ -66,9 +60,9 @@
   flex-wrap: wrap;
   padding: 0.9rem 1.1rem;
   border: 1px solid var(--deck-line);
-  border-radius: 4px;
+  border-radius: 12px;
   background: linear-gradient(180deg, var(--deck-panel-hi), var(--deck-panel));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 8px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 8px 30px rgba(45, 120, 70, 0.16);
 }
 
 .brand { display: flex; align-items: center; gap: 0.75rem; }
@@ -77,11 +71,11 @@
   width: 34px; height: 34px;
   display: grid; place-items: center;
   border: 1px solid var(--deck-cyan);
-  border-radius: 3px;
+  border-radius: 10px;
   color: var(--deck-cyan);
   font-weight: 700;
   letter-spacing: 0.05em;
-  box-shadow: 0 0 18px rgba(56, 225, 255, 0.35), inset 0 0 10px rgba(56, 225, 255, 0.12);
+  box-shadow: 0 0 18px rgba(45, 187, 87, 0.35), inset 0 0 10px rgba(45, 187, 87, 0.12);
 }
 
 .brandText { display: flex; flex-direction: column; line-height: 1.05; }
@@ -90,7 +84,7 @@
   font-size: 0.95rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: #eaf4fb;
+  color: var(--deck-text);
 }
 .brandSub {
   font-family: var(--font-geist-mono), monospace;
@@ -106,7 +100,7 @@
   font-weight: 500;
   letter-spacing: 0.08em;
   color: var(--deck-cyan);
-  text-shadow: 0 0 14px rgba(56, 225, 255, 0.45);
+  text-shadow: 0 0 14px rgba(45, 187, 87, 0.45);
   font-variant-numeric: tabular-nums;
 }
 .clockLabel {
@@ -125,7 +119,7 @@
   font-weight: 600;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  color: #eaf4fb;
+  color: var(--deck-text);
 }
 .metricValue[data-tone="go"] { color: var(--deck-go); }
 .metricValue[data-tone="amber"] { color: var(--deck-amber); }
@@ -152,9 +146,9 @@
   letter-spacing: 0.1em;
   color: var(--deck-muted);
   border: 1px solid var(--deck-line);
-  border-radius: 3px;
+  border-radius: 10px;
   padding: 0.28rem 0.5rem;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(45, 187, 87, 0.05);
   white-space: nowrap;
 }
 .kbd b { color: var(--deck-text); font-weight: 600; }
@@ -177,7 +171,7 @@
   font-weight: 600;
   letter-spacing: 0.32em;
   text-transform: uppercase;
-  color: #aebfcd;
+  color: var(--deck-muted);
 }
 .sectionLabel::before {
   content: "";
@@ -214,9 +208,10 @@
   display: flex; flex-direction: column; gap: 0.75rem;
   padding: 0.95rem 1rem 1rem;
   border: 1px solid var(--deck-line);
-  border-left: 2px solid var(--swatch, var(--deck-cyan));
-  border-radius: 3px;
-  background: linear-gradient(180deg, var(--deck-panel-hi), var(--deck-panel));
+  border-left: 3px solid var(--swatch, var(--deck-cyan));
+  border-radius: 14px;
+  background: linear-gradient(165deg, #ffffff 0%, #fff7ec 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 6px 18px rgba(45, 120, 70, 0.10);
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 /* Instrument bezel corner ticks */
@@ -231,8 +226,8 @@
 .panel::after { bottom: 6px; left: 6px; border-right: 0; border-top: 0; }
 .panel:hover {
   transform: translateY(-2px);
-  border-color: rgba(56, 225, 255, 0.4);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(56, 225, 255, 0.12);
+  border-color: rgba(45, 187, 87, 0.4);
+  box-shadow: 0 10px 30px rgba(45, 120, 70, 0.16), 0 0 0 1px rgba(45, 187, 87, 0.12);
 }
 
 .panelHead { display: flex; align-items: center; gap: 0.55rem; }
@@ -240,7 +235,7 @@
   font-size: 0.92rem;
   font-weight: 600;
   letter-spacing: 0.04em;
-  color: #eaf4fb;
+  color: var(--deck-text);
   flex: 1; min-width: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
@@ -248,7 +243,7 @@
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   font-size: 0.74rem;
   line-height: 1.5;
-  color: #93a7b8;
+  color: var(--deck-muted);
   min-height: 2.2em;
 }
 
@@ -256,11 +251,11 @@
   width: 8px; height: 8px; border-radius: 50%;
   flex-shrink: 0;
   background: var(--deck-muted);
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7);
 }
 .led[data-state="active"] {
   background: var(--deck-go);
-  box-shadow: 0 0 10px var(--deck-go), 0 0 0 2px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 10px var(--deck-go), 0 0 0 2px rgba(255, 255, 255, 0.7);
   animation: pulse 2.4s ease-in-out infinite;
 }
 .led[data-state="stub"] { background: var(--deck-amber); box-shadow: 0 0 8px var(--deck-amber); }
@@ -283,10 +278,10 @@
   font-family: var(--font-geist-mono), monospace;
   font-size: 0.66rem;
   letter-spacing: 0.04em;
-  color: #7d93a5;
+  color: var(--deck-muted);
 }
 .readoutKey { color: var(--deck-muted); min-width: 58px; text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.56rem; }
-.readoutVal { color: #aebfcd; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.readoutVal { color: var(--deck-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .plink {
   display: inline-flex; align-items: center; gap: 0.4rem;
@@ -298,7 +293,7 @@
   width: fit-content;
   transition: text-shadow 0.15s ease;
 }
-.plink:hover { text-shadow: 0 0 10px rgba(56, 225, 255, 0.5); text-decoration: underline; }
+.plink:hover { text-shadow: 0 0 10px rgba(45, 187, 87, 0.5); text-decoration: underline; }
 
 /* ── Project integration manifests ───────────────────────────────────── */
 .integrationGrid {
@@ -313,8 +308,8 @@
   gap: 0.35rem;
   padding: 0.55rem;
   border: 1px solid var(--deck-line-soft);
-  border-radius: 3px;
-  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  background: rgba(45, 187, 87, 0.05);
 }
 
 .integrationSummary span {
@@ -330,7 +325,7 @@
 }
 
 .integrationSummary b {
-  color: #eaf4fb;
+  color: var(--deck-text);
   font-size: 0.9rem;
   font-weight: 600;
   line-height: 1;
@@ -352,8 +347,8 @@
   gap: 0.45rem;
   padding: 0.45rem 0.5rem;
   border: 1px solid var(--deck-line-soft);
-  border-radius: 3px;
-  background: rgba(0, 0, 0, 0.18);
+  border-radius: 10px;
+  background: rgba(45, 187, 87, 0.05);
 }
 
 .connectionName {
@@ -362,7 +357,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 0.68rem;
-  color: #cfe0ec;
+  color: var(--deck-text);
 }
 
 .connectionState {
@@ -401,10 +396,10 @@
   gap: 0.42rem;
   min-height: 32px;
   border: 1px solid var(--deck-line);
-  border-radius: 3px;
-  color: #d8ecf7;
+  border-radius: 10px;
+  color: var(--deck-text);
   background: rgba(8, 15, 24, 0.82);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
   cursor: pointer;
   transition: border-color 0.14s ease, color 0.14s ease, background 0.14s ease;
 }
@@ -425,7 +420,7 @@
 
 .iconCommand:hover,
 .queueCommand:hover {
-  border-color: rgba(56, 225, 255, 0.5);
+  border-color: rgba(45, 187, 87, 0.5);
   color: var(--deck-cyan);
   background: rgba(13, 25, 38, 0.94);
 }
@@ -453,7 +448,7 @@
 /* ── Capability bus (tools) ───────────────────────────────────────────── */
 .bus {
   border: 1px solid var(--deck-line);
-  border-radius: 3px;
+  border-radius: 10px;
   background: linear-gradient(180deg, var(--deck-panel-hi), var(--deck-panel));
   padding: 1rem 1.1rem 1.1rem;
 }
@@ -467,11 +462,11 @@
 .sourceChip {
   font-family: var(--font-geist-mono), monospace;
   font-size: 0.6rem; letter-spacing: 0.06em;
-  color: #aebfcd;
+  color: var(--deck-muted);
   border: 1px solid var(--deck-line);
-  border-radius: 3px;
+  border-radius: 10px;
   padding: 0.22rem 0.5rem;
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(45, 187, 87, 0.05);
 }
 .sourceChip b { color: var(--deck-cyan); font-weight: 600; }
 .stamp {
@@ -480,7 +475,7 @@
   font-size: 0.58rem; letter-spacing: 0.22em; text-transform: uppercase;
   color: var(--deck-go);
   border: 1px dashed rgba(52, 211, 153, 0.4);
-  border-radius: 3px; padding: 0.3rem 0.6rem;
+  border-radius: 10px; padding: 0.3rem 0.6rem;
 }
 
 .toolGrid {
@@ -493,17 +488,17 @@
   padding: 0.55rem 0.7rem;
   border: 1px solid var(--deck-line-soft);
   border-left: 2px solid var(--rail, var(--deck-line));
-  border-radius: 3px;
-  background: rgba(0, 0, 0, 0.22);
+  border-radius: 10px;
+  background: rgba(45, 187, 87, 0.05);
   transition: background 0.15s ease, border-color 0.15s ease;
 }
-.toolRow:hover { background: rgba(56, 225, 255, 0.04); border-color: var(--deck-line); }
+.toolRow:hover { background: rgba(45, 187, 87, 0.04); border-color: var(--deck-line); }
 .toolKey {
   font-family: var(--font-geist-mono), monospace;
-  font-size: 0.7rem; color: #d6e4ef; font-weight: 500;
+  font-size: 0.7rem; color: var(--deck-text); font-weight: 500;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.toolDesc { font-size: 0.66rem; color: #7d93a5; line-height: 1.4; margin-top: 0.1rem; }
+.toolDesc { font-size: 0.66rem; color: var(--deck-muted); line-height: 1.4; margin-top: 0.1rem; }
 .riskTag {
   font-family: var(--font-geist-mono), monospace;
   font-size: 0.52rem; letter-spacing: 0.12em; text-transform: uppercase;
