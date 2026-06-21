@@ -26,6 +26,13 @@ import { BlockedLanesTile } from './BlockedLanesTile'
 import { InProgressPRsTile } from './InProgressPRsTile'
 import { RepoCampaignsTile } from '@/components/command-center/repo-campaigns/RepoCampaignsTile'
 import { ProviderAccountsTile } from '@/components/command-center/provider-accounts/ProviderAccountsTile'
+// Consolidated from the retired US-spelling command-center page (self-contained panels).
+import { HermesControlPanel } from '@/components/command-center/control-panel/HermesControlPanel'
+import { BusinessFocusRail } from '@/components/command-center/business-focus/BusinessFocusRail'
+import { LiveAgentOperationsMap } from '@/components/command-center/live-agent-operations/LiveAgentOperationsMap'
+import { ProviderUsageCockpit } from '@/components/command-center/provider-usage/ProviderUsageCockpit'
+import { ActivityFeedPanel } from '@/components/command-center/activity/ActivityFeedPanel'
+import { DailyCrmDigestPanel } from '@/components/command-center/digest/DailyCrmDigestPanel'
 import { ProjectIntegrationWorkPacketControl } from './ProjectIntegrationWorkPacketControl'
 import styles from './command-deck.module.css'
 
@@ -202,6 +209,28 @@ export default async function CommandDeckPage() {
       {/* The LLM provider pool — register plans, see live routing state. */}
       <section className={`${styles.reveal}`} style={{ animationDelay: '0.08s' }}>
         <ProviderAccountsTile />
+      </section>
+
+      {/* AI provider capacity — usage meters next to the accounts pool. */}
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.09s' }}>
+        <ProviderUsageCockpit />
+      </section>
+
+      {/* Consolidated from the retired US command-center page (self-contained panels). */}
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.10s' }}>
+        <BusinessFocusRail />
+      </section>
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.11s' }}>
+        <HermesControlPanel />
+      </section>
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.12s' }}>
+        <LiveAgentOperationsMap />
+      </section>
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.13s' }}>
+        <ActivityFeedPanel />
+      </section>
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.14s' }}>
+        <DailyCrmDigestPanel />
       </section>
 
       <section className={styles.panelGrid}>
