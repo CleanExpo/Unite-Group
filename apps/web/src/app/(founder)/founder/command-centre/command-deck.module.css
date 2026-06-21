@@ -15,6 +15,17 @@
   --deck-muted: #708 aa;
   --deck-muted: #6f879b;
 
+  /* Aliases so panels consolidated from the retired command-center page (which
+     use the --cc-* namespace) resolve their colours on this deck. */
+  --cc-bg: var(--deck-panel);
+  --cc-bg-soft: #0a0a0c;
+  --cc-grid: var(--deck-line);
+  --cc-ink: var(--deck-text);
+  --cc-ink-dim: #9fb3c4;
+  --cc-ink-hush: var(--deck-muted);
+  --cc-signal: var(--deck-cyan);
+  --cc-pulse-duration: 2.4s;
+
   position: relative;
   min-height: 100%;
   padding: 1.75rem 1.75rem 3rem;
