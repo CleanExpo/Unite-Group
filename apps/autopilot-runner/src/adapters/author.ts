@@ -23,12 +23,17 @@ function msg(err: unknown): string {
 
 /**
  * Default headless Claude Code invocation. Exact flags verified at deploy.
- * `< /dev/null` closes stdin so the CLI doesn't stall waiting on a pipe (the
- * prompt is passed via -p). `--dangerously-skip-permissions` requires a
- * non-root user (the container runs as `node`, not root — see Dockerfile).
+ * - `--bare`: minimal mode — auth is STRICTLY ANTHROPIC_API_KEY (OAuth/keychain
+ *   are never read), and it skips hooks/LSP/plugins/MCP/CLAUDE.md auto-discovery.
+ *   Essential here because the worker runs inside a checkout of this repo, whose
+ *   heavy `.claude/` config (hooks, MCP, plugins) would otherwise hang/fail in the
+ *   container. Without `--bare` the CLI tries keychain/OAuth first and reports
+ *   "Not logged in" despite ANTHROPIC_API_KEY being set.
+ * - `--dangerously-skip-permissions`: no permission prompts (needs non-root user).
+ * - `< /dev/null`: close stdin so the CLI doesn't stall (prompt is passed via -p).
  */
 export function defaultClaudeCommand(promptFile: string): string {
-  return `claude -p "$(cat ${promptFile})" --dangerously-skip-permissions < /dev/null`
+  return `claude --bare -p "$(cat ${promptFile})" --dangerously-skip-permissions < /dev/null`
 }
 
 /**
@@ -66,7 +71,10 @@ export function makeAuthor(deps: AuthorDeps): (packet: LinearExecutionPacket, wo
     }
 
     if (outcome.exitCode !== 0) {
-      return { ok: false, error: `claude exited ${outcome.exitCode}: ${outcome.stderr.slice(0, 500)}` }
+      // The Claude CLI writes failures (e.g. "Not logged in") to STDOUT in -p mode,
+      // not stderr — surface both so the runner logs the real reason.
+      const detail = [outcome.stderr.trim(), outcome.stdout.trim()].filter(Boolean).join(' | ').slice(0, 800)
+      return { ok: false, error: `claude exited ${outcome.exitCode}: ${detail || '(no output)'}` }
     }
     return { ok: true }
   }
