@@ -59,7 +59,7 @@ export default async function SocialPage({
       )}
 
       {params.error && (
-        <div className="text-xs text-red-400/80 border border-red-400/20 bg-red-400/5 px-4 py-2.5 rounded-sm">
+        <div className="text-xs text-red-700/80 border border-red-400/20 bg-red-400/5 px-4 py-2.5 rounded-sm">
           Connection error: {params.error}
           {params.platform && ` (${params.platform})`}
         </div>

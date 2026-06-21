@@ -107,7 +107,7 @@ function LineItemRow({
       {canRemove ? (
         <button
           onClick={() => onRemove(index)}
-          className="text-[#71717a] hover:text-red-400 transition-colors"
+          className="text-[#5f5f66] hover:text-red-700 transition-colors"
         >
           <X size={14} />
         </button>
@@ -184,7 +184,7 @@ function CreateInvoicePanel({
     >
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-[13px] font-medium text-[#0A0A0A]">New Invoice (Draft)</h3>
-        <button onClick={onClose} className="text-[#71717a] hover:text-[#52525b] transition-colors">
+        <button onClick={onClose} className="text-[#5f5f66] hover:text-[#52525b] transition-colors">
           <X size={16} />
         </button>
       </div>
@@ -222,7 +222,7 @@ function CreateInvoicePanel({
       {/* Line items header */}
       <div className="grid grid-cols-[1fr_60px_90px_80px_32px] gap-2 mb-1.5 px-0">
         {['Description', 'Qty', 'Unit $', 'Code', ''].map((h) => (
-          <span key={h} className="text-[10px] text-[#71717a] font-medium uppercase tracking-wide">{h}</span>
+          <span key={h} className="text-[10px] text-[#5f5f66] font-medium uppercase tracking-wide">{h}</span>
         ))}
       </div>
 
@@ -242,7 +242,7 @@ function CreateInvoicePanel({
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={addItem}
-          className="text-[11px] text-[#71717a] hover:text-[#15803d] transition-colors flex items-center gap-1"
+          className="text-[11px] text-[#5f5f66] hover:text-[#15803d] transition-colors flex items-center gap-1"
         >
           <Plus size={12} /> Add line
         </button>
@@ -252,7 +252,7 @@ function CreateInvoicePanel({
       </div>
 
       {error && (
-        <p className="text-red-400/80 text-[12px] mb-3">{error}</p>
+        <p className="text-red-700/80 text-[12px] mb-3">{error}</p>
       )}
 
       <button
@@ -330,14 +330,14 @@ function InvoiceRow({
               href={invoice.Url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#71717a] hover:text-[#52525b] transition-colors"
+              className="text-[#5f5f66] hover:text-[#52525b] transition-colors"
               title="Open in Xero"
             >
               <ExternalLink size={13} />
             </a>
           )}
         </div>
-        {error && <p className="text-red-400/70 text-[10px] mt-1">{error}</p>}
+        {error && <p className="text-red-700/70 text-[10px] mt-1">{error}</p>}
       </td>
     </tr>
   )
@@ -404,7 +404,7 @@ export function InvoicesClient() {
                 </option>
               ))}
             </select>
-            <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#71717a] pointer-events-none" />
+            <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#5f5f66] pointer-events-none" />
           </div>
 
           {/* Status filter */}
@@ -458,7 +458,7 @@ export function InvoicesClient() {
       {/* Error state */}
       {error && (
         <div
-          className="mb-4 px-4 py-3 rounded-sm text-[12px] text-red-400/80 border"
+          className="mb-4 px-4 py-3 rounded-sm text-[12px] text-red-700/80 border"
           style={{ background: 'rgba(255,80,80,0.05)', borderColor: 'rgba(255,80,80,0.2)' }}
         >
           {error}
@@ -467,12 +467,12 @@ export function InvoicesClient() {
 
       {/* Invoice table */}
       {loading ? (
-        <div className="flex items-center justify-center py-20 text-[#71717a]">
+        <div className="flex items-center justify-center py-20 text-[#5f5f66]">
           <Loader2 size={20} className="animate-spin mr-2" />
           <span className="text-[13px]">Loading invoices…</span>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-[#71717a]">
+        <div className="flex flex-col items-center justify-center py-20 text-[#5f5f66]">
           <p className="text-[13px]">No invoices found</p>
           {filterStatus !== 'ALL' && (
             <button
@@ -491,7 +491,7 @@ export function InvoicesClient() {
                 {['Number', 'Contact', 'Date', 'Due', 'Total', 'Status', 'Actions'].map((h) => (
                   <th
                     key={h}
-                    className="py-2.5 px-4 text-left text-[10px] font-medium uppercase tracking-wide text-[#71717a]"
+                    className="py-2.5 px-4 text-left text-[10px] font-medium uppercase tracking-wide text-[#5f5f66]"
                   >
                     {h}
                   </th>

@@ -3,13 +3,13 @@
 import type { TriageCategory } from '@/lib/ai/capabilities/email-triage'
 
 const BADGE_STYLES: Record<TriageCategory, { bg: string; text: string; label: string }> = {
-  IMPORTANT:   { bg: 'bg-cyan-500/20',   text: 'text-cyan-300',  label: 'Important' },
-  INVOICE:     { bg: 'bg-amber-500/20',  text: 'text-amber-300', label: 'Invoice' },
-  TASK:        { bg: 'bg-violet-500/20', text: 'text-violet-300',label: 'Task' },
+  IMPORTANT:   { bg: 'bg-cyan-500/20',   text: 'text-cyan-700',  label: 'Important' },
+  INVOICE:     { bg: 'bg-amber-500/20',  text: 'text-amber-700', label: 'Invoice' },
+  TASK:        { bg: 'bg-violet-500/20', text: 'text-violet-700',label: 'Task' },
   NEWSLETTER:  { bg: 'bg-zinc-500/20',   text: 'text-zinc-400',  label: 'Newsletter' },
   PROMOTIONAL: { bg: 'bg-zinc-500/20',   text: 'text-zinc-400',  label: 'Promo' },
-  SOCIAL:      { bg: 'bg-blue-500/20',   text: 'text-blue-300',  label: 'Social' },
-  SPAM:        { bg: 'bg-red-500/20',    text: 'text-red-400',   label: 'Spam' },
+  SOCIAL:      { bg: 'bg-blue-500/20',   text: 'text-blue-700',  label: 'Social' },
+  SPAM:        { bg: 'bg-red-500/20',    text: 'text-red-700',   label: 'Spam' },
 }
 
 export function TriageBadge({ category }: { category: TriageCategory }) {

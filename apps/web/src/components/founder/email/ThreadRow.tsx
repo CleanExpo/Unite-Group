@@ -75,10 +75,10 @@ export function ThreadRow({ thread, selected, active, triageInfo, onCheck, onCli
           <p className={`text-sm truncate flex-1 ${thread.unread ? 'text-[#0A0A0A] font-medium' : 'text-[#52525b]'}`}>
             {thread.subject}
           </p>
-          <span className="text-[10px] text-[#71717a] flex-shrink-0">{formatDate(thread.date)}</span>
+          <span className="text-[10px] text-[#5f5f66] flex-shrink-0">{formatDate(thread.date)}</span>
         </div>
         <div className="flex items-center gap-2">
-          <p className="text-xs text-[#71717a] truncate flex-1">{thread.from} · {thread.snippet}</p>
+          <p className="text-xs text-[#5f5f66] truncate flex-1">{thread.from} · {thread.snippet}</p>
           {triageInfo && <TriageBadge category={triageInfo.category} />}
         </div>
       </div>

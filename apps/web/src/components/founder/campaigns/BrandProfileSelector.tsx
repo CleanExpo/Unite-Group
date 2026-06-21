@@ -90,7 +90,7 @@ export function BrandProfileSelector({
           <h2 className="text-[15px] font-semibold text-[#0A0A0A] tracking-tight">
             Select Brand
           </h2>
-          <p className="text-[12px] text-[#71717a]">
+          <p className="text-[12px] text-[#5f5f66]">
             Choose the active child organisation this campaign should use. The
             selected organisation will be saved on the draft campaign.
           </p>
@@ -106,7 +106,7 @@ export function BrandProfileSelector({
 
       {loadState === "loading" && (
         <div className="rounded-sm border border-white/[0.06] bg-white/[0.02] px-4 py-5">
-          <p className="text-[12px] text-[#71717a]">
+          <p className="text-[12px] text-[#5f5f66]">
             Loading eligible child brands…
           </p>
         </div>
@@ -114,11 +114,11 @@ export function BrandProfileSelector({
 
       {loadState === "error" && (
         <div className="rounded-sm border border-red-500/20 bg-red-500/10 px-4 py-3 flex items-start justify-between gap-3">
-          <p className="text-[12px] text-red-400 flex-1">{error}</p>
+          <p className="text-[12px] text-red-700 flex-1">{error}</p>
           <button
             type="button"
             onClick={() => void loadProfiles()}
-            className="shrink-0 text-[11px] font-medium text-[#71717a] hover:text-[#3f3f46] transition-colors"
+            className="shrink-0 text-[11px] font-medium text-[#5f5f66] hover:text-[#3f3f46] transition-colors"
           >
             Retry
           </button>
@@ -127,7 +127,7 @@ export function BrandProfileSelector({
 
       {loadState === "empty" && (
         <div className="rounded-sm border border-white/[0.06] bg-white/[0.02] px-4 py-5 flex flex-col gap-3">
-          <p className="text-[12px] text-[#71717a]">
+          <p className="text-[12px] text-[#5f5f66]">
             No ready child brands found yet. Scan a brand website to create the
             first campaign-ready identity.
           </p>
@@ -153,7 +153,7 @@ export function BrandProfileSelector({
               <span className="block text-[13px] font-medium text-[#3f3f46]">
                 {profile.clientName}
               </span>
-              <span className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-[#71717a]">
+              <span className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-[#5f5f66]">
                 {profile.businessKey && <span>{profile.businessKey}</span>}
                 {profile.industry && <span>{profile.industry}</span>}
                 {profile.websiteUrl && (

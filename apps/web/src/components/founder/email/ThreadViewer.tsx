@@ -77,13 +77,13 @@ export function ThreadViewer({ threadId, account, onArchive, onDelete, onClose }
             onClick={() => doAction('delete')}
             disabled={actionLoading}
             title="Move to Trash"
-            className="text-xs border border-red-500/30 px-3 py-1 rounded-sm text-red-400 hover:text-red-300 hover:border-red-500/60 transition-colors disabled:opacity-40"
+            className="text-xs border border-red-500/30 px-3 py-1 rounded-sm text-red-700 hover:text-red-700 hover:border-red-500/60 transition-colors disabled:opacity-40"
           >
             Delete
           </button>
           <button
             onClick={onClose}
-            className="text-[#71717a] hover:text-[#52525b] transition-colors text-lg leading-none ml-1"
+            className="text-[#5f5f66] hover:text-[#52525b] transition-colors text-lg leading-none ml-1"
             aria-label="Close"
           >
             ×
@@ -95,12 +95,12 @@ export function ThreadViewer({ threadId, account, onArchive, onDelete, onClose }
       <div className="flex-1 overflow-y-auto">
         {loading && (
           <div className="flex items-center justify-center h-full">
-            <span className="text-sm text-[#71717a]">Loading…</span>
+            <span className="text-sm text-[#5f5f66]">Loading…</span>
           </div>
         )}
 
         {error && (
-          <div className="p-4 text-red-400 text-sm">{error}</div>
+          <div className="p-4 text-red-700 text-sm">{error}</div>
         )}
 
         {thread && (
@@ -111,9 +111,9 @@ export function ThreadViewer({ threadId, account, onArchive, onDelete, onClose }
                 <div className="flex items-start justify-between gap-4 mb-3">
                   <div>
                     <p className="text-xs text-[#3f3f46] font-medium">{msg.from}</p>
-                    <p className="text-[10px] text-[#71717a] mt-0.5">To: {msg.to}</p>
+                    <p className="text-[10px] text-[#5f5f66] mt-0.5">To: {msg.to}</p>
                   </div>
-                  <span className="text-[10px] text-[#71717a] flex-shrink-0">{msg.date}</span>
+                  <span className="text-[10px] text-[#5f5f66] flex-shrink-0">{msg.date}</span>
                 </div>
                 {/* Message body — DOMPurify sanitises before iframe injection; sandbox="" blocks scripts */}
                 {msg.bodyHtml ? (

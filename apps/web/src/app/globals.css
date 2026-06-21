@@ -78,7 +78,7 @@
     --color-accent-border:  rgba(22, 163, 74, 0.3);
     --color-text-primary:   #0A0A0A;
     --color-text-secondary: #52525B;
-    --color-text-muted:     #71717A;
+    --color-text-muted:     #5f5f66;
     --color-text-disabled:  #6b6b6b;
     --color-border:         rgba(0, 0, 0, 0.08);
     --color-border-strong:  rgba(0, 0, 0, 0.15);
@@ -146,7 +146,7 @@
     /* Text */
     --color-text-primary:   #0A0A0A;
     --color-text-secondary: #52525B;
-    --color-text-muted:     #71717A;
+    --color-text-muted:     #5f5f66;
     --color-text-disabled:  #6b6b6b;
 
     /* Borders */

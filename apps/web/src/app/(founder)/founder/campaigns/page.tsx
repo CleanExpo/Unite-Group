@@ -34,17 +34,17 @@ function mapRow(row: CampaignRow): Pick<Campaign, 'id' | 'theme' | 'objective' |
 }
 
 const STATUS_STYLES: Record<CampaignStatus, { label: string; className: string }> = {
-  draft:      { label: 'Draft',      className: 'text-[#71717a] bg-white/[0.06] border border-white/10' },
+  draft:      { label: 'Draft',      className: 'text-[#5f5f66] bg-white/[0.06] border border-white/10' },
   generating: { label: 'Generating', className: 'text-[#15803d] bg-[#16a34a]/10 border border-[#16a34a]/20 animate-pulse' },
-  ready:      { label: 'Ready',      className: 'text-emerald-400 bg-emerald-400/10 border border-emerald-400/20' },
-  published:  { label: 'Published',  className: 'text-blue-400 bg-blue-400/10 border border-blue-400/20' },
+  ready:      { label: 'Ready',      className: 'text-emerald-700 bg-emerald-400/10 border border-emerald-400/20' },
+  published:  { label: 'Published',  className: 'text-blue-700 bg-blue-400/10 border border-blue-400/20' },
 }
 
 const OBJECTIVE_STYLES: Record<CampaignObjective, { label: string; className: string }> = {
-  awareness:  { label: 'Awareness',  className: 'text-purple-400 bg-purple-400/10 border border-purple-400/20' },
-  engagement: { label: 'Engagement', className: 'text-amber-400 bg-amber-400/10 border border-amber-400/20' },
-  conversion: { label: 'Conversion', className: 'text-emerald-400 bg-emerald-400/10 border border-emerald-400/20' },
-  retention:  { label: 'Retention',  className: 'text-blue-400 bg-blue-400/10 border border-blue-400/20' },
+  awareness:  { label: 'Awareness',  className: 'text-purple-700 bg-purple-400/10 border border-purple-400/20' },
+  engagement: { label: 'Engagement', className: 'text-amber-700 bg-amber-400/10 border border-amber-400/20' },
+  conversion: { label: 'Conversion', className: 'text-emerald-700 bg-emerald-400/10 border border-emerald-400/20' },
+  retention:  { label: 'Retention',  className: 'text-blue-700 bg-blue-400/10 border border-blue-400/20' },
 }
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -104,7 +104,7 @@ function CampaignCard({ campaign }: CampaignCardProps) {
           </span>
 
           {campaign.platforms.length > 0 && (
-            <span className="text-[11px] font-mono text-[#71717a]">
+            <span className="text-[11px] font-mono text-[#5f5f66]">
               {formatPlatforms(campaign.platforms)}
             </span>
           )}
@@ -189,7 +189,7 @@ export default async function CampaignsPage() {
           <h1 className="text-[22px] font-semibold text-[#0A0A0A] tracking-tight">
             Campaigns
           </h1>
-          <p className="text-[12px] text-[#71717a]">
+          <p className="text-[12px] text-[#5f5f66]">
             Synthex AI-generated multi-platform campaigns
           </p>
         </div>

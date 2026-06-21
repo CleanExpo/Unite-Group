@@ -43,7 +43,7 @@ export default function Input({
 
       <div className="relative">
         {leftIcon && (
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#71717a]">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#5f5f66]">
             {leftIcon}
           </div>
         )}
@@ -66,7 +66,7 @@ export default function Input({
         />
 
         {rightIcon && (
-          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-[#71717a]">
+          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-[#5f5f66]">
             {rightIcon}
           </div>
         )}
@@ -85,7 +85,7 @@ export default function Input({
       {helpText && !error && (
         <p
           id={`${inputId}-help`}
-          className="mt-2 text-sm text-[#71717a]"
+          className="mt-2 text-sm text-[#5f5f66]"
         >
           {helpText}
         </p>

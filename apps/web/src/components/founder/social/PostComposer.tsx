@@ -201,7 +201,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
                   value={aiTopic}
                   onChange={e => setAiTopic(e.target.value)}
                   placeholder="e.g. Summer road safety tips"
-                  className="w-full rounded-sm px-3 py-1.5 text-[12px] placeholder:text-[#71717a] focus:outline-none focus:border-[#16a34a]/30"
+                  className="w-full rounded-sm px-3 py-1.5 text-[12px] placeholder:text-[#5f5f66] focus:outline-none focus:border-[#16a34a]/30"
                   style={{ background: 'var(--surface-elevated)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
                 />
               </div>
@@ -322,7 +322,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
             onChange={e => setContent(e.target.value)}
             rows={4}
             placeholder="What do you want to share?"
-            className="w-full rounded-sm px-3 py-2 text-[13px] placeholder:text-[#71717a] focus:outline-none focus:border-[#16a34a]/30 resize-none"
+            className="w-full rounded-sm px-3 py-2 text-[13px] placeholder:text-[#5f5f66] focus:outline-none focus:border-[#16a34a]/30 resize-none"
             style={{ background: 'var(--surface-elevated)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
           />
           <p className="text-[10px] mt-1" style={{ color: 'var(--color-text-secondary)' }}>{content.length} chars</p>

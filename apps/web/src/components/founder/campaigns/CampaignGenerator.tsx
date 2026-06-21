@@ -140,7 +140,7 @@ export function CampaignGenerator({
       <div className="flex items-center gap-3">
         <button
           onClick={onBack}
-          className="text-[#71717a] hover:text-[#3f3f46] transition-colors text-[11px] flex items-center gap-1.5"
+          className="text-[#5f5f66] hover:text-[#3f3f46] transition-colors text-[11px] flex items-center gap-1.5"
         >
           <ArrowLeft size={13} />
           Back
@@ -438,7 +438,7 @@ export function CampaignGenerator({
             </button>
             <button
               onClick={onBack}
-              className="text-[#71717a] hover:text-[#3f3f46] transition-colors text-[12px]"
+              className="text-[#5f5f66] hover:text-[#3f3f46] transition-colors text-[12px]"
             >
               Back to Campaigns
             </button>
