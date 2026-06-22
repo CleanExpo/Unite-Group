@@ -433,7 +433,9 @@ export default async function CommandDeckPage() {
       <div className={styles.sectionHead} id="in-progress-prs">
         <span className={styles.sectionLabel}>In-Progress PRs</span>
         <span className={styles.sectionMeta}>
-          {inProgressPRs.status_message} · via <code style={{ fontSize: '0.7rem' }}>{inProgressPRs.gh_path}</code>
+          {inProgressPRs.gh_available
+            ? <>{inProgressPRs.status_message} · via <code style={{ fontSize: '0.7rem' }}>{inProgressPRs.gh_path}</code></>
+            : 'local-only (gh CLI)'}
         </span>
       </div>
 

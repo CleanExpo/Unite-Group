@@ -31,14 +31,16 @@ export function InProgressPRsTile({ data }: { data: InProgressPRsResult }) {
   if (data.entries.length === 0) {
     // Either `gh` is missing or there are genuinely no open PRs. The
     // NorthStar says surface the source; the empty state is honest.
-    const tone = data.gh_available ? '#34d399' : '#fb923c'
+    const ghMissing = !data.gh_available
+    const tone = ghMissing ? 'var(--color-text-muted)' : '#34d399'
     return (
       <p
         data-testid="in-progress-prs-tile-empty"
         style={{ color: tone, fontSize: '0.85rem', margin: 0 }}
       >
-        {data.status_message} — <code style={{ fontSize: '0.78rem' }}>{data.gh_path}</code>
-        {data.read_error && <span style={{ color: '#9bb0c1' }}> ({data.read_error})</span>}
+        {ghMissing
+          ? 'Open PRs are shown in the “Campaigns (repos)” tile (live via GitHub) — the gh-CLI view is local-only.'
+          : data.status_message}
       </p>
     )
   }
