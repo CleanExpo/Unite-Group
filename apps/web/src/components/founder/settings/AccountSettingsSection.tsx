@@ -10,7 +10,7 @@ interface AccountSettingsSectionProps {
 }
 
 export function AccountSettingsSection({ settings, onSave, loading }: AccountSettingsSectionProps) {
-  const [timezone, setTimezone] = useState(settings.timezone || 'Australia/Sydney')
+  const [timezone, setTimezone] = useState(settings.timezone || 'Australia/Brisbane')
   const [locale, setLocale] = useState(settings.locale || 'en-AU')
   const [saving, setSaving] = useState(false)
 
@@ -36,6 +36,7 @@ export function AccountSettingsSection({ settings, onSave, loading }: AccountSet
             className="w-full bg-surface-elevated text-color-text-primary rounded-sm px-3 py-2 border border-surface-elevated hover:border-color-text-muted focus:outline-none focus:border-cyan-400"
             disabled={loading || saving}
           >
+            <option value="Australia/Brisbane">Brisbane (AEST, no DST)</option>
             <option value="Australia/Sydney">Sydney (AEST/AEDT)</option>
             <option value="Australia/Melbourne">Melbourne (AEST/AEDT)</option>
             <option value="UTC">UTC</option>

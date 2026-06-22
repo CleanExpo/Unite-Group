@@ -85,7 +85,7 @@ describe('GET /api/settings/update', () => {
     const res = await GET(getReq())
     const json = await res.json()
     expect(res.status).toBe(200)
-    expect(json.timezone).toBe('Australia/Sydney')
+    expect(json.timezone).toBe('Australia/Brisbane')
     expect(json.locale).toBe('en-AU')
   })
 

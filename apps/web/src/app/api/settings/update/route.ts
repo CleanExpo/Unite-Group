@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
   } = body
 
   // Validate timezone
-  const validTimezones = ['Australia/Sydney', 'Australia/Melbourne', 'UTC']
+  const validTimezones = ['Australia/Brisbane', 'Australia/Sydney', 'Australia/Melbourne', 'UTC']
   if (timezone && !validTimezones.includes(timezone)) {
     return NextResponse.json({ error: 'Invalid timezone' }, { status: 400 })
   }
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     .from('user_settings')
     .upsert({
       user_id: user.id,
-      timezone: timezone || 'Australia/Sydney',
+      timezone: timezone || 'Australia/Brisbane',
       locale: locale || 'en-AU',
       notification_digest: notification_digest ?? true,
       notification_alerts: notification_alerts ?? true,
@@ -79,7 +79,7 @@ export async function GET(_request: NextRequest) {
   if (error) {
     // Settings don't exist yet, return defaults
     return NextResponse.json({
-      timezone: 'Australia/Sydney',
+      timezone: 'Australia/Brisbane',
       locale: 'en-AU',
       notification_digest: true,
       notification_alerts: true,
