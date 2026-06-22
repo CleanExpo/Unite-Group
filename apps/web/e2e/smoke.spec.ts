@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 
+import { revealEmailLogin } from './support/email-login';
+
 /**
  * Smoke Tests — Nexus 2.0 (Task 11C)
  *
@@ -53,6 +55,7 @@ test.describe('Smoke — No Auth Required', () => {
     // Page must not render a Next.js error boundary.
     await expect(page.locator('body')).not.toContainText('Application error');
     await expect(page.locator('body')).not.toContainText('500');
+    await revealEmailLogin(page);
 
     // Core form elements must be visible.
     await expect(page.locator('input[type="email"]')).toBeVisible();

@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { appendFileSync, existsSync } from 'node:fs'
 import { test, expect, type Browser, type Page } from '@playwright/test'
+import { revealEmailLogin } from './support/email-login'
 import { config as loadDotenv } from 'dotenv'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { qualifyLead } from '../src/lib/crm/qualify-lead'
@@ -67,6 +68,7 @@ async function provisionUser(admin: SupabaseClient, state: CoreState) {
 async function signIn(page: Page, state: CoreState) {
   if (!state.user) throw new Error('core journey user was not provisioned')
   await page.goto('/auth/login?redirectTo=/founder/contacts')
+  await revealEmailLogin(page)
   await page.locator('input[type="email"]').fill(state.user.email)
   await page.locator('input[type="password"]').fill(state.user.password)
   await page.locator('button[type="submit"]').click()

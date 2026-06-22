@@ -1,6 +1,7 @@
 import { appendFileSync } from 'node:fs'
 import { randomBytes } from 'node:crypto'
 import { test, expect, type BrowserContext, type Page } from '@playwright/test'
+import { revealEmailLogin } from './support/email-login'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { loadSupabaseAdminConfig } from './support/supabase-admin-config'
 
@@ -57,6 +58,7 @@ async function provisionUser(admin: SupabaseClient, state: CleanupState, user: T
 
 async function signIn(page: Page, user: TestUser) {
   await page.goto('/auth/login?redirectTo=/founder/contacts')
+  await revealEmailLogin(page)
   await page.locator('input[type="email"]').fill(user.email)
   await page.locator('input[type="password"]').fill(user.password)
   await page.locator('button[type="submit"]').click()

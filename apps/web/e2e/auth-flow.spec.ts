@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test'
 
+import { revealEmailLogin } from './support/email-login'
+
 /**
  * Auth Flow — E2E Smoke Tests
  *
@@ -18,6 +20,7 @@ test.describe('Auth Flow', () => {
 
   test('login page has email and password fields', async ({ page }) => {
     await page.goto('/auth/login')
+    await revealEmailLogin(page)
 
     const emailInput = page.locator('input[type="email"]')
     const passwordInput = page.locator('input[type="password"]')
@@ -28,6 +31,7 @@ test.describe('Auth Flow', () => {
 
   test('login page has submit button', async ({ page }) => {
     await page.goto('/auth/login')
+    await revealEmailLogin(page)
 
     const submitButton = page.locator('button[type="submit"]')
     await expect(submitButton).toBeVisible()
@@ -44,12 +48,14 @@ test.describe('Auth Flow', () => {
   test('login page displays Nexus branding', async ({ page }) => {
     await page.goto('/auth/login')
 
-    await expect(page.getByText('Nexus — Unite Group')).toBeVisible()
+    await expect(page.getByText('Pi-CEO', { exact: true })).toBeVisible()
+    await expect(page.getByText('Unite-Group', { exact: true })).toBeVisible()
     await expect(page.locator('h1')).toContainText('Sign in')
   })
 
   test('login form rejects empty submission', async ({ page }) => {
     await page.goto('/auth/login')
+    await revealEmailLogin(page)
 
     // HTML5 validation should prevent empty submission
     const emailInput = page.locator('input[type="email"]')
