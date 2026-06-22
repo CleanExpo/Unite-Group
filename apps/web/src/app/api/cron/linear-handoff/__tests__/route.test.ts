@@ -86,9 +86,10 @@ describe('GET /api/cron/linear-handoff', () => {
         issue: { identifier: 'UNI-3001' },
       },
     })
+    // Scoped by team + autonomous labels only — no project filter (it dropped
+    // project-less issues, which is what [Apply] creates).
     expect(mockFetchClaimCandidates).toHaveBeenCalledWith({
       teamKey: 'UNI',
-      projectName: 'Unite-Group',
       labelNames: ['mesh:auto', 'pi-dev:autonomous'],
     })
   })
