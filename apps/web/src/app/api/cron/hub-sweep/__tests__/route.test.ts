@@ -38,6 +38,11 @@ vi.mock('@/lib/integrations/github', () => ({
 // ---------------------------------------------------------------------------
 
 import { GET } from '../route'
+import { OWNED_BUSINESSES } from '@/lib/businesses'
+
+// The sweep covers every owned business. Derive the count from the same source
+// of truth so adding a business doesn't break this test.
+const OWNED_COUNT = OWNED_BUSINESSES.length
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -144,8 +149,8 @@ describe('GET /api/cron/hub-sweep', () => {
     expect(res.status).toBe(200)
 
     const body = await res.json() as { satellitesSwept: number }
-    // 6 owned businesses: dr, nrpg, carsi, restore, synthex, ato
-    expect(body.satellitesSwept).toBe(6)
+    // Every owned business is swept (CCW is client-type and excluded).
+    expect(body.satellitesSwept).toBe(OWNED_COUNT)
   })
 
   it('fetches Linear issue counts and includes them in the upsert', async () => {

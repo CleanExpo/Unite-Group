@@ -502,9 +502,9 @@ describe('runBookkeeperForAllBusinesses', () => {
   it('aggregates transaction counts across all businesses', async () => {
     const result = await runBookkeeperForAllBusinesses(FOUNDER_ID)
 
-    // 7 active owned businesses, each with 1 transaction
-    expect(result.totalTransactions).toBe(7)
-    expect(result.autoReconciled).toBe(7)
+    // every active owned business contributes 1 transaction
+    expect(result.totalTransactions).toBe(ACTIVE_OWNED_COUNT)
+    expect(result.autoReconciled).toBe(ACTIVE_OWNED_COUNT)
   })
 
   it('updates run record with final status on completion', async () => {
@@ -577,7 +577,7 @@ describe('runBookkeeperForAllBusinesses', () => {
     // Skipped businesses are not counted as errors
     const skippedResults = result.businessResults.filter((r) => r.status === 'skipped')
     const errorResults = result.businessResults.filter((r) => r.status === 'error')
-    expect(skippedResults).toHaveLength(7)
+    expect(skippedResults).toHaveLength(ACTIVE_OWNED_COUNT)
     expect(errorResults).toHaveLength(0)
     // With all skipped (0 success, 0 error), status should be 'completed'
     expect(result.status).toBe('completed')
