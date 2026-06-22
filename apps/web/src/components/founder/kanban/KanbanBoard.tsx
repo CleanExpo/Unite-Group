@@ -54,6 +54,8 @@ export function KanbanBoard() {
   const [createOpen, setCreateOpen] = useState(false)
   const [businessFilter, setBusinessFilter] = useState<string | null>(null)
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null)
+  const [applyingColumn, setApplyingColumn] = useState<string | null>(null)
+  const [applyStatus, setApplyStatus] = useState<string | null>(null)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
@@ -90,6 +92,32 @@ export function KanbanBoard() {
     const interval = setInterval(loadIssues, 60_000)
     return () => clearInterval(interval)
   }, [loadIssues])
+
+  // [Apply] — ask the model to generate the next tasks for a stage, given the
+  // full project scope, and push them into the build pipeline (labelled Linear
+  // issues the autopilot CLI claims).
+  async function handleApply(columnId: string) {
+    setApplyingColumn(columnId)
+    setApplyStatus(null)
+    try {
+      const col = columns.find((c) => c.id === columnId)
+      const existingTitles = (col?.cards ?? []).map((c) => c.title)
+      const res = await fetch('/api/kanban/generate-next', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ column: columnId, existingTitles }),
+      })
+      const data = (await res.json()) as { created?: { identifier: string }[]; error?: string }
+      if (!res.ok) throw new Error(data.error ?? 'generation failed')
+      const n = data.created?.length ?? 0
+      setApplyStatus(`Generated ${n} ${columnId.toUpperCase()} task${n === 1 ? '' : 's'} → pushed to the build pipeline`)
+      await loadIssues()
+    } catch (err) {
+      setApplyStatus(`Apply failed: ${err instanceof Error ? err.message : 'unknown error'}`)
+    } finally {
+      setApplyingColumn(null)
+    }
+  }
 
   function findColumnByCardId(cardId: string): string | undefined {
     return columns.find((col) => col.cards.some((c) => c.id === cardId))?.id
@@ -215,6 +243,18 @@ export function KanbanBoard() {
           </button>
         </div>
       )}
+      {applyStatus && (
+        <div
+          className="px-3 py-1.5 rounded-sm text-[12px]"
+          style={{
+            background: applyStatus.startsWith('Apply failed') ? 'rgba(239,68,68,0.08)' : 'var(--color-accent-dim)',
+            border: `1px solid ${applyStatus.startsWith('Apply failed') ? 'rgba(239,68,68,0.3)' : 'var(--color-accent-border)'}`,
+            color: applyStatus.startsWith('Apply failed') ? 'var(--color-danger)' : 'var(--color-accent-text)',
+          }}
+        >
+          {applyStatus}
+        </div>
+      )}
       <BusinessFilter activeFilter={businessFilter} onFilterChange={setBusinessFilter} />
       <DndContext
         sensors={sensors}
@@ -235,6 +275,8 @@ export function KanbanBoard() {
                 cards={filteredCards}
                 isDone={col.id === 'done'}
                 onCardClick={setSelectedIssueId}
+                onApply={col.id !== 'done' ? () => handleApply(col.id) : undefined}
+                applying={applyingColumn === col.id}
               />
             )
           })}
