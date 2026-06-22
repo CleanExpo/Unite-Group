@@ -1,6 +1,6 @@
 # Mission Control × Hermes Agent OS — Phase 1: The 3-Column Shell
 
-**Date:** 2026-06-22 · **Status:** Draft for review
+**Date:** 2026-06-22 · **Status:** Approved (layout validated via interactive mockup 22/06/2026; accent direction — candy green `#2dbb57` vs cyan `#00F5FF` — left open for the build)
 
 ## Vision (the hybrid)
 
