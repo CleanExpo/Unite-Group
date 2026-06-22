@@ -2,7 +2,7 @@
 // Persists routing decisions to the nexus_routing_audit table.
 // Uses the service-role Supabase client so RLS does not block writes.
 
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient, hasSupabaseServiceConfig } from '@/lib/supabase/service'
 import type { RouterInput, RouterResult } from './router'
 
 export interface RoutingAuditRow {
@@ -30,17 +30,12 @@ export async function logRoutingDecision(
   result: RouterResult,
   decidedAt: string,
 ): Promise<void> {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!url || !key) {
+  if (!hasSupabaseServiceConfig()) {
     // Silently skip in test / local environments.
     return
   }
 
-  const client = createClient(url, key, {
-    auth: { persistSession: false },
-  })
+  const client = createServiceClient()
 
   const row: RoutingAuditRow = {
     work_type: input.workType,
