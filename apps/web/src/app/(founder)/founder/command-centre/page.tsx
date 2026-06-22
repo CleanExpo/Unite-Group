@@ -52,6 +52,7 @@ const BRAND_SWATCH: Record<string, string> = {
   'Disaster-Recovery': '#fb7185',
   'DR-NRPG': '#f97316',
   'ATO-APP': '#facc15',
+  'Dimitri-ITR': '#6366f1',
   'CCW-CRM': '#16a34a',
   'Authority-Site': '#16a34a',
   'Nexus-Hub': '#16a34a',

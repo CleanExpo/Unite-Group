@@ -40,6 +40,7 @@ const PROJECTS_BY_BUSINESS_KEY: Record<Business['key'], string[]> = {
   restore: ['RestoreAssist'],
   synthex: ['Synthex'],
   ato: ['ATO-APP'],
+  itr: ['Dimitri-ITR'],
   ccw: ['CCW-CRM', 'CCW'],
 }
 

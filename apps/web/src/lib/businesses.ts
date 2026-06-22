@@ -6,6 +6,7 @@ export const BUSINESSES = [
   { key: 'restore', name: 'RestoreAssist',       color: '#22c55e', status: 'active', type: 'owned'  },
   { key: 'synthex', name: 'SYNTHEX',             color: '#f97316', status: 'active', type: 'owned'  },
   { key: 'ato',    name: 'ATO App',              color: '#3b82f6', status: 'active', type: 'owned'  },
+  { key: 'itr',    name: 'ITR-Button',           color: '#6366f1', status: 'active', type: 'owned'  },
   { key: 'ccw',    name: 'CCW-ERP/CRM',          color: '#DDA0DD', status: 'active', type: 'client' },
 ] as const
 
