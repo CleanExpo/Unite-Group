@@ -239,6 +239,23 @@ export interface CreateIssueInput {
   teamKey: string       // e.g. 'SYN', 'DR', 'GP'
   priority?: number     // 0=no priority, 1=urgent, 2=high, 3=medium, 4=low
   labelNames?: string[] // Linear label names to apply at creation time
+  projectName?: string  // Linear project to file the issue under (e.g. 'Unite-Group')
+}
+
+/**
+ * Resolve a Linear project name to its ID (server-side filter). Returns null if
+ * not found. The autonomous claim loop scopes candidates to a project, so issues
+ * created for the autopilot must set it or they're never claimed.
+ */
+export async function resolveProjectId(projectName: string): Promise<string | null> {
+  if (!isLinearConfigured()) return null
+  const data = await gql<{ projects: { nodes: { id: string; name: string }[] } }>(
+    `query ProjectByName($name: String!) {
+      projects(filter: { name: { eq: $name } }, first: 1) { nodes { id name } }
+    }`,
+    { name: projectName },
+  )
+  return data.projects.nodes[0]?.id ?? null
 }
 
 export async function resolveTeamId(teamKey: string): Promise<string> {
@@ -362,6 +379,7 @@ export async function createIssue(input: CreateIssueInput): Promise<{ id: string
   }
   const teamId = await resolveTeamId(input.teamKey)
   const labelIds = await resolveLabelIds(input.labelNames)
+  const projectId = input.projectName ? await resolveProjectId(input.projectName) : null
 
   const data = await gql<{ issueCreate: { issue: { id: string; identifier: string; url: string } } }>(`
     mutation CreateIssue(
@@ -370,6 +388,7 @@ export async function createIssue(input: CreateIssueInput): Promise<{ id: string
       $description: String
       $priority: Int
       $labelIds: [String!]
+      $projectId: String
     ) {
       issueCreate(input: {
         teamId: $teamId
@@ -377,6 +396,7 @@ export async function createIssue(input: CreateIssueInput): Promise<{ id: string
         description: $description
         priority: $priority
         labelIds: $labelIds
+        projectId: $projectId
       }) {
         issue { id identifier url }
       }
@@ -387,6 +407,7 @@ export async function createIssue(input: CreateIssueInput): Promise<{ id: string
     description: input.description,
     priority: input.priority,
     labelIds,
+    projectId,
   })
 
   return { id: data.issueCreate.issue.identifier, url: data.issueCreate.issue.url }

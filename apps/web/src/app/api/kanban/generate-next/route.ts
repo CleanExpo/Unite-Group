@@ -122,6 +122,9 @@ export async function POST(request: Request) {
     try {
       const issue = await createIssue({
         teamKey: 'UNI',
+        // The autonomous claim loop only considers issues in this project — without
+        // it [Apply] tasks are created but never claimed/built by the runner.
+        projectName: 'Unite-Group',
         title: t.title,
         description: [
           t.context,
