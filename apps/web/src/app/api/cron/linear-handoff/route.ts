@@ -37,7 +37,6 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 const TEAM_KEY = 'UNI'
-const PROJECT_NAME = 'Unite-Group'
 const IN_PROGRESS_STATE = 'In Progress'
 
 function toCandidate(raw: LinearClaimCandidateRaw): ClaimCandidate {
@@ -76,9 +75,13 @@ export async function GET(request: Request) {
     const result = await claimNextEligibleIssue(
       {
         listCandidates: async () => {
+          // Scope by team + autonomous labels only — NOT by Linear project. The
+          // autonomous opt-in IS the label (mesh:auto / pi-dev:autonomous); a
+          // project filter dropped every project-less issue, which is exactly what
+          // [Apply] and the working UNI-2176 smoke test (#381) create — so the
+          // handoff returned candidates_total: 0 and the runner never built.
           const raw = await fetchClaimCandidates({
             teamKey: TEAM_KEY,
-            projectName: PROJECT_NAME,
             labelNames: [...AUTONOMOUS_LABELS],
           })
           return raw.map(toCandidate)
