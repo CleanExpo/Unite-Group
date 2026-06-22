@@ -49,6 +49,25 @@ describe('Linear integration', () => {
     expect(requests[0].query).toContain('issueLabels')
   })
 
+  it('resolves labels via a server-side name filter (no fetch-all 1000-label cap)', async () => {
+    const requests: GraphqlRequest[] = []
+    const fetchMock = vi.fn(async (_url: string, init: RequestInit) => {
+      const request = JSON.parse(String(init.body)) as GraphqlRequest
+      requests.push(request)
+      return response({ issueLabels: { nodes: [{ id: 'l-src', name: 'source:hermes-kanban' }] } })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { resolveLabelIds } = await loadLinear()
+    await expect(resolveLabelIds(['source:hermes-kanban'])).resolves.toEqual(['l-src'])
+
+    // Must filter by name on the server (passes names as variables) rather than
+    // paginating all labels — otherwise needed labels fall off the cap in the
+    // shared mega-workspace and resolve as "not found".
+    expect(requests[0].query).toContain('name: { in: $names }')
+    expect(requests[0].variables).toEqual({ names: ['source:hermes-kanban'] })
+  })
+
   it('fails loudly when a requested Linear label is missing', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => response({
       issueLabels: {

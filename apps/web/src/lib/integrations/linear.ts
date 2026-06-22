@@ -286,11 +286,33 @@ export async function fetchIssueLabels(): Promise<LinearIssueLabel[]> {
   return labels
 }
 
+/**
+ * Look up labels by exact name via a SERVER-SIDE filter.
+ *
+ * The workspace is a shared mega-workspace with thousands of labels, so fetching
+ * them all and filtering client-side (fetchIssueLabels caps at 1000) silently
+ * drops labels — resolution then fails with "label not found" even though the
+ * label exists (this broke the Kanban [Apply] task-generator). Filtering by name
+ * on the server is O(requested) and has no cap.
+ */
+async function fetchLabelsByName(names: string[]): Promise<LinearIssueLabel[]> {
+  if (names.length === 0) return []
+  const data = await gql<{ issueLabels: { nodes: LinearIssueLabel[] } }>(
+    `query LabelsByName($names: [String!]) {
+      issueLabels(filter: { name: { in: $names } }, first: 250) {
+        nodes { id name }
+      }
+    }`,
+    { names },
+  )
+  return data.issueLabels.nodes
+}
+
 export async function resolveLabelIds(labelNames: string[] = []): Promise<string[]> {
   const wantedLabels = Array.from(new Set(labelNames.map(label => label.trim()).filter(Boolean)))
   if (wantedLabels.length === 0) return []
 
-  const labels = await fetchIssueLabels()
+  const labels = await fetchLabelsByName(wantedLabels)
   const labelsByName = new Map(labels.map(label => [label.name.toLowerCase(), label.id]))
   const missingLabels: string[] = []
   const labelIds: string[] = []
@@ -325,7 +347,7 @@ async function createIssueLabel(name: string): Promise<string> {
 export async function resolveOrCreateLabelIds(labelNames: string[] = []): Promise<string[]> {
   const wanted = Array.from(new Set(labelNames.map((l) => l.trim()).filter(Boolean)))
   if (wanted.length === 0) return []
-  const existing = await fetchIssueLabels()
+  const existing = await fetchLabelsByName(wanted)
   const byName = new Map(existing.map((l) => [l.name.toLowerCase(), l.id]))
   const ids: string[] = []
   for (const name of wanted) {
