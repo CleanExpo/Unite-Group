@@ -269,35 +269,79 @@ export async function* runDebate(
   }
 
   // ── Judge Phase ────────────────────────────────────────────────────────
-  yield { event: 'judge_start' }
-
   const finalRoundProposals = allRoundProposals[4] // Round 5 (0-indexed = 4)
   if (!finalRoundProposals) {
+    yield { event: 'judge_start' }
     yield { event: 'error', message: 'No final round proposals found for judging' }
     return
   }
+
+  // Partial-debate accounting (Step 3 / F2). The Judge scores the persisted
+  // round-5 set; if any firm dropped, it scored fewer than 4 firms.
+  const scoredFirmCount = finalRoundPersistedFirms.length || FIRM_KEYS.length
+  const droppedList = Array.from(droppedFirms)
+
+  const judged = yield* runJudgePhase({
+    supabase,
+    caseId,
+    founderId,
+    caseTitle: advisoryCase.title,
+    scenario,
+    financialContext,
+    finalRoundProposals,
+    scoredFirmCount,
+    droppedFirms: droppedList,
+  })
+
+  if (judged) yield { event: 'case_complete' }
+}
+
+// ── Judge Phase (shared by runDebate and reJudgeCase) ──────────────────────────
+
+interface JudgePhaseArgs {
+  supabase: ReturnType<typeof createServiceClient>
+  caseId: string
+  founderId: string
+  caseTitle: string
+  scenario: string
+  financialContext: FinancialContext
+  finalRoundProposals: RoundProposals
+  /** How many of the 4 firms persisted in round 5 (drives the honest "N of 4" note). */
+  scoredFirmCount: number
+  /** Firms dropped from the persisted set, if any (partial-debate markers). */
+  droppedFirms: FirmKey[]
+}
+
+/**
+ * Run ONLY the Judge phase: score the persisted round-5 proposals, store scores,
+ * create the approval-queue entry, and move the case to 'pending_review'.
+ *
+ * Yields judge_start, then judge_complete (success) or error (failure). On failure
+ * the case is left/parked at 'judged' so it can be recovered via reJudgeCase.
+ *
+ * Returns true when judging completed (so the caller can emit case_complete),
+ * false when it failed.
+ */
+async function* runJudgePhase(args: JudgePhaseArgs): AsyncGenerator<DebateEvent, boolean> {
+  const {
+    supabase, caseId, founderId, caseTitle, scenario, financialContext,
+    finalRoundProposals, scoredFirmCount, droppedFirms,
+  } = args
+
+  yield { event: 'judge_start' }
+
+  const isPartial = droppedFirms.length > 0
 
   // Recall founder's advisory memory to give the judge cross-session context.
   // Runs concurrently — does not block if the memory store is slow or empty.
   const memoryContext = await recallAdvisoryContext(founderId)
 
-  // Partial-debate accounting (Step 3 / F2). The Judge scores the persisted
-  // round-5 set; if any firm dropped, it scored fewer than 4 firms and must be
-  // told so the summary states it honestly.
-  const scoredFirmCount = finalRoundPersistedFirms.length || FIRM_KEYS.length
-  const isPartial = droppedFirms.size > 0
-  const droppedList = Array.from(droppedFirms)
-
   try {
-    const judgeMessageBase = buildJudgeUserMessage(
-      scenario,
-      financialContext,
-      finalRoundProposals
-    )
+    const judgeMessageBase = buildJudgeUserMessage(scenario, financialContext, finalRoundProposals)
     // When the debate is partial, tell the Judge up front so its summary is honest.
     const partialNote = isPartial
       ? `\n\n### Degraded debate\nThis debate is PARTIAL: you scored ${scoredFirmCount} of ${FIRM_KEYS.length} firms. ` +
-        `The following firm(s) failed to persist and are not in the scored set: ${droppedList.join(', ')}. ` +
+        `The following firm(s) failed to persist and are not in the scored set: ${droppedFirms.join(', ')}. ` +
         `Your summary MUST state "scored ${scoredFirmCount} of ${FIRM_KEYS.length} firms" and must not present this as a complete debate.`
       : ''
     // Append memory context after the structured case content if available.
@@ -311,7 +355,7 @@ export async function* runDebate(
     if (isPartial) {
       scores.partial = true
       scores.scoredFirmCount = scoredFirmCount
-      scores.droppedFirms = droppedList
+      scores.droppedFirms = droppedFirms
       if (!/of \d+ firms/i.test(scores.summary)) {
         scores.summary = `Scored ${scoredFirmCount} of ${FIRM_KEYS.length} firms (partial debate). ${scores.summary}`
       }
@@ -347,7 +391,7 @@ export async function* runDebate(
       .insert({
         founder_id: founderId,
         type: 'advisory_strategy',
-        title: `Advisory: ${advisoryCase.title}`,
+        title: `Advisory: ${caseTitle}`,
         description: scores.summary.slice(0, 500),
         payload: {
           case_id: caseId,
@@ -359,7 +403,7 @@ export async function* runDebate(
       .select('id')
       .single()
 
-    // ── Update case to judged ────────────────────────────────────────────
+    // ── Update case to pending_review ────────────────────────────────────
     const caseUpdate: Record<string, unknown> = {
       status: 'pending_review',
       winning_firm: scores.winner,
@@ -385,35 +429,116 @@ export async function* runDebate(
     )
     notify({
       type: 'advisory_update',
-      title: `Advisory case complete: ${advisoryCase.title}`,
+      title: `Advisory case complete: ${caseTitle}`,
       body: `Winner: ${winnerMeta?.name ?? scores.winner} (${winnerEntry?.weightedTotal ?? '—'}/100). ${scores.summary}`,
       severity: 'info',
     }).catch(() => {})
 
     // Persist debate outcome to memory — fire-and-forget so a storage failure
-    // never delays the case_complete event emitted below.
+    // never delays the case_complete event emitted by the caller.
     storeAdvisoryOutcome(
       founderId,
-      advisoryCase.title,
+      caseTitle,
       caseId,
       judgeResult.scores,
       financialContext
     ).catch(err => {
       console.error('[debate-engine] Failed to store advisory memory:', err instanceof Error ? err.message : err)
     })
+
+    return true
   } catch (judgeError) {
     const msg = judgeError instanceof Error ? judgeError.message : 'Unknown judge failure'
     yield { event: 'error', message: `Judge failed: ${msg}` }
 
-    // Mark case as judged (incomplete) so it can be re-triggered
+    // Mark case as judged (incomplete) so it can be recovered via reJudgeCase.
     await supabase
       .from('advisory_cases')
       .update({ status: 'judged' })
       .eq('id', caseId)
+    return false
+  }
+}
+
+/**
+ * Recover a case stranded at status='judged' (the judge phase failed mid-run after
+ * the rounds persisted). Re-runs ONLY the Judge phase from the persisted round-5
+ * proposals — it does NOT re-run the 5-round debate. Ends at 'pending_review'
+ * (Step 5 / F4). Founder-scoped.
+ */
+export async function* reJudgeCase(
+  caseId: string,
+  founderId: string
+): AsyncGenerator<DebateEvent> {
+  const supabase = createServiceClient()
+
+  // ── Load the case ──────────────────────────────────────────────────────
+  const { data: caseRow, error: caseError } = await supabase
+    .from('advisory_cases')
+    .select('*')
+    .eq('id', caseId)
+    .eq('founder_id', founderId)
+    .single()
+
+  if (caseError || !caseRow) {
+    yield { event: 'error', message: `Case not found: ${caseError?.message ?? 'unknown'}` }
     return
   }
 
-  yield { event: 'case_complete' }
+  const advisoryCase = caseRow as AdvisoryCase
+
+  // Only a case stuck at 'judged' (judge incomplete) is eligible for re-judge.
+  if (advisoryCase.status !== 'judged') {
+    yield { event: 'error', message: `Case status is '${advisoryCase.status}' — only a 'judged' (incomplete) case can be re-judged` }
+    return
+  }
+
+  const scenario = advisoryCase.scenario
+  const financialContext = advisoryCase.financial_context as FinancialContext
+
+  // ── Load persisted round-5 proposals ────────────────────────────────────
+  const { data: proposals, error: proposalsError } = await supabase
+    .from('advisory_proposals')
+    .select('firm_key, content, round')
+    .eq('case_id', caseId)
+    .eq('founder_id', founderId)
+    .eq('round', 5)
+    .order('firm_key', { ascending: true })
+
+  if (proposalsError) {
+    yield { event: 'error', message: `Failed to load round-5 proposals: ${proposalsError.message}` }
+    return
+  }
+
+  const round5 = (proposals ?? []) as Array<{ firm_key: FirmKey; content: string }>
+  if (round5.length === 0) {
+    yield { event: 'error', message: 'No persisted round-5 proposals to judge — cannot recover this case' }
+    return
+  }
+
+  // Rebuild the final-round proposal map the judge expects.
+  const finalRoundProposals = {} as RoundProposals
+  for (const p of round5) {
+    finalRoundProposals[p.firm_key] = p.content
+  }
+
+  // A persisted firm that's missing from round 5 was dropped — report it honestly.
+  const persistedFirms = round5.map(p => p.firm_key)
+  const droppedFirms = FIRM_KEYS.filter(k => !persistedFirms.includes(k))
+
+  const judged = yield* runJudgePhase({
+    supabase,
+    caseId,
+    founderId,
+    caseTitle: advisoryCase.title,
+    scenario,
+    financialContext,
+    finalRoundProposals,
+    scoredFirmCount: persistedFirms.length,
+    droppedFirms,
+  })
+
+  if (judged) yield { event: 'case_complete' }
 }
 
 // ── Concurrency Pool ───────────────────────────────────────────────────────
