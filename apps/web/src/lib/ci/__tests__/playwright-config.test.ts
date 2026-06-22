@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const originalCi = process.env.CI;
@@ -23,5 +26,12 @@ describe('Playwright CI browser configuration', () => {
     const chromiumProject = config.projects?.find((project) => project.name === 'chromium');
 
     expect(chromiumProject?.use?.channel).toBe('chrome');
+  });
+
+  it('passes authenticated Playwright credentials into the E2E job from GitHub secrets', () => {
+    const workflow = readFileSync(join(process.cwd(), '../../.github/workflows/ci.yml'), 'utf8');
+
+    expect(workflow).toContain('PLAYWRIGHT_TEST_EMAIL: ${{ secrets.PLAYWRIGHT_TEST_EMAIL }}');
+    expect(workflow).toContain('PLAYWRIGHT_TEST_PASSWORD: ${{ secrets.PLAYWRIGHT_TEST_PASSWORD }}');
   });
 });

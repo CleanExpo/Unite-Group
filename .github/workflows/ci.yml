@@ -129,6 +129,10 @@ jobs:
       VAULT_ENCRYPTION_KEY: ${{ secrets.VAULT_ENCRYPTION_KEY || '12345678901234567890123456789012' }}
       CRON_SECRET: ${{ secrets.CRON_SECRET || 'ci-placeholder-cron-secret' }}
       FOUNDER_USER_ID: ${{ secrets.FOUNDER_USER_ID || '00000000-0000-0000-0000-000000000000' }}
+      # Authenticated E2E specs read these directly and fail closed if the
+      # test-user secrets are absent. Values are supplied by GitHub secrets only.
+      PLAYWRIGHT_TEST_EMAIL: ${{ secrets.PLAYWRIGHT_TEST_EMAIL }}
+      PLAYWRIGHT_TEST_PASSWORD: ${{ secrets.PLAYWRIGHT_TEST_PASSWORD }}
     steps:
       - uses: actions/checkout@v6
 
