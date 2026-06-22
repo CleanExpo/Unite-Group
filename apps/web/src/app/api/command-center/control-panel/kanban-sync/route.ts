@@ -20,6 +20,19 @@ import {
 
 export const dynamic = 'force-dynamic'
 
+const SENSITIVE_ASSIGNMENT_KEY = String.raw`(?:[A-Z0-9_]*(?:SECRET|TOKEN|PASSWORD|PASSWD|API_KEY|SERVICE_ROLE_KEY)[A-Z0-9_]*)`
+
+function redactSensitiveText(value: string): string {
+  return value
+    .replace(new RegExp(`\\b(${SENSITIVE_ASSIGNMENT_KEY})\\s*=\\s*(["'])(.*?)\\2`, 'gi'), '$1=$2[REDACTED]$2')
+    .replace(new RegExp(`\\b(${SENSITIVE_ASSIGNMENT_KEY})\\s*=\\s*[^\\s;,]+`, 'gi'), '$1=[REDACTED]')
+    .replace(/\b[\w.%+-]+@[\w.-]+\.[A-Za-z]{2,}\b/g, '[REDACTED]')
+    .replace(/\bBOARD-[A-Za-z0-9-]+\b/g, '[REDACTED]')
+    .replace(/\b(Bearer\s+)?[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/gi, '$1[REDACTED]')
+    .replace(/\+?61[\s-]?(?:\(?0?\d\)?[\s-]?){8,9}\b/g, '[REDACTED]')
+    .replace(/\b(?:card\s+(?:ending|ending in|last four)|ending)\s+\d{4}\b/gi, '[REDACTED]')
+}
+
 function metadataString(task: CommandCentreTask, key: string): string | null {
   const raw = (task.metadata as Record<string, unknown>)?.[key]
   return typeof raw === 'string' ? raw : null
@@ -50,7 +63,7 @@ function laneFor(task: CommandCentreTask): string {
 
 function bodyFor(task: CommandCentreTask): string {
   return [
-    task.objective || task.title,
+    redactSensitiveText(task.objective || task.title),
     '',
     `CC task: ${task.id}`,
     `CC status: ${task.status}`,
@@ -65,10 +78,11 @@ function bodyFor(task: CommandCentreTask): string {
 }
 
 function toSyncPacket(task: CommandCentreTask) {
+  const safeTitle = redactSensitiveText(task.title)
   return {
     ccTaskId: task.id,
     idempotencyKey: `cc-task-${task.id}`,
-    title: task.title,
+    title: safeTitle,
     lane: laneFor(task),
     status: task.status,
     priority: task.priority,
@@ -76,7 +90,7 @@ function toSyncPacket(task: CommandCentreTask) {
     tags: metadataTags(task),
     updatedAt: task.updated_at ?? task.created_at,
     kanban: {
-      title: task.title,
+      title: safeTitle,
       body: bodyFor(task),
       status: task.status === 'blocked' || task.status === 'awaiting_approval' ? 'blocked' : 'triage',
       priority: task.priority === 'P0' || task.priority === 'P1' ? 100 : 80,
