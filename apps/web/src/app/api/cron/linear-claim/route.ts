@@ -9,6 +9,12 @@
 //
 // SAFETY: DRY-RUN unless `CC_LINEAR_LIVE === '1'` (same gate as linear-sync).
 // CRON_SECRET-guarded. Never pushes to git/main — it only updates Linear.
+//
+// NOTE: This is NOT a scheduled Vercel cron. The Stage-3 autopilot runner now
+// claims atomically via /api/cron/linear-handoff (claim-on-handoff when live),
+// so a standalone claim cron would move issues to "In Progress" without building
+// them (orphans) and race the runner. This route is retained for manual / ad-hoc
+// claims only. See apps/autopilot-runner and the linear-handoff route.
 
 import { NextResponse } from 'next/server'
 import {

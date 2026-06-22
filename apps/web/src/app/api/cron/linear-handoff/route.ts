@@ -1,13 +1,29 @@
 // src/app/api/cron/linear-handoff/route.ts
 // GET /api/cron/linear-handoff
 //
-// Read-only runner handoff for RANA / CLI. It selects the same next eligible
-// autonomous Linear issue as the claim loop and returns the execution_packet,
-// but does NOT move the issue or write comments. CRON_SECRET-guarded.
+// Runner handoff for the Stage-3 autopilot runner (apps/autopilot-runner). It
+// selects the next eligible autonomous Linear issue and returns its
+// execution_packet for the runner to build.
+//
+// CLAIMING (the key to unattended operation):
+//   - When CC_LINEAR_LIVE === '1', the handoff ATOMICALLY CLAIMS the issue it
+//     returns — moves it to "In Progress" and writes a claim receipt — BEFORE
+//     handing it off. Because selection only ever considers unstarted/backlog
+//     issues, the next tick cannot re-select an already-claimed issue, so the
+//     runner never opens duplicate PRs and can run unattended (no manual disarm
+//     after each PR).
+//   - When the gate is OFF, it stays a pure READ-ONLY dry-run (selects + returns
+//     the packet, makes zero mutating Linear calls) — the safe default.
+//
+// CRON_SECRET-guarded. Never pushes to git/main — it only updates Linear state.
+// Double-gated exactly like /api/cron/linear-claim (opts.live && CC_LINEAR_LIVE).
 
 import { NextResponse } from 'next/server'
 import {
   fetchClaimCandidates,
+  resolveStateId,
+  updateIssueState,
+  addComment,
   type LinearClaimCandidateRaw,
 } from '@/lib/integrations/linear'
 import {
@@ -18,10 +34,11 @@ import {
 } from '@/lib/command-centre/linear-claim'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 30
+export const maxDuration = 60
 
 const TEAM_KEY = 'UNI'
 const PROJECT_NAME = 'Unite-Group'
+const IN_PROGRESS_STATE = 'In Progress'
 
 function toCandidate(raw: LinearClaimCandidateRaw): ClaimCandidate {
   return {
@@ -48,6 +65,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: 'Unauthorised' }, { status: 401 })
   }
 
+  // Live claim requires the explicit env gate; otherwise this is a read-only dry-run.
+  const live = process.env.CC_LINEAR_LIVE === '1'
+
+  const readOnly = async () => {
+    throw new Error('linear-handoff is read-only (CC_LINEAR_LIVE != 1)')
+  }
+
   try {
     const result = await claimNextEligibleIssue(
       {
@@ -59,16 +83,21 @@ export async function GET(request: Request) {
           })
           return raw.map(toCandidate)
         },
-        moveToInProgress: async () => {
-          throw new Error('linear-handoff is read-only')
-        },
-        postComment: async () => {
-          throw new Error('linear-handoff is read-only')
-        },
+        moveToInProgress: live
+          ? async (issueId: string) => {
+              const stateId = await resolveStateId(TEAM_KEY, IN_PROGRESS_STATE)
+              await updateIssueState(issueId, stateId)
+            }
+          : readOnly,
+        postComment: live
+          ? async (issueId: string, body: string) => {
+              await addComment(issueId, body)
+            }
+          : readOnly,
       },
       {
-        live: false,
-        runner: 'rana-cli',
+        live,
+        runner: live ? 'pi-dev-autopilot' : 'rana-cli',
         runId: `handoff-${new Date().toISOString()}`,
       },
     )
@@ -77,9 +106,7 @@ export async function GET(request: Request) {
       ok: true,
       source: 'command-centre:linear-handoff',
       ...result,
-      next_action: result.execution_packet
-        ? 'claim_and_build'
-        : 'idle',
+      next_action: result.execution_packet ? 'claim_and_build' : 'idle',
     })
   } catch (err) {
     return NextResponse.json(

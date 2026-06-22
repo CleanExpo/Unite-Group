@@ -61,10 +61,6 @@
       "schedule": "0 13 * * *"
     },
     {
-      "path": "/api/cron/linear-claim",
-      "schedule": "*/10 * * * *"
-    },
-    {
       "path": "/api/cron/linear-queue-health",
       "schedule": "*/30 * * * *"
     },
@@ -155,7 +151,7 @@
       "maxDuration": 60
     },
     "src/app/api/cron/linear-handoff/route.ts": {
-      "maxDuration": 30
+      "maxDuration": 60
     },
     "src/app/api/cron/linear-queue-health/route.ts": {
       "maxDuration": 30
