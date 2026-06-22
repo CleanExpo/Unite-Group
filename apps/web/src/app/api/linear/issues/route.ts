@@ -10,7 +10,9 @@ import {
   updateIssueState,
   createIssue,
   stateToColumn,
-  teamKeyToBusiness,
+  issueToBusiness,
+  BUSINESS_TO_TEAM,
+  projectNameForBusiness,
   COLUMN_TO_STATE_NAME,
 } from '@/lib/integrations/linear'
 import { BUSINESSES } from '@/lib/businesses'
@@ -64,7 +66,7 @@ export async function GET() {
 
     for (const issue of issues) {
       const colId = stateToColumn(issue.state)
-      const businessKey = teamKeyToBusiness(issue.team.key)
+      const businessKey = issueToBusiness(issue)
       columns[colId].push({
         id: issue.id,
         title: `${issue.identifier} — ${issue.title}`,
@@ -98,22 +100,31 @@ export async function POST(request: Request) {
     const body = await request.json() as {
       title?: string
       description?: string
+      businessKey?: string
       teamKey?: string
       priority?: number
     }
 
-    if (!body.title?.trim() || !body.teamKey) {
+    // Prefer businessKey: it resolves both the Linear team AND the project, so
+    // the new issue round-trips to the correct Kanban card (businesses sharing a
+    // team — itr/ato/ccw on UNI — are only distinguished by project). teamKey is
+    // still accepted for backward compatibility.
+    const teamKey = body.businessKey ? BUSINESS_TO_TEAM[body.businessKey] : body.teamKey
+    const projectName = body.businessKey ? projectNameForBusiness(body.businessKey) : undefined
+
+    if (!body.title?.trim() || !teamKey) {
       return NextResponse.json(
-        { error: 'Missing required fields: title, teamKey' },
+        { error: 'Missing required fields: title, and a valid businessKey or teamKey' },
         { status: 400 },
       )
     }
 
     const issue = await createIssue({
-      teamKey: body.teamKey,
+      teamKey,
       title: body.title.trim(),
       description: body.description ?? '',
       priority: body.priority ?? 3,
+      ...(projectName ? { projectName } : {}),
     })
 
     return NextResponse.json({ identifier: issue.id, url: issue.url }, { status: 201 })

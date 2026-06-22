@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { BUSINESSES } from '@/lib/businesses'
-import { BUSINESS_TO_TEAM } from '@/lib/integrations/linear'
 
 interface CreateIssueModalProps {
   open: boolean
@@ -52,18 +51,14 @@ export function CreateIssueModal({ open, onClose, onCreated }: CreateIssueModalP
     setSubmitting(true)
     setError(null)
 
-    const teamKey = BUSINESS_TO_TEAM[businessKey]
-    if (!teamKey) {
-      setError(`No Linear team mapped for ${businessKey}`)
-      setSubmitting(false)
-      return
-    }
-
     try {
+      // Send businessKey; the server resolves the Linear team AND project so the
+      // issue round-trips to the correct Kanban card (businesses that share a
+      // team are only distinguished by project).
       const res = await fetch('/api/linear/issues', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: title.trim(), description, teamKey, priority }),
+        body: JSON.stringify({ title: title.trim(), description, businessKey, priority }),
       })
 
       if (!res.ok) {

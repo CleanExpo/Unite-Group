@@ -1,4 +1,5 @@
 import { BUSINESSES, type Business } from '@/lib/businesses'
+import { PROJECTS_BY_BUSINESS_KEY } from '@/lib/integrations/linear'
 import type { CommandCentreProject } from './registry'
 
 export type BusinessSignal = 'live' | 'watch' | 'needs_repo' | 'needs_url'
@@ -31,17 +32,6 @@ export interface BusinessFocusPayload {
     needsUrl: number
   }
   items: BusinessFocusItem[]
-}
-
-const PROJECTS_BY_BUSINESS_KEY: Record<Business['key'], string[]> = {
-  dr: ['Disaster-Recovery'],
-  nrpg: ['DR-NRPG'],
-  carsi: ['CARSI'],
-  restore: ['RestoreAssist'],
-  synthex: ['Synthex'],
-  ato: ['ATO-APP'],
-  itr: ['Dimitri-ITR'],
-  ccw: ['CCW-CRM', 'CCW'],
 }
 
 function normalize(value: string): string {

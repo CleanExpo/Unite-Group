@@ -3,14 +3,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn() }))
 vi.mock('@/lib/integrations/linear', () => ({
   fetchIssue: vi.fn(),
-  teamKeyToBusiness: vi.fn(),
+  issueToBusiness: vi.fn(),
 }))
 vi.mock('@/lib/businesses', () => ({
   BUSINESSES: [{ key: 'dr', name: 'Disaster Recovery', color: '#ff0000' }],
 }))
 
 import { getUser } from '@/lib/supabase/server'
-import { fetchIssue, teamKeyToBusiness } from '@/lib/integrations/linear'
+import { fetchIssue, issueToBusiness } from '@/lib/integrations/linear'
 import { GET } from '../route'
 
 const ctx = (id: string) => ({ params: Promise.resolve({ id }) })
@@ -18,7 +18,7 @@ const ctx = (id: string) => ({ params: Promise.resolve({ id }) })
 describe('GET /api/linear/issues/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(teamKeyToBusiness).mockReturnValue('dr')
+    vi.mocked(issueToBusiness).mockReturnValue('dr')
     vi.mocked(fetchIssue).mockResolvedValue({
       id: 'LIN-1',
       title: 'Test issue',

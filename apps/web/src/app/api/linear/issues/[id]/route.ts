@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
-import { fetchIssue, teamKeyToBusiness } from '@/lib/integrations/linear'
+import { fetchIssue, issueToBusiness } from '@/lib/integrations/linear'
 import { BUSINESSES } from '@/lib/businesses'
 
 export async function GET(
@@ -16,7 +16,7 @@ export async function GET(
 
   try {
     const issue = await fetchIssue(id)
-    const businessKey = teamKeyToBusiness(issue.team.key)
+    const businessKey = issueToBusiness(issue)
     const business = BUSINESSES.find((b) => b.key === businessKey)
 
     return NextResponse.json({

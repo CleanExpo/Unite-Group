@@ -38,6 +38,10 @@ export interface LinearIssue {
   title: string
   priority: number      // 0=none 1=urgent 2=high 3=normal 4=low
   team: { id: string; key: string; name: string }
+  // Linear project the issue is filed under. Several businesses share one team
+  // (UNI covers ccw + ato + itr; DR covers dr + nrpg), so the project is what
+  // tells them apart on the Kanban board. Null when the issue has no project.
+  project?: { id: string; name: string } | null
   state: LinearState
 }
 
@@ -92,10 +96,61 @@ export const BUSINESS_TO_TEAM: Record<string, string> = {
   restore:  'RA',
   ccw:      'UNI',
   ato:      'UNI',
+  itr:      'UNI',
 }
+
+// Canonical Linear project names per business key. This is the single source of
+// truth for the Kanban board, business-focus, and issue creation. Businesses
+// that share a Linear team are distinguished here by their project.
+export const PROJECTS_BY_BUSINESS_KEY: Record<string, string[]> = {
+  dr:      ['Disaster-Recovery'],
+  nrpg:    ['DR-NRPG'],
+  carsi:   ['CARSI'],
+  restore: ['RestoreAssist'],
+  synthex: ['Synthex'],
+  ato:     ['ATO-APP'],
+  itr:     ['Dimitri-ITR'],
+  ccw:     ['CCW-CRM', 'CCW'],
+}
+
+const normalizeProject = (name: string): string => name.trim().toLowerCase()
+
+// Inverse of PROJECTS_BY_BUSINESS_KEY: normalised project name → business key.
+const PROJECT_TO_BUSINESS: Record<string, string> = Object.entries(
+  PROJECTS_BY_BUSINESS_KEY,
+).reduce<Record<string, string>>((acc, [businessKey, projectNames]) => {
+  for (const projectName of projectNames) acc[normalizeProject(projectName)] = businessKey
+  return acc
+}, {})
 
 export function teamKeyToBusiness(teamKey: string): string {
   return TEAM_TO_BUSINESS[teamKey] ?? 'ccw'
+}
+
+/**
+ * Resolve a Linear issue to its business key for the Kanban board. Prefers the
+ * issue's project (the only thing that distinguishes businesses sharing a team —
+ * e.g. itr/ato/ccw on UNI), falling back to the team-level mapping when the
+ * issue has no project or an unrecognised one.
+ */
+export function issueToBusiness(
+  issue: { team: { key: string }; project?: { name: string } | null },
+): string {
+  const projectName = issue.project?.name
+  if (projectName) {
+    const byProject = PROJECT_TO_BUSINESS[normalizeProject(projectName)]
+    if (byProject) return byProject
+  }
+  return teamKeyToBusiness(issue.team.key)
+}
+
+/**
+ * Canonical Linear project name to file a new issue under for a business, so it
+ * round-trips to the correct Kanban card. Returns undefined when the business
+ * has no project mapping.
+ */
+export function projectNameForBusiness(businessKey: string): string | undefined {
+  return PROJECTS_BY_BUSINESS_KEY[businessKey]?.[0]
 }
 
 // ─── Queries ─────────────────────────────────────────────────────────────────
@@ -132,6 +187,7 @@ export async function fetchIssues(): Promise<LinearIssue[]> {
           title
           priority
           team { id key name }
+          project { id name }
           state { id name type }
         }
         pageInfo { hasNextPage endCursor }
@@ -192,6 +248,7 @@ export async function fetchIssue(id: string): Promise<LinearIssueDetail> {
         createdAt
         updatedAt
         team { id key name }
+        project { id name }
         state { id name type }
         labels { nodes { id name color } }
       }
@@ -421,7 +478,7 @@ export async function fetchIssueCountByBusiness(): Promise<Record<string, number
   const issues = await fetchIssues()
   const counts: Record<string, number> = {}
   for (const issue of issues) {
-    const bizKey = teamKeyToBusiness(issue.team.key)
+    const bizKey = issueToBusiness(issue)
     counts[bizKey] = (counts[bizKey] ?? 0) + 1
   }
   return counts
