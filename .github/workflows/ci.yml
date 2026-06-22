@@ -145,16 +145,8 @@ jobs:
       - name: Install Playwright system deps
         run: pnpm exec playwright install-deps chromium
 
-      - name: Cache Playwright browser binary
-        uses: actions/cache@v4
-        id: playwright-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('apps/web/pnpm-lock.yaml') }}
-
-      - name: Install Playwright browser binary
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: pnpm exec playwright install chromium
+      - name: Verify hosted Chrome is available
+        run: google-chrome --version
 
       - name: Run Playwright tests
         run: pnpm exec playwright test
