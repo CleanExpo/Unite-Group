@@ -99,25 +99,27 @@ export const BUSINESS_TO_TEAM: Record<string, string> = {
   itr:      'UNI',
 }
 
-// Canonical Linear project names per business key. This is the single source of
-// truth for the Kanban board, business-focus, and issue creation. Businesses
-// that share a Linear team are distinguished here by their project.
-export const PROJECTS_BY_BUSINESS_KEY: Record<string, string[]> = {
-  dr:      ['Disaster-Recovery'],
-  nrpg:    ['DR-NRPG'],
-  carsi:   ['CARSI'],
-  restore: ['RestoreAssist'],
-  synthex: ['Synthex'],
-  ato:     ['ATO-APP'],
-  itr:     ['Dimitri-ITR'],
-  ccw:     ['CCW-CRM', 'CCW'],
+// Actual Linear project names per business key, for businesses that SHARE a
+// Linear team and so can't be told apart by team alone (UNI → ccw/ato/itr;
+// DR → dr/nrpg). Names verified against the live Linear workspace 22/06/2026.
+// Businesses with their own team (synthex/SYN, carsi/GP, restore/RA) need no
+// entry — the team mapping already identifies them.
+// NOTE: these are LINEAR project names, distinct from the repo-style names the
+// CommandCentre registry uses in business-focus.ts. Keep the two in sync by
+// intent, not by sharing — they reference different systems.
+const LINEAR_PROJECTS_BY_BUSINESS: Record<string, string[]> = {
+  itr:  ['Dimitri ITR Platform'],
+  ato:  ['ATO'],
+  ccw:  ['CCW CRM'],
+  dr:   ['Disaster Recovery Website'],
+  nrpg: ['DR-NRPG Ops', 'DR-NRPG Contractor Onboarding'],
 }
 
 const normalizeProject = (name: string): string => name.trim().toLowerCase()
 
-// Inverse of PROJECTS_BY_BUSINESS_KEY: normalised project name → business key.
+// Inverse of LINEAR_PROJECTS_BY_BUSINESS: normalised project name → business key.
 const PROJECT_TO_BUSINESS: Record<string, string> = Object.entries(
-  PROJECTS_BY_BUSINESS_KEY,
+  LINEAR_PROJECTS_BY_BUSINESS,
 ).reduce<Record<string, string>>((acc, [businessKey, projectNames]) => {
   for (const projectName of projectNames) acc[normalizeProject(projectName)] = businessKey
   return acc
@@ -150,7 +152,7 @@ export function issueToBusiness(
  * has no project mapping.
  */
 export function projectNameForBusiness(businessKey: string): string | undefined {
-  return PROJECTS_BY_BUSINESS_KEY[businessKey]?.[0]
+  return LINEAR_PROJECTS_BY_BUSINESS[businessKey]?.[0]
 }
 
 // ─── Queries ─────────────────────────────────────────────────────────────────

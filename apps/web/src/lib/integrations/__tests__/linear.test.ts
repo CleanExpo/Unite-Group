@@ -145,16 +145,23 @@ describe('Linear integration', () => {
 })
 
 describe('issueToBusiness', () => {
-  it('maps an issue to its business by Linear project (Dimitri-ITR → itr)', async () => {
+  // Project names are the ACTUAL Linear workspace names (verified 22/06/2026).
+  it('maps an issue to its business by Linear project (Dimitri ITR Platform → itr)', async () => {
     const { issueToBusiness } = await loadLinear()
-    expect(issueToBusiness({ team: { key: 'UNI' }, project: { name: 'Dimitri-ITR' } })).toBe('itr')
+    expect(issueToBusiness({ team: { key: 'UNI' }, project: { name: 'Dimitri ITR Platform' } })).toBe('itr')
   })
 
   it('distinguishes ATO from CCW within the shared UNI team via project', async () => {
     const { issueToBusiness } = await loadLinear()
     // Both ATO and ITR sit on the UNI team; only the project tells them apart.
-    expect(issueToBusiness({ team: { key: 'UNI' }, project: { name: 'ATO-APP' } })).toBe('ato')
-    expect(issueToBusiness({ team: { key: 'UNI' }, project: { name: 'CCW-CRM' } })).toBe('ccw')
+    expect(issueToBusiness({ team: { key: 'UNI' }, project: { name: 'ATO' } })).toBe('ato')
+    expect(issueToBusiness({ team: { key: 'UNI' }, project: { name: 'CCW CRM' } })).toBe('ccw')
+  })
+
+  it('distinguishes NRPG from DR within the shared DR team via project', async () => {
+    const { issueToBusiness } = await loadLinear()
+    expect(issueToBusiness({ team: { key: 'DR' }, project: { name: 'DR-NRPG Ops' } })).toBe('nrpg')
+    expect(issueToBusiness({ team: { key: 'DR' }, project: { name: 'Disaster Recovery Website' } })).toBe('dr')
   })
 
   it('falls back to team mapping when the issue has no project', async () => {
@@ -169,6 +176,7 @@ describe('issueToBusiness', () => {
 
   it('ignores an unrecognised project name and uses the team', async () => {
     const { issueToBusiness } = await loadLinear()
-    expect(issueToBusiness({ team: { key: 'SYN' }, project: { name: 'Some Other Project' } })).toBe('synthex')
+    // A UNI project that isn't a named business product (e.g. ATIA) → team default.
+    expect(issueToBusiness({ team: { key: 'UNI' }, project: { name: 'ATIA' } })).toBe('ccw')
   })
 })
