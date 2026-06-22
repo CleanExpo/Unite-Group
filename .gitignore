@@ -66,6 +66,7 @@ vercel-export-*/
 
 # Local automation logs
 /docs/margot/automation-logs/*.log
+/docs/margot/linear-watch-today.md
 
 # Transient agent run artifacts (raw logs / exit codes — never canonical)
 .shipit_evidence/
