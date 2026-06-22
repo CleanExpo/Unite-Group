@@ -278,7 +278,19 @@ export async function* runDebate(
 
   // Partial-debate accounting (Step 3 / F2). The Judge scores the persisted
   // round-5 set; if any firm dropped, it scored fewer than 4 firms.
-  const scoredFirmCount = finalRoundPersistedFirms.length || FIRM_KEYS.length
+  const scoredFirmCount = finalRoundPersistedFirms.length
+  if (scoredFirmCount === 0) {
+    yield { event: 'judge_start' }
+    yield { event: 'error', message: 'No persisted round-5 proposals found for judging' }
+    return
+  }
+
+  const persistedFinalRoundProposals = {} as RoundProposals
+  for (const firm of finalRoundPersistedFirms) {
+    const content = finalRoundProposals[firm]
+    if (typeof content === 'string') persistedFinalRoundProposals[firm] = content
+  }
+
   const droppedList = Array.from(droppedFirms)
 
   const judged = yield* runJudgePhase({
@@ -288,7 +300,7 @@ export async function* runDebate(
     caseTitle: advisoryCase.title,
     scenario,
     financialContext,
-    finalRoundProposals,
+    finalRoundProposals: persistedFinalRoundProposals,
     scoredFirmCount,
     droppedFirms: droppedList,
   })
@@ -432,7 +444,12 @@ async function* runJudgePhase(args: JudgePhaseArgs): AsyncGenerator<DebateEvent,
       title: `Advisory case complete: ${caseTitle}`,
       body: `Winner: ${winnerMeta?.name ?? scores.winner} (${winnerEntry?.weightedTotal ?? '—'}/100). ${scores.summary}`,
       severity: 'info',
-    }).catch(() => {})
+    }).catch(err => {
+      console.error(
+        '[debate-engine] Failed to send advisory completion notification:',
+        err instanceof Error ? err.message : err
+      )
+    })
 
     // Persist debate outcome to memory — fire-and-forget so a storage failure
     // never delays the case_complete event emitted by the caller.

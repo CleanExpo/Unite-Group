@@ -62,7 +62,7 @@ function setupMocks({
             founder_id: 'founder-1',
             title: 'Stranded Case',
             scenario: 'Scenario',
-            financial_context: { businessKey: 'synthex', businessName: 'Synthex', snapshotDate: '2026-06-22' },
+            financial_context: { businessKey: 'synthex', businessName: 'Synthex', snapshotDate: '22/06/2026' },
             status: caseStatus,
           },
           error: null,

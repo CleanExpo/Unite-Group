@@ -15,7 +15,7 @@ vi.mock('@/lib/supabase/service', () => ({
 }))
 
 const mockBuildFirmUserMessage = vi.fn(() => 'firm-msg')
-const mockBuildJudgeUserMessage = vi.fn(() => 'judge-msg')
+const mockBuildJudgeUserMessage = vi.fn((..._args: unknown[]) => 'judge-msg')
 const mockCallFirmAgent = vi.fn()
 const mockCallJudgeAgent = vi.fn()
 vi.mock('@/lib/advisory/agents', () => ({
@@ -32,7 +32,8 @@ vi.mock('@/lib/advisory/evidence-extractor', () => ({
   extractCitations: () => [],
 }))
 
-vi.mock('@/lib/notifications', () => ({ notify: vi.fn().mockResolvedValue(undefined) }))
+const mockNotify = vi.fn()
+vi.mock('@/lib/notifications', () => ({ notify: (...a: unknown[]) => mockNotify(...a) }))
 
 vi.mock('@/lib/advisory/session-memory', () => ({
   recallAdvisoryContext: vi.fn().mockResolvedValue(''),
@@ -85,7 +86,10 @@ function makeJudgeResult() {
  * Build a Supabase mock where the proposal insert for ONE firm fails.
  * Captures the case-update payloads so we can assert the degraded set is recorded.
  */
-function setupMocks({ failFirm }: { failFirm?: FirmKey } = {}) {
+function setupMocks({
+  failFirm,
+  failAllRound5 = false,
+}: { failFirm?: FirmKey; failAllRound5?: boolean } = {}) {
   const caseUpdates: Array<Record<string, unknown>> = []
   const judgeScoreInserts: Array<Record<string, unknown>> = []
 
@@ -100,7 +104,7 @@ function setupMocks({ failFirm }: { failFirm?: FirmKey } = {}) {
             founder_id: 'founder-1',
             title: 'Test Case',
             scenario: 'Scenario text',
-            financial_context: { businessKey: 'synthex', businessName: 'Synthex', snapshotDate: '2026-06-22' },
+            financial_context: { businessKey: 'synthex', businessName: 'Synthex', snapshotDate: '22/06/2026' },
             status: 'draft',
           },
           error: null,
@@ -114,10 +118,10 @@ function setupMocks({ failFirm }: { failFirm?: FirmKey } = {}) {
 
     if (table === 'advisory_proposals') {
       return {
-        insert: vi.fn((row: { firm_key: FirmKey }) => ({
+        insert: vi.fn((row: { firm_key: FirmKey; round: number }) => ({
           select: vi.fn().mockReturnThis(),
           single: vi.fn().mockResolvedValue(
-            failFirm && row.firm_key === failFirm
+            (failAllRound5 && row.round === 5) || (failFirm && row.firm_key === failFirm)
               ? { data: null, error: { message: 'insert failed' } }
               : { data: { id: `prop-${row.firm_key}` }, error: null }
           ),
@@ -166,6 +170,7 @@ async function drain(caseId: string, founderId: string): Promise<DebateEvent[]> 
 describe('runDebate — partial-debate integrity (Step 3 / F2)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockNotify.mockResolvedValue(undefined)
     mockCallFirmAgent.mockImplementation(async () => {
       // Resolve a proposal for whichever firm is being called. We can't know the
       // firmKey from the config mock, so return a generic proposal; the engine
@@ -207,6 +212,48 @@ describe('runDebate — partial-debate integrity (Step 3 / F2)', () => {
     // The judge message is augmented with an honest "scored 3 of 4 firms" note.
     const judgeCallArg = mockCallJudgeAgent.mock.calls[0][0] as string
     expect(judgeCallArg).toMatch(/3 of 4 firms/i)
+  })
+
+  it('passes only persisted final-round proposals to the Judge when a firm drops', async () => {
+    setupMocks({ failFirm: 'compliance' })
+    await drain('case-1', 'founder-1')
+
+    const builderArgs = mockBuildJudgeUserMessage.mock.calls[0]
+    const finalProposals = builderArgs[2] as Record<string, string>
+    expect(finalProposals.tax_strategy).toBeDefined()
+    expect(finalProposals.grants_incentives).toBeDefined()
+    expect(finalProposals.cashflow_optimisation).toBeDefined()
+    expect(finalProposals.compliance).toBeUndefined()
+  })
+
+  it('aborts judging when no round-5 proposals persisted', async () => {
+    setupMocks({ failAllRound5: true })
+    const events = await drain('case-1', 'founder-1')
+
+    expect(mockCallJudgeAgent).not.toHaveBeenCalled()
+    expect(events).toEqual(expect.arrayContaining([
+      expect.objectContaining({ event: 'judge_start' }),
+      expect.objectContaining({ event: 'error', message: expect.stringMatching(/No persisted round-5 proposals/i) }),
+    ]))
+  })
+
+  it('logs notification failures without blocking case completion', async () => {
+    setupMocks()
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mockNotify.mockRejectedValueOnce(new Error('notification failed'))
+
+    try {
+      const events = await drain('case-1', 'founder-1')
+      await Promise.resolve()
+
+      expect(events.some(e => e.event === 'case_complete')).toBe(true)
+      expect(errorSpy).toHaveBeenCalledWith(
+        '[debate-engine] Failed to send advisory completion notification:',
+        'notification failed'
+      )
+    } finally {
+      errorSpy.mockRestore()
+    }
   })
 
   it('does not mark the case partial when every firm persists', async () => {

@@ -460,3 +460,44 @@ Safety / blockers:
 
 Next safe lane:
 - Commit and push only this bounded PR #440 test-hygiene/evidence slice after branch/head read-back, then re-read remote checks. Keep PR #440 `KEEP_GATED` if E2E remains red on the known non-prod credential/provisioning class.
+
+## 2026-06-23 06:25 AEST
+
+### Tick 20260623_0625 — PR #440 judge persisted-set hardening + notification-failure logging
+
+Lane: continued current/open PR #440 (`advisory-debate-f2-f4`) instead of starting another CRM lane because PR #440 is the active branch. Scope stayed inside the advisory debate engine persisted-round-5 judge set, notification failure logging, locale fixture hygiene, local verification, and evidence docs. No production DB write, migration application, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight read-back found current branch `advisory-debate-f2-f4` synced with `origin/advisory-debate-f2-f4` at `e4253edb4`; PR #440 remains open against `main` and PR #439 remains separately open. Both open PRs still show product-code/Vercel checks green and required Playwright E2E red on the known non-prod E2E gate.
+- Verified still-valid CodeRabbit findings in `apps/web/src/lib/advisory/debate-engine.ts`: the judge phase used `finalRoundPersistedFirms.length || FIRM_KEYS.length`, which could report `4 of 4` when zero round-5 proposals persisted, and it passed unfiltered final-round proposals to the Judge even after a firm was dropped from persistence.
+- TDD RED: added focused regressions proving (1) a dropped firm is removed from the Judge's final-round proposal map, (2) judging aborts when no round-5 proposals persisted, and (3) a rejected completion notification is logged without blocking `case_complete`. The focused RED run failed for the expected reasons: dropped `compliance` still reached the Judge, the Judge was called with `scored 4 of 4` when all round-5 inserts failed, and notification failure logging was absent.
+- GREEN: changed `runDebate` to preserve zero persisted-firm counts, fail closed before Judge execution when no round-5 proposals persisted, and pass only persisted final-round proposals into `runJudgePhase`. Replaced the empty notification `.catch(() => {})` with explicit `console.error` logging while keeping notification delivery fire-and-forget.
+- Locale hygiene: updated advisory test `snapshotDate` fixtures from `2026-06-22` to `22/06/2026` per en-AU/DD/MM/YYYY guidance.
+
+Verification / evidence:
+- RED command: `./node_modules/.bin/vitest run src/lib/advisory/__tests__/partial-debate.test.ts --config vitest.config.mts --testNamePattern 'passes only persisted final-round proposals|aborts judging when no round-5 proposals persisted'` -> expected FAIL, 2 failed / 4 skipped. Failure messages showed dropped `compliance` still present in final proposals and `mockCallJudgeAgent` called once with `scored 4 of 4 firms` after all round-5 inserts failed.
+- RED command: `./node_modules/.bin/vitest run src/lib/advisory/__tests__/partial-debate.test.ts --config vitest.config.mts --testNamePattern 'logs notification failures'` -> expected FAIL because `console.error` had 0 calls.
+- GREEN focused commands: the same two focused runs -> PASS (2 focused tests, then 1 focused notification test).
+- Advisory focused suite: `./node_modules/.bin/vitest run src/lib/advisory/__tests__/partial-debate.test.ts src/lib/advisory/__tests__/re-judge.test.ts src/lib/advisory/__tests__/concurrency.test.ts 'src/app/api/advisory/cases/[id]/start/__tests__/route.test.ts' 'src/app/api/advisory/cases/[id]/re-judge/__tests__/route.test.ts' src/components/founder/advisory/tabs/__tests__/LiveDebateTab.partial.test.tsx --config vitest.config.mts` -> PASS, 6 files / 27 tests.
+- Type check: `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`).
+- Lint: `pnpm run lint` from `apps/web` -> PASS (`eslint src/`).
+- Full apps/web tests with clean Linear env: `env -u LINEAR_API_KEY -u LINEAR_TOKEN pnpm run test` -> PASS, 386 files / 2302 tests.
+- Whitespace: `git diff --check -- src/lib/advisory/debate-engine.ts src/lib/advisory/__tests__/partial-debate.test.ts src/lib/advisory/__tests__/re-judge.test.ts` -> PASS.
+- Security pattern scan: `search_files` over `apps/web/src/lib/advisory` for hardcoded secret assignments, shell injection, eval/exec, unsafe deserialization, and SQL string-format patterns -> 0 matches.
+- Build: `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with 0/3 critical and 0/4 required app env vars configured in this local shell. Env values were not printed or mutated; this remains a local environment configuration gate.
+- Independent reviewer: dispatched after local verification; final reviewer verdict to be reflected in the run summary before push/closeout.
+
+Gate-review packet for Phill/operator:
+- Gate class: `NAMESPACE` — GitHub Actions E2E namespace / repo-or-environment login-secret configuration plus non-prod Supabase Auth test-user provisioning.
+- Disposition: `KEEP_GATED` for PR #440 and PR #439 while required Playwright E2E remains red.
+- Lift condition: authorised operator configures non-blank E2E login secrets and repairs non-prod Supabase Auth user provisioning, then reruns E2E to green, or grants an explicit typed waiver accepting the required-check risk.
+- Concrete risk if lifted now: merging while authenticated E2E is red would ship advisory/CRM changes without proof that login-dependent flows and non-prod auth provisioning still work, and would normalise bypassing a required shared gate.
+- Rollback / recovery note: this tick's code change is locally verified and can be reverted by the PR branch if needed; recovery path for the remaining merge gate is configuration/provisioning fix plus E2E rerun.
+
+Safety / blockers:
+- Existing remote gate remains unchanged before this tick's push: PR #440 and PR #439 must stay unmerged while required `apps/web — Playwright E2E` is red on blank/missing E2E login secrets plus non-prod Supabase Auth `createUser failed: Database error creating new user` symptoms, unless Phill/operator explicitly grants a typed waiver.
+- This tick did not touch E2E auth/provisioning, Supabase data, provider credentials, billing, client identity, production deployment, or GitHub/Vercel secrets.
+- Root `docs/audit-reports/` remains untracked and was not staged.
+
+Next safe lane:
+- After reviewer read-back, commit and push only this bounded PR #440 follow-up if branch/head still matches, then re-read remote checks. Keep PR #440 `KEEP_GATED` if E2E remains red on the known non-prod credential/provisioning class.
