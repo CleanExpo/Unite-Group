@@ -57,20 +57,33 @@ function resolveKeyFromCli(label: 'anon' | 'service_role') {
 }
 
 export function loadSupabaseAdminConfig(): SupabaseAdminConfig {
+  // E2E_SUPABASE_URL overrides NEXT_PUBLIC_SUPABASE_URL so the E2E suite
+  // can target the dedicated non-prod lane rather than prod.
+  const explicitE2EUrl = process.env.E2E_SUPABASE_URL?.trim()
   const configuredUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
-  const url = configuredUrl || `https://${productionRef}.supabase.co`
+  const url = explicitE2EUrl || configuredUrl || `https://${productionRef}.supabase.co`
   const host = new URL(url).host
+  const projectRef = host.split('.')[0]
 
-  if (host.split('.')[0] !== productionRef) {
+  // Prod safety: if no dedicated E2E URL was given, enforce the prod-only check
+  // so local runs without E2E_SUPABASE_URL cannot accidentally target a wrong project.
+  if (!explicitE2EUrl && projectRef !== productionRef) {
     throw new Error(`Expected production Supabase host for the approved exception, got ${host}`)
   }
 
-  return {
-    url,
-    anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() || resolveKeyFromCli('anon'),
-    serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || resolveKeyFromCli('service_role'),
-    host,
-  }
+  // In CI, secrets must be pre-configured. The CLI fallback is only available
+  // locally where `supabase` is installed and linked to prod.
+  const anonKey =
+    process.env.E2E_SUPABASE_ANON_KEY?.trim() ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ||
+    resolveKeyFromCli('anon')
+
+  const serviceRoleKey =
+    process.env.E2E_SUPABASE_SERVICE_ROLE_KEY?.trim() ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
+    resolveKeyFromCli('service_role')
+
+  return { url, anonKey, serviceRoleKey, host }
 }
 
 export function hasSupabaseAdminProvisioning() {
