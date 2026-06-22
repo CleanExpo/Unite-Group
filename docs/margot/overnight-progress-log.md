@@ -213,11 +213,15 @@ Verification / evidence:
 - Whitespace: `git diff --check` -> PASS.
 - Added-line security scan over staged + unstaged diff -> PASS, no secret-shaped findings.
 - Build check: `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with 0/3 critical and 0/4 required env vars configured in this local shell. No env values were read or printed; this remains an environment configuration gate, not a code/test failure.
+- Push/read-back: pushed branch `advisory-debate-f2-f4` to remote head `22356539d930fee4d3f004b1134cb568c5642a3d`; PR #440 refreshed at https://github.com/CleanExpo/Unite-Group/pull/440.
+- Remote CI/read-back: CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/workspace — build`, `apps/spec-board — type-check, test, build`, and `packages/pi-ceo-operator-mcp — build` passed on run `27961410763`.
+- Remaining remote gate: `apps/web — Playwright E2E` failed on run `27961410763` / job `82744252233` with pre-existing non-prod E2E provisioning/configuration symptoms: multiple `createUser failed: Database error creating new user` failures plus missing `PLAYWRIGHT_TEST_EMAIL` / `PLAYWRIGHT_TEST_PASSWORD` for an authenticated test. This slice did not touch E2E auth/provisioning and did not mutate Supabase or GitHub/Vercel secrets.
 
 Safety / blockers:
 - This tick did not approve/execute advisory recommendations, write production DB rows, apply migrations, mutate Vercel env, or merge the PR.
 - Root `docs/audit-reports/` remains untracked from existing local state and was not staged.
 - Local merge also brought in already-merged `origin/main` files from PR #438 / the add-on requester-redaction lane; these are mainline updates required to make PR #440 current, not new work from this tick.
+- Post-push read-back was recorded locally after the evidence commit; it was not pushed as a follow-up evidence-only commit to avoid retriggering the known-red E2E lane.
 
 Next safe lane:
-- Commit the merge resolution and evidence, push PR #440, monitor refreshed GitHub Actions/Vercel checks. If checks pass cleanly, the PR can proceed through the normal review/merge gate; do not mutate Vercel/local env to satisfy the local build preflight.
+- Treat PR #440's product-code gates as fixed/green and the remaining Playwright E2E failure as a separate non-prod auth/test-user provisioning gate unless fresh logs prove a code-level failure. Do not merge while the required E2E gate is red; do not mutate Vercel/GitHub/Supabase env autonomously.
