@@ -225,3 +225,36 @@ Safety / blockers:
 
 Next safe lane:
 - Treat PR #440's product-code gates as fixed/green and the remaining Playwright E2E failure as a separate non-prod auth/test-user provisioning gate unless fresh logs prove a code-level failure. Do not merge while the required E2E gate is red; do not mutate Vercel/GitHub/Supabase env autonomously.
+
+## 2026-06-23 01:26 AEST
+
+### Tick 20260623_0126 — PR #440 Playwright credential env wiring follow-through
+
+Lane: continued already-open/current branch PR #440 (`advisory-debate-f2-f4`) because its product-code gates were green but the required `apps/web — Playwright E2E` check was red. Scope stayed inside GitHub Actions E2E env wiring, a local CI-config regression test, verification, and evidence docs. No production DB write, migration application, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight: local branch `advisory-debate-f2-f4` was ahead of `origin/advisory-debate-f2-f4` by the prior local evidence commit; PR #440 remote head remained `22356539d930fee4d3f004b1134cb568c5642a3d`. GitHub CLI auth and Vercel CLI auth were available. Open PRs: #440 and #439, both targeting `main` and both blocked by `apps/web — Playwright E2E`; current branch PR #440 was continued first.
+- Failure read-back: `gh run view 27961410763 --log-failed` showed the hosted-Chrome E2E job now reaches test execution. One failure class was a local CI workflow wiring gap: `loginAsFounder()` throws because `PLAYWRIGHT_TEST_EMAIL` and `PLAYWRIGHT_TEST_PASSWORD` were not present in the E2E job env. Separate authenticated specs still fail at Supabase Auth `createUser` with `Database error creating new user`, which remains a non-prod DB/provisioning gate and was not mutated here.
+- TDD RED: added a focused Vitest assertion in `apps/web/src/lib/ci/__tests__/playwright-config.test.ts` requiring `.github/workflows/ci.yml` to pass `PLAYWRIGHT_TEST_EMAIL` and `PLAYWRIGHT_TEST_PASSWORD` from GitHub secrets into the E2E job. The focused test failed before the workflow change because those env lines were absent.
+- GREEN: updated `.github/workflows/ci.yml` to expose only `secrets.PLAYWRIGHT_TEST_EMAIL` and `secrets.PLAYWRIGHT_TEST_PASSWORD` to the E2E job. No secret values were read, printed, hardcoded, or changed.
+- Code commit: `e88a6b982 ci(e2e): forward Playwright test credentials`.
+
+Verification / evidence:
+- RED command: from `apps/web`, `./node_modules/.bin/vitest run src/lib/ci/__tests__/playwright-config.test.ts --config vitest.config.mts --testNamePattern 'passes authenticated Playwright credentials'` -> expected failure, workflow did not contain `PLAYWRIGHT_TEST_EMAIL: ${{ secrets.PLAYWRIGHT_TEST_EMAIL }}`.
+- GREEN focused command: `./node_modules/.bin/vitest run src/lib/ci/__tests__/playwright-config.test.ts --config vitest.config.mts` -> PASS, 1 file / 2 tests.
+- Type check: `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`).
+- Lint: `pnpm run lint` from `apps/web` -> PASS (`eslint src/`).
+- Full apps/web tests: `pnpm run test` -> PASS, 386 files / 2295 tests.
+- Playwright config/list probe: `CI=true ./node_modules/.bin/playwright test --list` -> PASS, listed 69 tests.
+- Whitespace: `git diff --check -- .github/workflows/ci.yml apps/web/src/lib/ci/__tests__/playwright-config.test.ts` -> PASS.
+- Added-line security scan over the workflow/test diff -> PASS, no hardcoded-secret/shell/eval/deserialization/sql-format findings.
+- Build check: `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with 0/3 critical and 0/4 required env vars configured in this local shell. No env values were read or printed; this remains a local environment configuration gate, not a code/test failure.
+
+Safety / blockers:
+- This tick only wires existing GitHub secret names into the CI E2E job; it does not create, view, approve, or mutate secrets.
+- The remaining E2E `createUser failed: Database error creating new user` symptoms are still unresolved and likely require the dedicated non-prod Supabase E2E branch/test-user provisioning to be repaired by an authorised operator. No Supabase DB writes or migrations were performed.
+- Root `docs/audit-reports/` remains untracked from existing local state and was not staged.
+- Current local branch is ahead of remote; the code commit and this evidence have not yet been pushed at this evidence-writing point.
+
+Next safe lane:
+- Commit evidence, push PR #440 once branch/head still matches, monitor refreshed CI. If the credential-env failure disappears but `createUser` remains red, keep PR #440 unmerged and classify the residue as a non-prod Supabase E2E provisioning gate unless a fresh bounded RED test proves a code-level defect.

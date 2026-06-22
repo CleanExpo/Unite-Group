@@ -72,3 +72,17 @@
 - **Safety:** No production DB write/migration, Vercel env mutation, billing/payment action, credential read/print, client-facing send, cross-client merge, PR merge, or live provider mutation occurred. Root `docs/audit-reports/` remains untracked and was not staged. Post-push read-back was recorded locally after the evidence commit and not pushed as a follow-up evidence-only commit to avoid retriggering the known-red E2E lane.
 - **Evidence paths:** `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
 - **Next safe lane:** Keep PR #440 unmerged while required E2E is red; classify/fix the E2E auth/test-user provisioning gate separately only after a bounded RED reproduction, and do not mutate env/DB autonomously.
+
+## 2026-06-23 01:26 AEST — PR #440 E2E credential env wiring
+
+- **Completed safe lane:** Continued PR #440 (`advisory-debate-f2-f4`) because product-code checks were green but Playwright E2E was red. Fixed one CI workflow wiring gap: authenticated E2E specs expected `PLAYWRIGHT_TEST_EMAIL` / `PLAYWRIGHT_TEST_PASSWORD`, but `.github/workflows/ci.yml` did not pass those GitHub secret names into the E2E job.
+- **PR:** https://github.com/CleanExpo/Unite-Group/pull/440 — `fix(advisory): production-harden the debate engine (F1–F4) [Steps 2–5]`.
+- **Code commit:** `e88a6b982 ci(e2e): forward Playwright test credentials` (local at report-writing time).
+- **What changed:** Added a CI-config regression test in `apps/web/src/lib/ci/__tests__/playwright-config.test.ts` and wired only the existing secret names `secrets.PLAYWRIGHT_TEST_EMAIL` / `secrets.PLAYWRIGHT_TEST_PASSWORD` into the E2E job env. No secret values were read, printed, hardcoded, created, or changed.
+- **TDD:** RED focused Vitest failed first because the workflow lacked those env lines. GREEN focused Vitest passed after the workflow update.
+- **Verification:** `./node_modules/.bin/vitest run src/lib/ci/__tests__/playwright-config.test.ts --config vitest.config.mts` passed (1 file / 2 tests). `pnpm run type-check`, `pnpm run lint`, `pnpm run test` (386 files / 2295 tests), `CI=true ./node_modules/.bin/playwright test --list` (69 tests), scoped `git diff --check`, and added-line security scan passed.
+- **Build blocker:** `pnpm run build` failed before Next build at `scripts/validate-env.mjs --ci` because this local shell has no critical/required app env configured. No secret values were read/printed and no env mutation was attempted.
+- **Remaining blocker:** The same GitHub E2E log also showed Supabase Auth `createUser failed: Database error creating new user` in several authenticated specs. This remains a non-prod E2E DB/provisioning gate; I did not write to Supabase, apply migrations, or mutate GitHub/Vercel secrets.
+- **Safety:** No production DB write/migration, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, PR merge, or live provider mutation occurred. Root `docs/audit-reports/` remains untracked and unstaged.
+- **Evidence paths:** `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+- **Next safe lane:** Commit evidence, push PR #440 if branch/head still matches, monitor refreshed CI. If the credential-env failure is gone but `createUser` remains red, keep PR #440 unmerged and treat the residue as a non-prod Supabase E2E provisioning gate unless fresh RED evidence proves a code defect.
