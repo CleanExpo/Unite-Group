@@ -88,3 +88,73 @@ Safety / blockers:
 
 Next safe lane:
 - Commit and push only the PR #427 audit-logger fix/evidence, then monitor GitHub Actions for the refreshed head. If #427 turns green, merge only if all checks pass and the change remains within the stated safe boundaries; otherwise read the failing logs and fix the next bounded issue. After #427 is settled, return to PR #424's separate failing test lane.
+
+## 2026-06-22 21:34 AEST
+
+### Tick 20260622_2134 — PR #433 E2E hosted-Chrome CI follow-through
+
+Lane: continued the already-in-progress CI/E2E gate lane after PR #430 was merged by `CleanExpo` while its Playwright E2E job was still pending. Scope stayed inside GitHub Actions config, Playwright config, local CI-config test coverage, and evidence docs. No production DB write, migration application, Vercel env mutation, billing/payment action, credential read/print, client-facing send, cross-client merge, destructive git action, or live provider mutation occurred.
+
+Completed:
+- Preflight found PR #430 (`fix/e2e-job-timeout`) open from `fix/e2e-job-timeout`; it was later read back as MERGED by `CleanExpo` at 2026-06-22T10:58:40Z with merge commit `1f55057457b2e558e543022de4a876a82789ec84`. This tick did not run the merge command.
+- Watched PR #430 and post-merge main E2E runs: the new job-level timeout worked, but both the PR run and latest main run failed/cancelled after 20m because `pnpm exec playwright install chromium` downloaded Chrome for Testing to 100% and then hung until timeout; Playwright tests never started.
+- Current `origin/main` advanced through PRs #429, #431, and #432 while monitoring; created fresh worktree branch `fix/e2e-use-hosted-chrome` from latest `origin/main` (`639a880231766e3668e4aa29734b659bbf62b672`) to avoid the unrelated local `apps/web/.claude/memory/current-state.md` PreCompact change in the original checkout.
+- TDD RED: added `apps/web/src/lib/ci/__tests__/playwright-config.test.ts` asserting CI uses Playwright channel `chrome`; focused test failed before config change with `expected undefined to be 'chrome'`.
+- GREEN: updated `apps/web/playwright.config.ts` to use hosted runner Chrome only when `process.env.CI` is set, and updated `.github/workflows/ci.yml` to remove the Playwright-managed browser cache/download step and verify `google-chrome --version` before `pnpm exec playwright test`.
+- Code commit: `707face763e67810c96eb270e06ccd7644c1a95c` (`ci(e2e): use hosted Chrome for Playwright CI`).
+- Published PR: https://github.com/CleanExpo/Unite-Group/pull/433.
+
+Verification / evidence:
+- RED command: `./node_modules/.bin/vitest run src/lib/ci/__tests__/playwright-config.test.ts --config vitest.config.mts` -> expected failure, 1 failed test (`expected undefined to be 'chrome'`).
+- GREEN focused command: same focused Vitest command -> PASS, 1 file / 1 test.
+- CI config parse/list: `CI=true ./node_modules/.bin/playwright test --list` -> PASS, listed 69 Playwright tests without requiring a managed browser download.
+- Type check: `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`).
+- Lint: `pnpm run lint` from `apps/web` -> PASS (`eslint src/`); targeted ESLint on `src/lib/ci/__tests__/playwright-config.test.ts` -> PASS.
+- Full tests: `pnpm run test` from `apps/web` -> PASS, 380 files / 2272 tests.
+- Workflow assertion: local Python check confirmed `.github/workflows/ci.yml` no longer contains `pnpm exec playwright install chromium` and does contain `google-chrome --version`.
+- Whitespace: `git diff --check -- .github/workflows/ci.yml apps/web/playwright.config.ts apps/web/src/lib/ci/__tests__/playwright-config.test.ts` -> PASS.
+- Added-line security scan: hardcoded-secret, shell-injection, eval/exec, unsafe-deserialization, and SQL-format scans returned no matches.
+- Build check: `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with 0/3 critical and 0/4 required env vars configured in this local shell. No env values were read or printed; this remains an environment configuration gate, not a code/test failure.
+- PR #433 initial remote state after create: apps/web CI queued, workspace/spec-board/mcp in progress, Vercel previews pending, CodeRabbit success.
+
+Safety / blockers:
+- Main branch currently has older pre-timeout push runs still `in_progress` and newer post-timeout runs `cancelled` because the E2E lane still hit the browser-download hang before PR #433.
+- PR #433 must be allowed to prove whether hosted Chrome starts the Playwright tests in GitHub Actions; do not merge unless all checks pass cleanly.
+- Original checkout still has unrelated local `apps/web/.claude/memory/current-state.md` modification; it was not included in PR #433.
+
+Next safe lane:
+- Monitor PR #433 checks. If apps/web E2E reaches `Run Playwright tests` and passes, merge only if all checks are green and branch protection permits; if it fails, inspect the new failing step without mutating Vercel/env/secrets.
+
+## 2026-06-22 22:16 AEST
+
+### Tick 20260622_2216 — PR #433 E2E login-flow follow-through
+
+Lane: continued already-open PR #433 (`fix/e2e-use-hosted-chrome`) because it was the only open PR and still had a failing `apps/web — Playwright E2E` check. Scope stayed inside Playwright E2E test helpers/specs, the PR branch merge from `origin/main`, and Margot evidence docs. No production DB write, migration application, Vercel env mutation, billing/payment action, credential read/print, client-facing send, cross-client merge, destructive git action, or live provider mutation occurred.
+
+Completed:
+- Preflight found current checkout on the merged PR #434 branch with unrelated dirty local files, so work continued in the existing isolated worktree `/private/tmp/unite-e2e-fix` on PR #433.
+- PR #433 read-back: remote head `707face763e67810c96eb270e06ccd7644c1a95c`, base `main`, merge state `BEHIND`, Vercel previews green, non-E2E CI checks green, and E2E failing after hosted Chrome successfully reached `Run Playwright tests`.
+- Merged `origin/main` (`05c812e6f`, PR #434) into `fix/e2e-use-hosted-chrome`; merge commit `33cde07ef` is local before push.
+- TDD/RED evidence: GitHub E2E log for run `27949676832` showed auth/login tests failing because the current UI renders Google-first sign-in with a hidden `Use email instead` fallback; downloaded Playwright error context confirmed the snapshot has `Continue with Google` plus `Use email instead`, not visible email/password inputs. Local focused Playwright then reproduced a stale branding assertion (`Pi-CEO` strict-mode ambiguity) before the final assertion fix.
+- GREEN: added `apps/web/e2e/support/email-login.ts` and updated login/authenticated E2E specs to call `revealEmailLogin(page)` before asserting or filling email/password fields. Updated stale branding assertion from `Nexus — Unite Group` to exact `Pi-CEO` and `Unite-Group` text.
+- Code commit: `accf27e0f8f5fce904157247267eecc3d73ae12f fix(e2e): reveal email fallback in login tests`.
+
+Verification / evidence:
+- Focused Playwright before final GREEN: `pnpm exec playwright test e2e/auth-flow.spec.ts e2e/smoke.spec.ts --project=chromium --reporter=list` -> failed only on stale/ambiguous `Pi-CEO` branding locator after email fallback fixes were applied.
+- Focused Playwright after GREEN: same command -> PASS, 11 passed / 5 skipped. Local `.env.local=missing`; Next dev warned about missing Supabase env, but these no-auth login/smoke tests still passed.
+- CI config regression: `./node_modules/.bin/vitest run src/lib/ci/__tests__/playwright-config.test.ts --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- Playwright config parse/list: `CI=true ./node_modules/.bin/playwright test --list` -> PASS, listed 69 tests.
+- Type check: `pnpm run type-check` and `npm run type-check` from `apps/web` -> PASS (`tsc --noEmit`).
+- Lint: `pnpm run lint` from `apps/web` -> PASS (`eslint src/`). Targeted `pnpm exec eslint e2e/... --max-warnings=0` is not applicable because repo ESLint config ignores E2E files and returned ignored-file warnings.
+- Full apps/web tests: `pnpm run test` -> PASS, 380 files / 2272 tests.
+- Whitespace: `git diff --check -- .github/workflows/ci.yml apps/web/playwright.config.ts apps/web/src/lib/ci/__tests__/playwright-config.test.ts apps/web/e2e` -> PASS.
+- Added-line security scan: hardcoded-secret, shell-injection, eval/exec, unsafe-deserialization, and SQL-format scans returned no matches.
+- Build check: `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with 0/3 critical and 0/4 required env vars configured in this local shell. No env values were read or printed; this remains an environment configuration gate, not a code/test failure.
+
+Safety / blockers:
+- The remote PR has not yet been pushed with the merge commit and login-test fix at this evidence-writing point.
+- The downloaded CI artifact/log exposed no secret values; GitHub masked E2E env values. This tick did not inspect or mutate Supabase/Vercel credentials.
+- E2E authenticated tests may still surface a separate non-prod Supabase `createUser`/DB provisioning issue after the email-login tests proceed further; if so, classify/fix only after fresh CI read-back and without production DB writes.
+
+Next safe lane:
+- Commit evidence, push PR #433, monitor refreshed GitHub Actions/Vercel checks. If the E2E lane still fails at Supabase test-user provisioning, inspect logs/artifacts and treat any E2E database branch/env mismatch as a gated non-prod configuration issue unless a code-level failing test proves otherwise.

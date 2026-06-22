@@ -12,6 +12,11 @@ import { defineConfig, devices } from '@playwright/test';
  *   pnpm playwright show-report       # View HTML report
  */
 
+const chromiumUse = {
+  ...devices['Desktop Chrome'],
+  ...(process.env.CI ? { channel: 'chrome' as const } : {}),
+};
+
 export default defineConfig({
   testDir: './e2e',
   testMatch: '**/*.spec.ts',
@@ -37,7 +42,7 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: chromiumUse,
     },
   ],
 

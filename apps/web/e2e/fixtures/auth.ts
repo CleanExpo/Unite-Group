@@ -1,5 +1,7 @@
 import { test as base, Page } from '@playwright/test'
 
+import { revealEmailLogin } from '../support/email-login'
+
 export async function loginAsFounder(page: Page) {
   const email = process.env.PLAYWRIGHT_TEST_EMAIL
   const password = process.env.PLAYWRIGHT_TEST_PASSWORD
@@ -7,6 +9,7 @@ export async function loginAsFounder(page: Page) {
     throw new Error('PLAYWRIGHT_TEST_EMAIL and PLAYWRIGHT_TEST_PASSWORD must be set to run authenticated tests')
   }
   await page.goto('/auth/login')
+  await revealEmailLogin(page)
   await page.fill('[type=email]', email)
   await page.fill('[type=password]', password)
   await page.click('[type=submit]')
