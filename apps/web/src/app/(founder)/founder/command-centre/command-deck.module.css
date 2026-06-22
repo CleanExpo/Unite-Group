@@ -15,6 +15,11 @@
   --deck-panel-hi: #fffdf7;
   --deck-text: #14241b;     /* deep green-charcoal (dark text on light) */
   --deck-muted: #5a6b62;
+  /* WCAG-AA text variants: the bright candy green/amber fail contrast as TEXT
+     on the light deck (~2.4:1). Use these for coloured text; keep the bright
+     --deck-cyan/-go/-amber for fills, borders, LEDs and glows. */
+  --deck-cyan-text: #15803d;  /* green text on light → ~5:1 */
+  --deck-amber-text: #b45309; /* amber text on light → ~5:1 */
 
   /* Aliases so panels consolidated from the retired command-center page (which
      use the --cc-* namespace) resolve their colours on this deck. */
@@ -72,7 +77,7 @@
   display: grid; place-items: center;
   border: 1px solid var(--deck-cyan);
   border-radius: 10px;
-  color: var(--deck-cyan);
+  color: var(--deck-cyan-text);
   font-weight: 700;
   letter-spacing: 0.05em;
   box-shadow: 0 0 18px rgba(45, 187, 87, 0.35), inset 0 0 10px rgba(45, 187, 87, 0.12);
@@ -99,7 +104,7 @@
   font-size: 1.35rem;
   font-weight: 500;
   letter-spacing: 0.08em;
-  color: var(--deck-cyan);
+  color: var(--deck-cyan-text);
   text-shadow: 0 0 14px rgba(45, 187, 87, 0.45);
   font-variant-numeric: tabular-nums;
 }
@@ -121,8 +126,8 @@
   font-variant-numeric: tabular-nums;
   color: var(--deck-text);
 }
-.metricValue[data-tone="go"] { color: var(--deck-go); }
-.metricValue[data-tone="amber"] { color: var(--deck-amber); }
+.metricValue[data-tone="go"] { color: var(--deck-cyan-text); }
+.metricValue[data-tone="amber"] { color: var(--deck-amber-text); }
 .metricLabel {
   font-family: var(--font-geist-mono), monospace;
   font-size: 0.55rem;
@@ -137,7 +142,7 @@
   font-size: 0.68rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--deck-go);
+  color: var(--deck-cyan-text);
 }
 
 .kbd {
@@ -288,7 +293,7 @@
   font-family: var(--font-geist-mono), monospace;
   font-size: 0.66rem;
   letter-spacing: 0.04em;
-  color: var(--deck-cyan);
+  color: var(--deck-cyan-text);
   text-decoration: none;
   width: fit-content;
   transition: text-shadow 0.15s ease;
@@ -375,7 +380,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 0.62rem;
-  color: var(--deck-amber);
+  color: var(--deck-amber-text);
 }
 
 .integrationActions {
@@ -397,7 +402,7 @@
   min-height: 32px;
   border: 1px solid var(--deck-line);
   border-radius: 10px;
-  color: var(--deck-text);
+  color: #eaf3ec;
   background: rgba(8, 15, 24, 0.82);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
   cursor: pointer;
@@ -468,12 +473,12 @@
   padding: 0.22rem 0.5rem;
   background: rgba(45, 187, 87, 0.05);
 }
-.sourceChip b { color: var(--deck-cyan); font-weight: 600; }
+.sourceChip b { color: var(--deck-cyan-text); font-weight: 600; }
 .stamp {
   display: inline-flex; align-items: center; gap: 0.45rem;
   font-family: var(--font-geist-mono), monospace;
   font-size: 0.58rem; letter-spacing: 0.22em; text-transform: uppercase;
-  color: var(--deck-go);
+  color: var(--deck-cyan-text);
   border: 1px dashed rgba(52, 211, 153, 0.4);
   border-radius: 10px; padding: 0.3rem 0.6rem;
 }
@@ -508,7 +513,7 @@
 .approval {
   font-family: var(--font-geist-mono), monospace;
   font-size: 0.5rem; letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--deck-amber); margin-top: 0.2rem; display: block; text-align: right;
+  color: var(--deck-amber-text); margin-top: 0.2rem; display: block; text-align: right;
 }
 
 /* ── System detail expander (keeps the dense console out of the clean front) ── */
