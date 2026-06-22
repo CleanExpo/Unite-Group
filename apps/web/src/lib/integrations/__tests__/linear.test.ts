@@ -143,3 +143,32 @@ describe('Linear integration', () => {
     })
   })
 })
+
+describe('issueToBusiness', () => {
+  it('maps an issue to its business by Linear project (Dimitri-ITR → itr)', async () => {
+    const { issueToBusiness } = await loadLinear()
+    expect(issueToBusiness({ team: { key: 'UNI' }, project: { name: 'Dimitri-ITR' } })).toBe('itr')
+  })
+
+  it('distinguishes ATO from CCW within the shared UNI team via project', async () => {
+    const { issueToBusiness } = await loadLinear()
+    // Both ATO and ITR sit on the UNI team; only the project tells them apart.
+    expect(issueToBusiness({ team: { key: 'UNI' }, project: { name: 'ATO-APP' } })).toBe('ato')
+    expect(issueToBusiness({ team: { key: 'UNI' }, project: { name: 'CCW-CRM' } })).toBe('ccw')
+  })
+
+  it('falls back to team mapping when the issue has no project', async () => {
+    const { issueToBusiness } = await loadLinear()
+    expect(issueToBusiness({ team: { key: 'DR' }, project: null })).toBe('dr')
+  })
+
+  it('falls back to ccw for an unknown team and no project', async () => {
+    const { issueToBusiness } = await loadLinear()
+    expect(issueToBusiness({ team: { key: 'ZZZ' } })).toBe('ccw')
+  })
+
+  it('ignores an unrecognised project name and uses the team', async () => {
+    const { issueToBusiness } = await loadLinear()
+    expect(issueToBusiness({ team: { key: 'SYN' }, project: { name: 'Some Other Project' } })).toBe('synthex')
+  })
+})
