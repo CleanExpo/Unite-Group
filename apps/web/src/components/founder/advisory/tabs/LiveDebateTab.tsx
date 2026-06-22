@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createBrowserClient } from '@supabase/ssr'
 import type { DebateEvent, AdvisoryCase, AdvisoryProposal } from '@/lib/advisory/types'
-import { ROUND_LABELS, FIRM_META } from '@/lib/advisory/types'
+import { ROUND_LABELS, FIRM_META, FIRM_KEYS } from '@/lib/advisory/types'
 import { ProposalCard } from '../shared/ProposalCard'
 import { JudgeScorecard } from '../shared/JudgeScorecard'
 
@@ -101,6 +101,21 @@ export function LiveDebateTab() {
   const isDebating = caseData?.status === 'debating'
   const isDraft = caseData?.status === 'draft'
 
+  // Partial-debate integrity (Step 3 / F2): a firm dropped if its proposal/evidence
+  // failed to persist. Surface it from the persisted case (judge_scores.partial)
+  // OR from a live firm_dropped event — never present a degraded debate as complete.
+  const summary = caseData?.judge_scores
+  const droppedFromEvents = Array.from(
+    new Set(
+      events
+        .filter((e): e is Extract<DebateEvent, { event: 'firm_dropped' }> => e.event === 'firm_dropped')
+        .map(e => e.firm)
+    )
+  )
+  const droppedFirms = summary?.droppedFirms ?? droppedFromEvents
+  const isPartial = summary?.partial === true || droppedFromEvents.length > 0
+  const scoredFirmCount = summary?.scoredFirmCount ?? Math.max(0, FIRM_KEYS.length - droppedFirms.length)
+
   return (
     <div className="space-y-4">
       {/* Case header */}
@@ -124,6 +139,20 @@ export function LiveDebateTab() {
               {loading ? 'Starting...' : 'Start Debate'}
             </button>
           )}
+        </div>
+      )}
+
+      {/* Partial-debate warning — honest disclosure that the set is degraded (F2) */}
+      {isPartial && (
+        <div
+          role="alert"
+          className="rounded-sm p-3 text-[11px]"
+          style={{ background: '#f59e0b18', color: '#b45309', border: '1px solid #f59e0b40' }}
+        >
+          <span className="font-medium">Partial debate — </span>
+          scored {scoredFirmCount} of {FIRM_KEYS.length} firms. The following firm(s)
+          did not persist and were excluded from judging: {droppedFirms.map(f => FIRM_META[f]?.name ?? f).join(', ')}.
+          This result is incomplete and must not be treated as a full debate.
         </div>
       )}
 
@@ -214,6 +243,8 @@ function formatEvent(evt: DebateEvent): string {
       return `${FIRM_META[evt.firm]?.name} is analysing...`
     case 'firm_response':
       return `${FIRM_META[evt.firm]?.name} responded: ${evt.preview.slice(0, 80)}...`
+    case 'firm_dropped':
+      return `${FIRM_META[evt.firm]?.name} dropped (round ${evt.round}): ${evt.reason}`
     case 'round_complete':
       return `Round ${evt.round} complete`
     case 'judge_start':

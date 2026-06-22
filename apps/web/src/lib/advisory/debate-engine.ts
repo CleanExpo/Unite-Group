@@ -105,6 +105,14 @@ export async function* runDebate(
   // Accumulate proposals across rounds for context injection
   const allRoundProposals: RoundProposals[] = []
 
+  // Track firms whose proposal/evidence failed to persist (Step 3 / F2). A firm
+  // appears once even if it dropped in multiple rounds. The Judge and UI use this
+  // to label the debate as partial — never present a degraded debate as complete.
+  const droppedFirms = new Set<FirmKey>()
+  // The firms whose round-5 proposal actually persisted — this is the set the
+  // Judge scores from, so it drives the honest "N of 4 firms" count.
+  let finalRoundPersistedFirms: FirmKey[] = []
+
   // ── Execute 5 rounds ───────────────────────────────────────────────────
   for (let round = 1; round <= 5; round++) {
     const roundInfo = ROUND_LABELS[round]
@@ -185,6 +193,8 @@ export async function* runDebate(
     }
 
     // ── Persist proposals + evidence to DB ──────────────────────────────
+    // Firms whose proposal persisted this round (used for the round-5 Judge set).
+    const persistedThisRound: FirmKey[] = []
     for (const record of roundResults) {
       const proposalRow = {
         case_id: caseId,
@@ -208,7 +218,13 @@ export async function* runDebate(
         .single()
 
       if (insertErr) {
+        // F2: a failed persist is silent data loss. Drop the firm honestly —
+        // continue the debate with the firms that did persist, but record it so
+        // the Judge and UI know the set is degraded.
+        const reason = `proposal insert failed: ${insertErr.message}`
         console.error(`[debate-engine] Failed to insert proposal for ${record.firm} round ${round}:`, insertErr.message)
+        droppedFirms.add(record.firm)
+        yield { event: 'firm_dropped', round, firm: record.firm, reason }
         continue
       }
 
@@ -226,9 +242,23 @@ export async function* runDebate(
           .insert(evidenceRows)
 
         if (evidenceErr) {
+          // Evidence-loss is also a degraded set — the firm's proposal is on
+          // record but its supporting evidence isn't, so flag it honestly.
+          const reason = `evidence insert failed: ${evidenceErr.message}`
           console.error(`[debate-engine] Failed to insert evidence for proposal ${inserted.id}:`, evidenceErr.message)
+          droppedFirms.add(record.firm)
+          yield { event: 'firm_dropped', round, firm: record.firm, reason }
+          continue
         }
       }
+
+      // Proposal (and any evidence) persisted cleanly this round.
+      persistedThisRound.push(record.firm)
+    }
+
+    // Round 5 is the set the Judge scores from — capture who actually persisted.
+    if (round === 5) {
+      finalRoundPersistedFirms = persistedThisRound
     }
 
     allRoundProposals.push(roundRawContent)
@@ -248,19 +278,41 @@ export async function* runDebate(
   // Runs concurrently — does not block if the memory store is slow or empty.
   const memoryContext = await recallAdvisoryContext(founderId)
 
+  // Partial-debate accounting (Step 3 / F2). The Judge scores the persisted
+  // round-5 set; if any firm dropped, it scored fewer than 4 firms and must be
+  // told so the summary states it honestly.
+  const scoredFirmCount = finalRoundPersistedFirms.length || FIRM_KEYS.length
+  const isPartial = droppedFirms.size > 0
+  const droppedList = Array.from(droppedFirms)
+
   try {
     const judgeMessageBase = buildJudgeUserMessage(
       scenario,
       financialContext,
       finalRoundProposals
     )
+    // When the debate is partial, tell the Judge up front so its summary is honest.
+    const partialNote = isPartial
+      ? `\n\n### Degraded debate\nThis debate is PARTIAL: you scored ${scoredFirmCount} of ${FIRM_KEYS.length} firms. ` +
+        `The following firm(s) failed to persist and are not in the scored set: ${droppedList.join(', ')}. ` +
+        `Your summary MUST state "scored ${scoredFirmCount} of ${FIRM_KEYS.length} firms" and must not present this as a complete debate.`
+      : ''
     // Append memory context after the structured case content if available.
-    const judgeMessage = memoryContext
-      ? `${judgeMessageBase}\n\n${memoryContext}`
-      : judgeMessageBase
+    const judgeMessage =
+      (memoryContext ? `${judgeMessageBase}\n\n${memoryContext}` : judgeMessageBase) + partialNote
 
     const judgeResult = await callJudgeAgentWithRetry(judgeMessage)
     const { scores } = judgeResult
+
+    // Stamp the degraded-set markers onto the summary so the case carries them.
+    if (isPartial) {
+      scores.partial = true
+      scores.scoredFirmCount = scoredFirmCount
+      scores.droppedFirms = droppedList
+      if (!/of \d+ firms/i.test(scores.summary)) {
+        scores.summary = `Scored ${scoredFirmCount} of ${FIRM_KEYS.length} firms (partial debate). ${scores.summary}`
+      }
+    }
 
     // ── Store judge scores ───────────────────────────────────────────────
     const scoreRows = scores.scores.map(s => ({
