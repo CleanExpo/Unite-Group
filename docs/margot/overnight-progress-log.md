@@ -170,7 +170,7 @@ Completed:
 - Read the available canonical Margot/CRM docs under `apps/empire/docs/margot/` and `apps/web/docs/margot/` because root source docs are not present in this checkout, then selected a small command-center approval surface.
 - TDD RED: added a focused Vitest assertion that the add-on approval task objective must not store the authenticated requester's email address.
 - GREEN: changed the task objective copy from the raw actor email to the stable non-PII phrase `Requested by: authenticated founder`; `founderId` remains the scoped identity passed to `createTask`.
-- Code commit: pending at evidence-writing time; final commit hash is recorded in the run report after commit.
+- Code commit: `94587ceaabd9 fix(command-center): redact add-on requester email`.
 
 Verification / evidence:
 - RED command: `pnpm vitest run src/app/api/command-center/control-panel/add-ons/__tests__/route.test.ts --testNamePattern 'does not store the requester email'` -> expected failure because the objective contained the synthetic raw email.

@@ -50,6 +50,7 @@
 
 - **Completed safe lane:** Created `fix/add-on-approval-requester-redaction-20260622` from current `main` with no open PRs and landed a small command-center approval-surface TDD slice.
 - **What changed:** `/api/command-center/control-panel/add-ons` no longer writes the authenticated requester's raw email into the approval task objective. It stores the non-PII phrase `Requested by: authenticated founder` while preserving founder scoping through `founderId`.
+- **Code commit:** `94587ceaabd9 fix(command-center): redact add-on requester email`.
 - **TDD:** RED focused Vitest failed first because the approval task objective contained the synthetic requester email; GREEN then passed after replacing the raw email copy.
 - **Verification:** Focused route suite passed (`pnpm vitest run src/app/api/command-center/control-panel/add-ons/__tests__/route.test.ts`, 1 file / 4 tests). `pnpm run type-check`, `npm run type-check`, `pnpm run lint`, `pnpm run test` (381 files / 2278 tests), scoped `git diff --check`, and added-line security scans passed.
 - **Build blocker:** `pnpm run build` failed before Next build at `scripts/validate-env.mjs --ci` because this local shell has no critical/required app env configured. No secret values were read/printed and no env mutation was attempted.
