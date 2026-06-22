@@ -7,8 +7,8 @@ import {
 } from '../businesses'
 
 describe('BUSINESSES', () => {
-  it('has 7 entries', () => {
-    expect(BUSINESSES).toHaveLength(7)
+  it('has 8 entries', () => {
+    expect(BUSINESSES).toHaveLength(8)
   })
 
   it('each entry has key, name, color, status, type', () => {
@@ -32,8 +32,8 @@ describe('BUSINESSES', () => {
     expect(CLIENT_BUSINESSES[0].key).toBe('ccw')
   })
 
-  it('has 6 owned business keys (dr and nrpg are separate keys for one business entity)', () => {
-    expect(OWNED_BUSINESSES).toHaveLength(6)
+  it('has 7 owned business keys (dr and nrpg are separate keys for one business entity)', () => {
+    expect(OWNED_BUSINESSES).toHaveLength(7)
   })
 
   it('keeps CCW out of owned-bookkeeping helpers', () => {
@@ -46,6 +46,7 @@ describe('BUSINESSES', () => {
       'restore',
       'synthex',
       'ato',
+      'itr',
     ])
   })
 })

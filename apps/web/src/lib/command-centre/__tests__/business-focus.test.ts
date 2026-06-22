@@ -32,8 +32,8 @@ describe('buildBusinessFocusPayload', () => {
     )
 
     expect(payload.source).toBe('cc:business-focus')
-    expect(payload.summary.businesses).toBe(7)
-    expect(payload.summary.owned).toBe(6)
+    expect(payload.summary.businesses).toBe(8)
+    expect(payload.summary.owned).toBe(7)
     expect(payload.summary.clients).toBe(1)
     expect(payload.items.find((item) => item.key === 'restore')).toMatchObject({
       name: 'RestoreAssist',
