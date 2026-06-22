@@ -110,14 +110,14 @@ export function CreateIssueModal({ open, onClose, onCreated }: CreateIssueModalP
               className="flex items-center justify-between px-5 py-3"
               style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}
             >
-              <h2 className="text-[13px] font-medium" style={{ color: '#e2e8f0' }}>
+              <h2 className="text-[13px] font-medium" style={{ color: '#0A0A0A' }}>
                 New Issue
               </h2>
               <button
                 onClick={onClose}
                 className="text-[13px] px-2 py-0.5 rounded-sm transition-colors"
                 style={{ color: '#64748b' }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = '#e2e8f0')}
+                onMouseEnter={(e) => (e.currentTarget.style.color = '#0A0A0A')}
                 onMouseLeave={(e) => (e.currentTarget.style.color = '#64748b')}
               >
                 ✕
@@ -142,7 +142,7 @@ export function CreateIssueModal({ open, onClose, onCreated }: CreateIssueModalP
                   style={{
                     background: '#fffdf7',
                     border: '1px solid rgba(255, 255, 255, 0.08)',
-                    color: '#e2e8f0',
+                    color: '#0A0A0A',
                   }}
                   onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(22, 163, 74, 0.4)')}
                   onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)')}
@@ -163,7 +163,7 @@ export function CreateIssueModal({ open, onClose, onCreated }: CreateIssueModalP
                   style={{
                     background: '#fffdf7',
                     border: '1px solid rgba(255, 255, 255, 0.08)',
-                    color: '#e2e8f0',
+                    color: '#0A0A0A',
                   }}
                   onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(22, 163, 74, 0.4)')}
                   onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)')}
@@ -185,7 +185,7 @@ export function CreateIssueModal({ open, onClose, onCreated }: CreateIssueModalP
                       style={{
                         background: '#fffdf7',
                         border: '1px solid rgba(255, 255, 255, 0.08)',
-                        color: '#e2e8f0',
+                        color: '#0A0A0A',
                       }}
                       onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(22, 163, 74, 0.4)')}
                       onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)')}
@@ -218,7 +218,7 @@ export function CreateIssueModal({ open, onClose, onCreated }: CreateIssueModalP
                     style={{
                       background: '#fffdf7',
                       border: '1px solid rgba(255, 255, 255, 0.08)',
-                      color: '#e2e8f0',
+                      color: '#0A0A0A',
                     }}
                     onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(22, 163, 74, 0.4)')}
                     onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)')}
@@ -234,7 +234,7 @@ export function CreateIssueModal({ open, onClose, onCreated }: CreateIssueModalP
 
               {/* Error */}
               {error && (
-                <p className="text-[11px] px-2 py-1.5 rounded-sm" style={{ color: '#ef4444', background: '#1a0505' }}>
+                <p className="text-[11px] px-2 py-1.5 rounded-sm" style={{ color: 'var(--color-danger)', background: 'rgba(239,68,68,0.1)' }}>
                   {error}
                 </p>
               )}

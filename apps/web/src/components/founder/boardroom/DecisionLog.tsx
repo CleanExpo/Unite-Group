@@ -125,7 +125,7 @@ export function DecisionLog() {
             className="text-[11px] px-3 py-1 rounded-sm border transition-colors"
             style={{
               borderColor: filterStatus === s ? '#16a34a' : 'var(--color-border)',
-              color: filterStatus === s ? '#e2e8f0' : 'var(--color-text-muted)',
+              color: filterStatus === s ? '#0A0A0A' : 'var(--color-text-muted)',
               background: 'var(--surface-card)',
             }}
           >

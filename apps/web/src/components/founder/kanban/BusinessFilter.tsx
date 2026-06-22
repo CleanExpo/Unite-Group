@@ -20,7 +20,7 @@ export function BusinessFilter({ activeFilter, onFilterChange }: BusinessFilterP
             : '1px solid var(--color-border)',
           background: 'var(--surface-card)',
           color: activeFilter === null
-            ? '#e2e8f0'
+            ? '#0A0A0A'
             : 'var(--color-text-muted)',
           fontSize: '11px',
         }}
@@ -42,7 +42,7 @@ export function BusinessFilter({ activeFilter, onFilterChange }: BusinessFilterP
                 : '1px solid var(--color-border)',
               background: 'var(--surface-card)',
               color: isActive
-                ? '#e2e8f0'
+                ? '#0A0A0A'
                 : 'var(--color-text-muted)',
               fontSize: '11px',
             }}
