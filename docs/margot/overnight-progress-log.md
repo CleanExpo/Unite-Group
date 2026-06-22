@@ -201,7 +201,7 @@ Completed:
 - Local branch type-check passed before merging main because only the PR copy of Step 2 was present; `origin/main` already contains PR #437's Step 2 helper. This explained the remote merge-check failure.
 - Merged `origin/main` into the PR branch with `--no-commit` and reproduced RED locally: `pnpm run type-check` failed with the same duplicate `allSettledWithConcurrency` declarations.
 - GREEN: removed the duplicate merge-introduced copy of `allSettledWithConcurrency`, keeping a single exported helper and preserving the PR's Step 3–5 advisory changes.
-- Code/merge commit: pending at this evidence-write point; follow-up evidence should replace this with the committed SHA before/after push.
+- Code/merge commit: `8b781d2de fix(advisory): resolve Step 2 helper merge duplication`.
 
 Verification / evidence:
 - RED command: from `apps/web`, `pnpm run type-check` after `git merge --no-commit --no-ff origin/main` -> expected duplicate export/function implementation errors at `debate-engine.ts:555` and `:591`.

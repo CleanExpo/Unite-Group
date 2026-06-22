@@ -63,7 +63,7 @@
 - **Completed safe lane:** Continued current open PR #440 (`advisory-debate-f2-f4`) instead of starting a new CRM slice. Updated the branch with `origin/main` and resolved the advisory debate-engine duplicate helper introduced by the merge.
 - **PR:** https://github.com/CleanExpo/Unite-Group/pull/440 — `fix(advisory): production-harden the debate engine (F1–F4) [Steps 2–5]`.
 - **What changed:** `origin/main` already contains Step 2's exported `allSettledWithConcurrency`; PR #440 also carried that helper from its pre-merge history. The merge produced two identical exports in `apps/web/src/lib/advisory/debate-engine.ts`. I removed the duplicate copy, leaving one helper and preserving the PR's partial-debate, atomic-claim, and re-judge changes.
-- **Code/merge commit:** pending at this evidence-write point; follow-up evidence should replace this with the committed SHA before/after push.
+- **Code/merge commit:** `8b781d2de fix(advisory): resolve Step 2 helper merge duplication`.
 - **TDD/RED:** After `git merge --no-commit --no-ff origin/main`, `pnpm run type-check` failed locally with the same duplicate `allSettledWithConcurrency` errors seen in GitHub Actions. GREEN then passed after removing the duplicate.
 - **Verification:** Focused concurrency regression passed (1 file / 4 tests). Focused advisory PR suite passed (6 files / 20 tests). `pnpm run type-check`, `pnpm run lint`, `pnpm run test` (386 files / 2294 tests), `git diff --check`, and added-line secret scan all passed.
 - **Build blocker:** `pnpm run build` failed before Next build at `scripts/validate-env.mjs --ci` because this local shell has no critical/required app env configured. No secret values were read/printed and no env mutation was attempted.
