@@ -59,6 +59,8 @@ describe('POST /api/kanban/generate-next', () => {
     expect(res.status).toBe(200)
 
     expect(mockCreateIssue).toHaveBeenCalledTimes(1)
+    // Must file into the Unite-Group project, or the claim loop never sees it.
+    expect(mockCreateIssue.mock.calls[0][0]).toMatchObject({ projectName: 'Unite-Group', teamKey: 'UNI' })
     const desc = mockCreateIssue.mock.calls[0][0].description as string
     // The runner's claim filter (linear-claim hasAcceptanceCriteria) needs this heading.
     expect(desc).toMatch(/##\s*Acceptance Criteria/i)
