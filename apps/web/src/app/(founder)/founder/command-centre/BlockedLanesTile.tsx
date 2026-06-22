@@ -127,12 +127,15 @@ export async function loadBlockedLanesData(
 
 export function BlockedLanesTile({ data }: { data: BlockedLanesData }) {
   if (data.read_error) {
+    const localOnly = /ENOENT|no such file/i.test(data.read_error)
     return (
       <p
         data-testid="blocked-lanes-tile-error"
-        style={{ color: '#fb923c', fontSize: '0.85rem', margin: 0 }}
+        style={{ color: localOnly ? 'var(--color-text-muted)' : '#fb923c', fontSize: '0.85rem', margin: 0 }}
       >
-        Could not read backlog at <code>{data.backlog_path}</code>: {data.read_error}
+        {localOnly
+          ? 'Backlog lives in the local 2nd-brain vault — not available in this environment.'
+          : `Could not read backlog: ${data.read_error}`}
       </p>
     )
   }

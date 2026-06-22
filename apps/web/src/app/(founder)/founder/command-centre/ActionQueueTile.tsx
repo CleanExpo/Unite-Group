@@ -74,12 +74,15 @@ export async function loadActionQueueData(
 
 export function ActionQueueTile({ data }: { data: ActionQueueTileData }) {
   if (data.read_error) {
+    const localOnly = /ENOENT|no such file/i.test(data.read_error)
     return (
       <p
         data-testid="action-queue-tile-error"
-        style={{ color: '#fb923c', fontSize: '0.85rem', margin: 0 }}
+        style={{ color: localOnly ? 'var(--color-text-muted)' : '#fb923c', fontSize: '0.85rem', margin: 0 }}
       >
-        Could not read action queue at <code>{data.queue_path}</code>: {data.read_error}
+        {localOnly
+          ? 'The action queue lives in the local 2nd-brain vault — not available in this environment.'
+          : `Could not read action queue: ${data.read_error}`}
       </p>
     )
   }
