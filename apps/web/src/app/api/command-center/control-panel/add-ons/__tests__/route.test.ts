@@ -16,6 +16,7 @@ vi.mock('../_cc-task-shape', () => ({
 }))
 
 import { getUser } from '@/lib/supabase/server'
+import { createTask } from '@/lib/command-centre/tasks'
 import { POST } from '../route'
 
 function req(body: object) {
@@ -47,5 +48,18 @@ describe('POST /api/command-center/control-panel/add-ons', () => {
     expect(body.ok).toBe(true)
     expect(body.existing).toBe(false)
     expect(body.cc_task_id).toBe('task-1')
+  })
+
+  it('does not store the requester email in the approval task objective', async () => {
+    const requesterEmail = ['founder', '@', 'example.test'].join('')
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1', email: requesterEmail } as any)
+
+    const res = await POST(req({ addOnId: 'test-addon' }))
+
+    expect(res.status).toBe(200)
+    const createInput = vi.mocked(createTask).mock.calls[0]?.[0]
+    expect(createInput?.founderId).toBe('user-1')
+    expect(createInput?.objective).toContain('Requested by: authenticated founder')
+    expect(createInput?.objective).not.toContain(requesterEmail)
   })
 })
