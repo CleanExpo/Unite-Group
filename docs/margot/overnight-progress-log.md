@@ -56,3 +56,35 @@ Safety / blockers:
 
 Next safe lane:
 - Push/open PR for `fix/kanban-sync-packet-redaction-20260622` if publication remains safe after evidence commit, then monitor checks. If build checks fail only for missing env, classify as gated configuration rather than mutating Vercel/local env autonomously.
+
+## 2026-06-22 20:04 AEST
+
+### Tick 20260622_2004 — PR #427 Nexus audit logger service-role lint fix
+
+Lane: continued already-open PR #427 (`pidev/auto-uni-2204`) instead of starting a new CRM slice. Scope stayed inside the Nexus provider-router audit logging helper/tests plus Margot evidence docs. No production DB write, migration application, Vercel env mutation, billing/payment action, credential read/print, client-facing send, cross-client merge, destructive git action, or live provider mutation occurred.
+
+Completed:
+- Preflight: local checkout started from `main` clean and `origin/main` matched; GitHub CLI auth was available. Open PRs were #427 and #424, both targeting `main` with failing `apps/web — lint, type-check, test, build` checks. PR #427 was selected first as the most recent in-progress lane.
+- PR #427 failure read-back: GitHub Actions job `27943507633` / `82682366297` failed at `pnpm run lint` because `apps/web/src/lib/nexus/audit-logger.ts:34:15` directly accessed `SUPABASE_SERVICE_ROLE_KEY`, which violates the repo rule requiring that key to be accessed only through `src/lib/supabase/service.ts` or documented server-only exceptions.
+- TDD RED: added `apps/web/src/lib/nexus/__tests__/audit-logger.test.ts` proving `logRoutingDecision` should skip persistence when `hasSupabaseServiceConfig()` is false and should persist through `createServiceClient()` when config is present. Focused test failed before production-code change because the service helper mock was never called.
+- GREEN: updated `apps/web/src/lib/nexus/audit-logger.ts` to use `hasSupabaseServiceConfig()` and `createServiceClient()` instead of importing `createClient` and reading `SUPABASE_SERVICE_ROLE_KEY` directly.
+- PR state before push: #427 remote head `993b6986d4ebd97e7fcb86b28be356fa6343b9a5`; Vercel preview statuses were green, but `apps/web — lint, type-check, test, build` was still red from the pre-fix remote head.
+
+Verification / evidence:
+- RED command: `./node_modules/.bin/vitest run src/lib/nexus/__tests__/audit-logger.test.ts --config vitest.config.mts` -> expected failure, 1 file / 2 failed tests (`hasSupabaseServiceConfig` and `createServiceClient` were not called).
+- GREEN focused command: same focused Vitest command -> PASS, 1 file / 2 tests.
+- Focused Nexus suite: `./node_modules/.bin/vitest run src/lib/nexus/__tests__/router.test.ts src/lib/nexus/__tests__/audit-logger.test.ts --config vitest.config.mts` -> PASS, 2 files / 13 tests.
+- Type check: `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`).
+- Lint: `pnpm run lint` from `apps/web` -> PASS (`eslint src/`).
+- Full apps/web tests: `pnpm run test` -> PASS, 376 files / 2243 tests.
+- Whitespace: `git diff --check` -> PASS.
+- Added-line security scan: hardcoded-secret, shell-injection, eval/exec, unsafe-deserialization, and SQL-format scans returned no matches.
+- Build check: `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with 0/3 critical and 0/4 required env vars configured in this local shell. No env values were read or printed; this is an environment configuration gate, not a code/test failure.
+
+Safety / blockers:
+- Local build remains blocked by missing local app env. This tick did not mutate local or Vercel env vars.
+- Unrelated unstaged local files were present after verification (`apps/web/.claude/memory/current-state.md`, Linear mapping/test files). They were not part of this slice and were not staged for the PR #427 fix.
+- PR #424 remains open with separate test failures around business-count expectations; not touched in this tick.
+
+Next safe lane:
+- Commit and push only the PR #427 audit-logger fix/evidence, then monitor GitHub Actions for the refreshed head. If #427 turns green, merge only if all checks pass and the change remains within the stated safe boundaries; otherwise read the failing logs and fix the next bounded issue. After #427 is settled, return to PR #424's separate failing test lane.

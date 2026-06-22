@@ -21,3 +21,15 @@
 - **Safety:** No production DB write/migration, Vercel env mutation, billing/payment action, credential read/print, client-facing send, cross-client merge, destructive git action, or live provider mutation occurred.
 - **Evidence paths:** `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
 - **Next safe lane:** Push/open PR for `fix/kanban-sync-packet-redaction-20260622` once the local build/env gate is accepted as a configuration blocker; monitor GitHub/Vercel checks and classify missing-env failures as gated configuration rather than mutating env autonomously.
+
+## 2026-06-22 20:04 AEST — PR #427 Nexus audit logger lint fix
+
+- **Completed safe lane:** Continued PR #427 (`pidev/auto-uni-2204`) instead of starting a new CRM slice. Fixed the failing apps/web lint gate by routing Nexus audit persistence through the central Supabase service-role helper.
+- **PR:** https://github.com/CleanExpo/Unite-Group/pull/427 — `UNI-2204: UNI-2184 — Nexus: AI provider router with cost/capability matrix`.
+- **What changed:** Added `apps/web/src/lib/nexus/__tests__/audit-logger.test.ts` and updated `apps/web/src/lib/nexus/audit-logger.ts` to call `hasSupabaseServiceConfig()` / `createServiceClient()` instead of directly reading `SUPABASE_SERVICE_ROLE_KEY`.
+- **TDD:** RED focused Vitest failed first (2/2 expected failures because the service-helper mock was not called). GREEN focused Vitest then passed (1 file / 2 tests), and the focused Nexus suite passed (2 files / 13 tests).
+- **Verification:** `pnpm run type-check` PASS; `pnpm run lint` PASS; `pnpm run test` PASS (376 files / 2243 tests); `git diff --check` PASS; added-line security scan found no matches. `pnpm run build` is blocked before Next build by missing local critical/required env vars in `scripts/validate-env.mjs --ci`; no values were read/printed and no env mutation was attempted.
+- **Current PR status before push:** remote head `993b6986d4ebd97e7fcb86b28be356fa6343b9a5` still shows the earlier failing apps/web CI job; Vercel preview statuses are green.
+- **Safety:** No production DB write/migration, Vercel env mutation, billing/payment action, credential read/print, client-facing send, cross-client merge, destructive git action, or live provider mutation occurred.
+- **Evidence paths:** `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+- **Next safe lane:** Commit/push the PR #427 fix/evidence and monitor refreshed CI; then return to PR #424's separate failing test lane once #427 is settled.
