@@ -55,7 +55,7 @@ describe('POST /api/advisory/cases/[id]/re-judge', () => {
   it('returns 500 when re-judge throws', async () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as never)
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
-    mockReJudgeCase.mockImplementation(() => {
+    mockReJudgeCase.mockImplementation(async function* () {
       throw new Error('re-judge failure')
     })
 

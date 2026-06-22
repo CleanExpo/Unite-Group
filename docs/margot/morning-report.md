@@ -148,3 +148,16 @@
 - **Remaining remote gate:** PR #440 and PR #439 must stay `KEEP_GATED` while required `apps/web — Playwright E2E` is red on blank/missing E2E login secrets plus non-prod Supabase Auth `createUser failed` provisioning symptoms, unless Phill/operator grants an explicit typed waiver.
 - **Evidence paths:** `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
 - **Next safe lane:** Commit/push this bounded PR #440 follow-up only after branch/head and reviewer read-back; then monitor remote checks. Do not merge while required E2E remains red without an authorised waiver.
+
+## 2026-06-23 05:42 AEST — PR #440 async-generator test hygiene + keep-gated packet
+
+- **Completed safe lane:** Continued current open PR #440 (`advisory-debate-f2-f4`) and fixed a still-valid CodeRabbit test-hygiene nitpick in the advisory re-judge route tests. No production DB write/migration, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, PR merge, or live provider mutation occurred.
+- **PR:** https://github.com/CleanExpo/Unite-Group/pull/440 — `fix(advisory): production-harden the debate engine (F1–F4) [Steps 2–5]`.
+- **What changed:** `apps/web/src/app/api/advisory/cases/[id]/re-judge/__tests__/route.test.ts` now simulates the re-judge failure path with an `async function*` that throws during async-generator iteration instead of a synchronous throw from the generator factory. The exact `mockRejectedValue` suggestion was not used because `reJudgeCase` is consumed as an async generator, not a promise-returning function.
+- **TDD:** No production code changed; strict RED/GREEN was not applicable beyond retaining the existing 500-path regression and rerunning focused route coverage.
+- **Verification:** Re-judge route test passed (1 file / 3 tests); advisory start/re-judge route suites passed (2 files / 8 tests); `pnpm run type-check` PASS; `pnpm run lint` PASS; `env -u LINEAR_API_KEY -u LINEAR_TOKEN pnpm run test` PASS (386 files / 2299 tests); scoped `git diff --check` PASS; touched-test security pattern scan returned 0 matches.
+- **Build blocker:** `pnpm run build` failed before Next build at `scripts/validate-env.mjs --ci` because local critical/required app env is incomplete. No env values were printed or mutated.
+- **Gate packet:** `NAMESPACE` gate; `KEEP_GATED` disposition for PR #439/#440 while required `apps/web — Playwright E2E` is red. Lift only after authorised non-blank E2E login-secret configuration and non-prod Supabase Auth provisioning repair with E2E rerun to green, or an explicit typed waiver accepting required-check risk.
+- **Remaining remote gate:** PR #440 and PR #439 are green on product-code/Vercel/CodeRabbit checks but blocked by required Playwright E2E on blank/missing `PLAYWRIGHT_TEST_EMAIL` / `PLAYWRIGHT_TEST_PASSWORD` plus Supabase Auth `createUser failed: Database error creating new user` symptoms. This run did not mutate GitHub/Vercel secrets or Supabase.
+- **Evidence paths:** `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+- **Next safe lane:** Commit/push this bounded test-hygiene/evidence slice after branch/head read-back, then monitor remote checks. Keep PR #440 unmerged unless E2E turns green or Phill/operator grants an explicit typed waiver.

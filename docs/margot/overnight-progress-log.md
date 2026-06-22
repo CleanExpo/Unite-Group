@@ -423,3 +423,40 @@ Safety / blockers:
 
 Next safe lane:
 - Commit and push only this bounded PR #440 follow-up after branch/head read-back and reviewer check; then re-read remote checks. If no authorised E2E configuration/provisioning fix has happened, keep PR #440 `KEEP_GATED` despite the follow-up commit.
+
+## 2026-06-23 05:42 AEST
+
+### Tick 20260623_0542 — PR #440 CodeRabbit async-generator test hygiene
+
+Lane: continued current/open PR #440 (`advisory-debate-f2-f4`) instead of starting another CRM lane because PR #440 is the active branch. Scope stayed inside a reviewer-requested advisory re-judge route test hygiene change, local verification, GitHub/Vercel status read-back, and evidence docs. No production DB write, migration application, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight read-back found current branch `advisory-debate-f2-f4` synced with `origin/advisory-debate-f2-f4` at `bdd83bf2c3721aeb501186ebf7c64551b83ff63a`; PR #440 remains open against `main`. The only pre-existing untracked path was `docs/audit-reports/`, which was not staged.
+- Open PR read-back: PR #440 product-code CI, workspace/spec-board/MCP checks, CodeRabbit, and both Vercel previews are green; required `apps/web — Playwright E2E` remains red on run `27976695364` / job `82796731698`. PR #439 remains separately open with the same E2E gate class.
+- Verified a still-valid CodeRabbit nitpick in `apps/web/src/app/api/advisory/cases/[id]/re-judge/__tests__/route.test.ts`: the failure-path test used a synchronous throw from the mocked `reJudgeCase` generator factory. Because `reJudgeCase` is consumed as an async generator, the exact `mockRejectedValue` suggestion would misrepresent the mocked return type; the bounded fix changes the mock to an `async function*` that throws during iteration.
+- No production code changed in this tick, so strict RED/GREEN was not applicable beyond preserving the existing error-path regression and rerunning the route suite. This is test hygiene only.
+
+Verification / evidence:
+- Focused re-judge route test after test-hygiene change: `./node_modules/.bin/vitest run 'src/app/api/advisory/cases/[id]/re-judge/__tests__/route.test.ts' --config vitest.config.mts` -> PASS, 1 file / 3 tests.
+- Advisory route suites: `./node_modules/.bin/vitest run 'src/app/api/advisory/cases/[id]/start/__tests__/route.test.ts' 'src/app/api/advisory/cases/[id]/re-judge/__tests__/route.test.ts' --config vitest.config.mts` -> PASS, 2 files / 8 tests.
+- Type check: `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`).
+- Lint: `pnpm run lint` from `apps/web` -> PASS (`eslint src/`).
+- Full tests with clean Linear env: `env -u LINEAR_API_KEY -u LINEAR_TOKEN pnpm run test` from `apps/web` -> PASS, 386 files / 2299 tests.
+- Whitespace: `git diff --check -- 'src/app/api/advisory/cases/[id]/re-judge/__tests__/route.test.ts'` -> PASS.
+- Diff/security read-back: `git diff -- apps/web/src/app/api/advisory/cases/[id]/re-judge/__tests__/route.test.ts` shows the only code-line change is `mockImplementation(() => {` -> `mockImplementation(async function* () {`; `search_files` for hardcoded-secret/token, shell execution, eval/new Function, unsafe JSON parse/yaml load, and SQL template patterns in the touched test returned 0 matches.
+- Build: `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with 0/3 critical and 0/4 required app env vars configured in this local shell. Env values were not printed or mutated; this remains a local environment configuration gate.
+
+Gate-review packet for Phill/operator:
+- Gate class: `NAMESPACE` — GitHub Actions E2E namespace / repo-or-environment login-secret configuration plus non-prod Supabase Auth test-user provisioning.
+- Disposition: `KEEP_GATED` for PR #440 and PR #439 while required Playwright E2E remains red.
+- Lift condition: authorised operator configures non-blank E2E login secrets and repairs non-prod Supabase Auth user provisioning, then reruns E2E to green, or grants an explicit typed waiver accepting the required-check risk.
+- Concrete risk if lifted now: merging while authenticated E2E is red would ship advisory/CRM changes without proof that login-dependent flows and non-prod auth provisioning still work, and would normalise bypassing a required shared gate.
+- Rollback / recovery note: this tick's test-hygiene change does not require rollback; recovery path for the gate is configuration/provisioning fix plus E2E rerun.
+
+Safety / blockers:
+- Existing remote gate remains unchanged: PR #440 and PR #439 must stay unmerged while required `apps/web — Playwright E2E` is red on blank/missing E2E login secrets plus non-prod Supabase Auth `createUser failed: Database error creating new user` symptoms, unless Phill/operator explicitly grants a typed waiver.
+- This tick did not touch E2E auth/provisioning, Supabase data, provider credentials, billing, client identity, production deployment, or GitHub/Vercel secrets.
+- Root `docs/audit-reports/` remains untracked and was not staged.
+
+Next safe lane:
+- Commit and push only this bounded PR #440 test-hygiene/evidence slice after branch/head read-back, then re-read remote checks. Keep PR #440 `KEEP_GATED` if E2E remains red on the known non-prod credential/provisioning class.
