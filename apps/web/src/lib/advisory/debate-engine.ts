@@ -31,6 +31,15 @@ const MAX_RETRIES = 3
 const RATE_LIMIT_MAX_RETRIES = 5
 const RETRY_BASE_MS = 1000
 
+// Max firms calling the model concurrently within a round. The advisory path
+// runs through a single Claude-Max account whose per-minute limit is exceeded
+// the instant all four firms fire at once (audit F1). Capping the fan-out at 2
+// — paired with the Step 1 retry-after/jitter backoff — keeps the burst inside
+// the limit window while still running all four firms each round.
+// (Founder open item #1: drop to 1 for the single-account worst case, or raise
+//  once advisory routes through the multi-provider pool.)
+const FIRM_CONCURRENCY = 2
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 interface ProposalRecord {
@@ -110,8 +119,12 @@ export async function* runDebate(
     const roundResults: ProposalRecord[] = []
     const roundRawContent: RoundProposals = {} as RoundProposals
 
-    // ── Call 4 firms in parallel ────────────────────────────────────────
-    const firmPromises = FIRM_KEYS.map(async (firmKey) => {
+    // ── Call the firms with a bounded concurrency pool ──────────────────
+    // Build thunks (not eager promises) so the pool — not the event loop —
+    // decides when each firm fires. At most FIRM_CONCURRENCY run at once,
+    // which (with the Step 1 retry-after/jitter backoff) keeps the burst
+    // inside the single Claude-Max account's rate-limit window (audit F1).
+    const firmTasks = FIRM_KEYS.map((firmKey) => async () => {
       const config = firmConfigs[firmKey]
       const userMessage = buildFirmUserMessage({
         round,
@@ -125,13 +138,13 @@ export async function* runDebate(
       return callFirmAgentWithRetry(config, userMessage, firmKey)
     })
 
-    // Yield firm_start events (outside the parallel promises)
+    // Yield firm_start events (before awaiting the pool)
     for (const firmKey of FIRM_KEYS) {
       yield { event: 'firm_start', round, firm: firmKey }
     }
 
-    // Wait for all firms
-    const results = await Promise.allSettled(firmPromises)
+    // Wait for all firms (run ≤ FIRM_CONCURRENCY at a time, order preserved)
+    const results = await allSettledWithConcurrency(firmTasks, FIRM_CONCURRENCY)
 
     for (let i = 0; i < FIRM_KEYS.length; i++) {
       const firmKey = FIRM_KEYS[i]
@@ -346,6 +359,42 @@ export async function* runDebate(
   }
 
   yield { event: 'case_complete' }
+}
+
+// ── Concurrency Pool ───────────────────────────────────────────────────────
+
+/**
+ * Run `tasks` with at most `limit` in flight at any time, settling every task
+ * (never short-circuits on rejection) and returning results in input order —
+ * a bounded-concurrency `Promise.allSettled`. No external dependency.
+ *
+ * A `limit` below 1 is clamped to 1 so the pool can never deadlock.
+ *
+ * Exported for unit testing (Step 2 of the Advisory Debate QA build spec).
+ */
+export async function allSettledWithConcurrency<T>(
+  tasks: Array<() => Promise<T>>,
+  limit: number,
+): Promise<PromiseSettledResult<T>[]> {
+  const cap = Math.max(1, Math.floor(limit))
+  const results = new Array<PromiseSettledResult<T>>(tasks.length)
+  let next = 0
+
+  async function worker(): Promise<void> {
+    for (;;) {
+      const index = next++
+      if (index >= tasks.length) return
+      try {
+        results[index] = { status: 'fulfilled', value: await tasks[index]() }
+      } catch (reason) {
+        results[index] = { status: 'rejected', reason }
+      }
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(cap, tasks.length) }, () => worker())
+  await Promise.all(workers)
+  return results
 }
 
 // ── Retry Helpers ────────────────────────────────────────────────────────────
