@@ -86,7 +86,10 @@ export async function* runDebate(
 
   const advisoryCase = caseRow as AdvisoryCase
 
-  if (advisoryCase.status !== 'draft') {
+  // Accept 'draft' (direct invocation) or 'debating' (already claimed atomically
+  // by the start route — Step 4 / F3). Any other status means the case is past
+  // the debate phase and must not be re-run here.
+  if (advisoryCase.status !== 'draft' && advisoryCase.status !== 'debating') {
     yield { event: 'error', message: `Case status is '${advisoryCase.status}' — expected 'draft'` }
     return
   }

@@ -19,22 +19,27 @@ export async function POST(
 
   const { id } = await params
 
-  // Verify case exists and belongs to user
+  // Atomic claim (Step 4 / F3 — double-start TOCTOU race).
+  // Instead of check-then-run (which lets two concurrent POSTs both pass the
+  // 'draft' check and start the debate twice), flip the status in a single
+  // conditional UPDATE: only the row that is still 'draft' is claimed, and only
+  // the caller that wins the row proceeds. Founder scoping is preserved on the
+  // same statement. A losing caller gets no row back → 409.
   const supabase = createServiceClient()
-  const { data: caseRow, error: caseError } = await supabase
+  const { data: claimed, error: claimError } = await supabase
     .from('advisory_cases')
-    .select('id, status, founder_id')
+    .update({ status: 'debating', current_round: 0 })
     .eq('id', id)
     .eq('founder_id', user.id)
+    .eq('status', 'draft')
+    .select('id')
     .single()
 
-  if (caseError || !caseRow) {
-    return NextResponse.json({ error: 'Case not found' }, { status: 404 })
-  }
-
-  if (caseRow.status !== 'draft') {
+  if (claimError || !claimed) {
+    // No row claimed: the case doesn't exist for this founder, or it has already
+    // been started (status moved off 'draft'). Either way, don't start a debate.
     return NextResponse.json(
-      { error: `Case status is '${caseRow.status}' — only draft cases can be started` },
+      { error: 'Case is not in draft status or has already been started' },
       { status: 409 }
     )
   }
