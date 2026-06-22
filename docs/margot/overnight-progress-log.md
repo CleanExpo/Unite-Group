@@ -188,3 +188,35 @@ Safety / blockers:
 
 Next safe lane:
 - Commit the bounded route/test/evidence files, push/open a PR if publication remains safe, then monitor checks. If build/deploy fails only on missing env configuration, keep it classified as a gated configuration action rather than mutating Vercel/local env autonomously.
+
+## 2026-06-22 23:50 AEST
+
+### Tick 20260622_2350 — CRM opportunity forecast approval read-back redaction
+
+Lane: created isolated worktree branch `fix/crm-opportunity-forecast-redaction-20260622` from current `origin/main` (`c12a58d09`) because no open PRs were present and the primary checkout had unrelated local dirty files. Scope stayed inside the pure local CRM forecast helper/test plus evidence docs. No production DB write, migration application, Vercel env mutation, billing/payment action, credential read/print, client-facing send, cross-client merge, destructive git action, or live provider mutation occurred.
+
+Completed:
+- Preflight: GitHub CLI auth and Vercel CLI were available; `gh pr list --state open --limit 10` returned `[]`. Current primary checkout was on a stale/advisory local branch with unrelated dirty files, so this tick used `/tmp/unite-crm-forecast-redaction-20260622` to avoid publishing unrelated state.
+- Read current Margot/CRM source docs and progress logs before selecting the lane.
+- TDD RED: added a focused Vitest case proving `buildOpportunityForecast` leaked sensitive opportunity `name` / `next_action` free text into the `approvalGated` operator read-back.
+- GREEN: added helper-local redaction for approval-gated opportunity free text while preserving routing/forecast metadata: `id`, `stage`, `status`, `approvalStatus`, and `weightedValue`.
+
+Verification / evidence:
+- Dependency hydration: `pnpm install --frozen-lockfile` -> PASS with existing Supabase bin warnings; no lockfile change.
+- RED command: `./node_modules/.bin/vitest run src/lib/crm/__tests__/opportunity-forecast.test.ts --config vitest.config.mts --testNamePattern 'redacts sensitive free text'` -> expected failure: raw synthetic email was present in `forecast.approvalGated` JSON.
+- GREEN focused command: same focused Vitest command -> PASS, 1 test.
+- Focused CRM forecast suite: `./node_modules/.bin/vitest run src/lib/crm/__tests__/opportunity-forecast.test.ts --config vitest.config.mts` -> PASS, 1 file / 6 tests.
+- Type check: `pnpm run type-check` -> PASS (`tsc --noEmit`).
+- Lint: `pnpm run lint` -> PASS (`eslint src/`).
+- Full apps/web tests: `pnpm run test` -> PASS, 382 files / 2283 tests.
+- Whitespace: `git diff --check -- src/lib/crm/opportunity-forecast.ts src/lib/crm/__tests__/opportunity-forecast.test.ts` -> PASS.
+- Security scan: secret-shaped direct-token search on the two changed files returned 0 matches. A broader `src/lib/crm` scan only found pre-existing benign bearer fixtures in `activity-timeline.test.ts`, not this slice.
+- `npm run security:routes-check` is not available in current `apps/web/package.json` (missing script); this slice touched no API route.
+- Build check: `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with 0/3 critical and 0/4 required env vars configured in this local shell. No env values were read or printed; this remains an environment configuration gate, not a code/test failure.
+
+Safety / blockers:
+- Vercel/local app env configuration remains gated; this tick did not mutate env vars.
+- This does not create, update, approve, or convert CRM opportunities; it only redacts operator-facing free text on a pure forecast read-back.
+
+Next safe lane:
+- Commit the bounded helper/test/evidence files, push/open a PR if publication remains safe, then monitor GitHub/Vercel checks. Keep any missing-env build/deploy failure classified as a gated configuration action rather than mutating Vercel/local env autonomously.

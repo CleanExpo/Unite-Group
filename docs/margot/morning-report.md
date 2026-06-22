@@ -57,3 +57,14 @@
 - **Safety:** No production DB write/migration, Vercel env mutation, billing/payment action, credential read/print, client-facing send, cross-client merge, destructive git action, or live provider mutation occurred. This does not enable add-ons or approve work; it only reduces PII retained in a founder-scoped approval task objective.
 - **Evidence paths:** `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
 - **Next safe lane:** Commit/push/open PR if publication remains safe, then monitor GitHub/Vercel checks; keep missing-env build/deploy failures classified as gated configuration rather than mutating env autonomously.
+
+## 2026-06-22 23:50 AEST — CRM opportunity forecast approval read-back redaction
+
+- **Completed safe lane:** Created isolated branch/worktree `fix/crm-opportunity-forecast-redaction-20260622` from current `origin/main` (`c12a58d09`) because no open PRs were present and the primary checkout had unrelated dirty files.
+- **What changed:** `buildOpportunityForecast` now redacts sensitive-looking approval-gated opportunity `name` and `nextAction` free text before returning operator-facing `approvalGated` read-backs, while preserving forecast/routing metadata (`id`, `stage`, `status`, `approvalStatus`, `weightedValue`).
+- **TDD:** RED focused Vitest failed first because `forecast.approvalGated` contained a synthetic email. GREEN then passed after helper-local redaction.
+- **Verification:** Focused CRM forecast suite passed (`./node_modules/.bin/vitest run src/lib/crm/__tests__/opportunity-forecast.test.ts --config vitest.config.mts`, 1 file / 6 tests). `pnpm run type-check`, `pnpm run lint`, `pnpm run test` (382 files / 2283 tests), scoped `git diff --check`, and changed-file secret-pattern scans passed. `npm run security:routes-check` is missing from current `apps/web/package.json`; this slice touched no route.
+- **Build blocker:** `pnpm run build` failed before Next build at `scripts/validate-env.mjs --ci` because this local shell has no critical/required app env configured. No secret values were read/printed and no env mutation was attempted.
+- **Safety:** No production DB write/migration, Vercel env mutation, billing/payment action, credential read/print, client-facing send, cross-client merge, destructive git action, or live provider mutation occurred. This does not create/update/approve/convert opportunities; it only redacts a pure local forecast read-back.
+- **Evidence paths:** `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+- **Next safe lane:** Commit/push/open PR if publication remains safe, then monitor GitHub/Vercel checks; keep missing-env build/deploy failures classified as gated configuration rather than mutating env autonomously.
