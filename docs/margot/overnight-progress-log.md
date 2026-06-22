@@ -218,5 +218,12 @@ Safety / blockers:
 - Vercel/local app env configuration remains gated; this tick did not mutate env vars.
 - This does not create, update, approve, or convert CRM opportunities; it only redacts operator-facing free text on a pure forecast read-back.
 
+Publication / remote read-back:
+- Code/evidence commit pushed: `822723a7b5d04f036f0586d4871aee798db224cb` (`fix(crm): redact opportunity forecast approval text`).
+- PR opened: https://github.com/CleanExpo/Unite-Group/pull/439.
+- PR checks read-back: CodeRabbit PASS; Vercel Preview Comments PASS; `Vercel – unite-group` PASS (`https://vercel.com/unite-group/unite-group/FoCeCTFYZD4nRZ2eRAte1ngZG4C1`); `Vercel – unite-group-sandbox` PASS (`https://vercel.com/unite-group/unite-group-sandbox/JCnBBWogWPghuLdpuHG3MHzjCHfj`); `apps/web — lint, type-check, test, build` PASS; `apps/workspace — build` PASS; `apps/spec-board — type-check, test, build` PASS; `packages/pi-ceo-operator-mcp — build` PASS.
+- PR blocker: `apps/web — Playwright E2E` FAILED (`https://github.com/CleanExpo/Unite-Group/actions/runs/27957820931/job/82732714470`). Log read-back shows 34 passed / 24 skipped / 11 failed. Failure classes are separate from this pure CRM helper slice: stale unauthenticated API expectations (`/api/strategy/analyze`, `/api/bron/chat`, `/api/ideas/capture` returned 200 where the E2E expected 401), missing `PLAYWRIGHT_TEST_EMAIL` / `PLAYWRIGHT_TEST_PASSWORD` for `idea-capture`, and non-prod Supabase `createUser` database errors in contact/file/lead/transcription authenticated E2E specs. No production env/DB mutation was attempted.
+- This post-push evidence update is local-only at report time to avoid retriggering the known-red E2E lane with an evidence-only commit.
+
 Next safe lane:
-- Commit the bounded helper/test/evidence files, push/open a PR if publication remains safe, then monitor GitHub/Vercel checks. Keep any missing-env build/deploy failure classified as a gated configuration action rather than mutating Vercel/local env autonomously.
+- Do not merge PR #439 while E2E is red. Next safe work is a separate E2E gate lane: either update stale unauthenticated API expectations if the current route contract is intentionally public, or add route auth if those APIs are meant to be private; separately classify/fix the missing Playwright credentials and non-prod Supabase `createUser` provisioning gate without mutating production DB/env.
