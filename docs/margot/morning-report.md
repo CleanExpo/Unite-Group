@@ -45,3 +45,28 @@
 - **Safety:** No production DB write/migration, Vercel env mutation, billing/payment action, credential read/print, client-facing send, cross-client merge, destructive git action, or live provider mutation occurred.
 - **Evidence paths:** `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
 - **Next safe lane:** Commit evidence, push PR #433, then monitor refreshed CI/Vercel. If E2E still fails at Supabase `createUser` provisioning, treat it as a separate non-prod DB/env gate unless fresh logs prove a code-level failure.
+
+## 2026-06-22 23:03 AEST — Add-on approval requester redaction
+
+- **Completed safe lane:** Created `fix/add-on-approval-requester-redaction-20260622` from current `main` with no open PRs and landed a small command-center approval-surface TDD slice.
+- **What changed:** `/api/command-center/control-panel/add-ons` no longer writes the authenticated requester's raw email into the approval task objective. It stores the non-PII phrase `Requested by: authenticated founder` while preserving founder scoping through `founderId`.
+- **Code commit:** `94587ceaabd9 fix(command-center): redact add-on requester email`.
+- **TDD:** RED focused Vitest failed first because the approval task objective contained the synthetic requester email; GREEN then passed after replacing the raw email copy.
+- **Verification:** Focused route suite passed (`pnpm vitest run src/app/api/command-center/control-panel/add-ons/__tests__/route.test.ts`, 1 file / 4 tests). `pnpm run type-check`, `npm run type-check`, `pnpm run lint`, `pnpm run test` (381 files / 2278 tests), scoped `git diff --check`, and added-line security scans passed.
+- **Build blocker:** `pnpm run build` failed before Next build at `scripts/validate-env.mjs --ci` because this local shell has no critical/required app env configured. No secret values were read/printed and no env mutation was attempted.
+- **Safety:** No production DB write/migration, Vercel env mutation, billing/payment action, credential read/print, client-facing send, cross-client merge, destructive git action, or live provider mutation occurred. This does not enable add-ons or approve work; it only reduces PII retained in a founder-scoped approval task objective.
+- **Evidence paths:** `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+- **Next safe lane:** Commit/push/open PR if publication remains safe, then monitor GitHub/Vercel checks; keep missing-env build/deploy failures classified as gated configuration rather than mutating env autonomously.
+
+## 2026-06-23 00:45 AEST — PR #440 main-merge type-check fix
+
+- **Completed safe lane:** Continued current open PR #440 (`advisory-debate-f2-f4`) instead of starting a new CRM slice. Updated the branch with `origin/main` and resolved the advisory debate-engine duplicate helper introduced by the merge.
+- **PR:** https://github.com/CleanExpo/Unite-Group/pull/440 — `fix(advisory): production-harden the debate engine (F1–F4) [Steps 2–5]`.
+- **What changed:** `origin/main` already contains Step 2's exported `allSettledWithConcurrency`; PR #440 also carried that helper from its pre-merge history. The merge produced two identical exports in `apps/web/src/lib/advisory/debate-engine.ts`. I removed the duplicate copy, leaving one helper and preserving the PR's partial-debate, atomic-claim, and re-judge changes.
+- **Code/merge commit:** pending at this evidence-write point; follow-up evidence should replace this with the committed SHA before/after push.
+- **TDD/RED:** After `git merge --no-commit --no-ff origin/main`, `pnpm run type-check` failed locally with the same duplicate `allSettledWithConcurrency` errors seen in GitHub Actions. GREEN then passed after removing the duplicate.
+- **Verification:** Focused concurrency regression passed (1 file / 4 tests). Focused advisory PR suite passed (6 files / 20 tests). `pnpm run type-check`, `pnpm run lint`, `pnpm run test` (386 files / 2294 tests), `git diff --check`, and added-line secret scan all passed.
+- **Build blocker:** `pnpm run build` failed before Next build at `scripts/validate-env.mjs --ci` because this local shell has no critical/required app env configured. No secret values were read/printed and no env mutation was attempted.
+- **Safety:** No production DB write/migration, Vercel env mutation, billing/payment action, credential read/print, client-facing send, cross-client merge, PR merge, or live provider mutation occurred. Root `docs/audit-reports/` remains untracked and was not staged.
+- **Evidence paths:** `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+- **Next safe lane:** Commit/push PR #440 and monitor refreshed GitHub Actions/Vercel checks; do not mutate local/Vercel env to satisfy the local build preflight.

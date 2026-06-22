@@ -34,14 +34,14 @@ function addOnFor(value: unknown) {
   return ADD_ON_GATES.find((item) => item.id === addOnId) ?? null
 }
 
-function taskObjective(addOn: (typeof ADD_ON_GATES)[number], actorEmail: string): string {
+function taskObjective(addOn: (typeof ADD_ON_GATES)[number]): string {
   return [
     `Review add-on request: ${addOn.label}`,
     '',
     `Category: ${addOn.category}`,
     `Current state: ${addOn.state}`,
     `Approval rule: ${addOn.approval}`,
-    `Requested by: ${actorEmail}`,
+    'Requested by: authenticated founder',
     '',
     'Safety gates:',
     '- No add-on can self-enable from the Control Panel.',
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
       founderId: user.id,
       externalRef,
       title: `Approve add-on: ${addOn.label}`,
-      objective: taskObjective(addOn, user.email ?? 'founder'),
+      objective: taskObjective(addOn),
       status: ADD_ON_APPROVAL_STATUS,
       priority: 'P1',
       origin: 'idea',

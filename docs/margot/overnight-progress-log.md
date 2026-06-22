@@ -158,3 +158,66 @@ Safety / blockers:
 
 Next safe lane:
 - Commit evidence, push PR #433, monitor refreshed GitHub Actions/Vercel checks. If the E2E lane still fails at Supabase test-user provisioning, inspect logs/artifacts and treat any E2E database branch/env mismatch as a gated non-prod configuration issue unless a code-level failing test proves otherwise.
+
+## 2026-06-22 23:03 AEST
+
+### Tick 20260622_2303 — Command-center add-on approval requester redaction
+
+Lane: fresh branch from current `main` (`fix/add-on-approval-requester-redaction-20260622`) because no open PRs were present. Scope stayed inside the command-center add-on approval route/test plus Margot evidence docs. No production DB write, migration application, Vercel env mutation, billing/payment action, credential read/print, client-facing send, cross-client merge, destructive git action, or live provider mutation occurred.
+
+Completed:
+- Preflight: `main` matched `origin/main` at `867c7ef81`; GitHub CLI auth and Vercel CLI were available; `gh pr list --state open --limit 10` returned `[]`. Existing local dirty files (`.claude/settings.local.json`, `apps/web/.claude/memory/current-state.md`, `docs/audit-reports/`) were unrelated and not staged.
+- Read the available canonical Margot/CRM docs under `apps/empire/docs/margot/` and `apps/web/docs/margot/` because root source docs are not present in this checkout, then selected a small command-center approval surface.
+- TDD RED: added a focused Vitest assertion that the add-on approval task objective must not store the authenticated requester's email address.
+- GREEN: changed the task objective copy from the raw actor email to the stable non-PII phrase `Requested by: authenticated founder`; `founderId` remains the scoped identity passed to `createTask`.
+- Code commit: `94587ceaabd9 fix(command-center): redact add-on requester email`.
+
+Verification / evidence:
+- RED command: `pnpm vitest run src/app/api/command-center/control-panel/add-ons/__tests__/route.test.ts --testNamePattern 'does not store the requester email'` -> expected failure because the objective contained the synthetic raw email.
+- GREEN focused + route suite: same focused command -> PASS, then `pnpm vitest run src/app/api/command-center/control-panel/add-ons/__tests__/route.test.ts` -> PASS, 1 file / 4 tests.
+- Type check: `pnpm run type-check` and `npm run type-check` from `apps/web` -> PASS (`tsc --noEmit`).
+- Lint: `pnpm run lint` from `apps/web` -> PASS (`eslint src/`).
+- Full apps/web tests: `pnpm run test` -> PASS, 381 files / 2278 tests.
+- Whitespace: `git diff --check -- src/app/api/command-center/control-panel/add-ons/route.ts src/app/api/command-center/control-panel/add-ons/__tests__/route.test.ts` -> PASS.
+- Added-line security scan: hardcoded-secret, shell-injection, eval/exec, unsafe-deserialization, and SQL-format scans returned no matches.
+- Build check: `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with 0/3 critical and 0/4 required env vars configured in this local shell. No env values were read or printed; this remains an environment configuration gate, not a code/test failure.
+
+Safety / blockers:
+- Vercel/local app env configuration remains gated; this tick did not mutate env vars.
+- The slice does not enable add-ons, approve work, or execute provider actions; it only reduces PII retained in a founder-scoped approval task objective.
+
+Next safe lane:
+- Commit the bounded route/test/evidence files, push/open a PR if publication remains safe, then monitor checks. If build/deploy fails only on missing env configuration, keep it classified as a gated configuration action rather than mutating Vercel/local env autonomously.
+
+## 2026-06-23 00:45 AEST
+
+### Tick 20260623_0045 — PR #440 main-merge type-check fix
+
+Lane: continued already-open/current branch PR #440 (`advisory-debate-f2-f4`) instead of starting a new CRM slice. Scope stayed inside branch update from `origin/main`, the advisory debate-engine merge resolution, local verification, and Margot evidence docs. No production DB write, migration application, Vercel env mutation, billing/payment action, credential read/print, client-facing send, cross-client merge, destructive git action on `main`, or live provider mutation occurred.
+
+Completed:
+- Preflight found current branch `advisory-debate-f2-f4` with PR #440 open against `main`, merge state `BEHIND`, Vercel previews green, and `apps/web — lint, type-check, test, build` failing on the remote head. PR #439 remains separately open with Playwright E2E red; this tick continued the current PR first.
+- GitHub Actions failure read-back for run `27957885688`, job `82731040101`, showed `tsc --noEmit` failing with duplicate `allSettledWithConcurrency` declarations at `apps/web/src/lib/advisory/debate-engine.ts:555` and `:591`.
+- Local branch type-check passed before merging main because only the PR copy of Step 2 was present; `origin/main` already contains PR #437's Step 2 helper. This explained the remote merge-check failure.
+- Merged `origin/main` into the PR branch with `--no-commit` and reproduced RED locally: `pnpm run type-check` failed with the same duplicate `allSettledWithConcurrency` declarations.
+- GREEN: removed the duplicate merge-introduced copy of `allSettledWithConcurrency`, keeping a single exported helper and preserving the PR's Step 3–5 advisory changes.
+- Code/merge commit: pending at this evidence-write point; follow-up evidence should replace this with the committed SHA before/after push.
+
+Verification / evidence:
+- RED command: from `apps/web`, `pnpm run type-check` after `git merge --no-commit --no-ff origin/main` -> expected duplicate export/function implementation errors at `debate-engine.ts:555` and `:591`.
+- GREEN focused regression: `pnpm vitest run src/lib/advisory/__tests__/concurrency.test.ts` -> PASS, 1 file / 4 tests.
+- Focused advisory PR suite: `pnpm vitest run src/lib/advisory/__tests__/concurrency.test.ts src/lib/advisory/__tests__/partial-debate.test.ts src/lib/advisory/__tests__/re-judge.test.ts 'src/app/api/advisory/cases/[id]/start/__tests__/route.test.ts' 'src/app/api/advisory/cases/[id]/re-judge/__tests__/route.test.ts' src/components/founder/advisory/tabs/__tests__/LiveDebateTab.partial.test.tsx` -> PASS, 6 files / 20 tests.
+- Type check: `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`).
+- Lint: `pnpm run lint` from `apps/web` -> PASS (`eslint src/`).
+- Full apps/web tests: `pnpm run test` -> PASS, 386 files / 2294 tests.
+- Whitespace: `git diff --check` -> PASS.
+- Added-line security scan over staged + unstaged diff -> PASS, no secret-shaped findings.
+- Build check: `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with 0/3 critical and 0/4 required env vars configured in this local shell. No env values were read or printed; this remains an environment configuration gate, not a code/test failure.
+
+Safety / blockers:
+- This tick did not approve/execute advisory recommendations, write production DB rows, apply migrations, mutate Vercel env, or merge the PR.
+- Root `docs/audit-reports/` remains untracked from existing local state and was not staged.
+- Local merge also brought in already-merged `origin/main` files from PR #438 / the add-on requester-redaction lane; these are mainline updates required to make PR #440 current, not new work from this tick.
+
+Next safe lane:
+- Commit the merge resolution and evidence, push PR #440, monitor refreshed GitHub Actions/Vercel checks. If checks pass cleanly, the PR can proceed through the normal review/merge gate; do not mutate Vercel/local env to satisfy the local build preflight.
