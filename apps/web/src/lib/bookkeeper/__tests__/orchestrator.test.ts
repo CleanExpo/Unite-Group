@@ -11,6 +11,11 @@ import type {
 import type { ReconciliationResult } from '../reconciliation'
 import type { DeductionOptimisationResult } from '../deduction-optimiser'
 import type { BASCalculation, BASPeriod } from '../bas-calculator'
+import { OWNED_BUSINESSES } from '@/lib/businesses'
+
+// The orchestrator processes every active, owned business. Derive the expected
+// count from the same source of truth so adding a business doesn't break tests.
+const ACTIVE_OWNED_COUNT = OWNED_BUSINESSES.filter((b) => b.status === 'active').length
 
 // ---------------------------------------------------------------------------
 // Mock modules BEFORE importing the system under test
@@ -395,7 +400,7 @@ describe('runBookkeeperForAllBusinesses', () => {
 
     await runBookkeeperForAllBusinesses(FOUNDER_ID)
 
-    expect(processedKeys).toHaveLength(6)
+    expect(processedKeys).toHaveLength(ACTIVE_OWNED_COUNT)
     expect(processedKeys).not.toContain('ccw')
   })
 
@@ -447,7 +452,7 @@ describe('runBookkeeperForAllBusinesses', () => {
     const result = await runBookkeeperForAllBusinesses(FOUNDER_ID)
 
     expect(result.status).toBe('failed')
-    expect(result.failedCount).toBe(6)
+    expect(result.failedCount).toBe(ACTIVE_OWNED_COUNT)
   })
 
   it('error in one business does not prevent others from processing', async () => {
@@ -462,11 +467,11 @@ describe('runBookkeeperForAllBusinesses', () => {
 
     const result = await runBookkeeperForAllBusinesses(FOUNDER_ID)
 
-    // 1 failed, 5 succeeded
+    // 1 failed, the rest succeeded
     const successResults = result.businessResults.filter((r) => r.status === 'success')
     const errorResults = result.businessResults.filter((r) => r.status === 'error')
     expect(errorResults).toHaveLength(1)
-    expect(successResults).toHaveLength(5)
+    expect(successResults).toHaveLength(ACTIVE_OWNED_COUNT - 1)
   })
 
   it('captures error message in business result', async () => {
@@ -488,18 +493,18 @@ describe('runBookkeeperForAllBusinesses', () => {
   it('aggregates GST totals across all businesses', async () => {
     const result = await runBookkeeperForAllBusinesses(FOUNDER_ID)
 
-    // 6 active owned businesses, each with gstCollected=5000 and gstPaid=3000
-    expect(result.gstCollectedCents).toBe(6 * 5000)
-    expect(result.gstPaidCents).toBe(6 * 3000)
-    expect(result.netGstCents).toBe(6 * (5000 - 3000))
+    // every active owned business contributes gstCollected=5000 and gstPaid=3000
+    expect(result.gstCollectedCents).toBe(ACTIVE_OWNED_COUNT * 5000)
+    expect(result.gstPaidCents).toBe(ACTIVE_OWNED_COUNT * 3000)
+    expect(result.netGstCents).toBe(ACTIVE_OWNED_COUNT * (5000 - 3000))
   })
 
   it('aggregates transaction counts across all businesses', async () => {
     const result = await runBookkeeperForAllBusinesses(FOUNDER_ID)
 
-    // 6 active owned businesses, each with 1 transaction
-    expect(result.totalTransactions).toBe(6)
-    expect(result.autoReconciled).toBe(6)
+    // 7 active owned businesses, each with 1 transaction
+    expect(result.totalTransactions).toBe(7)
+    expect(result.autoReconciled).toBe(7)
   })
 
   it('updates run record with final status on completion', async () => {
@@ -572,7 +577,7 @@ describe('runBookkeeperForAllBusinesses', () => {
     // Skipped businesses are not counted as errors
     const skippedResults = result.businessResults.filter((r) => r.status === 'skipped')
     const errorResults = result.businessResults.filter((r) => r.status === 'error')
-    expect(skippedResults).toHaveLength(6)
+    expect(skippedResults).toHaveLength(7)
     expect(errorResults).toHaveLength(0)
     // With all skipped (0 success, 0 error), status should be 'completed'
     expect(result.status).toBe('completed')
