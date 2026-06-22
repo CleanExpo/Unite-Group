@@ -80,6 +80,26 @@ describe('POST /api/advisory/cases/[id]/start', () => {
     expect(mockRunDebate).toHaveBeenCalledTimes(1)
   })
 
+  it('returns 500 when the claimed debate throws', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as never)
+    mockClaimSingle.mockResolvedValue({ data: { id: 'case-1', status: 'debating', founder_id: 'user-1' }, error: null })
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mockRunDebate.mockImplementation(() => {
+      throw new Error('debate engine failure')
+    })
+
+    try {
+      const res = await POST(new Request('https://app.test') as never, { params })
+      expect(res.status).toBe(500)
+      expect(consoleError).toHaveBeenCalledWith(
+        expect.stringContaining('[advisory/start] Debate error for case case-1:'),
+        expect.any(Error)
+      )
+    } finally {
+      consoleError.mockRestore()
+    }
+  })
+
   it('two concurrent POSTs → exactly one 200 and one 409; the debate runs once', async () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as never)
 

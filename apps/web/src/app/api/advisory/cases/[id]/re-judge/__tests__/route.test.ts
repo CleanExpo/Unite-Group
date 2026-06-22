@@ -51,4 +51,23 @@ describe('POST /api/advisory/cases/[id]/re-judge', () => {
     expect(mockReJudgeCase).toHaveBeenCalledTimes(1)
     expect(mockReJudgeCase).toHaveBeenCalledWith('case-1', 'user-1')
   })
+
+  it('returns 500 when re-judge throws', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as never)
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mockReJudgeCase.mockImplementation(() => {
+      throw new Error('re-judge failure')
+    })
+
+    try {
+      const res = await POST(new Request('https://app.test') as never, { params })
+      expect(res.status).toBe(500)
+      expect(consoleError).toHaveBeenCalledWith(
+        expect.stringContaining('[advisory/re-judge] Re-judge error for case case-1:'),
+        expect.any(Error)
+      )
+    } finally {
+      consoleError.mockRestore()
+    }
+  })
 })

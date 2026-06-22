@@ -60,7 +60,7 @@ export async function POST(
 
 /**
  * Consumes the debate generator and broadcasts events via Supabase Realtime.
- * Runs in the background — not awaited by the HTTP handler.
+ * Runs synchronously within the HTTP request; maxDuration keeps the handler alive.
  */
 async function runDebateAsync(caseId: string, founderId: string) {
   const supabase = createServiceClient()

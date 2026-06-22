@@ -26,6 +26,13 @@ export function LiveDebateTab() {
   const [loading, setLoading] = useState(false)
   const eventLogRef = useRef<HTMLDivElement>(null)
 
+  // Realtime events are scoped to the selected advisory case; clear them before
+  // subscribing/fetching a different case so dropped-firm warnings cannot leak.
+  useEffect(() => {
+    setEvents([])
+    setStarted(false)
+  }, [caseId])
+
   // Fetch case detail
   useEffect(() => {
     if (!caseId) return
