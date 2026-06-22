@@ -62,7 +62,7 @@ describe('/api/linear/issues', () => {
     expect(res.status).toBe(401)
   })
 
-  it('GET maps an ITR issue (UNI team, Dimitri-ITR project) to an itr card', async () => {
+  it('GET maps an ITR issue (UNI team, Dimitri ITR Platform project) to an itr card', async () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
     vi.stubEnv('LINEAR_API_KEY', 'k')
     vi.mocked(fetchTeamStates).mockResolvedValue([])
@@ -70,7 +70,7 @@ describe('/api/linear/issues', () => {
       {
         id: 'i-itr', identifier: 'UNI-1', title: 'ITR task', priority: 3,
         team: { id: 't-uni', key: 'UNI', name: 'Unite-Group' },
-        project: { id: 'p-itr', name: 'Dimitri-ITR' },
+        project: { id: 'p-itr', name: 'Dimitri ITR Platform' },
         state: { id: 's1', name: 'In Progress', type: 'started' },
       },
     ] as any)
@@ -91,7 +91,7 @@ describe('/api/linear/issues', () => {
     const res = await POST(req('POST', { businessKey: 'itr', title: 'New ITR task' }))
     expect(res.status).toBe(201)
     expect(createIssue).toHaveBeenCalledWith(
-      expect.objectContaining({ teamKey: 'UNI', projectName: 'Dimitri-ITR', title: 'New ITR task' }),
+      expect.objectContaining({ teamKey: 'UNI', projectName: 'Dimitri ITR Platform', title: 'New ITR task' }),
     )
   })
 })
