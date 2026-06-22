@@ -101,6 +101,10 @@ jobs:
   e2e:
     name: apps/web — Playwright E2E
     runs-on: ubuntu-latest
+    # Guard against the Playwright browser-install step hanging indefinitely
+    # (observed sitting "pending" for hours, up to GitHub's 6h default). Fail
+    # fast instead so the gate gives a clear signal rather than blocking forever.
+    timeout-minutes: 20
     needs: [web]
     # Opt-in gate: set the E2E_ENABLED repo variable to 'true' and wire the
     # E2E_SUPABASE_* secrets (pointing to the dedicated non-prod e2e-gate branch).
