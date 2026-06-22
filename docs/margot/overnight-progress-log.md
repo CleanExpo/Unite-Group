@@ -254,7 +254,36 @@ Safety / blockers:
 - This tick only wires existing GitHub secret names into the CI E2E job; it does not create, view, approve, or mutate secrets.
 - The remaining E2E `createUser failed: Database error creating new user` symptoms are still unresolved and likely require the dedicated non-prod Supabase E2E branch/test-user provisioning to be repaired by an authorised operator. No Supabase DB writes or migrations were performed.
 - Root `docs/audit-reports/` remains untracked from existing local state and was not staged.
-- Current local branch is ahead of remote; the code commit and this evidence have not yet been pushed at this evidence-writing point.
+- Current local branch is synced with `origin/advisory-debate-f2-f4` at pushed head `bf55113331e27ae6fe86732e6dbb696d36506ee2` after publishing this slice.
+- Post-push read-back on run `27964238946`: apps/web lint/type/test/build, workspace, spec-board, and MCP checks passed; `apps/web — Playwright E2E` failed again at job `82754287731`; CodeRabbit was still pending at the final poll. The workflow now exposes the two expected env names, but GitHub showed `PLAYWRIGHT_TEST_EMAIL:` and `PLAYWRIGHT_TEST_PASSWORD:` as blank, meaning the repo/environment secrets are not configured for this job. The same run also retained Supabase Auth `createUser failed: Database error creating new user` failures. No secret values were available or read.
 
 Next safe lane:
-- Commit evidence, push PR #440 once branch/head still matches, monitor refreshed CI. If the credential-env failure disappears but `createUser` remains red, keep PR #440 unmerged and classify the residue as a non-prod Supabase E2E provisioning gate unless a fresh bounded RED test proves a code-level defect.
+- Keep PR #440 unmerged while Playwright E2E is red. The remaining blocker is now a configuration/provisioning gate: authorised operator action is needed to configure `PLAYWRIGHT_TEST_EMAIL` / `PLAYWRIGHT_TEST_PASSWORD` GitHub secrets and repair the dedicated non-prod Supabase E2E user-provisioning path, unless a fresh bounded RED test proves a code-level defect. Do not mutate GitHub/Vercel secrets or Supabase DB autonomously.
+
+### Tick 20260623_0216 — PR #440 CodeRabbit partial-warning follow-through
+
+Lane: continued already-open/current branch PR #440 (`advisory-debate-f2-f4`) after CodeRabbit completed. Scope stayed inside the advisory LiveDebateTab partial-debate warning surface and existing evidence docs. No production DB write, migration application, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight: local branch `advisory-debate-f2-f4` was synced with `origin/advisory-debate-f2-f4` at `bf55113331e27ae6fe86732e6dbb696d36506ee2`; PR #440 remained open against `main`. GitHub CLI auth was available. Open PRs: #440 and #439; current branch PR #440 was continued first.
+- Remote read-back: PR #440 checks at head `bf55113331e27ae6fe86732e6dbb696d36506ee2` had apps/web lint/type/test/build, workspace, spec-board, MCP, and CodeRabbit green; `apps/web — Playwright E2E` remained red on run `27964238946` / job `82754287731` due blank E2E login secrets and Supabase Auth `createUser failed: Database error creating new user` symptoms.
+- CodeRabbit follow-through: added regression coverage and a minimal LiveDebateTab fix so persisted `judge_scores.droppedFirms` renders the partial-debate warning even if `judge_scores.partial` is absent/false. This closes the integrity mismatch where persisted degraded debates could be displayed as complete.
+- Design follow-through: the partial warning now uses the Scientific Luxury OLED/Cyan palette (`#050505` / `#00F5FF`) instead of amber hardcoded colours.
+
+TDD / verification:
+- RED: `pnpm run test -- 'src/components/founder/advisory/tabs/__tests__/LiveDebateTab.partial.test.tsx'` executed the suite and failed only the new regression: `Unable to find role="alert"` when persisted `droppedFirms` existed without an explicit `partial` flag.
+- GREEN focused: `./node_modules/.bin/vitest run 'src/components/founder/advisory/tabs/__tests__/LiveDebateTab.partial.test.tsx'` -> PASS, 1 file / 3 tests.
+- Advisory focused suite: `./node_modules/.bin/vitest run 'src/lib/advisory/__tests__/partial-debate.test.ts' 'src/lib/advisory/__tests__/re-judge.test.ts' 'src/components/founder/advisory/tabs/__tests__/LiveDebateTab.partial.test.tsx' 'src/app/api/advisory/cases/[id]/start/__tests__/route.test.ts' 'src/app/api/advisory/cases/[id]/re-judge/__tests__/route.test.ts'` -> PASS, 5 files / 17 tests.
+- Type check: `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`).
+- Lint: `pnpm run lint` from `apps/web` -> PASS (`eslint src/`).
+- Full apps/web tests: `pnpm run test` -> PASS, 386 files / 2296 tests.
+- Whitespace and added-line security scan: `git diff --check` -> PASS; added-line scan over touched LiveDebateTab files found no hardcoded-secret/token patterns.
+- Build check: `pnpm run build` failed before Next build at `scripts/validate-env.mjs --ci` because this local shell still has 0/3 critical and 0/4 required app env vars configured. No env values were read or printed; no env mutation was attempted.
+
+Safety / blockers:
+- The Playwright E2E failure is still a non-prod configuration/provisioning gate, not resolved by this UI integrity slice. Do not merge PR #440 while the required E2E check is red.
+- Root `docs/audit-reports/` remains untracked from existing local state and was not staged.
+- This evidence was written before commit/push of the follow-through slice; re-check branch/head and PR head before publishing.
+
+Next safe lane:
+- Commit the bounded LiveDebateTab follow-through plus evidence, push PR #440 if branch/head still matches, then monitor refreshed checks. If E2E remains red with blank secret env and/or Supabase `createUser` provisioning symptoms, keep PR #440 unmerged and classify it as an authorised operator configuration/provisioning gate.

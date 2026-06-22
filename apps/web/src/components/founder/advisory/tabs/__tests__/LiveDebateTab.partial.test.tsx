@@ -93,6 +93,23 @@ describe('LiveDebateTab — partial-debate warning (Step 3 / F2)', () => {
     expect(screen.getByText(/compliance/i)).toBeInTheDocument()
   })
 
+  it('renders an honest warning when persisted dropped firms exist without an explicit partial flag', async () => {
+    mockFetchCase(makeCase({
+      scores: [],
+      winner: 'tax_strategy',
+      summary: 'Scored 3 of 4 firms (partial debate).',
+      scoredFirmCount: 3,
+      droppedFirms: ['compliance'],
+    }))
+
+    render(<LiveDebateTab />)
+
+    const warning = await screen.findByRole('alert')
+    expect(warning).toHaveTextContent(/3 of 4 firms/i)
+    expect(warning).toHaveTextContent(/compliance/i)
+    expect(warning).toHaveStyle({ borderColor: '#00F5FF' })
+  })
+
   it('does not render the warning for a complete debate', async () => {
     mockFetchCase(makeCase({
       scores: [],

@@ -113,7 +113,7 @@ export function LiveDebateTab() {
     )
   )
   const droppedFirms = summary?.droppedFirms ?? droppedFromEvents
-  const isPartial = summary?.partial === true || droppedFromEvents.length > 0
+  const isPartial = summary?.partial === true || droppedFirms.length > 0
   const scoredFirmCount = summary?.scoredFirmCount ?? Math.max(0, FIRM_KEYS.length - droppedFirms.length)
 
   return (
@@ -147,7 +147,7 @@ export function LiveDebateTab() {
         <div
           role="alert"
           className="rounded-sm p-3 text-[11px]"
-          style={{ background: '#f59e0b18', color: '#b45309', border: '1px solid #f59e0b40' }}
+          style={{ background: '#050505', color: '#00F5FF', border: '1px solid #00F5FF' }}
         >
           <span className="font-medium">Partial debate — </span>
           scored {scoredFirmCount} of {FIRM_KEYS.length} firms. The following firm(s)
