@@ -26,6 +26,9 @@ import { recallAdvisoryContext, storeAdvisoryOutcome } from './session-memory'
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const MAX_RETRIES = 3
+// 429s ride out a ~60s rate-limit window, so they get a higher ceiling than
+// generic errors (which fail fast).
+const RATE_LIMIT_MAX_RETRIES = 5
 const RETRY_BASE_MS = 1000
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -347,63 +350,124 @@ export async function* runDebate(
 
 // ── Retry Helpers ────────────────────────────────────────────────────────────
 
-/**
- * Call a firm agent with exponential backoff retry.
- * Retries on network/API errors but NOT on structured output parse failures
- * (those indicate the model output is bad, retrying won't help).
- */
-async function callFirmAgentWithRetry(
-  config: Parameters<typeof callFirmAgent>[0],
-  userMessage: string,
-  firmKey: FirmKey
-) {
-  let lastError: Error | null = null
-
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    try {
-      return await callFirmAgent(config, userMessage)
-    } catch (err) {
-      lastError = err instanceof Error ? err : new Error(String(err))
-
-      // Don't retry Zod validation errors — the model's output format is wrong
-      if (lastError.message.includes('ZodError') || lastError.message.includes('JSON')) {
-        throw lastError
-      }
-
-      // Exponential backoff: 1s, 2s, 4s
-      if (attempt < MAX_RETRIES - 1) {
-        const delay = RETRY_BASE_MS * Math.pow(2, attempt)
-        console.warn(`[debate-engine] ${firmKey} attempt ${attempt + 1} failed, retrying in ${delay}ms:`, lastError.message)
-        await sleep(delay)
-      }
-    }
-  }
-
-  throw lastError ?? new Error(`${firmKey} failed after ${MAX_RETRIES} attempts`)
+export interface RetryOptions {
+  /** Ceiling for non-429 errors (network blips etc.). */
+  maxRetries?: number
+  /** Ceiling for 429/rate-limit errors — higher, to ride out the limit window. */
+  rateLimitMaxRetries?: number
+  /** Base backoff in ms for full-jitter exponential backoff. */
+  baseMs?: number
+  /** Injectable sleep (tests). */
+  sleep?: (ms: number) => Promise<void>
+  /** Injectable RNG (tests). */
+  random?: () => number
 }
 
-async function callJudgeAgentWithRetry(userMessage: string) {
-  let lastError: Error | null = null
+/** True if the error is an HTTP 429 / rate-limit error from the Anthropic SDK. */
+function isRateLimitError(err: unknown): boolean {
+  const e = err as { status?: number; name?: string; message?: string } | null
+  if (!e) return false
+  if (e.status === 429) return true
+  if (e.name === 'RateLimitError') return true
+  const msg = e.message ?? ''
+  return msg.includes('429') || /rate.?limit/i.test(msg)
+}
 
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+/**
+ * Read the `retry-after` header (in ms) from an error, if present. Handles both
+ * a fetch `Headers` instance and a plain header record. Numeric seconds only —
+ * an HTTP-date value returns null and we fall back to exponential backoff.
+ */
+function getRetryAfterMs(err: unknown): number | null {
+  const headers = (err as { headers?: unknown } | null)?.headers
+  if (!headers) return null
+
+  let value: string | null = null
+  if (typeof (headers as Headers).get === 'function') {
+    value = (headers as Headers).get('retry-after')
+  } else if (typeof headers === 'object') {
+    const rec = headers as Record<string, string>
+    value = rec['retry-after'] ?? rec['Retry-After'] ?? null
+  }
+  if (!value) return null
+
+  const seconds = Number(value)
+  return Number.isFinite(seconds) ? seconds * 1000 : null
+}
+
+/**
+ * Call an async function with rate-limit-aware retry.
+ *
+ * - On a 429, honour the API `retry-after` header (wait at least that long) and
+ *   add jitter on top so concurrent firms desynchronise instead of retrying in
+ *   lockstep. 429s get a higher retry ceiling than generic errors.
+ * - On a non-429 error, use full-jitter exponential backoff: a random delay in
+ *   [0, baseMs · 2^attempt) — independent per caller, so callers don't collide.
+ * - Structured-output (Zod/JSON) errors are never retried — the model's output
+ *   format is wrong and retrying won't help.
+ *
+ * Exported for unit testing (Step 1 of the Advisory Debate QA build spec).
+ */
+export async function callWithRetry<T>(
+  fn: () => Promise<T>,
+  label: string,
+  opts: RetryOptions = {},
+): Promise<T> {
+  const {
+    maxRetries = MAX_RETRIES,
+    rateLimitMaxRetries = RATE_LIMIT_MAX_RETRIES,
+    baseMs = RETRY_BASE_MS,
+    sleep: sleepFn = sleep,
+    random = Math.random,
+  } = opts
+
+  let lastError: Error | null = null
+  let attempt = 0
+
+  for (;;) {
     try {
-      return await callJudgeAgent(userMessage)
+      return await fn()
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err))
 
+      // Don't retry Zod validation errors — the model's output format is wrong.
       if (lastError.message.includes('ZodError') || lastError.message.includes('JSON')) {
         throw lastError
       }
 
-      if (attempt < MAX_RETRIES - 1) {
-        const delay = RETRY_BASE_MS * Math.pow(2, attempt)
-        console.warn(`[debate-engine] Judge attempt ${attempt + 1} failed, retrying in ${delay}ms:`, lastError.message)
-        await sleep(delay)
+      const rateLimited = isRateLimitError(err)
+      const ceiling = rateLimited ? rateLimitMaxRetries : maxRetries
+      attempt++
+      if (attempt >= ceiling) {
+        throw lastError
       }
+
+      const retryAfterMs = rateLimited ? getRetryAfterMs(err) : null
+      const delay = retryAfterMs != null
+        // Honour the server's retry-after, plus jitter to desync concurrent callers.
+        ? retryAfterMs + random() * baseMs
+        // Full-jitter exponential backoff (attempt is 1-based here → exponent attempt-1).
+        : random() * baseMs * Math.pow(2, attempt - 1)
+
+      console.warn(
+        `[debate-engine] ${label} attempt ${attempt} failed, retrying in ${Math.round(delay)}ms:`,
+        lastError.message,
+      )
+      await sleepFn(delay)
     }
   }
+}
 
-  throw lastError ?? new Error(`Judge failed after ${MAX_RETRIES} attempts`)
+function callFirmAgentWithRetry(
+  config: Parameters<typeof callFirmAgent>[0],
+  userMessage: string,
+  firmKey: FirmKey,
+) {
+  return callWithRetry(() => callFirmAgent(config, userMessage), firmKey)
+}
+
+function callJudgeAgentWithRetry(userMessage: string) {
+  return callWithRetry(() => callJudgeAgent(userMessage), 'Judge')
 }
 
 // ── Utilities ────────────────────────────────────────────────────────────────
