@@ -33,3 +33,15 @@
 - **Safety:** No production DB write/migration, Vercel env mutation, billing/payment action, credential read/print, client-facing send, cross-client merge, destructive git action, or live provider mutation occurred.
 - **Evidence paths:** `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
 - **Next safe lane:** Commit/push the PR #427 fix/evidence and monitor refreshed CI; then return to PR #424's separate failing test lane once #427 is settled.
+
+## 2026-06-22 22:16 AEST — PR #433 E2E login-flow follow-through
+
+- **Completed safe lane:** Continued open PR #433 (`fix/e2e-use-hosted-chrome`) instead of starting a new CRM slice. Merged latest `origin/main` locally and fixed the next E2E failure surfaced by hosted Chrome: current login UI is Google-first and hides email/password behind `Use email instead`.
+- **PR:** https://github.com/CleanExpo/Unite-Group/pull/433 — `ci(e2e): use hosted Chrome for Playwright CI`.
+- **Code commit:** `accf27e0f8f5fce904157247267eecc3d73ae12f fix(e2e): reveal email fallback in login tests` (local before evidence/push at report-writing time).
+- **What changed:** Added `apps/web/e2e/support/email-login.ts`; updated auth/smoke/authenticated Playwright specs and shared auth fixture to reveal the email fallback before asserting/filling email/password; refreshed stale login branding assertion to current exact `Pi-CEO` / `Unite-Group` copy.
+- **Verification:** GitHub run `27949676832` and downloaded Playwright error context supplied RED evidence for hidden email fields. Local focused Playwright failed once on the stale/ambiguous branding assertion, then passed after GREEN: 11 passed / 5 skipped. `pnpm run type-check`, `npm run type-check`, `pnpm run lint`, `pnpm run test` (380 files / 2272 tests), `CI=true playwright test --list` (69 tests), and scoped `git diff --check` passed. Added-line security scans found no matches.
+- **Build blocker:** `pnpm run build` failed before Next build at `scripts/validate-env.mjs --ci` because this local shell has no critical/required app env configured. No secret values were read/printed and no env mutation was attempted.
+- **Safety:** No production DB write/migration, Vercel env mutation, billing/payment action, credential read/print, client-facing send, cross-client merge, destructive git action, or live provider mutation occurred.
+- **Evidence paths:** `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+- **Next safe lane:** Commit evidence, push PR #433, then monitor refreshed CI/Vercel. If E2E still fails at Supabase `createUser` provisioning, treat it as a separate non-prod DB/env gate unless fresh logs prove a code-level failure.
