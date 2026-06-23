@@ -20,4 +20,8 @@ describe('LaneAdapter registry', () => {
     expect(getLaneAdapter('unknown')).toBeNull()
     expect(getLaneAdapter('marketing')?.key).toBe('marketing')
   })
+
+  it('returns null for any string that is not a real lane', () => {
+    expect(getLaneAdapter('foobar' as never)).toBeNull()
+  })
 })

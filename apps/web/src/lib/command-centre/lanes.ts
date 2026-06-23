@@ -50,5 +50,5 @@ const content: LaneAdapter = {
 export const LANE_ADAPTERS: Record<LaneAdapter['key'], LaneAdapter> = { marketing, software, content }
 
 export function getLaneAdapter(lane: Lane): LaneAdapter | null {
-  return lane === 'unknown' ? null : LANE_ADAPTERS[lane]
+  return LANE_ADAPTERS[lane as Exclude<Lane, 'unknown'>] ?? null
 }
