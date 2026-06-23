@@ -111,10 +111,19 @@ describe('extractCitations', () => {
     expect(row.citation_type).toBe('industry_standard')
   })
 
-  it('builds a docid URL for tax rulings', () => {
+  it('builds a docid URL for tax rulings with whitespace stripped from the identifier', () => {
     const [row] = extractCitations('p', 'c', 'f', [makeCitation({ reference: 'TR 93/30' })])
     expect(row.url).toContain('ato.gov.au/law/view/document?docid=')
-    expect(row.url).toContain(encodeURIComponent('TR 93/30'))
+    // ATO docids carry no internal space: "TR 93/30" → "TR93/30" (no %20).
+    expect(row.url).toContain(`docid=${encodeURIComponent('TR93/30')}`)
+    expect(row.url).not.toContain('%20')
+  })
+
+  it('normalises internal whitespace in tax-ruling docids regardless of spacing', () => {
+    const [spaced] = extractCitations('p', 'c', 'f', [makeCitation({ reference: 'TR  2024/1' })])
+    const [tight] = extractCitations('p', 'c', 'f', [makeCitation({ reference: 'TR2024/1' })])
+    expect(spaced.url).toBe(tight.url)
+    expect(spaced.url).toContain(`docid=${encodeURIComponent('TR2024/1')}`)
   })
 
   it('builds a law-search URL for legislation references', () => {
