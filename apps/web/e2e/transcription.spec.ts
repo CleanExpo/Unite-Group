@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto'
 import { test, expect, type BrowserContext, type Page } from '@playwright/test'
 import { revealEmailLogin } from './support/email-login'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { loadSupabaseAdminConfig } from './support/supabase-admin-config'
+import { hasSupabaseAdminProvisioning, loadSupabaseAdminConfig } from './support/supabase-admin-config'
 
 type TestUser = {
   label: 'A' | 'B'
@@ -138,6 +138,7 @@ async function cleanup(admin: SupabaseClient, state: CleanupState) {
 }
 
 test.describe('authenticated file transcription', () => {
+  test.skip(!hasSupabaseAdminProvisioning().ok, 'requires Supabase admin provisioning — E2E backend not configured')
   test.describe.configure({ mode: 'serial', timeout: 120_000 })
 
   test('fails closed before authentication', async ({ request }) => {
