@@ -188,7 +188,7 @@ async function cleanup(admin: SupabaseClient, state: CleanupState) {
 }
 
 test.describe('authenticated Lead Scoring API', () => {
-  test.skip(!process.env.E2E_SUPABASE_URL, 'requires a dedicated non-prod E2E Supabase backend (E2E_SUPABASE_URL) — not configured')
+  test.skip(!process.env.PLAYWRIGHT_TEST_EMAIL, 'requires a dedicated non-prod E2E Supabase backend (PLAYWRIGHT_TEST_EMAIL) — not configured')
   test.describe.configure({ mode: 'serial', timeout: 120_000 })
 
   test('scores a real contact, persists metadata, and blocks cross-founder scoring', async ({ browser }) => {
