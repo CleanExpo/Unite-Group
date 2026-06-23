@@ -162,6 +162,7 @@ test.describe('core journey verification guard', () => {
   })
 
   test('authenticated integrations, email campaign, and file boundaries are exercised with a throwaway user', async ({ browser }) => {
+    test.skip(!process.env.E2E_SUPABASE_URL, 'requires a dedicated non-prod E2E Supabase backend (E2E_SUPABASE_URL) — not configured')
     const cfg = loadSupabaseAdminConfig()
     const marker = new Date().toISOString()
     const state: CoreState = { marker, campaignIds: [], cacheKeys: [] }

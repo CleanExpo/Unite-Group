@@ -97,6 +97,7 @@ async function cleanup(admin: SupabaseClient, state: CleanupState) {
 }
 
 test.describe('authenticated email import to contacts', () => {
+  test.skip(!process.env.E2E_SUPABASE_URL, 'requires a dedicated non-prod E2E Supabase backend (E2E_SUPABASE_URL) — not configured')
   test.describe.configure({ mode: 'serial', timeout: 120_000 })
 
   test('fails closed before authentication', async ({ request }) => {
