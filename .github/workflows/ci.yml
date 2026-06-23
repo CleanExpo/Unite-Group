@@ -133,6 +133,10 @@ jobs:
       # test-user secrets are absent. Values are supplied by GitHub secrets only.
       PLAYWRIGHT_TEST_EMAIL: ${{ secrets.PLAYWRIGHT_TEST_EMAIL }}
       PLAYWRIGHT_TEST_PASSWORD: ${{ secrets.PLAYWRIGHT_TEST_PASSWORD }}
+      # Opt-in for the destructive/provisioning specs (createUser + DB writes).
+      # Only set the E2E_ALLOW_PROVISIONING repo variable to 'true' when
+      # E2E_SUPABASE_* points at a dedicated non-prod backend — never prod.
+      E2E_ALLOW_PROVISIONING: ${{ vars.E2E_ALLOW_PROVISIONING }}
     steps:
       - uses: actions/checkout@v6
 
