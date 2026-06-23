@@ -13,6 +13,7 @@ interface AccountView {
   provider: string
   label: string
   planKind: string
+  enabled: boolean
   state: string
   usable: boolean
   prepaidExhausted: boolean
@@ -39,6 +40,7 @@ export function ProviderAccountsTile() {
   const [saving, setSaving] = useState(false)
   const [testResult, setTestResult] = useState<string | null>(null)
   const [testing, setTesting] = useState(false)
+  const [busyId, setBusyId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -78,6 +80,32 @@ export function ProviderAccountsTile() {
     } finally { setSaving(false) }
   }
 
+  async function toggleAccount(accountId: string, enabled: boolean) {
+    setBusyId(accountId)
+    try {
+      const res = await fetch('/api/command-center/provider-accounts', {
+        method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ accountId, enabled }),
+      })
+      if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.error ?? `HTTP ${res.status}`) }
+      await load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'toggle failed')
+    } finally { setBusyId(null) }
+  }
+
+  async function removeAccount(accountId: string) {
+    setBusyId(accountId)
+    try {
+      const res = await fetch('/api/command-center/provider-accounts', {
+        method: 'DELETE', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ accountId }),
+      })
+      if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.error ?? `HTTP ${res.status}`) }
+      await load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'remove failed')
+    } finally { setBusyId(null) }
+  }
+
   async function testPool() {
     setTesting(true); setTestResult(null)
     try {
@@ -95,6 +123,7 @@ export function ProviderAccountsTile() {
 
   const mode: SourceMode = loading ? 'loading' : error ? 'degraded' : 'live'
   const inputStyle = { background: 'transparent', border: '1px solid var(--deck-line)', color: 'var(--deck-text)', borderRadius: 2, padding: '4px 6px', fontSize: 12 }
+  const ctrlStyle = { background: 'transparent', border: '1px solid var(--deck-line)', color: 'var(--deck-text)', borderRadius: 2, padding: '2px 6px', fontSize: 11, cursor: 'pointer', textTransform: 'uppercase' as const, letterSpacing: '0.04em' }
 
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -111,10 +140,31 @@ export function ProviderAccountsTile() {
 
       <div>
         {accounts.map((a) => (
-          <div key={a.accountId} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--deck-line)', fontSize: 12 }}>
-            <span style={{ color: 'var(--deck-text)' }}>{a.label} <span style={{ color: 'rgba(207,224,236,0.45)' }}>· {a.provider} · {a.planKind}</span></span>
-            <span data-testid={`account-state-${a.accountId}`} style={{ color: stateColor(a.state, a.usable), textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: 11 }}>
-              {a.prepaidExhausted ? 'exhausted' : a.coolingUntil ? 'cooling' : a.state}
+          <div key={a.accountId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--deck-line)', fontSize: 12 }}>
+            <span style={{ color: a.enabled ? 'var(--deck-text)' : 'rgba(207,224,236,0.45)' }}>
+              {a.label} <span style={{ color: 'rgba(207,224,236,0.45)' }}>· {a.provider} · {a.planKind}</span>
+              {!a.enabled && <span style={{ color: 'rgba(207,224,236,0.45)' }}> · disabled</span>}
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span data-testid={`account-state-${a.accountId}`} style={{ color: stateColor(a.state, a.usable), textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: 11 }}>
+                {a.prepaidExhausted ? 'exhausted' : a.coolingUntil ? 'cooling' : a.state}
+              </span>
+              <button
+                data-testid={`account-toggle-${a.accountId}`}
+                onClick={() => toggleAccount(a.accountId, !a.enabled)}
+                disabled={busyId === a.accountId}
+                style={ctrlStyle}
+              >
+                {busyId === a.accountId ? '…' : a.enabled ? 'disable' : 'enable'}
+              </button>
+              <button
+                data-testid={`account-remove-${a.accountId}`}
+                onClick={() => removeAccount(a.accountId)}
+                disabled={busyId === a.accountId}
+                style={{ ...ctrlStyle, color: 'var(--deck-abort)', borderColor: 'var(--deck-abort)' }}
+              >
+                remove
+              </button>
             </span>
           </div>
         ))}
