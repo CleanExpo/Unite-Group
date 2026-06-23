@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     generatedAt: null,
   }) as Record<string, unknown>
 
-  await mergeTaskMetadata({
+  const persisted = await mergeTaskMetadata({
     founderId: user.id,
     taskId,
     patch: {
@@ -60,6 +60,9 @@ export async function POST(request: Request) {
       },
     },
   })
+  if (!persisted) {
+    return NextResponse.json({ error: 'Failed to persist answers' }, { status: 500 })
+  }
 
   // ── Append audit event (best-effort; does not fail the route) ────────────
   try {
