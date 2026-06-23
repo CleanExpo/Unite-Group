@@ -3,8 +3,8 @@
 // CC — Software Lane: Build orchestrator.
 //
 // runSoftwareBuild: loads the task, generates a build plan, persists
-// metadata.software.{ plan, status, plannedAt }, appends a 'comment' audit
-// event (best-effort), and returns { status:'planned', plan }.
+// metadata.software.{ plan, status, plannedAt, diagnostics }, appends a
+// 'comment' audit event (best-effort), and returns { status:'planned', plan }.
 //
 // Inject `deps` for testing; production callers omit it and the real
 // implementations are imported directly.
@@ -40,7 +40,9 @@ export interface SoftwareBuildResult {
  *
  * 1. Load the task by (founderId, taskId) — throws 'Task not found' if null.
  * 2. Generate a build plan from the task's objective.
- * 3. Persist { plan, status:'planned', plannedAt } to metadata.software.
+ * 3. Persist { plan, status:'planned', plannedAt, diagnostics } to
+ *    metadata.software (diagnostics = { status, plannedAt, generatedAt,
+ *    latencyMs } — additive audit metadata only).
  * 4. Append a 'comment' audit event (best-effort — never fails the operation).
  * 5. Return { status:'planned', plan }.
  *
@@ -65,13 +67,22 @@ export async function runSoftwareBuild(
   const task = await fetchTask({ founderId, taskId }, db)
   if (!task) throw new Error('Task not found')
 
-  // 2. Generate build plan.
+  // 2. Generate build plan. Measure latency around the generation call so the
+  // audit trail captures how long the model (or fallback) took.
+  const startedAt = Date.now()
   const plan = await genPlan(task.objective, client)
+  const latencyMs = Date.now() - startedAt
+  const generatedAt = new Date().toISOString()
 
   // 3. Persist to metadata.software. mergeTaskMetadata returns null when the
   // task has vanished between the load and the write — treat that as a hard
   // failure so the route surfaces a 500 rather than silently reporting success
   // (and appending an audit event) for a plan that was never stored.
+  //
+  // `diagnostics` is additive, read-only audit metadata — it never changes the
+  // lane's external result shape. Model and token counts are intentionally
+  // omitted: generateBuildPlan does not surface them, and capturing them would
+  // require refactoring the AI client interface.
   const plannedAt = new Date().toISOString()
   const persisted = await mergeMeta(
     {
@@ -82,6 +93,12 @@ export async function runSoftwareBuild(
           plan,
           status: 'planned',
           plannedAt,
+          diagnostics: {
+            status: 'planned',
+            plannedAt,
+            generatedAt,
+            latencyMs,
+          },
         },
       },
     },
