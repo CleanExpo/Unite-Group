@@ -564,3 +564,37 @@ Safety / blockers:
 
 Next safe lane:
 - After independent review read-back, commit the bounded helper/test/evidence slice, push/open a PR if branch/head remains clean, then monitor checks. If remote E2E or build gates fail on environment/provisioning, classify as configuration gates rather than mutating env/DB autonomously.
+
+## 2026-06-23 21:24 AEST
+
+### Tick 20260623_2124 — Nexus Status shell (UNI-2196 first slice)
+
+Lane: preflight started on stale local branch `test/openapi-route`; PR #484 for that branch was already MERGED, and `git diff --exit-code origin/main HEAD -- apps/web/src/app/api/openapi/__tests__/route.test.ts` proved the touched file matches `origin/main`. I did not duplicate that branch. With no open PRs remaining, I fast-forwarded `main` to `origin/main` (`46d137d75`) and created fresh branch `feat/nexus-status-shell-20260623` for the smallest safe Linear intake slice from UNI-2196. Scope stayed inside a static founder page shell/test plus evidence docs. No production DB write, migration application, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git, or PR merge occurred.
+
+Completed:
+- Read canonical Margot/CRM docs from `apps/empire/docs/margot/*` and `apps/web/docs/margot/*`, plus root evidence logs and `linear-watch-today.md`, before selecting the slice.
+- Added `/founder/nexus-status` as a minimal founder Nexus Status shell for `Active Tickets`, `Open PRs`, and `Approval Queue`, each with an honest `No data yet` placeholder. Live provider/Linear/GitHub/approval data wiring remains explicitly out of scope.
+- TDD RED: added `apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx`; focused Vitest failed before implementation because `../page` did not exist.
+- GREEN: added `apps/web/src/app/(founder)/founder/nexus-status/page.tsx` with Scientific Luxury/OLED styling and `rounded-sm` cards only.
+- Code commit: `8c71723f4 feat(nexus): add status shell`.
+- Published PR: https://github.com/CleanExpo/Unite-Group/pull/485 (base `main`, head `feat/nexus-status-shell-20260623`). Initial read-back: apps/web/workspace/spec-board/MCP checks queued; Vercel Preview Comments success; merge state `BLOCKED` while required checks are pending.
+
+Verification / evidence:
+- RED command: from `apps/web`, `./node_modules/.bin/vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx' --config vitest.config.mts` -> expected FAIL, import `../page` unresolved because the route did not exist yet.
+- GREEN focused command: same focused Vitest command -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`).
+- `npm run type-check` from `apps/web` -> PASS (`tsc --noEmit`).
+- `pnpm run lint` from `apps/web` -> PASS (`eslint src/`).
+- Full apps/web tests: `pnpm run test` -> PASS, 440 files / 2622 tests.
+- Whitespace: `git diff --check -- apps/web/src/app/(founder)/founder/nexus-status/page.tsx apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx` -> PASS.
+- Security pattern scan over touched Nexus Status files for secret/token/password/API-key/bearer/Board-ref/email-shaped strings -> 0 matches.
+- Local build without app env: `pnpm run build` failed closed at `scripts/validate-env.mjs --ci` with 0/3 critical and 0/4 required vars. No real env values were read or printed.
+- Synthetic placeholder-env build (temporary command-scoped placeholders, not stored) -> PASS; Next compiled successfully, including `/founder/nexus-status`, with only the existing Turbopack NFT-list warning.
+
+Safety / blockers:
+- This slice does not wire live Linear/GitHub/Vercel/approval data and makes no provider calls. It is an honest empty shell only.
+- Local non-placeholder build remains gated by missing app env configuration. I did not mutate local/Vercel/GitHub env or secrets.
+- PR #485 is unmerged and currently waiting on remote checks.
+
+Next safe lane:
+- Monitor PR #485 checks. If all required checks pass, merge only if the lane remains bounded and branch protection permits. If a remote failure is environment/provisioning-only, classify it as a namespace/configuration gate rather than mutating env/DB autonomously.
