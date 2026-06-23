@@ -63,6 +63,26 @@ interface RoutingView {
   planDistribute: { title: string; detail: string }[]
 }
 
+// ── Software lane types ───────────────────────────────────────────────────────
+interface SoftwarePlanView {
+  title: string
+  summary: string
+  acceptanceCriteria: string[]
+  steps: string[]
+}
+
+type SoftwareLaneStatus = 'idle' | 'planned' | 'handed_off'
+
+interface SoftwareBuildResponse {
+  result?: { status: string; plan?: SoftwarePlanView }
+  error?: string
+}
+
+interface SoftwareHandoffResponse {
+  result?: { status: string }
+  error?: string
+}
+
 // ── Content lane view types ───────────────────────────────────────────────────
 interface ContentBuildView {
   status: 'built' | 'not_connected'
@@ -113,6 +133,12 @@ export function IdeaConsole({ projects }: { projects: IdeaConsoleProject[] }) {
   const [clarifying, setClarifying] = useState(false)
   const [submittingAnswers, setSubmittingAnswers] = useState(false)
 
+  // ── Software lane state ────────────────────────────────────────────────────
+  const [softwarePlan, setSoftwarePlan] = useState<SoftwarePlanView | null>(null)
+  const [softwareStatus, setSoftwareStatus] = useState<SoftwareLaneStatus>('idle')
+  const [planningBuild, setPlanningBuild] = useState(false)
+  const [handingOff, setHandingOff] = useState(false)
+  const [softwareError, setSoftwareError] = useState<string | null>(null)
   // ── Content lane state ────────────────────────────────────────────────────
   const [contentBuilding, setContentBuilding] = useState(false)
   const [contentResult, setContentResult] = useState<ContentBuildView | null>(null)
@@ -254,6 +280,61 @@ export function IdeaConsole({ projects }: { projects: IdeaConsoleProject[] }) {
       setSubmittingAnswers(false)
     }
   }
+
+  // ── Software lane handlers ─────────────────────────────────────────────────
+
+  async function planBuild() {
+    if (!task || planningBuild) return
+    setPlanningBuild(true)
+    setSoftwareError(null)
+    try {
+      const res = await fetch('/api/command-centre/lanes/software/build', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId: task.id }),
+      })
+      if (!res.ok) { setSoftwareError(await readError(res, 'Could not plan the build')); return }
+      const data = (await res.json()) as SoftwareBuildResponse
+      if (data.result?.plan) {
+        setSoftwarePlan(data.result.plan)
+        setSoftwareStatus('planned')
+      } else {
+        setSoftwareError('The server accepted the request but returned no plan.')
+      }
+    } catch {
+      setSoftwareError('Network error — could not reach the build service.')
+    } finally {
+      setPlanningBuild(false)
+    }
+  }
+
+  async function handOffToBuild() {
+    if (!task || handingOff || softwareStatus !== 'planned') return
+    setHandingOff(true)
+    setSoftwareError(null)
+    try {
+      const res = await fetch('/api/command-centre/lanes/software/handoff', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId: task.id }),
+      })
+      if (!res.ok) { setSoftwareError(await readError(res, 'Hand-off failed')); return }
+      const data = (await res.json()) as SoftwareHandoffResponse
+      if (data.result?.status === 'handed_off') {
+        setSoftwareStatus('handed_off')
+      } else {
+        setSoftwareError('Hand-off returned an unexpected state.')
+      }
+    } catch {
+      setSoftwareError('Network error — could not reach the hand-off service.')
+    } finally {
+      setHandingOff(false)
+    }
+  }
+
+  // ── Content lane handlers ──────────────────────────────────────────────────
 
   async function buildContent() {
     if (!task || contentBuilding) return
@@ -494,7 +575,91 @@ export function IdeaConsole({ projects }: { projects: IdeaConsoleProject[] }) {
               </>
             )}
 
-            {routing.lane === 'content' ? (
+            {routing.lane === 'software' ? (
+              // ── Software lane: plan + gated hand-off ──────────────────────
+              <div className={styles.actions} style={{ flexDirection: 'column', gap: '0.75rem' }}>
+                {/* PR brief — shown after planning */}
+                {softwarePlan && softwareStatus !== 'handed_off' && (
+                  <div className={styles.verdict}>
+                    <span className={styles.cardTitle}>{softwarePlan.title}</span>
+                    <p className={styles.rationale}>{softwarePlan.summary}</p>
+                    {softwarePlan.acceptanceCriteria.length > 0 && (
+                      <>
+                        <span className={styles.subhead}>Acceptance criteria</span>
+                        <ul className={styles.subList}>
+                          {softwarePlan.acceptanceCriteria.map((c, i) => (
+                            <li key={c} className={styles.subItem}>
+                              <span className={styles.subIndex}>{String(i + 1).padStart(2, '0')}</span>
+                              <span className={styles.subTitle}>{c}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+                    {softwarePlan.steps.length > 0 && (
+                      <>
+                        <span className={styles.subhead}>Build steps</span>
+                        <ul className={styles.subList}>
+                          {softwarePlan.steps.map((s, i) => (
+                            <li key={s} className={styles.subItem}>
+                              <span className={styles.subIndex}>{String(i + 1).padStart(2, '0')}</span>
+                              <span className={styles.subTitle}>{s}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* Handed-off confirmation */}
+                {softwareStatus === 'handed_off' && (
+                  <p className={styles.rationale}>
+                    Handed off — ready for build
+                  </p>
+                )}
+
+                {/* Software error */}
+                {softwareError && (
+                  <div className={styles.error} role="alert">
+                    {softwareError}
+                  </div>
+                )}
+
+                {/* Action row */}
+                {softwareStatus !== 'handed_off' && (
+                  <div className={styles.actions}>
+                    <button
+                      type="button"
+                      className={styles.submit}
+                      onClick={planBuild}
+                      disabled={planningBuild || softwareStatus === 'planned'}
+                      aria-label="Plan build"
+                    >
+                      {planningBuild && <span className={styles.spinner} aria-hidden="true" />}
+                      {planningBuild ? 'Planning…' : 'Plan build'}
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.board}
+                      onClick={handOffToBuild}
+                      disabled={softwareStatus !== 'planned' || handingOff}
+                      aria-label="Hand off to build"
+                    >
+                      {handingOff && <span className={styles.spinner} aria-hidden="true" />}
+                      {handingOff ? 'Handing off…' : 'Hand off to build'}
+                    </button>
+                  </div>
+                )}
+
+                {/* Honest helper text — always visible in software lane */}
+                {softwareStatus !== 'handed_off' && (
+                  <p className={styles.hint}>
+                    Actual code build runs externally — this hands the brief to the build queue.
+                  </p>
+                )}
+              </div>
+            ) : routing.lane === 'content' ? (
               <div>
                 <div className={styles.actions}>
                   <button
