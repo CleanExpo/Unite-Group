@@ -189,41 +189,315 @@ Safety / blockers:
 Next safe lane:
 - Commit the bounded route/test/evidence files, push/open a PR if publication remains safe, then monitor checks. If build/deploy fails only on missing env configuration, keep it classified as a gated configuration action rather than mutating Vercel/local env autonomously.
 
-## 2026-06-22 23:50 AEST
+## 2026-06-23 00:45 AEST
 
-### Tick 20260622_2350 — CRM opportunity forecast approval read-back redaction
+### Tick 20260623_0045 — PR #440 main-merge type-check fix
 
-Lane: created isolated worktree branch `fix/crm-opportunity-forecast-redaction-20260622` from current `origin/main` (`c12a58d09`) because no open PRs were present and the primary checkout had unrelated local dirty files. Scope stayed inside the pure local CRM forecast helper/test plus evidence docs. No production DB write, migration application, Vercel env mutation, billing/payment action, credential read/print, client-facing send, cross-client merge, destructive git action, or live provider mutation occurred.
+Lane: continued already-open/current branch PR #440 (`advisory-debate-f2-f4`) instead of starting a new CRM slice. Scope stayed inside branch update from `origin/main`, the advisory debate-engine merge resolution, local verification, and Margot evidence docs. No production DB write, migration application, Vercel env mutation, billing/payment action, credential read/print, client-facing send, cross-client merge, destructive git action on `main`, or live provider mutation occurred.
 
 Completed:
-- Preflight: GitHub CLI auth and Vercel CLI were available; `gh pr list --state open --limit 10` returned `[]`. Current primary checkout was on a stale/advisory local branch with unrelated dirty files, so this tick used `/tmp/unite-crm-forecast-redaction-20260622` to avoid publishing unrelated state.
-- Read current Margot/CRM source docs and progress logs before selecting the lane.
-- TDD RED: added a focused Vitest case proving `buildOpportunityForecast` leaked sensitive opportunity `name` / `next_action` free text into the `approvalGated` operator read-back.
-- GREEN: added helper-local redaction for approval-gated opportunity free text while preserving routing/forecast metadata: `id`, `stage`, `status`, `approvalStatus`, and `weightedValue`.
+- Preflight found current branch `advisory-debate-f2-f4` with PR #440 open against `main`, merge state `BEHIND`, Vercel previews green, and `apps/web — lint, type-check, test, build` failing on the remote head. PR #439 remains separately open with Playwright E2E red; this tick continued the current PR first.
+- GitHub Actions failure read-back for run `27957885688`, job `82731040101`, showed `tsc --noEmit` failing with duplicate `allSettledWithConcurrency` declarations at `apps/web/src/lib/advisory/debate-engine.ts:555` and `:591`.
+- Local branch type-check passed before merging main because only the PR copy of Step 2 was present; `origin/main` already contains PR #437's Step 2 helper. This explained the remote merge-check failure.
+- Merged `origin/main` into the PR branch with `--no-commit` and reproduced RED locally: `pnpm run type-check` failed with the same duplicate `allSettledWithConcurrency` declarations.
+- GREEN: removed the duplicate merge-introduced copy of `allSettledWithConcurrency`, keeping a single exported helper and preserving the PR's Step 3–5 advisory changes.
+- Code/merge commit: `8b781d2de fix(advisory): resolve Step 2 helper merge duplication`.
 
 Verification / evidence:
-- Dependency hydration: `pnpm install --frozen-lockfile` -> PASS with existing Supabase bin warnings; no lockfile change.
-- RED command: `./node_modules/.bin/vitest run src/lib/crm/__tests__/opportunity-forecast.test.ts --config vitest.config.mts --testNamePattern 'redacts sensitive free text'` -> expected failure: raw synthetic email was present in `forecast.approvalGated` JSON.
-- GREEN focused command: same focused Vitest command -> PASS, 1 test.
-- Focused CRM forecast suite: `./node_modules/.bin/vitest run src/lib/crm/__tests__/opportunity-forecast.test.ts --config vitest.config.mts` -> PASS, 1 file / 6 tests.
-- Type check: `pnpm run type-check` -> PASS (`tsc --noEmit`).
-- Lint: `pnpm run lint` -> PASS (`eslint src/`).
-- Full apps/web tests: `pnpm run test` -> PASS, 382 files / 2283 tests.
-- Whitespace: `git diff --check -- src/lib/crm/opportunity-forecast.ts src/lib/crm/__tests__/opportunity-forecast.test.ts` -> PASS.
-- Security scan: secret-shaped direct-token search on the two changed files returned 0 matches. A broader `src/lib/crm` scan only found pre-existing benign bearer fixtures in `activity-timeline.test.ts`, not this slice.
-- `npm run security:routes-check` is not available in current `apps/web/package.json` (missing script); this slice touched no API route.
+- RED command: from `apps/web`, `pnpm run type-check` after `git merge --no-commit --no-ff origin/main` -> expected duplicate export/function implementation errors at `debate-engine.ts:555` and `:591`.
+- GREEN focused regression: `pnpm vitest run src/lib/advisory/__tests__/concurrency.test.ts` -> PASS, 1 file / 4 tests.
+- Focused advisory PR suite: `pnpm vitest run src/lib/advisory/__tests__/concurrency.test.ts src/lib/advisory/__tests__/partial-debate.test.ts src/lib/advisory/__tests__/re-judge.test.ts 'src/app/api/advisory/cases/[id]/start/__tests__/route.test.ts' 'src/app/api/advisory/cases/[id]/re-judge/__tests__/route.test.ts' src/components/founder/advisory/tabs/__tests__/LiveDebateTab.partial.test.tsx` -> PASS, 6 files / 20 tests.
+- Type check: `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`).
+- Lint: `pnpm run lint` from `apps/web` -> PASS (`eslint src/`).
+- Full apps/web tests: `pnpm run test` -> PASS, 386 files / 2294 tests.
+- Whitespace: `git diff --check` -> PASS.
+- Added-line security scan over staged + unstaged diff -> PASS, no secret-shaped findings.
 - Build check: `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with 0/3 critical and 0/4 required env vars configured in this local shell. No env values were read or printed; this remains an environment configuration gate, not a code/test failure.
+- Push/read-back: pushed branch `advisory-debate-f2-f4` to remote head `22356539d930fee4d3f004b1134cb568c5642a3d`; PR #440 refreshed at https://github.com/CleanExpo/Unite-Group/pull/440.
+- Remote CI/read-back: CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/workspace — build`, `apps/spec-board — type-check, test, build`, and `packages/pi-ceo-operator-mcp — build` passed on run `27961410763`.
+- Remaining remote gate: `apps/web — Playwright E2E` failed on run `27961410763` / job `82744252233` with pre-existing non-prod E2E provisioning/configuration symptoms: multiple `createUser failed: Database error creating new user` failures plus missing `PLAYWRIGHT_TEST_EMAIL` / `PLAYWRIGHT_TEST_PASSWORD` for an authenticated test. This slice did not touch E2E auth/provisioning and did not mutate Supabase or GitHub/Vercel secrets.
 
 Safety / blockers:
-- Vercel/local app env configuration remains gated; this tick did not mutate env vars.
-- This does not create, update, approve, or convert CRM opportunities; it only redacts operator-facing free text on a pure forecast read-back.
-
-Publication / remote read-back:
-- Code/evidence commit pushed: `822723a7b5d04f036f0586d4871aee798db224cb` (`fix(crm): redact opportunity forecast approval text`).
-- PR opened: https://github.com/CleanExpo/Unite-Group/pull/439.
-- PR checks read-back: CodeRabbit PASS; Vercel Preview Comments PASS; `Vercel – unite-group` PASS (`https://vercel.com/unite-group/unite-group/FoCeCTFYZD4nRZ2eRAte1ngZG4C1`); `Vercel – unite-group-sandbox` PASS (`https://vercel.com/unite-group/unite-group-sandbox/JCnBBWogWPghuLdpuHG3MHzjCHfj`); `apps/web — lint, type-check, test, build` PASS; `apps/workspace — build` PASS; `apps/spec-board — type-check, test, build` PASS; `packages/pi-ceo-operator-mcp — build` PASS.
-- PR blocker: `apps/web — Playwright E2E` FAILED (`https://github.com/CleanExpo/Unite-Group/actions/runs/27957820931/job/82732714470`). Log read-back shows 34 passed / 24 skipped / 11 failed. Failure classes are separate from this pure CRM helper slice: stale unauthenticated API expectations (`/api/strategy/analyze`, `/api/bron/chat`, `/api/ideas/capture` returned 200 where the E2E expected 401), missing `PLAYWRIGHT_TEST_EMAIL` / `PLAYWRIGHT_TEST_PASSWORD` for `idea-capture`, and non-prod Supabase `createUser` database errors in contact/file/lead/transcription authenticated E2E specs. No production env/DB mutation was attempted.
-- This post-push evidence update is local-only at report time to avoid retriggering the known-red E2E lane with an evidence-only commit.
+- This tick did not approve/execute advisory recommendations, write production DB rows, apply migrations, mutate Vercel env, or merge the PR.
+- Root `docs/audit-reports/` remains untracked from existing local state and was not staged.
+- Local merge also brought in already-merged `origin/main` files from PR #438 / the add-on requester-redaction lane; these are mainline updates required to make PR #440 current, not new work from this tick.
+- Post-push read-back was recorded locally after the evidence commit; it was not pushed as a follow-up evidence-only commit to avoid retriggering the known-red E2E lane.
 
 Next safe lane:
-- Do not merge PR #439 while E2E is red. Next safe work is a separate E2E gate lane: either update stale unauthenticated API expectations if the current route contract is intentionally public, or add route auth if those APIs are meant to be private; separately classify/fix the missing Playwright credentials and non-prod Supabase `createUser` provisioning gate without mutating production DB/env.
+- Treat PR #440's product-code gates as fixed/green and the remaining Playwright E2E failure as a separate non-prod auth/test-user provisioning gate unless fresh logs prove a code-level failure. Do not merge while the required E2E gate is red; do not mutate Vercel/GitHub/Supabase env autonomously.
+
+## 2026-06-23 01:26 AEST
+
+### Tick 20260623_0126 — PR #440 Playwright credential env wiring follow-through
+
+Lane: continued already-open/current branch PR #440 (`advisory-debate-f2-f4`) because its product-code gates were green but the required `apps/web — Playwright E2E` check was red. Scope stayed inside GitHub Actions E2E env wiring, a local CI-config regression test, verification, and evidence docs. No production DB write, migration application, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight: local branch `advisory-debate-f2-f4` was ahead of `origin/advisory-debate-f2-f4` by the prior local evidence commit; PR #440 remote head remained `22356539d930fee4d3f004b1134cb568c5642a3d`. GitHub CLI auth and Vercel CLI auth were available. Open PRs: #440 and #439, both targeting `main` and both blocked by `apps/web — Playwright E2E`; current branch PR #440 was continued first.
+- Failure read-back: `gh run view 27961410763 --log-failed` showed the hosted-Chrome E2E job now reaches test execution. One failure class was a local CI workflow wiring gap: `loginAsFounder()` throws because `PLAYWRIGHT_TEST_EMAIL` and `PLAYWRIGHT_TEST_PASSWORD` were not present in the E2E job env. Separate authenticated specs still fail at Supabase Auth `createUser` with `Database error creating new user`, which remains a non-prod DB/provisioning gate and was not mutated here.
+- TDD RED: added a focused Vitest assertion in `apps/web/src/lib/ci/__tests__/playwright-config.test.ts` requiring `.github/workflows/ci.yml` to pass `PLAYWRIGHT_TEST_EMAIL` and `PLAYWRIGHT_TEST_PASSWORD` from GitHub secrets into the E2E job. The focused test failed before the workflow change because those env lines were absent.
+- GREEN: updated `.github/workflows/ci.yml` to expose only `secrets.PLAYWRIGHT_TEST_EMAIL` and `secrets.PLAYWRIGHT_TEST_PASSWORD` to the E2E job. No secret values were read, printed, hardcoded, or changed.
+- Code commit: `e88a6b982 ci(e2e): forward Playwright test credentials`.
+
+Verification / evidence:
+- RED command: from `apps/web`, `./node_modules/.bin/vitest run src/lib/ci/__tests__/playwright-config.test.ts --config vitest.config.mts --testNamePattern 'passes authenticated Playwright credentials'` -> expected failure, workflow did not contain `PLAYWRIGHT_TEST_EMAIL: ${{ secrets.PLAYWRIGHT_TEST_EMAIL }}`.
+- GREEN focused command: `./node_modules/.bin/vitest run src/lib/ci/__tests__/playwright-config.test.ts --config vitest.config.mts` -> PASS, 1 file / 2 tests.
+- Type check: `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`).
+- Lint: `pnpm run lint` from `apps/web` -> PASS (`eslint src/`).
+- Full apps/web tests: `pnpm run test` -> PASS, 386 files / 2295 tests.
+- Playwright config/list probe: `CI=true ./node_modules/.bin/playwright test --list` -> PASS, listed 69 tests.
+- Whitespace: `git diff --check -- .github/workflows/ci.yml apps/web/src/lib/ci/__tests__/playwright-config.test.ts` -> PASS.
+- Added-line security scan over the workflow/test diff -> PASS, no hardcoded-secret/shell/eval/deserialization/sql-format findings.
+- Build check: `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with 0/3 critical and 0/4 required env vars configured in this local shell. No env values were read or printed; this remains a local environment configuration gate, not a code/test failure.
+
+Safety / blockers:
+- This tick only wires existing GitHub secret names into the CI E2E job; it does not create, view, approve, or mutate secrets.
+- The remaining E2E `createUser failed: Database error creating new user` symptoms are still unresolved and likely require the dedicated non-prod Supabase E2E branch/test-user provisioning to be repaired by an authorised operator. No Supabase DB writes or migrations were performed.
+- Root `docs/audit-reports/` remains untracked from existing local state and was not staged.
+- Current local branch is synced with `origin/advisory-debate-f2-f4` at pushed head `bf55113331e27ae6fe86732e6dbb696d36506ee2` after publishing this slice.
+- Post-push read-back on run `27964238946`: apps/web lint/type/test/build, workspace, spec-board, and MCP checks passed; `apps/web — Playwright E2E` failed again at job `82754287731`; CodeRabbit was still pending at the final poll. The workflow now exposes the two expected env names, but GitHub showed `PLAYWRIGHT_TEST_EMAIL:` and `PLAYWRIGHT_TEST_PASSWORD:` as blank, meaning the repo/environment secrets are not configured for this job. The same run also retained Supabase Auth `createUser failed: Database error creating new user` failures. No secret values were available or read.
+
+Next safe lane:
+- Keep PR #440 unmerged while Playwright E2E is red. The remaining blocker is now a configuration/provisioning gate: authorised operator action is needed to configure `PLAYWRIGHT_TEST_EMAIL` / `PLAYWRIGHT_TEST_PASSWORD` GitHub secrets and repair the dedicated non-prod Supabase E2E user-provisioning path, unless a fresh bounded RED test proves a code-level defect. Do not mutate GitHub/Vercel secrets or Supabase DB autonomously.
+
+### Tick 20260623_0216 — PR #440 CodeRabbit partial-warning follow-through
+
+Lane: continued already-open/current branch PR #440 (`advisory-debate-f2-f4`) after CodeRabbit completed. Scope stayed inside the advisory LiveDebateTab partial-debate warning surface and existing evidence docs. No production DB write, migration application, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight: local branch `advisory-debate-f2-f4` was synced with `origin/advisory-debate-f2-f4` at `bf55113331e27ae6fe86732e6dbb696d36506ee2`; PR #440 remained open against `main`. GitHub CLI auth was available. Open PRs: #440 and #439; current branch PR #440 was continued first.
+- Remote read-back: PR #440 checks at head `bf55113331e27ae6fe86732e6dbb696d36506ee2` had apps/web lint/type/test/build, workspace, spec-board, MCP, and CodeRabbit green; `apps/web — Playwright E2E` remained red on run `27964238946` / job `82754287731` due blank E2E login secrets and Supabase Auth `createUser failed: Database error creating new user` symptoms.
+- CodeRabbit follow-through: added regression coverage and a minimal LiveDebateTab fix so persisted `judge_scores.droppedFirms` renders the partial-debate warning even if `judge_scores.partial` is absent/false. This closes the integrity mismatch where persisted degraded debates could be displayed as complete.
+- Design follow-through: the partial warning now uses the Scientific Luxury OLED/Cyan palette (`#050505` / `#00F5FF`) instead of amber hardcoded colours.
+
+TDD / verification:
+- RED: `pnpm run test -- 'src/components/founder/advisory/tabs/__tests__/LiveDebateTab.partial.test.tsx'` executed the suite and failed only the new regression: `Unable to find role="alert"` when persisted `droppedFirms` existed without an explicit `partial` flag.
+- GREEN focused: `./node_modules/.bin/vitest run 'src/components/founder/advisory/tabs/__tests__/LiveDebateTab.partial.test.tsx'` -> PASS, 1 file / 3 tests.
+- Advisory focused suite: `./node_modules/.bin/vitest run 'src/lib/advisory/__tests__/partial-debate.test.ts' 'src/lib/advisory/__tests__/re-judge.test.ts' 'src/components/founder/advisory/tabs/__tests__/LiveDebateTab.partial.test.tsx' 'src/app/api/advisory/cases/[id]/start/__tests__/route.test.ts' 'src/app/api/advisory/cases/[id]/re-judge/__tests__/route.test.ts'` -> PASS, 5 files / 17 tests.
+- Type check: `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`).
+- Lint: `pnpm run lint` from `apps/web` -> PASS (`eslint src/`).
+- Full apps/web tests: `pnpm run test` -> PASS, 386 files / 2296 tests.
+- Whitespace and added-line security scan: `git diff --check` -> PASS; added-line scan over touched LiveDebateTab files found no hardcoded-secret/token patterns.
+- Build check: `pnpm run build` failed before Next build at `scripts/validate-env.mjs --ci` because this local shell still has 0/3 critical and 0/4 required app env vars configured. No env values were read or printed; no env mutation was attempted.
+
+Safety / blockers:
+- The Playwright E2E failure is still a non-prod configuration/provisioning gate, not resolved by this UI integrity slice. Do not merge PR #440 while the required E2E check is red.
+- Root `docs/audit-reports/` remains untracked from existing local state and was not staged.
+- This evidence was written before commit/push of the follow-through slice; re-check branch/head and PR head before publishing.
+
+Next safe lane:
+- Commit the bounded LiveDebateTab follow-through plus evidence, push PR #440 if branch/head still matches, then monitor refreshed checks. If E2E remains red with blank secret env and/or Supabase `createUser` provisioning symptoms, keep PR #440 unmerged and classify it as an authorised operator configuration/provisioning gate.
+
+Post-push read-back (02:23 AEST):
+- Published commit `a5050c5e4 fix(advisory): honour persisted dropped-firm warnings` to PR #440.
+- Remote head: `a5050c5e47718b92ded92dca0383890976608874`.
+- Passed remote checks: apps/web lint/type/test/build, apps/workspace build, apps/spec-board type/test/build, packages/pi-ceo-operator-mcp build, CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`.
+- Failed remote check: `apps/web — Playwright E2E` on run `27967280733` / job `82764801038`. Failed-log sample still shows `PLAYWRIGHT_TEST_EMAIL and PLAYWRIGHT_TEST_PASSWORD must be set to run authenticated tests`, plus Supabase Auth `createUser failed: Database error creating new user` failures in authenticated specs. This remains an authorised non-prod E2E secret/provisioning gate; no GitHub/Vercel secret or Supabase DB mutation was attempted.
+- This post-push read-back is local evidence only and is intentionally not pushed as a follow-up commit to avoid retriggering the known-red E2E lane.
+
+## 2026-06-23 02:58 AEST
+
+### Tick 20260623_0258 — PR #440/#439 E2E gate read-back + CRM forecast verification
+
+Lane: continued the already-open PR lanes instead of starting a new CRM branch. Scope stayed inside read-only GitHub/Vercel/status inspection, an isolated worktree verification of PR #439's CRM opportunity forecast redaction slice, and local Margot evidence docs. No production DB write, migration application, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight found current branch `advisory-debate-f2-f4` at `a5050c5e4`, 10 commits ahead of `origin/main`, with local-only evidence changes in `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`; root `docs/audit-reports/` remains untracked and unstaged.
+- Current PR #440 (`advisory-debate-f2-f4`) remains open against `main`; product-code CI, workspace/spec-board/MCP, CodeRabbit, and both Vercel previews are green at remote head `a5050c5e47718b92ded92dca0383890976608874`, but required `apps/web — Playwright E2E` remains red on run `27967280733` / job `82764801038` with blank/missing `PLAYWRIGHT_TEST_EMAIL` / `PLAYWRIGHT_TEST_PASSWORD` and Supabase Auth `createUser failed: Database error creating new user` symptoms.
+- PR #439 (`fix/crm-opportunity-forecast-redaction-20260622`, https://github.com/CleanExpo/Unite-Group/pull/439) was inspected next because it is the open CRM lane. Product-code CI, workspace/spec-board/MCP, CodeRabbit, and both Vercel previews are green at head `822723a7b5d04f036f0586d4871aee798db224cb`; `apps/web — Playwright E2E` is red on run `27957820931` / job `82732714470` with the same non-prod E2E secret/provisioning gate class.
+- Created isolated read-only verification worktree `/private/tmp/unite-pr439-inspect-20260623` at PR #439 head and confirmed the slice redacts sensitive approval-gated opportunity `name` / `nextAction` free text while preserving forecast/routing fields. No code changes were made in this tick.
+
+Verification / evidence:
+- `gh pr view 440 --json ...` -> PR #440 open, `mergeStateStatus=UNSTABLE`; all non-E2E checks green, E2E failed.
+- `gh pr checks 439` and `gh pr view 439 --json ...` -> PR #439 open, all non-E2E checks green, E2E failed; Vercel preview statuses green.
+- `gh run view 27957820931 --job 82732714470 --log-failed` -> 34 passed / 24 skipped / 11 failed in Playwright E2E; failures are missing authenticated-test env plus Supabase Auth `createUser failed` in authenticated specs. Secret values were masked by GitHub and were not read.
+- Worktree install: `pnpm install --frozen-lockfile` in `/private/tmp/unite-pr439-inspect-20260623/apps/web` -> completed; local-only `node_modules` created in the temp worktree.
+- Focused CRM forecast suite: `./node_modules/.bin/vitest run src/lib/crm/__tests__/opportunity-forecast.test.ts --config vitest.config.mts` -> PASS, 1 file / 6 tests.
+- Type check: `pnpm run type-check` from the PR #439 worktree -> PASS.
+- Lint: `pnpm run lint` from the PR #439 worktree -> PASS.
+- Whitespace: `git diff --check -- apps/web/src/lib/crm/opportunity-forecast.ts apps/web/src/lib/crm/__tests__/opportunity-forecast.test.ts` -> PASS.
+- Build: `pnpm run build` from the PR #439 worktree failed before Next build at `scripts/validate-env.mjs --ci` because this local shell has 0/3 critical and 0/4 required app env vars configured. No env values were read or printed; this remains a local configuration gate, not a CRM forecast code failure.
+
+Safety / blockers:
+- PRs #439 and #440 should remain unmerged unless the required E2E gate is green or explicitly waived by an authorised operator.
+- The recurring E2E blocker is now an authorised GitHub/E2E secret and non-prod Supabase Auth provisioning gate. This run did not mutate secrets, Vercel env, Supabase Auth, or production data.
+- Evidence remains local on the current PR #440 branch; I did not push an evidence-only docs commit because that would retrigger the known-red E2E lane without changing the blocker.
+
+Next safe lane:
+- If an operator configures the missing E2E secrets/provisioning, re-run/monitor PR #439 and #440 E2E checks and merge only when all required checks are green. If no operator action is available, continue with a fresh, tiny CRM/Margot RED-GREEN slice only from a clean main/worktree and avoid publishing more branches until the existing PR gates are resolved.
+
+## 2026-06-23 03:36 AEST
+
+### Tick 20260623_0336 — Open PR E2E gate read-back + keep-gated packet
+
+Lane: continued the already-open/current PR lane instead of starting another CRM branch. Scope stayed inside read-only repo/GitHub/Vercel status inspection, canonical Margot/CRM doc read-back, local focused verification on the current PR #440 branch, and local evidence docs. No production DB write, migration application, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight found current branch `advisory-debate-f2-f4` synced with `origin/advisory-debate-f2-f4` at `a5050c5e4`, with local-only evidence changes in `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`; root `docs/audit-reports/` remains untracked and unstaged.
+- Open PR read-back: #440 (`advisory-debate-f2-f4`, https://github.com/CleanExpo/Unite-Group/pull/440) and #439 (`fix/crm-opportunity-forecast-redaction-20260622`, https://github.com/CleanExpo/Unite-Group/pull/439) remain open against `main` with product-code CI, workspace/spec-board/MCP checks, CodeRabbit, and both Vercel previews green.
+- Remaining shared blocker: both PRs still have required `apps/web — Playwright E2E` red. PR #440 failed on run `27967280733` / job `82764801038`; PR #439 failed on run `27957820931` / job `82732714470`. The failure class remains blank/missing authenticated-test login env plus non-prod Supabase Auth `createUser failed: Database error creating new user` symptoms.
+- Gate disposition prepared for Phill/operator sign-off: `KEEP_GATED` for both PRs until the authorised E2E login-secret and non-prod Supabase Auth provisioning gates are fixed or explicitly waived. This run did not attempt the gated actions.
+
+Verification / evidence:
+- `gh pr view 440 --json ...` -> head `a5050c5e47718b92ded92dca0383890976608874`, `mergeStateStatus=UNSTABLE`, all non-E2E checks green, Vercel previews green, E2E failed.
+- `gh pr view 439 --json ...` -> head `822723a7b5d04f036f0586d4871aee798db224cb`, `mergeStateStatus=UNSTABLE`, all non-E2E checks green, Vercel previews green, E2E failed.
+- Current-branch focused regression: `./node_modules/.bin/vitest run 'src/components/founder/advisory/tabs/__tests__/LiveDebateTab.partial.test.tsx' --config vitest.config.mts` from `apps/web` -> PASS, 1 file / 3 tests.
+- Type check: `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`).
+- Whitespace: `git diff --check` -> PASS.
+- Canonical docs read-back included connected-teams operating rules, Senior PM operating model, CRM operating model, CRM schema inventory, high-level CRM forecast, lead-to-client conversion plan, and contacts/opportunities model.
+
+Safety / blockers:
+- No new production code changed in this tick, so RED/GREEN was not applicable beyond focused regression read-back of the current PR branch.
+- Do not merge #439 or #440 while required E2E is red unless an authorised operator explicitly waives that gate.
+- Do not mutate GitHub/Vercel secrets or Supabase Auth/DB autonomously; the remaining work is a configuration/provisioning gate, not a safe code change proven by the current evidence.
+- Evidence remains local on the current PR #440 branch; I did not push an evidence-only docs commit because it would retrigger the known-red E2E lane without changing the blocker.
+
+Next safe lane:
+- If the operator configures the missing E2E login secrets and fixes non-prod Supabase Auth provisioning, re-run/monitor #439 and #440 checks and merge only when all required checks are green. If no operator action is available, the next autonomous build slice should be a fresh, tiny CRM/Margot RED-GREEN slice from a clean main/temp worktree, kept local or published only after re-checking that existing PR gates will not be worsened.
+
+## 2026-06-23 04:09 AEST
+
+### Tick 20260623_0409 — Open PR E2E gate unchanged; KEEP_GATED packet refreshed
+
+Lane: continued the already-open/current PR lane instead of starting another branch. Scope stayed inside read-only repo/GitHub/Vercel status inspection, canonical Margot/CRM doc read-back, current-branch focused verification, and local evidence docs. No production DB write, migration application, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight found current branch `advisory-debate-f2-f4` synced with `origin/advisory-debate-f2-f4` at `a5050c5e47718b92ded92dca0383890976608874`, with local-only evidence changes in `docs/margot/morning-report.md` and `docs/margot/overnight-progress-log.md`; `docs/audit-reports/` remains untracked and unstaged.
+- Open PR read-back: #440 (`advisory-debate-f2-f4`, https://github.com/CleanExpo/Unite-Group/pull/440) and #439 (`fix/crm-opportunity-forecast-redaction-20260622`, https://github.com/CleanExpo/Unite-Group/pull/439) remain open against `main` with product-code CI, workspace/spec-board/MCP checks, CodeRabbit, and both Vercel previews green.
+- Remaining shared blocker is unchanged: both PRs remain `UNSTABLE` because required `apps/web — Playwright E2E` is red. PR #440 failed on run `27967280733` / job `82764801038`; PR #439 failed on run `27957820931` / job `82732714470`.
+- Failure signal: PR #440 E2E log reports blank `PLAYWRIGHT_TEST_EMAIL` / `PLAYWRIGHT_TEST_PASSWORD` and authenticated-spec Supabase Auth `createUser failed: Database error creating new user`. These are non-prod E2E configuration/provisioning symptoms; no secret values were read or printed.
+
+Verification / evidence:
+- `gh pr view 439 --json ...` -> head `822723a7b5d04f036f0586d4871aee798db224cb`, `mergeStateStatus=UNSTABLE`; all non-E2E checks green, Vercel previews green, Playwright E2E failed.
+- `gh pr view 440 --json ...` -> head `a5050c5e47718b92ded92dca0383890976608874`, `mergeStateStatus=UNSTABLE`; all non-E2E checks green, Vercel previews green, Playwright E2E failed.
+- Current-branch focused regression: `./node_modules/.bin/vitest run 'src/components/founder/advisory/tabs/__tests__/LiveDebateTab.partial.test.tsx' --config vitest.config.mts` from `apps/web` -> PASS, 1 file / 3 tests.
+- Type check: `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`).
+- Whitespace: `git diff --check` -> PASS.
+- Canonical docs read-back used tracked/current locations under `apps/empire/docs/margot/*` plus `apps/web/docs/margot/crm-contacts-opportunities-model.md` because root `docs/margot/*` source docs are not present in this checkout; root `docs/margot/` contains the progress report files.
+
+Gate-review packet for Phill/operator:
+- Gate class: `NAMESPACE` — GitHub Actions E2E namespace / repo-or-environment secret configuration plus non-prod Supabase Auth test-user provisioning. Not a production DB/data gate and not a billing/credential-value action performed by this run.
+- Disposition: `KEEP_GATED` for PR #439 and PR #440.
+- Lift condition: authorised operator either configures non-blank `PLAYWRIGHT_TEST_EMAIL` / `PLAYWRIGHT_TEST_PASSWORD` for the E2E job and repairs the non-prod Supabase Auth user-provisioning path, then reruns E2E to green, or explicitly grants a typed waiver accepting the required-check risk.
+- Concrete risk if lifted now: merging while required authenticated E2E is red would ship without proof that login-dependent CRM/advisory flows and non-prod auth provisioning still work, and would normalise bypassing a required gate shared by multiple PRs.
+- Rollback / recovery note: no code rollback is indicated by this tick. The safe recovery path is configuration/provisioning fix + E2E rerun; if a waiver is used, keep a follow-up gate task open until E2E returns green.
+
+Safety / blockers:
+- No new production code changed in this tick, so RED/GREEN was not applicable beyond focused regression read-back of the current PR branch.
+- Do not merge #439 or #440 while required E2E is red unless Phill/operator explicitly waives that gate.
+- Do not mutate GitHub/Vercel secrets or Supabase Auth/DB autonomously.
+- Evidence remains local on the current PR #440 branch; I did not push an evidence-only docs commit because it would retrigger the known-red E2E lane without changing the blocker.
+
+Next safe lane:
+- If authorised operator configuration happens, re-run/monitor #439/#440 and merge only when all required checks are green. If not, pause PR publication/merge work on these lanes and, on a future run, use a clean main/temp worktree for one tiny CRM/Margot RED-GREEN slice that does not worsen the existing PR gate backlog.
+
+## 2026-06-23 04:55 AEST
+
+### Tick 20260623_0455 — PR #440 CodeRabbit follow-through: case-scoped live warning reset
+
+Lane: continued current/open PR #440 (`advisory-debate-f2-f4`) instead of starting another CRM lane because PR #440 is the active branch. Scope stayed inside advisory LiveDebateTab state handling, advisory route comments/tests, local verification, and evidence docs. No production DB write, migration application, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight read-back found current branch `advisory-debate-f2-f4` at `a5050c5e4`, tracking `origin/advisory-debate-f2-f4`; PR #440 remains open at https://github.com/CleanExpo/Unite-Group/pull/440 with product-code/Vercel checks green and required Playwright E2E red. PR #439 remains separately open with the same E2E gate.
+- Verified still-valid CodeRabbit follow-up on PR #440: `LiveDebateTab` could retain live `firm_dropped` events after switching the selected advisory case, making a complete second case inherit a stale partial-debate warning.
+- TDD RED: added a focused component test that emits a live `firm_dropped` event for `case-1`, switches the mocked selected case to `case-2`, and expects the partial-debate alert to clear. It failed before production-code change with the stale `Compliance` warning still rendered under `Advisory Case Beta`.
+- GREEN: added a small case-scoped reset effect in `LiveDebateTab` that clears live events and `started` state when `caseId` changes.
+- Reviewer quick wins: updated the misleading start-route docstring to say the debate is awaited/synchronous within the request, and added route regression coverage for start/re-judge `500` error paths. Those 500 behaviours already existed, so the tests passed immediately and were kept as regression coverage rather than changing route behaviour.
+
+Verification / evidence:
+- RED command: `./node_modules/.bin/vitest run 'src/components/founder/advisory/tabs/__tests__/LiveDebateTab.partial.test.tsx' --config vitest.config.mts --testNamePattern 'clears live dropped-firm warnings'` -> expected failure, stale `Compliance` partial-debate alert remained after switching to `case-2`.
+- GREEN focused command: same command -> PASS, 1 file / 1 test.
+- Component suite: `./node_modules/.bin/vitest run 'src/components/founder/advisory/tabs/__tests__/LiveDebateTab.partial.test.tsx' --config vitest.config.mts` -> PASS, 1 file / 4 tests.
+- Advisory route suites: `./node_modules/.bin/vitest run 'src/app/api/advisory/cases/[id]/start/__tests__/route.test.ts' 'src/app/api/advisory/cases/[id]/re-judge/__tests__/route.test.ts' --config vitest.config.mts` -> PASS, 2 files / 8 tests.
+- Type check: `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`).
+- Lint: `pnpm run lint` from `apps/web` -> PASS (`eslint src/`).
+- Full tests with clean Linear env for tests that assert missing Linear config: `env -u LINEAR_API_KEY -u LINEAR_TOKEN pnpm run test` from `apps/web` -> PASS, 386 files / 2299 tests. A plain `pnpm run test` failed only because this shell has `LINEAR_API_KEY` set, causing three missing-Linear-config tests to exercise the configured-provider path; focused rerun with Linear env unset passed those 11 tests.
+- Whitespace: `git diff --check` -> PASS.
+- Added-line security scan for hardcoded secrets, shell injection, eval/exec, unsafe deserialization, and SQL string-format patterns -> PASS, no matches.
+- Build: `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with missing local critical/required app env. Env values were not printed or mutated; this remains a local environment configuration gate.
+
+Safety / blockers:
+- Existing remote gate remains: PR #440 and PR #439 must stay unmerged while required `apps/web — Playwright E2E` is red on blank/missing E2E login secrets plus non-prod Supabase Auth `createUser failed` provisioning symptoms, unless Phill/operator explicitly grants a typed waiver.
+- The current slice does not touch E2E auth/provisioning, Supabase data, provider credentials, billing, client identity, or production deployment.
+- Root `docs/audit-reports/` remains untracked and was not staged.
+
+Next safe lane:
+- Commit and push only this bounded PR #440 follow-up after branch/head read-back and reviewer check; then re-read remote checks. If no authorised E2E configuration/provisioning fix has happened, keep PR #440 `KEEP_GATED` despite the follow-up commit.
+
+## 2026-06-23 05:42 AEST
+
+### Tick 20260623_0542 — PR #440 CodeRabbit async-generator test hygiene
+
+Lane: continued current/open PR #440 (`advisory-debate-f2-f4`) instead of starting another CRM lane because PR #440 is the active branch. Scope stayed inside a reviewer-requested advisory re-judge route test hygiene change, local verification, GitHub/Vercel status read-back, and evidence docs. No production DB write, migration application, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight read-back found current branch `advisory-debate-f2-f4` synced with `origin/advisory-debate-f2-f4` at `bdd83bf2c3721aeb501186ebf7c64551b83ff63a`; PR #440 remains open against `main`. The only pre-existing untracked path was `docs/audit-reports/`, which was not staged.
+- Open PR read-back: PR #440 product-code CI, workspace/spec-board/MCP checks, CodeRabbit, and both Vercel previews are green; required `apps/web — Playwright E2E` remains red on run `27976695364` / job `82796731698`. PR #439 remains separately open with the same E2E gate class.
+- Verified a still-valid CodeRabbit nitpick in `apps/web/src/app/api/advisory/cases/[id]/re-judge/__tests__/route.test.ts`: the failure-path test used a synchronous throw from the mocked `reJudgeCase` generator factory. Because `reJudgeCase` is consumed as an async generator, the exact `mockRejectedValue` suggestion would misrepresent the mocked return type; the bounded fix changes the mock to an `async function*` that throws during iteration.
+- No production code changed in this tick, so strict RED/GREEN was not applicable beyond preserving the existing error-path regression and rerunning the route suite. This is test hygiene only.
+
+Verification / evidence:
+- Focused re-judge route test after test-hygiene change: `./node_modules/.bin/vitest run 'src/app/api/advisory/cases/[id]/re-judge/__tests__/route.test.ts' --config vitest.config.mts` -> PASS, 1 file / 3 tests.
+- Advisory route suites: `./node_modules/.bin/vitest run 'src/app/api/advisory/cases/[id]/start/__tests__/route.test.ts' 'src/app/api/advisory/cases/[id]/re-judge/__tests__/route.test.ts' --config vitest.config.mts` -> PASS, 2 files / 8 tests.
+- Type check: `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`).
+- Lint: `pnpm run lint` from `apps/web` -> PASS (`eslint src/`).
+- Full tests with clean Linear env: `env -u LINEAR_API_KEY -u LINEAR_TOKEN pnpm run test` from `apps/web` -> PASS, 386 files / 2299 tests.
+- Whitespace: `git diff --check -- 'src/app/api/advisory/cases/[id]/re-judge/__tests__/route.test.ts'` -> PASS.
+- Diff/security read-back: `git diff -- apps/web/src/app/api/advisory/cases/[id]/re-judge/__tests__/route.test.ts` shows the only code-line change is `mockImplementation(() => {` -> `mockImplementation(async function* () {`; `search_files` for hardcoded-secret/token, shell execution, eval/new Function, unsafe JSON parse/yaml load, and SQL template patterns in the touched test returned 0 matches.
+- Build: `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with 0/3 critical and 0/4 required app env vars configured in this local shell. Env values were not printed or mutated; this remains a local environment configuration gate.
+
+Gate-review packet for Phill/operator:
+- Gate class: `NAMESPACE` — GitHub Actions E2E namespace / repo-or-environment login-secret configuration plus non-prod Supabase Auth test-user provisioning.
+- Disposition: `KEEP_GATED` for PR #440 and PR #439 while required Playwright E2E remains red.
+- Lift condition: authorised operator configures non-blank E2E login secrets and repairs non-prod Supabase Auth user provisioning, then reruns E2E to green, or grants an explicit typed waiver accepting the required-check risk.
+- Concrete risk if lifted now: merging while authenticated E2E is red would ship advisory/CRM changes without proof that login-dependent flows and non-prod auth provisioning still work, and would normalise bypassing a required shared gate.
+- Rollback / recovery note: this tick's test-hygiene change does not require rollback; recovery path for the gate is configuration/provisioning fix plus E2E rerun.
+
+Safety / blockers:
+- Existing remote gate remains unchanged: PR #440 and PR #439 must stay unmerged while required `apps/web — Playwright E2E` is red on blank/missing E2E login secrets plus non-prod Supabase Auth `createUser failed: Database error creating new user` symptoms, unless Phill/operator explicitly grants a typed waiver.
+- This tick did not touch E2E auth/provisioning, Supabase data, provider credentials, billing, client identity, production deployment, or GitHub/Vercel secrets.
+- Root `docs/audit-reports/` remains untracked and was not staged.
+
+Next safe lane:
+- Commit and push only this bounded PR #440 test-hygiene/evidence slice after branch/head read-back, then re-read remote checks. Keep PR #440 `KEEP_GATED` if E2E remains red on the known non-prod credential/provisioning class.
+
+## 2026-06-23 06:25 AEST
+
+### Tick 20260623_0625 — PR #440 judge persisted-set hardening + notification-failure logging
+
+Lane: continued current/open PR #440 (`advisory-debate-f2-f4`) instead of starting another CRM lane because PR #440 is the active branch. Scope stayed inside the advisory debate engine persisted-round-5 judge set, notification failure logging, locale fixture hygiene, local verification, and evidence docs. No production DB write, migration application, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight read-back found current branch `advisory-debate-f2-f4` synced with `origin/advisory-debate-f2-f4` at `e4253edb4`; PR #440 remains open against `main` and PR #439 remains separately open. Both open PRs still show product-code/Vercel checks green and required Playwright E2E red on the known non-prod E2E gate.
+- Verified still-valid CodeRabbit findings in `apps/web/src/lib/advisory/debate-engine.ts`: the judge phase used `finalRoundPersistedFirms.length || FIRM_KEYS.length`, which could report `4 of 4` when zero round-5 proposals persisted, and it passed unfiltered final-round proposals to the Judge even after a firm was dropped from persistence.
+- TDD RED: added focused regressions proving (1) a dropped firm is removed from the Judge's final-round proposal map, (2) judging aborts when no round-5 proposals persisted, and (3) a rejected completion notification is logged without blocking `case_complete`. The focused RED run failed for the expected reasons: dropped `compliance` still reached the Judge, the Judge was called with `scored 4 of 4` when all round-5 inserts failed, and notification failure logging was absent.
+- GREEN: changed `runDebate` to preserve zero persisted-firm counts, fail closed before Judge execution when no round-5 proposals persisted, and pass only persisted final-round proposals into `runJudgePhase`. Replaced the empty notification `.catch(() => {})` with explicit `console.error` logging while keeping notification delivery fire-and-forget.
+- Locale hygiene: updated advisory test `snapshotDate` fixtures from `2026-06-22` to `22/06/2026` per en-AU/DD/MM/YYYY guidance.
+
+Verification / evidence:
+- RED command: `./node_modules/.bin/vitest run src/lib/advisory/__tests__/partial-debate.test.ts --config vitest.config.mts --testNamePattern 'passes only persisted final-round proposals|aborts judging when no round-5 proposals persisted'` -> expected FAIL, 2 failed / 4 skipped. Failure messages showed dropped `compliance` still present in final proposals and `mockCallJudgeAgent` called once with `scored 4 of 4 firms` after all round-5 inserts failed.
+- RED command: `./node_modules/.bin/vitest run src/lib/advisory/__tests__/partial-debate.test.ts --config vitest.config.mts --testNamePattern 'logs notification failures'` -> expected FAIL because `console.error` had 0 calls.
+- GREEN focused commands: the same two focused runs -> PASS (2 focused tests, then 1 focused notification test).
+- Advisory focused suite: `./node_modules/.bin/vitest run src/lib/advisory/__tests__/partial-debate.test.ts src/lib/advisory/__tests__/re-judge.test.ts src/lib/advisory/__tests__/concurrency.test.ts 'src/app/api/advisory/cases/[id]/start/__tests__/route.test.ts' 'src/app/api/advisory/cases/[id]/re-judge/__tests__/route.test.ts' src/components/founder/advisory/tabs/__tests__/LiveDebateTab.partial.test.tsx --config vitest.config.mts` -> PASS, 6 files / 27 tests.
+- Type check: `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`).
+- Lint: `pnpm run lint` from `apps/web` -> PASS (`eslint src/`).
+- Full apps/web tests with clean Linear env: `env -u LINEAR_API_KEY -u LINEAR_TOKEN pnpm run test` -> PASS, 386 files / 2302 tests.
+- Whitespace: `git diff --check -- src/lib/advisory/debate-engine.ts src/lib/advisory/__tests__/partial-debate.test.ts src/lib/advisory/__tests__/re-judge.test.ts` -> PASS.
+- Security pattern scan: `search_files` over `apps/web/src/lib/advisory` for hardcoded secret assignments, shell injection, eval/exec, unsafe deserialization, and SQL string-format patterns -> 0 matches.
+- Build: `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with 0/3 critical and 0/4 required app env vars configured in this local shell. Env values were not printed or mutated; this remains a local environment configuration gate.
+- Independent reviewer: dispatched after local verification; final reviewer verdict to be reflected in the run summary before push/closeout.
+
+Gate-review packet for Phill/operator:
+- Gate class: `NAMESPACE` — GitHub Actions E2E namespace / repo-or-environment login-secret configuration plus non-prod Supabase Auth test-user provisioning.
+- Disposition: `KEEP_GATED` for PR #440 and PR #439 while required Playwright E2E remains red.
+- Lift condition: authorised operator configures non-blank E2E login secrets and repairs non-prod Supabase Auth user provisioning, then reruns E2E to green, or grants an explicit typed waiver accepting the required-check risk.
+- Concrete risk if lifted now: merging while authenticated E2E is red would ship advisory/CRM changes without proof that login-dependent flows and non-prod auth provisioning still work, and would normalise bypassing a required shared gate.
+- Rollback / recovery note: this tick's code change is locally verified and can be reverted by the PR branch if needed; recovery path for the remaining merge gate is configuration/provisioning fix plus E2E rerun.
+
+Safety / blockers:
+- Existing remote gate remains unchanged before this tick's push: PR #440 and PR #439 must stay unmerged while required `apps/web — Playwright E2E` is red on blank/missing E2E login secrets plus non-prod Supabase Auth `createUser failed: Database error creating new user` symptoms, unless Phill/operator explicitly grants a typed waiver.
+- This tick did not touch E2E auth/provisioning, Supabase data, provider credentials, billing, client identity, production deployment, or GitHub/Vercel secrets.
+- Root `docs/audit-reports/` remains untracked and was not staged.
+
+Next safe lane:
+- After reviewer read-back, commit and push only this bounded PR #440 follow-up if branch/head still matches, then re-read remote checks. Keep PR #440 `KEEP_GATED` if E2E remains red on the known non-prod credential/provisioning class.
