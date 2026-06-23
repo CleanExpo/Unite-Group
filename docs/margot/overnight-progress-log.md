@@ -501,3 +501,36 @@ Safety / blockers:
 
 Next safe lane:
 - After reviewer read-back, commit and push only this bounded PR #440 follow-up if branch/head still matches, then re-read remote checks. Keep PR #440 `KEEP_GATED` if E2E remains red on the known non-prod credential/provisioning class.
+
+## 2026-06-23 12:38 AEST
+
+### Tick 20260623_1238 — CRM opportunity forecast bearer-token redaction
+
+Lane: fresh branch from synced `main` (`fix/opportunity-forecast-bearer-redaction-20260623`) because no open PRs were present after preflight and `main` fast-forwarded to `origin/main` at `d1d740f90`. Scope stayed inside the local CRM opportunity forecast helper/test plus Margot evidence docs. No production DB write, migration application, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight: started on `main` behind `origin/main` by 8 commits with only pre-existing untracked `docs/audit-reports/`; fast-forwarded to `d1d740f90`. GitHub CLI auth and Vercel CLI were available. `gh pr list --state open --limit 10` returned no open PRs.
+- Read canonical Margot/CRM docs from `apps/empire/docs/margot/*` and `apps/web/docs/margot/*`, plus root evidence logs, before selecting the slice.
+- Selected the merged CRM opportunity forecast approval read-back surface from PR #439's mainline code and added one bounded redaction class: bearer/JWT-like token strings in approval-gated opportunity `name` and `next_action` free text.
+- TDD RED: added a focused Vitest case proving `buildOpportunityForecast` still returned a synthetic `Bearer <three-part-token>` string in approval-gated read-backs.
+- GREEN: extended the route-local helper's `redactSensitiveText` to preserve the `Bearer ` prefix while replacing the three-part token with `[REDACTED]`.
+
+Verification / evidence:
+- RED command: from `apps/web`, `./node_modules/.bin/vitest run src/lib/crm/__tests__/opportunity-forecast.test.ts --config vitest.config.mts --testNamePattern 'redacts bearer tokens'` -> expected FAIL, raw synthetic `Bearer eyJheader.eyJpayload.signature` remained in the serialized approval read-back.
+- GREEN focused command: same focused Vitest command -> PASS, 1 test / 6 skipped.
+- Focused CRM forecast suite: `./node_modules/.bin/vitest run src/lib/crm/__tests__/opportunity-forecast.test.ts --config vitest.config.mts` -> PASS, 1 file / 7 tests.
+- Type check: `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`).
+- Lint: `pnpm run lint` from `apps/web` -> PASS (`eslint src/`).
+- Full apps/web tests: `pnpm run test` -> PASS, 386 files / 2304 tests.
+- Whitespace: `git diff --check -- apps/web/src/lib/crm/opportunity-forecast.ts apps/web/src/lib/crm/__tests__/opportunity-forecast.test.ts` -> PASS.
+- Added-line security scan over touched files: hardcoded-secret assignment, shell injection, eval/exec, unsafe deserialization, and SQL string-format patterns returned no matches.
+- Build: `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with 0/3 critical and 0/4 required app env vars configured in this local shell. Env values were not printed or mutated; this remains a local environment configuration gate.
+- Independent reviewer: dispatched after local verification; final reviewer verdict to be reflected before push/closeout.
+
+Safety / blockers:
+- This slice is a pure local string-redaction hardening for an operator-facing CRM forecast read-back. It does not create, convert, merge, approve, bill, deploy, or write CRM data.
+- Local build remains blocked by missing local app env. This tick did not read, print, create, or mutate env/secret values.
+- Pre-existing untracked `docs/audit-reports/` remains untracked and was not staged.
+
+Next safe lane:
+- After independent review read-back, commit the bounded helper/test/evidence slice, push/open a PR if branch/head remains clean, then monitor checks. If remote E2E or build gates fail on environment/provisioning, classify as configuration gates rather than mutating env/DB autonomously.

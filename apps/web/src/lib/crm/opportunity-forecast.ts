@@ -75,6 +75,7 @@ const REDACTED = '[REDACTED]'
 function redactSensitiveText(value: string): string {
   return value
     .replace(/\b[A-Z0-9_-]*(?:SECRET|TOKEN|PASSWORD|PASSWD|API[_-]?KEY|SERVICE[_-]?ROLE[_-]?KEY)[A-Z0-9_-]*\s*=\s*(?:"[^"]*"|'[^']*'|[^\s;,]+)/gi, REDACTED)
+    .replace(/\b(Bearer\s+)[A-Z0-9_-]+(?:\.[A-Z0-9_-]+){2,}\b/gi, `$1${REDACTED}`)
     .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, REDACTED)
     .replace(/\bBOARD-[A-Z0-9-]{3,}\b/gi, REDACTED)
     .replace(/(?:\+61|\b0\d)[\d\s().-]{7,}\d\b/g, REDACTED)
