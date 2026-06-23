@@ -58,6 +58,12 @@ export async function runContentDistribute(
 
     const row = content as Record<string, unknown>
 
+    // Idempotency: skip content that has already been promoted, so a repeated
+    // or concurrent distribute call cannot create duplicate social_posts.
+    if (row.social_post_id || row.status === 'approved' || row.status === 'published') {
+      continue
+    }
+
     // Build full post content with hashtags (mirrors promote route)
     let fullContent = row.body as string
     const hashtags = row.hashtags as string[] | null

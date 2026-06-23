@@ -138,4 +138,30 @@ describe('runContentDistribute', () => {
     expect(result.status).toBe('distributed')
     expect(result.postsCreated).toBe(1) // only the found one was promoted
   })
+
+  it('skips already-promoted rows (idempotent — no duplicate social_posts)', async () => {
+    const deps = makeDeps()
+    const insertSpy = vi.fn(() => ({
+      select: vi.fn(() => ({ single: vi.fn().mockResolvedValue({ data: { id: 'sp-x', status: 'draft' }, error: null }) })),
+    }))
+    const promotedRow = { ...contentRow, social_post_id: 'sp-existing', status: 'approved' }
+    const supabase = {
+      from: vi.fn((table: string) => {
+        if (table === 'generated_content') {
+          return {
+            select: vi.fn(() => ({ eq: vi.fn(() => ({ eq: vi.fn(() => ({ single: vi.fn().mockResolvedValue({ data: promotedRow, error: null }) })) })) })),
+            update: vi.fn(() => ({ eq: vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ data: {}, error: null }) })) })),
+          }
+        }
+        if (table === 'social_posts') return { insert: insertSpy }
+        return {}
+      }),
+    }
+    deps.supabase = supabase as unknown as ContentDistributeDeps['supabase']
+
+    const result = await runContentDistribute({ founderId: 'founder-1', taskId: 'task-1' }, deps)
+    expect(result.status).toBe('distributed')
+    expect(result.postsCreated).toBe(0) // both ids already promoted → nothing re-posted
+    expect(insertSpy).not.toHaveBeenCalled()
+  })
 })
