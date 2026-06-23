@@ -34,6 +34,10 @@ export interface ProviderPoolStore {
   /** Lifetime units spent per account (for prepaid drawdown). */
   lifetimeSpend(founderId: string): Promise<Record<string, number>>
   insertEvent(founderId: string, event: QuotaEventInput): Promise<void>
+  /** Toggle an account in/out of the pool. Founder-scoped (id AND founder_id). */
+  setAccountEnabled(founderId: string, accountId: string, enabled: boolean): Promise<void>
+  /** Permanently remove an account row. Founder-scoped (id AND founder_id). */
+  removeAccount(founderId: string, accountId: string): Promise<void>
 }
 
 /** Lookback covering the weekly window (with a day's slack). */
@@ -143,6 +147,22 @@ export function makeSupabaseStore(supabase: {
         reset_at: event.resetAt ?? null,
       })
       if (error) throw new Error(`insertEvent: ${String((error as { message?: string }).message ?? error)}`)
+    },
+    async setAccountEnabled(founderId, accountId, enabled) {
+      const { error } = await supabase
+        .from('provider_accounts')
+        .update({ enabled })
+        .eq('id', accountId)
+        .eq('founder_id', founderId)
+      if (error) throw new Error(`setAccountEnabled: ${String((error as { message?: string }).message ?? error)}`)
+    },
+    async removeAccount(founderId, accountId) {
+      const { error } = await supabase
+        .from('provider_accounts')
+        .delete()
+        .eq('id', accountId)
+        .eq('founder_id', founderId)
+      if (error) throw new Error(`removeAccount: ${String((error as { message?: string }).message ?? error)}`)
     },
   }
 }
