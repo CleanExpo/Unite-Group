@@ -150,4 +150,27 @@ describe('buildOpportunityForecast', () => {
     expect(forecast.approvalGated[0].name).toContain('[REDACTED]')
     expect(forecast.approvalGated[0].nextAction).toContain('[REDACTED]')
   })
+
+  it('redacts bearer tokens from approval-gated opportunity read-backs', () => {
+    const bearerToken = ['Bearer ', 'eyJheader', '.', 'eyJpayload', '.', 'signature'].join('')
+
+    const forecast = buildOpportunityForecast([
+      row({
+        id: 'bearer-approval',
+        name: `Approval needed after ${bearerToken}`,
+        approval_required: true,
+        approval_status: 'requested',
+        next_action: `Review ${bearerToken}`,
+      }),
+    ])
+
+    const approvalReadBack = JSON.stringify(forecast.approvalGated)
+
+    expect(approvalReadBack).not.toContain(bearerToken)
+    expect(forecast.approvalGated[0]).toMatchObject({
+      id: 'bearer-approval',
+      name: 'Approval needed after Bearer [REDACTED]',
+      nextAction: 'Review Bearer [REDACTED]',
+    })
+  })
 })

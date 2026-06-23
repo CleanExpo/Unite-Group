@@ -174,3 +174,14 @@
 - **Remaining remote gate:** PR #440 and PR #439 were already green on product-code/Vercel/CodeRabbit checks but blocked by required Playwright E2E on blank/missing `PLAYWRIGHT_TEST_EMAIL` / `PLAYWRIGHT_TEST_PASSWORD` plus Supabase Auth `createUser failed: Database error creating new user` symptoms. This run did not mutate GitHub/Vercel secrets or Supabase.
 - **Evidence paths:** `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
 - **Next safe lane:** After reviewer read-back, commit/push this bounded PR #440 follow-up if branch/head still matches, then monitor remote checks. Keep PR #440 unmerged unless E2E turns green or Phill/operator grants an explicit typed waiver.
+
+## 2026-06-23 12:38 AEST — CRM opportunity forecast bearer-token redaction
+
+- **Completed safe lane:** Created `fix/opportunity-forecast-bearer-redaction-20260623` from synced `main` (`d1d740f90`) after confirming no open PRs, then landed a small TDD hardening slice for the CRM opportunity forecast approval read-back.
+- **What changed:** `buildOpportunityForecast` now redacts synthetic bearer/JWT-like tokens from approval-gated opportunity `name` and `nextAction` free text, preserving the `Bearer ` prefix and replacing the three-part token with `[REDACTED]`. Forecast/routing metadata remains unchanged.
+- **TDD:** RED focused Vitest failed first because `Bearer eyJheader.eyJpayload.signature` remained in the serialized approval read-back; GREEN passed after the minimal regex extension.
+- **Verification:** Focused CRM forecast suite passed (`./node_modules/.bin/vitest run src/lib/crm/__tests__/opportunity-forecast.test.ts --config vitest.config.mts`, 1 file / 7 tests). `pnpm run type-check`, `pnpm run lint`, `pnpm run test` (386 files / 2304 tests), scoped `git diff --check`, and added-line security scans passed.
+- **Build blocker:** `pnpm run build` failed before Next build at `scripts/validate-env.mjs --ci` because this local shell has 0/3 critical and 0/4 required app env vars configured. No secret values were read/printed and no env mutation was attempted.
+- **Safety:** No production DB write/migration, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, PR merge, or live provider mutation occurred. Pre-existing untracked `docs/audit-reports/` remains unstaged.
+- **Evidence paths:** `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+- **Next safe lane:** Wait for independent review read-back, then commit/push/open PR if branch/head remains clean; monitor checks and keep any env/provisioning failures classified as configuration gates.
