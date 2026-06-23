@@ -501,3 +501,37 @@ Safety / blockers:
 
 Next safe lane:
 - After reviewer read-back, commit and push only this bounded PR #440 follow-up if branch/head still matches, then re-read remote checks. Keep PR #440 `KEEP_GATED` if E2E remains red on the known non-prod credential/provisioning class.
+
+## 2026-06-23 11:59 AEST
+
+### Tick 20260623_1159 — PR #442 API auth redirect fix + E2E gate split
+
+Lane: continued already-open PR #442 (`fix/e2e-skip-without-backend`) in an isolated temp worktree rather than disturbing the dirty local `advisory-debate-f2-f4` checkout. Scope stayed inside the apps/web proxy auth guard, a focused proxy regression test, existing E2E auth verification, and evidence docs. No production DB write, migration application, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight found PR #442 open against `main`; while this run was working, the remote head advanced from `bb481cd91d07e163b0d1f90637af056e36311296` to `b48eae8d0217dfd5187854ac353a3a80d932a97b`, so the local fix was reapplied on top of the current PR branch before commit/push. Product-code/Vercel checks were green and `apps/web — Playwright E2E` was red before this fix.
+- Redacted failed-log read-back for run `27996445795` / job `82859844353` showed two failure classes: three unauthenticated API E2E assertions expected 401 but received 200 after following a login redirect, and the shared non-prod E2E provisioning/config class (`PLAYWRIGHT_TEST_EMAIL` / `PLAYWRIGHT_TEST_PASSWORD` blank plus Supabase Auth `createUser failed: Database error creating new user`).
+- TDD RED: added `apps/web/src/__tests__/proxy.test.ts` proving unauthenticated `/api/*` requests should return JSON 401 instead of redirecting to `/auth/login`. The focused Vitest failed first with expected `307` vs `401`.
+- GREEN: updated `apps/web/src/proxy.ts` so unauthenticated non-public API paths return `{ error: 'Unauthorised' }` with status 401; browser/page paths continue to redirect to login.
+
+Verification / evidence:
+- RED command: `./node_modules/.bin/vitest run src/__tests__/proxy.test.ts` from `apps/web` -> expected FAIL, 1 failed (`expected 307 to be 401`).
+- GREEN focused command: same Vitest -> PASS, 1 file / 1 test.
+- Focused E2E auth command on the original pre-advance PR head: `pnpm exec playwright test e2e/auth.spec.ts --reporter=list` -> PASS, 3 passed after the proxy fix. After rebasing onto current PR head `b48eae8d0`, the same command -> 3 skipped locally because PR #442 now correctly gates these specs behind the dedicated E2E backend check when local E2E backend config is absent.
+- Apps/web verification: `pnpm run type-check && pnpm run lint && pnpm run test` -> PASS; full Vitest reported 387 files / 2303 tests passed.
+- Build verification with safe CI placeholder env values only: `pnpm run build` -> PASS. Build emitted existing non-blocking warnings about custom Cache-Control headers, optional integration env vars, and an NFT trace warning in the project-coverage route import trace; no secret values were read or printed.
+- Whitespace: `git diff --check` -> PASS.
+
+Gate-review packet for Phill/operator:
+- Gate class: `NAMESPACE` — GitHub Actions E2E namespace / repo-or-environment login-secret configuration plus non-prod Supabase Auth test-user provisioning.
+- Disposition: `KEEP_GATED` for PR #442 until the refreshed remote E2E run proves the API 401 fix and the remaining backend-dependent E2E gate is resolved or waived.
+- Lift condition: all required checks green after push, or an explicit typed waiver accepting the known E2E credential/provisioning risk. If only Supabase Auth `createUser failed` / blank E2E login secrets remain, authorised operator secret/provisioning action is required; this run did not mutate those gates.
+- Concrete risk if lifted now: merging while required E2E remains red would ship auth/proxy and E2E changes without proof that login-dependent and Supabase-backed flows still work in the shared CI namespace.
+- Rollback / recovery note: the code change is localised to `src/proxy.ts` and can be reverted if refreshed CI exposes a regression; remaining gate recovery is configuration/provisioning fix plus E2E rerun.
+
+Safety / blockers:
+- PR #439 and #441 also remain open with the same required E2E namespace red state; this run did not merge or waive any PR.
+- The main checkout still has unrelated local evidence/audit-report dirt; the PR #442 work was isolated in `/tmp/unite-pr442-45420` to avoid publishing unrelated files.
+
+Next safe lane:
+- Commit/push the bounded PR #442 proxy-auth fix and evidence after branch/head read-back, then monitor refreshed checks. Keep PR #442 `KEEP_GATED` if E2E remains red only on the known non-prod credential/provisioning class.

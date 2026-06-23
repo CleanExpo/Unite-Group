@@ -126,6 +126,10 @@ export async function proxy(request: NextRequest) {
   // 3. Auth guard — redirect unauthenticated users to login
   // ------------------------------------------------------------------
   if (!user && !isPublicPath(pathname)) {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Unauthorised' }, { status: 401 });
+    }
+
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = '/auth/login';
     loginUrl.searchParams.set('redirectTo', pathname);
