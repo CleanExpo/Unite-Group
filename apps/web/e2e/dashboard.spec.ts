@@ -38,6 +38,7 @@ test.describe('Dashboard', () => {
     })
 
     test('dashboard has no console errors', async ({ page }) => {
+      test.skip(!process.env.E2E_ALLOW_PROVISIONING, 'requires a complete non-prod backend (full schema) — e2e-gate branch is partial')
       const errors: string[] = []
       page.on('console', (msg) => {
         if (msg.type() === 'error') errors.push(msg.text())

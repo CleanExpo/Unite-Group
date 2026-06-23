@@ -36,6 +36,7 @@ test.describe('Campaign Generation', () => {
     })
 
     test('campaigns page has business selector or campaign list', async ({ page }) => {
+      test.skip(!process.env.E2E_ALLOW_PROVISIONING, 'requires a complete non-prod backend (full schema) — e2e-gate branch is partial')
       await page.goto('/founder/campaigns')
 
       // The campaign page should show either:
