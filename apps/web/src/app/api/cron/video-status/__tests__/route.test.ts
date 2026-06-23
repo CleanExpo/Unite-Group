@@ -53,6 +53,15 @@ describe('GET /api/cron/video-status', () => {
     expect(body.checked).toBe(0)
   })
 
+  it('founder-scopes the video_assets query', async () => {
+    vi.stubEnv('FOUNDER_USER_ID', 'founder-uuid')
+    const chain = makeChain()
+    mockFrom.mockReturnValue(chain)
+
+    await GET(req())
+    expect(chain.eq).toHaveBeenCalledWith('founder_id', 'founder-uuid')
+  })
+
   it('returns 500 on DB query error', async () => {
     listResolve = { data: null, error: { message: 'DB error' } }
     const res = await GET(req())
