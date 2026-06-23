@@ -80,4 +80,19 @@ describe('runSoftwareBuild', () => {
     ).rejects.toThrow('Failed to persist software build plan')
     expect(deps.appendTaskEvent).not.toHaveBeenCalled()
   })
+
+  it('persists software diagnostics metadata { status, plannedAt, generatedAt, latencyMs }', async () => {
+    const deps = makeDeps()
+    await runSoftwareBuild({ founderId: 'founder-1', taskId: 'task-1' }, deps as never)
+
+    const patch = (deps.mergeTaskMetadata as ReturnType<typeof vi.fn>).mock.calls[0][0]
+      .patch as { software: { diagnostics?: Record<string, unknown> } }
+    const diagnostics = patch.software.diagnostics
+    expect(diagnostics).toBeDefined()
+    expect(diagnostics!.status).toBe('planned')
+    expect(typeof diagnostics!.plannedAt).toBe('string')
+    expect(typeof diagnostics!.generatedAt).toBe('string')
+    expect(typeof diagnostics!.latencyMs).toBe('number')
+    expect(diagnostics!.latencyMs as number).toBeGreaterThanOrEqual(0)
+  })
 })
