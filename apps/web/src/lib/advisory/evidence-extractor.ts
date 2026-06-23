@@ -89,9 +89,11 @@ export function extractCitations(
 function buildAtoUrl(reference: string): string | null {
   const trimmed = reference.trim()
 
-  // Tax Rulings
+  // Tax Rulings — ATO document identifiers carry no internal whitespace
+  // (e.g. "TR 93/30" → docid "TR93/30"), so strip spaces entirely rather than
+  // collapse them, which would otherwise leave an erroneous %20 in the docid.
   if (/^TR\s*\d{2,4}\/\d+$/i.test(trimmed)) {
-    const normalised = trimmed.replace(/\s+/g, ' ').toUpperCase()
+    const normalised = trimmed.replace(/\s+/g, '').toUpperCase()
     return `https://www.ato.gov.au/law/view/document?docid=${encodeURIComponent(normalised)}`
   }
 
