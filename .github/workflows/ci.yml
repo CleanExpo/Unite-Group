@@ -133,6 +133,11 @@ jobs:
       # test-user secrets are absent. Values are supplied by GitHub secrets only.
       PLAYWRIGHT_TEST_EMAIL: ${{ secrets.PLAYWRIGHT_TEST_EMAIL }}
       PLAYWRIGHT_TEST_PASSWORD: ${{ secrets.PLAYWRIGHT_TEST_PASSWORD }}
+      # The founder-access allow-list (src/lib/auth/private-access.ts) gates
+      # /founder. Allow-list the E2E test user so the authenticated specs can
+      # reach founder routes after login — otherwise proxy.ts blocks them and
+      # loginAsFounder() times out waiting for /founder/dashboard.
+      FOUNDER_ALLOWED_EMAILS: ${{ secrets.PLAYWRIGHT_TEST_EMAIL }}
       # Opt-in for the destructive/provisioning specs (createUser + DB writes).
       # Only set the E2E_ALLOW_PROVISIONING repo variable to 'true' when
       # E2E_SUPABASE_* points at a dedicated non-prod backend — never prod.
