@@ -1,15 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const mockSingle = vi.fn()
+// The atomic claim is `update({status:'debating'}).eq(id).eq(founder).eq(status='draft')
+// .select().single()` — exactly one concurrent caller wins the row; the rest get
+// no row back and must return 409 (Step 4 / F3 — double-start TOCTOU race).
+const mockClaimSingle = vi.fn()
 
 function makeChain() {
   const b: Record<string, ReturnType<typeof vi.fn>> = {
+    update: vi.fn(),
     select: vi.fn(),
     eq: vi.fn(),
   }
+  b.update.mockReturnValue(b)
   b.select.mockReturnValue(b)
   b.eq.mockReturnValue(b)
-  ;(b as any).single = mockSingle
+  ;(b as Record<string, unknown>).single = mockClaimSingle
   return b
 }
 
@@ -28,8 +33,10 @@ const mockServiceClient = {
 
 vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn() }))
 vi.mock('@/lib/supabase/service', () => ({ createServiceClient: vi.fn() }))
+
+const mockRunDebate = vi.fn(() => (async function* () {})())
 vi.mock('@/lib/advisory/debate-engine', () => ({
-  runDebate: vi.fn(() => (async function* () {})()),
+  runDebate: (...a: unknown[]) => mockRunDebate(...a),
 }))
 
 import { getUser } from '@/lib/supabase/server'
@@ -41,40 +48,79 @@ const params = Promise.resolve({ id: 'case-1' })
 describe('POST /api/advisory/cases/[id]/start', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    const chain = makeChain()
-    mockFrom.mockReturnValue(chain)
-    vi.mocked(createServiceClient).mockReturnValue(mockServiceClient as any)
+    mockFrom.mockReturnValue(makeChain())
+    vi.mocked(createServiceClient).mockReturnValue(mockServiceClient as never)
+    mockRunDebate.mockImplementation(() => (async function* () {})())
   })
 
   it('returns 401 when unauthenticated', async () => {
     vi.mocked(getUser).mockResolvedValue(null)
-    const res = await POST(new Request('https://app.test') as any, { params })
+    const res = await POST(new Request('https://app.test') as never, { params })
     expect(res.status).toBe(401)
   })
 
-  it('returns 404 when case is not found', async () => {
-    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
-    mockSingle.mockResolvedValue({ data: null, error: { message: 'not found' } })
+  it('returns 409 when the atomic claim yields no row (not draft / already claimed)', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as never)
+    // No row returned → the case was not in draft (or another caller claimed it).
+    mockClaimSingle.mockResolvedValue({ data: null, error: { code: 'PGRST116', message: 'no rows' } })
 
-    const res = await POST(new Request('https://app.test') as any, { params })
-    expect(res.status).toBe(404)
-  })
-
-  it('returns 409 when case is not in draft status', async () => {
-    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
-    mockSingle.mockResolvedValue({ data: { id: 'case-1', status: 'pending_review', founder_id: 'user-1' }, error: null })
-
-    const res = await POST(new Request('https://app.test') as any, { params })
+    const res = await POST(new Request('https://app.test') as never, { params })
     expect(res.status).toBe(409)
+    expect(mockRunDebate).not.toHaveBeenCalled()
   })
 
-  it('returns 200 after successful debate', async () => {
-    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
-    mockSingle.mockResolvedValue({ data: { id: 'case-1', status: 'draft', founder_id: 'user-1' }, error: null })
+  it('returns 200 and runs the debate when the claim succeeds', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as never)
+    mockClaimSingle.mockResolvedValue({ data: { id: 'case-1', status: 'debating', founder_id: 'user-1' }, error: null })
 
-    const res = await POST(new Request('https://app.test') as any, { params })
+    const res = await POST(new Request('https://app.test') as never, { params })
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.caseId).toBe('case-1')
+    expect(mockRunDebate).toHaveBeenCalledTimes(1)
+  })
+
+  it('returns 500 when the claimed debate throws', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as never)
+    mockClaimSingle.mockResolvedValue({ data: { id: 'case-1', status: 'debating', founder_id: 'user-1' }, error: null })
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mockRunDebate.mockImplementation(() => {
+      throw new Error('debate engine failure')
+    })
+
+    try {
+      const res = await POST(new Request('https://app.test') as never, { params })
+      expect(res.status).toBe(500)
+      expect(consoleError).toHaveBeenCalledWith(
+        expect.stringContaining('[advisory/start] Debate error for case case-1:'),
+        expect.any(Error)
+      )
+    } finally {
+      consoleError.mockRestore()
+    }
+  })
+
+  it('two concurrent POSTs → exactly one 200 and one 409; the debate runs once', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as never)
+
+    // Atomic claim: the first caller to reach the UPDATE wins the row; the second
+    // sees the row already moved off 'draft' and gets nothing back.
+    let claimed = false
+    mockClaimSingle.mockImplementation(async () => {
+      if (!claimed) {
+        claimed = true
+        return { data: { id: 'case-1', status: 'debating', founder_id: 'user-1' }, error: null }
+      }
+      return { data: null, error: { code: 'PGRST116', message: 'no rows' } }
+    })
+
+    const [a, b] = await Promise.all([
+      POST(new Request('https://app.test') as never, { params }),
+      POST(new Request('https://app.test') as never, { params }),
+    ])
+
+    const statuses = [a.status, b.status].sort()
+    expect(statuses).toEqual([200, 409])
+    expect(mockRunDebate).toHaveBeenCalledTimes(1)
   })
 })

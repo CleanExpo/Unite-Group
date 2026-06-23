@@ -190,6 +190,17 @@ export interface JudgeScoreSummary {
   scores: JudgeScoreData[]
   winner: FirmKey
   summary: string
+  /**
+   * Partial-debate markers (Step 3 / F2). Set when one or more firms' proposals
+   * failed to persist, so the scored set is degraded. The UI and any downstream
+   * reader MUST treat a partial debate as incomplete — never present it as a full
+   * 4-firm debate (financial-advice integrity rule).
+   */
+  partial?: boolean
+  /** How many of the 4 firms were actually scored (persisted in the final round). */
+  scoredFirmCount?: number
+  /** Firms dropped from the persisted set (a firm appears once even if it dropped in multiple rounds). */
+  droppedFirms?: FirmKey[]
 }
 
 // ── Financial Context ────────────────────────────────────────────────────────
@@ -232,6 +243,7 @@ export type DebateEvent =
   | { event: 'round_start'; round: number; type: RoundType }
   | { event: 'firm_start'; round: number; firm: FirmKey }
   | { event: 'firm_response'; round: number; firm: FirmKey; preview: string }
+  | { event: 'firm_dropped'; round: number; firm: FirmKey; reason: string }
   | { event: 'round_complete'; round: number }
   | { event: 'judge_start' }
   | { event: 'judge_complete'; winner: FirmKey; scores: JudgeScoreData[] }
