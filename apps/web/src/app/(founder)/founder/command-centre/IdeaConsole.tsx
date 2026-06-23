@@ -63,6 +63,19 @@ interface RoutingView {
   planDistribute: { title: string; detail: string }[]
 }
 
+// ── Content lane view types ───────────────────────────────────────────────────
+interface ContentBuildView {
+  status: 'built' | 'not_connected'
+  count?: number
+  ids?: string[]
+  reason?: string
+}
+
+interface ContentDistributeView {
+  status: 'distributed' | 'not_built'
+  postsCreated?: number
+}
+
 async function readError(res: Response, fallback: string): Promise<string> {
   try {
     const data = (await res.json()) as { error?: string }
@@ -99,6 +112,13 @@ export function IdeaConsole({ projects }: { projects: IdeaConsoleProject[] }) {
   const [clarifyError, setClarifyError] = useState<string | null>(null)
   const [clarifying, setClarifying] = useState(false)
   const [submittingAnswers, setSubmittingAnswers] = useState(false)
+
+  // ── Content lane state ────────────────────────────────────────────────────
+  const [contentBuilding, setContentBuilding] = useState(false)
+  const [contentResult, setContentResult] = useState<ContentBuildView | null>(null)
+  const [contentError, setContentError] = useState<string | null>(null)
+  const [contentPublishing, setContentPublishing] = useState(false)
+  const [contentPublished, setContentPublished] = useState<ContentDistributeView | null>(null)
 
   async function submitIdea(e: React.FormEvent) {
     e.preventDefault()
@@ -232,6 +252,48 @@ export function IdeaConsole({ projects }: { projects: IdeaConsoleProject[] }) {
       setClarifyError('Network error — could not reach the classify service.')
     } finally {
       setSubmittingAnswers(false)
+    }
+  }
+
+  async function buildContent() {
+    if (!task || contentBuilding) return
+    setContentBuilding(true)
+    setContentError(null)
+    try {
+      const res = await fetch('/api/command-centre/lanes/content/build', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId: task.id }),
+      })
+      if (!res.ok) { setContentError(await readError(res, 'Content build failed')); return }
+      const data = (await res.json()) as { result: ContentBuildView }
+      setContentResult(data.result)
+    } catch {
+      setContentError('Network error — could not reach the content build service.')
+    } finally {
+      setContentBuilding(false)
+    }
+  }
+
+  async function publishContent() {
+    if (!task || !contentResult || contentPublishing) return
+    setContentPublishing(true)
+    setContentError(null)
+    try {
+      const res = await fetch('/api/command-centre/lanes/content/distribute', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId: task.id }),
+      })
+      if (!res.ok) { setContentError(await readError(res, 'Publish failed')); return }
+      const data = (await res.json()) as { result: ContentDistributeView }
+      setContentPublished(data.result)
+    } catch {
+      setContentError('Network error — could not reach the distribute service.')
+    } finally {
+      setContentPublishing(false)
     }
   }
 
@@ -432,16 +494,67 @@ export function IdeaConsole({ projects }: { projects: IdeaConsoleProject[] }) {
               </>
             )}
 
-            <div className={styles.actions}>
-              <button
-                type="button"
-                className={styles.board}
-                disabled
-                aria-label={`Approve & build — ${routing.lane} lane pending`}
-              >
-                Approve &amp; build — {routing.lane} lane pending
-              </button>
-            </div>
+            {routing.lane === 'content' ? (
+              <div>
+                <div className={styles.actions}>
+                  <button
+                    type="button"
+                    className={styles.submit}
+                    onClick={buildContent}
+                    disabled={contentBuilding || contentResult?.status === 'built'}
+                    aria-label="Draft content"
+                  >
+                    {contentBuilding && <span className={styles.spinner} aria-hidden="true" />}
+                    {contentBuilding ? 'Generating…' : 'Draft content'}
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.board}
+                    onClick={publishContent}
+                    disabled={!contentResult || contentResult.status !== 'built' || !!contentPublished || contentPublishing}
+                    aria-label="Publish"
+                  >
+                    {contentPublishing && <span className={styles.spinner} aria-hidden="true" />}
+                    {contentPublishing ? 'Publishing…' : 'Publish'}
+                  </button>
+                </div>
+
+                {contentResult?.status === 'not_connected' && (
+                  <p className={styles.rationale}>
+                    Not connected — {contentResult.reason}
+                  </p>
+                )}
+
+                {contentResult?.status === 'built' && (
+                  <p className={styles.rationale}>
+                    {contentResult.count} variants generated
+                  </p>
+                )}
+
+                {contentPublished?.status === 'distributed' && (
+                  <p className={styles.rationale}>
+                    Published — {contentPublished.postsCreated} posts
+                  </p>
+                )}
+
+                {contentError && (
+                  <div className={styles.error} role="alert">
+                    {contentError}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className={styles.actions}>
+                <button
+                  type="button"
+                  className={styles.board}
+                  disabled
+                  aria-label={`Approve & build — ${routing.lane} lane pending`}
+                >
+                  Approve &amp; build — {routing.lane} lane pending
+                </button>
+              </div>
+            )}
           </div>
         )}
 
