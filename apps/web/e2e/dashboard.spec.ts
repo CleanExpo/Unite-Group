@@ -44,7 +44,10 @@ test.describe('Dashboard', () => {
       })
 
       await page.goto('/founder/dashboard')
-      await page.waitForLoadState('networkidle')
+      // networkidle is fragile when widgets poll/retry; wait for load then let
+      // client widgets mount and emit any console messages.
+      await page.waitForLoadState('load')
+      await page.waitForTimeout(2500)
 
       // Filter out known benign errors (e.g. Supabase realtime in test env)
       const criticalErrors = errors.filter(
