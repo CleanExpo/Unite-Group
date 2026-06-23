@@ -142,6 +142,9 @@ jobs:
       # Only set the E2E_ALLOW_PROVISIONING repo variable to 'true' when
       # E2E_SUPABASE_* points at a dedicated non-prod backend — never prod.
       E2E_ALLOW_PROVISIONING: ${{ vars.E2E_ALLOW_PROVISIONING }}
+      # The E2E suite fires many requests from one IP; disable the per-IP
+      # rate limiter (prod-guarded in rate-limit.ts) so it doesn't 429 the run.
+      E2E_DISABLE_RATE_LIMIT: '1'
     steps:
       - uses: actions/checkout@v6
 

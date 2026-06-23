@@ -105,3 +105,54 @@ END $$;
 - `apps/web/e2e/` gate tiers (PR #454).
 - `apps/web/e2e/support/supabase-admin-config.ts` — the prod-host assertion the
   `E2E_SUPABASE_URL` override bypasses for the branch.
+
+---
+
+## Complete wiring — verified green 2026-06-23 (52 passed / 17 skipped / 0 failed)
+
+The full chain that took the `apps/web — Playwright E2E` gate from red to green:
+
+**GitHub Actions secrets** (`--repo CleanExpo/Unite-Group`): `E2E_SUPABASE_URL`,
+`E2E_SUPABASE_ANON_KEY`, `E2E_SUPABASE_SERVICE_ROLE_KEY` → the **branch**
+`jhqjxomxlvvmjslgzqhd` (NOT prod); `PLAYWRIGHT_TEST_EMAIL=support@synthex.social`
+(must be allow-listed); `PLAYWRIGHT_TEST_PASSWORD`.
+
+**ci.yml E2E job env** added:
+- `FOUNDER_ALLOWED_EMAILS: ${{ secrets.PLAYWRIGHT_TEST_EMAIL }}` — without this the
+  founder-access allow-list (`private-access.ts` → `proxy.ts`) blocks `/founder`
+  and `loginAsFounder()` times out at 30s.
+- `E2E_DISABLE_RATE_LIMIT: '1'` — the per-IP limiter (`rate-limit.ts`; AI routes
+  5/min) 429s the single-IP suite without it (prod-guarded bypass in the code).
+- `E2E_ALLOW_PROVISIONING` (repo variable, currently unset) — gates the write
+  tier AND the two full-schema specs below.
+
+**Branch schema patches** (additive, idempotent — re-apply if the branch is reaped;
+run against `jhqjxomxlvvmjslgzqhd`):
+```sql
+ALTER TABLE public.campaigns
+  ADD COLUMN IF NOT EXISTS founder_id uuid,
+  ADD COLUMN IF NOT EXISTS brand_profile_id uuid,
+  ADD COLUMN IF NOT EXISTS objective text NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS theme text NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS platforms text[] NOT NULL DEFAULT '{}',
+  ADD COLUMN IF NOT EXISTS post_count integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS date_range_start date,
+  ADD COLUMN IF NOT EXISTS date_range_end date,
+  ADD COLUMN IF NOT EXISTS metadata jsonb NOT NULL DEFAULT '{}'::jsonb;
+-- + approval_queue table (see git history of this branch wiring)
+-- + RLS founder policies + GRANT to authenticated, service_role
+```
+
+**Test gating now live** (`apps/web/e2e/`):
+- 52 specs run against the branch (auth checks, login, founder page-loads,
+  dashboard KPI cards, advisory, approvals, campaigns load, settings, vault,
+  idea-capture, smoke, health).
+- Skipped until `E2E_ALLOW_PROVISIONING=true`: the destructive/createUser write
+  specs AND `dashboard "no console errors"` + `campaign-generation "has selector"`
+  (these need a COMPLETE schema — the branch is 37/201 tables).
+
+## Remaining follow-up: branch schema resync
+
+The branch is built from the repo migrations (~37 tables, some stale/divergent vs
+prod's 201). To light up the write tier + the 2 gated read specs, resync the full
+schema prod → branch (a dedicated, gated task), then set `E2E_ALLOW_PROVISIONING=true`.

@@ -83,6 +83,19 @@ interface SoftwareHandoffResponse {
   error?: string
 }
 
+// ── Content lane view types ───────────────────────────────────────────────────
+interface ContentBuildView {
+  status: 'built' | 'not_connected'
+  count?: number
+  ids?: string[]
+  reason?: string
+}
+
+interface ContentDistributeView {
+  status: 'distributed' | 'not_built'
+  postsCreated?: number
+}
+
 async function readError(res: Response, fallback: string): Promise<string> {
   try {
     const data = (await res.json()) as { error?: string }
@@ -126,6 +139,12 @@ export function IdeaConsole({ projects }: { projects: IdeaConsoleProject[] }) {
   const [planningBuild, setPlanningBuild] = useState(false)
   const [handingOff, setHandingOff] = useState(false)
   const [softwareError, setSoftwareError] = useState<string | null>(null)
+  // ── Content lane state ────────────────────────────────────────────────────
+  const [contentBuilding, setContentBuilding] = useState(false)
+  const [contentResult, setContentResult] = useState<ContentBuildView | null>(null)
+  const [contentError, setContentError] = useState<string | null>(null)
+  const [contentPublishing, setContentPublishing] = useState(false)
+  const [contentPublished, setContentPublished] = useState<ContentDistributeView | null>(null)
 
   async function submitIdea(e: React.FormEvent) {
     e.preventDefault()
@@ -312,6 +331,50 @@ export function IdeaConsole({ projects }: { projects: IdeaConsoleProject[] }) {
       setSoftwareError('Network error — could not reach the hand-off service.')
     } finally {
       setHandingOff(false)
+    }
+  }
+
+  // ── Content lane handlers ──────────────────────────────────────────────────
+
+  async function buildContent() {
+    if (!task || contentBuilding) return
+    setContentBuilding(true)
+    setContentError(null)
+    try {
+      const res = await fetch('/api/command-centre/lanes/content/build', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId: task.id }),
+      })
+      if (!res.ok) { setContentError(await readError(res, 'Content build failed')); return }
+      const data = (await res.json()) as { result: ContentBuildView }
+      setContentResult(data.result)
+    } catch {
+      setContentError('Network error — could not reach the content build service.')
+    } finally {
+      setContentBuilding(false)
+    }
+  }
+
+  async function publishContent() {
+    if (!task || !contentResult || contentPublishing) return
+    setContentPublishing(true)
+    setContentError(null)
+    try {
+      const res = await fetch('/api/command-centre/lanes/content/distribute', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId: task.id }),
+      })
+      if (!res.ok) { setContentError(await readError(res, 'Publish failed')); return }
+      const data = (await res.json()) as { result: ContentDistributeView }
+      setContentPublished(data.result)
+    } catch {
+      setContentError('Network error — could not reach the distribute service.')
+    } finally {
+      setContentPublishing(false)
     }
   }
 
@@ -594,6 +657,55 @@ export function IdeaConsole({ projects }: { projects: IdeaConsoleProject[] }) {
                   <p className={styles.hint}>
                     Actual code build runs externally — this hands the brief to the build queue.
                   </p>
+                )}
+              </div>
+            ) : routing.lane === 'content' ? (
+              <div>
+                <div className={styles.actions}>
+                  <button
+                    type="button"
+                    className={styles.submit}
+                    onClick={buildContent}
+                    disabled={contentBuilding || contentResult?.status === 'built'}
+                    aria-label="Draft content"
+                  >
+                    {contentBuilding && <span className={styles.spinner} aria-hidden="true" />}
+                    {contentBuilding ? 'Generating…' : 'Draft content'}
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.board}
+                    onClick={publishContent}
+                    disabled={!contentResult || contentResult.status !== 'built' || !!contentPublished || contentPublishing}
+                    aria-label="Publish"
+                  >
+                    {contentPublishing && <span className={styles.spinner} aria-hidden="true" />}
+                    {contentPublishing ? 'Publishing…' : 'Publish'}
+                  </button>
+                </div>
+
+                {contentResult?.status === 'not_connected' && (
+                  <p className={styles.rationale}>
+                    Not connected — {contentResult.reason}
+                  </p>
+                )}
+
+                {contentResult?.status === 'built' && (
+                  <p className={styles.rationale}>
+                    {contentResult.count} variants generated
+                  </p>
+                )}
+
+                {contentPublished?.status === 'distributed' && (
+                  <p className={styles.rationale}>
+                    Published — {contentPublished.postsCreated} posts
+                  </p>
+                )}
+
+                {contentError && (
+                  <div className={styles.error} role="alert">
+                    {contentError}
+                  </div>
                 )}
               </div>
             ) : (
