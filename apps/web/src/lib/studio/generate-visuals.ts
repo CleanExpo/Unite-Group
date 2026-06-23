@@ -55,9 +55,17 @@ export async function generateVisuals(input: GenerateVisualsInput): Promise<Gene
   }
 
   // provider === 'gemini': call count times, collect successes + errors
+  // Each call is wrapped with .catch() so a thrown error becomes an in-band
+  // failure — it does NOT abort the other calls via Promise.all rejection.
   const results = await Promise.all(
     Array.from({ length: count }, () =>
-      generateImage(prompt, brand, 'instagram', null, null, DEFAULT_VISUAL_TYPE)
+      generateImage(prompt, brand, 'instagram', null, null, DEFAULT_VISUAL_TYPE).catch(
+        (e: unknown) => ({
+          imageBase64: null as null,
+          mimeType: '',
+          error: e instanceof Error ? e.message : String(e),
+        })
+      )
     )
   )
 
