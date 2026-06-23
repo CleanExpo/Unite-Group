@@ -75,4 +75,68 @@ describe('POST /api/studio/turn', () => {
     expect(b.concepts).toEqual([])
     expect(b.errors).toContain('quota exceeded')
   })
+
+  it('partial success: returns the succeeded concepts alongside errors naming the failures', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    vi.mocked(getTaskById).mockResolvedValue({ id: 't', metadata: {} } as never)
+    vi.mocked(resolveStudioBrand).mockResolvedValue({ brand: {}, brandDNA: {} } as never)
+    // 3 images requested: 2 generated, 1 failed at the generator (in-band error)
+    vi.mocked(generateVisuals).mockResolvedValue({
+      images: [
+        { imageBase64: 'AAA', mimeType: 'image/png' },
+        { imageBase64: 'BBB', mimeType: 'image/png' },
+      ],
+      errors: ['concept 3: model returned no image'],
+    } as never)
+    // First upload succeeds, second upload fails (returns null)
+    vi.mocked(uploadConceptImage)
+      .mockResolvedValueOnce('https://cdn/a.png')
+      .mockResolvedValueOnce(null)
+    vi.mocked(mergeTaskMetadata).mockResolvedValue({} as never)
+    const res = await POST(req({ taskId: 't', message: 'winter promo' }))
+    expect(res.status).toBe(200)
+    const b = await res.json()
+    expect(b.status).toBe('ok')
+    // The one that uploaded is returned…
+    expect(b.concepts).toHaveLength(1)
+    expect(b.concepts[0].url).toBe('https://cdn/a.png')
+    // …and BOTH failures are named: the generator failure AND the upload failure.
+    expect(b.errors).toContain('concept 3: model returned no image')
+    expect(b.errors.some((e: string) => /upload/i.test(e))).toBe(true)
+  })
+
+  it('full failure: generateVisuals throwing yields a handled 200 with errors and no concepts', async () => {
+    const logSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    vi.mocked(getTaskById).mockResolvedValue({ id: 't', metadata: {} } as never)
+    vi.mocked(resolveStudioBrand).mockResolvedValue({ brand: {}, brandDNA: {} } as never)
+    vi.mocked(generateVisuals).mockRejectedValue(new Error('gemini exploded'))
+    vi.mocked(mergeTaskMetadata).mockResolvedValue({} as never)
+    const res = await POST(req({ taskId: 't', message: 'm' }))
+    expect(res.status).toBe(200)
+    const b = await res.json()
+    expect(b.status).toBe('ok')
+    expect(b.concepts).toEqual([])
+    expect(b.errors.join(' ')).toMatch(/gemini exploded/)
+    // The exact error is logged server-side.
+    expect(logSpy).toHaveBeenCalled()
+    logSpy.mockRestore()
+  })
+
+  it('upload failure on every image: all named in errors, concepts empty', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    vi.mocked(getTaskById).mockResolvedValue({ id: 't', metadata: {} } as never)
+    vi.mocked(resolveStudioBrand).mockResolvedValue({ brand: {}, brandDNA: {} } as never)
+    vi.mocked(generateVisuals).mockResolvedValue({
+      images: [{ imageBase64: 'AAA', mimeType: 'image/png' }],
+      errors: [],
+    } as never)
+    vi.mocked(uploadConceptImage).mockResolvedValue(null)
+    vi.mocked(mergeTaskMetadata).mockResolvedValue({} as never)
+    const res = await POST(req({ taskId: 't', message: 'm' }))
+    expect(res.status).toBe(200)
+    const b = await res.json()
+    expect(b.concepts).toEqual([])
+    expect(b.errors.some((e: string) => /upload/i.test(e))).toBe(true)
+  })
 })

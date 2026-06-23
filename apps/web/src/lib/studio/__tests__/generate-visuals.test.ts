@@ -23,6 +23,8 @@ describe('generateVisuals', () => {
       .mockResolvedValueOnce({ imageBase64: 'CCC', mimeType: 'image/png', error: null })
     const r = await generateVisuals({ prompt: 'p', count: 3, brand, provider: 'gemini', deps: { generateImage } })
     expect(r.images.map(i => i.imageBase64)).toEqual(['AAA','CCC'])
-    expect(r.errors).toContain('quota')
+    // Errors are concept-indexed (e.g. "Concept 2: quota") and carry the detail.
+    expect(r.errors.join(' ')).toMatch(/quota/)
+    expect(r.errors.join(' ')).toMatch(/Concept 2/)
   })
 })
