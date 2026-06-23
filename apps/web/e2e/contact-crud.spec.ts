@@ -206,7 +206,7 @@ async function cleanup(admin: SupabaseClient, state: CleanupState) {
 }
 
 test.describe('authenticated Contact CRUD approved production-write verification', () => {
-  test.skip(!process.env.PLAYWRIGHT_TEST_EMAIL, 'requires a dedicated non-prod E2E Supabase backend (PLAYWRIGHT_TEST_EMAIL) — not configured')
+  test.skip(!process.env.E2E_ALLOW_PROVISIONING, 'requires a non-prod E2E backend with user provisioning (E2E_ALLOW_PROVISIONING) — not configured')
   test.describe.configure({ mode: 'serial', timeout: 120_000 })
 
   test('proves CRUD and cross-user isolation with tagged throwaway rows', async ({ browser }) => {
