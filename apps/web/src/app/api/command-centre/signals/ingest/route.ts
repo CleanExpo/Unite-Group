@@ -14,7 +14,7 @@
 
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
-import { createTask, listTasks, appendTaskEvent } from '@/lib/command-centre/tasks'
+import { createTask, listTasks, appendTaskEvent, addEvidenceRecord } from '@/lib/command-centre/tasks'
 import { ingestSignal } from '@/lib/command-centre/signals/ingest'
 import type { RawSignal, SignalSource, SignalSeverity } from '@/lib/command-centre/signals/normalise'
 
@@ -75,7 +75,12 @@ export async function POST(request: Request): Promise<Response> {
 
   // ── Delegate ──────────────────────────────────────────────────────────────
   try {
-    const result = await ingestSignal(founderId, raw, { listTasks, createTask, appendTaskEvent })
+    const result = await ingestSignal(founderId, raw, {
+      listTasks,
+      createTask,
+      appendTaskEvent,
+      addEvidenceRecord,
+    })
     return NextResponse.json(result, { status: result.status === 'created' ? 201 : 200 })
   } catch (error) {
     return NextResponse.json(
