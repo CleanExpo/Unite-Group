@@ -68,8 +68,11 @@ export async function runSoftwareHandoff(
   }
 
   // Merge awaiting_build status, preserving prior software metadata.
+  // mergeTaskMetadata returns null when the task has vanished between the load
+  // and the write — treat that as a hard failure so the route surfaces a 500
+  // rather than silently reporting a handoff that was never persisted.
   const handedOffAt = new Date().toISOString()
-  await mergeMeta(
+  const persisted = await mergeMeta(
     {
       founderId,
       taskId,
@@ -83,6 +86,7 @@ export async function runSoftwareHandoff(
     },
     db,
   )
+  if (!persisted) throw new Error('Failed to persist software handoff')
 
   // Append audit event — best-effort.
   try {

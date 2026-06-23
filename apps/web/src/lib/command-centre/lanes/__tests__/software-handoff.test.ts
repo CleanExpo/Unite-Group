@@ -83,4 +83,12 @@ describe('runSoftwareHandoff', () => {
     const result = await runSoftwareHandoff({ founderId: 'founder-1', taskId: 'task-1' }, deps as never)
     expect(result.status).toBe('handed_off')
   })
+
+  it('throws when mergeTaskMetadata returns null (persist failed — task vanished) and does not append an event', async () => {
+    const deps = makeDeps({ mergeTaskMetadata: vi.fn().mockResolvedValue(null) })
+    await expect(
+      runSoftwareHandoff({ founderId: 'founder-1', taskId: 'task-1' }, deps as never),
+    ).rejects.toThrow('Failed to persist software handoff')
+    expect(deps.appendTaskEvent).not.toHaveBeenCalled()
+  })
 })

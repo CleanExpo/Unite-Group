@@ -67,9 +67,12 @@ export async function runSoftwareBuild(
   // 2. Generate build plan.
   const plan = await genPlan(task.objective, client)
 
-  // 3. Persist to metadata.software.
+  // 3. Persist to metadata.software. mergeTaskMetadata returns null when the
+  // task has vanished between the load and the write — treat that as a hard
+  // failure so the route surfaces a 500 rather than silently reporting success
+  // (and appending an audit event) for a plan that was never stored.
   const plannedAt = new Date().toISOString()
-  await mergeMeta(
+  const persisted = await mergeMeta(
     {
       founderId,
       taskId,
@@ -83,6 +86,7 @@ export async function runSoftwareBuild(
     },
     db,
   )
+  if (!persisted) throw new Error('Failed to persist software build plan')
 
   // 4. Append audit event — best-effort.
   try {
