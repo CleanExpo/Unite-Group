@@ -93,3 +93,62 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: err instanceof Error ? err.message : 'create failed' }, { status: 500 })
   }
 }
+
+// PATCH — enable/disable an account in the pool. Body: { accountId, enabled }.
+// Founder-scoped via the store (UPDATE … WHERE id AND founder_id). Metadata only.
+export async function PATCH(request: NextRequest) {
+  const user = await getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+
+  let body: unknown
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'invalid JSON' }, { status: 400 })
+  }
+
+  const v = (typeof body === 'object' && body !== null ? body : {}) as Record<string, unknown>
+  if (typeof v.accountId !== 'string' || v.accountId.trim().length === 0) {
+    return NextResponse.json({ error: 'accountId is required' }, { status: 400 })
+  }
+  if (typeof v.enabled !== 'boolean') {
+    return NextResponse.json({ error: 'enabled must be a boolean' }, { status: 400 })
+  }
+
+  try {
+    const supabase = await createClient()
+    const store = makeSupabaseStore(supabase)
+    await store.setAccountEnabled(user.id, v.accountId.trim(), v.enabled)
+    return NextResponse.json({ ok: true })
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'update failed' }, { status: 500 })
+  }
+}
+
+// DELETE — permanently remove an account. Body: { accountId }. Founder-scoped via
+// the store (DELETE … WHERE id AND founder_id). The vault key (if any) is untouched.
+export async function DELETE(request: NextRequest) {
+  const user = await getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+
+  let body: unknown
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'invalid JSON' }, { status: 400 })
+  }
+
+  const v = (typeof body === 'object' && body !== null ? body : {}) as Record<string, unknown>
+  if (typeof v.accountId !== 'string' || v.accountId.trim().length === 0) {
+    return NextResponse.json({ error: 'accountId is required' }, { status: 400 })
+  }
+
+  try {
+    const supabase = await createClient()
+    const store = makeSupabaseStore(supabase)
+    await store.removeAccount(user.id, v.accountId.trim())
+    return NextResponse.json({ ok: true })
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'delete failed' }, { status: 500 })
+  }
+}
