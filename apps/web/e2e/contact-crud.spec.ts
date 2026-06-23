@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto'
 import { test, expect, type APIRequestContext, type Browser, type Page } from '@playwright/test'
 import { revealEmailLogin } from './support/email-login'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { hasSupabaseAdminProvisioning, loadSupabaseAdminConfig } from './support/supabase-admin-config'
+import { loadSupabaseAdminConfig } from './support/supabase-admin-config'
 
 const evidencePath = 'EVIDENCE.md'
 const decisionsPath = 'DECISIONS_NEEDED.md'
@@ -206,7 +206,7 @@ async function cleanup(admin: SupabaseClient, state: CleanupState) {
 }
 
 test.describe('authenticated Contact CRUD approved production-write verification', () => {
-  test.skip(!hasSupabaseAdminProvisioning().ok, 'requires Supabase admin provisioning — E2E backend not configured')
+  test.skip(!process.env.E2E_SUPABASE_URL, 'requires a dedicated non-prod E2E Supabase backend (E2E_SUPABASE_URL) — not configured')
   test.describe.configure({ mode: 'serial', timeout: 120_000 })
 
   test('proves CRUD and cross-user isolation with tagged throwaway rows', async ({ browser }) => {

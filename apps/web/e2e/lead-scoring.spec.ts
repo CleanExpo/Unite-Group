@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto'
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test'
 import { revealEmailLogin } from './support/email-login'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { hasSupabaseAdminProvisioning, loadSupabaseAdminConfig } from './support/supabase-admin-config'
+import { loadSupabaseAdminConfig } from './support/supabase-admin-config'
 import { qualifyLead } from '../src/lib/crm/qualify-lead'
 
 const evidencePath = 'EVIDENCE.md'
@@ -188,7 +188,7 @@ async function cleanup(admin: SupabaseClient, state: CleanupState) {
 }
 
 test.describe('authenticated Lead Scoring API', () => {
-  test.skip(!hasSupabaseAdminProvisioning().ok, 'requires Supabase admin provisioning — E2E backend not configured')
+  test.skip(!process.env.E2E_SUPABASE_URL, 'requires a dedicated non-prod E2E Supabase backend (E2E_SUPABASE_URL) — not configured')
   test.describe.configure({ mode: 'serial', timeout: 120_000 })
 
   test('scores a real contact, persists metadata, and blocks cross-founder scoring', async ({ browser }) => {
