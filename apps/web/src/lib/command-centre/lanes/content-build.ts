@@ -4,8 +4,8 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { getTaskById, mergeTaskMetadata, appendTaskEvent } from '@/lib/command-centre/tasks'
 import { generateContent as _generateContent } from '@/lib/content/generator'
+import { mapBrand } from '@/lib/content/brand-mapper'
 import type { ContentType } from '@/lib/content/types'
-import type { BrandIdentity } from '@/lib/content/types'
 
 // ── Supabase client shape used by this orchestrator ───────────────────────────
 
@@ -46,30 +46,6 @@ export interface ContentBuildDeps {
 type ContentBuildResult =
   | { status: 'built'; count: number; ids: string[] }
   | { status: 'not_connected'; reason: string }
-
-// ── Map brand DB row (snake_case) → BrandIdentity (camelCase) ────────────────
-// Copied verbatim from src/app/api/content/generate/route.ts
-
-function mapBrand(brand: Record<string, unknown>): BrandIdentity {
-  return {
-    id: brand.id as string,
-    founderId: brand.founder_id as string,
-    businessKey: brand.business_key as string,
-    toneOfVoice: brand.tone_of_voice as string,
-    targetAudience: brand.target_audience as string,
-    industryKeywords: brand.industry_keywords as string[],
-    uniqueSellingPoints: brand.unique_selling_points as string[],
-    characterMale: brand.character_male as { name: string; persona: string; avatarUrl: string | null; voiceStyle: string },
-    characterFemale: brand.character_female as { name: string; persona: string; avatarUrl: string | null; voiceStyle: string },
-    colourPrimary: brand.colour_primary as string | null,
-    colourSecondary: brand.colour_secondary as string | null,
-    doList: brand.do_list as string[],
-    dontList: brand.dont_list as string[],
-    sampleContent: brand.sample_content as Record<string, unknown>,
-    createdAt: brand.created_at as string,
-    updatedAt: brand.updated_at as string,
-  }
-}
 
 // ── Main orchestrator ─────────────────────────────────────────────────────────
 
