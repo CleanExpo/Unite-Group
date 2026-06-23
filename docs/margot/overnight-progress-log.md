@@ -1,5 +1,35 @@
 # Margot Overnight Progress Log
 
+## 2026-06-23 15:04 AEST
+
+### Tick 20260623_1504 — PR #456 E2E follow-through and mainline refresh
+
+Lane: continued the already-open PR #456 (`feat/visual-campaign-studio`) instead of starting a new CRM/Margot lane. Scope stayed inside source-control follow-through, local verification, and evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git, or PR merge occurred.
+
+Completed:
+- Preflight from `/Users/phillmcgurk/Unite-Group` found current local branch `margot/kanban-sync-card-number-redaction-clean-20260623` ahead 3 / behind 3 with no current-branch PR, and open PR #456 at `feat/visual-campaign-studio` targeting `main`.
+- PR #456 read-back before action: product-code checks, workspace/spec-board/MCP checks, CodeRabbit/Vercel comments were green or pending-success, but `apps/web — Playwright E2E` was still in progress and the PR branch was `BEHIND` main.
+- Watched GitHub Actions run `28002555305`; `apps/web — Playwright E2E` exceeded its 20-minute job timeout and ended `CANCELLED` while other jobs passed.
+- In the isolated studio worktree `/Users/phillmcgurk/ug-studio-wt`, merged latest `origin/main` into `feat/visual-campaign-studio` (`54536273b`) to bring in the newly merged E2E gate fixes from #454/#455/#457.
+- No TDD production-code cycle was needed in this tick because the only code change was a mainline merge into the existing PR branch; prior PR #456 feature commits already contain their own tests.
+
+Verification / evidence:
+- Focused studio + CI config Vitest: `./node_modules/.bin/vitest run src/lib/studio src/app/api/studio "src/app/(founder)/founder/command-centre/studio" src/lib/ci/__tests__/playwright-config.test.ts --config vitest.config.mts` -> PASS, 7 files / 21 tests.
+- `pnpm run type-check` from `apps/web` -> PASS.
+- `pnpm run lint` from `apps/web` -> PASS.
+- `CI=true ./node_modules/.bin/playwright test --list` -> PASS, listed 69 Playwright tests.
+- Full app tests: `pnpm run test` from `apps/web` -> PASS, 404 files / 2426 tests.
+- Local build with CI placeholder env only (no secret values) -> PASS; `scripts/validate-env.mjs --ci` reported critical/required groups present, Next build compiled successfully, with only the existing Turbopack NFT-list warning.
+- `git diff --check origin/feat/visual-campaign-studio..HEAD` -> PASS.
+
+Safety / blockers:
+- PR #456 remains unmerged. It still needs the refreshed remote CI/Vercel read-back after pushing the merge/evidence commits.
+- This tick did not mutate GitHub/Vercel secrets or Supabase. Placeholder build values were synthetic CI placeholders only and were not written to any env store.
+- Existing local CRM branch `margot/kanban-sync-card-number-redaction-clean-20260623` remains unpublished/local; this tick did not push or open another CRM PR while PR #456 was active.
+
+Next safe lane:
+- Commit this evidence on the PR #456 lane, push `feat/visual-campaign-studio`, monitor refreshed checks, and keep the PR gated if required Playwright E2E fails again. Only merge if all required checks pass cleanly and the branch is current with `main`.
+
 ## 2026-06-22 11:13 AEST
 
 ### Tick 20260622_1113 — PR #412 OAuth-auth gate follow-through + Vercel sandbox blocker read-back
