@@ -143,6 +143,13 @@ function getClientIp(request: NextRequest): string {
  *          a `RateLimitResult` indicating whether the request is allowed.
  */
 export function checkRateLimit(request: NextRequest): RateLimitResult | null {
+  // E2E bypass: the Playwright suite drives many requests from a single IP,
+  // which would trip the per-IP limits (AI tier is only 5/min). Disable rate
+  // limiting ONLY when the dedicated flag is set AND not in production.
+  if (process.env.NODE_ENV !== 'production' && process.env.E2E_DISABLE_RATE_LIMIT === '1') {
+    return null;
+  }
+
   const pathname = new URL(request.url).pathname;
   const tier = classifyTier(pathname);
 

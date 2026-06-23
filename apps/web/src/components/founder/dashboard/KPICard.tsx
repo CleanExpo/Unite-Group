@@ -78,8 +78,14 @@ export function KPICard({
     if (xeroBusinessKey) {
       setLive(prev => ({ ...prev, loading: true }))
       fetch(`/api/xero/revenue?business=${encodeURIComponent(xeroBusinessKey)}`)
-        .then(res => res.json() as Promise<{ data: XeroRevenueMTD; source: 'xero' | 'mock' }>)
-        .then(({ data, source }) => {
+        .then(res => (res.ok ? res.json() : null) as Promise<{ data?: XeroRevenueMTD; source?: 'xero' | 'mock' } | null>)
+        .then((payload) => {
+          const data = payload?.data
+          // Xero not connected / no data — an expected degraded state, not an error.
+          if (!data || data.revenueCents == null) {
+            setLive({ metric: null, trend: null, secondary: null, source: payload?.source ?? null, loading: false })
+            return
+          }
           setLive({
             metric: formatAUD(data.revenueCents),
             trend: {
@@ -87,12 +93,13 @@ export function KPICard({
               positive: data.growth >= 0,
             },
             secondary: `${data.invoiceCount} Invoices MTD`,
-            source,
+            source: payload?.source ?? null,
             loading: false,
           })
         })
         .catch((error) => {
-          console.error(`[kpi] Xero fetch failed for ${xeroBusinessKey}:`, error)
+          // Integration unavailable (e.g. Xero not configured) — degrade quietly.
+          console.warn(`[kpi] Xero revenue unavailable for ${xeroBusinessKey}:`, error)
           setLive({ metric: null, trend: null, secondary: null, source: null, loading: false })
         })
     }
