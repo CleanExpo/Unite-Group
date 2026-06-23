@@ -121,9 +121,9 @@ export function IdeaCapture() {
             <div className="flex items-center gap-2 px-4 h-12 border-b shrink-0"
               style={{ borderColor: 'var(--color-border)' }}>
               <Zap size={14} style={{ color: '#15803d' }} />
-              <span className="text-[13px] font-medium" style={{ color: 'var(--color-text-primary)' }}>
+              <h2 className="text-[13px] font-medium m-0" style={{ color: 'var(--color-text-primary)' }}>
                 Capture Idea
-              </span>
+              </h2>
               <button onClick={toggleCapture} className="ml-auto transition-colors"
                 style={{ color: 'var(--color-text-disabled)' }}>
                 <X size={16} />

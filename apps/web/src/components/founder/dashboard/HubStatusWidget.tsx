@@ -189,7 +189,9 @@ export function HubStatusWidget() {
         setLoading(false)
       })
       .catch(err => {
-        console.error('[HubStatusWidget] Fetch error:', err)
+        // Status endpoint unavailable / rate-limited — surfaced in the UI below;
+        // log at warn so an expected degraded state isn't a console error.
+        console.warn('[HubStatusWidget] Hub status unavailable:', err)
         setError('Failed to load hub status')
         setLoading(false)
       })
