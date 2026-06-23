@@ -30,10 +30,11 @@ export async function GET(request: Request) {
     dateParam ??
     new Date(Date.now() + 10 * 60 * 60 * 1000).toISOString().split('T')[0]
 
-  // 3. Fetch coach reports — RLS ensures founder_id = auth.uid()
+  // 3. Fetch coach reports — explicitly founder-scoped (defence-in-depth; RLS also enforces it)
   const { data: reports, error: fetchError } = await supabase
     .from('coach_reports')
     .select('*')
+    .eq('founder_id', user.id)
     .eq('report_date', reportDate)
     .order('created_at', { ascending: true })
     .returns<CoachReport[]>()

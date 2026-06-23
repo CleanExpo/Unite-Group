@@ -46,6 +46,7 @@ export async function POST(request: Request) {
     .from('brand_identities')
     .select('*')
     .eq('business_key', body.businessKey)
+    .eq('founder_id', user.id)
     .single()
 
   if (brandError || !brand) {

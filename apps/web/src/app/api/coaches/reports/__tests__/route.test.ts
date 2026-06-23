@@ -73,6 +73,15 @@ describe('GET /api/coaches/reports', () => {
     expect(body.date).toBe('2026-06-01')
   })
 
+  it('founder-scopes the coach_reports query', async () => {
+    mockAuthGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
+    const chain = makeChain()
+    mockFrom.mockReturnValue(chain)
+
+    await GET(new Request('https://app.test/api/coaches/reports'))
+    expect(chain.eq).toHaveBeenCalledWith('founder_id', 'user-1')
+  })
+
   it('returns 500 on fetch error', async () => {
     mockAuthGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
     chainResolve = { data: null, error: { message: 'DB error' } }

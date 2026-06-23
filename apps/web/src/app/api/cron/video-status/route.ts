@@ -22,6 +22,7 @@ export async function GET(request: Request) {
     .from('video_assets')
     .select('id, external_job_id')
     .eq('status', 'generating')
+    .eq('founder_id', process.env.FOUNDER_USER_ID)
     .not('external_job_id', 'is', null)
 
   if (queryError) {
