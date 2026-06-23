@@ -19,6 +19,7 @@ function makeDeps(overrides: Partial<IngestSignalDeps> = {}): IngestSignalDeps {
     listTasks: vi.fn().mockResolvedValue([]),
     createTask: vi.fn().mockImplementation(async (input) => ({ id: 'task-1', ...input })),
     appendTaskEvent: vi.fn().mockResolvedValue({ id: 'evt-1' }),
+    addEvidenceRecord: vi.fn().mockResolvedValue({ id: 'ev-1' }),
     ...overrides,
   } as unknown as IngestSignalDeps
 }
@@ -72,5 +73,38 @@ describe('ingestSignal', () => {
     await ingestSignal('founder-1', { ...raw, source: 'error', externalRef: 'err-9', text: 'health check failing' }, deps)
     const arg = (deps.createTask as ReturnType<typeof vi.fn>).mock.calls[0][0]
     expect(arg.origin).toBe('blocker')
+  })
+
+  it('writes a founder-scoped evidence brief for the created signal task', async () => {
+    const deps = makeDeps()
+    await ingestSignal('founder-1', raw, deps)
+
+    expect(deps.addEvidenceRecord).toHaveBeenCalledTimes(1)
+    const ev = (deps.addEvidenceRecord as ReturnType<typeof vi.fn>).mock.calls[0][0]
+    expect(ev.founderId).toBe('founder-1')
+    expect(ev.taskId).toBe('task-1')
+    expect(ev.kind).toBe('brief')
+    // The wiki path must be a non-empty string used as the task's evidencePath.
+    expect(typeof ev.wikiPath).toBe('string')
+    expect(ev.wikiPath.length).toBeGreaterThan(0)
+    // Provenance: the signal source rides on the evidence sources.
+    expect(ev.sources).toContain('signal:telegram')
+  })
+
+  it('sets the created task evidencePath to the evidence wiki path', async () => {
+    const deps = makeDeps()
+    await ingestSignal('founder-1', raw, deps)
+    const taskArg = (deps.createTask as ReturnType<typeof vi.fn>).mock.calls[0][0]
+    const evArg = (deps.addEvidenceRecord as ReturnType<typeof vi.fn>).mock.calls[0][0]
+    expect(taskArg.evidencePath).toBe(evArg.wikiPath)
+  })
+
+  it('does NOT write an evidence record when the signal is skipped', async () => {
+    const deps = makeDeps({
+      listTasks: vi.fn().mockResolvedValue([{ external_ref: 'tg-123' }]),
+    })
+    const res = await ingestSignal('founder-1', raw, deps)
+    expect(res.status).toBe('skipped')
+    expect(deps.addEvidenceRecord).not.toHaveBeenCalled()
   })
 })
