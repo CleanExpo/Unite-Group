@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 test('unauthenticated request to /api/strategy/analyze returns 401', async ({ page }) => {
-  test.skip(!process.env.E2E_SUPABASE_URL, 'requires a dedicated non-prod E2E Supabase backend (E2E_SUPABASE_URL) — not configured')
+  test.skip(!process.env.PLAYWRIGHT_TEST_EMAIL, 'requires a dedicated non-prod E2E Supabase backend (PLAYWRIGHT_TEST_EMAIL) — not configured')
   const res = await page.request.post('/api/strategy/analyze', {
     data: { prompt: 'test' },
   })
@@ -9,7 +9,7 @@ test('unauthenticated request to /api/strategy/analyze returns 401', async ({ pa
 })
 
 test('unauthenticated request to /api/bron/chat returns 401', async ({ page }) => {
-  test.skip(!process.env.E2E_SUPABASE_URL, 'requires a dedicated non-prod E2E Supabase backend (E2E_SUPABASE_URL) — not configured')
+  test.skip(!process.env.PLAYWRIGHT_TEST_EMAIL, 'requires a dedicated non-prod E2E Supabase backend (PLAYWRIGHT_TEST_EMAIL) — not configured')
   const res = await page.request.post('/api/bron/chat', {
     data: { messages: [{ role: 'user', content: 'test' }] },
   })
@@ -17,7 +17,7 @@ test('unauthenticated request to /api/bron/chat returns 401', async ({ page }) =
 })
 
 test('unauthenticated request to /api/ideas/capture returns 401', async ({ page }) => {
-  test.skip(!process.env.E2E_SUPABASE_URL, 'requires a dedicated non-prod E2E Supabase backend (E2E_SUPABASE_URL) — not configured')
+  test.skip(!process.env.PLAYWRIGHT_TEST_EMAIL, 'requires a dedicated non-prod E2E Supabase backend (PLAYWRIGHT_TEST_EMAIL) — not configured')
   const res = await page.request.post('/api/ideas/capture', {
     data: { rawIdea: 'test idea' },
   })

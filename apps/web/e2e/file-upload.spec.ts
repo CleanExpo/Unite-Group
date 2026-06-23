@@ -102,7 +102,7 @@ async function cleanup(admin: SupabaseClient, state: CleanupState) {
 }
 
 test.describe('authenticated file upload', () => {
-  test.skip(!process.env.E2E_SUPABASE_URL, 'requires a dedicated non-prod E2E Supabase backend (E2E_SUPABASE_URL) — not configured')
+  test.skip(!process.env.PLAYWRIGHT_TEST_EMAIL, 'requires a dedicated non-prod E2E Supabase backend (PLAYWRIGHT_TEST_EMAIL) — not configured')
   test.describe.configure({ mode: 'serial', timeout: 120_000 })
 
   test('persists a tiny tagged upload and scopes it to the authenticated founder', async ({ browser }) => {

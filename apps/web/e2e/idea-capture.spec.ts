@@ -1,5 +1,7 @@
 import { test, expect, loginAsFounder } from './fixtures/auth'
 
+test.skip(!process.env.PLAYWRIGHT_TEST_EMAIL, 'requires E2E auth env (PLAYWRIGHT_TEST_EMAIL) not configured')
+
 test.beforeEach(async ({ page }) => {
   await loginAsFounder(page)
 })
