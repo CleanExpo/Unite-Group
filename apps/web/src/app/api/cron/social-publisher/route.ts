@@ -150,6 +150,7 @@ export async function GET(request: Request) {
         .from('generated_content')
         .update({ status: 'published', updated_at: new Date().toISOString() })
         .eq('social_post_id', post.id)
+        .eq('founder_id', post.founder_id)
 
       publishedCount++
     } else {

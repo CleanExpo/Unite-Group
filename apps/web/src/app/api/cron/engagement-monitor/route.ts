@@ -281,6 +281,7 @@ async function processBusinessEngagement(
           updated_at: new Date().toISOString(),
         })
         .eq('id', engagement.id)
+        .eq('founder_id', founderId)
 
       // Auto-reply for positive/neutral comments
       if (replyResult.shouldAutoReply) {
@@ -295,6 +296,7 @@ async function processBusinessEngagement(
               updated_at: new Date().toISOString(),
             })
             .eq('id', engagement.id)
+            .eq('founder_id', founderId)
 
           result.autoReplied++
         } catch (replyErr) {
