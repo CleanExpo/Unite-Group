@@ -16,6 +16,7 @@ import {
   type SupabaseLike,
 } from '@/lib/command-centre/tasks'
 import { generateBuildPlan, type BuildPlan } from './software-plan'
+import { appendAuditEventBestEffort } from './audit-event'
 import type { ModelClientLike } from '@/lib/command-centre/clarify'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -88,21 +89,18 @@ export async function runSoftwareBuild(
   )
   if (!persisted) throw new Error('Failed to persist software build plan')
 
-  // 4. Append audit event — best-effort.
-  try {
-    await appendEvent(
-      {
-        founderId,
-        taskId,
-        type: 'comment',
-        actor: 'system',
-        payload: { kind: 'software_planned', plannedAt },
-      },
-      db,
-    )
-  } catch {
-    // Best-effort — audit failure must not block the response.
-  }
+  // 4. Append audit event — best-effort (never fails the operation).
+  await appendAuditEventBestEffort(
+    appendEvent,
+    {
+      founderId,
+      taskId,
+      type: 'comment',
+      actor: 'system',
+      payload: { kind: 'software_planned', plannedAt },
+    },
+    db,
+  )
 
   return { status: 'planned', plan }
 }

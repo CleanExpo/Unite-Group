@@ -17,6 +17,7 @@ import {
   type SupabaseLike,
 } from '@/lib/command-centre/tasks'
 import type { BuildPlan } from './software-plan'
+import { appendAuditEventBestEffort } from './audit-event'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -88,21 +89,18 @@ export async function runSoftwareHandoff(
   )
   if (!persisted) throw new Error('Failed to persist software handoff')
 
-  // Append audit event — best-effort.
-  try {
-    await appendEvent(
-      {
-        founderId,
-        taskId,
-        type: 'comment',
-        actor: 'system',
-        payload: { kind: 'software_handoff', handedOffAt },
-      },
-      db,
-    )
-  } catch {
-    // Best-effort — audit failure must not block the response.
-  }
+  // Append audit event — best-effort (never fails the operation).
+  await appendAuditEventBestEffort(
+    appendEvent,
+    {
+      founderId,
+      taskId,
+      type: 'comment',
+      actor: 'system',
+      payload: { kind: 'software_handoff', handedOffAt },
+    },
+    db,
+  )
 
   return { status: 'handed_off' }
 }
