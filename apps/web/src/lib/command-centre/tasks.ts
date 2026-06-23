@@ -365,3 +365,30 @@ export async function updateTaskStatus(
   }
   return (data as CommandCentreTask) ?? null
 }
+
+/**
+ * Shallow-merge `patch` into a task's metadata JSONB by (founder_id, id).
+ * Returns the updated row, or null when no matching row exists.
+ * The `client` argument is for testing — production callers omit it.
+ */
+export async function mergeTaskMetadata(
+  input: { founderId: string; taskId: string; patch: Record<string, unknown> },
+  client?: SupabaseLike,
+): Promise<CommandCentreTask | null> {
+  const db = client ?? ((await createClient()) as unknown as SupabaseLike)
+  const existing = await getTaskById({ founderId: input.founderId, taskId: input.taskId }, db)
+  if (!existing) return null
+  const merged = { ...existing.metadata, ...input.patch }
+  const { data, error } = await db
+    .from(CC_TASKS_TABLE)
+    .update({ metadata: merged })
+    .eq('founder_id', input.founderId)
+    .eq('id', input.taskId)
+    .select('*')
+    .single()
+  if (error) {
+    if (!data) return null
+    throw new Error(`mergeTaskMetadata failed: ${error.message}`)
+  }
+  return (data as CommandCentreTask) ?? null
+}
