@@ -46,4 +46,14 @@ describe('POST /api/command-centre/clarify', () => {
       }),
     )
   })
+
+  it('500 when persistence fails (mergeTaskMetadata returns null)', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    vi.mocked(getTaskById).mockResolvedValue({ id: 't1', objective: 'Build a thing' } as never)
+    vi.mocked(generateClarifyingQuestions).mockResolvedValue(['Q?'])
+    vi.mocked(mergeTaskMetadata).mockResolvedValue(null)
+    const res = await POST(req({ taskId: 't1' }))
+    expect(res.status).toBe(500)
+    expect((await res.json()).error).toBe('Failed to persist questions')
+  })
 })

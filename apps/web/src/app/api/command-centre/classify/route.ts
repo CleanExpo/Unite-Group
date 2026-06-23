@@ -47,11 +47,14 @@ export async function POST(request: Request) {
   })
 
   // ── Persist routing to metadata ───────────────────────────────────────────
-  await mergeTaskMetadata({
+  const persisted = await mergeTaskMetadata({
     founderId: user.id,
     taskId,
     patch: { routing: { ...routing, decidedAt: new Date().toISOString() } },
   })
+  if (!persisted) {
+    return NextResponse.json({ error: 'Failed to persist routing' }, { status: 500 })
+  }
 
   // ── Append audit event (best-effort; does not fail the route) ────────────
   try {

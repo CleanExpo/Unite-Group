@@ -43,6 +43,16 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Source route/lib directories literally named 'build' (e.g. command-centre
+# lane routes at src/app/api/**/build/). A global gitignore `build/` pattern on
+# some machines silently drops these source files from `git add`. Re-include
+# them here (repo .gitignore is read after the global file, so these win),
+# while keeping real build artefacts (root /build, .next) ignored.
+!apps/web/src/app/**/build/
+!apps/web/src/app/**/build/**
+!apps/web/src/lib/**/build/
+!apps/web/src/lib/**/build/**
+
 .vercel
 .env*.local
 
