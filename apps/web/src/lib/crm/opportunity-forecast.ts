@@ -70,6 +70,17 @@ export interface CrmOpportunityForecast {
 const EXCLUDED_STATUSES = new Set(['lost', 'cancelled', 'blocked_review'])
 const EXCLUDED_STAGES = new Set(['lost', 'blocked_review'])
 const DEFAULT_CURRENCY = 'AUD'
+const REDACTED = '[REDACTED]'
+
+function redactSensitiveText(value: string): string {
+  return value
+    .replace(/\b[A-Z0-9_-]*(?:SECRET|TOKEN|PASSWORD|PASSWD|API[_-]?KEY|SERVICE[_-]?ROLE[_-]?KEY)[A-Z0-9_-]*\s*=\s*(?:"[^"]*"|'[^']*'|[^\s;,]+)/gi, REDACTED)
+    .replace(/\b(Bearer\s+)[A-Z0-9_-]+(?:\.[A-Z0-9_-]+){2,}\b/gi, `$1${REDACTED}`)
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, REDACTED)
+    .replace(/\bBOARD-[A-Z0-9-]{3,}\b/gi, REDACTED)
+    .replace(/(?:\+61|\b0\d)[\d\s().-]{7,}\d\b/g, REDACTED)
+    .replace(/\bcard\s+(?:ending|ending\s+in|ends\s+in)\s+\d{3,4}\b/gi, REDACTED)
+}
 
 function toNumber(value: number | string | null | undefined): number {
   if (typeof value === 'number') return Number.isFinite(value) ? value : 0
@@ -144,12 +155,12 @@ export function buildOpportunityForecast(
     if (isApprovalGated(row)) {
       approvalGated.push({
         id: row.id,
-        name: row.name,
+        name: redactSensitiveText(row.name),
         stage: row.stage,
         status: row.status,
         approvalStatus: row.approval_status || 'not_required',
         weightedValue: roundMoney(weightedValue),
-        nextAction: row.next_action ?? null,
+        nextAction: row.next_action ? redactSensitiveText(row.next_action) : null,
       })
     }
   }

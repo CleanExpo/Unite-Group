@@ -115,4 +115,62 @@ describe('buildOpportunityForecast', () => {
       },
     ])
   })
+
+  it('redacts sensitive free text from approval-gated opportunity read-backs', () => {
+    const sensitiveEmail = ['lead', 'restoreassist.example'].join('@')
+    const boardRef = ['BOARD', '2026', '06', '22', 'CRM', '777'].join('-')
+    const apiAssignment = ['CRM', 'API', 'KEY'].join('_') + '=' + ['sk', 'test', 'forecast'].join('_')
+    const phoneNumber = '+61 400 123 456'
+    const cardSnippet = 'card ending 4242'
+
+    const forecast = buildOpportunityForecast([
+      row({
+        id: 'sensitive-approval',
+        name: `Approve ${sensitiveEmail} for ${boardRef}`,
+        approval_required: true,
+        approval_status: 'requested',
+        next_action: `Call ${phoneNumber}; ${apiAssignment}; ${cardSnippet}`,
+      }),
+    ])
+
+    const approvalReadBack = JSON.stringify(forecast.approvalGated)
+
+    expect(approvalReadBack).not.toContain(sensitiveEmail)
+    expect(approvalReadBack).not.toContain(boardRef)
+    expect(approvalReadBack).not.toContain(apiAssignment)
+    expect(approvalReadBack).not.toContain(phoneNumber)
+    expect(approvalReadBack).not.toContain(cardSnippet)
+    expect(forecast.approvalGated[0]).toMatchObject({
+      id: 'sensitive-approval',
+      stage: 'proposal_sent',
+      status: 'open',
+      approvalStatus: 'requested',
+      weightedValue: 5000,
+    })
+    expect(forecast.approvalGated[0].name).toContain('[REDACTED]')
+    expect(forecast.approvalGated[0].nextAction).toContain('[REDACTED]')
+  })
+
+  it('redacts bearer tokens from approval-gated opportunity read-backs', () => {
+    const bearerToken = ['Bearer ', 'eyJheader', '.', 'eyJpayload', '.', 'signature'].join('')
+
+    const forecast = buildOpportunityForecast([
+      row({
+        id: 'bearer-approval',
+        name: `Approval needed after ${bearerToken}`,
+        approval_required: true,
+        approval_status: 'requested',
+        next_action: `Review ${bearerToken}`,
+      }),
+    ])
+
+    const approvalReadBack = JSON.stringify(forecast.approvalGated)
+
+    expect(approvalReadBack).not.toContain(bearerToken)
+    expect(forecast.approvalGated[0]).toMatchObject({
+      id: 'bearer-approval',
+      name: 'Approval needed after Bearer [REDACTED]',
+      nextAction: 'Review Bearer [REDACTED]',
+    })
+  })
 })

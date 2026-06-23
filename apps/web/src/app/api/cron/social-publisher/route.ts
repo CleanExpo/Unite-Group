@@ -48,6 +48,7 @@ export async function GET(request: Request) {
     .from('social_posts')
     .select('*')
     .eq('status', 'scheduled')
+    .eq('founder_id', process.env.FOUNDER_USER_ID)
     .lte('scheduled_at', new Date().toISOString())
     .order('scheduled_at', { ascending: true })
 
@@ -149,6 +150,7 @@ export async function GET(request: Request) {
         .from('generated_content')
         .update({ status: 'published', updated_at: new Date().toISOString() })
         .eq('social_post_id', post.id)
+        .eq('founder_id', post.founder_id)
 
       publishedCount++
     } else {
