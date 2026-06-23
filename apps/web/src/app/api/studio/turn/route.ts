@@ -45,25 +45,51 @@ export async function POST(request: Request) {
     )
   }
 
-  const gen = await generateVisuals({ prompt: message, count: 3, brand: resolved.brandDNA, provider })
+  // `generateVisuals` is contracted never to throw — but harden defensively so a
+  // thrown failure (e.g. a misbehaving provider client) is logged with its exact
+  // detail server-side and surfaced honestly in `errors[]` rather than 500-ing.
+  const errors: string[] = []
+  let images: { imageBase64: string; mimeType: string }[] = []
+  try {
+    const gen = await generateVisuals({ prompt: message, count: 3, brand: resolved.brandDNA, provider })
+    images = gen.images
+    errors.push(...gen.errors)
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : String(e)
+    console.error(`[studio/turn] generateVisuals threw for task ${taskId}:`, e)
+    errors.push(`Image generation failed: ${detail}`)
+  }
 
+  // Upload each generated image. A partial failure here (some upload, some don't)
+  // must still return the ones that succeeded, with the failures named in `errors`.
   const concepts: ConceptImage[] = []
-  for (const img of gen.images) {
+  for (let i = 0; i < images.length; i++) {
+    const img = images[i]
     const conceptId = crypto.randomUUID()
-    const url = await uploadConceptImage({
-      imageBase64: img.imageBase64,
-      mimeType: img.mimeType,
-      founderId: user.id,
-      taskId,
-      conceptId,
-    })
-    if (url) concepts.push({ id: conceptId, url, prompt: message })
+    try {
+      const url = await uploadConceptImage({
+        imageBase64: img.imageBase64,
+        mimeType: img.mimeType,
+        founderId: user.id,
+        taskId,
+        conceptId,
+      })
+      if (url) {
+        concepts.push({ id: conceptId, url, prompt: message })
+      } else {
+        errors.push(`Concept ${i + 1}: upload failed (no URL returned).`)
+      }
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : String(e)
+      console.error(`[studio/turn] uploadConceptImage threw for task ${taskId}, concept ${i + 1}:`, e)
+      errors.push(`Concept ${i + 1}: upload error — ${detail}`)
+    }
   }
 
   const agentMessage =
     concepts.length > 0
       ? `Generated ${concepts.length} concept${concepts.length === 1 ? '' : 's'} from your brief. Pick one or tell me what to change.`
-      : `I couldn't generate a usable concept this round${gen.errors.length ? ` (${gen.errors[0]})` : ''}. Try rephrasing, or switch the image engine.`
+      : `I couldn't generate a usable concept this round${errors.length ? ` (${errors[0]})` : ''}. Try rephrasing, or switch the image engine.`
 
   const studioPrev = task.metadata?.studio as Partial<StudioSession> | undefined
   const session = applyConceptTurn(studioPrev, {
@@ -87,5 +113,5 @@ export async function POST(request: Request) {
     // best-effort
   }
 
-  return NextResponse.json({ status: 'ok', agentMessage, concepts, errors: gen.errors }, { status: 200 })
+  return NextResponse.json({ status: 'ok', agentMessage, concepts, errors }, { status: 200 })
 }

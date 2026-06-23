@@ -56,9 +56,15 @@ export function StudioClient({ taskId }: { taskId: string }) {
         setNotConnected(data.reason ?? 'Connect a brand profile to start designing.')
         return
       }
-      setConcepts(data.concepts ?? [])
+      const returnedConcepts = data.concepts ?? []
+      setConcepts(returnedConcepts)
       if (data.agentMessage) setMessages((m) => [...m, { role: 'agent', text: data.agentMessage as string }])
-      if (data.errors && data.errors.length) setError(data.errors.join(' · '))
+      if (data.errors && data.errors.length) {
+        // Surface every failure honestly. Frame it as a partial result when some
+        // concepts still came through, so the founder isn't told it all failed.
+        const prefix = returnedConcepts.length > 0 ? 'Some concepts failed: ' : 'No concepts could be generated: '
+        setError(prefix + data.errors.join(' · '))
+      }
     } catch {
       setError('Network error — could not reach the studio.')
     } finally {

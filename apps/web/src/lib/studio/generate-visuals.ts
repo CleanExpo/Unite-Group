@@ -72,13 +72,17 @@ export async function generateVisuals(input: GenerateVisualsInput): Promise<Gene
   const images: GeneratedVisual[] = []
   const errors: string[] = []
 
-  for (const result of results) {
+  results.forEach((result, i) => {
     if (result.imageBase64 !== null) {
       images.push({ imageBase64: result.imageBase64, mimeType: result.mimeType })
     } else {
-      errors.push(result.error ?? 'No image returned')
+      const detail = result.error ?? 'No image returned'
+      // Log the exact failure server-side so it is diagnosable beyond the terse
+      // client-facing string, then surface a concept-indexed message to the caller.
+      console.error(`[generateVisuals] concept ${i + 1} failed:`, detail)
+      errors.push(`Concept ${i + 1}: ${detail}`)
     }
-  }
+  })
 
   return { images, errors }
 }
