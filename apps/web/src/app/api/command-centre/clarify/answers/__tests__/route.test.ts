@@ -20,6 +20,20 @@ describe('POST /api/command-centre/clarify/answers', () => {
     vi.mocked(mergeTaskMetadata).mockResolvedValue({} as never)
     const res = await POST(req({ taskId: 't', answers: { 'Q?': 'A' } }))
     expect(res.status).toBe(200)
-    expect(mergeTaskMetadata).toHaveBeenCalled()
+    expect(mergeTaskMetadata).toHaveBeenCalledWith(
+      expect.objectContaining({
+        founderId: 'u1',
+        taskId: 't',
+        patch: expect.objectContaining({
+          clarifications: expect.objectContaining({
+            questions: ['Q?'],
+            generatedAt: 'x',
+            answers: { 'Q?': 'A' },
+          }),
+        }),
+      }),
+    )
+    const callArg = vi.mocked(mergeTaskMetadata).mock.calls[0][0] as { patch: { clarifications: { answeredAt: unknown } } }
+    expect(typeof callArg.patch.clarifications.answeredAt).toBe('string')
   })
 })
