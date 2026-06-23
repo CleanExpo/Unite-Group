@@ -19,7 +19,12 @@ test.describe('Smoke — No Auth Required', () => {
    * Accepts 200 (healthy) or 503 (degraded, e.g. Supabase unreachable in local dev).
    */
   test('health endpoint returns 200', async ({ request }) => {
-    const response = await request.get('/api/health');
+    // The dev server compiles routes lazily; tolerate a brief cold start.
+    let response = await request.get('/api/health');
+    for (let i = 0; i < 10 && ![200, 503].includes(response.status()); i++) {
+      await new Promise((r) => setTimeout(r, 1000));
+      response = await request.get('/api/health');
+    }
 
     // 200 = fully healthy; 503 = degraded but endpoint itself is alive.
     // Both are valid responses — the endpoint must at least respond.
