@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { generateContent } from '@/lib/content/generator'
+import { mapBrand } from '@/lib/content/brand-mapper'
 import type { ContentGenerationRequest } from '@/lib/content/types'
 
 export const dynamic = 'force-dynamic'
@@ -43,24 +44,7 @@ export async function POST(request: Request) {
   }
 
   // Map DB snake_case to TypeScript camelCase
-  const brandIdentity = {
-    id: brand.id as string,
-    founderId: brand.founder_id as string,
-    businessKey: brand.business_key as string,
-    toneOfVoice: brand.tone_of_voice as string,
-    targetAudience: brand.target_audience as string,
-    industryKeywords: brand.industry_keywords as string[],
-    uniqueSellingPoints: brand.unique_selling_points as string[],
-    characterMale: brand.character_male as { name: string; persona: string; avatarUrl: string | null; voiceStyle: string },
-    characterFemale: brand.character_female as { name: string; persona: string; avatarUrl: string | null; voiceStyle: string },
-    colourPrimary: brand.colour_primary as string | null,
-    colourSecondary: brand.colour_secondary as string | null,
-    doList: brand.do_list as string[],
-    dontList: brand.dont_list as string[],
-    sampleContent: brand.sample_content as Record<string, unknown>,
-    createdAt: brand.created_at as string,
-    updatedAt: brand.updated_at as string,
-  }
+  const brandIdentity = mapBrand(brand as Record<string, unknown>)
 
   try {
     const results = await generateContent(body, brandIdentity)
