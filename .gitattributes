@@ -1,0 +1,7 @@
+# Margot autonomous evidence logs are append-only and are written from many
+# parallel branches/worktrees. Mark them merge=union so Git auto-resolves
+# overlapping appends by keeping BOTH sides instead of producing conflict
+# markers. This prevents the recurring morning-report.md / overnight-progress-log.md
+# merge conflicts (and the markers that previously got committed into them).
+**/margot/morning-report.md merge=union
+**/margot/overnight-progress-log.md merge=union
