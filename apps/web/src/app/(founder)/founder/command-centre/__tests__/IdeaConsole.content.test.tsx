@@ -89,6 +89,43 @@ describe('IdeaConsole content lane', () => {
     await waitFor(() => expect(screen.getByText(/published — 3 posts/i)).toBeInTheDocument())
   })
 
+  it('names the brand-not-connected blocker explicitly after build', async () => {
+    setupContentLane({
+      ...baseHandlers,
+      '/api/command-centre/lanes/content/build': {
+        result: { status: 'not_connected', reason: 'No social brand linked yet' },
+      },
+    })
+    await renderToContentLane()
+    fireEvent.click(screen.getByRole('button', { name: /draft content/i }))
+    await waitFor(() =>
+      expect(
+        screen.getByText(/brand not connected — no social brand linked yet/i),
+      ).toBeInTheDocument(),
+    )
+  })
+
+  it('shows a draft-first prerequisite hint before any content is built', async () => {
+    setupContentLane(baseHandlers)
+    await renderToContentLane()
+    // Nothing drafted yet: the panel must say so honestly rather than imply readiness.
+    expect(screen.getByText(/draft content first/i)).toBeInTheDocument()
+  })
+
+  it('clears the draft-first hint once content is built', async () => {
+    setupContentLane({
+      ...baseHandlers,
+      '/api/command-centre/lanes/content/build': {
+        result: { status: 'built', count: 3, ids: ['id1', 'id2', 'id3'] },
+      },
+    })
+    await renderToContentLane()
+    expect(screen.getByText(/draft content first/i)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /draft content/i }))
+    await waitFor(() => expect(screen.getByText(/3 variants generated/i)).toBeInTheDocument())
+    expect(screen.queryByText(/draft content first/i)).not.toBeInTheDocument()
+  })
+
   it('shows error state on build failure', async () => {
     vi.stubGlobal('fetch', vi.fn(async (url: string) => {
       const path = new URL(url, 'https://t').pathname

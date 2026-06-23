@@ -660,54 +660,75 @@ export function IdeaConsole({ projects }: { projects: IdeaConsoleProject[] }) {
                 )}
               </div>
             ) : routing.lane === 'content' ? (
-              <div>
-                <div className={styles.actions}>
-                  <button
-                    type="button"
-                    className={styles.submit}
-                    onClick={buildContent}
-                    disabled={contentBuilding || contentResult?.status === 'built'}
-                    aria-label="Draft content"
-                  >
-                    {contentBuilding && <span className={styles.spinner} aria-hidden="true" />}
-                    {contentBuilding ? 'Generating…' : 'Draft content'}
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.board}
-                    onClick={publishContent}
-                    disabled={!contentResult || contentResult.status !== 'built' || !!contentPublished || contentPublishing}
-                    aria-label="Publish"
-                  >
-                    {contentPublishing && <span className={styles.spinner} aria-hidden="true" />}
-                    {contentPublishing ? 'Publishing…' : 'Publish'}
-                  </button>
-                </div>
+              // ── Content lane: draft → gated publish, with explicit blockers ──
+              (() => {
+                // Honest, mutually-exclusive blocker classification. We only ever
+                // name a state we actually hold — no implied readiness.
+                const brandNotConnected = contentResult?.status === 'not_connected'
+                const contentBuilt = contentResult?.status === 'built'
+                // Publish prerequisite: content must be drafted first. Until it is
+                // (and absent a connection blocker or a completed publish), say so
+                // plainly rather than leaving the disabled Publish button unexplained.
+                const needsDraftFirst = !contentBuilt && !brandNotConnected && !contentPublished
+                return (
+                  <div>
+                    <div className={styles.actions}>
+                      <button
+                        type="button"
+                        className={styles.submit}
+                        onClick={buildContent}
+                        disabled={contentBuilding || contentBuilt}
+                        aria-label="Draft content"
+                      >
+                        {contentBuilding && <span className={styles.spinner} aria-hidden="true" />}
+                        {contentBuilding ? 'Generating…' : 'Draft content'}
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.board}
+                        onClick={publishContent}
+                        disabled={!contentBuilt || !!contentPublished || contentPublishing}
+                        aria-label="Publish"
+                      >
+                        {contentPublishing && <span className={styles.spinner} aria-hidden="true" />}
+                        {contentPublishing ? 'Publishing…' : 'Publish'}
+                      </button>
+                    </div>
 
-                {contentResult?.status === 'not_connected' && (
-                  <p className={styles.rationale}>
-                    Not connected — {contentResult.reason}
-                  </p>
-                )}
+                    {/* Blocker (a): brand not connected — name it and surface the reason. */}
+                    {brandNotConnected && (
+                      <p className={styles.blocker} role="status">
+                        Brand not connected — {contentResult?.reason}
+                      </p>
+                    )}
 
-                {contentResult?.status === 'built' && (
-                  <p className={styles.rationale}>
-                    {contentResult.count} variants generated
-                  </p>
-                )}
+                    {/* Blocker (b): prerequisite missing — nothing drafted yet. */}
+                    {needsDraftFirst && !contentBuilding && (
+                      <p className={styles.blocker} role="status">
+                        Draft content first — nothing to publish until variants are generated.
+                      </p>
+                    )}
 
-                {contentPublished?.status === 'distributed' && (
-                  <p className={styles.rationale}>
-                    Published — {contentPublished.postsCreated} posts
-                  </p>
-                )}
+                    {contentBuilt && (
+                      <p className={styles.rationale}>
+                        {contentResult?.count} variants generated
+                      </p>
+                    )}
 
-                {contentError && (
-                  <div className={styles.error} role="alert">
-                    {contentError}
+                    {contentPublished?.status === 'distributed' && (
+                      <p className={styles.rationale}>
+                        Published — {contentPublished.postsCreated} posts
+                      </p>
+                    )}
+
+                    {contentError && (
+                      <div className={styles.error} role="alert">
+                        {contentError}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                )
+              })()
             ) : (
               <div className={styles.actions}>
                 <button
