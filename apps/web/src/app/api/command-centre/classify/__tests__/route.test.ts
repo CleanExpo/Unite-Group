@@ -25,6 +25,14 @@ describe('POST /api/command-centre/classify', () => {
     const res = await POST(req({ taskId: 't' }))
     expect(res.status).toBe(200)
     expect((await res.json()).routing.lane).toBe('marketing')
-    expect(mergeTaskMetadata).toHaveBeenCalled()
+    expect(mergeTaskMetadata).toHaveBeenCalledWith(
+      expect.objectContaining({
+        founderId: 'u1',
+        taskId: 't',
+        patch: expect.objectContaining({
+          routing: expect.objectContaining({ lane: 'marketing', decidedAt: expect.any(String) }),
+        }),
+      }),
+    )
   })
 })

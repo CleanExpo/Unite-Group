@@ -12,6 +12,8 @@ import { getUser } from '@/lib/supabase/server'
 import { getTaskById, mergeTaskMetadata, appendTaskEvent } from '@/lib/command-centre/tasks'
 import { generateClarifyingQuestions } from '@/lib/command-centre/clarify'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: Request) {
   // ── Auth ──────────────────────────────────────────────────────────────────
   const user = await getUser()

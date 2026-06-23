@@ -36,6 +36,14 @@ describe('POST /api/command-centre/clarify', () => {
     const res = await POST(req({ taskId: 't1' }))
     expect(res.status).toBe(200)
     expect((await res.json()).questions).toEqual(['Who is the audience?'])
-    expect(mergeTaskMetadata).toHaveBeenCalled()
+    expect(mergeTaskMetadata).toHaveBeenCalledWith(
+      expect.objectContaining({
+        founderId: 'u1',
+        taskId: 't1',
+        patch: expect.objectContaining({
+          clarifications: expect.objectContaining({ questions: ['Who is the audience?'], answers: {} }),
+        }),
+      }),
+    )
   })
 })
