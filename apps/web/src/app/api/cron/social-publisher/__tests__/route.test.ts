@@ -41,6 +41,15 @@ describe('GET /api/cron/social-publisher', () => {
     expect(res.status).toBe(401)
   })
 
+  it('founder-scopes the social_posts query', async () => {
+    vi.stubEnv('FOUNDER_USER_ID', 'founder-uuid')
+    const chain = makeChain()
+    mockFrom.mockReturnValue(chain)
+
+    await GET(req())
+    expect(chain.eq).toHaveBeenCalledWith('founder_id', 'founder-uuid')
+  })
+
   it('returns published=0 when no scheduled posts', async () => {
     postsResolve = { data: [], error: null }
     const res = await GET(req())
