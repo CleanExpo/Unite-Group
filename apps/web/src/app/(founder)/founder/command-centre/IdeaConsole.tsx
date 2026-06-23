@@ -54,6 +54,15 @@ interface BoardResponse {
   error?: string
 }
 
+// ── Clarify / classify response shape (local mirror — no server imports) ──────
+interface RoutingView {
+  lane: string
+  confidence: number
+  rationale: string
+  planBuild: { title: string; detail: string }[]
+  planDistribute: { title: string; detail: string }[]
+}
+
 async function readError(res: Response, fallback: string): Promise<string> {
   try {
     const data = (await res.json()) as { error?: string }
@@ -82,6 +91,14 @@ export function IdeaConsole({ projects }: { projects: IdeaConsoleProject[] }) {
 
   const [intakeError, setIntakeError] = useState<string | null>(null)
   const [boardError, setBoardError] = useState<string | null>(null)
+
+  // ── Clarify / route state ──────────────────────────────────────────────────
+  const [questions, setQuestions] = useState<string[] | null>(null)
+  const [answers, setAnswers] = useState<Record<string, string>>({})
+  const [routing, setRouting] = useState<RoutingView | null>(null)
+  const [clarifyError, setClarifyError] = useState<string | null>(null)
+  const [clarifying, setClarifying] = useState(false)
+  const [submittingAnswers, setSubmittingAnswers] = useState(false)
 
   async function submitIdea(e: React.FormEvent) {
     e.preventDefault()
@@ -167,6 +184,54 @@ export function IdeaConsole({ projects }: { projects: IdeaConsoleProject[] }) {
       setBoardError('Network error — could not reach the board service.')
     } finally {
       setConvening(false)
+    }
+  }
+
+  async function requestClarify() {
+    if (!task || clarifying) return
+    setClarifying(true)
+    setClarifyError(null)
+    try {
+      const res = await fetch('/api/command-centre/clarify', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId: task.id }),
+      })
+      if (!res.ok) { setClarifyError(await readError(res, 'Could not generate questions')); return }
+      const data = (await res.json()) as { questions: string[] }
+      setQuestions(Array.isArray(data.questions) ? data.questions : [])
+    } catch {
+      setClarifyError('Network error — could not reach the clarify service.')
+    } finally {
+      setClarifying(false)
+    }
+  }
+
+  async function submitAnswersAndClassify() {
+    if (!task || submittingAnswers) return
+    setSubmittingAnswers(true)
+    setClarifyError(null)
+    try {
+      await fetch('/api/command-centre/clarify/answers', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId: task.id, answers }),
+      })
+      const res = await fetch('/api/command-centre/classify', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId: task.id }),
+      })
+      if (!res.ok) { setClarifyError(await readError(res, 'Could not classify the idea')); return }
+      const data = (await res.json()) as { routing: RoutingView }
+      setRouting(data.routing)
+    } catch {
+      setClarifyError('Network error — could not reach the classify service.')
+    } finally {
+      setSubmittingAnswers(false)
     }
   }
 
@@ -256,6 +321,127 @@ export function IdeaConsole({ projects }: { projects: IdeaConsoleProject[] }) {
               <span className={styles.chip}>{task.status}</span>
             </div>
             <span className={styles.taskId}>id · {task.id}</span>
+          </div>
+        )}
+
+        {/* ── Clarify / route panel ───────────────────────────────────── */}
+        {task && !questions && !routing && (
+          <div className={styles.actions}>
+            <button
+              type="button"
+              className={styles.board}
+              onClick={requestClarify}
+              disabled={clarifying}
+              aria-label="Clarify"
+            >
+              {clarifying && <span className={styles.spinner} aria-hidden="true" />}
+              {clarifying ? 'Clarifying…' : 'Clarify'}
+            </button>
+          </div>
+        )}
+
+        {questions !== null && !routing && (
+          <div className={styles.verdict}>
+            {questions.length === 0 ? (
+              <p className={styles.rationale}>
+                No questions — the idea is clear enough to route directly.
+              </p>
+            ) : (
+              <>
+                <span className={styles.subhead}>Clarifying questions</span>
+                <ul className={styles.personaList}>
+                  {questions.map((q) => (
+                    <li key={q} className={styles.persona}>
+                      <span className={styles.personaBody}>
+                        <label className={styles.personaName} htmlFor={`clarify-q-${q}`}>{q}</label>
+                        <input
+                          id={`clarify-q-${q}`}
+                          aria-label={q}
+                          className={styles.textarea}
+                          value={answers[q] ?? ''}
+                          onChange={(e) => setAnswers((prev) => ({ ...prev, [q]: e.target.value }))}
+                          style={{ minHeight: 'unset', resize: 'none' }}
+                        />
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <div className={styles.actions}>
+                  <button
+                    type="button"
+                    className={styles.submit}
+                    onClick={submitAnswersAndClassify}
+                    disabled={submittingAnswers}
+                    aria-label="Submit answers"
+                  >
+                    {submittingAnswers && <span className={styles.spinner} aria-hidden="true" />}
+                    {submittingAnswers ? 'Submitting…' : 'Submit answers'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {clarifyError && (
+          <div className={styles.error} role="alert">
+            {clarifyError}
+          </div>
+        )}
+
+        {routing && (
+          <div className={styles.verdict}>
+            <div className={styles.verdictHead}>
+              <span className={styles.verdictBadge} data-verdict="APPROVED">
+                {routing.lane}
+              </span>
+              <span className={styles.subhead}>
+                Routed · {Math.round(routing.confidence * 100)}% confidence
+              </span>
+            </div>
+
+            {routing.rationale && (
+              <p className={styles.rationale}>{routing.rationale}</p>
+            )}
+
+            {routing.planBuild.length > 0 && (
+              <>
+                <span className={styles.subhead}>Build steps</span>
+                <ul className={styles.subList}>
+                  {routing.planBuild.map((step, i) => (
+                    <li key={step.title} className={styles.subItem}>
+                      <span className={styles.subIndex}>{String(i + 1).padStart(2, '0')}</span>
+                      <span className={styles.subTitle}>{step.title}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+
+            {routing.planDistribute.length > 0 && (
+              <>
+                <span className={styles.subhead}>Distribute steps</span>
+                <ul className={styles.subList}>
+                  {routing.planDistribute.map((step, i) => (
+                    <li key={step.title} className={styles.subItem}>
+                      <span className={styles.subIndex}>{String(i + 1).padStart(2, '0')}</span>
+                      <span className={styles.subTitle}>{step.title}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+
+            <div className={styles.actions}>
+              <button
+                type="button"
+                className={styles.board}
+                disabled
+                aria-label={`Approve & build — ${routing.lane} lane pending`}
+              >
+                Approve &amp; build — {routing.lane} lane pending
+              </button>
+            </div>
           </div>
         )}
 
