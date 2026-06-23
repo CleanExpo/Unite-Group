@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   const generatedAt = new Date().toISOString()
 
   // ── Persist to metadata.clarifications ───────────────────────────────────
-  await mergeTaskMetadata({
+  const persisted = await mergeTaskMetadata({
     founderId: user.id,
     taskId,
     patch: {
@@ -53,6 +53,9 @@ export async function POST(request: Request) {
       },
     },
   })
+  if (!persisted) {
+    return NextResponse.json({ error: 'Failed to persist questions' }, { status: 500 })
+  }
 
   // ── Append audit event (best-effort; does not fail the route) ────────────
   // TaskEventType 'comment' is a valid member of the union — used to signal

@@ -35,4 +35,13 @@ describe('POST /api/command-centre/classify', () => {
       }),
     )
   })
+  it('500 when persistence fails (mergeTaskMetadata returns null)', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    vi.mocked(getTaskById).mockResolvedValue({ id: 't', objective: 'Promo', metadata: {} } as never)
+    vi.mocked(classifyIdea).mockResolvedValue({ lane: 'marketing', confidence: 0.8, rationale: 'x', planBuild: [], planDistribute: [] } as never)
+    vi.mocked(mergeTaskMetadata).mockResolvedValue(null)
+    const res = await POST(req({ taskId: 't' }))
+    expect(res.status).toBe(500)
+    expect((await res.json()).error).toBe('Failed to persist routing')
+  })
 })
