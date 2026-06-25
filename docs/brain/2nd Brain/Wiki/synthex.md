@@ -93,7 +93,7 @@ new Synthex Marketing Agency pages so future agents do not re-discover the graph
 
 ## Cross-refs
 
-[[businesses-overview]] · [[ccw]] · [[pi-ceo-architecture]] · [[wave-roadmap]] · [[seo-linkable-assets]] · [[synthex-seo-aeo-geo-master-generator-2026-05-18]] · [[semrush-health-check-and-nexus-ingestion-plan-2026-05-18]] · [[synthex-search-growth-management-index-2026-05-18]] · [[synthex-marketing-agency-runtime-lifecycle-2026-05-19]] · [[synthex-marketing-agency-wikilinks-2026-05-19]]
+[[businesses-overview]] · [[ccw]] · [[pi-ceo-architecture]] · [[wave-roadmap]] · [[seo-linkable-assets]] · [[synthex-seo-aeo-geo-master-generator-2026-05-18]] · [[semrush-health-check-and-nexus-ingestion-plan-2026-05-18]] · [[synthex-search-growth-management-index-2026-05-18]] · [[synthex-marketing-agency-runtime-lifecycle-2026-05-19]] · [[synthex-marketing-agency-wikilinks-2026-05-19]] · [[synthex-productivity-intelligence-upgrade-2026-06-24]]
 
 ## Board Directives Log
 

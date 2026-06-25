@@ -1,5 +1,1479 @@
 # Margot Overnight Progress Log
 
+## 2026-06-25 11:35 AEST
+
+### Tick 20260625_1135 — unpublished workspace lane refreshed; publication remains gated
+
+Lane: continued the existing dirty `apps/workspace` Mission Control / Video Command Center / sessions hardening lane rather than starting another branch. System-listed cron skills were missing (`subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`), so I continued under the available `unite-group-crm-command-spine`, `test-driven-development`, GitHub, and review skills. Root source-of-truth docs were absent except evidence/report files, so canonical context was read from the tracked fallback locations under `apps/empire/docs/margot/*`, `apps/web/docs/margot/*`, and root evidence logs. Scope stayed local: repo/docs/tests/build/read-back only. No commit, push, PR, merge, deploy, production DB write, Supabase migration/application, Vercel/GitHub env mutation, credential value read/print, billing/payment action, client-facing communication, cross-client identity merge, or destructive git action occurred.
+
+Preflight:
+- Branch: `feat/nexus-status-shell-20260623` tracking `origin/feat/nexus-status-shell-20260623`.
+- `git status --short --branch` showed the lane remains broad/dirty with modified `apps/workspace/*`, root Margot evidence docs, and Synthex/2nd Brain docs plus untracked workspace route/test files.
+- `git rev-list --left-right --count origin/main...HEAD` returned `1 2` (1 commit unique to `origin/main`, 2 commits unique to local HEAD) after PR #485's squash merge.
+- `gh auth status` is available; `gh pr list --state open --limit 10 --json ...` returned `[]`.
+
+Verification / evidence refreshed:
+- Focused workspace bundle: `pnpm exec vitest run src/server/mission-control-os.test.ts src/routes/api/-video-command-center.test.ts src/routes/api/-sessions.test.ts src/server/claude-api.test.ts src/screens/gateway/mission-control-contract.test.ts src/server/dashboard-aggregator.test.ts` -> PASS, 6 files / 21 tests.
+- `pnpm run build` from `apps/workspace` -> PASS (Vite client + SSR built). Existing non-blocking warnings remained for `src/routes/api/send-stream-live-tools.ts` not exporting `Route`, static/dynamic import chunking, and large chunks.
+- Scoped whitespace check: `git diff --check -- apps/workspace/src/components/mobile-hamburger-menu.tsx apps/workspace/src/components/workspace-shell.tsx apps/workspace/src/routeTree.gen.ts apps/workspace/src/routes/api/sessions.ts apps/workspace/src/screens/gateway/conductor.tsx apps/workspace/src/server/claude-api.ts apps/workspace/src/server/dashboard-aggregator.test.ts apps/workspace/src/server/dashboard-aggregator.ts` -> PASS.
+- Bounded touched-path content/security scan found only expected local env-name/fetch/authorization-header variable usage and benign Mission Control `approval` UI/guardrail copy. No literal credential values, raw Board approval refs, PII/payment strings, dangerous HTML, service-role key usage, provider/client mutation code, or production-write path was found in the newly inspected route/status surfaces.
+
+Blocking gates still red:
+- `pnpm exec tsc --noEmit` from `apps/workspace` -> FAIL on broad workspace baseline drift outside the focused slice: prompt-kit markdown removed exports, slash-command export conflicts, `send-stream.ts` missing `persistActiveRun`, swarm/chat/gateway type mismatches, `swarm-kanban` acceptanceCriteria type drift, and other unrelated workspace type errors.
+- Scoped ESLint over the dirty workspace touched set -> FAIL, 64 errors / 4 warnings. Failures include touched-file strictness (`Array<T>` style, import order, unnecessary assertions/conditionals, irregular whitespace) plus large `conductor.tsx`/`dashboard-aggregator.ts` cleanup work; this lane is not publishable until those are fixed or clean-replayed.
+- Full `pnpm run test` from `apps/workspace` -> FAIL, 70 files passed / 12 failed; 546 tests passed / 22 failed. Failing classes remain broad baseline/workspace drift (`kanban-backend`, models config parsing, local-provider discovery, gateway-capabilities env expectation, context-usage removed exports, prompt-kit markdown exports, chat message-list helper expectations, i18n label expectation, profiles browser, router route-generation invalidation, swarm2 surface copy). The focused Mission Control / Video Command Center / sessions tests passed.
+
+TDD status:
+- No new production code was authored in this tick, so no new RED/GREEN cycle was applicable. This run replayed the existing focused regression suite and refreshed build/security/gate evidence for the unpublished dirty lane.
+
+Gate packet:
+- Unpublished workspace lane: `NAMESPACE` / `KEEP_GATED` for publication. Concrete risk: broad type-check/lint/full-test baseline failures could hide regressions and the checkout mixes multiple dirty surfaces, so pushing/opening a PR would publish an unsafe bundle.
+- Product/finance/DB impact for the verified local status/proxy surfaces remains `NONE`: no schema, production data, billing, env, credential, provider-write, or client-facing action was taken.
+- Rollback note: keep the dirty workspace lane unpublished; if abandoning it, remove/revert the untracked Mission Control / Video Command Center route/test files and the corresponding route-tree/session/dashboard/conductor changes. No schema/env/billing/credential/data rollback is required.
+
+Safety / blockers:
+- Evidence append is local only. I did not commit or push because publication would mix broad dirty workspace/Synthex/evidence files and retrigger a known-red workspace namespace.
+- Next safe lane: fix the touched-file ESLint/type errors in a strict TDD/green-refactor sequence or clean-replay only the desired bounded route/test slice from `origin/main`, then rerun focused tests, `pnpm exec tsc --noEmit`, scoped/full lint, full tests, build, whitespace, and bounded scans before PR publication to `main`.
+
+## 2026-06-25 10:59 AEST
+
+### Tick 20260625_1059 — clean-replayed Video Command Center redaction slice, kept gated on workspace baseline
+
+Lane: continued the local `apps/workspace` Mission Control / Video Command Center lane first, using a detached clean worktree from `origin/main` rather than publishing from the broad dirty main checkout. Missing requested cron skills were skipped by the system (`subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`), so I continued under the loaded `unite-group-crm-command-spine`, `test-driven-development`, and GitHub skills. GitHub auth is available, and `gh pr list --state open --limit 10` returned `[]`. Scope stayed local: repo/docs/tests/code only. No push, PR, merge, deploy, production DB write, Supabase migration/application, Vercel/GitHub env mutation, credential value read/print, billing/payment action, client-facing communication, cross-client identity merge, or destructive git action occurred.
+
+Completed:
+- Created clean replay worktree `/tmp/unite-video-redaction-20260625` on branch `fix/video-command-center-url-redaction-20260625` from `origin/main` at `ccae6969ad74fffc9497a582782c493fda921211` (`git rev-list --left-right --count origin/main...HEAD` -> `0 0` before local edits).
+- RED test first: added `apps/workspace/src/routes/api/-video-command-center.test.ts` with fragmented synthetic URL userinfo (`operator:${'opaque-value'}`) and asserted disconnected JSON redacts both `baseUrl` and `error`.
+- GREEN change: added `apps/workspace/src/routes/api/video-command-center.ts` as an admin-gated local status/proxy route. The route probes the configured URL but returns only a redacted display URL/error (`http://[REDACTED]@127.0.0.1:3990...`), plus generated `apps/workspace/src/routeTree.gen.ts` registration.
+
+RED / GREEN evidence:
+- Initial RED after dependency install: `pnpm exec vitest run src/routes/api/-video-command-center.test.ts` -> FAIL, 1 file / 1 test failed because `./video-command-center` did not exist on clean `origin/main`.
+- GREEN: after adding the route, `pnpm exec vitest run src/routes/api/-video-command-center.test.ts` -> PASS, 1 file / 1 test.
+- Replay focused test again: PASS, 1 file / 1 test.
+
+Verification / gate evidence:
+- `pnpm install --frozen-lockfile` from clean worktree `apps/workspace` -> PASS.
+- `pnpm exec eslint src/routes/api/video-command-center.ts src/routes/api/-video-command-center.test.ts` -> PASS, exit 0, with only the existing `.eslintignore` deprecation warning.
+- `pnpm run build` from clean worktree `apps/workspace` -> PASS (Vite client + SSR built). Existing non-blocking warnings remained for `send-stream-live-tools.ts` route export, static/dynamic import chunking, and chunk size.
+- `git diff --check -- apps/workspace/src/routes/api/video-command-center.ts apps/workspace/src/routes/api/-video-command-center.test.ts apps/workspace/src/routeTree.gen.ts` -> PASS.
+- Bounded touched-path content/security scan over the two route/test files found only expected `process.env.VIDEO_COMMAND_CENTER_URL`, `fetch`, synthetic `operator:${'opaque-value'}` test fixture, and `[REDACTED]` assertions; no literal credential values, raw approval refs, PII/payment strings, dangerous HTML, service-role key usage, or provider/client mutation code were found.
+- Broad workspace `pnpm exec tsc --noEmit` -> FAIL on pre-existing/baseline workspace drift outside the slice (prompt-kit markdown removed exports, slash-command export conflicts, `send-stream.ts` missing `persistActiveRun`, swarm/chat/gateway type mismatches). The new video-command files did not appear in the broad failure list.
+- Full workspace `pnpm run test` -> FAIL, 67 files passed / 11 failed; 540 tests passed / 20 failed. Failures were the known broad workspace baseline classes (`kanban-backend`, models config parsing, local-provider discovery, i18n label, context-usage removed exports, profiles browser, chat composer/context controls, chat message-list helper expectations). The focused video-command regression passed.
+- A file-specific `tsc` probe was mis-selected and failed because it bypassed the route-tree/tsconfig context (`createFileRoute('/api/video-command-center')` typed as `never` plus a default-target Map iteration error); it is not counted as product evidence.
+
+Gate packet:
+- Clean replay slice: `NAMESPACE` / `KEEP_GATED` for publication because required broad workspace type-check and full tests are baseline-red, despite focused RED/GREEN, scoped lint, build, whitespace, and scan passing.
+- Product/finance/DB impact classification for the slice itself remains `NONE`: no DB/schema/env/billing/provider-write/client-facing path was introduced; route is admin-gated and status/proxy-only.
+- Rollback note: remove `apps/workspace/src/routes/api/video-command-center.ts`, `apps/workspace/src/routes/api/-video-command-center.test.ts`, and the generated `/api/video-command-center` entries from `apps/workspace/src/routeTree.gen.ts`; no schema/env/billing/credential/data rollback required.
+
+Safety / blockers:
+- I did not commit, push, open a PR, merge, deploy, mutate env, or touch production/provider/client/billing data.
+- Evidence append is local only in the original dirty checkout. The clean replay branch remains uncommitted at `/tmp/unite-video-redaction-20260625`; publishing should wait until baseline workspace type-check/full-test gates are repaired or the required gate is explicitly waived.
+- Independent reviewer status: dispatched and pending at evidence-write time; not counted as approval.
+
+Next safe lane:
+- Fix or isolate the workspace baseline type-check/full-test failures, then rerun the clean replay gates and only then commit/push/open a PR to `main`. Do not publish the stale dirty `feat/nexus-status-shell-20260623` checkout.
+
+## 2026-06-25 10:22 AEST
+
+### Tick 20260625_1022 — local Video Command Center credential-redaction TDD slice
+
+Lane: continued the existing dirty `apps/workspace` Mission Control / Video Command Center lane locally. There are no open GitHub PRs (`gh pr list --state open --limit 10` returned `[]`), and the checkout remains on stale branch `feat/nexus-status-shell-20260623` after PR #485 was already squash-merged by a human/operator. `git fetch origin main --prune` completed; `git rev-list --left-right --count origin/main...HEAD` returned `1 2` (1 commit unique to `origin/main`, 2 commits unique to local stale branch). Scope stayed local: repo/docs/tests/code only. No push, PR, merge, deploy, production DB write, Supabase migration/application, Vercel/GitHub env mutation, credential value read/print, billing/payment action, client-facing communication, cross-client identity merge, or destructive git action occurred.
+
+Completed:
+- Added a strict RED/GREEN slice for `apps/workspace/src/routes/api/video-command-center.ts`: disconnected `/api/video-command-center` responses now redact URL userinfo from `baseUrl` and error text before returning JSON.
+- New regression coverage: `apps/workspace/src/routes/api/-video-command-center.test.ts` builds a synthetic URL userinfo string from fragments (`operator:${'opaque-value'}`), forces the upstream fetch to fail with that URL in the error message, and asserts the response only contains `http://[REDACTED]@127.0.0.1:3990...` while omitting the raw userinfo.
+- Kept the route admin-gated and local/read-only; no live Video Command Center provider call was required for the test, and the route still uses the configured URL only for the outbound probe while returning the redacted display URL.
+
+RED / GREEN evidence:
+- RED: `pnpm exec vitest run src/routes/api/-video-command-center.test.ts` -> FAIL, 1 file / 1 test failed as expected because `payload.baseUrl` returned raw `http://operator:opaque-value@127.0.0.1:3990` instead of the redacted URL.
+- GREEN: after the minimal route change, `pnpm exec vitest run src/routes/api/-video-command-center.test.ts` -> PASS, 1 file / 1 test.
+- Focused regression bundle: `pnpm exec vitest run src/routes/api/-video-command-center.test.ts src/server/mission-control-os.test.ts src/routes/api/-sessions.test.ts src/server/claude-api.test.ts src/server/dashboard-aggregator.test.ts src/screens/gateway/mission-control-contract.test.ts` -> PASS, 6 files / 21 tests.
+
+Verification / gate evidence:
+- `pnpm exec eslint src/routes/api/video-command-center.ts src/routes/api/-video-command-center.test.ts` -> PASS, exit 0, with only the existing `.eslintignore` deprecation warning.
+- `pnpm run build` from `apps/workspace` -> PASS, Vite client + SSR built successfully; existing non-blocking warnings remain for route file `src/routes/api/send-stream-live-tools.ts` not exporting `Route`, dynamic import/static import chunking, and chunk sizes.
+- `git diff --check -- apps/workspace/src/routes/api/video-command-center.ts apps/workspace/src/routes/api/-video-command-center.test.ts` -> PASS.
+- `pnpm exec tsc --noEmit` from `apps/workspace` -> FAIL on broad pre-existing workspace drift outside this slice (examples: missing exports in `src/components/prompt-kit/markdown.test.ts`, duplicate/conflicting slash-command exports, `src/routes/api/send-stream.ts` missing `persistActiveRun`, swarm/chat type mismatches). The new video-command route/test did not appear in the TypeScript failure list, and Vite build passed.
+- Full `pnpm run lint` from `apps/workspace` remains baseline-red on broad repository drift (1,543 errors / 160 warnings), including generated/bundled and unrelated workspace files. Scoped lint for this slice passed.
+- Bounded touched-path scans over `apps/workspace/src/routes/api/video-command-center.ts` and `apps/workspace/src/routes/api/-video-command-center.test.ts` found only the intended redaction helper/test language and `process.env.VIDEO_COMMAND_CENTER_URL` env-name usage; no literal credential values, raw approval refs, PII/payment terms, dangerous HTML, service-role key usage, or provider/client mutation code were found.
+
+Gate packet:
+- Local Video Command Center redaction slice: `NONE` for production/finance/DB impact; locally `LIFT_WITH_GUARDRAILS` as a safe local patch, but not publication-ready from this dirty/stale checkout.
+- Dirty workspace branch lane: `NAMESPACE` / `KEEP_GATED` until reconciled with `origin/main` and broad workspace type-check/lint drift is fixed or this slice is clean-replayed from `origin/main`.
+- Rollback note: remove `apps/workspace/src/routes/api/-video-command-center.test.ts` and revert the `redactUrlCredentials`/redacted-response change in `apps/workspace/src/routes/api/video-command-center.ts`; no schema/env/billing/credential/data rollback required.
+
+Safety / blockers:
+- I did not commit, push, open a PR, merge, deploy, mutate env, or touch production/provider/client/billing data.
+- Evidence append is local only. Publishing from this branch could mix the stale post-merge PR #485 commits with unrelated dirty workspace/Synthex/evidence changes.
+
+Next safe lane:
+- Clean-replay the bounded Video Command Center redaction slice (and only its test + route files) onto a fresh branch from `origin/main`, then rerun focused Vitest, scoped lint, build, type-check baseline assessment, bounded scan, and open a PR to `main` only if the replayed branch is clean enough to publish. Separately keep the broad workspace drift `NAMESPACE` / `KEEP_GATED` until fixed.
+
+## 2026-06-25 09:43 AEST
+
+### Tick 20260625_0943 — PR #485 human-merged read-back + post-merge main verification
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) rather than starting or publishing another CRM/Margot slice. Live read-back showed Phill/CleanExpo merged PR #485 at 2026-06-24T23:36:53Z into `main` as squash merge commit `ccae6969ad74fffc9497a582782c493fda921211`. Scope stayed inside repo/docs/GitHub/Vercel read-back, isolated local `apps/web` verification from exact merge commit, bounded content scans, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git on main, agent merge, or live provider mutation occurred.
+
+Completed:
+- Preflight: current checkout remains on stale local branch `feat/nexus-status-shell-20260623` at `3cdec1df3702d2aa1e98a7aec09af8a04786c07e` with broad unrelated dirty workspace/Synthex/evidence files. `git fetch origin main feat/nexus-status-shell-20260623 --prune` advanced `origin/main` to `ccae6969ad74fffc9497a582782c493fda921211`. Because PR #485 was squash-merged, `git rev-list --left-right --count origin/main...HEAD` now returns `1 2` (1 commit unique to `origin/main`, 2 commits unique to local stale PR branch).
+- PR #485 read-back: https://github.com/CleanExpo/Unite-Group/pull/485, state `MERGED`, merged by `CleanExpo` / Phillip McGurk, merge commit `ccae6969ad74fffc9497a582782c493fda921211`.
+- Post-merge GitHub Actions: run https://github.com/CleanExpo/Unite-Group/actions/runs/28136605909 for merge commit `ccae6969ad74fffc9497a582782c493fda921211` completed `success`. Check runs all passed: `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, `apps/workspace — build`, `apps/spec-board — type-check, test, build`, and `packages/pi-ceo-operator-mcp — build`.
+- Post-merge deploy/status read-back for commit `ccae6969ad74fffc9497a582782c493fda921211`: `Vercel – unite-group` succeeded at https://vercel.com/unite-group/unite-group/8vkVo1EnCMHhkLLYGG8kGEcaEtj9; `autopilot-runner - unite-autopilot-runner` succeeded; `Vercel – unite-group-sandbox` failed at https://vercel.com/unite-group/unite-group-sandbox/4GwvfJsxTNKE96Tdo3YDE1orALMx.
+- Sandbox Vercel log inspection (`vercel inspect dpl_4GwvfJsxTNKE96Tdo3YDE1orALMx --logs`) showed sandbox failed during `apps/web` `prebuild` env validation: `CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`; only variable names/counts were inspected, no values. This is a sandbox configuration namespace gate, not evidence of a product-code regression.
+- No new production code was authored in this tick because the active PR was already merged by a human/operator. No new RED/GREEN cycle was applicable; this tick replayed existing regression coverage and exact merge-head gates.
+
+Verification / evidence:
+- Isolated worktree setup: `git worktree add --detach /tmp/unite-main-ccae696-0937b ccae6969ad74fffc9497a582782c493fda921211` -> PASS; removed after verification with `git worktree remove /tmp/unite-main-ccae696-0937b` -> PASS.
+- `pnpm install --frozen-lockfile` from isolated `apps/web` -> PASS with non-blocking Supabase bin warnings / ignored Supabase build script, exit 0.
+- Focused Vitest from isolated `apps/web`: `node ./node_modules/vitest/vitest.mjs run "src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx" --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from isolated `apps/web` -> PASS (`tsc --noEmit`, exit 0).
+- `pnpm run lint` from isolated `apps/web` -> PASS (`eslint src/`, exit 0).
+- Scoped whitespace check from isolated worktree: `git diff --check 46d137d75b7d300a28582c491ee199b72c81ba1f...ccae6969ad74fffc9497a582782c493fda921211 -- docs/margot/overnight-progress-log.md docs/margot/morning-report.md "apps/web/src/app/(founder)/founder/nexus-status/page.tsx" "apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx"` -> PASS.
+- Bounded content scan over isolated `apps/web/src/app/(founder)/founder/nexus-status` for secret/token/bearer/credential/authorization/service-role/private-key/client-secret/password/API-key, raw approval refs, PII/payment terms, provider/client creation, dangerous HTML, and `process.env` returned 0 matches. Positive-control `approval` search found only benign static UI copy (`Approval Queue`, `approval gates`).
+
+Gate packet:
+- PR #485 product lane: `NONE` / post-merge `LIFT_WITH_GUARDRAILS` read-back. It is merged on `main`, product-code CI is green, production Vercel is green, and no finance/DB/env/provider/billing action was introduced. Guardrails remain: do not add live provider wiring, DB writes, approval automation, client-facing actions, or evidence-only commits without fresh checks; keep the Nexus status shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Sandbox deployment lane: `NAMESPACE` / `KEEP_GATED` for `unite-group-sandbox` only. Concrete risk: sandbox cannot validate/deploy `apps/web` until authorised Vercel sandbox environment configuration is repaired; do not mutate Vercel env autonomously.
+- Local stale/dirty checkout lane: `NAMESPACE` / `KEEP_GATED` until local branch/worktree is reconciled with `origin/main` and the unrelated workspace/Synthex changes are clean-replayed or fixed behind strict TDD with passing package gates.
+- Rollback note: product rollback would be revert merge commit `ccae6969a` / remove `/founder/nexus-status`; no schema/env/billing/credential/data rollback required. Sandbox rollback is configuration-only: repair/restore authorised sandbox env values; do not apply migrations or write production DB.
+
+Safety / blockers:
+- I did not merge PR #485; it was already merged by Phill/CleanExpo and this run only verified read-back. I did not push/commit/open a PR, mutate GitHub/Vercel/Supabase/env, or read/print credential values.
+- Evidence append is local only because pushing from this stale dirty checkout could publish unrelated workspace/2nd Brain/Synthex files or create churn after a completed merge.
+
+Next safe lane:
+- Pull/switch to clean `origin/main` after preserving any wanted local dirty work. Then either repair the `unite-group-sandbox` Vercel environment through authorised operator action, or clean-replay the unpublished Mission Control OS workspace slice from `origin/main` behind strict TDD and package gates. New PRs must target `main` only.
+
+## 2026-06-25 09:02 AEST
+
+### Tick 20260625_0902 — PR #485 unchanged green read-back + exact-head focused replay
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) rather than starting or publishing another CRM/Margot slice. The main checkout still contains unrelated dirty `apps/workspace`, Synthex/2nd Brain, and local evidence-log files, so verification was replayed from detached worktree `/tmp/unite-pr485-0902` at exact PR head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`. Scope stayed inside repo/docs/GitHub/Vercel read-back, isolated local `apps/web` verification, bounded scans, local build env-gate read-back, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git on main, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight: current branch `feat/nexus-status-shell-20260623`; local `HEAD`, tracking branch, and PR #485 remote head all match `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`. `git rev-list --left-right --count origin/feat/nexus-status-shell-20260623...HEAD` returned `0 0`; `git rev-list --left-right --count origin/main...HEAD` returned `0 2` (0 commits unique to `origin/main`, 2 PR commits unique to `HEAD`). GitHub auth is available; no credential values were used or printed.
+- PR #485 read-back: https://github.com/CleanExpo/Unite-Group/pull/485, base `main`, open, non-draft, `CLEAN`, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`.
+- Remote checks via `gh pr checks 485` remain PASS for CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, apps/web lint/type/test/build, apps/web Playwright E2E, apps/workspace build, apps/spec-board type/test/build, and MCP build.
+- Vercel deployment contexts remain green for `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT`.
+- Read-first context was refreshed from tracked fallback source docs under `apps/empire/docs/margot/*`, `apps/web/docs/margot/*`, and root evidence logs, because root `docs/margot/` currently holds evidence/report files rather than the full source-of-truth set.
+- No new production code was authored in this tick because the already-open PR remains fully green and should be decided before another lane is started/published. No new RED/GREEN cycle was applicable; this tick replayed the existing PR regression test and focused local `apps/web` gates from the clean PR head.
+
+Verification / evidence:
+- Isolated worktree setup: `git worktree add --detach /tmp/unite-pr485-0902 3cdec1df3702d2aa1e98a7aec09af8a04786c07e` -> PASS; `pnpm install --frozen-lockfile` from isolated `apps/web` -> PASS with non-blocking Supabase bin warnings / ignored Supabase build script, exit 0.
+- Focused local Vitest from isolated `apps/web`: `node ./node_modules/vitest/vitest.mjs run "src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx" --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from isolated `apps/web` -> PASS (`tsc --noEmit`, exit 0).
+- `pnpm run lint` from isolated `apps/web` -> PASS (`eslint src/`, exit 0).
+- Scoped whitespace check from isolated worktree: `git diff --check origin/main...HEAD -- docs/margot/overnight-progress-log.md docs/margot/morning-report.md "apps/web/src/app/(founder)/founder/nexus-status/page.tsx" "apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx"` -> PASS.
+- Bounded content scan over isolated `apps/web/src/app/(founder)/founder/nexus-status` for secret/token/bearer/credential/authorization/service-role/private-key/client-secret/password/API-key, raw approval refs, PII/payment terms, fetch/client creation, dangerous HTML, and `process.env` patterns returned 0 matches; a separate positive-control search for `approval` found only benign static UI copy (`Approval Queue`, `approval gates`).
+- Local `pnpm run build` from isolated `apps/web` stopped at `scripts/validate-env.mjs --ci` because this cron shell has no app env configured (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`). No credential values were read or printed. Remote CI build and both Vercel contexts are green for the same unchanged PR head.
+
+Gate packet:
+- PR #485 classification: `NONE` for product/finance/prod impact; recommended disposition remains `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only remote head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, client-facing actions, or evidence-only commits without fresh checks; keep the Nexus status shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Local shell-only app-env note: `NAMESPACE` configuration note, not a PR blocker, because local build env validation fails only in the cron shell while remote CI build and both Vercel contexts are green for exact PR head.
+- Unpublished dirty workspace/Synthex lane remains separate `NAMESPACE` / `KEEP_GATED` until clean-replayed or fixed behind strict TDD with passing workspace type-check/lint/full tests.
+- Rollback note: for PR #485, revert PR #485 or remove `/founder/nexus-status`; no schema/env/billing/credential/data rollback required. For the local dirty workspace lane, keep it unpublished or clean-replay only scoped commits onto a fresh branch from `origin/main`.
+
+Safety / blockers:
+- I did not merge, push, open a new PR, mutate Vercel/GitHub/Supabase/env, or commit evidence. This append is local only because pushing now could retrigger an already-green PR and publish unrelated dirty workspace/2nd Brain/Synthex files.
+- Dirty checkout remains broad: `apps/workspace/*`, `docs/brain/2nd Brain/Wiki/*`, root evidence logs, and local workspace test/source files are modified/untracked outside the PR gate.
+
+Next safe lane:
+- Phill/operator can still sign off/merge PR #485 if guardrails are accepted. Separately, clean-replay the Mission Control OS workspace slice from `origin/main` or keep fixing the dirty lane behind tests until type-check/lint/full tests are green, then publish as a separate PR targeting `main` only.
+
+## 2026-06-25 08:25 AEST
+
+### Tick 20260625_0825 — PR #485 green read-back + exact-head full web replay
+
+Lane: continued the already-open PR #485 (`feat/nexus-status-shell-20260623`) rather than starting or publishing another CRM/Margot slice. Because the main checkout still contains unrelated dirty `apps/workspace`, Synthex/2nd Brain, and evidence-log files, verification was replayed from detached worktree `/tmp/unite-pr485-0825` at exact PR head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`. Scope stayed inside repo/docs/GitHub/Vercel read-back, isolated local `apps/web` verification, bounded scans, local build env-gate read-back, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git on main, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight: current branch `feat/nexus-status-shell-20260623`; local `HEAD` is `3cdec1df3702d2aa1e98a7aec09af8a04786c07e` and matches PR #485 remote head. `git rev-list --left-right --count origin/main...HEAD` returned `0 2` (0 commits unique to `origin/main`, 2 PR commits unique to `HEAD`). GitHub auth is available; no credential values were used or printed.
+- PR #485 read-back: https://github.com/CleanExpo/Unite-Group/pull/485, base `main`, open, non-draft, `MERGEABLE`, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`.
+- Remote checks read-back via `gh pr checks 485` remains PASS for CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, apps/web lint/type/test/build, apps/web Playwright E2E, apps/workspace build, apps/spec-board type/test/build, and MCP build.
+- Vercel deployment contexts remain green for `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT`.
+- Read-first context was refreshed from tracked fallback source docs under `apps/empire/docs/margot/*`, `apps/web/docs/margot/*`, and `apps/web/docs/plans/*`, because root `docs/margot/` currently holds evidence/report files rather than the full source-of-truth set.
+- No new production code was authored in this tick because the already-open PR remains fully green and should be decided before another lane is started/published. No new RED/GREEN cycle was applicable; this tick replayed the existing PR regression test and local `apps/web` gates from the clean PR head.
+
+Verification / evidence:
+- Isolated worktree setup: `git worktree add --detach /tmp/unite-pr485-0825 3cdec1df3702d2aa1e98a7aec09af8a04786c07e` -> PASS; `pnpm install --frozen-lockfile` from isolated `apps/web` -> PASS with non-blocking Supabase bin warnings / ignored Supabase build script, exit 0.
+- Focused local Vitest from isolated `apps/web`: `node ./node_modules/vitest/vitest.mjs run "src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx" --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from isolated `apps/web` -> PASS (`tsc --noEmit`, exit 0).
+- `pnpm run lint` from isolated `apps/web` -> PASS (`eslint src/`, exit 0).
+- Full local unit suite from isolated `apps/web`: `pnpm run test` -> PASS, 440 files / 2622 tests. Existing intentional failure-path tests emitted expected stderr/stdout, but the suite exited 0.
+- Scoped whitespace check from isolated worktree: `git diff --check origin/main...HEAD -- docs/margot/overnight-progress-log.md docs/margot/morning-report.md "apps/web/src/app/(founder)/founder/nexus-status/page.tsx" "apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx"` -> PASS.
+- Bounded content scan over isolated `apps/web/src/app/(founder)/founder/nexus-status` for secret/auth/token/bearer/credential/authorization/service-role/private-key/client-secret/password/API-key, approval refs, PII/payment terms, fetch/client creation, dangerous HTML, and `process.env` patterns returned only benign UI copy containing the word `approval` in "approval gates"; no literal credential values, raw approval references, provider calls, PII, payment strings, or dangerous HTML/process-env usage were found.
+- Local `pnpm run build` from isolated `apps/web` stopped at `scripts/validate-env.mjs --ci` because this cron shell has no app env configured (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`). No credential values were read or printed. Remote CI build and both Vercel contexts are green for the same unchanged PR head.
+
+Gate packet:
+- PR #485 classification: `NONE` for product/finance/prod impact; recommended disposition remains `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only remote head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, client-facing actions, or evidence-only commits without fresh checks; keep the Nexus status shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Local shell-only app-env note: `NAMESPACE` configuration note, not a PR blocker, because local build env validation fails only in the cron shell while remote CI build and both Vercel contexts are green for exact PR head.
+- Unpublished dirty workspace/Synthex lane remains separate `NAMESPACE` / `KEEP_GATED` until clean-replayed or fixed behind strict TDD with passing workspace type-check/lint/full tests.
+- Rollback note: for PR #485, revert PR #485 or remove `/founder/nexus-status`; no schema/env/billing/credential/data rollback required. For the local dirty workspace lane, keep it unpublished or clean-replay only scoped commits onto a fresh branch from `origin/main`.
+
+Safety / blockers:
+- I did not merge, push, open a new PR, mutate Vercel/GitHub/Supabase/env, or commit evidence. This append is local only because pushing now could retrigger an already-green PR and publish unrelated dirty workspace/2nd Brain/Synthex files.
+- Dirty checkout remains broad: `apps/workspace/*`, `docs/brain/2nd Brain/Wiki/*`, root evidence logs, and local workspace test/source files are modified/untracked outside the PR gate.
+
+Next safe lane:
+- Phill/operator can still sign off/merge PR #485 if guardrails are accepted. Separately, clean-replay the Mission Control OS workspace slice from `origin/main` or keep fixing the dirty lane behind tests until type-check/lint/full tests are green, then publish as a separate PR targeting `main` only.
+
+## 2026-06-25 07:48 AEST
+
+### Tick 20260625_0748 — PR #485 green read-back + local Mission Control workspace gate probe
+
+Lane: continued the already-open PR #485 (`feat/nexus-status-shell-20260623`) first, then probed the unpublished dirty `apps/workspace` Mission Control OS / sessions hardening lane already present in this checkout. Scope stayed local/read-only except this evidence append. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git on main, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight: current branch `feat/nexus-status-shell-20260623`; local `HEAD` is `3cdec1df3702d2aa1e98a7aec09af8a04786c07e` and matches PR #485 remote head. `git rev-list --left-right --count origin/main...HEAD` returned `0 2` (0 commits unique to `origin/main`, 2 PR commits unique to `HEAD`). GitHub auth and Vercel CLI are available; no credential values were used or printed.
+- PR #485 read-back: https://github.com/CleanExpo/Unite-Group/pull/485, base `main`, non-draft, `MERGEABLE`, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`. Remote status rollup remains SUCCESS for apps/web lint/type/test/build, apps/workspace build, apps/spec-board, MCP build, apps/web Playwright E2E, CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, and `Vercel – unite-group-sandbox`.
+- Vercel status from PR checks remains green for `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT`.
+- Read-first context was refreshed from tracked fallback docs under `apps/empire/docs/margot/*` and `apps/web/docs/margot/*`, plus root evidence logs. Root `docs/margot/` remains the evidence/report location.
+- No new production code was authored in this tick because PR #485 is still the active green lane and the workspace Mission Control changes are already dirty/unpublished. No new RED/GREEN cycle was applicable during this tick; I verified existing tests around the dirty lane instead of adding another slice on top.
+
+Verification / evidence:
+- Focused workspace regression replay: `pnpm exec vitest run src/server/mission-control-os.test.ts src/screens/gateway/mission-control-contract.test.ts src/server/claude-api.test.ts src/routes/api/-sessions.test.ts src/server/dashboard-aggregator.test.ts` -> PASS, 5 files / 20 tests. The run also emitted the existing TanStack route warning for `src/routes/api/send-stream-live-tools.ts` and a Vitest deprecation warning.
+- Scoped whitespace check: `git diff --check -- <touched workspace files>` -> PASS.
+- Workspace build: `pnpm run build` from `apps/workspace` -> PASS (`vite build`, client + SSR built). Non-blocking route-tree and chunk-size warnings were present; exit 0.
+- Broad workspace type check: `pnpm exec tsc --noEmit` -> FAIL on existing/broader workspace drift (examples include prompt-kit markdown exports, slash-command export conflicts, send-stream `persistActiveRun`, swarm/swarm2 type mismatches, and gateway capability shape). This keeps the unpublished dirty workspace lane gated.
+- Scoped lint: `pnpm exec eslint <touched workspace files> --max-warnings=0` -> FAIL, 71 problems / 67 errors / 4 warnings, mostly style/type-strictness in the dirty `conductor.tsx`, `dashboard-aggregator.ts`, `claude-api.ts`, `video-command-center.ts`, and the new tests/routes. Not pushed.
+- Full workspace tests: `pnpm run test` -> FAIL, 69 files passed / 12 failed; 545 tests passed / 22 failed. Failures are broad workspace baseline classes (`kanban-backend`, models config parsing, gateway capabilities env source, local provider discovery, i18n label, context-usage removed exports, swarm2 surface text, profiles browser, chat composer/context controls, chat message list, route-tree invalidation). The focused Mission Control/session/cron tests still passed inside this broader run.
+- Bounded touched-path content scan found only env-name/provider-token variable references (`process.env.OBSIDIAN_*`, `process.env.VIDEO_COMMAND_CENTER_URL`, `BEARER_TOKEN` variable/header construction) and fetch usage in the local video-command-center proxy; no literal credential values or service-role keys were printed or stored. The local route stays admin-auth gated and side-effect-free except local read/proxy status.
+
+Gate packet:
+- PR #485: classification `NONE`; recommended disposition remains `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only remote head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, client-facing actions, or evidence-only commits without fresh checks; keep the Nexus status shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Unpublished workspace Mission Control lane: classification `NAMESPACE`; recommended disposition `KEEP_GATED` until the dirty lane is clean-replayed from `origin/main` or fixed in-place with strict TDD, then `pnpm exec tsc --noEmit`, scoped/full tests, lint, and build pass. Concrete risk: publishing this branch now would mix a green PR with unrelated workspace changes and known broad type/lint/test failures.
+- Rollback note: for PR #485, revert PR #485 or remove `/founder/nexus-status`; no schema/env/billing/credential/data rollback required. For the local dirty workspace lane, keep it unpublished or clean-replay only the scoped commits onto a fresh branch from `origin/main`.
+
+Safety / blockers:
+- I did not merge, push, open a new PR, mutate Vercel/GitHub/Supabase/env, or commit evidence. This append is local only because pushing now could retrigger a green PR and publish unrelated dirty workspace/2nd Brain/Synthex files.
+- Dirty checkout remains broad: `apps/workspace/*`, `docs/brain/2nd Brain/Wiki/*`, and local evidence logs are modified/untracked.
+
+Next safe lane:
+- Phill/operator can still sign off/merge PR #485 if guardrails are accepted. Separately, clean-replay the Mission Control OS workspace slice from `origin/main` or keep fixing the dirty lane behind tests until type-check/lint/full tests are green, then publish as a separate PR targeting `main` only.
+
+## 2026-06-25 07:11 AEST
+
+### Tick 20260625_0711 — PR #485 unchanged green gate refresh + exact-head verification replay
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) rather than starting or publishing another CRM/Margot slice. The main checkout still contains unrelated dirty `apps/workspace` / Synthex / 2nd Brain work, so verification was replayed from detached worktree `/tmp/unite-pr485-0711` at exact PR head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`. Scope stayed inside repo/docs/GitHub/Vercel read-back, isolated local `apps/web` verification, bounded scans, local build env-gate read-back, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git on main, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight found current branch `feat/nexus-status-shell-20260623`, tracking `origin/feat/nexus-status-shell-20260623`; local `HEAD`, tracking branch, and PR remote head remain `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`. `git rev-list --left-right --count origin/main...HEAD` returned `0 2` (0 commits unique to `origin/main`, 2 PR commits unique to `HEAD`).
+- GitHub auth was available via `gh` without using or printing credential values. PR #485 read-back: https://github.com/CleanExpo/Unite-Group/pull/485, base `main`, non-draft, `CLEAN`, `MERGEABLE`, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`.
+- Remote checks read-back via `gh pr checks 485 --watch=false` remained PASS for CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, apps/web lint/type/test/build, apps/web Playwright E2E, apps/workspace build, apps/spec-board type/test/build, and MCP build.
+- Read-first context was refreshed from tracked fallback source docs under `apps/empire/docs/margot/*` and `apps/web/docs/margot/*`; root `docs/margot/` is currently the evidence/report location.
+- No new production-code change was authored in this tick because the already-open PR remains fully green and should be decided before another lane is started/published. No new RED/GREEN cycle was applicable; this tick replayed the existing PR regression test and local `apps/web` gates from the clean PR head.
+
+Verification / evidence:
+- Isolated worktree setup: `git worktree add --detach /tmp/unite-pr485-0711 3cdec1df3702d2aa1e98a7aec09af8a04786c07e` -> PASS; `pnpm install --frozen-lockfile` from `apps/web` -> PASS with non-blocking Supabase bin warnings and ignored Supabase build script, exit 0.
+- Focused local Vitest from isolated `apps/web`: `node ./node_modules/vitest/vitest.mjs run "src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx" --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from isolated `apps/web` -> PASS (`tsc --noEmit`, exit 0).
+- `pnpm run lint` from isolated `apps/web` -> PASS (`eslint src/`, exit 0).
+- Full local unit suite from isolated `apps/web`: `pnpm run test` -> PASS, 440 files / 2622 tests. Existing intentional failure-path tests emitted expected stderr/stdout, but the suite exited 0.
+- Scoped whitespace check from isolated worktree: `git diff --check origin/main...HEAD -- docs/margot/overnight-progress-log.md docs/margot/morning-report.md "apps/web/src/app/(founder)/founder/nexus-status/page.tsx" "apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx"` -> PASS.
+- Bounded content scan over isolated `apps/web/src/app/(founder)/founder/nexus-status` for secret/auth/token/bearer/credential/authorization/service-role/private-key/client-secret/password/API-key, approval refs, PII/payment terms, fetch/client creation, dangerous HTML, and `process.env` patterns returned 0 matches.
+- Local `pnpm run build` from isolated `apps/web` stopped at `scripts/validate-env.mjs --ci` because this cron shell has no app env configured (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`). No credential values were read or printed. Remote CI build and both Vercel contexts are green for the same unchanged PR head.
+- Vercel deployment read-back from PR checks: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT` both report completed/success deployment contexts for the unchanged PR head.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local missing app env remains a separate shell-only `NAMESPACE` configuration note, while remote CI build, required E2E, CodeRabbit, and both Vercel contexts are green.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only remote head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, client-facing actions, or evidence-only commits without fresh checks; keep the Nexus status shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. This remains an advisory packet for Phill/operator sign-off.
+- Main checkout still contains unrelated unstaged/untracked workspace/video-command-center and Synthex/2nd Brain changes (`apps/workspace/*`, `docs/brain/2nd Brain/Wiki/*`). They were not staged, pushed, or included in this PR gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR and could publish unrelated dirty workspace work.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge remote head `3cdec1df3` if the guardrails are accepted. After merge, start from clean `main`; either clean-replay the Mission Control OS workspace slice with strict TDD and type-check fixes, or choose the next smallest CRM/Margot command-spine gap.
+
+## 2026-06-25 06:38 AEST
+
+### Tick 20260625_0638 — PR #485 unchanged green gate refresh + exact-head full replay
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) rather than starting or publishing another CRM/Margot slice. The main checkout still contains unrelated dirty `apps/workspace` / Synthex / 2nd Brain work, so verification was replayed from detached worktree `/tmp/unite-pr485-3cdec1d-20260625a` at exact PR head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`. Scope stayed inside repo/docs/GitHub/Vercel read-back, isolated local `apps/web` verification, bounded scans, local build env-gate read-back, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git on main, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight found current branch `feat/nexus-status-shell-20260623`, tracking `origin/feat/nexus-status-shell-20260623`; local `HEAD`, tracking branch, and PR remote head all remain `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`. `git rev-list --left-right --count origin/main...HEAD` returned `0 2` (0 commits unique to `origin/main`, 2 PR commits unique to `HEAD`).
+- GitHub auth was available via `gh` without using or printing credential values. PR #485 read-back: https://github.com/CleanExpo/Unite-Group/pull/485, base `main`, non-draft, `CLEAN`, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`.
+- Remote checks read-back via `gh pr checks 485` remained PASS for CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, apps/web lint/type/test/build, apps/web Playwright E2E, apps/workspace build, apps/spec-board type/test/build, and MCP build.
+- Read-first context was refreshed from the tracked fallback source docs under `apps/empire/docs/margot/*` and `apps/web/docs/margot/*`; root `docs/margot/` is currently the evidence/report location.
+- No new production-code change was authored in this tick because the already-open PR remains fully green and should be decided before another lane is started/published. No new RED/GREEN cycle was applicable; this tick replayed the existing PR regression test and local `apps/web` gates from the clean PR head.
+
+Verification / evidence:
+- Isolated worktree setup: `git worktree add --detach /tmp/unite-pr485-3cdec1d-20260625a 3cdec1df3702d2aa1e98a7aec09af8a04786c07e` -> PASS; `pnpm install --frozen-lockfile` from `apps/web` -> PASS with non-blocking Supabase bin warnings and ignored Supabase build script, exit 0.
+- Focused local Vitest from isolated `apps/web`: `node ./node_modules/vitest/vitest.mjs run "src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx" --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from isolated `apps/web` -> PASS (`tsc --noEmit`, exit 0).
+- `pnpm run lint` from isolated `apps/web` -> PASS (`eslint src/`, exit 0).
+- Full local unit suite from isolated `apps/web`: `pnpm run test` -> PASS, 440 files / 2622 tests. Existing failure-path tests emitted expected stderr/stdout, but the suite exited 0.
+- Scoped whitespace check from isolated worktree: `git diff --check origin/main...HEAD -- docs/margot/overnight-progress-log.md docs/margot/morning-report.md "apps/web/src/app/(founder)/founder/nexus-status/page.tsx" "apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx"` -> PASS.
+- Bounded content scan over isolated `apps/web/src/app/(founder)/founder/nexus-status` for secret/auth/token/bearer/credential/authorization/service-role/private-key/client-secret/password/API-key, approval refs, PII/payment terms, fetch/client creation, dangerous HTML, and `process.env` patterns returned 0 matches.
+- Local `pnpm run build` from isolated `apps/web` stopped at `scripts/validate-env.mjs --ci` because this cron shell has no app env configured (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`). No credential values were read or printed. Remote CI build and both Vercel contexts are green for the same unchanged PR head.
+- Vercel deployment read-back from PR checks: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT` both report completed/success deployment contexts for the unchanged PR head.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local missing app env remains a separate shell-only `NAMESPACE` configuration note, while remote CI build, required E2E, CodeRabbit, and both Vercel contexts are green.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only remote head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, client-facing actions, or evidence-only commits without fresh checks; keep the Nexus status shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. This remains an advisory packet for Phill/operator sign-off.
+- Main checkout still contains unrelated unstaged/untracked workspace/video-command-center and Synthex/2nd Brain changes (`apps/workspace/*`, `docs/brain/2nd Brain/Wiki/*`). They were not staged, pushed, or included in this PR gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR and could publish unrelated dirty workspace work.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge remote head `3cdec1df3` if the guardrails are accepted. After merge, start from clean `main`; either clean-replay the Mission Control OS workspace slice with strict TDD and type-check fixes, or choose the next smallest CRM/Margot command-spine gap.
+
+## 2026-06-25 06:01 AEST
+
+### Tick 20260625_0601 — PR #485 unchanged green gate refresh + exact-head replay
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) rather than starting or publishing another CRM/Margot slice. The checkout still contains unrelated dirty `apps/workspace` / Synthex / 2nd Brain work, so verification was replayed from a detached worktree at exact PR head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`. Scope stayed inside repo/docs/GitHub/Vercel read-back, isolated local `apps/web` verification, bounded scans, local build env-gate read-back, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git on main, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight found current branch `feat/nexus-status-shell-20260623`, tracking `origin/feat/nexus-status-shell-20260623`; local `HEAD`, tracking branch, and PR remote head all remain `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`. `git rev-list --left-right --count origin/main...HEAD` returned `0 2` (0 commits unique to `origin/main`, 2 PR commits unique to `HEAD`).
+- GitHub auth was available via `gh` without using or printing credential values. Open PR read-back: https://github.com/CleanExpo/Unite-Group/pull/485, base `main`, non-draft, `CLEAN`, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`.
+- Remote checks read-back via `gh pr checks 485` remained PASS for CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, apps/web lint/type/test/build, apps/web Playwright E2E, apps/workspace build, apps/spec-board type/test/build, and MCP build.
+- Read-first context was refreshed from available tracked fallbacks: `apps/empire/docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md`, `apps/empire/docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md`, `apps/web/docs/margot/crm-operating-model.md`, `apps/web/docs/margot/crm-schema-inventory.md`, `apps/web/docs/margot/high-level-crm-25-step-forecast.md`, `apps/empire/docs/margot/lead-to-client-conversion-plan.md`, `apps/web/docs/margot/crm-contacts-opportunities-model.md`, root `docs/margot/linear-watch-today.md`, and the existing evidence logs.
+- No new production-code change was authored in this tick because the already-open PR remains fully green and should be decided before another lane is started/published. No new RED/GREEN cycle was applicable; this tick replayed the existing PR regression test and local `apps/web` gates from the clean PR head.
+
+Verification / evidence:
+- Isolated worktree setup: `git worktree add --detach /tmp/unite-pr485-0601 3cdec1df3702d2aa1e98a7aec09af8a04786c07e` -> PASS; `pnpm install --frozen-lockfile` from `apps/web` -> PASS with non-blocking Supabase bin warnings and ignored Supabase build script, exit 0.
+- Focused local Vitest from isolated `apps/web`: `./node_modules/.bin/vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx' --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from isolated `apps/web` -> PASS (`tsc --noEmit`, exit 0).
+- `pnpm run lint` from isolated `apps/web` -> PASS (`eslint src/`, exit 0).
+- Full local unit suite from isolated `apps/web`: `pnpm run test` -> PASS, 440 files / 2622 tests. Expected failure-path stderr/stdout appeared in existing tests, but the suite exited 0.
+- Scoped whitespace check from isolated worktree: `git diff --check origin/main...HEAD` -> PASS.
+- Bounded content scan over isolated `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded secret/auth/token/bearer/credential/authorization/service-role/private-key/client-secret/password/API-key and dangerous eval/HTML/exec/shell/process-env patterns returned 0 matches.
+- Local `pnpm run build` from isolated `apps/web` stopped at `scripts/validate-env.mjs --ci` because this cron shell has no app env configured (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`). No credential values were read or printed. Remote CI build and both Vercel contexts are green for the same unchanged PR head.
+- Vercel deployment read-back from PR checks: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT` both report completed/success deployment contexts for the unchanged PR head.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local missing app env remains a separate shell-only `NAMESPACE` configuration note, while remote CI build, required E2E, CodeRabbit, and both Vercel contexts are green.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only remote head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, client-facing actions, or evidence-only commits without fresh checks; keep the Nexus status shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. This remains an advisory packet for Phill/operator sign-off.
+- Main checkout still contains unrelated unstaged/untracked workspace/video-command-center and Synthex/2nd Brain changes (`apps/workspace/*`, `docs/brain/2nd Brain/Wiki/*`). They were not staged, pushed, or included in this PR gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR and could publish unrelated dirty workspace work.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge remote head `3cdec1df3` if the guardrails are accepted. After merge, start from clean `main`; either clean-replay the Mission Control OS workspace slice with strict TDD and type-check fixes, or choose the next smallest CRM/Margot command-spine gap.
+
+## 2026-06-25 05:19 AEST
+
+### Tick 20260625_0519 — PR #485 green gate refresh from isolated PR head replay
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) rather than starting or publishing another CRM/Margot slice. Because the main checkout contains unrelated dirty `apps/workspace` / Synthex / 2nd Brain work, verification was replayed from an isolated detached worktree at the exact PR head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`. Scope stayed inside repo/docs/GitHub/Vercel read-back, local `apps/web` verification, bounded scans, local build env-gate read-back, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git on main, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight found current branch `feat/nexus-status-shell-20260623`, tracking `origin/feat/nexus-status-shell-20260623`; local `HEAD`, tracking branch, and PR remote head all remain `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`. `git rev-list --left-right --count origin/main...HEAD` returned `0 2` (0 commits unique to `origin/main`, 2 PR commits unique to `HEAD`).
+- GitHub auth was available via `gh` without printing credential values. Open PR read-back: https://github.com/CleanExpo/Unite-Group/pull/485, base `main`, non-draft, `CLEAN`, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`.
+- Remote checks read-back via `gh pr checks 485 --watch=false` remained PASS for CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, apps/web lint/type/test/build, apps/web Playwright E2E, apps/workspace build, apps/spec-board type/test/build, and MCP build.
+- Read-first context was refreshed from available tracked fallbacks: `apps/empire/docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md`, `apps/empire/docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md`, `apps/web/docs/margot/crm-operating-model.md`, `apps/web/docs/margot/crm-schema-inventory.md`, `apps/web/docs/margot/high-level-crm-25-step-forecast.md`, `apps/empire/docs/margot/lead-to-client-conversion-plan.md`, `apps/web/docs/margot/crm-contacts-opportunities-model.md`, and root `docs/margot/linear-watch-today.md`.
+- No new production-code change was authored in this tick because the already-open PR remains fully green and should be decided before another lane is started/published. No new RED/GREEN cycle was applicable; this tick replayed the existing PR regression test and local `apps/web` gates from the clean PR head.
+
+Verification / evidence:
+- Isolated worktree setup: `git worktree add --detach /tmp/unite-pr485-3cdec1df 3cdec1df3702d2aa1e98a7aec09af8a04786c07e` -> PASS; `pnpm install --frozen-lockfile` from `apps/web` -> PASS with non-blocking Supabase bin warnings and ignored Supabase build script, exit 0.
+- Focused local Vitest from isolated `apps/web`: `./node_modules/.bin/vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx' --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from isolated `apps/web` -> PASS (`tsc --noEmit`, exit 0).
+- `pnpm run lint` from isolated `apps/web` -> PASS (`eslint src/`, exit 0).
+- Full local unit suite from isolated `apps/web`: `pnpm run test` -> PASS, 440 files / 2622 tests. Expected failure-path stderr/stdout appeared in existing tests, but the suite exited 0.
+- Scoped whitespace check from isolated worktree: `git diff --check origin/main...HEAD` -> PASS.
+- Bounded content scan over isolated `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded secret/auth/token/bearer/credential/authorization/service-role/private-key/client-secret/password/API-key and dangerous eval/HTML/exec/shell/process-env patterns returned 0 matches.
+- Local `pnpm run build` from isolated `apps/web` stopped at `scripts/validate-env.mjs --ci` because this cron shell has no app env configured (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`). No credential values were read or printed. Remote CI build and both Vercel contexts are green for the same unchanged PR head.
+- Vercel deployment read-back from PR checks: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT` both report completed/success deployment contexts for the unchanged PR head.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local missing app env remains a separate shell-only `NAMESPACE` configuration note, while remote CI build, required E2E, CodeRabbit, and both Vercel contexts are green.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only remote head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, client-facing actions, or evidence-only commits without fresh checks; keep the Nexus status shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. This remains an advisory packet for Phill/operator sign-off.
+- Main checkout still contains unrelated unstaged/untracked workspace/video-command-center and Synthex/2nd Brain changes (`apps/workspace/*`, `docs/brain/2nd Brain/Wiki/*`). They were not staged, pushed, or included in this PR gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR and could publish unrelated dirty workspace work.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge remote head `3cdec1df3` if the guardrails are accepted. After merge, start from clean `main`; either clean-replay the Mission Control OS workspace slice with strict TDD and type-check fixes, or choose the next smallest CRM/Margot command-spine gap.
+
+## 2026-06-25 04:42 AEST
+
+### Tick 20260625_0442 — PR #485 unchanged green gate refresh + full local web replay
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) rather than starting or publishing another CRM/Margot slice. Scope stayed inside repo/docs/GitHub/Vercel read-back, full local `apps/web` verification, bounded content/whitespace scans, local build env-gate read-back, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git on main, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight found current branch `feat/nexus-status-shell-20260623`, tracking `origin/feat/nexus-status-shell-20260623`; local `HEAD`, tracking branch, and PR remote head all remain `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`. `git rev-list --left-right --count origin/main...HEAD` returned `0 2` (0 commits unique to `origin/main`, 2 PR commits unique to `HEAD`).
+- GitHub auth was available via `gh` without printing credential values. PR #485 read-back: https://github.com/CleanExpo/Unite-Group/pull/485, base `main`, open, non-draft, `CLEAN`, `MERGEABLE`, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`.
+- Remote checks read-back via `gh pr checks 485` remained PASS for CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, apps/web lint/type/test/build, apps/web Playwright E2E, apps/workspace build, apps/spec-board type/test/build, and MCP build.
+- Read-first context was refreshed from available tracked fallbacks: `apps/empire/docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md`, `apps/empire/docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md`, `apps/web/docs/margot/crm-operating-model.md`, `apps/web/docs/margot/crm-schema-inventory.md`, `apps/web/docs/margot/high-level-crm-25-step-forecast.md`, `apps/empire/docs/margot/lead-to-client-conversion-plan.md`, `apps/web/docs/margot/crm-contacts-opportunities-model.md`, and `apps/web/docs/plans/2026-05-23-margot-multi-day-crm-build-plan.md`.
+- No new production-code change was authored in this tick because the already-open PR remains fully green and should be decided before another lane is started/published. No new RED/GREEN cycle was applicable; this tick replayed the existing PR regression test and full local `apps/web` gates.
+
+Verification / evidence:
+- Focused local Vitest from `apps/web`: `pnpm exec vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx'` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`, exit 0).
+- `pnpm run lint` from `apps/web` -> PASS (`eslint src/`, exit 0).
+- Full local unit suite from `apps/web`: `pnpm run test` -> PASS, 440 files / 2622 tests. Expected failure-path stderr/stdout appeared in existing tests, but the suite exited 0.
+- Scoped whitespace check: unquoted App Router path command was shell-blocked by parentheses, then retried as `git diff --check origin/main...HEAD -- 'apps/web/src/app/(founder)/founder/nexus-status/page.tsx' 'apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx' docs/margot/overnight-progress-log.md docs/margot/morning-report.md` -> PASS.
+- Bounded content scan over `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded secret/auth/token/bearer/credential/authorization/service-role/private-key/client-secret/password/API-key and dangerous eval/HTML/exec/spawn patterns returned 0 matches.
+- Local `pnpm run build` from `apps/web` stopped at `scripts/validate-env.mjs --ci` because this cron shell has no app env configured (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`). No credential values were read or printed. Remote CI build and both Vercel contexts are green for the same unchanged PR head.
+- Vercel deployment read-back from PR checks: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT` both report completed/success deployment contexts for the unchanged PR head.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local missing app env remains a separate shell-only `NAMESPACE` configuration note, while remote CI build, required E2E, CodeRabbit, and both Vercel contexts are green.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only remote head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, client-facing actions, or evidence-only commits without fresh checks; keep the Nexus status shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. This remains an advisory packet for Phill/operator sign-off.
+- Main checkout still contains unrelated unstaged/untracked workspace/video-command-center and Synthex/2nd Brain changes (`apps/workspace/*`, `docs/brain/2nd Brain/Wiki/*`). They were not staged, pushed, or included in this PR gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR and could publish unrelated dirty workspace work.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge remote head `3cdec1df3` if the guardrails are accepted. After merge, start from clean `main`; either clean-replay the Mission Control OS workspace slice with strict TDD and type-check fixes, or choose the next smallest CRM/Margot command-spine gap.
+
+## 2026-06-25 04:07 AEST
+
+### Tick 20260625_0407 — PR #485 unchanged green gate refresh + full local web replay
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) rather than starting or publishing another CRM/Margot slice. Scope stayed inside repo/docs/GitHub/Vercel read-back, full local `apps/web` verification, bounded content/whitespace scans, local build env-gate read-back, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git on main, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight found current branch `feat/nexus-status-shell-20260623`, tracking `origin/feat/nexus-status-shell-20260623`; local `HEAD`, tracking branch, and PR remote head all remain `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`. `git rev-list --left-right --count origin/main...HEAD` returned `0 2` (0 commits unique to `origin/main`, 2 PR commits unique to `HEAD`).
+- GitHub auth was available via `gh` without printing credential values. PR #485 read-back: https://github.com/CleanExpo/Unite-Group/pull/485, base `main`, open, non-draft, `CLEAN`, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`.
+- Remote checks read-back via `gh pr checks 485 --watch=false` remained PASS for CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, apps/web lint/type/test/build, apps/web Playwright E2E, apps/workspace build, apps/spec-board type/test/build, and MCP build.
+- Read-first context was refreshed from the available tracked canonical fallbacks because root `docs/margot/` currently carries progress/evidence logs: `apps/empire/docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md`, `apps/empire/docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md`, and `apps/web/docs/margot/crm-operating-model.md`.
+- No new production-code change was authored in this tick because the already-open PR remains fully green and should be decided before another lane is started/published. No new RED/GREEN cycle was applicable; this tick replayed the existing PR regression test and full local `apps/web` gates.
+
+Verification / evidence:
+- Focused local Vitest from `apps/web`: `pnpm exec vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx'` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`, exit 0).
+- `pnpm run lint` from `apps/web` -> PASS (`eslint src/`, exit 0).
+- Full local unit suite from `apps/web`: `pnpm run test` -> PASS, 440 files / 2622 tests. Expected failure-path stderr/stdout appeared in existing tests, but the suite exited 0.
+- Scoped whitespace check before this evidence append: `git diff --check origin/main...HEAD -- apps/web/src/app/(founder)/founder/nexus-status/page.tsx apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx docs/margot/overnight-progress-log.md docs/margot/morning-report.md` -> PASS.
+- Bounded content scan over `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded secret/auth/token/bearer/credential/authorization/service-role/private-key/client-secret/password/API-key and dangerous eval/HTML/exec/spawn patterns returned 0 matches.
+- Local `pnpm run build` from `apps/web` stopped at `scripts/validate-env.mjs --ci` because this cron shell has no app env configured (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`). No credential values were read or printed. Remote CI build and both Vercel contexts are green for the same unchanged PR head.
+- Vercel deployment read-back from PR checks: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT` both report completed/success deployment contexts for the unchanged PR head.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local missing app env remains a separate shell-only `NAMESPACE` configuration note, while remote CI build, required E2E, CodeRabbit, and both Vercel contexts are green.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only remote head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, client-facing actions, or evidence-only commits without fresh checks; keep the Nexus status shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. This remains an advisory packet for Phill/operator sign-off.
+- Main checkout still contains unrelated unstaged/untracked workspace/video-command-center and Synthex/2nd Brain changes (`apps/workspace/*`, `docs/brain/2nd Brain/Wiki/*`). They were not staged, pushed, or included in this PR gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR and could publish unrelated dirty workspace work.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge remote head `3cdec1df3` if the guardrails are accepted. After merge, start from clean `main`; either clean-replay the Mission Control OS workspace slice with strict TDD and type-check fixes, or choose the next smallest CRM/Margot command-spine gap.
+
+## 2026-06-25 03:28 AEST
+
+### Tick 20260625_0328 — PR #485 unchanged green gate refresh + focused local replay
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) rather than starting or publishing another CRM/Margot slice. Scope stayed inside repo/docs/GitHub/Vercel read-back, focused local `apps/web` verification, bounded content/whitespace scans, local build env-gate read-back, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git on main, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight found current branch `feat/nexus-status-shell-20260623`, tracking `origin/feat/nexus-status-shell-20260623`; local `HEAD`, tracking branch, and PR remote head all remain `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`. `git rev-list --left-right --count origin/main...HEAD` returned `0 2` (0 commits unique to `origin/main`, 2 PR commits unique to `HEAD`).
+- GitHub auth was available via `gh` without printing credential values. PR #485 read-back: https://github.com/CleanExpo/Unite-Group/pull/485, base `main`, open, non-draft, `CLEAN`, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`.
+- Remote checks read-back via `gh pr checks 485 --watch=false` remained PASS for CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, apps/web lint/type/test/build, apps/web Playwright E2E, apps/workspace build, apps/spec-board type/test/build, and MCP build.
+- Read-first context was refreshed from the available tracked canonical fallbacks because root `docs/margot/` currently carries progress/evidence logs: `apps/empire/docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md`, `apps/empire/docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md`, and `apps/web/docs/margot/crm-operating-model.md`.
+- No new production-code change was authored in this tick because the already-open PR remains fully green and should be decided before another lane is started/published. No new RED/GREEN cycle was applicable; this tick replayed the existing PR regression test and local gates.
+
+Verification / evidence:
+- Focused local Vitest from `apps/web`: `pnpm exec vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx'` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`, exit 0).
+- `pnpm run lint` from `apps/web` -> PASS (`eslint src/`, exit 0).
+- Scoped whitespace check: `git diff --check origin/main...HEAD -- apps/web/src/app/(founder)/founder/nexus-status/page.tsx apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx docs/margot/overnight-progress-log.md docs/margot/morning-report.md` -> PASS before this evidence append.
+- Bounded content scan over `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded secret/auth/token/bearer/credential/authorization/service-role/private-key/client-secret/password/API-key and dangerous eval/HTML/exec/spawn patterns returned 0 matches.
+- Local `pnpm run build` from `apps/web` stopped at `scripts/validate-env.mjs --ci` because this shell has no app env configured (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`). No credential values were read or printed. Remote CI build and both Vercel contexts are green for the same unchanged PR head.
+- Vercel deployment read-back from PR checks: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT` both report completed/success deployment contexts for the unchanged PR head.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local missing app env remains a separate shell-only `NAMESPACE` configuration note, while remote CI build, required E2E, CodeRabbit, and both Vercel contexts are green.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only remote head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, client-facing actions, or evidence-only commits without fresh checks; keep the Nexus status shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. This remains an advisory packet for Phill/operator sign-off.
+- Main checkout still contains unrelated unstaged/untracked workspace/video-command-center and Synthex/2nd Brain changes (`apps/workspace/*`, `docs/brain/2nd Brain/Wiki/*`). They were not staged, pushed, or included in this PR gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR and could publish unrelated dirty workspace work.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge remote head `3cdec1df3` if the guardrails are accepted. After merge, start from clean `main`; either clean-replay the Mission Control OS workspace slice with strict TDD and type-check fixes, or choose the next smallest CRM/Margot command-spine gap.
+
+## 2026-06-25 02:54 AEST
+
+### Tick 20260625_0254 — PR #485 unchanged green gate refresh + local build env-gate read-back
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) rather than starting or publishing another CRM/Margot slice. Scope stayed inside repo/docs/GitHub/Vercel read-back, focused local `apps/web` verification, bounded content/whitespace scans, local build env-gate read-back, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git on main, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight found current branch `feat/nexus-status-shell-20260623`, tracking `origin/feat/nexus-status-shell-20260623`; local `HEAD` and PR remote head remain `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`. `git rev-list --left-right --count origin/main...HEAD` returned `0 2` (0 commits unique to `origin/main`, 2 PR commits unique to `HEAD`).
+- GitHub auth was available via `gh` without printing credential values. PR #485 read-back: https://github.com/CleanExpo/Unite-Group/pull/485, base `main`, open, non-draft, `CLEAN`, `MERGEABLE`, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`.
+- Remote checks read-back via `gh pr view 485 --json statusCheckRollup` remained SUCCESS for CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, apps/web lint/type/test/build, apps/web Playwright E2E, apps/workspace build, apps/spec-board type/test/build, and MCP build.
+- Read-first context was refreshed from available canonical fallbacks because root `docs/margot/` currently carries progress/evidence logs: `apps/empire/docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md`, `apps/empire/docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md`, and `apps/web/docs/margot/crm-operating-model.md`; the multi-day plan was found at `apps/web/docs/plans/2026-05-23-margot-multi-day-crm-build-plan.md` and `apps/empire/docs/plans/2026-05-23-margot-multi-day-crm-build-plan.md`.
+- No new production-code change was authored in this tick because the already-open PR remains fully green and should be decided before another lane is started/published. No new RED/GREEN cycle was applicable; this tick replayed the existing PR regression test and local gates.
+
+Verification / evidence:
+- Focused local Vitest from `apps/web`: `pnpm exec vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx'` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`, exit 0).
+- `pnpm run lint` from `apps/web` -> PASS (`eslint src/`, exit 0).
+- Scoped whitespace check: `git diff --check origin/main...HEAD -- apps/web/src/app/(founder)/founder/nexus-status/page.tsx apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx docs/margot/overnight-progress-log.md docs/margot/morning-report.md` -> PASS.
+- Bounded content scan over `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded secret/auth/token/bearer/credential/authorization/service-role/private-key/client-secret/password/API-key and dangerous eval/HTML/exec/spawn patterns returned 0 matches.
+- Local `pnpm run build` from `apps/web` stopped at `scripts/validate-env.mjs --ci` because this shell has no app env configured (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`). No credential values were read or printed. Remote CI build and both Vercel contexts are green for the same unchanged PR head.
+- Vercel deployment read-back from PR checks: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT` both report completed/success deployment contexts for the unchanged PR head.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local missing app env remains a separate shell-only `NAMESPACE` configuration note, while remote CI build, required E2E, CodeRabbit, and both Vercel contexts are green.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only remote head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, client-facing actions, or evidence-only commits without fresh checks; keep the Nexus status shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. This remains an advisory packet for Phill/operator sign-off.
+- Main checkout still contains unrelated unstaged/untracked workspace/video-command-center and Synthex/2nd Brain changes (`apps/workspace/*`, `docs/brain/2nd Brain/Wiki/*`). They were not staged, pushed, or included in this PR gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR and could publish unrelated dirty workspace work.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge remote head `3cdec1df3` if the guardrails are accepted. After merge, start from clean `main`; either clean-replay the Mission Control OS workspace slice with strict TDD and type-check fixes, or choose the next smallest CRM/Margot command-spine gap.
+
+## 2026-06-25 02:19 AEST
+
+### Tick 20260625_0219 — PR #485 unchanged green gate refresh + full local web replay
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) rather than starting or publishing another CRM/Margot slice. Scope stayed inside repo/docs/GitHub/Vercel read-back, full local `apps/web` verification, bounded content/whitespace scans, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git on main, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight found current branch `feat/nexus-status-shell-20260623`, tracking `origin/feat/nexus-status-shell-20260623`; local `HEAD` and PR remote head remain `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`. `git rev-list --left-right --count origin/feat/nexus-status-shell-20260623...HEAD` returned `0 0`; `git rev-list --left-right --count origin/main...HEAD` returned `0 2` (0 commits unique to `origin/main`, 2 PR commits unique to `HEAD`).
+- GitHub auth was available via `gh` without printing credential values. PR #485 read-back: https://github.com/CleanExpo/Unite-Group/pull/485, base `main`, open, non-draft, `CLEAN`, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`.
+- Remote checks read-back via `gh pr checks 485` remained PASS for CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, apps/web lint/type/test/build, apps/web Playwright E2E, apps/workspace build, apps/spec-board type/test/build, and MCP build.
+- Root `docs/margot/*` source docs are not present for the operating model in this checkout, so read-first context was refreshed from the tracked canonical fallbacks: `apps/empire/docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md`, `apps/empire/docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md`, `apps/web/docs/margot/crm-operating-model.md`, `apps/web/docs/margot/crm-schema-inventory.md`, and `apps/web/docs/plans/2026-05-23-margot-multi-day-crm-build-plan.md`.
+- No new production-code change was authored in this tick because the already-open PR remains fully green and should be decided before another lane is started/published. No new RED/GREEN cycle was applicable; this tick replayed the existing PR regression test and full local `apps/web` gates.
+
+Verification / evidence:
+- Focused local Vitest from `apps/web`: `pnpm exec vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx'` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`, exit 0).
+- `pnpm run lint` from `apps/web` -> PASS (`eslint src/`, exit 0).
+- Full local unit suite from `apps/web`: `pnpm run test` -> PASS, 440 files / 2622 tests. Expected failure-path stderr/stdout appeared in existing tests, but the suite exited 0.
+- Scoped whitespace check: `git diff --check origin/main...HEAD -- apps/web/src/app/(founder)/founder/nexus-status/page.tsx apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx docs/margot/overnight-progress-log.md docs/margot/morning-report.md` -> PASS.
+- Bounded content scan over `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded secret/auth/token/bearer/credential/authorization/service-role/private-key/client-secret/password/API-key and dangerous eval/HTML/exec/spawn patterns returned 0 matches.
+- Vercel deployment read-back from PR checks: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT` both report completed deployment contexts for the unchanged PR head.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local missing app env from prior build probes remains a separate shell-only `NAMESPACE` configuration note, while remote CI build and both Vercel contexts are green.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only remote head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, client-facing actions, or evidence-only commits without fresh checks; keep the Nexus status shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. This remains an advisory packet for Phill/operator sign-off.
+- Main checkout still contains unrelated unstaged/untracked workspace/video-command-center and Synthex/2nd Brain changes (`apps/workspace/*`, `docs/brain/2nd Brain/Wiki/*`). They were not staged, pushed, or included in this PR gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR and could publish unrelated dirty workspace work.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge remote head `3cdec1df3` if the guardrails are accepted. After merge, start from clean `main`; either clean-replay the Mission Control OS workspace slice with strict TDD and type-check fixes, or choose the next smallest CRM/Margot command-spine gap.
+
+## 2026-06-25 01:45 AEST
+
+### Tick 20260625_0145 — PR #485 unchanged green gate refresh + focused local replay
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) rather than starting or publishing another CRM/Margot slice. Scope stayed inside repo/docs/GitHub/Vercel read-back, focused local verification, bounded content/whitespace scans, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git on main, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight found current branch `feat/nexus-status-shell-20260623`, tracking `origin/feat/nexus-status-shell-20260623`; local `HEAD` and PR remote head remain `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`. `git rev-list --left-right --count origin/main...HEAD` returned `0 2` (0 commits unique to `origin/main`, 2 PR commits unique to `HEAD`).
+- GitHub auth was available via `gh` without printing credential values. PR #485 read-back: https://github.com/CleanExpo/Unite-Group/pull/485, base `main`, open, non-draft, `CLEAN`, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`.
+- Remote checks read-back via `gh pr checks 485` remained PASS for CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, apps/web lint/type/test/build, apps/web Playwright E2E, apps/workspace build, apps/spec-board type/test/build, and MCP build.
+- Read-first context was refreshed from available canonical docs under `apps/empire/docs/margot/*` and `apps/web/docs/margot/*` because root `docs/margot/` carries progress/evidence logs in this checkout.
+- No new production-code change was authored in this tick because the already-open PR remains fully green and should be decided before another lane is started/published. No new RED/GREEN cycle was applicable; this tick replayed the existing PR regression test and local gates.
+
+Verification / evidence:
+- Focused local Vitest from `apps/web`: `pnpm exec vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx'` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`, exit 0).
+- `pnpm run lint` from `apps/web` -> PASS (`eslint src/`, exit 0).
+- Scoped whitespace check: `git diff --check origin/main...HEAD -- apps/web/src/app/(founder)/founder/nexus-status/page.tsx apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx docs/margot/overnight-progress-log.md docs/margot/morning-report.md` -> PASS.
+- Bounded content scan over `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded secret/auth/token/bearer/credential/authorization/service-role/private-key/client-secret/password and dangerous eval/HTML/exec patterns returned 0 matches.
+- Vercel deployment read-back from PR checks: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT` both report completed deployment contexts for the unchanged PR head.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local missing app env from prior build probes remains a separate shell-only `NAMESPACE` configuration note, while remote CI build and both Vercel contexts are green.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only remote head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, client-facing actions, or evidence-only commits without fresh checks; keep the Nexus status shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. This remains an advisory packet for Phill/operator sign-off.
+- Main checkout still contains unrelated unstaged/untracked workspace/video-command-center and Synthex/2nd Brain changes (`apps/workspace/*`, `docs/brain/2nd Brain/Wiki/*`). They were not staged, pushed, or included in this PR gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR and could publish unrelated dirty workspace work.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge remote head `3cdec1df3` if the guardrails are accepted. After merge, start from clean `main`; either clean-replay the Mission Control OS workspace slice with strict TDD and type-check fixes, or choose the next smallest CRM/Margot command-spine gap.
+
+## 2026-06-25 01:05 AEST
+
+### Tick 20260625_0105 — PR #485 unchanged green gate refresh + focused local replay
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) rather than starting or publishing another CRM/Margot slice. Scope stayed inside repo/docs/GitHub/Vercel read-back, focused local verification, bounded content/whitespace scans, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git on main, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight found current branch `feat/nexus-status-shell-20260623`, tracking `origin/feat/nexus-status-shell-20260623`; local `HEAD` and PR remote head remain `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`. `git rev-list --left-right --count origin/feat/nexus-status-shell-20260623...HEAD` returned `0 0`; `git rev-list --left-right --count origin/main...HEAD` returned `0 2` (0 commits unique to `origin/main`, 2 PR commits unique to `HEAD`).
+- GitHub auth was available via `gh` without printing credential values. PR #485 read-back: https://github.com/CleanExpo/Unite-Group/pull/485, base `main`, open, non-draft, `CLEAN`, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`.
+- Remote checks read-back via `gh pr checks 485` remained PASS for CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, apps/web lint/type/test/build, apps/web Playwright E2E, apps/workspace build, apps/spec-board type/test/build, and MCP build.
+- Read-first context was refreshed from the available canonical docs under `apps/empire/docs/margot/*` and `apps/web/docs/margot/*` because root `docs/margot/` carries progress/evidence logs in this checkout.
+- No new production-code change was authored in this tick because the already-open PR remains fully green and should be decided before another lane is started/published. No new RED/GREEN cycle was applicable; this tick replayed the existing PR regression test and local gates.
+
+Verification / evidence:
+- Focused local Vitest from `apps/web`: `pnpm exec vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx'` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`, exit 0).
+- `pnpm run lint` from `apps/web` -> PASS (`eslint src/`, exit 0).
+- Scoped whitespace check: `git diff --check origin/main...HEAD -- apps/web/src/app/(founder)/founder/nexus-status/page.tsx apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx docs/margot/overnight-progress-log.md docs/margot/morning-report.md` -> PASS.
+- Bounded content scan over `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded secret/auth/token/bearer/credential/authorization/service-role/private-key/client-secret/password and dangerous eval/HTML/exec patterns returned 0 matches.
+- Vercel deployment read-back from PR checks: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT` both report completed deployment contexts for the unchanged PR head.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local missing app env from prior build probes remains a separate shell-only `NAMESPACE` configuration note, while remote CI build and both Vercel contexts are green.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only remote head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, client-facing actions, or evidence-only commits without fresh checks; keep the Nexus status shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. This remains an advisory packet for Phill/operator sign-off.
+- Main checkout still contains unrelated unstaged/untracked workspace/video-command-center and Synthex/2nd Brain changes (`apps/workspace/*`, `docs/brain/2nd Brain/Wiki/*`). They were not staged, pushed, or included in this PR gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR and could publish unrelated dirty workspace work.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge remote head `3cdec1df3` if the guardrails are accepted. After merge, start from clean `main`; either clean-replay the Mission Control OS workspace slice with strict TDD and type-check fixes, or choose the next smallest CRM/Margot command-spine gap.
+
+## 2026-06-24 23:55 AEST
+
+### Tick 20260624_2355 — PR #485 green read-back + dirty workspace Mission Control OS local probe
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) and treated the broad dirty `apps/workspace` Mission Control OS/video-command-center/Synthex work as local-only, unpublished, and out of the green PR gate. Scope stayed inside repo/docs/GitHub/Vercel read-back, local focused tests, bounded content/whitespace scans, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git on main, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight found current branch `feat/nexus-status-shell-20260623`, tracking `origin/feat/nexus-status-shell-20260623`; local `HEAD` and PR remote head remain `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`. `git rev-list --left-right --count origin/feat/nexus-status-shell-20260623...HEAD` returned `0 0`; `git rev-list --left-right --count origin/main...HEAD` returned `0 2` (0 commits unique to `origin/main`, 2 PR commits unique to `HEAD`).
+- GitHub auth was available via `gh` without printing credential values. PR #485 read-back: https://github.com/CleanExpo/Unite-Group/pull/485, base `main`, open, non-draft, `CLEAN`, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`.
+- Read-first context was refreshed from the available canonical docs under `apps/empire/docs/margot/*` and `apps/web/docs/margot/*` because root `docs/margot/` carries progress/evidence logs in this checkout.
+- No new production-code change was authored in this tick. Existing local dirty workspace changes already include Mission Control OS tests/routes/UI and are not part of PR #485; this tick verified their focused tests but did not commit, push, or publish them.
+
+Verification / evidence:
+- `gh pr checks 485` at 23:55 AEST -> PASS for CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, `apps/workspace — build`, `apps/spec-board — type-check, test, build`, and `packages/pi-ceo-operator-mcp — build`.
+- Vercel deployment read-back: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT` both report completed deployment contexts for the PR checks.
+- Focused local workspace Vitest from `apps/workspace`: `pnpm exec vitest run src/server/mission-control-os.test.ts src/screens/gateway/mission-control-contract.test.ts src/server/claude-api.test.ts src/routes/api/-sessions.test.ts` -> PASS, 4 files / 8 tests. This is not a fresh RED/GREEN cycle from this tick; it is verification of pre-existing uncommitted local dirty work.
+- Workspace type-check probe: `pnpm exec tsc --noEmit` -> FAIL with existing broad workspace baseline errors outside this slice (examples: prompt-kit markdown test missing exports, slash-command-menu duplicate export declarations, send-stream missing `persistActiveRun`, swarm/swarm2 type drift, gateway-capabilities missing `conductor`). Treat as `NAMESPACE` / baseline workspace type-check gate before any publication of the dirty workspace lane.
+- Scoped whitespace check over touched workspace Mission Control/session files -> PASS.
+- Bounded content scan over `apps/workspace/src/server/{mission-control-os,claude-api}*` for hardcoded secret/auth/token/bearer/credential/authorization/service-role/private-key/client-secret and dangerous eval/exec/HTML patterns returned only benign `token_count` / token accounting field names in `claude-api.ts`; no credential value or dangerous API finding.
+
+Gate packet:
+- PR #485 classification: `NONE` for product/finance/prod risk; recommended disposition remains `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only remote head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, client-facing actions, or evidence-only commits without fresh checks; keep the Nexus status shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Dirty workspace Mission Control OS lane classification: `NAMESPACE` / `KEEP_GATED` until the broad workspace type-check baseline is fixed or the slice is replayed onto a clean branch from `origin/main` with fresh RED/GREEN evidence and package gates.
+- Rollback note for PR #485: revert PR #485 or remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. This remains an advisory packet for Phill/operator sign-off.
+- Main checkout still contains unrelated unstaged/untracked workspace/video-command-center and Synthex/2nd Brain changes (`apps/workspace/*`, `docs/brain/2nd Brain/Wiki/*`). They were not staged, pushed, or included in this PR gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR and potentially publish unrelated dirty workspace work.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge remote head `3cdec1df3` if the guardrails are accepted. After merge, start from clean `main`; either clean-replay the Mission Control OS workspace slice with strict TDD and type-check fixes, or choose the next smallest CRM/Margot command-spine gap.
+
+## 2026-06-24 23:21 AEST
+
+### Tick 20260624_2321 — PR #485 unchanged green gate refresh + focused local replay
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) rather than starting or publishing another CRM/Margot slice. Scope stayed inside repo/docs/GitHub/Vercel read-back, focused local verification, bounded content scan, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git on main, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight found current branch `feat/nexus-status-shell-20260623`, tracking `origin/feat/nexus-status-shell-20260623`; local `HEAD` and PR remote head remain `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`. `git rev-list --left-right --count origin/main...HEAD` returned `0 2` (0 commits unique to `origin/main`, 2 PR commits unique to `HEAD`).
+- GitHub auth was available via `gh` without printing credential values. PR #485 read-back: https://github.com/CleanExpo/Unite-Group/pull/485, base `main`, open, non-draft, `CLEAN`, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`.
+- Read-first context was refreshed from the available canonical docs under `apps/empire/docs/margot/*` and `apps/web/docs/margot/*` because root `docs/margot/` carries progress/evidence logs in this checkout.
+- No new production-code change was authored in this tick because the already-open PR remains fully green and should be decided before another lane is started/published. No new RED/GREEN cycle was applicable; this tick replayed the existing PR regression test and local gates.
+
+Verification / evidence:
+- `gh pr checks 485` -> PASS for CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, `apps/workspace — build`, `apps/spec-board — type-check, test, build`, and `packages/pi-ceo-operator-mcp — build`.
+- Vercel deployment read-back: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT` both report completed deployment contexts for the PR checks.
+- Focused local Vitest from `apps/web`: `pnpm exec vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx'` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`, exit 0).
+- `pnpm run lint` from `apps/web` -> PASS (`eslint src/`, exit 0).
+- Scoped whitespace check: `git diff --check origin/main...HEAD -- apps/web/src/app/(founder)/founder/nexus-status/page.tsx apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx docs/margot/overnight-progress-log.md docs/margot/morning-report.md` -> PASS.
+- Bounded content scan over `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded secret/auth/token/bearer/credential/authorization/service-role/private-key/client-secret and dangerous eval/exec/HTML patterns returned 0 matches.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local missing app env from prior build probes remains a separate shell-only `NAMESPACE` configuration note, while remote CI build and both Vercel contexts are green.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only remote head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, client-facing actions, or evidence-only commits without fresh checks; keep the Nexus status shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. This remains an advisory packet for Phill/operator sign-off.
+- Main checkout still contains unrelated unstaged/untracked workspace/video-command-center and Synthex/2nd Brain changes (`apps/workspace/*`, `docs/brain/2nd Brain/Wiki/*`). They were not staged, pushed, or included in this PR gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge remote head `3cdec1df3` if the guardrails are accepted. After merge, start the next autonomous slice from clean `main` and use RED/GREEN tests for the first read-only real-data wiring or the next smallest CRM/Margot command-spine gap.
+
+## 2026-06-24 22:46 AEST
+
+### Tick 20260624_2246 — PR #485 green gate refresh + isolated full web test replay
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) and did not start or publish another CRM/Margot lane. Because the main checkout contains broad unrelated local workspace/video-command-center and Synthex/2nd Brain dirty files, verification ran in a detached temporary worktree at the exact PR head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`. Scope stayed inside repo/docs/GitHub/Vercel read-back, isolated local verification, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git on main, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight found current branch `feat/nexus-status-shell-20260623`, tracking `origin/feat/nexus-status-shell-20260623`; local `HEAD` and PR remote head are both `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`. `git rev-list --left-right --count origin/main...HEAD` -> `0 2` (0 commits unique to `origin/main`, 2 PR commits unique to `HEAD`).
+- GitHub auth was available via `gh` without printing credential values. PR #485 read-back: https://github.com/CleanExpo/Unite-Group/pull/485, base `main`, open, non-draft, `CLEAN`, `MERGEABLE`, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`.
+- Read-first context was refreshed from available canonical docs under `apps/empire/docs/margot/*` and `apps/web/docs/margot/*` because root `docs/margot/` carries progress/evidence logs in this checkout.
+- No new production-code change was authored in this tick because the already-open PR remains fully green and should be decided before another lane is started/published. No new RED/GREEN cycle was applicable; this tick replayed the existing PR regression test and web gates.
+
+Verification / evidence:
+- `gh pr checks 485` -> PASS for CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, `apps/workspace — build`, `apps/spec-board — type-check, test, build`, and `packages/pi-ceo-operator-mcp — build`.
+- Vercel deployment read-back: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT` were both Ready; preview URLs are `https://unite-group-git-feat-nexus-status-shell-20260623-unite-group.vercel.app` and `https://unite-group-sandbox-git-feat-nexus-status-sh-003644-unite-group.vercel.app`.
+- Temporary clean-head worktree: `git worktree add --detach /tmp/unite-pr485-verify 3cdec1df3702d2aa1e98a7aec09af8a04786c07e` -> OK. `pnpm install --frozen-lockfile` from `apps/web` -> OK, with non-blocking Supabase binary/husky install warnings only.
+- Focused local Vitest from `/tmp/unite-pr485-verify/apps/web`: `pnpm exec vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx'` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `/tmp/unite-pr485-verify/apps/web` -> PASS (`tsc --noEmit`, exit 0).
+- `pnpm run lint` from `/tmp/unite-pr485-verify/apps/web` -> PASS (`eslint src/`, exit 0).
+- Full web unit suite: `pnpm run test` from `/tmp/unite-pr485-verify/apps/web` -> PASS, 440 files / 2622 tests. Expected failure-path console output appeared, but the suite exited 0.
+- Local build probe: `pnpm run build` stopped in `prebuild` at `scripts/validate-env.mjs --ci` because the detached shell has no app env configured (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`). No credential values were read or printed. Remote CI build and both Vercel contexts are green for the PR head, so this is a local `NAMESPACE` configuration note, not a PR product-code failure.
+- Scoped whitespace check: `git diff --check origin/main...HEAD -- apps/web/src/app/(founder)/founder/nexus-status/page.tsx apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx docs/margot/overnight-progress-log.md docs/margot/morning-report.md` -> PASS.
+- Bounded content scan over `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded secret/auth/token/bearer/credential patterns returned 0 matches.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local missing app env remains a separate `NAMESPACE` note for this shell only.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only remote head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, client-facing actions, or evidence-only commits without fresh checks; keep the Nexus status shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. This remains an advisory packet for Phill/operator sign-off.
+- Main checkout still contains unrelated unstaged/untracked workspace/video-command-center and Synthex/2nd Brain changes (`apps/workspace/*`, `docs/brain/2nd Brain/Wiki/*`). They were not staged, pushed, or included in this PR gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge remote head `3cdec1df3` if the guardrails are accepted. After merge, start the next autonomous slice from clean `main` and use RED/GREEN tests for the first read-only real-data wiring or the next smallest CRM/Margot command-spine gap.
+
+## 2026-06-24 22:11 AEST
+
+### Tick 20260624_2211 — PR #485 unchanged green gate refresh + focused local replay
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) and did not start another CRM/Margot lane. Scope stayed inside repo/docs/GitHub/Vercel read-back, focused local verification, and local evidence docs only. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git on main, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight from `/Users/phillmcgurk/Unite-Group` found current branch `feat/nexus-status-shell-20260623`, tracking `origin/feat/nexus-status-shell-20260623`; local `HEAD` and PR remote head are `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`. `git rev-list --left-right --count origin/main...HEAD` -> `0 2` (0 commits unique to `origin/main`, 2 PR commits unique to `HEAD`); `git rev-list --left-right --count origin/feat/nexus-status-shell-20260623...HEAD` -> `0 0` (local branch synced with remote PR branch).
+- GitHub auth was available via `gh` without printing credential values; PR #485 read-back at 22:09-22:11 AEST: https://github.com/CleanExpo/Unite-Group/pull/485, base `main`, `CLEAN`, open, non-draft, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, with CodeRabbit, GitHub Actions, Playwright E2E, and both Vercel deployment contexts passing.
+- Read-first context used the loaded `unite-group-crm-command-spine`, `test-driven-development`, `github-pr-workflow`, and `requesting-code-review` skills; root `docs/margot/` remains the evidence-log location for this checkout.
+- No new production-code change was authored in this tick because the already-open PR remains green and should be decided before starting/publishing another lane. No new RED/GREEN cycle was applicable; this tick replayed the existing PR regression test and local gates.
+
+Verification / evidence:
+- Remote checks: `gh pr checks 485` -> PASS for CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, `apps/workspace — build`, `apps/spec-board — type-check, test, build`, and `packages/pi-ceo-operator-mcp — build`.
+- Remote deploy URLs from check read-back: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT`.
+- Focused local Vitest from `apps/web`: `pnpm exec vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx'` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`, exit 0).
+- `pnpm run lint` from `apps/web` -> PASS (`eslint src/`, exit 0).
+- Local build probe: `pnpm run build` stopped in `prebuild` at `scripts/validate-env.mjs --ci` because this shell has no app env configured (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`). No credential values were read or printed. Remote CI build and both Vercel contexts remain green for the PR head, so this is a local `NAMESPACE` configuration note, not a PR product-code failure.
+- Scoped whitespace check: `git diff --check origin/main...HEAD -- apps/web/src/app/(founder)/founder/nexus-status/page.tsx apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx docs/margot/overnight-progress-log.md docs/margot/morning-report.md` -> PASS.
+- Bounded content scan over `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded secret/auth/token/bearer/credential/approval/payment/card and dangerous HTML/eval/exec patterns returned 0 matches.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local missing app env remains a separate `NAMESPACE` note for this shell only.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only remote head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, client-facing actions, or evidence-only commits without fresh checks; keep the status shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. This remains an advisory packet for Phill/operator sign-off.
+- Local checkout still contains unrelated unstaged/untracked workspace/video-command-center and Synthex/2nd Brain changes (`apps/workspace/*`, `docs/brain/2nd Brain/Wiki/*`). They were not staged, pushed, or included in this PR gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge remote head `3cdec1df3` if the guardrails are accepted. After merge, start the next autonomous slice from clean `main` and use RED/GREEN tests for the first read-only real-data wiring or the next smallest CRM/Margot command-spine gap.
+
+## 2026-06-24 21:36 AEST
+
+### Tick 20260624_2136 — PR #485 unchanged green gate refresh + focused local replay
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) and did not start a new CRM/Margot slice. Scope stayed inside repo/docs/GitHub/Vercel read-back, focused local verification, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git on main, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight from `/Users/phillmcgurk/Unite-Group` found current branch `feat/nexus-status-shell-20260623`, tracking `origin/feat/nexus-status-shell-20260623`; local `HEAD` and PR remote head are `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`. `git rev-list --left-right --count origin/main...HEAD` -> `0 2` (0 commits unique to `origin/main`, 2 PR commits unique to `HEAD`); `git rev-list --left-right --count HEAD...@{u}` -> `0 0` (local branch synced with remote PR branch).
+- GitHub auth was available via `gh` without printing credential values; PR #485 read-back at 21:36 AEST: https://github.com/CleanExpo/Unite-Group/pull/485, base `main`, `CLEAN`, open, non-draft, with CodeRabbit, GitHub Actions, Playwright E2E, and both Vercel deployment contexts passing.
+- Read-first context was refreshed from tracked canonical docs under `apps/empire/docs/margot/*` and `apps/web/docs/margot/*` because root `docs/margot/` currently carries progress/evidence logs and the requested root source-of-truth files are absent in this checkout.
+- No new production-code change was authored in this tick because the already-open PR remains green and should be decided before starting/publishing another lane. No new RED/GREEN cycle was applicable; this tick replayed the existing PR regression test and local gates.
+
+Verification / evidence:
+- Remote checks: `gh pr checks 485` -> PASS for CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, `apps/workspace — build`, `apps/spec-board — type-check, test, build`, and `packages/pi-ceo-operator-mcp — build`.
+- Remote deploy URLs from check read-back: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT`.
+- Focused local Vitest from `apps/web`: `pnpm exec vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx'` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`, exit 0).
+- `pnpm run lint` from `apps/web` -> PASS (`eslint src/`, exit 0).
+- Local build probe: `pnpm run build` stopped in `prebuild` at `scripts/validate-env.mjs --ci` because this shell has no app env configured (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`). No credential values were read or printed. Remote CI build and both Vercel contexts remain green for the PR head, so this is a local `NAMESPACE` configuration note, not a PR product-code failure.
+- Scoped whitespace check: `git diff --check origin/main...HEAD` -> PASS.
+- Bounded content scan over `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded secret/auth/token/bearer/credential/approval/payment/card and dangerous HTML/eval/exec patterns returned only benign UI/copy matches for `Approval Queue` / `approval gates`; no credential value, dangerous API, or live approval-wiring finding.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local missing app env remains a separate `NAMESPACE` note for this shell only.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only remote head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, client-facing actions, or evidence-only commits without fresh checks; keep the status shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. This remains an advisory packet for Phill/operator sign-off.
+- Local checkout still contains unrelated unstaged/untracked workspace/video-command-center and Synthex/2nd Brain changes (`apps/workspace/*`, `docs/brain/2nd Brain/Wiki/*`). They were not staged, pushed, or included in this PR gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge remote head `3cdec1df3` if the guardrails are accepted. After merge, start the next autonomous slice from clean `main` and use RED/GREEN tests for the first read-only real-data wiring or the next smallest CRM/Margot command-spine gap.
+
+## 2026-06-24 21:03 AEST
+
+### Tick 20260624_2103 — PR #485 green gate refresh + full local web test replay
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) and did not start a new CRM/Margot slice. Scope stayed inside repo/docs/GitHub/Vercel read-back, local verification, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git on main, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight from `/Users/phillmcgurk/Unite-Group` found current branch `feat/nexus-status-shell-20260623`, tracking `origin/feat/nexus-status-shell-20260623`; local `HEAD` and PR remote head are `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`. `git rev-list --left-right --count origin/main...HEAD` -> `0 2` (0 commits unique to `origin/main`, 2 PR commits unique to `HEAD`).
+- GitHub auth was available via `gh` without printing credential values; PR #485 read-back at 21:03 AEST: https://github.com/CleanExpo/Unite-Group/pull/485, base `main`, `CLEAN`, open, non-draft, with CodeRabbit, GitHub Actions, Playwright E2E, and both Vercel deployment contexts passing.
+- `gh pr diff 485 --name-only` hit GitHub API rate limiting after PR head/checks had already been read back, so I used local `git diff --name-only origin/main...HEAD` and `git diff --stat origin/main...HEAD` as the touched-file evidence source. PR remote head is synced to local `HEAD`, so local diff read-back is representative of the PR head.
+- Read-first context was refreshed from tracked canonical docs under `apps/empire/docs/margot/*` and `apps/web/docs/margot/*` because root `docs/margot/` currently carries progress/evidence logs and the requested root source-of-truth files are absent in this checkout.
+- No new production-code change was authored in this tick because the already-open PR remains green and should be decided before starting/publishing another lane. No new RED/GREEN cycle was applicable; this tick replayed the existing PR regression test and the full web Vitest suite.
+
+Verification / evidence:
+- Remote checks: `gh pr checks 485` -> PASS for CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, `apps/workspace — build`, `apps/spec-board — type-check, test, build`, and `packages/pi-ceo-operator-mcp — build`.
+- Remote deploy URLs from check read-back: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT`.
+- Focused local Vitest from `apps/web`: `pnpm exec vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx'` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`, exit 0).
+- `pnpm run lint` from `apps/web` -> PASS (`eslint src/`, exit 0).
+- Full local Vitest from `apps/web`: `pnpm run test` -> PASS, 440 files / 2622 tests. Output included expected failure-path console noise from existing tests, but the suite exited 0.
+- Local build probe: `pnpm run build` stopped in `prebuild` at `scripts/validate-env.mjs --ci` because this shell has no app env configured (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`). No credential values were read or printed. Remote CI build and both Vercel contexts remain green for the PR head, so this is a local `NAMESPACE` configuration note, not a PR product-code failure.
+- Scoped whitespace check: `git diff --check origin/main...HEAD` -> PASS.
+- Bounded content scan over `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded secret/auth/token/bearer/credential/approval/payment/card and dangerous HTML/eval/exec patterns returned only benign UI/copy matches for `Approval Queue` / `approval gates`; no credential value, dangerous API, or live approval-wiring finding.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local missing app env remains a separate `NAMESPACE` note for this shell only.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only remote head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, client-facing actions, or evidence-only commits without fresh checks; keep the status shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. This remains an advisory packet for Phill/operator sign-off.
+- Local checkout still contains unrelated unstaged/untracked workspace/video-command-center and Synthex/2nd Brain changes (`apps/workspace/*`, `docs/brain/2nd Brain/Wiki/*`). They were not staged, pushed, or included in this PR gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge remote head `3cdec1df3` if the guardrails are accepted. After merge, start the next autonomous slice from clean `main` and use RED/GREEN tests for the first read-only real-data wiring or the next smallest CRM/Margot command-spine gap.
+
+## 2026-06-24 20:28 AEST
+
+### Tick 20260624_2028 — PR #485 unchanged green gate refresh + focused local replay
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) and did not start a new CRM/Margot slice. Scope stayed inside repo/docs/GitHub/Vercel read-back, focused local verification, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git on main, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight from `/Users/phillmcgurk/Unite-Group` found current branch `feat/nexus-status-shell-20260623`, tracking `origin/feat/nexus-status-shell-20260623`; `git rev-list --left-right --count origin/main...HEAD` -> `0 2` (0 commits unique to `origin/main`, 2 PR commits unique to `HEAD`). Local branch status was dirty from existing unpublished workspace/Synthex/evidence files and was not broadened into the PR.
+- GitHub auth was available via `gh` without printing credential values; PR #485 read-back at 20:28 AEST: https://github.com/CleanExpo/Unite-Group/pull/485, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, base `main`, `CLEAN`, open, non-draft, with CodeRabbit, GitHub Actions, Playwright E2E, and both Vercel deployment contexts passing.
+- Read-first context was refreshed from tracked canonical docs under `apps/empire/docs/margot/*`, `apps/web/docs/margot/*`, and `apps/web/docs/plans/*` because root `docs/margot/` currently carries progress/evidence logs and the requested root source-of-truth files are absent in this checkout.
+- No new production-code change was authored in this tick because the already-open PR remains green and should be decided before starting/publishing another lane. No new RED/GREEN cycle was applicable; this tick replayed the existing PR regression test.
+
+Verification / evidence:
+- Remote checks: `gh pr checks 485` -> PASS for CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, `apps/workspace — build`, `apps/spec-board — type-check, test, build`, and `packages/pi-ceo-operator-mcp — build`.
+- Remote deploy URLs from check read-back: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT`.
+- Focused local Vitest from `apps/web`: `node ./node_modules/vitest/vitest.mjs run "src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx" --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`, exit 0).
+- `pnpm run lint` from `apps/web` -> PASS (`eslint src/`, exit 0).
+- Scoped whitespace check: `git diff --check origin/main...HEAD -- apps/web/src/app/(founder)/founder/nexus-status/page.tsx apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx docs/margot/overnight-progress-log.md docs/margot/morning-report.md` -> PASS.
+- Bounded content scan over `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded secret/auth/token/bearer/credential/approval/payment/card and dangerous HTML/eval/exec patterns returned `0` matches.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local missing app env remains a separate `NAMESPACE` note for this shell only from prior build verification.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only remote head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, client-facing actions, or evidence-only commits without fresh checks; keep the status shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. This remains an advisory packet for Phill/operator sign-off.
+- Local checkout still contains unrelated unstaged/untracked workspace/video-command-center and Synthex/2nd Brain changes (`apps/workspace/*`, `docs/brain/2nd Brain/Wiki/*`). They were not staged, pushed, or included in this PR gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge remote head `3cdec1df3` if the guardrails are accepted. After merge, start the next autonomous slice from clean `main` and use RED/GREEN tests for the first read-only real-data wiring or the next smallest CRM/Margot command-spine gap.
+
+## 2026-06-24 19:54 AEST
+
+### Tick 20260624_1954 — PR #485 unchanged green gate refresh + focused local replay
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) and did not start a new CRM/Margot slice. Scope stayed inside repo/docs/GitHub/Vercel read-back, focused local verification, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git on main, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight from `/Users/phillmcgurk/Unite-Group` found current branch `feat/nexus-status-shell-20260623`, tracking `origin/feat/nexus-status-shell-20260623`; `git rev-list --left-right --count origin/main...HEAD` -> `0 2` (0 commits unique to `origin/main`, 2 PR commits unique to `HEAD`) and `git rev-list --left-right --count HEAD...@{u}` -> `0 0` (local branch synced with remote PR branch). Local/remote PR head remains `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`.
+- PR #485 read-back at 19:54 AEST: https://github.com/CleanExpo/Unite-Group/pull/485, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, base `main`, `CLEAN`, open, non-draft, with CodeRabbit, GitHub Actions, Playwright E2E, and both Vercel deployment contexts passing.
+- Read-first context was refreshed from tracked canonical docs under `apps/empire/docs/margot/*`, `apps/web/docs/margot/*`, and `apps/web/docs/plans/*` because root `docs/margot/` currently carries progress/evidence logs and the root plan path is absent in this checkout.
+- No new production-code change was authored in this tick because the already-open PR remains green and should be decided before starting/publishing another lane. No new RED/GREEN cycle was applicable; this tick replayed the existing PR regression test.
+
+Verification / evidence:
+- Remote checks: `gh pr checks 485` -> PASS for CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, `apps/workspace — build`, `apps/spec-board — type-check, test, build`, and `packages/pi-ceo-operator-mcp — build`.
+- Remote deploy URLs from check read-back: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT`.
+- Focused local Vitest from `apps/web`: `node ./node_modules/vitest/vitest.mjs run "src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx" --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`, exit 0).
+- `pnpm run lint` from `apps/web` -> PASS (`eslint src/`, exit 0).
+- Scoped whitespace check: `git diff --check origin/main...HEAD -- apps/web/src/app/(founder)/founder/nexus-status/page.tsx apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx docs/margot/overnight-progress-log.md docs/margot/morning-report.md` -> PASS.
+- Bounded content scan over `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded secret/auth/token/bearer/credential/approval/payment/card and dangerous HTML/eval/exec patterns returned `0` matches.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local missing app env remains a separate `NAMESPACE` note for this shell only from prior build verification.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only remote head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, client-facing actions, or evidence-only commits without fresh checks; keep the status shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. This remains an advisory packet for Phill/operator sign-off.
+- Local main checkout still contains unrelated unstaged/untracked workspace/video-command-center and Synthex/2nd Brain changes (`apps/workspace/*`, `docs/brain/2nd Brain/Wiki/*`). They were not staged, pushed, or included in this PR gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge remote head `3cdec1df3` if the guardrails are accepted. After merge, start the next autonomous slice from clean `main` and use RED/GREEN tests for the first read-only real-data wiring or the next smallest CRM/Margot command-spine gap.
+
+## 2026-06-24 19:20 AEST
+
+### Tick 20260624_1920 — PR #485 unchanged green gate refresh + focused local replay
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) and did not start a new CRM/Margot slice. Scope stayed inside repo/docs/GitHub/Vercel read-back, focused local verification, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git on main, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight from `/Users/phillmcgurk/Unite-Group` found current branch `feat/nexus-status-shell-20260623`, tracking `origin/feat/nexus-status-shell-20260623`; `git rev-list --left-right --count origin/main...HEAD` -> `0 2` (0 commits unique to `origin/main`, 2 PR commits unique to `HEAD`) and `git rev-list --left-right --count HEAD...@{u}` -> `0 0` (local branch synced with remote PR branch).
+- PR #485 read-back at 19:20 AEST: https://github.com/CleanExpo/Unite-Group/pull/485, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, base `main`, `MERGEABLE`, `CLEAN`, non-draft, with CodeRabbit, GitHub Actions, Playwright E2E, and both Vercel deployment contexts passing.
+- Read-first context was refreshed from tracked canonical docs under `apps/empire/docs/margot/*` and `apps/web/docs/margot/*` because root `docs/margot/` currently carries progress/evidence logs.
+- No new production-code change was authored in this tick because the already-open PR remains green and should be decided before starting/publishing another lane. No new RED/GREEN cycle was applicable; this tick replayed the existing PR regression test.
+
+Verification / evidence:
+- Remote checks: `gh pr checks 485` -> PASS for CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, `apps/workspace — build`, `apps/spec-board — type-check, test, build`, and `packages/pi-ceo-operator-mcp — build`.
+- Remote deploy URLs from check read-back: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT`.
+- Focused local Vitest from `apps/web`: `node ./node_modules/vitest/vitest.mjs run "src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx" --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS (`tsc --noEmit`, exit 0).
+- `pnpm run lint` from `apps/web` -> PASS (`eslint src/`, exit 0).
+- Scoped whitespace check: `git diff --check origin/main...HEAD -- apps/web/src/app/(founder)/founder/nexus-status/page.tsx apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx docs/margot/overnight-progress-log.md docs/margot/morning-report.md` -> PASS.
+- Bounded content scan over `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded secret/auth/token/bearer/credential/approval/payment/card and dangerous HTML/eval/exec patterns returned `0` matches.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local missing app env remains a separate `NAMESPACE` note for this shell only from prior build verification.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only remote head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, client-facing actions, or evidence-only commits without fresh checks; keep the status shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. This remains an advisory packet for Phill/operator sign-off.
+- Local main checkout still contains unrelated unstaged/untracked workspace/video-command-center and Synthex/2nd Brain changes (`apps/workspace/*`, `docs/brain/2nd Brain/Wiki/*`). They were not staged, pushed, or included in this PR gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge remote head `3cdec1df3` if the guardrails are accepted. After merge, start the next autonomous slice from clean `main` and use RED/GREEN tests for the first read-only real-data wiring or the next smallest CRM/Margot command-spine gap.
+
+## 2026-06-24 18:45 AEST
+
+### Tick 20260624_1845 — PR #485 unchanged green gate refresh + clean-head web verification replay
+
+Lane: continued the already-open current-branch PR #485 (`feat/nexus-status-shell-20260623`) rather than starting another CRM/Margot slice. Scope stayed inside repo/docs/GitHub/Vercel read-back, isolated local verification, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git on main, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight from `/Users/phillmcgurk/Unite-Group` found current branch `feat/nexus-status-shell-20260623`, tracking `origin/feat/nexus-status-shell-20260623`; `git rev-list --left-right --count origin/main...HEAD` -> `0 2` (0 commits unique to `origin/main`, 2 PR commits unique to `HEAD`).
+- PR #485 read-back at 18:45 AEST: https://github.com/CleanExpo/Unite-Group/pull/485, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, base `main`, `CLEAN`, non-draft, open, with all material GitHub Actions/CodeRabbit/Vercel checks passing.
+- Read-first context was refreshed from tracked canonical docs under `apps/empire/docs/margot/*` and `apps/web/docs/margot/*` because root `docs/margot/` currently carries progress/evidence logs.
+- No new production-code change was authored in this tick because the already-open PR remains green and should be decided before starting/publishing another lane. No new RED/GREEN cycle was applicable; the existing PR test remains the TDD regression evidence.
+
+Verification / evidence:
+- Remote checks: `gh pr checks 485 --watch=false` -> PASS for CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, `apps/workspace — build`, `apps/spec-board — type-check, test, build`, and `packages/pi-ceo-operator-mcp — build`.
+- Remote deploy URLs from check read-back: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT`.
+- Clean-head verification used detached worktree `/tmp/unite-group-pr485-verify-20260624` at PR head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e` to avoid the main checkout's unrelated dirty files.
+- `npm run verify:web` from the detached worktree: `pnpm install --frozen-lockfile` PASS; `pnpm run type-check` PASS; `pnpm run lint` PASS; `pnpm run test` PASS (440 files / 2622 tests); `pnpm run build` failed before Next build at `scripts/validate-env.mjs --ci` because the local shell has 0/3 critical and 0/4 required app env vars. Only env names were printed by the validator; no values were read/printed and no env mutation was attempted. Remote Vercel builds for the PR are green.
+- `git diff --check origin/main...HEAD` in the detached worktree -> PASS.
+- PR diff read-back: 4 files, 101 insertions (`apps/web/src/app/(founder)/founder/nexus-status/page.tsx`, its test, and Margot evidence docs).
+- Bounded content scan over `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded secret/auth/token/bearer/credential assignments and dangerous HTML/eval/exec patterns returned `0` matches.
+- A first local `npm run verify:workspace` attempt in the detached worktree was the wrong package gate for this apps/web PR and failed on broad pre-existing workspace lint findings after `prettier --write` touched many workspace files in that temp worktree; this was kept isolated from the main checkout and is not counted as PR product evidence.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local missing app env is a separate `NAMESPACE` note for this shell only.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only remote head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, client-facing actions, or evidence-only commits without fresh checks; keep the status shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. This remains an advisory packet for Phill/operator sign-off.
+- Local main checkout still contains unrelated unstaged/untracked workspace/video-command-center and Synthex/2nd Brain changes (`apps/workspace/*`, `docs/brain/2nd Brain/Wiki/*`). They were not staged, pushed, or included in this PR gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge remote head `3cdec1df3` if the guardrails are accepted. After merge, start the next autonomous slice from clean `main` and use RED/GREEN tests for the first read-only real-data wiring or the next smallest CRM/Margot command-spine gap.
+
+## 2026-06-24 18:09 AEST
+
+### Tick 20260624_1809 — PR #485 unchanged green gate refresh (Nexus status shell)
+
+Lane: continued the already-open current-branch PR #485 (`feat/nexus-status-shell-20260623`) rather than starting another CRM/Margot lane or publishing unrelated local dirty work. Scope stayed inside repo/docs/GitHub/Vercel read-back, local verification, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight from `/Users/phillmcgurk/Unite-Group` found current branch `feat/nexus-status-shell-20260623`, local/remote branch head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, `git rev-list --left-right --count origin/main...HEAD` -> `0 2` (0 commits unique to `origin/main`, 2 commits unique to `HEAD`), and tracking comparison `feat/nexus-status-shell-20260623...origin/feat/nexus-status-shell-20260623` -> `0 0`.
+- PR #485 read-back at 18:09 AEST: https://github.com/CleanExpo/Unite-Group/pull/485, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, base `main`, `MERGEABLE`, `CLEAN`, non-draft, with all material GitHub Actions/CodeRabbit/Vercel checks passing.
+- Read-first context was refreshed from tracked canonical docs under `apps/empire/docs/margot/*` and `apps/web/docs/margot/*` because root `docs/margot/` currently carries progress/evidence logs.
+- No new production-code change was authored in this tick because the already-open PR remains fully green and should be decided before starting/publishing another lane. No new RED/GREEN cycle was applicable; the existing PR regression test remains the relevant TDD evidence.
+
+Verification / evidence:
+- `gh pr checks 485` -> PASS for CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, `apps/workspace — build`, `apps/spec-board — type-check, test, build`, and `packages/pi-ceo-operator-mcp — build`. Vercel URLs: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT`.
+- Focused local Vitest from `apps/web`: `node ./node_modules/vitest/vitest.mjs run "src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx" --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS.
+- `pnpm run lint` from `apps/web` -> PASS.
+- Scoped whitespace check: `git diff --check origin/main...HEAD -- apps/web/src/app/(founder)/founder/nexus-status/page.tsx apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx docs/margot/overnight-progress-log.md docs/margot/morning-report.md` -> PASS.
+- Scoped content scan over `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded-secret/auth/token/bearer/approval/payment/card/dangerous HTML/eval/exec patterns returned `0` matches.
+- Local `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with 0/3 critical and 0/4 required local app env vars. Only env names were printed by the validator; no values were read/printed, and no env mutation was attempted. Remote Vercel deployment checks for PR #485 are green.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local build env absence is a separate `NAMESPACE` note for this shell only.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only the existing remote PR head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, or evidence-only commits without fresh checks; keep the shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or route-remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. The packet is for Phill/operator sign-off.
+- Local worktree still contains unrelated unstaged/untracked workspace/video-command-center and Synthex/2nd Brain changes (`apps/workspace/*`, `docs/brain/2nd Brain/Wiki/*`). They were not staged, pushed, or included in this PR gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge the remote head if the guardrails are accepted. After merge, the next autonomous slice should start from clean `main` and wire the first read-only real data source behind RED/GREEN tests, or continue the smallest CRM/Margot command-spine gap in a clean branch.
+
+## 2026-06-24 17:35 AEST
+
+### Tick 20260624_1735 — PR #485 unchanged green gate refresh + full local verification replay (Nexus status shell)
+
+Lane: continued the already-open current-branch PR #485 (`feat/nexus-status-shell-20260623`) rather than starting another CRM/Margot slice or publishing the local dirty workspace branch. Scope stayed inside repo/docs/GitHub/Vercel read-back, local verification, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight from `/Users/phillmcgurk/Unite-Group` found current branch `feat/nexus-status-shell-20260623` tracking `origin/feat/nexus-status-shell-20260623`, local/remote branch head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, `git rev-list --left-right --count origin/main...HEAD` -> `0 2` (0 commits unique to `origin/main`, 2 commits unique to `HEAD`), and `git rev-list --left-right --count feat/nexus-status-shell-20260623...origin/feat/nexus-status-shell-20260623` -> `0 0`.
+- PR #485 read-back at 17:35 AEST: https://github.com/CleanExpo/Unite-Group/pull/485, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, base `main`, `MERGEABLE`, `CLEAN`, non-draft, 2 commits, with GitHub Actions, CodeRabbit, and both Vercel preview deployments passing.
+- Vercel deployment URLs read back through GitHub checks: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT`.
+- Read-first context refreshed from tracked canonical docs under `apps/empire/docs/margot/*` / `apps/web/docs/margot/*` because root `docs/margot/` currently carries progress/evidence logs.
+- No new production-code change was authored in this tick because the already-open PR is fully green and should be decided before starting or publishing another lane. No new RED/GREEN cycle was applicable; the existing PR test coverage for the static shell remains the relevant regression evidence.
+
+Verification / evidence:
+- Remote checks read-back via `gh pr checks 485` -> PASS: CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, `apps/workspace — build`, `apps/spec-board — type-check, test, build`, and `packages/pi-ceo-operator-mcp — build`.
+- `gh pr view 485 --json ...` -> head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, `MERGEABLE`, `CLEAN`, 2 commits, material check rollups successful.
+- Focused local Vitest from `apps/web`: `node ./node_modules/vitest/vitest.mjs run "src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx" --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS.
+- `pnpm run lint` from `apps/web` -> PASS.
+- Full app tests: `pnpm run test` from `apps/web` -> PASS, 440 files / 2622 tests. Existing expected stderr/console output appeared in failure-path tests; no test failures.
+- `git diff --check origin/main...HEAD -- <PR #485 files + Margot evidence docs>` -> PASS.
+- Scoped security content scan over `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded-secret, auth/token, payment/card, approval-ref, bearer, dangerous HTML, and related patterns returned `0` matches.
+- Local `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with 0/3 critical and 0/4 required local app env vars. No env values were read or printed; this is a local namespace/configuration gate only. Remote Vercel deployment checks for PR #485 are green.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local build env absence is a separate `NAMESPACE` note for this shell only.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only the existing remote PR head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, or evidence-only commits without fresh checks; keep the shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or route-remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. The packet is for Phill/operator sign-off.
+- Local worktree also contains unrelated unstaged/untracked workspace/video-command-center and Synthex/2nd Brain changes (`apps/workspace/*`, `docs/brain/2nd Brain/Wiki/*`). They were not staged, pushed, or included in this PR gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge the remote head if the guardrails are accepted. After merge, the next autonomous slice should start from clean `main` and wire the first read-only real data source behind RED/GREEN tests, or continue the smallest CRM/Margot command-spine gap in a clean branch.
+
+## 2026-06-24 16:58 AEST
+
+### Tick 20260624_1658 — PR #485 unchanged green gate refresh + full local verification replay (Nexus status shell)
+
+Lane: continued the already-open current-branch PR #485 (`feat/nexus-status-shell-20260623`) rather than starting another CRM/Margot slice. Scope stayed inside repo/docs/GitHub/Vercel read-back, local verification, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight from `/Users/phillmcgurk/Unite-Group` found current branch `feat/nexus-status-shell-20260623` tracking `origin/feat/nexus-status-shell-20260623`, local/remote branch head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, `git rev-list --left-right --count origin/main...HEAD` -> `0 2` (0 commits unique to `origin/main`, 2 commits unique to `HEAD`), and `git rev-list --left-right --count feat/nexus-status-shell-20260623...origin/feat/nexus-status-shell-20260623` -> `0 0`.
+- PR #485 read-back at 16:58 AEST: https://github.com/CleanExpo/Unite-Group/pull/485, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, base `main`, `MERGEABLE`, `CLEAN`, non-draft, 2 commits, with GitHub Actions, CodeRabbit, and both Vercel preview deployments passing.
+- Vercel deployment URLs read back through GitHub checks: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT`.
+- Read-first context refreshed from tracked canonical docs under `apps/empire/docs/margot/*` and `apps/web/docs/margot/*` because root `docs/margot/` currently carries progress/evidence logs.
+- No new production-code change was authored in this tick because the already-open PR is fully green and should be decided before starting another lane. No new RED/GREEN cycle was applicable; the existing PR test coverage for the static shell remains the relevant regression evidence.
+
+Verification / evidence:
+- Remote checks read-back via `gh pr checks 485` -> PASS: CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, `apps/workspace — build`, `apps/spec-board — type-check, test, build`, and `packages/pi-ceo-operator-mcp — build`.
+- `gh pr view 485 --json ...` -> head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, `MERGEABLE`, `CLEAN`, 2 commits, material check rollups successful.
+- Local diff/branch checks: `git diff --check origin/main...HEAD` -> PASS; tracking branch divergence `feat/nexus-status-shell-20260623...origin/feat/nexus-status-shell-20260623` -> `0 0`.
+- Focused local Vitest: first `pnpm exec vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx' --config vitest.config.mts` was blocked by the local terminal guard before test execution; retried with `node ./node_modules/vitest/vitest.mjs run "src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx" --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS.
+- `pnpm run lint` from `apps/web` -> PASS.
+- Full app tests: `pnpm run test` from `apps/web` -> PASS, 440 files / 2622 tests. Existing expected stderr/console output appeared in failure-path tests; no test failures.
+- Scoped security content scan over `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded-secret, auth/token, payment/card, approval-ref, bearer, dangerous HTML, and related patterns returned `0` matches.
+- Local `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with 0/3 critical and 0/4 required local app env vars. No env values were read or printed; this is a local namespace/configuration gate only. Remote Vercel deployment checks for PR #485 are green.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local build env absence is a separate `NAMESPACE` note for this shell only.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only the existing remote PR head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, or evidence-only commits without fresh checks; keep the shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or route-remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. The packet is for Phill/operator sign-off.
+- Local worktree also contains unrelated unstaged/untracked workspace/video-command-center and Synthex/2nd Brain changes (`apps/workspace/*`, `docs/brain/2nd Brain/Wiki/*`). They were not staged, pushed, or included in this PR gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge the remote head if the guardrails are accepted. After merge, the next autonomous slice should start from clean `main` and wire the first read-only real data source behind RED/GREEN tests, or continue the smallest CRM/Margot command-spine gap.
+
+## 2026-06-24 16:21 AEST
+
+### Tick 20260624_1621 — PR #485 unchanged green gate refresh + local verification replay (Nexus status shell)
+
+Lane: continued the already-open current-branch PR #485 (`feat/nexus-status-shell-20260623`) rather than starting another CRM/Margot slice. Scope stayed inside repo/docs/GitHub/Vercel read-back, local verification, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight from `/Users/phillmcgurk/Unite-Group` found current branch `feat/nexus-status-shell-20260623` tracking `origin/feat/nexus-status-shell-20260623`, local/remote branch head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, `git rev-list --left-right --count origin/main...HEAD` -> `0 2` (0 commits unique to `origin/main`, 2 commits unique to `HEAD`), and `git rev-list --left-right --count feat/nexus-status-shell-20260623...origin/feat/nexus-status-shell-20260623` -> `0 0`.
+- PR #485 read-back at 16:21 AEST: https://github.com/CleanExpo/Unite-Group/pull/485, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, base `main`, `MERGEABLE`, `CLEAN`, non-draft, 2 commits, with GitHub Actions, CodeRabbit, and both Vercel preview deployments passing.
+- Vercel deployment URLs read back through GitHub checks: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT`.
+- Read-first context refreshed from tracked canonical docs under `apps/empire/docs/margot/*` and `apps/web/docs/margot/*` because root `docs/margot/` currently carries progress/evidence logs.
+- No new production-code change was authored in this tick because the already-open PR is fully green and should be decided before starting another lane. No new RED/GREEN cycle was applicable; the existing PR test coverage for the static shell remains the relevant regression evidence.
+
+Verification / evidence:
+- Remote checks read-back via `gh pr checks 485` -> PASS: CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, `apps/workspace — build`, `apps/spec-board — type-check, test, build`, and `packages/pi-ceo-operator-mcp — build`.
+- `gh pr view 485 --json ...` -> head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, `MERGEABLE`, `CLEAN`, 2 commits, material check rollups successful.
+- Local diff summary against `origin/main...HEAD`: PR product files are `apps/web/src/app/(founder)/founder/nexus-status/page.tsx` and `apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx`; evidence docs remain local-only.
+- Focused local Vitest: `pnpm exec vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx'` from `apps/web` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS.
+- `pnpm run lint` from `apps/web` -> PASS.
+- Full app tests: `pnpm run test` from `apps/web` -> PASS, 440 files / 2622 tests. Existing expected stderr/console output appeared in failure-path tests; no test failures.
+- `git diff --check origin/main...HEAD` -> PASS.
+- Scoped security content scan over `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded-secret, auth/token, payment/card, approval-ref, bearer, and related patterns returned `0` matches.
+- Local `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with 0/3 critical and 0/4 required local app env vars. No env values were read or printed; this is a local namespace/configuration gate only. Remote Vercel deployment checks for PR #485 are green.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local build env absence is a separate `NAMESPACE` note for this shell only.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only the existing remote PR head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, or evidence-only commits without fresh checks; keep the shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or route-remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. The packet is for Phill/operator sign-off.
+- Local worktree also contains unrelated unstaged/untracked workspace/video-command-center and Synthex/2nd Brain changes (`apps/workspace/*`, `docs/brain/2nd Brain/Wiki/*`). They were not staged, pushed, or included in this PR gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge the remote head if the guardrails are accepted. After merge, the next autonomous slice should start from clean `main` and wire the first read-only real data source behind RED/GREEN tests, or continue the smallest CRM/Margot command-spine gap.
+
+## 2026-06-24 15:47 AEST
+
+### Tick 20260624_1547 — PR #485 unchanged green gate refresh + full local verification (Nexus status shell)
+
+Lane: continued the already-open current-branch PR #485 (`feat/nexus-status-shell-20260623`) rather than starting another CRM/Margot slice. Scope stayed inside repo/docs/GitHub/Vercel read-back, local verification, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight from `/Users/phillmcgurk/Unite-Group` found current branch `feat/nexus-status-shell-20260623` tracking `origin/feat/nexus-status-shell-20260623`, local/remote branch head `3cdec1df3`, `git rev-list --left-right --count origin/main...HEAD` -> `0 2` (0 commits unique to `origin/main`, 2 commits unique to `HEAD`), and `git rev-list --left-right --count @{u}...HEAD` -> `0 0`.
+- PR #485 read-back at 15:47 AEST: https://github.com/CleanExpo/Unite-Group/pull/485, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, base `main`, `MERGEABLE`, `CLEAN`, non-draft, 2 commits, with GitHub Actions, CodeRabbit, and both Vercel preview deployments passing.
+- Vercel deployment URLs read back through GitHub checks: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT`.
+- Read-first context refreshed from tracked canonical docs under `apps/empire/docs/margot/*` and `apps/web/docs/margot/*` because root `docs/margot/` currently carries progress/evidence logs.
+- No new production-code change was authored in this tick because the already-open PR is fully green and should be decided before starting another lane. No new RED/GREEN cycle was applicable; the existing PR test coverage for the static shell remains the relevant regression evidence.
+
+Verification / evidence:
+- Remote checks read-back via `gh pr checks 485` -> PASS: CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, `apps/workspace — build`, `apps/spec-board — type-check, test, build`, and `packages/pi-ceo-operator-mcp — build`.
+- `gh pr view 485 --json ...` -> head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, `MERGEABLE`, `CLEAN`, 2 commits, material check rollups successful.
+- Local diff summary against `origin/main...HEAD`: only PR product files are new `apps/web/src/app/(founder)/founder/nexus-status/page.tsx` and `apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx`; evidence docs are local-only.
+- Focused local Vitest: `./node_modules/.bin/vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx' --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS.
+- `pnpm run lint` from `apps/web` -> PASS.
+- Full app tests: `pnpm run test` from `apps/web` -> PASS, 440 files / 2622 tests. Existing expected stderr/console output appeared in failure-path tests; no test failures.
+- Scoped whitespace check: `git diff --check origin/main...HEAD -- <PR #485 files + Margot evidence docs>` -> PASS.
+- Scoped security content scan over `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded-secret, shell-injection, eval/exec, unsafe-deserialization, and SQL-format patterns returned `0` matches.
+- Local `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with 0/3 critical and 0/4 required local app env vars. No env values were read or printed; this is a local namespace/configuration gate only. Remote Vercel deployment checks for PR #485 are green.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local build env absence is a separate `NAMESPACE` note for this shell only.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only the existing remote PR head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, or evidence-only commits without fresh checks; keep the shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or route-remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. The packet is for Phill/operator sign-off.
+- Local worktree still contains unrelated dirty 2nd Brain docs (`docs/brain/2nd Brain/Wiki/synthex.md` and an untracked Synthex upgrade note). They were not staged or included in this gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge the remote head if the guardrails are accepted. After merge, the next autonomous slice should start from clean `main` and wire the first read-only real data source behind RED/GREEN tests, or continue the smallest CRM/Margot command-spine gap.
+
+## 2026-06-24 15:09 AEST
+
+### Tick 20260624_1509 — PR #485 unchanged green gate refresh + local verification (Nexus status shell)
+
+Lane: continued the already-open current-branch PR #485 (`feat/nexus-status-shell-20260623`) rather than starting another CRM/Margot slice. Scope stayed inside repo/docs/GitHub/Vercel read-back, local verification, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight from `/Users/phillmcgurk/Unite-Group` found current branch `feat/nexus-status-shell-20260623` tracking `origin/feat/nexus-status-shell-20260623`, local/remote branch head `3cdec1df3`, `git rev-list --left-right --count origin/main...HEAD` -> `0 2` (0 commits unique to `origin/main`, 2 commits unique to `HEAD`), and `git rev-list --left-right --count @{u}...HEAD` -> `0 0`.
+- PR #485 read-back at 15:09 AEST: https://github.com/CleanExpo/Unite-Group/pull/485, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, base `main`, `CLEAN`, non-draft, 2 commits, with GitHub Actions, CodeRabbit, and both Vercel preview deployments passing.
+- Vercel deployment URLs read back through GitHub checks: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT`.
+- Read-first context refreshed from tracked canonical docs under `apps/empire/docs/margot/*` and `apps/web/docs/margot/*` because root `docs/margot/` currently carries progress/evidence logs.
+- No new production-code change was authored in this tick because the already-open PR is fully green and should be decided before starting another lane. No new RED/GREEN cycle was applicable; the existing PR test coverage for the static shell remains the relevant regression evidence.
+
+Verification / evidence:
+- Remote checks read-back via `gh pr checks 485 --watch=false` -> PASS: CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, `apps/workspace — build`, `apps/spec-board — type-check, test, build`, and `packages/pi-ceo-operator-mcp — build`.
+- `gh pr view 485 --json ...` -> head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, `CLEAN`, 2 commits, material check rollups successful.
+- Local diff summary against `origin/main...HEAD`: only PR product files are new `apps/web/src/app/(founder)/founder/nexus-status/page.tsx` and `apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx`; evidence docs are local-only.
+- Focused local Vitest: `./node_modules/.bin/vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx' --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS.
+- `pnpm run lint` from `apps/web` -> PASS.
+- Full app tests: `pnpm run test` from `apps/web` -> PASS, 440 files / 2622 tests. Existing expected stderr/console output appeared in failure-path tests; no test failures.
+- Scoped whitespace check: `git diff --check origin/main...HEAD -- <PR #485 files + Margot evidence docs>` -> PASS.
+- Scoped security content scan over `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded-secret, shell-injection, eval/exec, unsafe-deserialization, and SQL-format patterns returned 2 benign template-literal UI ID/ARIA interpolation matches and no credential/dangerous-API findings.
+- Local `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with 0/3 critical and 0/4 required local app env vars. No env values were read or printed; this is a local namespace/configuration gate only. Remote Vercel deployment checks for PR #485 are green.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local build env absence is a separate `NAMESPACE` note for this shell only.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only the existing remote PR head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, or evidence-only commits without fresh checks; keep the shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or route-remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. The packet is for Phill/operator sign-off.
+- Local worktree still contains unrelated dirty 2nd Brain docs (`docs/brain/2nd Brain/Wiki/synthex.md` and an untracked Synthex upgrade note). They were not staged or included in this gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge the remote head if the guardrails are accepted. After merge, the next autonomous slice should start from clean `main` and wire the first read-only real data source behind RED/GREEN tests, or continue the smallest CRM/Margot command-spine gap.
+
+## 2026-06-24 14:35 AEST
+
+### Tick 20260624_1435 — PR #485 unchanged green gate refresh + full local verification (Nexus status shell)
+
+Lane: continued the already-open current-branch PR #485 (`feat/nexus-status-shell-20260623`) rather than starting another CRM/Margot slice. Scope stayed inside repo/docs/GitHub/Vercel read-back, local verification, and evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight from `/Users/phillmcgurk/Unite-Group` found current branch `feat/nexus-status-shell-20260623` tracking `origin/feat/nexus-status-shell-20260623`, local/remote branch head `3cdec1df3`, `git rev-list --left-right --count origin/main...HEAD` -> `0 2` (0 commits unique to `origin/main`, 2 commits unique to `HEAD`), and `git rev-list --left-right --count @{u}...HEAD` -> `0 0`.
+- PR #485 read-back at 14:33 AEST: https://github.com/CleanExpo/Unite-Group/pull/485, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, base `main`, `MERGEABLE`, `CLEAN`, non-draft, 2 commits, with GitHub Actions, CodeRabbit, and both Vercel preview deployments passing.
+- Vercel deployment URLs read back through GitHub checks: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT`.
+- Read-first context refreshed from tracked canonical docs under `apps/empire/docs/margot/*`, `apps/web/docs/margot/*`, and `apps/empire/docs/plans/2026-05-23-margot-multi-day-crm-build-plan.md` because root `docs/margot/` currently carries progress/evidence logs.
+- No new production-code change was authored in this tick because the already-open PR is fully green and should be decided before starting another lane. No new RED/GREEN cycle was applicable; the existing PR test coverage for the static shell remains the relevant regression evidence.
+
+Verification / evidence:
+- Remote checks read-back via `gh pr checks 485 --watch=false` -> PASS: CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, `apps/workspace — build`, `apps/spec-board — type-check, test, build`, and `packages/pi-ceo-operator-mcp — build`.
+- `gh pr view 485 --json ...` -> head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, `MERGEABLE`, `CLEAN`, 2 commits, material check rollups successful.
+- Local diff summary against `origin/main...HEAD`: only PR product files are new `apps/web/src/app/(founder)/founder/nexus-status/page.tsx` and `apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx`; evidence docs are local-only.
+- Focused local Vitest: `./node_modules/.bin/vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx' --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS.
+- `pnpm run lint` from `apps/web` -> PASS.
+- Full app tests: `pnpm run test` from `apps/web` -> PASS, 440 files / 2622 tests. Existing expected stderr/console output appeared in failure-path tests; no test failures.
+- Scoped whitespace check: `git diff --check origin/main...HEAD -- <PR #485 files + Margot evidence docs>` -> PASS.
+- Scoped security content scan over `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded-secret, shell-injection, eval/exec, unsafe-deserialization, and SQL-format patterns -> `0` matches.
+- Local `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with 0/3 critical and 0/4 required local app env vars. No env values were read or printed; this is a local namespace/configuration gate only. Remote Vercel deployment checks for PR #485 are green.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local build env absence is a separate `NAMESPACE` note for this shell only.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only the existing remote PR head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, or evidence-only commits without fresh checks; keep the shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or route-remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. The packet is for Phill/operator sign-off.
+- Local worktree still contains unrelated dirty 2nd Brain docs (`docs/brain/2nd Brain/Wiki/synthex.md` and an untracked Synthex upgrade note). They were not staged or included in this gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge the remote head if the guardrails are accepted. After merge, the next autonomous slice should start from clean `main` and wire the first read-only real data source behind RED/GREEN tests, or continue the smallest CRM/Margot command-spine gap.
+
+## 2026-06-24 13:59 AEST
+
+### Tick 20260624_1359 — PR #485 unchanged green gate refresh + local verification (Nexus status shell)
+
+Lane: continued the already-open current-branch PR #485 (`feat/nexus-status-shell-20260623`) rather than starting another CRM/Margot slice. Scope stayed inside read-only repo/GitHub/Vercel inspection, local verification, an independent read-only reviewer dispatch, and local evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight from `/Users/phillmcgurk/Unite-Group` found current branch `feat/nexus-status-shell-20260623` tracking `origin/feat/nexus-status-shell-20260623`, local/remote branch head `3cdec1df3`, and `git rev-list --left-right --count origin/main...HEAD` returned `0 2` (0 commits unique to `origin/main`, 2 commits unique to `HEAD`). `git rev-list --left-right --count @{u}...HEAD` returned `0 0` after verification.
+- PR #485 read-back at 13:59 AEST: https://github.com/CleanExpo/Unite-Group/pull/485, remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, base `main`, `MERGEABLE`, `CLEAN`, non-draft, 2 commits, with GitHub Actions, CodeRabbit, and both Vercel preview deployments passing.
+- Vercel deployment URLs read back through GitHub checks: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT`.
+- Read-first context refreshed from tracked canonical docs under `apps/empire/docs/margot/*`, `apps/web/docs/margot/*`, and `apps/empire/docs/plans/2026-05-23-margot-multi-day-crm-build-plan.md` because root `docs/margot/` currently carries progress/evidence logs.
+- No new production-code change was authored in this tick because the already-open PR is fully green and should be decided before starting another lane. No new RED/GREEN cycle was applicable; the existing PR test coverage for the static shell remains the relevant regression evidence.
+
+Verification / evidence:
+- Remote checks read-back via `gh pr checks 485 --watch=false` -> PASS: CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, `apps/workspace — build`, `apps/spec-board — type-check, test, build`, and `packages/pi-ceo-operator-mcp — build`.
+- `gh pr view 485 --json ...` -> head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, `MERGEABLE`, `CLEAN`, 2 commits, material check rollups successful.
+- Local diff summary against `origin/main...HEAD`: only PR product files are new `apps/web/src/app/(founder)/founder/nexus-status/page.tsx` and `apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx`; evidence docs are local-only.
+- Focused local Vitest: `./node_modules/.bin/vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx' --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS.
+- `pnpm run lint` from `apps/web` -> PASS.
+- Full app tests: `pnpm run test` from `apps/web` -> PASS, 440 files / 2622 tests. Existing expected stderr/console output appeared in failure-path tests; no test failures.
+- Scoped whitespace check: `git diff --check origin/main...HEAD -- <PR #485 files + Margot evidence docs>` -> PASS.
+- Scoped security content scan over `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded-secret, shell-injection, eval/exec, unsafe-deserialization, and SQL-format patterns -> `findings=0`.
+- Local `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with 0/3 critical and 0/4 required local app env vars. No env values were read or printed; this is a local namespace/configuration gate only. Remote Vercel deployment checks for PR #485 are green.
+- Independent read-only reviewer for PR #485 was dispatched; verdict was still pending at evidence-write time and is not counted as approval.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local build env absence is a separate `NAMESPACE` note for this shell only.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only the existing remote PR head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, or evidence-only commits without fresh checks; keep the shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or route-remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. The packet is for Phill/operator sign-off.
+- Local worktree still contains unrelated dirty 2nd Brain docs (`docs/brain/2nd Brain/Wiki/synthex.md` and an untracked Synthex upgrade note). They were not staged or included in this gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR.
+
+Next safe lane:
+- Phill/operator can review PR #485 and merge the remote head if the guardrails are accepted. After merge, the next autonomous slice should start from clean `main` and wire the first read-only real data source behind RED/GREEN tests, or continue the smallest CRM/Margot command-spine gap.
+
+## 2026-06-24 13:24 AEST
+
+### Tick 20260624_1324 — PR #485 unchanged green gate refresh + full local verification (Nexus status shell)
+
+Lane: continued the already-open current-branch PR #485 (`feat/nexus-status-shell-20260623`) instead of starting a new CRM/Margot slice. Scope stayed inside read-only repo/GitHub/Vercel inspection, local verification, and evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight from `/Users/phillmcgurk/Unite-Group` found current branch `feat/nexus-status-shell-20260623` tracking `origin/feat/nexus-status-shell-20260623`, local `HEAD` `3cdec1df3`, and `git rev-list --left-right --count origin/main...HEAD` returned `0 2` (0 commits unique to `origin/main`, 2 commits unique to `HEAD`). PR #485 remains open against `main` at remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`.
+- PR #485 read-back at 13:24 AEST: `MERGEABLE`, `CLEAN`, non-draft, base `main`, 2 commits, with GitHub Actions, CodeRabbit, and both Vercel preview deployments passing. Vercel deployment URLs read back through GitHub checks: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT`.
+- Read-first context refreshed from tracked canonical docs under `apps/empire/docs/margot/*`, `apps/web/docs/margot/*`, and `apps/empire/docs/plans/2026-05-23-margot-multi-day-crm-build-plan.md` because root `docs/margot/` currently carries progress/evidence logs.
+- No new production-code change was authored in this tick because the already-open PR is fully green and should be decided before starting another lane. No new RED/GREEN cycle was applicable; the existing PR test coverage for the static shell remains the relevant regression evidence.
+
+Verification / evidence:
+- Remote checks read-back via `gh pr checks 485 --watch=false` -> PASS: CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, `apps/workspace — build`, `apps/spec-board — type-check, test, build`, and `packages/pi-ceo-operator-mcp — build`.
+- `gh pr view 485 --json ...` -> head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, `MERGEABLE`, `CLEAN`, 2 commits, material check rollups successful.
+- Local diff summary against `origin/main...HEAD`: only PR product files are new `apps/web/src/app/(founder)/founder/nexus-status/page.tsx` and `apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx`; evidence docs are local-only.
+- Focused local Vitest: `./node_modules/.bin/vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx' --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS.
+- `pnpm run lint` from `apps/web` -> PASS.
+- Full app tests: `pnpm run test` from `apps/web` -> PASS, 440 files / 2622 tests. Existing expected stderr/console output appeared in failure-path tests; no test failures.
+- Scoped whitespace check: `git diff --check origin/main...HEAD -- <PR #485 files + Margot evidence docs>` -> PASS.
+- Scoped security content scan over `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded-secret, shell-injection, eval/exec, unsafe-deserialization, and SQL-format patterns -> `findings=0`.
+- Local `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with 0/3 critical and 0/4 required local app env vars. No env values were read or printed; this is a local namespace/configuration gate only. Remote Vercel deployment checks for PR #485 are green.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local build env absence is a separate `NAMESPACE` note for this shell only.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only the existing remote PR head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, or evidence-only commits without fresh checks; keep the shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or route-remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. The packet is for Phill/operator sign-off.
+- Local worktree still contains unrelated dirty 2nd Brain docs (`docs/brain/2nd Brain/Wiki/synthex.md` and an untracked Synthex upgrade note). They were not staged or included in this gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR.
+
+Next safe lane:
+- Phill/operator can review PR #485 at https://github.com/CleanExpo/Unite-Group/pull/485 and merge the remote head if the guardrails are accepted. After merge, the next autonomous slice should start from clean `main` and wire the first read-only real data source behind RED/GREEN tests, or continue the smallest CRM/Margot command-spine gap.
+
+## 2026-06-24 12:48 AEST
+
+### Tick 20260624_1248 — PR #485 unchanged green gate refresh + full local verification (Nexus status shell)
+
+Lane: continued the already-open current-branch PR #485 (`feat/nexus-status-shell-20260623`) instead of starting a new CRM/Margot slice. Scope stayed inside read-only repo/GitHub/Vercel inspection, local verification, and evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight from `/Users/phillmcgurk/Unite-Group` found current branch `feat/nexus-status-shell-20260623` tracking `origin/feat/nexus-status-shell-20260623`, local `HEAD` `3cdec1df3`, `ahead/behind 0/0`, and PR #485 open against `main` at remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`.
+- PR #485 read-back at 12:48 AEST: `MERGEABLE`, `CLEAN`, non-draft, base `main`, with GitHub Actions, CodeRabbit, and both Vercel preview deployments passing. Vercel deployment URLs read back through GitHub checks: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT`.
+- Read-first context refreshed from the tracked canonical docs under `apps/empire/docs/margot/*`, `apps/web/docs/margot/*`, and `apps/web/docs/plans/*` because root `docs/margot/` currently carries progress/evidence logs.
+- No new production-code change was authored in this tick because the already-open PR is fully green and should be decided before starting another lane. No new RED/GREEN cycle was applicable; the existing PR test coverage for the static shell remains the relevant regression evidence.
+
+Verification / evidence:
+- Remote checks read-back via `gh pr checks 485 --watch=false` -> PASS: CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, `apps/workspace — build`, `apps/spec-board — type-check, test, build`, and `packages/pi-ceo-operator-mcp — build`.
+- `gh pr view 485 --json ...` -> head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, `MERGEABLE`, `CLEAN`, 2 commits, material check rollups successful.
+- Local diff summary: only PR product files are new `apps/web/src/app/(founder)/founder/nexus-status/page.tsx` and `apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx`; evidence docs are local-only.
+- Focused local Vitest: `./node_modules/.bin/vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx' --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS.
+- `pnpm run lint` from `apps/web` -> PASS.
+- Full app tests: `pnpm run test` from `apps/web` -> PASS, 440 files / 2622 tests. Existing expected stderr/console output appeared in failure-path tests; no test failures.
+- Scoped whitespace check: `git diff --check origin/main...HEAD -- <PR #485 files + Margot evidence docs>` -> PASS.
+- Scoped security content scan over `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded-secret, shell-injection, eval/exec, unsafe-deserialization, and SQL-format patterns -> `findings=0`.
+- Local `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with 0/3 critical and 0/4 required local app env vars. No env values were read or printed; this is a local namespace/configuration gate only. Remote Vercel deployment checks for PR #485 are green.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local build env absence is a separate `NAMESPACE` note for this shell only.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only the existing remote PR head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, or evidence-only commits without fresh checks; keep the shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or route-remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. The packet is for Phill/operator sign-off.
+- Local worktree still contains unrelated dirty 2nd Brain docs (`docs/brain/2nd Brain/Wiki/synthex.md` and an untracked Synthex upgrade note). They were not staged or included in this gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR.
+
+Next safe lane:
+- Phill/operator can review PR #485 at https://github.com/CleanExpo/Unite-Group/pull/485 and merge the remote head if the guardrails are accepted. After merge, the next autonomous slice should start from clean `main` and wire the first read-only real data source behind RED/GREEN tests, or continue the smallest CRM/Margot command-spine gap.
+
+## 2026-06-24 12:06 AEST
+
+### Tick 20260624_1206 — PR #485 green gate refresh + local verification (Nexus status shell)
+
+Lane: continued the already-open current-branch PR #485 (`feat/nexus-status-shell-20260623`) instead of starting a new CRM/Margot slice. Scope stayed inside read-only PR/GitHub/Vercel inspection, local verification, and evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight from `/Users/phillmcgurk/Unite-Group` found current branch `feat/nexus-status-shell-20260623` tracking `origin/feat/nexus-status-shell-20260623`, local `HEAD` `3cdec1df3`, `ahead/behind 0/0`, and PR #485 open against `main` at remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`.
+- PR #485 read-back at 12:06 AEST: `MERGEABLE`, `CLEAN`, non-draft, base `main`, with GitHub Actions, CodeRabbit, and both Vercel preview deployments passing. Vercel deployment URLs read back through GitHub checks: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT`.
+- Read-first context refreshed from tracked canonical docs under `apps/empire/docs/margot/*` and `apps/web/docs/margot/*` because root `docs/margot/` currently carries progress/evidence logs.
+- No new production-code change was authored in this tick because the already-open PR is fully green and should be decided before starting another lane. No new RED/GREEN cycle was applicable; the existing PR test coverage for the static shell remains the relevant regression evidence.
+
+Verification / evidence:
+- Remote checks read-back via `gh pr checks 485 --watch=false` -> PASS: CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, `apps/workspace — build`, `apps/spec-board — type-check, test, build`, and `packages/pi-ceo-operator-mcp — build`.
+- `gh pr view 485 --json ...` -> head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, `MERGEABLE`, `CLEAN`, 2 commits, all material check rollups successful. A later `gh pr diff 485 --name-only` attempt hit a GitHub API rate-limit `HTTP 403`; I did not retry noisily, and used local `origin/main...HEAD` diff read-back instead.
+- Local diff summary: only PR product files are new `apps/web/src/app/(founder)/founder/nexus-status/page.tsx` and `apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx`.
+- Focused local Vitest: `./node_modules/.bin/vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx' --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS.
+- `pnpm run lint` from `apps/web` -> PASS.
+- Full app tests: `pnpm run test` from `apps/web` -> PASS, 440 files / 2622 tests. Existing expected stderr/console output appeared in failure-path tests; no test failures.
+- Scoped whitespace check: `git diff --check origin/main...HEAD -- <PR #485 files + Margot evidence docs>` -> PASS.
+- Scoped security content scan over `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded-secret, shell-injection, eval/exec, unsafe-deserialization, and SQL-format patterns -> `findings=0`.
+- Local `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with 0/3 critical and 0/4 required local app env vars. No env values were read or printed; this is a local namespace/configuration gate only. Remote Vercel deployment checks for PR #485 are green.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local build env absence is a separate `NAMESPACE` note for this shell only.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only the existing remote PR head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, or evidence-only commits without fresh checks; keep the shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or route-remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. As Nexus CFO/advisory lane, the packet is for Phill/operator sign-off.
+- Local worktree still contains unrelated dirty 2nd Brain docs (`docs/brain/2nd Brain/Wiki/synthex.md` and an untracked Synthex upgrade note). They were not staged or included in this gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR.
+- Independent read-only reviewer was dispatched for PR #485; if it returns after this report, treat it as additional advisory context, not as a merge action.
+
+Next safe lane:
+- Phill/operator can review PR #485 at https://github.com/CleanExpo/Unite-Group/pull/485 and merge the remote head if the guardrails are accepted. After merge, the next autonomous slice should start from clean `main` and wire the first read-only real data source behind RED/GREEN tests, or continue the smallest CRM/Margot command-spine gap.
+
+## 2026-06-24 11:32 AEST
+
+### Tick 20260624_1132 — PR #485 unchanged green gate refresh (Nexus status shell)
+
+Lane: continued the already-open current-branch PR #485 (`feat/nexus-status-shell-20260623`) instead of starting a new CRM/Margot slice. Scope stayed inside read-only PR/GitHub/Vercel inspection, local verification, and evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight from `/Users/phillmcgurk/Unite-Group` found current branch `feat/nexus-status-shell-20260623` tracking `origin/feat/nexus-status-shell-20260623`, local `HEAD` `3cdec1df3`, `ahead/behind 0/0`, and PR #485 open against `main` at remote head `3cdec1df3702`.
+- PR #485 read-back remains `MERGEABLE`, `CLEAN`, non-draft, base `main`, with GitHub Actions, CodeRabbit, and both Vercel preview deployments passing.
+- No new production-code change was authored in this tick because the already-open PR is fully green and should be decided before starting another lane. No new RED/GREEN cycle was applicable; the existing PR test coverage for the static shell remains the relevant regression evidence.
+
+Verification / evidence:
+- Focused local Vitest: `./node_modules/.bin/vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx' --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS.
+- `pnpm run lint` from `apps/web` -> PASS.
+- Full app tests: `pnpm run test` from `apps/web` -> PASS, 440 files / 2622 tests. Existing expected stderr/console output appeared in failure-path tests; no test failures.
+- Scoped whitespace check: `git diff --check origin/main...HEAD -- <PR #485 files + Margot evidence docs>` -> PASS.
+- Scoped security content scan over `apps/web/src/app/(founder)/founder/nexus-status` for hardcoded-secret, shell-injection, eval/exec, unsafe-deserialization, and SQL-format patterns -> 0 matches.
+- Local `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with 0/3 critical and 0/4 required local app env vars. No env values were read or printed; this is a local namespace/configuration gate only. Remote Vercel deployment checks for PR #485 are green.
+- Remote checks read-back via `gh pr checks 485 --watch=false` -> PASS: CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, `apps/workspace — build`, `apps/spec-board — type-check, test, build`, and `packages/pi-ceo-operator-mcp — build`.
+
+Gate packet:
+- Classification: `NONE` for PR #485 product/finance/prod impact; local build env absence is a separate `NAMESPACE` note for this shell only.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only the existing remote PR head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, or evidence-only commits without fresh checks; keep the shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or route-remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. As Nexus CFO/advisory lane, the packet is for Phill/operator sign-off.
+- Local worktree still contains unrelated dirty 2nd Brain docs (`docs/brain/2nd Brain/Wiki/synthex.md` and an untracked Synthex upgrade note). They were not staged or included in this gate.
+- This evidence refresh is local only unless separately pushed; pushing it now would retrigger an already-green PR.
+
+Next safe lane:
+- Phill/operator can review PR #485 at https://github.com/CleanExpo/Unite-Group/pull/485 and merge the remote head if the guardrails are accepted. After merge, the next autonomous slice should start from clean `main` and wire the first read-only real data source behind RED/GREEN tests, or continue the smallest CRM/Margot command-spine gap.
+
+## 2026-06-24 10:55 AEST
+
+### Tick 20260624_1055 — PR #485 green gate refresh (Nexus status shell)
+
+Lane: continued the already-open current-branch PR #485 (`feat/nexus-status-shell-20260623`) instead of starting a new CRM/Margot slice. Scope stayed inside read-only PR/GitHub/Vercel inspection, local verification, and evidence docs. No production DB write, migration application, Supabase branch/prod operation, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight from `/Users/phillmcgurk/Unite-Group` found current branch `feat/nexus-status-shell-20260623` tracking `origin/feat/nexus-status-shell-20260623`, local `HEAD` `3cdec1df3`, and PR #485 open against `main` at remote head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`.
+- PR #485 read-back: `MERGEABLE`, `CLEAN`, non-draft, base `main`, with all listed GitHub/CodeRabbit/Vercel checks passing.
+- PR #485 diff remains bounded to a static founder Nexus status shell plus its test and evidence docs: `apps/web/src/app/(founder)/founder/nexus-status/page.tsx`, `apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx`, and Margot evidence docs.
+- No new production-code change was authored in this tick, so no new RED/GREEN cycle was run. The existing PR test coverage asserts the shell renders `Active Tickets`, `Open PRs`, and `Approval Queue` sections with `No data yet`, avoiding fake live-data claims.
+
+Verification / evidence:
+- Focused local Vitest: `./node_modules/.bin/vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx' --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS.
+- `pnpm run lint` from `apps/web` -> PASS.
+- Full app tests: `pnpm run test` from `apps/web` -> PASS, 440 files / 2622 tests. Existing expected stderr/console output appeared in failure-path tests; no test failures.
+- Scoped whitespace check: `git diff --check origin/main...HEAD -- <PR #485 files>` -> PASS.
+- Scoped added-line security scan over the PR #485 files -> `findings=0` for hardcoded-secret, shell-injection, eval/exec, unsafe-deserialization, and SQL-format patterns.
+- Local `pnpm run build` did not reach Next build because `scripts/validate-env.mjs --ci` failed closed with 0/3 critical and 0/4 required local app env vars. No env values were read or printed; this is a local namespace/configuration gate only. Remote Vercel deployment checks for PR #485 are green.
+- Remote checks read-back via `gh pr checks 485 --watch=false` -> PASS: CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, `apps/workspace — build`, `apps/spec-board — type-check, test, build`, and `packages/pi-ceo-operator-mcp — build`.
+
+Gate packet:
+- Classification: `NONE` for product/finance/prod impact of PR #485; local build env absence is a separate `NAMESPACE` note for this shell only.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Guardrails: merge only the existing remote PR head `3cdec1df3`; do not add live provider wiring, DB writes, approval automation, or evidence-only commits without fresh checks; keep the shell honest as `No data yet` until real founder-scoped data is wired and tested.
+- Rollback note: revert PR #485 or route-remove `/founder/nexus-status`; no schema, env, billing, credential, or data migration rollback is required.
+
+Safety / blockers:
+- I did not merge PR #485. As Nexus CFO/advisory lane, the packet is for Phill/operator sign-off.
+- Local worktree already contains unrelated dirty 2nd Brain docs (`docs/brain/2nd Brain/Wiki/synthex.md` and an untracked Synthex upgrade note). They were not inspected for secrets beyond status output, not staged, and not included in this gate.
+- This evidence refresh is local only unless separately pushed; pushing it would retrigger an already-green PR.
+
+Next safe lane:
+- Phill/operator can review PR #485 at https://github.com/CleanExpo/Unite-Group/pull/485 and merge the remote head if the guardrails are accepted. After merge, the next autonomous slice should wire the first read-only real data source behind tests, or continue the smallest CRM/Margot command-spine gap from a clean `main` branch.
+
 ## 2026-06-23 15:04 AEST
 
 ### Tick 20260623_1504 — PR #456 E2E follow-through and mainline refresh
@@ -598,3 +2072,261 @@ Safety / blockers:
 
 Next safe lane:
 - Monitor PR #485 checks. If all required checks pass, merge only if the lane remains bounded and branch protection permits. If a remote failure is environment/provisioning-only, classify it as a namespace/configuration gate rather than mutating env/DB autonomously.
+
+## 2026-06-24 06:47 AEST
+
+### Tick 20260624_0647 — PR #485 green read-back and CFO gate packet
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) instead of starting a new CRM/Margot lane. Scope stayed inside read-only PR/check review, local verification, and this evidence append. No production DB write, migration application, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight found current branch `feat/nexus-status-shell-20260623` tracking `origin/feat/nexus-status-shell-20260623` clean at `3cdec1df3`, with PR #485 open against `main` and merge state `CLEAN`.
+- PR #485 remote read-back: CodeRabbit, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, workspace, spec-board, MCP, Vercel Preview Comments, `Vercel – unite-group`, and `Vercel – unite-group-sandbox` all passed.
+- Diff remains bounded to a static `/founder/nexus-status` page shell, its focused Vitest, and Margot evidence docs. The page still declares live data wiring as a follow-up and only renders honest `No data yet` placeholders.
+- CFO gate packet: gate class `NONE`; recommended disposition `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off, not an autonomous gate lift. Guardrails: merge only if PR head remains `3cdec1df3`/green, do not claim live data, and keep future Linear/GitHub/approval wiring behind separate TDD/provider/auth checks.
+
+Verification / evidence:
+- Focused Nexus Status Vitest: `./node_modules/.bin/vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx' --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS.
+- Targeted ESLint on touched page/test -> PASS.
+- Full apps/web lint: `pnpm run lint` -> PASS.
+- Full apps/web tests: `pnpm run test` -> PASS, 440 files / 2622 tests. Existing expected stderr/stdout from failure-path tests was observed; no failures.
+- Whitespace: `git diff --check origin/main...HEAD -- touched files` -> PASS.
+- Added-line secret/security scan over the Nexus Status page/test diff -> PASS, no sensitive-looking added lines.
+- Local plain build: `pnpm run build` failed closed at `scripts/validate-env.mjs --ci` because this shell has 0/3 critical and 0/4 required app env vars configured. No values were read, printed, or mutated. Remote GitHub/Vercel build/deploy checks for PR #485 are green.
+
+Safety / blockers:
+- No product-code change was authored in this tick; RED/GREEN already exists in the prior PR evidence entry.
+- I did not merge PR #485. As the CFO/gate-review lane, this tick only produced the sign-off packet.
+- This evidence append is local unless explicitly pushed; pushing docs-only evidence would retrigger an already-green PR.
+
+Next safe lane:
+- Phill/operator may sign off PR #485 using the `NONE` / `LIFT_WITH_GUARDRAILS` packet above. If signed off, verify the PR head/checks are unchanged before merge. The next build slice should add only one live status source at a time with strict RED-GREEN and no provider/env mutations.
+
+## 2026-06-24 07:24 AEST
+
+### Tick 20260624_0724 — PR #485 unchanged green read-back; no new build slice
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) rather than opening another CRM/Margot lane into an already-green PR namespace. Scope stayed inside read-only PR/check review, local verification, and this evidence refresh. No production DB write, migration application, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git, PR merge, or live provider mutation occurred.
+
+Completed:
+- Preflight found current branch `feat/nexus-status-shell-20260623` tracking `origin/feat/nexus-status-shell-20260623`; only local Margot evidence docs are modified. Branch remains two product/evidence commits ahead of `origin/main` and aligned with the remote PR head.
+- PR #485 remains open against `main` at head `3cdec1df3702` with merge state `CLEAN`.
+- GitHub/Vercel read-back remains green: CodeRabbit, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, workspace, spec-board, MCP, Vercel Preview Comments, `Vercel – unite-group`, and `Vercel – unite-group-sandbox` all report success.
+- No new production-code slice was started because the active PR is already green and the correct action is a gate packet/sign-off read-back, not another branch.
+
+Verification / evidence:
+- Focused Nexus Status Vitest: `./node_modules/.bin/vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx' --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS.
+- Targeted ESLint on touched page/test -> PASS.
+- Full apps/web lint: `pnpm run lint` -> PASS.
+- Full apps/web tests: `pnpm run test` -> PASS, 440 files / 2622 tests. Existing expected stderr/stdout from failure-path tests was observed; no failures.
+- Whitespace: `git diff --check origin/main...HEAD -- touched files` -> PASS.
+- Added-line secret/security scan over the Nexus Status page/test diff -> PASS, no sensitive-looking added lines.
+- Local plain build: `pnpm run build` failed closed at `scripts/validate-env.mjs --ci` because this shell has 0/3 critical and 0/4 required app env vars configured. No values were read, printed, or mutated. Remote GitHub/Vercel build/deploy checks for PR #485 remain green.
+
+Gate packet:
+- Gate class: `NONE` for PR #485 product diff.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off.
+- Guardrails: merge only if PR head remains `3cdec1df3702` and all required checks remain green; do not claim live Linear/GitHub/approval data; future live-source wiring must be a separate RED-GREEN/provider-auth slice.
+
+Safety / blockers:
+- I did not merge PR #485 and did not push this docs-only evidence refresh, because pushing evidence would retrigger an already-green PR without changing product risk.
+- Local plain build remains a namespace/env configuration gate only; remote PR build/deploy checks are green.
+
+Next safe lane:
+- Phill/operator can sign off or merge PR #485 after re-checking the head/checks. If not signed off, keep the PR open and do not start another published slice into this namespace. The next build slice should add exactly one live status source at a time with strict TDD and no autonomous env/provider mutations.
+
+## 2026-06-24 07:59 AEST
+
+### Tick 20260624_0759 — PR #485 unchanged green read-back, local verification refresh
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) rather than starting another CRM/Margot slice. Scope stayed inside read-only PR/check inspection plus local verification and docs evidence. No production-code change was authored.
+
+Completed:
+- Preflight found local branch `feat/nexus-status-shell-20260623` tracking `origin/feat/nexus-status-shell-20260623` at `3cdec1df3702`; local code branch is not ahead/behind, with only local docs evidence dirty.
+- PR #485 remains open against `main`: https://github.com/CleanExpo/Unite-Group/pull/485, head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, merge state `CLEAN`, mergeable `MERGEABLE`.
+- Remote checks remain green: CodeRabbit, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, workspace, spec-board, MCP, Vercel Preview Comments, `Vercel – unite-group`, and `Vercel – unite-group-sandbox` all report success.
+
+Verification / evidence:
+- Focused Nexus Status Vitest: `./node_modules/.bin/vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx' --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS.
+- Targeted ESLint on touched Nexus Status page/test -> PASS.
+- Whitespace: `git diff --check origin/main...HEAD` -> PASS.
+- Added-line secret/security scan over touched Nexus Status diff -> PASS, no matches.
+
+Gate packet:
+- Gate class: `NONE` for the PR #485 product diff.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off.
+- Guardrails: merge only if PR head remains `3cdec1df3702` and all required checks remain green; do not claim live Linear/GitHub/approval data from the shell; future live-source wiring must be a separate RED-GREEN/provider-auth slice.
+
+Safety / blockers:
+- I did not merge PR #485 and did not push this docs-only evidence refresh, because pushing evidence would retrigger an already-green PR without changing product risk.
+- No production DB write/migration, Supabase branch/prod action, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git, or live provider mutation occurred.
+
+Next safe lane:
+- Phill/operator can sign off or merge PR #485 after re-checking the head/checks. If not signed off, keep the PR open and avoid publishing another slice into the same already-green namespace; the next build slice should add one live status source at a time with strict TDD.
+
+## 2026-06-24 08:33 AEST
+
+### Tick 20260624_0833 — PR #485 unchanged green read-back, CFO packet refreshed
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) rather than starting a new CRM/Margot build lane. Scope stayed inside read-only GitHub/Vercel status inspection, canonical docs read-back, local focused verification, and local evidence docs. No production-code change was authored.
+
+Completed:
+- Preflight after `git fetch origin --prune` found current branch `feat/nexus-status-shell-20260623` aligned with `origin/feat/nexus-status-shell-20260623` at `3cdec1df3702`; the only local dirty files are Margot evidence docs.
+- PR #485 remains open against `main`: https://github.com/CleanExpo/Unite-Group/pull/485, head `3cdec1df3702`, merge state `CLEAN`.
+- Remote read-back remains green: CodeRabbit, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, workspace, spec-board, MCP, Vercel Preview Comments, `Vercel – unite-group`, and `Vercel – unite-group-sandbox` all report success.
+- Diff remains bounded to `/founder/nexus-status`, its focused test, and evidence docs. The product surface is still an honest static shell with `No data yet` placeholders and no live provider/approval claims.
+
+Verification / evidence:
+- Focused Nexus Status Vitest: `node ./node_modules/vitest/vitest.mjs run "src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx" --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS.
+- Targeted ESLint on touched Nexus Status page/test -> PASS.
+- Whitespace: `git diff --check origin/main...HEAD` -> PASS.
+- Added-line secret/security scan over touched Nexus Status diff -> PASS, `added_line_security_findings=0`.
+
+Gate packet:
+- Gate class: `NONE` for the PR #485 product diff.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off.
+- Guardrails: merge only if PR head remains `3cdec1df3702` and all required checks remain green; do not claim live Linear/GitHub/Vercel/approval data from the shell; future live-source wiring must be a separate RED-GREEN/provider-auth slice.
+
+Safety / blockers:
+- I did not merge PR #485 and did not push this docs-only evidence refresh, because pushing evidence would retrigger an already-green PR without changing product risk.
+- No production DB write/migration, Supabase branch/prod action, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git, or live provider mutation occurred.
+
+Next safe lane:
+- Phill/operator can sign off or merge PR #485 after re-checking the head/checks. If not signed off, keep the PR open and reserve the next build slice for one live status source at a time with strict TDD.
+
+## 2026-06-24 09:06 AEST
+
+### Tick 20260624_0906 — PR #485 unchanged green read-back, advisory packet still current
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) rather than starting a new CRM/Margot build lane. Scope stayed inside read-only GitHub/Vercel status inspection, canonical docs read-back, local focused verification, and local evidence docs. No production-code change was authored.
+
+Completed:
+- Preflight found current branch `feat/nexus-status-shell-20260623` aligned with `origin/feat/nexus-status-shell-20260623`; only local Margot evidence docs are dirty. `origin/main...HEAD` remains `0 2`, and remote PR branch vs local remains `0 0`.
+- PR #485 remains open against `main`: https://github.com/CleanExpo/Unite-Group/pull/485, head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, merge state `CLEAN`, mergeable `MERGEABLE`.
+- `gh pr checks 485` read-back remains fully green: CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, workspace, spec-board, and MCP all pass. Vercel deployment URLs: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT`.
+- Diff remains bounded to `/founder/nexus-status`, its focused test, and evidence docs. The product surface remains an honest static shell with `No data yet` placeholders and no live provider/approval claims.
+
+Verification / evidence:
+- Focused Nexus Status Vitest: `node ./node_modules/vitest/vitest.mjs run "src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx" --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS.
+- Targeted ESLint on touched Nexus Status page/test -> PASS.
+- Whitespace: `git diff --check origin/main...HEAD` -> PASS.
+- Added-line secret/security scan over touched Nexus Status diff -> PASS, `added_line_security_findings=0`.
+
+Gate packet:
+- Gate class: `NONE` for the PR #485 product diff.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off.
+- Guardrails: merge only if PR head remains `3cdec1df3702d2aa1e98a7aec09af8a04786c07e` and all required checks remain green; do not claim live Linear/GitHub/Vercel/approval data from the shell; future live-source wiring must be a separate RED-GREEN/provider-auth slice.
+
+Safety / blockers:
+- I did not merge PR #485 and did not push this docs-only evidence refresh, because pushing evidence would retrigger an already-green PR without changing product risk.
+- No production DB write/migration, Supabase branch/prod action, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git, or live provider mutation occurred.
+
+Next safe lane:
+- Phill/operator can sign off or merge PR #485 after re-checking the head/checks. If not signed off, keep the PR open and reserve the next build slice for one live status source at a time with strict TDD.
+
+## 2026-06-24 09:39 AEST
+
+### Tick 20260624_0939 — PR #485 green read-back, full local verification refresh
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) rather than starting another CRM/Margot build lane. Scope stayed inside read-only GitHub/Vercel status inspection, canonical docs read-back, local verification, and local evidence docs. No production-code change was authored.
+
+Completed:
+- Preflight found current branch `feat/nexus-status-shell-20260623` tracking `origin/feat/nexus-status-shell-20260623`; only local Margot evidence docs are dirty. `origin/main...HEAD` remains `0 2`.
+- PR #485 remains open against `main`: https://github.com/CleanExpo/Unite-Group/pull/485, head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, merge state `CLEAN`, mergeable `MERGEABLE`.
+- `gh pr checks 485` remains fully green: CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, workspace, spec-board, and MCP all pass. Vercel URLs read back: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT`.
+- Diff remains bounded to `/founder/nexus-status`, its focused test, and evidence docs. The product surface remains an honest static shell with `No data yet` placeholders and no live Linear/GitHub/Vercel/approval claims.
+
+Verification / evidence:
+- Focused Nexus Status Vitest: `./node_modules/.bin/vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx' --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS.
+- Targeted ESLint on touched Nexus Status page/test -> PASS.
+- Full `pnpm run lint` from `apps/web` -> PASS.
+- Full `pnpm run test` from `apps/web` -> PASS, 440 files / 2622 tests.
+- Whitespace: scoped touched-file `git diff --check ...` and root `git diff --check` -> PASS.
+- Touched-file secret/security content scan over `apps/web/src/app/(founder)/founder/nexus-status` -> PASS with 0 matches for secret/token/password/service-role/API-key/bearer/private-key style patterns.
+- Plain local `pnpm run build` failed closed at `scripts/validate-env.mjs --ci` because this shell has 0/3 critical and 0/4 required app env vars configured. No values were read, printed, or mutated. Remote apps/web build and both Vercel deployments are green.
+
+Gate packet:
+- Gate class: `NONE` for the PR #485 product diff.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off.
+- Guardrails: merge only if PR head remains `3cdec1df3702d2aa1e98a7aec09af8a04786c07e` and all required checks remain green; do not claim live Linear/GitHub/Vercel/approval data from the shell; future live-source wiring must be a separate RED-GREEN/provider-auth slice.
+
+Safety / blockers:
+- I did not merge PR #485 and did not push this docs-only evidence refresh, because pushing evidence would retrigger an already-green PR without changing product risk.
+- No production DB write/migration, Supabase branch/prod action, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git, or live provider mutation occurred.
+
+Next safe lane:
+- Phill/operator can sign off or merge PR #485 after re-checking the head/checks. If not signed off, keep the PR open and reserve the next build slice for one live status source at a time with strict TDD.
+
+## 2026-06-24 10:17 AEST
+
+### Tick 20260624_1017 — PR #485 green read-back, advisory packet refreshed
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) rather than starting another CRM/Margot build lane. Scope stayed inside read-only GitHub/Vercel status inspection, canonical docs read-back, local verification, and local evidence docs. No production-code change was authored.
+
+Completed:
+- Preflight found current branch `feat/nexus-status-shell-20260623` tracking `origin/feat/nexus-status-shell-20260623` at local `3cdec1df3`; local branch remains `0 0` against upstream and only Margot evidence docs are dirty.
+- PR #485 remains open against `main`: https://github.com/CleanExpo/Unite-Group/pull/485, head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`, merge state `CLEAN`.
+- `gh pr checks 485` remains fully green: CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, workspace, spec-board, and MCP all pass. Vercel URLs read back: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT`.
+- Diff remains bounded to `/founder/nexus-status`, its focused test, and evidence docs. The product surface remains an honest static shell with `No data yet` placeholders and no live Linear/GitHub/Vercel/approval claims.
+
+Verification / evidence:
+- Focused Nexus Status Vitest: `./node_modules/.bin/vitest run "src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx" --config vitest.config.mts` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS.
+- Full `pnpm run lint` from `apps/web` -> PASS.
+- Full `pnpm run test` from `apps/web` -> PASS, 440 files / 2622 tests.
+- Whitespace: scoped touched-file `git diff --check origin/main...HEAD -- ...` -> PASS.
+- Touched-file secret/security content scan over `apps/web/src/app/(founder)/founder/nexus-status` -> PASS with 0 matches for secret/token/password/service-role/API-key/eval/exec/shell-injection/SQL-format patterns.
+- Plain local `pnpm run build` failed closed at `scripts/validate-env.mjs --ci` because this shell has 0/3 critical and 0/4 required app env vars configured. No values were read, printed, or mutated. Remote apps/web build and both Vercel deployments are green.
+
+Gate packet:
+- Gate class: `NONE` for the PR #485 product diff.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off.
+- Guardrails: merge only if PR head remains `3cdec1df3702d2aa1e98a7aec09af8a04786c07e` and all required checks remain green; do not claim live Linear/GitHub/Vercel/approval data from the shell; future live-source wiring must be a separate RED-GREEN/provider-auth slice.
+
+Safety / blockers:
+- I did not merge PR #485 and did not push this docs-only evidence refresh, because pushing evidence would retrigger an already-green PR without changing product risk.
+- No production DB write/migration, Supabase branch/prod action, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git, PR merge, or live provider mutation occurred.
+
+Next safe lane:
+- Phill/operator can sign off or merge PR #485 after re-checking the head/checks. If not signed off, keep the PR open and reserve the next build slice for one live status source at a time with strict TDD.
+
+## 2026-06-25 00:30 AEST
+
+### Tick 20260625_0030 — PR #485 green read-back, evidence refresh with dirty-worktree split
+
+Lane: continued already-open PR #485 (`feat/nexus-status-shell-20260623`) rather than starting another CRM/Margot build lane. Scope stayed inside read-only GitHub/Vercel status inspection, canonical docs read-back, local apps/web verification, and local evidence docs. No production-code change was authored this tick, so no new RED/GREEN cycle was applicable; the existing Nexus Status regression test was replayed.
+
+Completed:
+- Preflight found current branch `feat/nexus-status-shell-20260623` tracking `origin/feat/nexus-status-shell-20260623`; local `HEAD` is the PR head `3cdec1df3702d2aa1e98a7aec09af8a04786c07e`.
+- `git rev-list --left-right --count origin/main...HEAD` returned `0 2` (0 commits unique to `origin/main`, 2 commits unique to `HEAD`).
+- PR #485 remains open against `main`: https://github.com/CleanExpo/Unite-Group/pull/485, merge state `CLEAN`, mergeable `MERGEABLE`.
+- `gh pr checks 485` / `gh pr view 485` read-back remains fully green: CodeRabbit, Vercel Preview Comments, `Vercel – unite-group`, `Vercel – unite-group-sandbox`, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, workspace, spec-board, and MCP all pass. Vercel URLs read back: `https://vercel.com/unite-group/unite-group/3KmMCWZCwRM1poUKef5S2Eq6jiEb` and `https://vercel.com/unite-group/unite-group-sandbox/AJmdh3zdhSkPTQ5XHZw5PvvBLdnT`.
+- PR diff remains bounded to `apps/web/src/app/(founder)/founder/nexus-status/page.tsx`, its focused test, and evidence docs. The product surface remains an honest static shell with `No data yet` placeholders and no live Linear/GitHub/Vercel/approval claims.
+- Local workspace has broader unrelated dirty/untracked `apps/workspace/*` and `docs/brain/*` files; those are out of scope for this PR gate and were not staged, pushed, or used as PR evidence.
+
+Verification / evidence:
+- Focused Nexus Status Vitest: `./node_modules/.bin/vitest run 'src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx' --config vitest.config.mts` from `apps/web` -> PASS, 1 file / 1 test.
+- `pnpm run type-check` from `apps/web` -> PASS.
+- `pnpm run lint` from `apps/web` -> PASS.
+- Full `pnpm run test` from `apps/web` -> PASS, 440 files / 2622 tests.
+- Whitespace: `git diff --check origin/main...HEAD -- 'apps/web/src/app/(founder)/founder/nexus-status/page.tsx' 'apps/web/src/app/(founder)/founder/nexus-status/__tests__/page.test.tsx'` -> PASS.
+- Touched-file secret/security content scan over `apps/web/src/app/(founder)/founder/nexus-status` -> PASS with 0 matches for secret/token/password/service-role/API-key/bearer/private-key/eval/exec/child-process/dangerous-HTML patterns.
+- Plain local `pnpm run build` failed closed at `scripts/validate-env.mjs --ci` because this shell has 0/3 critical and 0/4 required app env vars configured. Only env variable names were printed by the validator; no credential values were read, printed, or mutated. Remote apps/web build and both Vercel deployments are green for the PR head.
+
+Gate packet:
+- Gate class: `NONE` for the PR #485 product diff.
+- Recommended disposition: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off.
+- Guardrails: merge only if PR head remains `3cdec1df3702d2aa1e98a7aec09af8a04786c07e` and all required checks remain green; do not claim live Linear/GitHub/Vercel/approval data from the shell; future live-source wiring must be a separate RED-GREEN/provider-auth slice.
+
+Safety / blockers:
+- I did not merge PR #485 and did not push this docs-only evidence refresh, because pushing evidence would retrigger an already-green PR without changing product risk.
+- No production DB write/migration, Supabase branch/prod action, Vercel/GitHub secret mutation, billing/payment action, credential value read/print, client-facing send, cross-client merge, destructive git, PR merge, or live provider mutation occurred.
+
+Next safe lane:
+- Phill/operator can sign off or merge PR #485 after re-checking the head/checks. If not signed off, keep the PR open and reserve the next build slice for one live status source at a time with strict TDD.
