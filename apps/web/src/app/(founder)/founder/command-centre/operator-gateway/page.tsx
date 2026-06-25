@@ -6,9 +6,14 @@
 
 export const dynamic = 'force-dynamic'
 
-import { getUser } from '@/lib/supabase/server'
+import { getUser, createClient } from '@/lib/supabase/server'
 import { getCommandCentreOperatorSurfaceView } from '@/lib/operator-gateway/command-centre'
 import { getOperatorJobsView, getSandboxOperatorJobsClient } from '@/lib/operator-gateway/jobs'
+import {
+  getGatewayConnection,
+  type AgentConnectionState,
+  type AgentPresenceReadClient,
+} from '@/lib/operator-gateway/presence'
 
 const wrap: React.CSSProperties = {
   maxWidth: 1180,
@@ -95,6 +100,12 @@ function boolLabel(value: boolean, safeWhenFalse = true) {
   return <span style={pill(safe ? 'green' : 'red')}>{value ? 'yes' : 'no'}</span>
 }
 
+function connTone(state: AgentConnectionState): 'green' | 'amber' | 'red' {
+  if (state === 'connected') return 'green'
+  if (state === 'stale') return 'amber'
+  return 'red'
+}
+
 function runtimeTone(status: string): 'green' | 'amber' | 'blue' | 'red' {
   if (status === 'active') return 'green'
   if (status === 'design_only') return 'blue'
@@ -110,6 +121,10 @@ export default async function OperatorGatewayPage() {
   const view = getCommandCentreOperatorSurfaceView({ jobsView, sandboxJobCreationEnabled: true })
   const activeLanes = view.lanes.filter((lane) => lane.status === 'active')
   const inactiveLanes = view.lanes.filter((lane) => lane.status !== 'active')
+  // Live agent connection — derived from operator_agent_presence heartbeats (founder-scoped).
+  const agentConnection = user
+    ? await getGatewayConnection((await createClient()) as unknown as AgentPresenceReadClient, user.id)
+    : null
 
   return (
     <div style={wrap}>
@@ -127,6 +142,59 @@ export default async function OperatorGatewayPage() {
         <strong>Production actions gated.</strong> Deployment, production DB writes, sandbox migration apply, web-session scraping,
         stored subscription credentials, browser automation, payments, email, claims, and orders remain blocked unless Phill grants a later named gate.
       </div>
+
+      {agentConnection && (
+        <section style={card} aria-label="agent connection">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <h2 style={{ fontSize: 18, margin: 0 }}>Hermes agent connection</h2>
+            <span style={pill(connTone(agentConnection.state))}>{agentConnection.state}</span>
+          </div>
+          <p style={{ color: '#8b949e', fontSize: 13, margin: '0.35rem 0 0.5rem' }}>
+            Live heartbeat from <code>operator_agent_presence</code> · status endpoint <code>/api/hermes/operator-gateway/status</code>
+          </p>
+          {agentConnection.state === 'connected' ? (
+            <p style={{ color: '#3fb950', fontSize: 14, marginTop: 0 }}>
+              Agent online — last heartbeat {agentConnection.freshestAgeSeconds}s ago.
+            </p>
+          ) : agentConnection.state === 'stale' ? (
+            <p style={{ color: '#d29922', fontSize: 14, marginTop: 0 }}>
+              Agent heartbeat is stale — last seen {agentConnection.freshestAgeSeconds}s ago. It may be paused or offline.
+            </p>
+          ) : (
+            <p style={{ color: '#f97316', fontSize: 14, marginTop: 0 }}>
+              {agentConnection.source === 'not_provisioned'
+                ? 'Agent bridge not provisioned yet — presence table missing or unreachable.'
+                : 'No agent has checked in. Start the local Hermes runner to bring the bridge online.'}
+            </p>
+          )}
+          {agentConnection.agents.length > 0 && (
+            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '0.5rem' }}>
+              <thead>
+                <tr>
+                  <th style={th}>Agent</th>
+                  <th style={th}>Host</th>
+                  <th style={th}>Version</th>
+                  <th style={th}>State</th>
+                  <th style={th}>Last seen</th>
+                </tr>
+              </thead>
+              <tbody>
+                {agentConnection.agents.map((a) => (
+                  <tr key={a.agentId}>
+                    <td style={td}>{a.agentId}</td>
+                    <td style={td}>{a.hostname ?? '—'}</td>
+                    <td style={td}>{a.agentVersion ?? '—'}</td>
+                    <td style={td}>
+                      <span style={pill(connTone(a.state))}>{a.state}</span>
+                    </td>
+                    <td style={td}>{a.ageSeconds}s ago</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </section>
+      )}
 
       <section style={card} aria-label="multi cli runtime monitor">
         <h2 style={{ fontSize: 18, marginTop: 0 }}>Mission Control Runtime Monitor · Multi-CLI topology</h2>
