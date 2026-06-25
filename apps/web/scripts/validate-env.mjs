@@ -16,6 +16,12 @@ import { existsSync } from 'fs'
 import { join } from 'path'
 
 const isCI = process.argv.includes('--ci')
+const skipValidation = process.env.SKIP_ENV_VALIDATION === '1'
+
+if (skipValidation) {
+  console.log('  ⚠️  SKIP_ENV_VALIDATION=1 — skipping validation\n')
+  process.exit(0)
+}
 
 // Load .env.local if not in CI mode
 if (!isCI) {
