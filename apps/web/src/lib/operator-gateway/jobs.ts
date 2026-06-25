@@ -276,6 +276,9 @@ interface OperatorDryRunEventInsert {
 export interface OperatorJobsViewOptions {
   founderId?: string
   client?: OperatorJobsReadClient | null
+  /** Label for the source of these jobs. 'production' when reading prod operator_jobs
+   *  via the founder session client; defaults to 'sandbox_select' for back-compat. */
+  source?: 'production' | 'sandbox_select'
 }
 
 export function getOperatorJobsFallbackView(reason = 'Sandbox operator_jobs SELECT is unavailable; read-only fallback. No live operator execution.'): OperatorJobsView {
@@ -968,7 +971,7 @@ export async function requestControlledLocalOperatorExecution(options: Controlle
  * API-key mode, production DB access, or live execution occurs here.
  */
 export async function getOperatorJobsView(options: OperatorJobsViewOptions = {}): Promise<OperatorJobsView> {
-  const { founderId, client = null } = options
+  const { founderId, client = null, source = 'sandbox_select' } = options
   if (!founderId || !client) return getOperatorJobsFallbackView()
 
   try {
@@ -984,14 +987,85 @@ export async function getOperatorJobsView(options: OperatorJobsViewOptions = {})
 
     const jobs = (data ?? []).map(mapOperatorJobRow).filter((job): job is OperatorJob => job !== null)
     return {
-      source: 'sandbox_select',
+      source,
       noApiKeyMode: true,
       liveExecution: false,
       jobCount: jobs.length,
       jobs,
-      note: `sandbox persistence connected; ${jobs.length} jobs visible. Job creation and live execution remain disabled.`,
+      note:
+        source === 'production'
+          ? `production operator_jobs connected; ${jobs.length} job(s) visible. Execution is gated to the agent's safe lanes.`
+          : `sandbox persistence connected; ${jobs.length} jobs visible. Job creation and live execution remain disabled.`,
     }
   } catch {
-    return getOperatorJobsFallbackView('Sandbox operator_jobs SELECT unavailable due to runtime error. No live operator execution.')
+    return getOperatorJobsFallbackView('operator_jobs SELECT unavailable due to runtime error. No live operator execution.')
+  }
+}
+
+// ── Operator events (job timeline) ──────────────────────────────────────────
+const OPERATOR_EVENTS_SELECT =
+  'id, founder_id, job_id, event_type, from_status, to_status, detail, evidence_ref, at'
+
+interface OperatorEventRow {
+  id: string
+  founder_id: string
+  job_id: string
+  event_type: OperatorEventType
+  from_status: OperatorJobStatus | null
+  to_status: OperatorJobStatus | null
+  detail: string | null
+  evidence_ref: string | null
+  at: string
+}
+
+function mapOperatorEventRow(row: OperatorEventRow): OperatorEvent {
+  return {
+    id: row.id,
+    founderId: row.founder_id,
+    jobId: row.job_id,
+    eventType: row.event_type,
+    fromStatus: row.from_status,
+    toStatus: row.to_status,
+    detail: row.detail ?? '',
+    evidenceRef: row.evidence_ref,
+    at: row.at,
+  }
+}
+
+export interface OperatorEventsReadClient {
+  from(table: 'operator_events'): {
+    select(columns: string): {
+      eq(
+        column: 'founder_id',
+        value: string,
+      ): {
+        order(
+          column: 'at',
+          options: { ascending: false },
+        ): {
+          limit(count: number): Promise<{ data: OperatorEventRow[] | null; error: { message?: string } | null }>
+        }
+      }
+    }
+  }
+}
+
+/** Recent operator_events for the founder (newest first). Never throws — returns []. */
+export async function getOperatorJobEvents(
+  client: OperatorEventsReadClient,
+  founderId: string,
+  limit = 40,
+): Promise<OperatorEvent[]> {
+  try {
+    const { data, error } = await client
+      .from('operator_events')
+      .select(OPERATOR_EVENTS_SELECT)
+      .eq('founder_id', founderId)
+      .order('at', { ascending: false })
+      .limit(limit)
+    if (error || !data) return []
+    return data.map(mapOperatorEventRow)
+  } catch {
+    return []
   }
 }

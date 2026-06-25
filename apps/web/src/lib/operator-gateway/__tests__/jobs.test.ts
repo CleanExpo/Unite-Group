@@ -3,6 +3,7 @@ import {
   validateJobProposal,
   canTransition,
   getOperatorJobsView,
+  getOperatorJobEvents,
   createSandboxOperatorJob,
   OPERATOR_JOB_STATUSES,
   type JobProposal,
@@ -555,5 +556,57 @@ describe('controlled real-local execution foundation', () => {
     expect(result.ok).toBe(false)
     expect(result.source).toBe('policy_refused')
     expect(client.from).not.toHaveBeenCalled()
+  })
+})
+
+describe('production jobs source + event timeline', () => {
+  it('labels the view source as production and notes prod when reading the founder client', async () => {
+    const order = vi.fn().mockResolvedValue({ data: [], error: null })
+    const client = { from: vi.fn(() => ({ select: vi.fn(() => ({ eq: vi.fn(() => ({ order })) })) })) }
+
+    const v = await getOperatorJobsView({ founderId: 'founder-1', client, source: 'production' })
+
+    expect(v.source).toBe('production')
+    expect(v.liveExecution).toBe(false)
+    expect(v.note).toContain('production')
+  })
+
+  it('reads founder-scoped operator_events newest-first and maps to camelCase', async () => {
+    const limit = vi.fn().mockResolvedValue({
+      data: [
+        {
+          id: 'e1',
+          founder_id: 'founder-1',
+          job_id: 'job-1',
+          event_type: 'status_changed',
+          from_status: 'running',
+          to_status: 'done',
+          detail: 'completed by agent',
+          evidence_ref: 'agent:mac',
+          at: '2026-06-26T07:00:00.000Z',
+        },
+      ],
+      error: null,
+    })
+    const order = vi.fn(() => ({ limit }))
+    const eq = vi.fn(() => ({ order }))
+    const select = vi.fn(() => ({ eq }))
+    const from = vi.fn(() => ({ select }))
+
+    const events = await getOperatorJobEvents({ from } as never, 'founder-1', 25)
+
+    expect(from).toHaveBeenCalledWith('operator_events')
+    expect(eq).toHaveBeenCalledWith('founder_id', 'founder-1')
+    expect(order).toHaveBeenCalledWith('at', { ascending: false })
+    expect(limit).toHaveBeenCalledWith(25)
+    expect(events).toHaveLength(1)
+    expect(events[0]).toMatchObject({ jobId: 'job-1', eventType: 'status_changed', toStatus: 'done', detail: 'completed by agent' })
+  })
+
+  it('returns an empty timeline on error (never throws)', async () => {
+    const limit = vi.fn().mockResolvedValue({ data: null, error: { message: 'relation missing' } })
+    const client = { from: vi.fn(() => ({ select: vi.fn(() => ({ eq: vi.fn(() => ({ order: vi.fn(() => ({ limit })) })) })) })) }
+    const events = await getOperatorJobEvents(client as never, 'founder-1')
+    expect(events).toEqual([])
   })
 })

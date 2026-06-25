@@ -8,7 +8,12 @@ export const dynamic = 'force-dynamic'
 
 import { getUser, createClient } from '@/lib/supabase/server'
 import { getCommandCentreOperatorSurfaceView } from '@/lib/operator-gateway/command-centre'
-import { getOperatorJobsView, getSandboxOperatorJobsClient } from '@/lib/operator-gateway/jobs'
+import {
+  getOperatorJobsView,
+  getOperatorJobEvents,
+  type OperatorJobsReadClient,
+  type OperatorEventsReadClient,
+} from '@/lib/operator-gateway/jobs'
 import {
   getGatewayConnection,
   type AgentPresenceReadClient,
@@ -56,16 +61,24 @@ const warning: React.CSSProperties = {
 
 export default async function OperatorGatewayPage() {
   const user = await getUser()
-  const jobsView = user
-    ? await getOperatorJobsView({ founderId: user.id, client: getSandboxOperatorJobsClient() })
-    : undefined
+  // One founder-scoped (RLS) prod client serves jobs, events, and presence.
+  const supabase = user ? await createClient() : null
+  const jobsView =
+    user && supabase
+      ? await getOperatorJobsView({
+          founderId: user.id,
+          client: supabase as unknown as OperatorJobsReadClient,
+          source: 'production',
+        })
+      : undefined
+  const jobEvents =
+    user && supabase ? await getOperatorJobEvents(supabase as unknown as OperatorEventsReadClient, user.id) : []
   const view = getCommandCentreOperatorSurfaceView({ jobsView, sandboxJobCreationEnabled: true })
   const activeLanes = view.lanes.filter((lane) => lane.status === 'active')
   const inactiveLanes = view.lanes.filter((lane) => lane.status !== 'active')
   // Live agent connection — derived from operator_agent_presence heartbeats (founder-scoped).
-  const agentConnection = user
-    ? await getGatewayConnection((await createClient()) as unknown as AgentPresenceReadClient, user.id)
-    : null
+  const agentConnection =
+    user && supabase ? await getGatewayConnection(supabase as unknown as AgentPresenceReadClient, user.id) : null
 
   // ---- Safety consolidation -------------------------------------------------
   // The page exposes many boolean gate flags. We surface a single "all gates green"
@@ -394,9 +407,9 @@ export default async function OperatorGatewayPage() {
             </p>
           </Card>
 
-          <Card style={{ marginBottom: 0 }} aria-label="sandbox job queue">
-            <h3 style={{ fontSize: 16, marginTop: 0 }}>Sandbox job queue · Dry-run only</h3>
-            <p style={{ color: theme.ok, fontSize: 13 }}>dry-run-only execution appends sandbox evidence and updates sandbox job status. External execution disabled. Live runner disabled. Production not connected. No real execute button.</p>
+          <Card style={{ marginBottom: 0 }} aria-label="operator job queue">
+            <h3 style={{ fontSize: 16, marginTop: 0 }}>Operator job queue · live (production)</h3>
+            <p style={{ color: theme.ok, fontSize: 13 }}>Read live from prod operator_jobs (founder-scoped). The agent claims queued jobs and runs SAFE lanes only (read-only diagnostics); hard-gated tasks are blocked with an event. The buttons below remain dry-run / policy-foundation only.</p>
             {jobsView?.jobs.length ? jobsView.jobs.map((job) => (
               <div key={job.id} style={{ borderBottom: `1px solid ${theme.borderSoft}`, padding: '0.6rem 0' }}>
                 <div><b>{job.title}</b> <Pill tone="info">{job.status}</Pill></div>
@@ -448,7 +461,27 @@ export default async function OperatorGatewayPage() {
                   </button>
                 </form>
               </div>
-            )) : <p style={{ color: theme.muted, fontSize: 14 }}>No sandbox jobs visible yet. Created jobs appear here after refresh.</p>}
+            )) : <p style={{ color: theme.muted, fontSize: 14 }}>No operator jobs yet. Queue one (operator_jobs, status=queued) and the agent claims it on its next sweep.</p>}
+          </Card>
+
+          <Card style={{ marginBottom: 0 }} aria-label="operator job activity">
+            <h3 style={{ fontSize: 16, marginTop: 0 }}>Recent job activity</h3>
+            {jobEvents.length ? (
+              <div>
+                {jobEvents.slice(0, 20).map((ev) => (
+                  <div key={ev.id} style={{ borderBottom: `1px solid ${theme.borderSoft}`, padding: '0.45rem 0', fontSize: 13 }}>
+                    <span style={{ color: theme.muted, fontFamily: 'var(--font-mono, monospace)' }}>{new Date(ev.at).toLocaleTimeString('en-AU')}</span>{' '}
+                    <Pill tone={ev.eventType === 'gate_blocked' ? 'bad' : ev.toStatus === 'done' ? 'ok' : 'info'}>{ev.eventType}</Pill>{' '}
+                    {ev.fromStatus && ev.toStatus ? (
+                      <span style={{ color: theme.muted }}>{ev.fromStatus}→{ev.toStatus} · </span>
+                    ) : null}
+                    <span>{ev.detail}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ color: theme.muted, fontSize: 14 }}>No job events yet. Agent claim / execution / block events stream here.</p>
+            )}
           </Card>
 
           <Card style={{ marginBottom: 0 }} aria-label="senior pm next action queue">
