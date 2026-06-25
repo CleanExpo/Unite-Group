@@ -16,10 +16,15 @@ const KnowledgeBrowserScreen = lazy(async () => {
   return { default: module.KnowledgeBrowserScreen }
 })
 
+const ObsidianVaultScreen = lazy(async () => {
+  const module = await import('@/screens/memory/obsidian-vault-screen')
+  return { default: module.ObsidianVaultScreen }
+})
+
 export const Route = createFileRoute('/memory')({
   ssr: false,
   component: function MemoryRoute() {
-    const [tab, setTab] = useState<'memory' | 'knowledge'>('memory')
+    const [tab, setTab] = useState<'memory' | 'knowledge' | 'brain'>('memory')
     const memoryAvailable = useFeatureAvailable('memory')
 
     usePageTitle('Memory')
@@ -28,7 +33,9 @@ export const Route = createFileRoute('/memory')({
       <div className="flex h-full min-h-0 flex-col">
         <Tabs
           value={tab}
-          onValueChange={(value) => setTab(value as 'memory' | 'knowledge')}
+          onValueChange={(value) =>
+            setTab(value as 'memory' | 'knowledge' | 'brain')
+          }
           className="h-full min-h-0 gap-0"
         >
           <div className="border-b border-primary-200 px-3 pt-3 dark:border-neutral-800 md:px-4 md:pt-4">
@@ -38,6 +45,7 @@ export const Route = createFileRoute('/memory')({
             >
               <TabsTab value="memory">Memory</TabsTab>
               <TabsTab value="knowledge">Knowledge</TabsTab>
+              <TabsTab value="brain">2nd Brain</TabsTab>
             </TabsList>
           </div>
 
@@ -68,6 +76,16 @@ export const Route = createFileRoute('/memory')({
                 }
               >
                 <KnowledgeBrowserScreen />
+              </Suspense>
+            ) : null}
+          </TabsPanel>
+
+          <TabsPanel value="brain" className="min-h-0 flex-1">
+            {tab === 'brain' ? (
+              <Suspense
+                fallback={<RouteLoadingState label="Loading 2nd Brain..." />}
+              >
+                <ObsidianVaultScreen />
               </Suspense>
             ) : null}
           </TabsPanel>
