@@ -545,10 +545,10 @@ export function buildDisplayEntries(
     }
 
     if (message.role === 'tool' || message.role === 'toolResult') {
-      const previousEntry = entries[entries.length - 1]
+      const previousEntry = entries.length > 0 ? entries[entries.length - 1] : null
       if (pendingAssistantToolMessages.length > 0) {
         pendingAssistantToolMessages.push(message)
-      } else if (previousEntry?.message.role === 'assistant') {
+      } else if (previousEntry !== null && previousEntry.message.role === 'assistant') {
         previousEntry.attachedToolMessages.push(message)
       }
       return

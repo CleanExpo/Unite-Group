@@ -62,7 +62,7 @@ describe('getTrailingToolOnlyTurnSummary', () => {
         toolName: 'terminal',
         content: [{ type: 'text', text: 'ok' }],
         timestamp: 3,
-      } as ChatMessage,
+      },
       toolOnlyAssistant('a3'),
     ])
 
