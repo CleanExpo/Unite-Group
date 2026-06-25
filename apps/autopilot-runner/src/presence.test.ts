@@ -131,4 +131,54 @@ describe('startHeartbeat', () => {
     loop.stop()
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
+
+  it('keeps beating on the interval until stopped', async () => {
+    vi.useFakeTimers()
+    try {
+      const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, text: async () => '' })
+      const loop = startHeartbeat(config({ intervalMs: 1000 }), { fetch: fetchMock as unknown as typeof fetch, now: () => 0 })
+      await vi.advanceTimersByTimeAsync(0) // immediate beat
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+      await vi.advanceTimersByTimeAsync(3000) // three more intervals
+      expect(fetchMock).toHaveBeenCalledTimes(4)
+      loop.stop()
+      await vi.advanceTimersByTimeAsync(5000) // no beats after stop
+      expect(fetchMock).toHaveBeenCalledTimes(4)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  // Regression: the standalone daemon must NOT unref its timer, or the process
+  // exits after the first beat's I/O resolves and the panel goes stale/offline.
+  it('does not unref the interval by default (daemon stays alive)', () => {
+    const unref = vi.fn()
+    const spy = vi.spyOn(global, 'setInterval').mockReturnValue({ unref } as unknown as ReturnType<typeof setInterval>)
+    try {
+      const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, text: async () => '' })
+      const loop = startHeartbeat(config(), { fetch: fetchMock as unknown as typeof fetch, now: () => 0 })
+      expect(unref).not.toHaveBeenCalled()
+      loop.stop()
+    } finally {
+      spy.mockRestore()
+    }
+  })
+
+  it('unrefs the interval when keepProcessAlive is false (embedded use)', () => {
+    const unref = vi.fn()
+    const spy = vi.spyOn(global, 'setInterval').mockReturnValue({ unref } as unknown as ReturnType<typeof setInterval>)
+    try {
+      const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, text: async () => '' })
+      const loop = startHeartbeat(
+        config(),
+        { fetch: fetchMock as unknown as typeof fetch, now: () => 0 },
+        undefined,
+        { keepProcessAlive: false },
+      )
+      expect(unref).toHaveBeenCalledTimes(1)
+      loop.stop()
+    } finally {
+      spy.mockRestore()
+    }
+  })
 })
