@@ -126,6 +126,7 @@ import { Route as ApiMcpDiscoverRouteImport } from './routes/api/mcp/discover'
 import { Route as ApiMcpConfigureRouteImport } from './routes/api/mcp/configure'
 import { Route as ApiMcpNameRouteImport } from './routes/api/mcp/$name'
 import { Route as ApiLanesStopRouteImport } from './routes/api/lanes/stop'
+import { Route as ApiLanesRunRouteImport } from './routes/api/lanes/run'
 import { Route as ApiLanesListRouteImport } from './routes/api/lanes/list'
 import { Route as ApiLanesCreateRouteImport } from './routes/api/lanes/create'
 import { Route as ApiLanesBackendsRouteImport } from './routes/api/lanes/backends'
@@ -732,6 +733,11 @@ const ApiLanesStopRoute = ApiLanesStopRouteImport.update({
   path: '/api/lanes/stop',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiLanesRunRoute = ApiLanesRunRouteImport.update({
+  id: '/api/lanes/run',
+  path: '/api/lanes/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiLanesListRoute = ApiLanesListRouteImport.update({
   id: '/api/lanes/list',
   path: '/api/lanes/list',
@@ -932,6 +938,7 @@ export interface FileRoutesByFullPath {
   '/api/lanes/backends': typeof ApiLanesBackendsRoute
   '/api/lanes/create': typeof ApiLanesCreateRoute
   '/api/lanes/list': typeof ApiLanesListRoute
+  '/api/lanes/run': typeof ApiLanesRunRoute
   '/api/lanes/stop': typeof ApiLanesStopRoute
   '/api/mcp/$name': typeof ApiMcpNameRouteWithChildren
   '/api/mcp/configure': typeof ApiMcpConfigureRoute
@@ -1069,6 +1076,7 @@ export interface FileRoutesByTo {
   '/api/lanes/backends': typeof ApiLanesBackendsRoute
   '/api/lanes/create': typeof ApiLanesCreateRoute
   '/api/lanes/list': typeof ApiLanesListRoute
+  '/api/lanes/run': typeof ApiLanesRunRoute
   '/api/lanes/stop': typeof ApiLanesStopRoute
   '/api/mcp/$name': typeof ApiMcpNameRouteWithChildren
   '/api/mcp/configure': typeof ApiMcpConfigureRoute
@@ -1208,6 +1216,7 @@ export interface FileRoutesById {
   '/api/lanes/backends': typeof ApiLanesBackendsRoute
   '/api/lanes/create': typeof ApiLanesCreateRoute
   '/api/lanes/list': typeof ApiLanesListRoute
+  '/api/lanes/run': typeof ApiLanesRunRoute
   '/api/lanes/stop': typeof ApiLanesStopRoute
   '/api/mcp/$name': typeof ApiMcpNameRouteWithChildren
   '/api/mcp/configure': typeof ApiMcpConfigureRoute
@@ -1348,6 +1357,7 @@ export interface FileRouteTypes {
     | '/api/lanes/backends'
     | '/api/lanes/create'
     | '/api/lanes/list'
+    | '/api/lanes/run'
     | '/api/lanes/stop'
     | '/api/mcp/$name'
     | '/api/mcp/configure'
@@ -1485,6 +1495,7 @@ export interface FileRouteTypes {
     | '/api/lanes/backends'
     | '/api/lanes/create'
     | '/api/lanes/list'
+    | '/api/lanes/run'
     | '/api/lanes/stop'
     | '/api/mcp/$name'
     | '/api/mcp/configure'
@@ -1623,6 +1634,7 @@ export interface FileRouteTypes {
     | '/api/lanes/backends'
     | '/api/lanes/create'
     | '/api/lanes/list'
+    | '/api/lanes/run'
     | '/api/lanes/stop'
     | '/api/mcp/$name'
     | '/api/mcp/configure'
@@ -1757,6 +1769,7 @@ export interface RootRouteChildren {
   ApiLanesBackendsRoute: typeof ApiLanesBackendsRoute
   ApiLanesCreateRoute: typeof ApiLanesCreateRoute
   ApiLanesListRoute: typeof ApiLanesListRoute
+  ApiLanesRunRoute: typeof ApiLanesRunRoute
   ApiLanesStopRoute: typeof ApiLanesStopRoute
   ApiModelInfoRoute: typeof ApiModelInfoRoute
   ApiOauthDeviceCodeRoute: typeof ApiOauthDeviceCodeRoute
@@ -2594,6 +2607,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiLanesStopRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/lanes/run': {
+      id: '/api/lanes/run'
+      path: '/api/lanes/run'
+      fullPath: '/api/lanes/run'
+      preLoaderRoute: typeof ApiLanesRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/lanes/list': {
       id: '/api/lanes/list'
       path: '/api/lanes/list'
@@ -2987,6 +3007,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiLanesBackendsRoute: ApiLanesBackendsRoute,
   ApiLanesCreateRoute: ApiLanesCreateRoute,
   ApiLanesListRoute: ApiLanesListRoute,
+  ApiLanesRunRoute: ApiLanesRunRoute,
   ApiLanesStopRoute: ApiLanesStopRoute,
   ApiModelInfoRoute: ApiModelInfoRoute,
   ApiOauthDeviceCodeRoute: ApiOauthDeviceCodeRoute,

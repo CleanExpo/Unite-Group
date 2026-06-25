@@ -4,9 +4,8 @@ import { cn } from '@/lib/utils'
 
 /**
  * Lanes panel — the "generate a new IDE" surface in Mission Control.
- * Lists lanes from /api/lanes/list and creates/stops them via the orchestrator.
- * Slice 1: lanes are created (worktree + registry) and observed; execution
- * (running missions) arrives with the adapters.
+ * Lists lanes from /api/lanes/list, creates/stops them, and (Slice 2) runs a
+ * mission in a lane via /api/lanes/run, showing status + output.
  */
 
 type LaneBackend =
@@ -21,6 +20,8 @@ type Lane = {
   repo: string
   branch: string
   status: string
+  lastOutput?: string
+  blockedReason?: string
 }
 
 type BackendDescriptor = {
@@ -100,10 +101,6 @@ export function LanesPanel() {
       qc.invalidateQueries({ queryKey: ['lanes'] })
     },
   })
-  const stopMutation = useMutation({
-    mutationFn: (id: string) => postJson('/api/lanes/stop', { id }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['lanes'] }),
-  })
 
   const lanes = lanesQuery.data?.lanes ?? []
 
@@ -135,47 +132,88 @@ export function LanesPanel() {
         />
       ) : null}
 
-      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-2">
         {lanes.length === 0 ? (
           <p className="text-xs text-neutral-600">
             No lanes yet. Generate one with “New IDE”.
           </p>
         ) : (
-          lanes.map((lane) => (
-            <div
-              key={lane.id}
-              className="rounded-lg border border-neutral-800 p-3"
-            >
-              <div className="flex items-center gap-2">
-                <Dot tone={statusTone(lane.status)} />
-                <span className="text-sm font-medium text-neutral-100">
-                  {lane.role}
-                </span>
-                <span className="ml-auto text-[10px] uppercase tracking-wide text-neutral-500">
-                  {lane.status}
-                </span>
-              </div>
-              <p className="mt-1 text-xs text-neutral-400">
-                {backendLabel(lane.backend)}
-              </p>
-              <p
-                className="mt-1 truncate text-[10px] text-neutral-600"
-                title={lane.branch}
-              >
-                {lane.branch}
-              </p>
-              <button
-                type="button"
-                onClick={() => stopMutation.mutate(lane.id)}
-                disabled={stopMutation.isPending}
-                className="mt-2 rounded border border-neutral-800 px-2 py-0.5 text-[10px] uppercase tracking-wide text-neutral-400 transition-colors hover:border-red-500/40 hover:text-red-400 disabled:opacity-50"
-              >
-                Stop
-              </button>
-            </div>
-          ))
+          lanes.map((lane) => <LaneCard key={lane.id} lane={lane} />)
         )}
       </div>
+    </div>
+  )
+}
+
+function LaneCard({ lane }: { lane: Lane }) {
+  const qc = useQueryClient()
+  const [mission, setMission] = useState('')
+
+  const runMutation = useMutation({
+    mutationFn: () => postJson('/api/lanes/run', { id: lane.id, mission }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['lanes'] }),
+  })
+  const stopMutation = useMutation({
+    mutationFn: () => postJson('/api/lanes/stop', { id: lane.id }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['lanes'] }),
+  })
+
+  const busy = runMutation.isPending || lane.status === 'running'
+
+  return (
+    <div className="rounded-lg border border-neutral-800 p-3">
+      <div className="flex items-center gap-2">
+        <Dot tone={statusTone(lane.status)} />
+        <span className="text-sm font-medium text-neutral-100">
+          {lane.role}
+        </span>
+        <span className="text-[10px] text-neutral-500">
+          {backendLabel(lane.backend)}
+        </span>
+        <span className="ml-auto text-[10px] uppercase tracking-wide text-neutral-500">
+          {lane.status}
+        </span>
+      </div>
+      <p
+        className="mt-1 truncate text-[10px] text-neutral-600"
+        title={lane.branch}
+      >
+        {lane.branch}
+      </p>
+
+      <div className="mt-2 flex items-center gap-2">
+        <input
+          value={mission}
+          onChange={(e) => setMission(e.target.value)}
+          placeholder="Mission for this lane…"
+          className="flex-1 rounded border border-neutral-800 bg-neutral-900 px-2 py-1 text-xs text-neutral-200"
+        />
+        <button
+          type="button"
+          onClick={() => runMutation.mutate()}
+          disabled={busy || !mission.trim()}
+          className="rounded border border-cyan-500/40 px-2 py-1 text-[10px] uppercase tracking-wide text-cyan-300 transition-colors hover:bg-cyan-500/10 disabled:opacity-50"
+        >
+          {busy ? 'Running…' : 'Run'}
+        </button>
+        <button
+          type="button"
+          onClick={() => stopMutation.mutate()}
+          disabled={stopMutation.isPending}
+          className="rounded border border-neutral-800 px-2 py-1 text-[10px] uppercase tracking-wide text-neutral-400 transition-colors hover:border-red-500/40 hover:text-red-400 disabled:opacity-50"
+        >
+          Stop
+        </button>
+      </div>
+
+      {lane.blockedReason ? (
+        <p className="mt-2 text-[11px] text-amber-400">{lane.blockedReason}</p>
+      ) : null}
+      {lane.lastOutput ? (
+        <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded bg-neutral-900 p-2 text-[11px] text-neutral-300">
+          {lane.lastOutput}
+        </pre>
+      ) : null}
     </div>
   )
 }

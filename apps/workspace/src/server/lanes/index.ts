@@ -10,6 +10,8 @@ import {
   type LaneOrchestrator,
 } from './lane-orchestrator'
 import { createWorktreeManager } from './worktree-manager'
+import { createGatewayAdapter } from './gateway-adapter'
+import { CLAUDE_API } from '../gateway-capabilities'
 
 let singleton: LaneOrchestrator | null = null
 
@@ -20,6 +22,7 @@ export function getLaneOrchestrator(): LaneOrchestrator {
       registryPath: path.join(base, 'lanes.jsonl'),
       worktrees: createWorktreeManager({ baseDir: base }),
       isBackendAvailable: () => true,
+      adapters: { gateway: createGatewayAdapter({ baseUrl: CLAUDE_API }) },
     })
   }
   return singleton

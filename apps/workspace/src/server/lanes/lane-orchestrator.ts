@@ -13,6 +13,7 @@ import {
   assertBackendAvailable,
 } from './backend-registry'
 import type { WorktreeManager } from './worktree-manager'
+import type { LaneAdapter } from './adapter'
 import type { CreateLaneInput, Lane } from './types'
 
 export interface OrchestratorDeps {
@@ -20,6 +21,8 @@ export interface OrchestratorDeps {
   worktrees: WorktreeManager
   /** Defaults to "everything authed" so Slice 1 is usable before adapter wiring. */
   isBackendAvailable?: AvailabilityCheck
+  /** Lane execution adapters, keyed by lane kind. */
+  adapters?: { gateway?: LaneAdapter }
   /** Injectable for deterministic tests. */
   idgen?: () => string
   now?: () => number
@@ -30,6 +33,7 @@ export interface LaneOrchestrator {
   list(): Promise<Array<Lane>>
   get(id: string): Promise<Lane | null>
   stop(id: string): Promise<Lane>
+  runMission(id: string, mission: string): Promise<Lane>
 }
 
 async function readLedger(registryPath: string): Promise<Map<string, Lane>> {
@@ -115,6 +119,47 @@ export function createLaneOrchestrator(
       const stopped: Lane = { ...lane, status: 'stopped' }
       await appendLedger(deps.registryPath, stopped)
       return stopped
+    },
+
+    async runMission(id, mission) {
+      const lanes = await readLedger(deps.registryPath)
+      const lane = lanes.get(id)
+      if (!lane) throw new Error(`Lane "${id}" not found`)
+
+      const adapter =
+        lane.kind === 'gateway' ? deps.adapters?.gateway : undefined
+      if (!adapter) {
+        const why =
+          lane.kind === 'cli'
+            ? 'CLI lanes are not runnable yet (Slice 3).'
+            : 'No adapter configured for this lane kind.'
+        const blocked: Lane = { ...lane, status: 'blocked', blockedReason: why }
+        await appendLedger(deps.registryPath, blocked)
+        return blocked
+      }
+
+      const running: Lane = { ...lane, status: 'running', mission }
+      await appendLedger(deps.registryPath, running)
+      try {
+        const result = await adapter.run(running, mission)
+        const done: Lane = {
+          ...running,
+          status: 'idle',
+          lastOutput: result.output,
+          blockedReason: undefined,
+        }
+        await appendLedger(deps.registryPath, done)
+        return done
+      } catch (error) {
+        const failed: Lane = {
+          ...running,
+          status: 'error',
+          blockedReason:
+            error instanceof Error ? error.message : 'Mission failed',
+        }
+        await appendLedger(deps.registryPath, failed)
+        return failed
+      }
     },
   }
 }
