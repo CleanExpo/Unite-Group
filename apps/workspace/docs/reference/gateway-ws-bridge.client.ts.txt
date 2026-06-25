@@ -1,3 +1,40 @@
+/*
+ * ============================================================================
+ * QUARANTINED REFERENCE — NOT LIVE CODE. Do not import this file.
+ * ============================================================================
+ *
+ * Origin: arrived in this monorepo via the Convergence fold-in of
+ *   `hermes-workspace` (commit 4aaa07157). It was never wired up here — zero
+ *   importers since the day it landed; the only still-useful exports (the
+ *   active-send-run trackers) were copied into `src/server/send-run-tracker.ts`,
+ *   which is what the live code actually imports.
+ *
+ * Why it's kept (and not deleted): it is a COMPLETE, working operator-side
+ *   client for a signed-WebSocket pairing protocol — Ed25519 device identity,
+ *   a `connect.challenge` -> nonce -> signed-`connect` handshake (protocol v3),
+ *   `role: 'operator' | 'node'` + scopes, heartbeat, reconnect backoff, and a
+ *   circuit breaker. That is precisely the shape of the chosen HYBRID topology:
+ *   a hosted Mission Control shell authenticating to a trusted LOCAL agent.
+ *   We keep it as the blueprint for that bridge.
+ *
+ * Why it's quarantined OUT of `src/` (renamed to `.ts.txt`): the live workspace
+ *   connection path is plain HTTP on :8642 (see `src/server/gateway-capabilities.ts`).
+ *   Carrying a second, contradictory WS connection stack inside the compiled tree
+ *   was an active source of "which connection system is even real?" confusion when
+ *   debugging the recurring "Hermes agent not connecting" issue. One live model in
+ *   the tree; this reference lives in docs/.
+ *
+ * Revive path: the SERVER half of this protocol (the thing that emits
+ *   `connect.challenge` on :18789 and validates the device signature) does NOT
+ *   exist in this repo — it lives in the external Python `hermes-agent`. Reviving
+ *   this client requires a matching signed-WS server. See
+ *   `apps/workspace/docs/reference/README.md`.
+ *
+ * Full history preserved in git: `git log --follow --
+ *   apps/workspace/src/server/gateway.ts`.
+ * ============================================================================
+ */
+
 import {
   createHash,
   createPrivateKey,
