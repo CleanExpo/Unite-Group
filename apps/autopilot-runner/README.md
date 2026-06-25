@@ -87,3 +87,26 @@ launchctl list | grep hermes-heartbeat                 # PID = running
 tail -f ~/Library/Logs/hermes-heartbeat.log            # logs
 launchctl unload ~/Library/LaunchAgents/in.unite-group.hermes-heartbeat.plist  # stop
 ```
+
+## Operator-jobs poller (Step 2b — gated work dispatch)
+
+Claims `operator_jobs` from prod Supabase, runs a SAFE gated execution, and
+streams `operator_events` back so the command-centre shows live job progress.
+
+```bash
+npm run build
+CC_OPERATOR_JOBS_LIVE=1 npm run operator-jobs    # one bounded sweep, then exits
+```
+
+Safety (gates reused from apps/web, not bypassed):
+- **Kill switch**: nothing runs unless `CC_OPERATOR_JOBS_LIVE=1` (default off → drains).
+- **Founder-scoped**, lifecycle-legal transitions only (`queued→running→{done,blocked}`).
+- **Hard-gated task types** (`production_deploy`, `production_db_write`, `payments`,
+  `email_send`, `claims_orders`, `secrets_access`) and any `external/production/api_key`
+  flag → job is **blocked** with a `gate_blocked` event. Never executed.
+- **Tier 1 execution** = read-only introspection only (`diagnostic` / `evidence_audit`
+  / `verification`) — no user-supplied commands, no `claude -p`. Other safe task
+  types are blocked pending a Tier 2 executor (not wired).
+
+Env: `SUPABASE_URL` (or `NEXT_PUBLIC_SUPABASE_URL`), `SUPABASE_SERVICE_ROLE_KEY`,
+`FOUNDER_USER_ID`. Run on a schedule (launchd/cron) alongside the heartbeat.
