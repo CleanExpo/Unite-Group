@@ -36,23 +36,26 @@ const cliInput: CreateLaneInput = {
   repo: '/r',
 }
 
-function orch(adapter?: LaneAdapter, idgen?: () => string) {
+function orch(
+  adapters: { gateway?: LaneAdapter; cli?: LaneAdapter } = {},
+  idgen?: () => string,
+) {
   return createLaneOrchestrator({
     registryPath: path.join(tempRoot, 'lanes.jsonl'),
     worktrees: noopWorktrees,
-    adapters: adapter ? { gateway: adapter } : {},
+    adapters,
     idgen,
   })
 }
 
 describe('LaneOrchestrator.runMission', () => {
   it('runs a gateway lane and records output, returning to idle', async () => {
-    const adapter: LaneAdapter = {
+    const gateway: LaneAdapter = {
       async run(_lane, mission) {
         return { output: `done:${mission}` }
       },
     }
-    const o = orch(adapter, () => 'l1')
+    const o = orch({ gateway }, () => 'l1')
     await o.create(gatewayInput)
     const lane = await o.runMission('l1', 'build x')
     expect(lane.status).toBe('idle')
@@ -60,25 +63,38 @@ describe('LaneOrchestrator.runMission', () => {
     expect(lane.mission).toBe('build x')
   })
 
+  it('runs a cli lane through the cli adapter', async () => {
+    const cli: LaneAdapter = {
+      async run() {
+        return { output: 'cli-done' }
+      },
+    }
+    const o = orch({ cli }, () => 'l4')
+    await o.create(cliInput)
+    const lane = await o.runMission('l4', 'x')
+    expect(lane.status).toBe('idle')
+    expect(lane.lastOutput).toBe('cli-done')
+  })
+
   it('marks the lane error when the adapter throws', async () => {
-    const adapter: LaneAdapter = {
+    const gateway: LaneAdapter = {
       async run() {
         throw new Error('gateway down')
       },
     }
-    const o = orch(adapter, () => 'l2')
+    const o = orch({ gateway }, () => 'l2')
     await o.create(gatewayInput)
     const lane = await o.runMission('l2', 'x')
     expect(lane.status).toBe('error')
     expect(lane.blockedReason).toBe('gateway down')
   })
 
-  it('blocks cli lanes (not runnable until Slice 3)', async () => {
-    const o = orch(undefined, () => 'l3')
+  it('blocks when no adapter is configured for the lane kind', async () => {
+    const o = orch({}, () => 'l3')
     await o.create(cliInput)
     const lane = await o.runMission('l3', 'x')
     expect(lane.status).toBe('blocked')
-    expect(lane.blockedReason).toMatch(/Slice 3/)
+    expect(lane.blockedReason).toMatch(/No adapter configured for cli/)
   })
 
   it('throws for an unknown lane', async () => {

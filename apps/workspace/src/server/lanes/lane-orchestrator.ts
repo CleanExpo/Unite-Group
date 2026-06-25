@@ -22,7 +22,7 @@ export interface OrchestratorDeps {
   /** Defaults to "everything authed" so Slice 1 is usable before adapter wiring. */
   isBackendAvailable?: AvailabilityCheck
   /** Lane execution adapters, keyed by lane kind. */
-  adapters?: { gateway?: LaneAdapter }
+  adapters?: { gateway?: LaneAdapter; cli?: LaneAdapter }
   /** Injectable for deterministic tests. */
   idgen?: () => string
   now?: () => number
@@ -127,13 +127,13 @@ export function createLaneOrchestrator(
       if (!lane) throw new Error(`Lane "${id}" not found`)
 
       const adapter =
-        lane.kind === 'gateway' ? deps.adapters?.gateway : undefined
+        lane.kind === 'gateway' ? deps.adapters?.gateway : deps.adapters?.cli
       if (!adapter) {
-        const why =
-          lane.kind === 'cli'
-            ? 'CLI lanes are not runnable yet (Slice 3).'
-            : 'No adapter configured for this lane kind.'
-        const blocked: Lane = { ...lane, status: 'blocked', blockedReason: why }
+        const blocked: Lane = {
+          ...lane,
+          status: 'blocked',
+          blockedReason: `No adapter configured for ${lane.kind} lanes.`,
+        }
         await appendLedger(deps.registryPath, blocked)
         return blocked
       }
