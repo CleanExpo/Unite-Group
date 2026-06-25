@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
+import { LanesPanel } from './lanes-panel'
 
 /**
  * Command Center — Agentic-OS layout over the existing /api/mission-control-os
@@ -224,6 +225,9 @@ export function CommandCenterScreen() {
             ))}
           </div>
         </div>
+
+        {/* IDE Lanes — generate & observe model-backed lanes */}
+        <LanesPanel />
 
         {/* Command composer — quick commands (display-only this slice) */}
         <div>

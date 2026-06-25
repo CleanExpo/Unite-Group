@@ -125,6 +125,11 @@ import { Route as ApiMcpHubSearchRouteImport } from './routes/api/mcp/hub-search
 import { Route as ApiMcpDiscoverRouteImport } from './routes/api/mcp/discover'
 import { Route as ApiMcpConfigureRouteImport } from './routes/api/mcp/configure'
 import { Route as ApiMcpNameRouteImport } from './routes/api/mcp/$name'
+import { Route as ApiLanesStopRouteImport } from './routes/api/lanes/stop'
+import { Route as ApiLanesListRouteImport } from './routes/api/lanes/list'
+import { Route as ApiLanesCreateRouteImport } from './routes/api/lanes/create'
+import { Route as ApiLanesBackendsRouteImport } from './routes/api/lanes/backends'
+import { Route as ApiLanesLaneIdRouteImport } from './routes/api/lanes/$laneId'
 import { Route as ApiKnowledgeSyncRouteImport } from './routes/api/knowledge/sync'
 import { Route as ApiKnowledgeSearchRouteImport } from './routes/api/knowledge/search'
 import { Route as ApiKnowledgeReadRouteImport } from './routes/api/knowledge/read'
@@ -722,6 +727,31 @@ const ApiMcpNameRoute = ApiMcpNameRouteImport.update({
   path: '/$name',
   getParentRoute: () => ApiMcpRoute,
 } as any)
+const ApiLanesStopRoute = ApiLanesStopRouteImport.update({
+  id: '/api/lanes/stop',
+  path: '/api/lanes/stop',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLanesListRoute = ApiLanesListRouteImport.update({
+  id: '/api/lanes/list',
+  path: '/api/lanes/list',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLanesCreateRoute = ApiLanesCreateRouteImport.update({
+  id: '/api/lanes/create',
+  path: '/api/lanes/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLanesBackendsRoute = ApiLanesBackendsRouteImport.update({
+  id: '/api/lanes/backends',
+  path: '/api/lanes/backends',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLanesLaneIdRoute = ApiLanesLaneIdRouteImport.update({
+  id: '/api/lanes/$laneId',
+  path: '/api/lanes/$laneId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiKnowledgeSyncRoute = ApiKnowledgeSyncRouteImport.update({
   id: '/api/knowledge/sync',
   path: '/api/knowledge/sync',
@@ -898,6 +928,11 @@ export interface FileRoutesByFullPath {
   '/api/knowledge/read': typeof ApiKnowledgeReadRoute
   '/api/knowledge/search': typeof ApiKnowledgeSearchRoute
   '/api/knowledge/sync': typeof ApiKnowledgeSyncRoute
+  '/api/lanes/$laneId': typeof ApiLanesLaneIdRoute
+  '/api/lanes/backends': typeof ApiLanesBackendsRoute
+  '/api/lanes/create': typeof ApiLanesCreateRoute
+  '/api/lanes/list': typeof ApiLanesListRoute
+  '/api/lanes/stop': typeof ApiLanesStopRoute
   '/api/mcp/$name': typeof ApiMcpNameRouteWithChildren
   '/api/mcp/configure': typeof ApiMcpConfigureRoute
   '/api/mcp/discover': typeof ApiMcpDiscoverRoute
@@ -1030,6 +1065,11 @@ export interface FileRoutesByTo {
   '/api/knowledge/read': typeof ApiKnowledgeReadRoute
   '/api/knowledge/search': typeof ApiKnowledgeSearchRoute
   '/api/knowledge/sync': typeof ApiKnowledgeSyncRoute
+  '/api/lanes/$laneId': typeof ApiLanesLaneIdRoute
+  '/api/lanes/backends': typeof ApiLanesBackendsRoute
+  '/api/lanes/create': typeof ApiLanesCreateRoute
+  '/api/lanes/list': typeof ApiLanesListRoute
+  '/api/lanes/stop': typeof ApiLanesStopRoute
   '/api/mcp/$name': typeof ApiMcpNameRouteWithChildren
   '/api/mcp/configure': typeof ApiMcpConfigureRoute
   '/api/mcp/discover': typeof ApiMcpDiscoverRoute
@@ -1164,6 +1204,11 @@ export interface FileRoutesById {
   '/api/knowledge/read': typeof ApiKnowledgeReadRoute
   '/api/knowledge/search': typeof ApiKnowledgeSearchRoute
   '/api/knowledge/sync': typeof ApiKnowledgeSyncRoute
+  '/api/lanes/$laneId': typeof ApiLanesLaneIdRoute
+  '/api/lanes/backends': typeof ApiLanesBackendsRoute
+  '/api/lanes/create': typeof ApiLanesCreateRoute
+  '/api/lanes/list': typeof ApiLanesListRoute
+  '/api/lanes/stop': typeof ApiLanesStopRoute
   '/api/mcp/$name': typeof ApiMcpNameRouteWithChildren
   '/api/mcp/configure': typeof ApiMcpConfigureRoute
   '/api/mcp/discover': typeof ApiMcpDiscoverRoute
@@ -1299,6 +1344,11 @@ export interface FileRouteTypes {
     | '/api/knowledge/read'
     | '/api/knowledge/search'
     | '/api/knowledge/sync'
+    | '/api/lanes/$laneId'
+    | '/api/lanes/backends'
+    | '/api/lanes/create'
+    | '/api/lanes/list'
+    | '/api/lanes/stop'
     | '/api/mcp/$name'
     | '/api/mcp/configure'
     | '/api/mcp/discover'
@@ -1431,6 +1481,11 @@ export interface FileRouteTypes {
     | '/api/knowledge/read'
     | '/api/knowledge/search'
     | '/api/knowledge/sync'
+    | '/api/lanes/$laneId'
+    | '/api/lanes/backends'
+    | '/api/lanes/create'
+    | '/api/lanes/list'
+    | '/api/lanes/stop'
     | '/api/mcp/$name'
     | '/api/mcp/configure'
     | '/api/mcp/discover'
@@ -1564,6 +1619,11 @@ export interface FileRouteTypes {
     | '/api/knowledge/read'
     | '/api/knowledge/search'
     | '/api/knowledge/sync'
+    | '/api/lanes/$laneId'
+    | '/api/lanes/backends'
+    | '/api/lanes/create'
+    | '/api/lanes/list'
+    | '/api/lanes/stop'
     | '/api/mcp/$name'
     | '/api/mcp/configure'
     | '/api/mcp/discover'
@@ -1693,6 +1753,11 @@ export interface RootRouteChildren {
   ApiKnowledgeReadRoute: typeof ApiKnowledgeReadRoute
   ApiKnowledgeSearchRoute: typeof ApiKnowledgeSearchRoute
   ApiKnowledgeSyncRoute: typeof ApiKnowledgeSyncRoute
+  ApiLanesLaneIdRoute: typeof ApiLanesLaneIdRoute
+  ApiLanesBackendsRoute: typeof ApiLanesBackendsRoute
+  ApiLanesCreateRoute: typeof ApiLanesCreateRoute
+  ApiLanesListRoute: typeof ApiLanesListRoute
+  ApiLanesStopRoute: typeof ApiLanesStopRoute
   ApiModelInfoRoute: typeof ApiModelInfoRoute
   ApiOauthDeviceCodeRoute: typeof ApiOauthDeviceCodeRoute
   ApiOauthPollTokenRoute: typeof ApiOauthPollTokenRoute
@@ -2522,6 +2587,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMcpNameRouteImport
       parentRoute: typeof ApiMcpRoute
     }
+    '/api/lanes/stop': {
+      id: '/api/lanes/stop'
+      path: '/api/lanes/stop'
+      fullPath: '/api/lanes/stop'
+      preLoaderRoute: typeof ApiLanesStopRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lanes/list': {
+      id: '/api/lanes/list'
+      path: '/api/lanes/list'
+      fullPath: '/api/lanes/list'
+      preLoaderRoute: typeof ApiLanesListRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lanes/create': {
+      id: '/api/lanes/create'
+      path: '/api/lanes/create'
+      fullPath: '/api/lanes/create'
+      preLoaderRoute: typeof ApiLanesCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lanes/backends': {
+      id: '/api/lanes/backends'
+      path: '/api/lanes/backends'
+      fullPath: '/api/lanes/backends'
+      preLoaderRoute: typeof ApiLanesBackendsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lanes/$laneId': {
+      id: '/api/lanes/$laneId'
+      path: '/api/lanes/$laneId'
+      fullPath: '/api/lanes/$laneId'
+      preLoaderRoute: typeof ApiLanesLaneIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/knowledge/sync': {
       id: '/api/knowledge/sync'
       path: '/api/knowledge/sync'
@@ -2883,6 +2983,11 @@ const rootRouteChildren: RootRouteChildren = {
   ApiKnowledgeReadRoute: ApiKnowledgeReadRoute,
   ApiKnowledgeSearchRoute: ApiKnowledgeSearchRoute,
   ApiKnowledgeSyncRoute: ApiKnowledgeSyncRoute,
+  ApiLanesLaneIdRoute: ApiLanesLaneIdRoute,
+  ApiLanesBackendsRoute: ApiLanesBackendsRoute,
+  ApiLanesCreateRoute: ApiLanesCreateRoute,
+  ApiLanesListRoute: ApiLanesListRoute,
+  ApiLanesStopRoute: ApiLanesStopRoute,
   ApiModelInfoRoute: ApiModelInfoRoute,
   ApiOauthDeviceCodeRoute: ApiOauthDeviceCodeRoute,
   ApiOauthPollTokenRoute: ApiOauthPollTokenRoute,
