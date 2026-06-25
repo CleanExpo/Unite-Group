@@ -69,3 +69,21 @@ Optional: `HERMES_AGENT_ID` (default hostname), `HERMES_AGENT_VERSION`,
 `HERMES_AGENT_CAPABILITIES` (JSON), `HERMES_HEARTBEAT_INTERVAL_MS` (default 15000,
 floor 1000). The agent dials **out** to Supabase — no inbound exposure. Missing a
 required var fails closed (exit 1) rather than silently never beating.
+
+### Run it persistently (macOS launchd)
+
+To keep the heartbeat alive across reboots / terminal exit (not tied to a shell):
+
+```bash
+bash scripts/install-heartbeat-service.sh
+```
+
+This installs a LaunchAgent (`in.unite-group.hermes-heartbeat`) that runs
+`scripts/heartbeat-launchd.sh` with `KeepAlive`. **No secrets in the plist** — the
+wrapper sources them from the repo-root `.env.local`. Manage it with:
+
+```bash
+launchctl list | grep hermes-heartbeat                 # PID = running
+tail -f ~/Library/Logs/hermes-heartbeat.log            # logs
+launchctl unload ~/Library/LaunchAgents/in.unite-group.hermes-heartbeat.plist  # stop
+```
