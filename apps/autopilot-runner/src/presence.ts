@@ -153,6 +153,17 @@ export interface HeartbeatLoop {
   stop: () => void
 }
 
+export interface StartHeartbeatOptions {
+  /**
+   * Whether the interval keeps the Node event loop alive.
+   *  - true  (default): standalone daemon — the process stays up and keeps beating.
+   *  - false: embedded use — unref the timer so a host process can still exit.
+   * The standalone daemon (heartbeat.ts) MUST keep alive, else it sends one beat
+   * and exits the moment the first upsert's I/O resolves (the panel then goes stale).
+   */
+  keepProcessAlive?: boolean
+}
+
 /**
  * Start the heartbeat loop: beat immediately, then every config.intervalMs.
  * Returns a stop handle. Logging is injected so it's silent in tests.
@@ -161,6 +172,7 @@ export function startHeartbeat(
   config: PresenceConfig,
   deps: HeartbeatDeps,
   log: (msg: string) => void = () => {},
+  options: StartHeartbeatOptions = {},
 ): HeartbeatLoop {
   let stopped = false
 
@@ -172,8 +184,11 @@ export function startHeartbeat(
 
   void beat()
   const timer = setInterval(() => void beat(), config.intervalMs)
-  // Don't keep the event loop alive solely for the heartbeat.
-  if (typeof timer.unref === 'function') timer.unref()
+  // Default: keep the event loop alive (daemon). Only unref when a host process
+  // explicitly opts out so it can still exit on its own.
+  if (options.keepProcessAlive === false && typeof timer.unref === 'function') {
+    timer.unref()
+  }
 
   return {
     stop: () => {
