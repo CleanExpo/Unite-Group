@@ -23,6 +23,7 @@ import { Route as JobsRouteImport } from './routes/jobs'
 import { Route as FilesRouteImport } from './routes/files'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ConductorRouteImport } from './routes/conductor'
+import { Route as CommandCenterRouteImport } from './routes/command-center'
 import { Route as SplatRouteImport } from './routes/$'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
@@ -208,6 +209,11 @@ const DashboardRoute = DashboardRouteImport.update({
 const ConductorRoute = ConductorRouteImport.update({
   id: '/conductor',
   path: '/conductor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommandCenterRoute = CommandCenterRouteImport.update({
+  id: '/command-center',
+  path: '/command-center',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SplatRoute = SplatRouteImport.update({
@@ -797,6 +803,7 @@ const ApiMcpNameLogsRoute = ApiMcpNameLogsRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/command-center': typeof CommandCenterRoute
   '/conductor': typeof ConductorRoute
   '/dashboard': typeof DashboardRoute
   '/files': typeof FilesRoute
@@ -929,6 +936,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/command-center': typeof CommandCenterRoute
   '/conductor': typeof ConductorRoute
   '/dashboard': typeof DashboardRoute
   '/files': typeof FilesRoute
@@ -1061,6 +1069,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/command-center': typeof CommandCenterRoute
   '/conductor': typeof ConductorRoute
   '/dashboard': typeof DashboardRoute
   '/files': typeof FilesRoute
@@ -1195,6 +1204,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$'
+    | '/command-center'
     | '/conductor'
     | '/dashboard'
     | '/files'
@@ -1327,6 +1337,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/$'
+    | '/command-center'
     | '/conductor'
     | '/dashboard'
     | '/files'
@@ -1458,6 +1469,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/$'
+    | '/command-center'
     | '/conductor'
     | '/dashboard'
     | '/files'
@@ -1591,6 +1603,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
+  CommandCenterRoute: typeof CommandCenterRoute
   ConductorRoute: typeof ConductorRoute
   DashboardRoute: typeof DashboardRoute
   FilesRoute: typeof FilesRoute
@@ -1793,6 +1806,13 @@ declare module '@tanstack/react-router' {
       path: '/conductor'
       fullPath: '/conductor'
       preLoaderRoute: typeof ConductorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/command-center': {
+      id: '/command-center'
+      path: '/command-center'
+      fullPath: '/command-center'
+      preLoaderRoute: typeof CommandCenterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$': {
@@ -2773,6 +2793,7 @@ const ApiSwarmMemoryRouteWithChildren = ApiSwarmMemoryRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
+  CommandCenterRoute: CommandCenterRoute,
   ConductorRoute: ConductorRoute,
   DashboardRoute: DashboardRoute,
   FilesRoute: FilesRoute,
