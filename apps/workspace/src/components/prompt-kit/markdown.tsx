@@ -33,11 +33,7 @@ type TableRenderContextValue = {
   collectingHeaderRef: React.MutableRefObject<boolean>
 }
 
-export const MARKDOWN_REMARK_PLUGINS = [
-  remarkGfm,
-  remarkBreaks,
-  remarkMath,
-]
+export const MARKDOWN_REMARK_PLUGINS = [remarkGfm, remarkBreaks, remarkMath]
 export const MARKDOWN_REHYPE_PLUGINS = [rehypeKatex]
 
 const TableRenderContext = createContext<TableRenderContextValue | null>(null)

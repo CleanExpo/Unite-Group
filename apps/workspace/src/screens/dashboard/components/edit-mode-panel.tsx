@@ -1,8 +1,5 @@
-import type {DashboardLayout} from '@/screens/dashboard/lib/use-dashboard-layout';
-import {
-  
-  WIDGET_CATALOG
-} from '@/screens/dashboard/lib/use-dashboard-layout'
+import type { DashboardLayout } from '@/screens/dashboard/lib/use-dashboard-layout'
+import { WIDGET_CATALOG } from '@/screens/dashboard/lib/use-dashboard-layout'
 
 /**
  * Edit-mode banner. Renders only when `layout.editMode` is true.

@@ -400,7 +400,6 @@ export function useStreamingMessage(options: UseStreamingMessageOptions = {}) {
         typeof window !== 'undefined' &&
         window.localStorage?.getItem('hermes:debug:sse') === '1'
       ) {
-         
         console.log(
           '[hermes-sse]',
           event,

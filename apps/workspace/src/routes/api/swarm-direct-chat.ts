@@ -5,11 +5,8 @@ import { join } from 'node:path'
 import { json } from '@tanstack/react-start'
 import { createFileRoute } from '@tanstack/react-router'
 import { isAuthenticated } from '../../server/auth-middleware'
-import {
-  
-  readWorkerMessages
-} from '../../server/swarm-chat-reader'
-import type {SwarmChatMessage} from '../../server/swarm-chat-reader';
+import { readWorkerMessages } from '../../server/swarm-chat-reader'
+import type { SwarmChatMessage } from '../../server/swarm-chat-reader'
 
 type DirectChatRequest = {
   workerId?: unknown

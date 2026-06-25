@@ -4,15 +4,16 @@ import * as path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { getClaudeRoot, getWorkspaceClaudeHome } from './claude-paths'
 import {
-  
   SWARM_KANBAN_FILE,
-  
-  
   createSwarmKanbanCard,
   listSwarmKanbanCards,
-  updateSwarmKanbanCard
+  updateSwarmKanbanCard,
 } from './swarm-kanban-store'
-import type {CreateSwarmKanbanCardInput, SwarmKanbanCard, UpdateSwarmKanbanCardInput} from './swarm-kanban-store';
+import type {
+  CreateSwarmKanbanCardInput,
+  SwarmKanbanCard,
+  UpdateSwarmKanbanCardInput,
+} from './swarm-kanban-store'
 
 export type KanbanBackendId = 'local' | 'claude'
 

@@ -3,11 +3,8 @@ import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 import { isAuthenticated } from '../../server/auth-middleware'
 import { getProfilesDir } from '../../server/claude-paths'
-import {
-  
-  readWorkerMessages
-} from '../../server/swarm-chat-reader'
-import type {SwarmChatMessage} from '../../server/swarm-chat-reader';
+import { readWorkerMessages } from '../../server/swarm-chat-reader'
+import type { SwarmChatMessage } from '../../server/swarm-chat-reader'
 
 type ChatResponse = {
   workerId: string

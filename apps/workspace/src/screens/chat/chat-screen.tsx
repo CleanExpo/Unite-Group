@@ -69,7 +69,7 @@ import type {
 import type { ApprovalRequest } from '@/screens/gateway/lib/approvals-store'
 import type { ChatAttachment, ChatMessage, SessionMeta } from './types'
 import type { ChatRunCommandDetail } from './chat-events'
-import type {AgentActivity} from '@/stores/chat-activity-store';
+import type { AgentActivity } from '@/stores/chat-activity-store'
 import { useChatSettingsStore } from '@/hooks/use-chat-settings'
 import { playChatComplete } from '@/lib/sounds'
 import {
@@ -99,10 +99,7 @@ import { useResearchCard } from '@/hooks/use-research-card'
 // MOBILE_TAB_BAR_OFFSET removed — tab bar always hidden in chat
 import { useTapDebug } from '@/hooks/use-tap-debug'
 import { useChatMode } from '@/hooks/use-chat-mode'
-import {
-  
-  useChatActivityStore
-} from '@/stores/chat-activity-store'
+import { useChatActivityStore } from '@/stores/chat-activity-store'
 
 export let _localModelOverride = ''
 export function setLocalModelOverride(model: string) {

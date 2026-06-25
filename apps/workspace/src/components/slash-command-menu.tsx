@@ -151,6 +151,4 @@ const SlashCommandMenu = forwardRef(function SlashCommandMenuComponent(
   )
 })
 
-export {
-  SlashCommandMenu,
-}
+export { SlashCommandMenu }

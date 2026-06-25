@@ -1803,8 +1803,7 @@ function ChatComposerComponent({
       if (typeof wrapperRef === 'function') {
         wrapperRef(node)
       } else if (wrapperRef && 'current' in wrapperRef) {
-        ;(wrapperRef).current =
-          node
+        wrapperRef.current = node
       }
     },
     [wrapperRef],
@@ -1883,8 +1882,7 @@ function ChatComposerComponent({
 
   const composerWrapperStyle = useMemo(() => {
     const chatContentMaxWidth = 'min(var(--chat-content-max-width), 100%)'
-    if (!isMobileViewport || embedded)
-      return { maxWidth: chatContentMaxWidth }
+    if (!isMobileViewport || embedded) return { maxWidth: chatContentMaxWidth }
     const safeArea = 'env(safe-area-inset-bottom, 0px)'
     const tabBarH = 'var(--tabbar-h, 0px)'
     const tf = effectiveScrollHidden ? 'translateY(110%)' : 'translateY(0)'

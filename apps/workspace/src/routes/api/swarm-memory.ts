@@ -2,16 +2,17 @@ import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 import { isAuthenticated } from '../../server/auth-middleware'
 import {
-  
-  
   appendSwarmMemoryEvent,
   ensureWorkerMemoryScaffold,
   readSwarmMemory,
   validateMissionId,
   validateSwarmId,
-  writeSwarmHandoff
+  writeSwarmHandoff,
 } from '../../server/swarm-memory'
-import type {SwarmMemoryEventType, SwarmMemoryKind} from '../../server/swarm-memory';
+import type {
+  SwarmMemoryEventType,
+  SwarmMemoryKind,
+} from '../../server/swarm-memory'
 
 type SwarmMemoryPostBody = {
   workerId?: unknown

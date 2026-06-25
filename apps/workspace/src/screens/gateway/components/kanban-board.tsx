@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { addApproval } from '../lib/approvals-store'
 import type { HubTask, TaskPriority, TaskStatus } from './task-board'
-import type {Task as StoreTask, TaskStatus as StoreTaskStatus} from '@/stores/task-store';
-import { cn } from '@/lib/utils'
-import {
-  
-  
-  useTaskStore
+import type {
+  Task as StoreTask,
+  TaskStatus as StoreTaskStatus,
 } from '@/stores/task-store'
+import { cn } from '@/lib/utils'
+import { useTaskStore } from '@/stores/task-store'
 
 type AgentOption = { id: string; name: string }
 
@@ -51,8 +50,7 @@ function isKanbanColumnStatus(value: string): value is KanbanColumnStatus {
 }
 
 function mapTaskStatusToColumn(status: TaskStatus): KanbanColumnStatus {
-  if (isKanbanColumnStatus(status))
-    return status
+  if (isKanbanColumnStatus(status)) return status
   if (status === 'inbox') return 'backlog'
   if (status === 'assigned') return 'in_progress'
   return status === 'done' ? 'done' : status

@@ -465,11 +465,71 @@ type DisplayEntry = {
   attachedToolMessages: Array<ChatMessage>
 }
 
+export type TrailingToolOnlyTurnSummary = {
+  count: number
+  toolNames: Array<string>
+  hasFinalAssistantText: boolean
+}
+
 function isAssistantToolCallOnlyMessage(message: ChatMessage): boolean {
   if (message.role !== 'assistant') return false
   const hasToolCalls = getToolCallsFromMessage(message).length > 0
   const text = textFromMessage(message)
   return hasToolCalls && text.trim().length === 0
+}
+
+function isToolOnlyMessage(message: ChatMessage): boolean {
+  return (
+    isAssistantToolCallOnlyMessage(message) ||
+    message.role === 'tool' ||
+    message.role === 'toolResult'
+  )
+}
+
+function collectToolNames(message: ChatMessage, names: Set<string>): void {
+  for (const toolCall of getToolCallsFromMessage(message)) {
+    const name = (toolCall.name || '').trim()
+    if (name.length > 0) names.add(name)
+  }
+
+  if (message.role === 'toolResult') {
+    const name = (message.toolName || '').trim()
+    if (name.length > 0) names.add(name)
+  }
+}
+
+export function getTrailingToolOnlyTurnSummary(
+  displayMessages: Array<ChatMessage>,
+): TrailingToolOnlyTurnSummary | null {
+  let finalAssistantTextIndex = -1
+  let hasFinalAssistantText = false
+
+  for (let index = displayMessages.length - 1; index >= 0; index -= 1) {
+    const message = displayMessages[index]
+    if (isToolOnlyMessage(message)) continue
+    if (message.role !== 'assistant') break
+
+    hasFinalAssistantText = textFromMessage(message).trim().length > 0
+    finalAssistantTextIndex = index
+    break
+  }
+
+  if (finalAssistantTextIndex < 0 || !hasFinalAssistantText) return null
+
+  const trailingMessages = displayMessages.slice(finalAssistantTextIndex + 1)
+  if (trailingMessages.length === 0) return null
+  if (!trailingMessages.every(isToolOnlyMessage)) return null
+
+  const toolNames = new Set<string>()
+  for (const message of trailingMessages) {
+    collectToolNames(message, toolNames)
+  }
+
+  return {
+    count: trailingMessages.length,
+    toolNames: Array.from(toolNames).sort(),
+    hasFinalAssistantText,
+  }
 }
 
 export function buildDisplayEntries(
@@ -486,10 +546,10 @@ export function buildDisplayEntries(
 
     if (message.role === 'tool' || message.role === 'toolResult') {
       const previousEntry = entries[entries.length - 1]
-      if (previousEntry?.message.role === 'assistant') {
-        previousEntry.attachedToolMessages.push(message)
-      } else if (pendingAssistantToolMessages.length > 0) {
+      if (pendingAssistantToolMessages.length > 0) {
         pendingAssistantToolMessages.push(message)
+      } else if (previousEntry?.message.role === 'assistant') {
+        previousEntry.attachedToolMessages.push(message)
       }
       return
     }
@@ -510,13 +570,6 @@ export function buildDisplayEntries(
 
     entries.push(entry)
   })
-
-  if (pendingAssistantToolMessages.length > 0) {
-    const previousEntry = entries[entries.length - 1]
-    if (previousEntry?.message.role === 'assistant') {
-      previousEntry.attachedToolMessages.push(...pendingAssistantToolMessages)
-    }
-  }
 
   return entries
 }
@@ -1149,13 +1202,8 @@ function ChatMessageListComponent({
                     : 'calling',
           args: tcAny.args,
           preview:
-            typeof tcAny.preview === 'string'
-              ? (tcAny.preview)
-              : undefined,
-          result:
-            typeof tcAny.result === 'string'
-              ? (tcAny.result)
-              : undefined,
+            typeof tcAny.preview === 'string' ? tcAny.preview : undefined,
+          result: typeof tcAny.result === 'string' ? tcAny.result : undefined,
         }
       })
     }

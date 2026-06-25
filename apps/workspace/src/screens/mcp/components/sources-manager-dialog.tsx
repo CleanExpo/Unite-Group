@@ -7,15 +7,16 @@
  */
 import { useState } from 'react'
 import {
-  
-  
-  
   useAddHubSource,
   useDeleteHubSource,
   useMcpHubSources,
-  useUpdateHubSource
+  useUpdateHubSource,
 } from '../hooks/use-mcp-hub-sources'
-import type {AddSourceInput, HubSourceEntry, MutationError} from '../hooks/use-mcp-hub-sources';
+import type {
+  AddSourceInput,
+  HubSourceEntry,
+  MutationError,
+} from '../hooks/use-mcp-hub-sources'
 import { Button } from '@/components/ui/button'
 import {
   DialogContent,
@@ -47,7 +48,10 @@ const FIELD =
 const LABEL = 'flex flex-col gap-1 text-sm text-primary-500'
 const ERROR_TEXT = 'mt-0.5 text-xs text-red-600 dark:text-red-400'
 
-function fieldError(errors: Array<MutationError>, path: string): string | undefined {
+function fieldError(
+  errors: Array<MutationError>,
+  path: string,
+): string | undefined {
   return errors.find((e) => e.path === path)?.message
 }
 

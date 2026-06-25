@@ -16,7 +16,9 @@ function makeFetcher(routes: Record<string, unknown>): DashboardFetcher {
       return Promise.resolve(new Response('not found', { status: 404 }))
     }
     const value = routes[key]
-    return Promise.resolve(value instanceof Response ? value : jsonResponse(value))
+    return Promise.resolve(
+      value instanceof Response ? value : jsonResponse(value),
+    )
   }
 }
 

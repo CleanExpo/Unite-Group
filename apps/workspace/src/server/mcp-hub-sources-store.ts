@@ -342,7 +342,9 @@ function validatePayload(parsed: unknown): PayloadValidationResult {
 // Merge built-ins + user sources
 // ---------------------------------------------------------------------------
 
-function mergeWithBuiltins(userSources: Array<HubSourceEntry>): Array<HubSourceEntry> {
+function mergeWithBuiltins(
+  userSources: Array<HubSourceEntry>,
+): Array<HubSourceEntry> {
   return [...BUILTIN_SOURCES, ...userSources]
 }
 

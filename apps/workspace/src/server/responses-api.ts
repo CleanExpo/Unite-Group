@@ -171,8 +171,7 @@ export async function* streamResponses(
         } catch {
           continue
         }
-        const eventType =
-          typeof parsed.type === 'string' ? (parsed.type) : ''
+        const eventType = typeof parsed.type === 'string' ? parsed.type : ''
 
         if (eventType === 'response.output_text.delta') {
           const delta = typeof parsed.delta === 'string' ? parsed.delta : ''
@@ -236,9 +235,7 @@ export async function* streamResponses(
         }
         if (eventType === 'response.failed') {
           const err =
-            typeof parsed.error === 'string'
-              ? (parsed.error)
-              : 'Response failed'
+            typeof parsed.error === 'string' ? parsed.error : 'Response failed'
           yield { kind: 'failed', error: err }
           continue
         }

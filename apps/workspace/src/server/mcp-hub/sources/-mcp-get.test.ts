@@ -206,9 +206,7 @@ describe('fetchMcpGet — network error', () => {
       payload: [{ name: 'cached' }],
     }
     mockGetCache.mockReturnValue(cachedEntry)
-    global.fetch = vi
-      .fn()
-      .mockRejectedValue(new Error('ECONNREFUSED'))
+    global.fetch = vi.fn().mockRejectedValue(new Error('ECONNREFUSED'))
 
     const result = await fetchMcpGet()
     expect(result.entries).toEqual([{ name: 'cached' }])
@@ -217,9 +215,7 @@ describe('fetchMcpGet — network error', () => {
 
   it('returns empty entries + warning when no cache and network fails', async () => {
     mockGetCache.mockReturnValue(null)
-    global.fetch = vi
-      .fn()
-      .mockRejectedValue(new Error('timeout'))
+    global.fetch = vi.fn().mockRejectedValue(new Error('timeout'))
 
     const result = await fetchMcpGet()
     expect(result.entries).toHaveLength(0)
@@ -258,9 +254,7 @@ describe('fetchMcpGet — degraded flag', () => {
 
   it('sets degraded=true on network error', async () => {
     mockGetCache.mockReturnValue(null)
-    global.fetch = vi
-      .fn()
-      .mockRejectedValue(new Error('ECONNREFUSED'))
+    global.fetch = vi.fn().mockRejectedValue(new Error('ECONNREFUSED'))
 
     const result = await fetchMcpGet()
     expect(result.degraded).toBe(true)

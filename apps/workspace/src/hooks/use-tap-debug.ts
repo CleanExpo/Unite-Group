@@ -163,10 +163,7 @@ export function useTapDebug(
     return () => {
       area.removeEventListener('touchstart', handleTouchStart)
       area.removeEventListener('pointerdown', handlePointerDown)
-      window.removeEventListener(
-        TAP_DEBUG_EVENT,
-        handleToggleEvent,
-      )
+      window.removeEventListener(TAP_DEBUG_EVENT, handleToggleEvent)
       delete debugWindow.setChatTapDebug
       delete debugWindow.toggleChatTapDebug
     }

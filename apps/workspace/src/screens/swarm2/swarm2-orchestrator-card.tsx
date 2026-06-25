@@ -11,14 +11,11 @@ import {
 } from '@hugeicons/core-free-icons'
 import type { AgentWorkingRow } from '@/screens/gateway/components/agents-working-panel'
 import type { CrewMember } from '@/hooks/use-crew-status'
-import type {DispatchResponse} from '@/components/swarm/router-chat';
+import type { DispatchResponse } from '@/components/swarm/router-chat'
 import { AgentProgress } from '@/components/agent-view/agent-progress'
 import { PixelAvatar } from '@/components/agent-swarm/pixel-avatar'
 import { Button } from '@/components/ui/button'
-import {
-  
-  RouterChat
-} from '@/components/swarm/router-chat'
+import { RouterChat } from '@/components/swarm/router-chat'
 import { OfficeView } from '@/screens/gateway/components/office-view'
 import { cn } from '@/lib/utils'
 

@@ -81,9 +81,9 @@ function parseContextPercent(payload: unknown): number {
     (root.totals as Record<string, unknown> | undefined) ??
     root
   return readPercent(
-    (usage)?.contextPercent ??
-      (usage)?.context_percent ??
-      (usage)?.context ??
+    usage?.contextPercent ??
+      usage?.context_percent ??
+      usage?.context ??
       root?.contextPercent ??
       root?.context_percent,
   )
@@ -131,7 +131,9 @@ export function UsageMeterCompact() {
   const [preferredProvider, setPreferredProvider] = useState<string | null>(
     getStoredPreferredProvider,
   )
-  const [allProviders, setAllProviders] = useState<Array<ProviderUsageEntry>>([])
+  const [allProviders, setAllProviders] = useState<Array<ProviderUsageEntry>>(
+    [],
+  )
   const [expanded, setExpanded] = useState(true)
   // Flash state: animate provider name on change
   const [providerFlash, setProviderFlash] = useState(false)
@@ -276,7 +278,8 @@ export function UsageMeterCompact() {
 
   // Build the rows to display: session context row + all provider progress rows
   const ctxRow: UsageRow = { label: 'Ctx', pct: contextPct, resetHint: null }
-  const allRows: Array<UsageRow> = progressRows.length > 0 ? progressRows : [ctxRow]
+  const allRows: Array<UsageRow> =
+    progressRows.length > 0 ? progressRows : [ctxRow]
 
   const headerLabel = providerLabel ? `Usage · ${providerLabel}` : 'Usage'
   const canCycle =

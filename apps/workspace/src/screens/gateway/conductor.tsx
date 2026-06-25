@@ -191,7 +191,9 @@ export const MISSION_CONTROL_DOMAIN_CARDS = [
 function loadConductorGoalDraft(): string {
   try {
     if (!('localStorage' in globalThis)) return ''
-    return globalThis.localStorage.getItem(CONDUCTOR_GOAL_DRAFT_STORAGE_KEY) ?? ''
+    return (
+      globalThis.localStorage.getItem(CONDUCTOR_GOAL_DRAFT_STORAGE_KEY) ?? ''
+    )
   } catch {
     return ''
   }
@@ -520,7 +522,9 @@ function WorkerCard({
   const persona = getAgentPersona(index)
   const workerOutput =
     conductor.workerOutputs[worker.key] ??
-    getLastAssistantMessage(worker.raw.messages as Array<HistoryMessage> | undefined)
+    getLastAssistantMessage(
+      worker.raw.messages as Array<HistoryMessage> | undefined,
+    )
   const workerStartedAt =
     typeof worker.raw.createdAt === 'string'
       ? worker.raw.createdAt
@@ -1525,10 +1529,7 @@ export function Conductor() {
           typeof session.label === 'string' &&
           session.label.startsWith('worker-'),
       )
-      .filter(
-        (session) =>
-          deriveSessionStatus(session) === activityFilter,
-      )
+      .filter((session) => deriveSessionStatus(session) === activityFilter)
   })()
   const activityItems: Array<MissionHistoryEntry | GatewaySession> =
     hasMissionHistory ? filteredHistory : filteredSessions
@@ -2813,7 +2814,9 @@ export function Conductor() {
                     const output = (
                       conductor.workerOutputs[worker.key] ??
                       getLastAssistantMessage(
-                        worker.raw.messages as Array<HistoryMessage> | undefined,
+                        worker.raw.messages as
+                          | Array<HistoryMessage>
+                          | undefined,
                       )
                     ).trim()
                     if (!output) return null

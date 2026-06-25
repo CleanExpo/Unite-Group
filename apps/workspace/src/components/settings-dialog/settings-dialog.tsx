@@ -1962,7 +1962,7 @@ function VoiceContent() {
               )}
               onChange={(e) =>
                 saveTts('openai', {
-                  ...((tts.openai) || {}),
+                  ...(tts.openai || {}),
                   voice: e.target.value,
                 })
               }

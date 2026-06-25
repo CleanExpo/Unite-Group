@@ -1074,11 +1074,12 @@ export function Swarm2ReportsView({
               const expanded = expandedId === `worker:${card.workerId}`
               const latestInboxItem = {
                 ...card.latest,
-                lane: (card.latest.state === 'blocked'
-                  ? 'blocked'
-                  : card.latest.state === 'ready'
-                    ? 'ready'
-                    : 'needs_review'),
+                lane:
+                  card.latest.state === 'blocked'
+                    ? 'blocked'
+                    : card.latest.state === 'ready'
+                      ? 'ready'
+                      : 'needs_review',
               }
               return (
                 <article
@@ -1226,11 +1227,12 @@ export function Swarm2ReportsView({
                       {card.rows.slice(0, 4).map((row) => {
                         const inboxRow = {
                           ...row,
-                          lane: (row.state === 'blocked'
-                            ? 'blocked'
-                            : row.state === 'ready'
-                              ? 'ready'
-                              : 'needs_review'),
+                          lane:
+                            row.state === 'blocked'
+                              ? 'blocked'
+                              : row.state === 'ready'
+                                ? 'ready'
+                                : 'needs_review',
                         }
                         return (
                           <div

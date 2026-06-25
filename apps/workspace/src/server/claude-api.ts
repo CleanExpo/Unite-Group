@@ -131,7 +131,8 @@ export async function listSessions(
 ): Promise<Array<ClaudeSession>> {
   if (getCapabilities().dashboard.available) {
     const resp = await listDashboardSessions(limit, offset)
-    if (Array.isArray(resp.sessions)) return resp.sessions as Array<ClaudeSession>
+    if (Array.isArray(resp.sessions))
+      return resp.sessions as Array<ClaudeSession>
     const items = (resp as { items?: unknown }).items
     return Array.isArray(items) ? (items as Array<ClaudeSession>) : []
   }
@@ -257,7 +258,7 @@ export function toChatMessage(
       const fn = record.function as Record<string, unknown> | undefined
       const toolCallId =
         record.id || `tc-${Math.random().toString(36).slice(2, 8)}`
-      const toolName = fn?.name || (record.name) || 'tool'
+      const toolName = fn?.name || record.name || 'tool'
       const toolArgs = fn?.arguments
       streamToolCallsArr.push({
         id: toolCallId,
@@ -270,9 +271,7 @@ export function toChatMessage(
         id: toolCallId,
         name: toolName,
         arguments:
-          toolArgs && typeof toolArgs === 'object'
-            ? (toolArgs)
-            : undefined,
+          toolArgs && typeof toolArgs === 'object' ? toolArgs : undefined,
         partialJson: typeof toolArgs === 'string' ? toolArgs : undefined,
       })
     }

@@ -12,14 +12,10 @@ import {
   ViewIcon,
 } from '@hugeicons/core-free-icons'
 import { useQuery } from '@tanstack/react-query'
-import type {CrewMember} from '@/hooks/use-crew-status';
+import type { CrewMember } from '@/hooks/use-crew-status'
 import { cn } from '@/lib/utils'
 import { WorkflowHelpModal } from '@/components/workflow-help-modal'
-import {
-  
-  getOnlineStatus,
-  useCrewStatus
-} from '@/hooks/use-crew-status'
+import { getOnlineStatus, useCrewStatus } from '@/hooks/use-crew-status'
 import { TopologyBand } from '@/components/swarm/topology-band'
 import { AgentCard } from '@/components/swarm/agent-card'
 import { WidgetRail } from '@/components/swarm/widget-rail'
@@ -82,7 +78,9 @@ function useUpdatedAgo(fetchedAt: number | null): string {
   return label
 }
 
-function shellCommandForRuntime(runtime: RuntimeEntry | undefined): Array<string> {
+function shellCommandForRuntime(
+  runtime: RuntimeEntry | undefined,
+): Array<string> {
   if (runtime?.tmuxAttachable && runtime.tmuxSession) {
     return ['tmux', 'attach', '-t', runtime.tmuxSession]
   }

@@ -1,13 +1,12 @@
 'use client'
 
 import {
-  
   useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
-  useState
+  useState,
 } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { HugeiconsIcon } from '@hugeicons/react'
@@ -22,13 +21,9 @@ import { Swarm2OrchestratorCard } from './swarm2-orchestrator-card'
 import { Swarm2Wires } from './swarm2-wires'
 import { Swarm2ActivityFeed } from './swarm2-activity-feed'
 import { Swarm2KanbanBoard } from './swarm2-kanban-board'
-import {
-  
-  Swarm2ReportsView,
-  buildSwarm2InboxLanes
-} from './swarm2-reports-view'
-import type {Swarm2InboxItem} from './swarm2-reports-view';
-import type {CSSProperties} from 'react';
+import { Swarm2ReportsView, buildSwarm2InboxLanes } from './swarm2-reports-view'
+import type { Swarm2InboxItem } from './swarm2-reports-view'
+import type { CSSProperties } from 'react'
 import type { CrewMember } from '@/hooks/use-crew-status'
 import { toast } from '@/components/ui/toast'
 import { getOnlineStatus, useCrewStatus } from '@/hooks/use-crew-status'
@@ -1345,7 +1340,7 @@ export function Swarm2Screen() {
               variant: 'destructive',
             })
           }
-           
+
           console.error('[swarm2] start session failed:', res.status, text)
         }
       } catch (err) {
@@ -1377,7 +1372,7 @@ export function Swarm2Screen() {
         })
         if (!res.ok) {
           const text = await res.text().catch(() => '')
-           
+
           console.error('[swarm2] stop session failed:', res.status, text)
         }
       } finally {
@@ -1406,11 +1401,10 @@ export function Swarm2Screen() {
         })
         if (!res.ok) {
           const text = await res.text().catch(() => '')
-           
+
           console.error('[swarm2] tmux scroll failed:', res.status, text)
         }
       } catch (error) {
-         
         console.error('[swarm2] tmux scroll exception:', error)
       }
     },

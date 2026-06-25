@@ -67,10 +67,7 @@ async function sendDirectChat(
     )
   }
   if (!data || !('delivered' in data) || !data.delivered) {
-    throw new Error(
-      (data)?.error ||
-        'Direct chat did not reach worker',
-    )
+    throw new Error(data?.error || 'Direct chat did not reach worker')
   }
   return data
 }

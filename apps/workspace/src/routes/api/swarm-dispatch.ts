@@ -5,10 +5,7 @@ import { dirname, join, resolve } from 'node:path'
 import { json } from '@tanstack/react-start'
 import { createFileRoute } from '@tanstack/react-router'
 import { isAuthenticated } from '../../server/auth-middleware'
-import {
-  
-  newestCheckpointFromMessages
-} from '../../server/swarm-checkpoints'
+import { newestCheckpointFromMessages } from '../../server/swarm-checkpoints'
 import { readWorkerMessages } from '../../server/swarm-chat-reader'
 import {
   createOrUpdateMission,
@@ -19,13 +16,10 @@ import {
   appendSwarmMemoryEvent,
   buildSwarmStartupSnapshot,
 } from '../../server/swarm-memory'
-import {
-  
-  rosterByWorkerId
-} from '../../server/swarm-roster'
+import { rosterByWorkerId } from '../../server/swarm-roster'
 import { publishSwarmCheckpointNotification } from '../../server/swarm-notifications'
-import type {SwarmRosterWorker} from '../../server/swarm-roster';
-import type {ParsedSwarmCheckpoint} from '../../server/swarm-checkpoints';
+import type { SwarmRosterWorker } from '../../server/swarm-roster'
+import type { ParsedSwarmCheckpoint } from '../../server/swarm-checkpoints'
 
 type AssignmentRequest = {
   workerId: string

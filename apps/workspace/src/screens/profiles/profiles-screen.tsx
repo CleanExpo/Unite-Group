@@ -696,7 +696,7 @@ export function ProfilesScreen() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setWizardStep((s) => (s - 1))}
+                  onClick={() => setWizardStep((s) => s - 1)}
                 >
                   Back
                 </Button>
@@ -716,7 +716,7 @@ export function ProfilesScreen() {
               {wizardStep < 3 ? (
                 <Button
                   size="sm"
-                  onClick={() => setWizardStep((s) => (s + 1))}
+                  onClick={() => setWizardStep((s) => s + 1)}
                   disabled={wizardStep === 1 && !nameValid}
                   className="gap-1.5"
                 >

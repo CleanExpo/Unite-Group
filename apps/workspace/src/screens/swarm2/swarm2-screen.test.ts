@@ -4,9 +4,9 @@ import {
   SWARM2_INFORMATION_HIERARCHY,
   SWARM2_OPERATIONS_REUSE,
   SWARM2_REAL_API_ENDPOINTS,
-  SWARM2_SURFACE_CONTRACT, __runtimeTabInternals 
+  SWARM2_SURFACE_CONTRACT,
+  __runtimeTabInternals,
 } from './swarm2-screen'
-
 
 describe('Swarm2 surface contract', () => {
   it('keeps Aurora as the primary hub above wired operational worker cards', () => {

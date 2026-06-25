@@ -11,14 +11,10 @@ import {
   Settings01Icon,
 } from '@hugeicons/core-free-icons'
 import { useQuery } from '@tanstack/react-query'
-import {
-  
-  Swarm2Artifacts
-  
-} from './swarm2-artifacts'
+import { Swarm2Artifacts } from './swarm2-artifacts'
 import { Swarm2LiveChat } from './swarm2-live-chat'
 import { Swarm2TaskQueue } from './swarm2-task-queue'
-import type {Swarm2Artifact, Swarm2Preview} from './swarm2-artifacts';
+import type { Swarm2Artifact, Swarm2Preview } from './swarm2-artifacts'
 import type { CrewMember } from '@/hooks/use-crew-status'
 import { PixelAvatar } from '@/components/agent-swarm/pixel-avatar'
 import { AgentProgress } from '@/components/agent-view/agent-progress'

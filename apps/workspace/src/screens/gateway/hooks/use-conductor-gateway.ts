@@ -1178,9 +1178,9 @@ export function useConductorGateway() {
   const [tasks, setTasks] = useState<Array<ConductorTask>>(
     () => initialMission?.tasks ?? [],
   )
-  const [missionHistory, setMissionHistory] = useState<Array<MissionHistoryEntry>>(
-    () => loadMissionHistory(),
-  )
+  const [missionHistory, setMissionHistory] = useState<
+    Array<MissionHistoryEntry>
+  >(() => loadMissionHistory())
   const [selectedHistoryEntry, setSelectedHistoryEntry] =
     useState<MissionHistoryEntry | null>(null)
   const [conductorSettings, setConductorSettings] = useState<ConductorSettings>(

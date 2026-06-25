@@ -260,11 +260,8 @@ export async function saveConfig(
     // Support both shapes defensively.
     const base =
       current && typeof current === 'object' && 'config' in current
-        ? ((current).config as Record<
-            string,
-            unknown
-          >)
-        : (current)
+        ? (current.config as Record<string, unknown>)
+        : current
     if (base && typeof base === 'object') {
       merged = deepMerge(base, config)
     }

@@ -24,16 +24,10 @@ import {
 import { OpsStrip } from './components/ops-strip'
 import { AchievementsCard } from './components/achievements-card'
 import { HeroMetrics } from './components/hero-metrics'
-import {
-  AnalyticsChartCard
-  
-} from './components/analytics-chart-card'
+import { AnalyticsChartCard } from './components/analytics-chart-card'
 import { TopModelsCard } from './components/top-models-card'
 import { LogsTailCard } from './components/logs-tail-card'
-import {
-  
-  SessionsIntelligenceCard
-} from './components/sessions-intelligence-card'
+import { SessionsIntelligenceCard } from './components/sessions-intelligence-card'
 import { SkillsUsageCard } from './components/skills-usage-card'
 import { TokenMixHourCard } from './components/token-mix-hour-card'
 import { ActiveModelKpi } from './components/active-model-kpi'
@@ -46,8 +40,8 @@ import { OperatorTipCard } from './components/operator-tip-card'
 import { WidgetShell } from './components/widget-shell'
 import { EditModePanel } from './components/edit-mode-panel'
 import { useDashboardLayout } from './lib/use-dashboard-layout'
-import type {SessionRowData} from './components/sessions-intelligence-card';
-import type {AnalyticsPeriod} from './components/analytics-chart-card';
+import type { SessionRowData } from './components/sessions-intelligence-card'
+import type { AnalyticsPeriod } from './components/analytics-chart-card'
 import type { DashboardOverview } from '@/server/dashboard-aggregator'
 import type { ReactNode } from 'react'
 import type { ClaudeSession } from '@/server/claude-api'

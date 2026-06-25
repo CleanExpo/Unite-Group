@@ -5,9 +5,8 @@ import { json } from '@tanstack/react-start'
 import { isAuthenticated } from '../../server/auth-middleware'
 import { getProfilesDir } from '../../server/claude-paths'
 import {
-  
   newestCheckpointFromMessages,
-  readRuntimeJson
+  readRuntimeJson,
 } from '../../server/swarm-checkpoints'
 import { readWorkerMessages } from '../../server/swarm-chat-reader'
 import {
@@ -29,7 +28,7 @@ import {
   readSwarmMode,
 } from '../../server/swarm-mode'
 import { readSwarmRoster } from '../../server/swarm-roster'
-import type {ParsedSwarmCheckpoint} from '../../server/swarm-checkpoints';
+import type { ParsedSwarmCheckpoint } from '../../server/swarm-checkpoints'
 
 type LoopRequest = {
   workerIds?: unknown

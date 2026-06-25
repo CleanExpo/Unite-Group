@@ -6,27 +6,28 @@ import { createFileRoute } from '@tanstack/react-router'
 import { isAuthenticated } from '../../server/auth-middleware'
 import { getProfilesDir } from '../../server/claude-paths'
 import {
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   buildSwarmDispatchMetadata,
   buildSwarmSessionMetadata,
   getSwarmTmuxSessionName,
   getSwarmWrapperPath,
   listSwarmWorkerIds,
-  readSwarmRuntimeFile
+  readSwarmRuntimeFile,
 } from '../../server/swarm-foundation'
 import { rosterByWorkerId } from '../../server/swarm-roster'
 import { readSwarmMode, writeSwarmMode } from '../../server/swarm-mode'
-import type {SwarmArtifactMetadata, SwarmBoundary, SwarmCheckpointStatus, SwarmDispatchMetadata, SwarmLifecycleMetadata, SwarmPreviewMetadata, SwarmRuntimeSource, SwarmSessionMetadata, SwarmTaskMetadata, SwarmTerminalKind, SwarmWorkerState} from '../../server/swarm-foundation';
+import type {
+  SwarmArtifactMetadata,
+  SwarmBoundary,
+  SwarmCheckpointStatus,
+  SwarmDispatchMetadata,
+  SwarmLifecycleMetadata,
+  SwarmPreviewMetadata,
+  SwarmRuntimeSource,
+  SwarmSessionMetadata,
+  SwarmTaskMetadata,
+  SwarmTerminalKind,
+  SwarmWorkerState,
+} from '../../server/swarm-foundation'
 
 type RuntimeEntry = {
   workerId: string

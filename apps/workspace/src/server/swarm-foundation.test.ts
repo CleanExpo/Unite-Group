@@ -8,9 +8,10 @@ import {
   classifySwarmPluginBoundary,
   deriveSwarmBoundary,
   normalizeSwarmRuntime,
-  parseSwarmPluginManifest, patchSwarmRuntimeFile, readSwarmRuntimeFile 
+  parseSwarmPluginManifest,
+  patchSwarmRuntimeFile,
+  readSwarmRuntimeFile,
 } from './swarm-foundation'
-
 
 describe('normalizeSwarmRuntime', () => {
   it('fills legacy or sparse runtime.json values with stable defaults', () => {

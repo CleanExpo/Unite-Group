@@ -427,7 +427,10 @@ describe('(d) full fill — commits with merged overrides', () => {
       command: 'npx',
     })
     // Overridden arg at index 1
-    const body = capturedBody as { args: Array<string>; env: Record<string, string> }
+    const body = capturedBody as {
+      args: Array<string>
+      env: Record<string, string>
+    }
     expect(body.args[1]).toBe('/real/path/mcp')
     expect(body.env['MY_API_KEY']).toBe('my-real-api-key')
     expect(onInstalled).toHaveBeenCalledOnce()
