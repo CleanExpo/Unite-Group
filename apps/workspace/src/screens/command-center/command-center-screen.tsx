@@ -141,6 +141,15 @@ export function CommandCenterScreen() {
           </div>
           <span className="ml-auto text-[11px] uppercase tracking-wide text-neutral-500">
             {data.mode ?? 'systems-over-models'}
+            {data.checkedAt
+              ? ` · ${new Intl.DateTimeFormat('en-AU', {
+                  timeZone: 'Australia/Sydney',
+                  day: '2-digit',
+                  month: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                }).format(new Date(data.checkedAt))}`
+              : null}
           </span>
         </div>
 
@@ -239,9 +248,17 @@ export function CommandCenterScreen() {
         </div>
 
         {/* Guardrails footer */}
-        {data.operatorGates && data.operatorGates.length > 0 ? (
+        {data.guardrails?.length || data.operatorGates?.length ? (
           <p className="text-[11px] text-neutral-600">
-            Operator-gated: {data.operatorGates.join(' · ')}
+            {data.guardrails?.length
+              ? `Guardrails: ${data.guardrails.join(' · ')}`
+              : null}
+            {data.guardrails?.length && data.operatorGates?.length
+              ? ' · '
+              : null}
+            {data.operatorGates?.length
+              ? `Operator-gated: ${data.operatorGates.join(' · ')}`
+              : null}
           </p>
         ) : null}
       </div>
