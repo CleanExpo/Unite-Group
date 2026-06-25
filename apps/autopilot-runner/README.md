@@ -41,3 +41,31 @@ This package keeps its own lockfile/toolchain (root is not a pnpm workspace).
 - `main` branch protection (1 required review) is kept; a distinct reviewer
   GitHub App satisfies it only after an independent gauntlet re-passes.
 - `CC_LINEAR_LIVE=0` drains the loop instantly.
+
+## Agent presence heartbeat
+
+Separate from the Linear loop, the runner can publish a **presence heartbeat** so
+the live Unite-Group command-centre (`/founder/command-centre/operator-gateway`)
+shows this machine as a connected Hermes agent.
+
+```bash
+npm run build
+npm run heartbeat        # node dist/heartbeat.js — loops until SIGINT/SIGTERM
+```
+
+It upserts `operator_agent_presence` (founder-scoped) every ~15s via PostgREST.
+The command-centre derives `connected` (<30s) / `stale` (<5m) / `offline` from
+`last_seen_at`.
+
+Required env (same identity the CRM crons use):
+
+| Var | Purpose |
+|---|---|
+| `SUPABASE_URL` (or `NEXT_PUBLIC_SUPABASE_URL`) | Project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | Write auth (bypasses RLS; `founder_id` still set explicitly) |
+| `FOUNDER_USER_ID` | Single-tenant founder id |
+
+Optional: `HERMES_AGENT_ID` (default hostname), `HERMES_AGENT_VERSION`,
+`HERMES_AGENT_CAPABILITIES` (JSON), `HERMES_HEARTBEAT_INTERVAL_MS` (default 15000,
+floor 1000). The agent dials **out** to Supabase — no inbound exposure. Missing a
+required var fails closed (exit 1) rather than silently never beating.
