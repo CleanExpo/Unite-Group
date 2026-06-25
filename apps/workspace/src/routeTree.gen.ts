@@ -30,6 +30,7 @@ import { Route as ChatIndexRouteImport } from './routes/chat/index'
 import { Route as SettingsProvidersRouteImport } from './routes/settings/providers'
 import { Route as ChatSessionKeyRouteImport } from './routes/chat/$sessionKey'
 import { Route as ApiWorkspaceRouteImport } from './routes/api/workspace'
+import { Route as ApiVideoCommandCenterRouteImport } from './routes/api/video-command-center'
 import { Route as ApiTerminalStreamRouteImport } from './routes/api/terminal-stream'
 import { Route as ApiTerminalResizeRouteImport } from './routes/api/terminal-resize'
 import { Route as ApiTerminalInputRouteImport } from './routes/api/terminal-input'
@@ -69,6 +70,7 @@ import { Route as ApiPluginsRouteImport } from './routes/api/plugins'
 import { Route as ApiPingRouteImport } from './routes/api/ping'
 import { Route as ApiPathsRouteImport } from './routes/api/paths'
 import { Route as ApiModelsRouteImport } from './routes/api/models'
+import { Route as ApiMissionControlOsRouteImport } from './routes/api/mission-control-os'
 import { Route as ApiMemoryRouteImport } from './routes/api/memory'
 import { Route as ApiMcpRouteImport } from './routes/api/mcp'
 import { Route as ApiLocalProvidersRouteImport } from './routes/api/local-providers'
@@ -241,6 +243,11 @@ const ChatSessionKeyRoute = ChatSessionKeyRouteImport.update({
 const ApiWorkspaceRoute = ApiWorkspaceRouteImport.update({
   id: '/api/workspace',
   path: '/api/workspace',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiVideoCommandCenterRoute = ApiVideoCommandCenterRouteImport.update({
+  id: '/api/video-command-center',
+  path: '/api/video-command-center',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTerminalStreamRoute = ApiTerminalStreamRouteImport.update({
@@ -437,6 +444,11 @@ const ApiPathsRoute = ApiPathsRouteImport.update({
 const ApiModelsRoute = ApiModelsRouteImport.update({
   id: '/api/models',
   path: '/api/models',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMissionControlOsRoute = ApiMissionControlOsRouteImport.update({
+  id: '/api/mission-control-os',
+  path: '/api/mission-control-os',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMemoryRoute = ApiMemoryRouteImport.update({
@@ -822,6 +834,7 @@ export interface FileRoutesByFullPath {
   '/api/local-providers': typeof ApiLocalProvidersRoute
   '/api/mcp': typeof ApiMcpRouteWithChildren
   '/api/memory': typeof ApiMemoryRouteWithChildren
+  '/api/mission-control-os': typeof ApiMissionControlOsRoute
   '/api/models': typeof ApiModelsRoute
   '/api/paths': typeof ApiPathsRoute
   '/api/ping': typeof ApiPingRoute
@@ -861,6 +874,7 @@ export interface FileRoutesByFullPath {
   '/api/terminal-input': typeof ApiTerminalInputRoute
   '/api/terminal-resize': typeof ApiTerminalResizeRoute
   '/api/terminal-stream': typeof ApiTerminalStreamRoute
+  '/api/video-command-center': typeof ApiVideoCommandCenterRoute
   '/api/workspace': typeof ApiWorkspaceRoute
   '/chat/$sessionKey': typeof ChatSessionKeyRoute
   '/settings/providers': typeof SettingsProvidersRoute
@@ -951,6 +965,7 @@ export interface FileRoutesByTo {
   '/api/local-providers': typeof ApiLocalProvidersRoute
   '/api/mcp': typeof ApiMcpRouteWithChildren
   '/api/memory': typeof ApiMemoryRouteWithChildren
+  '/api/mission-control-os': typeof ApiMissionControlOsRoute
   '/api/models': typeof ApiModelsRoute
   '/api/paths': typeof ApiPathsRoute
   '/api/ping': typeof ApiPingRoute
@@ -990,6 +1005,7 @@ export interface FileRoutesByTo {
   '/api/terminal-input': typeof ApiTerminalInputRoute
   '/api/terminal-resize': typeof ApiTerminalResizeRoute
   '/api/terminal-stream': typeof ApiTerminalStreamRoute
+  '/api/video-command-center': typeof ApiVideoCommandCenterRoute
   '/api/workspace': typeof ApiWorkspaceRoute
   '/chat/$sessionKey': typeof ChatSessionKeyRoute
   '/settings/providers': typeof SettingsProvidersRoute
@@ -1082,6 +1098,7 @@ export interface FileRoutesById {
   '/api/local-providers': typeof ApiLocalProvidersRoute
   '/api/mcp': typeof ApiMcpRouteWithChildren
   '/api/memory': typeof ApiMemoryRouteWithChildren
+  '/api/mission-control-os': typeof ApiMissionControlOsRoute
   '/api/models': typeof ApiModelsRoute
   '/api/paths': typeof ApiPathsRoute
   '/api/ping': typeof ApiPingRoute
@@ -1121,6 +1138,7 @@ export interface FileRoutesById {
   '/api/terminal-input': typeof ApiTerminalInputRoute
   '/api/terminal-resize': typeof ApiTerminalResizeRoute
   '/api/terminal-stream': typeof ApiTerminalStreamRoute
+  '/api/video-command-center': typeof ApiVideoCommandCenterRoute
   '/api/workspace': typeof ApiWorkspaceRoute
   '/chat/$sessionKey': typeof ChatSessionKeyRoute
   '/settings/providers': typeof SettingsProvidersRoute
@@ -1214,6 +1232,7 @@ export interface FileRouteTypes {
     | '/api/local-providers'
     | '/api/mcp'
     | '/api/memory'
+    | '/api/mission-control-os'
     | '/api/models'
     | '/api/paths'
     | '/api/ping'
@@ -1253,6 +1272,7 @@ export interface FileRouteTypes {
     | '/api/terminal-input'
     | '/api/terminal-resize'
     | '/api/terminal-stream'
+    | '/api/video-command-center'
     | '/api/workspace'
     | '/chat/$sessionKey'
     | '/settings/providers'
@@ -1343,6 +1363,7 @@ export interface FileRouteTypes {
     | '/api/local-providers'
     | '/api/mcp'
     | '/api/memory'
+    | '/api/mission-control-os'
     | '/api/models'
     | '/api/paths'
     | '/api/ping'
@@ -1382,6 +1403,7 @@ export interface FileRouteTypes {
     | '/api/terminal-input'
     | '/api/terminal-resize'
     | '/api/terminal-stream'
+    | '/api/video-command-center'
     | '/api/workspace'
     | '/chat/$sessionKey'
     | '/settings/providers'
@@ -1473,6 +1495,7 @@ export interface FileRouteTypes {
     | '/api/local-providers'
     | '/api/mcp'
     | '/api/memory'
+    | '/api/mission-control-os'
     | '/api/models'
     | '/api/paths'
     | '/api/ping'
@@ -1512,6 +1535,7 @@ export interface FileRouteTypes {
     | '/api/terminal-input'
     | '/api/terminal-resize'
     | '/api/terminal-stream'
+    | '/api/video-command-center'
     | '/api/workspace'
     | '/chat/$sessionKey'
     | '/settings/providers'
@@ -1604,6 +1628,7 @@ export interface RootRouteChildren {
   ApiLocalProvidersRoute: typeof ApiLocalProvidersRoute
   ApiMcpRoute: typeof ApiMcpRouteWithChildren
   ApiMemoryRoute: typeof ApiMemoryRouteWithChildren
+  ApiMissionControlOsRoute: typeof ApiMissionControlOsRoute
   ApiModelsRoute: typeof ApiModelsRoute
   ApiPathsRoute: typeof ApiPathsRoute
   ApiPingRoute: typeof ApiPingRoute
@@ -1643,6 +1668,7 @@ export interface RootRouteChildren {
   ApiTerminalInputRoute: typeof ApiTerminalInputRoute
   ApiTerminalResizeRoute: typeof ApiTerminalResizeRoute
   ApiTerminalStreamRoute: typeof ApiTerminalStreamRoute
+  ApiVideoCommandCenterRoute: typeof ApiVideoCommandCenterRoute
   ApiWorkspaceRoute: typeof ApiWorkspaceRoute
   ChatSessionKeyRoute: typeof ChatSessionKeyRoute
   ChatIndexRoute: typeof ChatIndexRoute
@@ -1816,6 +1842,13 @@ declare module '@tanstack/react-router' {
       path: '/api/workspace'
       fullPath: '/api/workspace'
       preLoaderRoute: typeof ApiWorkspaceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/video-command-center': {
+      id: '/api/video-command-center'
+      path: '/api/video-command-center'
+      fullPath: '/api/video-command-center'
+      preLoaderRoute: typeof ApiVideoCommandCenterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/terminal-stream': {
@@ -2089,6 +2122,13 @@ declare module '@tanstack/react-router' {
       path: '/api/models'
       fullPath: '/api/models'
       preLoaderRoute: typeof ApiModelsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mission-control-os': {
+      id: '/api/mission-control-os'
+      path: '/api/mission-control-os'
+      fullPath: '/api/mission-control-os'
+      preLoaderRoute: typeof ApiMissionControlOsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/memory': {
@@ -2770,6 +2810,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiLocalProvidersRoute: ApiLocalProvidersRoute,
   ApiMcpRoute: ApiMcpRouteWithChildren,
   ApiMemoryRoute: ApiMemoryRouteWithChildren,
+  ApiMissionControlOsRoute: ApiMissionControlOsRoute,
   ApiModelsRoute: ApiModelsRoute,
   ApiPathsRoute: ApiPathsRoute,
   ApiPingRoute: ApiPingRoute,
@@ -2809,6 +2850,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTerminalInputRoute: ApiTerminalInputRoute,
   ApiTerminalResizeRoute: ApiTerminalResizeRoute,
   ApiTerminalStreamRoute: ApiTerminalStreamRoute,
+  ApiVideoCommandCenterRoute: ApiVideoCommandCenterRoute,
   ApiWorkspaceRoute: ApiWorkspaceRoute,
   ChatSessionKeyRoute: ChatSessionKeyRoute,
   ChatIndexRoute: ChatIndexRoute,

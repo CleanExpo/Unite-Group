@@ -61,20 +61,20 @@ Start here: [docs/swarm/](./docs/swarm/)
 
 ## 📸 Screenshots
 
-|                 Chat                 |                  Conductor                   |
-| :----------------------------------: | :------------------------------------------: |
+|                 Chat                 |                   Conductor                    |
+| :----------------------------------: | :--------------------------------------------: |
 | ![Chat](./docs/screenshots/chat.png) | ![Conductor](./docs/screenshots/conductor.png) |
 
-|                   Dashboard                  |                  Memory                  |
-| :------------------------------------------: | :--------------------------------------: |
+|                   Dashboard                    |                  Memory                  |
+| :--------------------------------------------: | :--------------------------------------: |
 | ![Dashboard](./docs/screenshots/dashboard.png) | ![Memory](./docs/screenshots/memory.png) |
 
 |                   Terminal                   |                   Settings                   |
 | :------------------------------------------: | :------------------------------------------: |
 | ![Terminal](./docs/screenshots/terminal.png) | ![Settings](./docs/screenshots/settings.png) |
 
-|                  Tasks                  |                 Jobs                 |
-| :--------------------------------------: | :----------------------------------: |
+|                 Tasks                  |                 Jobs                 |
+| :------------------------------------: | :----------------------------------: |
 | ![Tasks](./docs/screenshots/tasks.png) | ![Jobs](./docs/screenshots/jobs.png) |
 
 ---
@@ -83,11 +83,11 @@ Start here: [docs/swarm/](./docs/swarm/)
 
 Three paths — pick the one that matches you:
 
-| Path | Best for | Time |
-|---|---|---|
+| Path                                         | Best for                                         | Time   |
+| -------------------------------------------- | ------------------------------------------------ | ------ |
 | **🐳 [Docker Compose](#-docker-quickstart)** | Self-hosters, home labs, "give me a compose gig" | ~2 min |
-| **🌐 One-line install** | Local dev on macOS/Linux | ~3 min |
-| **🔌 Attach to existing `hermes-agent`** | You already run Hermes Agent | ~1 min |
+| **🌐 One-line install**                      | Local dev on macOS/Linux                         | ~3 min |
+| **🔌 Attach to existing `hermes-agent`**     | You already run Hermes Agent                     | ~1 min |
 
 ### One-line install
 
@@ -392,11 +392,11 @@ ghcr.io/outsourc-e/hermes-workspace:latest
 
 Available tags:
 
-| Tag | What it is |
-|---|---|
-| `latest` | Latest `main` commit (stable; recommended) |
-| `v2.0.0` | Pinned semver tag |
-| `main-<sha>` | Specific commit |
+| Tag          | What it is                                 |
+| ------------ | ------------------------------------------ |
+| `latest`     | Latest `main` commit (stable; recommended) |
+| `v2.0.0`     | Pinned semver tag                          |
+| `main-<sha>` | Specific commit                            |
 
 Minimal Coolify / Easypanel config:
 
@@ -405,8 +405,8 @@ service: hermes-workspace
 image: ghcr.io/outsourc-e/hermes-workspace:latest
 port: 3000
 env:
-  HERMES_API_URL: http://hermes-agent:8642   # point at your gateway
-  HERMES_API_TOKEN: ${API_SERVER_KEY}        # if gateway auth is enabled
+  HERMES_API_URL: http://hermes-agent:8642 # point at your gateway
+  HERMES_API_TOKEN: ${API_SERVER_KEY} # if gateway auth is enabled
 ```
 
 The image is built for `linux/amd64` and `linux/arm64`. Pair it with either
@@ -648,34 +648,34 @@ The Docker setup runs both automatically — no action needed if using `docker c
 
 ### Shipped ✅
 
-| Feature | What it does |
-|---|---|
-| Chat + SSE streaming | Live agent output with tool call rendering |
-| Files + Terminal | Full workspace file browser + cross-platform PTY |
-| Memory + Skills browsers | Edit memory, browse 2,000+ skills with marketplace |
-| Dashboard | Sessions, model mix, cost ledger, attention card |
-| Operations | Multi-agent management with preset personas |
-| Agent View | Live agent panel in chat |
-| Swarm Mode | Persistent tmux-backed worker pool with role dispatch |
-| MCP page | Full catalog + marketplace + sources |
-| Mobile PWA + Tailscale | Install as native-feeling app on any device |
-| Themes | Hermes / Nous / Bronze / Slate / Mono (light + dark) |
-| Capability gates | Graceful 'upstream not ready' placeholders |
-| Multi-provider | Anthropic, OpenAI, OpenRouter, Google, Ollama, LM Studio, vLLM, Atomic Chat |
+| Feature                  | What it does                                                                |
+| ------------------------ | --------------------------------------------------------------------------- |
+| Chat + SSE streaming     | Live agent output with tool call rendering                                  |
+| Files + Terminal         | Full workspace file browser + cross-platform PTY                            |
+| Memory + Skills browsers | Edit memory, browse 2,000+ skills with marketplace                          |
+| Dashboard                | Sessions, model mix, cost ledger, attention card                            |
+| Operations               | Multi-agent management with preset personas                                 |
+| Agent View               | Live agent panel in chat                                                    |
+| Swarm Mode               | Persistent tmux-backed worker pool with role dispatch                       |
+| MCP page                 | Full catalog + marketplace + sources                                        |
+| Mobile PWA + Tailscale   | Install as native-feeling app on any device                                 |
+| Themes                   | Hermes / Nous / Bronze / Slate / Mono (light + dark)                        |
+| Capability gates         | Graceful 'upstream not ready' placeholders                                  |
+| Multi-provider           | Anthropic, OpenAI, OpenRouter, Google, Ollama, LM Studio, vLLM, Atomic Chat |
 
 ### In progress 🔨
 
-| Feature | Status |
-|---|---|
-| Conductor missions | Workspace UI is shipped; awaiting upstream dashboard plugin (see [#262](https://github.com/outsourc-e/hermes-workspace/issues/262)) |
-| Native Desktop App (Electron) | Spec'd; PWA install path works today |
+| Feature                       | Status                                                                                                                              |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Conductor missions            | Workspace UI is shipped; awaiting upstream dashboard plugin (see [#262](https://github.com/outsourc-e/hermes-workspace/issues/262)) |
+| Native Desktop App (Electron) | Spec'd; PWA install path works today                                                                                                |
 
 ### Coming 🔜
 
-| Feature | Status |
-|---|---|
-| Cloud / Hosted version | Pending infra |
-| Team collaboration | Pending cloud + multi-tenant work |
+| Feature                | Status                            |
+| ---------------------- | --------------------------------- |
+| Cloud / Hosted version | Pending infra                     |
+| Team collaboration     | Pending cloud + multi-tenant work |
 
 ---
 

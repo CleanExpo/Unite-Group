@@ -20,7 +20,8 @@ export const THEMES: Array<{
   {
     id: 'claude-nous',
     label: 'Nous',
-    description: 'Deep teal background, cream accent — matches Nous Research chrome',
+    description:
+      'Deep teal background, cream accent — matches Nous Research chrome',
     icon: '◱',
   },
   {
@@ -80,7 +81,8 @@ export const THEMES: Array<{
   {
     id: 'unite',
     label: 'Unite',
-    description: 'Scientific Luxury — OLED black with cyan accent, high contrast, premium feel',
+    description:
+      'Scientific Luxury — OLED black with cyan accent, high contrast, premium feel',
     icon: '◈',
   },
 ]

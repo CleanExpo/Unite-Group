@@ -1,6 +1,7 @@
+import type {DashboardLayout} from '@/screens/dashboard/lib/use-dashboard-layout';
 import {
-  WIDGET_CATALOG,
-  type DashboardLayout,
+  
+  WIDGET_CATALOG
 } from '@/screens/dashboard/lib/use-dashboard-layout'
 
 /**
@@ -124,9 +125,7 @@ function Group({
                     ? 'color-mix(in srgb, var(--theme-success) 60%, transparent)'
                     : 'var(--theme-border)'
                 }`,
-                color: visible
-                  ? 'var(--theme-success)'
-                  : 'var(--theme-muted)',
+                color: visible ? 'var(--theme-success)' : 'var(--theme-muted)',
               }}
               title={w.description}
             >

@@ -15,7 +15,7 @@ function textMessage(
     role,
     content: [{ type: 'text', text }],
     timestamp: 1,
-  } as ChatMessage
+  }
 }
 
 function toolOnlyAssistant(id: string): ChatMessage {
@@ -31,7 +31,7 @@ function toolOnlyAssistant(id: string): ChatMessage {
       },
     ],
     timestamp: 2,
-  } as ChatMessage
+  }
 }
 
 describe('buildDisplayEntries', () => {

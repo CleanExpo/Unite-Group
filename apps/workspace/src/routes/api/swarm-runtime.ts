@@ -1,31 +1,32 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
 import { execFile } from 'node:child_process'
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
+import { json } from '@tanstack/react-start'
+import { createFileRoute } from '@tanstack/react-router'
 import { isAuthenticated } from '../../server/auth-middleware'
 import { getProfilesDir } from '../../server/claude-paths'
 import {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   buildSwarmDispatchMetadata,
   buildSwarmSessionMetadata,
   getSwarmTmuxSessionName,
   getSwarmWrapperPath,
   listSwarmWorkerIds,
-  readSwarmRuntimeFile,
-  type SwarmArtifactMetadata,
-  type SwarmBoundary,
-  type SwarmCheckpointStatus,
-  type SwarmDispatchMetadata,
-  type SwarmLifecycleMetadata,
-  type SwarmPreviewMetadata,
-  type SwarmRuntimeSource,
-  type SwarmSessionMetadata,
-  type SwarmTaskMetadata,
-  type SwarmTerminalKind,
-  type SwarmWorkerState,
+  readSwarmRuntimeFile
 } from '../../server/swarm-foundation'
 import { rosterByWorkerId } from '../../server/swarm-roster'
 import { readSwarmMode, writeSwarmMode } from '../../server/swarm-mode'
+import type {SwarmArtifactMetadata, SwarmBoundary, SwarmCheckpointStatus, SwarmDispatchMetadata, SwarmLifecycleMetadata, SwarmPreviewMetadata, SwarmRuntimeSource, SwarmSessionMetadata, SwarmTaskMetadata, SwarmTerminalKind, SwarmWorkerState} from '../../server/swarm-foundation';
 
 type RuntimeEntry = {
   workerId: string
@@ -74,16 +75,21 @@ function titleCase(value: string): string {
     .join(' ')
 }
 
-function listWorkerIds(): string[] {
+function listWorkerIds(): Array<string> {
   return listSwarmWorkerIds()
 }
 
 function lastLogTail(
   profilePath: string,
   maxBytes = 4_000,
-): { tail: string | null; lastSessionStartedAt: number | null; logPath: string | null } {
+): {
+  tail: string | null
+  lastSessionStartedAt: number | null
+  logPath: string | null
+} {
   const log = join(profilePath, 'logs', 'agent.log')
-  if (!existsSync(log)) return { tail: null, lastSessionStartedAt: null, logPath: null }
+  if (!existsSync(log))
+    return { tail: null, lastSessionStartedAt: null, logPath: null }
   try {
     const stat = statSync(log)
     const buffer = readFileSync(log, 'utf-8')
@@ -226,7 +232,10 @@ function readPid(profilePath: string): number | null {
   const runtimePath = join(profilePath, 'runtime.json')
   if (!existsSync(runtimePath)) return null
   try {
-    const raw = JSON.parse(readFileSync(runtimePath, 'utf-8')) as Record<string, unknown>
+    const raw = JSON.parse(readFileSync(runtimePath, 'utf-8')) as Record<
+      string,
+      unknown
+    >
     return typeof raw.pid === 'number' ? raw.pid : null
   } catch {
     return null
@@ -242,7 +251,9 @@ export const Route = createFileRoute('/api/swarm-runtime')({
         }
         const ids = listWorkerIds()
         const tmuxAvailable = await tmuxIsInstalled()
-        const entries = await Promise.all(ids.map((id) => buildEntry(id, tmuxAvailable)))
+        const entries = await Promise.all(
+          ids.map((id) => buildEntry(id, tmuxAvailable)),
+        )
         return json({
           checkedAt: Date.now(),
           registryVersion: 1,

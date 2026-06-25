@@ -28,13 +28,13 @@ type HealthResponse = {
   workspaceModel: string | null
   agentApiUrl?: string | null
   claudeApiUrl?: string | null
-  workers: WorkerHealth[]
+  workers: Array<WorkerHealth>
   summary: {
     totalWorkers: number
     wrappersConfigured: number
     totalAuthErrors24h: number
-    distinctModels: string[]
-    distinctProviders: string[]
+    distinctModels: Array<string>
+    distinctProviders: Array<string>
   }
 }
 
@@ -52,7 +52,11 @@ type DispatchPingResult = {
   error: string | null
 } | null
 
-export function SwarmHealthStrip({ targetWorkerId }: { targetWorkerId?: string | null }) {
+export function SwarmHealthStrip({
+  targetWorkerId,
+}: {
+  targetWorkerId?: string | null
+}) {
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['swarm', 'health'],
     queryFn: fetchSwarmHealth,
@@ -120,18 +124,30 @@ export function SwarmHealthStrip({ targetWorkerId }: { targetWorkerId?: string |
     <div className="rounded-2xl border border-emerald-400/15 bg-[#08110d] p-4 text-emerald-50/85">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <HugeiconsIcon icon={CheckmarkCircle02Icon} size={14} className="text-emerald-300" />
-          <span className="text-[11px] uppercase tracking-[0.18em] text-emerald-200/80">Swarm health</span>
+          <HugeiconsIcon
+            icon={CheckmarkCircle02Icon}
+            size={14}
+            className="text-emerald-300"
+          />
+          <span className="text-[11px] uppercase tracking-[0.18em] text-emerald-200/80">
+            Swarm health
+          </span>
         </div>
         <div className="flex items-center gap-2 text-[11px] text-emerald-100/55">
-          <span>{tickLabel ? `Checked ${tickLabel}` : isLoading ? 'Checking…' : ''}</span>
+          <span>
+            {tickLabel ? `Checked ${tickLabel}` : isLoading ? 'Checking…' : ''}
+          </span>
           <button
             type="button"
             onClick={() => void refetch()}
             disabled={isFetching}
             className="inline-flex items-center gap-1 rounded-full border border-emerald-400/20 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-emerald-100/70 hover:text-white"
           >
-            <HugeiconsIcon icon={RefreshIcon} size={11} className={isFetching ? 'animate-spin' : ''} />
+            <HugeiconsIcon
+              icon={RefreshIcon}
+              size={11}
+              className={isFetching ? 'animate-spin' : ''}
+            />
             Refresh
           </button>
         </div>
@@ -144,9 +160,17 @@ export function SwarmHealthStrip({ targetWorkerId }: { targetWorkerId?: string |
       ) : null}
 
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <HealthTile icon={CpuIcon} label="Workspace model" value={workspaceModel} />
+        <HealthTile
+          icon={CpuIcon}
+          label="Workspace model"
+          value={workspaceModel}
+        />
         <HealthTile icon={FlashIcon} label="Provider" value={provider} />
-        <HealthTile icon={FlashIcon} label="Wrappers" value={`${wrappersConfigured}/${totalWorkers}`} />
+        <HealthTile
+          icon={FlashIcon}
+          label="Wrappers"
+          value={`${wrappersConfigured}/${totalWorkers}`}
+        />
         <HealthTile
           icon={totalAuthErrors === 0 ? CheckmarkCircle02Icon : AlertCircleIcon}
           label="Auth errors 24h"
@@ -156,16 +180,24 @@ export function SwarmHealthStrip({ targetWorkerId }: { targetWorkerId?: string |
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-emerald-100/55">
-        <span>Gateway: <span className="text-emerald-50">{apiUrl}</span></span>
+        <span>
+          Gateway: <span className="text-emerald-50">{apiUrl}</span>
+        </span>
         {distinctModels.length > 0 ? (
-          <span>Worker models: <span className="text-emerald-50">{distinctModels.join(', ')}</span></span>
+          <span>
+            Worker models:{' '}
+            <span className="text-emerald-50">{distinctModels.join(', ')}</span>
+          </span>
         ) : null}
       </div>
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-400/15 bg-emerald-500/5 px-3 py-2">
         <div className="text-[11px] text-emerald-100/70">
           Smoke test: dispatch a tiny prompt to{' '}
-          <span className="font-semibold text-emerald-100">{pingTarget ?? 'no worker'}</span> and confirm a real reply.
+          <span className="font-semibold text-emerald-100">
+            {pingTarget ?? 'no worker'}
+          </span>{' '}
+          and confirm a real reply.
         </div>
         <button
           type="button"
@@ -173,7 +205,9 @@ export function SwarmHealthStrip({ targetWorkerId }: { targetWorkerId?: string |
           disabled={!pingTarget || pinging}
           className={cn(
             'inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors',
-            pinging ? 'bg-emerald-500/15 text-emerald-200' : 'bg-emerald-400 text-black hover:bg-emerald-300 disabled:opacity-50',
+            pinging
+              ? 'bg-emerald-500/15 text-emerald-200'
+              : 'bg-emerald-400 text-black hover:bg-emerald-300 disabled:opacity-50',
           )}
         >
           <HugeiconsIcon icon={FlashIcon} size={12} />
@@ -190,18 +224,27 @@ export function SwarmHealthStrip({ targetWorkerId }: { targetWorkerId?: string |
         <div
           className={cn(
             'mt-2 rounded-lg border px-3 py-2 text-xs',
-            pingResult.ok ? 'border-emerald-400/40 bg-emerald-500/10 text-emerald-100' : 'border-red-500/40 bg-red-500/10 text-red-200',
+            pingResult.ok
+              ? 'border-emerald-400/40 bg-emerald-500/10 text-emerald-100'
+              : 'border-red-500/40 bg-red-500/10 text-red-200',
           )}
         >
           <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.18em]">
-            <span>{pingResult.workerId} · {pingResult.ok ? 'reply received' : 'failure'}</span>
+            <span>
+              {pingResult.workerId} ·{' '}
+              {pingResult.ok ? 'reply received' : 'failure'}
+            </span>
             <span>{(pingResult.durationMs / 1000).toFixed(1)}s</span>
           </div>
           {pingResult.error ? (
-            <pre className="mt-2 whitespace-pre-wrap text-[11px]">{pingResult.error}</pre>
+            <pre className="mt-2 whitespace-pre-wrap text-[11px]">
+              {pingResult.error}
+            </pre>
           ) : null}
           {pingResult.output ? (
-            <pre className="mt-2 whitespace-pre-wrap text-[11px] text-emerald-100">{pingResult.output.slice(-1000)}</pre>
+            <pre className="mt-2 whitespace-pre-wrap text-[11px] text-emerald-100">
+              {pingResult.output.slice(-1000)}
+            </pre>
           ) : null}
         </div>
       ) : null}
@@ -224,16 +267,20 @@ function HealthTile({
     <div
       className={cn(
         'rounded-xl border px-3 py-2 backdrop-blur',
-        tone === 'good' ? 'border-emerald-400/30 bg-emerald-500/10 text-emerald-200' :
-        tone === 'warn' ? 'border-amber-400/40 bg-amber-500/10 text-amber-200' :
-        'border-emerald-400/15 bg-black/35 text-emerald-50/80',
+        tone === 'good'
+          ? 'border-emerald-400/30 bg-emerald-500/10 text-emerald-200'
+          : tone === 'warn'
+            ? 'border-amber-400/40 bg-amber-500/10 text-amber-200'
+            : 'border-emerald-400/15 bg-black/35 text-emerald-50/80',
       )}
     >
       <div className="flex items-center gap-1 text-[10px] uppercase tracking-[0.18em] text-emerald-100/60">
         <HugeiconsIcon icon={icon} size={11} />
         {label}
       </div>
-      <div className="mt-1 truncate text-sm font-semibold text-emerald-50">{value}</div>
+      <div className="mt-1 truncate text-sm font-semibold text-emerald-50">
+        {value}
+      </div>
     </div>
   )
 }

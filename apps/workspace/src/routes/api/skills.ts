@@ -44,12 +44,9 @@ async function buildLocalSkillPathMap(): Promise<Map<string, LocalSkillMeta>> {
   const map = new Map<string, LocalSkillMeta>()
   let categoryEntries: Array<{ name: string; isDirectory: () => boolean }>
   try {
-    categoryEntries = (await fs.readdir(root, {
+    categoryEntries = await fs.readdir(root, {
       withFileTypes: true,
-    })) as unknown as Array<{
-      name: string
-      isDirectory: () => boolean
-    }>
+    })
   } catch {
     return map
   }
@@ -63,12 +60,9 @@ async function buildLocalSkillPathMap(): Promise<Map<string, LocalSkillMeta>> {
       isDirectory: () => boolean
     }>
     try {
-      skillEntries = (await fs.readdir(catPath, {
+      skillEntries = await fs.readdir(catPath, {
         withFileTypes: true,
-      })) as unknown as Array<{
-        name: string
-        isDirectory: () => boolean
-      }>
+      })
     } catch {
       continue
     }
@@ -107,7 +101,8 @@ function deriveOrigin(
   bundled: Set<string>,
 ): SkillSummary['origin'] {
   if (bundled.has(skill.id) || bundled.has(skill.slug)) return 'builtin'
-  if (skill.author === 'Hermes Agent' && skill.sourcePath) return 'agent-created'
+  if (skill.author === 'Hermes Agent' && skill.sourcePath)
+    return 'agent-created'
   return 'marketplace'
 }
 
@@ -456,11 +451,12 @@ export const Route = createFileRoute('/api/skills')({
             Math.max(1, Number(url.searchParams.get('limit') || '30')),
           )
 
-          const [sourceItems, localPathMap, bundledManifest] = await Promise.all([
-            fetchClaudeSkills(),
-            buildLocalSkillPathMap(),
-            loadBundledManifest(),
-          ])
+          const [sourceItems, localPathMap, bundledManifest] =
+            await Promise.all([
+              fetchClaudeSkills(),
+              buildLocalSkillPathMap(),
+              loadBundledManifest(),
+            ])
           for (const skill of sourceItems) {
             if (skill.installed) {
               const meta =

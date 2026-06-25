@@ -77,14 +77,14 @@ root (`~/.openclaw/workspace/memory/swarm/`).
 
 ## 2. Invocation Rules
 
-| Condition | Tier |
-|---|---|
-| Fresh dispatch, objective fully specified | 0 |
-| Agent restarted or compacted with no handoff | 1 |
-| Agent blocked; needs recent decision history | 1 |
-| Cross-worker task; prior agent context relevant | 2 |
-| Decomposition or routing step needing swarm lessons | 2 |
-| Mission archive lookup or completed-mission reference | 2 |
+| Condition                                             | Tier |
+| ----------------------------------------------------- | ---- |
+| Fresh dispatch, objective fully specified             | 0    |
+| Agent restarted or compacted with no handoff          | 1    |
+| Agent blocked; needs recent decision history          | 1    |
+| Cross-worker task; prior agent context relevant       | 2    |
+| Decomposition or routing step needing swarm lessons   | 2    |
+| Mission archive lookup or completed-mission reference | 2    |
 
 **Default:** tier 0. Agents must opt in to tier 1 or 2 explicitly via their
 retrieval contract (§3).
@@ -105,9 +105,9 @@ envelope.
 
 ```yaml
 retrieval:
-  depth: 0 | 1 | 2      # required — see tier definitions above
-  rationale: string      # required — one sentence explaining why this depth is needed
-  query: string | null   # optional — keyword hint for tier-1/2 search
+  depth: 0 | 1 | 2 # required — see tier definitions above
+  rationale: string # required — one sentence explaining why this depth is needed
+  query: string | null # optional — keyword hint for tier-1/2 search
 ```
 
 ### Rules
@@ -125,7 +125,7 @@ retrieval:
 ```yaml
 retrieval:
   depth: 0
-  rationale: "Fresh build task; objective is fully specified in the mission brief."
+  rationale: 'Fresh build task; objective is fully specified in the mission brief.'
   query: null
 ```
 
@@ -134,8 +134,8 @@ retrieval:
 ```yaml
 retrieval:
   depth: 1
-  rationale: "Worker restarted after compaction; need recent episodic entries to reconstruct decisions."
-  query: "supabase migration branch"
+  rationale: 'Worker restarted after compaction; need recent episodic entries to reconstruct decisions.'
+  query: 'supabase migration branch'
 ```
 
 ### Example (depth 2 — cross-worker coordination)
@@ -143,8 +143,8 @@ retrieval:
 ```yaml
 retrieval:
   depth: 2
-  rationale: "Routing a PR-review task that depends on swarm-wide lessons from prior auth hardening missions."
-  query: "auth allowlist"
+  rationale: 'Routing a PR-review task that depends on swarm-wide lessons from prior auth hardening missions.'
+  query: 'auth allowlist'
 ```
 
 ---
@@ -153,13 +153,13 @@ retrieval:
 
 The `SwarmMemoryKind` union in `swarm-memory.ts` maps to the tiers as follows:
 
-| `SwarmMemoryKind` | Description | Tier |
-|---|---|---|
-| `profile` | `IDENTITY.md`, `MEMORY.md`, `SOUL.md`, `USER.md` under `~/.hermes/profiles/<workerId>/` | 0 |
-| `mission` | `SUMMARY.md` + `events.jsonl` for the active mission | 0 |
-| `handoff` | Latest local or shared handoff file (`<missionId>.md` / `<workerId>-latest.md`) | 0 |
-| `episodic` | Daily `episodes/YYYY-MM-DD.md` files for the agent | 1 |
-| `shared` | All files under `~/.openclaw/workspace/memory/swarm/` | 2 |
+| `SwarmMemoryKind` | Description                                                                             | Tier |
+| ----------------- | --------------------------------------------------------------------------------------- | ---- |
+| `profile`         | `IDENTITY.md`, `MEMORY.md`, `SOUL.md`, `USER.md` under `~/.hermes/profiles/<workerId>/` | 0    |
+| `mission`         | `SUMMARY.md` + `events.jsonl` for the active mission                                    | 0    |
+| `handoff`         | Latest local or shared handoff file (`<missionId>.md` / `<workerId>-latest.md`)         | 0    |
+| `episodic`        | Daily `episodes/YYYY-MM-DD.md` files for the agent                                      | 1    |
+| `shared`          | All files under `~/.openclaw/workspace/memory/swarm/`                                   | 2    |
 
 ### How `getTieredContext` uses these kinds
 

@@ -21,19 +21,19 @@
 
 ## Known integrations
 
-| Integration | Detail |
-|---|---|
-| Supabase prod | Project `lksfwktwtmyznckodsau` — shared 1728-table mega-DB (synthex/guardian/unite/...). 96-migration history. Additive + founder_id scoped only. No standing sandbox — use Supabase database branching. |
-| Synthex | `CleanExpo/Synthex` repo — marketing agency execution layer. Tasks pushed from Mission Control (`apps/web`); Synthex is the publisher. Managed separately; do not conflate with Unite-Group command centre. |
-| HeyGen | Video generation integration. Used via API key (stored in Vercel env). |
-| Linear | Issue tracker. Project management via MCP (`mcp__2f101dc2-*` tools). Issues use `UNI-XXXX` identifiers. |
-| Apify | Web scraping / actor tasks. Token in Vercel `unite-group` env (`APIFY_API_KEY`). FREE account; 4 saved Store-actor tasks. |
-| Google OAuth | Code-complete + hardened. Not live — needs GCP OAuth app credentials + Vercel env vars (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`). Setup guide: `docs/GOOGLE-OAUTH-SETUP.md`. |
-| Xero OAuth | Code-complete + hardened. Not live — needs Xero app credentials. Setup guide: `docs/XERO-OAUTH-SETUP.md`. |
-| Social OAuth | Code-complete + hardened. Not live — needs provider app credentials. Setup guide: `docs/SOCIAL-OAUTH-SETUP.md`. |
-| Vercel | Deployment platform. Project: `unite-group`. Env vars include `APIFY_API_KEY` and all Unite-Hub vars (confirmed migrated). |
-| Pi-CEO operator MCP | `packages/pi-ceo-operator-mcp/` — portfolio-health MCP server. |
-| Spec-board | `apps/spec-board/` — Fabel-Prompt-Engineer. Own Supabase project `yhteftfnoegmdkimzzjd`. Own npm lockfile. |
+| Integration         | Detail                                                                                                                                                                                                      |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Supabase prod       | Project `lksfwktwtmyznckodsau` — shared 1728-table mega-DB (synthex/guardian/unite/...). 96-migration history. Additive + founder_id scoped only. No standing sandbox — use Supabase database branching.    |
+| Synthex             | `CleanExpo/Synthex` repo — marketing agency execution layer. Tasks pushed from Mission Control (`apps/web`); Synthex is the publisher. Managed separately; do not conflate with Unite-Group command centre. |
+| HeyGen              | Video generation integration. Used via API key (stored in Vercel env).                                                                                                                                      |
+| Linear              | Issue tracker. Project management via MCP (`mcp__2f101dc2-*` tools). Issues use `UNI-XXXX` identifiers.                                                                                                     |
+| Apify               | Web scraping / actor tasks. Token in Vercel `unite-group` env (`APIFY_API_KEY`). FREE account; 4 saved Store-actor tasks.                                                                                   |
+| Google OAuth        | Code-complete + hardened. Not live — needs GCP OAuth app credentials + Vercel env vars (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`). Setup guide: `docs/GOOGLE-OAUTH-SETUP.md`.                             |
+| Xero OAuth          | Code-complete + hardened. Not live — needs Xero app credentials. Setup guide: `docs/XERO-OAUTH-SETUP.md`.                                                                                                   |
+| Social OAuth        | Code-complete + hardened. Not live — needs provider app credentials. Setup guide: `docs/SOCIAL-OAUTH-SETUP.md`.                                                                                             |
+| Vercel              | Deployment platform. Project: `unite-group`. Env vars include `APIFY_API_KEY` and all Unite-Hub vars (confirmed migrated).                                                                                  |
+| Pi-CEO operator MCP | `packages/pi-ceo-operator-mcp/` — portfolio-health MCP server.                                                                                                                                              |
+| Spec-board          | `apps/spec-board/` — Fabel-Prompt-Engineer. Own Supabase project `yhteftfnoegmdkimzzjd`. Own npm lockfile.                                                                                                  |
 
 ## Provider OAuth wiring status
 

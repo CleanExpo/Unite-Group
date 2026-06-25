@@ -131,7 +131,9 @@ export async function listSessions(
 ): Promise<Array<ClaudeSession>> {
   if (getCapabilities().dashboard.available) {
     const resp = await listDashboardSessions(limit, offset)
-    return resp.sessions as Array<ClaudeSession>
+    if (Array.isArray(resp.sessions)) return resp.sessions as Array<ClaudeSession>
+    const items = (resp as { items?: unknown }).items
+    return Array.isArray(items) ? (items as Array<ClaudeSession>) : []
   }
   const resp = await claudeGet<{ items: Array<ClaudeSession>; total: number }>(
     `/api/sessions?limit=${limit}&offset=${offset}`,
@@ -255,7 +257,7 @@ export function toChatMessage(
       const fn = record.function as Record<string, unknown> | undefined
       const toolCallId =
         record.id || `tc-${Math.random().toString(36).slice(2, 8)}`
-      const toolName = fn?.name || (record.name as string | undefined) || 'tool'
+      const toolName = fn?.name || (record.name) || 'tool'
       const toolArgs = fn?.arguments
       streamToolCallsArr.push({
         id: toolCallId,
@@ -269,7 +271,7 @@ export function toChatMessage(
         name: toolName,
         arguments:
           toolArgs && typeof toolArgs === 'object'
-            ? (toolArgs as Record<string, unknown>)
+            ? (toolArgs)
             : undefined,
         partialJson: typeof toolArgs === 'string' ? toolArgs : undefined,
       })
@@ -404,19 +406,18 @@ export async function streamChat(
       const os = await import('node:os')
       const dir = path.join(os.tmpdir(), 'hermes-tool-debug')
       fs.mkdirSync(dir, { recursive: true })
-      const file = path.join(
-        dir,
-        `sse-${sessionId}-${Date.now()}.log`,
-      )
+      const file = path.join(dir, `sse-${sessionId}-${Date.now()}.log`)
       toolDebugStream = fs.createWriteStream(file, { flags: 'a' })
       console.log(`[claude-api][tool-debug] writing SSE dump to ${file}`)
-      toolDebugStream.write(`# session=${sessionId} ts=${new Date().toISOString()}\n`)
+      toolDebugStream.write(
+        `# session=${sessionId} ts=${new Date().toISOString()}\n`,
+      )
     } catch (err) {
       console.warn('[claude-api][tool-debug] failed to open dump file:', err)
     }
   }
 
-  while (true) {
+  for (;;) {
     const { done, value } = await reader.read()
     if (done) break
 
@@ -437,7 +438,9 @@ export async function streamChat(
         if (toolDebugStream) {
           // Truncate very long payloads so the dump stays human-readable.
           const trimmed =
-            dataStr.length > 4000 ? dataStr.slice(0, 4000) + '...[trunc]' : dataStr
+            dataStr.length > 4000
+              ? dataStr.slice(0, 4000) + '...[trunc]'
+              : dataStr
           toolDebugStream.write(`data: ${trimmed}\n\n`)
         }
         try {

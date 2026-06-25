@@ -11,31 +11,36 @@ describe('Swarm2 Kanban backend presentation', () => {
   })
 
   it('presents detected Kanban as the default shared board, not a backend demo', () => {
-    expect(getKanbanBackendPresentation({
-      id: 'claude',
-      label: 'Hermes Kanban',
-      detected: true,
-      writable: true,
-      details: 'Canonical storage detected',
-      path: '/tmp/kanban.db',
-    })).toMatchObject({
+    expect(
+      getKanbanBackendPresentation({
+        id: 'claude',
+        label: 'Hermes Kanban',
+        detected: true,
+        writable: true,
+        details: 'Canonical storage detected',
+        path: '/tmp/kanban.db',
+      }),
+    ).toMatchObject({
       badgeLabel: 'Shared board',
       badgeTone: 'claude',
       toastTitle: 'Board connected',
-      toastBody: 'Cards and status changes are using the canonical Kanban store.',
+      toastBody:
+        'Cards and status changes are using the canonical Kanban store.',
       title: 'Canonical storage detected',
     })
   })
 
   it('presents local storage as an automatic fallback, not a manual control', () => {
-    expect(getKanbanBackendPresentation({
-      id: 'local',
-      label: 'Local board',
-      detected: true,
-      writable: true,
-      details: 'Using local Swarm board JSON store.',
-      path: '/tmp/swarm2-kanban.json',
-    })).toMatchObject({
+    expect(
+      getKanbanBackendPresentation({
+        id: 'local',
+        label: 'Local board',
+        detected: true,
+        writable: true,
+        details: 'Using local Swarm board JSON store.',
+        path: '/tmp/swarm2-kanban.json',
+      }),
+    ).toMatchObject({
       badgeLabel: 'Local fallback',
       badgeTone: 'local',
       toastTitle: 'Using local Swarm Board',

@@ -26,7 +26,11 @@ type WorkspaceOverrides = {
 }
 
 function hermesHome(): string {
-  return process.env.HERMES_HOME ?? process.env.CLAUDE_HOME ?? path.join(os.homedir(), '.hermes')
+  return (
+    process.env.HERMES_HOME ??
+    process.env.CLAUDE_HOME ??
+    path.join(os.homedir(), '.hermes')
+  )
 }
 
 function overridesPath(): string {
@@ -90,7 +94,9 @@ export function setGatewayUrl(input: string | null | undefined): string {
   } else {
     delete overrides.claudeApiUrl
     CLAUDE_API = normalizeUrl(
-      process.env.HERMES_API_URL || process.env.CLAUDE_API_URL || 'http://127.0.0.1:8642',
+      process.env.HERMES_API_URL ||
+        process.env.CLAUDE_API_URL ||
+        'http://127.0.0.1:8642',
     )
   }
   writeOverrides(overrides)
@@ -112,7 +118,9 @@ export function setDashboardUrl(input: string | null | undefined): string {
   } else {
     delete overrides.claudeDashboardUrl
     CLAUDE_DASHBOARD_URL = normalizeUrl(
-      process.env.HERMES_DASHBOARD_URL || process.env.CLAUDE_DASHBOARD_URL || 'http://127.0.0.1:9119',
+      process.env.HERMES_DASHBOARD_URL ||
+        process.env.CLAUDE_DASHBOARD_URL ||
+        'http://127.0.0.1:9119',
     )
   }
   writeOverrides(overrides)
@@ -130,7 +138,7 @@ export function getResolvedUrls(): {
   const overrides = readOverrides()
   const source = overrides.claudeApiUrl
     ? 'override'
-    : (process.env.HERMES_API_URL || process.env.CLAUDE_API_URL)
+    : process.env.HERMES_API_URL || process.env.CLAUDE_API_URL
       ? 'env'
       : 'default'
   return { gateway: CLAUDE_API, dashboard: CLAUDE_DASHBOARD_URL, source }
@@ -189,8 +197,7 @@ export type DashboardCapabilities = {
 }
 
 /** Full capabilities — backward compat with existing code */
-export type GatewayCapabilities =
-  CoreCapabilities &
+export type GatewayCapabilities = CoreCapabilities &
   EnhancedCapabilities &
   DashboardCapabilities
 
@@ -238,7 +245,8 @@ let dashboardTokenPromise: Promise<string> | null = null
 let dashboardTokenCache = ''
 
 /** Optional bearer token for authenticated gateway endpoints. */
-export const BEARER_TOKEN = process.env.HERMES_API_TOKEN || process.env.CLAUDE_API_TOKEN || ''
+export const BEARER_TOKEN =
+  process.env.HERMES_API_TOKEN || process.env.CLAUDE_API_TOKEN || ''
 
 /**
  * Optional explicit bearer token for dashboard API calls.
@@ -256,7 +264,8 @@ export const BEARER_TOKEN = process.env.HERMES_API_TOKEN || process.env.CLAUDE_A
  * CLAUDE_DASHBOARD_TOKEN isn't set, leave this empty and let
  * fetchDashboardToken() fall through to the HTML-scrape legacy path.
  */
-const DASHBOARD_BEARER_TOKEN = process.env.HERMES_DASHBOARD_TOKEN || process.env.CLAUDE_DASHBOARD_TOKEN || ''
+const DASHBOARD_BEARER_TOKEN =
+  process.env.HERMES_DASHBOARD_TOKEN || process.env.CLAUDE_DASHBOARD_TOKEN || ''
 
 function authHeaders(): Record<string, string> {
   return BEARER_TOKEN ? { Authorization: `Bearer ${BEARER_TOKEN}` } : {}
@@ -434,12 +443,15 @@ async function probe(path: string): Promise<boolean> {
  */
 async function probeEnhancedChatStream(): Promise<boolean> {
   try {
-    const res = await fetch(`${CLAUDE_API}/api/sessions/__probe__/chat/stream`, {
-      method: 'POST',
-      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-      body: '{}',
-      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
-    })
+    const res = await fetch(
+      `${CLAUDE_API}/api/sessions/__probe__/chat/stream`,
+      {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: '{}',
+        signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+      },
+    )
     // Vanilla hermes-agent has no such endpoint — dashboard layer 404s,
     // gateway 404s, anything in between 404s. Enhanced fork accepts POST
     // and returns either a 4xx structured error (validation) or starts a
@@ -532,7 +544,9 @@ export function isLocalhostDeployment(): boolean {
   const isLoopbackHost = (host: string): boolean => {
     const h = host.trim().toLowerCase()
     if (!h) return false
-    return h === '127.0.0.1' || h === '::1' || h === 'localhost' || h === '[::1]'
+    return (
+      h === '127.0.0.1' || h === '::1' || h === 'localhost' || h === '[::1]'
+    )
   }
   const isLoopbackUrl = (raw: string): boolean => {
     try {
@@ -605,7 +619,6 @@ async function probeConductor(dashboardAvailable: boolean): Promise<boolean> {
     return false
   }
 }
-
 
 // Vanilla hermes-agent 0.10.0 satisfies: health, chatCompletions, models, streaming,
 // sessions, skills, config, jobs. Dashboard-only endpoints (themes/plugins) and the

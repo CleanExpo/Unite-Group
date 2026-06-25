@@ -404,7 +404,7 @@ function stripFinalTagsFromMessage(msg: ChatMessage): ChatMessage {
       modified = true
       return { ...part, text: stripped }
     })
-    nextMessage.content = nextContent as typeof msg.content
+    nextMessage.content = nextContent
   }
 
   for (const key of ['text', 'body', 'message'] as const) {
@@ -1047,14 +1047,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
             content.push({
               type: 'thinking',
               thinking: streaming.thinking,
-            } as ThinkingContent)
+            })
           }
 
           if (cleanStreamText) {
             content.push({
               type: 'text',
               text: cleanStreamText,
-            } as TextContent)
+            })
           }
 
           for (const toolCall of streaming.toolCalls) {
@@ -1063,7 +1063,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
               id: toolCall.id,
               name: toolCall.name,
               arguments: toolCall.args as Record<string, unknown> | undefined,
-            } as ToolCallContent)
+            })
           }
 
           completeMessage = {
@@ -1335,7 +1335,7 @@ function ensureAssistantTextContent(msg: ChatMessage): ChatMessage {
 
   return {
     ...msg,
-    content: [{ type: 'text', text } as TextContent],
+    content: [{ type: 'text', text }],
   }
 }
 

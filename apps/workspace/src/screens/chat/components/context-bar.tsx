@@ -62,7 +62,10 @@ function ContextBarComponent({
         const maxTokens = Number(payload.maxTokens ?? 0)
         const usedTokens = Number(payload.usedTokens ?? 0)
         const model = String(payload.model ?? '')
-        if (statusData?.ok && (maxTokens > 0 || usedTokens > 0 || contextPercent > 0)) {
+        if (
+          statusData?.ok &&
+          (maxTokens > 0 || usedTokens > 0 || contextPercent > 0)
+        ) {
           setCtx({
             contextPercent,
             model,

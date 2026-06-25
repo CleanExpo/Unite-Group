@@ -15,7 +15,12 @@
  */
 import { createFileRoute } from '@tanstack/react-router'
 import { isAuthenticated } from '../../../server/auth-middleware'
-import { rateLimit, getClientIp, rateLimitResponse, safeErrorMessage } from '../../../server/rate-limit'
+import {
+  getClientIp,
+  rateLimit,
+  rateLimitResponse,
+  safeErrorMessage,
+} from '../../../server/rate-limit'
 import { unifiedSearch } from '../../../server/mcp-hub/index'
 import type { SearchSource } from '../../../server/mcp-hub/index'
 
@@ -26,7 +31,10 @@ export const Route = createFileRoute('/api/mcp/hub-search')({
     handlers: {
       GET: async ({ request }) => {
         if (!isAuthenticated(request)) {
-          return Response.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
+          return Response.json(
+            { ok: false, error: 'Unauthorized' },
+            { status: 401 },
+          )
         }
 
         const ip = getClientIp(request)

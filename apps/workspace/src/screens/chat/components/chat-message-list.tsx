@@ -378,7 +378,9 @@ function shouldHideSystemInjectedUserMessage(text: string): boolean {
   // Only hide messages that begin with known system-injected prompts. User
   // context summaries may quote these phrases later in the message and must
   // remain visible/persistent in the chat UI.
-  return HIDDEN_SYSTEM_USER_PREFIXES.some((prefix) => trimmed.startsWith(prefix))
+  return HIDDEN_SYSTEM_USER_PREFIXES.some((prefix) =>
+    trimmed.startsWith(prefix),
+  )
 }
 
 function getChronologyRank(message: ChatMessage): number {
@@ -498,7 +500,10 @@ export function buildDisplayEntries(
       attachedToolMessages: [],
     }
 
-    if (message.role === 'assistant' && pendingAssistantToolMessages.length > 0) {
+    if (
+      message.role === 'assistant' &&
+      pendingAssistantToolMessages.length > 0
+    ) {
       entry.attachedToolMessages.push(...pendingAssistantToolMessages)
       pendingAssistantToolMessages = []
     }
@@ -1139,18 +1144,17 @@ function ChatMessageListComponent({
                 ? 'calling'
                 : toolCall.phase === 'failed' || toolCall.phase === 'error'
                   ? 'error'
-                  : toolCall.phase === 'calling' ||
-                      toolCall.phase === 'running'
+                  : toolCall.phase === 'calling' || toolCall.phase === 'running'
                     ? toolCall.phase
                     : 'calling',
           args: tcAny.args,
           preview:
             typeof tcAny.preview === 'string'
-              ? (tcAny.preview as string)
+              ? (tcAny.preview)
               : undefined,
           result:
             typeof tcAny.result === 'string'
-              ? (tcAny.result as string)
+              ? (tcAny.result)
               : undefined,
         }
       })
@@ -1879,9 +1883,7 @@ function ChatMessageListComponent({
                           const first = Object.values(args).find(
                             (v) => typeof v === 'string' && v.trim(),
                           )
-                          return typeof first === 'string'
-                            ? first.trim()
-                            : null
+                          return typeof first === 'string' ? first.trim() : null
                         }}
                       />
                     </div>

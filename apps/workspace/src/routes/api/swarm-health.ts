@@ -1,7 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
+import { createFileRoute } from '@tanstack/react-router'
+import { json } from '@tanstack/react-start'
 import * as yaml from 'yaml'
 import { isAuthenticated } from '../../server/auth-middleware'
 import { getLocalBinDir, getProfilesDir } from '../../server/claude-paths'
@@ -17,7 +17,7 @@ type WorkerHealth = {
   lastErrorMessage: string | null
 }
 
-function listSwarmIds(): string[] {
+function listSwarmIds(): Array<string> {
   const dir = getProfilesDir()
   if (!existsSync(dir)) return []
   return readdirSync(dir, { withFileTypes: true })
@@ -27,11 +27,17 @@ function listSwarmIds(): string[] {
     .sort()
 }
 
-function readWorkerConfig(profilePath: string): { model: string; provider: string } {
+function readWorkerConfig(profilePath: string): {
+  model: string
+  provider: string
+} {
   const configPath = join(profilePath, 'config.yaml')
   if (!existsSync(configPath)) return { model: 'unknown', provider: 'unknown' }
   try {
-    const raw = yaml.parse(readFileSync(configPath, 'utf-8')) as Record<string, unknown>
+    const raw = yaml.parse(readFileSync(configPath, 'utf-8')) as Record<
+      string,
+      unknown
+    >
     const modelVal = raw.model
     if (typeof modelVal === 'object' && modelVal !== null) {
       const obj = modelVal as Record<string, unknown>
@@ -49,11 +55,12 @@ function readWorkerConfig(profilePath: string): { model: string; provider: strin
   }
 }
 
-
 function formatModelDisplay(model: string, provider: string): string {
   const value = `${model} ${provider}`.toLowerCase()
-  if (value.includes('claude-opus-4-7') || value.includes('opus-4-7')) return 'Opus 4.7'
-  if (value.includes('claude-opus-4-6') || value.includes('opus-4-6')) return 'Opus 4.6'
+  if (value.includes('claude-opus-4-7') || value.includes('opus-4-7'))
+    return 'Opus 4.7'
+  if (value.includes('claude-opus-4-6') || value.includes('opus-4-6'))
+    return 'Opus 4.6'
   if (value.includes('gpt-5.5')) return 'GPT-5.5'
   if (value.includes('gpt-5.4')) return 'GPT-5.4'
   if (value.includes('gpt-5.3')) return 'GPT-5.3'
@@ -74,7 +81,8 @@ function scanRecentAuthErrors(profilePath: string): {
   lastMessage: string | null
 } {
   const errorsLog = join(profilePath, 'logs', 'errors.log')
-  if (!existsSync(errorsLog)) return { count: 0, lastAt: null, lastMessage: null }
+  if (!existsSync(errorsLog))
+    return { count: 0, lastAt: null, lastMessage: null }
   try {
     const stat = statSync(errorsLog)
     const buffer = readFileSync(errorsLog, 'utf-8')
@@ -85,7 +93,11 @@ function scanRecentAuthErrors(profilePath: string): {
     let lastAt: string | null = null
     let lastMessage: string | null = null
     for (const line of lines) {
-      if (!line.includes('401') && !line.toLowerCase().includes('authentication')) continue
+      if (
+        !line.includes('401') &&
+        !line.toLowerCase().includes('authentication')
+      )
+        continue
       const tsMatch = line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/)
       if (!tsMatch) continue
       const ts = new Date(tsMatch[1].replace(' ', 'T') + 'Z')
@@ -114,13 +126,23 @@ export const Route = createFileRoute('/api/swarm-health')({
           return json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        const workspaceModel = formatModelDisplay(process.env.HERMES_DEFAULT_MODEL ?? process.env.CLAUDE_DEFAULT_MODEL ?? 'unknown', (process.env.HERMES_API_URL ?? process.env.CLAUDE_API_URL)?.includes('anthropic') ? 'anthropic' : 'unknown')
-        const apiUrl = process.env.HERMES_API_URL ?? process.env.CLAUDE_API_URL ?? null
+        const workspaceModel = formatModelDisplay(
+          process.env.HERMES_DEFAULT_MODEL ??
+            process.env.CLAUDE_DEFAULT_MODEL ??
+            'unknown',
+          (process.env.HERMES_API_URL ?? process.env.CLAUDE_API_URL)?.includes(
+            'anthropic',
+          )
+            ? 'anthropic'
+            : 'unknown',
+        )
+        const apiUrl =
+          process.env.HERMES_API_URL ?? process.env.CLAUDE_API_URL ?? null
         const profilesBase = getProfilesDir()
         const swarmIds = listSwarmIds()
         const wrapperBase = getLocalBinDir()
 
-        const workers: WorkerHealth[] = swarmIds.map((id) => {
+        const workers: Array<WorkerHealth> = swarmIds.map((id) => {
           const profilePath = join(profilesBase, id)
           const wrapperPath = join(wrapperBase, id)
           const config = readWorkerConfig(profilePath)
@@ -137,9 +159,16 @@ export const Route = createFileRoute('/api/swarm-health')({
           }
         })
 
-        const totalAuthErrors = workers.reduce((sum, worker) => sum + worker.recentAuthErrors, 0)
-        const distinctModels = Array.from(new Set(workers.map((w) => formatModelDisplay(w.model, w.provider)))).filter((value) => value !== 'unknown')
-        const distinctProviders = Array.from(new Set(workers.map((w) => formatProviderDisplay(w.provider)))).filter((value) => value !== 'unknown')
+        const totalAuthErrors = workers.reduce(
+          (sum, worker) => sum + worker.recentAuthErrors,
+          0,
+        )
+        const distinctModels = Array.from(
+          new Set(workers.map((w) => formatModelDisplay(w.model, w.provider))),
+        ).filter((value) => value !== 'unknown')
+        const distinctProviders = Array.from(
+          new Set(workers.map((w) => formatProviderDisplay(w.provider))),
+        ).filter((value) => value !== 'unknown')
 
         return json({
           checkedAt: Date.now(),

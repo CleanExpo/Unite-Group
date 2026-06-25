@@ -32,11 +32,13 @@ import { cn } from '@/lib/utils'
 async function getConfig(): Promise<Record<string, unknown>> {
   const res = await fetch('/api/claude-config')
   if (!res.ok) throw new Error(`Failed to load config: HTTP ${res.status}`)
-  const data = await res.json() as { config?: Record<string, unknown> }
+  const data = (await res.json()) as { config?: Record<string, unknown> }
   return data.config ?? {}
 }
 
-async function patchConfig(patch: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function patchConfig(
+  patch: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const res = await fetch('/api/claude-config', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
@@ -229,7 +231,7 @@ async function fetchModels(): Promise<{
 
   return {
     ok: true,
-    models: models as Array<ModelCatalogEntry>,
+    models: models,
     configuredProviders,
   }
 }
@@ -1142,8 +1144,8 @@ function ActiveModelCard({
                   Fallback Model
                 </h3>
                 <p className="text-sm text-primary-600">
-                  Optional secondary model Hermes Agent can use if the primary path
-                  fails.
+                  Optional secondary model Hermes Agent can use if the primary
+                  path fails.
                 </p>
               </div>
               <Button
@@ -1304,7 +1306,8 @@ function ProviderManagementSection(props: {
         {modelsQuery.error ? (
           <div className="rounded-xl border border-primary-200 bg-white px-4 py-3">
             <p className="mb-2 text-sm text-primary-700">
-              Unable to load providers right now. Check your Hermes Agent connection.
+              Unable to load providers right now. Check your Hermes Agent
+              connection.
             </p>
             <Button
               variant="outline"

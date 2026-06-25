@@ -1,12 +1,20 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
-import { isAuthenticated } from '../../server/auth-middleware'
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { join } from 'node:path'
+import { json } from '@tanstack/react-start'
+import { createFileRoute } from '@tanstack/react-router'
 import * as yaml from 'yaml'
-import { BEARER_TOKEN, CLAUDE_API, ensureGatewayProbed } from '../../server/gateway-capabilities'
-import { getClaudeRoot, getProfileClaudeHome, getWorkspaceClaudeHome } from '../../server/claude-paths'
+import { isAuthenticated } from '../../server/auth-middleware'
+import {
+  BEARER_TOKEN,
+  CLAUDE_API,
+  ensureGatewayProbed,
+} from '../../server/gateway-capabilities'
+import {
+  getClaudeRoot,
+  getProfileClaudeHome,
+  getWorkspaceClaudeHome,
+} from '../../server/claude-paths'
 
 type CrewDefinition = {
   id: string
@@ -33,7 +41,7 @@ function titleCase(value: string): string {
     .join(' ')
 }
 
-function buildCrewDefinitions(): CrewDefinition[] {
+function buildCrewDefinitions(): Array<CrewDefinition> {
   const profilesDir = join(getClaudeRoot(), 'profiles')
   const dynamicProfiles = existsSync(profilesDir)
     ? readdirSync(profilesDir, { withFileTypes: true })
@@ -52,7 +60,12 @@ function buildCrewDefinitions(): CrewDefinition[] {
     : []
 
   return [
-    { id: 'workspace', displayName: 'Workspace', role: 'Primary profile', profilePath: null },
+    {
+      id: 'workspace',
+      displayName: 'Workspace',
+      role: 'Primary profile',
+      profilePath: null,
+    },
     ...dynamicProfiles.map((profile) => ({
       id: profile,
       displayName: titleCase(profile),
@@ -63,12 +76,20 @@ function buildCrewDefinitions(): CrewDefinition[] {
 }
 
 function getClaudeHome(profilePath: string | null): string {
-  return profilePath ? getProfileClaudeHome(profilePath) : getWorkspaceClaudeHome()
+  return profilePath
+    ? getProfileClaudeHome(profilePath)
+    : getWorkspaceClaudeHome()
 }
 
 function readGatewayState(claudeHome: string) {
   const path = join(claudeHome, 'gateway_state.json')
-  if (!existsSync(path)) return { pid: null, gatewayState: 'unknown', platforms: {}, updatedAt: null }
+  if (!existsSync(path))
+    return {
+      pid: null,
+      gatewayState: 'unknown',
+      platforms: {},
+      updatedAt: null,
+    }
   try {
     const raw = JSON.parse(readFileSync(path, 'utf-8'))
     return {
@@ -78,7 +99,12 @@ function readGatewayState(claudeHome: string) {
       updatedAt: raw.updated_at ?? null,
     }
   } catch {
-    return { pid: null, gatewayState: 'unknown', platforms: {}, updatedAt: null }
+    return {
+      pid: null,
+      gatewayState: 'unknown',
+      platforms: {},
+      updatedAt: null,
+    }
   }
 }
 
@@ -167,7 +193,10 @@ function readConfig(claudeHome: string): { model: string; provider: string } {
   const configPath = join(claudeHome, 'config.yaml')
   if (!existsSync(configPath)) return { model: 'unknown', provider: 'unknown' }
   try {
-    const raw = yaml.parse(readFileSync(configPath, 'utf-8')) as Record<string, unknown>
+    const raw = yaml.parse(readFileSync(configPath, 'utf-8')) as Record<
+      string,
+      unknown
+    >
     const modelVal = raw.model
     const providerVal = raw.provider
 
@@ -211,7 +240,7 @@ async function fetchAssignedTaskCounts(): Promise<Record<string, number>> {
     })
     if (!res.ok) return {}
 
-    const data = await res.json() as {
+    const data = (await res.json()) as {
       tasks?: Array<{ assignee?: string | null; column?: string | null }>
     }
 

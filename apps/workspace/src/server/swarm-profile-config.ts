@@ -14,12 +14,16 @@
  * matches, so re-running on a healthy profile is free.
  */
 
-import { existsSync, readFileSync, writeFileSync, renameSync } from 'node:fs'
+import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import * as yaml from 'yaml'
 
 export type ConfigSyncResult =
-  | { ok: true; changed: boolean; previous?: { provider: string; default: string } }
+  | {
+      ok: true
+      changed: boolean
+      previous?: { provider: string; default: string }
+    }
   | { ok: false; error: string }
 
 export function syncSwarmProfileModel(
@@ -71,10 +75,7 @@ export function syncSwarmProfileModel(
       ? existingModel.default
       : ''
 
-  if (
-    existingProvider === next.provider &&
-    existingDefault === next.default
-  ) {
+  if (existingProvider === next.provider && existingDefault === next.default) {
     return {
       ok: true,
       changed: false,
@@ -82,9 +83,10 @@ export function syncSwarmProfileModel(
     }
   }
 
-  const previous = existingProvider || existingDefault
-    ? { provider: existingProvider, default: existingDefault }
-    : undefined
+  const previous =
+    existingProvider || existingDefault
+      ? { provider: existingProvider, default: existingDefault }
+      : undefined
 
   // Update in place to preserve any sibling fields (e.g. `model.alternates`).
   const merged = existingModel ? { ...existingModel } : {}

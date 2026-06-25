@@ -3,6 +3,11 @@ import { json } from '@tanstack/react-start'
 import { isAuthenticated } from '@/server/auth-middleware'
 import { readContextUsage } from '@/server/context-usage'
 
+export {
+  estimateContextTokensFromCacheRead,
+  estimateContextTokensFromMessages,
+} from '@/server/context-usage'
+
 export const Route = createFileRoute('/api/context-usage')({
   server: {
     handlers: {

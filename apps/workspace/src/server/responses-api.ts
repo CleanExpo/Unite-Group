@@ -118,7 +118,8 @@ export async function* streamResponses(
     stream: true,
     store: false,
   }
-  if (req.conversationHistory) body.conversation_history = req.conversationHistory
+  if (req.conversationHistory)
+    body.conversation_history = req.conversationHistory
   if (req.instructions) body.instructions = req.instructions
   if (req.model) body.model = req.model
   if (req.sessionId) body.session_id = req.sessionId
@@ -171,7 +172,7 @@ export async function* streamResponses(
           continue
         }
         const eventType =
-          typeof parsed.type === 'string' ? (parsed.type as string) : ''
+          typeof parsed.type === 'string' ? (parsed.type) : ''
 
         if (eventType === 'response.output_text.delta') {
           const delta = typeof parsed.delta === 'string' ? parsed.delta : ''
@@ -185,8 +186,7 @@ export async function* streamResponses(
           const itemType = typeof item.type === 'string' ? item.type : ''
 
           if (itemType === 'function_call') {
-            const callId =
-              typeof item.call_id === 'string' ? item.call_id : ''
+            const callId = typeof item.call_id === 'string' ? item.call_id : ''
             const itemId = typeof item.id === 'string' ? item.id : ''
             if (callId && itemId) itemIdToCallId.set(itemId, callId)
             const argsRaw =
@@ -202,8 +202,7 @@ export async function* streamResponses(
           }
 
           if (itemType === 'function_call_output') {
-            const callId =
-              typeof item.call_id === 'string' ? item.call_id : ''
+            const callId = typeof item.call_id === 'string' ? item.call_id : ''
             const output = extractOutputText(item.output)
             if (callId) yield { kind: 'tool.output', callId, output }
             continue
@@ -238,7 +237,7 @@ export async function* streamResponses(
         if (eventType === 'response.failed') {
           const err =
             typeof parsed.error === 'string'
-              ? (parsed.error as string)
+              ? (parsed.error)
               : 'Response failed'
           yield { kind: 'failed', error: err }
           continue
