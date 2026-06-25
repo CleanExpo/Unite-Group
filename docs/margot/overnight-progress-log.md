@@ -1,5 +1,102 @@
 # Margot Overnight Progress Log
 
+## 2026-06-25 15:39 AEST
+
+### Tick 20260625_1539 — context-usage estimator RED/GREEN; dirty workspace still gated
+
+Lane: continued the existing broad dirty `apps/workspace` lane on `main` after preflight showed `main...origin/main`, `git rev-list --left-right --count origin/main...HEAD` returned `0 0`, GitHub auth was available, and `gh pr list --state open --limit 10 --json ...` returned `[]`. Root Margot source-of-truth docs were absent except evidence/report files, so canonical context was read from tracked fallback locations under `apps/empire/docs/margot/*` and `apps/web/docs/margot/*` plus root evidence logs. The system-listed skills `subagent-driven-development`, `writing-plans`, and `autonomous-operations-preflight` were missing, so this run continued under the loaded CRM command-spine, TDD, GitHub workflow, and review skills. Scope stayed local: repo/docs/tests/code/build/read-back only. No commit, push, PR, merge, deploy, production DB write, Supabase migration/application, Vercel/GitHub env mutation, credential value read/print, billing/payment action, client-facing communication, cross-client identity merge, or destructive git action occurred.
+
+Completed focused slice:
+- RED signal: `pnpm exec vitest run src/routes/api/-context-usage.test.ts` failed 3/3 because `estimateContextTokensFromMessages` and `estimateContextTokensFromCacheRead` were not exported functions. Broad `pnpm exec tsc --noEmit --pretty false` also listed `src/routes/api/-context-usage.test.ts` missing those exports before the fix.
+- GREEN change: `apps/workspace/src/server/context-usage.ts` now exports pure estimation helpers that count structured message content arrays/tool results, avoid double-counting mirrored top-level text, and keep cache-read totals as a fallback. `apps/workspace/src/routes/api/context-usage.ts` re-exports those helpers for the existing route-adjacent test while the route continues to call `readContextUsage`.
+
+Verification / evidence:
+- Focused GREEN: `pnpm exec vitest run src/routes/api/-context-usage.test.ts` -> PASS, 1 file / 3 tests.
+- Focused bundle replay: `pnpm exec vitest run src/routes/api/-context-usage.test.ts src/server/mission-control-os.test.ts src/routes/api/-video-command-center.test.ts src/routes/api/-sessions.test.ts src/server/claude-api.test.ts src/screens/gateway/mission-control-contract.test.ts src/server/dashboard-aggregator.test.ts src/components/prompt-kit/markdown.test.ts` -> PASS, 8 files / 26 tests.
+- Scoped ESLint: `pnpm exec eslint src/server/context-usage.ts src/routes/api/context-usage.ts src/routes/api/-context-usage.test.ts --max-warnings=0` -> PASS, exit 0, with only the existing `.eslintignore` deprecation warning.
+- Scoped whitespace: `git diff --check -- docs/margot/overnight-progress-log.md docs/margot/morning-report.md apps/workspace/src/server/context-usage.ts apps/workspace/src/routes/api/context-usage.ts apps/workspace/src/routes/api/-context-usage.test.ts` -> PASS before this evidence append.
+- Build: `pnpm run build` from `apps/workspace` -> PASS (client + SSR built). Existing non-blocking warnings remained for `send-stream-live-tools.ts` route export, static/dynamic chunking, and large chunks.
+- Broad type gate remains red: `pnpm exec tsc --noEmit --pretty false` still FAILS on broad workspace baseline drift, but the post-fix failure list no longer includes `src/routes/api/-context-usage.test.ts` missing estimator exports.
+- Full workspace tests remain red but improved: `pnpm run test` -> FAIL, 72 files passed / 10 failed; 551 tests passed / 17 failed. The new context-usage tests and the focused Mission Control/session/markdown bundle passed; remaining failures are broad baseline drift in routeTree invalidation, chat composer/message-list contracts, local-provider/model config parsing, kanban backend detection, gateway-capabilities env expectations, profiles/i18n expectations, and Swarm2 copy.
+- Bounded content/security scans over the touched context-usage route/server/test files found only existing auth/header/fetch usage, helper names containing `Tokens`, and test numeric fixtures. No literal credential values, raw Board approval refs, PII/payment strings, dangerous HTML, service-role key usage, `process.env`, eval/exec, provider/client mutation, production-write path, or secret/env assignment was found.
+- Independent inspection/review subagents were dispatched read-only; their verdicts were pending at evidence-write time and are not counted as approval.
+
+Gate packet:
+- Focused context-usage estimator slice impact: `NONE` for production/finance/DB. It is local read-surface estimation logic and test coverage only; no DB/schema/env/billing/provider-write/client-facing communication path was touched.
+- Publication lane: `NAMESPACE` / `KEEP_GATED`. Concrete risk: the checkout remains broad/dirty on `main`, and broad workspace type-check/full-test gates are still red; publishing would mix this small slice with unrelated workspace changes.
+- Rollback note: revert the local edits in `apps/workspace/src/server/context-usage.ts` and `apps/workspace/src/routes/api/context-usage.ts`; no schema/env/billing/credential/data rollback is required.
+
+Safety / blockers:
+- Evidence append is local only. I did not commit or push because the dirty workspace remains a gated namespace.
+- Next safe lane: continue reducing the broad workspace type/test failure set behind existing RED signals, or clean-replay only the bounded publishable subset from `origin/main` before any PR to `main`.
+
+## 2026-06-25 15:03 AEST
+
+### Tick 20260625_1503 — markdown math RED/GREEN slice; broad workspace remains gated
+
+Lane: continued the existing broad dirty `apps/workspace` lane on `main` after preflight showed `main...origin/main` at `0 0`, GitHub auth available, and no open GitHub PRs (`gh pr list --state open --limit 20 ...` returned no rows). The system-listed skills `subagent-driven-development`, `writing-plans`, and `autonomous-operations-preflight` were missing, so I continued under the loaded CRM command-spine, TDD, and GitHub workflow skills. Scope stayed local: repo/docs/tests/code/build/read-back only. No commit, push, PR, merge, deploy, production DB write, Supabase migration/application, Vercel/GitHub env mutation, credential value read/print, billing/payment action, client-facing communication, cross-client identity merge, or destructive git action occurred.
+
+Completed focused slice:
+- RED signal: `pnpm exec vitest run src/components/prompt-kit/markdown.test.ts` failed 2/2 because `MARKDOWN_REMARK_PLUGINS` / `MARKDOWN_REHYPE_PLUGINS` were undefined and math plugin assertions could not run. Broad `pnpm exec tsc --noEmit --pretty false` also failed on the same markdown exports plus many pre-existing workspace errors.
+- GREEN change: `apps/workspace/src/components/prompt-kit/markdown.tsx` now exports `MARKDOWN_REMARK_PLUGINS` / `MARKDOWN_REHYPE_PLUGINS`, wires `remark-math` and `rehype-katex` into `ReactMarkdown`, and `apps/workspace/package.json` / `pnpm-lock.yaml` declare the existing lockfile-resolved math packages. `apps/workspace/src/components/slash-command-menu.tsx` received small local type/lint hygiene from the same TypeScript/lint RED signal (removed duplicate type re-exports and renamed the forwarded component function to avoid no-shadow).
+
+Verification / evidence:
+- Focused GREEN: `pnpm exec vitest run src/components/prompt-kit/markdown.test.ts` -> PASS, 1 file / 2 tests.
+- Focused bundle replay: `pnpm exec vitest run src/components/prompt-kit/markdown.test.ts src/server/mission-control-os.test.ts src/routes/api/-video-command-center.test.ts src/routes/api/-sessions.test.ts src/server/claude-api.test.ts src/screens/gateway/mission-control-contract.test.ts src/server/dashboard-aggregator.test.ts` -> PASS, 7 files / 23 tests.
+- Scoped ESLint: `pnpm exec eslint src/components/prompt-kit/markdown.tsx src/components/prompt-kit/markdown.test.ts src/components/slash-command-menu.tsx --max-warnings=0` -> PASS, exit 0, with only the existing `.eslintignore` deprecation warning printed by ESLint.
+- Scoped whitespace: `git diff --check -- apps/workspace/package.json apps/workspace/pnpm-lock.yaml apps/workspace/src/components/prompt-kit/markdown.tsx apps/workspace/src/components/prompt-kit/markdown.test.ts apps/workspace/src/components/slash-command-menu.tsx` -> PASS.
+- Build: `pnpm run build` from `apps/workspace` -> PASS (client + SSR built). Existing non-blocking warnings remained for `send-stream-live-tools.ts` route export, static/dynamic chunking, and large chunks.
+- Broad type gate remains red: `pnpm exec tsc --noEmit --pretty false` still FAILS on pre-existing workspace baseline drift, but the post-fix failure list no longer includes `markdown.tsx`, `markdown.test.ts`, or `slash-command-menu.tsx`.
+- Full workspace tests remain red: `pnpm run test` -> FAIL, 71 files passed / 11 failed; 548 tests passed / 20 failed. Failing classes are broad baseline drift (`chat-composer` context copy, kanban backend detection, models/local-provider config parsing, profiles/gateway env expectations, context-usage removed exports, routeTree ignore pattern, i18n label drift, chat-message-list helper exports, Swarm2 contract copy). The new markdown math test and prior focused Mission Control/session tests passed.
+- Bounded content/security scans over `markdown.tsx`, `slash-command-menu.tsx`, `package.json`, and a narrow lockfile pattern found 0 matches for credential/secret/token/API-key/service-role/bearer/Board-ref/env/fetch/dangerous-HTML patterns in the touched product files.
+
+Gate packet:
+- Focused markdown/type-hygiene slice impact: `NONE` for production/finance/DB. It is local UI renderer/plugin wiring and type/lint hygiene only; no DB/schema/env/billing/provider-write/client-facing communication path was touched.
+- Publication lane: `NAMESPACE` / `KEEP_GATED`. Concrete risk: the checkout remains broad/dirty on `main`, and broad workspace type-check/full-test gates are red; publishing would mix this small slice with unrelated workspace changes.
+- Rollback note: revert the local edits in `apps/workspace/src/components/prompt-kit/markdown.tsx`, `apps/workspace/src/components/slash-command-menu.tsx`, `apps/workspace/package.json`, and `apps/workspace/pnpm-lock.yaml`; no schema/env/billing/credential/data rollback is required.
+
+Safety / blockers:
+- Evidence append is local only. I did not commit or push because the dirty workspace remains a gated namespace.
+- Next safe lane: either continue shrinking the broad workspace type/test failure set with existing RED signals, or clean-replay only the bounded publishable subset from `origin/main` before any PR to `main`.
+
+## 2026-06-25 14:26 AEST
+
+### Tick 20260625_1426 — focused workspace RED/GREEN + lint hygiene, still publication-gated
+
+Lane: continued the existing broad dirty `apps/workspace` Mission Control / sessions / dashboard lane on `main` instead of starting a new branch. System-listed cron skills were missing (`subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`), so I continued under the available `unite-group-crm-command-spine`, `test-driven-development`, and GitHub workflow skills. Root source-of-truth docs were absent except evidence/report files, so canonical context was read from tracked fallback locations under `apps/empire/docs/margot/*`, `apps/web/docs/margot/*`, and root evidence logs. Scope stayed local: repo/docs/tests/code/build/read-back only. No commit, push, PR, merge, deploy, production DB write, Supabase migration/application, Vercel/GitHub env mutation, credential value read/print, billing/payment action, client-facing communication, cross-client identity merge, or destructive git action occurred.
+
+Preflight:
+- Branch: `main` tracking `origin/main`; `git rev-list --left-right --count origin/main...HEAD` returned `0 0`.
+- `git status --short --branch` remains broad/dirty across many `apps/workspace/*` tracked files plus untracked workspace route/test files. There are no open GitHub PRs: `gh pr list --state open --limit 10 --json ...` returned `[]`.
+- Package scripts read-back: root `package.json` exposes `verify:workspace` as `cd apps/workspace && pnpm install --frozen-lockfile && pnpm run check && pnpm run build`; `apps/workspace/package.json` exposes `test`, `lint`, `check`, and `build`.
+
+Completed focused slice:
+- Used existing failing tests/lint as the RED signal rather than inventing new tests in a dirty lane.
+- RED lint: `pnpm exec eslint src/routes/api/video-command-center.ts src/routes/api/-video-command-center.test.ts src/server/mission-control-os.ts src/server/mission-control-os.test.ts src/routes/api/mission-control-os.ts src/server/claude-api.ts src/server/claude-api.test.ts src/routes/api/sessions.ts src/routes/api/-sessions.test.ts src/screens/gateway/mission-control-contract.test.ts src/server/dashboard-aggregator.ts src/server/dashboard-aggregator.test.ts` initially failed with 6 errors / 4 warnings, concentrated in `claude-api.ts`, `dashboard-aggregator.ts`, and `dashboard-aggregator.test.ts`.
+- RED focused tests: `pnpm exec vitest run src/server/mission-control-os.test.ts src/routes/api/-video-command-center.test.ts src/routes/api/-sessions.test.ts src/server/claude-api.test.ts src/screens/gateway/mission-control-contract.test.ts src/server/dashboard-aggregator.test.ts` initially failed 5 tests: dashboard session payload `{items: [...]}` / unknown-shape normalization, `/api/sessions` undefined-list defensive handling, and Mission Control contract exports.
+- GREEN changes stayed local and bounded: `claude-api.listSessions` now accepts dashboard `{sessions}`, `{items}`, or unknown payloads safely; `/api/sessions` treats non-array backend results as `[]`; `conductor.tsx` exports the Mission Control layout/domain-card contract expected by the existing test and received scoped lint/whitespace hygiene; `dashboard-aggregator` / test cleanup removed lint errors without changing product behaviour.
+
+Verification / evidence:
+- Focused GREEN: `pnpm exec vitest run src/server/mission-control-os.test.ts src/routes/api/-video-command-center.test.ts src/routes/api/-sessions.test.ts src/server/claude-api.test.ts src/screens/gateway/mission-control-contract.test.ts src/server/dashboard-aggregator.test.ts` -> PASS, 6 files / 21 tests.
+- Scoped ESLint GREEN: `pnpm exec eslint src/server/claude-api.ts src/routes/api/sessions.ts src/server/dashboard-aggregator.ts src/server/dashboard-aggregator.test.ts src/screens/gateway/conductor.tsx src/screens/gateway/mission-control-contract.test.ts` -> PASS, exit 0, with only the existing `.eslintignore` deprecation warning.
+- Scoped whitespace: `git diff --check -- apps/workspace/src/server/claude-api.ts apps/workspace/src/routes/api/sessions.ts apps/workspace/src/server/dashboard-aggregator.ts apps/workspace/src/server/dashboard-aggregator.test.ts apps/workspace/src/screens/gateway/conductor.tsx` -> PASS.
+- Build: `pnpm run build` from `apps/workspace` -> PASS (Vite client + SSR built). Existing non-blocking warnings remained for `src/routes/api/send-stream-live-tools.ts` not exporting `Route`, static/dynamic import chunking, and large chunks.
+- Broad type gate: `pnpm exec tsc --noEmit --pretty false` -> FAIL on broad workspace baseline drift outside this focused slice (prompt-kit markdown removed exports, slash-command export conflicts, swarm/chat/gateway type mismatches, missing `persistActiveRun`, model/config and swarm2 type drift, etc.). After the final patch, the captured TypeScript failure list did not include the focused touched files from this tick.
+- Full workspace tests: `pnpm run test` -> FAIL, 70 files passed / 12 failed; 546 tests passed / 22 failed. Failing classes remain broad workspace baseline drift (`routeTree` invalidation, chat composer/message-list contracts, local-provider/model config parsing, kanban backend, gateway-capabilities env expectation, profiles/i18n expectations, prompt-kit markdown exports, context-usage removed exports, swarm2 copy). The focused Mission Control / sessions / dashboard tests passed.
+- Added-line diff security/content scan over `/tmp/unite-touched-20260625-1426.diff` found 33 matches, all benign UI/contract words (`approval` copy in SEO/approval labels, `card`/theme class names, token-cost display text). No literal credential values, raw Board approval refs, PII/payment strings, dangerous HTML, service-role key usage, provider/client mutation code, production-write path, or secret/env assignment was found in added lines.
+
+TDD status:
+- Existing regression tests and lint/type gates supplied the RED signals; no new production behaviour was added without first observing failures. No new schema/env/provider/payment/client-facing behaviour was introduced.
+
+Gate packet:
+- Focused local slice impact: `NONE` for production/finance/DB. It is local code/test hygiene plus defensive read-surface normalization only; no DB/schema/env/billing/provider-write/client-facing path was touched.
+- Publication lane: `NAMESPACE` / `KEEP_GATED`. Concrete risk: the checkout remains broad/dirty on `main`, and broad workspace type-check/full-test gates are red; pushing/opening a PR would publish an unsafe mixed workspace bundle.
+- Rollback note: revert the local edits in `apps/workspace/src/server/claude-api.ts`, `apps/workspace/src/routes/api/sessions.ts`, `apps/workspace/src/server/dashboard-aggregator.ts`, `apps/workspace/src/server/dashboard-aggregator.test.ts`, and `apps/workspace/src/screens/gateway/conductor.tsx`; no schema/env/billing/credential/data rollback is required.
+
+Safety / blockers:
+- Evidence append is local only. I did not commit or push because publication would mix broad dirty workspace files and known-red package gates.
+- Next safe lane: continue reducing focused touched-file type/test/lint failures in the dirty workspace lane, or clean-replay only the desired bounded Mission Control / sessions / Video Command Center slice from `origin/main`, then rerun focused tests, `pnpm exec tsc --noEmit`, scoped/full lint, full tests, build, whitespace, and bounded scans before any PR to `main`.
+
 ## 2026-06-25 11:35 AEST
 
 ### Tick 20260625_1135 — unpublished workspace lane refreshed; publication remains gated
