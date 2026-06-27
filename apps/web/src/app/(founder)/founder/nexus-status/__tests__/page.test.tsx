@@ -1,17 +1,15 @@
-import { render, screen, within } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi, beforeEach } from 'vitest'
+
+const redirect = vi.fn()
+vi.mock('next/navigation', () => ({ redirect: (...a: unknown[]) => redirect(...a) }))
+
 import NexusStatusPage from '../page'
 
-describe('NexusStatusPage', () => {
-  it('renders the empty Nexus status cockpit sections without live data claims', () => {
-    render(<NexusStatusPage />)
+describe('NexusStatusPage (deprecated draft stub)', () => {
+  beforeEach(() => redirect.mockClear())
 
-    expect(screen.getByRole('heading', { name: 'Nexus Status', level: 1 })).toBeInTheDocument()
-
-    for (const label of ['Active Tickets', 'Open PRs', 'Approval Queue']) {
-      const section = screen.getByRole('region', { name: label })
-      expect(within(section).getByRole('heading', { name: label })).toBeInTheDocument()
-      expect(within(section).getByText('No data yet')).toBeInTheDocument()
-    }
+  it('redirects to the canonical command centre', () => {
+    NexusStatusPage()
+    expect(redirect).toHaveBeenCalledWith('/founder/command-centre')
   })
 })
