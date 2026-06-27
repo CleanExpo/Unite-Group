@@ -20,14 +20,28 @@ def generate_image(prompt: str, out_path: str) -> str:
         "generationConfig": {"responseModalities": ["IMAGE"],
                              "imageConfig": {"aspectRatio": "16:9"}},
     }).encode()
-    req = urllib.request.Request(
-        ENDPOINT.format(m=MODEL, k=key), data=body, method="POST",
-        headers={"content-type": "application/json"})
-    try:
-        resp = urllib.request.urlopen(req, timeout=120)
-    except urllib.error.HTTPError as e:
-        raise RuntimeError(f"image API HTTP {e.code}: {e.read().decode()[:400]}")
-    data = json.loads(resp.read())
+    import time
+    last = ""
+    for attempt in range(6):
+        req = urllib.request.Request(
+            ENDPOINT.format(m=MODEL, k=key), data=body, method="POST",
+            headers={"content-type": "application/json"})
+        try:
+            resp = urllib.request.urlopen(req, timeout=120)
+            data = json.loads(resp.read())
+            break
+        except urllib.error.HTTPError as e:
+            last = f"HTTP {e.code}: {e.read().decode()[:200]}"
+            if e.code in (429, 500, 503) and attempt < 5:
+                time.sleep(min(2 ** attempt, 30)); continue
+            raise RuntimeError(f"image API {last}")
+        except (urllib.error.URLError, TimeoutError) as e:
+            last = str(e)
+            if attempt < 5:
+                time.sleep(min(2 ** attempt, 30)); continue
+            raise RuntimeError(f"image API {last}")
+    else:
+        raise RuntimeError(f"image API exhausted retries: {last}")
     for part in data["candidates"][0]["content"]["parts"]:
         inline = part.get("inlineData") or part.get("inline_data")
         if inline and inline.get("data"):
