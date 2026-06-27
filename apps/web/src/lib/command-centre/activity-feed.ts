@@ -16,7 +16,7 @@
 //    `sourceLiveAt` become non-null and the badge flip to `live`.
 
 import type { CommandCentreTask, TaskStatus } from './tasks'
-import type { ActivityDatum, ActivityOrigin, ActivitySeverity } from '@/components/command-center/activity/activity-data'
+import type { ActivityDatum, ActivityOrigin, ActivitySeverity } from '@/components/command-centre/activity/activity-data'
 
 export interface ActivityFeedPayload {
   source: 'cc:activity'

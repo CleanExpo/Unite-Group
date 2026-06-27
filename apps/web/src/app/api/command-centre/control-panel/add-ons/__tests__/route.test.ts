@@ -5,7 +5,7 @@ vi.mock('@/lib/command-centre/tasks', () => ({
   createTask: vi.fn().mockResolvedValue({ id: 'task-1', title: 'Approve add-on: Test', status: 'awaiting_approval', created_at: '2026-01-01' }),
   listTasks: vi.fn().mockResolvedValue([]),
 }))
-vi.mock('@/components/command-center/control-panel/control-panel-data', () => ({
+vi.mock('@/components/command-centre/control-panel/control-panel-data', () => ({
   ADD_ON_GATES: [
     { id: 'test-addon', label: 'Test Add-On', category: 'ai', state: 'inactive', approval: 'founder_only' },
   ],

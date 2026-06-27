@@ -20,7 +20,7 @@ import {
   type ControlRyg,
   type ControlStatus,
   type ControlWorkstream,
-} from '@/components/command-center/control-panel/control-panel-data'
+} from '@/components/command-centre/control-panel/control-panel-data'
 import { addOnExternalRef } from './add-ons/_cc-task-shape'
 
 export const dynamic = 'force-dynamic'
