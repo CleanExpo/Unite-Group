@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, ArrowRight } from 'lucide-react'
 import { InsightDiscussion } from './InsightDiscussion'
+import { InsightIssueLink } from './InsightIssueLink'
 import { BUSINESSES } from '@/lib/businesses'
 
 export type InsightStatus = 'new' | 'reviewing' | 'acting' | 'done'
@@ -185,6 +186,12 @@ export function InsightCard({ insight, onStatusChange }: InsightCardProps) {
               {NEXT_LABEL[insight.status]}
             </button>
           )}
+
+          {/* Work→task bridge — create/link a Linear issue */}
+          <InsightIssueLink
+            insightId={insight.id}
+            onLinked={() => insight.status !== 'done' && onStatusChange(insight.id, 'acting')}
+          />
 
           {/* Discussion thread */}
           <InsightDiscussion insightId={insight.id} />
