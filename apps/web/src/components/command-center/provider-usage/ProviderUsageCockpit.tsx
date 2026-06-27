@@ -97,7 +97,7 @@ export function ProviderUsageCockpit() {
     async function load() {
       setLoading(true)
       try {
-        const res = await fetch('/api/command-center/provider-usage', { cache: 'no-store' })
+        const res = await fetch('/api/command-centre/provider-usage', { cache: 'no-store' })
         if (!res.ok) throw new Error(`provider_usage_http_${res.status}`)
         const body = (await res.json()) as ProviderCockpitPayload
         if (!cancelled) {

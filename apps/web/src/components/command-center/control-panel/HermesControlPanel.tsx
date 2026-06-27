@@ -80,7 +80,7 @@ export function HermesControlPanel({ initialPayload }: HermesControlPanelProps =
 
     async function loadControlPanel() {
       try {
-        const res = await fetch('/api/command-center/control-panel', { cache: 'no-store' })
+        const res = await fetch('/api/command-centre/control-panel', { cache: 'no-store' })
         if (!res.ok) throw new Error(`control_panel_http_${res.status}`)
         const body = (await res.json()) as ControlPanelPayload
         if (cancelled) return
@@ -115,7 +115,7 @@ export function HermesControlPanel({ initialPayload }: HermesControlPanelProps =
     let status: number | null = null
     let body: unknown = null
     try {
-      const res = await fetch('/api/command-center/control-panel/add-ons', {
+      const res = await fetch('/api/command-centre/control-panel/add-ons', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ addOnId: addOn.id }),

@@ -79,7 +79,7 @@ describe('WorkPacketLane', () => {
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/command-center/work-packet/wp-approval-1/transition',
+        '/api/command-centre/work-packet/wp-approval-1/transition',
         expect.objectContaining({ method: 'POST' }),
       )
     })

@@ -55,7 +55,7 @@ export function LiveAgentOperationsMap() {
     async function loadOperations() {
       setLoading(true)
       try {
-        const res = await fetch('/api/command-center/live-agent-operations', { cache: 'no-store' })
+        const res = await fetch('/api/command-centre/live-agent-operations', { cache: 'no-store' })
         if (!res.ok) throw new Error(`live_agent_operations_http_${res.status}`)
         const body = (await res.json()) as LiveAgentOperationsPayload
         if (cancelled) return

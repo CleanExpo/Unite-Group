@@ -3,7 +3,7 @@
 // The panel renders whatever this function returns and does not interpret raw
 // HTTP codes or JSON error strings itself.
 //
-// The API surface (src/app/api/command-center/control-panel/add-ons/route.ts)
+// The API surface (src/app/api/command-centre/control-panel/add-ons/route.ts)
 // emits these responses:
 //   200 { ok: true, existing: true,  cc_task_id, task_status, requested_at }
 //   200 { ok: true, existing: false, cc_task_id, task_status, requested_at }
