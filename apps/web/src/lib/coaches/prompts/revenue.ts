@@ -33,6 +33,7 @@ export function buildRevenueUserMessage(data: {
     expensesCents: number
     growth: number
     invoiceCount: number
+    source?: 'xero' | 'mock'
   }>
   todayDate: string
 }): string {
@@ -40,6 +41,10 @@ export function buildRevenueUserMessage(data: {
 
   let totalRevenue = 0
   let totalExpenses = 0
+
+  if (data.businesses.some((b) => b.source === 'mock')) {
+    lines.push('\nNOTE: lines marked (DEMO) are placeholder figures (Xero not connected), not real revenue — do not base advice or alerts on them.')
+  }
 
   lines.push('\n### Business MTD Data')
   for (const b of data.businesses) {
@@ -49,7 +54,8 @@ export function buildRevenueUserMessage(data: {
       `- **${b.name}** (${b.key}): Revenue $${(b.revenueCents / 100).toLocaleString('en-AU', { minimumFractionDigits: 2 })}, ` +
       `Expenses $${(b.expensesCents / 100).toLocaleString('en-AU', { minimumFractionDigits: 2 })}, ` +
       `Growth ${b.growth > 0 ? '+' : ''}${b.growth}%, ` +
-      `Invoices: ${b.invoiceCount}`
+      `Invoices: ${b.invoiceCount}` +
+      `${b.source === 'mock' ? ' (DEMO — placeholder)' : ''}`
     )
   }
 
