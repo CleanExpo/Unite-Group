@@ -10,14 +10,18 @@
 // operation, then save the changed item back — so behaviour is unchanged but the
 // state survives restarts and is isolated per founder.
 
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import type { FounderRunQueueItem } from './types'
 
+// pi_run_queue is an off-schema table (not present in the generated Database
+// types). Use an untyped client for it so the query builder accepts the table
+// name without tripping deep generic instantiation.
 const TABLE = 'pi_run_queue'
 
 /** Load every run-queue item for a founder, newest first. */
 export async function listFounderRunQueueItems(founderId: string): Promise<FounderRunQueueItem[]> {
-  const supabase = await createClient()
+  const supabase = (await createClient()) as unknown as SupabaseClient
   const { data, error } = await supabase
     .from(TABLE)
     .select('item')
@@ -33,7 +37,7 @@ export async function saveFounderRunQueueItem(
   founderId: string,
   item: FounderRunQueueItem,
 ): Promise<void> {
-  const supabase = await createClient()
+  const supabase = (await createClient()) as unknown as SupabaseClient
   const { error } = await supabase.from(TABLE).upsert(
     {
       founder_id: founderId,

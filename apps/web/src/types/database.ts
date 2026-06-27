@@ -14,6 +14,1163 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_file_cache: {
+        Row: {
+          cache_key: string
+          created_at: string
+          expires_at: string | null
+          file_id: string
+          filename: string
+          founder_id: string
+          id: string
+          mime_type: string
+          size_bytes: number
+        }
+        Insert: {
+          cache_key: string
+          created_at?: string
+          expires_at?: string | null
+          file_id: string
+          filename: string
+          founder_id: string
+          id?: string
+          mime_type?: string
+          size_bytes?: number
+        }
+        Update: {
+          cache_key?: string
+          created_at?: string
+          expires_at?: string | null
+          file_id?: string
+          filename?: string
+          founder_id?: string
+          id?: string
+          mime_type?: string
+          size_bytes?: number
+        }
+        Relationships: []
+      }
+      ai_file_transcripts: {
+        Row: {
+          cache_key: string
+          confidence: number | null
+          created_at: string
+          file_cache_id: string | null
+          file_id: string
+          filename: string
+          founder_id: string
+          id: string
+          language: string
+          provider: string
+          source: string
+          transcript: Json
+          transcript_text: string
+          updated_at: string
+        }
+        Insert: {
+          cache_key: string
+          confidence?: number | null
+          created_at?: string
+          file_cache_id?: string | null
+          file_id: string
+          filename: string
+          founder_id: string
+          id?: string
+          language?: string
+          provider: string
+          source: string
+          transcript: Json
+          transcript_text: string
+          updated_at?: string
+        }
+        Update: {
+          cache_key?: string
+          confidence?: number | null
+          created_at?: string
+          file_cache_id?: string | null
+          file_id?: string
+          filename?: string
+          founder_id?: string
+          id?: string
+          language?: string
+          provider?: string
+          source?: string
+          transcript?: Json
+          transcript_text?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_file_transcripts_file_cache_id_fkey"
+            columns: ["file_cache_id"]
+            isOneToOne: false
+            referencedRelation: "ai_file_cache"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_memories: {
+        Row: {
+          capability_id: string
+          created_at: string
+          founder_id: string
+          id: string
+          key: string
+          memory_type: string
+          metadata: Json
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          capability_id: string
+          created_at?: string
+          founder_id: string
+          id?: string
+          key: string
+          memory_type: string
+          metadata?: Json
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          capability_id?: string
+          created_at?: string
+          founder_id?: string
+          id?: string
+          key?: string
+          memory_type?: string
+          metadata?: Json
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
+      brand_video_jobs: {
+        Row: {
+          brand: string
+          count: number
+          created_at: string
+          created_by: string
+          error: string | null
+          id: string
+          output_url: string | null
+          status: string
+          style: string
+          topic: string
+          updated_at: string
+        }
+        Insert: {
+          brand: string
+          count?: number
+          created_at?: string
+          created_by: string
+          error?: string | null
+          id?: string
+          output_url?: string | null
+          status?: string
+          style?: string
+          topic: string
+          updated_at?: string
+        }
+        Update: {
+          brand?: string
+          count?: number
+          created_at?: string
+          created_by?: string
+          error?: string | null
+          id?: string
+          output_url?: string | null
+          status?: string
+          style?: string
+          topic?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      drip_enrollments: {
+        Row: {
+          campaign_id: string
+          completed_at: string | null
+          contact_id: string
+          created_at: string
+          current_step_order: number
+          email: string
+          enrolled_at: string
+          founder_id: string
+          id: string
+          metadata: Json
+          name: string | null
+          next_run_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          completed_at?: string | null
+          contact_id: string
+          created_at?: string
+          current_step_order?: number
+          email: string
+          enrolled_at?: string
+          founder_id: string
+          id?: string
+          metadata?: Json
+          name?: string | null
+          next_run_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          completed_at?: string | null
+          contact_id?: string
+          created_at?: string
+          current_step_order?: number
+          email?: string
+          enrolled_at?: string
+          founder_id?: string
+          id?: string
+          metadata?: Json
+          name?: string | null
+          next_run_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drip_enrollments_campaign_id_founder_id_fkey"
+            columns: ["campaign_id", "founder_id"]
+            isOneToOne: false
+            referencedRelation: "drip_campaigns"
+            referencedColumns: ["id", "founder_id"]
+          },
+          {
+            foreignKeyName: "drip_enrollments_contact_id_founder_id_fkey"
+            columns: ["contact_id", "founder_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id", "founder_id"]
+          },
+        ]
+      }
+      drip_events: {
+        Row: {
+          campaign_id: string
+          contact_id: string
+          created_at: string
+          enrollment_id: string
+          event_type: string
+          founder_id: string
+          id: string
+          metadata: Json
+          provider_send: string
+          step_id: string | null
+        }
+        Insert: {
+          campaign_id: string
+          contact_id: string
+          created_at?: string
+          enrollment_id: string
+          event_type: string
+          founder_id: string
+          id?: string
+          metadata?: Json
+          provider_send?: string
+          step_id?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          contact_id?: string
+          created_at?: string
+          enrollment_id?: string
+          event_type?: string
+          founder_id?: string
+          id?: string
+          metadata?: Json
+          provider_send?: string
+          step_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drip_events_campaign_id_founder_id_fkey"
+            columns: ["campaign_id", "founder_id"]
+            isOneToOne: false
+            referencedRelation: "drip_campaigns"
+            referencedColumns: ["id", "founder_id"]
+          },
+          {
+            foreignKeyName: "drip_events_contact_id_founder_id_fkey"
+            columns: ["contact_id", "founder_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id", "founder_id"]
+          },
+          {
+            foreignKeyName: "drip_events_enrollment_id_founder_id_fkey"
+            columns: ["enrollment_id", "founder_id"]
+            isOneToOne: false
+            referencedRelation: "drip_enrollments"
+            referencedColumns: ["id", "founder_id"]
+          },
+          {
+            foreignKeyName: "drip_events_step_id_founder_id_fkey"
+            columns: ["step_id", "founder_id"]
+            isOneToOne: false
+            referencedRelation: "drip_steps"
+            referencedColumns: ["id", "founder_id"]
+          },
+        ]
+      }
+      founder_notifications: {
+        Row: {
+          created_at: string | null
+          founder_id: string
+          id: string
+          payload: Json | null
+          read: boolean | null
+          read_at: string | null
+          type: string
+        }
+        Insert: {
+          created_at?: string | null
+          founder_id: string
+          id?: string
+          payload?: Json | null
+          read?: boolean | null
+          read_at?: string | null
+          type: string
+        }
+        Update: {
+          created_at?: string | null
+          founder_id?: string
+          id?: string
+          payload?: Json | null
+          read?: boolean | null
+          read_at?: string | null
+          type?: string
+        }
+        Relationships: []
+      }
+      hub_satellites: {
+        Row: {
+          business_key: string
+          business_name: string
+          created_at: string
+          founder_id: string
+          health_status: string
+          id: string
+          last_bookkeeper_run_date: string | null
+          last_commit_at: string | null
+          last_commit_sha: string | null
+          last_macas_verdict_date: string | null
+          last_sweep_data: Json
+          last_swept_at: string | null
+          notes: string | null
+          open_linear_issues: number
+          repo_url: string | null
+          stack: string | null
+          updated_at: string
+        }
+        Insert: {
+          business_key: string
+          business_name: string
+          created_at?: string
+          founder_id: string
+          health_status?: string
+          id?: string
+          last_bookkeeper_run_date?: string | null
+          last_commit_at?: string | null
+          last_commit_sha?: string | null
+          last_macas_verdict_date?: string | null
+          last_sweep_data?: Json
+          last_swept_at?: string | null
+          notes?: string | null
+          open_linear_issues?: number
+          repo_url?: string | null
+          stack?: string | null
+          updated_at?: string
+        }
+        Update: {
+          business_key?: string
+          business_name?: string
+          created_at?: string
+          founder_id?: string
+          health_status?: string
+          id?: string
+          last_bookkeeper_run_date?: string | null
+          last_commit_at?: string | null
+          last_commit_sha?: string | null
+          last_macas_verdict_date?: string | null
+          last_sweep_data?: Json
+          last_swept_at?: string | null
+          notes?: string | null
+          open_linear_issues?: number
+          repo_url?: string | null
+          stack?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      margot_voice_sessions: {
+        Row: {
+          actions: Json | null
+          approval_reason: string | null
+          approval_required: boolean | null
+          business_context: string | null
+          conversation_id: string | null
+          created_at: string | null
+          evidence_refs: Json | null
+          founder_id: string
+          id: string
+          packet_id: string
+          requested_outcome: string | null
+          risk_level: string | null
+          summary: string
+          transcript_text: string
+        }
+        Insert: {
+          actions?: Json | null
+          approval_reason?: string | null
+          approval_required?: boolean | null
+          business_context?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          evidence_refs?: Json | null
+          founder_id: string
+          id?: string
+          packet_id: string
+          requested_outcome?: string | null
+          risk_level?: string | null
+          summary: string
+          transcript_text: string
+        }
+        Update: {
+          actions?: Json | null
+          approval_reason?: string | null
+          approval_required?: boolean | null
+          business_context?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          evidence_refs?: Json | null
+          founder_id?: string
+          id?: string
+          packet_id?: string
+          requested_outcome?: string | null
+          risk_level?: string | null
+          summary?: string
+          transcript_text?: string
+        }
+        Relationships: []
+      }
+      mobile_voice_packets: {
+        Row: {
+          auto_publish_enabled: boolean
+          board_gate: string
+          board_review_packet_path: string | null
+          board_review_packet_written_at: string | null
+          captured_at_text: string
+          created_at: string
+          external_dispatch_enabled: boolean
+          founder_id: string
+          id: string
+          metadata: Json
+          obsidian_source_note_path: string | null
+          obsidian_source_note_written_at: string | null
+          obsidian_target_path: string
+          packet_id: string
+          production_execution_enabled: boolean
+          raw_audio_stored: boolean
+          research_prompt: string
+          second_brain_tags: string[]
+          senior_pm_work_candidates: string[]
+          source: string
+          source_url: string | null
+          speaker_labels_included: boolean
+          status: string
+          summary: string | null
+          timestamps_included: boolean
+          title: string
+          transcript: string
+          transcript_character_count: number
+          updated_at: string
+        }
+        Insert: {
+          auto_publish_enabled?: boolean
+          board_gate?: string
+          board_review_packet_path?: string | null
+          board_review_packet_written_at?: string | null
+          captured_at_text: string
+          created_at?: string
+          external_dispatch_enabled?: boolean
+          founder_id: string
+          id?: string
+          metadata?: Json
+          obsidian_source_note_path?: string | null
+          obsidian_source_note_written_at?: string | null
+          obsidian_target_path: string
+          packet_id: string
+          production_execution_enabled?: boolean
+          raw_audio_stored?: boolean
+          research_prompt: string
+          second_brain_tags?: string[]
+          senior_pm_work_candidates?: string[]
+          source: string
+          source_url?: string | null
+          speaker_labels_included?: boolean
+          status?: string
+          summary?: string | null
+          timestamps_included?: boolean
+          title: string
+          transcript: string
+          transcript_character_count?: number
+          updated_at?: string
+        }
+        Update: {
+          auto_publish_enabled?: boolean
+          board_gate?: string
+          board_review_packet_path?: string | null
+          board_review_packet_written_at?: string | null
+          captured_at_text?: string
+          created_at?: string
+          external_dispatch_enabled?: boolean
+          founder_id?: string
+          id?: string
+          metadata?: Json
+          obsidian_source_note_path?: string | null
+          obsidian_source_note_written_at?: string | null
+          obsidian_target_path?: string
+          packet_id?: string
+          production_execution_enabled?: boolean
+          raw_audio_stored?: boolean
+          research_prompt?: string
+          second_brain_tags?: string[]
+          senior_pm_work_candidates?: string[]
+          source?: string
+          source_url?: string | null
+          speaker_labels_included?: boolean
+          status?: string
+          summary?: string | null
+          timestamps_included?: boolean
+          title?: string
+          transcript?: string
+          transcript_character_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      nexus_routing_audit: {
+        Row: {
+          capability_score: number
+          complexity: number
+          complexity_tier: string
+          decided_at: string
+          estimated_cost_per_1m_tokens: number
+          id: string
+          reasoning: string
+          selected_model: string
+          selected_provider: string
+          token_budget_remaining: number
+          work_type: string
+        }
+        Insert: {
+          capability_score: number
+          complexity: number
+          complexity_tier: string
+          decided_at?: string
+          estimated_cost_per_1m_tokens: number
+          id?: string
+          reasoning: string
+          selected_model: string
+          selected_provider: string
+          token_budget_remaining: number
+          work_type: string
+        }
+        Update: {
+          capability_score?: number
+          complexity?: number
+          complexity_tier?: string
+          decided_at?: string
+          estimated_cost_per_1m_tokens?: number
+          id?: string
+          reasoning?: string
+          selected_model?: string
+          selected_provider?: string
+          token_budget_remaining?: number
+          work_type?: string
+        }
+        Relationships: []
+      }
+      operator_agent_presence: {
+        Row: {
+          agent_id: string
+          agent_version: string | null
+          capabilities: Json
+          founder_id: string
+          hostname: string | null
+          last_seen_at: string
+          metadata: Json
+          started_at: string
+        }
+        Insert: {
+          agent_id: string
+          agent_version?: string | null
+          capabilities?: Json
+          founder_id: string
+          hostname?: string | null
+          last_seen_at?: string
+          metadata?: Json
+          started_at?: string
+        }
+        Update: {
+          agent_id?: string
+          agent_version?: string | null
+          capabilities?: Json
+          founder_id?: string
+          hostname?: string | null
+          last_seen_at?: string
+          metadata?: Json
+          started_at?: string
+        }
+        Relationships: []
+      }
+      operator_events: {
+        Row: {
+          at: string
+          detail: string
+          event_type: string
+          evidence_ref: string | null
+          founder_id: string
+          from_status: string | null
+          id: string
+          job_id: string
+          to_status: string | null
+        }
+        Insert: {
+          at?: string
+          detail?: string
+          event_type: string
+          evidence_ref?: string | null
+          founder_id: string
+          from_status?: string | null
+          id?: string
+          job_id: string
+          to_status?: string | null
+        }
+        Update: {
+          at?: string
+          detail?: string
+          event_type?: string
+          evidence_ref?: string | null
+          founder_id?: string
+          from_status?: string | null
+          id?: string
+          job_id?: string
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operator_events_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "operator_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      operator_jobs: {
+        Row: {
+          api_key_requested: boolean
+          created_at: string
+          evidence_refs: string[]
+          external_action_requested: boolean
+          founder_id: string
+          id: string
+          lane_id: string
+          metadata: Json
+          production_action_requested: boolean
+          status: string
+          task_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          api_key_requested?: boolean
+          created_at?: string
+          evidence_refs?: string[]
+          external_action_requested?: boolean
+          founder_id: string
+          id?: string
+          lane_id: string
+          metadata?: Json
+          production_action_requested?: boolean
+          status?: string
+          task_type: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          api_key_requested?: boolean
+          created_at?: string
+          evidence_refs?: string[]
+          external_action_requested?: boolean
+          founder_id?: string
+          id?: string
+          lane_id?: string
+          metadata?: Json
+          production_action_requested?: boolean
+          status?: string
+          task_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      provider_accounts: {
+        Row: {
+          allow_metered: boolean
+          created_at: string
+          enabled: boolean
+          founder_id: string
+          id: string
+          label: string
+          plan: Json
+          provider: string
+          updated_at: string
+          vault_entry_id: string | null
+        }
+        Insert: {
+          allow_metered?: boolean
+          created_at?: string
+          enabled?: boolean
+          founder_id: string
+          id?: string
+          label: string
+          plan: Json
+          provider: string
+          updated_at?: string
+          vault_entry_id?: string | null
+        }
+        Update: {
+          allow_metered?: boolean
+          created_at?: string
+          enabled?: boolean
+          founder_id?: string
+          id?: string
+          label?: string
+          plan?: Json
+          provider?: string
+          updated_at?: string
+          vault_entry_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_accounts_vault_entry_id_fkey"
+            columns: ["vault_entry_id"]
+            isOneToOne: false
+            referencedRelation: "credentials_vault"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_quota_events: {
+        Row: {
+          account_id: string
+          at: string
+          founder_id: string
+          id: string
+          input_tokens: number
+          lane: string | null
+          model: string | null
+          outcome: string
+          output_tokens: number
+          reset_at: string | null
+          run_unit: number
+        }
+        Insert: {
+          account_id: string
+          at?: string
+          founder_id: string
+          id?: string
+          input_tokens?: number
+          lane?: string | null
+          model?: string | null
+          outcome?: string
+          output_tokens?: number
+          reset_at?: string | null
+          run_unit?: number
+        }
+        Update: {
+          account_id?: string
+          at?: string
+          founder_id?: string
+          id?: string
+          input_tokens?: number
+          lane?: string | null
+          model?: string | null
+          outcome?: string
+          output_tokens?: number
+          reset_at?: string | null
+          run_unit?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_quota_events_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "provider_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      telegram_messages: {
+        Row: {
+          chat_id: string | null
+          created_at: string | null
+          id: number
+          is_from_bot: boolean | null
+          message: string
+          platform: string | null
+          response: string | null
+          sender_name: string | null
+          session_id: string | null
+          update_id: number | null
+        }
+        Insert: {
+          chat_id?: string | null
+          created_at?: string | null
+          id?: number
+          is_from_bot?: boolean | null
+          message: string
+          platform?: string | null
+          response?: string | null
+          sender_name?: string | null
+          session_id?: string | null
+          update_id?: number | null
+        }
+        Update: {
+          chat_id?: string | null
+          created_at?: string | null
+          id?: number
+          is_from_bot?: boolean | null
+          message?: string
+          platform?: string | null
+          response?: string | null
+          sender_name?: string | null
+          session_id?: string | null
+          update_id?: number | null
+        }
+        Relationships: []
+      }
+      user_organizations: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean
+          joined_at: string | null
+          org_id: string
+          role: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean
+          joined_at?: string | null
+          org_id: string
+          role?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean
+          joined_at?: string | null
+          org_id?: string
+          role?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_organizations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      video_jobs: {
+        Row: {
+          asset_urls: string[] | null
+          audio_provider: string | null
+          audio_url: string | null
+          cost_breakdown: Json | null
+          cost_cents: number | null
+          created_at: string | null
+          description: string | null
+          error_message: string | null
+          error_step: string | null
+          facebook_post_id: string | null
+          final_video_url: string | null
+          founder_id: string
+          heygen_status: string | null
+          heygen_video_id: string | null
+          id: string
+          linkedin_post_id: string | null
+          project_key: string
+          published_at: string | null
+          raw_video_url: string | null
+          retry_count: number | null
+          script_approved: boolean | null
+          script_json: Json | null
+          script_text: string | null
+          source_note_id: string | null
+          status: Database["public"]["Enums"]["video_job_status"]
+          subtitles_json: Json | null
+          tags: string[] | null
+          target_duration_seconds: number | null
+          thumbnail_url: string | null
+          title: string | null
+          updated_at: string | null
+          voice_id: string | null
+          youtube_video_id: string | null
+        }
+        Insert: {
+          asset_urls?: string[] | null
+          audio_provider?: string | null
+          audio_url?: string | null
+          cost_breakdown?: Json | null
+          cost_cents?: number | null
+          created_at?: string | null
+          description?: string | null
+          error_message?: string | null
+          error_step?: string | null
+          facebook_post_id?: string | null
+          final_video_url?: string | null
+          founder_id?: string
+          heygen_status?: string | null
+          heygen_video_id?: string | null
+          id?: string
+          linkedin_post_id?: string | null
+          project_key?: string
+          published_at?: string | null
+          raw_video_url?: string | null
+          retry_count?: number | null
+          script_approved?: boolean | null
+          script_json?: Json | null
+          script_text?: string | null
+          source_note_id?: string | null
+          status?: Database["public"]["Enums"]["video_job_status"]
+          subtitles_json?: Json | null
+          tags?: string[] | null
+          target_duration_seconds?: number | null
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string | null
+          voice_id?: string | null
+          youtube_video_id?: string | null
+        }
+        Update: {
+          asset_urls?: string[] | null
+          audio_provider?: string | null
+          audio_url?: string | null
+          cost_breakdown?: Json | null
+          cost_cents?: number | null
+          created_at?: string | null
+          description?: string | null
+          error_message?: string | null
+          error_step?: string | null
+          facebook_post_id?: string | null
+          final_video_url?: string | null
+          founder_id?: string
+          heygen_status?: string | null
+          heygen_video_id?: string | null
+          id?: string
+          linkedin_post_id?: string | null
+          project_key?: string
+          published_at?: string | null
+          raw_video_url?: string | null
+          retry_count?: number | null
+          script_approved?: boolean | null
+          script_json?: Json | null
+          script_text?: string | null
+          source_note_id?: string | null
+          status?: Database["public"]["Enums"]["video_job_status"]
+          subtitles_json?: Json | null
+          tags?: string[] | null
+          target_duration_seconds?: number | null
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string | null
+          voice_id?: string | null
+          youtube_video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_jobs_source_note_id_fkey"
+            columns: ["source_note_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      video_production_queue: {
+        Row: {
+          brand_slug: string
+          channel: string
+          client_slug: string
+          composition_type: string
+          created_at: string
+          current_phase: string | null
+          delivered_at: string | null
+          delivered_video_url: string | null
+          delivery_channels: Json | null
+          duration_seconds: number
+          github_delivery_id: string | null
+          id: string
+          metadata: Json | null
+          processing_error: string | null
+          production_brief: Json
+          ratchet_count: number
+          source_linear_issue: string | null
+          source_pr_number: number | null
+          source_pr_title: string | null
+          source_pr_url: string | null
+          source_preview_url: string | null
+          source_repo: string | null
+          status: string
+          trigger: string
+          updated_at: string
+        }
+        Insert: {
+          brand_slug: string
+          channel?: string
+          client_slug: string
+          composition_type?: string
+          created_at?: string
+          current_phase?: string | null
+          delivered_at?: string | null
+          delivered_video_url?: string | null
+          delivery_channels?: Json | null
+          duration_seconds?: number
+          github_delivery_id?: string | null
+          id?: string
+          metadata?: Json | null
+          processing_error?: string | null
+          production_brief: Json
+          ratchet_count?: number
+          source_linear_issue?: string | null
+          source_pr_number?: number | null
+          source_pr_title?: string | null
+          source_pr_url?: string | null
+          source_preview_url?: string | null
+          source_repo?: string | null
+          status?: string
+          trigger: string
+          updated_at?: string
+        }
+        Update: {
+          brand_slug?: string
+          channel?: string
+          client_slug?: string
+          composition_type?: string
+          created_at?: string
+          current_phase?: string | null
+          delivered_at?: string | null
+          delivered_video_url?: string | null
+          delivery_channels?: Json | null
+          duration_seconds?: number
+          github_delivery_id?: string | null
+          id?: string
+          metadata?: Json | null
+          processing_error?: string | null
+          production_brief?: Json
+          ratchet_count?: number
+          source_linear_issue?: string | null
+          source_pr_number?: number | null
+          source_pr_title?: string | null
+          source_pr_url?: string | null
+          source_preview_url?: string | null
+          source_repo?: string | null
+          status?: string
+          trigger?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      weekly_reviews: {
+        Row: {
+          brief_md: string
+          created_at: string
+          decisions_queue: Json
+          founder_id: string
+          headline: string
+          id: string
+          metrics: Json
+          next_priorities: Json
+          review_period_start: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          brief_md: string
+          created_at?: string
+          decisions_queue?: Json
+          founder_id: string
+          headline: string
+          id?: string
+          metrics?: Json
+          next_priorities?: Json
+          review_period_start: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          brief_md?: string
+          created_at?: string
+          decisions_queue?: Json
+          founder_id?: string
+          headline?: string
+          id?: string
+          metrics?: Json
+          next_priorities?: Json
+          review_period_start?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      wiki_pages: {
+        Row: {
+          content: string
+          id: string
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+          word_count: number | null
+        }
+        Insert: {
+          content: string
+          id: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string | null
+          word_count?: number | null
+        }
+        Update: {
+          content?: string
+          id?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string | null
+          word_count?: number | null
+        }
+        Relationships: []
+      }
       activities: {
         Row: {
           activity_type: string
@@ -2284,6 +3441,7 @@ export type Database = {
         Row: {
           abn: string | null
           acn: string | null
+          arr_aud: number | null
           business_hours: Json | null
           country: string | null
           created_at: string | null
@@ -2315,6 +3473,7 @@ export type Database = {
         Insert: {
           abn?: string | null
           acn?: string | null
+          arr_aud?: number | null
           business_hours?: Json | null
           country?: string | null
           created_at?: string | null
@@ -2346,6 +3505,7 @@ export type Database = {
         Update: {
           abn?: string | null
           acn?: string | null
+          arr_aud?: number | null
           business_hours?: Json | null
           country?: string | null
           created_at?: string | null
@@ -9576,6 +10736,7 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          role: Database["public"]["Enums"]["user_role"] | null
           updated_at: string | null
         }
         Insert: {
@@ -9584,6 +10745,7 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string | null
         }
         Update: {
@@ -9592,6 +10754,7 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string | null
         }
         Relationships: []
@@ -11499,6 +12662,7 @@ export type Database = {
           business_key: string | null
           channel_id: string | null
           channel_name: string
+          connected: boolean | null
           created_at: string
           follower_count: number | null
           founder_id: string
@@ -11520,6 +12684,7 @@ export type Database = {
           business_key?: string | null
           channel_id?: string | null
           channel_name: string
+          connected?: boolean | null
           created_at?: string
           follower_count?: number | null
           founder_id: string
@@ -11541,6 +12706,7 @@ export type Database = {
           business_key?: string | null
           channel_id?: string | null
           channel_name?: string
+          connected?: boolean | null
           created_at?: string
           follower_count?: number | null
           founder_id?: string
@@ -13401,8 +14567,34 @@ export type Database = {
         Args: { max_age_days?: number; min_relevance?: number }
         Returns: number
       }
+      search_knowledge_notes: {
+        Args: {
+          p_founder_id: string
+          p_limit?: number
+          p_project_key?: string
+          p_query: string
+        }
+        Returns: {
+          content: string
+          id: string
+          rank: number
+          title: string
+          vault_path: string
+        }[]
+      }
     }
     Enums: {
+      video_job_status:
+        | "draft"
+        | "scripting"
+        | "audio_pending"
+        | "assets_pending"
+        | "video_pending"
+        | "composing"
+        | "queued"
+        | "published"
+        | "failed"
+      user_role: "FOUNDER" | "STAFF" | "CLIENT" | "ADMIN"
       ap2_connection_status: "pending" | "active" | "expired" | "revoked"
       ap2_mandate_status:
         | "pending"
