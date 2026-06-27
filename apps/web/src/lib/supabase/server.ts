@@ -20,6 +20,7 @@
 
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { getPooledDatabaseUrl, isPoolerEnabled } from './pooler-config';
+import type { Database } from '@/types/database';
 import { getSupabaseAnonConfig } from './env-guard';
 
 export function hasSupabaseConfig(env: NodeJS.ProcessEnv = process.env): boolean {
@@ -76,7 +77,7 @@ export async function createClient() {
       }
     : getSupabaseAnonConfig();
 
-  return createServerClient(
+  return createServerClient<Database>(
     url,
     anonKey,
     {
