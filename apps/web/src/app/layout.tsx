@@ -7,7 +7,7 @@ import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { Analytics } from '@vercel/analytics/react';
 
 export const metadata: Metadata = {
-  title: 'Unite-Hub',
+  title: 'Unite-Group Nexus',
   description: 'Private founder CRM and operating cockpit',
 };
 

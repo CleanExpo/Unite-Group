@@ -3,11 +3,9 @@
 @.portfolio/PORTFOLIO.yaml
 
 ## Identity (Portfolio SSOT)
-**Canonical name:** Unite-Hub
-**Aliases this project answers to:** "Unite Group", "Unite-Group", "Unite-Group CRM", "the CRM", "Marketing CRM", "Unite-Group Nexus"
-**Canonical local path:** `D:\Unite-Hub`
-**Access via:** `D:\Unite-Group\Unite-Hub` (junction)
-**GitHub:** `CleanExpo/Unite-Hub`
+**Canonical name:** Unite-Group Nexus _(decided 2026-06-27; supersedes the former "Unite-Hub")_
+**Aliases this project answers to:** "Unite-Hub", "Unite Hub", "Unite Group", "Unite-Group", "Unite-Group CRM", "the CRM", "Marketing CRM", "Nexus"
+**Canonical repo/path:** `CleanExpo/Unite-Group` → `apps/web` (post-convergence; the former `CleanExpo/Unite-Hub` repo is wound down)
 
 > If the user uses any alias, this is what they mean.
 > Do NOT create new repos or clones. Do NOT create folders matching

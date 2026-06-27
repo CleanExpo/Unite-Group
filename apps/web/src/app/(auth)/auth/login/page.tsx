@@ -125,7 +125,7 @@ export default function LoginPage() {
         Sign in
       </h1>
       <p className="text-sm mb-8" style={{ color: "var(--color-text-muted)" }}>
-        Continue to your Pi-CEO command centre.
+        Continue to your Unite-Group Nexus command centre.
       </p>
 
       {error && (
