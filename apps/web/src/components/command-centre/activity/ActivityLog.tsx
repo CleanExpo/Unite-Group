@@ -8,7 +8,7 @@ import { useMemo } from 'react'
 import { ActivityRow } from './ActivityRow'
 import { ACTIVITY_DATA, type ActivityDatum } from './activity-data'
 import { SourceBadge } from '../SourceBadge'
-import styles from '../command-center.module.css'
+import styles from '../command-centre.module.css'
 
 export interface ActivityLogProps {
   /** Override the seed — used for live wiring. */
