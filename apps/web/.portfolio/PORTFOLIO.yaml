@@ -1,4 +1,7 @@
-# Unite-Group Portfolio Registry — SSOT
+# Unite-Group Portfolio Registry
+# NOTE (2026-06-27): the authoritative registry is the ROOT /.portfolio/PORTFOLIO.yaml
+# (post-convergence). This apps/web copy is retained for apps/web/CLAUDE.md's
+# @.portfolio reference; keep names consistent with the root registry.
 # Spec: docs/superpowers/specs/2026-05-24-unite-ecosystem-cleanup-design.md
 # Edit here only. Hermes mirror is auto-generated.
 
@@ -6,15 +9,17 @@ schema_version: 1
 generated_at: 2026-05-24
 parent_company: Unite-Group Nexus Pty Ltd
 products:
-  - canonical_name: Unite-Hub
+  - canonical_name: Unite-Group Nexus
     aliases:
+      - Unite-Hub
       - Unite Hub
       - Unite-Group
       - Unite Group
       - Unite-Group CRM
       - the CRM
       - Marketing CRM
-    purpose: AI-first marketing CRM and email automation platform
+      - Nexus
+    purpose: Founder command centre / CRM (apps/web of the Unite-Group monorepo; post-convergence)
     status: active
     owner: phill
     github:
