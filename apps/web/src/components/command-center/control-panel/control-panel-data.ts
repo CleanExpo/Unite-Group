@@ -3,7 +3,7 @@
 //
 // Ported from apps/authority-legacy with the i18n + workspace_id model
 // stripped. These are the canonical lists the founder-scoped control-panel
-// API (src/app/api/command-center/control-panel) reconciles against the
+// API (src/app/api/command-centre/control-panel) reconciles against the
 // live cc_tasks rows. The seed values are illustrative scaffolding only —
 // the API flips each card's live state from the founder's own cc_tasks.
 

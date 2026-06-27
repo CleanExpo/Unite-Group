@@ -5,9 +5,9 @@
 // Visualises execution packets grouped by status (the PacketStatus machine in
 // src/lib/command-centre/work-packet.ts) and exposes the guarded transitions as
 // per-card actions. The lane fetches the packet list from
-//   GET  /api/command-center/work-packet            → { packets: WorkPacket[] }
+//   GET  /api/command-centre/work-packet            → { packets: WorkPacket[] }
 // and drives transitions via
-//   POST /api/command-center/work-packet/{id}/transition  body: PacketEvent
+//   POST /api/command-centre/work-packet/{id}/transition  body: PacketEvent
 // refetching the list after each successful transition. Honours the
 // command-centre source-of-truth contract: SourceBadge pip + DegradedDataBanner
 // on a failed fetch, so seed/empty/live states are never silently conflated.
@@ -103,7 +103,7 @@ export function WorkPacketLane() {
   const loadPackets = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/command-center/work-packet', { cache: 'no-store' })
+      const res = await fetch('/api/command-centre/work-packet', { cache: 'no-store' })
       if (!res.ok) throw new Error(`work_packet_http_${res.status}`)
       const body = (await res.json()) as unknown
       setPackets(readPackets(body))
@@ -133,7 +133,7 @@ export function WorkPacketLane() {
     async (packetId: string, event: PacketEvent) => {
       setPendingId(packetId)
       try {
-        const res = await fetch(`/api/command-center/work-packet/${encodeURIComponent(packetId)}/transition`, {
+        const res = await fetch(`/api/command-centre/work-packet/${encodeURIComponent(packetId)}/transition`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           cache: 'no-store',

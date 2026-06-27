@@ -45,7 +45,7 @@ export function ProviderAccountsTile() {
   const load = useCallback(async () => {
     try {
       const [accRes, vaultRes] = await Promise.all([
-        fetch('/api/command-center/provider-accounts'),
+        fetch('/api/command-centre/provider-accounts'),
         fetch('/api/vault/entries').catch(() => null),
       ])
       if (!accRes.ok) throw new Error(`HTTP ${accRes.status}`)
@@ -69,7 +69,7 @@ export function ProviderAccountsTile() {
     if (!form.label) { setError('a label is required'); return }
     setSaving(true)
     try {
-      const res = await fetch('/api/command-center/provider-accounts', {
+      const res = await fetch('/api/command-centre/provider-accounts', {
         method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(form),
       })
       if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.error ?? `HTTP ${res.status}`) }
@@ -83,7 +83,7 @@ export function ProviderAccountsTile() {
   async function toggleAccount(accountId: string, enabled: boolean) {
     setBusyId(accountId)
     try {
-      const res = await fetch('/api/command-center/provider-accounts', {
+      const res = await fetch('/api/command-centre/provider-accounts', {
         method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ accountId, enabled }),
       })
       if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.error ?? `HTTP ${res.status}`) }
@@ -96,7 +96,7 @@ export function ProviderAccountsTile() {
   async function removeAccount(accountId: string) {
     setBusyId(accountId)
     try {
-      const res = await fetch('/api/command-center/provider-accounts', {
+      const res = await fetch('/api/command-centre/provider-accounts', {
         method: 'DELETE', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ accountId }),
       })
       if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.error ?? `HTTP ${res.status}`) }
@@ -109,7 +109,7 @@ export function ProviderAccountsTile() {
   async function testPool() {
     setTesting(true); setTestResult(null)
     try {
-      const res = await fetch('/api/command-center/provider-test', { method: 'POST' })
+      const res = await fetch('/api/command-centre/provider-test', { method: 'POST' })
       const j = await res.json()
       if (j.status === 'ok') setTestResult(`✓ ${j.provider} replied: "${(j.text ?? '').trim().slice(0, 40)}"`)
       else if (j.status === 'queued') setTestResult(`queued — no usable provider (${j.reason ?? ''})`)
