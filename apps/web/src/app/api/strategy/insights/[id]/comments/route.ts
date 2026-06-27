@@ -2,6 +2,7 @@
 // GET  /api/strategy/insights/:id/comments
 // POST /api/strategy/insights/:id/comments
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { createClient } from '@/lib/supabase/server'
@@ -23,7 +24,7 @@ export async function GET(
     .eq('insight_id', id)
     .order('created_at', { ascending: true })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to load comments', { route: 'strategy/insights/[id]/comments' }) }, { status: 500 })
   return NextResponse.json({ comments: data })
 }
 
@@ -35,7 +36,12 @@ export async function POST(
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const { id } = await params
-  const body = await request.json() as { content: string; author?: 'founder' | 'ai' }
+  let body: { content: string; author?: 'founder' | 'ai' }
+  try {
+    body = await request.json() as { content: string; author?: 'founder' | 'ai' }
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
 
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -48,6 +54,6 @@ export async function POST(
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to save comment', { route: 'strategy/insights/[id]/comments' }) }, { status: 500 })
   return NextResponse.json({ comment: data }, { status: 201 })
 }

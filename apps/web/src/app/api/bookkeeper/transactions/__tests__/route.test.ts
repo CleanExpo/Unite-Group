@@ -74,6 +74,7 @@ describe('GET /api/bookkeeper/transactions', () => {
     const res = await GET(req())
     const json = await res.json()
     expect(res.status).toBe(500)
-    expect(json.error).toBe('boom')
+    expect(json.error).toBe('Failed to load transactions')
+    expect(json.error).not.toContain('boom')
   })
 })

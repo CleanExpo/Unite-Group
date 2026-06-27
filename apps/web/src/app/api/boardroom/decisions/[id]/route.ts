@@ -1,6 +1,7 @@
 // src/app/api/boardroom/decisions/[id]/route.ts
 import { NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
+import { sanitiseError } from '@/lib/error-reporting'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,12 +13,17 @@ export async function PATCH(
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const { id } = await params
-  const body = await request.json() as {
+  let body: {
     status?: string
     rationale?: string
     amount_aud?: number
     deadline?: string
     business_key?: string
+  }
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
   // Only allow explicit fields — never spread body directly to prevent field injection
@@ -37,7 +43,7 @@ export async function PATCH(
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to update decision', { route: '/api/boardroom/decisions/[id]' }) }, { status: 500 })
   return NextResponse.json({ decision: data })
 }
 
@@ -51,6 +57,6 @@ export async function DELETE(
   const { id } = await params
   const supabase = await createClient()
   const { error } = await supabase.from('ceo_decisions').update({ status: 'cancelled', updated_at: new Date().toISOString() }).eq('id', id).eq('founder_id', user.id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to delete decision', { route: '/api/boardroom/decisions/[id]' }) }, { status: 500 })
   return NextResponse.json({ success: true })
 }

@@ -1,3 +1,4 @@
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, getUser } from '@/lib/supabase/server'
 
@@ -15,7 +16,7 @@ export async function GET() {
     .eq('founder_id', user.id)
     .order('run_at', { ascending: false })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to load skill health', { route: 'skills/health' }) }, { status: 500 })
 
   // Deduplicate: keep latest per skill_name
   const latest = new Map<string, typeof data[0]>()
@@ -32,7 +33,12 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const supabase = await createClient()
-  const body = await request.json()
+  let body
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
 
   const { skill_name, eval_count, pass_count, pass_rate } = body
 
@@ -52,6 +58,6 @@ export async function POST(request: NextRequest) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to record eval run', { route: 'skills/health' }) }, { status: 500 })
   return NextResponse.json(data, { status: 201 })
 }

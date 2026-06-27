@@ -4,17 +4,23 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { sanitiseError } from '@/lib/error-reporting'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
   // HeyGen sends: { video_id, status, url, thumbnail_url, ... }
-  const payload = await req.json() as {
+  let payload: {
     video_id: string
     status: 'completed' | 'failed' | 'processing'
     url?: string
     thumbnail_url?: string
     error?: string
+  }
+  try {
+    payload = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
   if (!payload.video_id) {
@@ -51,7 +57,7 @@ export async function POST(req: NextRequest) {
 
     if (error) {
       console.error('[HeyGen Webhook] Failed to update job:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ error: sanitiseError(error, 'Failed to update video job', { route: '/api/syntax/webhooks/heygen' }) }, { status: 500 })
     }
 
     // TODO: Trigger FFMPEG compositing (Phase 1)
@@ -74,7 +80,7 @@ export async function POST(req: NextRequest) {
       .eq('id', job.id)
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ error: sanitiseError(error, 'Failed to update video job', { route: '/api/syntax/webhooks/heygen' }) }, { status: 500 })
     }
 
     return NextResponse.json({ received: true, matched: true, status: 'failed' })

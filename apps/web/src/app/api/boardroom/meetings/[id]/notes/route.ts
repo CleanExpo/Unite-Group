@@ -3,6 +3,7 @@
 
 import { NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
+import { sanitiseError } from '@/lib/error-reporting'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,7 +15,12 @@ export async function POST(
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const { id } = await params
-  const body = await request.json() as { content: string }
+  let body: { content: string }
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
   if (!body.content?.trim()) {
     return NextResponse.json({ error: 'content required' }, { status: 400 })
   }
@@ -26,6 +32,6 @@ export async function POST(
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to save meeting note', { route: '/api/boardroom/meetings/[id]/notes' }) }, { status: 500 })
   return NextResponse.json({ note: data }, { status: 201 })
 }

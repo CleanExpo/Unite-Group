@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
       })
       .select('id')
       .single()
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return NextResponse.json({ error: sanitiseError(error, 'create failed', { route: '/api/command-centre/provider-accounts' }) }, { status: 500 })
 
     return NextResponse.json({ ok: true, accountId: data?.id }, { status: 201 })
   } catch (err) {

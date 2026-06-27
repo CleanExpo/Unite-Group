@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { sanitiseError } from '@/lib/error-reporting'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,7 +31,7 @@ export async function GET(request: Request) {
   if (platform && platform !== 'all') query = query.eq('platform', platform)
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to load analytics', { route: '/api/analytics' }) }, { status: 500 })
 
   // Map snake_case → camelCase
   const rows = (data ?? []).map((row) => ({

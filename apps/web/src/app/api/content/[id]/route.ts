@@ -4,6 +4,7 @@
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { sanitiseError } from '@/lib/error-reporting'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,7 +37,12 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const { id } = await params
-  const rawBody = (await request.json()) as Record<string, unknown>
+  let rawBody: Record<string, unknown>
+  try {
+    rawBody = (await request.json()) as Record<string, unknown>
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
 
   // Allowlist writable fields — prevents mass-assignment via unsanitised body
   const ALLOWED: Array<keyof typeof rawBody> = ['status', 'title', 'body', 'metadata']
@@ -52,7 +58,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     .single()
 
   if (error || !data) {
-    return NextResponse.json({ error: error?.message ?? 'Update failed' }, { status: 500 })
+    return NextResponse.json({ error: sanitiseError(error, 'Failed to update content', { route: '/api/content/[id]' }) }, { status: 500 })
   }
 
   return NextResponse.json({ content: data })
@@ -71,7 +77,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     .eq('founder_id', user.id)
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: sanitiseError(error, 'Failed to delete content', { route: '/api/content/[id]' }) }, { status: 500 })
   }
 
   return NextResponse.json({ status: 'deleted' })

@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
+import { sanitiseError } from '@/lib/error-reporting'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest) {
   }
 
   const { data, error, count } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to load video jobs', { route: '/api/video/jobs' }) }, { status: 500 })
 
   return NextResponse.json({ jobs: data ?? [], count: count ?? 0, offset, limit })
 }
