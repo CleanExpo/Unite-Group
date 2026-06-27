@@ -46,4 +46,34 @@ describe('DigestBanner', () => {
     expect(digestText).not.toContain(card)
     expect(digestText).toContain('[REDACTED]')
   })
+
+  it('redacts unquoted HTTP header values with spaces from attention copy', async () => {
+    const headerName = ['X', 'Access', 'Token'].join('-')
+    const headerValue = ['unquoted', 'banner', 'fixture', 'with', 'spaces'].join(' ')
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          digest: {
+            generatedAt: '2026-06-27T12:15:00Z',
+            tasks: { total: 1, needsDecision: 1, queued: 0, blocked: 0, failed: 0, done: 0 },
+            sessions: { total: 1 },
+            headline: 'Header rotation required',
+            attention: [`Check --header ${headerName}: ${headerValue}; then refresh the banner.`],
+          },
+        }),
+      })),
+    )
+
+    render(<DigestBanner />)
+
+    await waitFor(() => expect(screen.getByText('Morning Digest')).toBeTruthy())
+
+    const digestText = document.body.textContent ?? ''
+    expect(digestText).not.toContain(headerValue)
+    expect(digestText).toContain(`--header ${headerName}: [REDACTED]; then refresh the banner.`)
+  })
 })
