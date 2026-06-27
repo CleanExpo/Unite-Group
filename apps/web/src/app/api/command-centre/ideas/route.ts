@@ -12,6 +12,7 @@
 // user.id). Honours the friction model: a new idea is a PROPOSAL, gated by the
 // board before any promotion.
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { createTask, appendTaskEvent, addEvidenceRecord } from '@/lib/command-centre/tasks'
@@ -83,7 +84,7 @@ export async function POST(request: Request) {
     })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Failed to create idea task' },
+      { error: sanitiseError(err, 'Failed to create idea task') },
       { status: 500 },
     )
   }

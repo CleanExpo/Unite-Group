@@ -15,6 +15,7 @@
 // Auth-gated (Supabase getUser; unauth → 401). Founder-scoped. The board GATES
 // promotion — nothing is executed here; sub-tasks are created as `proposed`.
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
 import {
@@ -91,7 +92,7 @@ export async function POST(request: Request) {
     })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Board review failed' },
+      { error: sanitiseError(err, 'Board review failed') },
       { status: 502 },
     )
   }
@@ -137,7 +138,7 @@ export async function POST(request: Request) {
     })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Failed to persist decision' },
+      { error: sanitiseError(err, 'Failed to persist decision') },
       { status: 500 },
     )
   }

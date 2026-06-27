@@ -2,6 +2,7 @@
 // Auth-gated by the existing Supabase session pattern; unauthenticated -> 401.
 // This endpoint NEVER invokes a tool — it only lists discovered sources.
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { getToolCatalogue } from '@/lib/command-centre/tools/catalogue'
@@ -16,7 +17,7 @@ export async function GET() {
     const tools = await getToolCatalogue()
     return NextResponse.json({ tools, count: tools.length })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to load tool catalogue'
+    const message = sanitiseError(error, 'Failed to load tool catalogue')
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

@@ -104,7 +104,8 @@ describe('POST /api/command-centre/board', () => {
     const res = await POST(postReq({ subject: 'New feature', brief: 'Build search capability' }))
     expect(res.status).toBe(502)
     const body = await res.json()
-    expect(body.error).toBe('AI timeout')
+    expect(body.error).toBe('Board review failed') // sanitised — raw error not leaked
+    expect(body.error).not.toContain('AI timeout')
   })
 
   it('decomposes idea into subtasks when APPROVED with taskId', async () => {
