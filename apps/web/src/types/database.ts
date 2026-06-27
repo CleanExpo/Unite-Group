@@ -5347,6 +5347,101 @@ export type Database = {
         }
         Relationships: []
       }
+      drip_campaigns: {
+        Row: {
+          body_html: string
+          body_text: string | null
+          business_key: string
+          created_at: string
+          founder_id: string
+          id: string
+          metadata: Json
+          name: string
+          source: string
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          body_html: string
+          body_text?: string | null
+          business_key: string
+          created_at?: string
+          founder_id: string
+          id?: string
+          metadata?: Json
+          name: string
+          source?: string
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          body_html?: string
+          body_text?: string | null
+          business_key?: string
+          created_at?: string
+          founder_id?: string
+          id?: string
+          metadata?: Json
+          name?: string
+          source?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      drip_steps: {
+        Row: {
+          body_html: string
+          body_text: string | null
+          campaign_id: string
+          created_at: string
+          delay_minutes: number
+          founder_id: string
+          id: string
+          metadata: Json
+          step_order: number
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          body_html: string
+          body_text?: string | null
+          campaign_id: string
+          created_at?: string
+          delay_minutes?: number
+          founder_id: string
+          id?: string
+          metadata?: Json
+          step_order: number
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          body_html?: string
+          body_text?: string | null
+          campaign_id?: string
+          created_at?: string
+          delay_minutes?: number
+          founder_id?: string
+          id?: string
+          metadata?: Json
+          step_order?: number
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drip_steps_campaign_id_founder_id_fkey"
+            columns: ["campaign_id", "founder_id"]
+            isOneToOne: false
+            referencedRelation: "drip_campaigns"
+            referencedColumns: ["id", "founder_id"]
+          },
+        ]
+      }
       email_campaigns: {
         Row: {
           body_html: string
