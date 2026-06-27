@@ -98,7 +98,7 @@ products:
       production:
         project_id: prj_IfUuJNLjXTE8VXqEGwLAleIGhiA0
         project_name: unite-group
-        domain: unite-group.vercel.app
+        domain: unite-group.in  # live, HTTP 200 — verified 2026-06-27 (apex; the 'unite-group' Vercel project). Was wrongly unite-group.vercel.app.
       sandbox:
         project_id: prj_NigC5gA17UvX46n7YBUYSxM1vOh9
         project_name: unite-group-sandbox
@@ -143,7 +143,7 @@ products:
       production:
         project_id: prj_Aw90JJ2x7mTMatTxa3ymgcU7WPV2
         project_name: restoreassist
-        domain: TBD
+        domain: restoreassist.app  # live, HTTP 200 — verified 2026-06-27. NOTE: NOT .com.au.
       sandbox:
         project_id: prj_i9clta3fzdpQwNhVmf9BMMddpG3k
         project_name: restoreassist-sandbox
@@ -177,7 +177,7 @@ products:
       production:
         project_id: prj_dvNqTXXZxYENjFozhFnqIO72ABhW
         project_name: disaster-recovery
-        domain: TBD
+        domain: disasterrecovery.com.au  # live, HTTP 200 — verified 2026-06-27
       sandbox:
         project_id: prj_hi5XYbVqqOHR20MIZpYMaU4lkKDU
         project_name: disaster-recovery-sandbox
@@ -211,7 +211,7 @@ products:
       production:
         project_id: prj_15zLJSeVhpqXcWf1s2U1fHdIHOtw
         project_name: dr-nrpg-platform
-        domain: TBD
+        domain: nrpg.business  # live, HTTP 200 — verified 2026-06-27
       sandbox:
         project_id: prj_RacaZ1ye4Fo27SF0CuaDPzRpDwC7
         project_name: dr-nrpg-sandbox
@@ -245,7 +245,7 @@ products:
       production:
         project_id: prj_oTCifkMVqP1NFoTJFBv6u82JmBYd
         project_name: ccw-crm-web
-        domain: TBD
+        domain: ccw-crm-web.vercel.app  # CRM/ERP app — live, HTTP 200, verified 2026-06-27 (no custom domain yet). NOTE: the public e-commerce storefront for this business (Carpet Cleaners Warehouse) is https://ccwonline.com.au — do NOT confuse the two. ccw.com.au is squatted, never use it.
       sandbox:
         project_id: prj_8fNWSeOAy2mlSfkjllpWlb4TCQmM
         project_name: ccw-crm-sandbox
@@ -279,7 +279,7 @@ products:
       production:
         project_id: prj_gbQmHn6quoHgG3AswRrDoUlYaF40
         project_name: synthex
-        domain: TBD
+        domain: synthex.social  # live, HTTP 200 — verified 2026-06-27
       sandbox:
         project_id: prj_aqX9iatkxcEfnjPdvH2ceEsDNMI9
         project_name: synthex-sandbox
@@ -314,7 +314,7 @@ products:
       production:
         project_id: prj_vP8AEIPZmIu1Q3eB6y3qUAUQ20EJ
         project_name: ato-app
-        domain: TBD
+        domain: ato-ai.app  # live, HTTP 200 — verified 2026-06-27
       sandbox:
         project_id: prj_SRWTP5jxsXkRePQTveq44Y0BgQSG
         project_name: ato-app-sandbox
@@ -346,7 +346,7 @@ products:
       production:
         project_id: prj_hIQAdXiHQGGec6nNKEGzn7SyMh9p
         project_name: carsi-web
-        domain: TBD
+        domain: carsi.com.au  # live, HTTP 200 — verified 2026-06-27
       sandbox:
         project_id: prj_Mraqucm5kTHqrkXWeJLTjc3uMKwc
         project_name: carsi-web-sandbox
@@ -425,7 +425,7 @@ products:
       production:
         project_id: prj_I5sYqNTlL51DlvyzSFjiHX6FrLAX
         project_name: pi-dev-ops
-        domain: TBD
+        domain: pi-dev-ops.vercel.app  # live, HTTP 200 — verified 2026-06-27
       sandbox:
         project_id: prj_QTE4TmM8vBd18lQ63jNw3oJAAPqX
         project_name: pi-dev-ops-sandbox
@@ -458,7 +458,7 @@ products:
       production:
         project_id: prj_oOqmFFnJGCp2pvrZkNgpcg8qk6rD
         project_name: live-nexus
-        domain: TBD
+        domain: live.unite-group.ink  # Nexus / Live-Nexus surface — live, HTTP 200 — verified 2026-06-27. Distinct from the unite-group.in apex (Authority-Site project above).
       sandbox:
         project_id: null
         project_name: live-nexus-sandbox
