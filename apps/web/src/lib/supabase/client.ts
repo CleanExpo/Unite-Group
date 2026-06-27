@@ -7,8 +7,9 @@
  */
 
 import { createBrowserClient } from '@supabase/ssr';
+import type { Database } from '@/types/database';
 
-let supabaseClient: ReturnType<typeof createBrowserClient> | null = null;
+let supabaseClient: ReturnType<typeof createBrowserClient<Database>> | null = null;
 
 export function createClient() {
   if (supabaseClient) {
@@ -24,14 +25,14 @@ export function createClient() {
     );
   }
 
-  supabaseClient = createBrowserClient(supabaseUrl, supabaseAnonKey);
+  supabaseClient = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
 
   return supabaseClient;
 }
 
 // Export singleton for convenience
-export const supabaseBrowser = new Proxy({} as ReturnType<typeof createBrowserClient>, {
+export const supabaseBrowser = new Proxy({} as ReturnType<typeof createBrowserClient<Database>>, {
   get(target, prop) {
-    return createClient()[prop as keyof ReturnType<typeof createBrowserClient>];
+    return createClient()[prop as keyof ReturnType<typeof createBrowserClient<Database>>];
   },
 });
