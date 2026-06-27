@@ -11956,6 +11956,53 @@ export type Database = {
           },
         ]
       }
+      strategy_insight_issues: {
+        Row: {
+          acceptance_criteria: string
+          autonomous: boolean
+          created_at: string
+          evidence_ids: string[]
+          founder_id: string
+          id: string
+          insight_id: string
+          linear_issue_id: string
+          linear_issue_url: string | null
+          team_key: string
+        }
+        Insert: {
+          acceptance_criteria: string
+          autonomous?: boolean
+          created_at?: string
+          evidence_ids?: string[]
+          founder_id: string
+          id?: string
+          insight_id: string
+          linear_issue_id: string
+          linear_issue_url?: string | null
+          team_key: string
+        }
+        Update: {
+          acceptance_criteria?: string
+          autonomous?: boolean
+          created_at?: string
+          evidence_ids?: string[]
+          founder_id?: string
+          id?: string
+          insight_id?: string
+          linear_issue_id?: string
+          linear_issue_url?: string | null
+          team_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strategy_insight_issues_insight_id_fkey"
+            columns: ["insight_id"]
+            isOneToOne: true
+            referencedRelation: "strategy_insights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       strategy_insights: {
         Row: {
           body: string
