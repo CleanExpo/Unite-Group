@@ -33,33 +33,56 @@ an out-of-band worker runs the pipeline.
 
 ## The image-adapter seam (important)
 
-The per-beat image step in the local skill uses **margot**, a local-only MCP.
-It is **not reachable from a server or cron process**. The worker therefore calls
-an adapter, `generateImage(prompt, style)`, which posts to a remote HTTP image API
-defined by env:
+The per-beat image step in the local skill uses **margot**, a local-only MCP that
+is **not reachable from a server or cron process**. The worker therefore calls an
+adapter, `generateImage(prompt, style)`, with two paths:
 
-- `IMAGE_API_URL` — endpoint that accepts `{ prompt, negative_prompt, width,
-  height }` and returns PNG bytes.
-- `IMAGE_API_KEY` — optional bearer token for that endpoint.
+- **Default (prod):** shells to the vendored Gemini "nano-banana" adapter
+  `.claude/skills/brand-video/pipeline/image_gen.py`, using `GEMINI_API_KEY`. This
+  is the validated end-to-end path (`gemini-2.5-flash-image`, native 16:9 PNG over
+  HTTPS) — the same model family that produced the proven look.
+- **Optional override:** set `IMAGE_API_URL` (+ optional `IMAGE_API_KEY`) to POST
+  the styled prompt to a custom HTTP image endpoint that returns PNG bytes.
 
-If `IMAGE_API_URL` is **absent**, the worker does **not fail** — it marks the job
-`needs_local_render` (and stops before spending TTS), signalling that the operator
-should finish that job locally with the `/brand-video` skill + margot. Wiring a
-remote image API (e.g. a hosted SDXL / Nano-Banana endpoint) is the one follow-up
-needed for full server-side rendering.
+If image generation fails (e.g. `GEMINI_API_KEY` missing or an API error), the job
+is marked `failed` with the error — it no longer parks at `needs_local_render`.
 
-## Running the worker
+## Worker host — GitHub Actions (prod render)
+
+A Vercel function can't run ffmpeg or long jobs, so the worker runs in GitHub
+Actions where ffmpeg exists: `.github/workflows/brand-video-render.yml`
+(`workflow_dispatch` + `schedule` every ~5 min). Each run installs ffmpeg + Node +
+Python, installs `apps/web` deps, then runs the worker to claim and render one
+queued job, uploading the mp4 to `BRAND_VIDEO_BUCKET` and setting
+`status=done` + `output_url`.
+
+### Required GitHub Actions secrets (repo Settings → Secrets and variables → Actions)
+
+| Secret | Purpose |
+| --- | --- |
+| `GEMINI_API_KEY` | Gemini "nano-banana" image generation |
+| `ELEVENLABS_API_KEY` | ElevenLabs TTS |
+| `ELEVENLABS_VOICE_ID` | ElevenLabs voice (per-brand) |
+| `SUPABASE_URL` | Supabase project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service-role key (claim jobs + write back, RLS bypass) |
+| `BRAND_VIDEO_BUCKET` | Name of the Supabase Storage bucket for final mp4s |
+
+Also create the **Supabase Storage bucket** named by `BRAND_VIDEO_BUCKET` (public,
+so `getPublicUrl` returns a usable `output_url`). Without it the worker falls back
+to a local file path for `output_url`.
+
+## Running the worker locally
 
 ```bash
-# one job per invocation — wire to cron for a loop
+# one job per invocation
 cd apps/web && set -a && . .env.local && set +a && node scripts/brand-video-worker.mjs
 ```
 
-Required env: `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
-`ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`. Optional: `IMAGE_API_URL`,
-`IMAGE_API_KEY`, `BRAND_VIDEO_BUCKET` (Supabase Storage bucket for the final mp4;
-without it `output_url` is the local file path), `BRAND_VIDEO_OUT_DIR`. Requires
-`ffmpeg` / `ffprobe` on `PATH`.
+Required env: `NEXT_PUBLIC_SUPABASE_URL` (or `SUPABASE_URL`),
+`SUPABASE_SERVICE_ROLE_KEY`, `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`,
+`GEMINI_API_KEY`. Optional: `IMAGE_API_URL` / `IMAGE_API_KEY` (override),
+`BRAND_VIDEO_BUCKET`, `BRAND_VIDEO_OUT_DIR`. Requires `ffmpeg` / `ffprobe` and
+`python3` on `PATH`.
 
 ## Applying the migration
 

@@ -14,17 +14,19 @@
  *   NEXT_PUBLIC_SUPABASE_URL (or SUPABASE_URL)
  *   SUPABASE_SERVICE_ROLE_KEY        — worker writes back via service_role (RLS bypass)
  *   ELEVENLABS_API_KEY, ELEVENLABS_VOICE_ID
+ *   GEMINI_API_KEY                   — default image adapter (see below)
  *
- * Image adapter seam (the load-bearing bit):
+ * Image adapter seam:
  *   margot (the local image MCP) is NOT reachable from a server/cron process.
- *   The per-beat image step therefore goes through generateImage(prompt, style),
- *   which calls a remote HTTP image API defined by IMAGE_API_URL (+ optional
- *   IMAGE_API_KEY). If IMAGE_API_URL is absent the worker marks the job
- *   'needs_local_render' (so the operator can finish it locally with margot)
- *   instead of failing. See src/lib/brand-video/README.md.
+ *   The per-beat image step goes through generateImage(prompt, style), which by
+ *   default shells to the vendored Gemini "nano-banana" adapter
+ *   (.claude/skills/brand-video/pipeline/image_gen.py, GEMINI_API_KEY) — the
+ *   validated prod path that returns a native 16:9 PNG over HTTPS. Optionally,
+ *   set IMAGE_API_URL to POST the styled prompt to a custom HTTP image endpoint
+ *   instead. See src/lib/brand-video/README.md.
  *
  * Optional env:
- *   IMAGE_API_URL, IMAGE_API_KEY     — remote image generator (see generateImage)
+ *   IMAGE_API_URL, IMAGE_API_KEY     — override: custom HTTP image generator
  *   BRAND_VIDEO_BUCKET               — Supabase Storage bucket for the final mp4
  *   BRAND_VIDEO_OUT_DIR              — local work dir (default ./.brand-video-out)
  */
@@ -32,11 +34,18 @@
 import { createClient } from '@supabase/supabase-js';
 import { spawn } from 'node:child_process';
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const OUT_DIR = process.env.BRAND_VIDEO_OUT_DIR || path.resolve('.brand-video-out');
+
+// apps/web/scripts -> repo root -> the vendored /brand-video skill's prod image
+// adapter (Gemini "nano-banana" over HTTPS; runs server-side, unlike margot).
+const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = path.resolve(SCRIPT_DIR, '../../..');
+const IMAGE_GEN_PY = path.join(REPO_ROOT, '.claude/skills/brand-video/pipeline/image_gen.py');
 
 // Style POSITIVE/NEGATIVE tokens mirror .claude/skills/brand-video/styles.md.
 const STYLE_TOKENS = {
@@ -83,33 +92,39 @@ function beatsFromTopic(topic) {
 }
 
 /**
- * Image adapter seam. Returns the saved PNG path, or throws NEEDS_LOCAL_RENDER
- * when no remote image API is configured (margot is local-only — not reachable
- * from a server/cron process).
+ * Image adapter seam. Returns the saved PNG path for one beat.
+ *
+ * Default: the validated prod adapter — shells to the vendored Gemini
+ * "nano-banana" script (GEMINI_API_KEY), which returns a native 16:9 PNG and
+ * works server-side (unlike the local margot MCP). Optional override: set
+ * IMAGE_API_URL to POST the styled prompt to a custom HTTP image endpoint.
  */
 async function generateImage(prompt, style, outPath) {
-  if (!process.env.IMAGE_API_URL) {
-    const err = new Error('No IMAGE_API_URL configured — per-beat image step needs local margot');
-    err.code = 'NEEDS_LOCAL_RENDER';
-    throw err;
-  }
   const tokens = STYLE_TOKENS[style] || STYLE_TOKENS['flat-line'];
-  const res = await fetch(process.env.IMAGE_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(process.env.IMAGE_API_KEY ? { Authorization: `Bearer ${process.env.IMAGE_API_KEY}` } : {}),
-    },
-    body: JSON.stringify({
-      prompt: `${tokens.positive}. Scene: ${prompt}`,
-      negative_prompt: tokens.negative,
-      width: 1920,
-      height: 1080,
-    }),
-  });
-  if (!res.ok) throw new Error(`Image API ${res.status}: ${await res.text()}`);
-  const buf = Buffer.from(await res.arrayBuffer());
-  await writeFile(outPath, buf);
+  const fullPrompt = `${tokens.positive}. Scene: ${prompt}. Avoid: ${tokens.negative}.`;
+
+  // Optional override: custom HTTP image API.
+  if (process.env.IMAGE_API_URL) {
+    const res = await fetch(process.env.IMAGE_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(process.env.IMAGE_API_KEY ? { Authorization: `Bearer ${process.env.IMAGE_API_KEY}` } : {}),
+      },
+      body: JSON.stringify({
+        prompt: fullPrompt,
+        negative_prompt: tokens.negative,
+        width: 1920,
+        height: 1080,
+      }),
+    });
+    if (!res.ok) throw new Error(`Image API ${res.status}: ${await res.text()}`);
+    await writeFile(outPath, Buffer.from(await res.arrayBuffer()));
+    return outPath;
+  }
+
+  // Default: Gemini "nano-banana" adapter from the vendored /brand-video skill.
+  await run('python3', [IMAGE_GEN_PY, fullPrompt, outPath]);
   return outPath;
 }
 
@@ -217,8 +232,8 @@ async function main() {
   try {
     const beats = beatsFromTopic(job.topic);
 
-    // Image step first — it carries the local-render seam, so we fail fast and
-    // cheap (before TTS) when margot/IMAGE_API_URL is unavailable.
+    // Image step first — fail fast and cheap (before TTS) if image generation
+    // errors (e.g. GEMINI_API_KEY missing or an image API error).
     const images = [];
     for (let i = 0; i < beats.length; i++) {
       const out = path.join(workDir, 'images', `${String(i + 1).padStart(2, '0')}.png`);
@@ -235,14 +250,6 @@ async function main() {
       .eq('id', job.id);
     console.log(`Done: ${outputUrl}`);
   } catch (err) {
-    if (err && err.code === 'NEEDS_LOCAL_RENDER') {
-      await supabase
-        .from('brand_video_jobs')
-        .update({ status: 'needs_local_render', error: err.message })
-        .eq('id', job.id);
-      console.log(`Job ${job.id} -> needs_local_render (${err.message})`);
-      return;
-    }
     await supabase
       .from('brand_video_jobs')
       .update({ status: 'failed', error: String(err && err.message ? err.message : err) })
