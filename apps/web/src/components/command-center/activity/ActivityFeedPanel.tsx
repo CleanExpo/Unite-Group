@@ -2,7 +2,7 @@
 
 // ActivityFeedPanel — live wiring for the agent activity feed (UNI-2137).
 //
-// Fetches /api/command-center/activity-feed on mount and polls every 15s,
+// Fetches /api/command-centre/activity-feed on mount and polls every 15s,
 // then hands the derived rows to ActivityLog. On a 503 or a fetch failure it
 // shows the DegradedDataBanner and ActivityLog falls back to its honest empty
 // `seed` state (no fabricated rows). Mirrors the poll/degrade pattern used by
@@ -31,7 +31,7 @@ export function ActivityFeedPanel() {
 
     async function loadActivity() {
       try {
-        const res = await fetch('/api/command-center/activity-feed', { cache: 'no-store' })
+        const res = await fetch('/api/command-centre/activity-feed', { cache: 'no-store' })
         if (!res.ok) throw new Error(`activity_feed_http_${res.status}`)
         const body = (await res.json()) as ActivityFeedPayload
         if (cancelled) return

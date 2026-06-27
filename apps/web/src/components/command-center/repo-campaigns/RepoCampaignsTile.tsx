@@ -56,7 +56,7 @@ export function RepoCampaignsTile() {
     let alive = true
     async function load() {
       try {
-        const res = await fetch('/api/command-center/repo-campaigns')
+        const res = await fetch('/api/command-centre/repo-campaigns')
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const data = (await res.json()) as RepoCampaignsPayload
         if (alive) { setPayload(data); setError(null) }
