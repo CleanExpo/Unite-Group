@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { getUser } from '@/lib/supabase/server';
+import { sanitiseError } from '@/lib/error-reporting';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,7 +51,7 @@ export async function GET(req: NextRequest) {
         { status: 200, headers: { 'Cache-Control': 'no-store' } },
       );
     }
-    return NextResponse.json({ messages: [], error: error.message }, { status: 500 });
+    return NextResponse.json({ messages: [], error: sanitiseError(error, 'Failed to load Telegram feed', { route: '/api/telegram/feed' }) }, { status: 500 });
   }
 
   interface TelegramRow {

@@ -11,6 +11,7 @@
 
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { sanitiseError } from '@/lib/error-reporting'
 import { fetchIssueCountByBusiness } from '@/lib/integrations/linear'
 import { fetchLastCommit, parseRepoUrl } from '@/lib/integrations/github'
 import { BUSINESSES } from '@/lib/businesses'
@@ -212,14 +213,14 @@ export async function GET(request: Request) {
 
       if (error) {
         console.error(`[Hub Sweep] Upsert failed for ${business.key}:`, error.message)
-        results.push({ businessKey: business.key, status: 'error', error: error.message })
+        results.push({ businessKey: business.key, status: 'error', error: sanitiseError(error, 'Failed to run hub sweep', { route: '/api/cron/hub-sweep', businessKey: business.key }) })
       } else {
         results.push({ businessKey: business.key, status: 'ok' })
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'unknown error'
       console.error(`[Hub Sweep] Error processing ${business.key}:`, msg)
-      results.push({ businessKey: business.key, status: 'error', error: msg })
+      results.push({ businessKey: business.key, status: 'error', error: sanitiseError(err, 'Failed to run hub sweep', { route: '/api/cron/hub-sweep', businessKey: business.key }) })
     }
   }
 

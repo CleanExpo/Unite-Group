@@ -3,6 +3,7 @@
 // POST /api/strategy/insights/:id/create-issue — create a Linear issue from the
 //   insight and record the work→task bridge link (B8).
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { createClient } from '@/lib/supabase/server'
@@ -35,7 +36,7 @@ export async function GET(
     .eq('insight_id', id)
     .maybeSingle()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to load issue link', { route: 'strategy/insights/[id]/create-issue' }) }, { status: 500 })
   return NextResponse.json({ link: data })
 }
 
@@ -47,10 +48,19 @@ export async function POST(
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const { id } = await params
-  const body = (await request.json()) as {
+  let body: {
     acceptanceCriteria?: string
     evidenceIds?: string[]
     autonomous?: boolean
+  }
+  try {
+    body = (await request.json()) as {
+      acceptanceCriteria?: string
+      evidenceIds?: string[]
+      autonomous?: boolean
+    }
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
   const acceptanceCriteria = body.acceptanceCriteria?.trim()
@@ -114,8 +124,7 @@ export async function POST(
       labelNames,
     })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Failed to create Linear issue.'
-    return NextResponse.json({ error: message }, { status: 502 })
+    return NextResponse.json({ error: sanitiseError(e, 'Failed to create Linear issue.', { route: 'strategy/insights/[id]/create-issue' }) }, { status: 502 })
   }
 
   const { data: link, error: linkError } = await supabase
@@ -132,7 +141,7 @@ export async function POST(
     })
     .select()
     .single()
-  if (linkError) return NextResponse.json({ error: linkError.message }, { status: 500 })
+  if (linkError) return NextResponse.json({ error: sanitiseError(linkError, 'Failed to create issue', { route: 'strategy/insights/[id]/create-issue' }) }, { status: 500 })
 
   // Advance the insight to "acting" — it now has work attached.
   if (insight.status === 'new' || insight.status === 'reviewing') {

@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getUser, createClient } from '@/lib/supabase/server';
+import { sanitiseError } from '@/lib/error-reporting';
 import { BRAND_VIDEO_STYLE_KEYS, DEFAULT_BRAND_VIDEO_STYLE } from '@/lib/brand-video/styles';
 
 export const dynamic = 'force-dynamic';
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
     .select('id, status')
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to queue brand video job', { route: '/api/brand-video/generate' }) }, { status: 500 });
 
   return NextResponse.json({ jobId: data.id, status: data.status }, { status: 201 });
 }

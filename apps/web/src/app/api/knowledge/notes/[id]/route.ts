@@ -3,6 +3,7 @@
 
 import { NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
+import { sanitiseError } from '@/lib/error-reporting'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,7 +26,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     if (error.code === 'PGRST116') {
       return NextResponse.json({ error: 'Note not found' }, { status: 404 })
     }
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: sanitiseError(error, 'Failed to load note', { route: '/api/knowledge/notes/[id]' }) }, { status: 500 })
   }
 
   return NextResponse.json(data)

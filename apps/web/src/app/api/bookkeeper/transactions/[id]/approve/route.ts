@@ -1,6 +1,7 @@
 // src/app/api/bookkeeper/transactions/[id]/approve/route.ts
 import { NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
+import { sanitiseError } from '@/lib/error-reporting'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,7 +25,7 @@ export async function POST(
     .eq('id', id)
     .eq('founder_id', user.id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to approve transaction', { route: '/api/bookkeeper/transactions/[id]/approve' }) }, { status: 500 })
 
   return NextResponse.json({ success: true })
 }

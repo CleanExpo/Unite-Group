@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
 import { encrypt, decrypt, type VaultPayload } from '@/lib/vault'
+import { sanitiseError } from '@/lib/error-reporting'
 
 export const dynamic = 'force-dynamic'
 
@@ -59,7 +60,7 @@ export async function DELETE(
     .eq('id', id)
     .eq('founder_id', user.id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to delete vault entry', { route: '/api/vault/entries/[id]' }) }, { status: 500 })
 
   return new NextResponse(null, { status: 204 })
 }
@@ -72,13 +73,18 @@ export async function PATCH(
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const { id } = await params
-  const body = await req.json() as {
+  let body: {
     label?: string
     service?: string
     username?: string
     secret?: string
     notes?: string
     businessKey?: string
+  }
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
   const update: Record<string, unknown> = {}
@@ -115,7 +121,7 @@ export async function PATCH(
     .eq('id', id)
     .eq('founder_id', user.id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to save vault entry', { route: '/api/vault/entries/[id]' }) }, { status: 500 })
 
   return new NextResponse(null, { status: 204 })
 }

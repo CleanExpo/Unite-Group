@@ -1,6 +1,7 @@
 // src/app/api/bookkeeper/runs/route.ts
 import { NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
+import { sanitiseError } from '@/lib/error-reporting'
 import type { RunsResponse, BookkeeperRun } from '@/lib/bookkeeper/types'
 
 export const dynamic = 'force-dynamic'
@@ -27,7 +28,7 @@ export async function GET(request: Request) {
     .order('started_at', { ascending: false })
     .range((page - 1) * pageSize, page * pageSize - 1)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to load runs', { route: '/api/bookkeeper/runs' }) }, { status: 500 })
 
   const runs: BookkeeperRun[] = (data ?? []).map((r) => ({
     id: r.id,

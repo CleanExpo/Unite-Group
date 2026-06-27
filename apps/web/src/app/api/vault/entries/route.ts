@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
 import { encrypt } from '@/lib/vault'
+import { sanitiseError } from '@/lib/error-reporting'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,7 +17,7 @@ export async function GET() {
     .eq('founder_id', user.id)
     .order('created_at', { ascending: true })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to load vault entries', { route: '/api/vault/entries' }) }, { status: 500 })
 
   const entries = (data ?? []).map((row) => ({
     id: row.id,
@@ -35,13 +36,18 @@ export async function POST(req: NextRequest) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
-  const body = await req.json() as {
+  let body: {
     businessKey: string
     label: string
     service: string
     username?: string
     secret: string
     notes?: string
+  }
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
   if (!body.label || !body.service || !body.secret) {
@@ -68,7 +74,7 @@ export async function POST(req: NextRequest) {
     .select('id')
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to save vault entry', { route: '/api/vault/entries' }) }, { status: 500 })
 
   return NextResponse.json({ id: data.id }, { status: 201 })
 }
