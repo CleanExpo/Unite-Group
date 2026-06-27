@@ -22,13 +22,15 @@ BEGIN
     EXECUTE 'CREATE INDEX IF NOT EXISTS idx_credentials_vault_service ON public.credentials_vault (founder_id, service)';
   END IF;
 
-  -- nexus_databases — uses owner_id (v1 schema, not yet migrated to founder_id)
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'nexus_databases') THEN
+  -- nexus_databases — owner_id is a v1-schema column; check the COLUMN (not just
+  -- the table) so a clean replay where the table carries the newer founder_id
+  -- schema skips the index instead of erroring on a missing owner_id.
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'nexus_databases' AND column_name = 'owner_id') THEN
     EXECUTE 'CREATE INDEX IF NOT EXISTS idx_nexus_databases_owner ON public.nexus_databases (owner_id, business_id)';
   END IF;
 
-  -- connected_projects — uses owner_id (v1 schema, not yet migrated to founder_id)
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'connected_projects') THEN
+  -- connected_projects — same v1 owner_id guard on the column.
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'connected_projects' AND column_name = 'owner_id') THEN
     EXECUTE 'CREATE INDEX IF NOT EXISTS idx_connected_projects_owner ON public.connected_projects (owner_id)';
   END IF;
 END $$;
