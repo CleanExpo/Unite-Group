@@ -4,7 +4,7 @@
 // Severity vocabulary: running → ink; signal → cyan pip + ink; hush → ink-hush.
 
 import type { ActivityDatum, ActivityOrigin } from './activity-data'
-import styles from '../command-center.module.css'
+import styles from '../command-centre.module.css'
 
 export interface ActivityRowProps {
   data: ActivityDatum

@@ -16,7 +16,7 @@
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { createTask, listTasks, type CommandCentreTask } from '@/lib/command-centre/tasks'
-import { ADD_ON_GATES } from '@/components/command-center/control-panel/control-panel-data'
+import { ADD_ON_GATES } from '@/components/command-centre/control-panel/control-panel-data'
 import {
   ADD_ON_APPROVAL_STATUS,
   addOnExternalRef,

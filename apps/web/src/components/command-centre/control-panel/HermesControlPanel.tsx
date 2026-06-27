@@ -10,7 +10,7 @@ import {
   type ControlWorkstream,
 } from './control-panel-data'
 import { mapAddOnResult, type AddOnOutcome } from './add-on-result'
-import styles from '../command-center.module.css'
+import styles from '../command-centre.module.css'
 import { SourceBadge } from '../SourceBadge'
 import { DegradedDataBanner } from '../DegradedDataBanner'
 
