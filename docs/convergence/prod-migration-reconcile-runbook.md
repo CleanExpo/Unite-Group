@@ -8,15 +8,16 @@
 
 ## Critical safety finding — do NOT run `supabase db push`
 
-`supabase migration list --linked` shows the history is **diverged in both directions**:
+`supabase migration list --linked` shows the history is **diverged in both directions** (verified
+counts, 2026-06-27: **57 local-only, 95 prod-only, 3 aligned**):
 
-- ~15 local migrations are absent from prod (Local-only): incl. `20260612000000`, `20260617*`,
+- 57 local migrations are absent from prod (Local-only): incl. `20260612000000`, `20260617*`,
   `20260618*`, `20260620*`, **`20260622000000_nexus_routing_audit`**, `20260623000000`,
-  `20260626060000`, `20260627000000`, `20260627010000`.
-- Dozens of prod-only migrations aren't local: `00000000000000`, `001`–`036`, `20260603034518`,
+  `20260626060000`, `20260627000000`, `20260627010000` (and ~48 more).
+- 95 prod-only migrations aren't local: `00000000000000`, `001`–`036`, `20260603034518`,
   `20260609*`, `20260615*`, `20260627034723`, …
 
-➡ **`supabase db push --linked` would attempt to push all ~15 local-only migrations to the shared
+➡ **`supabase db push --linked` would attempt to push all 57 local-only migrations to the shared
 1747-table prod DB**, not just the table you want. Use the surgical steps below instead. These two
 fixes resolve only the two named symptoms; they do NOT reconcile the full bidirectional drift (a
 larger, separate effort — see "Deferred" at the bottom).
