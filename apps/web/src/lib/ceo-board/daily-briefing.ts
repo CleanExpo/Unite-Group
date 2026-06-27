@@ -22,7 +22,7 @@ export interface BriefingInput {
   linearOverdue: LinearIssueWithDue[]   // issues where dueDate < today
   githubCommits: GitHubCommitSummary[]
   githubPRs: GitHubPRSummary[]
-  xeroSummary: Array<{ businessKey: string; revenueAud: number; expensesAud: number; growth: number }>
+  xeroSummary: Array<{ businessKey: string; revenueAud: number; expensesAud: number; growth: number; source?: 'xero' | 'mock' }>
   openDecisions: number  // count of open ceo_decisions
   githubConfigured: boolean
 }
@@ -218,11 +218,13 @@ function buildGitHubBlock(input: BriefingInput): string {
   return lines.join('\n')
 }
 
-function buildXeroBlock(input: BriefingInput): string {
+export function buildXeroBlock(input: BriefingInput): string {
   if (input.xeroSummary.length === 0) return 'No Xero data available'
-  return input.xeroSummary
-    .map((x) => `${x.businessKey.toUpperCase()}: Revenue AUD $${(x.revenueAud / 100).toLocaleString('en-AU')} | Expenses AUD $${(x.expensesAud / 100).toLocaleString('en-AU')} | Growth ${x.growth > 0 ? '+' : ''}${x.growth}% MoM`)
-    .join('\n')
+  const hasMock = input.xeroSummary.some((x) => x.source === 'mock')
+  const lines = input.xeroSummary
+    .map((x) => `${x.businessKey.toUpperCase()}: Revenue AUD $${(x.revenueAud / 100).toLocaleString('en-AU')} | Expenses AUD $${(x.expensesAud / 100).toLocaleString('en-AU')} | Growth ${x.growth > 0 ? '+' : ''}${x.growth}% MoM${x.source === 'mock' ? ' (DEMO — Xero not connected, placeholder figures)' : ''}`)
+  if (hasMock) lines.unshift('NOTE: lines marked (DEMO) are placeholder figures, not real revenue — do not base decisions on them.')
+  return lines.join('\n')
 }
 
 function buildCoachBlock(input: BriefingInput): string {
