@@ -1,3 +1,4 @@
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextRequest, NextResponse } from 'next/server'
 import { runBookkeeperDryRun } from '@/lib/bookkeeper/dry-run'
 import { getUser } from '@/lib/supabase/server'
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result)
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown dry-run error' },
+      { error: sanitiseError(error, 'Unknown dry-run error') },
       { status: 500 },
     )
   }

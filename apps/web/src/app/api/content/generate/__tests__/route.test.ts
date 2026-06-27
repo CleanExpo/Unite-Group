@@ -135,6 +135,7 @@ describe('POST /api/content/generate', () => {
     const res = await POST(postReq({ businessKey: 'dr', contentType: 'social' }))
     expect(res.status).toBe(500)
     const body = await res.json()
-    expect(body.error).toBe('AI down')
+    expect(body.error).toBe('Content generation failed') // sanitised — raw error not leaked
+    expect(body.error).not.toContain('AI down')
   })
 })

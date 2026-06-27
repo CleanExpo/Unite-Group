@@ -2,6 +2,7 @@
 // Vercel CRON — runs every 15 minutes
 // Checks for SYN Linear issues in 'In Review' (Synthex created a PR) and notifies via Slack
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { checkSynthexProgress } from '@/lib/integrations/linear-monitor'
 
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('[Synthex Monitor] Failed:', error)
     return NextResponse.json(
-      { status: 'error', error: error instanceof Error ? error.message : 'Unknown' },
+      { status: 'error', error: sanitiseError(error, 'Unknown') },
       { status: 500 }
     )
   }

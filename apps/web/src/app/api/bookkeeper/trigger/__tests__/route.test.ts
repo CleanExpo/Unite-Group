@@ -9,7 +9,7 @@ vi.mock('@/lib/bookkeeper/orchestrator', () => ({
 vi.mock('@/lib/advisory/auto-trigger', () => ({
   triggerMacasAdvisory: vi.fn().mockResolvedValue(undefined),
 }))
-vi.mock('@/lib/error-reporting', () => ({ captureApiError: vi.fn() }))
+vi.mock('@/lib/error-reporting', () => ({ captureApiError: vi.fn(), sanitiseError: (_e: unknown, msg: string) => msg }))
 
 import { getUser } from '@/lib/supabase/server'
 import { runBookkeeperForAllBusinesses, runBookkeeperForOneBusiness } from '@/lib/bookkeeper/orchestrator'
@@ -90,6 +90,7 @@ describe('POST /api/bookkeeper/trigger', () => {
     expect(res.status).toBe(500)
     const body = await res.json()
     expect(body.success).toBe(false)
-    expect(body.error).toBe('Xero down')
+    expect(body.error).toBe('Unknown error') // sanitised — raw error not leaked
+    expect(body.error).not.toContain('Xero down')
   })
 })

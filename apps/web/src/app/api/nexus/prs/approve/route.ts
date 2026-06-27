@@ -2,6 +2,7 @@
 // Merges a PR via GitHub API (squash merge).
 // Body: { owner: string, repo: string, number: number }
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { mergePR } from '@/lib/nexus/github-prs'
@@ -35,7 +36,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Merge failed' },
+      { error: sanitiseError(err, 'Merge failed') },
       { status: 500 },
     )
   }

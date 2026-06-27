@@ -3,6 +3,7 @@
 // Daily Content Engine CRON — runs at 06:00 AEST (20:00 UTC previous day)
 // Auto-generates social content to fill calendar gaps for all businesses.
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { generateContent } from '@/lib/content/generator'
@@ -160,7 +161,7 @@ export async function GET(request: Request) {
     }).catch(() => {})
 
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Unknown error', durationMs },
+      { success: false, error: sanitiseError(error, 'Unknown error'), durationMs },
       { status: 500 }
     )
   }

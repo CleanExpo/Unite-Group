@@ -6,6 +6,7 @@
 // with config readiness as present/absent booleans only (NO secret leakage).
 // Read-only — makes no Linear mutations. CRON_SECRET-guarded.
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import {
   fetchClaimCandidates,
@@ -84,7 +85,7 @@ export async function GET(request: Request) {
     return NextResponse.json(report)
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'queue health check failed' },
+      { error: sanitiseError(err, 'queue health check failed') },
       { status: 500 },
     )
   }

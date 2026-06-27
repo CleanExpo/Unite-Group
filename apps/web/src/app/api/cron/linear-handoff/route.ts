@@ -18,6 +18,7 @@
 // CRON_SECRET-guarded. Never pushes to git/main — it only updates Linear state.
 // Double-gated exactly like /api/cron/linear-claim (opts.live && CC_LINEAR_LIVE).
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import {
   fetchClaimCandidates,
@@ -113,7 +114,7 @@ export async function GET(request: Request) {
     })
   } catch (err) {
     return NextResponse.json(
-      { ok: false, error: err instanceof Error ? err.message : 'linear handoff failed' },
+      { ok: false, error: sanitiseError(err, 'linear handoff failed') },
       { status: 500 },
     )
   }

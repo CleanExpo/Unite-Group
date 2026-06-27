@@ -234,7 +234,8 @@ describe('GET /api/cron/bookkeeper', () => {
 
     expect(response.status).toBe(500)
     expect(body.success).toBe(false)
-    expect(body.error).toBe('Xero API rate limit exceeded')
+    expect(body.error).toBe('Unknown error') // sanitised — raw error not leaked
+    expect(body.error).not.toContain('rate limit')
     expect(typeof body.durationMs).toBe('number')
   })
 

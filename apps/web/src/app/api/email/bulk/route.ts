@@ -2,6 +2,7 @@
 // POST /api/email/bulk
 // Body: { account, threadIds: string[], action: 'archive'|'delete'|'read'|'unread' }
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { batchModify, deleteThread } from '@/lib/integrations/google'
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('[Email API] bulk action failed:', action, error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Bulk action failed' },
+      { error: sanitiseError(error, 'Bulk action failed') },
       { status: 500 }
     )
   }

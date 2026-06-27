@@ -6,6 +6,7 @@
 // claims and builds → PR. So [Apply] = describe scope → generate → push to
 // the production execution pipeline.
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import type Anthropic from '@anthropic-ai/sdk'
 import { getUser } from '@/lib/supabase/server'
@@ -101,7 +102,7 @@ export async function POST(request: Request) {
       .map((b) => b.text)
       .join('')
   } catch (err) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'AI generation failed' }, { status: 502 })
+    return NextResponse.json({ error: sanitiseError(err, 'AI generation failed') }, { status: 502 })
   }
 
   const tasks = parseTasks(text)
