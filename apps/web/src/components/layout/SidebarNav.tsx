@@ -3,7 +3,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, BookOpen, Columns2, Lock, FileText, ClipboardCheck, Scale, Share2, FlaskConical, Users, Settings, Receipt, Mail, CalendarDays, Brain, Sparkles, BarChart2, Megaphone, ScrollText, Building2, Library, Command, Bot, NotebookText, GitPullRequest } from 'lucide-react'
+import { LayoutDashboard, BookOpen, Columns2, Lock, FileText, ClipboardCheck, Scale, Share2, FlaskConical, Users, Settings, Receipt, Mail, CalendarDays, Brain, Sparkles, BarChart2, Megaphone, ScrollText, Building2, Library, Command, Bot, NotebookText, GitPullRequest, TrendingUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // Grouped into a few clearly-labelled sections so the nav reads as organised,
@@ -30,8 +30,9 @@ const NAV_GROUPS = [
   {
     label: 'Pipeline',
     items: [
-      { href: '/founder/kanban',   label: 'Kanban',   icon: Columns2 },
-      { href: '/founder/contacts', label: 'Contacts', icon: Users },
+      { href: '/founder/kanban',        label: 'Kanban',        icon: Columns2 },
+      { href: '/founder/opportunities', label: 'Opportunities', icon: TrendingUp },
+      { href: '/founder/contacts',      label: 'Contacts',      icon: Users },
       { href: '/founder/email',    label: 'Email',    icon: Mail },
       { href: '/founder/calendar', label: 'Calendar', icon: CalendarDays },
     ],
