@@ -1,4 +1,5 @@
 // POST /api/command-centre/lanes/content/distribute — gated publish of generated content to social posts
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { runContentDistribute } from '@/lib/command-centre/lanes/content-distribute'
@@ -29,7 +30,7 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ result })
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Content distribute failed' },
+      { error: sanitiseError(error, 'Content distribute failed') },
       { status: 500 },
     )
   }

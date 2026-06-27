@@ -12,6 +12,7 @@
 // pushes here (Hermes / cron) is the open decision in the design proposal
 // (docs/superpowers/specs/2026-06-23-signal-ingestion-intake-design.md).
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { createTask, listTasks, appendTaskEvent, addEvidenceRecord } from '@/lib/command-centre/tasks'
@@ -84,7 +85,7 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json(result, { status: result.status === 'created' ? 201 : 200 })
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Signal ingestion failed' },
+      { error: sanitiseError(error, 'Signal ingestion failed') },
       { status: 500 },
     )
   }

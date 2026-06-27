@@ -107,6 +107,7 @@ describe('POST /api/command-center/provider-test', () => {
     expect(res.status).toBe(500)
     const body = (await res.json()) as { status: string; reason: string }
     expect(body.status).toBe('error')
-    expect(body.reason).toBe('boom')
+    expect(body.reason).toBe('test failed') // sanitised — raw error not leaked to client
+    expect(body.reason).not.toContain('boom')
   })
 })

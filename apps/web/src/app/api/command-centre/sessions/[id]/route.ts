@@ -7,6 +7,7 @@
 //     409 { from }               invalid transition for the current status
 // Auth-gated (getUser → 401); founder-scoped by RLS.
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { applySessionAction, SESSION_ACTIONS, type SessionAction } from '@/lib/command-centre/sessions'
@@ -48,7 +49,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ session: outcome.session })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Failed to update session' },
+      { error: sanitiseError(err, 'Failed to update session') },
       { status: 500 },
     )
   }

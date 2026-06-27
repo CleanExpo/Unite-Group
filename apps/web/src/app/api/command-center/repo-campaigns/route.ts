@@ -1,3 +1,4 @@
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { getProjects } from '@/lib/command-centre/registry'
@@ -19,7 +20,7 @@ export async function GET() {
     return NextResponse.json(payload, { headers: { 'Cache-Control': 'no-store' } })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'repo-campaigns failed' },
+      { error: sanitiseError(err, 'repo-campaigns failed') },
       { status: 500 },
     )
   }

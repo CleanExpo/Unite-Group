@@ -54,6 +54,7 @@ describe('GET /api/command-center/repo-campaigns', () => {
     const res = await GET()
     expect(res.status).toBe(500)
     const body = (await res.json()) as { error: string }
-    expect(body.error).toBe('registry exploded')
+    expect(body.error).toBe('repo-campaigns failed') // sanitised — raw error not leaked
+    expect(body.error).not.toContain('registry exploded')
   })
 })

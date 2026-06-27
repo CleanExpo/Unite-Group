@@ -1,3 +1,4 @@
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
 import { makeSupabaseStore, loadAccounts } from '@/lib/provider-pool/repository'
@@ -40,7 +41,7 @@ export async function GET() {
       { headers: { 'Cache-Control': 'no-store' } },
     )
   } catch (err) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'list failed' }, { status: 500 })
+    return NextResponse.json({ error: sanitiseError(err, 'list failed') }, { status: 500 })
   }
 }
 
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true, accountId: data?.id }, { status: 201 })
   } catch (err) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'create failed' }, { status: 500 })
+    return NextResponse.json({ error: sanitiseError(err, 'create failed') }, { status: 500 })
   }
 }
 
@@ -121,7 +122,7 @@ export async function PATCH(request: NextRequest) {
     await store.setAccountEnabled(user.id, v.accountId.trim(), v.enabled)
     return NextResponse.json({ ok: true })
   } catch (err) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'update failed' }, { status: 500 })
+    return NextResponse.json({ error: sanitiseError(err, 'update failed') }, { status: 500 })
   }
 }
 
@@ -149,6 +150,6 @@ export async function DELETE(request: NextRequest) {
     await store.removeAccount(user.id, v.accountId.trim())
     return NextResponse.json({ ok: true })
   } catch (err) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'delete failed' }, { status: 500 })
+    return NextResponse.json({ error: sanitiseError(err, 'delete failed') }, { status: 500 })
   }
 }

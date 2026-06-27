@@ -1,3 +1,4 @@
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
 import { makeSupabaseStore, loadAccounts } from '@/lib/provider-pool/repository'
@@ -49,6 +50,6 @@ export async function POST() {
 
     return NextResponse.json(result, { headers: { 'Cache-Control': 'no-store' } })
   } catch (err) {
-    return NextResponse.json({ status: 'error', reason: err instanceof Error ? err.message : 'test failed' }, { status: 500 })
+    return NextResponse.json({ status: 'error', reason: sanitiseError(err, 'test failed') }, { status: 500 })
   }
 }

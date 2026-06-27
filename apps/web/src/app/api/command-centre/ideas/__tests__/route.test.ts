@@ -59,6 +59,7 @@ describe('POST /api/command-centre/ideas', () => {
     const res = await POST(postReq({ idea: 'Some idea' }))
     expect(res.status).toBe(500)
     const body = await res.json()
-    expect(body.error).toBe('DB error')
+    expect(body.error).toBe('Failed to create idea task') // sanitised — raw error not leaked
+    expect(body.error).not.toContain('DB error')
   })
 })

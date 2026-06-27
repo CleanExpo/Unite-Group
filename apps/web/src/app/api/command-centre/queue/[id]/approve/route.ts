@@ -11,6 +11,7 @@
 // Note: lives under queue/ (not tasks/) because the repo .gitignore ignores any
 // `tasks/` directory (Claude task state).
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { getTaskById } from '@/lib/command-centre/tasks'
@@ -48,7 +49,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     task = await getTaskById({ founderId: user.id, taskId: id })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Failed to load task' },
+      { error: sanitiseError(err, 'Failed to load task') },
       { status: 500 },
     )
   }
@@ -65,7 +66,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json(result, { status: 201 })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Failed to apply approval' },
+      { error: sanitiseError(err, 'Failed to apply approval') },
       { status: 500 },
     )
   }

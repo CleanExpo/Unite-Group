@@ -38,6 +38,7 @@ describe('GET /api/command-centre/tools', () => {
     const res = await GET()
     expect(res.status).toBe(500)
     const body = await res.json()
-    expect(body.error).toBe('load failed')
+    expect(body.error).toBe('Failed to load tool catalogue') // sanitised — raw error not leaked
+    expect(body.error).not.toContain('load failed')
   })
 })

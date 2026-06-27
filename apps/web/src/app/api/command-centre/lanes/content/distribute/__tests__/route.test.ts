@@ -49,6 +49,7 @@ describe('POST /api/command-centre/lanes/content/distribute', () => {
     const res = await POST(req({ taskId: 't1' }))
     expect(res.status).toBe(500)
     const body = await res.json() as { error: string }
-    expect(body.error).toMatch('DB write failed')
+    expect(body.error).toBe('Content distribute failed') // sanitised — raw error not leaked
+    expect(body.error).not.toContain('DB write failed')
   })
 })

@@ -10,6 +10,7 @@
 // session state; the external executor reports back via PATCH + logs_ref.
 // Auth-gated (getUser → 401); founder-scoped by RLS.
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { getTaskById } from '@/lib/command-centre/tasks'
@@ -29,7 +30,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ sessions })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Failed to list sessions' },
+      { error: sanitiseError(err, 'Failed to list sessions') },
       { status: 500 },
     )
   }
@@ -67,7 +68,7 @@ export async function POST(request: Request) {
     task = await getTaskById({ founderId: user.id, taskId })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Failed to load task' },
+      { error: sanitiseError(err, 'Failed to load task') },
       { status: 500 },
     )
   }
@@ -84,7 +85,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ session }, { status: 201 })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Failed to start session' },
+      { error: sanitiseError(err, 'Failed to start session') },
       { status: 500 },
     )
   }

@@ -9,6 +9,7 @@
 // signal-sourced rows. A focused query is unnecessary — signals are a small,
 // recent slice and listTasks already caps + scopes by founder.
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { listTasks, type CommandCentreTask } from '@/lib/command-centre/tasks'
@@ -60,7 +61,7 @@ export async function GET(): Promise<Response> {
     })
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to list signals' },
+      { error: sanitiseError(error, 'Failed to list signals') },
       { status: 500 },
     )
   }
