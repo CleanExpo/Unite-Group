@@ -4944,6 +4944,320 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_contacts: {
+        Row: {
+          additional_data: Json
+          company_name: string | null
+          consent_captured_at: string | null
+          consent_source: string | null
+          created_at: string
+          dedupe_domain_key: string | null
+          dedupe_email_key: string | null
+          dedupe_name_company_key: string | null
+          dedupe_phone_key: string | null
+          display_name: string
+          first_name: string | null
+          founder_id: string
+          id: string
+          last_name: string | null
+          last_verified_at: string | null
+          linked_business_id: string | null
+          linked_client_id: string | null
+          linked_lead_id: string | null
+          marketing_consent: boolean
+          primary_email: string | null
+          primary_phone: string | null
+          privacy_notes: string | null
+          privacy_scope: string
+          relationship_owner: string
+          retention_policy: string | null
+          role_title: string | null
+          source: string
+          source_detail: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          additional_data?: Json
+          company_name?: string | null
+          consent_captured_at?: string | null
+          consent_source?: string | null
+          created_at?: string
+          dedupe_domain_key?: string | null
+          dedupe_email_key?: string | null
+          dedupe_name_company_key?: string | null
+          dedupe_phone_key?: string | null
+          display_name: string
+          first_name?: string | null
+          founder_id: string
+          id?: string
+          last_name?: string | null
+          last_verified_at?: string | null
+          linked_business_id?: string | null
+          linked_client_id?: string | null
+          linked_lead_id?: string | null
+          marketing_consent?: boolean
+          primary_email?: string | null
+          primary_phone?: string | null
+          privacy_notes?: string | null
+          privacy_scope?: string
+          relationship_owner?: string
+          retention_policy?: string | null
+          role_title?: string | null
+          source?: string
+          source_detail?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          additional_data?: Json
+          company_name?: string | null
+          consent_captured_at?: string | null
+          consent_source?: string | null
+          created_at?: string
+          dedupe_domain_key?: string | null
+          dedupe_email_key?: string | null
+          dedupe_name_company_key?: string | null
+          dedupe_phone_key?: string | null
+          display_name?: string
+          first_name?: string | null
+          founder_id?: string
+          id?: string
+          last_name?: string | null
+          last_verified_at?: string | null
+          linked_business_id?: string | null
+          linked_client_id?: string | null
+          linked_lead_id?: string | null
+          marketing_consent?: boolean
+          primary_email?: string | null
+          primary_phone?: string | null
+          privacy_notes?: string | null
+          privacy_scope?: string
+          relationship_owner?: string
+          retention_policy?: string | null
+          role_title?: string | null
+          source?: string
+          source_detail?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_contacts_linked_lead_id_fkey"
+            columns: ["linked_lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_leads: {
+        Row: {
+          additional_data: Json
+          assigned_owner: string
+          captured_at: string
+          company: string | null
+          converted_at: string | null
+          converted_client_id: string | null
+          created_at: string
+          email: string
+          email_list_id: string | null
+          first_name: string
+          founder_id: string
+          id: string
+          interests: string | null
+          ip_address: string | null
+          job_title: string | null
+          last_name: string | null
+          marketing_consent: boolean
+          matched_business_id: string | null
+          matched_client_id: string | null
+          message: string | null
+          phone: string | null
+          qualification_score: number | null
+          referral_source: string | null
+          source: string
+          status: string
+          updated_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          additional_data?: Json
+          assigned_owner?: string
+          captured_at?: string
+          company?: string | null
+          converted_at?: string | null
+          converted_client_id?: string | null
+          created_at?: string
+          email: string
+          email_list_id?: string | null
+          first_name: string
+          founder_id: string
+          id?: string
+          interests?: string | null
+          ip_address?: string | null
+          job_title?: string | null
+          last_name?: string | null
+          marketing_consent?: boolean
+          matched_business_id?: string | null
+          matched_client_id?: string | null
+          message?: string | null
+          phone?: string | null
+          qualification_score?: number | null
+          referral_source?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          additional_data?: Json
+          assigned_owner?: string
+          captured_at?: string
+          company?: string | null
+          converted_at?: string | null
+          converted_client_id?: string | null
+          created_at?: string
+          email?: string
+          email_list_id?: string | null
+          first_name?: string
+          founder_id?: string
+          id?: string
+          interests?: string | null
+          ip_address?: string | null
+          job_title?: string | null
+          last_name?: string | null
+          marketing_consent?: boolean
+          matched_business_id?: string | null
+          matched_client_id?: string | null
+          message?: string | null
+          phone?: string | null
+          qualification_score?: number | null
+          referral_source?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      crm_opportunities: {
+        Row: {
+          additional_data: Json
+          approval_required: boolean
+          approval_status: string
+          campaign_medium: string | null
+          campaign_name: string | null
+          campaign_source: string | null
+          created_at: string
+          decision_needed: string | null
+          expected_close_at: string | null
+          founder_id: string
+          id: string
+          linked_business_id: string | null
+          linked_client_id: string | null
+          linked_contact_id: string | null
+          linked_lead_id: string | null
+          lost_at: string | null
+          lost_reason: string | null
+          name: string
+          next_action: string | null
+          next_action_due_at: string | null
+          owner: string
+          probability: number | null
+          risk: string | null
+          source: string
+          source_detail: string | null
+          stage: string
+          status: string
+          updated_at: string
+          value_amount: number | null
+          value_currency: string | null
+          won_at: string | null
+        }
+        Insert: {
+          additional_data?: Json
+          approval_required?: boolean
+          approval_status?: string
+          campaign_medium?: string | null
+          campaign_name?: string | null
+          campaign_source?: string | null
+          created_at?: string
+          decision_needed?: string | null
+          expected_close_at?: string | null
+          founder_id: string
+          id?: string
+          linked_business_id?: string | null
+          linked_client_id?: string | null
+          linked_contact_id?: string | null
+          linked_lead_id?: string | null
+          lost_at?: string | null
+          lost_reason?: string | null
+          name: string
+          next_action?: string | null
+          next_action_due_at?: string | null
+          owner?: string
+          probability?: number | null
+          risk?: string | null
+          source?: string
+          source_detail?: string | null
+          stage?: string
+          status?: string
+          updated_at?: string
+          value_amount?: number | null
+          value_currency?: string | null
+          won_at?: string | null
+        }
+        Update: {
+          additional_data?: Json
+          approval_required?: boolean
+          approval_status?: string
+          campaign_medium?: string | null
+          campaign_name?: string | null
+          campaign_source?: string | null
+          created_at?: string
+          decision_needed?: string | null
+          expected_close_at?: string | null
+          founder_id?: string
+          id?: string
+          linked_business_id?: string | null
+          linked_client_id?: string | null
+          linked_contact_id?: string | null
+          linked_lead_id?: string | null
+          lost_at?: string | null
+          lost_reason?: string | null
+          name?: string
+          next_action?: string | null
+          next_action_due_at?: string | null
+          owner?: string
+          probability?: number | null
+          risk?: string | null
+          source?: string
+          source_detail?: string | null
+          stage?: string
+          status?: string
+          updated_at?: string
+          value_amount?: number | null
+          value_currency?: string | null
+          won_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_opportunities_linked_contact_id_fkey"
+            columns: ["linked_contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_opportunities_linked_lead_id_fkey"
+            columns: ["linked_lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_personas: {
         Row: {
           classified_at: string
