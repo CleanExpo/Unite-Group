@@ -1,0 +1,170 @@
+'use client'
+
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { TrendingUp } from 'lucide-react'
+import type { Tables } from '@/types/database'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { PageHeader } from '@/components/ui/PageHeader'
+
+type Opportunity = Tables<'crm_opportunities'>
+
+interface Summary {
+  total: number
+  open: number
+  won: number
+  lost: number
+  openValue: number
+  weightedPipeline: number
+}
+
+const STAGE_OPTIONS = [
+  'all', 'new_signal', 'qualified', 'discovery', 'proposal_needed', 'proposal_sent',
+  'negotiation', 'decision_needed', 'won_pending_client_conversion', 'won_converted',
+  'lost', 'paused', 'blocked_review',
+] as const
+
+function aud(value: number): string {
+  return `$${Math.round(value).toLocaleString('en-AU')}`
+}
+
+function label(stage: string): string {
+  return stage.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+export function OpportunitiesPageClient() {
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([])
+  const [summary, setSummary] = useState<Summary | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+  const [stageFilter, setStageFilter] = useState<string>('all')
+
+  const fetchOpportunities = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/founder/opportunities', { cache: 'no-store' })
+      if (!res.ok) throw new Error('Failed to load opportunities')
+      const data = await res.json()
+      setOpportunities(data.opportunities ?? [])
+      setSummary(data.summary ?? null)
+      setError(false)
+    } catch {
+      // Honest hard-error state — never fabricate an empty pipeline (No-Invaders #1).
+      setError(true)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchOpportunities()
+  }, [fetchOpportunities])
+
+  const filtered = useMemo(() => {
+    if (stageFilter === 'all') return opportunities
+    return opportunities.filter((o) => o.stage === stageFilter)
+  }, [opportunities, stageFilter])
+
+  const kpis = [
+    { key: 'open', label: 'Open', value: String(summary?.open ?? 0) },
+    { key: 'weighted', label: 'Weighted pipeline', value: aud(summary?.weightedPipeline ?? 0) },
+    { key: 'openval', label: 'Open value', value: aud(summary?.openValue ?? 0) },
+    { key: 'won', label: 'Won', value: String(summary?.won ?? 0) },
+  ]
+
+  return (
+    <div className="p-6 flex flex-col gap-6">
+      <PageHeader
+        title="Revenue opportunities"
+        subtitle="Forecast-only pipeline across the portfolio — not billing truth."
+      />
+
+      {error ? (
+        <div
+          className="rounded-sm px-4 py-3 text-[13px]"
+          style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+        >
+          The opportunity pipeline failed to load.{' '}
+          <button onClick={fetchOpportunities} className="underline" style={{ color: 'var(--color-text-primary)' }}>
+            Retry
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* KPI strip */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {kpis.map((k) => (
+              <div
+                key={k.key}
+                className="rounded-sm px-4 py-3 flex flex-col gap-1"
+                style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)' }}
+              >
+                <span className="text-[11px] uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>
+                  {k.label}
+                </span>
+                <span className="text-lg font-light" style={{ color: 'var(--color-text-primary)' }}>
+                  {loading ? '—' : k.value}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Stage filter */}
+          <select
+            value={stageFilter}
+            onChange={(e) => setStageFilter(e.target.value)}
+            aria-label="Filter by stage"
+            className="text-[12px] rounded-sm px-3 py-2 max-w-xs"
+            style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
+          >
+            {STAGE_OPTIONS.map((s) => (
+              <option key={s} value={s}>{s === 'all' ? 'All stages' : label(s)}</option>
+            ))}
+          </select>
+
+          {/* List */}
+          {!loading && filtered.length === 0 ? (
+            <EmptyState
+              icon={TrendingUp}
+              title={opportunities.length === 0 ? 'No opportunities yet' : 'No opportunities in this stage'}
+              description={
+                opportunities.length === 0
+                  ? 'Revenue opportunities will appear here as leads are qualified into the pipeline.'
+                  : 'Try a different stage filter.'
+              }
+            />
+          ) : (
+            <div className="flex flex-col gap-2">
+              {filtered.map((o) => (
+                <div
+                  key={o.id}
+                  className="rounded-sm px-4 py-3 flex items-center gap-4"
+                  style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)' }}
+                >
+                  <div className="flex flex-col gap-1 flex-1 min-w-0">
+                    <span className="text-[13px] font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>
+                      {o.name}
+                    </span>
+                    <span className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
+                      {label(o.stage)} · {o.status}
+                      {o.next_action ? ` · next: ${o.next_action}` : ''}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                    <span className="text-[13px]" style={{ color: 'var(--color-text-primary)' }}>
+                      {o.value_amount != null ? aud(Number(o.value_amount)) : '—'}
+                    </span>
+                    {o.probability != null && (
+                      <span className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
+                        {o.probability}%
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
