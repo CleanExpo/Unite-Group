@@ -1,5 +1,16 @@
 # Margot Morning Report
 
+## 2026-06-27 17:02 AEST — PR #503 updated onto latest main; refreshed checks pending after push
+
+- **Open PR continued:** Continued PR #503 `feat(command-centre): add redaction logic to Daily CRM Digest` (`https://github.com/CleanExpo/Unite-Group/pull/503`) rather than starting a new lane. Pre-merge remote head `41b085ab029ff7e20acad867c2303af5da1bd2bd` was green across CodeRabbit, Monorepo CI, Playwright E2E, and Vercel, but `gh pr view 503` reported `mergeStateStatus=BEHIND`.
+- **Branch update:** Fetched `origin/main` and merged it into `fix/daily-crm-digest-redaction-20260626` without conflicts. Local merge head before this evidence commit was `80ed6ab49`; `git rev-list --left-right --count origin/main...HEAD` returned `0 2` after the merge.
+- **Verification refreshed:** Local Vitest binary focused digest test passed, 1 file / 2 tests (after a blocked `pnpm exec vitest ...` guard event). `pnpm run type-check` passed. `pnpm run lint` passed. Full `pnpm run test` passed, 442 files / 2640 tests. `git diff --check origin/main...HEAD` passed.
+- **Build status:** Local `pnpm run build` remains a cron-shell env/config gate at `scripts/validate-env.mjs --ci` (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`). Only env names/counts were printed; no values were read or mutated.
+- **Security/content scan:** Production component scan returned 0 credential/secret/token/API-key/service-role/raw-Board-ref/bearer/PII/payment/`process.env`/dangerous-HTML/provider/Supabase-write matches. Test-file hits were expected synthetic fixture-class and redaction assertion strings only; no real credential values were present.
+- **Gate packet:** Product impact remains `NONE` for production/finance/DB: client presentation sanitizer plus regression tests only. Merge/publication remains `NAMESPACE` / `KEEP_GATED` until the updated PR branch is pushed and the refreshed remote checks/Vercel pass. No merge-to-main, production DB write, migration application, env mutation, credential-value read/print, billing/payment action, client-facing comms, cross-client merge, or destructive git action occurred.
+- **Evidence paths:** `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`.
+- **Next safe lane:** commit this evidence refresh, push PR #503 branch, monitor checks, and keep final lift advisory-only for Phill/operator sign-off.
+
 ## 2026-06-27 16:18 AEST — Daily CRM Digest redaction replay moved to latest main; publication still gated
 
 - **Completed safe lane:** Moved the Daily CRM Digest redaction slice onto latest `origin/main` head `a876a3903` in fresh branch/worktree `fix/daily-crm-digest-redaction-current-20260627` at `/tmp/unite-digest-current-20260627`; `git rev-list --left-right --count origin/main...HEAD` returned `0 0`. No open GitHub PRs were present. Latest `main` Monorepo CI read-back for `a876a3903` and `57883d7` is green. Production `unite-group` deployments for both SHAs succeeded; a `unite-group-sandbox` deployment for `57883d7` failed and is treated as a separate sandbox namespace/config signal. No Vercel/env mutation was performed.
