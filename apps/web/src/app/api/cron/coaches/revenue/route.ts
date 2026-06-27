@@ -41,6 +41,7 @@ export async function GET(request: Request) {
             expensesCents: number
             growth: number
             invoiceCount: number
+            source?: 'xero' | 'mock'
           }>,
           todayDate: ctx.reportDate,
         }),
