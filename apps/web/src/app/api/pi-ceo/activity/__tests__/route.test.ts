@@ -42,10 +42,11 @@ describe('GET /api/pi-ceo/activity', () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
     const res = await GET()
     expect(res.status).toBe(200)
-    const body = (await res.json()) as { configured: boolean; events: unknown[]; connected: boolean }
+    const body = (await res.json()) as { configured: boolean; events: unknown[]; connected: boolean; source: string }
     expect(body.configured).toBe(false)
     expect(body.connected).toBe(false)
     expect(body.events).toEqual([])
+    expect(body.source).toBe('not_configured')
   })
 
   it('honest no_key source when URL set but key missing', async () => {
@@ -70,6 +71,42 @@ describe('GET /api/pi-ceo/activity', () => {
     expect(res.status).toBe(200)
     const body = (await res.json()) as { source: string; connected: boolean }
     expect(body.source).toBe('login_failed')
+    expect(body.connected).toBe(false)
+  })
+
+  it('not connected (no_session) when login is ok but no tao_session cookie is returned', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    process.env.PI_CEO_API_URL = 'https://pi-ceo.test'
+    process.env.PI_CEO_API_KEY = 'secret'
+    // Login 200 but with no set-cookie header → cookie parse yields empty.
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({}, { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const res = await GET()
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { source: string; connected: boolean }
+    expect(body.source).toBe('no_session')
+    expect(body.connected).toBe(false)
+  })
+
+  it('not connected (autonomy_failed) when autonomy/status is not ok', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    process.env.PI_CEO_API_URL = 'https://pi-ceo.test'
+    process.env.PI_CEO_API_KEY = 'secret'
+
+    const loginRes = jsonResponse({}, {
+      status: 200,
+      headers: { 'set-cookie': 'tao_session=abc123; Path=/; HttpOnly' },
+    })
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(loginRes)
+      .mockResolvedValueOnce(jsonResponse({}, { status: 503 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const res = await GET()
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { source: string; connected: boolean }
+    expect(body.source).toBe('autonomy_failed')
     expect(body.connected).toBe(false)
   })
 

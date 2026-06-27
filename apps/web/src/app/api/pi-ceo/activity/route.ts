@@ -20,7 +20,7 @@ export async function GET() {
   const piCeoKey = process.env.PI_CEO_API_KEY?.trim();
 
   if (!piCeoUrl) {
-    return NextResponse.json({ configured: false, events: [], connected: false });
+    return NextResponse.json({ configured: false, events: [], connected: false, source: 'not_configured' });
   }
 
   if (!piCeoKey) {
@@ -42,14 +42,14 @@ export async function GET() {
     const setCookie = loginRes.headers.get('set-cookie') || '';
     const cookieMatch = setCookie.match(/tao_session=([^;]+)/);
     const cookie = cookieMatch ? `tao_session=${cookieMatch[1]}` : '';
-    if (!cookie) return NextResponse.json({ events: [], connected: false });
+    if (!cookie) return NextResponse.json({ events: [], connected: false, source: 'no_session' });
 
     const autonomyRes = await fetch(`${piCeoUrl}/api/autonomy/status`, {
       headers: { Cookie: cookie },
       cache: 'no-store',
       signal: AbortSignal.timeout(6000),
     });
-    if (!autonomyRes.ok) return NextResponse.json({ events: [], connected: false });
+    if (!autonomyRes.ok) return NextResponse.json({ events: [], connected: false, source: 'autonomy_failed' });
 
     const data = await autonomyRes.json();
     const events = (data.recent_events || []).slice(-10).reverse().map((e: {
