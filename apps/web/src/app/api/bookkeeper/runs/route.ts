@@ -32,10 +32,10 @@ export async function GET(request: Request) {
 
   const runs: BookkeeperRun[] = (data ?? []).map((r) => ({
     id: r.id,
-    status: r.status,
+    status: r.status as BookkeeperRun['status'],
     startedAt: r.started_at,
     completedAt: r.completed_at,
-    businessesProcessed: r.businesses_processed ?? [],
+    businessesProcessed: (r.businesses_processed ?? []) as unknown as BookkeeperRun['businessesProcessed'],
     totalTransactions: r.total_transactions,
     autoReconciled: r.auto_reconciled,
     flaggedForReview: r.flagged_for_review,
@@ -43,7 +43,7 @@ export async function GET(request: Request) {
     gstCollectedCents: r.gst_collected_cents,
     gstPaidCents: r.gst_paid_cents,
     netGstCents: r.net_gst_cents,
-    errorLog: r.error_log,
+    errorLog: r.error_log as unknown as BookkeeperRun['errorLog'],
   }))
 
   const response: RunsResponse = { runs, total: count ?? 0, page, pageSize }

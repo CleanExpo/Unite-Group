@@ -6,6 +6,7 @@ import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { createClient } from '@/lib/supabase/server'
+import type { Json } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
 
@@ -73,7 +74,7 @@ export async function POST(request: Request) {
       title: body.title,
       body: body.body,
       priority: body.priority ?? 'medium',
-      metadata: body.metadata ?? {},
+      metadata: (body.metadata ?? {}) as Json,
     })
     .select()
     .single()

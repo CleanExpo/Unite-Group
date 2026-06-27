@@ -10736,6 +10736,7 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          role: Database["public"]["Enums"]["user_role"] | null
           updated_at: string | null
         }
         Insert: {
@@ -10744,6 +10745,7 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string | null
         }
         Update: {
@@ -10752,6 +10754,7 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string | null
         }
         Relationships: []
@@ -14564,6 +14567,21 @@ export type Database = {
         Args: { max_age_days?: number; min_relevance?: number }
         Returns: number
       }
+      search_knowledge_notes: {
+        Args: {
+          p_founder_id: string
+          p_limit?: number
+          p_project_key?: string
+          p_query: string
+        }
+        Returns: {
+          content: string
+          id: string
+          rank: number
+          title: string
+          vault_path: string
+        }[]
+      }
     }
     Enums: {
       video_job_status:
@@ -14576,6 +14594,7 @@ export type Database = {
         | "queued"
         | "published"
         | "failed"
+      user_role: "FOUNDER" | "STAFF" | "CLIENT" | "ADMIN"
       ap2_connection_status: "pending" | "active" | "expired" | "revoked"
       ap2_mandate_status:
         | "pending"

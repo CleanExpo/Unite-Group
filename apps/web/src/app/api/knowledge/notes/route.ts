@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
     const { data: searchData, error: searchError } = await supabase.rpc('search_knowledge_notes', {
       p_founder_id: user.id,
       p_query: searchQuery,
-      p_project_key: projectKey,
+      p_project_key: projectKey ?? undefined,
       p_limit: limit,
     })
 

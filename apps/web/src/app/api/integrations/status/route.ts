@@ -72,7 +72,7 @@ export async function GET() {
   }
 
   const vaultRows = (vaultRes.data ?? []) as Array<{ service: string; created_at: string; updated_at: string; last_accessed_at: string | null }>
-  const socialRows = (socialRes.data ?? []) as Array<{ platform: string; connected: boolean; last_post_at: string | null; updated_at: string }>
+  const socialRows = (socialRes.data ?? []) as unknown as Array<{ platform: string; connected: boolean; last_post_at: string | null; updated_at: string }>
 
   const providers = PROVIDERS.map((p) => {
     const configured = p.envKeys.every((k) => !!process.env[k]?.trim())

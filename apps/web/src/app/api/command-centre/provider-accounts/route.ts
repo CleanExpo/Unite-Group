@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
 import { makeSupabaseStore, loadAccounts } from '@/lib/provider-pool/repository'
 import { validateNewAccount } from '@/lib/provider-pool/registration'
+import type { Json } from '@/types/database'
 
 // Provider-account registration + live state. Founder-auth, founder-scoped.
 // Lists accounts with their live router state (metadata only — never the key,
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
         label: validated.value.label,
         vault_entry_id: validated.value.vaultEntryId,
         enabled: true,
-        plan: validated.value.plan,
+        plan: validated.value.plan as unknown as Json,
         allow_metered: validated.value.allowMetered,
       })
       .select('id')

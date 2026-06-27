@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
 import { sanitiseError } from '@/lib/error-reporting'
+import type { Database } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,7 +27,7 @@ export async function GET(req: NextRequest) {
     .range(offset, offset + limit - 1)
 
   if (status) {
-    query = query.eq('status', status)
+    query = query.eq('status', status as Database['public']['Enums']['video_job_status'])
   }
 
   if (projectKey) {
