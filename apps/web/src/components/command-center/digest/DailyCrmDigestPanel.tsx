@@ -27,8 +27,28 @@ const COUNT_CARDS: Array<{ key: keyof DailyCrmDigestSummary; label: string }> = 
   { key: 'blockerCount', label: 'Blockers' },
 ]
 
+const REDACTED = '[REDACTED]'
+const SECRET_CLI_FLAG = String.raw`--[A-Z0-9_-]*(?:SECRET|TOKEN|PASSWORD|PASSWD|API[-_]?KEY|SERVICE[-_]?ROLE[-_]?KEY)[A-Z0-9_-]*`
+const SECRET_HEADER_NAME = String.raw`[^"']*?(?:AUTHORIZATION|API[-_]?KEY|ACCESS[-_]?TOKEN|SECRET|TOKEN|PASSWORD|PASSWD)[^"']*?:\s*`
+
 function safeCount(value: number | undefined): number {
   return Number.isFinite(value) ? Math.max(0, value ?? 0) : 0
+}
+
+function redactDigestText(value: string): string {
+  return value
+    .replace(new RegExp(`(--header(?:=|\\s+))(["'])(${SECRET_HEADER_NAME})(.*?)\\2`, 'gi'), `$1$2$3${REDACTED}$2`)
+    .replace(new RegExp(`(--header=)(${SECRET_HEADER_NAME})[^\\s;,]+`, 'gi'), `$1$2${REDACTED}`)
+    .replace(new RegExp(`(${SECRET_CLI_FLAG}\\s*=\\s*)(["'])(.*?)\\2`, 'gi'), `$1$2${REDACTED}$2`)
+    .replace(new RegExp(`(${SECRET_CLI_FLAG}\\s*=\\s*)(?!["'])[^\\s;,]+`, 'gi'), `$1${REDACTED}`)
+    .replace(new RegExp(`(${SECRET_CLI_FLAG})(\\s+)(["'])(.*?)\\3`, 'gi'), `$1$2$3${REDACTED}$3`)
+    .replace(new RegExp(`(${SECRET_CLI_FLAG})(\\s+)[^\\s;,]+`, 'gi'), `$1$2${REDACTED}`)
+    .replace(/(?<!-)\b[A-Z0-9_-]*(?:SECRET|TOKEN|PASSWORD|PASSWD|API[_-]?KEY|SERVICE[_-]?ROLE[_-]?KEY)[A-Z0-9_-]*\s*=\s*(?:"[^"]*"|'[^']*'|[^\s;,]+)/gi, REDACTED)
+    .replace(/\b(Bearer\s+)[A-Z0-9_-]+(?:\.[A-Z0-9_-]+){2,}\b/gi, `$1${REDACTED}`)
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, REDACTED)
+    .replace(/\bBOARD-[A-Z0-9-]{3,}\b/gi, REDACTED)
+    .replace(/(?:\+61|\b0\d)[\d\s().-]{7,}\d\b/g, REDACTED)
+    .replace(/\bcard\s+(?:ending|ending\s+in|ends\s+in)\s+\d{3,4}\b/gi, REDACTED)
 }
 
 function DigestList({
@@ -40,7 +60,7 @@ function DigestList({
   items?: string[]
   emptyCopy: string
 }) {
-  const safeItems = items?.filter((item) => item.trim().length > 0) ?? []
+  const safeItems = items?.map(redactDigestText).filter((item) => item.trim().length > 0) ?? []
 
   return (
     <div className="space-y-2">
