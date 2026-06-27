@@ -1,6 +1,7 @@
 // src/app/api/boardroom/gantt/route.ts
 // GET /api/boardroom/gantt — Linear issues with due dates for Gantt chart
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { fetchIssuesWithDueDates } from '@/lib/integrations/linear-board'
@@ -45,7 +46,7 @@ export async function GET() {
     return NextResponse.json({
       items: [],
       source: 'error',
-      error: err instanceof Error ? err.message : 'Linear fetch failed',
+      error: sanitiseError(err, 'Linear fetch failed'),
       today,
     })
   }

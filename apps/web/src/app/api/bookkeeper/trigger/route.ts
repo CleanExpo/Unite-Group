@@ -11,7 +11,7 @@ import {
     runBookkeeperForAllBusinesses,
     runBookkeeperForOneBusiness,
 } from '@/lib/bookkeeper/orchestrator'
-import { captureApiError } from '@/lib/error-reporting'
+import { captureApiError , sanitiseError } from '@/lib/error-reporting'
 import { triggerMacasAdvisory } from '@/lib/advisory/auto-trigger'
 
 export const dynamic = 'force-dynamic'
@@ -162,7 +162,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
                   success: false,
-                  error: error instanceof Error ? error.message : 'Unknown error',
+                  error: sanitiseError(error, 'Unknown error'),
                   durationMs,
         },
         { status: 500 }

@@ -4,6 +4,7 @@
 // Auto-generates campaigns for brand profiles with status = 'ready'
 // that have had no campaign created in the last 7 days.
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { generateCampaign } from '@/lib/campaigns/orchestrator'
@@ -209,7 +210,7 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: sanitiseError(error, 'Unknown error'),
         durationMs,
       },
       { status: 500 }

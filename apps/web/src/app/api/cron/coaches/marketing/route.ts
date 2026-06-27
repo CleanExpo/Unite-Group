@@ -2,6 +2,7 @@
 // GET /api/cron/coaches/marketing
 // Daily Marketing Coach CRON — runs at 08:00 AEST (22:00 UTC previous day)
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { runCoach } from '@/lib/coaches/runner'
 import { fetchMarketingData } from '@/lib/coaches/marketing'
@@ -82,7 +83,7 @@ export async function GET(request: Request) {
     }).catch(() => {})
 
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Unknown error', durationMs },
+      { success: false, error: sanitiseError(error, 'Unknown error'), durationMs },
       { status: 500 }
     )
   }

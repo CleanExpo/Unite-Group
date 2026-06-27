@@ -64,7 +64,8 @@ describe('GET /api/boardroom/gantt', () => {
     const json = await res.json()
     expect(res.status).toBe(200)
     expect(json.source).toBe('error')
-    expect(json.error).toContain('rate limit')
+    expect(json.error).toBe('Linear fetch failed') // sanitised — raw error not leaked
+    expect(json.error).not.toContain('rate limit')
     expect(json.items).toEqual([])
   })
 })

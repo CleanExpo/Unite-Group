@@ -84,6 +84,7 @@ describe('POST /api/nexus/prs/reject', () => {
     const res = await POST(req({ owner: 'o', repo: 'r', number: 1 }))
     expect(res.status).toBe(500)
     const body = (await res.json()) as { error: string }
-    expect(body.error).toBe('GitHub close PR failed: 404')
+    expect(body.error).toBe('Reject failed') // sanitised — raw error not leaked
+    expect(body.error).not.toContain('404')
   })
 })

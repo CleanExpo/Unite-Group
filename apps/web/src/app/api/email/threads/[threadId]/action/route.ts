@@ -2,6 +2,7 @@
 // POST /api/email/threads/[threadId]/action
 // Body: { account, action: 'archive'|'delete'|'read'|'unread'|'reply', ...payload }
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import {
@@ -72,7 +73,7 @@ export async function POST(
   } catch (error) {
     console.error('[Email API] thread action failed:', action, error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Action failed' },
+      { error: sanitiseError(error, 'Action failed') },
       { status: 500 }
     )
   }

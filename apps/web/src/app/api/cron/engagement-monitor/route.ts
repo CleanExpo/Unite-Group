@@ -3,6 +3,7 @@
 // Runs every 30 minutes — fetches new social comments, generates AI replies,
 // auto-posts positive/neutral replies and flags negative ones for review.
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { fetchNewComments, replyToFacebookComment, replyToInstagramComment } from '@/lib/integrations/social/engagement'
@@ -177,7 +178,7 @@ export async function GET(request: Request) {
     }).catch(() => {})
 
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Unknown error', durationMs },
+      { success: false, error: sanitiseError(error, 'Unknown error'), durationMs },
       { status: 500 }
     )
   }

@@ -54,6 +54,7 @@ describe('GET /api/bookkeeper/dry-run', () => {
     const res = await GET(req())
     expect(res.status).toBe(500)
     const body = await res.json()
-    expect(body.error).toBe('Xero error')
+    expect(body.error).toBe('Unknown dry-run error') // sanitised — raw error not leaked
+    expect(body.error).not.toContain('Xero error')
   })
 })

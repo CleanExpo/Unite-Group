@@ -6,6 +6,7 @@
 // service-role client + FOUNDER_USER_ID since there is no user session in cron.
 // Read-only against the DB; the wiki write is best-effort.
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { gatherOvernightDigest, digestToMarkdown } from '@/lib/command-centre/overnight-summary'
@@ -33,7 +34,7 @@ export async function GET(request: Request) {
     digest = await gatherOvernightDigest({ founderId, generatedAt: new Date().toISOString() }, supabase)
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Failed to build digest' },
+      { error: sanitiseError(err, 'Failed to build digest') },
       { status: 500 },
     )
   }

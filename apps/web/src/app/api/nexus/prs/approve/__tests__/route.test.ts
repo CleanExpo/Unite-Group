@@ -74,6 +74,7 @@ describe('POST /api/nexus/prs/approve', () => {
     const res = await POST(req({ owner: 'o', repo: 'r', number: 1 }))
     expect(res.status).toBe(500)
     const body = (await res.json()) as { error: string }
-    expect(body.error).toBe('GitHub merge failed: 405')
+    expect(body.error).toBe('Merge failed') // sanitised — raw error not leaked
+    expect(body.error).not.toContain('405')
   })
 })

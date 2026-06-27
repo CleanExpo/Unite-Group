@@ -1,4 +1,5 @@
 // POST /api/content/generate — Generate AI content for a business
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -87,7 +88,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('[ContentGenerate] Generation failed:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Content generation failed' },
+      { error: sanitiseError(error, 'Content generation failed') },
       { status: 500 }
     )
   }

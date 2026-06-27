@@ -3,6 +3,7 @@
 // Creates a brand_profiles row with status 'scanning', triggers async extraction,
 // returns immediately with the profile ID for polling.
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
     normalised = parsed.toString()
   } catch (e) {
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : 'Invalid websiteUrl' },
+      { error: sanitiseError(e, 'Invalid websiteUrl') },
       { status: 400 }
     )
   }

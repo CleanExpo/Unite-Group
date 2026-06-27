@@ -2,6 +2,7 @@
 // GET /api/email/threads/[threadId]?account=<email>
 // Returns full thread with all message bodies decoded
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { fetchFullThread } from '@/lib/integrations/google'
@@ -26,7 +27,7 @@ export async function GET(
   } catch (error) {
     console.error('[Email API] full thread fetch failed:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to fetch thread' },
+      { error: sanitiseError(error, 'Failed to fetch thread') },
       { status: 500 }
     )
   }
