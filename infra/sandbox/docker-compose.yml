@@ -1,0 +1,45 @@
+# Docker Sandbox - Unite-Group
+# Isolated local Postgres + Redis for ad-hoc Unite-Group sandboxing.
+# Deliberately high ports (Postgres 64326, Redis 64796) to avoid colliding with
+# apps/web/docker-compose.yml (5433/6380) and apps/workspace.
+# Usage: cd infra/sandbox && docker compose up -d
+
+name: unite-group-sandbox
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ug-sandbox-db
+    environment:
+      POSTGRES_DB: unite_group_sandbox
+      POSTGRES_USER: sandbox
+      POSTGRES_PASSWORD: s3cur3_sandbox_pass
+    volumes:
+      - pgdata_ug:/var/lib/postgresql/data
+    ports:
+      - "64326:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sandbox -d unite_group_sandbox"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sandbox
+
+  redis:
+    image: redis:7-alpine
+    container_name: ug-sandbox-redis
+    ports:
+      - "64796:6379"
+    volumes:
+      - redisdata_ug:/data
+    networks:
+      - sandbox
+
+volumes:
+  pgdata_ug:
+  redisdata_ug:
+
+networks:
+  sandbox:
+    driver: bridge
