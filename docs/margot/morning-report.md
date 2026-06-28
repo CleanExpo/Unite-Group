@@ -1,5 +1,12 @@
 # Margot Morning Report
 
+## 2026-06-28 10:30 AEST — PR #530 opened and green
+
+- **PR:** `https://github.com/CleanExpo/Unite-Group/pull/530` (`fix(command-centre): redact kanban sync secret flags`), head `1e901ac783ff7e2e016fe75234aff91944d7c638`, branch `margot-kanban-sync-flag-header-redaction-20260628`, base `main`.
+- **Remote checks:** green for CodeRabbit, Vercel Preview Comments, Vercel `unite-group` (`https://vercel.com/unite-group/unite-group/CUjszmRCc5hCpdP7NiGvNKKYm9cF`), Vercel `unite-group-sandbox` (`https://vercel.com/unite-group/unite-group-sandbox/CCzdAKxjyL4KQT881aQowTVtQ5pk`), apps/web lint/type-check/test/build, apps/web Playwright E2E, apps/workspace build, packages/pi-ceo-operator-mcp build, and apps/spec-board type-check/test/build.
+- **Gate packet:** `NONE` impact / `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off. Risk is limited to possible over-redaction of Kanban sync free text; no schema/env/DB/provider/billing/client-facing/identity authority was added. Rollback is revert commit `1e901ac78` / PR #530. This advisory cron did **not** merge the PR.
+
+
 ## 2026-06-28 10:23 AEST — local TDD slice: Kanban sync CLI/header redaction
 
 - **Lane:** No open PRs at preflight, so a fresh local branch was started from `origin/main`: `margot-kanban-sync-flag-header-redaction-20260628`.
