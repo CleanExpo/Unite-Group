@@ -17,6 +17,12 @@ interface Summary {
   weightedPipeline: number
 }
 
+interface SourceOfTruth {
+  crm: string
+  billing: string
+  mode: 'forecast_only'
+}
+
 const STAGE_OPTIONS = [
   'all', 'new_signal', 'qualified', 'discovery', 'proposal_needed', 'proposal_sent',
   'negotiation', 'decision_needed', 'won_pending_client_conversion', 'won_converted',
@@ -34,6 +40,7 @@ function label(stage: string): string {
 export function OpportunitiesPageClient() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([])
   const [summary, setSummary] = useState<Summary | null>(null)
+  const [sourceOfTruth, setSourceOfTruth] = useState<SourceOfTruth | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [stageFilter, setStageFilter] = useState<string>('all')
@@ -46,6 +53,7 @@ export function OpportunitiesPageClient() {
       const data = await res.json()
       setOpportunities(data.opportunities ?? [])
       setSummary(data.summary ?? null)
+      setSourceOfTruth(data.sourceOfTruth ?? null)
       setError(false)
     } catch {
       // Honest hard-error state — never fabricate an empty pipeline (No-Invaders #1).
@@ -90,6 +98,16 @@ export function OpportunitiesPageClient() {
         </div>
       ) : (
         <>
+          {sourceOfTruth && (
+            <div
+              className="rounded-sm px-4 py-3 flex flex-col gap-1 text-[12px]"
+              style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+            >
+              <span>CRM source: {sourceOfTruth.crm}</span>
+              <span>{sourceOfTruth.mode === 'forecast_only' ? 'Forecast only' : sourceOfTruth.mode} · Billing truth stays in Stripe</span>
+            </div>
+          )}
+
           {/* KPI strip */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {kpis.map((k) => (

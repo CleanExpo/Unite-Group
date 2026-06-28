@@ -20,12 +20,15 @@ describe('OpportunitiesPageClient', () => {
         { id: 'o1', name: 'CARSI annual deal', stage: 'proposal_sent', status: 'open', value_amount: 12000, probability: 60, next_action: 'send quote' },
       ],
       summary: { total: 1, open: 1, won: 0, lost: 0, openValue: 12000, weightedPipeline: 7200 },
+      sourceOfTruth: { crm: 'crm_opportunities', billing: 'stripe', mode: 'forecast_only' },
     }))
 
     render(<OpportunitiesPageClient />)
 
     expect(await screen.findByText('CARSI annual deal')).toBeInTheDocument()
     expect(screen.getByText('$7,200')).toBeInTheDocument() // weighted pipeline KPI
+    expect(screen.getByText('CRM source: crm_opportunities')).toBeInTheDocument()
+    expect(screen.getByText('Forecast only · Billing truth stays in Stripe')).toBeInTheDocument()
     expect(screen.getByText(/Proposal Sent · open/)).toBeInTheDocument() // the list row, not the filter <option>
   })
 

@@ -38,6 +38,7 @@ describe('/api/linear/issues', () => {
 
   it('GET returns configured=false when LINEAR_API_KEY not set', async () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
+    vi.stubEnv('LINEAR_API_KEY', '')
     const res = await GET(req('GET'))
     expect(res.status).toBe(200)
     const body = await res.json()
@@ -52,6 +53,7 @@ describe('/api/linear/issues', () => {
 
   it('POST returns 503 when Linear not configured', async () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
+    vi.stubEnv('LINEAR_API_KEY', '')
     const res = await POST(req('POST', { teamKey: 'UNI', title: 'Task' }))
     expect(res.status).toBe(503)
   })

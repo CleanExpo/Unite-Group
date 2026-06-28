@@ -23,9 +23,22 @@ export interface OpportunitySummary {
   weightedPipeline: number
 }
 
+export interface OpportunitySourceOfTruth {
+  crm: 'crm_opportunities'
+  billing: 'stripe'
+  mode: 'forecast_only'
+}
+
 export interface OpportunitiesResponse {
   opportunities: Opportunity[]
   summary: OpportunitySummary
+  sourceOfTruth: OpportunitySourceOfTruth
+}
+
+const SOURCE_OF_TRUTH: OpportunitySourceOfTruth = {
+  crm: 'crm_opportunities',
+  billing: 'stripe',
+  mode: 'forecast_only',
 }
 
 export async function GET() {
@@ -57,7 +70,7 @@ export async function GET() {
       ),
     }
 
-    return NextResponse.json({ opportunities, summary } satisfies OpportunitiesResponse)
+    return NextResponse.json({ opportunities, summary, sourceOfTruth: SOURCE_OF_TRUTH } satisfies OpportunitiesResponse)
   } catch (err) {
     return NextResponse.json(
       { error: sanitiseError(err, 'Failed to load opportunities', { route: '/api/founder/opportunities' }) },
