@@ -1,4 +1,4 @@
-import { appendFile, mkdir, writeFile } from 'node:fs/promises'
+import { appendFile, mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createFileRoute } from '@tanstack/react-router'
 import { BEARER_TOKEN, CLAUDE_API } from '../../server/gateway-capabilities'
@@ -16,6 +16,46 @@ function slug(s: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 48)
+}
+
+// Close the OKF loop: after writing an output, regenerate the outputs/ index.md
+// so the folder is always navigable (matches scripts/okf-index.py format +
+// the okf:generated marker). Best-effort; never throws into the request.
+async function refreshOutputsIndex(dir: string): Promise<void> {
+  try {
+    const entries = (await readdir(dir)).filter(
+      (n) => n.endsWith('.md') && n !== 'index.md',
+    )
+    entries.sort()
+    const lines: Array<string> = []
+    for (const fn of entries) {
+      let name = fn.slice(0, -3)
+      let desc = ''
+      try {
+        const head = (await readFile(join(dir, fn), 'utf-8')).slice(0, 2048)
+        if (head.startsWith('---')) {
+          const end = head.indexOf('\n---', 3)
+          const fm = end > 0 ? head.slice(3, end) : head.slice(3)
+          name = /^name:\s*(.+)$/m.exec(fm)?.[1]?.trim() ?? name
+          desc = /^description:\s*(.+)$/m.exec(fm)?.[1]?.trim() ?? ''
+        }
+      } catch {
+        /* ignore unreadable file */
+      }
+      lines.push(`- [[${fn.slice(0, -3)}]] — ${name}` + (desc ? `: ${desc}` : ''))
+    }
+    const stamp = new Date().toISOString().slice(0, 10)
+    const body =
+      `---\ntype: index\nname: outputs\n` +
+      `description: OKF index — ${entries.length} concepts, 0 subfolders\n` +
+      `okf_version: "0.1"\nupdated: ${stamp}\n---\n\n` +
+      `<!-- okf:generated -->\n# outputs — index\n\n` +
+      `_Read this first. Mission Control quick-run outputs (OKF concepts)._\n\n` +
+      `## Concepts\n${lines.join('\n')}\n`
+    await writeFile(join(dir, 'index.md'), body)
+  } catch {
+    /* best-effort — index refresh must never fail the run */
+  }
 }
 
 type QuickRunResult = {
@@ -118,6 +158,8 @@ export const Route = createFileRoute('/api/quick-run')({
               join(vault, 'log.md'),
               `\n${stamp} | quick-run | outputs/${name} | ${label}`,
             )
+            // Close the OKF loop — keep outputs/index.md current.
+            await refreshOutputsIndex(dir)
           } catch {
             file = ''
           }
