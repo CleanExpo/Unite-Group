@@ -1,5 +1,389 @@
 # Margot Overnight Progress Log
 
+## 2026-06-29 03:57 AEST
+
+### Tick 20260629_0357 — Founder opportunities source labels fully verified; local build remains env-gated
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Lane/preflight: continued existing branch `margot-opportunity-source-truth-20260628` rather than starting a new lane. Branch compare against `origin/main` is still `0 0`; `HEAD` and `origin/main` are `b48b6cb24` before any publication commit. GitHub auth is available, `gh pr list --state open` returned no open PRs, latest `main` GitHub read-back showed successful Brand Video Render runs at `b48b6cb24b8d`, and Vercel CLI read-back showed recent `unite-group/unite-group` Production/Preview deployments `Ready`. No Vercel deploy or env mutation occurred.
+
+Read-first context: root prompt-named Margot docs are absent for several legacy paths, so this run used tracked app-local canonical copies: Connected Teams and Senior PM from `apps/empire/docs/margot/`, CRM operating and test matrix from `apps/web/docs/margot/`, plus current app/API scoped instructions. Governing rules remain existing-assets-first, founder-scoped auth, forecast-only opportunities, Stripe as billing truth, no autonomous production/schema/env/billing/client-facing/cross-client action, and branch-first DB discipline.
+
+Slice status: preserved the bounded read-only founder opportunities source-of-truth contract. `GET /api/founder/opportunities` returns `sourceOfTruth: { crm: 'crm_opportunities', billing: 'stripe', mode: 'forecast_only' }`; `OpportunitiesPageClient` renders `CRM source: crm_opportunities` and `Forecast only · Billing truth stays in Stripe`; `apps/web/docs/margot/crm-test-coverage-matrix.md` records the contract. The Linear/ideas changes remain test-only no-config env isolation (`vi.stubEnv('LINEAR_API_KEY', '')` plus `vi.unstubAllEnvs()` cleanup where needed), with no production integration behaviour change.
+
+Verification: focused Vitest passed for the opportunities API/component tests (2 files / 6 tests). `pnpm run type-check` passed. `pnpm run lint` passed. Full `pnpm run test` passed (451 files / 2683 tests), with existing intentional failure-path stderr and one existing React `act(...)` warning only. `git diff --check` passed. Refined product/test added-line security scan returned `REFINED_PRODUCT_ADDED_LINE_SECURITY_FINDINGS=NONE`; whole-file probes confirmed the opportunities route remains `force-dynamic`, `getUser()` auth-gated, server-client based, founder-scoped via `.eq('founder_id', user.id)`, read-only against `crm_opportunities`, and has no insert/update/upsert/delete path; the component only no-store fetches `/api/founder/opportunities` and has no browser Supabase client or dangerous HTML.
+
+Build/deploy gate: local `pnpm run build` stopped at `scripts/validate-env.mjs --ci` because this cron shell has no app env groups configured (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`). Only env names/counts were printed; no secret values were read, stored, or mutated. The documented `npm run security:routes-check` / `pnpm run security:routes-check` script is not present in `apps/web/package.json`, so the repo-local Python added-line/invariant scan above was used as an ad-hoc focused security check.
+
+Reviewer/publication status: dispatched fresh independent read-only reviewers `deleg_3c30f516` for bounded diff review and next-slice discovery; read-back was still pending at evidence-write time. I did not merge, apply migrations, write production data, mutate env, perform billing actions, or send client-facing comms.
+
+Gate packet: local code/test slice remains `NONE` for direct production/finance/DB/spend impact because it is a read-only API/UI label/test/docs slice plus test-only env isolation. Publication is `NAMESPACE` / `LIFT_WITH_GUARDRAILS` only for branch/PR review once committed/pushed: use CI/Vercel as the env-complete build gate; do not merge unless checks pass cleanly. Rollback is file-only revert of opportunities API/UI/tests, CRM matrix row, Linear/ideas test isolation, and evidence-doc appends; no schema/env/data rollback is required.
+
+Next safe lane: publish the bounded branch for PR/CI review if no reviewer-blocking issue returns; otherwise keep it local and address reviewer findings before any merge.
+
+## 2026-06-29 03:22 AEST
+
+### Tick 20260629_0322 — Founder opportunities slice re-verified; publication still reviewer/env gated
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Lane/preflight: continued existing dirty branch `margot-opportunity-source-truth-20260628` rather than starting a new lane. `git fetch origin main --prune` succeeded; branch remains even with `origin/main` (`git rev-list --left-right --count origin/main...HEAD` -> `0 0`), with both `HEAD` and `origin/main` at `b48b6cb24`. GitHub auth is available; current branch has no PR and `gh pr list --state open` returned zero open PRs. Recent `main` GitHub read-back showed Brand Video Render runs completed successfully at `b48b6cb24b8d`. Vercel CLI read-back (`vercel ls --yes`) showed recent `unite-group/unite-group` Production/Preview deployments `Ready`; no deploy or env mutation occurred.
+
+Read-first context: root prompt-named Margot docs remain absent in `docs/margot/` for several older source paths, so this run used the tracked app-local copies required by the CRM command-spine rule: Connected Teams and Senior PM from `apps/empire/docs/margot/`, CRM operating/schema/forecast from `apps/web/docs/margot/`, and lead-conversion from `apps/empire/docs/margot/`. Governing rules remain existing-assets-first, founder-scoped auth, forecast-only opportunities, Stripe as billing truth, branch-first DB discipline, and no autonomous production/schema/env/billing/client-facing/cross-client action.
+
+Slice status: no new production-code behaviour was authored in this tick. The local read-only founder opportunities source-of-truth contract remains intact: `GET /api/founder/opportunities` returns `sourceOfTruth: { crm: 'crm_opportunities', billing: 'stripe', mode: 'forecast_only' }`; `OpportunitiesPageClient` renders `CRM source: crm_opportunities` and `Forecast only · Billing truth stays in Stripe`; `apps/web/docs/margot/crm-test-coverage-matrix.md` records the contract. The Linear/ideas edits remain test-only no-config isolation (`vi.stubEnv('LINEAR_API_KEY', '')` plus cleanup) and do not change production integration behaviour.
+
+Verification: focused Vitest passed for the opportunities route/component plus Linear/ideas no-config tests (4 files / 17 tests). `pnpm run type-check` passed. `pnpm run lint` passed. Full `pnpm run test` passed (451 files / 2683 tests), with existing intentional failure-path stderr and one existing React `act(...)` warning only. `git diff --check` passed. Product-only added-line security scan returned `PRODUCT_ADDED_LINE_SECURITY_FINDINGS=NONE`; whole-file probes confirmed the opportunities route remains `force-dynamic`, `getUser()` auth-gated, server-client based, founder-scoped via `.eq('founder_id', user.id)`, read-only `select` against `crm_opportunities`, and has no insert/update/upsert/delete path; the component only fetches `/api/founder/opportunities` with `cache: 'no-store'` and has no browser Supabase client or dangerous HTML.
+
+Build/deploy gate: local `pnpm run build` stopped at `scripts/validate-env.mjs --ci` because this cron shell has no app env groups configured (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`). Only env names/counts were printed; no secret values were read, stored, or mutated. This keeps the local build/deploy namespace gated until CI/Vercel can supply an env-complete build gate after publication.
+
+Reviewer/publication status: dispatched fresh independent read-only reviewer `deleg_210c90b5` for the current bounded diff; reviewer read-back was still pending at evidence-write time. I did not commit, push, open a PR, merge, deploy, mutate env, apply migrations, or write production data.
+
+Gate packet: local code/test slice remains `NONE` for direct production/finance/DB/spend impact because it is a read-only API/UI label/test/docs slice plus test-only env isolation. Publication remains `NAMESPACE` / `KEEP_GATED` until the independent reviewer returns clean and an env-complete CI/Vercel build gate is available. Rollback is file-only revert of the opportunities API/UI/tests, CRM matrix row, Linear/ideas test-isolation edits, and evidence-doc appends; no schema/env/data rollback is required.
+
+Next safe lane: wait for clean reviewer read-back, then commit the bounded diff and use GitHub/Vercel as the env-complete build gate; if reviewer/build gate remains unavailable, keep the slice local and refresh only material evidence without publishing unrelated work.
+
+## 2026-06-29 02:46 AEST
+
+### Tick 20260629_0246 — Founder opportunities slice fully replayed; publication remains reviewer/env gated
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Lane/preflight: continued the existing dirty branch `margot-opportunity-source-truth-20260628`; `git fetch origin main --prune` succeeded and `git rev-list --left-right --count origin/main...HEAD` returned `0 0`, with both `HEAD` and `origin/main` at `b48b6cb24b8d`. GitHub auth is available; `gh pr list --state open` returned no open PR rows and no PR exists for this branch. `gh run list --branch main --limit 5` showed recent Brand Video Render runs completed successfully at `b48b6cb24b8d`. Vercel CLI read-back showed recent `unite-group/unite-group` deployments `Ready`; no deploy or env mutation occurred.
+
+Read-first context: root prompt-named Margot docs are absent/report-only in this checkout, so this run used the tracked app-local canonical copies identified by the CRM command-spine rule: Connected Teams and Senior PM from `apps/empire/docs/margot/`, CRM operating/schema/forecast/contact-opportunity docs from `apps/web/docs/margot/`, lead-conversion plan from `apps/empire/docs/margot/`, and the multi-day CRM plan from `apps/web/docs/plans/`. Governing rules remain existing-assets-first, founder-scoped auth, forecast-only opportunities, Stripe as billing truth, branch-first DB discipline, and no autonomous production/schema/env/billing/client-facing/cross-client action.
+
+Slice status: no new production-code behaviour was authored in this tick; I replayed the already-local bounded read-only founder opportunities source-of-truth contract. `GET /api/founder/opportunities` still returns `sourceOfTruth: { crm: 'crm_opportunities', billing: 'stripe', mode: 'forecast_only' }`; `OpportunitiesPageClient` renders `CRM source: crm_opportunities` and `Forecast only · Billing truth stays in Stripe`; `apps/web/docs/margot/crm-test-coverage-matrix.md` records the contract. The Linear/ideas edits remain test-only no-config isolation (`vi.stubEnv('LINEAR_API_KEY', '')` plus cleanup), with no production integration behaviour change.
+
+Verification: focused Vitest passed for the opportunities route/component plus Linear/ideas no-config tests (4 files / 17 tests). `pnpm run type-check` passed. `pnpm run lint` passed. Full `pnpm run test` passed (451 files / 2683 tests), with existing intentional failure-path stderr and one existing React `act(...)` warning only. `git diff --check` passed. Product-only added-line security scan returned `PRODUCT_ADDED_LINE_SECURITY_FINDINGS=NONE`; the broader bounded scan found only three test-side empty `LINEAR_API_KEY` stubs and no credential values. Whole-file probes confirmed the opportunities route remains `force-dynamic`, `getUser()` auth-gated, server-client based, founder-scoped via `.eq('founder_id', user.id)`, read-only `select` against `crm_opportunities`, and has no insert/update/upsert/delete path; the component only fetches `/api/founder/opportunities` with `cache: 'no-store'` and has no browser Supabase client or dangerous HTML.
+
+Build/deploy gate: local `pnpm run build` stopped at `scripts/validate-env.mjs --ci` because this cron shell has no app env groups configured (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`). Only env names/counts were printed; no secret values were read, stored, or mutated. This keeps the local build/deploy namespace gated until CI/Vercel can supply an env-complete build gate after publication.
+
+Reviewer/publication status: dispatched fresh independent read-only reviewer `deleg_59240e07` for the current bounded diff; reviewer read-back was still pending at evidence-write time, so I did not commit, push, open a PR, merge, deploy, mutate env, apply migrations, or write production data.
+
+Gate packet: local code/test slice remains `NONE` for direct production/finance/DB/spend impact because it is a read-only API/UI label/test/docs slice plus test-only env isolation. Publication remains `NAMESPACE` / `KEEP_GATED` until the independent reviewer returns clean and an env-complete CI/Vercel build gate is available. Rollback is file-only revert of the opportunities API/UI/tests, CRM matrix row, Linear/ideas test-isolation edits, and evidence-doc appends; no schema/env/data rollback is required.
+
+Next safe lane: wait for clean reviewer read-back, then commit the bounded diff and use GitHub/Vercel as the env-complete build gate; if reviewer/build gate remains unavailable, keep the slice local and refresh only material evidence without publishing unrelated work.
+
+## 2026-06-29 02:07 AEST
+
+### Tick 20260629_0207 — Founder opportunities slice re-verified; build remains env-gated and publication held
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Lane/preflight: continued the existing dirty branch `margot-opportunity-source-truth-20260628` rather than opening a new lane. Branch remains even with `origin/main` at `b48b6cb24b8d` (`git rev-list --left-right --count origin/main...HEAD` -> `0 0`). GitHub auth is available; `gh pr list --state open` returned `[]`, and no PR exists for this branch. Recent `main` GitHub read-back showed successful Brand Video Render runs. Vercel CLI read-back succeeded; recent `unite-group/unite-group` deployments were `Ready` after URL redaction. No deploy or env mutation occurred.
+
+Read-first context: re-read the current app-local canonical Margot docs used by this lane: Connected Teams and Senior PM context from `apps/empire/docs/margot/`, CRM operating/source-of-truth rules from `apps/web/docs/margot/`, and current API/component scoped instructions. Governing rules remain existing-assets-first, forecast-only opportunities, Stripe as billing truth, founder-scoped auth, no autonomous production/schema/env/billing/client-facing/cross-client actions, and branch-first DB discipline.
+
+Slice status: preserved the bounded read-only founder opportunities source-of-truth contract plus test-only Linear env isolation. `GET /api/founder/opportunities` returns `sourceOfTruth: { crm: 'crm_opportunities', billing: 'stripe', mode: 'forecast_only' }`; `OpportunitiesPageClient` renders `CRM source: crm_opportunities` and `Forecast only · Billing truth stays in Stripe`; `apps/web/docs/margot/crm-test-coverage-matrix.md` records the read-surface contract. The Linear/ideas edits remain limited to no-config test isolation (`vi.stubEnv('LINEAR_API_KEY', '')` plus cleanup) and do not change production integration behaviour.
+
+Verification: focused Vitest passed for the opportunities route/component plus Linear/ideas no-config tests (4 files / 17 tests). `pnpm run type-check` passed. `pnpm run lint` passed. Full `pnpm run test` passed (451 files / 2683 tests), with existing intentional failure-path stderr and one existing React `act(...)` warning only. `git diff --check` passed. Refined added-line safety scan over bounded product/test/docs files returned `REFINED_ADDED_LINE_SECURITY_FINDINGS=NONE`. `pnpm run build` remains blocked only by local prebuild env validation (`CRITICAL: 1/3`, `REQUIRED: 1/4`, `INTEGRATION: 1/14`); only env names/counts were printed, no secret values were read or mutated.
+
+Safety scan: product route remains `force-dynamic`, uses `getUser()` auth, uses server `createClient()`, filters `.eq('founder_id', user.id)`, reads from `crm_opportunities`, and contains no insert/update/upsert/delete mutation path. Component uses only the intended no-store fetch to `/api/founder/opportunities`; no browser Supabase client, dangerous HTML, payment action, service-role literal, credential literal, provider-spend action, client-facing send, cross-client identity merge, schema change, migration application, Vercel env mutation, or production DB write was introduced.
+
+Reviewer/publication status: dispatched fresh independent read-only reviewer `deleg_b01675c2` for the current bounded diff; read-back was still pending at evidence-write time, so I did not commit, push, open a PR, merge, deploy, mutate env, apply migrations, or write production data. Publication remains held by the pending reviewer gate plus the env-complete build/deploy gate.
+
+Gate packet: combined local diff remains `NONE` for direct production/finance/DB/spend impact because it is a read-only API/UI source-label slice plus tests/docs/test-only env isolation. Publication remains `NAMESPACE` / `KEEP_GATED` until reviewer read-back is clean and CI/Vercel can provide an env-complete build gate. Rollback is file-only revert of the opportunities API/UI/tests, CRM coverage matrix row, Linear/ideas test-isolation edits, and evidence-doc appends; no schema/env/data rollback is required.
+
+Next safe lane: wait for clean reviewer read-back, then either commit the bounded diff and use GitHub/Vercel as the env-complete build gate, or if the reviewer/build gate remains unavailable, keep the slice local and refresh only evidence without publishing unrelated work.
+
+## 2026-06-29 01:30 AEST
+
+### Tick 20260629_0130 — Full-suite RED fixed with Linear test isolation; founder opportunities slice still gated from publication
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Lane/preflight: continued `margot-opportunity-source-truth-20260628` rather than opening a new lane. `git fetch origin main --prune` succeeded; branch remains even with `origin/main` at `b48b6cb24b8d` (`git rev-list --left-right --count origin/main...HEAD` -> `0 0`). GitHub auth is available; `gh pr list --state open` returned `[]`, and `gh pr view` found no PR for this branch. Recent `main` GitHub run read-back showed successful Brand Video Render jobs at `b48b6cb24b8d`. Vercel CLI read-back succeeded after removing the unsupported `--limit` flag; recent `unite-group/unite-group` deployments were `Ready` after URL redaction. No deploy/env mutation occurred.
+
+Read-first context: re-read the app-local canonical Margot docs for this CRM lane: Connected Teams + Senior PM from `apps/empire/docs/margot/`, CRM operating/schema docs from `apps/web/docs/margot/`, plus current app/API context. Governing rules remain existing-assets-first, forecast-only opportunities, Stripe as billing truth, no autonomous production/schema/env/billing/client-facing/cross-client action, and branch-first DB discipline.
+
+Slice status: preserved the read-only founder opportunities source-of-truth contract: `GET /api/founder/opportunities` returns `sourceOfTruth: { crm: 'crm_opportunities', billing: 'stripe', mode: 'forecast_only' }`; `OpportunitiesPageClient` renders `CRM source: crm_opportunities` and `Forecast only · Billing truth stays in Stripe`; `apps/web/docs/margot/crm-test-coverage-matrix.md` records the contract. A fresh full-suite RED then exposed unrelated Linear env leakage in the Vitest process (`ideas/create` and `linear/issues` no-config tests saw a configured Linear key and failed expected 503/200 assertions). I fixed that test-only by explicitly stubbing `LINEAR_API_KEY` to empty in the no-config assertions and adding `afterEach(vi.unstubAllEnvs())` to the ideas-create test.
+
+TDD/verification: focused opportunities Vitest passed (2 files / 6 tests). Full `pnpm run test` first failed 3 assertions in the Linear/ideas no-config tests, giving the RED for env-leakage isolation. After the minimal test-isolation fix, focused Linear/ideas Vitest passed (2 files / 11 tests), full `pnpm run test` passed (451 files / 2683 tests), `pnpm run type-check` passed, `pnpm run lint` passed, and `git diff --check` passed. `pnpm run build` remains blocked only at local prebuild env validation (`CRITICAL: 0/3`, `REQUIRED: 1/4`, `INTEGRATION: 0/14`); only env names/counts were printed, no secret values were read or mutated.
+
+Safety scan: refined added-line scan over bounded product/test/CRM-matrix files returned `REFINED_ADDED_LINE_SECURITY_FINDINGS=NONE`. The only added `process.env` handling is test-side `vi.stubEnv('LINEAR_API_KEY', '')`; no service-role literal, browser Supabase client, dangerous HTML, DB mutation, payment action, credential literal, provider call, migration, or production write path was added.
+
+Reviewer/publication status: dispatched read-only reviewers `deleg_fab5ec08` before the test-isolation fix and `deleg_6a7d7863` after the updated diff. Reviewer read-back had not returned by this evidence update, so I did not commit, push, open a PR, merge, deploy, mutate env, apply migrations, or write production data. Publication remains held by the reviewer gate plus the env-complete build/deploy gate.
+
+Gate packet: combined local diff remains `NONE` for production/finance/DB/spend impact (read-only API/UI source labels + tests/docs + test-only env isolation). Publication remains `NAMESPACE` / `KEEP_GATED` until reviewer read-back is clean and CI/Vercel can provide an env-complete build gate. Rollback is file-only revert of the opportunities API/UI/tests, CRM coverage matrix row, Linear/ideas test isolation edits, and evidence-doc appends; no schema/env/data rollback is required.
+
+Next safe lane: wait for clean reviewer read-back, then commit the bounded diff and, if auth remains available and no namespace blocker is active, push/open a PR to `main`; otherwise keep it local and refresh only the evidence without publishing unrelated work.
+
+## 2026-06-29 00:53 AEST
+
+### Tick 20260629_0053 — Founder opportunities slice re-verified; publication remains reviewer/env gated
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Lane/preflight: continued the existing dirty branch `margot-opportunity-source-truth-20260628` rather than starting a new lane. `git status --short --branch` showed the same bounded local product/test/docs slice plus evidence docs. `git rev-list --left-right --count origin/main...HEAD` returned `0 0`, so the branch remains even with `origin/main` at the current local fetch point. GitHub auth is available; `gh pr list --state open` returned `[]`, and `gh pr view` returned no PR for this branch. Recent `main` GitHub runs read back as successful Brand Video Render jobs at `b48b6cb24b8d`. Vercel CLI read-back succeeded; recent `unite-group/unite-group` deployments were `Ready` after URL redaction. No deploy or env mutation was attempted.
+
+Read-first context: root `docs/margot/*` source paths remain absent for several older prompt names, so this run used the tracked app-local canonical copies already identified in prior CRM command-spine passes: Connected Teams and Senior PM operating context from `apps/empire/docs/margot/`, and CRM operating/schema/contact-opportunity model from `apps/web/docs/margot/`. Governing rules remain existing-assets-first, forecast-only opportunities, Stripe as billing truth, no autonomous production/schema/env/billing/client-facing/cross-client action, and branch-first DB discipline.
+
+Slice status: the local read-only founder opportunities source-of-truth contract remains intact. `GET /api/founder/opportunities` returns `sourceOfTruth: { crm: 'crm_opportunities', billing: 'stripe', mode: 'forecast_only' }`; `OpportunitiesPageClient` renders `CRM source: crm_opportunities` and `Forecast only · Billing truth stays in Stripe`; `apps/web/docs/margot/crm-test-coverage-matrix.md` records the contract. No production code changed in this tick beyond preserving the existing local diff and appending this evidence.
+
+Verification refresh: focused Vitest passed for `src/app/api/founder/opportunities/__tests__/route.test.ts` and `src/components/founder/opportunities/__tests__/OpportunitiesPageClient.test.tsx` (2 files / 6 tests). `pnpm run type-check` passed. `pnpm run lint` passed. Full `pnpm run test` passed (451 files / 2683 tests) with existing intentional failure-path stderr and one existing React `act(...)` warning only. `git diff --check` passed. `pnpm run build` remains blocked at local prebuild env validation because this cron shell has no app env groups configured (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`); only variable names/counts were printed, no values were read or mutated.
+
+Safety scan: refined added-line scan over the bounded product/test/CRM-matrix diff returned `REFINED_ADDED_LINE_SECURITY_FINDINGS=NONE`. Whole-file probes confirmed the route remains `force-dynamic`, `getUser()` auth-gated, founder-scoped via `.eq('founder_id', user.id)`, selects from `crm_opportunities`, and has no insert/update/upsert/delete mutation path; the component renders the source-of-truth labels and has no browser Supabase client or dangerous HTML.
+
+Reviewer/publication status: dispatched fresh independent read-only reviewer `deleg_4cfdd06f` for the current bounded diff. Reviewer read-back had not returned by this evidence update, so I did not commit, push, open a PR, merge, deploy, mutate env, apply migrations, or write production data. Publication remains held by the reviewer gate plus the env-complete build/deploy gate.
+
+Gate packet: code slice remains `NONE` for production/finance/DB/spend impact because it is a read-only API/UI label/test/docs slice. Publication remains `NAMESPACE` / `KEEP_GATED` until reviewer read-back is clean and CI/Vercel can provide an env-complete build gate. Rollback is file-only revert of the opportunities API/UI/tests plus the CRM coverage matrix row and evidence-doc appends; no schema/env/data rollback is required.
+
+Next safe lane: wait for clean reviewer read-back, then commit the bounded slice and, if auth remains available and no namespace blocker is active, push/open a PR to `main`; otherwise keep it local and refresh evidence without publishing unrelated work.
+
+## 2026-06-29 00:16 AEST
+
+### Tick 20260629_0016 — Founder opportunities slice re-verified; reviewer/publication still held
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Lane/preflight: continued the existing dirty branch `margot-opportunity-source-truth-20260628` instead of starting a new lane. `git status --short --branch` still shows the same seven bounded modified files. `git rev-list --left-right --count origin/main...HEAD` returned `0 0`, so the branch is even with `origin/main` at the current local fetch point. GitHub auth remains available; `gh pr list --state open` returned `[]`, and `gh pr view` reported no PR for this branch. Recent `main` GitHub run read-back showed Brand Video Render successes at `b48b6cb24b8d`. Vercel CLI is present (`54.4.1`) and `vercel ls --yes` read back recent `unite-group/unite-group` deployments as `Ready`; no Vercel deploy or env mutation was attempted.
+
+Read-first context: root canonical docs remain absent for several older prompt paths, so this run used the tracked app-local copies already identified by the CRM command-spine rule: Connected Teams and Senior PM operating context from `apps/empire/docs/margot/`, CRM operating/schema/forecast/contact-opportunity model from `apps/web/docs/margot/`, lead-conversion plan from `apps/empire/docs/margot/`, and the multi-day CRM plan from `apps/web/docs/plans/`. Governing rules remain existing-assets-first, forecast-only opportunities, Stripe as billing truth, no autonomous production/schema/env/billing/client-facing/cross-client action, and branch-first DB discipline.
+
+Slice status: the local read-only founder opportunities source-of-truth contract remains intact. `GET /api/founder/opportunities` returns `sourceOfTruth: { crm: 'crm_opportunities', billing: 'stripe', mode: 'forecast_only' }`; `OpportunitiesPageClient` renders `CRM source: crm_opportunities` and `Forecast only · Billing truth stays in Stripe`; `apps/web/docs/margot/crm-test-coverage-matrix.md` records the contract. No production code was changed in this tick beyond the existing local diff and these evidence-doc appends.
+
+Verification refresh: direct focused Vitest passed for `src/app/api/founder/opportunities/__tests__/route.test.ts` and `src/components/founder/opportunities/__tests__/OpportunitiesPageClient.test.tsx` (2 files / 6 tests). `pnpm run type-check` passed. `pnpm run lint` passed. Full Vitest via the `pnpm run test -- ...` fallback passed the whole suite (451 files / 2683 tests) with the existing intentional failure-path stderr and one existing React `act(...)` warning only. `git diff --check` passed. `pnpm run build` remains blocked at the local prebuild env validation gate because this cron shell has no app env groups configured (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`); only env names/counts were printed, no values were read or mutated.
+
+Safety scan: refined added-line scan over the bounded product/test/CRM-matrix diff returned `REFINED_ADDED_LINE_SECURITY_FINDINGS=NONE`. Whole-file probes confirmed the route remains `force-dynamic`, `getUser()` auth-gated, founder-scoped via `.eq('founder_id', user.id)`, selects from `crm_opportunities`, and has no insert/update/upsert/delete mutation path; the component has no browser Supabase client or dangerous HTML and renders the source-of-truth labels.
+
+Reviewer/publication status: dispatched fresh independent read-only reviewer `deleg_3559337d` for the current bounded diff. Reviewer read-back had not returned by the evidence update, so I did not commit, push, open a PR, merge, deploy, mutate env, apply migrations, or write production data. Publication remains held by the same reviewer gate plus the env-complete build/deploy gate.
+
+Gate packet: code slice remains `NONE` for production/finance/DB/spend impact because it is a read-only API/UI label/test/docs slice. Publication remains `NAMESPACE` / `KEEP_GATED` until reviewer read-back is clean and CI/Vercel can provide an env-complete build gate. Rollback is file-only revert of the opportunities API/UI/tests plus the CRM coverage matrix row and evidence-doc appends; no schema/env/data rollback is required.
+
+Next safe lane: wait for clean reviewer read-back, then commit the bounded slice and, if auth remains available and no namespace blocker is active, push/open a PR to `main`; otherwise keep it local and refresh evidence without publishing unrelated work.
+
+## 2026-06-28 23:39 AEST
+
+### Tick 20260628_2339 — Founder opportunities slice verification refreshed; publication remains gated
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Lane/preflight: continued `margot-opportunity-source-truth-20260628` because it already contains the in-progress local founder-opportunities slice. `git fetch origin main --prune` succeeded; `HEAD` and `origin/main` both read back as `b48b6cb24`; `git rev-list --left-right --count origin/main...HEAD` returned `0 0`. `git status --short --branch` still shows the same seven bounded local files modified. GitHub auth is available; `gh pr list --state open` returned no rows and `gh pr view margot-opportunity-source-truth-20260628` returned no branch PR. Recent `main` GitHub run read-back showed Brand Video Render successes at `b48b6cb24b8d`. Vercel CLI is present (`54.4.1`), but this cron shell did not return deployment rows from `vercel ls`; no deploy or env mutation was attempted.
+
+Read-first context: used tracked app-local canonical docs where root paths are absent or report-only: Connected Teams and Senior PM operating context from `apps/empire/docs/margot/`, CRM operating/schema/forecast/contact-opportunity model from `apps/web/docs/margot/`, lead-conversion plan from `apps/empire/docs/margot/`, and the multi-day CRM plan from `apps/web/docs/plans/`. The governing rule remains existing-assets-first, forecast-only opportunities, Stripe as billing truth, branch-first DB discipline, and no autonomous production/env/billing/client-facing/cross-client actions.
+
+Slice status: the local read-only source-of-truth label slice remains intact. `GET /api/founder/opportunities` returns `sourceOfTruth: { crm: 'crm_opportunities', billing: 'stripe', mode: 'forecast_only' }`; `OpportunitiesPageClient` renders `CRM source: crm_opportunities` and `Forecast only · Billing truth stays in Stripe`; `apps/web/docs/margot/crm-test-coverage-matrix.md` records the contract. This run did not change production code beyond the existing local diff.
+
+Verification refresh: focused Vitest passed for `src/app/api/founder/opportunities/__tests__/route.test.ts` and `src/components/founder/opportunities/__tests__/OpportunitiesPageClient.test.tsx` (2 files / 6 tests). `pnpm run type-check` passed. `pnpm run lint` passed. Full `pnpm run test` passed (451 files / 2683 tests; existing intentional failure-path stderr and one React `act(...)` warning only). `git diff --check` passed. `pnpm run build` remains blocked at local prebuild env validation because this cron shell has no app env groups configured (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`); only env names/counts were printed, no values were read or mutated.
+
+Safety scan: refined added-line scan over touched product/test/CRM-matrix paths returned `REFINED_NO_ADDED_LINE_SECURITY_FINDINGS`. Whole-file route/component invariants passed: force-dynamic route, `getUser()` auth gate, `.eq('founder_id', user.id)` founder scope, read-only `select` with no insert/update/upsert/delete call, no browser Supabase client, and no dangerous HTML.
+
+Reviewer/publication status: dispatched fresh read-only reviewer `deleg_6060d203` for the current product/test/CRM-matrix diff. Reviewer read-back had not returned within this cron turn, so I did not commit, push, open a PR, merge, deploy, mutate env, apply migrations, or write production data.
+
+Gate packet: code slice remains `NONE` for production/finance/DB/spend impact because it is a read-only API/UI label/test/docs slice. Publication remains `NAMESPACE` / `KEEP_GATED` until reviewer read-back is clean and CI/Vercel can provide an env-complete build/deploy gate. Rollback is file-only revert of the opportunities API/UI/tests plus the CRM coverage matrix row; no schema/env/data rollback is required.
+
+Next safe lane: wait for a clean reviewer read-back, then commit the bounded slice and, if auth remains available and no shared namespace blocker is active, push/open a PR to `main`; otherwise keep it local and refresh evidence without publishing unrelated work.
+
+## 2026-06-28 22:53 AEST
+
+### Tick 20260628_2253 — Founder opportunities source labels freshly verified; publication still reviewer-gated
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Lane/preflight: continued the existing dirty local branch `margot-opportunity-source-truth-20260628` rather than starting a new lane. `git status --short --branch` shows the same seven bounded local files modified and the branch is even with `origin/main` (`git rev-list --left-right --count origin/main...HEAD` -> `0 0`, `HEAD`/`origin/main` at `b48b6cb24`). GitHub auth is available; `gh pr list --state open` returned no open PRs and `gh pr view` returned `NO_PR_FOR_BRANCH`. Latest read-back on `main` shows Brand Video Render schedules successful and Monorepo CI successful for `b48b6cb24`. Vercel CLI read-back is available and recent `unite-group/unite-group` deployments are Ready; no deploy or env mutation occurred.
+
+Slice status: preserved the read-only founder opportunities source-of-truth slice. `GET /api/founder/opportunities` returns `sourceOfTruth: { crm: 'crm_opportunities', billing: 'stripe', mode: 'forecast_only' }`; `OpportunitiesPageClient` renders `CRM source: crm_opportunities` and `Forecast only · Billing truth stays in Stripe`; `apps/web/docs/margot/crm-test-coverage-matrix.md` records the contract. No schema change, migration application, production DB write, provider call, env mutation, deployment, billing/payment action, client-facing communication, cross-client identity action, or destructive git action occurred.
+
+Verification replay: focused Vitest passed for `src/app/api/founder/opportunities/__tests__/route.test.ts` and `src/components/founder/opportunities/__tests__/OpportunitiesPageClient.test.tsx` (2 files / 6 tests). `pnpm run type-check` passed. `pnpm run lint` passed. Full `pnpm run test` passed (451 files / 2683 tests; expected failure-path stderr and one existing React `act(...)` warning only). `git diff --check` passed. `pnpm run build` remains blocked at prebuild env validation because this cron shell has no app env groups set (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`); only env names/counts were printed and no secret values were read or mutated.
+
+Safety scan: refined added-line scan over the product/test/coverage-matrix files returned `REFINED_NO_ADDED_LINE_SECURITY_FINDINGS` for secret literals, `process.env`, dangerous HTML, browser Supabase clients, service-role literals, Supabase mutations, shell/eval, and payment-action patterns. Whole-file product probes confirmed the route still has `export const dynamic = 'force-dynamic'`, filters `.eq('founder_id', user.id)`, and contains no browser Supabase client, dangerous HTML, mutation call, or payment-action pattern; the component's only network marker remains the intended no-store fetch to `/api/founder/opportunities`.
+
+Review/publication status: dispatched fresh independent read-only reviewer `deleg_984e09ff` for the current diff. Reviewer read-back had not returned before this evidence update, so I did not commit, push, open a PR, merge, deploy, or mutate environments. Gate packet remains `NONE` for production/finance/DB impact of the code slice and `NAMESPACE` / `KEEP_GATED` for publication until reviewer read-back is clean and CI/Vercel can provide the env-complete build gate.
+
+Rollback: file-only revert of `apps/web/src/app/api/founder/opportunities/route.ts`, `apps/web/src/app/api/founder/opportunities/__tests__/route.test.ts`, `apps/web/src/components/founder/opportunities/OpportunitiesPageClient.tsx`, `apps/web/src/components/founder/opportunities/__tests__/OpportunitiesPageClient.test.tsx`, and `apps/web/docs/margot/crm-test-coverage-matrix.md`. No schema/env/data rollback is required for this local slice.
+
+Next safe lane: wait for a clean reviewer read-back, then commit the bounded slice, push/open a PR to `main`, monitor GitHub/Vercel checks, and use CI/Vercel as the env-complete build gate. If reviewer flags issues, fix only those issues and rerun focused/type/lint/full-test/scan first.
+
+## 2026-06-28 22:17 AEST
+
+### Tick 20260628_2217 — Founder opportunities source labels re-verified on synced main; reviewer/publication still gated
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Lane/preflight: continued the in-progress local branch `margot-opportunity-source-truth-20260628` rather than starting a new lane. `git fetch origin main --prune` succeeded; branch and `origin/main` are both at `b48b6cb24b8d` with compare `git rev-list --left-right --count origin/main...HEAD` -> `0 0`. Working tree remains the same seven bounded local files modified: the founder opportunities route/test, opportunities page client/test, CRM coverage matrix, and the two Margot evidence docs. GitHub auth is available; `gh pr list --state open` returned `[]`; `gh pr view` for the current branch returned `NO_PR_FOR_BRANCH`. Latest `main` GitHub read-back shows Monorepo CI and Brand Video Render successful. Vercel CLI read-back is available (`54.4.1`) and `vercel ls --yes` returned recent deployment URLs; no deploy or env mutation occurred.
+
+Read-first context: canonical root `docs/margot/*` source files are absent for several older paths, so I used the tracked app-local copies per the CRM command-spine rule: `apps/empire/docs/margot/CONNECTED-TEAMS-OPERATING-RULES.md`, `apps/empire/docs/margot/SENIOR-PROJECT-MANAGER-OPERATING-MODEL.md`, `apps/web/docs/margot/crm-operating-model.md`, `apps/web/docs/margot/crm-schema-inventory.md`, `apps/web/docs/margot/high-level-crm-25-step-forecast.md`, `apps/empire/docs/margot/lead-to-client-conversion-plan.md`, `apps/web/docs/margot/crm-contacts-opportunities-model.md`, and `apps/web/docs/plans/2026-05-23-margot-multi-day-crm-build-plan.md`. The relevant governing rules remain: use existing assets first; keep opportunities forecast-only; Stripe remains billing truth; production writes, migrations, env changes, deploys, billing/payment actions, client-facing comms, and cross-client identity changes require explicit approval.
+
+Slice status: preserved the existing read-only founder opportunities source-of-truth slice. `GET /api/founder/opportunities` returns `sourceOfTruth: { crm: 'crm_opportunities', billing: 'stripe', mode: 'forecast_only' }`; `OpportunitiesPageClient` renders `CRM source: crm_opportunities` and `Forecast only · Billing truth stays in Stripe`; the CRM coverage matrix records the read-surface contract. No schema, migration application, production DB write, provider call, env mutation, deployment, billing/payment action, client-facing communication, or cross-client identity action occurred.
+
+Verification replay: focused Vitest passed for `src/app/api/founder/opportunities/__tests__/route.test.ts` and `src/components/founder/opportunities/__tests__/OpportunitiesPageClient.test.tsx` (2 files / 6 tests). `pnpm run type-check` passed. `pnpm run lint` passed. Full `pnpm run test` passed (451 files / 2683 tests; expected failure-path stderr and one existing React `act(...)` warning only). `git diff --check` passed. `pnpm run build` remains blocked at prebuild env validation because this cron shell has no app env groups set (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`); only env names/counts were printed and no secret values were read or mutated.
+
+Safety scan: refined added-line scan over the product/test/coverage-matrix files returned `REFINED_NO_ADDED_LINE_SECURITY_FINDINGS` for secret literals, `process.env`, dangerous HTML, browser Supabase clients, service-role literals, Supabase mutations, shell/eval, and payment-action patterns. Whole-file product probes confirmed the route still has `export const dynamic = 'force-dynamic'`, filters `.eq('founder_id', user.id)`, and contains no browser Supabase client, dangerous HTML, mutation call, or payment-action pattern; the component contains no browser Supabase client, dangerous HTML, mutation call, or payment-action pattern.
+
+Review/publication status: dispatched fresh independent read-only reviewer `deleg_eab3daeb` for the current diff. Reviewer read-back had not returned by the evidence update, so I did not commit, push, open a PR, merge, deploy, or mutate environments. Gate packet remains `NONE` for production/finance/DB impact of the code slice and `NAMESPACE` / `KEEP_GATED` for publication until reviewer read-back is clean and CI/Vercel can provide the env-complete build gate.
+
+Rollback: file-only revert of `apps/web/src/app/api/founder/opportunities/route.ts`, `apps/web/src/app/api/founder/opportunities/__tests__/route.test.ts`, `apps/web/src/components/founder/opportunities/OpportunitiesPageClient.tsx`, `apps/web/src/components/founder/opportunities/__tests__/OpportunitiesPageClient.test.tsx`, and `apps/web/docs/margot/crm-test-coverage-matrix.md`. No schema/env/data rollback is required for this local slice.
+
+Next safe lane: wait for a clean reviewer read-back, then commit the bounded slice, push/open a PR to `main`, monitor GitHub/Vercel checks, and use CI/Vercel as the env-complete build gate. If reviewer flags issues, fix only those issues and rerun focused/type/lint/full-test/scan first.
+
+## 2026-06-28 21:40 AEST
+
+### Tick 20260628_2140 — Founder opportunities source labels re-verified; reviewer/publication still gated
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Lane/preflight: continued the in-progress local branch `margot-opportunity-source-truth-20260628`; `git fetch origin main` succeeded and branch compare remains `0 0` against `origin/main` at `b48b6cb24`. Working tree still has the same seven bounded local files modified. GitHub auth and Vercel CLI auth are available; `gh pr list` returned no open PRs and no PR exists for this branch. Latest `main` GitHub Actions read-back is green for Monorepo CI and Brand Video Render at `b48b6cb24`. Vercel read-back listed deployments with URLs redacted; no deploy/env mutation occurred.
+
+Slice status: preserved the existing read-only founder opportunities source-of-truth slice. `GET /api/founder/opportunities` returns `sourceOfTruth: { crm: 'crm_opportunities', billing: 'stripe', mode: 'forecast_only' }`; `OpportunitiesPageClient` renders `CRM source: crm_opportunities` and `Forecast only · Billing truth stays in Stripe`; the CRM coverage matrix records the read-surface contract. No schema, migration application, production DB write, provider call, env mutation, deployment, billing/payment action, client-facing communication, or cross-client identity action occurred.
+
+Verification replay: focused Vitest passed for `src/app/api/founder/opportunities/__tests__/route.test.ts` and `src/components/founder/opportunities/__tests__/OpportunitiesPageClient.test.tsx` (2 files / 6 tests). `pnpm run type-check` passed. `pnpm run lint` passed. Full `pnpm run test` passed (451 files / 2683 tests; expected failure-path stderr and one existing React `act(...)` warning only). `git diff --check` passed. `pnpm run build` remains blocked only by missing local env groups (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`); only env names/counts were printed and no secret values were read or mutated.
+
+Safety scan: an intentionally broad added-line scan over all changed files matched prior evidence-log prose mentioning `process.env`; refined scan over the product/test/coverage-matrix files returned `REFINED_NO_ADDED_LINE_SECURITY_FINDINGS` for secret literals, env access, dangerous HTML, browser Supabase clients, service-role literals, Supabase mutations, shell injection, and eval/exec.
+
+Publication status: dispatched fresh independent read-only reviewer `deleg_8029dbd4` for the current diff. Reviewer read-back had not returned within this cron turn, so I did not commit, push, open a PR, merge, deploy, or mutate environments. Gate packet remains `NONE` for production/finance/DB impact of the code slice and `NAMESPACE` / `KEEP_GATED` for publication until reviewer read-back is clean and CI/Vercel can provide the env-complete build gate.
+
+Rollback: file-only revert of `apps/web/src/app/api/founder/opportunities/route.ts`, `apps/web/src/app/api/founder/opportunities/__tests__/route.test.ts`, `apps/web/src/components/founder/opportunities/OpportunitiesPageClient.tsx`, `apps/web/src/components/founder/opportunities/__tests__/OpportunitiesPageClient.test.tsx`, and `apps/web/docs/margot/crm-test-coverage-matrix.md`. No schema/env/data rollback is required for this local slice.
+
+Next safe lane: wait for a clean reviewer read-back, then commit the bounded slice, push/open a PR to `main`, monitor GitHub/Vercel checks, and use CI/Vercel as the env-complete build gate. If reviewer flags issues, fix only those issues and rerun focused/type/lint/full-test/scan first.
+
+## 2026-06-28 21:03 AEST
+
+### Tick 20260628_2103 — Founder opportunities source-of-truth slice re-verified; reviewer/publication gate still held
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Lane/preflight: continued the in-progress local branch `margot-opportunity-source-truth-20260628` rather than starting a new lane. `git fetch origin main --prune` succeeded; `git status --short --branch` shows the same seven bounded local files modified; `git rev-list --left-right --count HEAD...origin/main` returned `0 0`. GitHub auth is available; `gh pr list --state open --limit 10 --json ...` returned `[]`; `gh pr view margot-opportunity-source-truth-20260628 ...` returned no PR for this branch. `gh run list --branch main --limit 5` showed the latest Monorepo CI and Brand Video Render runs on `main` completed successfully. Vercel CLI read-back is available (`54.4.1`), and `vercel ls --yes` showed recent `unite-group/unite-group` production/preview deployments ready; no Vercel deploy or env mutation was initiated.
+
+Slice status: the local read-only founder opportunities source-of-truth label remains intact. `GET /api/founder/opportunities` returns `sourceOfTruth: { crm: 'crm_opportunities', billing: 'stripe', mode: 'forecast_only' }`, the founder opportunities UI renders `CRM source: crm_opportunities` and `Forecast only · Billing truth stays in Stripe`, and `apps/web/docs/margot/crm-test-coverage-matrix.md` records the read-surface contract. No schema change, migration application, production DB write, provider call, env mutation, deploy, billing/payment action, client-facing communication, or cross-client identity action occurred.
+
+Verification replay: focused Vitest passed for `src/app/api/founder/opportunities/__tests__/route.test.ts` and `src/components/founder/opportunities/__tests__/OpportunitiesPageClient.test.tsx` (2 files / 6 tests). `pnpm run type-check` passed. `pnpm run lint` passed. Full `pnpm run test` passed (451 files / 2683 tests; expected failure-path stderr and one React `act(...)` warning only). `git diff --check` passed. `pnpm run build` remains blocked at prebuild env validation because this cron shell has no app env groups set (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`); only env names/counts were printed, no secret values were read or mutated.
+
+Safety scan: route/component searches found no `process.env`, dangerous HTML, browser Supabase client, service-role literal, or Supabase insert/update/delete/upsert path in the touched product files. Secret-pattern search had only a false-positive style token (`var(--surface-card)`) in the component; no API-key/token/password/bearer/header value was introduced. The explicit source-label search found only the intended `sourceOfTruth`, `forecast_only`, `CRM source`, and `Billing truth` labels in the route, adjacent tests, and component.
+
+Publication status: dispatched fresh independent read-only reviewer `deleg_b6453049` for the current product/test diff. Reviewer read-back had not returned within this cron turn, so I did not commit, push, open a PR, merge, deploy, or mutate environments. Gate packet remains `NONE` for production/finance/DB impact of the code slice and `NAMESPACE` / `KEEP_GATED` for publication until reviewer read-back is clean and CI/Vercel can supply the env-complete build gate.
+
+Rollback: file-only revert of `apps/web/src/app/api/founder/opportunities/route.ts`, `apps/web/src/app/api/founder/opportunities/__tests__/route.test.ts`, `apps/web/src/components/founder/opportunities/OpportunitiesPageClient.tsx`, `apps/web/src/components/founder/opportunities/__tests__/OpportunitiesPageClient.test.tsx`, and `apps/web/docs/margot/crm-test-coverage-matrix.md`. No schema/env/data rollback is required for this local slice.
+
+Next safe lane: wait for a clean reviewer read-back, then commit the bounded slice, push/open a PR to `main`, monitor GitHub/Vercel checks, and use CI/Vercel as the env-complete build gate. If reviewer flags issues, fix only those issues and rerun focused/type/lint/full-test/scan first.
+
+## 2026-06-28 20:29 AEST
+
+### Tick 20260628_2029 — Founder opportunities branch re-verified after latest main advanced; publication still held
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Lane/preflight: continued the in-progress local branch `margot-opportunity-source-truth-20260628`; GitHub auth is available, `gh pr list` found no open PRs, `gh pr view` found no PR for this branch, and Vercel CLI read-back succeeded without deploy/env mutation. `origin/main` advanced from `5e007a9b9` to `b48b6cb24`; I stashed the bounded local diff, fast-forwarded the branch to `origin/main`, and re-applied the diff cleanly. Final compare is `git rev-list --left-right --count origin/main...HEAD` -> `0 0`, with the same seven bounded local files modified. Current `main` Monorepo CI for `b48b6cb24` is still `in_progress`; earlier main checks at `5e007a9b9` were green.
+
+Slice status: read-only founder opportunities source-of-truth labelling remains intact after the refresh. `GET /api/founder/opportunities` returns `sourceOfTruth: { crm: 'crm_opportunities', billing: 'stripe', mode: 'forecast_only' }`; `OpportunitiesPageClient` renders `CRM source: crm_opportunities` and `Forecast only · Billing truth stays in Stripe`; the CRM coverage matrix records the read-surface contract. No schema, migration application, production DB write, provider call, env mutation, deploy, billing/payment action, client-facing comms, or cross-client identity action occurred.
+
+Verification replay after fast-forward: focused Vitest passed for `src/app/api/founder/opportunities/__tests__/route.test.ts` and `src/components/founder/opportunities/__tests__/OpportunitiesPageClient.test.tsx` (2 files / 6 tests). `pnpm run type-check` passed. `pnpm run lint` passed. Full `pnpm run test` passed (451 files / 2683 tests; expected failure-path stderr/React act warning only). `git diff --check` passed. `pnpm run build` remains blocked at prebuild env validation because this cron shell has no app env groups set (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`); only env names/counts were printed, no secret values were read or mutated.
+
+Safety scan: refined added-line scan over changed product/test/docs files returned `REFINED_NO_ADDED_LINE_SECURITY_FINDINGS` for secret literals, `process.env`, dangerous HTML, browser Supabase client, Supabase mutations, service-role literals, and payment-action patterns.
+
+Publication status: dispatched independent read-only reviewers `deleg_b08d13e3` before refresh and `deleg_b7eae8fd` after refresh; the post-refresh reviewer read-back had not returned within this cron turn. I therefore did not commit, push, open a PR, merge, deploy, or mutate environments. Gate packet remains `NONE` for production/finance/DB impact of the code slice and `NAMESPACE` / `KEEP_GATED` for publication until reviewer read-back is clean and CI/Vercel can supply the env-complete build gate.
+
+Rollback: file-only revert of `apps/web/src/app/api/founder/opportunities/route.ts`, its route test, `apps/web/src/components/founder/opportunities/OpportunitiesPageClient.tsx`, its component test, and the CRM matrix row. No schema/env/data rollback is required for this local slice.
+
+Next safe lane: when reviewer read-back is clean, commit this branch, push/open a PR to `main`, monitor GitHub/Vercel checks, and use CI/Vercel build as the env-complete build gate. If reviewer flags issues, fix only those issues and rerun focused/type/lint/full-test/scan first.
+
+## 2026-06-28 19:54 AEST
+
+### Tick 20260628_1954 — Founder opportunities slice refreshed to latest main; verification green except local env-gated build
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Lane/preflight: continued the in-progress local branch `margot-opportunity-source-truth-20260628` rather than starting a new lane. Preflight found no open GitHub PRs, no PR for this branch, GitHub auth available, Vercel CLI authenticated/readable, and recent Vercel deployments for `unite-group/unite-group` ready (URLs redacted in terminal output). `origin/main` had advanced from `a0b016b0a` to `5e007a9b9`; I stashed the bounded local diff, fast-forwarded the branch to `origin/main`, and re-applied the diff cleanly. Final branch compare is `git rev-list --left-right --count origin/main...HEAD` -> `0 0`, with the same seven bounded local files modified and no local commits ahead.
+
+Slice status: the local read-only founder opportunities source-of-truth label slice remains intact after the refresh. `GET /api/founder/opportunities` returns `sourceOfTruth: { crm: 'crm_opportunities', billing: 'stripe', mode: 'forecast_only' }`; `OpportunitiesPageClient` renders `CRM source: crm_opportunities` and `Forecast only · Billing truth stays in Stripe`; the CRM coverage matrix records the read-surface contract. No schema, migration application, production DB write, provider call, env mutation, deploy, billing/payment action, client-facing comms, or cross-client identity action occurred.
+
+Verification replay: focused Vitest passed for `src/app/api/founder/opportunities/__tests__/route.test.ts` and `src/components/founder/opportunities/__tests__/OpportunitiesPageClient.test.tsx` (2 files / 6 tests). `pnpm run type-check` passed. `pnpm run lint` passed. Full `pnpm run test` passed (451 files / 2683 tests; expected failure-path stderr only). `git diff --check` passed. `pnpm run build` remains blocked at prebuild env validation because this cron shell has no app env groups set (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`); only env names/counts were printed, no secret values were read or mutated.
+
+Safety scan: the first broad added-line scan flagged `billing: string` as a false positive because this slice intentionally labels billing truth; the refined product/test/docs scan returned `REFINED_NO_ADDED_LINE_SECURITY_FINDINGS` for secret literals, `process.env`, dangerous HTML, browser Supabase client, Supabase mutations, and payment-action patterns.
+
+Publication status: dispatched independent read-only reviewer `deleg_49d413e0` for the refreshed diff, but reviewer read-back had not returned within this cron turn. I therefore did not commit, push, open a PR, merge, deploy, or mutate environments. Gate packet remains `NONE` for production/finance/DB impact of the code slice and `NAMESPACE` / `KEEP_GATED` for publication until reviewer read-back is clean and the local env-gated build limitation is either accepted as environment-only or replayed in CI/Vercel.
+
+Rollback: file-only revert of `apps/web/src/app/api/founder/opportunities/route.ts`, its route test, `apps/web/src/components/founder/opportunities/OpportunitiesPageClient.tsx`, its component test, and the CRM matrix row. No schema/env/data rollback is required for this local slice.
+
+Next safe lane: when reviewer read-back is clean, commit this branch, push/open a PR to `main`, monitor GitHub/Vercel checks, and use CI/Vercel build as the env-complete build gate. If reviewer flags issues, fix only those issues and rerun focused/type/lint/full-test/scan first.
+
+## 2026-06-28 17:42 AEST
+
+### Tick 20260628_1742 — PR #541 green but PROD/scheduled-cron gate remains held
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Lane/preflight: continued the active open PR lane before starting any new CRM slice. GitHub auth is available; current local checkout remains `margot-opportunity-source-truth-20260628`, dirty with the existing founder-opportunities local slice/evidence files and now behind latest `origin/main` by two commits (`git rev-list --left-right --count origin/main...HEAD` -> `2 0`). I did not commit, push, open a new PR, merge, deploy, or mutate env/DB from this stale local checkout.
+
+PR read-back: PR #541 `https://github.com/CleanExpo/Unite-Group/pull/541` (`feat(crm): schedule contact-import cron (weekly) + GET handler`) targets `main`, head `f4e39b38e0abab64078c880c912dd1a068003a5b`, branch `feat/schedule-contact-import-cron`, changed paths `apps/web/src/app/api/cron/import-contacts/route.ts`, `apps/web/src/app/api/cron/import-contacts/__tests__/route.test.ts`, and `apps/web/vercel.json`. Remote checks are green for CodeRabbit, Vercel Preview Comments, Vercel `unite-group` preview, Vercel `unite-group-sandbox` preview, `apps/web — lint, type-check, test, build`, `apps/web — Playwright E2E`, `apps/workspace — build`, `packages/pi-ceo-operator-mcp — build`, and `apps/spec-board — type-check, test, build`. GitHub currently reports mergeability as `UNKNOWN` after check completion, so I treated remote checks as green but did not infer merge authority.
+
+Exact-head local replay: fetched PR #541 to `origin/pr-541`, created a detached temp worktree at `f4e39b38e0abab64078c880c912dd1a068003a5b`, ran `pnpm install --frozen-lockfile` (passed with known optional Supabase-bin/husky warnings), focused Vitest `./node_modules/.bin/vitest run src/app/api/cron/import-contacts/__tests__/route.test.ts --config vitest.config.mts` (1 file / 6 tests passed), `pnpm run type-check` (passed), touched-file ESLint for the cron route/test (passed), and scoped `git diff --check origin/main...HEAD -- apps/web/src/app/api/cron/import-contacts/route.ts apps/web/src/app/api/cron/import-contacts/__tests__/route.test.ts apps/web/vercel.json` (passed). The temp worktree was removed.
+
+Safety/gate scan: bounded source scan found the PR route uses `createServiceClient`, `crm_contacts` insert, Xero/Gmail provider reads, `CRON_SECRET` auth, and `FOUNDER_USER_ID` env-name access. No credential values were read or printed. This is not a mere UI/read-surface change: merging `apps/web/vercel.json` would activate a scheduled weekly Vercel Cron that performs service-role Supabase writes of imported Xero/Gmail contact data into `crm_contacts`.
+
+Gate packet: classify PR #541 as `PROD` / `KEEP_GATED` despite green checks. Signal: green remote checks and local exact-head replay prove code/test quality for the head, but the diff schedules a production cron and the route performs provider-backed contact import plus Supabase inserts. Concrete risk: unintended production CRM contact writes/PII import, duplicate/stale Xero/Gmail contact ingestion, OAuth/provider-read side effects, and activation of a new recurring production job without a fresh typed approval/rollback window. Rollback: revert PR #541 commit `f4e39b38e0abab64078c880c912dd1a068003a5b` or remove the `/api/cron/import-contacts` entry from `apps/web/vercel.json`; if already merged, disable the Vercel Cron and audit/remove any unintended `crm_contacts` rows created by that job. Recommended disposition: keep gated until Phill/operator explicitly approves scheduled production activation, confirms `crm_contacts` schema/env readiness, accepts provider-read/contact-import scope, and defines first-run monitoring/rollback ownership.
+
+Next safe lane: do not publish the local founder-opportunities slice while PR #541 remains the active production gate and the current checkout is behind `origin/main`; after operator disposition on #541, rebase/clean-replay only the bounded local slice onto latest `origin/main`, rerun the focused/type/lint/full-test/scan gates, and require reviewer read-back before commit/PR.
+
+## 2026-06-28 17:02 AEST
+
+### Tick 20260628_1702 — Founder opportunities branch fast-forwarded to latest main; verification replay green; reviewer pending
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Lane/preflight: continued the existing local branch `margot-opportunity-source-truth-20260628` rather than starting a new lane. GitHub auth is available; `gh pr list --state open --limit 10 --json ...` returned `[]`; `gh pr view margot-opportunity-source-truth-20260628` returned no PR for the branch; recent `main` GitHub Actions read-back is green for Monorepo CI and Brand Video Render at `a0b016b0a`. Vercel CLI is available/authenticated and `vercel --version` returned `54.4.1`; deployment/project listing produced no readable rows in this cron shell. No deploy or Vercel/GitHub env mutation was initiated.
+
+Main refresh: initial branch compare was stale after `git fetch origin main` advanced `origin/main` from `cc8408b4d` to `a0b016b0a` (`feat(crm): add Xero + Gmail contact import to crm_contacts [cron] (#538)`). I stashed the bounded local diff, fast-forwarded the branch to `origin/main`, and applied the stash cleanly. Post-refresh branch compare is `git rev-list --left-right --count origin/main...HEAD` -> `0 0`, with the same seven bounded local files modified.
+
+Fresh verification after the fast-forward: focused Vitest passed for `src/app/api/founder/opportunities/__tests__/route.test.ts` and `src/components/founder/opportunities/__tests__/OpportunitiesPageClient.test.tsx` (2 files / 6 tests). `pnpm run type-check` passed. `pnpm run lint` passed. Full `pnpm run test` passed (450 files / 2680 tests, including the new import-contacts suite from latest `main`; existing intentional failure-path stderr only). `git diff --check` passed. Local `pnpm run build` remains blocked at prebuild env validation because this cron shell has no app env groups configured (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`); no env values were read or mutated.
+
+Safety/read-only scan: added-line scan over the changed product/test/docs files returned `NO_ADDED_LINE_SECURITY_FINDINGS`. The slice still only adds read-surface metadata/UI copy for `crm_opportunities` forecast truth and Stripe billing truth; no `process.env`, browser Supabase client, dangerous HTML, service-role literal, insert/update/delete/upsert mutation, credential value, provider-spend activation, billing/payment action, client-facing communication, cross-client identity merge, schema migration, production DB write, Vercel/GitHub env mutation, deploy, merge, or destructive git action occurred.
+
+Publication status: independent reviewer `deleg_943ff7d1` was dispatched for the refreshed diff and had not returned after the verification replay/wait window, so I did **not** commit, push, open a PR, merge, or deploy. Gate packet remains `NONE` product/finance/DB impact for the code slice and `NAMESPACE` / `KEEP_GATED` for publication until reviewer read-back is available. Rollback remains file-only: revert the touched opportunities API/UI/tests and CRM matrix row; no schema/env/data rollback required.
+
+Next safe lane: when reviewer read-back is clean, commit `margot-opportunity-source-truth-20260628`, push it, open a PR against `main`, monitor GitHub/Vercel checks, and append the PR/check URLs. If reviewer flags issues, fix only those issues and rerun the focused/type/lint/full-test/scan gates first.
+
+## 2026-06-28 16:25 AEST
+
+### Tick 20260628_1625 — Founder opportunities read-surface gate replayed; PR publication still held
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Lane/preflight: continued the existing local branch `margot-opportunity-source-truth-20260628` rather than starting a new lane. `git fetch origin main` succeeded; `git status --short --branch` shows the same seven bounded touched files; `git rev-list --left-right --count origin/main...HEAD` is `0 0`; `gh pr list --state open --limit 10 --json ...` returned `[]`; and `gh pr view` reports no PR associated with this branch. GitHub auth is available. Vercel CLI is available; `vercel ls` read-back showed the current `unite-group/unite-group` deployment list with one preview deployment building and recent production deployments ready. No deploy or env mutation was initiated.
+
+Fresh verification: focused Vitest passed for `src/app/api/founder/opportunities/__tests__/route.test.ts` and `src/components/founder/opportunities/__tests__/OpportunitiesPageClient.test.tsx` (2 files / 6 tests). `pnpm run type-check` passed. `pnpm run lint` passed. Full `pnpm run test` passed (449 files / 2675 tests; existing intentional failure-path stderr only). `git diff --check` passed. Local `pnpm run build` remains blocked at prebuild env validation because this cron shell has no app env groups configured (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`); no env values were read or mutated.
+
+Safety/read-only scan: refined added-line scan over the changed product/test files returned `REFINED_NO_PRODUCT_ADDED_LINE_SECURITY_FINDINGS`. The slice still only adds read-surface metadata/UI copy for `crm_opportunities` forecast truth and Stripe billing truth; no `process.env`, browser Supabase client, dangerous HTML, service-role literal, insert/update/delete mutation, credential value, provider-spend activation, billing/payment action, client-facing communication, cross-client identity merge, schema migration, production DB write, Vercel/GitHub env mutation, destructive git action, or deploy occurred. An earlier broad scan matched the docs phrase "billing truth" as a false positive, then the product/test-only scan passed.
+
+Publication status: independent reviewer `deleg_7119cc3d` was dispatched for the current diff and is still pending in this cron turn, so I did **not** commit, push, open a PR, merge, or deploy. Gate packet remains `NONE` product/finance/DB impact for the code slice and `NAMESPACE` / `KEEP_GATED` for publication until reviewer read-back is available. Rollback remains file-only: revert the touched opportunities API/UI/tests and CRM matrix row; no schema/env/data rollback required.
+
+Next safe lane: when reviewer read-back is clean, commit `margot-opportunity-source-truth-20260628`, push it, open a PR against `main`, monitor GitHub/Vercel checks, and append the PR/check URLs. If reviewer flags issues, fix only those issues and rerun the focused/type/lint/full-test/scan gates first.
+
+## 2026-06-28 15:44 AEST
+
+### Tick 20260628_1544 — Founder opportunities read-surface verification refreshed; reviewer still pending
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Lane: continued the in-progress local branch `margot-opportunity-source-truth-20260628` because there are still no open GitHub PRs and the branch has the current opportunities source-of-truth slice uncommitted against `origin/main` (`git status --short --branch` shows the seven bounded touched files; `git rev-list --left-right --count origin/main...HEAD` earlier in this tick was `0 0`). GitHub auth and Vercel CLI are available; no PR is associated with this branch yet.
+
+Fresh verification: focused Vitest via `/private/tmp/hermes-focused-opportunities-test.sh` passed for `src/app/api/founder/opportunities/__tests__/route.test.ts` and `src/components/founder/opportunities/__tests__/OpportunitiesPageClient.test.tsx` (2 files / 6 tests). `pnpm run type-check` passed. Full `pnpm run test -- -t 'OpportunitiesPageClient|scopes the query|returns 401 when not authenticated|returns 500 with a sanitised'` executed the suite and passed 449 files / 2675 tests. `pnpm run lint` passed. `git diff --check` passed. Local `pnpm run build` is still blocked only by the cron-shell env validation gate (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`); no env values were read or mutated.
+
+Safety/read-only scan: added-line product/test scan returned `NO_ADDED_LINE_SECURITY_FINDINGS`. Route/component scans found only the intended `crm_opportunities`/`stripe` billing-truth labels and the existing UI `fetch('/api/founder/opportunities', { cache: 'no-store' })`; no `process.env`, browser Supabase client, dangerous HTML, service-role literal, insert/update/delete mutation, credential value, provider-spend activation, billing/payment action, client-facing communication, cross-client identity merge, schema migration, production DB write, Vercel/GitHub env mutation, destructive git action, or deploy occurred. The temporary focused-test script was removed with `unlink` after execution.
+
+Publication status: independent reviewer `deleg_aa7d4978` was dispatched this tick and is still pending, so I did **not** commit, push, open a PR, merge, or deploy. Gate packet remains `NONE` product/finance/DB impact for the code slice and `NAMESPACE` / `KEEP_GATED` for publication until reviewer read-back is available. Rollback remains file-only: revert the touched opportunities API/UI/tests and CRM matrix row; no schema/env/data rollback required.
+
+Next safe lane: when reviewer read-back is clean, commit `margot-opportunity-source-truth-20260628`, push it, open a PR against `main`, monitor GitHub/Vercel checks, and append the PR/check URLs. If reviewer flags issues, fix only those issues and rerun the focused/type/lint/full-test/scan gates first.
+
+## 2026-06-28 15:05 AEST
+
+### Tick 20260628_1505 — Founder opportunities read surface now labels CRM/billing truth
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Lane: no open GitHub PRs were present (`gh pr list --state open --limit 10 --json ...` returned `[]`), so I started the next small Margot CRM command-spine slice from current `origin/main` on branch `margot-opportunity-source-truth-20260628`. I preserved the prior local evidence-doc entries from the stale digest-redaction branch before switching. Branch compare after checkout was `0 0` against `origin/main`; after implementation the branch has local uncommitted changes only.
+
+Slice: added explicit source-of-truth metadata to the founder opportunities read surface. `GET /api/founder/opportunities` now returns `sourceOfTruth: { crm: 'crm_opportunities', billing: 'stripe', mode: 'forecast_only' }`, and `OpportunitiesPageClient` renders `CRM source: crm_opportunities` plus `Forecast only · Billing truth stays in Stripe`. This is a read-surface honesty/No-Invaders slice only: existing auth, founder scoping (`.eq('founder_id', user.id)`), GET/read-only query, and error/empty states were preserved. The CRM test coverage matrix now records the founder opportunities read-surface contract.
+
+TDD evidence: RED was verified first by adding API/component expectations for `sourceOfTruth` and visible source/billing labels; focused Vitest failed as expected because the response and labels were missing. GREEN passed after the minimal API/UI implementation: `./node_modules/.bin/vitest run src/app/api/founder/opportunities/__tests__/route.test.ts src/components/founder/opportunities/__tests__/OpportunitiesPageClient.test.tsx --config vitest.config.mts` -> PASS, 2 files / 6 tests.
+
+Verification: `pnpm run type-check` passed. `pnpm run lint` passed. Full `pnpm run test` passed, 449 files / 2675 tests; existing intentional failure-path stderr appeared but the suite exited 0. `git diff --check` passed. `pnpm run build` remained blocked at the local cron-shell env gate (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`); only env names/counts were printed and no values were read or mutated. Bounded added-line safety scan over touched files found no sensitive-pattern hits, and a route/component scan found no dangerous HTML, env access, browser Supabase client, or `crm_opportunities` insert/update/delete path.
+
+Gate packet: product impact `NONE` for production/finance/DB mutation because the slice changes only API response metadata, UI labelling, local tests, and docs; no schema, migration application, production DB write, env mutation, provider spend, billing/payment action, client-facing communication, cross-client identity merge, or deploy action occurred. Publication lane remains `NAMESPACE` / `KEEP_GATED` until reviewer read-back (dispatched as `deleg_02e2a80a`) is available and a commit/PR decision is safe. Rollback note: revert `apps/web/src/app/api/founder/opportunities/route.ts`, its route test, `apps/web/src/components/founder/opportunities/OpportunitiesPageClient.tsx`, its component test, and the CRM test matrix row; no schema/env/data rollback required.
+
+Next safe lane: when reviewer read-back is clean, commit this local branch and, if auth remains available, push/open a PR to `main`; otherwise keep it local with this evidence. After publication, continue the next CRM read-surface gap (lead/approval/digest source labels or stale integration thresholds) using the same RED/GREEN pattern.
+
 ## 2026-06-28 11:49 AEST
 
 ### Tick 20260628_1149 — PR #530 gate evidence refreshed; advisory hold
@@ -452,6 +836,21 @@ Security / content scan: added-line diff was copy/config-only and introduced no 
 Gate packet: PR #507 is `NONE` impact for production/finance/DB/schema/spend because it changes static naming/copy/robots/portfolio metadata only. Recommendation: `LIFT_WITH_GUARDRAILS` for Phill/operator sign-off, not autonomous merge from this advisory lane. Guardrails: merge only the reviewed PR head `6f0f39b9b838f5054ab38a748416bdb0cda1b4e5`; do not pair it with env, DB, billing, client-facing comms, or identity-merge changes; monitor post-merge main CI/Vercel; roll back by reverting the single PR commit if naming/robots copy regresses. No merge, production DB write, Supabase migration application, Vercel/GitHub env mutation, credential-value read/print, billing/payment action, client-facing communication, cross-client identity merge, or destructive git action occurred. Evidence append is local-only on the stale merged checkout and was not pushed to avoid publishing evidence onto the wrong lane.
 
 Next safe lane: Phill/operator can merge PR #507 if the green checks remain current and the above guardrails are accepted; otherwise continue with a clean `origin/main` checkout before starting the next CRM/Margot slice.
+## 2026-06-28 13:42 AEST
+
+### Tick 20260628_1342 — PR #533 closed as redundant; digest redaction already on main
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Lane: continued the only open PR before starting any new CRM/Margot slice. Preflight found the checkout on `margot-kanban-sync-flag-header-redaction-20260628` with local evidence-doc edits from the already-merged PR #530; those evidence-only edits were preserved with a local git stash before switching lanes. GitHub auth was available. `gh pr list` initially showed PR #533 (`fix(command-centre): redact unquoted digest header values`) open against `main` with `mergeStateStatus=DIRTY`; after this run `gh pr list --state open` returned `[]`.
+
+Finding: PR #533's only product commit (`789d983ed85aa238871ddf228e654b27c4b17b1f`) is patch-equivalent to code already present on current `origin/main` as `e80bd393d fix(command-centre): redact unquoted digest header values (#527)`. Evidence: `git cherry -v origin/main HEAD` returned `- 789d983ed...`, and `git show origin/main` includes the unquoted `--header` redaction regex and matching DigestBanner / DailyCrmDigestPanel tests. The dirty state was therefore stale duplicate history, not a missing product change.
+
+Verification on the PR checkout: focused Vitest passed for `DigestBanner.redaction.test.tsx` and `DailyCrmDigestPanel.test.tsx` (2 files / 5 tests). `pnpm run type-check` passed. `pnpm run lint` passed. `git diff --check origin/main...HEAD` passed. A bounded touched-file scan found 0 watched-pattern hits in the two production components; test-file hits were synthetic fixture/assertion strings only.
+
+Action: closed PR #533 with a GitHub comment documenting the redundancy and verification. No merge, deployment, production DB write, Supabase migration application, Vercel/GitHub env mutation, credential-value read/print, provider-spend activation, billing/payment action, client-facing communication, cross-client identity merge, or destructive git-on-main action occurred.
+
+Gate packet: impact `NONE` / disposition `KEEP_GATED` by closure-as-redundant, not merge. Signal: equivalent code/test already on `main` plus fresh local focused/type/lint/whitespace/safety replay. Concrete risk: none added by this run; stale PR history could otherwise reintroduce an old base and create operator confusion. Rollback: reopen PR #533 only if a new non-equivalent digest redaction gap is identified; otherwise rely on the already-merged `main` implementation and its rollback path (`e80bd393d`). Next safe lane: start the next smallest CRM/Margot slice from a clean, latest `main` checkout after clearing or stashing local evidence-only docs.
 
 ## 2026-06-27 17:02 AEST
 

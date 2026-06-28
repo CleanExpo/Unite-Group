@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn() }))
 vi.mock('@/lib/integrations/linear', () => ({ createIssue: vi.fn() }))
@@ -26,6 +26,7 @@ function req(body: object) {
 
 describe('POST /api/ideas/create', () => {
   beforeEach(() => vi.clearAllMocks())
+  afterEach(() => vi.unstubAllEnvs())
 
   it('returns 401 when unauthorized', async () => {
     vi.mocked(getUser).mockResolvedValue(null)
@@ -35,6 +36,7 @@ describe('POST /api/ideas/create', () => {
 
   it('returns 503 when LINEAR_API_KEY not set', async () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
+    vi.stubEnv('LINEAR_API_KEY', '')
     const res = await POST(req({ spec: validSpec }))
     expect(res.status).toBe(503)
   })
