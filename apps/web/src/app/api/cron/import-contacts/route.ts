@@ -54,24 +54,28 @@ export async function POST(request: NextRequest) {
 
   // Dedupe against contacts already present for this founder. Email alone is insufficient:
   // many Xero contacts have no email, so we also key on the Xero contact id to keep re-runs
-  // idempotent (otherwise email-less contacts re-insert on every run).
-  const { data: existing, error: existErr } = await supabase
-    .from('crm_contacts')
-    .select('primary_email, additional_data')
-    .eq('founder_id', founderId)
-  if (existErr) {
-    return NextResponse.json({ error: `read existing failed: ${existErr.message}` }, { status: 500 })
+  // idempotent. The existing set MUST be read in full — PostgREST caps a single response at
+  // 1000 rows, so we paginate; a partial read would let rows past row 1000 re-insert.
+  const seen = new Set<string>()
+  const seenXeroIds = new Set<string>()
+  const PAGE = 1000
+  for (let from = 0; ; from += PAGE) {
+    const { data: page, error: existErr } = await supabase
+      .from('crm_contacts')
+      .select('primary_email, additional_data')
+      .eq('founder_id', founderId)
+      .range(from, from + PAGE - 1)
+    if (existErr) {
+      return NextResponse.json({ error: `read existing failed: ${existErr.message}` }, { status: 500 })
+    }
+    for (const r of page ?? []) {
+      const email = (r.primary_email ?? '').toLowerCase()
+      if (email) seen.add(email)
+      const xid = (r.additional_data as { xeroContactId?: string } | null)?.xeroContactId
+      if (xid) seenXeroIds.add(xid)
+    }
+    if (!page || page.length < PAGE) break
   }
-  const seen = new Set(
-    (existing ?? [])
-      .map((r) => (r.primary_email ?? '').toLowerCase())
-      .filter(Boolean)
-  )
-  const seenXeroIds = new Set(
-    (existing ?? [])
-      .map((r) => (r.additional_data as { xeroContactId?: string } | null)?.xeroContactId)
-      .filter((v): v is string => Boolean(v))
-  )
 
   const rows: ContactRow[] = []
   const report: { xero: Record<string, number | string>; gmail: Record<string, number | string> } = {
