@@ -18,7 +18,9 @@ Docs/evidence updated: `apps/web/docs/margot/crm-test-coverage-matrix.md` now re
 
 Gate packet: direct slice classification is `NONE` for production/finance/DB/spend impact (read-only response-header hardening + tests/docs). Publication is `NAMESPACE` / `LIFT_WITH_GUARDRAILS`: push/open PR to `main`, require CI/Vercel checks to pass before merge, and rollback by file-only revert of the overnight-summary route/test plus CRM matrix/evidence docs.
 
-Next safe lane: publish PR for the bounded no-store slice if final `git diff --check` and branch PR creation remain clean; then monitor GitHub/Vercel checks. Continue command-centre CRM UI read-surface tests for leads/approvals/opportunities/digest linkage in later slices.
+Publication/read-back: pushed commit `cf828474a` and opened PR #547: https://github.com/CleanExpo/Unite-Group/pull/547. Remote read-back for PR #547 is green: CodeRabbit, Vercel Preview Comments, Vercel `unite-group`, Vercel `unite-group-sandbox`, apps/spec-board type-check/test/build, apps/web lint/type-check/test/build, apps/web Playwright E2E, apps/workspace build, and packages/pi-ceo-operator-mcp build all passed.
+
+Next safe lane: merge PR #547 only while the green remote check state remains current; then verify `main` and Vercel read-back. Continue command-centre CRM UI read-surface tests for leads/approvals/opportunities/digest linkage in later slices.
 
 ## 2026-06-29 05:17 AEST
 
