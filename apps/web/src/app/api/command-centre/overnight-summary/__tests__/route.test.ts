@@ -29,6 +29,16 @@ describe('GET /api/command-centre/overnight-summary', () => {
     expect(body.digest.summary).toBe('Quiet night.')
   })
 
+  it('marks the founder digest response as no-store', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
+    vi.mocked(gatherOvernightDigest).mockResolvedValue({ summary: 'Quiet night.' } as any)
+
+    const res = await GET()
+
+    expect(res.status).toBe(200)
+    expect(res.headers.get('Cache-Control')).toBe('no-store')
+  })
+
   it('returns 500 when digest fails', async () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
     vi.mocked(gatherOvernightDigest).mockRejectedValue(new Error('DB down'))

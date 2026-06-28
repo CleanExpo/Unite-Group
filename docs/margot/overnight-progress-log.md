@@ -1,5 +1,25 @@
 # Margot Overnight Progress Log
 
+## 2026-06-29 06:11 AEST
+
+### Tick 20260629_0611 — PR #546 merged; command-centre digest no-store slice added
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Preflight/continuation: continued the in-progress PR #546 lane first. PR #546 (`fix(crm): redact founder opportunity row text`) was base `main`, mergeable, non-draft, and green for CodeRabbit, Vercel Preview Comments, both Vercel deployments, apps/web lint/type-check/test/build, apps/web Playwright E2E, apps/workspace build, packages/pi-ceo-operator-mcp build, and apps/spec-board type-check/test/build. I squash-merged PR #546 to `main` as `293d03b0c`, deleted the remote branch, fast-forwarded local `main`, and confirmed there are no open PRs. Main Monorepo CI for `293d03b0c` was in progress at pre-publication read-back; no production DB write, migration application, env mutation, billing action, or client-facing comms occurred.
+
+Slice completed: started branch `fix/digest-no-store-cache` from latest `main` and added a bounded command-centre read-surface hardening slice. `GET /api/command-centre/overnight-summary` now returns `Cache-Control: no-store` on successful founder digest responses, matching neighbouring command-centre read APIs and reducing stale/shared-cache risk for founder CRM digest payloads. This is an API response-header change only; it does not alter Supabase queries, digest generation, auth semantics, schema, migrations, provider calls, approvals, billing, env, or production data.
+
+TDD evidence: RED focused Vitest `pnpm exec vitest run 'src/app/api/command-centre/overnight-summary/__tests__/route.test.ts' -t 'marks the founder digest response as no-store'` failed for the intended reason (`Cache-Control` was `null`). GREEN after minimal route change: same focused test passed. Focused route suite then passed 4 tests.
+
+Verification: `pnpm exec vitest run 'src/app/api/command-centre/overnight-summary/__tests__/route.test.ts'` passed (4 tests, with existing intentional sanitized-error stderr). `pnpm run type-check` passed. Touched-file ESLint passed for the route and test. Ad-hoc security invariant scan passed: route remains `force-dynamic`, `getUser()` auth-gated, no-store on success, no Supabase mutation literals, and no service-role literal. Full `pnpm run test` passed (451 files / 2685 tests) with existing intentional failure-path stderr and one existing React `act(...)` warning only. Local `pnpm run build` remains env-gated by `scripts/validate-env.mjs --ci` (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`); only env names/counts were printed and no values were read or mutated.
+
+Docs/evidence updated: `apps/web/docs/margot/crm-test-coverage-matrix.md` now records partial command-centre CRM UI coverage for the overnight-summary route and digest-banner redaction tests. This log and `docs/margot/morning-report.md` were updated with the merge and new slice evidence.
+
+Gate packet: direct slice classification is `NONE` for production/finance/DB/spend impact (read-only response-header hardening + tests/docs). Publication is `NAMESPACE` / `LIFT_WITH_GUARDRAILS`: push/open PR to `main`, require CI/Vercel checks to pass before merge, and rollback by file-only revert of the overnight-summary route/test plus CRM matrix/evidence docs.
+
+Next safe lane: publish PR for the bounded no-store slice if final `git diff --check` and branch PR creation remain clean; then monitor GitHub/Vercel checks. Continue command-centre CRM UI read-surface tests for leads/approvals/opportunities/digest linkage in later slices.
+
 ## 2026-06-29 05:17 AEST
 
 ### Tick 20260629_0517 — Founder opportunity UI redaction added with RED→GREEN evidence

@@ -17,7 +17,7 @@ export async function GET() {
 
   try {
     const digest = await gatherOvernightDigest({ founderId: user.id, generatedAt: new Date().toISOString() })
-    return NextResponse.json({ digest })
+    return NextResponse.json({ digest }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (err) {
     return NextResponse.json(
       { error: sanitiseError(err, 'Failed to build digest') },
