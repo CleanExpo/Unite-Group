@@ -265,28 +265,34 @@ function normalizeStatus(
 ): DashboardStatusSection | null {
   if (!raw || typeof raw !== 'object') return null
   const r = raw as Record<string, unknown>
-  const state = readString(r.gateway_state) || readString(r.state)
+  const h =
+    health && typeof health === 'object'
+      ? (health as Record<string, unknown>)
+      : null
+  // Prefer the live /health/detailed gateway_state over the persisted
+  // /api/status record, which goes stale when the runtime-status writer
+  // lags. The live health endpoint is canonical for "is it running now".
+  const state =
+    (h ? readString(h.gateway_state) : '') ||
+    readString(r.gateway_state) ||
+    readString(r.state)
   if (!state) return null
-  // `/health/detailed` is the canonical source for currently-running
-  // agent count. Falls back to legacy fields when the gateway endpoint
-  // is missing/unreachable.
+  // `/health/detailed` is also the canonical source for currently-running
+  // agent count. Falls back to legacy fields when the endpoint is missing.
   let activeAgents: number | null = null
-  if (health && typeof health === 'object') {
-    const h = health as Record<string, unknown>
-    if (typeof h.active_agents === 'number') {
-      activeAgents = h.active_agents
-    }
+  if (h && typeof h.active_agents === 'number') {
+    activeAgents = h.active_agents
   }
   if (activeAgents === null && typeof r.active_agents === 'number') {
     activeAgents = r.active_agents
   }
   if (activeAgents === null) activeAgents = 0
+  // Prefer the live health timestamp so the pulse reflects "now", not the
+  // last persisted /api/status write.
   const updatedAt =
-    typeof r.gateway_updated_at === 'string'
-      ? r.gateway_updated_at
-      : typeof r.updated_at === 'string'
-        ? r.updated_at
-        : null
+    (h && typeof h.updated_at === 'string' && h.updated_at) ||
+    (typeof r.gateway_updated_at === 'string' ? r.gateway_updated_at : null) ||
+    (typeof r.updated_at === 'string' ? r.updated_at : null)
   return {
     gatewayState: state,
     activeSessions: readNumber(r.active_sessions),
