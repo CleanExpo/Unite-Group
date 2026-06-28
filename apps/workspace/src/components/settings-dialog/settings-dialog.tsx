@@ -23,7 +23,7 @@ import type { AccentColor, SettingsThemeMode } from '@/hooks/use-settings'
 import type { LoaderStyle } from '@/hooks/use-chat-settings'
 import type { BrailleSpinnerPreset } from '@/components/ui/braille-spinner'
 import type { ThemeId } from '@/lib/theme'
-import type {LocaleId} from '@/lib/i18n';
+import type { LocaleId } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { applyTheme, useSettings } from '@/hooks/use-settings'
@@ -59,7 +59,7 @@ import {
 
 // ── Language ────────────────────────────────────────────────────────────
 
-import { LOCALE_LABELS,  getLocale, setLocale } from '@/lib/i18n'
+import { LOCALE_LABELS, getLocale, setLocale } from '@/lib/i18n'
 
 // ── Types ───────────────────────────────────────────────────────────────
 
@@ -245,7 +245,14 @@ const PROVIDER_CARDS: Array<{
     authType: 'api_key',
     envKey: 'XIAOMI_API_KEY',
   },
-  { id: 'custom', name: 'Custom', logo: '', models: [], authType: 'api_key', envKey: 'CUSTOM_API_KEY' },
+  {
+    id: 'custom',
+    name: 'Custom',
+    logo: '',
+    models: [],
+    authType: 'api_key',
+    envKey: 'CUSTOM_API_KEY',
+  },
 ]
 
 function HermesContent() {
@@ -331,7 +338,8 @@ function HermesContent() {
         setConfiguredKeys(keys)
         // Load custom provider config (may be stored as 'custom' or legacy 'manifest')
         const cfgProviders = (d.config?.providers as Record<string, any>) || {}
-        const customCfg = cfgProviders['custom'] || cfgProviders['manifest'] || {}
+        const customCfg =
+          cfgProviders['custom'] || cfgProviders['manifest'] || {}
         if (customCfg.base_url) setCustomBaseUrl(customCfg.base_url)
       })
       .catch(() => {})
@@ -436,11 +444,15 @@ function HermesContent() {
               (p.authType === 'api_key' &&
                 !!p.envKey &&
                 !!configuredKeys[p.envKey])
-            const missingKey = p.authType === 'api_key' && !verified && p.id !== 'custom'
+            const missingKey =
+              p.authType === 'api_key' && !verified && p.id !== 'custom'
             // hasKey gates click — keep OAuth + local clickable (existing
             // behaviour) so users can still authenticate via the card.
             const hasKey =
-              p.authType === 'none' || p.authType === 'oauth' || verified || p.id === 'custom'
+              p.authType === 'none' ||
+              p.authType === 'oauth' ||
+              verified ||
+              p.id === 'custom'
             return (
               <button
                 key={p.id}
@@ -530,7 +542,10 @@ function HermesContent() {
       {/* Custom OpenAI-compatible endpoint fields — Base URL only; API key lives in API Keys section */}
       {activeProvider === 'custom' && (
         <div>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wider" style={mutedStyle}>
+          <p
+            className="mb-1 text-xs font-semibold uppercase tracking-wider"
+            style={mutedStyle}
+          >
             Custom Endpoint
           </p>
           <div className="space-y-1.5">
@@ -538,7 +553,10 @@ function HermesContent() {
               const isEditing = editingKey === 'custom_base_url'
               const hasValue = !!customBaseUrl
               return (
-                <div className="flex items-center gap-3 rounded-xl px-3 py-2.5" style={cardStyle}>
+                <div
+                  className="flex items-center gap-3 rounded-xl px-3 py-2.5"
+                  style={cardStyle}
+                >
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium">Base URL</div>
                     <div className="text-[11px] font-mono" style={mutedStyle}>
@@ -553,24 +571,74 @@ function HermesContent() {
                           autoFocus
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
-                              save({ config: { model: { provider: 'manifest' }, providers: { manifest: { type: 'openai', base_url: customBaseUrl, key_env: 'CUSTOM_API_KEY' } } } })
-                                .then(() => setEditingKey(null))
+                              save({
+                                config: {
+                                  model: { provider: 'manifest' },
+                                  providers: {
+                                    manifest: {
+                                      type: 'openai',
+                                      base_url: customBaseUrl,
+                                      key_env: 'CUSTOM_API_KEY',
+                                    },
+                                  },
+                                },
+                              }).then(() => setEditingKey(null))
                             }
                             if (e.key === 'Escape') setEditingKey(null)
                           }}
                         />
-                      ) : hasValue ? customBaseUrl : 'Not configured'}
+                      ) : hasValue ? (
+                        customBaseUrl
+                      ) : (
+                        'Not configured'
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={cn('size-2 rounded-full', hasValue ? 'bg-green-500' : 'bg-neutral-500')} />
+                    <span
+                      className={cn(
+                        'size-2 rounded-full',
+                        hasValue ? 'bg-green-500' : 'bg-neutral-500',
+                      )}
+                    />
                     {isEditing ? (
                       <>
-                        <button type="button" onClick={() => { save({ config: { model: { provider: 'manifest' }, providers: { manifest: { type: 'openai', base_url: customBaseUrl, key_env: 'CUSTOM_API_KEY' } } } }).then(() => setEditingKey(null)) }} className="text-xs font-medium text-green-400">Save</button>
-                        <button type="button" onClick={() => setEditingKey(null)} className="text-xs" style={mutedStyle}>Cancel</button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            save({
+                              config: {
+                                model: { provider: 'manifest' },
+                                providers: {
+                                  manifest: {
+                                    type: 'openai',
+                                    base_url: customBaseUrl,
+                                    key_env: 'CUSTOM_API_KEY',
+                                  },
+                                },
+                              },
+                            }).then(() => setEditingKey(null))
+                          }}
+                          className="text-xs font-medium text-green-400"
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingKey(null)}
+                          className="text-xs"
+                          style={mutedStyle}
+                        >
+                          Cancel
+                        </button>
                       </>
                     ) : (
-                      <button type="button" onClick={() => setEditingKey('custom_base_url')} className="text-xs font-medium" style={{ color: 'var(--theme-accent)' }}>
+                      <button
+                        type="button"
+                        onClick={() => setEditingKey('custom_base_url')}
+                        className="text-xs font-medium"
+                        style={{ color: 'var(--theme-accent)' }}
+                      >
                         {hasValue ? 'Edit' : 'Add'}
                       </button>
                     )}
@@ -1058,60 +1126,60 @@ const ENTERPRISE_THEMES = THEMES.map((theme) => ({
               }
             : theme.id === 'claude-official'
               ? {
-              bg: '#0A0E1A',
-              panel: '#11182A',
-              border: '#24304A',
-              accent: '#6366F1',
-              text: '#E6EAF2',
-            }
-          : theme.id === 'claude-official-light'
-            ? {
-                bg: '#F7F7F1',
-                panel: '#FAFBF6',
-                border: '#CDD5DA',
-                accent: '#2557B7',
-                text: '#16315F',
-              }
-            : theme.id === 'claude-classic'
-              ? {
-                  bg: '#0d0f12',
-                  panel: '#1a1f26',
-                  border: '#2a313b',
-                  accent: '#b98a44',
-                  text: '#eceff4',
+                  bg: '#0A0E1A',
+                  panel: '#11182A',
+                  border: '#24304A',
+                  accent: '#6366F1',
+                  text: '#E6EAF2',
                 }
-              : theme.id === 'claude-classic-light'
+              : theme.id === 'claude-official-light'
                 ? {
-                    bg: '#F5F2ED',
-                    panel: '#FCFAF7',
-                    border: '#D8CCBC',
-                    accent: '#b98a44',
-                    text: '#1a1f26',
+                    bg: '#F7F7F1',
+                    panel: '#FAFBF6',
+                    border: '#CDD5DA',
+                    accent: '#2557B7',
+                    text: '#16315F',
                   }
-                : theme.id === 'claude-slate'
+                : theme.id === 'claude-classic'
                   ? {
-                      bg: '#0d1117',
-                      panel: '#1c2128',
-                      border: '#30363d',
-                      accent: '#7eb8f6',
-                      text: '#c9d1d9',
+                      bg: '#0d0f12',
+                      panel: '#1a1f26',
+                      border: '#2a313b',
+                      accent: '#b98a44',
+                      text: '#eceff4',
                     }
-                  : theme.id === 'unite'
+                  : theme.id === 'claude-classic-light'
                     ? {
-                        // Unite — Scientific Luxury: OLED black, cyan accent
-                        bg: '#050505',
-                        panel: '#111111',
-                        border: 'rgba(0,245,255,0.18)',
-                        accent: '#00F5FF',
-                        text: '#E8E8E8',
+                        bg: '#F5F2ED',
+                        panel: '#FCFAF7',
+                        border: '#D8CCBC',
+                        accent: '#b98a44',
+                        text: '#1a1f26',
                       }
-                    : {
-                        bg: '#F6F8FA',
-                        panel: '#FFFFFF',
-                        border: '#D0D7DE',
-                        accent: '#3b82f6',
-                        text: '#24292f',
-                      },
+                    : theme.id === 'claude-slate'
+                      ? {
+                          bg: '#0d1117',
+                          panel: '#1c2128',
+                          border: '#30363d',
+                          accent: '#7eb8f6',
+                          text: '#c9d1d9',
+                        }
+                      : theme.id === 'unite'
+                        ? {
+                            // Unite — Scientific Luxury: OLED black, cyan accent
+                            bg: '#050505',
+                            panel: '#111111',
+                            border: 'rgba(0,245,255,0.18)',
+                            accent: '#00F5FF',
+                            text: '#E8E8E8',
+                          }
+                        : {
+                            bg: '#F6F8FA',
+                            panel: '#FFFFFF',
+                            border: '#D0D7DE',
+                            accent: '#3b82f6',
+                            text: '#24292f',
+                          },
 }))
 
 function ThemeSwatch({
@@ -1894,7 +1962,7 @@ function VoiceContent() {
               )}
               onChange={(e) =>
                 saveTts('openai', {
-                  ...((tts.openai as Record<string, unknown>) || {}),
+                  ...(tts.openai || {}),
                   voice: e.target.value,
                 })
               }

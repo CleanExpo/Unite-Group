@@ -3,6 +3,7 @@
 // Nightly bookkeeper CRON — runs at 02:00 AEST (16:00 UTC)
 // Authenticates via CRON_SECRET, then triggers the bookkeeper orchestrator.
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { runBookkeeperForAllBusinesses } from '@/lib/bookkeeper/orchestrator'
 import { notify } from '@/lib/notifications'
@@ -118,7 +119,7 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: sanitiseError(error, 'Unknown error'),
         durationMs,
       },
       { status: 500 }

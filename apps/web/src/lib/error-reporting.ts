@@ -38,3 +38,25 @@ export function captureApiError(
     console.error('[Sentry] Failed to capture exception:', sentryError)
   }
 }
+
+/**
+ * Capture an error server-side and return a SAFE, generic message for the client.
+ *
+ * Use in API route catch blocks instead of returning `error.message` directly —
+ * raw error messages can leak internal detail (stack traces, SQL, provider
+ * responses) to the client. The full error is logged to console + Sentry via
+ * captureApiError; the caller-supplied `clientMessage` is what the client sees.
+ *
+ * @param error - The caught error (unknown type from catch blocks)
+ * @param clientMessage - Safe, generic message to return to the client
+ * @param context - Optional structured metadata for Sentry (route, userId, etc.)
+ * @returns The clientMessage, unchanged — for use in NextResponse.json({ error })
+ */
+export function sanitiseError(
+  error: unknown,
+  clientMessage: string,
+  context?: Record<string, unknown>
+): string {
+  captureApiError(error, context)
+  return clientMessage
+}

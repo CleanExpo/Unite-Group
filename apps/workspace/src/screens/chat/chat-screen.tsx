@@ -1,8 +1,5 @@
 // Module-level local model override — set by composer when user picks a local model
 // Avoids prop threading. Reset when switching back to cloud models.
-export let _localModelOverride = ''
-export function setLocalModelOverride(model: string) { _localModelOverride = model }
-
 import {
   useCallback,
   useEffect,
@@ -51,8 +48,6 @@ import { useChatHistory } from './hooks/use-chat-history'
 import { useRealtimeChatHistory } from './hooks/use-realtime-chat-history'
 import { useSmoothStreamingText } from './hooks/use-smooth-streaming-text'
 import { useStreamingMessage } from './hooks/use-streaming-message'
-import { playChatComplete } from '@/lib/sounds'
-import { useChatSettingsStore } from '@/hooks/use-chat-settings'
 import { useActiveRunCheck } from './hooks/use-active-run-check'
 import { useChatMobile } from './hooks/use-chat-mobile'
 import { useChatSessions } from './hooks/use-chat-sessions'
@@ -74,6 +69,9 @@ import type {
 import type { ApprovalRequest } from '@/screens/gateway/lib/approvals-store'
 import type { ChatAttachment, ChatMessage, SessionMeta } from './types'
 import type { ChatRunCommandDetail } from './chat-events'
+import type { AgentActivity } from '@/stores/chat-activity-store'
+import { useChatSettingsStore } from '@/hooks/use-chat-settings'
+import { playChatComplete } from '@/lib/sounds'
 import {
   addApproval,
   loadApprovals,
@@ -101,7 +99,12 @@ import { useResearchCard } from '@/hooks/use-research-card'
 // MOBILE_TAB_BAR_OFFSET removed — tab bar always hidden in chat
 import { useTapDebug } from '@/hooks/use-tap-debug'
 import { useChatMode } from '@/hooks/use-chat-mode'
-import { useChatActivityStore, type AgentActivity } from '@/stores/chat-activity-store'
+import { useChatActivityStore } from '@/stores/chat-activity-store'
+
+export let _localModelOverride = ''
+export function setLocalModelOverride(model: string) {
+  _localModelOverride = model
+}
 
 type ChatScreenProps = {
   activeFriendlyId: string
@@ -595,7 +598,8 @@ export function ChatScreen({
   // If so, re-set waitingForResponse in the store so the UI shows the spinner.
   useActiveRunCheck({
     sessionKey: resolvedSessionKey ?? '',
-    enabled: !isNewChat && Boolean(resolvedSessionKey) && historyQuery.isSuccess,
+    enabled:
+      !isNewChat && Boolean(resolvedSessionKey) && historyQuery.isSuccess,
   })
 
   // Wire SSE realtime stream for instant message delivery
@@ -618,9 +622,9 @@ export function ChatScreen({
       : isNewChat
         ? 'new'
         : resolvedSessionKey ||
-        sessionKeyForHistory ||
-        activeCanonicalKey ||
-        'main',
+          sessionKeyForHistory ||
+          activeCanonicalKey ||
+          'main',
     friendlyId: portableChatFriendlyId,
     historyMessages,
     portableMode: isPortableMode,
@@ -652,7 +656,9 @@ export function ChatScreen({
       if (
         approvalId &&
         currentApprovals.some((entry) => {
-          return entry.status === 'pending' && entry.gatewayApprovalId === approvalId
+          return (
+            entry.status === 'pending' && entry.gatewayApprovalId === approvalId
+          )
         })
       ) {
         setPendingApprovals(
@@ -1024,7 +1030,7 @@ export function ChatScreen({
     messages: historyMessages.map((m) => ({
       role: m.role as 'user' | 'assistant',
       content: textFromMessage(m),
-    })) as any,
+    })),
     availableModels: availableModelIds,
   })
 
@@ -1182,10 +1188,12 @@ export function ChatScreen({
     activeRealtimeStreamingText,
     activeIsRealtimeStreaming,
   )
-  const stickyStreamingTextRef = useRef<{ runId: string | null; text: string }>({
-    runId: null,
-    text: '',
-  })
+  const stickyStreamingTextRef = useRef<{ runId: string | null; text: string }>(
+    {
+      runId: null,
+      text: '',
+    },
+  )
   stickyStreamingTextRef.current = advanceStickyStreamingText({
     isStreaming: activeIsRealtimeStreaming,
     runId: streamingRunId ?? null,
@@ -1475,9 +1483,7 @@ export function ChatScreen({
   }, [suggestion, resolvedSessionKey, dismiss])
 
   // Sync chat activity to global store for sidebar orchestrator avatar
-  const setLocalActivity = useChatActivityStore(
-    (s) => s.setLocalActivity,
-  ) as (next: AgentActivity) => void
+  const setLocalActivity = useChatActivityStore((s) => s.setLocalActivity)
   useEffect(() => {
     if (liveToolActivity.length > 0) {
       setLocalActivity('tool-use')

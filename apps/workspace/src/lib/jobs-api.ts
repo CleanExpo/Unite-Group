@@ -56,7 +56,9 @@ export function findJobById(
 }
 
 export function normalizeJobState(state: unknown): string | null {
-  return typeof state === 'string' && state.trim() ? state.trim().toLowerCase() : null
+  return typeof state === 'string' && state.trim()
+    ? state.trim().toLowerCase()
+    : null
 }
 
 export function isFailedJobState(state: unknown): boolean {
@@ -89,7 +91,8 @@ export function getLatestJobOutputText(outputs: Array<JobOutput>): string {
   let latestTimestamp = Number.NEGATIVE_INFINITY
 
   for (const output of outputs) {
-    const content = typeof output.content === 'string' ? output.content.trim() : ''
+    const content =
+      typeof output.content === 'string' ? output.content.trim() : ''
     if (!content) continue
 
     const timestamp = new Date(output.timestamp).getTime()
@@ -102,7 +105,9 @@ export function getLatestJobOutputText(outputs: Array<JobOutput>): string {
   return latestContent
 }
 
-export function getJobErrorText(job: ClaudeJob | null | undefined): string | null {
+export function getJobErrorText(
+  job: ClaudeJob | null | undefined,
+): string | null {
   if (!job) return null
 
   const candidates = [job.last_run_error, job.error]

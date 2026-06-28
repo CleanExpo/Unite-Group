@@ -7,6 +7,7 @@
 //
 // Response: { pipelineId, steps: [{ capabilityId, content, citations?, sandboxResult? }], finalOutput }
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { runPipeline, getPipeline, registerPipeline } from '@/lib/ai/pipeline'
@@ -110,7 +111,7 @@ export async function POST(request: Request) {
       },
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Pipeline execution failed'
+    const message = sanitiseError(error, 'Pipeline execution failed')
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

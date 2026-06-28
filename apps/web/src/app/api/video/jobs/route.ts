@@ -2,6 +2,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
+import { sanitiseError } from '@/lib/error-reporting'
+import type { Database } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,7 +27,7 @@ export async function GET(req: NextRequest) {
     .range(offset, offset + limit - 1)
 
   if (status) {
-    query = query.eq('status', status)
+    query = query.eq('status', status as Database['public']['Enums']['video_job_status'])
   }
 
   if (projectKey) {
@@ -33,7 +35,7 @@ export async function GET(req: NextRequest) {
   }
 
   const { data, error, count } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to load video jobs', { route: '/api/video/jobs' }) }, { status: 500 })
 
   return NextResponse.json({ jobs: data ?? [], count: count ?? 0, offset, limit })
 }

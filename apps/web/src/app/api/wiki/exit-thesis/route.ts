@@ -22,7 +22,7 @@ export async function GET(_req: NextRequest) {
     .select('arr_aud, slug')
     .eq('founder_id', user.id)
 
-  const currentArr = (businesses ?? []).reduce((s, b) => s + (Number(b.arr_aud) || 0), 0)
+  const currentArr = ((businesses ?? []) as unknown as Array<{ arr_aud: number | null }>).reduce((s, b) => s + (Number(b.arr_aud) || 0), 0)
   const targetDate = new Date('2028-06-30')
   const daysRemaining = Math.ceil((targetDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
 

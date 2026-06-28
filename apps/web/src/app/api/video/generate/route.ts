@@ -1,6 +1,7 @@
 // POST /api/video/generate — Generate a talking-head video via HeyGen
 // Returns immediately with video_asset ID; video renders asynchronously.
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -120,7 +121,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('[VideoGenerate] Script generation failed:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Script generation failed' },
+      { error: sanitiseError(error, 'Script generation failed') },
       { status: 500 }
     )
   }
@@ -197,7 +198,7 @@ export async function POST(request: Request) {
 
     console.error('[VideoGenerate] HeyGen call failed:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'HeyGen video creation failed' },
+      { error: sanitiseError(error, 'HeyGen video creation failed') },
       { status: 500 }
     )
   }

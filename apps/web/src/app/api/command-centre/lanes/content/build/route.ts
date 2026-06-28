@@ -1,4 +1,5 @@
 // POST /api/command-centre/lanes/content/build — trigger content build for a task
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { runContentBuild } from '@/lib/command-centre/lanes/content-build'
@@ -25,7 +26,7 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ result })
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Content build failed' },
+      { error: sanitiseError(error, 'Content build failed') },
       { status: 500 },
     )
   }

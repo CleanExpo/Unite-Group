@@ -22,7 +22,9 @@ describe('checkpointFromRuntimeSnapshot', () => {
     expect(checkpoint).not.toBeNull()
     expect(checkpoint?.stateLabel).toBe('DONE')
     expect(checkpoint?.checkpointStatus).toBe('done')
-    expect(checkpoint?.result).toBe('Structured checkpoint returned to RouterChat')
+    expect(checkpoint?.result).toBe(
+      'Structured checkpoint returned to RouterChat',
+    )
     expect(checkpoint?.nextAction).toBe('Verify in UI flow')
     expect(checkpoint?.raw).toContain('STATE: DONE')
   })
@@ -59,7 +61,13 @@ describe('runtimeSnapshotIsFresh', () => {
     }
     const dispatchedAt = 1_746_000_000_000
 
-    expect(runtimeSnapshotIsFresh(baseline, runtimeCheckpointSignature(baseline), dispatchedAt)).toBe(false)
+    expect(
+      runtimeSnapshotIsFresh(
+        baseline,
+        runtimeCheckpointSignature(baseline),
+        dispatchedAt,
+      ),
+    ).toBe(false)
 
     const updated = {
       ...baseline,
@@ -70,6 +78,12 @@ describe('runtimeSnapshotIsFresh', () => {
       lastOutputAt: 1_746_000_001_000,
     }
 
-    expect(runtimeSnapshotIsFresh(updated, runtimeCheckpointSignature(baseline), dispatchedAt)).toBe(true)
+    expect(
+      runtimeSnapshotIsFresh(
+        updated,
+        runtimeCheckpointSignature(baseline),
+        dispatchedAt,
+      ),
+    ).toBe(true)
   })
 })

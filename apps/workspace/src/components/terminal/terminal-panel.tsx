@@ -293,7 +293,9 @@ export function TerminalPanel({ isMobile }: TerminalPanelProps) {
                 ? ` (exit code ${payload?.code ?? '?'}${payload?.signal ? `, signal ${payload.signal}` : ''})`
                 : ''
             terminal.writeln(`\r\n\x1b[2m[session ended${exitInfo}]\x1b[0m`)
-            terminal.writeln(`\x1b[2m[click + to open a new tab, or reload to retry]\x1b[0m`)
+            terminal.writeln(
+              `\x1b[2m[click + to open a new tab, or reload to retry]\x1b[0m`,
+            )
             setTabs((prev) =>
               prev.map((tab) =>
                 tab.id === tabId ? { ...tab, sessionId: undefined } : tab,
@@ -533,9 +535,10 @@ function TerminalView({
       // textarea xterm uses for input is buried inside .xterm-helper-textarea
       // and the click handler is the most reliable signal. (#136)
       onClick={() => {
-        const textarea = containerRef.current?.querySelector<HTMLTextAreaElement>(
-          '.xterm-helper-textarea',
-        )
+        const textarea =
+          containerRef.current?.querySelector<HTMLTextAreaElement>(
+            '.xterm-helper-textarea',
+          )
         textarea?.focus()
       }}
       onKeyDown={(event) => {

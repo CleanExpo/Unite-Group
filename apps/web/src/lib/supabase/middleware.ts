@@ -9,6 +9,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { hasSupabaseConfig } from './server';
 import { getSupabaseAnonConfig } from './env-guard';
+import type { Database } from '@/types/database';
 
 /**
  * Create a Supabase client for middleware
@@ -35,11 +36,14 @@ export function createMiddlewareClient(request: NextRequest, extraRequestHeaders
   // environments with no env) so a missing config never crashes the whole app —
   // requests proceed as unauthenticated. Mirrors server.ts's hasSupabaseConfig guard.
   if (!hasSupabaseConfig()) {
+    // Minimal mock — only auth.getUser() is exercised on the unconfigured path.
+    // Double cast via unknown because the partial stub intentionally omits the
+    // full typed SupabaseClient surface.
     const supabase = {
       auth: {
         getUser: async () => ({ data: { user: null }, error: null }),
       },
-    } as ReturnType<typeof createServerClient>;
+    } as unknown as ReturnType<typeof createServerClient<Database>>;
 
     return { supabase, response };
   }
@@ -49,7 +53,7 @@ export function createMiddlewareClient(request: NextRequest, extraRequestHeaders
   // "No API key found in request" surfacing app-wide on every request.
   const { url, anonKey } = getSupabaseAnonConfig();
 
-  const supabase = createServerClient(
+  const supabase = createServerClient<Database>(
     url,
     anonKey,
     {

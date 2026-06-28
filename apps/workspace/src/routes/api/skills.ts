@@ -44,12 +44,9 @@ async function buildLocalSkillPathMap(): Promise<Map<string, LocalSkillMeta>> {
   const map = new Map<string, LocalSkillMeta>()
   let categoryEntries: Array<{ name: string; isDirectory: () => boolean }>
   try {
-    categoryEntries = (await fs.readdir(root, {
+    categoryEntries = await fs.readdir(root, {
       withFileTypes: true,
-    })) as unknown as Array<{
-      name: string
-      isDirectory: () => boolean
-    }>
+    })
   } catch {
     return map
   }
@@ -63,12 +60,9 @@ async function buildLocalSkillPathMap(): Promise<Map<string, LocalSkillMeta>> {
       isDirectory: () => boolean
     }>
     try {
-      skillEntries = (await fs.readdir(catPath, {
+      skillEntries = await fs.readdir(catPath, {
         withFileTypes: true,
-      })) as unknown as Array<{
-        name: string
-        isDirectory: () => boolean
-      }>
+      })
     } catch {
       continue
     }
@@ -107,7 +101,8 @@ function deriveOrigin(
   bundled: Set<string>,
 ): SkillSummary['origin'] {
   if (bundled.has(skill.id) || bundled.has(skill.slug)) return 'builtin'
-  if (skill.author === 'Hermes Agent' && skill.sourcePath) return 'agent-created'
+  if (skill.author === 'Hermes Agent' && skill.sourcePath)
+    return 'agent-created'
   return 'marketplace'
 }
 
@@ -359,31 +354,120 @@ function normalizeSkill(value: unknown): SkillSummary | null {
   }
 }
 
+// Local-truth fallback: read installed skills straight from the filesystem
+// (~/.hermes/skills) so the screen works without the Nous Portal-gated
+// dashboard. Handles both layouts: a skill dir (has SKILL.md) at the root, or
+// a category dir containing skill dirs one level down.
+async function parseSkillFrontmatter(
+  skillDir: string,
+  id: string,
+): Promise<SkillSummary | null> {
+  try {
+    const raw = await fs.readFile(path.join(skillDir, 'SKILL.md'), 'utf-8')
+    const fmEnd = raw.indexOf('\n---', 4)
+    const fm = fmEnd > 0 ? raw.slice(0, fmEnd) : raw.slice(0, 2048)
+    const get = (k: string): string =>
+      fm
+        .match(new RegExp(`^${k}:\\s*(.+?)\\s*$`, 'm'))?.[1]
+        ?.trim()
+        .replace(/^["']|["']$/g, '') || ''
+    return normalizeSkill({
+      id,
+      name: get('name') || id,
+      description: get('description'),
+      author: get('author'),
+      category: get('category'),
+      tags: get('tags'),
+      sourcePath: skillDir,
+      installed: true,
+      enabled: true,
+    })
+  } catch {
+    return null
+  }
+}
+
+async function buildLocalSkills(): Promise<Array<SkillSummary>> {
+  const root = getSkillsDir()
+  const out: Array<SkillSummary> = []
+  const seen = new Set<string>()
+  let names: Array<string>
+  try {
+    names = await fs.readdir(root)
+  } catch {
+    return out
+  }
+  // Resolve via fs.access/readdir on the path (NOT Dirent.isDirectory) so that
+  // symlinked skill dirs (e.g. ~/.hermes/skills/nexus/* -> ~/.claude/skills/*)
+  // are followed and surfaced in the Browser. SKILL.md presence is the test.
+  await Promise.all(
+    names.map(async (name) => {
+      if (name.startsWith('.')) return
+      const dir = path.join(root, name)
+      // Direct skill?
+      try {
+        await fs.access(path.join(dir, 'SKILL.md'))
+        if (!seen.has(name)) {
+          seen.add(name)
+          const s = await parseSkillFrontmatter(dir, name)
+          if (s) out.push(s)
+        }
+        return
+      } catch {
+        // not a direct skill — treat as a category dir (non-dirs fail readdir)
+      }
+      let sub: Array<string>
+      try {
+        sub = await fs.readdir(dir)
+      } catch {
+        return
+      }
+      for (const child of sub) {
+        if (child.startsWith('.') || seen.has(child)) continue
+        try {
+          await fs.access(path.join(dir, child, 'SKILL.md'))
+        } catch {
+          continue
+        }
+        seen.add(child)
+        const sk = await parseSkillFrontmatter(path.join(dir, child), child)
+        if (sk) out.push(sk)
+      }
+    }),
+  )
+  return out
+}
+
 async function fetchClaudeSkills(): Promise<Array<SkillSummary>> {
   const capabilities = getCapabilities()
   const headers: Record<string, string> = {}
   if (BEARER_TOKEN) headers['Authorization'] = `Bearer ${BEARER_TOKEN}`
 
-  const response = capabilities.dashboard.available
-    ? await dashboardFetch('/api/skills')
-    : await fetch(`${CLAUDE_API}/api/skills`, { headers })
-  if (!response.ok) {
-    const body = await response.text().catch(() => '')
-    throw new Error(body || `Claude skills request failed (${response.status})`)
+  try {
+    const response = capabilities.dashboard.available
+      ? await dashboardFetch('/api/skills')
+      : await fetch(`${CLAUDE_API}/api/skills`, { headers })
+    if (!response.ok) {
+      throw new Error(`Claude skills request failed (${response.status})`)
+    }
+    const payload = (await response.json()) as unknown
+    const items = Array.isArray(payload)
+      ? payload
+      : Array.isArray(asRecord(payload).items)
+        ? (asRecord(payload).items as Array<unknown>)
+        : Array.isArray(asRecord(payload).skills)
+          ? (asRecord(payload).skills as Array<unknown>)
+          : []
+    const mapped = items
+      .map((entry) => normalizeSkill(entry))
+      .filter((entry): entry is SkillSummary => entry !== null)
+    if (mapped.length > 0) return mapped
+    // HTTP source returned nothing — fall through to local truth.
+  } catch {
+    // Dashboard is Nous-Portal-gated (401) or the gateway lacks /api/skills
+    // (404). Fall back to the local installed-skills inventory.
   }
-
-  const payload = (await response.json()) as unknown
-  const items = Array.isArray(payload)
-    ? payload
-    : Array.isArray(asRecord(payload).items)
-      ? (asRecord(payload).items as Array<unknown>)
-      : Array.isArray(asRecord(payload).skills)
-        ? (asRecord(payload).skills as Array<unknown>)
-        : []
-
-  return items
-    .map((entry) => normalizeSkill(entry))
-    .filter((entry): entry is SkillSummary => entry !== null)
+  return buildLocalSkills()
 }
 
 function matchesSearch(skill: SkillSummary, rawSearch: string): boolean {
@@ -456,11 +540,12 @@ export const Route = createFileRoute('/api/skills')({
             Math.max(1, Number(url.searchParams.get('limit') || '30')),
           )
 
-          const [sourceItems, localPathMap, bundledManifest] = await Promise.all([
-            fetchClaudeSkills(),
-            buildLocalSkillPathMap(),
-            loadBundledManifest(),
-          ])
+          const [sourceItems, localPathMap, bundledManifest] =
+            await Promise.all([
+              fetchClaudeSkills(),
+              buildLocalSkillPathMap(),
+              loadBundledManifest(),
+            ])
           for (const skill of sourceItems) {
             if (skill.installed) {
               const meta =

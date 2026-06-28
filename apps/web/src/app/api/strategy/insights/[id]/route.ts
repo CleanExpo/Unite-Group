@@ -2,6 +2,7 @@
 // PATCH /api/strategy/insights/:id  — update status
 // DELETE /api/strategy/insights/:id — soft-delete (sets status = done)
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { createClient } from '@/lib/supabase/server'
@@ -16,7 +17,12 @@ export async function PATCH(
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const { id } = await params
-  const body = await request.json() as { status?: string }
+  let body: { status?: string }
+  try {
+    body = await request.json() as { status?: string }
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
 
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -27,7 +33,7 @@ export async function PATCH(
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to update insight', { route: 'strategy/insights/[id]' }) }, { status: 500 })
   return NextResponse.json({ insight: data })
 }
 
@@ -46,6 +52,6 @@ export async function DELETE(
     .eq('id', id)
     .eq('founder_id', user.id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to delete insight', { route: 'strategy/insights/[id]' }) }, { status: 500 })
   return NextResponse.json({ success: true })
 }

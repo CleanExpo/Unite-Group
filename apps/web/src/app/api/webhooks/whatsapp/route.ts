@@ -3,6 +3,7 @@
 // GET: Meta webhook verification handshake (one-time setup)
 // POST: Receives inbound messages, verifies signature, processes idea into Linear issue
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyWhatsAppSignature } from '@/lib/webhooks/verify'
 import { isDuplicate, insertEvent, markEvent } from '@/lib/webhooks/dedup'
@@ -105,7 +106,7 @@ export async function POST(request: NextRequest) {
     // Return 200 to stop Meta from retrying (our error is in markEvent, not Meta's fault)
     return NextResponse.json({
       status: 'error',
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: sanitiseError(error, 'Unknown error'),
     })
   }
 }

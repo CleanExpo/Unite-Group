@@ -2,6 +2,7 @@
 // Closes a PR and posts a rejection comment with the founder's reason.
 // Body: { owner: string, repo: string, number: number, reason?: string }
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { closePR } from '@/lib/nexus/github-prs'
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Reject failed' },
+      { error: sanitiseError(err, 'Reject failed') },
       { status: 500 },
     )
   }

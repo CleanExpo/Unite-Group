@@ -7,6 +7,11 @@ import {
   textFromMessage,
 } from '../utils'
 import { MessageActionsBar } from './message-actions-bar'
+import {
+  buildHermesActivitySummary,
+  shouldAutoExpandHermesActivityCard,
+} from './streaming-activity-ui'
+import { TuiActivityCard } from './tui-activity-card'
 import type { ChatAttachment, ChatMessage, ToolCallContent } from '../types'
 import type { ToolPart } from '@/components/prompt-kit/tool'
 import { AssistantAvatar, UserAvatar } from '@/components/avatars'
@@ -25,11 +30,6 @@ import {
   useChatSettingsStore,
 } from '@/hooks/use-chat-settings'
 import { cn } from '@/lib/utils'
-import {
-  buildHermesActivitySummary,
-  shouldAutoExpandHermesActivityCard,
-} from './streaming-activity-ui'
-import { TuiActivityCard } from './tui-activity-card'
 
 const WORDS_PER_TICK = 4
 const TICK_INTERVAL_MS = 50
@@ -1064,8 +1064,7 @@ function ToolCallPill({ toolCall }: { toolCall: StreamToolCall }) {
           {/* Show args (input) */}
           {toolCall.args != null &&
             typeof toolCall.args === 'object' &&
-            Object.keys(toolCall.args as Record<string, unknown>).length >
-              0 && (
+            Object.keys(toolCall.args).length > 0 && (
               <div className="px-2.5 py-1.5">
                 <div className="text-[9px] uppercase tracking-widest opacity-40 mb-0.5">
                   Input
@@ -1483,14 +1482,18 @@ function InlineToolSectionItem({
         style={{
           background: 'color-mix(in srgb, var(--theme-card2) 76%, transparent)',
           borderColor: 'var(--theme-border)',
-          boxShadow: isRunning ? '0 0 0 1px color-mix(in srgb, var(--theme-accent) 18%, transparent)' : undefined,
+          boxShadow: isRunning
+            ? '0 0 0 1px color-mix(in srgb, var(--theme-accent) 18%, transparent)'
+            : undefined,
         }}
         onClick={() => setOpen((v) => !v)}
         role="button"
         tabIndex={0}
       >
         <div className="flex items-center gap-2 px-3 py-2">
-          <span className="text-sm leading-none shrink-0 opacity-80">{icon}</span>
+          <span className="text-sm leading-none shrink-0 opacity-80">
+            {icon}
+          </span>
           <span className="font-medium text-[12px] text-[var(--theme-text)]">
             {toolDisplayLabel}
           </span>

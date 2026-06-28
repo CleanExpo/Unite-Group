@@ -5,6 +5,7 @@
 // fetchUrl: optional URL to pre-fetch and inject as context before the research query.
 //           Useful for "research this specific ATO page" use cases.
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { execute } from '@/lib/ai/router'
@@ -77,7 +78,7 @@ export async function POST(request: Request) {
       usage: result.usage,
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Research service unavailable'
+    const message = sanitiseError(error, 'Research service unavailable')
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

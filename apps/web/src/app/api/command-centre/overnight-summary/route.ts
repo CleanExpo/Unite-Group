@@ -4,6 +4,7 @@
 // synthesised from tasks + execution sessions. Auth-gated (getUser → 401),
 // founder-scoped by RLS. Read-only.
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { gatherOvernightDigest } from '@/lib/command-centre/overnight-summary'
@@ -19,7 +20,7 @@ export async function GET() {
     return NextResponse.json({ digest })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Failed to build digest' },
+      { error: sanitiseError(err, 'Failed to build digest') },
       { status: 500 },
     )
   }

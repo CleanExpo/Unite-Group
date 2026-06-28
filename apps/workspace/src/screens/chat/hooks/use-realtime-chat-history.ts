@@ -196,7 +196,9 @@ export function useRealtimeChatHistory({
           if (
             msgText.startsWith('Pre-compaction memory flush') ||
             msgText.startsWith('Store durable memories now') ||
-            msgText.startsWith('APPEND new content only and do not overwrite') ||
+            msgText.startsWith(
+              'APPEND new content only and do not overwrite',
+            ) ||
             msgText.startsWith('A subagent task') ||
             msgText.startsWith('[Queued announce messages') ||
             msgText.startsWith('Summarize this naturally for the user') ||

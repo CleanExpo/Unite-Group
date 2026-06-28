@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
+import { sanitiseError } from '@/lib/error-reporting'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,7 +45,7 @@ export async function GET(req: NextRequest) {
     const { data: searchData, error: searchError } = await supabase.rpc('search_knowledge_notes', {
       p_founder_id: user.id,
       p_query: searchQuery,
-      p_project_key: projectKey,
+      p_project_key: projectKey ?? undefined,
       p_limit: limit,
     })
 
@@ -52,7 +53,7 @@ export async function GET(req: NextRequest) {
       // Fallback to ILIKE if RPC fails
       query = query.or(`title.ilike.%${searchQuery}%,content.ilike.%${searchQuery}%`)
       const { data, error, count } = await query
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to load notes', { route: '/api/knowledge/notes' }) }, { status: 500 })
       return NextResponse.json({ notes: data ?? [], count: count ?? 0, offset, limit })
     }
 
@@ -65,7 +66,7 @@ export async function GET(req: NextRequest) {
   }
 
   const { data, error, count } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to load notes', { route: '/api/knowledge/notes' }) }, { status: 500 })
 
   return NextResponse.json({ notes: data ?? [], count: count ?? 0, offset, limit })
 }

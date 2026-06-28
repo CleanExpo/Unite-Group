@@ -20,7 +20,7 @@ import type { LoaderStyle } from '@/hooks/use-chat-settings'
 import type { BrailleSpinnerPreset } from '@/components/ui/braille-spinner'
 import type { ThemeId } from '@/lib/theme'
 import type { SettingsNavId } from '@/components/settings/settings-sidebar'
-import type {LocaleId} from '@/lib/i18n';
+import type { LocaleId } from '@/lib/i18n'
 import {
   SETTINGS_NAV_ITEMS,
   SettingsMobilePills,
@@ -30,7 +30,7 @@ import { usePageTitle } from '@/hooks/use-page-title'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { useSettings } from '@/hooks/use-settings'
-import { LOCALE_LABELS,  getLocale, setLocale } from '@/lib/i18n'
+import { LOCALE_LABELS, getLocale, setLocale } from '@/lib/i18n'
 import { THEMES, getTheme, isDarkTheme, setTheme } from '@/lib/theme'
 import { cn } from '@/lib/utils'
 import {
@@ -161,7 +161,7 @@ const THEME_PREVIEWS: Record<
     accent: '#b98a44',
     text: '#1a1f26',
   },
-  'matrix': {
+  matrix: {
     bg: '#020804',
     panel: '#07130A',
     border: 'rgba(0,255,65,0.28)',
@@ -1017,8 +1017,11 @@ function ClaudeConfigSection({
     setModelInput(configData.activeModel || '')
     setProviderInput(configData.activeProvider || '')
     setBaseUrlInput((configData.config?.base_url as string) || '')
-    const providersConfig = configData.config?.providers as Record<string, unknown> | undefined
-    const customConfig = (providersConfig?.manifest || providersConfig?.custom) as Record<string, unknown> | undefined
+    const providersConfig = configData.config?.providers as
+      | Record<string, unknown>
+      | undefined
+    const customConfig = (providersConfig?.manifest ||
+      providersConfig?.custom) as Record<string, unknown> | undefined
     setCustomBaseUrl((customConfig?.base_url as string) || '')
   }, [])
 
@@ -1486,7 +1489,9 @@ function ClaudeConfigSection({
         </SettingsRow>
         <SettingsRow
           label="Custom Base URL"
-          description={customBaseUrl ? `✅ ${customBaseUrl}` : '❌ Not configured'}
+          description={
+            customBaseUrl ? `✅ ${customBaseUrl}` : '❌ Not configured'
+          }
         >
           <div className="flex w-full max-w-sm items-center gap-2">
             <div className="flex-1">

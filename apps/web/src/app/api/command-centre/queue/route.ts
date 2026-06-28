@@ -4,6 +4,7 @@
 // (optionally filtered by ?status= and ?projectKey=), newest first.
 // Auth-gated (Supabase getUser → 401); founder-scoped by RLS.
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { listTasks, type TaskStatus } from '@/lib/command-centre/tasks'
@@ -31,7 +32,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ tasks })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Failed to list tasks' },
+      { error: sanitiseError(err, 'Failed to list tasks') },
       { status: 500 },
     )
   }

@@ -1,6 +1,7 @@
 // src/app/api/knowledge/projects/route.ts
 // GET /api/knowledge/projects — list knowledge projects
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
 
@@ -28,7 +29,7 @@ export async function GET(req: NextRequest) {
   }
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to load projects', { route: 'knowledge/projects' }) }, { status: 500 })
 
   return NextResponse.json({ projects: data ?? [] })
 }

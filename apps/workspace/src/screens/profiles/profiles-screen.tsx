@@ -608,8 +608,8 @@ export function ProfilesScreen() {
                     </div>
                   ) : allModels.length === 0 ? (
                     <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3 text-xs text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300">
-                      No models found. Make sure Hermes Agent is running and
-                      has models configured.
+                      No models found. Make sure Hermes Agent is running and has
+                      models configured.
                     </div>
                   ) : (
                     <select
@@ -696,7 +696,7 @@ export function ProfilesScreen() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setWizardStep((s) => (s - 1) as 1 | 2 | 3)}
+                  onClick={() => setWizardStep((s) => s - 1)}
                 >
                   Back
                 </Button>
@@ -716,7 +716,7 @@ export function ProfilesScreen() {
               {wizardStep < 3 ? (
                 <Button
                   size="sm"
-                  onClick={() => setWizardStep((s) => (s + 1) as 1 | 2 | 3)}
+                  onClick={() => setWizardStep((s) => s + 1)}
                   disabled={wizardStep === 1 && !nameValid}
                   className="gap-1.5"
                 >

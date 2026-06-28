@@ -101,7 +101,10 @@ export function writeSwarmRoster(roster: SwarmRoster): void {
   writeFileSync(SWARM_ROSTER_PATH, doc)
 }
 
-export function upsertSwarmRosterWorker(input: SwarmRosterUpsert, ids: Array<string> = []): SwarmRoster {
+export function upsertSwarmRosterWorker(
+  input: SwarmRosterUpsert,
+  ids: Array<string> = [],
+): SwarmRoster {
   const nextWorker = SwarmRosterUpsertSchema.parse(input)
   const current = readSwarmRoster(ids)
   const byId = new Map(current.workers.map((worker) => [worker.id, worker]))
@@ -118,6 +121,10 @@ export function upsertSwarmRosterWorker(input: SwarmRosterUpsert, ids: Array<str
   return next
 }
 
-export function rosterByWorkerId(ids: Array<string> = []): Map<string, SwarmRosterWorker> {
-  return new Map(readSwarmRoster(ids).workers.map((worker) => [worker.id, worker]))
+export function rosterByWorkerId(
+  ids: Array<string> = [],
+): Map<string, SwarmRosterWorker> {
+  return new Map(
+    readSwarmRoster(ids).workers.map((worker) => [worker.id, worker]),
+  )
 }

@@ -4,6 +4,7 @@
 
 import { NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
+import { sanitiseError } from '@/lib/error-reporting'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,7 +27,7 @@ export async function GET(
       .order('created_at', { ascending: true }),
   ])
 
-  if (meetingRes.error) return NextResponse.json({ error: meetingRes.error.message }, { status: 404 })
+  if (meetingRes.error) return NextResponse.json({ error: sanitiseError(meetingRes.error, 'Meeting not found', { route: '/api/boardroom/meetings/[id]' }) }, { status: 404 })
   return NextResponse.json({ meeting: meetingRes.data, notes: notesRes.data ?? [] })
 }
 
@@ -38,7 +39,12 @@ export async function PATCH(
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const { id } = await params
-  const body = await request.json() as { status?: string }
+  let body: { status?: string }
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -49,6 +55,6 @@ export async function PATCH(
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to update meeting', { route: '/api/boardroom/meetings/[id]' }) }, { status: 500 })
   return NextResponse.json({ meeting: data })
 }

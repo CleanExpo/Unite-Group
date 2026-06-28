@@ -1,12 +1,14 @@
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { existsSync, readFileSync, writeFileSync, mkdirSync } = vi.hoisted(() => ({
-  existsSync: vi.fn().mockReturnValue(false),
-  readFileSync: vi.fn().mockReturnValue(''),
-  writeFileSync: vi.fn().mockImplementation(() => {}),
-  mkdirSync: vi.fn().mockImplementation(() => {}),
-}))
+const { existsSync, readFileSync, writeFileSync, mkdirSync } = vi.hoisted(
+  () => ({
+    existsSync: vi.fn().mockReturnValue(false),
+    readFileSync: vi.fn().mockReturnValue(''),
+    writeFileSync: vi.fn().mockImplementation(() => {}),
+    mkdirSync: vi.fn().mockImplementation(() => {}),
+  }),
+)
 
 vi.mock('node:fs', () => ({
   default: { existsSync, readFileSync, writeFileSync, mkdirSync },
@@ -48,7 +50,7 @@ describe('gateway-capabilities', () => {
     mod.setGatewayUrl('http://tailscale:9999')
     expect(mod.CLAUDE_API).toBe('http://tailscale:9999')
 
-    const fallback = mod.setGatewayUrl(null as any)
+    const fallback = mod.setGatewayUrl(null)
     expect(fallback).toBe('http://127.0.0.1:8642')
     expect(mod.CLAUDE_API).toBe('http://127.0.0.1:8642')
   })
@@ -97,7 +99,7 @@ describe('gateway-capabilities', () => {
       try {
         expect(mod.isLocalhostDeployment()).toBe(false)
       } finally {
-        mod.setGatewayUrl(null as never)
+        mod.setGatewayUrl(null)
       }
     })
   })

@@ -23,6 +23,7 @@ import { Route as JobsRouteImport } from './routes/jobs'
 import { Route as FilesRouteImport } from './routes/files'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ConductorRouteImport } from './routes/conductor'
+import { Route as CommandCenterRouteImport } from './routes/command-center'
 import { Route as SplatRouteImport } from './routes/$'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
@@ -30,6 +31,7 @@ import { Route as ChatIndexRouteImport } from './routes/chat/index'
 import { Route as SettingsProvidersRouteImport } from './routes/settings/providers'
 import { Route as ChatSessionKeyRouteImport } from './routes/chat/$sessionKey'
 import { Route as ApiWorkspaceRouteImport } from './routes/api/workspace'
+import { Route as ApiVideoCommandCenterRouteImport } from './routes/api/video-command-center'
 import { Route as ApiTerminalStreamRouteImport } from './routes/api/terminal-stream'
 import { Route as ApiTerminalResizeRouteImport } from './routes/api/terminal-resize'
 import { Route as ApiTerminalInputRouteImport } from './routes/api/terminal-input'
@@ -63,12 +65,14 @@ import { Route as ApiSessionSendRouteImport } from './routes/api/session-send'
 import { Route as ApiSessionHistoryRouteImport } from './routes/api/session-history'
 import { Route as ApiSendStreamRouteImport } from './routes/api/send-stream'
 import { Route as ApiSendRouteImport } from './routes/api/send'
+import { Route as ApiQuickRunRouteImport } from './routes/api/quick-run'
 import { Route as ApiProviderUsageRouteImport } from './routes/api/provider-usage'
 import { Route as ApiPreviewFileRouteImport } from './routes/api/preview-file'
 import { Route as ApiPluginsRouteImport } from './routes/api/plugins'
 import { Route as ApiPingRouteImport } from './routes/api/ping'
 import { Route as ApiPathsRouteImport } from './routes/api/paths'
 import { Route as ApiModelsRouteImport } from './routes/api/models'
+import { Route as ApiMissionControlOsRouteImport } from './routes/api/mission-control-os'
 import { Route as ApiMemoryRouteImport } from './routes/api/memory'
 import { Route as ApiMcpRouteImport } from './routes/api/mcp'
 import { Route as ApiLocalProvidersRouteImport } from './routes/api/local-providers'
@@ -122,6 +126,12 @@ import { Route as ApiMcpHubSearchRouteImport } from './routes/api/mcp/hub-search
 import { Route as ApiMcpDiscoverRouteImport } from './routes/api/mcp/discover'
 import { Route as ApiMcpConfigureRouteImport } from './routes/api/mcp/configure'
 import { Route as ApiMcpNameRouteImport } from './routes/api/mcp/$name'
+import { Route as ApiLanesStopRouteImport } from './routes/api/lanes/stop'
+import { Route as ApiLanesRunRouteImport } from './routes/api/lanes/run'
+import { Route as ApiLanesListRouteImport } from './routes/api/lanes/list'
+import { Route as ApiLanesCreateRouteImport } from './routes/api/lanes/create'
+import { Route as ApiLanesBackendsRouteImport } from './routes/api/lanes/backends'
+import { Route as ApiLanesLaneIdRouteImport } from './routes/api/lanes/$laneId'
 import { Route as ApiKnowledgeSyncRouteImport } from './routes/api/knowledge/sync'
 import { Route as ApiKnowledgeSearchRouteImport } from './routes/api/knowledge/search'
 import { Route as ApiKnowledgeReadRouteImport } from './routes/api/knowledge/read'
@@ -208,6 +218,11 @@ const ConductorRoute = ConductorRouteImport.update({
   path: '/conductor',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CommandCenterRoute = CommandCenterRouteImport.update({
+  id: '/command-center',
+  path: '/command-center',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SplatRoute = SplatRouteImport.update({
   id: '/$',
   path: '/$',
@@ -241,6 +256,11 @@ const ChatSessionKeyRoute = ChatSessionKeyRouteImport.update({
 const ApiWorkspaceRoute = ApiWorkspaceRouteImport.update({
   id: '/api/workspace',
   path: '/api/workspace',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiVideoCommandCenterRoute = ApiVideoCommandCenterRouteImport.update({
+  id: '/api/video-command-center',
+  path: '/api/video-command-center',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTerminalStreamRoute = ApiTerminalStreamRouteImport.update({
@@ -409,6 +429,11 @@ const ApiSendRoute = ApiSendRouteImport.update({
   path: '/api/send',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiQuickRunRoute = ApiQuickRunRouteImport.update({
+  id: '/api/quick-run',
+  path: '/api/quick-run',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiProviderUsageRoute = ApiProviderUsageRouteImport.update({
   id: '/api/provider-usage',
   path: '/api/provider-usage',
@@ -437,6 +462,11 @@ const ApiPathsRoute = ApiPathsRouteImport.update({
 const ApiModelsRoute = ApiModelsRouteImport.update({
   id: '/api/models',
   path: '/api/models',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMissionControlOsRoute = ApiMissionControlOsRouteImport.update({
+  id: '/api/mission-control-os',
+  path: '/api/mission-control-os',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMemoryRoute = ApiMemoryRouteImport.update({
@@ -704,6 +734,36 @@ const ApiMcpNameRoute = ApiMcpNameRouteImport.update({
   path: '/$name',
   getParentRoute: () => ApiMcpRoute,
 } as any)
+const ApiLanesStopRoute = ApiLanesStopRouteImport.update({
+  id: '/api/lanes/stop',
+  path: '/api/lanes/stop',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLanesRunRoute = ApiLanesRunRouteImport.update({
+  id: '/api/lanes/run',
+  path: '/api/lanes/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLanesListRoute = ApiLanesListRouteImport.update({
+  id: '/api/lanes/list',
+  path: '/api/lanes/list',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLanesCreateRoute = ApiLanesCreateRouteImport.update({
+  id: '/api/lanes/create',
+  path: '/api/lanes/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLanesBackendsRoute = ApiLanesBackendsRouteImport.update({
+  id: '/api/lanes/backends',
+  path: '/api/lanes/backends',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLanesLaneIdRoute = ApiLanesLaneIdRouteImport.update({
+  id: '/api/lanes/$laneId',
+  path: '/api/lanes/$laneId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiKnowledgeSyncRoute = ApiKnowledgeSyncRouteImport.update({
   id: '/api/knowledge/sync',
   path: '/api/knowledge/sync',
@@ -785,6 +845,7 @@ const ApiMcpNameLogsRoute = ApiMcpNameLogsRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/command-center': typeof CommandCenterRoute
   '/conductor': typeof ConductorRoute
   '/dashboard': typeof DashboardRoute
   '/files': typeof FilesRoute
@@ -822,12 +883,14 @@ export interface FileRoutesByFullPath {
   '/api/local-providers': typeof ApiLocalProvidersRoute
   '/api/mcp': typeof ApiMcpRouteWithChildren
   '/api/memory': typeof ApiMemoryRouteWithChildren
+  '/api/mission-control-os': typeof ApiMissionControlOsRoute
   '/api/models': typeof ApiModelsRoute
   '/api/paths': typeof ApiPathsRoute
   '/api/ping': typeof ApiPingRoute
   '/api/plugins': typeof ApiPluginsRoute
   '/api/preview-file': typeof ApiPreviewFileRoute
   '/api/provider-usage': typeof ApiProviderUsageRoute
+  '/api/quick-run': typeof ApiQuickRunRoute
   '/api/send': typeof ApiSendRoute
   '/api/send-stream': typeof ApiSendStreamRoute
   '/api/session-history': typeof ApiSessionHistoryRoute
@@ -861,6 +924,7 @@ export interface FileRoutesByFullPath {
   '/api/terminal-input': typeof ApiTerminalInputRoute
   '/api/terminal-resize': typeof ApiTerminalResizeRoute
   '/api/terminal-stream': typeof ApiTerminalStreamRoute
+  '/api/video-command-center': typeof ApiVideoCommandCenterRoute
   '/api/workspace': typeof ApiWorkspaceRoute
   '/chat/$sessionKey': typeof ChatSessionKeyRoute
   '/settings/providers': typeof SettingsProvidersRoute
@@ -877,6 +941,12 @@ export interface FileRoutesByFullPath {
   '/api/knowledge/read': typeof ApiKnowledgeReadRoute
   '/api/knowledge/search': typeof ApiKnowledgeSearchRoute
   '/api/knowledge/sync': typeof ApiKnowledgeSyncRoute
+  '/api/lanes/$laneId': typeof ApiLanesLaneIdRoute
+  '/api/lanes/backends': typeof ApiLanesBackendsRoute
+  '/api/lanes/create': typeof ApiLanesCreateRoute
+  '/api/lanes/list': typeof ApiLanesListRoute
+  '/api/lanes/run': typeof ApiLanesRunRoute
+  '/api/lanes/stop': typeof ApiLanesStopRoute
   '/api/mcp/$name': typeof ApiMcpNameRouteWithChildren
   '/api/mcp/configure': typeof ApiMcpConfigureRoute
   '/api/mcp/discover': typeof ApiMcpDiscoverRoute
@@ -915,6 +985,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/command-center': typeof CommandCenterRoute
   '/conductor': typeof ConductorRoute
   '/dashboard': typeof DashboardRoute
   '/files': typeof FilesRoute
@@ -951,12 +1022,14 @@ export interface FileRoutesByTo {
   '/api/local-providers': typeof ApiLocalProvidersRoute
   '/api/mcp': typeof ApiMcpRouteWithChildren
   '/api/memory': typeof ApiMemoryRouteWithChildren
+  '/api/mission-control-os': typeof ApiMissionControlOsRoute
   '/api/models': typeof ApiModelsRoute
   '/api/paths': typeof ApiPathsRoute
   '/api/ping': typeof ApiPingRoute
   '/api/plugins': typeof ApiPluginsRoute
   '/api/preview-file': typeof ApiPreviewFileRoute
   '/api/provider-usage': typeof ApiProviderUsageRoute
+  '/api/quick-run': typeof ApiQuickRunRoute
   '/api/send': typeof ApiSendRoute
   '/api/send-stream': typeof ApiSendStreamRoute
   '/api/session-history': typeof ApiSessionHistoryRoute
@@ -990,6 +1063,7 @@ export interface FileRoutesByTo {
   '/api/terminal-input': typeof ApiTerminalInputRoute
   '/api/terminal-resize': typeof ApiTerminalResizeRoute
   '/api/terminal-stream': typeof ApiTerminalStreamRoute
+  '/api/video-command-center': typeof ApiVideoCommandCenterRoute
   '/api/workspace': typeof ApiWorkspaceRoute
   '/chat/$sessionKey': typeof ChatSessionKeyRoute
   '/settings/providers': typeof SettingsProvidersRoute
@@ -1006,6 +1080,12 @@ export interface FileRoutesByTo {
   '/api/knowledge/read': typeof ApiKnowledgeReadRoute
   '/api/knowledge/search': typeof ApiKnowledgeSearchRoute
   '/api/knowledge/sync': typeof ApiKnowledgeSyncRoute
+  '/api/lanes/$laneId': typeof ApiLanesLaneIdRoute
+  '/api/lanes/backends': typeof ApiLanesBackendsRoute
+  '/api/lanes/create': typeof ApiLanesCreateRoute
+  '/api/lanes/list': typeof ApiLanesListRoute
+  '/api/lanes/run': typeof ApiLanesRunRoute
+  '/api/lanes/stop': typeof ApiLanesStopRoute
   '/api/mcp/$name': typeof ApiMcpNameRouteWithChildren
   '/api/mcp/configure': typeof ApiMcpConfigureRoute
   '/api/mcp/discover': typeof ApiMcpDiscoverRoute
@@ -1045,6 +1125,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/command-center': typeof CommandCenterRoute
   '/conductor': typeof ConductorRoute
   '/dashboard': typeof DashboardRoute
   '/files': typeof FilesRoute
@@ -1082,12 +1163,14 @@ export interface FileRoutesById {
   '/api/local-providers': typeof ApiLocalProvidersRoute
   '/api/mcp': typeof ApiMcpRouteWithChildren
   '/api/memory': typeof ApiMemoryRouteWithChildren
+  '/api/mission-control-os': typeof ApiMissionControlOsRoute
   '/api/models': typeof ApiModelsRoute
   '/api/paths': typeof ApiPathsRoute
   '/api/ping': typeof ApiPingRoute
   '/api/plugins': typeof ApiPluginsRoute
   '/api/preview-file': typeof ApiPreviewFileRoute
   '/api/provider-usage': typeof ApiProviderUsageRoute
+  '/api/quick-run': typeof ApiQuickRunRoute
   '/api/send': typeof ApiSendRoute
   '/api/send-stream': typeof ApiSendStreamRoute
   '/api/session-history': typeof ApiSessionHistoryRoute
@@ -1121,6 +1204,7 @@ export interface FileRoutesById {
   '/api/terminal-input': typeof ApiTerminalInputRoute
   '/api/terminal-resize': typeof ApiTerminalResizeRoute
   '/api/terminal-stream': typeof ApiTerminalStreamRoute
+  '/api/video-command-center': typeof ApiVideoCommandCenterRoute
   '/api/workspace': typeof ApiWorkspaceRoute
   '/chat/$sessionKey': typeof ChatSessionKeyRoute
   '/settings/providers': typeof SettingsProvidersRoute
@@ -1137,6 +1221,12 @@ export interface FileRoutesById {
   '/api/knowledge/read': typeof ApiKnowledgeReadRoute
   '/api/knowledge/search': typeof ApiKnowledgeSearchRoute
   '/api/knowledge/sync': typeof ApiKnowledgeSyncRoute
+  '/api/lanes/$laneId': typeof ApiLanesLaneIdRoute
+  '/api/lanes/backends': typeof ApiLanesBackendsRoute
+  '/api/lanes/create': typeof ApiLanesCreateRoute
+  '/api/lanes/list': typeof ApiLanesListRoute
+  '/api/lanes/run': typeof ApiLanesRunRoute
+  '/api/lanes/stop': typeof ApiLanesStopRoute
   '/api/mcp/$name': typeof ApiMcpNameRouteWithChildren
   '/api/mcp/configure': typeof ApiMcpConfigureRoute
   '/api/mcp/discover': typeof ApiMcpDiscoverRoute
@@ -1177,6 +1267,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$'
+    | '/command-center'
     | '/conductor'
     | '/dashboard'
     | '/files'
@@ -1214,12 +1305,14 @@ export interface FileRouteTypes {
     | '/api/local-providers'
     | '/api/mcp'
     | '/api/memory'
+    | '/api/mission-control-os'
     | '/api/models'
     | '/api/paths'
     | '/api/ping'
     | '/api/plugins'
     | '/api/preview-file'
     | '/api/provider-usage'
+    | '/api/quick-run'
     | '/api/send'
     | '/api/send-stream'
     | '/api/session-history'
@@ -1253,6 +1346,7 @@ export interface FileRouteTypes {
     | '/api/terminal-input'
     | '/api/terminal-resize'
     | '/api/terminal-stream'
+    | '/api/video-command-center'
     | '/api/workspace'
     | '/chat/$sessionKey'
     | '/settings/providers'
@@ -1269,6 +1363,12 @@ export interface FileRouteTypes {
     | '/api/knowledge/read'
     | '/api/knowledge/search'
     | '/api/knowledge/sync'
+    | '/api/lanes/$laneId'
+    | '/api/lanes/backends'
+    | '/api/lanes/create'
+    | '/api/lanes/list'
+    | '/api/lanes/run'
+    | '/api/lanes/stop'
     | '/api/mcp/$name'
     | '/api/mcp/configure'
     | '/api/mcp/discover'
@@ -1307,6 +1407,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/$'
+    | '/command-center'
     | '/conductor'
     | '/dashboard'
     | '/files'
@@ -1343,12 +1444,14 @@ export interface FileRouteTypes {
     | '/api/local-providers'
     | '/api/mcp'
     | '/api/memory'
+    | '/api/mission-control-os'
     | '/api/models'
     | '/api/paths'
     | '/api/ping'
     | '/api/plugins'
     | '/api/preview-file'
     | '/api/provider-usage'
+    | '/api/quick-run'
     | '/api/send'
     | '/api/send-stream'
     | '/api/session-history'
@@ -1382,6 +1485,7 @@ export interface FileRouteTypes {
     | '/api/terminal-input'
     | '/api/terminal-resize'
     | '/api/terminal-stream'
+    | '/api/video-command-center'
     | '/api/workspace'
     | '/chat/$sessionKey'
     | '/settings/providers'
@@ -1398,6 +1502,12 @@ export interface FileRouteTypes {
     | '/api/knowledge/read'
     | '/api/knowledge/search'
     | '/api/knowledge/sync'
+    | '/api/lanes/$laneId'
+    | '/api/lanes/backends'
+    | '/api/lanes/create'
+    | '/api/lanes/list'
+    | '/api/lanes/run'
+    | '/api/lanes/stop'
     | '/api/mcp/$name'
     | '/api/mcp/configure'
     | '/api/mcp/discover'
@@ -1436,6 +1546,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/$'
+    | '/command-center'
     | '/conductor'
     | '/dashboard'
     | '/files'
@@ -1473,12 +1584,14 @@ export interface FileRouteTypes {
     | '/api/local-providers'
     | '/api/mcp'
     | '/api/memory'
+    | '/api/mission-control-os'
     | '/api/models'
     | '/api/paths'
     | '/api/ping'
     | '/api/plugins'
     | '/api/preview-file'
     | '/api/provider-usage'
+    | '/api/quick-run'
     | '/api/send'
     | '/api/send-stream'
     | '/api/session-history'
@@ -1512,6 +1625,7 @@ export interface FileRouteTypes {
     | '/api/terminal-input'
     | '/api/terminal-resize'
     | '/api/terminal-stream'
+    | '/api/video-command-center'
     | '/api/workspace'
     | '/chat/$sessionKey'
     | '/settings/providers'
@@ -1528,6 +1642,12 @@ export interface FileRouteTypes {
     | '/api/knowledge/read'
     | '/api/knowledge/search'
     | '/api/knowledge/sync'
+    | '/api/lanes/$laneId'
+    | '/api/lanes/backends'
+    | '/api/lanes/create'
+    | '/api/lanes/list'
+    | '/api/lanes/run'
+    | '/api/lanes/stop'
     | '/api/mcp/$name'
     | '/api/mcp/configure'
     | '/api/mcp/discover'
@@ -1567,6 +1687,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
+  CommandCenterRoute: typeof CommandCenterRoute
   ConductorRoute: typeof ConductorRoute
   DashboardRoute: typeof DashboardRoute
   FilesRoute: typeof FilesRoute
@@ -1604,12 +1725,14 @@ export interface RootRouteChildren {
   ApiLocalProvidersRoute: typeof ApiLocalProvidersRoute
   ApiMcpRoute: typeof ApiMcpRouteWithChildren
   ApiMemoryRoute: typeof ApiMemoryRouteWithChildren
+  ApiMissionControlOsRoute: typeof ApiMissionControlOsRoute
   ApiModelsRoute: typeof ApiModelsRoute
   ApiPathsRoute: typeof ApiPathsRoute
   ApiPingRoute: typeof ApiPingRoute
   ApiPluginsRoute: typeof ApiPluginsRoute
   ApiPreviewFileRoute: typeof ApiPreviewFileRoute
   ApiProviderUsageRoute: typeof ApiProviderUsageRoute
+  ApiQuickRunRoute: typeof ApiQuickRunRoute
   ApiSendRoute: typeof ApiSendRoute
   ApiSendStreamRoute: typeof ApiSendStreamRoute
   ApiSessionHistoryRoute: typeof ApiSessionHistoryRoute
@@ -1643,6 +1766,7 @@ export interface RootRouteChildren {
   ApiTerminalInputRoute: typeof ApiTerminalInputRoute
   ApiTerminalResizeRoute: typeof ApiTerminalResizeRoute
   ApiTerminalStreamRoute: typeof ApiTerminalStreamRoute
+  ApiVideoCommandCenterRoute: typeof ApiVideoCommandCenterRoute
   ApiWorkspaceRoute: typeof ApiWorkspaceRoute
   ChatSessionKeyRoute: typeof ChatSessionKeyRoute
   ChatIndexRoute: typeof ChatIndexRoute
@@ -1654,6 +1778,12 @@ export interface RootRouteChildren {
   ApiKnowledgeReadRoute: typeof ApiKnowledgeReadRoute
   ApiKnowledgeSearchRoute: typeof ApiKnowledgeSearchRoute
   ApiKnowledgeSyncRoute: typeof ApiKnowledgeSyncRoute
+  ApiLanesLaneIdRoute: typeof ApiLanesLaneIdRoute
+  ApiLanesBackendsRoute: typeof ApiLanesBackendsRoute
+  ApiLanesCreateRoute: typeof ApiLanesCreateRoute
+  ApiLanesListRoute: typeof ApiLanesListRoute
+  ApiLanesRunRoute: typeof ApiLanesRunRoute
+  ApiLanesStopRoute: typeof ApiLanesStopRoute
   ApiModelInfoRoute: typeof ApiModelInfoRoute
   ApiOauthDeviceCodeRoute: typeof ApiOauthDeviceCodeRoute
   ApiOauthPollTokenRoute: typeof ApiOauthPollTokenRoute
@@ -1769,6 +1899,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConductorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/command-center': {
+      id: '/command-center'
+      path: '/command-center'
+      fullPath: '/command-center'
+      preLoaderRoute: typeof CommandCenterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$': {
       id: '/$'
       path: '/$'
@@ -1816,6 +1953,13 @@ declare module '@tanstack/react-router' {
       path: '/api/workspace'
       fullPath: '/api/workspace'
       preLoaderRoute: typeof ApiWorkspaceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/video-command-center': {
+      id: '/api/video-command-center'
+      path: '/api/video-command-center'
+      fullPath: '/api/video-command-center'
+      preLoaderRoute: typeof ApiVideoCommandCenterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/terminal-stream': {
@@ -2049,6 +2193,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSendRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/quick-run': {
+      id: '/api/quick-run'
+      path: '/api/quick-run'
+      fullPath: '/api/quick-run'
+      preLoaderRoute: typeof ApiQuickRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/provider-usage': {
       id: '/api/provider-usage'
       path: '/api/provider-usage'
@@ -2089,6 +2240,13 @@ declare module '@tanstack/react-router' {
       path: '/api/models'
       fullPath: '/api/models'
       preLoaderRoute: typeof ApiModelsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mission-control-os': {
+      id: '/api/mission-control-os'
+      path: '/api/mission-control-os'
+      fullPath: '/api/mission-control-os'
+      preLoaderRoute: typeof ApiMissionControlOsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/memory': {
@@ -2462,6 +2620,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMcpNameRouteImport
       parentRoute: typeof ApiMcpRoute
     }
+    '/api/lanes/stop': {
+      id: '/api/lanes/stop'
+      path: '/api/lanes/stop'
+      fullPath: '/api/lanes/stop'
+      preLoaderRoute: typeof ApiLanesStopRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lanes/run': {
+      id: '/api/lanes/run'
+      path: '/api/lanes/run'
+      fullPath: '/api/lanes/run'
+      preLoaderRoute: typeof ApiLanesRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lanes/list': {
+      id: '/api/lanes/list'
+      path: '/api/lanes/list'
+      fullPath: '/api/lanes/list'
+      preLoaderRoute: typeof ApiLanesListRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lanes/create': {
+      id: '/api/lanes/create'
+      path: '/api/lanes/create'
+      fullPath: '/api/lanes/create'
+      preLoaderRoute: typeof ApiLanesCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lanes/backends': {
+      id: '/api/lanes/backends'
+      path: '/api/lanes/backends'
+      fullPath: '/api/lanes/backends'
+      preLoaderRoute: typeof ApiLanesBackendsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lanes/$laneId': {
+      id: '/api/lanes/$laneId'
+      path: '/api/lanes/$laneId'
+      fullPath: '/api/lanes/$laneId'
+      preLoaderRoute: typeof ApiLanesLaneIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/knowledge/sync': {
       id: '/api/knowledge/sync'
       path: '/api/knowledge/sync'
@@ -2733,6 +2933,7 @@ const ApiSwarmMemoryRouteWithChildren = ApiSwarmMemoryRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
+  CommandCenterRoute: CommandCenterRoute,
   ConductorRoute: ConductorRoute,
   DashboardRoute: DashboardRoute,
   FilesRoute: FilesRoute,
@@ -2770,12 +2971,14 @@ const rootRouteChildren: RootRouteChildren = {
   ApiLocalProvidersRoute: ApiLocalProvidersRoute,
   ApiMcpRoute: ApiMcpRouteWithChildren,
   ApiMemoryRoute: ApiMemoryRouteWithChildren,
+  ApiMissionControlOsRoute: ApiMissionControlOsRoute,
   ApiModelsRoute: ApiModelsRoute,
   ApiPathsRoute: ApiPathsRoute,
   ApiPingRoute: ApiPingRoute,
   ApiPluginsRoute: ApiPluginsRoute,
   ApiPreviewFileRoute: ApiPreviewFileRoute,
   ApiProviderUsageRoute: ApiProviderUsageRoute,
+  ApiQuickRunRoute: ApiQuickRunRoute,
   ApiSendRoute: ApiSendRoute,
   ApiSendStreamRoute: ApiSendStreamRoute,
   ApiSessionHistoryRoute: ApiSessionHistoryRoute,
@@ -2809,6 +3012,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTerminalInputRoute: ApiTerminalInputRoute,
   ApiTerminalResizeRoute: ApiTerminalResizeRoute,
   ApiTerminalStreamRoute: ApiTerminalStreamRoute,
+  ApiVideoCommandCenterRoute: ApiVideoCommandCenterRoute,
   ApiWorkspaceRoute: ApiWorkspaceRoute,
   ChatSessionKeyRoute: ChatSessionKeyRoute,
   ChatIndexRoute: ChatIndexRoute,
@@ -2820,6 +3024,12 @@ const rootRouteChildren: RootRouteChildren = {
   ApiKnowledgeReadRoute: ApiKnowledgeReadRoute,
   ApiKnowledgeSearchRoute: ApiKnowledgeSearchRoute,
   ApiKnowledgeSyncRoute: ApiKnowledgeSyncRoute,
+  ApiLanesLaneIdRoute: ApiLanesLaneIdRoute,
+  ApiLanesBackendsRoute: ApiLanesBackendsRoute,
+  ApiLanesCreateRoute: ApiLanesCreateRoute,
+  ApiLanesListRoute: ApiLanesListRoute,
+  ApiLanesRunRoute: ApiLanesRunRoute,
+  ApiLanesStopRoute: ApiLanesStopRoute,
   ApiModelInfoRoute: ApiModelInfoRoute,
   ApiOauthDeviceCodeRoute: ApiOauthDeviceCodeRoute,
   ApiOauthPollTokenRoute: ApiOauthPollTokenRoute,

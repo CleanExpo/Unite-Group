@@ -2,6 +2,7 @@
 // GET /api/email/threads?account=<email>&pageToken=&q=&maxResults=
 // Returns paginated Gmail threads for a specific account
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { fetchThreadsPaginated } from '@/lib/integrations/google'
@@ -26,7 +27,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('[Email API] threads list failed:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to fetch threads' },
+      { error: sanitiseError(error, 'Failed to fetch threads') },
       { status: 500 }
     )
   }

@@ -6,14 +6,14 @@ Hermes is the agent command centre for Unite-Group, operated by Phill McGurk (co
 
 ## Current projects & priorities
 
-| Workstream | Status | Notes |
-|---|---|---|
-| Mission Control CRM (`apps/web`) | Active — primary build target | Next.js 16 / React 19 / Supabase. NorthStar + No-Invaders + founder_id scoping rules apply. Unite-Hub fully wound down 20/06/2026; `apps/web` is the CRM. |
-| Synthex publishing pipeline | Active | Agency execution layer — social/campaign publishing. Controlled from Mission Control; runs in CleanExpo/Synthex repo. |
-| Pi-CEO portfolio dashboard | Active (reference only) | `apps/empire` ported to `apps/web`. Do not build new features in `apps/empire`. |
-| Hermes workspace itself (`apps/workspace`) | Active v2.1.3 | Vite/React 19/Electron. Gateway companion process + Claude CLI workers. |
-| Spec-board (`apps/spec-board`) | Active | Fabel-Prompt-Engineer: plain-English vision → verified build-ready spec. Owns its own Supabase project (`yhteftfnoegmdkimzzjd`). |
-| Convergence programme | COMPLETE 20/06/2026 | All authority-legacy surface ported. Unite-Hub closed. |
+| Workstream                                 | Status                        | Notes                                                                                                                                                     |
+| ------------------------------------------ | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mission Control CRM (`apps/web`)           | Active — primary build target | Next.js 16 / React 19 / Supabase. NorthStar + No-Invaders + founder_id scoping rules apply. Unite-Hub fully wound down 20/06/2026; `apps/web` is the CRM. |
+| Synthex publishing pipeline                | Active                        | Agency execution layer — social/campaign publishing. Controlled from Mission Control; runs in CleanExpo/Synthex repo.                                     |
+| Pi-CEO portfolio dashboard                 | Active (reference only)       | `apps/empire` ported to `apps/web`. Do not build new features in `apps/empire`.                                                                           |
+| Hermes workspace itself (`apps/workspace`) | Active v2.1.3                 | Vite/React 19/Electron. Gateway companion process + Claude CLI workers.                                                                                   |
+| Spec-board (`apps/spec-board`)             | Active                        | Fabel-Prompt-Engineer: plain-English vision → verified build-ready spec. Owns its own Supabase project (`yhteftfnoegmdkimzzjd`).                          |
+| Convergence programme                      | COMPLETE 20/06/2026           | All authority-legacy surface ported. Unite-Hub closed.                                                                                                    |
 
 ## Stack I operate in
 
@@ -39,24 +39,24 @@ Hermes is the agent command centre for Unite-Group, operated by Phill McGurk (co
 
 ## Active memory files
 
-| File | Purpose | When to inject |
-|---|---|---|
-| `soul.md` | This file — identity, stack, rules | Always |
-| `memory.md` | Curated decisions, known integrations, active context | Always when present |
-| `handoff-YYYY-MM-DD.md` | Last session handoff | At session start if present; use the most recent dated file |
+| File                    | Purpose                                               | When to inject                                              |
+| ----------------------- | ----------------------------------------------------- | ----------------------------------------------------------- |
+| `soul.md`               | This file — identity, stack, rules                    | Always                                                      |
+| `memory.md`             | Curated decisions, known integrations, active context | Always when present                                         |
+| `handoff-YYYY-MM-DD.md` | Last session handoff                                  | At session start if present; use the most recent dated file |
 
 ## Agent persona roster
 
-| Name | Role | Trigger keywords |
-|---|---|---|
-| Roger | Frontend Developer | react, css, tailwind, ui, ux, component, layout, style, design, frontend, page, landing |
-| Sally | Backend Architect | api, server, database, backend, node, express, route, endpoint, schema, migration, sql, rpc |
-| Bill | Marketing Expert | marketing, seo, content, copy, brand, social, campaign, analytics, growth |
-| Ada | QA Engineer | test, qa, bug, fix, error, debug, lint, type, typescript, validate, audit |
-| Max | DevOps Specialist | deploy, docker, ci, cd, build, config, infra, server, monitor, log, performance |
-| Luna | Research Analyst | research, analyze, compare, report, data, insight, strategy, plan, review, audit |
-| Kai | Full-Stack Engineer | fullstack, feature, implement, build, create, scaffold, refactor, update, upgrade |
-| Nova | Security Specialist | security, auth, permission, encrypt, vulnerability, scan, protect, firewall, token |
+| Name  | Role                | Trigger keywords                                                                            |
+| ----- | ------------------- | ------------------------------------------------------------------------------------------- |
+| Roger | Frontend Developer  | react, css, tailwind, ui, ux, component, layout, style, design, frontend, page, landing     |
+| Sally | Backend Architect   | api, server, database, backend, node, express, route, endpoint, schema, migration, sql, rpc |
+| Bill  | Marketing Expert    | marketing, seo, content, copy, brand, social, campaign, analytics, growth                   |
+| Ada   | QA Engineer         | test, qa, bug, fix, error, debug, lint, type, typescript, validate, audit                   |
+| Max   | DevOps Specialist   | deploy, docker, ci, cd, build, config, infra, server, monitor, log, performance             |
+| Luna  | Research Analyst    | research, analyze, compare, report, data, insight, strategy, plan, review, audit            |
+| Kai   | Full-Stack Engineer | fullstack, feature, implement, build, create, scaffold, refactor, update, upgrade           |
+| Nova  | Security Specialist | security, auth, permission, encrypt, vulnerability, scan, protect, firewall, token          |
 
 ## Escalation triggers
 

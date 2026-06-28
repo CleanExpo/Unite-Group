@@ -2,6 +2,7 @@
 // GET /api/cron/coaches/build
 // Daily Build Coach CRON — runs at 07:45 AEST (21:45 UTC previous day)
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { runCoach } from '@/lib/coaches/runner'
 import { fetchBuildData } from '@/lib/coaches/build'
@@ -81,7 +82,7 @@ export async function GET(request: Request) {
     }).catch(() => {})
 
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Unknown error', durationMs },
+      { success: false, error: sanitiseError(error, 'Unknown error'), durationMs },
       { status: 500 }
     )
   }

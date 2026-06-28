@@ -3,6 +3,7 @@
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { sanitiseError } from '@/lib/error-reporting'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,7 +37,12 @@ export async function PUT(request: Request) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
-  const body = (await request.json()) as Record<string, unknown>
+  let body: Record<string, unknown>
+  try {
+    body = (await request.json()) as Record<string, unknown>
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
   const businessKey = body.business_key as string | undefined
 
   if (!businessKey) {
@@ -51,7 +57,7 @@ export async function PUT(request: Request) {
     .single()
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: sanitiseError(error, 'Failed to save brand identity', { route: '/api/content/brand-identity' }) }, { status: 500 })
   }
 
   return NextResponse.json({ brandIdentity: data })

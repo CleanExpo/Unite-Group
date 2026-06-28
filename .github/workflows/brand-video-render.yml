@@ -1,0 +1,59 @@
+name: Brand Video Render
+
+# Runs the Brand Video Studio worker where ffmpeg + a real runtime exist (a
+# Vercel function can't run ffmpeg or long jobs). Each run claims ONE queued
+# brand_video_jobs row from Supabase (service role), renders it
+# (Gemini images -> ElevenLabs VO -> ffmpeg 1080p stitch), uploads the mp4 to
+# the BRAND_VIDEO_BUCKET Storage bucket, and sets status=done + output_url.
+#
+# schedule only fires on the default branch (main); use workflow_dispatch to
+# test from any branch. Secrets are configured in repo Settings → Secrets.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *' # every ~5 minutes
+
+permissions:
+  contents: read
+
+# Don't pile up overlapping render runs.
+concurrency:
+  group: brand-video-render
+  cancel-in-progress: false
+
+jobs:
+  render:
+    name: Claim + render one queued job
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Enable pnpm
+        run: corepack enable && corepack prepare pnpm@9.15.0 --activate
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install apps/web dependencies
+        working-directory: apps/web
+        run: pnpm install --frozen-lockfile
+
+      - name: Render queued brand_video_jobs
+        working-directory: apps/web
+        run: node scripts/brand-video-worker.mjs
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_VOICE_ID: ${{ secrets.ELEVENLABS_VOICE_ID }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BRAND_VIDEO_BUCKET: ${{ secrets.BRAND_VIDEO_BUCKET }}

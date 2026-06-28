@@ -79,13 +79,20 @@ END $$;
 
 -- ============================================================
 -- 5. RLS on legacy tables (NodeJS-Starter-V1, no founder_id — service_role only)
+--    Guarded: these v1 tables were dropped from prod (plan1_drop_test_tables) and
+--    do not exist on a clean replay — skip instead of erroring on a missing table.
 -- ============================================================
-ALTER TABLE public.auto_research_runs ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "service_role_only" ON public.auto_research_runs;
-CREATE POLICY "service_role_only" ON public.auto_research_runs
-  FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='auto_research_runs') THEN
+    EXECUTE 'ALTER TABLE public.auto_research_runs ENABLE ROW LEVEL SECURITY';
+    EXECUTE 'DROP POLICY IF EXISTS "service_role_only" ON public.auto_research_runs';
+    EXECUTE 'CREATE POLICY "service_role_only" ON public.auto_research_runs FOR ALL USING (auth.role() = ''service_role'') WITH CHECK (auth.role() = ''service_role'')';
+  END IF;
 
-ALTER TABLE public.trend_insights ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "service_role_only" ON public.trend_insights;
-CREATE POLICY "service_role_only" ON public.trend_insights
-  FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='trend_insights') THEN
+    EXECUTE 'ALTER TABLE public.trend_insights ENABLE ROW LEVEL SECURITY';
+    EXECUTE 'DROP POLICY IF EXISTS "service_role_only" ON public.trend_insights';
+    EXECUTE 'CREATE POLICY "service_role_only" ON public.trend_insights FOR ALL USING (auth.role() = ''service_role'') WITH CHECK (auth.role() = ''service_role'')';
+  END IF;
+END $$;

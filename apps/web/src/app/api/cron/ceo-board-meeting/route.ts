@@ -86,7 +86,7 @@ export async function GET(request: Request) {
         Promise.allSettled(
           XERO_KEYS.map(async (key) => {
             const result = await fetchRevenueMTD(founderId, key)
-            return { businessKey: key, revenueAud: result.data.revenueCents, expensesAud: result.data.expensesCents, growth: result.data.growth }
+            return { businessKey: key, revenueAud: result.data.revenueCents, expensesAud: result.data.expensesCents, growth: result.data.growth, source: result.source }
           })
         ),
       ])
@@ -129,12 +129,13 @@ export async function GET(request: Request) {
       ? xeroResults.value
           .filter((r) => r.status === 'fulfilled')
           .map((r) => {
-            const v = (r as PromiseFulfilledResult<{ businessKey: string; revenueAud?: number; expensesAud?: number; growth?: number }>).value
+            const v = (r as PromiseFulfilledResult<{ businessKey: string; revenueAud?: number; expensesAud?: number; growth?: number; source?: 'xero' | 'mock' }>).value
             return {
               businessKey: v.businessKey,
               revenueAud: v.revenueAud ?? 0,
               expensesAud: v.expensesAud ?? 0,
               growth: v.growth ?? 0,
+              source: v.source,
             }
           })
       : []
@@ -177,7 +178,7 @@ export async function GET(request: Request) {
         brief_md: briefing.brief_md,
         github_data: { commits: githubCommits.length, prs: githubPRs.length, configured: githubConfigured },
         linear_data: { completed: completed.length, inFlight: inFlight.length, overdue: overdueIssues.length },
-        xero_data: { businesses: xeroSummary.length },
+        xero_data: { businesses: xeroSummary.length, mock: xeroSummary.filter((x) => x.source === 'mock').length },
         metrics: {
           decisionsRequired: briefing.decisionsRequired.length,
           openDecisions,

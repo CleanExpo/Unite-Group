@@ -533,7 +533,9 @@ function ChatSidebarComponent({
   useEffect(() => {
     function handleOpenSettingsEvent(event: Event) {
       const detail = (event as CustomEvent<ChatOpenSettingsDetail>).detail
-      handleOpenSettings(detail.section === 'appearance' ? 'appearance' : 'claude')
+      handleOpenSettings(
+        detail.section === 'appearance' ? 'appearance' : 'claude',
+      )
     }
 
     window.addEventListener(CHAT_OPEN_SETTINGS_EVENT, handleOpenSettingsEvent)
@@ -828,7 +830,6 @@ function ChatSidebarComponent({
       label: 'Swarm',
       active: isSwarmActive,
     },
-
   ]
 
   const knowledgeItems: Array<NavItemDef> = [

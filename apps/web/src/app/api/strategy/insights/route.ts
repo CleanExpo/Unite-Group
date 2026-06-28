@@ -2,9 +2,11 @@
 // GET  /api/strategy/insights?business=<key>&status=<status>&date=today
 // POST /api/strategy/insights  — create manual insight
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { createClient } from '@/lib/supabase/server'
+import type { Json } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,7 +34,7 @@ export async function GET(request: Request) {
   }
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to load insights', { route: 'strategy/insights' }) }, { status: 500 })
 
   return NextResponse.json({ insights: data })
 }
@@ -41,13 +43,25 @@ export async function POST(request: Request) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
-  const body = await request.json() as {
+  let body: {
     business_key: string
     type: string
     title: string
     body: string
     priority?: string
     metadata?: Record<string, unknown>
+  }
+  try {
+    body = await request.json() as {
+      business_key: string
+      type: string
+      title: string
+      body: string
+      priority?: string
+      metadata?: Record<string, unknown>
+    }
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
   const supabase = await createClient()
@@ -60,11 +74,11 @@ export async function POST(request: Request) {
       title: body.title,
       body: body.body,
       priority: body.priority ?? 'medium',
-      metadata: body.metadata ?? {},
+      metadata: (body.metadata ?? {}) as Json,
     })
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to create insight', { route: 'strategy/insights' }) }, { status: 500 })
   return NextResponse.json({ insight: data }, { status: 201 })
 }

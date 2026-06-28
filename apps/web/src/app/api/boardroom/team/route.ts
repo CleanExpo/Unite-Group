@@ -4,6 +4,7 @@
 
 import { NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
+import { sanitiseError } from '@/lib/error-reporting'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,7 +20,7 @@ export async function GET() {
     .eq('active', true)
     .order('created_at', { ascending: true })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to load team', { route: '/api/boardroom/team' }) }, { status: 500 })
 
   // Seed Claude Dev Agent if no members exist
   if (!data || data.length === 0) {
@@ -49,12 +50,17 @@ export async function POST(request: Request) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
-  const body = await request.json() as {
+  let body: {
     name: string
     role: string
     email?: string
     github_login?: string
     linear_user_id?: string
+  }
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
   const supabase = await createClient()
@@ -64,6 +70,6 @@ export async function POST(request: Request) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to add team member', { route: '/api/boardroom/team' }) }, { status: 500 })
   return NextResponse.json({ member: data }, { status: 201 })
 }

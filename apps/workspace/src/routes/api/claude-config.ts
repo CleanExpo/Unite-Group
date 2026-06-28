@@ -16,7 +16,10 @@ import { createCapabilityUnavailablePayload } from '@/lib/feature-gates'
 
 type AuthResult = Response | true
 
-const CLAUDE_HOME = process.env.HERMES_HOME ?? process.env.CLAUDE_HOME ?? path.join(os.homedir(), '.hermes')
+const CLAUDE_HOME =
+  process.env.HERMES_HOME ??
+  process.env.CLAUDE_HOME ??
+  path.join(os.homedir(), '.hermes')
 const CONFIG_PATH = path.join(CLAUDE_HOME, 'config.yaml')
 const ENV_PATH = path.join(CLAUDE_HOME, '.env')
 
@@ -153,7 +156,11 @@ function checkAuthStore(providerId: string): {
         const p = value as Record<string, unknown>
         const token = String(p.token || p.key || p.access || '').trim()
         if (token) {
-          return { hasToken: true, source: 'claude-auth-store', maskedKey: maskKey(token) }
+          return {
+            hasToken: true,
+            source: 'claude-auth-store',
+            maskedKey: maskKey(token),
+          }
         }
       }
     }

@@ -14,11 +14,11 @@ export const fetchRevenueData: CoachDataFetcher = async (founderId: string): Pro
   const businessData = await Promise.all(
     BUSINESSES.map(async (biz) => {
       try {
-        const { data } = await fetchRevenueMTD(founderId, biz.key)
-        return { ...data, name: biz.name }
+        const { data, source } = await fetchRevenueMTD(founderId, biz.key)
+        return { ...data, name: biz.name, source }
       } catch (err) {
         console.warn(`[Revenue Coach] Failed to fetch data for ${biz.key}:`, err)
-        return { ...getMockRevenueMTD(biz.key), name: biz.name }
+        return { ...getMockRevenueMTD(biz.key), name: biz.name, source: 'mock' as const }
       }
     })
   )
@@ -37,6 +37,7 @@ export const fetchRevenueData: CoachDataFetcher = async (founderId: string): Pro
         expensesCents: b.expensesCents,
         growth: b.growth,
         invoiceCount: b.invoiceCount,
+        source: b.source,
       })),
       totalRevenueCents,
       totalExpensesCents,

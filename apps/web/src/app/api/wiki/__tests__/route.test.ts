@@ -77,6 +77,7 @@ describe('GET /api/wiki', () => {
     const res = await GET(req())
     expect(res.status).toBe(500)
     const body = (await res.json()) as { error: string }
-    expect(body.error).toBe('db down')
+    expect(body.error).toBe('Failed to load wiki pages')
+    expect(body.error).not.toContain('db down')
   })
 })

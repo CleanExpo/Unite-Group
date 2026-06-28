@@ -62,7 +62,7 @@ export async function POST(
 
   // Phase 6: Map winning strategies to a Xero ManualJournal entry.
   // executeAdvisoryAction never throws — Xero not connected returns advisory_only (200).
-  const proposalData = winningProposal.structured_data as FirmProposalData
+  const proposalData = winningProposal.structured_data as unknown as FirmProposalData
   const financialContext = caseRow.financial_context as { businessKey?: string } | null
   const businessKey: string = financialContext?.businessKey ?? 'unknown'
 

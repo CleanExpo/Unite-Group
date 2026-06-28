@@ -37,6 +37,7 @@ describe('POST /api/command-centre/lanes/content/build', () => {
     const res = await POST(req({ taskId: 't1' }))
     expect(res.status).toBe(500)
     const body = await res.json() as { error: string }
-    expect(body.error).toMatch('AI failure')
+    expect(body.error).toBe('Content build failed') // sanitised — raw error not leaked
+    expect(body.error).not.toContain('AI failure')
   })
 })

@@ -3,8 +3,8 @@ import * as path from 'node:path'
 import {
   getWorkspacePluginRoots,
   parseSwarmPluginManifest,
-  type SwarmPluginDescriptor,
 } from './swarm-foundation'
+import type { SwarmPluginDescriptor } from './swarm-foundation'
 
 export type WorkspacePluginInfo = SwarmPluginDescriptor
 

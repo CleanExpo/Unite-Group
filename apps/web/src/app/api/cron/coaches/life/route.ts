@@ -2,6 +2,7 @@
 // GET /api/cron/coaches/life
 // Daily Life Coach CRON — runs at 07:15 AEST (21:15 UTC previous day)
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { runCoach } from '@/lib/coaches/runner'
 import { fetchLifeData } from '@/lib/coaches/life'
@@ -76,7 +77,7 @@ export async function GET(request: Request) {
     }).catch(() => {})
 
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Unknown error', durationMs },
+      { success: false, error: sanitiseError(error, 'Unknown error'), durationMs },
       { status: 500 }
     )
   }

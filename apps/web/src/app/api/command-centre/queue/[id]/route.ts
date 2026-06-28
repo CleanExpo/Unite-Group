@@ -5,6 +5,7 @@
 //   PATCH → update the task status ({ status }) + append a status_changed event
 // Auth-gated (Supabase getUser → 401); founder-scoped by RLS.
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { getTaskById, updateTaskStatus, appendTaskEvent, type TaskStatus } from '@/lib/command-centre/tasks'
@@ -29,7 +30,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ task, approvals })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Failed to load task' },
+      { error: sanitiseError(err, 'Failed to load task') },
       { status: 500 },
     )
   }
@@ -74,7 +75,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       }
     } catch (err) {
       return NextResponse.json(
-        { error: err instanceof Error ? err.message : 'Failed to check validation gates' },
+        { error: sanitiseError(err, 'Failed to check validation gates') },
         { status: 500 },
       )
     }
@@ -100,7 +101,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ task })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Failed to update task' },
+      { error: sanitiseError(err, 'Failed to update task') },
       { status: 500 },
     )
   }

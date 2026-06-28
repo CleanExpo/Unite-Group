@@ -1,6 +1,7 @@
 // src/app/api/bookkeeper/transactions/route.ts
 import { NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
+import { sanitiseError } from '@/lib/error-reporting'
 import type { TransactionsResponse, BookkeeperTransaction } from '@/lib/bookkeeper/types'
 
 export const dynamic = 'force-dynamic'
@@ -43,18 +44,18 @@ export async function GET(request: Request) {
 
   const { data, count, error } = await query
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to load transactions', { route: '/api/bookkeeper/transactions' }) }, { status: 500 })
 
   const transactions: BookkeeperTransaction[] = (data ?? []).map((t) => ({
     id: t.id,
     runId: t.run_id,
-    businessKey: t.business_key,
+    businessKey: t.business_key as BookkeeperTransaction['businessKey'],
     xeroTransactionId: t.xero_transaction_id,
     transactionDate: t.transaction_date,
     description: t.description,
     amountCents: t.amount_cents,
-    reconciliationStatus: t.reconciliation_status,
-    confidenceScore: parseFloat(t.confidence_score),
+    reconciliationStatus: t.reconciliation_status as BookkeeperTransaction['reconciliationStatus'],
+    confidenceScore: parseFloat(String(t.confidence_score)),
     matchedInvoiceId: t.matched_invoice_id,
     matchedBillId: t.matched_bill_id,
     taxCode: t.tax_code,

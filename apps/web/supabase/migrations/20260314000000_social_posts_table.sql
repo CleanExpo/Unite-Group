@@ -40,6 +40,7 @@ BEGIN
       AND data_type = 'ARRAY'
   ) THEN
     ALTER TABLE public.social_posts
+      ALTER COLUMN media_urls DROP DEFAULT,
       ALTER COLUMN media_urls TYPE JSONB USING to_jsonb(media_urls),
       ALTER COLUMN media_urls SET DEFAULT '[]'::jsonb;
   END IF;
@@ -53,6 +54,7 @@ BEGIN
       AND data_type = 'ARRAY'
   ) THEN
     ALTER TABLE public.social_posts
+      ALTER COLUMN platforms DROP DEFAULT,
       ALTER COLUMN platforms TYPE JSONB USING to_jsonb(platforms),
       ALTER COLUMN platforms SET DEFAULT '[]'::jsonb;
   END IF;

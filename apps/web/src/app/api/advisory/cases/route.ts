@@ -9,6 +9,7 @@ import { captureApiError } from '@/lib/error-reporting'
 import type { CreateCaseRequest, CaseStatus } from '@/lib/advisory/types'
 import { CASE_STATUSES } from '@/lib/advisory/types'
 import { BUSINESSES, type BusinessKey } from '@/lib/businesses'
+import type { Json } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
 
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest) {
       founder_id: user.id,
       title: body.title.trim(),
       scenario: body.scenario.trim(),
-      financial_context: financialContext,
+      financial_context: financialContext as unknown as Json,
       status: 'draft',
       current_round: 0,
       total_rounds: 5,

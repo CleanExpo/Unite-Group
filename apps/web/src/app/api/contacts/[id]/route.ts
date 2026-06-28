@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
+import { sanitiseError } from '@/lib/error-reporting'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,7 +33,12 @@ export async function PATCH(
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
   const { id } = await params
-  const body = await request.json()
+  let body
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
 
   const allowedFields = ['first_name', 'last_name', 'email', 'phone', 'company', 'role', 'status', 'business_id', 'tags', 'metadata']
   const updates: Record<string, unknown> = {}
@@ -56,7 +62,7 @@ export async function PATCH(
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to save contact', { route: '/api/contacts/[id]' }) }, { status: 500 })
   return NextResponse.json(data)
 }
 
@@ -76,6 +82,6 @@ export async function DELETE(
     .eq('id', id)
     .eq('founder_id', user.id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to delete contact', { route: '/api/contacts/[id]' }) }, { status: 500 })
   return NextResponse.json({ deleted: true })
 }

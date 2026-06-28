@@ -5,6 +5,7 @@
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { sanitiseError } from '@/lib/error-reporting'
 import { fetchThreadsPaginated } from '@/lib/integrations/google'
 import { triageThreadBatch } from '@/lib/ai/capabilities/email-triage'
 
@@ -34,7 +35,7 @@ export async function GET(request: Request) {
     .order('created_at', { ascending: false })
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: sanitiseError(error, 'Failed to load triage results', { route: '/api/email/triage' }) }, { status: 500 })
   }
 
   return NextResponse.json({ results: data ?? [] })
@@ -46,9 +47,15 @@ export async function POST(request: Request) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
-  const { account, threadIds } = await request.json() as {
-    account: string
-    threadIds: string[]
+  let account: string
+  let threadIds: string[]
+  try {
+    ;({ account, threadIds } = await request.json() as {
+      account: string
+      threadIds: string[]
+    })
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
   if (!account || !threadIds?.length) {

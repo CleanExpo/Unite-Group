@@ -16,6 +16,7 @@
 // them (orphans) and race the runner. This route is retained for manual / ad-hoc
 // claims only. See apps/autopilot-runner and the linear-handoff route.
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import {
   fetchClaimCandidates,
@@ -94,7 +95,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: true, ...result })
   } catch (err) {
     return NextResponse.json(
-      { ok: false, error: err instanceof Error ? err.message : 'claim loop failed' },
+      { ok: false, error: sanitiseError(err, 'claim loop failed') },
       { status: 500 },
     )
   }

@@ -87,7 +87,7 @@ export async function GET() {
   const overview: BookkeeperOverview = {
     lastRun: lastRunData ? {
       id: lastRunData.id,
-      status: lastRunData.status,
+      status: lastRunData.status as NonNullable<BookkeeperOverview['lastRun']>['status'],
       startedAt: lastRunData.started_at,
       completedAt: lastRunData.completed_at,
       totalTransactions: lastRunData.total_transactions,

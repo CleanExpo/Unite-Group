@@ -4,6 +4,7 @@
 
 import { NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
+import { sanitiseError } from '@/lib/error-reporting'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,7 +27,7 @@ export async function GET(request: Request) {
   if (status) query = query.eq('status', status)
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: sanitiseError(error, 'Failed to load board decisions', { route: '/api/boardroom/decisions' }) }, { status: 500 })
   return NextResponse.json({ decisions: data })
 }
 
@@ -34,13 +35,18 @@ export async function POST(request: Request) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
 
-  const body = await request.json() as {
+  let body: {
     title: string
     type: string
     rationale?: string
     amount_aud?: number
     deadline?: string
     business_key?: string
+  }
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
   const supabase = await createClient()
@@ -60,7 +66,7 @@ export async function POST(request: Request) {
 
   if (error) {
     console.error('[CEO Decisions] insert error:', error.code, error.message, error.details)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: sanitiseError(error, 'Failed to save decision', { route: '/api/boardroom/decisions' }) }, { status: 500 })
   }
   return NextResponse.json({ decision: data }, { status: 201 })
 }

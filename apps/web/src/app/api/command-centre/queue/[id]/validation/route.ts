@@ -9,6 +9,7 @@
 // with a non-passing required gate) is enforced in the queue PATCH route.
 // Auth-gated (getUser → 401); founder-scoped by RLS; 404 if the task isn't yours.
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { getTaskById } from '@/lib/command-centre/tasks'
@@ -36,7 +37,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ runs, summary: summariseValidation(runs) })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Failed to load validation' },
+      { error: sanitiseError(err, 'Failed to load validation') },
       { status: 500 },
     )
   }
@@ -73,7 +74,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     task = await getTaskById({ founderId: user.id, taskId: id })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Failed to load task' },
+      { error: sanitiseError(err, 'Failed to load task') },
       { status: 500 },
     )
   }
@@ -91,7 +92,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ run, summary: summariseValidation(runs) }, { status: 201 })
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Failed to record validation' },
+      { error: sanitiseError(err, 'Failed to record validation') },
       { status: 500 },
     )
   }

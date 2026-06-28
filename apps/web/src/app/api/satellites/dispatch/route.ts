@@ -5,6 +5,7 @@
 // A "work package" is a structured task from the CEO dispatched to one of the 6 businesses.
 // It becomes a Linear issue in the correct team, with context attached.
 
+import { sanitiseError } from '@/lib/error-reporting'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -87,7 +88,7 @@ export async function POST(request: Request) {
     issueId = issue.id
     issueUrl = issue.url
   } catch (err) {
-    linearError = err instanceof Error ? err.message : 'Linear issue creation failed'
+    linearError = sanitiseError(err, 'Linear issue creation failed', { route: 'satellites/dispatch' })
     console.error('[Satellite Dispatch] Linear error:', linearError)
   }
 
@@ -148,7 +149,7 @@ export async function GET(request: Request) {
   const { data, error } = await query
   if (error) {
     console.error('[Satellite Dispatch] GET error:', error.message)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: sanitiseError(error, 'Failed to load dispatches', { route: 'satellites/dispatch' }) }, { status: 500 })
   }
 
   return NextResponse.json({ dispatches: data ?? [] })
