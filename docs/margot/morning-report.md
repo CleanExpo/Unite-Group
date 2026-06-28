@@ -1,5 +1,14 @@
 # Margot Morning Report
 
+## 2026-06-29 05:17 AEST — Founder opportunities row redaction added; PR gate next
+
+- **Notice:** Requested skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+- **Lane/preflight:** Started `fix/opportunity-ui-redaction` from clean `main`; GitHub auth is available; no open PRs; Vercel CLI auth is available but no deploy/env mutation occurred.
+- **Slice:** Added client-side redaction for founder opportunity row `name` and `next_action` before rendering. Covers email, Board refs, secret/API-key assignments, bearer tokens, AU phone numbers, URL userinfo credentials, and card-ending snippets. No API/schema/Supabase query/billing/approval/env/production data behaviour changed.
+- **TDD/verification:** RED focused Vitest failed because raw sensitive strings rendered; GREEN focused test then passed. Focused opportunity gate passed (3 files / 14 tests). `pnpm run type-check` passed; `pnpm run lint` passed; full `pnpm run test` passed (451 files / 2684 tests, existing intentional stderr/one React `act(...)` warning only). `pnpm run build` remains local-env gated by `scripts/validate-env.mjs --ci` (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`, names/counts only). `pnpm run security:routes-check` is absent from `apps/web/package.json`; no API route was touched.
+- **Gate packet:** Direct impact `NONE` for production/finance/DB/spend; publication `NAMESPACE` / `LIFT_WITH_GUARDRAILS` for PR/CI only. Merge only if GitHub/Vercel env-complete checks pass. Rollback is file-only revert of `OpportunitiesPageClient.tsx`, its test, and evidence-doc edits.
+- **Evidence paths:** `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`, `apps/web/docs/margot/crm-test-coverage-matrix.md`.
+
 ## 2026-06-29 03:57 AEST — Founder opportunities source labels verified; PR gate next
 
 - **Notice:** Requested skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.

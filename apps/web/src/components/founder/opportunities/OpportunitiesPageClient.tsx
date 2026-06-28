@@ -33,6 +33,19 @@ function aud(value: number): string {
   return `$${Math.round(value).toLocaleString('en-AU')}`
 }
 
+const REDACTED = '[REDACTED]'
+
+function redactOpportunityText(value: string): string {
+  return value
+    .replace(/\b(https?:\/\/)[^\s/?#@]+@/gi, `$1${REDACTED}@`)
+    .replace(/\b[A-Z0-9_-]*(?:SECRET|TOKEN|PASSWORD|PASSWD|API[_-]?KEY|SERVICE[_-]?ROLE[_-]?KEY)[A-Z0-9_-]*\s*=\s*(?:"[^"]*"|'[^']*'|[^\s;,]+)/gi, REDACTED)
+    .replace(/\b(Bearer\s+)[A-Z0-9_-]+(?:\.[A-Z0-9_-]+){2,}\b/gi, `$1${REDACTED}`)
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, REDACTED)
+    .replace(/\bBOARD-[A-Z0-9-]{3,}\b/gi, REDACTED)
+    .replace(/(?:\+61|\b0\d)[\d\s().-]{7,}\d\b/g, REDACTED)
+    .replace(/\bcard\s+(?:ending|ending\s+in|ends\s+in)\s+\d{3,4}\b/gi, REDACTED)
+}
+
 function label(stage: string): string {
   return stage.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
@@ -160,11 +173,11 @@ export function OpportunitiesPageClient() {
                 >
                   <div className="flex flex-col gap-1 flex-1 min-w-0">
                     <span className="text-[13px] font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>
-                      {o.name}
+                      {redactOpportunityText(o.name)}
                     </span>
                     <span className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
                       {label(o.stage)} · {o.status}
-                      {o.next_action ? ` · next: ${o.next_action}` : ''}
+                      {o.next_action ? ` · next: ${redactOpportunityText(o.next_action)}` : ''}
                     </span>
                   </div>
                   <div className="flex flex-col items-end gap-1 flex-shrink-0">

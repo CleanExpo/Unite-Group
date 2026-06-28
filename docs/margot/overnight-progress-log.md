@@ -1,5 +1,25 @@
 # Margot Overnight Progress Log
 
+## 2026-06-29 05:17 AEST
+
+### Tick 20260629_0517 — Founder opportunity UI redaction added with RED→GREEN evidence
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Lane/preflight: started fresh branch `fix/opportunity-ui-redaction` from clean `main` after `git fetch origin main --prune`. `gh auth status` is available for account `CleanExpo`; `gh pr list --state open` returned `[]`; Vercel CLI auth is available and listed recent deployment URLs, but no deploy/env mutation occurred. Current source context came from tracked canonical app-local docs: CRM docs in `apps/web/docs/margot/`, lead-conversion/Senior PM/Connected Teams context where present under `apps/empire/docs/margot/`, plus root package scripts and current app/API scoped rules.
+
+Slice completed: added a small read-only UI hardening slice for `OpportunitiesPageClient`. The founder opportunities page now redacts sensitive opportunity `name` and `next_action` text before rendering pipeline rows, covering email addresses, Board refs, secret/API-key assignments, bearer tokens, AU phone numbers, URL userinfo credentials, and card-ending snippets. This preserves the existing forecast-only source-of-truth labels; it does not change Supabase queries, schema, API responses, billing truth, approvals, migrations, env, or production data.
+
+TDD evidence: RED test `pnpm exec vitest run src/components/founder/opportunities/__tests__/OpportunitiesPageClient.test.tsx -t "redacts sensitive opportunity names"` failed for the intended reason: the page rendered raw `lead@…`, `BOARD-…`, AU phone, bearer token, and card snippet instead of `[REDACTED]`. GREEN after minimal component change: same focused test passed (1 test, 3 skipped).
+
+Verification: focused opportunity gate passed: `pnpm exec vitest run src/components/founder/opportunities/__tests__/OpportunitiesPageClient.test.tsx src/app/api/founder/opportunities/__tests__/route.test.ts src/lib/crm/__tests__/opportunity-forecast.test.ts` -> 3 files / 14 tests passed. `pnpm run type-check` passed. `pnpm run lint` passed. Full `pnpm run test` passed (451 files / 2684 tests), with existing intentional failure-path stderr and one existing React `act(...)` warning only. `pnpm run security:routes-check` is not present in `apps/web/package.json` (`ERR_PNPM_NO_SCRIPT`), and no API route was touched. `pnpm run build` remains local-env gated at `scripts/validate-env.mjs --ci` because this cron shell has no app env groups configured (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`); only env names/counts were printed, no secret values were read or mutated.
+
+Blockers/gates: local build/deploy verification is blocked by missing local env groups; use GitHub/Vercel env-complete CI as the build gate after PR. No production DB write, migration application, Vercel env mutation, billing action, client-facing comms, cross-client identity merge, or destructive git occurred.
+
+Gate packet: direct slice classification is `NONE` for production/finance/DB/spend impact (client-side display redaction + tests/docs only). Publication is `NAMESPACE` / `LIFT_WITH_GUARDRAILS`: push/open PR to `main`, require CI/Vercel checks to pass before merge, and rollback by file-only revert of `apps/web/src/components/founder/opportunities/OpportunitiesPageClient.tsx`, its test, and evidence-doc edits.
+
+Next safe lane: push/open PR for the bounded redaction slice if the working tree remains clean after evidence docs; otherwise keep local and continue with the next command-center CRM UI read-surface test.
+
 ## 2026-06-29 03:57 AEST
 
 ### Tick 20260629_0357 — Founder opportunities source labels fully verified; local build remains env-gated
