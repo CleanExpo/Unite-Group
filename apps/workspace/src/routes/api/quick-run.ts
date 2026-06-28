@@ -93,9 +93,11 @@ export const Route = createFileRoute('/api/quick-run')({
             const dir = join(vault, 'outputs')
             await mkdir(dir, { recursive: true })
             file = join(dir, name)
+            // Write as an OKF concept (type/name/description frontmatter) so the
+            // output is a first-class, index-able knowledge-base entry.
             await writeFile(
               file,
-              `# ${label}\n\n_quick-run · ${new Date().toISOString()}_\n\n${text}\n`,
+              `---\ntype: output\nname: ${label}\ndescription: Mission Control quick-run output (${stamp})\nokf_version: "0.1"\ncreated: ${new Date().toISOString()}\n---\n\n# ${label}\n\n${text}\n`,
             )
             await appendFile(
               join(vault, 'log.md'),
