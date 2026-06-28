@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   classifyAgentState,
   getGatewayConnection,
+  parseGatewayHealth,
   CONNECTED_WITHIN_MS,
   STALE_WITHIN_MS,
   type AgentPresenceReadClient,
@@ -120,5 +121,44 @@ describe('getGatewayConnection', () => {
     expect(conn.state).toBe('offline')
     expect(conn.source).toBe('not_provisioned')
     expect(conn.reason).toBe('network down')
+    expect(conn.gateway).toBe('unknown')
+  })
+
+  it('surfaces live gateway health from the freshest agent capabilities', async () => {
+    const c = clientReturning([
+      row({ last_seen_at: new Date(NOW).toISOString(), capabilities: { gateway: { state: 'running' } } }),
+    ])
+    const conn = await getGatewayConnection(c, 'founder-1', NOW)
+    expect(conn.state).toBe('connected')
+    expect(conn.gateway).toBe('running')
+  })
+
+  it('degrades a fresh agent to stale when its gateway is unreachable', async () => {
+    const c = clientReturning([
+      row({ last_seen_at: new Date(NOW).toISOString(), capabilities: { gateway: { state: 'unreachable' } } }),
+    ])
+    const conn = await getGatewayConnection(c, 'founder-1', NOW)
+    expect(conn.gateway).toBe('unreachable')
+    expect(conn.state).toBe('stale')
+    expect(conn.reason).toBe('gateway_unreachable')
+  })
+
+  it('gateway is unknown when the agent does not report it', async () => {
+    const c = clientReturning([row({ last_seen_at: new Date(NOW).toISOString() })])
+    const conn = await getGatewayConnection(c, 'founder-1', NOW)
+    expect(conn.gateway).toBe('unknown')
+    expect(conn.state).toBe('connected')
+  })
+})
+
+describe('parseGatewayHealth', () => {
+  it('reads running/unreachable from capabilities.gateway.state', () => {
+    expect(parseGatewayHealth({ gateway: { state: 'running' } })).toBe('running')
+    expect(parseGatewayHealth({ gateway: { state: 'unreachable' } })).toBe('unreachable')
+  })
+  it('returns unknown for missing/invalid gateway capability', () => {
+    expect(parseGatewayHealth({})).toBe('unknown')
+    expect(parseGatewayHealth({ gateway: 'nope' })).toBe('unknown')
+    expect(parseGatewayHealth({ gateway: { state: 'weird' } })).toBe('unknown')
   })
 })
