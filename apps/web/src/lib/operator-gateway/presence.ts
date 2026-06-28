@@ -17,6 +17,25 @@
 export type AgentConnectionState = 'connected' | 'stale' | 'offline'
 
 /**
+ * Live gateway health, reported by the heartbeat writer in
+ * `capabilities.gateway.state` (it probes :8642/health each beat):
+ *  - running     : the gateway answered its health check
+ *  - unreachable : the agent is alive but the gateway did not answer
+ *  - unknown     : the writer didn't report gateway state (older agent)
+ */
+export type GatewayHealthState = 'running' | 'unreachable' | 'unknown'
+
+/** Read gateway health from an agent's capabilities.gateway.state, safely. */
+export function parseGatewayHealth(capabilities: Record<string, unknown>): GatewayHealthState {
+  const g = capabilities?.gateway
+  if (g && typeof g === 'object') {
+    const s = (g as Record<string, unknown>).state
+    if (s === 'running' || s === 'unreachable') return s
+  }
+  return 'unknown'
+}
+
+/**
  * Why the gateway is in its current state:
  *  - live_presence   : at least one heartbeat row exists (state from freshness)
  *  - no_agents       : table exists but no agent has ever checked in
@@ -54,6 +73,8 @@ export interface GatewayConnection {
   freshestAgeSeconds: number | null
   checkedAt: string
   reason?: string
+  /** Live gateway health from the freshest agent's capabilities.gateway. */
+  gateway: GatewayHealthState
 }
 
 /** Pure freshness classifier. Future timestamps (clock skew) count as just-seen. */
@@ -112,6 +133,7 @@ export async function getGatewayConnection(
         agents: [],
         freshestAgeSeconds: null,
         checkedAt,
+        gateway: 'unknown',
         reason: error.message ?? 'presence query failed',
       }
     }
@@ -123,12 +145,13 @@ export async function getGatewayConnection(
       agents: [],
       freshestAgeSeconds: null,
       checkedAt,
+      gateway: 'unknown',
       reason: e instanceof Error ? e.message : 'presence unavailable',
     }
   }
 
   if (rows.length === 0) {
-    return { state: 'offline', source: 'no_agents', agents: [], freshestAgeSeconds: null, checkedAt }
+    return { state: 'offline', source: 'no_agents', agents: [], freshestAgeSeconds: null, checkedAt, gateway: 'unknown' }
   }
 
   const agents: AgentPresenceSummary[] = rows.map((r) => {
@@ -149,11 +172,19 @@ export async function getGatewayConnection(
   })
 
   const freshest = agents.reduce((a, b) => (b.ageSeconds < a.ageSeconds ? b : a))
+  const gateway = parseGatewayHealth(freshest.capabilities)
+  // The operator can be present (fresh heartbeat) while the gateway itself is
+  // down. Surface that honestly: a fresh agent with an unreachable gateway is
+  // 'stale' (operator there, not fully operational), so the rail reflects it.
+  const state: AgentConnectionState =
+    freshest.state === 'connected' && gateway === 'unreachable' ? 'stale' : freshest.state
   return {
-    state: freshest.state,
+    state,
     source: 'live_presence',
     agents,
     freshestAgeSeconds: freshest.ageSeconds,
     checkedAt,
+    gateway,
+    ...(state !== freshest.state ? { reason: 'gateway_unreachable' } : {}),
   }
 }
