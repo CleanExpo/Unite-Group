@@ -100,6 +100,72 @@ describe('/api/command-centre/control-panel/kanban-sync', () => {
     expect(serialized).toContain('[REDACTED]')
   })
 
+  it('GET redacts CLI secret flags and API-key headers from task packets while keeping routing fields', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'user-1' } as any)
+    const rawCliFlagValue = ['flag', ' value', ' with space'].join('')
+    const rawEqualsFlagValue = ['equals', ' value', ' with space'].join('')
+    const rawHeaderValue = ['header', ' value', ' with space'].join('')
+    const rawEqualsHeaderValue = ['equals', ' header', ' value'].join('')
+    const apiKeyFlag = ['--api', '-key'].join('')
+    const clientSecretFlag = ['--client', '_secret'].join('')
+    const apiKeyHeader = ['X-API', '-Key'].join('')
+    const accessTokenHeader = ['X-Access', '-Token'].join('')
+
+    vi.mocked(listTasks).mockResolvedValue([
+      {
+        id: 'task-cli-header',
+        founder_id: 'user-1',
+        external_ref: null,
+        queue_id: null,
+        project_id: null,
+        project_key: 'crm',
+        title: `Sync command ${apiKeyFlag} ${rawCliFlagValue}`,
+        objective: `Use ${clientSecretFlag}="${rawEqualsFlagValue}" and --header "${apiKeyHeader}: ${rawHeaderValue}" then --header=${accessTokenHeader}:${rawEqualsHeaderValue}`,
+        priority: 'P2',
+        status: 'queued',
+        agent_owner: 'Margot',
+        risk_level: 'medium',
+        execution_mode: 'advisory',
+        origin: 'idea',
+        dependencies: [],
+        human_approval_required: false,
+        evidence_path: null,
+        validation_required: [],
+        linear_id: null,
+        preview_url: null,
+        metadata: { tags: ['cc-addon-request'] },
+        created_at: '2026-06-22T00:00:00.000Z',
+        updated_at: '2026-06-22T00:01:00.000Z',
+      },
+    ] as any)
+
+    const res = await GET()
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.tasks[0]).toMatchObject({
+      ccTaskId: 'task-cli-header',
+      idempotencyKey: 'cc-task-task-cli-header',
+      lane: 'add-on-approval',
+      status: 'queued',
+      priority: 'P2',
+      assignee: 'Margot',
+      tags: ['cc-addon-request'],
+    })
+
+    const packet = body.tasks[0]
+    const packetText = [packet.title, packet.kanban.title, packet.kanban.body].join('\n')
+    expect(packetText).toContain(`${apiKeyFlag} [REDACTED]`)
+    expect(packetText).toContain(`${clientSecretFlag}="[REDACTED]"`)
+    expect(packetText).toContain(`${apiKeyHeader}: [REDACTED]`)
+    expect(packetText).toContain(`${accessTokenHeader}:[REDACTED]`)
+
+    const serialized = JSON.stringify(packet)
+    expect(serialized).not.toContain(rawCliFlagValue)
+    expect(serialized).not.toContain(rawEqualsFlagValue)
+    expect(serialized).not.toContain(rawHeaderValue)
+    expect(serialized).not.toContain(rawEqualsHeaderValue)
+  })
+
   it('POST returns 401 when unauthorized', async () => {
     vi.mocked(getUser).mockResolvedValue(null)
     const res = await POST(postReq({ taskIds: ['t1'] }))
