@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { LanesPanel } from './lanes-panel'
@@ -86,6 +87,32 @@ export function CommandCenterScreen() {
     queryKey: ['mission-control-os'],
     queryFn: () => readJson<MissionControlOs>('/api/mission-control-os'),
   })
+
+  // Quick-run: fire a Quick Command headless on the plan-backed gateway and
+  // file the output into the 2nd Brain vault (see /api/quick-run).
+  const [runningId, setRunningId] = useState<string | null>(null)
+  const [runResult, setRunResult] = useState<string | null>(null)
+  async function runQuick(cmd: QuickCommand) {
+    setRunningId(cmd.id)
+    setRunResult(null)
+    try {
+      const res = await fetch('/api/quick-run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: cmd.prompt, label: cmd.label }),
+      })
+      const json = (await res.json()) as { ok?: boolean; file?: string; error?: string }
+      setRunResult(
+        json.ok
+          ? `✓ ${cmd.label} filed to ${json.file || 'vault'}`
+          : `✗ ${cmd.label}: ${json.error || 'failed'}`,
+      )
+    } catch (e) {
+      setRunResult(`✗ ${cmd.label}: ${String(e)}`)
+    } finally {
+      setRunningId(null)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -240,15 +267,20 @@ export function CommandCenterScreen() {
                 key={cmd.id}
                 type="button"
                 title={cmd.prompt}
-                className="flex items-center gap-2 rounded-md border border-neutral-800 px-3 py-1.5 text-xs text-neutral-200 transition-colors hover:border-cyan-500/40 hover:bg-neutral-900"
+                disabled={runningId !== null}
+                onClick={() => runQuick(cmd)}
+                className="flex items-center gap-2 rounded-md border border-neutral-800 px-3 py-1.5 text-xs text-neutral-200 transition-colors hover:border-cyan-500/40 hover:bg-neutral-900 disabled:opacity-50"
               >
-                {cmd.label}
+                {runningId === cmd.id ? 'Running…' : cmd.label}
                 <span className="text-[10px] uppercase tracking-wide text-neutral-500">
                   {cmd.mode}
                 </span>
               </button>
             ))}
           </div>
+          {runResult ? (
+            <p className="mt-2 text-[11px] text-cyan-400/80">{runResult}</p>
+          ) : null}
         </div>
 
         {/* Guardrails footer */}

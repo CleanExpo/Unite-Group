@@ -23,6 +23,8 @@ exec env \
   HERMES_API_TOKEN="$KEY" \
   HERMES_DASHBOARD_TOKEN="$KEY" \
   CLAUDE_DASHBOARD_TOKEN="$KEY" \
+  KNOWLEDGE_DIR="$HOME/2nd Brain/2nd Brain" \
+  OBSIDIAN_VAULT="$HOME/2nd Brain/2nd Brain" \
   HOST="127.0.0.1" \
   PORT="3000" \
   node server-entry.js
