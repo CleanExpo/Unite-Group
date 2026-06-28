@@ -37,7 +37,9 @@ function safeCount(value: number | undefined): number {
 
 function redactDigestText(value: string): string {
   return value
+    .replace(/\b(https?:\/\/)[^\s/?#@]+@/gi, `$1${REDACTED}@`)
     .replace(new RegExp(`(--header(?:=|\\s+))(["'])(${SECRET_HEADER_NAME})(.*?)\\2`, 'gi'), `$1$2$3${REDACTED}$2`)
+    .replace(new RegExp(`(--header(?:=|\\s+))(${SECRET_HEADER_NAME})(?!["'])[^;,\\n]+`, 'gi'), `$1$2${REDACTED}`)
     .replace(new RegExp(`(--header=)(${SECRET_HEADER_NAME})[^\\s;,]+`, 'gi'), `$1$2${REDACTED}`)
     .replace(new RegExp(`(${SECRET_CLI_FLAG}\\s*=\\s*)(["'])(.*?)\\2`, 'gi'), `$1$2${REDACTED}$2`)
     .replace(new RegExp(`(${SECRET_CLI_FLAG}\\s*=\\s*)(?!["'])[^\\s;,]+`, 'gi'), `$1${REDACTED}`)

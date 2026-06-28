@@ -56,4 +56,34 @@ describe('DailyCrmDigestPanel', () => {
     expect(digestText).toContain("--client_secret='[REDACTED]'")
     expect(digestText).toContain(`--header "${headerName}: [REDACTED]"`)
   })
+
+  it('redacts unquoted HTTP header values with spaces before rendering digest copy', () => {
+    const headerName = ['X', 'Access', 'Token'].join('-')
+    const headerValue = ['unquoted', 'header', 'fixture', 'with', 'spaces'].join(' ')
+
+    render(
+      <DailyCrmDigestPanel
+        approvals={[`Check --header ${headerName}: ${headerValue}; then rerun the digest.`]}
+      />,
+    )
+
+    const digestText = document.body.textContent ?? ''
+
+    expect(digestText).not.toContain(headerValue)
+    expect(digestText).toContain(`--header ${headerName}: [REDACTED]; then rerun the digest.`)
+  })
+
+  it('redacts URL userinfo credentials before rendering digest copy', () => {
+    const userinfo = ['operator', 'opaque-value'].join(':')
+    const host = ['127', '0', '0', '1'].join('.')
+    const credentialedUrl = `https://${userinfo}@${host}:3990/status`
+
+    render(<DailyCrmDigestPanel blockers={[`Local status probe failed at ${credentialedUrl}`]} />)
+
+    const digestText = document.body.textContent ?? ''
+
+    expect(digestText).not.toContain(userinfo)
+    expect(digestText).not.toContain(credentialedUrl)
+    expect(digestText).toContain(`https://[REDACTED]@${host}:3990/status`)
+  })
 })
