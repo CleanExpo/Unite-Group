@@ -224,6 +224,29 @@ export async function fetchIssuesByLabel(labelName: string): Promise<Array<Linea
   return data.issues.nodes
 }
 
+/**
+ * Issues for a given team in a given workflow state, filtered server-side. Avoids
+ * fetching up to 500 issues and filtering in memory (used by the Synthex monitor).
+ */
+export async function fetchIssuesByTeamAndState(
+  teamKey: string,
+  stateName: string,
+): Promise<LinearIssue[]> {
+  if (!isLinearConfigured()) return []
+  const safeTeam = teamKey.replace(/"/g, '')
+  const safeState = stateName.replace(/"/g, '')
+  const data = await gql<{ issues: { nodes: LinearIssue[] } }>(`{
+    issues(
+      first: 100
+      filter: { team: { key: { eq: "${safeTeam}" } }, state: { name: { eq: "${safeState}" } } }
+      orderBy: updatedAt
+    ) {
+      nodes { id identifier title priority team { id key name } project { id name } state { id name type } }
+    }
+  }`)
+  return data.issues.nodes
+}
+
 // ─── Single issue detail ──────────────────────────────────────────────────────
 
 export interface LinearIssueDetail extends LinearIssue {

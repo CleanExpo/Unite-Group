@@ -49,6 +49,11 @@ describe('GET /api/founder/opportunities', () => {
     expect(body.summary).toEqual({
       total: 3, open: 1, won: 1, lost: 1, openValue: 1000, weightedPipeline: 500,
     })
+    expect(body.sourceOfTruth).toEqual({
+      crm: 'crm_opportunities',
+      billing: 'stripe',
+      mode: 'forecast_only',
+    })
   })
 
   it('returns 500 with a sanitised message when the query errors (no raw leak)', async () => {

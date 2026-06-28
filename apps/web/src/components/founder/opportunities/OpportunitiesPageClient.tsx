@@ -17,6 +17,12 @@ interface Summary {
   weightedPipeline: number
 }
 
+interface SourceOfTruth {
+  crm: string
+  billing: string
+  mode: 'forecast_only'
+}
+
 const STAGE_OPTIONS = [
   'all', 'new_signal', 'qualified', 'discovery', 'proposal_needed', 'proposal_sent',
   'negotiation', 'decision_needed', 'won_pending_client_conversion', 'won_converted',
@@ -27,6 +33,19 @@ function aud(value: number): string {
   return `$${Math.round(value).toLocaleString('en-AU')}`
 }
 
+const REDACTED = '[REDACTED]'
+
+function redactOpportunityText(value: string): string {
+  return value
+    .replace(/\b(https?:\/\/)[^\s/?#@]+@/gi, `$1${REDACTED}@`)
+    .replace(/\b[A-Z0-9_-]*(?:SECRET|TOKEN|PASSWORD|PASSWD|API[_-]?KEY|SERVICE[_-]?ROLE[_-]?KEY)[A-Z0-9_-]*\s*=\s*(?:"[^"]*"|'[^']*'|[^\s;,]+)/gi, REDACTED)
+    .replace(/\b(Bearer\s+)[A-Z0-9_-]+(?:\.[A-Z0-9_-]+){2,}\b/gi, `$1${REDACTED}`)
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, REDACTED)
+    .replace(/\bBOARD-[A-Z0-9-]{3,}\b/gi, REDACTED)
+    .replace(/(?:\+61|\b0\d)[\d\s().-]{7,}\d\b/g, REDACTED)
+    .replace(/\bcard\s+(?:ending|ending\s+in|ends\s+in)\s+\d{3,4}\b/gi, REDACTED)
+}
+
 function label(stage: string): string {
   return stage.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
@@ -34,6 +53,7 @@ function label(stage: string): string {
 export function OpportunitiesPageClient() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([])
   const [summary, setSummary] = useState<Summary | null>(null)
+  const [sourceOfTruth, setSourceOfTruth] = useState<SourceOfTruth | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [stageFilter, setStageFilter] = useState<string>('all')
@@ -46,6 +66,7 @@ export function OpportunitiesPageClient() {
       const data = await res.json()
       setOpportunities(data.opportunities ?? [])
       setSummary(data.summary ?? null)
+      setSourceOfTruth(data.sourceOfTruth ?? null)
       setError(false)
     } catch {
       // Honest hard-error state — never fabricate an empty pipeline (No-Invaders #1).
@@ -90,6 +111,16 @@ export function OpportunitiesPageClient() {
         </div>
       ) : (
         <>
+          {sourceOfTruth && (
+            <div
+              className="rounded-sm px-4 py-3 flex flex-col gap-1 text-[12px]"
+              style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+            >
+              <span>CRM source: {sourceOfTruth.crm}</span>
+              <span>{sourceOfTruth.mode === 'forecast_only' ? 'Forecast only' : sourceOfTruth.mode} · Billing truth stays in Stripe</span>
+            </div>
+          )}
+
           {/* KPI strip */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {kpis.map((k) => (
@@ -142,11 +173,11 @@ export function OpportunitiesPageClient() {
                 >
                   <div className="flex flex-col gap-1 flex-1 min-w-0">
                     <span className="text-[13px] font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>
-                      {o.name}
+                      {redactOpportunityText(o.name)}
                     </span>
                     <span className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
                       {label(o.stage)} · {o.status}
-                      {o.next_action ? ` · next: ${o.next_action}` : ''}
+                      {o.next_action ? ` · next: ${redactOpportunityText(o.next_action)}` : ''}
                     </span>
                   </div>
                   <div className="flex flex-col items-end gap-1 flex-shrink-0">

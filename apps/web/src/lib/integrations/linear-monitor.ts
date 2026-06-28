@@ -2,7 +2,7 @@
 // Watches for SYN team Linear issues that have moved to 'In Review'.
 // An issue in 'In Review' means Synthex (Claude Code on spare laptop) created a PR.
 
-import { fetchIssues } from '@/lib/integrations/linear'
+import { fetchIssuesByTeamAndState } from '@/lib/integrations/linear'
 import { notify } from '@/lib/notifications'
 
 /**
@@ -15,14 +15,9 @@ import { notify } from '@/lib/notifications'
  * construct a Linear deep-link from the identifier instead.
  */
 export async function checkSynthexProgress(): Promise<{ inReviewCount: number }> {
-  // TODO: Replace with a filtered Linear query (SYN team, In Review state only)
-  // Currently fetches all issues (up to 500) and filters in memory — acceptable
-  // for a single-tenant system with <500 total issues, but inefficient at scale.
-  const issues = await fetchIssues()
-
-  const inReview = issues.filter(
-    (i) => i.team.key === 'SYN' && i.state.name === 'In Review'
-  )
+  // Server-side filter: only SYN-team issues in 'In Review' come back (typically a
+  // handful), rather than fetching up to 500 issues and filtering in memory.
+  const inReview = await fetchIssuesByTeamAndState('SYN', 'In Review')
 
   for (const issue of inReview) {
     const linearUrl = `https://linear.app/issue/${issue.identifier}`
