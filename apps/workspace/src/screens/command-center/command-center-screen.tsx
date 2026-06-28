@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { cn } from '@/lib/utils'
 import { LanesPanel } from './lanes-panel'
+import { cn } from '@/lib/utils'
 
 /**
  * Command Center — Agentic-OS layout over the existing /api/mission-control-os
@@ -101,7 +101,11 @@ export function CommandCenterScreen() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: cmd.prompt, label: cmd.label }),
       })
-      const json = (await res.json()) as { ok?: boolean; file?: string; error?: string }
+      const json = (await res.json()) as {
+        ok?: boolean
+        file?: string
+        error?: string
+      }
       setRunResult(
         json.ok
           ? `✓ ${cmd.label} filed to ${json.file || 'vault'}`

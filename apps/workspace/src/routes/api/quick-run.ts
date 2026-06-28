@@ -1,6 +1,6 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { writeFile, mkdir, appendFile } from 'node:fs/promises'
+import { appendFile, mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { createFileRoute } from '@tanstack/react-router'
 import { BEARER_TOKEN, CLAUDE_API } from '../../server/gateway-capabilities'
 import { requireLocalOrAuth } from '../../server/auth-middleware'
 
@@ -31,7 +31,10 @@ export const Route = createFileRoute('/api/quick-run')({
       POST: async ({ request }: { request: Request }) => {
         if (!requireLocalOrAuth(request)) {
           return Response.json(
-            { ok: false, error: 'Authentication required' } satisfies QuickRunResult,
+            {
+              ok: false,
+              error: 'Authentication required',
+            } satisfies QuickRunResult,
             { status: 401 },
           )
         }
@@ -57,7 +60,9 @@ export const Route = createFileRoute('/api/quick-run')({
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              ...(BEARER_TOKEN ? { Authorization: `Bearer ${BEARER_TOKEN}` } : {}),
+              ...(BEARER_TOKEN
+                ? { Authorization: `Bearer ${BEARER_TOKEN}` }
+                : {}),
             },
             body: JSON.stringify({
               model: 'empire',
@@ -68,7 +73,10 @@ export const Route = createFileRoute('/api/quick-run')({
           })
           if (!res.ok) {
             return Response.json(
-              { ok: false, error: `gateway ${res.status}` } satisfies QuickRunResult,
+              {
+                ok: false,
+                error: `gateway ${res.status}`,
+              } satisfies QuickRunResult,
               { status: 502 },
             )
           }
@@ -78,13 +86,20 @@ export const Route = createFileRoute('/api/quick-run')({
           text = data.choices?.[0]?.message?.content ?? ''
         } catch (e) {
           return Response.json(
-            { ok: false, error: `gateway unreachable: ${String(e)}` } satisfies QuickRunResult,
+            {
+              ok: false,
+              error: `gateway unreachable: ${String(e)}`,
+            } satisfies QuickRunResult,
             { status: 502 },
           )
         }
 
         // File the output into the vault (level-2 memory loop).
-        const vault = (process.env.KNOWLEDGE_DIR || process.env.OBSIDIAN_VAULT || '').trim()
+        const vault = (
+          process.env.KNOWLEDGE_DIR ||
+          process.env.OBSIDIAN_VAULT ||
+          ''
+        ).trim()
         let file = ''
         if (vault) {
           const stamp = new Date().toISOString().slice(0, 10)
