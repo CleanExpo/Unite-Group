@@ -52,10 +52,12 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServiceClient()
 
-  // Dedupe against contacts already present for this founder.
+  // Dedupe against contacts already present for this founder. Email alone is insufficient:
+  // many Xero contacts have no email, so we also key on the Xero contact id to keep re-runs
+  // idempotent (otherwise email-less contacts re-insert on every run).
   const { data: existing, error: existErr } = await supabase
     .from('crm_contacts')
-    .select('primary_email')
+    .select('primary_email, additional_data')
     .eq('founder_id', founderId)
   if (existErr) {
     return NextResponse.json({ error: `read existing failed: ${existErr.message}` }, { status: 500 })
@@ -64,6 +66,11 @@ export async function POST(request: NextRequest) {
     (existing ?? [])
       .map((r) => (r.primary_email ?? '').toLowerCase())
       .filter(Boolean)
+  )
+  const seenXeroIds = new Set(
+    (existing ?? [])
+      .map((r) => (r.additional_data as { xeroContactId?: string } | null)?.xeroContactId)
+      .filter((v): v is string => Boolean(v))
   )
 
   const rows: ContactRow[] = []
@@ -79,8 +86,10 @@ export async function POST(request: NextRequest) {
       let added = 0
       for (const c of contacts) {
         if (c.ContactStatus === 'ARCHIVED' || !c.Name) continue
+        if (seenXeroIds.has(c.ContactID)) continue
         const email = c.EmailAddress?.trim().toLowerCase() || null
         if (email && seen.has(email)) continue
+        seenXeroIds.add(c.ContactID)
         if (email) seen.add(email)
         rows.push({
           founder_id: founderId,
