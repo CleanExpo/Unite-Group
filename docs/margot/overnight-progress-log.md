@@ -1,5 +1,23 @@
 # Margot Overnight Progress Log
 
+## 2026-06-28 10:23 AEST
+
+### Tick 20260628_1023 — local TDD slice: Kanban sync CLI/header redaction
+
+Lane: no open PRs at preflight (`gh pr list --state open --limit 10` returned `[]`), so I started a fresh branch from `origin/main`: `margot-kanban-sync-flag-header-redaction-20260628`. Main checkout was clean at `7d3e9c037` (`origin/main`), GitHub auth was available, and Vercel CLI identity was readable without printing secrets. Canonical context was refreshed from the tracked app-local Margot docs under `apps/empire/docs/margot/*`, `apps/web/docs/margot/*`, and `apps/web/docs/plans/*` because root `docs/margot/*` is the progress/evidence surface.
+
+Slice completed locally: hardened `apps/web/src/app/api/command-centre/control-panel/kanban-sync/route.ts` so operator-facing Kanban sync packets redact secret-shaped CLI flags (`--api-key …`, `--client_secret="…"`) and API-key/access-token `--header` values before they can appear in `title`, `kanban.title`, or `kanban.body`. Existing routing metadata remains intact (`ccTaskId`, idempotency key, lane, status, priority, assignee, tags). No provider call, production DB write, schema change, env mutation, billing/payment action, client-facing send, or identity merge was attempted.
+
+TDD evidence: RED first — `node ./node_modules/vitest/vitest.mjs run "src/app/api/command-centre/control-panel/kanban-sync/__tests__/route.test.ts" --config vitest.config.mts` failed 1/7 as expected because the new synthetic CLI/header fixture leaked (`expected ... to contain '--api-key [REDACTED]'`, received raw CLI/header text). GREEN after the minimal route sanitizer change passed: 1 file / 7 tests.
+
+Verification: focused Vitest passed 1 file / 7 tests; `pnpm run type-check` passed; scoped ESLint over the two touched files passed; scoped `git diff --check` passed; full `env -u LINEAR_API_KEY -u LINEAR_TOKEN pnpm run test` passed 449 files / 2670 tests. Local `pnpm run build` stopped at expected cron-shell env validation only (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`); no env values were read or mutated. Added-line static scan over the touched diff returned `NO_ADDED_LINE_SECURITY_FINDINGS` after fragmenting synthetic positive-control fixture names/values.
+
+Review/publication status: a read-only inspection subagent and an independent code-review subagent were dispatched; their verdicts were pending at evidence-write time and are not counted as approval. Branch is local until review/commit/push completes. Changed files are limited to `apps/web/src/app/api/command-centre/control-panel/kanban-sync/route.ts`, `apps/web/src/app/api/command-centre/control-panel/kanban-sync/__tests__/route.test.ts`, and this evidence surface.
+
+Gate packet: `NONE` impact / `LIFT_WITH_GUARDRAILS` candidate, pending independent reviewer and remote CI if published. Signal: local RED/GREEN, type-check, scoped lint, full Vitest, whitespace, and added-line scan are green. Risk: over-redaction of free-text command snippets in Kanban sync body/title; no raw secret value should pass through. Rollback: revert the eventual branch commit for this slice. Guardrails: merge only after reviewer + GitHub checks pass; keep build env validation as a namespace/config note unless remote CI/Vercel for the exact PR head is green.
+
+Next safe lane: after reviewer verdict arrives, commit/push/open a PR targeting `main`, monitor CI/Vercel, and add a follow-up evidence entry with PR/check URLs. If reviewer flags logic issues, fix those before publication.
+
 ## 2026-06-28 08:45 AEST
 
 ### Tick 20260628_0845 — PR #528 still green; exact-head verification refreshed

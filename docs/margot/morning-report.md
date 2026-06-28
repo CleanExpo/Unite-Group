@@ -1,5 +1,16 @@
 # Margot Morning Report
 
+## 2026-06-28 10:23 AEST — local TDD slice: Kanban sync CLI/header redaction
+
+- **Lane:** No open PRs at preflight, so a fresh local branch was started from `origin/main`: `margot-kanban-sync-flag-header-redaction-20260628`.
+- **Slice:** Hardened `/api/command-centre/control-panel/kanban-sync` packet redaction for secret-shaped CLI flags and API-key/access-token headers in task title/objective text, while preserving routing metadata (`ccTaskId`, idempotency key, lane, status, priority, assignee, tags).
+- **TDD:** RED first failed 1/7 on the new synthetic fixture because raw CLI/header text leaked. GREEN passed 1 file / 7 tests after the minimal sanitizer update.
+- **Verification:** focused Vitest passed; `pnpm run type-check` passed; scoped ESLint passed; scoped `git diff --check` passed; full `env -u LINEAR_API_KEY -u LINEAR_TOKEN pnpm run test` passed 449 files / 2670 tests; added-line static scan returned `NO_ADDED_LINE_SECURITY_FINDINGS`.
+- **Build note:** local `pnpm run build` stopped at env validation only (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`). No env values were read or mutated.
+- **Safety:** no provider call, production DB write, migration/schema action, Vercel env mutation, billing/payment action, client-facing send, or identity merge.
+- **Publication:** local only at report-write time. Read-only inspection and independent code-review subagents were dispatched and were pending, so they are not counted as approval yet. Next step is commit/push/open PR to `main` after reviewer verdict, then monitor CI/Vercel and append PR/check URLs.
+
+
 ## 2026-06-28 08:45 AEST — PR #528 still green; exact-head verification refreshed
 
 - **Lane:** Continued open PR #528 rather than starting another CRM slice. Primary checkout remains stale/dirty only for local evidence docs; this evidence stayed local to avoid churning the already-green PR. Current branch PR #503 is already merged; the only open PR targeting `main` is #528.
