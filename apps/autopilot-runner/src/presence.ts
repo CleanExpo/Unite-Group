@@ -25,6 +25,12 @@ export interface PresenceConfig {
   startedAtIso: string
   /** Heartbeat cadence. Default 15s keeps the 30s "connected" window from flapping. */
   intervalMs: number
+  /**
+   * Live gateway health endpoint. When set, each beat probes it and folds the
+   * gateway state into capabilities.gateway so the command-centre rail can show
+   * gateway-up (not just agent-alive). Optional — absent in unit-test fixtures.
+   */
+  gatewayHealthUrl?: string
 }
 
 export type LoadPresenceConfigResult =
@@ -81,7 +87,27 @@ export function loadPresenceConfig(
       capabilities,
       startedAtIso: nowIso,
       intervalMs: Number.isFinite(intervalMs) && intervalMs >= 1000 ? intervalMs : DEFAULT_INTERVAL_MS,
+      gatewayHealthUrl:
+        `${(env.HERMES_API_URL ?? 'http://127.0.0.1:8642').trim().replace(/\/+$/, '')}/health`,
     },
+  }
+}
+
+/**
+ * Probe the live gateway and return a small state object for capabilities.gateway.
+ * Never throws — an unreachable gateway just reports state 'unreachable' so the
+ * heartbeat keeps beating (agent-alive) while signalling the gateway is down.
+ */
+export async function probeGateway(
+  url: string,
+  fetchImpl: typeof fetch,
+  nowIso: string,
+): Promise<{ state: 'running' | 'unreachable'; url: string; checkedAt: string }> {
+  try {
+    const res = await fetchImpl(url, { signal: AbortSignal.timeout(4000) })
+    return { state: res.ok ? 'running' : 'unreachable', url, checkedAt: nowIso }
+  } catch {
+    return { state: 'unreachable', url, checkedAt: nowIso }
   }
 }
 
@@ -178,6 +204,16 @@ export function startHeartbeat(
 
   const beat = async () => {
     if (stopped) return
+    // Fold live gateway state into capabilities so the command-centre rail can
+    // show gateway-up, not just agent-alive. Best-effort; never blocks the beat.
+    if (config.gatewayHealthUrl) {
+      const gateway = await probeGateway(
+        config.gatewayHealthUrl,
+        deps.fetch,
+        new Date(deps.now()).toISOString(),
+      )
+      config.capabilities = { ...config.capabilities, gateway }
+    }
     const result = await sendHeartbeat(config, deps)
     if (!result.ok) log(`heartbeat error: ${result.error}`)
   }
