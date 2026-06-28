@@ -1,5 +1,15 @@
 # Margot Morning Report
 
+## 2026-06-29 06:11 AEST — PR #546 merged; command-centre digest no-store slice ready for PR
+
+- **Notice:** Requested skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+- **Preflight/merge:** Continued PR #546 first and squash-merged it to `main` after all GitHub/CodeRabbit/Vercel checks were green. Local `main` fast-forwarded to `293d03b0c`; there are no open PRs. Main Monorepo CI for the merge commit was in progress at read-back.
+- **Slice:** Started `fix/digest-no-store-cache` and added `Cache-Control: no-store` to successful `GET /api/command-centre/overnight-summary` founder digest responses. No query/schema/auth/provider/billing/env/production data behaviour changed.
+- **TDD/verification:** RED focused Vitest failed because `Cache-Control` was `null`; GREEN passed after the minimal route change. Focused route suite passed (4 tests). `pnpm run type-check` passed; touched-file ESLint passed; security invariant scan passed (`force-dynamic`, auth-gated, no-store, no DB mutation literals, no service-role literal); full `pnpm run test` passed (451 files / 2685 tests, existing intentional stderr/one React `act(...)` warning only). Local `pnpm run build` remains env-gated by `scripts/validate-env.mjs --ci` (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`, names/counts only).
+- **Publication/read-back:** Pushed/opened PR #547: https://github.com/CleanExpo/Unite-Group/pull/547. Remote checks are green for CodeRabbit, Vercel Preview Comments, Vercel `unite-group`, Vercel `unite-group-sandbox`, apps/spec-board, apps/web lint/type-check/test/build, apps/web Playwright E2E, apps/workspace, and packages/pi-ceo-operator-mcp.
+- **Gate packet:** Direct impact `NONE`; publication `NAMESPACE` / `LIFT_WITH_GUARDRAILS` for PR/CI only. Rollback is file-only revert of the overnight-summary route/test plus CRM matrix/evidence docs.
+- **Evidence paths:** `docs/margot/overnight-progress-log.md`, `docs/margot/morning-report.md`, `apps/web/docs/margot/crm-test-coverage-matrix.md`.
+
 ## 2026-06-29 05:17 AEST — Founder opportunities row redaction added; PR gate next
 
 - **Notice:** Requested skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
