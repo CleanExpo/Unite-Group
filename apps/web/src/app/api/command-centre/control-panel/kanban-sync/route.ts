@@ -21,11 +21,26 @@ import {
 export const dynamic = 'force-dynamic'
 
 const SENSITIVE_ASSIGNMENT_KEY = String.raw`(?:[A-Z0-9_]*(?:SECRET|TOKEN|PASSWORD|PASSWD|API_KEY|SERVICE_ROLE_KEY)[A-Z0-9_]*)`
+const SENSITIVE_CLI_FLAG = String.raw`--[\w-]*(?:api[-_]?key|service[-_]?role[-_]?key|access[-_]?token|client[-_]?secret|secret|token|password|passwd)[\w-]*`
+const SENSITIVE_HEADER_NAME = String.raw`(?:authorization|x[-_]?api[-_]?key|x[-_]?access[-_]?token|[\w-]*(?:api[-_]?key|access[-_]?token|service[-_]?role[-_]?key|client[-_]?secret|secret|token|password|passwd)[\w-]*)`
 
 function redactSensitiveText(value: string): string {
   return value
+    .replace(
+      new RegExp(`(--header(?:=|\\s+))(["'])([^"']*?\\b${SENSITIVE_HEADER_NAME}\\b\\s*:\\s*)(.*?)\\2`, 'gi'),
+      '$1$2$3[REDACTED]$2',
+    )
+    .replace(
+      new RegExp(`(--header=\\s*)(${SENSITIVE_HEADER_NAME}\\s*:\\s*)([^\\n;,]+)`, 'gi'),
+      '$1$2[REDACTED]',
+    )
+    .replace(
+      new RegExp(`(${SENSITIVE_CLI_FLAG})(=|\\s+)(["'])(.*?)\\3`, 'gi'),
+      '$1$2$3[REDACTED]$3',
+    )
+    .replace(new RegExp(`(${SENSITIVE_CLI_FLAG})(=|\\s+)([^"'\\s;,][^\\n;,]*)`, 'gi'), '$1$2[REDACTED]')
     .replace(new RegExp(`\\b(${SENSITIVE_ASSIGNMENT_KEY})\\s*=\\s*(["'])(.*?)\\2`, 'gi'), '$1=$2[REDACTED]$2')
-    .replace(new RegExp(`\\b(${SENSITIVE_ASSIGNMENT_KEY})\\s*=\\s*[^\\s;,]+`, 'gi'), '$1=[REDACTED]')
+    .replace(new RegExp(`\\b(${SENSITIVE_ASSIGNMENT_KEY})\\s*=\\s*[^"'\\s;,]+`, 'gi'), '$1=[REDACTED]')
     .replace(/\b[\w.%+-]+@[\w.-]+\.[A-Za-z]{2,}\b/g, '[REDACTED]')
     .replace(/\bBOARD-[A-Za-z0-9-]+\b/g, '[REDACTED]')
     .replace(/\b(Bearer\s+)?[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/gi, '$1[REDACTED]')
