@@ -391,39 +391,46 @@ async function buildLocalSkills(): Promise<Array<SkillSummary>> {
   const root = getSkillsDir()
   const out: Array<SkillSummary> = []
   const seen = new Set<string>()
-  let entries: Array<{ name: string; isDirectory: () => boolean }>
+  let names: Array<string>
   try {
-    entries = await fs.readdir(root, { withFileTypes: true })
+    names = await fs.readdir(root)
   } catch {
     return out
   }
+  // Resolve via fs.access/readdir on the path (NOT Dirent.isDirectory) so that
+  // symlinked skill dirs (e.g. ~/.hermes/skills/nexus/* -> ~/.claude/skills/*)
+  // are followed and surfaced in the Browser. SKILL.md presence is the test.
   await Promise.all(
-    entries.map(async (e) => {
-      if (!e.isDirectory() || e.name.startsWith('.')) return
-      const dir = path.join(root, e.name)
+    names.map(async (name) => {
+      if (name.startsWith('.')) return
+      const dir = path.join(root, name)
       // Direct skill?
       try {
         await fs.access(path.join(dir, 'SKILL.md'))
-        if (!seen.has(e.name)) {
-          seen.add(e.name)
-          const s = await parseSkillFrontmatter(dir, e.name)
+        if (!seen.has(name)) {
+          seen.add(name)
+          const s = await parseSkillFrontmatter(dir, name)
           if (s) out.push(s)
         }
         return
       } catch {
-        // not a direct skill — treat as a category dir
+        // not a direct skill — treat as a category dir (non-dirs fail readdir)
       }
-      let sub: Array<{ name: string; isDirectory: () => boolean }>
+      let sub: Array<string>
       try {
-        sub = await fs.readdir(dir, { withFileTypes: true })
+        sub = await fs.readdir(dir)
       } catch {
         return
       }
-      for (const s2 of sub) {
-        if (!s2.isDirectory() || s2.name.startsWith('.') || seen.has(s2.name))
+      for (const child of sub) {
+        if (child.startsWith('.') || seen.has(child)) continue
+        try {
+          await fs.access(path.join(dir, child, 'SKILL.md'))
+        } catch {
           continue
-        seen.add(s2.name)
-        const sk = await parseSkillFrontmatter(path.join(dir, s2.name), s2.name)
+        }
+        seen.add(child)
+        const sk = await parseSkillFrontmatter(path.join(dir, child), child)
         if (sk) out.push(sk)
       }
     }),
