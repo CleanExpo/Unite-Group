@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { parseFrom } from '../route'
+import { NextRequest } from 'next/server'
+import { parseFrom, GET } from '../route'
 
 describe('parseFrom', () => {
   it('parses "Name <email>" form', () => {
@@ -20,5 +21,13 @@ describe('parseFrom', () => {
 
   it('returns null email when angle-bracket content is not an email', () => {
     expect(parseFrom('No Reply <not-an-email>')).toEqual({ name: 'No Reply', email: null })
+  })
+})
+
+describe('GET auth', () => {
+  it('rejects an unauthenticated request with 401 (no DB access)', async () => {
+    const req = new NextRequest('https://x.test/api/cron/import-contacts')
+    const res = await GET(req)
+    expect(res.status).toBe(401)
   })
 })

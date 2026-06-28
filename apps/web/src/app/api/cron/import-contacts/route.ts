@@ -39,8 +39,11 @@ export function parseFrom(from: string): { name: string | null; email: string | 
  * Seeds crm_contacts from the founder's connected Xero tenants (business contacts) and
  * Gmail accounts (message senders). Authenticated via CRON_SECRET. Idempotent: skips any
  * contact whose email already exists for the founder, so it is safe to re-run.
+ *
+ * GET (not POST): Vercel Cron invokes the path with a GET request, matching every other
+ * cron route in this app. Manual triggers use GET + the same CRON_SECRET bearer.
  */
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   if (request.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET?.trim()}`) {
     return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
   }
