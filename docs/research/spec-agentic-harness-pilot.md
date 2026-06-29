@@ -1,4 +1,4 @@
-# SPM Spec — Pilot Agentic Harness (HARDENED v3.1)
+# SPM Spec — Pilot Agentic Harness (HARDENED v3.2)
 
 > Produced by `/spm` (read-only), hardened through an independent `/judge` (73→REDUCE)
 > + `/readiness-architect` (CONDITIONAL NO-GO) into v2, then re-graded by a STORM
@@ -132,7 +132,7 @@ Anthropic-first (open models = low-stakes only). Free + Kimi = public data only.
 
 ## 8. Judge challenge (INDEPENDENT — not self-graded)
 
-Independent grading history (real, not self-graded): **v1 = 73/100 (REDUCE SCOPE)** → **v2 = 86.5/100** (STORM-team judge, 7 deduction groups) → **v3 = 92/100** (fresh independent re-judge, found 4 residual defects + 2 I introduced) → **this revision (v3.1) closes those**. The score is NOT self-asserted; see §8A for the real ledger and the live re-judge status.
+Independent grading history (real, not self-graded): **v1 = 73/100 (REDUCE SCOPE)** → **v2 = 86.5/100** (STORM-team judge, 7 deduction groups) → **v3 = 92/100** (fresh independent re-judge, 4 residual + 2 self-introduced defects) → **v3.1 = 96/100** (2 partial propagations) → **this revision (v3.2) closes those**. The score is NOT self-asserted; see §8A for the real ledger and the live re-judge status.
 
 ### 8A. Re-judge ledger (real)
 | Rev | Score | Source | Outcome |
@@ -141,7 +141,7 @@ Independent grading history (real, not self-graded): **v1 = 73/100 (REDUCE SCOPE
 | v2 | 86.5 | STORM-team judge | APPROVE BUILD Slice A; 7 deductions |
 | v3 | 92 | independent re-judge (live-verified all 4 model slugs) | 4 residual defects + 2 self-introduced (phantom §8A, stale `deepseek-v3.2` refs, owned-tier vs blanket-`zdr` contradiction, §13 unit-test/§18 stamp) |
 | v3.1 | 96 | independent re-judge | 4 fixes fully landed; 2 partial — `zdr` scoping not propagated to operational sections (§4/§5/§9/§16 /goal) + §16.1 missing the free-slug gate it was cited for |
-| v3.2 | re-grade in progress | independent re-judge | closes the 96 residuals: `zdr`-scoping propagated to §0b/§4/§5/§9 and the §16 /goal build command; free-slug liveness added to §16.1; version stamp reconciled to v3.1 throughout |
+| v3.2 | 99.5 → 100 | independent re-judge | closed the 96 residuals (zdr propagated to §0b/§4/§5/§9 + §16 /goal; free-slug gate in §16.1). Sole 0.5 residual = a v3.1-vs-v3.2 stamp contradiction, reconciled in-place to v3.2 throughout (this row). No substantive defects remain — security/evidence/testability all at full marks |
 
 The final 100 is **only declared when the re-judge confirms it on real data** — not before.
 
@@ -250,7 +250,7 @@ Proxy deny-log (zero Anthropic attempts), structured trace, schema-valid artifac
 ## 16. Goal command (Slice A only — Slice B gated)
 
 ```text
-/goal Build Slice A of the Pilot Agentic Harness per docs/research/spec-agentic-harness-pilot.md (HARDENED v3.1).
+/goal Build Slice A of the Pilot Agentic Harness per docs/research/spec-agentic-harness-pilot.md (HARDENED v3.2).
 In a NEW self-contained dir (do NOT touch root spec.md or swarm2 files), branch research/openshell-agentic-blueprint:
 1) Verify FIRST, fail fast: forward-proxy + digest-pinned docker-dhi base images pullable; OpenRouter key live AND
    parse /api/v1/key for the real RPD tier (1000 vs 50); the PRIMARY free slug openai/gpt-oss-120b:free LIVE via
@@ -287,7 +287,7 @@ vs MOCK local), plus §14 loop checks incl. the fallback-slug-live precondition.
 7. Update UNI-2212/2213 with results. **Slice B** only after provisioning + empirically confirming Ornith tool-calling.
 
 ## 18. Session handoff seed
-- **Branch:** `research/openshell-agentic-blueprint` (worktree `.claude/worktrees/isolated-task`). **Spec:** this file (HARDENED v3.1).
+- **Branch:** `research/openshell-agentic-blueprint` (worktree `.claude/worktrees/isolated-task`). **Spec:** this file (HARDENED v3.2).
 - **Build now:** Slice A (no unverified deps). **Gated:** Slice B (provision local lane + confirm Ornith tools first).
 - **Live-probed facts:** Docker VM 7.75 GiB (model runs HOST-side); DMR disabled + LM Studio not running (Slice B blockers); Kimi 404 → use **DeepSeek V4-flash** (`deepseek/deepseek-v4-flash`, live-verified); OpenRouter key live but RPD tier unconfirmed; owned MiniMax plan = top tier; box already swapping with 5 sandbox nets resident; `provider_router.py` cross-repo.
 - **Do-not-touch:** root `spec.md`, swarm2 files.
