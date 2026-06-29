@@ -709,7 +709,7 @@ export function AgentsScreen({
   // Pull-to-refresh: attach to the scrollable <main> in workspace-shell
   const scrollContainerRef = useRef<HTMLElement | null>(null)
   useEffect(() => {
-    const el = document.querySelector('main[data-tour="chat-area"]')
+    const el = document.querySelector<HTMLElement>('main[data-tour="chat-area"]')
     scrollContainerRef.current = el
   }, [])
 
