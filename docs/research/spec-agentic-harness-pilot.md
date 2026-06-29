@@ -141,7 +141,7 @@ Independent grading history (real, not self-graded): **v1 = 73/100 (REDUCE SCOPE
 | v2 | 86.5 | STORM-team judge | APPROVE BUILD Slice A; 7 deductions |
 | v3 | 92 | independent re-judge (live-verified all 4 model slugs) | 4 residual defects + 2 self-introduced (phantom §8A, stale `deepseek-v3.2` refs, owned-tier vs blanket-`zdr` contradiction, §13 unit-test/§18 stamp) |
 | v3.1 | 96 | independent re-judge | 4 fixes fully landed; 2 partial — `zdr` scoping not propagated to operational sections (§4/§5/§9/§16 /goal) + §16.1 missing the free-slug gate it was cited for |
-| v3.2 | 99.5 → 100 | independent re-judge | closed the 96 residuals (zdr propagated to §0b/§4/§5/§9 + §16 /goal; free-slug gate in §16.1). Sole 0.5 residual = a v3.1-vs-v3.2 stamp contradiction, reconciled in-place to v3.2 throughout (this row). No substantive defects remain — security/evidence/testability all at full marks |
+| v3.2 | **100 (CONFIRMED on real data)** | independent re-judge | closed the 96 residuals (zdr propagated to §0b/§4/§5/§9 + §16 /goal; free-slug gate in §16.1) and reconciled the version stamp. Final pass: all 7 criteria at full marks (evidence 25, problem 20, reuse 15, security 15, UX 10, testability 10, cost 5); slugs live-verified; no internal contradiction through which the build could silently violate its own guarantees. APPROVE BUILD Slice A; Slice B correctly gated |
 
 The final 100 is **only declared when the re-judge confirms it on real data** — not before.
 
