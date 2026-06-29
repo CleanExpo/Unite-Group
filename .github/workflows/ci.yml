@@ -73,9 +73,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # `pnpm run check` (strict lint + typecheck) carries ~466 pre-existing
-      # errors inherited from upstream hermes-workspace. Gate is build-only
-      # until the debt is burned down — tracked in docs/convergence/migration-map.md.
+      # Type-check is now enforced: the inherited hermes-workspace type drift was
+      # burned down to zero (W1 of docs/specs/next-phase-repair-enhancement.spec.md).
+      # This gate stops it silently regressing. Lint (`pnpm run check`) still
+      # carries ~459 pre-existing errors and stays ungated until that debt is
+      # burned down; the `test` step follows once the 6 brittle tests are fixed.
+      - name: Type check
+        run: pnpm exec tsc --noEmit
+
       - name: Build
         run: pnpm run build
 
