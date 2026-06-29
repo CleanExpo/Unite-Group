@@ -54,7 +54,7 @@ A **green, lean, gated, polished** monorepo:
 
 ### In scope
 - **W1 Repair:** apps/workspace 44 tsc errors (Clusters D→A→B→C→mop-up), 6 brittle tests, 14 auto-fixable lint; fix 9 dead `apps/web/package.json` script entries.
-- **W2 Bloat & Cache purge:** untrack 21M esbuild bundle; optimize ~22M images→WebP/AVIF via `next/image`; remove Sentry (dep + 9 files); move append-only agent logs out of git; delete stale root `.next`/`tsbuildinfo`/`next-env.d.ts`; reconcile + prune 146 branches; standardize package manager direction.
+- **W2 Bloat & Cache purge:** untrack 21M esbuild bundle; optimize ~22M images (apps/web hero via `next/image`; apps/workspace avatars via build-time WebP, per C1); remove Sentry (dep + 9 files + any config files/wrapper, per C2); move append-only agent logs out of git + repoint the cron write path (C2b); delete stale root `.next`/`tsbuildinfo`/`next-env.d.ts`; reconcile + prune 146 branches; verify no intra-package lockfile drift (per-package toolchain is by design — C4).
 - **W3 UI/UX connect & polish:** fix 2 broken breadcrumb links; tokenise breadcrumb + operator-gateway + hermes-control-panel inline hex; fix locale drops; harden KPIGrid total-failure state; resolve the Lucide-vs-rule doc mismatch.
 - **W4 CI hardening:** add `tsc --noEmit` + `test` steps to the root `workspace` CI job once W1 green; (optional) make `workspace` a required status check.
 
@@ -116,6 +116,8 @@ A **green, lean, gated, polished** monorepo:
 
 **Decision: APPROVE BUILD** (≥85). Phased, evidence-backed, low-risk repair/polish with one irreversible item (history rewrite) correctly deferred. Build in the W1→W2→W3→W4 sequence as independent PRs.
 
+> **Post-`/judge` revision (2026-06-30, score 93/100, APPROVE BUILD with conditions):** an independent judge pass re-verified every load-bearing claim first-source and applied five mandatory corrections, now folded into §5/§11/§12/§16: **C1** apps/workspace avatars use build-time WebP, not `next/image` (Vite app); **C2** Sentry config files + `withSentryConfig` wrapper must be enumerated before removal; **C2b** repoint the nightly cron's log path when relocating agent logs; **C3** land an interim CI *ratchet* gate during W1 (not only after) so drift can't regress; **C4** do NOT converge package managers — per-package lockfiles are by canonical-`CLAUDE.md` design. W1→W4 is a genuine dependency (W4 full gate needs W1 at 0 errors); the ratchet (C3) is what de-risks it.
+
 ## 9. Proposed solution
 
 ### User flow
@@ -150,13 +152,15 @@ Per-PR revert. No data/schema/env rollback required for any item. Branch prune i
 ## 11. Technical requirements
 - **W1 fix order (by leverage):** D (send-stream `persistActiveRun`, 3 err, live route) → A (swarm2 model drift: `lastRealSummary`→`lastSummary`, `prUrl`, `Swarm2InboxItem`, `AgentProgressStatus`, `OfficeViewProps.processType`, 18 err) → B (swarm v1: `CpuIcon` import, dup `ok` key, kanban input, roster shape, xterm overloads, 9 err) → C (chat: `ThinkingLevel` union, `{}` query result, router params, 7 err) → E/F/G/H mop-up (8 err). `[VERIFIED clusters]`
 - **Dead scripts:** remove/repair 9 `apps/web/package.json` entries (`integrity:check`, `email-agent`, `content-agent`, `orchestrator`, `analyze-contacts`, `seo:research`, `seo:full`, `stripe:audit`, `setup`, `verify`/`verify:windows`). Prefer removal unless a script is intended. `[VERIFIED missing targets]`
-- **Bloat:** `git rm --cached apps/workspace/electron/server-bundle.cjs` + gitignore; `pi-ceo-hero.jpg` (3.4M) + `apps/workspace/public/avatars/*` (17M) + logos → WebP/AVIF via `next/image`; relocate `overnight-progress-log.md`/`morning-report.md`/`continuous-work-queue.jsonl` out of git; `rm -rf` root `.next`/`tsbuildinfo`/`next-env.d.ts`.
-- **Sentry:** remove `@sentry/nextjs` from `apps/web/package.json` + regenerate `pnpm-lock.yaml` (lockfile-only, same commit per memory); rewrite `error-reporting.ts` body to structured `console.error`; update the 9 importing files (incl. `error.tsx` boundaries, `global-error.tsx`, `RouteErrorBoundary.tsx`).
-- **Lockfile standardization:** document/commit the pnpm-forward direction; ensure no mixed-PM drift in touched apps.
-- **W4 CI:** add `type-check` + `test` steps to root `ci.yml` `workspace` job, mirroring `spec-board`.
+- **Bloat:** `git rm --cached apps/workspace/electron/server-bundle.cjs` + gitignore; **`apps/web/public/pi-ceo-hero.jpg` (3.4M) → WebP/AVIF served via `next/image`** (apps/web is Next 16); **`apps/workspace/public/avatars/*` (17M) + workspace logos → pre-compressed WebP/AVIF at build (sharp/squoosh) and referenced as static Vite assets — NOT `next/image`, since apps/workspace is TanStack Start/Vite with no Next runtime (`[VERIFIED]` C1)**; relocate `overnight-progress-log.md`/`morning-report.md`/`continuous-work-queue.jsonl` out of git **AND repoint the nightly cron's write path in the same change (these are actively appended by the autonomous loop — gitignoring without repointing breaks the evidence trail; C2b)**; `rm -rf` root `.next`/`tsbuildinfo`/`next-env.d.ts`.
+- **Sentry:** remove `@sentry/nextjs` from `apps/web/package.json` + regenerate `pnpm-lock.yaml` (lockfile-only, same commit per memory); rewrite `error-reporting.ts` body to structured `console.error`; update the 9 importing files (incl. `error.tsx` boundaries, `global-error.tsx`, `RouteErrorBoundary.tsx`). **Before the PR, grep `sentry.*.config.*` and `withSentryConfig` and add any Sentry config files + the `next.config` wrapper to removal scope — package.json + 9 importers may not be the full footprint (C2, NOT CHECKED).**
+- **Per-package toolchain (NOT standardization):** per canonical `CLAUDE.md` hard rule, **each package keeps its own lockfile/package manager — the root is NOT a pnpm workspace and mixed pnpm+npm lockfiles are by design.** Scope is limited to ensuring **no intra-package drift** (each lockfile matches its own `package.json`); do **not** converge package managers (C4 — corrects the original "standardize to pnpm" item).
+- **W4 CI:** (a) **interim ratchet gate, landed during W1 — not after:** add a `workspace` CI step asserting `tsc --noEmit` error count ≤ a committed baseline and strictly non-increasing, so drift can't regress while W1 burns down (decouples W4's durability value from W1 completion; C3). (b) Once W1 hits 0, replace the ratchet with full `type-check` (`tsc --noEmit`) + `test` steps mirroring the `spec-board` job.
 
 ## 12. Security and privacy requirements
 - Sentry removal must preserve error **capture** (route to Vercel logs) — verify error boundaries still render and `captureApiError` still logs. `[VERIFIED current behaviour]`
+- **C2 (NOT CHECKED):** before removal, enumerate the FULL Sentry footprint — `grep -rl 'sentry.*.config' apps/web` and `grep -rn 'withSentryConfig' apps/web/next.config.*` — and include any config files + the `next.config` wrapper in the removal PR, or the build keeps resolving Sentry.
+- **C2b (COUPLING):** agent logs (`overnight-progress-log.md`/`morning-report.md`) are appended by the nightly autonomous cron `[VERIFIED — fresh entries seen this session]`; relocating them out of git must repoint the cron's write target in the same change, else the autonomous evidence trail breaks.
 - No secrets in any relocated agent log (scan before moving out of git). `[per memory secret-redaction-gaps]`
 - `git filter-repo` history rewrite (97M `.git`) is **irreversible** → explicitly OUT of scope; requires separate founder sign-off.
 - Branch prune: confirm each branch's PR merged-state via `gh` before delete; dry-run list first.
@@ -210,7 +214,9 @@ Per-PR revert. No data/schema/env rollback required for any item. Branch prune i
 - [ ] apps/web type-check / lint / test remain **green** (no regression). `[VERIFIED baseline green]`
 - [ ] 9 dead `apps/web/package.json` script entries removed or repaired; none fail-on-invoke. `[VERIFIED 9 dead]`
 - [ ] `apps/workspace/electron/server-bundle.cjs` (21M) untracked + gitignored. `[VERIFIED tracked]`
-- [ ] `pi-ceo-hero.jpg` + avatars + logos optimized to WebP/AVIF via `next/image` (~22M → target <4M). `[VERIFIED sizes]`
+- [ ] `apps/web` hero optimized to WebP/AVIF via `next/image`; `apps/workspace` avatars+logos pre-compressed to WebP/AVIF at build (NOT `next/image`); measure achieved total (was ~22M; record actual). `[VERIFIED sizes]`
+- [ ] Interim ratchet CI gate (C3) live during W1: workspace `tsc` error count cannot increase above baseline; proven RED at baseline+1. `[VERIFIED build-only today]`
+- [ ] Sentry config-file footprint enumerated (`sentry.*.config`, `withSentryConfig`) and fully removed — not just dep + 9 importers. `[NOT CHECKED — C2]`
 - [ ] `@sentry/nextjs` removed from apps/web; `grep -rl '@sentry' apps/web/src` = 0; error boundaries still render; lockfile regenerated same commit. `[VERIFIED 9 files]`
 - [ ] Breadcrumb links resolve (no `/dashboard/overview` or `/founder` 404). `[VERIFIED both broken]`
 - [ ] operator-gateway + hermes-control-panel + breadcrumb use design tokens, not raw hex. `[VERIFIED hex counts]`
@@ -229,11 +235,11 @@ Per-PR revert. No data/schema/env rollback required for any item. Branch prune i
 
 W1 REPAIR (do first): In apps/workspace, drive `pnpm exec tsc --noEmit` from 44 errors to 0, one PR per cluster in order D (send-stream persistActiveRun) → A (swarm2 model drift, 18 err) → B (swarm v1) → C (chat) → E/F/G/H mop-up. After each PR re-run tsc and assert the count strictly drops with no new files. Then `pnpm run test` to all-pass (591). Separately, remove/repair the 9 dead apps/web/package.json script entries. Keep apps/web and apps/workspace build green throughout.
 
-W2 BLOAT PURGE: git rm --cached the 21M apps/workspace/electron/server-bundle.cjs + gitignore; convert pi-ceo-hero.jpg + apps/workspace/public/avatars/* + logos to WebP/AVIF via next/image; remove @sentry/nextjs from apps/web (rewrite error-reporting.ts to structured console.error, update all 9 importers incl error boundaries, regenerate pnpm-lock.yaml same commit); relocate overnight-progress-log.md/morning-report.md/continuous-work-queue.jsonl out of git after a secret scan; rm -rf stale root .next/tsbuildinfo/next-env.d.ts; reconcile 146 branches via `gh pr list --state merged --head <branch>` (DRY-RUN the delete list first, eyeball for unmerged feat/* before pruning). DO NOT run git filter-repo / history rewrite — that is out of scope and needs separate sign-off.
+W2 BLOAT PURGE: git rm --cached the 21M apps/workspace/electron/server-bundle.cjs + gitignore; convert apps/web/public/pi-ceo-hero.jpg to WebP/AVIF served via next/image (apps/web only); pre-compress apps/workspace/public/avatars/* + workspace logos to WebP/AVIF at build with sharp/squoosh and reference as static Vite assets — do NOT use next/image in apps/workspace (it is Vite, no Next runtime); remove Sentry from apps/web — FIRST run `grep -rl 'sentry.*.config' apps/web` and `grep -rn 'withSentryConfig' apps/web/next.config.*` and include any config files + the next.config wrapper in scope, then remove @sentry/nextjs, rewrite error-reporting.ts to structured console.error, update all 9 importers incl error boundaries, regenerate pnpm-lock.yaml same commit; relocate overnight-progress-log.md/morning-report.md/continuous-work-queue.jsonl out of git after a secret scan AND repoint the nightly cron's write path in the same change (they are actively appended — do not just gitignore); rm -rf stale root .next/tsbuildinfo/next-env.d.ts; reconcile 146 branches via `gh pr list --state merged --head <branch>` (DRY-RUN the delete list first, eyeball for unmerged feat/* before pruning). Do NOT converge package managers — per-package lockfiles are by design; only assert no intra-package lockfile drift. DO NOT run git filter-repo / history rewrite — out of scope, needs separate sign-off.
 
 W3 UI/UX CONNECT & POLISH: fix Breadcrumbs.tsx dead links (/dashboard/overview → /founder/dashboard; stop linking the /founder intermediate segment); tokenise breadcrumb + operator-gateway (_components.tsx, page.tsx) + hermes-control-panel/page.tsx raw hex to var(--color-*); fix en-AU locale drops in social/page.tsx + wiki; add an honest KPIGrid total-failure state mirroring FounderStats; resolve the Lucide-vs-rule mismatch in rules/frontend/nextjs.md (amend the rule to permit Lucide rather than mass-migrate 45 files). Preserve the #553 deck-above-steps order.
 
-W4 CI HARDENING (after W1 green): add type-check (tsc --noEmit) + test steps to the root .github/workflows/ci.yml workspace job, mirroring the spec-board job. Stress-test the gate: push a throwaway type error on a scratch branch, confirm CI goes RED, revert.
+W4 CI HARDENING: (a) DURING W1 (not after) land an interim ratchet step on the root .github/workflows/ci.yml workspace job asserting `tsc --noEmit` error count <= a committed baseline and strictly non-increasing — stress-test it: push +1 error on a scratch branch, confirm RED at baseline+1, GREEN at baseline, revert. (b) AFTER W1 hits 0, replace the ratchet with full type-check (tsc --noEmit) + test steps mirroring the spec-board job; stress-test: push a throwaway type error, confirm RED, revert.
 
 Constraints: one concern per PR; en-AU/AUD/DD-MM-YYYY; design tokens not raw hex; honest error states (No-Invaders #1); pnpm-forward; Anthropic-Max only. Paste tool evidence (grep -c 'error TS', test summaries, du/git ls-files, CI run) for each acceptance checkbox before marking it done.
 ```
@@ -246,9 +252,10 @@ Constraints: one concern per PR; en-AU/AUD/DD-MM-YYYY; design tokens not raw hex
 4. **W1.C** chat (`repair/workspace-chat`) → verify: tsc 14→7.
 5. **W1.mop-up** E/F/G/H (`repair/workspace-mopup`) → verify: tsc 7→0, all tests pass.
 6. **W1.scripts** dead npm entries (`fix/web-dead-script-entries`) → verify: no script fails on invoke.
-7. **W2** bloat PRs (parallel-safe, independent): untrack-bundle, optimize-images, remove-sentry, relocate-logs, prune-branches, lockfile-standardize → verify each acceptance line.
-8. **W3** UI/UX PRs: dead-links → tokens → locale → kpi-state → lucide-rule → verify breadcrumbs + visual + locale.
-9. **W4** CI gate (`ci/gate-workspace-typecheck-test`) — only after step 5 green → verify: gate RED on injected error, GREEN on main.
+7. **W4.ratchet** (`ci/workspace-error-ratchet`) — land EARLY, in parallel with W1.D, before the burn-down → verify: RED at baseline+1, GREEN at baseline.
+8. **W2** bloat PRs (parallel-safe, independent): untrack-bundle, optimize-images-web (next/image), optimize-images-workspace (build-time WebP), remove-sentry (config-footprint first), relocate-logs (+cron repoint), prune-branches, lockfile-drift-check → verify each acceptance line.
+9. **W3** UI/UX PRs: dead-links → tokens → locale → kpi-state → lucide-rule → verify breadcrumbs + visual + locale.
+10. **W4.fullgate** (`ci/gate-workspace-typecheck-test`) — only after W1 step 5 green (0 errors); replaces the ratchet → verify: gate RED on injected error, GREEN on main.
 
 ## 18. Session handoff seed
 
