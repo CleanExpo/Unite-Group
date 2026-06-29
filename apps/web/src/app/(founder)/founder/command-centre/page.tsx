@@ -123,9 +123,6 @@ export default async function CommandDeckPage() {
         tools={tools.map((t) => ({ tool_key: t.tool_key, source: t.source, risk_class: t.risk_class }))}
       />
 
-      {/* Clean 1-2-3 front. The dense console moves into "System detail" below. */}
-      <CommandSteps />
-
       <details id="system-detail" className={styles.systemDetail} open>
         <summary className={styles.systemSummary}>Mission Control deck — live agents, queues, approvals, repos &amp; logs (click to collapse)</summary>
 
@@ -444,6 +441,9 @@ export default async function CommandDeckPage() {
         <InProgressPRsTile data={inProgressPRs} />
       </section>
       </details>
+
+      {/* 1-2-3 guided actions now sit below the live deck (founder lead-with-ops). */}
+      <CommandSteps />
     </div>
   )
 }
