@@ -396,6 +396,21 @@ export const Route = createFileRoute('/api/send-stream')({
           streamClosed = true
         }
 
+        // Persist the active run via a write callback. Hoisted to the outer
+        // request scope (not start()) so both start() and the stream's
+        // cancel() can reach it — cancel() runs on client disconnect and must
+        // still be able to mark the run 'handoff'.
+        const persistActiveRun = (
+          write: (sessionKey: string, runId: string) => Promise<unknown>,
+        ) => {
+          if (!activeRunId || !activeRunSessionKey) return
+          const runId = activeRunId
+          const runSessionKey = activeRunSessionKey
+          void (persistedRunReady ?? Promise.resolve())
+            .then(() => write(runSessionKey, runId))
+            .catch(() => null)
+        }
+
         const stream = new ReadableStream({
           async start(controller) {
             let heartbeatTimer: ReturnType<typeof setInterval> | null = null
@@ -478,17 +493,6 @@ export const Route = createFileRoute('/api/send-stream')({
                 sessionKey: runSessionKey,
                 friendlyId,
               }).catch(() => null)
-            }
-
-            const persistActiveRun = (
-              write: (sessionKey: string, runId: string) => Promise<unknown>,
-            ) => {
-              if (!activeRunId || !activeRunSessionKey) return
-              const runId = activeRunId
-              const runSessionKey = activeRunSessionKey
-              void (persistedRunReady ?? Promise.resolve())
-                .then(() => write(runSessionKey, runId))
-                .catch(() => null)
             }
 
             try {
