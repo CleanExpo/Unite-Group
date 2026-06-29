@@ -184,7 +184,7 @@ export function Swarm2OrchestratorCard({
           agent.state === 'blocked'
             ? 'error'
             : agent.state === 'ready'
-              ? 'done'
+              ? 'idle'
               : 'active',
         lastLine: agent.task,
         lastAt: Date.now(),
@@ -424,6 +424,7 @@ export function Swarm2OrchestratorCard({
               <div className="h-[360px] overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-card)]">
                 <OfficeView
                   agentRows={officeAgents}
+                  processType="parallel"
                   missionRunning={activeAgents.some(
                     (agent) =>
                       agent.state === 'working' || agent.state === 'reviewing',

@@ -726,8 +726,8 @@ function displayTaskTitle(
   runtime: RuntimeEntry | undefined,
   fallback: string,
 ): string {
-  const realSummary = runtime?.lastRealSummary ?? null
-  const realResult = runtime?.lastRealResult ?? null
+  const realSummary = runtime?.lastSummary ?? null
+  const realResult = runtime?.lastResult ?? null
   return cleanSwarmLabel(
     runtime?.blockedReason ||
       runtime?.currentTask ||
@@ -990,8 +990,8 @@ function ControlPlaneStage({
                         null
                       }
                       recentSummary={
-                        runtime?.lastRealSummary ??
-                        runtime?.lastRealResult ??
+                        runtime?.lastSummary ??
+                        runtime?.lastResult ??
                         runtime?.lastSummary ??
                         runtime?.lastResult ??
                         runtime?.blockedReason ??
@@ -1328,27 +1328,21 @@ export function Swarm2Screen() {
           } catch {}
           const msg = parsed.error || text || `HTTP ${res.status}`
           if (msg.includes('tmux not installed')) {
-            toast({
-              title: 'tmux not installed',
-              description: `Swarm worker ${workerId} couldn't start because tmux is not installed on this host. Install tmux (‘brew install tmux’ or ‘apt install tmux’) and try again. See #244.`,
-              variant: 'destructive',
-            })
+            toast(
+              `tmux not installed: Swarm worker ${workerId} couldn't start because tmux is not installed on this host. Install tmux (‘brew install tmux’ or ‘apt install tmux’) and try again. See #244.`,
+              { type: 'error' },
+            )
           } else {
-            toast({
-              title: `Failed to start ${workerId}`,
-              description: msg,
-              variant: 'destructive',
-            })
+            toast(`Failed to start ${workerId}: ${msg}`, { type: 'error' })
           }
 
           console.error('[swarm2] start session failed:', res.status, text)
         }
       } catch (err) {
-        toast({
-          title: `Failed to start ${workerId}`,
-          description: err instanceof Error ? err.message : String(err),
-          variant: 'destructive',
-        })
+        toast(
+          `Failed to start ${workerId}: ${err instanceof Error ? err.message : String(err)}`,
+          { type: 'error' },
+        )
       } finally {
         setPendingTmux((prev) => {
           const next = new Set(prev)
@@ -1725,8 +1719,8 @@ export function Swarm2Screen() {
           member.lastSessionAt ??
           null
         const rawText =
-          runtime?.lastRealSummary ??
-          runtime?.lastRealResult ??
+          runtime?.lastSummary ??
+          runtime?.lastResult ??
           runtime?.lastSummary ??
           runtime?.lastResult ??
           runtime?.blockedReason ??

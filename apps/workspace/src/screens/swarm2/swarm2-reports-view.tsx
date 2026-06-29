@@ -1072,7 +1072,7 @@ export function Swarm2ReportsView({
           {workerCards.length ? (
             workerCards.map((card) => {
               const expanded = expandedId === `worker:${card.workerId}`
-              const latestInboxItem = {
+              const latestInboxItem: Swarm2InboxItem = {
                 ...card.latest,
                 lane:
                   card.latest.state === 'blocked'
@@ -1081,6 +1081,7 @@ export function Swarm2ReportsView({
                       ? 'ready'
                       : 'needs_review',
               }
+              const cardPrUrl = extractPullRequestUrl(card.latest)
               return (
                 <article
                   key={card.workerId}
@@ -1103,7 +1104,7 @@ export function Swarm2ReportsView({
                             card.state === 'blocked'
                               ? 'failed'
                               : card.state === 'ready'
-                                ? 'done'
+                                ? 'complete'
                                 : card.state === 'needs_review'
                                   ? 'thinking'
                                   : 'running'
@@ -1172,9 +1173,9 @@ export function Swarm2ReportsView({
                           ? 'Hide reports'
                           : `Open reports (${card.rows.length})`}
                       </button>
-                      {card.prUrl ? (
+                      {cardPrUrl ? (
                         <a
-                          href={card.prUrl}
+                          href={cardPrUrl}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center rounded-lg border border-[var(--theme-border)] bg-[var(--theme-card)] px-2.5 py-1.5 text-[11px] text-[var(--theme-text)] hover:bg-[var(--theme-card2)]"
@@ -1187,7 +1188,7 @@ export function Swarm2ReportsView({
                       card.state === 'ready' ? (
                         <button
                           type="button"
-                          onClick={() => onRouteToReviewer?.(card)}
+                          onClick={() => onRouteToReviewer?.(latestInboxItem)}
                           className="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-card)] px-2.5 py-1.5 text-[11px] text-[var(--theme-text)] hover:bg-[var(--theme-card2)]"
                         >
                           Steer
@@ -1225,7 +1226,7 @@ export function Swarm2ReportsView({
                   {expanded ? (
                     <div className="mt-3 space-y-2 border-t border-[var(--theme-border)] pt-3">
                       {card.rows.slice(0, 4).map((row) => {
-                        const inboxRow = {
+                        const inboxRow: Swarm2InboxItem = {
                           ...row,
                           lane:
                             row.state === 'blocked'
