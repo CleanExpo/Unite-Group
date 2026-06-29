@@ -1,4 +1,4 @@
-# SPM Spec — Pilot Agentic Harness (HARDENED v3)
+# SPM Spec — Pilot Agentic Harness (HARDENED v3.1)
 
 > Produced by `/spm` (read-only), hardened through an independent `/judge` (73→REDUCE)
 > + `/readiness-architect` (CONDITIONAL NO-GO) into v2, then re-graded by a STORM
@@ -13,7 +13,7 @@
 ## 0b. v3 changelog (closing the judge's 86.5→100 deductions)
 - **First-source (+5):** fallback model is now **DeepSeek V4-flash** (STORM-reconfirmed cheap workhorse; price tagged `UNSUPPORTED-until-reconfirmed-at-spend`), replacing deepseek-v3.2; §16.1 adds a **live-probe + tool/JSON smoke test of the fallback slug** (same standard that rejected Kimi); the primary free slug (`gpt-oss-120b:free`) is named, with its live-probe required as a §16.1 build-start prerequisite (recorded into §2 at that point, not pre-claimed here).
 - **Reuse +2 / Cost +1:** new **OWNED-CAPACITY tier — the MiniMax plan** (M3 via `ANTHROPIC_BASE_URL=https://api.minimax.io/anthropic`), spent BEFORE any metered call. Router order: **owned → free → cheap-paid → local.**
-- **Security +2:** free/non-Anthropic public calls now send OpenRouter's per-request **`zdr` parameter** (enforced, not a toggle), with a static check asserting it; Slice B `host.docker.internal` route resolved (proxy CONNECT allow for host:port only + negative test); export-control + Claude-Max-consumer-trains notes added.
+- **Security +2:** every **OpenRouter-routed** public call now sends OpenRouter's per-request **`zdr` parameter** (enforced, not a toggle), with a static check asserting it — the owned MiniMax-direct tier has no `zdr` param and is governed by public-data-only; Slice B `host.docker.internal` route resolved (proxy CONNECT allow for host:port only + negative test); export-control + Claude-Max-consumer-trains notes added.
 - **UX +1:** full **failure-taxonomy→exit-code table** enumerated; proxy deny-log + JSONL trace on-disk path/format specified.
 - **Testability +1.5:** fallback-slug **liveness precondition** added before the forced-failure test (so it can't "pass" against a 404).
 - **Problem +1:** the Max-RPM business impact is restated as a **falsifiable hypothesis the pilot measures** (observed RPM headroom captured in §15 evidence).
@@ -66,7 +66,7 @@
 
 ## 4. Desired outcome
 
-A single command runs one agent in a Docker container whose egress is **deny-by-default via a forward-proxy sidecar**. For a `public` task it performs real gathering on the cheapest sufficient tier in the order **owned (MiniMax plan, M3) → free (OpenRouter `gpt-oss-120b:free`) → cheap-paid (DeepSeek V4-flash / GLM)** — every non-Anthropic call carrying OpenRouter's `zdr` parameter; for a `confidential` task the proxy allowlist excludes all external model hosts so the work can only go local — making containment a **network fact, not a code promise**. The run is bounded by timeouts, writes its artifact atomically, emits a structured trace, and proves at the proxy layer that it made **zero Anthropic calls**.
+A single command runs one agent in a Docker container whose egress is **deny-by-default via a forward-proxy sidecar**. For a `public` task it performs real gathering on the cheapest sufficient tier in the order **owned (MiniMax plan, M3) → free (OpenRouter `gpt-oss-120b:free`) → cheap-paid (DeepSeek V4-flash / GLM)** — every OpenRouter-routed call carrying the `zdr` parameter (the owned MiniMax-direct tier is public-data-only, no `zdr` param); for a `confidential` task the proxy allowlist excludes all external model hosts so the work can only go local — making containment a **network fact, not a code promise**. The run is bounded by timeouts, writes its artifact atomically, emits a structured trace, and proves at the proxy layer that it made **zero Anthropic calls**.
 
 ## 5. Scope
 
@@ -74,7 +74,7 @@ A single command runs one agent in a Docker container whose egress is **deny-by-
 - Custom OpenAI-compatible **agent runner** (one loop) in a Docker container, **realised by enhancing the existing Pi-Dev-Ops `claude-runtime`/`agentic-loop` skills to be model-router-aware** (add OpenRouter/local/MiniMax `base_url` lanes alongside the Max path) — enhance, don't rebuild (see `autonomous-operating-model.md`).
 - **Forward-proxy sidecar** (squid/tinyproxy, digest-pinned) on a second network; app container on an `internal: true` network with `HTTP(S)_PROXY` → sidecar. Allowlist = `{openrouter.ai, api.minimax.io}` for public runs; `{}` for confidential.
 - **Tiered router (order: owned → free → cheap-paid):** OWNED MiniMax plan (`MiniMax-M3` via `ANTHROPIC_BASE_URL=https://api.minimax.io/anthropic`) spent first for fitting work → free `gpt-oss-120b:free` → cheap-paid **DeepSeek V4-flash** (fallback; price `UNSUPPORTED-until-reconfirmed-at-spend`) / GLM-4.6 (tool-use confirmed). **No local tier in Slice A** (local lane unprovisioned).
-- Every non-Anthropic public call carries OpenRouter's per-request **`zdr`** parameter (enforced no-retention), not a reliance on an account toggle.
+- Every **OpenRouter-routed** public call carries OpenRouter's per-request **`zdr`** parameter (enforced no-retention), not a reliance on an account toggle; the owned MiniMax-direct tier has no `zdr` param and is governed by public-data-only.
 - One proof task: summarise N **public** URLs → schema-validated JSON.
 - Hardening: client-side rate limiter, timeouts/loop bounds, atomic writes, secret hygiene, structured trace, prompt-injection handling.
 - Proof: proxy deny-log shows **zero `api.anthropic.com` attempts**; full failure-taxonomy → exit codes (§10).
@@ -140,7 +140,8 @@ Independent grading history (real, not self-graded): **v1 = 73/100 (REDUCE SCOPE
 | v1 | 73 | independent judge | REDUCE SCOPE → split slices |
 | v2 | 86.5 | STORM-team judge | APPROVE BUILD Slice A; 7 deductions |
 | v3 | 92 | independent re-judge (live-verified all 4 model slugs) | 4 residual defects + 2 self-introduced (phantom §8A, stale `deepseek-v3.2` refs, owned-tier vs blanket-`zdr` contradiction, §13 unit-test/§18 stamp) |
-| v3.1 | re-grade in progress | independent re-judge | closes all v3 defects: stale fallback refs → V4-flash; `zdr` criterion scoped to OpenRouter-routed calls; §13 unit-test → owned→free→cheap-paid; §18 stamp v3; free-slug liveness precondition; MiniMax $ tagged UNSUPPORTED; this §8A replaces the phantom reference |
+| v3.1 | 96 | independent re-judge | 4 fixes fully landed; 2 partial — `zdr` scoping not propagated to operational sections (§4/§5/§9/§16 /goal) + §16.1 missing the free-slug gate it was cited for |
+| v3.2 | re-grade in progress | independent re-judge | closes the 96 residuals: `zdr`-scoping propagated to §0b/§4/§5/§9 and the §16 /goal build command; free-slug liveness added to §16.1; version stamp reconciled to v3.1 throughout |
 
 The final 100 is **only declared when the re-judge confirms it on real data** — not before.
 
@@ -152,7 +153,7 @@ A **custom Python agent loop** using an OpenAI-compatible client with configurab
 ### System flow
 1. Runner reads task descriptor (`data_class: public|confidential`, source URLs, schema).
 2. **Network policy selected by data-class**: public → proxy allowlist `{openrouter.ai, api.minimax.io}`; confidential → allowlist `{}` (+ local-model host only, Slice B). Anthropic never allowlisted in either.
-3. Router (app) picks model in cost order **owned → free → cheap-paid**: public → MiniMax-M3 (owned plan, for fitting/multimodal/long-context work) → `gpt-oss-120b:free` → DeepSeek V4-flash / GLM-4.6; confidential → local Ornith (Slice B). Every non-Anthropic public call sets the OpenRouter **`zdr`** parameter.
+3. Router (app) picks model in cost order **owned → free → cheap-paid**: public → MiniMax-M3 (owned plan, for fitting/multimodal/long-context work) → `gpt-oss-120b:free` → DeepSeek V4-flash / GLM-4.6; confidential → local Ornith (Slice B). Every OpenRouter-routed public call sets the **`zdr`** parameter (the owned MiniMax-direct tier is public-data-only, no `zdr` param).
 4. Agent loop executes against the chosen endpoint, fetched-content treated as untrusted data.
 5. Output written atomically (temp + rename) and **schema-validated** before success.
 
@@ -249,11 +250,12 @@ Proxy deny-log (zero Anthropic attempts), structured trace, schema-valid artifac
 ## 16. Goal command (Slice A only — Slice B gated)
 
 ```text
-/goal Build Slice A of the Pilot Agentic Harness per docs/research/spec-agentic-harness-pilot.md (HARDENED v3).
+/goal Build Slice A of the Pilot Agentic Harness per docs/research/spec-agentic-harness-pilot.md (HARDENED v3.1).
 In a NEW self-contained dir (do NOT touch root spec.md or swarm2 files), branch research/openshell-agentic-blueprint:
 1) Verify FIRST, fail fast: forward-proxy + digest-pinned docker-dhi base images pullable; OpenRouter key live AND
-   parse /api/v1/key for the real RPD tier (1000 vs 50); the fallback slug DeepSeek V4-flash LIVE via /api/v1/models
-   + a 1-call tool/JSON smoke (reconfirm its price at spend — tagged UNSUPPORTED); the MiniMax plan key live via
+   parse /api/v1/key for the real RPD tier (1000 vs 50); the PRIMARY free slug openai/gpt-oss-120b:free LIVE via
+   /api/v1/models; the fallback slug DeepSeek V4-flash LIVE via /api/v1/models + a 1-call tool/JSON smoke (reconfirm
+   its price at spend — tagged UNSUPPORTED); the MiniMax plan key live via
    https://api.minimax.io/anthropic + a context-window smoke (shim may cap ~200K not 1M).
 2) Agent loop by ENHANCING Pi-Dev-Ops claude-runtime/agentic-loop to be router-aware (add OpenRouter/MiniMax/local
    base_url lanes; do NOT rebuild) with max_tokens, per-step + overall wall-clock timeouts, max-iteration bound.
@@ -262,7 +264,8 @@ In a NEW self-contained dir (do NOT touch root spec.md or swarm2 files), branch 
    single proxy CONNECT allow). api.anthropic.com NEVER allowlisted. Proxy access log = the egress evidence artifact.
 4) Router cost-order owned->free->cheap-paid: MiniMax-M3 (owned plan) for fitting work -> gpt-oss-120b:free ->
    DeepSeek V4-flash / GLM-4.6, behind a client-side rate limiter (token bucket <=20 RPM + RPD counter); handle
-   429/5xx/timeout/slug-404/Retry-After. Set OpenRouter `zdr` on EVERY non-Anthropic public call (static check asserts it).
+   429/5xx/timeout/slug-404/Retry-After. Set `zdr` on EVERY OpenRouter-routed call (static check asserts it); the owned
+   MiniMax-direct tier (api.minimax.io/anthropic) has no zdr param and is public-data-only.
    GLM only open-weights on a US host (export-control); free/China-lab = public data only.
 5) Proof task: summarise N PUBLIC URLs -> JSON; fetched content is untrusted DATA not instructions; disable unneeded
    tools; write artifact atomically (temp+rename) to out/<run-id>/result.json and JSON-schema-validate before success.
@@ -284,7 +287,7 @@ vs MOCK local), plus §14 loop checks incl. the fallback-slug-live precondition.
 7. Update UNI-2212/2213 with results. **Slice B** only after provisioning + empirically confirming Ornith tool-calling.
 
 ## 18. Session handoff seed
-- **Branch:** `research/openshell-agentic-blueprint` (worktree `.claude/worktrees/isolated-task`). **Spec:** this file (HARDENED v3).
+- **Branch:** `research/openshell-agentic-blueprint` (worktree `.claude/worktrees/isolated-task`). **Spec:** this file (HARDENED v3.1).
 - **Build now:** Slice A (no unverified deps). **Gated:** Slice B (provision local lane + confirm Ornith tools first).
 - **Live-probed facts:** Docker VM 7.75 GiB (model runs HOST-side); DMR disabled + LM Studio not running (Slice B blockers); Kimi 404 → use **DeepSeek V4-flash** (`deepseek/deepseek-v4-flash`, live-verified); OpenRouter key live but RPD tier unconfirmed; owned MiniMax plan = top tier; box already swapping with 5 sandbox nets resident; `provider_router.py` cross-repo.
 - **Do-not-touch:** root `spec.md`, swarm2 files.
