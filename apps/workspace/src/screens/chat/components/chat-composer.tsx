@@ -29,6 +29,7 @@ import {
 import { ContextBar } from './context-bar'
 import type { CSSProperties, Ref } from 'react'
 
+import type { ThinkingLevel } from '../types'
 import type { ModelCatalogEntry, ModelSwitchResponse } from '@/lib/model-types'
 import type {
   SlashCommandDefinition,
@@ -67,8 +68,6 @@ type ChatComposerAttachment = {
   previewUrl?: string
   kind?: 'image' | 'file' | 'audio'
 }
-
-type ThinkingLevel = 'off' | 'low' | 'medium' | 'high'
 
 type ChatComposerProps = {
   onSubmit: (
@@ -765,6 +764,7 @@ function thinkingLabel(level: ThinkingLevel): string {
   if (level === 'off') return 'None'
   if (level === 'low') return 'Low'
   if (level === 'medium') return 'Medium'
+  if (level === 'adaptive') return 'Adaptive'
   return 'High'
 }
 
