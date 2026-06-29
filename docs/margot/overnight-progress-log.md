@@ -1,5 +1,156 @@
 # Margot Overnight Progress Log
 
+## 2026-06-29 11:06 AEST
+
+### Tick 20260629_1106 — Digest banner no-store slice verified with current RED proof and dummy-env build
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Preflight/continuation: continued the existing bounded local branch `fix/digest-banner-no-store-fetch` rather than starting a new lane. `git status --short --branch` showed the expected local diff only: `DigestBanner.tsx`, `DigestBanner.redaction.test.tsx`, `apps/web/docs/margot/crm-test-coverage-matrix.md`, and the two evidence docs. GitHub auth is available; `gh pr list --state open --limit 20` returned no open PRs. `git fetch origin main --prune` succeeded and `git rev-list --left-right --count origin/main...HEAD` returned `0 0`, so local `HEAD` is aligned with `origin/main` at `6f30b50d1` (`Feat/web cc gateway bridge (#548)`). Recent `main` read-back via `gh run list --branch main --limit 5` showed Brand Video Render and Monorepo CI successes for `6f30b50d1`.
+
+Slice status: kept the scope to the founder command-centre digest banner cache hardening. `DigestBanner` requests `GET /api/command-centre/overnight-summary` with `credentials: 'include'` and `cache: 'no-store'`, matching the already-merged no-store response contract. No API response shape, auth semantics, Supabase query, schema/migration, provider call, Vercel/env mutation, production-data write, billing action, client-facing communication, or cross-client identity merge occurred.
+
+TDD evidence: refreshed the RED proof in a detached `origin/main` worktree by copying only the new focused test into the main code and symlinking existing local `node_modules` for the runner. The test failed for the intended reason: the spy saw `credentials: 'include'` but no `cache: 'no-store'` in the fetch options. The current branch then passed the same focused test and the full banner component suite.
+
+Verification refreshed:
+- RED: temp `origin/main` worktree + new focused test -> FAIL as expected because fetch options lacked `cache: 'no-store'`.
+- GREEN focused: `pnpm exec vitest run 'src/app/(founder)/founder/command-centre/__tests__/DigestBanner.redaction.test.tsx' --testNamePattern 'requests the founder digest with no-store cache semantics'` -> PASS (1 test, 3 skipped).
+- GREEN component suite: `pnpm exec vitest run 'src/app/(founder)/founder/command-centre/__tests__/DigestBanner.redaction.test.tsx'` -> PASS (1 file / 4 tests).
+- `pnpm run type-check` -> PASS.
+- `pnpm run lint` -> PASS.
+- `pnpm run build` with explicit dummy local env placeholders for required variables -> PASS. Plain build without env remains expectedly blocked by the repo's env validator in this cron shell (missing variable names only); no real env values were read, printed, or mutated.
+- `pnpm run security:routes-check` -> unavailable (`ERR_PNPM_NO_SCRIPT`), matching the current `apps/web/package.json`; substituted scoped `git diff --check` (PASS) and refined added-line security scan (0 findings across touched product/test/matrix files).
+
+Reviewer/publication status: dispatched fresh independent read-only reviewer `deleg_351c6e7f` for the current bounded diff. At evidence-write time it was pending, so publication remained gated locally: no commit, push, PR, merge, deploy, env mutation, migration application, production DB write, billing action, client-facing send, or cross-client identity action occurred.
+
+Gate packet: direct slice classification `NONE` (founder UI fetch option + tests/docs only; no spend/DB/prod authority touched). Publication classification `NAMESPACE` / `KEEP_GATED` until the independent reviewer returns clean and a PR can receive fresh GitHub/Vercel checks. Rollback is a file-only revert of `DigestBanner.tsx`, `DigestBanner.redaction.test.tsx`, `apps/web/docs/margot/crm-test-coverage-matrix.md`, and evidence doc appends.
+
+Next safe lane: if `deleg_351c6e7f` returns clean in this or a follow-up run, commit the bounded diff and open a PR to `main`; then monitor/fix CI/Vercel before any merge. If reviewer blocks, fix locally with another RED-GREEN cycle.
+
+## 2026-06-29 10:30 AEST
+
+### Tick 20260629_1030 — Digest banner no-store slice locally green; publication remains reviewer-gated
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Preflight/continuation: continued the existing dirty local branch `fix/digest-banner-no-store-fetch` rather than starting a new lane. `git fetch origin main --prune` succeeded; `git status --short --branch` showed only the bounded local files (`DigestBanner.tsx`, `DigestBanner.redaction.test.tsx`, `apps/web/docs/margot/crm-test-coverage-matrix.md`, and the two root evidence docs). `git rev-list --left-right --count origin/main...HEAD` returned `0 0`; local `HEAD`, `origin/main`, and `origin/HEAD` remain `6f30b50d1` (`Feat/web cc gateway bridge (#548)`). GitHub auth is available; `gh pr list --state open --limit 20` returned no open PRs. GitHub read-back showed recent `Brand Video Render` and `Monorepo CI` runs successful for `6f30b50d1`. Vercel CLI read-only `vercel list --status READY --format json` showed the latest production deployment `READY` for `6f30b50d1`; no Vercel/env/deploy mutation occurred. No PR/deployment exists for the uncommitted local slice.
+
+Slice status: no new production-code behaviour beyond the existing bounded UI fetch-cache hardening was authored in this tick. The local diff still makes `DigestBanner` request `GET /api/command-centre/overnight-summary` with `credentials: 'include'` and `cache: 'no-store'`, matching the already-merged route `Cache-Control: no-store` contract. No Supabase query/API shape/auth/schema/migration/provider/billing/env/deploy/production-data/client-facing/cross-client action occurred.
+
+TDD evidence: prior RED→GREEN remains the behaviour proof: the focused banner Vitest first failed because the fetch options lacked `cache: 'no-store'`, then passed after the minimal component change. This run re-verified that same behaviour on current `origin/main`.
+
+Verification refreshed: focused `./node_modules/.bin/vitest run 'src/app/(founder)/founder/command-centre/__tests__/DigestBanner.redaction.test.tsx' 'src/app/api/command-centre/overnight-summary/__tests__/route.test.ts' --config vitest.config.mts` passed (2 files / 8 tests, with existing intentional route error stderr). `pnpm run type-check` passed. `pnpm run lint` passed. Full `pnpm run test` passed (451 files / 2686 tests, existing intentional failure-path stderr and one existing React `act(...)` warning only). Scoped `git diff --check` passed. Local `pnpm run build` remains blocked only by app env validation in this cron shell (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`; names only, no values read or mutated). Refined added-line scan returned `PRODUCTION_ADDED_LINE_SECURITY_FINDINGS=0`, `TEST_ADDED_LINE_SECURITY_FINDINGS=0`, and `DOCS_ADDED_LINE_SECURITY_FINDINGS=5` for doc-only historical-evidence prose; no product/test security finding.
+
+Reviewer/publication status: dispatched fresh independent reviewer `deleg_54cb7e11` for the current bounded diff. It is pending at evidence-write time, so I did not commit, push, open a PR, merge, deploy, mutate env, apply migrations, write production data, perform billing actions, send client-facing comms, or merge cross-client identity. Publication stays gated even though local checks are green.
+
+Gate packet: direct slice classification remains `NONE` for production/finance/DB/spend impact (founder UI fetch-cache option + test/docs only). Publication classification remains `NAMESPACE` / `KEEP_GATED` until reviewer read-back is clean and a PR can get fresh GitHub/Vercel env-complete checks. Rollback is a file-only revert of `DigestBanner.tsx`, `DigestBanner.redaction.test.tsx`, the CRM matrix row, and evidence doc appends.
+
+Next safe lane: when a clean `deleg_54cb7e11` read-back is available in-context, commit the bounded diff, push/open a PR to `main`, and use GitHub/Vercel as the env-complete build gate; otherwise address reviewer findings locally before publication.
+
+## 2026-06-29 09:48 AEST
+
+### Tick 20260629_0948 — Digest banner no-store slice re-verified; publication still held for reviewer
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Preflight/continuation: continued the existing dirty local branch `fix/digest-banner-no-store-fetch` rather than starting a new lane. `git fetch origin main --prune` succeeded; `git status --short --branch` showed only the bounded local files (`DigestBanner.tsx`, `DigestBanner.redaction.test.tsx`, `apps/web/docs/margot/crm-test-coverage-matrix.md`, and the two root evidence docs). `git rev-list --left-right --count HEAD...origin/main` returned `0 0`; local `HEAD`, `origin/main`, and `origin/HEAD` remain `6f30b50d1` (`Feat/web cc gateway bridge (#548)`). GitHub auth is available; `gh pr list --limit 10 --json ...` returned `[]`. GitHub read-back showed recent `Brand Video Render` and `Monorepo CI` runs successful for `6f30b50d1`. Vercel CLI read-back was read-only and showed recent Production/Preview deployments `Ready` with deployment URLs redacted. No Vercel/env/deploy mutation occurred.
+
+Slice status: no new production-code behaviour was authored in this tick. The existing bounded local slice still makes `DigestBanner` request `GET /api/command-centre/overnight-summary` with `credentials: 'include'` and `cache: 'no-store'`, matching the already-merged route `Cache-Control: no-store` contract. No Supabase query/API shape/auth/schema/migration/provider/billing/env/deploy/production-data/client-facing/cross-client action occurred.
+
+TDD evidence: prior RED→GREEN remains the behaviour proof: the focused banner Vitest first failed because the fetch options lacked `cache: 'no-store'`, then passed after the minimal component change. This run re-verified that same behaviour on current `origin/main`.
+
+Verification refreshed: focused `./node_modules/.bin/vitest run 'src/app/(founder)/founder/command-centre/__tests__/DigestBanner.redaction.test.tsx' 'src/app/api/command-centre/overnight-summary/__tests__/route.test.ts' --config vitest.config.mts` passed (2 files / 8 tests, with existing intentional route error stderr). `pnpm run type-check` passed. `pnpm run lint` passed. Full `pnpm run test` passed (451 files / 2686 tests, existing intentional failure-path stderr and one existing React `act(...)` warning only). Scoped `git diff --check` passed. Local `pnpm run build` remains blocked only by app env validation in this cron shell (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`; names only, no values read or mutated). Refined added-line scan returned `PRODUCTION_ADDED_LINE_SECURITY_FINDINGS=0`, `TEST_ADDED_LINE_SECURITY_FINDINGS=0`, and `DOCS_ADDED_LINE_SECURITY_FINDINGS=2` for doc-only `process.env` prose in historical evidence entries; no product/test security finding.
+
+Reviewer/publication status: dispatched fresh independent reviewer `deleg_b2ff2a94` for the current bounded diff. It is pending at evidence-write time, so I did not commit, push, open a PR, merge, deploy, mutate env, apply migrations, write production data, perform billing actions, send client-facing comms, or merge cross-client identity. Publication stays gated even though local checks are green.
+
+Gate packet: direct slice classification remains `NONE` for production/finance/DB/spend impact (founder UI fetch-cache option + test/docs only). Publication classification remains `NAMESPACE` / `KEEP_GATED` until reviewer read-back is clean and a PR can get fresh GitHub/Vercel env-complete checks. Rollback is a file-only revert of `DigestBanner.tsx`, `DigestBanner.redaction.test.tsx`, the CRM matrix row, and evidence doc appends.
+
+Next safe lane: when a clean `deleg_b2ff2a94` read-back is available in-context, commit the bounded diff, push/open a PR to `main`, and use GitHub/Vercel as the env-complete build gate; otherwise address reviewer findings locally before publication.
+
+## 2026-06-29 09:13 AEST
+
+### Tick 20260629_0913 — Digest banner no-store slice re-verified; publication still held for reviewer
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Preflight/continuation: continued the existing dirty local branch `fix/digest-banner-no-store-fetch` rather than starting a new lane. `git fetch origin main` succeeded; `git status --short --branch` still shows only the bounded local files (`DigestBanner.tsx`, `DigestBanner.redaction.test.tsx`, the CRM matrix row, and the two evidence docs). `git rev-list --left-right --count origin/main...HEAD` returned `0 0`, so local `HEAD` remains aligned with `origin/main` at `6f30b50d1`. GitHub auth is available; `gh pr list --state open --limit 10` returned no open PRs. GitHub `main` read-back now shows `Monorepo CI` and recent `Brand Video Render` runs successful for `6f30b50d1`. No Vercel/env/deploy mutation occurred.
+
+Slice status: no new production-code behaviour was authored in this tick. The existing bounded local slice still makes `DigestBanner` request `GET /api/command-centre/overnight-summary` with `credentials: 'include'` and `cache: 'no-store'`, matching the already-merged route `Cache-Control: no-store` contract. No Supabase query/API shape/auth/schema/migration/provider/billing/env/deploy/production-data/client-facing/cross-client action occurred.
+
+TDD evidence: prior RED→GREEN remains the behaviour proof: the focused banner Vitest first failed because the fetch options lacked `cache: 'no-store'`, then passed after the minimal component change. This run re-verified that same behaviour on current `origin/main`.
+
+Verification refreshed: focused `./node_modules/.bin/vitest run 'src/app/(founder)/founder/command-centre/__tests__/DigestBanner.redaction.test.tsx' 'src/app/api/command-centre/overnight-summary/__tests__/route.test.ts' --config vitest.config.mts` passed (2 files / 8 tests, with existing intentional route error stderr). `pnpm run type-check` passed. `pnpm run lint` passed. Full `pnpm run test` passed (451 files / 2686 tests, existing intentional failure-path stderr and one existing React `act(...)` warning only). Scoped `git diff --check` passed. Local `pnpm run build` remains blocked only by app env validation in this cron shell (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`; names only, no values read or mutated). Refined added-line scan returned `PRODUCTION_ADDED_LINE_SECURITY_FINDINGS=0`, `TEST_ADDED_LINE_SECURITY_FINDINGS=0`, and `DOCS_ADDED_LINE_SECURITY_FINDINGS=2` for doc-only route/test-path prose; no product/test security finding.
+
+Reviewer/publication status: dispatched fresh independent reviewer `deleg_9925eeba` for the current bounded diff. It is pending at evidence-write time, so I did not commit, push, open a PR, merge, deploy, mutate env, apply migrations, write production data, perform billing actions, send client-facing comms, or merge cross-client identity. Publication stays gated even though local checks are green.
+
+Gate packet: direct slice classification remains `NONE` for production/finance/DB/spend impact (founder UI fetch-cache option + test/docs only). Publication classification remains `NAMESPACE` / `KEEP_GATED` until reviewer read-back is clean and a PR can get fresh GitHub/Vercel env-complete checks. Rollback is a file-only revert of `DigestBanner.tsx`, `DigestBanner.redaction.test.tsx`, the CRM matrix row, and evidence doc appends.
+
+Next safe lane: when a clean `deleg_9925eeba` read-back is available in-context, commit the bounded diff, push/open a PR to `main`, and use GitHub/Vercel as the env-complete build gate; otherwise address reviewer findings locally before publication.
+
+## 2026-06-29 08:33 AEST
+
+### Tick 20260629_0833 — Digest banner no-store slice refreshed onto latest main; publication still held
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Preflight/continuation: continued the existing dirty local branch `fix/digest-banner-no-store-fetch` instead of starting a new lane. Initial preflight found GitHub auth available, no open PR rows, and branch head at `69b1b0b0e`. During the run `git fetch origin main --prune` advanced `origin/main` to `6f30b50d1`, so I preserved the bounded working diff with a temporary stash, fast-forwarded the branch to `origin/main`, and reapplied the diff cleanly; final compare returned `0 0` and final local `HEAD`/`origin/main` are both `6f30b50d1`. GitHub `main` read-back showed Monorepo CI in progress for `6f30b50d1` and recent Brand Video Render successes at the prior head. Vercel CLI was available/read-only, but captured output was URL-redacted only; no deployment, env, or provider mutation occurred.
+
+Slice status: no new production-code behaviour beyond the existing bounded UI fetch-cache hardening was authored. The local slice still makes `DigestBanner` request `GET /api/command-centre/overnight-summary` with `credentials: 'include'` and `cache: 'no-store'`, matching the already-merged route `Cache-Control: no-store` contract. Scope remains `DigestBanner.tsx`, `DigestBanner.redaction.test.tsx`, the CRM matrix row, and evidence docs only. No Supabase query/API shape/auth/schema/migration/provider/billing/env/deploy/production-data/client-facing/cross-client action occurred.
+
+TDD evidence: prior RED→GREEN remains the behavior proof: the focused banner Vitest first failed because the fetch options lacked `cache: 'no-store'`, then passed after the minimal component change. This run re-verified that same behavior after rebasing onto the new `origin/main`.
+
+Verification refreshed after fast-forward: focused `./node_modules/.bin/vitest run 'src/app/(founder)/founder/command-centre/__tests__/DigestBanner.redaction.test.tsx' 'src/app/api/command-centre/overnight-summary/__tests__/route.test.ts' --config vitest.config.mts` passed (2 files / 8 tests, with existing intentional route error stderr). `pnpm run type-check` passed. `pnpm run lint` passed. Full `pnpm run test` passed (451 files / 2686 tests, existing intentional failure-path stderr and one existing React `act(...)` warning only). `git diff --check` passed for touched files. A broad diff security scan initially flagged doc-only `process.env` prose, so I reran the refined path-aware scan: `TOUCHED_PRODUCTION_SECURITY_FINDINGS=NONE`, `TOUCHED_TEST_SECURITY_FINDINGS=NONE`, and `TOUCHED_DOCS_SECURITY_FINDINGS=NONE`. Local `pnpm run build` remains blocked only by app env validation in this cron shell (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`; names only, no values read or mutated).
+
+Reviewer/publication status: dispatched fresh independent reviewer `deleg_3e7d08e8` for the current bounded diff. It is pending at evidence-write time, so I did not commit, push, open a PR, merge, deploy, mutate env, apply migrations, write production data, perform billing actions, send client-facing comms, or merge cross-client identity. Publication stays gated even though local checks are green.
+
+Gate packet: direct slice classification remains `NONE` for production/finance/DB/spend impact (founder UI fetch-cache option + test/docs only). Publication classification remains `NAMESPACE` / `KEEP_GATED` until reviewer read-back is clean and a PR can get fresh GitHub/Vercel env-complete checks. Rollback is a file-only revert of `DigestBanner.tsx`, `DigestBanner.redaction.test.tsx`, the CRM matrix row, and evidence doc appends.
+
+Next safe lane: when a clean `deleg_3e7d08e8` read-back is available in-context, commit the bounded diff, push/open a PR to `main`, and use GitHub/Vercel as the env-complete build gate; otherwise address reviewer findings locally before publication.
+
+## 2026-06-29 07:45 AEST
+
+### Tick 20260629_0745 — Digest banner no-store slice re-verified; publication still held for reviewer/build gate
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Preflight/continuation: continued the existing dirty local branch `fix/digest-banner-no-store-fetch` rather than starting a new lane. `git fetch origin main --prune` succeeded; branch remained aligned with `origin/main` (`git rev-list --left-right --count HEAD...origin/main` returned `0 0`). GitHub auth is available and `gh pr list --state open --limit 10` returned no open PR rows. GitHub read-back for `main` showed latest `Brand Video Render` still `in_progress` at `69b1b0b0ea`, with recent `Brand Video Render` and `Monorepo CI` successes at the same head. Vercel CLI read-back was read-only and showed recent `unite-group/unite-group` Production/Preview deployments `Ready` with URLs redacted. Current uncommitted scope is still bounded to `DigestBanner.tsx`, `DigestBanner.redaction.test.tsx`, the CRM matrix row, and evidence docs.
+
+Slice status: no new production-code behaviour was authored in this tick. The local slice still hardens the command-centre digest read surface by requesting `GET /api/command-centre/overnight-summary` with `credentials: 'include'` and `cache: 'no-store'`, matching the already-merged route `Cache-Control: no-store` contract. This does not alter Supabase queries, API response shape, auth semantics, schema, migrations, provider calls, approvals, billing, env, deploy, or production data.
+
+TDD evidence carried forward: the prior RED focused Vitest failed for the intended reason (the fetch options lacked `cache: 'no-store'`), then GREEN passed after the minimal component change. Current run refreshed the same behaviour with focused verification.
+
+Verification refreshed: the direct focused command was blocked by the local command-safety layer because a route-like test path was interpreted as a schemeless sink, so I used an OS-temp `hermes-verify-*` script under `/private/tmp` and removed it after execution. Ad-hoc focused verifier output: `./node_modules/.bin/vitest run 'src/app/(founder)/founder/command-centre/__tests__/DigestBanner.redaction.test.tsx' 'src/app/api/command-centre/overnight-summary/__tests__/route.test.ts' --config vitest.config.mts` passed (2 files / 8 tests), and scoped `git diff --check` passed for the touched files. Canonical package gates also passed: `pnpm run type-check`, `pnpm run lint`, and full `pnpm run test` (451 files / 2686 tests) all exited 0, with existing intentional failure-path stderr and one existing React `act(...)` warning only. Refined touched-production security scans returned `TOUCHED_PRODUCTION_SECURITY_FINDINGS=NONE` and `ADDED_LINE_SECURITY_FINDINGS=NONE`.
+
+Build/deploy gate: local `pnpm run build` remains env-gated at `scripts/validate-env.mjs --ci` because this cron shell has no app env groups configured (`CRITICAL: 0/3`, `REQUIRED: 0/4`, `INTEGRATION: 0/14`; names only). No env values were read, printed, or mutated.
+
+Reviewer/publication status: because previous background reviewer handles do not provide durable read-back into this fresh cron session, I dispatched a current independent reviewer for the same bounded diff as `deleg_235d71ce`. It is pending at evidence-write time, so I did not commit, push, open a PR, merge, deploy, mutate env, apply migrations, write production data, or perform billing/client-facing/cross-client actions.
+
+Gate packet: direct slice classification remains `NONE` for production/finance/DB/spend impact (founder UI fetch-cache option + test/docs only). Publication remains `NAMESPACE` / `KEEP_GATED` until the independent reviewer returns clean and an env-complete CI/Vercel build gate is available after PR publication. Rollback is a file-only revert of `DigestBanner.tsx`, `DigestBanner.redaction.test.tsx`, the CRM matrix row, and evidence doc appends.
+
+Next safe lane: if `deleg_235d71ce` returns clean within a follow-up run, commit the bounded diff, push/open a PR to `main`, and use GitHub/Vercel as the env-complete build gate; otherwise address reviewer findings locally before publication.
+
+## 2026-06-29 07:05 AEST
+
+### Tick 20260629_0705 — Digest banner no-store fetch slice locally verified; publication held for reviewer
+
+Notice: requested cron skills still unavailable/skipped: `subagent-driven-development`, `writing-plans`, `autonomous-operations-preflight`.
+
+Preflight/continuation: fetched `origin/main`, confirmed PR #547 is merged as `69b1b0b0e` and current local `main`/`origin/main` are aligned with that merge. `gh pr list --state open` returned no open PRs, GitHub auth is available, and latest main Monorepo CI / Brand Video Render read-back for `69b1b0b0e` is successful. Started branch `fix/digest-banner-no-store-fetch` from clean `main`; branch compare `git rev-list --left-right --count origin/main...HEAD` returned `0 0` before the local slice commit.
+
+Slice completed: added a bounded command-centre UI cache hardening test and implementation. `DigestBanner` now requests `GET /api/command-centre/overnight-summary` with `credentials: 'include'` plus `cache: 'no-store'`, matching the route-level no-store response header from PR #547 and reducing stale/shared-cache risk for founder digest UI reads. This is a browser fetch option + test/matrix update only; it does not alter Supabase queries, API response shape, auth semantics, schema, migrations, provider calls, approvals, billing, env, deploy, or production data.
+
+TDD evidence: RED focused Vitest `pnpm exec vitest run 'src/app/(founder)/founder/command-centre/__tests__/DigestBanner.redaction.test.tsx' -t 'requests the founder digest with no-store cache semantics'` failed for the intended reason: the `fetch` call lacked `cache: 'no-store'`. GREEN after minimal component change: the same focused test passed.
+
+Verification: focused banner + route suite passed (`pnpm exec vitest run 'src/app/(founder)/founder/command-centre/__tests__/DigestBanner.redaction.test.tsx' 'src/app/api/command-centre/overnight-summary/__tests__/route.test.ts'` -> 2 files / 8 tests passed, with existing intentional sanitized-error stderr). `pnpm run type-check` passed. `pnpm run lint` passed. Full `pnpm run test` passed (451 files / 2686 tests), with existing intentional failure-path stderr and one existing React `act(...)` warning only. `git diff --check` passed for the touched component/test. Refined touched-component security scan returned zero findings for dangerous HTML, browser Supabase/service-role use, DB mutation literals, `process.env`, raw Board refs, bearer/JWT fragments, email addresses, card snippets, credentialed URLs, or similar sensitive-output patterns. A broader command-centre directory scan only found pre-existing unrelated `process.env.HOME/USERPROFILE` references plus existing redaction-fixture strings in the test file; those were classified as non-blocking because the touched production component scan was clean and the fixture strings are synthetic regression inputs.
+
+Build/deploy gate: local `pnpm run build` remains env-gated by `scripts/validate-env.mjs --ci` because the cron shell does not have all app env groups configured (`CRITICAL: 1/3`, `REQUIRED: 1/4`, `INTEGRATION: 1/14`; names/counts only). No env values were read, printed, or mutated.
+
+Reviewer/publication status: independent review `deleg_ed46d84a` was dispatched for the bounded diff and is pending at evidence-write time, so I did not commit, push, open a PR, merge, deploy, mutate env, apply migrations, write production data, or perform billing/client-facing/cross-client actions.
+
+Gate packet: direct slice classification is `NONE` for production/finance/DB/spend impact (founder UI fetch-cache option + test/docs only). Publication remains `NAMESPACE` / `KEEP_GATED` until the independent reviewer returns clean and a follow-up run commits/pushes/opens PR with fresh CI/Vercel checks. Rollback is a file-only revert of `DigestBanner.tsx`, `DigestBanner.redaction.test.tsx`, and the CRM matrix/evidence doc edits.
+
+Next safe lane: when reviewer read-back is clean, commit the bounded diff, push/open a PR to `main`, and use GitHub/Vercel as the env-complete build gate; otherwise address reviewer findings locally before publication.
+
 ## 2026-06-29 06:11 AEST
 
 ### Tick 20260629_0611 — PR #546 merged; command-centre digest no-store slice added

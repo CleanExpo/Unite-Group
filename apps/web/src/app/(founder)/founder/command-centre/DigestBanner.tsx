@@ -46,7 +46,10 @@ export function DigestBanner() {
     let active = true
     void (async () => {
       try {
-        const res = await fetch('/api/command-centre/overnight-summary', { credentials: 'include' })
+        const res = await fetch('/api/command-centre/overnight-summary', {
+          credentials: 'include',
+          cache: 'no-store',
+        })
         if (!res.ok) {
           if (active) setError(`Digest unavailable (HTTP ${res.status})`)
           return

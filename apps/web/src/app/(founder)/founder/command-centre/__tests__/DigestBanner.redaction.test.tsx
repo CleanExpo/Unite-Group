@@ -8,6 +8,31 @@ afterEach(() => {
 })
 
 describe('DigestBanner', () => {
+  it('requests the founder digest with no-store cache semantics', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        digest: {
+          generatedAt: '2026-06-29T07:00:00Z',
+          tasks: { total: 0, needsDecision: 0, queued: 0, blocked: 0, failed: 0, done: 0 },
+          sessions: { total: 0 },
+          headline: 'No tasks in the queue yet — capture an idea to begin.',
+          attention: [],
+        },
+      }),
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<DigestBanner />)
+
+    await waitFor(() => expect(screen.getByText('Morning Digest')).toBeTruthy())
+    expect(fetchMock).toHaveBeenCalledWith('/api/command-centre/overnight-summary', {
+      credentials: 'include',
+      cache: 'no-store',
+    })
+  })
+
   it('redacts sensitive headline and attention copy from the overnight digest response', async () => {
     const boardRef = ['BOARD', '2026', '06', '27', 'DIGEST'].join('-')
     const email = ['lead', 'restoreassist.example'].join('@')
