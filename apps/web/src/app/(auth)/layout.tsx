@@ -1,20 +1,36 @@
 import React from "react";
+import Image from "next/image";
 
 // Force dynamic rendering for all auth pages — they require session context
 export const dynamic = 'force-dynamic';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      className="min-h-screen flex items-center justify-center p-4 relative"
-      style={{
-        background: 'var(--surface-canvas)',
-        backgroundImage: 'var(--auth-bg-pattern), var(--auth-glow)',
-        backgroundSize: 'var(--auth-bg-size), 100% 100%',
-      }}
-    >
-      <div className="w-full max-w-md relative z-10">
-        {/* Pi-CEO brand mark — the π symbol */}
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Cinematic Pi-CEO hero — the same orange landing face as the Pi-Dev-Ops
+          dashboard, so the two surfaces stop reading as two different products. */}
+      <Image
+        src="/pi-ceo-hero.jpg"
+        alt="Pi CEO"
+        fill
+        priority
+        quality={85}
+        sizes="100vw"
+        className="object-cover object-center"
+        style={{ zIndex: 0 }}
+      />
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'linear-gradient(to bottom, rgba(10,10,10,0.55) 0%, rgba(10,10,10,0.74) 55%, rgba(10,10,10,0.93) 100%)',
+          zIndex: 1,
+        }}
+      />
+
+      <div className="w-full max-w-md relative" style={{ zIndex: 10 }}>
+        {/* Pi-CEO brand mark — orange π (was a green gradient that made this look
+            like a separate, duller app from the orange Pi-CEO landing). */}
         <div className="flex flex-col items-center mb-8">
           <div
             className="mb-3 flex items-center justify-center"
@@ -22,9 +38,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
               width: 76,
               height: 76,
               borderRadius: 20,
-              background: 'linear-gradient(160deg, #22c55e 0%, #16a34a 55%, #15803d 100%)',
+              background: 'linear-gradient(160deg, #fb923c 0%, #f97316 55%, #ea580c 100%)',
               boxShadow:
-                '0 10px 26px rgba(22,163,74,0.32), inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -2px 8px rgba(0,0,0,0.20)',
+                '0 10px 30px rgba(249,115,22,0.40), inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -2px 8px rgba(0,0,0,0.20)',
             }}
           >
             <span
@@ -34,27 +50,33 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                 fontWeight: 700,
                 lineHeight: 1,
                 color: '#ffffff',
-                textShadow: '0 1px 0 rgba(0,0,0,0.28), 0 -1px 0 rgba(255,255,255,0.35)',
+                textShadow: '0 1px 0 rgba(0,0,0,0.28)',
               }}
             >
               π
             </span>
           </div>
           <p
-            className="text-[16px] font-semibold tracking-[0.18em] uppercase"
-            style={{ color: 'var(--color-text-primary)' }}
+            className="font-bold leading-none"
+            style={{
+              fontSize: 'clamp(32px, 6vw, 52px)',
+              color: '#fafafa',
+              letterSpacing: '0.06em',
+              textShadow: '0 2px 28px rgba(0,0,0,0.85)',
+            }}
           >
-            Pi-CEO
+            PI CEO
           </p>
           <p
-            className="text-[10px] font-mono tracking-[0.3em] uppercase mt-1"
-            style={{ color: 'var(--color-text-muted)' }}
+            className="text-[10px] font-mono tracking-[0.32em] uppercase mt-2"
+            style={{ color: '#f97316' }}
           >
-            Unite-Group
+            Unite-Group Nexus
           </p>
         </div>
 
-        {/* Auth Card — elevated with green top accent */}
+        {/* Auth card — kept light (var tokens) so the form + Google button stay
+            legible and the auth flow is untouched; only the chrome changed. */}
         <div
           className="rounded-sm p-8"
           style={{
@@ -62,8 +84,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             borderLeft:   '1px solid var(--color-border)',
             borderRight:  '1px solid var(--color-border)',
             borderBottom: '1px solid var(--color-border)',
-            borderTop:    '2px solid rgba(22, 163, 74, 0.55)',
-            boxShadow:    '0 12px 32px rgba(0,0,0,0.06)',
+            borderTop:    '2px solid #f97316',
+            boxShadow:    '0 16px 48px rgba(0,0,0,0.45)',
           }}
         >
           {children}
@@ -72,7 +94,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         {/* Footer */}
         <p
           className="text-center text-[11px] mt-6 font-mono tracking-wider"
-          style={{ color: 'var(--color-text-disabled)' }}
+          style={{ color: 'rgba(250,250,250,0.55)' }}
         >
           © 2026 Pi-CEO · Unite-Group. All rights reserved.
         </p>
