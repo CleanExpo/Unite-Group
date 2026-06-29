@@ -175,7 +175,8 @@ export const SwarmTerminal = memo(function SwarmTerminal({
 
       focusTerminal()
 
-      const viewport = containerRef.current.querySelector('.xterm-viewport')
+      const viewport =
+        containerRef.current.querySelector<HTMLElement>('.xterm-viewport')
       const wheelHandler = (event: WheelEvent) => {
         // Make wheel scrolling reliably review terminal scrollback instead of
         // being interpreted as shell/tmux history navigation.

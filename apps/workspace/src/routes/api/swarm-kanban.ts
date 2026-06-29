@@ -11,7 +11,18 @@ import {
 const CreateCardSchema = z.object({
   title: z.string().trim().min(1).max(200),
   spec: z.string().trim().max(5000).optional().default(''),
-  acceptanceCriteria: z.string().trim().max(5000).optional().default(''),
+  acceptanceCriteria: z
+    .string()
+    .trim()
+    .max(5000)
+    .optional()
+    .default('')
+    .transform((value) =>
+      value
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean),
+    ),
   assignedWorker: z.string().trim().max(120).optional().nullable(),
   reviewer: z.string().trim().max(120).optional().nullable(),
   status: z
