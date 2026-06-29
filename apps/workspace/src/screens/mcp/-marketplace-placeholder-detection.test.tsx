@@ -332,7 +332,7 @@ describe('(c) partial fill keeps Install disabled', () => {
     })
 
     // Fill only the arg, leave env empty
-    const argInput = container.querySelector(
+    const argInput = container.querySelector<HTMLInputElement>(
       '[data-testid="placeholder-input-args[1]"]',
     )
     expect(argInput).not.toBeNull()

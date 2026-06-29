@@ -39,9 +39,13 @@ function makeRequest(url: string): Request {
 
 async function callGet(url: string): Promise<Response> {
   const request = makeRequest(url)
-  const handler = Route.options.server?.handlers?.GET
+  const handlers = Route.options.server?.handlers as Record<
+    string,
+    (ctx: { request: Request }) => Promise<Response>
+  >
+  const handler = handlers['GET']
   if (!handler) throw new Error('No GET handler')
-  return handler({ request } as Parameters<typeof handler>[0])
+  return handler({ request })
 }
 
 beforeEach(() => {

@@ -852,6 +852,7 @@ export function getEnhancedCapabilities(): EnhancedCapabilities {
     jobs: capabilities.jobs,
     mcp: capabilities.mcp,
     mcpFallback: capabilities.mcpFallback,
+    conductor: capabilities.conductor,
   }
 }
 
