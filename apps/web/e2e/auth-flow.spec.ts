@@ -48,8 +48,8 @@ test.describe('Auth Flow', () => {
   test('login page displays Nexus branding', async ({ page }) => {
     await page.goto('/auth/login')
 
-    await expect(page.getByText('Pi-CEO', { exact: true })).toBeVisible()
-    await expect(page.getByText('Unite-Group', { exact: true })).toBeVisible()
+    await expect(page.getByText('PI CEO', { exact: true })).toBeVisible()
+    await expect(page.getByText('Unite-Group Nexus', { exact: true })).toBeVisible()
     await expect(page.locator('h1')).toContainText('Sign in')
   })
 
