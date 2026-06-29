@@ -11,7 +11,7 @@
 > Linear UNI-2207 / 2211 / 2212 / 2213 / 2214.
 
 ## 0b. v3 changelog (closing the judge's 86.5→100 deductions)
-- **First-source (+5):** fallback model is now **DeepSeek V4-flash** (STORM-reconfirmed cheap workhorse; price tagged `UNSUPPORTED-until-reconfirmed-at-spend`), replacing deepseek-v3.2; §16.1 adds a **live-probe + tool/JSON smoke test of the fallback slug** (same standard that rejected Kimi); the primary free slug (`gpt-oss-120b:free`) is named with its live-probe recorded.
+- **First-source (+5):** fallback model is now **DeepSeek V4-flash** (STORM-reconfirmed cheap workhorse; price tagged `UNSUPPORTED-until-reconfirmed-at-spend`), replacing deepseek-v3.2; §16.1 adds a **live-probe + tool/JSON smoke test of the fallback slug** (same standard that rejected Kimi); the primary free slug (`gpt-oss-120b:free`) is named, with its live-probe required as a §16.1 build-start prerequisite (recorded into §2 at that point, not pre-claimed here).
 - **Reuse +2 / Cost +1:** new **OWNED-CAPACITY tier — the MiniMax plan** (M3 via `ANTHROPIC_BASE_URL=https://api.minimax.io/anthropic`), spent BEFORE any metered call. Router order: **owned → free → cheap-paid → local.**
 - **Security +2:** free/non-Anthropic public calls now send OpenRouter's per-request **`zdr` parameter** (enforced, not a toggle), with a static check asserting it; Slice B `host.docker.internal` route resolved (proxy CONNECT allow for host:port only + negative test); export-control + Claude-Max-consumer-trains notes added.
 - **UX +1:** full **failure-taxonomy→exit-code table** enumerated; proxy deny-log + JSONL trace on-disk path/format specified.
@@ -105,7 +105,7 @@ Anthropic-first (open models = low-stakes only). Free + Kimi = public data only.
 |---|---|---:|---|
 | Tiered router | Pi-Dev-Ops `provider_router.py` (cross-repo) | Reference only | Slice 1 builds a minimal self-contained router; **forward-compat contract DROPPED as speculative** (judge) |
 | Agent role definitions | `skills/` (pm-core, qa-lead) | As prompts only | These are Claude-Code skills pinned to Sonnet — **NOT loaded as skills** (would call Anthropic). Use their role text as system prompts in the custom loop |
-| Routing table | `tier0-model-routing-openrouter.md` | Yes | Defines tiers; Kimi replaced by `deepseek-v3.2` for the pilot |
+| Routing table | `tier0-model-routing-openrouter.md` | Yes | Defines tiers; Kimi replaced by **DeepSeek V4-flash** for the pilot fallback (Kimi slug 404'd) |
 | Local model fit | `local-agentic-harness-ornith-lmstudio.md` | Candidate only | Ornith-9B is a **candidate, tool-use quality UNVERIFIED** (no published BFCL; base-arch disputed). "Verified pick" was overstated — corrected |
 | Docker isolation | this machine | Partial | Docker present; **per-host egress is NOT native — needs proxy sidecar**; **DMR not running** |
 | Agent runtime/loop | Pi-Dev-Ops `claude-runtime`, `agentic-loop` | **Yes — enhance** | The runner IS these skills made router-aware (add OpenRouter/MiniMax/local base_url). Resolves the "runtime undefined" gap by extension, not bypass |
@@ -113,7 +113,7 @@ Anthropic-first (open models = low-stakes only). Free + Kimi = public data only.
 | **OWNED MiniMax plan** | user's MiniMax subscription | **Yes — top tier** | Flat-rate owned capacity (M3, `https://api.minimax.io/anthropic`), spend BEFORE metered. Was left on the table in v2 |
 
 ### 6A. STORM-verified model facts (primary-sourced 2026-06-30)
-- **MiniMax-M3** (owned plan): multimodal (text+image+video in), 1M context native; wire via `ANTHROPIC_BASE_URL=https://api.minimax.io/anthropic`, `ANTHROPIC_MODEL=MiniMax-M3`. Plans Plus $20 / Max $50 / Ultra $120, 5-hr rolling + weekly windows. **GOTCHA:** the `/anthropic` shim reportedly advertises ~200K not 1M (GitHub MiniMax issue #46) → add a context-window smoke test; route true-1M jobs to native/OpenRouter. Pay-go ref: ≤512K $0.30/$1.20. **No verified ZDR → PUBLIC data only.**
+- **MiniMax-M3** (owned plan): multimodal (text+image+video in), 1M context native; wire via `ANTHROPIC_BASE_URL=https://api.minimax.io/anthropic`, `ANTHROPIC_MODEL=MiniMax-M3`. Plans Plus $20 / Max $50 / Ultra $120, 5-hr rolling + weekly windows (prices STORM-sourced from platform.minimax.io; `UNSUPPORTED-until-reconfirmed-at-signup`, same hedge as the DeepSeek price). **GOTCHA:** the `/anthropic` shim reportedly advertises ~200K not 1M (GitHub MiniMax issue #46) → add a context-window smoke test; route true-1M jobs to native/OpenRouter. Pay-go ref: ≤512K $0.30/$1.20. **No verified ZDR → PUBLIC data only.**
 - **GLM (Zhipu/Z.ai):** GLM-5.2 ($0.94/$3.00, 1M, MIT), GLM-4.7 ($0.40/$1.75, 203K), **GLM-4.6 ($0.43/$1.74, tool-use confirmed)** — best GLM for search-based gathering — GLM-4.7-Flash ($0.06/$0.40, 30B-class, free only on direct Z.ai). **Export-control: GLM only as open-weights on a US host (Zhipu on the Entity List, 16 Jan 2025); do not send data to Zhipu-hosted endpoints for anything sensitive.**
 - **DeepSeek V4-flash:** ~$0.054/$0.242, 1M — current cheap workhorse fallback (price `UNSUPPORTED-until-reconfirmed-at-spend`).
 - **Long-context reality (NoLiMa):** advertised ≠ usable; effective recall collapses well below the advertised window → reliable-synthesis ceiling ~200–256K, chunk-and-stitch beats stuffing. Cap context accordingly.
@@ -132,7 +132,17 @@ Anthropic-first (open models = low-stakes only). Free + Kimi = public data only.
 
 ## 8. Judge challenge (INDEPENDENT — not self-graded)
 
-Independent grading history (real, not self-graded): **v1 = 73/100 (REDUCE SCOPE)** → **v2 = 86.5/100 (APPROVE BUILD on Slice A, with edits)** from the STORM-team judge, which enumerated seven deduction groups. **v3 closes all seven** (see §0b): owned MiniMax tier added (reuse+cost), DeepSeek V4-flash fallback with a liveness precondition (first-source+testability), `zdr`-enforced no-retention + export-control + host-route resolution (security), failure-taxonomy→exit-code table + fixed evidence paths (UX), and the Max-ceiling restated as a measured hypothesis (problem). v3 targets a genuine 100 — **confirmed by a fresh independent re-judge appended in §8A**, not by self-assertion.
+Independent grading history (real, not self-graded): **v1 = 73/100 (REDUCE SCOPE)** → **v2 = 86.5/100** (STORM-team judge, 7 deduction groups) → **v3 = 92/100** (fresh independent re-judge, found 4 residual defects + 2 I introduced) → **this revision (v3.1) closes those**. The score is NOT self-asserted; see §8A for the real ledger and the live re-judge status.
+
+### 8A. Re-judge ledger (real)
+| Rev | Score | Source | Outcome |
+|---|---:|---|---|
+| v1 | 73 | independent judge | REDUCE SCOPE → split slices |
+| v2 | 86.5 | STORM-team judge | APPROVE BUILD Slice A; 7 deductions |
+| v3 | 92 | independent re-judge (live-verified all 4 model slugs) | 4 residual defects + 2 self-introduced (phantom §8A, stale `deepseek-v3.2` refs, owned-tier vs blanket-`zdr` contradiction, §13 unit-test/§18 stamp) |
+| v3.1 | re-grade in progress | independent re-judge | closes all v3 defects: stale fallback refs → V4-flash; `zdr` criterion scoped to OpenRouter-routed calls; §13 unit-test → owned→free→cheap-paid; §18 stamp v3; free-slug liveness precondition; MiniMax $ tagged UNSUPPORTED; this §8A replaces the phantom reference |
+
+The final 100 is **only declared when the re-judge confirms it on real data** — not before.
 
 ## 9. Proposed solution
 
@@ -152,7 +162,7 @@ A **custom Python agent loop** using an OpenAI-compatible client with configurab
 - Local model (Slice B): runs on the HOST (the 7.75 GiB VM can't hold it). **Resolved host route:** the app container stays on `internal: true` (no default gateway); the sidecar proxy holds a single explicit **CONNECT allow for `host.docker.internal:<port>` only** (the host gateway IP), and the app reaches the local model via the proxy like any other egress. For a confidential run the proxy allowlist is `{host.docker.internal:<port>}` and nothing else → a **§13 negative test asserts the run reaches ONLY that host:port and emits zero other egress at the proxy.** LM Studio must bind `0.0.0.0:1234` (DMR uses `model-runner.docker.internal`/host `:12434` — pick ONE backend and wire its real endpoint; do not conflate).
 
 ### Failure flow (expanded)
-Free slug 429 / 5xx / connection-timeout / **slug-404 (free slugs churn)** / `Retry-After` → fallback to `deepseek-v3.2`; persistent failure → fail loud (Anthropic not in allowlist, so no silent Max fallback is even possible). Local down (Slice B) → confidential task REFUSES (exit non-zero). Each mapped to a distinct exit code.
+Free slug 429 / 5xx / connection-timeout / **slug-404 (free slugs churn)** / `Retry-After` → fallback to **DeepSeek V4-flash** (`deepseek/deepseek-v4-flash`); persistent failure → fail loud (Anthropic not in allowlist, so no silent Max fallback is even possible). Local down (Slice B) → confidential task REFUSES (exit non-zero). Each mapped to a distinct exit code.
 
 ### Rollback path
 Additive, self-contained new dir; `git revert` + `docker rmi` + `docker network rm`. Zero impact on Nexus or other branches.
@@ -186,7 +196,7 @@ Single CLI `run --task <file>`. Per-run report: run-ID, model+tier used, data-cl
 ## 11. Technical requirements
 - Custom OpenAI-compatible agent loop; configurable `base_url`; `max_tokens` cap.
 - Forward-proxy sidecar with domain allowlist; app on `internal` network.
-- Router: cost-ordered tiers in A — **owned MiniMax-M3 → free `gpt-oss-120b:free` → cheap-paid DeepSeek V4-flash / GLM-4.6**; +local in B. Minimal, no speculative contract. Sets OpenRouter `zdr` on every non-Anthropic public call.
+- Router: cost-ordered tiers in A — **owned MiniMax-M3 → free `gpt-oss-120b:free` → cheap-paid DeepSeek V4-flash / GLM-4.6**; +local in B. Minimal, no speculative contract. Sets OpenRouter `zdr` on every **OpenRouter-routed** call; the owned MiniMax-direct tier has no `zdr` param and is governed by public-data-only.
 - Slice B local: Ornith-1.0-9B verified-provenance build; context 8–16K (measured KV); container `--memory`/`--memory-swap` caps.
 - Client-side **rate limiter** (token bucket ≤20 RPM + RPD counter) — proactive, not reactive-on-429.
 - New code under a dedicated dir (builder picks, e.g. `tools/harness-pilot/`); must not touch root `spec.md`/swarm2.
@@ -196,15 +206,15 @@ Single CLI `run --task <file>`. Per-run report: run-ID, model+tier used, data-cl
 - **Secrets:** `--env-file` or secret-mount only (never `-e KEY=…`, visible in `docker inspect`/`/proc` — and Docker is in swarm mode here). OpenAI client configured to redact the `Authorization` header. Post-run scan: key prefix absent from logs, artifact, and `docker inspect`.
 - **Supply chain:** digest-pinned hardened base image (use installed `docker-dhi`); pinned deps; no `curl|bash`. Model weights from official `deepreinforce-ai`/`mlx-community` with checksum — NOT the personal HF quant.
 - **Prompt injection:** fetched public content is hostile input. Treat as data, not instructions; strip/escape into a data channel; disable every tool the proof task doesn't need; proxy neutralizes exfil-to-attacker-URL.
-- **Enforced no-retention (not asserted):** every free/non-Anthropic public call sets OpenRouter's per-request **`zdr`** parameter; a §13 **static check asserts the request body carries `zdr`** (or routes only to a ZDR-filtered provider). Network proves zero-Anthropic; `zdr` proves no-retention; public-data-only remains the hard rule. (NYT v. OpenAI established a ZDR *contract* — not a no-train checkbox — is the real shield.)
+- **Enforced no-retention (not asserted):** every **OpenRouter-routed** public call sets OpenRouter's per-request **`zdr`** parameter; a §13 **static check asserts every OpenRouter request body carries `zdr`** (or routes only to a ZDR-filtered provider). The **owned MiniMax-direct tier** (`api.minimax.io/anthropic`) has no `zdr` param available, so it is governed by the hard public-data-only rule, not by `zdr`. Net: network proves zero-Anthropic; `zdr` proves no-retention on the OpenRouter lane; public-data-only covers the owned/direct lanes. (NYT v. OpenAI: a ZDR *contract* — not a no-train checkbox — is the real shield.)
 - **Export-control:** any GLM use is open-weights on a **US host only** (Zhipu on the US Entity List, 16 Jan 2025) — never send data to a Zhipu-hosted endpoint. MiniMax/DeepSeek first-party = public data only (no verified ZDR).
 - **Claude Max is a consumer surface that trains when its toggle is ON** — it is excluded from the gathering lane regardless; verify the toggle OFF before any proprietary data touches a Max session elsewhere.
 
 ## 13. Verification plan
 ### Static checks
-Lint/typecheck runner + router. **Assert no Anthropic host in any allowlist** (grep the compose/proxy config).
+Lint/typecheck runner + router. **Assert no Anthropic host in any allowlist** (grep the compose/proxy config). **Assert every OpenRouter request carries `zdr`.**
 ### Unit tests
-Router/gate: public → free→deepseek order; confidential/unknown → local-only (or REFUSE if no local); fallback order on 429/5xx/404/timeout; **no branch ever returns an Anthropic endpoint.**
+Router/gate: public → **owned MiniMax-M3 → free `gpt-oss-120b:free` → cheap-paid DeepSeek V4-flash** order; confidential/unknown → local-only (or REFUSE if no local); fallback order on 429/5xx/404/timeout; OpenRouter calls set `zdr`; **no branch ever returns an Anthropic endpoint.**
 ### Integration tests
 Summarise-URLs end-to-end → schema-valid JSON. Confidential task (mock local in A; real local in B) emits **zero** OpenRouter requests (captured at proxy).
 ### Smoke tests
@@ -229,7 +239,7 @@ Proxy deny-log (zero Anthropic attempts), structured trace, schema-valid artifac
 - [ ] Secret-leak scan passes (key prefix absent from logs, artifact, `docker inspect`).
 - [ ] Fallback slug (DeepSeek V4-flash) **proven live** (precondition) BEFORE the forced-failure test; chain free → fallback then triggers under a forced free-tier failure.
 - [ ] Owned **MiniMax-M3** tier is exercised and spent before any metered call for fitting work; the `/anthropic` shim context-window smoke test recorded (≥ the job's need, else routed to native).
-- [ ] Every non-Anthropic public call carries the OpenRouter `zdr` parameter (static check passes).
+- [ ] Every **OpenRouter-routed** public call carries the `zdr` parameter (static check passes); the owned MiniMax-direct tier is governed by public-data-only (no `zdr` param exists for it).
 - [ ] Observed Tier-0 RPM/throughput headroom captured in the evidence set (measures the §3 Max-ceiling hypothesis).
 - [ ] Prompt-injection probe does not alter egress, tool calls, or leak the key.
 - [ ] Rate limiter holds ≤20 RPM (proactive, not 429-reactive).
@@ -265,18 +275,18 @@ vs MOCK local), plus §14 loop checks incl. the fallback-slug-live precondition.
 ```
 
 ## 17. Implementation sequence
-1. Prereq verification (fail fast): proxy image, OpenRouter key + real RPD tier, hardened base image.
-2. Scaffold runner + router; **unit-test router/gate before any container work**.
+1. Prereq verification (fail fast): proxy + hardened base images; OpenRouter key + real RPD tier; **fallback slug `deepseek/deepseek-v4-flash` live + tool/JSON smoke**; **primary free slug `openai/gpt-oss-120b:free` live** (record both in §2); MiniMax plan key live + context-shim smoke.
+2. Scaffold runner + router; **unit-test the owned→free→cheap-paid order + zdr-present + no-Anthropic-branch before any container work**.
 3. Build proxy sidecar + two-network topology; prove deny-by-default (curl a non-allowlisted host → blocked).
-4. Wire OpenRouter free + deepseek-v3.2 + rate limiter; add timeouts/loop bounds.
+4. Wire owned MiniMax-M3 + OpenRouter free + **DeepSeek V4-flash** + rate limiter; add timeouts/loop bounds.
 5. Proof task + atomic schema-validated artifact writer + structured trace.
 6. Integration + smoke + §14 loop checks; capture all §15 evidence.
 7. Update UNI-2212/2213 with results. **Slice B** only after provisioning + empirically confirming Ornith tool-calling.
 
 ## 18. Session handoff seed
-- **Branch:** `research/openshell-agentic-blueprint` (worktree `.claude/worktrees/isolated-task`). **Spec:** this file (HARDENED v2).
+- **Branch:** `research/openshell-agentic-blueprint` (worktree `.claude/worktrees/isolated-task`). **Spec:** this file (HARDENED v3).
 - **Build now:** Slice A (no unverified deps). **Gated:** Slice B (provision local lane + confirm Ornith tools first).
-- **Live-probed facts:** Docker VM 7.75 GiB (model runs HOST-side); DMR disabled + LM Studio not running (Slice B blockers); Kimi 404 → use deepseek-v3.2; OpenRouter key live but RPD tier unconfirmed; box already swapping with 5 sandbox nets resident; `provider_router.py` cross-repo.
+- **Live-probed facts:** Docker VM 7.75 GiB (model runs HOST-side); DMR disabled + LM Studio not running (Slice B blockers); Kimi 404 → use **DeepSeek V4-flash** (`deepseek/deepseek-v4-flash`, live-verified); OpenRouter key live but RPD tier unconfirmed; owned MiniMax plan = top tier; box already swapping with 5 sandbox nets resident; `provider_router.py` cross-repo.
 - **Do-not-touch:** root `spec.md`, swarm2 files.
 - **Next safe action after Slice A:** provision the local lane, then Slice B; then the durable queue + 2nd agent (fleet slice).
 
