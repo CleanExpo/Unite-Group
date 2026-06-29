@@ -1,3 +1,10 @@
+/**
+ * Canonical thinking-level union shared by chat-screen, chat-composer (the
+ * off/low/medium/high picker), and chat-header (the 'adaptive' indicator).
+ * Previously duplicated and diverged across those three files.
+ */
+export type ThinkingLevel = 'off' | 'low' | 'medium' | 'high' | 'adaptive'
+
 export type ToolCallContent = {
   type: 'toolCall'
   id?: string

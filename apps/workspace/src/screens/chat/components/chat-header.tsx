@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { openHamburgerMenu } from '@/components/mobile-hamburger-menu'
+import type { ThinkingLevel } from '../types'
 
 function toTitleCase(value: string): string {
   return value
@@ -63,8 +64,6 @@ function formatMobileSessionTitle(rawTitle: string): string {
 
   return title
 }
-
-type ThinkingLevel = 'off' | 'low' | 'adaptive'
 
 type ChatHeaderProps = {
   activeTitle: string
