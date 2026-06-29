@@ -68,7 +68,7 @@ function defaultRoleFromId(id: string): string {
 export function fallbackRoster(ids: Array<string> = []): SwarmRoster {
   return {
     version: 1,
-    workers: ids.map((id) => ({
+    workers: ids.map((id): SwarmRosterWorker => ({
       id,
       name: id.replace(/^swarm/i, 'Swarm'),
       role: defaultRoleFromId(id),
@@ -76,6 +76,11 @@ export function fallbackRoster(ids: Array<string> = []): SwarmRoster {
       model: 'Worker',
       mission: 'Awaiting orchestrator dispatch.',
       skills: [],
+      capabilities: [],
+      preferredTaskTypes: [],
+      maxConcurrentTasks: 1,
+      acceptsBroadcast: true,
+      reviewRequired: false,
     })),
   }
 }
