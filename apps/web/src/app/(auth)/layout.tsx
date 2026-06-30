@@ -10,7 +10,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       {/* Cinematic Pi-CEO hero — the same orange landing face as the Pi-Dev-Ops
           dashboard, so the two surfaces stop reading as two different products. */}
       <Image
-        src="/pi-ceo-hero.jpg"
+        src="/pi-ceo-hero.webp"
         alt="Pi CEO"
         fill
         priority
