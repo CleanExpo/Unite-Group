@@ -11,8 +11,13 @@ with guarantees enforced at the **network layer** (a router bug cannot leak — 
 cd tools/harness-pilot
 python3 run.py --task tasks/summarise-urls.json --run-id demo      # offline, deterministic, no creds
 python3 -m unittest discover -s tests -v                            # 25 tests
-bash docker/prove_egress.sh                                         # network egress-containment proof
+bash docker/prove_egress.sh                                         # public-lane egress-containment proof
+bash docker/prove_local_confidential.sh                            # confidential lane: local inference yes, internet no
 ```
+
+The confidential proof needs Docker Model Runner enabled with a small model:
+`docker desktop enable model-runner && docker model pull ai/smollm2`. See
+`docs/research/spike-docker-isolation-and-model-runner.md` (UNI-2213) for the full finding.
 
 `--live` performs the §16.1 liveness prerequisites and routes to real endpoints; it
 needs `OPENROUTER_API_KEY` / `MINIMAX_API_KEY` in the env (via `--env-file`, never `-e`).
