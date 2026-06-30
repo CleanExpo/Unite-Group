@@ -58,4 +58,25 @@ describe('KPICard', () => {
       expect(screen.getByText('4 active issues')).toBeInTheDocument()
     })
   })
+
+  it('shows an honest error state when the revenue fetch throws — never a permanent "Loading…"', async () => {
+    global.fetch = vi.fn().mockRejectedValueOnce(new Error('network down'))
+
+    render(
+      <KPICard
+        business={business}
+        metric="—"
+        metricLabel="Revenue MTD"
+        trend={{ value: '—', positive: true }}
+        secondary="Loading..."
+        xeroBusinessKey="restore"
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(/refresh to retry/i)
+    })
+    // The stale "Loading…" fallback must NOT persist after a hard failure.
+    expect(screen.queryByText('Loading...')).not.toBeInTheDocument()
+  })
 })
