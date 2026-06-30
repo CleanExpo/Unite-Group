@@ -155,7 +155,7 @@ A spec.md is considered **complete** (≥80%) when it has:
 ### Design System Compliance (ALL REQUIRED)
 
 - ✅ References `.claude/data/design-tokens.json`
-- ✅ Explicitly states "NO Lucide icons"
+- ✅ Explicitly states "Lucide React (standard icon library)"
 - ✅ Specifies 2025-2026 aesthetic (bento grid, glassmorphism)
 - ✅ Includes WCAG 2.1 AA accessibility requirements
 
@@ -199,7 +199,7 @@ Both templates can be customized to match your project needs, but maintain the c
 
 - The 6-phase structure (Vision → Users → Technical → Design → Business → Implementation)
 - Australian context requirements (en-AU, DD/MM/YYYY, AUD, WCAG 2.1 AA)
-- Design system compliance (design tokens, NO Lucide icons)
+- Design system compliance (design tokens)
 - Verification requirements
 
 ### Creating Project-Specific Variations

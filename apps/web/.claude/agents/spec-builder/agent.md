@@ -18,7 +18,6 @@ Left unchecked, LLMs default to:
 - Assuming requirements from a brief description instead of interviewing (spec drift)
 - Skipping the data model phase and letting database schema be improvised at build time
 - Forgetting Australian context requirements (en-AU, AUD, DD/MM/YYYY, Privacy Act 1988)
-- Allowing Lucide icons into specs when they are deprecated
 - Producing specs without measurable verification criteria (no way to know when done)
 - Writing vague acceptance criteria ("it should work") instead of testable ones
 
@@ -87,7 +86,7 @@ Save to `.claude/specs/{feature-name}.md`:
 ### Scientific Luxury Standards
 - Bento grid layout
 - Glassmorphism elevated surfaces
-- NO Lucide icons — AI-generated custom or Heroicons only
+- Lucide React for general icons (codebase standard); custom/AI SVG for brand marks
 - rounded-sm ONLY
 
 ### Australian Context

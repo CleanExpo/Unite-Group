@@ -31,7 +31,7 @@ The Unite-Group AI Architecture is a hybrid system that preserves the strengths 
 2. **Truth-First**: NO content publishes without verification (4-tier source hierarchy)
 3. **SEO-Dominant**: Complete market takeover (Brisbane → Queensland → Australia → NZ → Global)
 4. **Verification-First**: Independent verification, evidence-based, no self-attestation
-5. **Design-Forward**: 2025-2026 aesthetic (Bento grids, glassmorphism, NO Lucide icons)
+5. **Design-Forward**: 2025-2026 aesthetic (Bento grids, glassmorphism)
 
 ### Key Metrics
 
@@ -68,7 +68,7 @@ Specialized agents handle specific domains. Each agent has:
 - **Priority**: 1 (Critical)
 - **Auto-load**: true (fires on every response via pre-response.hook)
 - **Skills**: australian-context.skill.md, design-system.skill.md
-- **Enforces**: en-AU spelling, DD/MM/YYYY dates, AUD currency, 2025-2026 design, NO Lucide icons
+- **Enforces**: en-AU spelling, DD/MM/YYYY dates, AUD currency, 2025-2026 design
 
 **Verification** (`verification/agent.md`)
 - **Role**: Independent Quality Gatekeeper
@@ -152,7 +152,7 @@ Reusable knowledge modules organized by category. All skills use `.skill.md` ext
 - `design-system.skill.md` (Priority 1, auto-load)
   - 2025-2026 aesthetic (Bento grids, glassmorphism)
   - Locked design tokens (`.claude/data/design-tokens.json`)
-  - NO Lucide icons - AI-generated custom only
+  - Lucide React standard; custom SVG for brand marks
 - `foundation-first.skill.md` (Priority 2)
   - 7-layer foundation (psychology → personas → journeys)
   - 8 missing states checklist
@@ -312,7 +312,7 @@ Agent Execution
   - Spacing: 8px base, 0.25rem unit
   - Border radius: 6px sm → 24px 2xl
   - Shadows: Soft colored (NEVER pure black) - rgba(13, 148, 136, 0.1)
-  - Iconography: NO Lucide (deprecated), AI-generated custom only
+  - Iconography: Lucide React (standard); custom SVG for brand marks
   - Glassmorphism: rgba(255, 255, 255, 0.7), backdrop-blur 10px
   - Micro-interactions: hover-scale 1.02, 150ms transitions
 
@@ -795,7 +795,7 @@ pnpm turbo run type-check lint    # All checks
 **Layout**: Bento grid
 **Surface**: Glassmorphism
 **Primary**: #0D9488 (teal)
-**Icons**: NO Lucide - AI-generated custom only
+**Icons**: Lucide React (standard); custom SVG for brand marks
 **Shadows**: Soft colored (NEVER pure black)
 
 ---
