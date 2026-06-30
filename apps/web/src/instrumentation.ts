@@ -26,7 +26,6 @@ export async function register() {
     { name: 'Linear',  vars: ['LINEAR_API_KEY'] },
     { name: 'Slack',   vars: ['SLACK_WEBHOOK_URL'] },
     { name: 'Social',  vars: ['FACEBOOK_APP_ID'] },
-    { name: 'Sentry',    vars: ['SENTRY_AUTH_TOKEN'] },
     { name: 'WhatsApp', vars: ['WHATSAPP_ACCESS_TOKEN', 'WHATSAPP_APP_SECRET'] },
     { name: 'GitHub',    vars: ['GITHUB_TOKEN'] },
     { name: 'HeyGen',   vars: ['HEYGEN_API_KEY'] },

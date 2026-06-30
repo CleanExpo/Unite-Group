@@ -5,7 +5,7 @@
 
 import { useEffect } from 'react'
 import Link from 'next/link'
-import * as Sentry from '@sentry/nextjs'
+import { captureClientError } from '@/lib/error-reporting'
 
 export default function KanbanError({
   error,
@@ -15,10 +15,7 @@ export default function KanbanError({
   reset: () => void
 }) {
   useEffect(() => {
-    Sentry.captureException(error, {
-      level: 'error',
-      tags: { errorBoundary: 'kanban' },
-    })
+    captureClientError(error, { errorBoundary: 'kanban', level: 'error' })
   }, [error])
 
   return (

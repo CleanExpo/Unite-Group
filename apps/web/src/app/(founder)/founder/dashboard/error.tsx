@@ -4,8 +4,8 @@
 // Route-level error boundary for the dashboard
 
 import { useEffect } from 'react'
-import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
+import { captureClientError } from '@/lib/error-reporting'
 
 export default function DashboardError({
   error,
@@ -15,10 +15,7 @@ export default function DashboardError({
   reset: () => void
 }) {
   useEffect(() => {
-    Sentry.captureException(error, {
-      level: 'error',
-      tags: { errorBoundary: 'dashboard' },
-    })
+    captureClientError(error, { errorBoundary: 'dashboard', level: 'error' })
   }, [error])
 
   return (

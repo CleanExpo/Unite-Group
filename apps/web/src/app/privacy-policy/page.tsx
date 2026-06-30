@@ -100,8 +100,8 @@ export default function PrivacyPolicyPage() {
           <SubHeading>2.3 Usage and Technical Data</SubHeading>
           <p>
             We collect standard server logs including IP addresses, browser type, pages visited, and timestamps.
-            Vercel (our hosting provider) retains deployment and request logs. We use Sentry for error monitoring
-            and Vercel Analytics for aggregated usage data.
+            Vercel (our hosting provider) retains deployment and request logs, provides error monitoring via
+            Vercel Observability, and Vercel Analytics for aggregated usage data.
           </p>
         </Section>
 
@@ -174,7 +174,6 @@ export default function PrivacyPolicyPage() {
               <tr><td>Supabase (Auth + DB)</td><td>Authentication, database</td><td>AWS ap-southeast-2</td></tr>
               <tr><td>Vercel</td><td>Hosting, edge functions</td><td>Global / US</td></tr>
               <tr><td>Anthropic</td><td>AI completions (Claude API)</td><td>US</td></tr>
-              <tr><td>Sentry</td><td>Error monitoring</td><td>US</td></tr>
               <tr><td>Google (OAuth + APIs)</td><td>Authentication, Gmail, Calendar, Drive</td><td>Global</td></tr>
               <tr><td>Xero</td><td>Accounting data</td><td>AU / NZ</td></tr>
             </tbody>
