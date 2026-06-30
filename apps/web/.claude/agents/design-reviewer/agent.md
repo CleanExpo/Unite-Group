@@ -73,8 +73,8 @@ ALWAYS classify each finding as Violation (must fix), Warning (should fix), or N
 - [ ] No bare white cards
 
 ### Icons
-- [ ] NO Lucide icons — deprecated, none permitted
-- [ ] AI-generated custom icons only (or Heroicons if approved by frontend-designer)
+- [ ] Lucide React for general iconography (the codebase standard)
+- [ ] Custom / AI-generated SVG reserved for brand-specific marks (π logo, business glyphs)
 
 ### Micro-interactions
 - [ ] Hover scale: `scale-[1.02]` (not `scale-105` or larger)

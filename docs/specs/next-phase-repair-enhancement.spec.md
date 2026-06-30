@@ -1,6 +1,6 @@
 # SPM Spec — Next-Phase Repair, Bloat Purge & UI/UX Connect
 
-> **Status:** DELIVERED — 2026-06-30. W1 ✅ · W2 ✅ (1 item escalated) · W3 ⚠️ partial · W4 ✅. See the Delivery record below; per-criterion status in §15.
+> **Status:** DELIVERED — 2026-06-30. W1 ✅ · W2 ✅ (1 item escalated) · W3 ✅ · W4 ✅. Only remaining item: active Margot evidence-log relocation (escalated — external cron). See the Delivery record below; per-criterion status in §15.
 > **Author:** SPM (`/spm`), Pi-CEO board process. **Date:** 2026-06-30.
 > **Repo:** `CleanExpo/Unite-Group` · checkout `~/pi-seo-workspace/unite-group` · branch `main` @ `becee09d39ad` · working tree clean.
 > **Evidence rule:** every claim tagged `[VERIFIED]` (read/ran this session), `[INFERENCE]`, or `[UNVERIFIED]`. UNVERIFIED is never presented as fact.
@@ -19,10 +19,13 @@ All work merged to `main` as independent revertable PRs. Verified: `apps/workspa
 - 21M electron bundle untracked (#567) · Sentry fully removed → Vercel observability, footprint bigger than audited per C2 (#570) · hero 3.4M→488K WebP (#571) · 17M avatars→2.7M WebP (#573) · 1.3M dead `claude-logo.png` removed (#577) · 162→7 local branches pruned (squash-merge detection, dry-run) · lockfiles verified in-sync + orphan removed, no convergence per C4 (#574) · 2.1M dead legacy margot logs removed (#576).
 - **Escalated, not done:** active 5.5M Margot evidence-trail logs — written + committed by an EXTERNAL cron; per C2b, relocating needs that cron repointed (not in this checkout). See [[unite-group-margot-evidence-logs]].
 
-**W3 UI/UX — ⚠️ PARTIAL.**
-- ✅ Breadcrumb "404s" were a FALSE POSITIVE — `Breadcrumbs.tsx` was orphaned (zero importers); the live breadcrumb is `Topbar.getBreadcrumb` (plain text, no links). Removed the dead component (#563). The audit's premise was wrong; recorded as [[feedback-verify-component-is-rendered]].
+**W3 UI/UX — ✅ COMPLETE.**
+- ✅ Breadcrumb "404s" were a FALSE POSITIVE — `Breadcrumbs.tsx` was orphaned (zero importers); the live breadcrumb is `Topbar.getBreadcrumb` (plain text, no links). Removed the dead component (#563). Recorded as [[feedback-verify-component-is-rendered]].
 - ✅ en-AU locale drops fixed in social + wiki + a 4th the audit missed (#565).
-- ❌ **Not done:** operator-gateway/hermes-control-panel inline-hex tokenisation; KPIGrid honest total-failure state; Lucide-vs-rule doc resolution. These are genuine remaining polish items — none architectural.
+- ✅ KPIGrid honest total-failure state — the real bug was in `KPICard` (a thrown revenue fetch fell back to the static "Loading…" prop, indistinguishable from the expected not-connected degrade); added a distinct error state (#584).
+- ✅ Lucide-vs-rule resolved — the "NO Lucide" mandate was unenforced fiction (46 files use Lucide); reconciled all ~15 doc statements to make Lucide the standard, custom SVG for brand marks (#585).
+- ✅ 9 (actually 12) dead `apps/web/package.json` script entries removed (#582).
+- ⊘ operator-gateway/hermes inline-hex tokenisation — **MOOT / false positive:** those surfaces use a deliberate, documented, already-centralised bespoke GitHub-dark console palette (no light-token equivalents); remapping to `var(--color-*)` would recolour a dark console to light. Declined; recorded in [[feedback-verify-component-is-rendered]].
 
 **W4 CI — ✅ COMPLETE.** Workspace CI job graduated from build-only to type-check + test (#561 type-check, #566 test). The durable safeguard: the 44-error drift can no longer silently return. Job name kept as `apps/workspace — build` to preserve the branch-protection required-check context.
 
@@ -230,15 +233,15 @@ Per-PR revert. No data/schema/env rollback required for any item. Branch prune i
 - [x] apps/workspace `tsc --noEmit` = **0 errors** (from 44). `[VERIFIED]` — #555/#556/#557/#559/#560
 - [x] apps/workspace `pnpm run test` = **591 pass** (from 6 failing). `[VERIFIED]` — #562
 - [x] apps/web type-check / lint / test remain **green** (no regression). `[VERIFIED]`
-- [ ] 9 dead `apps/web/package.json` script entries removed. **NOT DONE** — remaining follow-up.
+- [x] Dead `apps/web/package.json` script entries removed (12, not 9 — the `.ps1` pairs too). `[VERIFIED]` — #582
 - [x] `apps/workspace/electron/server-bundle.cjs` (21M) untracked + gitignored. `[VERIFIED]` — #567
 - [x] `pi-ceo-hero.jpg` (3.4M→488K WebP, #571) + avatars (17M→2.7M WebP, #573) + dead 1.3M logo removed (#577). Note: workspace assets use build-time WebP, **not** `next/image` (C1 — Vite). `[VERIFIED]`
 - [x] `@sentry/nextjs` removed from apps/web; `grep -rl '@sentry' apps/web/src` = 0; error boundaries render; lockfile regenerated same commit. Footprint exceeded the audit's "9 files" (config + `next.config` wrapper + privacy-policy) per C2. `[VERIFIED]` — #570
 - [x] Breadcrumb "404s" resolved — **but were a FALSE POSITIVE**: the buggy `Breadcrumbs.tsx` was orphaned (zero importers); live breadcrumb is `Topbar.getBreadcrumb` (no links). Dead component removed. `[VERIFIED]` — #563
-- [ ] operator-gateway + hermes-control-panel inline-hex → design tokens. **NOT DONE** (breadcrumb token item moot — component removed). Remaining follow-up.
+- [⊘] operator-gateway + hermes-control-panel inline-hex → design tokens. **MOOT — false positive:** deliberate, documented, already-centralised bespoke GitHub-dark console palette; no light-token equivalents; remapping would recolour a dark console to light. Declined.
 - [x] Locale drops fixed (`social`, `wiki`, + a 4th the audit missed) → en-AU. `[VERIFIED]` — #565
-- [ ] KPIGrid honest total-failure state. **NOT DONE** — remaining follow-up.
-- [ ] Lucide-vs-rule mismatch resolved in docs. **NOT DONE** — remaining follow-up.
+- [x] KPIGrid honest total-failure state (fix was in `KPICard` — distinct error state vs the not-connected degrade). `[VERIFIED]` — #584
+- [x] Lucide-vs-rule mismatch resolved — reconciled ~15 doc statements to make Lucide the standard (46 files use it, unenforced rule). `[VERIFIED]` — #585
 - [x] Root `ci.yml` `workspace` job runs `type-check` + `test` and is green. `[VERIFIED]` — #561 (type-check) + #566 (test)
 - [x] Local branches reconciled; squash-merged pruned (dry-run + 562-merged-PR cross-check); 162→7. `[VERIFIED]`
 - [~] Stale root `.next`/`tsbuildinfo`/`next-env.d.ts`: already gitignored (local-only); not a committable change. `[VERIFIED gitignored]`
@@ -288,4 +291,4 @@ Open UNVERIFIED: docs/convergence/migration-map.md; is `workspace` a required st
 
 **APPROVE BUILD (94/100)** — proceed W1→W2→W3→W4 as independent, revertable PRs. This is high-leverage hygiene at the lowest-risk moment (clean main, just synced). The most valuable durable outcome is **W4**: gating apps/workspace on type-check + test so the 44-error drift can never silently return. The user's stated UI/UX worry is mostly already solved — W3 is targeted polish (2 dead links + token/locale fixes), not a rebuild, so resist scope inflation there. The only item requiring founder sign-off (git history rewrite) is correctly deferred out of scope.
 
-SPM spec **DELIVERED 2026-06-30** (see Delivery record at top). W1 ✅ / W2 ✅ (active-log relocation escalated) / W4 ✅ all merged to `main`; W3 partial — 3 polish items (operator-gateway/hermes tokens, KPIGrid failure state, Lucide-vs-rule) + the 9 dead apps/web npm scripts remain as honest follow-ups. The durable win — W4 gating apps/workspace on type-check + test — is live, so the 44-error drift can never silently return.
+SPM spec **DELIVERED 2026-06-30** (see Delivery record at top). W1 ✅ / W2 ✅ / W3 ✅ / W4 ✅ — all merged to `main`. The W3 polish backlog is now empty (dead scripts #582, KPIGrid #584, Lucide #585; the hex-token item resolved as a false positive — deliberate dark console). The **only** remaining spec item is the active Margot evidence-log relocation, **escalated** (external cron, can't repoint from this checkout). The durable win — W4 gating apps/workspace on type-check + test — is live, so the 44-error drift can never silently return.
