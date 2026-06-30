@@ -1,11 +1,29 @@
 ---
 type: spec
-status: draft (founder-gated turn-on)
+status: code-complete + verified 2026-06-30 — awaiting founder turn-on
 created: 2026-06-28
 author: SPM
 ---
 
 # Web CC ↔ gateway bridge (Phase 2)
+
+## Verification record (2026-06-30) `[VERIFIED this session]`
+
+Both sides of the bridge exist and pass tests in the deps-complete checkout:
+- **Read side** — `apps/web/src/lib/operator-gateway/presence.ts` (`getGatewayConnection`) +
+  `/api/hermes/operator-gateway/status/route.ts`. Tests: `__tests__/presence.test.ts` **17/17 pass**.
+- **Write side** — `apps/autopilot-runner/src/presence.ts` folds a live `probeGateway()`
+  (`{state: running|unreachable, url, checkedAt}`) into `capabilities.gateway` each ~15s beat;
+  outbound HTTPS to Supabase only, no port exposed. Tests: `src/presence.test.ts` **13/13 pass**.
+- LaunchAgent (`deploy/ai.hermes.presence.plist`) + `start-presence.sh` staged.
+
+**Cannot be agent-completed — founder gate (all three are founder-only):**
+1. Prod `SUPABASE_SERVICE_ROLE_KEY` + `FOUNDER_USER_ID` in `~/.hermes/.env` — a **secret**, must
+   be entered by the founder (not via the assistant).
+2. Turning the writer LaunchAgent on dials out to **prod** Supabase — a prod side-effect.
+3. Merging `apps/web` deploys to **unite-group.in** through the named-grant gate.
+
+Code + runner + tests are staged and green; the §Turn-on steps below flip it live on approval.
 
 Make the **deployed** Nexus Command Centre (unite-group.in) reflect the **live local
 gateway/operator**, without exposing the gateway to the internet.

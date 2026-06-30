@@ -12,6 +12,7 @@ import {
   type AvailabilityCheck,
   assertBackendAvailable,
 } from './backend-registry'
+import { cliAccountAvailable } from './lane-availability'
 import type { WorktreeManager } from './worktree-manager'
 import type { LaneAdapter } from './adapter'
 import type { CreateLaneInput, Lane } from './types'
@@ -65,7 +66,13 @@ async function appendLedger(registryPath: string, lane: Lane): Promise<void> {
 export function createLaneOrchestrator(
   deps: OrchestratorDeps,
 ): LaneOrchestrator {
-  const isAvailable: AvailabilityCheck = deps.isBackendAvailable || (() => true)
+  // Default check (spec R9): when none injected, still verify a CLI account is
+  // signed in before creating a lane — never silently accept an absent account.
+  // Gateway availability is route-probed; default-trust it here.
+  const isAvailable: AvailabilityCheck =
+    deps.isBackendAvailable ||
+    ((backend) =>
+      backend.kind === 'cli' ? cliAccountAvailable(backend.account) : true)
   const idgen = deps.idgen || (() => `lane_${randomUUID().slice(0, 8)}`)
   const now = deps.now || (() => Date.now())
 

@@ -1,6 +1,6 @@
 ---
 type: spec
-status: draft
+status: in-progress (Phase 1 commissioned + R9 fixed 2026-06-30; founder/user gates remain)
 created: 2026-06-28
 author: SPM (/spm)
 scope: unite-group monorepo (apps/web + apps/workspace)
@@ -8,6 +8,34 @@ evidence_standard: fabel — every claim tagged [VERIFIED]/[INFERENCE]/[UNCONFIR
 ---
 
 # SPM Spec — Operator CLI/GUI + Connectors: what's missing and why it isn't operational
+
+## Progress record (2026-06-30) `[VERIFIED this session]`
+
+Live state has moved since the 06-28 investigation. Re-probed:
+
+- **Phase 1 (commission local console) — substantially DONE at runtime.** Gateway running
+  (`lsof :8642` → python PID 43591, R4 resolved); workspace installed + serving `:3000`
+  (R1/R2 resolved); `~/.hermes/lanes` present (R6 resolved). `/api/knowledge/list`,
+  `/api/skills`, `/api/quick-run` all respond live (see [[2026-06-28-nexus-agentic-os-mission-control-spec]]).
+- **R9 (lane preflight) — FIXED + tested** (commit `69dcc45`). New `lane-availability.ts`:
+  CLI accounts probe `~/.hermes/accounts/<acct>`, gateway providers probe `/health`;
+  `/api/lanes/backends` + orchestrator default no longer report blanket-available. vitest
+  10/10 green (7 new + 3 backend-registry, no regression).
+- **9B connectors — TRIAGED (deferred).** Stripe, MS365/Outlook, apps/web MCP client, and
+  social analytics remain stub/missing but are **not blockers** for the operator console and
+  fall under spec §5 "no new vendors / don't rebuild working CRM". Deferred deliberately; build
+  only when a concrete need lands.
+
+### Remains — founder / user gates (cannot be agent-completed)
+
+- **R5 — lane CLI account logins** (`max-1/2/3`, `openai-pro`): interactive `claude auth login` /
+  `codex auth login` per account dir — **user-only**, cannot be scripted by the assistant. Until
+  done, CLI lanes are correctly greyed out (now that R9 is fixed); gateway lanes work.
+- **R7 / Phase 2 — web CC ↔ gateway bridge**: tracked as its own task (Web CC bridge); the prod
+  `HERMES_API_URL` env + non-loopback exposure need founder sign-off.
+- **9C — CRM duplicate-model fork** (`contacts/*` vs `crm_*` both in prod): **founder decision**
+  on the canonical family before any migration (Phase 4, sandbox-first). Escalated.
+- **9D / Phase 5 — persistent compute host**: spend/architecture decision (escalate).
 
 ## 1. Task
 

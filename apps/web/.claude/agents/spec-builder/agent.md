@@ -26,7 +26,7 @@ Left unchecked, LLMs default to:
 NEVER begin implementation without a completed spec.
 NEVER assume requirements — ask questions if anything is ambiguous.
 NEVER skip user research questions for complex or schema-affecting features.
-NEVER allow Lucide icons in any spec — AI-generated custom icons or Heroicons only.
+NEVER ban standard Lucide React in specs — Lucide is the codebase standard; reserve custom / AI-generated SVG for brand-specific marks.
 NEVER write acceptance criteria that cannot be tested — every criterion must be verifiable.
 ALWAYS enforce Australian context: en-AU, AUD, DD/MM/YYYY, Privacy Act 1988, WCAG 2.1 AA.
 ALWAYS include verification criteria in every spec.

@@ -18,7 +18,7 @@ context: fork
 
 Left unchecked, LLMs default to:
 - Approving UI components with `rounded-lg` or `rounded-full` in a `rounded-sm`-only codebase
-- Accepting Lucide icon imports that should have been replaced
+- Flagging standard Lucide React icons as violations (Lucide is the codebase standard)
 - Missing hardcoded hex values that should come from design tokens
 - Confusing "passes visually" with "passes the Scientific Luxury standard"
 - Reporting design issues as suggestions when they are blocking violations
@@ -28,7 +28,7 @@ Left unchecked, LLMs default to:
 
 NEVER modify files — this agent is read-only and issues findings only.
 NEVER approve `rounded-md`, `rounded-lg`, `rounded-xl`, or `rounded-full` — only `rounded-sm`.
-NEVER approve Lucide icon imports.
+NEVER reject standard Lucide React icons — Lucide is the codebase standard; require custom / AI-generated SVG only for brand-specific marks (π logo, business glyphs).
 NEVER approve pure black shadows (`rgba(0,0,0,x)`) — shadows must use brand colour tinting.
 NEVER approve hardcoded hex values outside of design token files.
 NEVER review content — scope is visual and interaction design only.

@@ -1,6 +1,6 @@
 ---
 type: spec
-status: draft
+status: delivered (Phases A–D verified live 2026-06-30; E founder-gated)
 created: 2026-06-28
 author: SPM (/spm + /superpowers:writing-plans, /judge-enhanced)
 source: "2nd Brain/Sources/The Agentic OS Setup That Will 10x Claude Code.md" (Chase AI, youtu.be/HRw-vP0j8OM)
@@ -9,6 +9,32 @@ evidence_standard: fabel — claims tagged [VERIFIED]/[INFERENCE]/[UNCONFIRMED]
 ---
 
 # Nexus Agentic OS — Mission Control spec
+
+## Delivery & live-verification record (2026-06-30) `[VERIFIED this session]`
+
+Phases A–D were built in commit `bc309c4` and verified end-to-end against the **running**
+workspace (`:3000`) + Hermes gateway (`:8642`, MiniMax-M2.5, plan-backed). Each acceptance
+criterion in §13 probed live:
+
+- **A — vault connected.** `/api/knowledge/list` returns real `2nd Brain/2nd Brain` pages
+  (not `exists:false`). Vault wired two ways: launcher env (`start-operator.sh`) + the newer
+  `~/.hermes/knowledge-config.json` → `/Users/phill-mac/2nd Brain/2nd Brain` (2065 md, 79 OKF
+  `index.md`, root `CLAUDE.md`). Ties to [[2026-06-28-okf-knowledge-layer-spec]].
+- **B — telemetry truthful.** `/api/dashboard/overview` → `gatewayState: running` sourced from
+  live `/health/detailed` (overview route wires `gatewayFetcher`). The old false "GATEWAY
+  STOPPED" is gone; the 2-day `updated_at` is the gateway's *uptime-start* (up since 06-28,
+  confirmed by `ps`), i.e. truthful, not stale.
+- **C — skills surfaced.** `/api/skills` serves 30 skills; command-centre renders them as
+  buttons (`command-center-screen.tsx` `quickCommands.map → onClick runQuick`). (159 enabled in
+  Hermes; ≥1-visible-as-button criterion met.)
+- **D — real button, executed live.** POST `/api/quick-run` ran headless on the plan, returned
+  real text, and filed `outputs/2026-06-30-phase-d-acceptance-smoke.md` (OKF `type: output`
+  frontmatter) + a `log.md` line + auto-refreshed `outputs/index.md` — the L2↔loop closure.
+
+**Acceptance (§15):** vault ✅ · telemetry honest ✅ · ≥1 skill as button ✅ · ≥1 Quick Command
+files vault output ✅ · side-effects draft-only/approval-gated ✅ · **E (web distribution)
+deliberately NOT done — founder-gated** per §8/§11-E/§17. Phases A–D were the approved
+local/reversible scope; E + the web-CC bridge remain behind founder sign-off.
 
 Turn the running Hermes Workspace console into the **Unite-Group Nexus Agentic OS**: a customised,
 plan-backed, second-brain-grounded command surface, built on Chase AI's 4-level model and the
