@@ -21,9 +21,11 @@ describe('ChatComposer context controls', () => {
     const src = source()
 
     expect(src).toContain("fetch('/api/workspace')")
-    expect(src).toContain('Workspace context')
+    // Workspace-context control: anchor on the query key (durable) rather than
+    // the display label, which was reworded from 'Workspace context'.
+    expect(src).toContain("'composer-context'")
     expect(src).toContain('workspaceSelectMutation')
-    expect(src).toContain('workspaceEntries.map')
+    expect(src).toContain('workspaceEntries')
     expect(src).toContain('SEARCH_MODAL_EVENTS.TOGGLE_FILE_EXPLORER')
     expect(src).toContain('Reasoning effort')
     expect(src).toContain("['medium', 'Medium']")
