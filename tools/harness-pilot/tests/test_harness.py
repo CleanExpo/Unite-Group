@@ -76,6 +76,18 @@ class TestDataClassGate(unittest.TestCase):
         self.assertTrue(all(d.tier.provider == Provider.LOCAL for d in chain))
 
 
+class TestLocalTier(unittest.TestCase):
+    def test_local_tier_targets_verified_model_runner(self):
+        # UNI-2213: the local lane targets the Docker Model Runner in-container
+        # endpoint proven this spike (model-runner.docker.internal/engines/v1),
+        # not the unverified LM Studio :1234 guess.
+        self.assertEqual(LOCAL_TIER.base_url,
+                         "http://model-runner.docker.internal/engines/v1")
+        self.assertEqual(LOCAL_TIER.provider, Provider.LOCAL)
+        for bad in FORBIDDEN_HOSTS:
+            self.assertNotIn(bad, LOCAL_TIER.base_url)
+
+
 class TestZdr(unittest.TestCase):
     def test_openrouter_calls_carry_zdr(self):
         r = ModelRouter()
