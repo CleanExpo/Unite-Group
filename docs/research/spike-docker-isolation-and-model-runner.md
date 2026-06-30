@@ -133,9 +133,14 @@ Docker Desktop on macOS runs a **Linux VM** (this machine: `kernel=6.12.76-linux
 - The pilot can proceed **now** — public-data gathering on the egress-allowlist proxy,
   confidential work on the local-only proxy. OpenShell (UNI-2209 / UNI-2210) becomes an
   *additive* policy/credential-mediation layer, never a blocker.
-- **Remaining for the pilot build (not the substrate):** wire `harness/router.py`'s
-  confidential branch to point `client.py` at `model-runner.docker.internal` and select the
-  confidential squid conf — both proven mechanisms; this is wiring, not unknowns.
+- **Wiring done + end-to-end SUCCESS (update 30/06/2026):** the harness was wired to the
+  live local lane (PR #581 — `router.local_endpoint`, `_prepare_live` local probe), and a
+  confidential `run.py --live` task then produced a **schema-valid SUCCESS artifact** on a
+  JSON-capable local model (`ai/qwen2.5` via Docker Model Runner): `exit 0`,
+  `anthropic_calls=0`, `secret_leaks=[]`, trace `tier=local-ornith / confidential->local-only
+  / zdr=false`. The confidential source was treated as data (injection-safe). `[VERIFIED]`
+  Nothing substrate-level remains; production just swaps in the chosen local model via
+  `docker model pull` + `LOCAL_MODEL`.
 
 ## Sources
 
