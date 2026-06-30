@@ -73,13 +73,18 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Type-check is now enforced: the inherited hermes-workspace type drift was
-      # burned down to zero (W1 of docs/specs/next-phase-repair-enhancement.spec.md).
-      # This gate stops it silently regressing. Lint (`pnpm run check`) still
-      # carries ~459 pre-existing errors and stays ungated until that debt is
-      # burned down; the `test` step follows once the 6 brittle tests are fixed.
+      # Type-check AND tests are now enforced: the inherited hermes-workspace type
+      # drift was burned to zero and the 6 brittle tests fixed (W1 of
+      # docs/specs/next-phase-repair-enhancement.spec.md). These gates stop silent
+      # regression. Lint (`pnpm run check`) still carries ~459 pre-existing errors
+      # and stays ungated until that debt is burned down.
+      # NOTE: the job name stays "apps/workspace — build" so the branch-protection
+      # required-check context keeps matching; it now also runs type-check + test.
       - name: Type check
         run: pnpm exec tsc --noEmit
+
+      - name: Run tests
+        run: pnpm run test
 
       - name: Build
         run: pnpm run build
