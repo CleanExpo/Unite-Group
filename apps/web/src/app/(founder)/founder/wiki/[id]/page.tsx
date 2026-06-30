@@ -48,7 +48,7 @@ export default async function WikiPageDetail({
           {page.title}
         </h1>
         <div className="flex flex-wrap items-center gap-3 text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
-          <span>{page.word_count?.toLocaleString() ?? 0} words</span>
+          <span>{page.word_count?.toLocaleString('en-AU') ?? 0} words</span>
           <span>&middot;</span>
           <span>Updated {formatDate(page.updated_at)}</span>
           {page.tags && page.tags.length > 0 && (

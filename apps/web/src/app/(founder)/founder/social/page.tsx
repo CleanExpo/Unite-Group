@@ -105,7 +105,7 @@ export default async function SocialPage({
                 </p>
                 {platform.connected && platform.connectedAt && (
                   <p className="text-[10px] mt-1 text-[#15803d]/70">
-                    Connected {new Date(platform.connectedAt).toLocaleDateString()}
+                    Connected {new Date(platform.connectedAt).toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' })}
                   </p>
                 )}
               </div>
