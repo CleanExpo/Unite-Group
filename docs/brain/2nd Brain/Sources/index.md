@@ -1,0 +1,339 @@
+---
+type: index
+name: Sources
+description: OKF index — 320 concepts, 2 subfolders
+okf_version: "0.1"
+updated: 2026-06-30
+---
+
+<!-- okf:generated -->
+# Sources — index
+
+_Read this first. Lists every concept + subfolder here so an agent loads only what it needs (OKF / LLM-Wiki pattern)._
+
+## Subfolders
+- [[Completed/index]]
+- [[_archived-2026-05-15/index]]
+
+## Concepts
+- [[2026-05-17 - hermes - margot-conversation-os-directive]] — Margot Conversation OS directive
+- [[2026-05-26-grill-me-pattern]] — Matt Pocock's /grill-me skill — pattern + adaptation
+- [[2026-05-26-shape-up-fidelity]] — Shape Up — fidelity, appetite, breadboarding, fat marker sketch
+- [[2026-05-27-aasp-nj-plans-june-24-shop-owner-seminar-on-appraisal-rights-claim-strat]] — AASP/NJ Plans June 24 Shop Owner Seminar on Appraisal Rights, Claim Strategies
+- [[2026-05-27-abb-ability-camera-connect]] — ABB Ability Camera Connect
+- [[2026-05-27-abb-abilitytm-zenon-remote-transport-vulnerability]] — ABB AbilityTM Zenon Remote Transport Vulnerability
+- [[2026-05-27-abb-ac500-v2]] — ABB AC500 V2
+- [[2026-05-27-abb-b-r-automation-runtime-dos-vulnerability-in-system-diagnostics-manag]] — ABB B&R Automation Runtime DoS Vulnerability in System Diagnostics Manager (SDM)
+- [[2026-05-27-abb-lvs-mconfig]] — ABB LVS MConfig
+- [[2026-05-27-abb-terra-ac]] — ABB Terra AC
+- [[2026-05-27-announcing-the-ai-agent-standards-initiative-for-interoperable-and-secur]] — Announcing the \"AI Agent Standards Initiative\" for Interoperable and Secure Innovation
+- [[2026-05-27-body-shop-employee-injured-in-missouri-cleaning-chemicals-fire]] — Body shop employee injured in Missouri cleaning chemicals fire
+- [[2026-05-27-cieca-june-18-webinar-to-examine-adas-calibration-issues-and-standards]] — CIECA June 18 Webinar to Examine ADAS Calibration Issues and Standards
+- [[2026-05-27-cisa-adds-one-known-exploited-vulnerability-to-catalog-10c8a2]] — CISA Adds One Known Exploited Vulnerability to Catalog
+- [[2026-05-27-cisa-adds-one-known-exploited-vulnerability-to-catalog]] — CISA Adds One Known Exploited Vulnerability to Catalog
+- [[2026-05-27-cisa-adds-two-known-exploited-vulnerabilities-to-catalog]] — CISA Adds Two Known Exploited Vulnerabilities to Catalog
+- [[2026-05-27-eppendorf-bioflo-320]] — Eppendorf BioFlo 320
+- [[2026-05-27-fentanyl-related-cleanups-putting-risk-training-and-responsibility-in-pr]] — Fentanyl-Related Cleanups: Putting Risk, Training, and Responsibility in Proper Perspective
+- [[2026-05-27-insurance-firm-safepoint-backers-seek-283-3-million-in-ipo]] — Insurance Firm Safepoint, Backers Seek $283.3 Million in IPO
+- [[2026-05-27-is-your-company-pretty-on-the-outside-but-ugly-on-the-inside]] — Is Your Company Pretty on the Outside but Ugly on the Inside?
+- [[2026-05-27-may-new-vehicle-sales-forecast-to-end-seven-month-decline-as-tariff-payb]] — May New-Vehicle Sales Forecast to End Seven-Month Decline as Tariff Payback Lapses
+- [[2026-05-27-noaa-predicts-below-normal-2026-atlantic-hurricane-season]] — NOAA Predicts Below-Normal 2026 Atlantic Hurricane Season
+- [[2026-05-27-register-risky-future-ai-tools-for-embedded-platforms-demo-day-on-may-27]] — Register: Risky Future AI Tools for Embedded Platforms \u2018Demo Day\u2019 on May 27
+- [[2026-05-27-rivian-receives-american-iron-and-steel-automotive-excellence-award]] — Rivian receives American Iron and Steel Automotive Excellence Award
+- [[2026-05-27-rytech-restoration-expands-to-full-service-restoration]] — Rytech Restoration Expands to Full-Service Restoration
+- [[2026-05-27-stellantis-and-jlr-sign-mou-for-product-development-in-the-u-s]] — Stellantis and JLR sign MOU for product development in the U.S.
+- [[2026-05-27-u-s-house-committee-approves-amended-repair-act-that-backs-2014-mou]] — U.S. House committee approves amended REPAIR Act that backs 2014 MOU
+- [[2026-05-27-u-s-house-energy-and-commerce-codifies-industry-mous-in-place-of-full-re]] — U.S. House Energy and Commerce Codifies Industry MOUs in Place of Full REPAIR Act
+- [[2026-05-27-usi-insurance-services-claims-ex-broker-poached-clients-for-own-new-agen]] — USI Insurance Services Claims Ex-Broker Poached Clients for Own New Agency
+- [[2026-05-27-viewpoint-tackling-the-threat-of-legal-system-abuse]] — Viewpoint: Tackling the Threat of Legal System Abuse
+- [[2026-05-27-wear-and-tear-changes-measurable-pfas-levels-in-firefighter-hoods-gloves]] — Wear and Tear Changes Measurable PFAS Levels in Firefighter Hoods, Gloves and Wildland Gear
+- [[2026-05-28-4-arrested-in-louisiana-insurance-fraud-scheme]] — 4 Arrested in Louisiana Insurance Fraud Scheme
+- [[2026-05-28-aaspmn-awards-20-000-in-scholarships-to-23-automotive-collision-repair-a]] — AASPMN Awards $20,000 in Scholarships to 23 Automotive, Collision Repair and Diesel Students
+- [[2026-05-28-akzonobel-rejects-joint-cash-bid-from-nippon-paint-sherwin-williams]] — AkzoNobel Rejects Joint Cash Bid From Nippon Paint, Sherwin-Williams
+- [[2026-05-28-audi-adaptive-beam-headlights-to-debut-in-u-s-later-this-year]] — Audi adaptive beam headlights to debut in U.S. later this year
+- [[2026-05-28-australia-sues-3m-for-1-4-billion-over-pfas-forever-chemicals-contaminat]] — Australia Sues 3M for $1.4 Billion Over PFAS \u2018Forever Chemicals\u2019 Contamination
+- [[2026-05-28-c-suite-construction-execs-stay-bullish-on-data-center-boom]] — C-suite construction execs stay bullish on data center boom
+- [[2026-05-28-caliber-expands-fleet-solutions-division-partners-with-fixico-on-digital]] — Caliber Expands Fleet Solutions Division, Partners With Fixico on Digital Repair Coordination
+- [[2026-05-28-california-senate-passes-ncoil-glass-act]] — California Senate passes NCOIL glass act
+- [[2026-05-28-carfax-used-car-index-rises-in-every-segment-in-may-led-by-hybrids-and-e]] — Carfax Used Car Index Rises in Every Segment in May, Led by Hybrids and EVs
+- [[2026-05-28-cic-committee-discusses-proper-filler-use-in-today-s-collision-repairs]] — CIC committee discusses proper filler use in today\u2019s collision repairs
+- [[2026-05-28-cisa-adds-three-known-exploited-vulnerabilities-to-catalog]] — CISA Adds Three Known Exploited Vulnerabilities to Catalog
+- [[2026-05-28-copart-reports-insurance-unit-declines-in-q3-how-ai-is-being-used-in-cla]] — Copart reports insurance unit declines in Q3, how AI is being used in claims handling
+- [[2026-05-28-dangerous-gases-and-ice-age-fossils-inside-la-s-2-4b-10-year-d-line-subw]] — Dangerous gases and ice age fossils: Inside LA\u2019s $2.4B, 10-year D Line subway extension
+- [[2026-05-28-digital-permitting-ai-tools-top-of-mind-for-nibs-panelists]] — Digital permitting, AI tools top of mind for NIBS panelists
+- [[2026-05-28-gilbane-breaks-ground-on-450m-philadelphia-cancer-lab]] — Gilbane breaks ground on $450M Philadelphia cancer lab
+- [[2026-05-28-gisi-consulting-group-preps-for-ai-driven-hiring-surge]] — GISI Consulting Group preps for AI-driven hiring surge
+- [[2026-05-28-gsa-accuses-congress-of-hijacking-its-building-repair-fund]] — GSA accuses Congress of hijacking its building repair fund
+- [[2026-05-28-hiring-your-construction-firm-s-new-technology-suite]] — Hiring Your Construction Firm\u2019s New Technology Suite
+- [[2026-05-28-how-employee-ownership-empowers-construction-workers-and-local-communiti]] — How Employee Ownership Empowers Construction Workers and Local Communities
+- [[2026-05-28-hyundai-recalls-vehicle-for-front-camera-software-issue-that-activates-b]] — Hyundai recalls vehicle for front camera software issue that activates brakes unexpectedly
+- [[2026-05-28-improve-somatic-awareness-to-increase-construction-workforce-safety]] — Improve Somatic Awareness to Increase Construction Workforce Safety
+- [[2026-05-28-insurance-attorneys-flip-1m-hail-claim-into-nearly-2m-suit-for-contracto]] — Insurance Attorneys Flip $1M Hail Claim into Nearly $2M Suit for Contractor Interference
+- [[2026-05-28-iran-and-us-trade-air-strikes-after-trump-dismisses-report-of-hormuz-dea]] — Iran and US Trade Air Strikes After Trump Dismisses Report of Hormuz Deal
+- [[2026-05-28-markets-coverages-amiga-specialty-secures-lloyd-s-capacity-for-new-yacht]] — Markets/Coverages: Amiga Specialty Secures Lloyd\u2019s Capacity for New Yachts Division
+- [[2026-05-28-mema-aftermarket-suppliers-says-repair-act-provisions-dropped-from-house]] — MEMA Aftermarket Suppliers Says REPAIR Act Provisions Dropped from House Highway Bill Markup
+- [[2026-05-28-most-are-concerned-about-infectious-disease-risk-in-public-settings]] — Most Are Concerned About Infectious Disease Risk in Public Settings
+- [[2026-05-28-new-names-and-faces-may-2026]] — New Names and Faces: May 2026
+- [[2026-05-28-north-carolina-sues-ev-maker-vinfast-over-unbuilt-factory]] — North Carolina sues EV maker VinFast over unbuilt factory
+- [[2026-05-28-one-third-of-highway-contractors-reported-5-or-more-work-zone-crashes-la]] — One-third of highway contractors reported 5 or more work zone crashes last year: AGC
+- [[2026-05-28-people-moves-aon-promotes-hoffman-as-global-ceo-of-commercial-risk-hdi-g]] — People Moves: Aon Promotes Hoffman as Global CEO of Commercial Risk; HDI Global Names Schulte-Schrepping as Head of Liability Global Risk, Succeeding Maurer
+- [[2026-05-28-port-authority-kicks-off-200m-in-upgrades-at-newark-liberty-airport]] — Port Authority kicks off $200M in upgrades at Newark Liberty airport
+- [[2026-05-28-richards-building-supply-acquires-united-states-building-supply]] — Richards Building Supply Acquires United States Building Supply
+- [[2026-05-28-s-p-progressive-passes-state-farm-in-annual-market-share]] — S&P: Progressive passes State Farm in annual market share
+- [[2026-05-28-shepherd-insurance-acquires-pair-of-indiana-agencies]] — Shepherd Insurance Acquires Pair of Indiana Agencies
+- [[2026-05-28-the-2026-cleaning-industry-leaders-review-pure-surface-care]] — The 2026 Cleaning Industry Leaders Review: Pure Surface Care
+- [[2026-05-28-the-2026-cleaning-industry-leaders-review-spot-out-inc]] — The 2026 Cleaning Industry Leaders Review: Spot Out Inc.
+- [[2026-05-28-turner-has-nabbed-10-1b-jobs-so-far-in-2026]] — Turner has nabbed 10 $1B jobs so far in 2026
+- [[2026-05-28-voda-cleaning-restoration-appoints-laura-butcaris-president]] — Voda Cleaning & Restoration Appoints Laura Butcaris President
+- [[2026-05-28-why-ai-is-a-labor-cost-not-a-software-cost]] — Why AI Is a Labor Cost, Not a Software Cost
+- [[2026-05-28-world-acquires-kansas-agency-west]] — World Acquires Kansas\u2019 Agency West
+- [[2026-05-29-ase-june-4-webinar-to-cover-new-mvac-refrigerants-r-444a-and-r-456a]] — ASE June 4 Webinar to Cover New MVAC Refrigerants R-444A and R-456A
+- [[2026-05-29-california-reaches-settlement-with-gm-on-data-privacy-sharing-violations]] — California reaches settlement with GM on data privacy, sharing violations
+- [[2026-05-29-cawa-awards-more-than-14-000-in-scholarships-to-14-students]] — CAWA Awards More Than $14,000 in Scholarships to 14 Students
+- [[2026-05-29-cnn-files-lawsuit-against-perplexity-alleging-unlawful-content-distribut]] — CNN Files Lawsuit Against Perplexity Alleging Unlawful Content Distribution
+- [[2026-05-29-construction-futures-may-2026-economic-roundup]] — Construction Futures: May 2026 Economic Roundup
+- [[2026-05-29-construction-workforce-leader-named-abc-vice-president-of-safety-and-wor]] — Construction Workforce Leader Named ABC Vice President of Safety and Workforce
+- [[2026-05-29-court-overturns-mass-based-insulet-s-59m-trade-secret-verdict]] — Court Overturns Mass.-Based Insulet\u2019s $59M Trade Secret Verdict
+- [[2026-05-29-cruise-operator-carnival-discloses-personal-data-breach]] — Cruise Operator Carnival Discloses Personal Data Breach
+- [[2026-05-29-cyberattacks-inflation-lead-list-of-top-risks-for-business-leaders-the-h]] — Cyberattacks, Inflation Lead List of Top Risks for Business Leaders: The Hartford
+- [[2026-05-29-data-centers-raise-temperatures-up-to-4-degrees-in-nearby-neighborhoods-]] — Data centers raise temperatures up to 4 degrees in nearby neighborhoods: study
+- [[2026-05-29-ed-cross-esq]] — Ed Cross, Esq.
+- [[2026-05-29-five-common-pitfalls-in-commercial-fit-outs-and-how-to-avoid-them]] — Five Common Pitfalls in Commercial Fit-Outs\u2014and How to Avoid Them
+- [[2026-05-29-five-reasons-why-total-reliance-on-video-based-ai-for-construction-jobsi]] — Five Reasons Why Total Reliance on Video-Based AI for Construction Jobsite Safety Isn\u2019t the Answer
+- [[2026-05-29-fls-training-course]] — FLS Training Course
+- [[2026-05-29-ford-patent-would-move-parked-vehicle-to-avoid-collisions]] — Ford patent would move parked vehicle to avoid collisions
+- [[2026-05-29-judge-dismisses-texas-false-advertisement-lawsuit-against-geico]] — Judge dismisses Texas false advertisement lawsuit against GEICO
+- [[2026-05-29-kemper-names-stephen-mcanena-president-and-ceo]] — Kemper Names Stephen McAnena President and CEO
+- [[2026-05-29-kmw-cctv-security-cameras]] — KMW CCTV Security Cameras
+- [[2026-05-29-lkq-reports-deeper-emissions-reduction-in-2025-sustainability-report]] — LKQ Reports Deeper Emissions Reduction in 2025 Sustainability Report
+- [[2026-05-29-markets-coverages-e-s-property-mga-luminor-risk-launches]] — Markets/Coverages: E&S Property MGA Luminor Risk Launches
+- [[2026-05-29-ny-lawmakers-agree-to-governor-s-auto-insurance-reforms-in-new-budget]] — NY Lawmakers Agree to Governor\u2019s Auto Insurance Reforms in New Budget
+- [[2026-05-29-people-moves-the-hartford-names-ilias-head-of-us-ocean-marine]] — People Moves: The Hartford Names Ilias Head of US Ocean Marine
+- [[2026-05-29-predictive-analytics-and-forecasting-in-construction-projects]] — Predictive Analytics and Forecasting in Construction Projects
+- [[2026-05-29-progressive-reports-personal-auto-policies-in-force-up-10-2-in-april-com]] — Progressive Reports Personal Auto Policies in Force Up 10.2% in April Compared to 2025
+- [[2026-05-29-servicemaster-restore-and-hire-heroes-usa-partner-for-fourth-annual-we-s]] — ServiceMaster Restore and Hire Heroes USA Partner for Fourth Annual We Serve: Veterans Golf Tournament
+- [[2026-05-29-shooting-for-the-moon-ultrastable-lasers-in-dark-craters-could-enable-lu]] — Shooting for the Moon: Ultrastable Lasers in Dark Craters Could Enable Lunar Navigation, Precision Timekeeping, New Science
+- [[2026-05-29-signs-of-life-outside-data-centers-in-latest-construction-data]] — Signs of life outside data centers in latest construction data
+- [[2026-05-29-supply-chain-compromises-impact-nx-console-and-github-repositories]] — Supply Chain Compromises Impact Nx Console and GitHub Repositories
+- [[2026-05-29-survey-finds-strong-demand-for-skilled-trades-education-expansion-by-vot]] — Survey finds strong demand for skilled trades education expansion by voters, high schoolers, and parents
+- [[2026-05-29-texas-board-faults-camp-mystic-leader-for-inaction-during-deadly-flood]] — Texas Board Faults Camp Mystic Leader for Inaction During Deadly Flood
+- [[2026-05-29-the-cleaning-standard-goes-live]] — The Cleaning Standard Goes Live
+- [[2026-05-29-why-2026-is-a-year-for-operational-discipline-in-construction]] — Why 2026 Is a Year for Operational Discipline in Construction
+- [[2026-05-30-2-health-care-organizations-will-receive-2025-baldrige-national-quality-]] — 2 Health Care Organizations Will Receive 2025 Baldrige National Quality Awards
+- [[2026-05-30-a-new-era-of-innovation-google-research-at-i-o-2026]] — A New Era of Innovation: Google Research at I/O 2026
+- [[2026-05-30-actionable-insights]] — Actionable Insights
+- [[2026-05-30-amended-illinois-right-to-appraisal-bill-passed-by-senate]] — Amended Illinois right-to-appraisal bill passed by Senate
+- [[2026-05-30-americans-doubt-countries-will-do-enough-to-tame-climate-change]] — Americans Doubt Countries Will Do Enough to Tame Climate Change
+- [[2026-05-30-any-color-you-like-nist-scientists-create-any-wavelength-lasers-in-tiny-]] — Any Color You Like: NIST Scientists Create \u2018Any Wavelength\u2019 Lasers in Tiny Circuits for Light
+- [[2026-05-30-autel-u-s-opens-second-year-of-scholarship-program-expands-eligibility-t]] — Autel U.S. Opens Second Year of Scholarship Program, Expands Eligibility to Adult Learners
+- [[2026-05-30-be-a-sponge-how-one-project-executive-brings-education-and-construction-]] — \u2018Be a sponge\u2019: How one project executive brings education and construction together
+- [[2026-05-30-cisa-adds-one-known-exploited-vulnerability-to-catalog]] — CISA Adds One Known Exploited Vulnerability to Catalog
+- [[2026-05-30-consumer-sentiment-drops-below-june-2022-low]] — Consumer Sentiment Drops Below June 2022 Low
+- [[2026-05-30-corpus-christi-focuses-on-delaying-looming-water-crisis]] — Corpus Christi Focuses on Delaying Looming Water Crisis
+- [[2026-05-30-empirical-research-assistance-era-from-nature-publication-to-catalyzing-]] — Empirical Research Assistance (ERA): From Nature publication to catalyzing Computational Discovery
+- [[2026-05-30-extreme-heat-could-cost-germany-up-to-131-billion-by-2030-analysis-shows]] — Extreme Heat Could Cost Germany up to $131 Billion by 2030, Analysis Shows
+- [[2026-05-30-fairness-aware-federated-learning-with-trajectory-shapley-value]] — Fairness-Aware Federated Learning with Trajectory Shapley Value
+- [[2026-05-30-fast-tracking-genetic-leads-to-reverse-cellular-aging]] — Fast-tracking genetic leads to reverse cellular aging
+- [[2026-05-30-fourth-frontier-frontier-x-mobile-application-frontier-x2]] — Fourth Frontier Frontier X Mobile Application, Frontier X2
+- [[2026-05-30-gmos-grounding-moving-object-segmentation-in-3d-space-and-time]] — GMOS: Grounding Moving Object Segmentation in 3D Space and Time
+- [[2026-05-30-illinois-passes-legislation-to-give-insurance-department-oversight-of-ra]] — Illinois Passes Legislation to Give Insurance Department Oversight of Rate Changes
+- [[2026-05-30-illinois-starts-critical-164m-i-80-bridge-project]] — Illinois starts critical $164M I-80 bridge project
+- [[2026-05-30-kentucky-food-color-plant-was-catastrophe-waiting-to-happen-csb-says]] — Kentucky Food-Color Plant Was \u2018Catastrophe Waiting to Happen,\u2019 CSB Says
+- [[2026-05-30-llmsurgeon-diagnosing-data-mixture-of-large-language-models]] — LLMSurgeon: Diagnosing Data Mixture of Large Language Models
+- [[2026-05-30-making-it-easier-to-understand-how-content-was-created-and-edited]] — Making it easier to understand how content was created and edited
+- [[2026-05-30-neurok-generative-4d-neural-object-kinematics]] — NeuROK: Generative 4D Neural Object Kinematics
+- [[2026-05-30-nist-expands-ai-consortium-s-scope-calls-for-new-members]] — NIST Expands AI Consortium\u2019s Scope, Calls for New Members
+- [[2026-05-30-nist-helps-fingerprint-examiners-with-new-data-and-software-release]] — NIST Helps Fingerprint Examiners With New Data and Software Release
+- [[2026-05-30-nist-researchers-develop-photonic-chip-packaging-that-can-withstand-extr]] — NIST Researchers Develop Photonic Chip Packaging That Can Withstand Extreme Environments
+- [[2026-05-30-nist-submits-annual-report-to-congress-summarizing-fy-2025-progress-on-n]] — NIST Submits Annual Report to Congress Summarizing FY 2025 Progress on National Construction Safety Team Investigations
+- [[2026-05-30-nist-weighs-in-on-the-mystery-of-the-gravitational-constant]] — NIST Weighs In on the Mystery of the Gravitational Constant
+- [[2026-05-30-number-of-deaths-rises-in-washington-paper-mill-explosion]] — Number of Deaths Rises in Washington Paper Mill Explosion
+- [[2026-05-30-people-moves-davis-towle-names-kneeland-promotes-cole-in-commercial-line]] — People Moves: Davis & Towle Names Kneeland, Promotes Cole in Commercial Lines
+- [[2026-05-30-physics-is-all-you-need-a-case-study-in-physicist-supervised-ai-developm]] — Physics Is All You Need? A Case Study in Physicist-Supervised AI Development of Scientific Software
+- [[2026-05-30-private-analytics-via-zero-trust-aggregation]] — Private analytics via zero-trust aggregation
+- [[2026-05-30-punch-list-dpr-opens-pennsylvania-office-mbi-elects-new-president]] — Punch List: DPR opens Pennsylvania office, MBI elects new president
+- [[2026-05-30-reinsurers-bring-strong-risk-appetite-to-florida-s-june-renewals-guy-car]] — Reinsurers Bring Strong Risk Appetite to Florida\u2019s June Renewals: Guy Carpenter
+- [[2026-05-30-ria-certification-holder]] — RIA Certification Holder
+- [[2026-05-30-san-antonio-towing-company-to-pay-280-000-over-illegally-sold-servicemem]] — San Antonio Towing Company to Pay $280,000 Over Illegally Sold Servicemember Vehicles
+- [[2026-05-30-schnieider-electric-ecostruxure-machine-expert-hvac]] — Schnieider Electric EcoStruxure Machine Expert HVAC
+- [[2026-05-30-ships-attacked-in-strait-of-hormuz-this-week-chevron-ceo-says]] — Ships Attacked in Strait of Hormuz This Week, Chevron CEO Says
+- [[2026-05-30-simulate-real-world-places-with-project-genie-and-street-view]] — Simulate real-world places with Project Genie and Street View
+- [[2026-05-30-state-farm-changes-pay-for-19-000-agents-causing-reduction-for-many]] — State Farm changes pay for 19,000 agents, causing reduction for many
+- [[2026-05-30-sunbelt-rentals]] — Sunbelt Rentals
+- [[2026-05-30-transit-amtrak-cuts-advance-in-house-appropriations-bill]] — Transit, Amtrak cuts advance in House appropriations bill
+- [[2026-05-30-u-s-caps-section-232-tariffs-on-taiwan-auto-parts-at-15]] — U.S. Caps Section 232 Tariffs on Taiwan Auto Parts at 15%
+- [[2026-05-30-uncertainty-driven-3d-gaussian-splatting-active-mapping-via-anisotropic-]] — Uncertainty-driven 3D Gaussian Splatting Active Mapping via Anisotropic Visibility Field
+- [[2026-05-30-videomla-low-rank-latent-kv-cache-for-minute-scale-autoregressive-video-]] — VideoMLA: Low-Rank Latent KV Cache for Minute-Scale Autoregressive Video Diffusion
+- [[2026-05-30-viewpoint-somali-piracy-is-back-fueled-by-political-turmoil-aid-cuts-and]] — Viewpoint: Somali Piracy Is Back \u2013 Fueled by Political Turmoil, Aid Cuts and Iran War
+- [[2026-05-30-we-re-launching-the-google-deepmind-accelerator-program-in-asia-pacific-]] — We\u2019re launching the Google DeepMind Accelerator program in Asia Pacific to tackle environmental risks
+- [[2026-05-30-when-ai-guesses-wrong-floors-pay-the-price]] — When AI Guesses Wrong, Floors Pay the Price
+- [[2026-05-31-abb-busch-welcome-2-wire-door-opener-actuator]] — ABB Busch-Welcome 2 Wire Door Opener Actuator
+- [[2026-05-31-abb-eibport]] — ABB EIBPORT
+- [[2026-05-31-ai-generated-synthetic-neurons-speed-up-brain-mapping]] — AI-generated synthetic neurons speed up brain mapping
+- [[2026-05-31-catalyzing-scientific-impact-through-global-partnerships-and-open-resour]] — Catalyzing scientific impact through global partnerships and open resources
+- [[2026-05-31-cp-plus-8-ch-network-video-recorder]] — CP Plus 8 Ch. Network Video Recorder
+- [[2026-05-31-designing-synthetic-datasets-for-the-real-world-mechanism-design-and-rea]] — Designing synthetic datasets for the real world: Mechanism design and reasoning from first principles
+- [[2026-05-31-dynaflip-rethinking-robotics-perception-via-tri-modal-dynamics-guided-re]] — DynaFLIP: Rethinking Robotics Perception via Tri-Modal-Dynamics Guided Representation
+- [[2026-05-31-finding-the-molecular-switches-behind-new-infectious-diseases]] — Finding the molecular switches behind new infectious diseases
+- [[2026-05-31-four-ways-google-research-scientists-have-been-using-empirical-research-]] — Four ways Google Research scientists have been using Empirical Research Assistance
+- [[2026-05-31-gemini-for-science-ai-experiments-and-tools-for-a-new-era-of-discovery]] — Gemini for Science: AI experiments and tools for a new era of discovery
+- [[2026-05-31-introducing-gemini-omni]] — Introducing Gemini Omni
+- [[2026-05-31-introducing-google-antigravity-2-0]] — Introducing Google Antigravity 2.0
+- [[2026-05-31-it-s-all-about-the-angle-your-photos-re-composed]] — It's all about the angle: Your photos, re-composed
+- [[2026-05-31-jinan-usr-iot-technology-limited-pusr-usr-w610-rs232-485-to-wi-fi-ethern]] — Jinan USR IOT Technology Limited (PUSR) USR-W610 RS232/485 to Wi-Fi/Ethernet Converter
+- [[2026-05-31-opening-new-paths-in-aging-research]] — Opening new paths in aging research
+- [[2026-05-31-quiver-approach-to-symmetry-theories]] — Quiver Approach to Symmetry Theories
+- [[2026-05-31-reasoningbank-enabling-agents-to-learn-from-experience]] — ReasoningBank: Enabling agents to learn from experience
+- [[2026-05-31-strengthening-singapore-s-ai-future-a-new-national-partnership]] — Strengthening Singapore\u2019s AI Future: A New National Partnership
+- [[2026-05-31-towards-developing-future-ready-skills-with-generative-ai]] — Towards developing future-ready skills with generative AI
+- [[2026-05-31-xcharge-c6]] — XCharge C6
+- [[2026-06-01-bus-hits-cars-in-virginia-killing-5-massachusetts-people-and-injuring-34]] — Bus Hits Cars in Virginia, Killing 5 Massachusetts People and Injuring 34
+- [[2026-06-01-europe-faces-biggest-food-price-shock-in-g7-from-hotter-world]] — Europe Faces Biggest Food Price Shock in G7 From Hotter World
+- [[2026-06-01-insurance-platform-corgi-valued-at-2-6b-in-funding-round]] — Insurance Platform Corgi Valued at $2.6B in Funding Round
+- [[2026-06-01-longtracerl-learning-long-context-reasoning-from-search-agent-trajectori]] — LongTraceRL: Learning Long-Context Reasoning from Search Agent Trajectories with Rubric Rewards
+- [[2026-06-01-lumos-nexus-efficient-frequency-bridging-with-homogeneous-latent-space-f]] — Lumos-Nexus: Efficient Frequency Bridging with Homogeneous Latent Space for Video Unified Models
+- [[2026-06-01-new-york-auto-insurance-reform-promises-10-savings]] — New York auto insurance reform promises 10% savings
+- [[2026-06-01-representation-forcing-for-bottleneck-free-unified-multimodal-models]] — Representation Forcing for Bottleneck-Free Unified Multimodal Models
+- [[2026-06-01-sec-moves-to-scrap-biden-era-rule-on-climate-risk-disclosures]] — SEC Moves to Scrap Biden-Era Rule on Climate Risk Disclosures
+- [[2026-06-01-stateful-online-monitoring-catches-distributed-agent-attacks]] — Stateful Online Monitoring Catches Distributed Agent Attacks
+- [[2026-06-01-the-ai-apprentice-mentoring-the-future-workforce-and-preserving-past-kno]] — The AI Apprentice: Mentoring the Future Workforce and Preserving Past Knowledge Construction Technology
+- [[2026-06-01-tunerdit-training-free-progressive-steering-of-diffusion-transformer-for]] — TunerDiT: Training-free Progressive Steering of Diffusion Transformer for Multi-Event Video Generation
+- [[2026-06-01-verizon-dbir-says-software-vulnerabilities-aren-t-being-patched-quick-en]] — Verizon DBIR Says Software Vulnerabilities Aren\u2019t Being Patched Quick Enough
+- [[2026-06-01-what-nextel-got-right-about-construction-communication]] — What Nextel got right about construction communication
+- [[2026-06-02-ai-savings-misses-should-be-making-executives-uncomfortable-bain-says]] — AI Savings Misses \u2018Should Be Making Executives Uncomfortable,\u2019 Bain Says
+- [[2026-06-02-aig-s-turnaround-under-zaffino-sets-stage-for-new-leadership]] — AIG\u2019s Turnaround Under Zaffino Sets Stage for New Leadership
+- [[2026-06-02-ase-celebrates-automotive-service-professionals-month]] — ASE Celebrates Automotive Service Professionals Month
+- [[2026-06-02-bmw-mistral-ai-partner-for-ai-use-in-crash-simulation]] — BMW, Mistral AI partner for AI use in crash simulation
+- [[2026-06-02-california-overhauls-carbon-market-over-affordability-concerns]] — California Overhauls Carbon Market Over Affordability Concerns
+- [[2026-06-02-ceo-mike-hopkins-positions-paul-davis-restoration-as-full-service-contra]] — CEO Mike Hopkins Positions Paul Davis Restoration as Full-Service Contractor
+- [[2026-06-02-cisa-adds-one-known-exploited-vulnerability-to-catalog]] — CISA Adds One Known Exploited Vulnerability to Catalog
+- [[2026-06-02-corpus-christi-considers-building-desalination-plant]] — Corpus Christi Considers Building Desalination Plant
+- [[2026-06-02-dallas-firefighters-were-responding-to-gas-leak-before-deadly-apartment-]] — Dallas Firefighters Were Responding to Gas Leak Before Deadly Apartment Blast
+- [[2026-06-02-gm-expands-collision-assistance-app-to-reach-more-consumers]] — GM expands collision assistance app to reach more consumers
+- [[2026-06-02-gravitational-waves-from-hybrid-defects-as-probe-of-flavor-symmetry-brea]] — Gravitational Waves from hybrid defects as probe of Flavor symmetry breaking: Machine-Learning Approach
+- [[2026-06-02-ibis-publishes-full-global-summit-2026-agenda-and-speaker-lineup-for-jun]] — IBIS Publishes Full Global Summit 2026 Agenda and Speaker Lineup for June 16-18 Event in Vienna
+- [[2026-06-02-illinois-night-club-to-pay-200k-in-sex-and-race-discrimination-case]] — Illinois Night Club to Pay $200K in Sex and Race Discrimination Case
+- [[2026-06-02-insurcomm-restoration-expands-into-virginia-with-two-new-offices]] — Insurcomm Restoration Expands into Virginia with Two New Offices
+- [[2026-06-02-macgregor-voyage-data-recorder-vdr-g4e]] — MacGregor Voyage Data Recorder (VDR) G4e
+- [[2026-06-02-markets-coverages-navium-overhaul-form-consortium-to-cover-ai-data-serve]] — Markets/Coverages: Navium, Overhaul Form Consortium to Cover AI Data Server Cargo
+- [[2026-06-02-mitigating-perceptual-judgment-bias-in-multimodal-llm-as-a-judge-via-per]] — Mitigating Perceptual Judgment Bias in Multimodal LLM-as-a-Judge via Perceptual Perturbation and Reward Modeling
+- [[2026-06-02-new-windows-on-heavy-dark-matter-mineral-melt-modelling-and-x-ray-readou]] — New Windows on Heavy Dark Matter: Mineral Melt Modelling and X-Ray Readout for Muscovite Mica
+- [[2026-06-02-nonresidential-construction-spending-grows-on-public-sector-strength-in-]] — Nonresidential Construction Spending Grows on Public Sector Strength in April
+- [[2026-06-02-normal-approximations-in-nonparametric-empirical-bayes]] — Normal approximations in nonparametric empirical Bayes
+- [[2026-06-02-oec-opens-repairlogic-integration-with-ccc-one-to-all-repair-facilities]] — OEC Opens RepairLogic Integration with CCC ONE to All Repair Facilities
+- [[2026-06-02-people-moves-pharmacists-mutual-appoints-gallagher-to-board-of-directors]] — People Moves: Pharmacists Mutual Appoints Gallagher to Board of Directors
+- [[2026-06-02-report-calls-for-transparency-modernization-of-washington-fire-scoring-b]] — Report Calls for Transparency, Modernization of Washington Fire Scoring Bureau
+- [[2026-06-02-retirement-funds-lawsuit-against-caliber-collision-settled]] — Retirement funds lawsuit against Caliber Collision settled
+- [[2026-06-02-the-2026-cleaning-industry-leaders-review-team-ossanna]] — The 2026 Cleaning Industry Leaders Review: Team Ossanna
+- [[2026-06-02-viewpoint-how-climate-change-is-creating-uninsurable-areas-across-europe]] — Viewpoint: How Climate Change Is Creating Uninsurable Areas Across Europe
+- [[2026-06-02-washington-union-station-renovation-gets-466m-from-us-dot]] — Washington Union Station renovation gets $466M from US DOT
+- [[2026-06-02-women-s-industry-network-opens-registration-for-second-annual-virtual-co]] — Women\u2019s Industry Network Opens Registration for Second Annual Virtual Conference
+- [[2026-06-03-abpa-releases-video-companion-to-its-totaled-total-loss-report]] — ABPA Releases Video Companion to Its \u2018Totaled\u2019 Total Loss Report
+- [[2026-06-03-ai-startup-offers-free-home-cleaning-for-data]] — AI Startup Offers Free Home Cleaning for Data
+- [[2026-06-03-anv-acquires-texas-scis]] — ANV Acquires Texas\u2019 SCIS
+- [[2026-06-03-april-construction-job-openings-hit-highest-mark-of-2026]] — April construction job openings hit highest mark of 2026
+- [[2026-06-03-business-moves-buy-of-fortegra-completed-by-korean-insurer-db]] — Business Moves: Buy of Fortegra Completed by Korean Insurer DB
+- [[2026-06-03-business-moves-wtw-buys-redefind-to-boost-access-to-crypto-and-digital-a]] — Business Moves: WTW Buys Redefind to Boost Access to Crypto and Digital Asset Insurance Offering; ASR Agrees to Strategic Investment From PE Firm Vitruvian Partners
+- [[2026-06-03-calibrations-and-parts-inflation-drive-collision-claim-complexity]] — Calibrations and Parts Inflation Drive Collision Claim Complexity
+- [[2026-06-03-ccc-report-shares-latest-ev-claims-and-sales-trends]] — CCC report shares latest EV claims and sales trends
+- [[2026-06-03-cisa-adds-two-known-exploited-vulnerabilities-to-catalog]] — CISA Adds Two Known Exploited Vulnerabilities to Catalog
+- [[2026-06-03-collision-industry-refinish-manufacturer-explores-ai-driven-product-deve]] — Collision industry refinish manufacturer explores AI-driven product development
+- [[2026-06-03-construction-job-openings-increased-by-25-000-in-april]] — Construction Job Openings Increased by 25,000 in April
+- [[2026-06-03-epa-encourages-hurricane-season-preparedness]] — EPA Encourages Hurricane Season Preparedness
+- [[2026-06-03-fix-network-enters-new-zealand-with-first-fix-auto-location-in-auckland]] — Fix Network Enters New Zealand with First Fix Auto Location in Auckland
+- [[2026-06-03-gdc-awards-711m-hudson-tunnel-project-contract]] — GDC awards $711M Hudson Tunnel Project contract
+- [[2026-06-03-illinois-gov-to-sign-bills-that-create-auto-and-home-insurance-rate-revi]] — Illinois gov. to sign bills that create auto and home insurance rate review
+- [[2026-06-03-jobsite-ai-integration-will-aid-ai-construction]] — Jobsite AI integration will aid AI construction
+- [[2026-06-03-natural-disaster-insurance-gap-now-exceeds-420-billion-globally]] — Natural-Disaster Insurance Gap Now Exceeds $420 Billion Globally
+- [[2026-06-03-novacore-adds-euclid-design-to-its-professional-underwriters-agency]] — Novacore Adds Euclid Design to Its Professional Underwriters Agency
+- [[2026-06-03-peak-water-damage-season-demands-peak-performance-equipment]] — Peak Water Damage Season Demands Peak-Performance Equipment
+- [[2026-06-03-resilience-launches-cyber-risk-program-for-private-equity]] — Resilience Launches Cyber Risk Program for Private Equity
+- [[2026-06-03-seattle-s-sound-transit-adopts-new-st3-plan-despite-34-5b-funding-gap]] — Seattle\u2019s Sound Transit adopts new ST3 plan despite $34.5B funding gap
+- [[2026-06-03-texas-department-of-insurance-holds-right-to-appraisal-public-hearing]] — Texas Department of Insurance holds right-to-appraisal public hearing
+- [[2026-06-03-when-jobs-go-sideways]] — When Jobs Go Sideways
+- [[2026-06-03-wildfire-season-off-to-a-historic-start]] — Wildfire Season Off to a Historic Start
+- [[2026-06-04-6-contech-startups-raise-a-combined-121m]] — 6 contech startups raise a combined $121M
+- [[2026-06-04-ai-to-double-data-center-power-water-use-by-2030-un-researchers-say]] — AI to Double Data Center Power, Water Use by 2030, UN Researchers Say
+- [[2026-06-04-am-best-revises-credit-rating-outlook-of-nebraska-s-fmne-to-stable]] — AM Best Revises Credit Rating Outlook of Nebraska\u2019s FMNE to Stable
+- [[2026-06-04-autodesk-to-acquire-maintainx-for-3-6b]] — Autodesk to acquire MaintainX for $3.6B
+- [[2026-06-04-automakers-retailers-warn-memory-chip-shortage-is-impacting-prices]] — Automakers, Retailers Warn Memory-Chip Shortage Is Impacting Prices
+- [[2026-06-04-autopsy-of-a-complaint]] — Autopsy of a Complaint
+- [[2026-06-04-basf-coatings-names-steve-arndt-to-lead-global-refinish-business]] — BASF Coatings Names Steve Arndt to Lead Global Refinish Business
+- [[2026-06-04-cisa-adds-one-known-exploited-vulnerability-to-catalog]] — CISA Adds One Known Exploited Vulnerability to Catalog
+- [[2026-06-04-cisa-and-partners-urge-hardening-automatic-tank-gauge-systems]] — CISA and Partners Urge Hardening Automatic Tank Gauge Systems
+- [[2026-06-04-cities-push-congress-to-avert-water-infrastructure-funding-cliff]] — Cities push Congress to avert water infrastructure funding cliff
+- [[2026-06-04-connecticut-signs-mold-remediation-reform-into-law]] — Connecticut Signs Mold Remediation Reform Into Law
+- [[2026-06-04-convex-launches-tech-enabled-mga-called-kinetic-insurance-services]] — Convex Launches Tech-Enabled MGA Called Kinetic Insurance Services
+- [[2026-06-04-data-center-construction-spending-rocketed-28-in-the-last-year]] — Data center construction spending rocketed 28% in the last year
+- [[2026-06-04-does-artificial-intelligence-advance-science]] — Does Artificial Intelligence Advance Science?
+- [[2026-06-04-illinois-employee-benefits-administrator-sued-for-disability-discriminat]] — Illinois Employee Benefits Administrator Sued for Disability Discrimination
+- [[2026-06-04-illinois-right-to-appraisal-bill-heads-to-governor]] — Illinois Right to Appraisal Bill Heads to Governor
+- [[2026-06-04-jv-picked-for-3-5b-california-high-speed-rail-job]] — JV picked for $3.5B California high-speed rail job
+- [[2026-06-04-lemonade-expands-autonomous-car-insurance-for-tesla-fsd-to-indiana]] — Lemonade Expands Autonomous Car Insurance for Tesla FSD to Indiana
+- [[2026-06-04-obsidian-agentic-second-brain-research]] — Obsidian Agentic 2nd Brain Research — 2026-06-04
+- [[2026-06-04-people-moves-arch-capital-expands-rajeh-s-role-as-president-as-gansberg-]] — People Moves: Arch Capital Expands Rajeh\u2019s Role as President as Gansberg Steps Down
+- [[2026-06-04-people-moves-ima-financial-names-price-head-of-alabama-market]] — People Moves: IMA Financial Names Price Head of Alabama Market
+- [[2026-06-04-register-today-for-cmm-s-free-floor-care-basics-and-beyond-webinar]] — Register Today for CMM\u2019s Free Floor Care Basics and Beyond Webinar
+- [[2026-06-04-stride-training-data-attribution-via-sparse-recovery-from-subset-perturb]] — STRIDE: Training Data Attribution via Sparse Recovery from Subset Perturbations
+- [[2026-06-04-the-next-chapter-in-flood-resilience-open-sourcing-google-s-hydrology-fr]] — The next chapter in flood resilience: Open sourcing Google\u2019s hydrology framework
+- [[2026-06-04-the-skilled-labor-shortage-is-hiding-project-costs]] — The Skilled Labor Shortage Is Hiding Project Costs
+- [[2026-06-04-toyota-s-collaborative-safety-research-center-launches-10-projects-spann]] — Toyota\u2019s Collaborative Safety Research Center Launches 10 Projects Spanning Crash Prevention, Driver Behavior and Injury Science
+- [[2026-06-04-trump-further-tweaks-steel-aluminum-copper-tariffs]] — Trump further tweaks steel, aluminum, copper tariffs
+- [[2026-06-04-trump-scraps-ocean-sensors-providing-crucial-data-on-climate-flooding]] — Trump Scraps Ocean Sensors Providing Crucial Data on Climate, Flooding
+- [[2026-06-04-women-in-auto-care-opens-2026-awards-nominations-adds-sixth-category]] — Women in Auto Care Opens 2026 Awards Nominations, Adds Sixth Category
+- [[2026-06-20-video-research-synthesis]] — Video Research Synthesis — June 2026 Batch
+- [[Advanced Configuration – Codex]] — Advanced Configuration – Codex: More advanced configuration options for Codex local clients
+- [[Agent approvals & security – Codex]] — Agent approvals & security – Codex: How to securely operate Codex with sandboxing, approvals, and network controls
+- [[App Server – Codex]] — App Server – Codex: Embed Codex into your product with the app-server protocol
+- [[App – Codex  OpenAI Developers]] — App – Codex | OpenAI Developers: Your Codex command center
+- [[CLI – Codex  OpenAI Developers]] — CLI – Codex | OpenAI Developers: Pair with Codex in your terminal
+- [[Configuration Reference – Codex]] — Configuration Reference – Codex: Complete reference for Codex config.toml and requirements.toml
+- [[Custom instructions with AGENTS.md – Codex]] — Custom instructions with AGENTS.md – Codex: Give Codex extra instructions and context for your project
+- [[Dashboard – Unite-Hub – Google Cloud console]] — Dashboard – Unite-Hub – Google Cloud console: tags:
+- [[GPT-5.5 Model  OpenAI API]] — GPT-5.5 Model | OpenAI API: tags:
+- [[GitHub Action – Codex]] — GitHub Action – Codex: Trigger Codex actions from GitHub Events
+- [[Hooks – Codex  OpenAI Developers]] — Hooks – Codex | OpenAI Developers: Run deterministic scripts during the Codex lifecycle
+- [[IDE extension – Codex]] — IDE extension – Codex: Pair with Codex in your IDE
+- [[Managed Service for Apache Spark]] — Managed Service for Apache Spark: Use Gemini to develop Apache Spark applications, then deploy them on Google Cloud.
+- [[Model Context Protocol – Codex]] — Model Context Protocol – Codex: Give Codex access to third-party tools and context
+- [[OpenAI API Platform Documentation]] — OpenAI API Platform Documentation: Explore guides, API docs, and examples for the OpenAI API.
+- [[OpenAI Developers 1]] — OpenAI Developers: One agent for everywhere you code
+- [[OpenAI Developers 2]] — OpenAI Developers: Apps and experiences developers can build for ChatGPT users.
+- [[OpenAI Developers 3]] — OpenAI Developers: See what builders are creating with OpenAI models and APIs.
+- [[OpenAI Developers]] — OpenAI Developers: Docs and resources to help you build with, for, and on OpenAI.
+- [[Plugins – Codex  OpenAI Developers]] — Plugins – Codex | OpenAI Developers: Use plugins in Codex to add reusable workflows with skills and app integrations
+- [[Quick Start]] — Quick Start: Get from zero to a generated video in minutes.
+- [[Remote connections – Codex]] — Remote connections – Codex: Connect your phone or another device to a Codex host, or use projects on remote machines over SSH
+- [[Rules – Codex  OpenAI Developers]] — Rules – Codex | OpenAI Developers: Control which commands Codex can run outside the sandbox
+- [[SDK – Codex  OpenAI Developers]] — SDK – Codex | OpenAI Developers: Programmatically control local Codex agents
+- [[Speed – Codex  OpenAI Developers]] — Speed – Codex | OpenAI Developers: Increase speed without sacrificing intelligence
+- [[Subagents – Codex  OpenAI Developers]] — Subagents – Codex | OpenAI Developers: Use subagents and custom agents in Codex
+- [[Use Codex with the Agents SDK]] — Use Codex with the Agents SDK: Invoke Codex as an MCP server to build multi-agent development workflows
+- [[Web – Codex  OpenAI Developers]] — Web – Codex | OpenAI Developers: Delegate to Codex in the cloud
+- [[Why Your AI UX Is Broken (and It's Not the Model's Fault) — Mike Christensen, Ably]] — Why Your AI UX Is Broken (and It's Not the Model's Fault) — Mike Christensen, Ably: SSE ties a response stream to a single connection. The user refreshes the page, walks out of WiFi range, or opens a second tab and the in-progress response is gone. Abort and resume are mutually exclu
+- [[github-carsi-README]] — carsi: Online Training LMS
+- [[github-carsi-tech-stack]] — carsi Tech Stack
+- [[github-ccw-crm-README]] — ccw-crm — README.md
+- [[github-ccw-crm-docs-README]] — ccw-crm — docs/README.md
+- [[github-ccw-crm-tech-stack]] — ccw-crm Tech Stack
+- [[github-disaster-recovery-README]] — disaster-recovery: Safe experimentation space - isolated from disasterrecovery.com.au production. S
+- [[github-disaster-recovery-tech-stack]] — disaster-recovery Tech Stack
+- [[github-dr-nrpg-README]] — dr-nrpg — README.md
+- [[github-dr-nrpg-tech-stack]] — dr-nrpg Tech Stack
+- [[github-nodejs-starter-CHANGELOG]] — nodejs-starter — CHANGELOG.md
+- [[github-nodejs-starter-README]] — nodejs-starter: Start a new project with NodeJS Starter V1
+- [[github-nodejs-starter-tech-stack]] — nodejs-starter Tech Stack
+- [[github-nrpg-onboarding-README]] — nrpg-onboarding: Training and Onboarding framework
+- [[github-oh-my-codex-CHANGELOG]] — oh-my-codex — CHANGELOG.md
+- [[github-oh-my-codex-README]] — oh-my-codex: OmX - Oh My codeX: Your codex is not alone. Add hooks, agent teams, HUDs, and so
+- [[github-oh-my-codex-tech-stack]] — oh-my-codex Tech Stack
+- [[github-pi-dev-ops-README]] — pi-dev-ops — README.md
+- [[github-pi-dev-ops-tech-stack]] — pi-dev-ops Tech Stack
+- [[github-restoreassist-tech-stack]] — restoreassist Tech Stack
+- [[github-synthex-CHANGELOG]] — synthex — CHANGELOG.md
+- [[github-synthex-README]] — synthex: Marketing Made Easy
+- [[github-synthex-docs-README]] — synthex — docs/README.md
+- [[github-synthex-tech-stack]] — synthex Tech Stack
+- [[github-unite-group-README]] — unite-group: Unite Group — Synthex Authority Hub
+- [[github-unite-group-tech-stack]] — unite-group Tech Stack
+
