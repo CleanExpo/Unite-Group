@@ -61,6 +61,19 @@ LOCAL_TIER = ModelTier("local-ornith", Provider.LOCAL, "ornith-1.0-9b",
 FORBIDDEN_HOSTS = ("api.anthropic.com", "anthropic.com")
 
 
+def local_endpoint(env: dict) -> tuple[str, str]:
+    """Resolve the deployment-specific local (base_url, model).
+
+    Defaults to LOCAL_TIER's in-container Model Runner address (the production
+    target — the agent runs containerised). Overridable via LOCAL_BASE_URL /
+    LOCAL_MODEL for host-run contexts: run.py executing on the host reaches the
+    runner at http://localhost:12434/engines/v1, since model-runner.docker.internal
+    is a container-only DNS name. Pure (no os import) so it stays unit-testable.
+    """
+    return (env.get("LOCAL_BASE_URL", LOCAL_TIER.base_url),
+            env.get("LOCAL_MODEL", LOCAL_TIER.model))
+
+
 class RouterError(Exception):
     pass
 

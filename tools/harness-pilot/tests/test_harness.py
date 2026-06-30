@@ -87,6 +87,22 @@ class TestLocalTier(unittest.TestCase):
         for bad in FORBIDDEN_HOSTS:
             self.assertNotIn(bad, LOCAL_TIER.base_url)
 
+    def test_local_endpoint_defaults_and_overrides(self):
+        # local_endpoint resolves the deployment-specific local endpoint: defaults to
+        # the in-container Model Runner address, overridable via env for host runs
+        # (run.py on the host reaches the runner at localhost:12434, not the
+        # container-only model-runner.docker.internal DNS).
+        from harness.router import local_endpoint
+        base, model = local_endpoint({})
+        self.assertEqual(base, "http://model-runner.docker.internal/engines/v1")
+        self.assertEqual(model, "ornith-1.0-9b")
+        base2, model2 = local_endpoint(
+            {"LOCAL_BASE_URL": "http://localhost:12434/engines/v1", "LOCAL_MODEL": "ai/smollm2"})
+        self.assertEqual(base2, "http://localhost:12434/engines/v1")
+        self.assertEqual(model2, "ai/smollm2")
+        for bad in FORBIDDEN_HOSTS:
+            self.assertNotIn(bad, base)
+
 
 class TestZdr(unittest.TestCase):
     def test_openrouter_calls_carry_zdr(self):

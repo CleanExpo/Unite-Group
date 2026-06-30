@@ -19,7 +19,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from harness import exits  # noqa: E402
-from harness.router import DataClass, ModelRouter, Provider, PUBLIC_LADDER  # noqa: E402
+from harness.router import DataClass, ModelRouter, Provider, PUBLIC_LADDER, local_endpoint  # noqa: E402
 from harness.runner import Runner  # noqa: E402
 from harness.ratelimit import RateLimiter  # noqa: E402
 from harness import secrets_scan  # noqa: E402
@@ -103,6 +103,15 @@ def _prepare_live():
         except Exception:
             return False
 
+    def local_live() -> bool:
+        # Local lane liveness: probe the (env-resolved) Model Runner endpoint.
+        base, _ = local_endpoint(os.environ)
+        try:
+            with urllib.request.urlopen(base + "/models", timeout=10) as r:
+                return r.status == 200
+        except Exception:
+            return False
+
     available = set()
     for tier in PUBLIC_LADDER:
         if tier.provider is Provider.OPENROUTER:
@@ -111,11 +120,13 @@ def _prepare_live():
         elif tier.provider is Provider.MINIMAX_DIRECT:
             if os.environ.get("MINIMAX_API_KEY"):
                 available.add(tier.name)  # plan key present; context-shim smoke at call time
-    if not available:
+    local_available = local_live()
+    if not available and not local_available:
         print(json.dumps({"error": "no live tier — §16.1 prerequisites failed",
-                          "hint": "set OPENROUTER_API_KEY / MINIMAX_API_KEY via --env-file"}))
+                          "hint": "set OPENROUTER_API_KEY / MINIMAX_API_KEY via --env-file, "
+                                  "or enable Docker Model Runner for the local lane"}))
         sys.exit(exits.SLUG_UNAVAILABLE)
-    return make_live_caller(), False, available
+    return make_live_caller(), local_available, available
 
 
 if __name__ == "__main__":
