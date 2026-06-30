@@ -2,6 +2,15 @@
 
 This is an Obsidian-compatible markdown vault AND a git repo. Agents and humans read/write the same files. Folders are flat by purpose — do not nest deeper without a reason.
 
+## OKF navigation — read this FIRST
+
+This vault is an [OKF](https://github.com/google/open-knowledge-format) (Open Knowledge Format) knowledge layer. To find anything, **navigate the index, do not keyword-match across the tree** — that is slower, costs more tokens, and surfaces duplicates.
+
+1. **Start at the folder's `index.md`.** Every folder has one (`type: index` in its frontmatter). It lists that folder's concepts (with one-line descriptions) and its subfolders (each linked to its own `index.md`). Read the index, decide what you need, then open only that file. Walk down through subfolder indexes the same way.
+2. **Read frontmatter before content.** Each concept file carries `name`/`title` + `description` frontmatter. Read descriptions first to pick the right file; open the body second.
+3. **One concept per file.** Each file is one thing with a `type` field (`sketch`/`grill`/`pitch`/`decision`/`persona`/`source`/`outcome`/`output`/`index`). Don't mix topics in a file — it breaks targeted loading.
+4. **Indexes are generated, not hand-edited.** `index.md` files carrying the `<!-- okf:generated -->` marker are produced by `apps/workspace/scripts/okf-index.py`; re-run that script after adding/moving content rather than editing them by hand. A hand-authored `index.md` (no marker) is left untouched by the generator.
+
 ## Folder purpose (SSOT)
 
 | Folder | What goes here | When |
