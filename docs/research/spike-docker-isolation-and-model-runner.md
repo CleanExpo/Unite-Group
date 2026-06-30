@@ -1,8 +1,8 @@
 # SPIKE — Docker as the de-risking isolation substrate + local model runtime
 
 > **Ticket:** UNI-2213 (parent epic UNI-2207). **Branch:** `spike/docker-isolation-and-model-runner`.
-> **Status:** spike complete — fallback architecture **validated** for the isolation lane;
-> local-runtime lane **available, one bounded step from proven**.
+> **Status:** spike complete — fallback architecture **validated**: both the isolation lane
+> (Role 2) and the local-runtime lane (Role 3) **proven** on plain Docker this session.
 > **Locale:** en-AU. All claims carry an Evidence Standard tag; verification was run
 > 30/06/2026 on the M4 Mac mini.
 
@@ -20,7 +20,7 @@ Docker actually plays **three** roles:
 |---|---|---|---|
 | 1 | OpenShell compute driver | UNI-2210 | Out of scope here; cross-ref only. |
 | 2 | **Standalone per-agent isolation, no OpenShell** | **this ticket** | **`[VERIFIED]` — proven green.** |
-| 3 | **Local model runtime (Docker Model Runner)** | **this ticket** | `[VERIFIED present]`, runtime call = one bounded step. |
+| 3 | **Local model runtime (Docker Model Runner)** | **this ticket** | **`[VERIFIED]` — live inference proven.** |
 
 ## Environment (verified 30/06/2026)
 
@@ -65,29 +65,34 @@ it can host the model **inside the same container substrate** that isolates the 
 collapsing the local-model lane and the isolation lane into one tool we already own.
 
 - Client **v1.2.1 is installed**. `[VERIFIED]`
-- It is **not yet enabled**: `docker model status` → "Docker Model Runner is not running";
-  `docker model ls` refuses until enabled. `[VERIFIED]`
-- Enabling it (`docker desktop enable model-runner`) exposes an **OpenAI-compatible**
-  endpoint (default `http://localhost:12434/engines/v1`) that the harness `client.py`
-  local lane can target with no code change. `[INFERENCE]` from Docker's Model Runner docs
-  (link in UNI-2213); endpoint not reachable this session because the runner is disabled. `[VERIFIED]` (curl returned empty)
+- **Enabled and proven this session** (with founder authorisation to mutate the shared Docker
+  Desktop config): `docker desktop enable model-runner` → `docker model status` = "Docker
+  Model Runner is running". `[VERIFIED]`
 
-**Why not enabled in this spike:** turning on Model Runner mutates the shared dev machine's
-Docker Desktop global configuration and pulls multi-GB model weights — outside the bounded,
-reversible scope of a read-only worktree spike. It is **one command + one pull** from a live
-local-inference proof:
+**Live local-inference proof** (no credentials, zero Max consumption): `[VERIFIED]`
 
 ```bash
-docker desktop enable model-runner
-docker model pull ai/<ornith-9b-or-equivalent-gguf>
+docker model pull ai/smollm2                      # 361M llama, 256 MiB, pulled OK
 curl http://localhost:12434/engines/v1/chat/completions \
   -H 'Content-Type: application/json' \
-  -d '{"model":"ai/<…>","messages":[{"role":"user","content":"ping"}]}'
+  -d '{"model":"ai/smollm2","messages":[{"role":"user","content":"Reply with exactly: ROLE3_OK"}],"max_tokens":20,"temperature":0}'
 ```
 
-`[INFERENCE]` Per Docker's docs (link in UNI-2213) Model Runner runs llama.cpp and, on
-Apple Silicon with Desktop 4.62+, vLLM/MLX — so Ornith-9B-class local inference on this M4
-is expected to work; **left `[UNCONFIRMED]` until the pull+call above is run.**
+Result: `choices[0].message.content == "ROLE3_OK"`, `usage = {prompt_tokens:40, completion_tokens:6}`,
+and `GET /engines/v1/models` lists `docker.io/ai/smollm2:latest`. The **OpenAI-compatible
+endpoint at `http://localhost:12434/engines/v1` serves real local inference** — the harness
+`client.py` local lane can target it with no code change (point `base_url` there). `[VERIFIED]`
+
+A 361M model was used purely to prove the **runtime + endpoint contract** quickly; swapping in
+Ornith-9B (or any GGUF) is `docker model pull <tag>` with no other change. `[INFERENCE]` Per
+Docker's docs (link in UNI-2213) the same runner does vLLM/MLX on Apple-Silicon Desktop 4.62+,
+so 9B-class local inference on this M4 follows the same path. The runner is left enabled (a
+usable local lane for the pilot); `docker desktop disable model-runner` reverses it cleanly.
+
+**Still `[UNCONFIRMED]` — the assembled path:** wiring the *isolated* app container to reach this
+endpoint via `host.docker.internal:12434` (the squid conf already reserves a single
+`host.docker.internal` CONNECT rule for confidential runs). Both halves are proven
+independently; joining them is the one remaining integration step, owned by the pilot build.
 
 ## The real isolation boundary (recorded, per ticket bench note)
 
@@ -106,10 +111,14 @@ Docker Desktop on macOS runs a **Linux VM** (this machine: `kernel=6.12.76-linux
 - **GO** for plain Docker as the pilot's isolation substrate. The egress-containment
   guarantee the blueprint needed is proven on tooling we already run, with no dependency on
   OpenShell alpha. `[VERIFIED]`
+- **Both local lanes proven independently:** Role 2 (isolated container + deny-by-default
+  egress) and Role 3 (Docker Model Runner serving real local inference via the
+  OpenAI-compatible endpoint). `[VERIFIED]`
 - The pilot can proceed **now** on Role 2; OpenShell (UNI-2209 / UNI-2210) becomes an
   *additive* hardening layer rather than a blocker.
-- **Single bounded follow-up:** enable Docker Model Runner and run the chat-completions call
-  above to close Role 3 from `available` to `proven` (no founder credential needed — local).
+- **Single remaining integration step (owned by the pilot build):** join the two proven
+  halves — isolated app container → `host.docker.internal:12434` → Model Runner — so a
+  confidential task runs fully local with no egress. No founder credential needed.
 
 ## Sources
 
