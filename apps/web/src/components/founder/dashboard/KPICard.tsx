@@ -34,6 +34,10 @@ interface LiveState {
   secondary: string | null
   source: 'xero' | 'mock' | null
   loading: boolean
+  /** True only when the revenue fetch THREW (integration error), as opposed to
+   *  an expected "not connected / no data" degrade. Drives the honest error
+   *  affordance so a hard failure never sits on a permanent "Loading…". */
+  error: boolean
 }
 
 export function KPICard({
@@ -47,7 +51,7 @@ export function KPICard({
   liveData,
 }: KPICardProps) {
   const [live, setLive] = useState<LiveState>({
-    metric: null, trend: null, secondary: null, source: null, loading: false,
+    metric: null, trend: null, secondary: null, source: null, loading: false, error: false,
   })
   const [linearCount, setLinearCount] = useState<number | null>(null)
 
@@ -64,6 +68,7 @@ export function KPICard({
           secondary: `${liveData.invoiceCount ?? 0} Invoices MTD`,
           source: liveData.source ?? null,
           loading: false,
+          error: false,
         })
       }
       if (liveData.activeIssues !== undefined) {
@@ -76,14 +81,14 @@ export function KPICard({
   useEffect(() => {
     if (liveData) return // Batch data takes precedence
     if (xeroBusinessKey) {
-      setLive(prev => ({ ...prev, loading: true }))
+      setLive(prev => ({ ...prev, loading: true, error: false }))
       fetch(`/api/xero/revenue?business=${encodeURIComponent(xeroBusinessKey)}`)
         .then(res => (res.ok ? res.json() : null) as Promise<{ data?: XeroRevenueMTD; source?: 'xero' | 'mock' } | null>)
         .then((payload) => {
           const data = payload?.data
           // Xero not connected / no data — an expected degraded state, not an error.
           if (!data || data.revenueCents == null) {
-            setLive({ metric: null, trend: null, secondary: null, source: payload?.source ?? null, loading: false })
+            setLive({ metric: null, trend: null, secondary: null, source: payload?.source ?? null, loading: false, error: false })
             return
           }
           setLive({
@@ -95,12 +100,13 @@ export function KPICard({
             secondary: `${data.invoiceCount} Invoices MTD`,
             source: payload?.source ?? null,
             loading: false,
+            error: false,
           })
         })
         .catch((error) => {
-          // Integration unavailable (e.g. Xero not configured) — degrade quietly.
-          console.warn(`[kpi] Xero revenue unavailable for ${xeroBusinessKey}:`, error)
-          setLive({ metric: null, trend: null, secondary: null, source: null, loading: false })
+          // Integration fetch threw — surface honestly, never fabricate "Loading…".
+          console.error(`[kpi] Xero revenue fetch failed for ${xeroBusinessKey}:`, error)
+          setLive({ metric: null, trend: null, secondary: null, source: null, loading: false, error: true })
         })
     }
   }, [xeroBusinessKey, liveData])
@@ -120,9 +126,11 @@ export function KPICard({
   // Fall back to static props when live data hasn't loaded
   const displayMetric = live.metric ?? metric
   const displayTrend = live.trend ?? trend
-  const displaySecondary = linearCount !== null
-    ? `${linearCount} active issue${linearCount !== 1 ? 's' : ''}`
-    : (live.secondary ?? secondary)
+  const displaySecondary = live.error
+    ? "Couldn’t load — refresh to retry"
+    : linearCount !== null
+      ? `${linearCount} active issue${linearCount !== 1 ? 's' : ''}`
+      : (live.secondary ?? secondary)
 
   return (
     <motion.div
@@ -141,11 +149,16 @@ export function KPICard({
           style={{ width: 8, height: 8, background: business.color }}
         />
         <span className="text-[13px] font-medium" style={{ color: 'var(--color-text-secondary)' }}>{business.name}</span>
-        {/* Live / Demo badge */}
+        {/* Live / Demo / error badge */}
         {isLive && (
           <span className="ml-auto flex items-center gap-1">
             {live.loading ? (
               <span className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>—</span>
+            ) : live.error ? (
+              // Don't show "Demo" on a failed fetch — that would imply demo data is shown.
+              <span className="text-[10px] font-medium tracking-widest uppercase" style={{ color: 'var(--color-danger)' }}>
+                Error
+              </span>
             ) : live.source === 'xero' ? (
               <>
                 <span
@@ -200,7 +213,13 @@ export function KPICard({
 
       {/* Divider + secondary */}
       <div className="border-t pt-3" style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
-        <span className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>{displaySecondary}</span>
+        <span
+          className="text-[11px]"
+          style={{ color: live.error ? 'var(--color-danger)' : 'var(--color-text-muted)' }}
+          role={live.error ? 'alert' : undefined}
+        >
+          {displaySecondary}
+        </span>
       </div>
 
     </motion.div>
