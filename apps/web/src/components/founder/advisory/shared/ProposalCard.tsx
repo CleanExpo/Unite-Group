@@ -58,7 +58,7 @@ export function ProposalCard({ proposal }: ProposalCardProps) {
         )}
         {proposal.input_tokens != null && proposal.output_tokens != null && (
           <span className="text-[10px] ml-auto" style={{ color: 'var(--color-text-disabled)' }}>
-            {(proposal.input_tokens + proposal.output_tokens).toLocaleString()} tokens
+            {(proposal.input_tokens + proposal.output_tokens).toLocaleString('en-AU')} tokens
           </span>
         )}
       </div>
