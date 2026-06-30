@@ -50,8 +50,12 @@ PUBLIC_LADDER: tuple[ModelTier, ...] = (
               "https://openrouter.ai/api/v1", public_only=True),
 )
 
+# Local lane = Docker Model Runner's in-container endpoint, PROVEN reachable from an
+# egress-denied container this spike (UNI-2213); the model is pulled with
+# `docker model pull <slug>`. (LM Studio at http://host.docker.internal:1234/v1 is the
+# documented alternative runtime.)
 LOCAL_TIER = ModelTier("local-ornith", Provider.LOCAL, "ornith-1.0-9b",
-                       "http://host.docker.internal:1234/v1", public_only=False)
+                       "http://model-runner.docker.internal/engines/v1", public_only=False)
 
 # Never a routing target. Asserted by tests; the proxy also never allowlists it.
 FORBIDDEN_HOSTS = ("api.anthropic.com", "anthropic.com")
