@@ -14,7 +14,7 @@ import urllib.error
 import urllib.request
 
 from . import exits
-from .router import Provider, RouteDecision
+from .router import Provider, RouteDecision, local_endpoint
 
 
 def _redact(s: str) -> str:
@@ -53,8 +53,9 @@ def make_live_caller(env: dict | None = None):
                        "Content-Type": "application/json"}
         else:  # LOCAL
             key = env.get("LOCAL_API_KEY", "not-needed")
-            url = tier.base_url + "/chat/completions"
-            body = {"model": tier.model,
+            base, model = local_endpoint(env)  # env-overridable for host vs container
+            url = base + "/chat/completions"
+            body = {"model": model,
                     "messages": [{"role": "user", "content": prompt}],
                     "max_tokens": max_tokens}
             headers = {"Authorization": "Bearer " + key, "Content-Type": "application/json"}
