@@ -1,8 +1,9 @@
 # SPIKE — Docker as the de-risking isolation substrate + local model runtime
 
 > **Ticket:** UNI-2213 (parent epic UNI-2207). **Branch:** `spike/docker-isolation-and-model-runner`.
-> **Status:** spike complete — fallback architecture **validated**: both the isolation lane
-> (Role 2) and the local-runtime lane (Role 3) **proven** on plain Docker this session.
+> **Status:** spike complete — fallback architecture **validated**: the isolation lane (Role 2),
+> the local-runtime lane (Role 3), and the **assembled confidential lane** (egress-denied
+> container doing local-only inference) all **proven** on plain Docker this session.
 > **Locale:** en-AU. All claims carry an Evidence Standard tag; verification was run
 > 30/06/2026 on the M4 Mac mini.
 
@@ -89,10 +90,25 @@ Docker's docs (link in UNI-2213) the same runner does vLLM/MLX on Apple-Silicon 
 so 9B-class local inference on this M4 follows the same path. The runner is left enabled (a
 usable local lane for the pilot); `docker desktop disable model-runner` reverses it cleanly.
 
-**Still `[UNCONFIRMED]` — the assembled path:** wiring the *isolated* app container to reach this
-endpoint via `host.docker.internal:12434` (the squid conf already reserves a single
-`host.docker.internal` CONNECT rule for confidential runs). Both halves are proven
-independently; joining them is the one remaining integration step, owned by the pilot build.
+## Role 2 + 3 assembled — the confidential lane (proven)
+
+The combined architecture — an **egress-denied** agent container that can **still** do local
+inference — is the lane for client/proprietary data. Proven this session via
+`docker/prove_local_confidential.sh` (exit `0`): `[VERIFIED]`
+
+- **Topology finding (verified):** a plain `--internal` Docker network severs *everything*,
+  **including Docker Model Runner** — a container on a bare `--internal` net got an empty
+  response from the model. `[VERIFIED]` So the confidential lane is **not** "just use
+  `--internal`"; it is **proxy-mediated**: the app sits on `--internal` and is forced through
+  a squid sidecar (`docker/squid-confidential.conf`) that allowlists **only**
+  `model-runner.docker.internal` over HTTP, nothing else.
+- **Proof (exit 0):** `[VERIFIED]`
+  - (a) app → proxy → local model: `{"choices":[{"message":{"content":"Confidential local OK."}}], usage{prompt_tokens:44, completion_tokens:6}}` — real local inference.
+  - (b) same app → `openrouter.ai` → `000`; → `api.anthropic.com` → `000`. (`000` = curl made no successful HTTP exchange; the proxy denied the connection.) Internet egress is impossible by construction — no internet host is allowlisted.
+
+This closes the assembled path: **a confidential task runs fully local with zero internet
+egress and zero Max consumption.** Swapping Ornith-9B for the 361M test model is
+`docker model pull <tag>` — no topology change. No founder credential needed.
 
 ## The real isolation boundary (recorded, per ticket bench note)
 
@@ -111,18 +127,20 @@ Docker Desktop on macOS runs a **Linux VM** (this machine: `kernel=6.12.76-linux
 - **GO** for plain Docker as the pilot's isolation substrate. The egress-containment
   guarantee the blueprint needed is proven on tooling we already run, with no dependency on
   OpenShell alpha. `[VERIFIED]`
-- **Both local lanes proven independently:** Role 2 (isolated container + deny-by-default
-  egress) and Role 3 (Docker Model Runner serving real local inference via the
-  OpenAI-compatible endpoint). `[VERIFIED]`
-- The pilot can proceed **now** on Role 2; OpenShell (UNI-2209 / UNI-2210) becomes an
-  *additive* hardening layer rather than a blocker.
-- **Single remaining integration step (owned by the pilot build):** join the two proven
-  halves — isolated app container → `host.docker.internal:12434` → Model Runner — so a
-  confidential task runs fully local with no egress. No founder credential needed.
+- **All three lanes proven:** Role 2 (isolated container + deny-by-default egress), Role 3
+  (Model Runner serving real local inference), and the **assembled confidential lane**
+  (egress-denied container doing local inference, internet blocked). `[VERIFIED]`
+- The pilot can proceed **now** — public-data gathering on the egress-allowlist proxy,
+  confidential work on the local-only proxy. OpenShell (UNI-2209 / UNI-2210) becomes an
+  *additive* policy/credential-mediation layer, never a blocker.
+- **Remaining for the pilot build (not the substrate):** wire `harness/router.py`'s
+  confidential branch to point `client.py` at `model-runner.docker.internal` and select the
+  confidential squid conf — both proven mechanisms; this is wiring, not unknowns.
 
 ## Sources
 
 - `tools/harness-pilot/` — `docker/prove_egress.sh`, `docker/squid-allowlist.conf`,
+  `docker/prove_local_confidential.sh`, `docker/squid-confidential.conf` (added this spike),
   `harness/router.py`, `harness/client.py` (read + run this session).
 - `docs/research/spec-agentic-harness-pilot.md` — the graded spec the pilot embodies.
 - `docs/research/openshell-agentic-blueprint.md` §5, §10 — original Docker framing + alpha risk.
