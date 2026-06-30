@@ -61,7 +61,7 @@ ALWAYS verify Framer Motion is used for animation (not CSS transitions).
 - [ ] Only `rounded-sm` used — no `rounded-md`, `rounded-lg`, `rounded-xl`, `rounded-full`
 - [ ] No `#ffffff` or `#000000` backgrounds — only `#050505` OLED black
 - [ ] Framer Motion used for animations — no CSS `transition` or `animation` properties
-- [ ] No Lucide icons imported anywhere
+- [ ] Lucide React used for general icons (codebase standard); custom / AI SVG only for brand-specific marks
 - [ ] Design tokens used — no hardcoded hex values outside of token files
 
 ### Next.js App Router Patterns
