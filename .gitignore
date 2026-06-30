@@ -78,6 +78,17 @@ vercel-export-*/
 /docs/margot/automation-logs/*.log
 /docs/margot/linear-watch-today.md
 
+# Margot overnight evidence trail — append-only logs written by the autonomous
+# operator/agent runs. Kept on disk as the local evidence record but no longer
+# tracked: they grow unbounded and were bloating git history (~5.5M). Untracked
+# 2026-06-30; full history preserved up to that commit. Structured operating
+# docs in these dirs (crm-*, *-OPERATING-MODEL.md, etc.) stay tracked.
+/docs/margot/overnight-progress-log.md
+/docs/margot/morning-report.md
+/apps/empire/docs/margot/overnight-progress-log.md
+/apps/empire/docs/margot/morning-report.md
+/docs/brain/2nd Brain/Decisions/continuous-work-queue.jsonl
+
 # Transient agent run artifacts (raw logs / exit codes — never canonical)
 .shipit_evidence/
 outputs/sandbox_voice_migration/
