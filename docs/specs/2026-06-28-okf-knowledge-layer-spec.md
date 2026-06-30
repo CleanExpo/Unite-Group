@@ -74,6 +74,22 @@ already gives a graph view); splitting existing multi-topic files into single co
 - a new quick-run output has `type: output` + name/description frontmatter.
 - `/api/knowledge/list` still serves (no regression).
 
+## 7-DELIVERED (2026-06-30) `[VERIFIED this session]`
+
+Follow-on §7 partially shipped into `apps/workspace/scripts/okf-index.py`:
+- **`--bundle [out.json]`** — emits a portable OKF manifest (every concept: path, folder,
+  name, description + `okf_version`/count). Verified: 1200 concepts → valid JSON.
+- **`--check`** — freshness guard: exits 1 when any generated `index.md` is stale/missing
+  (hand-authored indexes skipped). Verified: detects a corrupted index, passes when fresh.
+  This is the wireable guard for "indexes never go stale" — call it after `wiki-ingest`
+  / in CI. (The `wiki-ingest` skill itself lives in the brain-1 vault repo, outside this
+  monorepo; `quick-run.ts` already auto-refreshes `outputs/index.md` in-app.)
+- Generator refactored into `write_indexes` / `iter_concepts` / `emit_bundle` / `check_fresh`;
+  default write behaviour unchanged (idempotent).
+- **Deferred (judgment-heavy):** auto-splitting the largest multi-topic vault files into single
+  concepts — needs per-file content review on the live vault; risk of mangling real notes.
+  Left for a deliberate human-in-the-loop pass.
+
 ## 7. /goal (follow-on)
 
 ```

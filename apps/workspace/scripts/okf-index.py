@@ -5,10 +5,15 @@ Walks a knowledge vault and writes an `index.md` into every folder so an agent c
 the index FIRST (knowing contents + subfolders before opening anything) — the OKF pattern
 from Google's Open Knowledge Format / Karpathy's LLM Wiki. Idempotent + re-runnable.
 
-Usage:  python3 okf-index.py "/path/to/vault"   (defaults to ~/2nd Brain/2nd Brain)
+Usage:
+  python3 okf-index.py ["/path/to/vault"]            # write/refresh index.md everywhere
+  python3 okf-index.py ["vault"] --bundle [out.json] # emit a portable OKF concept manifest
+  python3 okf-index.py ["vault"] --check             # verify indexes are fresh (exit 1 if stale)
 
-Never edits content files (incl. immutable Sources/) — only (re)writes index.md.
+Vault defaults to ~/2nd Brain/2nd Brain. Never edits content files (incl. immutable
+Sources/) — only (re)writes index.md (and, with --bundle, a manifest file).
 """
+import json
 import os
 import re
 import sys
@@ -100,16 +105,18 @@ def build_index(folder, rel_name):
     return "\n".join(lines)
 
 
-def main():
-    vault = sys.argv[1] if len(sys.argv) > 1 else os.path.expanduser("~/2nd Brain/2nd Brain")
-    if not os.path.isdir(vault):
-        print(f"vault not found: {vault}", file=sys.stderr)
-        sys.exit(1)
-    written = 0
+def _walk_dirs(vault):
+    """Yield (root, rel_name) for every non-skipped folder in the vault."""
     for root, dirs, _ in os.walk(vault):
         dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not d.startswith(".")]
         rel = os.path.relpath(root, vault)
-        rel_name = "" if rel == "." else rel
+        yield root, ("" if rel == "." else rel)
+
+
+def write_indexes(vault):
+    """(Re)write a generated index.md in every folder; leave hand-authored ones."""
+    written = 0
+    for root, rel_name in _walk_dirs(vault):
         idx_path = os.path.join(root, "index.md")
         # Don't clobber a hand-authored index.md (one without our marker).
         if os.path.isfile(idx_path):
@@ -123,7 +130,107 @@ def main():
         with open(idx_path, "w", encoding="utf-8") as f:
             f.write(content + "\n")
         written += 1
-    print(f"OKF index: wrote {written} index.md files under {vault}")
+    return written
+
+
+def iter_concepts(vault):
+    """Yield one OKF concept record per markdown file (excludes index.md)."""
+    for root, rel_name in _walk_dirs(vault):
+        for entry in sorted(os.listdir(root)):
+            if not entry.endswith(".md") or entry == "index.md":
+                continue
+            full = os.path.join(root, entry)
+            if not os.path.isfile(full):
+                continue
+            name, desc = parse_frontmatter(full)
+            rel_path = os.path.relpath(full, vault)
+            yield {
+                "path": rel_path,
+                "folder": rel_name or ".",
+                "name": name or entry[:-3],
+                "description": desc,
+            }
+
+
+def emit_bundle(vault, out_path):
+    """Write a portable OKF manifest: every concept with name + description."""
+    concepts = list(iter_concepts(vault))
+    manifest = {
+        "okf_version": "0.1",
+        "vault": os.path.basename(os.path.normpath(vault)),
+        "generated": date.today().isoformat(),
+        "concept_count": len(concepts),
+        "concepts": concepts,
+    }
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+    print(f"OKF bundle: wrote {len(concepts)} concepts -> {out_path}")
+    return len(concepts)
+
+
+def check_fresh(vault):
+    """Report folders whose generated index.md is missing or out of date.
+
+    Stale = a generated index.md whose body differs from what we'd write now,
+    or a folder with concepts but no index.md at all. Hand-authored indexes
+    (no marker) are skipped. Exit 1 when anything is stale (CI/hook guard).
+    """
+    stale = []
+    for root, rel_name in _walk_dirs(vault):
+        idx_path = os.path.join(root, "index.md")
+        expected = build_index(root, rel_name) + "\n"
+        if os.path.isfile(idx_path):
+            with open(idx_path, "r", encoding="utf-8", errors="ignore") as f:
+                current = f.read()
+            if MARKER not in current[:400]:
+                continue  # hand-authored — not ours to judge
+            if current != expected:
+                stale.append(os.path.relpath(idx_path, vault))
+        else:
+            # only flag folders that actually hold concepts/subfolders
+            if "## " in expected:
+                stale.append(os.path.relpath(idx_path, vault) + " (missing)")
+    if stale:
+        print(f"OKF check: {len(stale)} stale/missing index.md:", file=sys.stderr)
+        for s in stale:
+            print(f"  - {s}", file=sys.stderr)
+        return 1
+    print("OKF check: all generated indexes fresh.")
+    return 0
+
+
+def main():
+    args = sys.argv[1:]
+    mode = None
+    out_path = None
+    positional = []
+    i = 0
+    while i < len(args):
+        a = args[i]
+        if a == "--bundle":
+            mode = "bundle"
+            if i + 1 < len(args) and not args[i + 1].startswith("--"):
+                out_path = args[i + 1]
+                i += 1
+        elif a == "--check":
+            mode = "check"
+        else:
+            positional.append(a)
+        i += 1
+
+    vault = positional[0] if positional else os.path.expanduser("~/2nd Brain/2nd Brain")
+    if not os.path.isdir(vault):
+        print(f"vault not found: {vault}", file=sys.stderr)
+        sys.exit(1)
+
+    if mode == "bundle":
+        emit_bundle(vault, out_path or os.path.join(vault, "okf-bundle.json"))
+    elif mode == "check":
+        sys.exit(check_fresh(vault))
+    else:
+        written = write_indexes(vault)
+        print(f"OKF index: wrote {written} index.md files under {vault}")
 
 
 if __name__ == "__main__":
