@@ -5,7 +5,7 @@
 
 import { useEffect } from 'react'
 import Link from 'next/link'
-import * as Sentry from '@sentry/nextjs'
+import { captureClientError } from '@/lib/error-reporting'
 
 export default function EmailError({
   error,
@@ -15,10 +15,7 @@ export default function EmailError({
   reset: () => void
 }) {
   useEffect(() => {
-    Sentry.captureException(error, {
-      level: 'error',
-      tags: { errorBoundary: 'email' },
-    })
+    captureClientError(error, { errorBoundary: 'email', level: 'error' })
   }, [error])
 
   return (

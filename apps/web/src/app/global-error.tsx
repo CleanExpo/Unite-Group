@@ -8,7 +8,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import * as Sentry from '@sentry/nextjs';
+import { captureClientError } from '@/lib/error-reporting';
 
 export default function GlobalError({
   error,
@@ -16,17 +16,11 @@ export default function GlobalError({
   error: Error & { digest?: string };
 }) {
   useEffect(() => {
-    // Capture error in Sentry
-    Sentry.captureException(error, {
+    // Report to the console → Vercel Logs / Observability (no Sentry).
+    captureClientError(error, {
+      errorBoundary: 'global',
       level: 'fatal',
-      tags: {
-        errorBoundary: 'global',
-      },
-      contexts: {
-        react: {
-          componentStack: error.digest,
-        },
-      },
+      componentStack: error.digest,
     });
   }, [error]);
 

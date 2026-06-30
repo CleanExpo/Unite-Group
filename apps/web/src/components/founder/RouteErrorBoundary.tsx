@@ -4,8 +4,8 @@
 // Usage: re-export from each route's error.tsx with a section-specific tag.
 
 import { useEffect } from 'react'
-import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
+import { captureClientError } from '@/lib/error-reporting'
 
 interface RouteErrorBoundaryProps {
   error: Error & { digest?: string }
@@ -27,10 +27,7 @@ export function RouteErrorBoundary({
   backLabel = 'Back to dashboard',
 }: RouteErrorBoundaryProps) {
   useEffect(() => {
-    Sentry.captureException(error, {
-      level: 'error',
-      tags: { errorBoundary: section },
-    })
+    captureClientError(error, { errorBoundary: section, level: 'error' })
   }, [error, section])
 
   return (

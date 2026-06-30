@@ -1,4 +1,3 @@
-import { withSentryConfig } from '@sentry/nextjs';
 import path from 'node:path';
 
 /** @type {import('next').NextConfig} */
@@ -172,26 +171,4 @@ const nextConfig = {
   ],
 };
 
-// Sentry build options for source map uploading
-const sentryBuildOptions = {
-  silent: true,
-  org: process.env.SENTRY_ORG || 'unite-hub',
-  project: process.env.SENTRY_PROJECT || 'unite-hub-web',
-};
-
-// Sentry runtime options
-const sentryOptions = {
-  widenClientFileUpload: true,
-  transpileClientSDK: true,
-  tunnelRoute: "/monitoring",
-  hideSourceMaps: true,
-  disableLogger: true,
-  automaticVercelMonitors: true,
-};
-
-// Only wrap with Sentry webpack plugin when SENTRY_AUTH_TOKEN is available.
-// This prevents the Sentry webpack plugin from interfering with Turbopack builds.
-// On Vercel, SENTRY_AUTH_TOKEN is set as an env var so production builds get Sentry source maps.
-export default process.env.SENTRY_AUTH_TOKEN
-  ? withSentryConfig(nextConfig, sentryBuildOptions, sentryOptions)
-  : nextConfig;
+export default nextConfig;

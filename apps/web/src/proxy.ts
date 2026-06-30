@@ -36,8 +36,8 @@ function buildCSP(nonce: string): string {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https: http:",
     "font-src 'self' data:",
-    // wss: required for Supabase Realtime; *.ingest.sentry.io for error reporting (o* prefix is not valid CSP wildcard syntax)
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://accounts.google.com https://*.ingest.sentry.io https://va.vercel-scripts.com",
+    // wss: required for Supabase Realtime
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://accounts.google.com https://va.vercel-scripts.com",
     "frame-src 'self' https://accounts.google.com",
     "object-src 'none'",
     "base-uri 'self'",
@@ -59,7 +59,6 @@ const PUBLIC_PATHS = [
   '/api/health',
   '/api/cron',
   '/api/webhooks', // External provider callbacks verify their own signatures/secrets
-  '/monitoring',  // Sentry tunnel
   '/robots.txt',
   '/sitemap.xml',
   '/site.webmanifest',

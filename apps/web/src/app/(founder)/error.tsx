@@ -5,8 +5,8 @@
 // Next.js passes error + reset; reset() re-renders the failing Server Component
 
 import { useEffect } from 'react'
-import * as Sentry from '@sentry/nextjs'
 import Link from 'next/link'
+import { captureClientError } from '@/lib/error-reporting'
 
 export default function FounderError({
   error,
@@ -16,10 +16,7 @@ export default function FounderError({
   reset: () => void
 }) {
   useEffect(() => {
-    Sentry.captureException(error, {
-      level: 'error',
-      tags: { errorBoundary: 'founder' },
-    })
+    captureClientError(error, { errorBoundary: 'founder', level: 'error' })
   }, [error])
 
   return (
