@@ -64,7 +64,7 @@ export function useExample() {
 - Import with `@/` prefix: `import { Button } from "@/components/ui/button"`
 - Server Components by default, add `"use client"` only when needed
 - Every async component needs loading/error/empty states
-- **Icons**: AI-generated custom SVGs only. NO Lucide React. NO Hero Icons. (Deprecated per `standards/agent.md`)
+- **Icons**: **Lucide React is the standard icon library** — the de-facto codebase standard (≈46 components; `lucide-react` is a tracked dependency). Reserve hand-authored / AI-generated custom SVGs for **brand-specific marks** (the π logo, business glyphs, bespoke status art). _Resolved 2026-06-30: the earlier "custom SVGs only, no Lucide" rule was aspirational and never enforced (no lint rule, 46 files using Lucide), so the docs are aligned to reality. This supersedes the "NO Lucide" echoes still present in `.claude/README.md`, `.claude/templates/*`, and the agent docs — reconcile those when next touched._
 - **Border radius**: `rounded-sm` only. Never `rounded-lg`, `rounded-xl`, `rounded-full`
 - **Bundle budget**: First Load JS < 250KB per route. Dynamic import heavy components.
 

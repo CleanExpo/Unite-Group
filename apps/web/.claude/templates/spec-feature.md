@@ -119,7 +119,7 @@ interface [FeatureName] {
 ### Design System Compliance ✅ REQUIRED
 
 - [ ] Uses design tokens from `.claude/data/design-tokens.json`
-- [ ] NO Lucide icons (custom SVG only)
+- [ ] Lucide React for general icons; custom SVG for brand marks
 - [ ] Follows 2025-2026 aesthetic (bento grid, glassmorphism)
 - [ ] Design token variables used consistently
 
@@ -203,7 +203,7 @@ interface [FeatureName] {
 - [ ] Australian context validated (dates, currency, language)
 - [ ] WCAG 2.1 AA validated (automated + manual)
 - [ ] Design system compliance verified
-  - [ ] NO Lucide icons
+  - [ ] Lucide React (standard icon library)
   - [ ] Design tokens used
   - [ ] Responsive design tested
 - [ ] Performance meets budget:

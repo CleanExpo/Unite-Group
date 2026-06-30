@@ -52,8 +52,8 @@
     "lg": "0 10px 15px rgba(13, 148, 136, 0.1)"
   },
   "iconography": {
-    "deprecated": ["Lucide"],
-    "recommended": ["AI-generated custom"],
-    "rule": "NO generic icon libraries"
+    "deprecated": [],
+    "recommended": ["Lucide React"],
+    "rule": "Lucide React for general icons; custom / AI-generated SVG for brand-specific marks"
   }
 }

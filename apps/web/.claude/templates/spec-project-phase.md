@@ -110,7 +110,7 @@ design_tokens_version: 1.0.0
 
 - **Layout**: Bento grid system with clear card boundaries
 - **Effects**: Glassmorphism (frosted glass) where appropriate
-- **Icons**: NO Lucide icons - only AI-generated custom SVGs
+- **Icons**: Lucide React (standard icon library)
 - **Design Tokens**: MUST reference `.claude/data/design-tokens.json`
 - **Whitespace**: Generous, breathing room for clarity
 - **Typography**: Clean, modern, sans-serif primary (design tokens define specific fonts)
@@ -213,7 +213,7 @@ design_tokens_version: 1.0.0
   - [ ] en-AU spelling throughout
   - [ ] Privacy Act 1988 compliance verified
 - [ ] Design system compliance:
-  - [ ] NO Lucide icons in final output
+  - [ ] Lucide React for general icons (custom SVG for brand marks)
   - [ ] All design tokens from `.claude/data/design-tokens.json` used
   - [ ] Bento grid + glassmorphism aesthetic applied
   - [ ] Responsive design tested (mobile, tablet, desktop)

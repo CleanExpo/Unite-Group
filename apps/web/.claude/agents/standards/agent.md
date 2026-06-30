@@ -21,7 +21,6 @@ Left unchecked, LLMs default to:
 - Writing American English (color, organization, behavior, authorization, center)
 - Formatting dates as MM/DD/YYYY or ISO without localisation
 - Using USD pricing and US tax references (sales tax instead of GST)
-- Importing Lucide icons that have been deprecated in this codebase
 - Using `rounded-lg` or `rounded-full` when only `rounded-sm` is permitted
 - Referencing US regulations (GDPR, CCPA) instead of Australian ones (Privacy Act 1988)
 
@@ -30,7 +29,7 @@ Left unchecked, LLMs default to:
 NEVER use American English spelling in any output — en-AU always.
 NEVER format dates as MM/DD/YYYY — always DD/MM/YYYY.
 NEVER use USD or US-centric pricing — always AUD with GST context.
-NEVER import or reference Lucide icons — they are deprecated.
+USE Lucide React as the standard icon library (the codebase standard, ≈46 files); reserve custom / AI-generated SVG for brand-specific marks (π logo, business glyphs). _Resolved 2026-06-30 — the prior blanket "NEVER use Lucide" was aspirational and never enforced (no lint, 46 files use it)._
 NEVER use `rounded-md`, `rounded-lg`, `rounded-xl`, or `rounded-full` — only `rounded-sm`.
 NEVER use pure black shadows (`rgba(0,0,0,x)`) — always brand-colour-tinted shadows.
 ALWAYS apply this standard to ALL agents — this agent auto-loads via pre-response hook.
@@ -98,7 +97,6 @@ optimise (not optimize)
 ## Deprecated / Forbidden
 
 ```
-Icons:     Lucide (all) — use AI-generated custom or Heroicons
 Colours:   #0D9488 teal (legacy accent, replaced by #00F5FF cyan)
 Radius:    rounded-md, rounded-lg, rounded-xl, rounded-full
 Shadows:   rgba(0,0,0,x) pure black — must use brand-colour tinting
