@@ -18,11 +18,13 @@ Source: 2nd Brain `Wiki/authority-intelligence/model-stack-doctrine-indydevdan-2
 
 Four rules that enhance our routing:
 1. **Trade-off triangle — pick TWO of {performance, speed, cost}.** Opus=perf; MiniMax=cost; Qwen=speed+cost; GLM=speed+perf.
-2. **5x cost cliff:** each tier down ≈ 5x cheaper for ~5–10 index points less capability. Cross-checked: GLM-5.2 ~$0.94 → MiniMax-M3 ~$0.30 pay-go → DeepSeek V4-flash ~$0.054.
+2. **5x cost cliff:** each tier down ≈ 5x cheaper for ~5–10 index points less capability. Full ladder, ceiling → floor: **Opus 4.8 ~$5 in/$25 out** (SOTA ship-tier) → GLM-5.2 ~$0.94 → MiniMax-M3 ~$0.30 pay-go → DeepSeek V4-flash ~$0.054. The ~5x SOTA→workhorse step is exactly the spend the gather-cheap/ship-Opus split saves on.
 3. **"Workhorses call tools like Opus but don't SHIP like Opus."** Hard rule: **workhorses GATHER; SOTA SHIPS.** Long-horizon shipping never routes to a workhorse — this is *why* Anthropic-first + Tier-0-gathering-only is correct.
 4. **Substitutability = resiliency.** Closed models can be rug-pulled (Fable). **Run 2–3 providers per workhorse model**, never one. Local GLM-class ownership isn't realistic until ~mid-2027; lightweight (Qwen3.6-35B/Gemma 4) is ownable now.
 
 Plus: **engineering agents** (loose token spend, experimentation) vs **product agents** (tokenomics make/break → cheapest model that clears the user bar); and a **B-tier + great prompt/context/harness engineering ≈ an A-tier** — the harness is leverage.
+
+**US-frontier paid reference ceiling (the top rung the cheap stack saves against — verified 2026-06-30).** These are the closed-SOTA "ship" prices, not gathering models; they set the ceiling our routing avoids for high-volume work. Standard $/M, in/out: **Anthropic Opus 4.8 $5 / $25** (batch −50%, prompt-cache −90% on cached input; 1M context flat-rate) — [finout](https://www.finout.io/blog/claude-opus-4.8-pricing-2026-everything-you-need-to-know), [platform.claude.com](https://platform.claude.com/docs/en/about-claude/pricing); **OpenAI GPT-5.2 $1.75 / $14** (GPT-5 Pro $15 / $120) — [intuitionlabs](https://intuitionlabs.ai/articles/ai-api-pricing-comparison-grok-gemini-openai-claude); **Google Gemini 3.1 Pro $2 / $12** ≤200K, doubling above (3.5 Flash $1.50 / $9) — [metacto](https://www.metacto.com/blogs/the-true-cost-of-google-gemini-a-guide-to-api-pricing-and-integration), [ai.google.dev](https://ai.google.dev/gemini-api/docs/pricing). Implication: workhorse output ($0.05–0.34/M) is **~40–500x cheaper** than GPT-5 Pro / Opus output — the entire economic case for gather-cheap, ship-Opus. (Reliability: of the US frontier, only Anthropic is our sanctioned ship-tier; the others are reference-only — client data never routes to them under the Anthropic-first rule.)
 
 ## Bottom line
 
