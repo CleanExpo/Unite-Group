@@ -100,7 +100,7 @@ function makeGreekPNG(name: string, label: string) {
         }}
       >
         <img
-          src={`/avatars/${name}.png`}
+          src={`/avatars/${name}.webp`}
           alt={label}
           width={size}
           height={size}
@@ -1644,7 +1644,7 @@ function AvatarPicker({
                 )}
               >
                 <img
-                  src={`/avatars/${opt.id}.png`}
+                  src={`/avatars/${opt.id}.webp`}
                   alt={opt.label}
                   className={cn(
                     'h-14 w-14 rounded-lg object-cover transition-transform',
