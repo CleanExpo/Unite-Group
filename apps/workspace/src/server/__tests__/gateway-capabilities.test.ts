@@ -32,6 +32,12 @@ beforeEach(() => {
   delete process.env.CLAUDE_HOME
   delete process.env.CLAUDE_API_URL
   delete process.env.CLAUDE_DASHBOARD_URL
+  // The source resolves HERMES_API_URL / HERMES_DASHBOARD_URL *before* the
+  // CLAUDE_* vars, so they must be cleared too — otherwise a sibling test that
+  // leaks them makes the CLAUDE_API_URL expectations non-deterministic in a
+  // full-suite run (passes in isolation, fails together).
+  delete process.env.HERMES_API_URL
+  delete process.env.HERMES_DASHBOARD_URL
 })
 
 async function loadMod() {

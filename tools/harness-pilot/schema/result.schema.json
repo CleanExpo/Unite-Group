@@ -1,0 +1,20 @@
+{
+  "type": "object",
+  "required": ["topic", "summary", "sources"],
+  "properties": {
+    "topic": { "type": "string" },
+    "summary": { "type": "string" },
+    "key_points": { "type": "array", "items": { "type": "string" } },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["url", "takeaway"],
+        "properties": {
+          "url": { "type": "string" },
+          "takeaway": { "type": "string" }
+        }
+      }
+    }
+  }
+}

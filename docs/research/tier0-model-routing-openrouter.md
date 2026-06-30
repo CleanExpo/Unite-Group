@@ -5,6 +5,25 @@
 > Companion to [openshell-agentic-blueprint.md](./openshell-agentic-blueprint.md) §7 (model-cost strategy)
 > and the local-harness assessment. Feeds Linear **UNI-2212**.
 
+## Model-Stack Doctrine (the operating frame — IndyDevDan, distilled + STORM-cross-checked 2026-06-30)
+Source: 2nd Brain `Wiki/authority-intelligence/model-stack-doctrine-indydevdan-2026-06-30.md`.
+
+**Don't pick a model — pick a model STACK.** Route each job to *the cheapest tier that clears its bar*, on three capability tiers:
+
+| Tier | Models | Role |
+|---|---|---|
+| **State-of-the-art** | Opus 4.8 (Fable 5 UNREACHABLE) | long-horizon **shipping**, high-stakes synthesis |
+| **Workhorse** | GLM-5.2 (A), MiniMax-M3 (B, our OWNED plan), DeepSeek V4-flash | **gathering**, daily-driver, product agents |
+| **Lightweight/local** | Ornith-9B / Qwen-class (24GB M4) | private/on-device, unlimited overflow, confidential |
+
+Four rules that enhance our routing:
+1. **Trade-off triangle — pick TWO of {performance, speed, cost}.** Opus=perf; MiniMax=cost; Qwen=speed+cost; GLM=speed+perf.
+2. **5x cost cliff:** each tier down ≈ 5x cheaper for ~5–10 index points less capability. Cross-checked: GLM-5.2 ~$0.94 → MiniMax-M3 ~$0.30 pay-go → DeepSeek V4-flash ~$0.054.
+3. **"Workhorses call tools like Opus but don't SHIP like Opus."** Hard rule: **workhorses GATHER; SOTA SHIPS.** Long-horizon shipping never routes to a workhorse — this is *why* Anthropic-first + Tier-0-gathering-only is correct.
+4. **Substitutability = resiliency.** Closed models can be rug-pulled (Fable). **Run 2–3 providers per workhorse model**, never one. Local GLM-class ownership isn't realistic until ~mid-2027; lightweight (Qwen3.6-35B/Gemma 4) is ownable now.
+
+Plus: **engineering agents** (loose token spend, experimentation) vs **product agents** (tokenomics make/break → cheapest model that clears the user bar); and a **B-tier + great prompt/context/harness engineering ≈ an A-tier** — the harness is leverage.
+
 ## Bottom line
 
 Free OpenRouter tier is real but capacity-constrained and privacy-unsafe by default. Highest-leverage single move: a **one-time $10 OpenRouter credit purchase**, which raises the free daily cap from 50 → **1,000 requests/day permanently**. Then: a small set of tool-capable free models for the bulk of gathering, **Kimi K2.6 on credits** for hard/long-context multi-step gathering, and **local Ornith-9B** for unlimited overflow and any confidential data. This removes essentially all Tier-0 volume from the Max plans.
