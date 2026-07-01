@@ -49,3 +49,13 @@ or set `PGURL` to use an existing DB), re-applies it (idempotency), and asserts 
 invariant — 9 tables, RLS-on-all-9, never-close `NOT NULL` on `case`+`srt`, PII-free `carries_pii`
 CHECK, and the referral-`kind` enum. Exit 0 = all invariants hold. Run it against the template
 before copying it into a vertical's plane.
+
+## Prisma-based verticals
+
+`core_schema.prisma` is the Prisma companion — the same nine tables as models in the
+`prisma-client` conventions used by Lodgey / ITR-Button (which is Prisma, not raw SQL). Paste the
+models + enums into the vertical's own `schema.prisma`, then `prisma migrate`. Parity note: Prisma
+cannot express a CHECK constraint, so `handoff.carries_pii = false` stays enforced by the **SQL**
+migration — the Prisma default alone is not the guarantee; RLS is likewise SQL-side. Validated with
+`prisma validate` (Prisma 7). See `RECONCILIATION-itr-button.md` for adopting it into the live
+ITR-Button schema (a refactor, not a paste).
