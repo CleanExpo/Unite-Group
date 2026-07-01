@@ -53,4 +53,19 @@ describe('ContactFormModal', () => {
     fireEvent.click(screen.getByTestId('modal-backdrop'))
     expect(onClose).toHaveBeenCalledOnce()
   })
+
+  // UNI-2221 accessibility: every field label must be programmatically associated
+  // with its control (htmlFor/id) so it is reachable by accessible name.
+  it('associates each label with its input (getByLabelText resolves)', () => {
+    render(<ContactFormModal {...defaultProps} />)
+    expect(screen.getByLabelText('First Name *')).toBeInTheDocument()
+    expect(screen.getByLabelText('Last Name')).toBeInTheDocument()
+    expect(screen.getByLabelText('Email')).toBeInTheDocument()
+    expect(screen.getByLabelText('Phone')).toBeInTheDocument()
+    expect(screen.getByLabelText('Company')).toBeInTheDocument()
+    expect(screen.getByLabelText('Role')).toBeInTheDocument()
+    expect(screen.getByLabelText('Status')).toBeInTheDocument()
+    expect(screen.getByLabelText('Business')).toBeInTheDocument()
+    expect(screen.getByLabelText('Tags (comma-separated)')).toBeInTheDocument()
+  })
 })

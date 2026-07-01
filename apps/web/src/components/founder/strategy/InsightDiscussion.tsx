@@ -19,6 +19,7 @@ export function InsightDiscussion({ insightId }: InsightDiscussionProps) {
   const [comments, setComments] = useState<Comment[]>([])
   const [text, setText] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -35,17 +36,26 @@ export function InsightDiscussion({ insightId }: InsightDiscussionProps) {
   async function submit() {
     if (!text.trim() || submitting) return
     setSubmitting(true)
+    setError(null)
     try {
       const res = await fetch(`/api/strategy/insights/${insightId}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: text.trim(), author: 'founder' }),
       })
+      if (!res.ok) {
+        setError('Could not post your note — please try again.')
+        return
+      }
       const d = await res.json() as { comment: Comment }
       if (d.comment) {
         setComments((prev) => [...prev, d.comment])
         setText('')
+      } else {
+        setError('Note was not saved — please try again.')
       }
+    } catch {
+      setError('Network error — could not post your note.')
     } finally {
       setSubmitting(false)
     }
@@ -84,6 +94,12 @@ export function InsightDiscussion({ insightId }: InsightDiscussionProps) {
         <p className="text-[12px] mb-3" style={{ color: 'var(--color-text-disabled)' }}>
           No notes yet. Add your thoughts below.
         </p>
+      )}
+
+      {error && (
+        <div role="alert" className="mb-2 text-[11px]" style={{ color: '#ef4444' }}>
+          {error}
+        </div>
       )}
 
       <div className="flex gap-2">

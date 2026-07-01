@@ -17,6 +17,7 @@ export function VaultEntry({ id, label, username, businessColor, onDelete }: Vau
   const [revealing, setRevealing] = useState(false)
   const [copied, setCopied] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   async function handleReveal() {
     if (revealed) {
@@ -57,22 +58,25 @@ export function VaultEntry({ id, label, username, businessColor, onDelete }: Vau
   async function handleDelete() {
     if (!confirm(`Delete "${label}"? This cannot be undone.`)) return
     setDeleting(true)
+    setError(null)
     try {
       const res = await fetch(`/api/vault/entries/${id}`, { method: 'DELETE' })
       if (res.ok || res.status === 204) {
         onDelete(id)
+      } else {
+        setError('Delete failed — entry not removed.')
       }
     } catch {
-      // silently fail — entry stays in UI
+      setError('Delete failed — check your connection.')
     } finally {
       setDeleting(false)
     }
   }
 
   return (
+    <div className="border-b" style={{ borderColor: 'var(--color-border)' }}>
     <div
-      className="group flex items-center gap-3 h-8 px-3 border-b"
-      style={{ borderColor: 'var(--color-border)' }}
+      className="group flex items-center gap-3 h-8 px-3"
     >
       <span className="shrink-0 rounded-full" style={{ width: 6, height: 6, background: businessColor }} />
       <span className="text-[13px] w-40 truncate" style={{ color: 'var(--color-text-secondary)' }}>{label}</span>
@@ -109,6 +113,12 @@ export function VaultEntry({ id, label, username, businessColor, onDelete }: Vau
           <Trash2 size={14} />
         </button>
       </div>
+    </div>
+      {error && (
+        <div role="alert" className="px-3 pb-1 text-[11px]" style={{ color: '#ef4444' }}>
+          {error}
+        </div>
+      )}
     </div>
   )
 }

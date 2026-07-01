@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Users } from 'lucide-react'
 import type { Contact } from '@/types/database'
 import { ContactsTable } from './ContactsTable'
@@ -19,6 +19,8 @@ export function ContactsPageClient() {
   const [showModal, setShowModal] = useState(false)
   const [editingContact, setEditingContact] = useState<Contact | null>(null)
   const deletingRef = useRef<Set<string>>(new Set())
+  const searchId = useId()
+  const statusFilterId = useId()
 
   const fetchContacts = useCallback(async () => {
     setLoading(true)
@@ -179,14 +181,18 @@ export function ContactsPageClient() {
 
           {/* Filters */}
           <div className="flex gap-3">
+            <label htmlFor={searchId} className="sr-only">Search contacts</label>
             <input
+              id={searchId}
               type="text"
               placeholder="Search by name, email, or company..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className={`${inputClass} flex-1`}
             />
+            <label htmlFor={statusFilterId} className="sr-only">Filter by status</label>
             <select
+              id={statusFilterId}
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className={inputClass}

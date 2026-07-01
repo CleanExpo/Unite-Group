@@ -24,6 +24,7 @@ export function LiveDebateTab() {
   const [events, setEvents] = useState<DebateEvent[]>([])
   const [started, setStarted] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [startError, setStartError] = useState<string | null>(null)
   const eventLogRef = useRef<HTMLDivElement>(null)
 
   // Realtime events are scoped to the selected advisory case; clear them before
@@ -31,6 +32,7 @@ export function LiveDebateTab() {
   useEffect(() => {
     setEvents([])
     setStarted(false)
+    setStartError(null)
   }, [caseId])
 
   // Fetch case detail
@@ -85,11 +87,18 @@ export function LiveDebateTab() {
     if (!caseId) return
     setStarted(true)
     setLoading(true)
+    setStartError(null)
     setEvents([])
     try {
-      await fetch(`/api/advisory/cases/${caseId}/start`, { method: 'POST' })
+      const res = await fetch(`/api/advisory/cases/${caseId}/start`, { method: 'POST' })
+      if (!res.ok) {
+        setStarted(false)
+        setStartError('Could not start the debate — please try again.')
+      }
     } catch (err) {
       console.error('[LiveDebateTab] start error:', err)
+      setStarted(false)
+      setStartError('Network error — could not start the debate.')
     } finally {
       setLoading(false)
     }
@@ -146,6 +155,17 @@ export function LiveDebateTab() {
               {loading ? 'Starting...' : 'Start Debate'}
             </button>
           )}
+        </div>
+      )}
+
+      {/* Start-debate failure — surface it so the user isn't left on a stuck state */}
+      {startError && (
+        <div
+          role="alert"
+          className="rounded-sm p-3 text-[11px]"
+          style={{ background: '#050505', color: '#ef4444', border: '1px solid #ef4444' }}
+        >
+          {startError}
         </div>
       )}
 
