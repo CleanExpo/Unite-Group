@@ -1,0 +1,28 @@
+{
+  "slug": "lodgey",
+  "domain_map": {
+    "dmitri_intake": "case",
+    "noah_recommendation": "srt",
+    "fitzy_engagement": "case",
+    "fitzy_quarterly_review": "srt"
+  },
+  "kb_ref": "Dmitri's closed/local tax KB",
+  "panel_ref": "provider panel (TPB-verified: tax_agent | broker | planner | lawyer)",
+  "regime": [
+    "TASA/TPB (tool-not-service; TPB register)",
+    "Privacy (TFN) Rule 2015",
+    "AUSTRAC designated-service boundary",
+    "ACL s18 referral disclosure",
+    "ACL/NCCP credit assistance (Fitzy)",
+    "AFSL personalised-advice line (Fitzy)",
+    "Part IVA / TR 98/22 / Hart (Fitzy)"
+  ],
+  "regime_status": "named_unconfirmed",
+  "data_plane": {
+    "project": "own Supabase project",
+    "region": "AU-Sydney",
+    "tenancy": "no founder_id; RLS per client_slug / professional_id"
+  },
+  "source_spec": "apps/spec-board/projects/lodgey-pack/spec.md#6c",
+  "issue": "UNI-2171"
+}
