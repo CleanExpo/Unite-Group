@@ -55,17 +55,11 @@ export async function POST(request: Request) {
 
   const supabase = createServiceClient()
 
-  const { data: membership } = await supabase
-    .from('user_organizations')
-    .select('role')
-    .eq('user_id', user.id)
-    .eq('org_id', organizationId)
-    .eq('is_active', true)
-    .single()
-
-  if (!membership || membership.role === 'viewer') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  // Authorization is founder-scoped: the brand-profile ownership check below
+  // (founder_id = user.id AND organization_id) is the access boundary. The
+  // previous user_organizations membership gate referenced a table that has no
+  // applied migration and is never populated, so it returned Forbidden for
+  // every founder (UNI-2218).
 
   // Verify brand profile belongs to this founder and selected child organisation
   const { data: profile } = await supabase
