@@ -4,7 +4,7 @@
   "description": "This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).",
   "main": "next.config.js",
   "engines": {
-    "node": ">=18.18.0",
+    "node": ">=20",
     "npm": ">=10.9.0"
   },
   "dependencies": {
@@ -125,7 +125,7 @@
   "devDependencies": {
     "@types/dotenv": "^6.1.1",
     "@types/jest": "^29.5.0",
-    "@types/node": "18.18.0",
+    "@types/node": "^20",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.21",
