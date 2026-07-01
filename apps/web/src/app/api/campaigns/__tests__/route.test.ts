@@ -76,10 +76,6 @@ describe("/api/campaigns", () => {
   it("POST persists the selected child organization_id and returns selected org identity", async () => {
     const chain = makeChain([
       {
-        data: { role: "admin" },
-        error: null,
-      },
-      {
         data: {
           id: "brand-dr",
           organization_id: "org-dr",
@@ -124,8 +120,10 @@ describe("/api/campaigns", () => {
     expect(res.status).toBe(201);
     expect(chain.eq).toHaveBeenCalledWith("id", "brand-dr");
     expect(chain.eq).toHaveBeenCalledWith("founder_id", "user-123");
-    expect(chain.eq).toHaveBeenCalledWith("org_id", "org-dr");
     expect(chain.eq).toHaveBeenCalledWith("organization_id", "org-dr");
+    // Authorization is founder-scoped brand-profile ownership, not the
+    // never-provisioned user_organizations membership table (UNI-2218).
+    expect(chain.from).not.toHaveBeenCalledWith("user_organizations");
     expect(chain.insert).toHaveBeenCalledWith(
       expect.objectContaining({
         founder_id: "user-123",
@@ -161,9 +159,11 @@ describe("/api/campaigns", () => {
     expect(res.status).toBe(401);
   });
 
-  it("POST returns 403 when the active child organisation is not writable", async () => {
+  it("POST returns 404 when the brand profile is not owned by the founder", async () => {
+    // No membership pre-check anymore; the brand-profile ownership lookup
+    // (founder_id = user.id AND organization_id) is the authorization boundary.
     const chain = makeChain([
-      { data: { role: "viewer" }, error: null },
+      { data: null, error: null },
     ]);
     vi.mocked(createServiceClient).mockReturnValue(chain as never);
 
@@ -180,7 +180,52 @@ describe("/api/campaigns", () => {
       }),
     );
 
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(404);
     expect(chain.insert).not.toHaveBeenCalled();
+  });
+
+  it("POST succeeds for an owner without any user_organizations row (UNI-2218 regression)", async () => {
+    // Before the fix, a missing user_organizations table made membership null
+    // and the handler returned 403 for every founder. Owning a ready brand
+    // profile in the org must be sufficient.
+    const chain = makeChain([
+      {
+        data: {
+          id: "brand-dr",
+          organization_id: "org-dr",
+          business_key: "dr",
+          client_name: "Disaster Recovery",
+        },
+        error: null,
+      },
+      {
+        data: {
+          id: "camp-1",
+          theme: "EOFY",
+          objective: "awareness",
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+        },
+        error: null,
+      },
+    ]);
+    vi.mocked(createServiceClient).mockReturnValue(chain as never);
+
+    const res = await POST(
+      new Request("http://localhost/api/campaigns", {
+        method: "POST",
+        body: JSON.stringify({
+          brandProfileId: "brand-dr",
+          organizationId: "org-dr",
+          theme: "EOFY",
+          objective: "awareness",
+          platforms: ["linkedin"],
+        }),
+      }),
+    );
+
+    expect(res.status).toBe(201);
+    expect(chain.from).not.toHaveBeenCalledWith("user_organizations");
+    expect(chain.insert).toHaveBeenCalled();
   });
 });
