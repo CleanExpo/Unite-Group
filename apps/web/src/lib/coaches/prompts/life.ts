@@ -31,8 +31,20 @@ export function buildLifeUserMessage(data: {
   events: Array<{ title: string; start: string; end: string; businessKey: string }>
   threads: Array<{ subject: string; from: string; snippet: string; unread: boolean; businessKey: string }>
   todayDate: string
+  eventsSource?: 'live' | 'mock' | 'error'
+  threadsSource?: 'live' | 'mock' | 'error'
 }): string {
   const lines: string[] = [`Date: ${data.todayDate} (AEST)`]
+
+  // Never let placeholder data masquerade as the founder's real day (UNI-2216).
+  const placeholder: string[] = []
+  if (data.eventsSource && data.eventsSource !== 'live') placeholder.push('calendar')
+  if (data.threadsSource && data.threadsSource !== 'live') placeholder.push('email')
+  if (placeholder.length > 0) {
+    lines.push(
+      `\n⚠️ Data source: the ${placeholder.join(' and ')} data below is PLACEHOLDER (integration not connected), not the founder's live data. Do not present it as their real schedule or inbox — instead note that ${placeholder.join(' and ')} needs connecting.`,
+    )
+  }
 
   lines.push(`\n### Calendar Events (${data.events.length} total)`)
   if (data.events.length === 0) {

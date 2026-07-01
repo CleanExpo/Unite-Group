@@ -40,6 +40,8 @@ export async function GET(request: Request) {
           events: ctx.data.events as Array<{ title: string; start: string; end: string; businessKey: string }>,
           threads: ctx.data.threads as Array<{ subject: string; from: string; snippet: string; unread: boolean; businessKey: string }>,
           todayDate: ctx.reportDate,
+          eventsSource: ctx.data.eventsSource as 'live' | 'mock' | 'error' | undefined,
+          threadsSource: ctx.data.threadsSource as 'live' | 'mock' | 'error' | undefined,
         }),
       fetchData: fetchLifeData,
     })
