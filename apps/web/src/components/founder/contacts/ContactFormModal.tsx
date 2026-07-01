@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import type { Contact } from '@/types/database'
 import { BUSINESSES } from '@/lib/businesses'
 
@@ -14,6 +14,7 @@ const STATUS_OPTIONS: Contact['status'][] = ['lead', 'prospect', 'client', 'chur
 
 export function ContactFormModal({ contact, onClose, onSave }: ContactFormModalProps) {
   const isEdit = contact !== null
+  const fieldId = useId()
 
   const [firstName, setFirstName] = useState(contact?.first_name ?? '')
   const [lastName, setLastName] = useState(contact?.last_name ?? '')
@@ -101,8 +102,9 @@ export function ContactFormModal({ contact, onClose, onSave }: ContactFormModalP
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={labelClass}>First Name *</label>
+              <label className={labelClass} htmlFor={`${fieldId}-firstName`}>First Name *</label>
               <input
+                id={`${fieldId}-firstName`}
                 type="text"
                 required
                 value={firstName}
@@ -112,8 +114,9 @@ export function ContactFormModal({ contact, onClose, onSave }: ContactFormModalP
               />
             </div>
             <div>
-              <label className={labelClass}>Last Name</label>
+              <label className={labelClass} htmlFor={`${fieldId}-lastName`}>Last Name</label>
               <input
+                id={`${fieldId}-lastName`}
                 type="text"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
@@ -125,8 +128,9 @@ export function ContactFormModal({ contact, onClose, onSave }: ContactFormModalP
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={labelClass}>Email</label>
+              <label className={labelClass} htmlFor={`${fieldId}-email`}>Email</label>
               <input
+                id={`${fieldId}-email`}
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -135,8 +139,9 @@ export function ContactFormModal({ contact, onClose, onSave }: ContactFormModalP
               />
             </div>
             <div>
-              <label className={labelClass}>Phone</label>
+              <label className={labelClass} htmlFor={`${fieldId}-phone`}>Phone</label>
               <input
+                id={`${fieldId}-phone`}
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
@@ -148,8 +153,9 @@ export function ContactFormModal({ contact, onClose, onSave }: ContactFormModalP
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={labelClass}>Company</label>
+              <label className={labelClass} htmlFor={`${fieldId}-company`}>Company</label>
               <input
+                id={`${fieldId}-company`}
                 type="text"
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
@@ -158,8 +164,9 @@ export function ContactFormModal({ contact, onClose, onSave }: ContactFormModalP
               />
             </div>
             <div>
-              <label className={labelClass}>Role</label>
+              <label className={labelClass} htmlFor={`${fieldId}-role`}>Role</label>
               <input
+                id={`${fieldId}-role`}
                 type="text"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
@@ -171,8 +178,9 @@ export function ContactFormModal({ contact, onClose, onSave }: ContactFormModalP
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={labelClass}>Status</label>
+              <label className={labelClass} htmlFor={`${fieldId}-status`}>Status</label>
               <select
+                id={`${fieldId}-status`}
                 value={status}
                 onChange={(e) => setStatus(e.target.value as Contact['status'])}
                 className={inputClass}
@@ -185,8 +193,9 @@ export function ContactFormModal({ contact, onClose, onSave }: ContactFormModalP
               </select>
             </div>
             <div>
-              <label className={labelClass}>Business</label>
+              <label className={labelClass} htmlFor={`${fieldId}-business`}>Business</label>
               <select
+                id={`${fieldId}-business`}
                 value={businessId}
                 onChange={(e) => setBusinessId(e.target.value)}
                 className={inputClass}
@@ -202,8 +211,9 @@ export function ContactFormModal({ contact, onClose, onSave }: ContactFormModalP
           </div>
 
           <div>
-            <label className={labelClass}>Tags (comma-separated)</label>
+            <label className={labelClass} htmlFor={`${fieldId}-tags`}>Tags (comma-separated)</label>
             <input
+              id={`${fieldId}-tags`}
               type="text"
               value={tagsInput}
               onChange={(e) => setTagsInput(e.target.value)}

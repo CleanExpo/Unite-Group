@@ -36,14 +36,19 @@ export function ConnectionStrip({ channels: initialChannels }: Props) {
   const [selectedBusiness, setSelectedBusiness] = useState('synthex')
   const [channels, setChannels] = useState<SocialChannel[]>(initialChannels)
   const [disconnecting, setDisconnecting] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   async function handleDisconnect(channel: SocialChannel) {
+    const label = PLATFORM_META[channel.platform]?.label ?? channel.platform
+    if (!confirm(`Disconnect ${label}? This removes the connection and revokes access.`)) return
+    setError(null)
     setDisconnecting(channel.id)
     try {
       await disconnectChannel(channel.id)
       setChannels(prev => prev.filter(c => c.id !== channel.id))
     } catch (err) {
       console.error('[ConnectionStrip] Disconnect failed:', err)
+      setError(`Could not disconnect ${label} — ${err instanceof Error ? err.message : 'please try again'}.`)
     } finally {
       setDisconnecting(null)
     }
@@ -58,6 +63,12 @@ export function ConnectionStrip({ channels: initialChannels }: Props) {
 
   return (
     <div className="space-y-2">
+      {error && (
+        <div role="alert" className="text-[11px]" style={{ color: '#ef4444' }}>
+          {error}
+        </div>
+      )}
+
       {/* Business selector */}
       <div className="flex items-center gap-3">
         <span className="text-[10px] uppercase tracking-[0.12em]" style={{ color: 'var(--color-text-secondary)' }}>

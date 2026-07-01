@@ -52,4 +52,26 @@ describe('ContactsPageClient', () => {
     expect(screen.getByText(/couldn’t load/i)).toBeInTheDocument()
     expect(screen.queryByText('No contacts yet')).toBeNull()
   })
+
+  // UNI-2221 accessibility: the filter controls must have accessible names.
+  it('gives the search and status filters programmatic labels', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        contacts: [{
+          id: 'c1', founder_id: 'f1', business_id: null,
+          first_name: 'Jane', last_name: 'Doe', email: null, phone: null,
+          company: null, role: null, status: 'lead', tags: [], metadata: {},
+          created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
+        }],
+      }),
+    })
+
+    render(<ContactsPageClient />)
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Search contacts')).toBeInTheDocument()
+    })
+    expect(screen.getByLabelText('Filter by status')).toBeInTheDocument()
+  })
 })
