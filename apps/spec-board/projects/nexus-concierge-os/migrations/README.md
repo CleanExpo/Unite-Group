@@ -41,3 +41,11 @@ psql "$BRANCH_DATABASE_URL" -f 0001_core_schema.sql
 
 Idempotent (`create … if not exists`) and wrapped in a single transaction — re-running is a
 no-op; any failure applies nothing.
+
+## Re-proving the template
+
+`./verify_core_schema.sh` applies the template to a throwaway Postgres (docker `postgres:16-alpine`,
+or set `PGURL` to use an existing DB), re-applies it (idempotency), and asserts every load-bearing
+invariant — 9 tables, RLS-on-all-9, never-close `NOT NULL` on `case`+`srt`, PII-free `carries_pii`
+CHECK, and the referral-`kind` enum. Exit 0 = all invariants hold. Run it against the template
+before copying it into a vertical's plane.
