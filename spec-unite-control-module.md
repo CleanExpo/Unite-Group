@@ -1,6 +1,6 @@
 # Spec — Unite-Group Control Module + Claude Code Club skills
 
-Status: **REV-2 — Phase-3 challenge gate (opus-adversary) BLOCK cleared; re-gated for build.** Evidence-tagged per Synthex `fabel-evidence-standard`: **[V]** explicit in source · **[INF]** derived · **[UNC]** unverified/locked.
+Status: **REV-3 — delivery model resolved (git tag-pin, founder 2026-07-01); Phase 4 build UNBLOCKED.** (REV-2: Phase-3 challenge gate BLOCK cleared.) Evidence-tagged per Synthex `fabel-evidence-standard`: **[V]** explicit in source · **[INF]** derived · **[UNC]** unverified/locked.
 
 > **Phase-3 gate history.** REV-1 drew a **BLOCK** from the opus-adversary challenge gate (2026-07-01, agent `a5830f06`, 13 tool calls) on three code-verified defects, all re-verified by grep this session: (1) the "one-line `export *` barrel → no import string changes" shim is false — 4 deep-subpath import sites break it; (2) the DI seam contradicted "tests pass unchanged" — `command-packet.service.ts:14` prisma coupling + `jest.mock('@/lib/prisma')` at the test's line 9; (3) the DO-NOT-BREAK register omitted the 10-file `tests/unit/unite-command-center/` contract-test dir. This REV-2 resolves all three with an explicit stub-directory shim + factory DI + a completed register, and downgrades Part A from 9 skills to 4.
 
@@ -64,7 +64,11 @@ Higgsfield + all sponsored AI-video/image tools (own via `brand-video`/`video-di
 - **Why this rescues the `jest.mock` test (clears finding 2):** the binding stub still lives at `intake/command-packet.service.ts` and still `import { prisma } from '@/lib/prisma'`, so `tests/unit/lib/command-packet.service.test.ts:9`'s `jest.mock('@/lib/prisma')` stays live and the free-function call-shape (`persistCommandPacket(...)` zero-arg) is unchanged. Prisma is bound once, in one file, at the stub — not two places. **[V]**/[INF]
 - Consumer call sites (`packets/route.ts:17,35`; `intake/route.ts:21,80`; `packets/[id]/route.ts:22,23,56,86`) keep the identical zero-arg API, and **every import string is unchanged**. **[V]**
 
-### ⚠ ESCALATION — cross-repo delivery model (needs founder confirm before Phase 4)
+### ✅ RESOLVED (REV-3) — cross-repo delivery model = git tag-pin (founder call 2026-07-01)
+Founder chose the **lower-ceremony git tag-pin** path over GitHub Packages: *"No other consumers soon — go with the git tag-pin path."* Confirmed live this session that `apps/web` does **not** consume the module today (`grep` → 0 hits), so **Synthex is the ONLY live cross-repo consumer** — GitHub Packages' 4-place registry auth is premature infra. **[V]**
+
+**Mechanism (works with npm + pnpm, no new repo, no registry):** neither npm nor pnpm can consume a monorepo *subdirectory* via a `github:` specifier — the ref's **root** must be the package. So publish an **orphan tag `control-module-v0.1.0` in the existing `CleanExpo/Unite-Group` repo** whose tree root IS the package (`packages/unite-control-module/` contents promoted to root). Synthex pins `"@unite-group/control-module": "github:CleanExpo/Unite-Group#control-module-v0.1.0"`; on `npm install` npm clones that ref, sees the package `package.json` at root, and a **`prepare` script (`tsup`)** builds `dist` at install time (devDeps tsup+typescript are installed for prepare, then pruned). Immutable tag = no drift. Version bump = re-promote the package dir to a fresh orphan tag. No new GitHub repo (respects `CLAUDE.md` "no writes to frozen repos" + lowest ceremony). **[V]**/[INF]
+
 `unite-group/` root is **not** a workspace; `apps/web` is the only pnpm workspace; **Synthex is a separate repo**. So a package in `unite-group` **cannot** be a `workspace:*` dep of Synthex. The founder ask ("available throughout Synthex and additional projects") requires a cross-repo delivery mechanism. **[V]**
 
 **Recommended default (adopt unless founder overrides):** source of truth at `unite-group/packages/unite-control-module`, **published to GitHub Packages (CleanExpo private registry)**, consumed by both `apps/web` and Synthex as a **single** versioned private dep. Synthex keeps working via the stub tree until it bumps to the published dep.
@@ -93,7 +97,7 @@ Higgsfield + all sponsored AI-video/image tools (own via `brand-video`/`video-di
 
 ## Sequencing
 1. **Phase 3 gate — CLEARED (opus-adversary BLOCK → resolved in REV-2).** The three code-verified defects are fixed above (stub-directory shim, factory DI, completed register). `/storm` (once pushed) may still refine implementation ordering, but the design blockers are closed.
-2. **Phase 4 build gate — the ONLY remaining blocker is founder confirmation of the cross-repo delivery model** (GitHub Packages vs the lower-ceremony alternative + who wires the four-place registry auth). The design questions the adversary flagged as upstream blockers (shim mechanics, DI shape) are now decided, so delivery-model is genuinely the last gate.
+2. **Phase 4 build gate — CLEARED (REV-3).** Founder confirmed delivery = git tag-pin (orphan tag in `CleanExpo/Unite-Group`, no registry). All upstream blockers (shim mechanics, DI shape, delivery model) now decided. Build is unblocked.
 3. **Phase 4 build** — once (2) is confirmed: extract package + factory + stub tree (Synthex green before/after via the full contract-test set), then the Part-A skills — 1 CREATE (`context-cockpit`) + 3 ENHANCE (`agent-workflow`, `hooks-system`, `improve-system`/`wiki-ingest`) + Tier-B enhances — into Pi-Dev-Ops SSOT + `~/.claude/skills/index.md` + Synthex `CLAUDE.md` routing.
 
 Source corpus: `2nd Brain/Sources/Claude-Code-Club/` (richest: `07-agents`, `13-context-engineering`, `12-token-tips`, `02-memory`, `24-earn-commissions`, `09-social`). Constraint: memory `feedback-skool-substitute-our-stack`.
