@@ -1,0 +1,194 @@
+// ============================================================================
+// Nexus Concierge OS — CORE SCHEMA, Prisma representation (UNI-2170 Phase 1)
+//
+// The nine core models, for verticals whose data plane is driven by Prisma
+// (e.g. Lodgey / ITR-Button, which uses `prisma-client` + postgresql). This is
+// the Prisma companion to 0001_core_schema.sql — same nine tables, same @@map
+// names, same invariants where Prisma can express them.
+//
+// HOW TO ADOPT: paste these models + enums into the vertical's own
+// schema.prisma (which already has its generator + datasource + pack-local
+// models), then `prisma migrate`. Add pack-added columns on your own copy of a
+// model — never remove/rename a core field, or the pack has diverged from core.
+//
+// INVARIANT PARITY WITH THE SQL TEMPLATE:
+//   * never-close  — Case.nextActionAt + Srt.nextActionAt are NON-OPTIONAL
+//                    (NOT NULL). Enforced here.
+//   * PII-free     — Handoff.carriesPii defaults false. Prisma CANNOT model a
+//     handoff        CHECK constraint, so the `carries_pii = false` CHECK must
+//                    be kept in the SQL migration (0001_core_schema.sql). Do not
+//                    treat the default alone as the guarantee.
+//   * state/kind   — modelled as Prisma enums (CaseState / SrtState /
+//                    ReferralKind) — the idiomatic Prisma form of the SQL CHECKs.
+//   * no TFN/ID    — no field stores a TFN or government ID (schema absence).
+//   * RLS          — Prisma does not manage RLS; enable it + add per-vertical
+//                    policies in SQL after migrate (see the SQL template).
+// ============================================================================
+
+enum CaseState {
+  intake
+  open
+  action_dated
+  awaiting_provider
+  provider_returned
+  rolled_forward
+  closed
+}
+
+enum SrtState {
+  open
+  action_dated
+  srt_returned
+  rolled_forward
+}
+
+enum ReferralKind {
+  referral
+  revenue
+  job_value
+}
+
+model VerticalPack {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  domainMap Json     @default("{}") @map("domain_map")
+  kbRef     String?  @map("kb_ref")
+  panelRef  String?  @map("panel_ref")
+  regime    String?
+  dataPlane String?  @map("data_plane")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  cases     Case[]
+  providers Provider[]
+
+  @@map("vertical_pack")
+}
+
+model Provider {
+  id             String    @id @default(uuid())
+  verticalPackId String    @map("vertical_pack_id")
+  credentialRef  String?   @map("credential_ref")
+  verifiedAt     DateTime? @map("verified_at")
+  active         Boolean   @default(false)
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  verticalPack VerticalPack     @relation(fields: [verticalPackId], references: [id], onDelete: Cascade)
+  handoffs     Handoff[]
+  srtReturns   SrtReturn[]
+  referrals    ReferralLedger[]
+
+  @@index([verticalPackId])
+  @@map("provider")
+}
+
+model Case {
+  id             String    @id @default(uuid())
+  verticalPackId String    @map("vertical_pack_id")
+  state          CaseState @default(intake)
+  openedAt       DateTime  @default(now()) @map("opened_at")
+  nextActionAt   DateTime  @map("next_action_at") // never-close: NOT NULL
+  closedAt       DateTime? @map("closed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  verticalPack VerticalPack     @relation(fields: [verticalPackId], references: [id], onDelete: Cascade)
+  srts         Srt[]
+  consents     Consent[]
+  handoffs     Handoff[]
+  referrals    ReferralLedger[]
+  nudges       Nudge[]
+
+  @@index([verticalPackId])
+  @@index([nextActionAt])
+  @@map("case")
+}
+
+model Srt {
+  id             String   @id @default(uuid())
+  caseId         String   @map("case_id")
+  summary        Json     @default("{}")
+  recommendation String?
+  timeline       Json     @default("[]")
+  state          SrtState @default(open)
+  nextActionAt   DateTime @map("next_action_at") // never-close: NOT NULL
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  case    Case        @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  returns SrtReturn[]
+
+  @@index([caseId])
+  @@index([nextActionAt])
+  @@map("srt")
+}
+
+model SrtReturn {
+  id         String   @id @default(uuid())
+  srtId      String   @map("srt_id")
+  providerId String?  @map("provider_id")
+  body       Json     @default("{}")
+  returnedAt DateTime @default(now()) @map("returned_at")
+
+  srt      Srt       @relation(fields: [srtId], references: [id], onDelete: Cascade)
+  provider Provider? @relation(fields: [providerId], references: [id], onDelete: SetNull)
+
+  @@index([srtId])
+  @@map("srt_return")
+}
+
+model Consent {
+  id        String    @id @default(uuid())
+  caseId    String    @map("case_id")
+  scope     String
+  regime    String?
+  grantedAt DateTime  @default(now()) @map("granted_at")
+  revokedAt DateTime? @map("revoked_at")
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@map("consent")
+}
+
+model Handoff {
+  id          String   @id @default(uuid())
+  caseId      String   @map("case_id")
+  providerId  String   @map("provider_id")
+  opaqueToken String   @unique @map("opaque_token")
+  carriesPii  Boolean  @default(false) @map("carries_pii") // CHECK(=false) lives in the SQL migration
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  case     Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@map("handoff")
+}
+
+model ReferralLedger {
+  id         String       @id @default(uuid())
+  caseId     String       @map("case_id")
+  providerId String?      @map("provider_id")
+  kind       ReferralKind
+  amount     Decimal?     @db.Decimal(14, 2)
+  disclosed  Boolean      @default(false)
+  createdAt  DateTime     @default(now()) @map("created_at")
+
+  case     Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  provider Provider? @relation(fields: [providerId], references: [id], onDelete: SetNull)
+
+  @@index([caseId])
+  @@map("referral_ledger")
+}
+
+model Nudge {
+  id        String    @id @default(uuid())
+  caseId    String    @map("case_id")
+  dueAt     DateTime  @map("due_at")
+  sentAt    DateTime? @map("sent_at")
+  channel   String?
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([dueAt])
+  @@map("nudge")
+}
