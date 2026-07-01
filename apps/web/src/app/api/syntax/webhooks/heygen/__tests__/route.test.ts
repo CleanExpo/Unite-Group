@@ -62,16 +62,22 @@ describe('POST /api/syntax/webhooks/heygen', () => {
     expect(body.matched).toBe(false)
   })
 
-  it('returns 200 with next:composing when status completed', async () => {
+  it('advances a completed job to queued with the HeyGen URL as the deliverable (UNI-2219)', async () => {
+    // No server-side compositing exists; the job must NOT be parked forever in
+    // a fake 'composing'. The HeyGen render is the deliverable → queued.
     mockJobResult = { data: { id: 'job-1', founder_id: 'user-1', status: 'video_pending' } }
     mockUpdateResult = { error: null }
+    const updateChain = makeUpdateChain()
     const mockFrom = vi.fn()
-    mockFrom.mockReturnValueOnce(makeSelectChain()).mockReturnValueOnce(makeUpdateChain())
+    mockFrom.mockReturnValueOnce(makeSelectChain()).mockReturnValueOnce(updateChain)
     vi.mocked(createClient).mockResolvedValue({ from: mockFrom } as any)
     const res = await POST(req({ video_id: 'vid-1', status: 'completed', url: 'https://cdn.example.com/vid.mp4' }))
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.next).toBe('composing')
+    expect(body.next).toBe('queued')
+    const updateArg = updateChain.update.mock.calls[0][0]
+    expect(updateArg.status).toBe('queued')
+    expect(updateArg.final_video_url).toBe('https://cdn.example.com/vid.mp4')
   })
 
   it('returns 200 with status:failed when HeyGen reports failure', async () => {

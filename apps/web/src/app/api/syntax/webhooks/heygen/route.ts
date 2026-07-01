@@ -1,5 +1,5 @@
 // POST /api/syntax/webhooks/heygen
-// HeyGen async completion webhook — triggers FFMPEG compositing step
+// HeyGen async completion webhook — marks the job publish-ready (no compositing; see UNI-2219)
 // Auth: HeyGen webhook signature verification (optional for Phase 0)
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -44,12 +44,19 @@ export async function POST(req: NextRequest) {
   }
 
   if (payload.status === 'completed' && payload.url) {
-    // Advance to COMPOSING
+    // No server-side compositing exists: FFMPEG can't run on Vercel serverless,
+    // and nothing consumes the 'composing' state, so parking the job there left
+    // every render stuck forever (UNI-2219). Treat the HeyGen render as the
+    // deliverable and advance straight to the publish-ready 'queued' state,
+    // mirroring the working video_assets path. If real overlay/subtitle
+    // compositing is ever needed, it belongs in an out-of-band worker (see
+    // brand-video-worker.mjs), not this serverless webhook.
     const { error } = await supabase
       .from('video_jobs')
       .update({
-        status: 'composing',
+        status: 'queued',
         raw_video_url: payload.url,
+        final_video_url: payload.url,
         thumbnail_url: payload.thumbnail_url || null,
         updated_at: new Date().toISOString(),
       })
@@ -60,12 +67,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: sanitiseError(error, 'Failed to update video job', { route: '/api/syntax/webhooks/heygen' }) }, { status: 500 })
     }
 
-    // TODO: Trigger FFMPEG compositing (Phase 1)
-    // For now, auto-advance to QUEUED after a delay
-    // In production, this would enqueue a background job
-    console.log(`[HeyGen Webhook] Job ${job.id} advanced to composing`)
+    console.log(`[HeyGen Webhook] Job ${job.id} completed → queued (HeyGen URL is the deliverable)`)
 
-    return NextResponse.json({ received: true, matched: true, next: 'composing' })
+    return NextResponse.json({ received: true, matched: true, next: 'queued' })
   }
 
   if (payload.status === 'failed') {
