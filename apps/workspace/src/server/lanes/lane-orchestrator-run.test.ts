@@ -45,6 +45,10 @@ function orch(
     worktrees: noopWorktrees,
     adapters,
     idgen,
+    // These tests exercise run-mission, not availability gating. Inject an
+    // always-available check so they don't depend on real ~/.hermes/accounts
+    // (the default check now fs-probes per #590 / the shared-token fix).
+    isBackendAvailable: () => true,
   })
 }
 
