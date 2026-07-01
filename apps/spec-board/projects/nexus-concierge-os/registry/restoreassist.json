@@ -1,0 +1,27 @@
+{
+  "slug": "restoreassist",
+  "domain_map": {
+    "crisis_intake": "case",
+    "damage_assessment": "srt",
+    "contractor_dispatch": "handoff",
+    "completion_report": "srt_return"
+  },
+  "kb_ref": "RA crisis-flow knowledge base (make-safe / remediation guidance)",
+  "panel_ref": "provider panel (vetted contractors, re-verified before dispatch)",
+  "regime": [
+    "PCI-DSS (SAQ-A)",
+    "Privacy Act 1988 + APPs + OAIC breach notification",
+    "state contractor licensing (QBCC/equiv) + WHS",
+    "ACL",
+    "GST",
+    "insurance = facilitate/refer only (avoids AFSL claims-handling)"
+  ],
+  "regime_status": "named_unconfirmed",
+  "data_plane": {
+    "project": "CleanExpo/Unite-Hub",
+    "region": "AU",
+    "tenancy": "RLS per case / provider; NOT the Nexus CRM"
+  },
+  "source_spec": "apps/spec-board/projects/restoreassist-pack/spec.md#6c",
+  "issue": "RA-6812"
+}
