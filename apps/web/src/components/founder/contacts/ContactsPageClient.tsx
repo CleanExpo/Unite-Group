@@ -14,6 +14,7 @@ export function ContactsPageClient() {
   const [contacts, setContacts] = useState<Contact[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [showModal, setShowModal] = useState(false)
@@ -82,14 +83,20 @@ export function ContactsPageClient() {
     // In-flight guard (audit 4.3): a fast double-click must not fire duplicate
     // DELETE requests for the same contact.
     if (deletingRef.current.has(id)) return
+    // Destructive CRM action — confirm before delete (matches ContactDetailClient / VaultEntry).
+    if (!window.confirm('Delete this contact? This cannot be undone.')) return
     deletingRef.current.add(id)
+    setDeleteError(null)
     try {
       const res = await fetch(`/api/contacts/${id}`, { method: 'DELETE' })
       if (res.ok) {
         setContacts((prev) => prev.filter((c) => c.id !== id))
+      } else {
+        // Never present a failed destructive action as success — keep the row, surface the error.
+        setDeleteError('Could not delete contact — please try again.')
       }
     } catch {
-      // Silently handle
+      setDeleteError('Could not delete contact — please try again.')
     } finally {
       deletingRef.current.delete(id)
     }
@@ -158,6 +165,17 @@ export function ContactsPageClient() {
         />
       ) : (
         <>
+          {deleteError && (
+            <div
+              className="rounded-sm p-4"
+              style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)' }}
+              role="alert"
+            >
+              <span className="text-[13px]" style={{ color: 'var(--color-danger, #ef4444)' }}>
+                {deleteError}
+              </span>
+            </div>
+          )}
           {/* Summary stat badges */}
           <div className="flex gap-3">
             {([
