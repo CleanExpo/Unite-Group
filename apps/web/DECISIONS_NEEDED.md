@@ -221,3 +221,19 @@ Leftover test IDs for marker 2026-06-07T12:06:12.154Z: {"contacts":[],"workspace
    - Gmail live import route wiring now exists and unit tests pass, but live proof still needs a connected Google account and a tagged real thread/message ID.
    - Microsoft authorize/callback route wiring now exists and unit tests pass, but live proof still needs Microsoft app env vars and human consent.
    - Do not mark provider import GREEN until a real consented account import is run with tagged data and cleanup proof.
+
+## Added 2026-07-02T22:10+10:00 — UNI-2154 live provider policies defined, approvals pending
+
+36. **Approve the proposed live transcription lane (supersedes the open part of #28)**
+   - Proposed provider: **ElevenLabs Scribe v1** on the existing ElevenLabs account (same vendor already used for voiceover elsewhere in the portfolio — no new vendor onboarding).
+   - Key source: `ELEVENLABS_API_KEY` as a Vercel server-side env var only. Never client-exposed, never printed, never committed.
+   - Source-byte path: read the founder-scoped upload from `ai_file_cache` via the existing `getCachedFile` path (`src/lib/ai/features/files.ts`); persist the result to the existing `ai_file_transcripts` table (applied 2026-06-09).
+   - Cost ceiling: **AUD $5.00** for the first proof; exactly one sample ≤ 60 seconds, tagged `__PW_TEST__`-style and cleaned up.
+   - Exact human step: add `ELEVENLABS_API_KEY` to Vercel (production) and reply with typed approval "approve live transcription sample". Until both happen, live transcription remains **UNKNOWN** and `resolveProvider` keeps returning `503 provider_not_configured` for non-mock keys (verified in `src/lib/ai/features/transcription.ts`).
+
+37. **Approve the drip live-send gate (defines the gate requested in #30)**
+   - Provider: **SendGrid** via the existing `src/lib/integrations/sendgrid.ts`; credential lane `SENDGRID_API_KEY` + `SENDGRID_FROM_EMAIL` as Vercel server-side env vars (already stubbed in `.env.example`).
+   - Dry-run default stays: `process_pending` treats anything but explicit `dryRun:false` as dry-run, and today has **no live-send code path at all** — unsafe or non-dry-run enrollments are marked `failed` with `provider_send='not_attempted'` (verified in `src/app/api/campaigns/drip/route.ts`).
+   - Live mode, once implemented, additionally requires ALL of: (a) per-enrollment consent flag recorded before send; (b) unsubscribe link present in every step body; (c) recipient allowlist — first proof uses SendGrid **sandbox mode** (request validated, nothing delivered); any delivered proof goes only to a founder-owned mailbox, never a real contact.
+   - Failure handling keeps the current pattern: enrollment → `failed`, `drip_events` row written, campaign status → `partial`.
+   - Exact human step: add the two SendGrid env vars to Vercel and reply with typed approval "approve drip sandbox send proof". Until then live send remains **UNKNOWN**.

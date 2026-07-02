@@ -702,3 +702,9 @@ PR: https://github.com/CleanExpo/Unite-Hub/pull/93
 - Whitespace: `git diff --check` -> PASS.
 - Schema dry-run: `pnpm exec supabase db push --dry-run --linked` -> PASS dry-run only; no schema was applied. It still lists many pending historical migrations plus `20260607235936_ai_file_transcripts.sql` and `20260608000000_drip_lifecycle_schema.sql`.
 - Build: `pnpm build` -> BLOCKED before compile by local env validation (`0/3` critical, `0/4` required runtime vars in this shell).
+
+### UNI-2154 provider policy definition - 2026-07-02T22:10+10:00
+- Branch: `feat/uni-2154-provider-policies` (off `origin/main` @ `9ef20898`).
+- Dry-run re-verification: `pnpm vitest run src/app/api/files/transcribe/__tests__/route.test.ts src/app/api/campaigns/drip/__tests__/route.test.ts` -> PASS, `2` files / `11` tests (transcribe `4/4`, drip `7/7`), 02/07/2026 21:55 AEST.
+- Safety-floor inspection (read, no code change): `src/lib/ai/features/transcription.ts` `resolveProvider` -> `503 provider_not_configured` unless `UNITE_HUB_TEST_MOCK_TRANSCRIPTION=1` + `__PW_TEST__` cache key; `src/app/api/campaigns/drip/route.ts` `process_pending` -> no provider call on any branch, `provider_send='not_attempted'`.
+- No live provider call, no email send, no env var change, no schema change in this pass. Docs-only diff.
