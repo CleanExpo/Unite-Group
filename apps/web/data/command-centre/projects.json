@@ -28,7 +28,8 @@
       "evidence_vault_path": "raw/command-centre/RestoreAssist",
       "validation_commands": ["pnpm type-check", "pnpm lint", "pnpm test", "pnpm build"],
       "linear_prefix": "RA",
-      "production_url": "https://restoreassist.app"
+      "production_url": "https://restoreassist.app",
+      "integration_status_url": "https://restoreassist.app/api/v1/connections/status"
     },
     {
       "name": "Synthex",
@@ -71,7 +72,8 @@
       "evidence_vault_path": "raw/command-centre/DR-NRPG",
       "validation_commands": ["pnpm type-check", "pnpm lint", "pnpm test", "pnpm build"],
       "linear_prefix": "UNI",
-      "production_url": "https://dr-new-ten.vercel.app"
+      "production_url": "https://nrpg.business",
+      "integration_status_url": "https://nrpg.business/api/v1/connections/status"
     },
     {
       "name": "ATO-APP",
@@ -85,7 +87,8 @@
       "evidence_vault_path": "raw/command-centre/ATO-APP",
       "validation_commands": ["pnpm type-check", "pnpm lint", "pnpm test", "pnpm build"],
       "linear_prefix": "UNI",
-      "production_url": "https://ato-blush.vercel.app"
+      "production_url": "https://ato-ai.app",
+      "integration_status_url": "https://ato-ai.app/api/v1/connections/status"
     },
     {
       "name": "Dimitri-ITR",
@@ -189,16 +192,17 @@
     {
       "name": "CARSI",
       "repo_path": "D:/Unite-Group/CARSI",
-      "github_repo": null,
-      "business_purpose": "Content/authority vertical. Stub — wiki-only, no repo yet.",
+      "github_repo": "CleanExpo/CARSI",
+      "business_purpose": "Online training LMS and content/authority vertical.",
       "brand_rules_ref": "brand-context/carsi.md",
       "deployment_target": "Vercel",
       "owner": "Phill McGurk",
-      "status": "stub",
+      "status": "active",
       "evidence_vault_path": "raw/command-centre/CARSI",
-      "validation_commands": [],
+      "validation_commands": ["npm run type-check"],
       "linear_prefix": "UNI",
-      "production_url": null
+      "production_url": "https://carsi.com.au",
+      "integration_status_url": "https://carsi.com.au/api/v1/connections/status"
     }
   ]
 }
