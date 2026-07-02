@@ -3,6 +3,8 @@ import { getUser } from '@/lib/supabase/server'
 import { fetchIssue, issueToBusiness } from '@/lib/integrations/linear'
 import { BUSINESSES } from '@/lib/businesses'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }

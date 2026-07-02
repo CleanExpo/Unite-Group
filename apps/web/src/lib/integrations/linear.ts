@@ -16,7 +16,7 @@ async function gql<T>(query: string, variables?: Record<string, unknown>): Promi
       Authorization: API_KEY,
     },
     body: JSON.stringify({ query, variables }),
-    next: { revalidate: 60 },
+    cache: 'no-store',
   })
   if (!res.ok) throw new Error(`Linear API error: ${res.status}`)
   const json = await res.json() as { data: T; errors?: { message: string }[] }
