@@ -1,0 +1,13 @@
+
+> unite-group@1.0.0 type-check /Users/phill-mac/Unite-Group/apps/web
+> tsc --noEmit
+
+type-check exit: 0
+GATE SUMMARY (handoff-loop.sh absent in this repo — detected equivalents):
+- apps/web pnpm type-check → exit 0 (PASS, run locally 02/07/2026 21:41 AEST)
+- lint/test/build (all packages) → SKIPPED locally: full pnpm build requires prod env secrets absent from this checkout;
+  authoritative gate = GitHub Actions run 28586286275 on HEAD 29a86ec3 (PR #614): all 9 checks pass
+  (apps/web lint/type-check/test/build 1m57s; Playwright E2E 2m30s; spec-board 37s; workspace 1m26s;
+   pi-ceo-operator-mcp 19s; CodeRabbit; Vercel x2; Preview Comments) — captured via `gh pr checks 614 --watch`.
+- Working tree: clean (git status --short empty), branch feat/uni-2203-branch-creation-orchestrator @ 29a86ec3, pushed.
+RESULT: READY
