@@ -31,6 +31,14 @@ const EMPTY_SUMMARY: ProjectIntegrationStatus['summary'] = {
 const APPROVED_INTEGRATION_STATUS_HOSTS = new Set([
   'dimitri-itr-sandbox.vercel.app',
   'synthex.social',
+  'restoreassist.app',
+  'nrpg.business',
+  'carsi.com.au',
+  'ato-ai.app',
+  'ato-blush.vercel.app',
+  'ccw-crm-web.vercel.app',
+  'disasterrecovery.com.au',
+  'disaster-recovery-seven.vercel.app',
 ])
 
 function emptyStatus(projectName: string, statusUrl: string, error: string): ProjectIntegrationStatus {
