@@ -24,6 +24,26 @@ export function verifyWhatsAppSignature(
 }
 
 /**
+ * Verify HeyGen webhook signature.
+ * HeyGen sends: x-heygen-signature: <hex hmac-sha256 of the raw body>
+ * Uses HEYGEN_WEBHOOK_SECRET as key.
+ */
+export function verifyHeyGenSignature(
+  rawBody: string,
+  signatureHeader: string | null
+): boolean {
+  const secret = process.env.HEYGEN_WEBHOOK_SECRET?.trim()
+  if (!secret || !signatureHeader) return false
+
+  const expected = createHmac('sha256', secret).update(rawBody).digest('hex')
+  const receivedBuffer = Buffer.from(signatureHeader.trim())
+  const expectedBuffer = Buffer.from(expected)
+
+  if (receivedBuffer.length !== expectedBuffer.length) return false
+  return timingSafeEqual(receivedBuffer, expectedBuffer)
+}
+
+/**
  * Generic API key verification — timing-safe comparison.
  * @param header  The x-api-key header value from the request
  * @param envVarName  Name of the env var that holds the expected key

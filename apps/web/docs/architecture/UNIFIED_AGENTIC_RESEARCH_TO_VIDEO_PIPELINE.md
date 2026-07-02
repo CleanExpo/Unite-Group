@@ -97,7 +97,7 @@ Stop building separate tools. Build **one production line** where knowledge flow
 | Video Generator (HeyGen) | Avatar + audio → MP4 | 🔄 Building now |
 | Video Composer (FFMPEG) | Add overlays, stitch, burn subs | 🔄 Building now |
 | Publishing Queue (Syntax) | Schedule to YT/FB/LI | ✅ Already connected |
-| `/api/syntax/webhooks/heygen` | Receive async completion | 🔄 Building now |
+| `/api/webhooks/heygen` | Receive async completion | 🔄 Building now |
 | `knowledge-console/"Create Video"` | One-click trigger from any note | 🔄 Building now |
 | `daily-video-production` cron | Auto-queue top notes for video | 🔄 Building now |
 
@@ -247,7 +247,7 @@ Pi-CEO Board Weekly Review now tracks **three pipelines:**
 | Route | Method | Purpose |
 |-------|--------|---------|
 | `/api/knowledge/notes/{id}/create-video` | POST | One-click: note → video job |
-| `/api/syntax/webhooks/heygen` | POST | Receive HeyGen completion |
+| `/api/webhooks/heygen` | POST | Receive HeyGen completion |
 | `/api/video/jobs` | GET | List video jobs with status |
 | `/api/video/jobs/{id}` | GET | Detail + logs |
 | `/api/video/jobs/{id}/retry` | POST | Retry failed step |

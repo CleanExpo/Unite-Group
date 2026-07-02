@@ -1,10 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
+import { createHmac } from 'crypto'
 
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }))
 
 import { createClient } from '@/lib/supabase/server'
 import { POST } from '../route'
+
+const SECRET = 'test-heygen-webhook-secret'
 
 let mockJobResult: any = { data: null }
 let mockUpdateResult: any = { error: null }
@@ -32,20 +35,45 @@ function makeUpdateChain() {
   return b
 }
 
-function req(body: object) {
-  return new NextRequest('https://app.test/api/syntax/webhooks/heygen', {
+function sign(body: string): string {
+  return createHmac('sha256', SECRET).update(body).digest('hex')
+}
+
+function req(body: object, opts: { signed?: boolean } = { signed: true }) {
+  const raw = JSON.stringify(body)
+  const headers: Record<string, string> = { 'content-type': 'application/json' }
+  if (opts.signed) headers['x-heygen-signature'] = sign(raw)
+  return new NextRequest('https://app.test/api/webhooks/heygen', {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body),
+    headers,
+    body: raw,
   })
 }
 
-describe('POST /api/syntax/webhooks/heygen', () => {
+describe('POST /api/webhooks/heygen', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    process.env.HEYGEN_WEBHOOK_SECRET = SECRET
     const mockFrom = vi.fn()
     mockFrom.mockReturnValueOnce(makeSelectChain()).mockReturnValueOnce(makeUpdateChain())
     vi.mocked(createClient).mockResolvedValue({ from: mockFrom } as any)
+  })
+
+  it('returns 401 when the signature header is missing (UNI-2224)', async () => {
+    const res = await POST(req({ video_id: 'vid-1', status: 'completed' }, { signed: false }))
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 401 when the signature does not match (UNI-2224)', async () => {
+    const raw = JSON.stringify({ video_id: 'vid-1', status: 'completed', url: 'https://evil.example.com/vid.mp4' })
+    const res = await POST(
+      new NextRequest('https://app.test/api/webhooks/heygen', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-heygen-signature': 'deadbeef'.repeat(8) },
+        body: raw,
+      })
+    )
+    expect(res.status).toBe(401)
   })
 
   it('returns 400 when video_id missing', async () => {
