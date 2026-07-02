@@ -366,3 +366,13 @@ the `2026-06-08T08:32` and PR #106 (`2026-06-08T10:42`) sections above.
 - `pnpm run test:e2e:transcription` -> PASS, `2/2` Playwright tests (persisted branch).
 - Tagged-data cleanup audit -> PASS: `ai_file_transcripts` tagged `0`, `ai_file_cache` tagged `0`, `ai_file_transcripts` total `0` (self-cleaning, no leftover prod data).
 - Regression guards -> PASS: `test:e2e:file-upload` `1/1`, `test:e2e:contact-crud` `1/1`, `test:e2e:lead-scoring` `1/1`.
+
+## UNI-2154 live provider policies — 2026-07-02T22:10+10:00
+
+Policies defined, live proofs deliberately not run (approval-gated). Dry-run state re-verified.
+
+| Journey | Status | Evidence |
+|---|---:|---|
+| Transcription mocked wiring + drip dry-run lifecycle (unit) | PASS | `pnpm vitest run src/app/api/files/transcribe/__tests__/route.test.ts src/app/api/campaigns/drip/__tests__/route.test.ts` → 2 files / 11 tests passed (4 + 7), run 02/07/2026 21:55 AEST on the tree identical to `main` @ `9ef20898`. |
+| Live transcription provider | UNKNOWN / HUMAN-GATED | Policy now defined (DECISIONS_NEEDED.md #36: ElevenLabs Scribe v1, `ELEVENLABS_API_KEY` Vercel server env, `ai_file_cache` → `ai_file_transcripts` path, AUD $5 ceiling, one ≤60s tagged sample). No call attempted — key + typed approval outstanding. |
+| Drip live email send | UNKNOWN / HUMAN-GATED | Gate now defined (DECISIONS_NEEDED.md #37: SendGrid, server-side env lane, dry-run default retained, consent + unsubscribe + sandbox-first rules, existing failure handling). No send attempted — code today has no live-send path (`provider_send='not_attempted'` on every branch). |
