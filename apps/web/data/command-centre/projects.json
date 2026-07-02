@@ -58,7 +58,8 @@
       "evidence_vault_path": "raw/command-centre/Disaster-Recovery",
       "validation_commands": ["pnpm type-check", "pnpm lint", "pnpm test", "pnpm build"],
       "linear_prefix": "UNI",
-      "production_url": "https://disaster-recovery-seven.vercel.app"
+      "production_url": "https://disasterrecovery.com.au",
+      "integration_status_url": "https://disasterrecovery.com.au/api/v1/connections/status"
     },
     {
       "name": "DR-NRPG",
@@ -117,7 +118,8 @@
       "evidence_vault_path": "raw/command-centre/CCW-CRM",
       "validation_commands": ["pnpm type-check", "pnpm lint", "pnpm test", "pnpm build"],
       "linear_prefix": "CCW",
-      "production_url": "https://ccw-crm-web.vercel.app"
+      "production_url": "https://ccw-crm-web.vercel.app",
+      "integration_status_url": "https://ccw-crm-web.vercel.app/api/v1/connections/status"
     },
     {
       "name": "Authority-Site",
