@@ -1,14 +1,21 @@
-// POST /api/syntax/webhooks/heygen
+// POST /api/webhooks/heygen
 // HeyGen async completion webhook — marks the job publish-ready (no compositing; see UNI-2219)
-// Auth: HeyGen webhook signature verification (optional for Phase 0)
+// Auth: HMAC-SHA256 verification of x-heygen-signature against HEYGEN_WEBHOOK_SECRET (UNI-2224)
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sanitiseError } from '@/lib/error-reporting'
+import { verifyHeyGenSignature } from '@/lib/webhooks/verify'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
+  const rawBody = await req.text()
+  const signature = req.headers.get('x-heygen-signature')
+  if (!verifyHeyGenSignature(rawBody, signature)) {
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+  }
+
   // HeyGen sends: { video_id, status, url, thumbnail_url, ... }
   let payload: {
     video_id: string
@@ -18,7 +25,7 @@ export async function POST(req: NextRequest) {
     error?: string
   }
   try {
-    payload = await req.json()
+    payload = JSON.parse(rawBody)
   } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
@@ -64,7 +71,7 @@ export async function POST(req: NextRequest) {
 
     if (error) {
       console.error('[HeyGen Webhook] Failed to update job:', error)
-      return NextResponse.json({ error: sanitiseError(error, 'Failed to update video job', { route: '/api/syntax/webhooks/heygen' }) }, { status: 500 })
+      return NextResponse.json({ error: sanitiseError(error, 'Failed to update video job', { route: '/api/webhooks/heygen' }) }, { status: 500 })
     }
 
     console.log(`[HeyGen Webhook] Job ${job.id} completed → queued (HeyGen URL is the deliverable)`)
@@ -84,7 +91,7 @@ export async function POST(req: NextRequest) {
       .eq('id', job.id)
 
     if (error) {
-      return NextResponse.json({ error: sanitiseError(error, 'Failed to update video job', { route: '/api/syntax/webhooks/heygen' }) }, { status: 500 })
+      return NextResponse.json({ error: sanitiseError(error, 'Failed to update video job', { route: '/api/webhooks/heygen' }) }, { status: 500 })
     }
 
     return NextResponse.json({ received: true, matched: true, status: 'failed' })
