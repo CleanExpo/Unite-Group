@@ -364,3 +364,11 @@ What changed: the swarm addressed the actionable PR #106 review set without appl
 Fresh verification: focused Microsoft/import Vitest PASS (`21` tests), type-check PASS, lint PASS, full Vitest PASS (`120` files / `868` tests), email-import e2e PASS (`2/2`), transcription e2e PASS (`2/2`), contact-crud PASS (`1/1`), lead-scoring PASS (`1/1`), file-upload PASS (`1/1`), core-journeys PASS (`5/5`), whitespace check PASS, Supabase dry-run PASS without applying schema. Local build remains blocked before compile by missing runtime env in this shell.
 
 Still blocked: dedicated drip and transcript persistence remain schema-gated until the two additive migrations are explicitly applied in an authorized schema lane. Live Gmail/Microsoft import still needs human OAuth consent.
+
+## UNI-2154 provider policy definition — 2026-07-02T22:10+10:00
+
+What genuinely works now: the two live-provider policies the ticket asked for are **defined** with named providers, credential lanes, safety rules, and exact human steps (DECISIONS_NEEDED.md #36 transcription / #37 drip live-send). Current dry-run state re-verified this session on the `main` tree (post PR #614): `pnpm vitest run` on the transcribe and drip route suites → PASS, 2 files / 11 tests (transcribe 4/4, drip 7/7). Code inspection confirmed both safety floors: `resolveProvider` returns `503 provider_not_configured` for anything but the `__PW_TEST__` mock, and `process_pending` has no live-send code path — non-dry-run attempts are recorded as `failed` / `provider_send='not_attempted'`.
+
+What was deliberately NOT done: no live transcription call, no live or sandbox email send, no new env vars, no schema change. Both live proofs remain **UNKNOWN / HUMAN-GATED** per the ticket's constraints (no billing without explicit approval, no real recipients).
+
+Exact human steps to unblock: (1) add `ELEVENLABS_API_KEY` to Vercel + typed approval "approve live transcription sample"; (2) add `SENDGRID_API_KEY`/`SENDGRID_FROM_EMAIL` to Vercel + typed approval "approve drip sandbox send proof".
