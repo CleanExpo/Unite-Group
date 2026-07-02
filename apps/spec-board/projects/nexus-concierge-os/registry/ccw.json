@@ -1,0 +1,28 @@
+{
+  "slug": "ccw",
+  "domain_map": {
+    "product_inquiry": "case",
+    "service_request": "case",
+    "product_service_intent": "srt",
+    "quote_follow_up": "nudge",
+    "service_warranty_handoff": "handoff",
+    "completion_report": "srt_return"
+  },
+  "kb_ref": "CCW product/service knowledge base (carpet-cleaning products, equipment, service scope)",
+  "panel_ref": "provider panel (vetted operators for service/warranty; suppliers for product escalation)",
+  "regime": [
+    "Privacy Act 1988 + APPs (customer data)",
+    "Spam Act 2003 (marketing/follow-up consent)",
+    "ACL (consumer guarantees + warranty for goods/services)",
+    "GST",
+    "state contractor licensing / WHS (operator dispatch)"
+  ],
+  "regime_status": "named_unconfirmed",
+  "data_plane": {
+    "project": "shared Nexus-CRM tenant today; isolated project as scoped-decision default (core OQ5, UNI-2174 PR #612)",
+    "region": "AU",
+    "tenancy": "RLS per customer / account"
+  },
+  "source_spec": "apps/spec-board/projects/ccw-pack/spec.md#6c",
+  "issue": "UNI-2172"
+}
