@@ -34,6 +34,12 @@ export const HARD_GATED_TASK_TYPES = [
 // Tier 1: task types the agent will actually execute — read-only introspection only.
 export const SAFE_EXECUTABLE_TASK_TYPES = ['diagnostic', 'evidence_audit', 'verification'] as const
 
+// Tier 2: local, sandboxed agentic executions. Each entry has a dedicated,
+// fixed-argv executor (no user-supplied commands ever reach a shell).
+// 'wiki_enhance' = wiki-growth SCAN of the local vault — writes only the
+// report into the vault's _system/wiki-growth/ sandbox; promotion stays human.
+export const TIER2_LOCAL_TASK_TYPES = ['wiki_enhance'] as const
+
 export type OperatorJobStatus =
   | 'planned'
   | 'queued'
@@ -112,6 +118,8 @@ export interface OperatorJobsDeps {
   log?: (msg: string) => void
   /** Tier 1 introspection — injectable for tests. Default reads real machine facts. */
   machineFacts?: () => string
+  /** Tier 2 local executor — injectable for tests. Default runs the wiki-growth scan. */
+  runTier2?: (job: OperatorJob) => Promise<{ ok: boolean; summary: string; evidenceRef?: string }>
 }
 
 function defaultMachineFacts(): string {
@@ -267,6 +275,37 @@ export async function runOperatorJobsOnce(
     })
     if (canTransition('running', 'blocked')) await transition(config, deps, job, 'blocked')
     return { outcome: 'blocked', jobId: job.id, reason: safety.reason }
+  }
+
+  // Tier 2: local sandboxed agentic executions with a dedicated fixed-argv
+  // executor. Success → done with evidence; failure → failed, never fake-done.
+  if ((TIER2_LOCAL_TASK_TYPES as readonly string[]).includes(job.task_type)) {
+    const exec = deps.runTier2 ?? (async () => (await import('./wiki-enhance-executor.js')).runWikiEnhanceScan())
+    let result: { ok: boolean; summary: string; evidenceRef?: string }
+    try {
+      result = await exec(job)
+    } catch (e) {
+      result = { ok: false, summary: `tier 2 executor threw: ${e instanceof Error ? e.message : String(e)}` }
+    }
+    await appendEvent(config, deps, {
+      jobId: job.id,
+      eventType: 'evidence_added',
+      detail: result.summary,
+      evidenceRef: result.evidenceRef ?? `agent:${config.agentId}`,
+    })
+    const to: OperatorJobStatus = result.ok ? 'done' : 'failed'
+    await appendEvent(config, deps, {
+      jobId: job.id,
+      eventType: 'status_changed',
+      fromStatus: 'running',
+      toStatus: to,
+      detail: result.ok
+        ? 'completed by agent (Tier 2 local sandboxed execution)'
+        : `failed: ${result.summary}`,
+    })
+    if (canTransition('running', to)) await transition(config, deps, job, to)
+    if (result.ok) return { outcome: 'done', jobId: job.id, summary: result.summary }
+    return { outcome: 'blocked', jobId: job.id, reason: result.summary }
   }
 
   // Tier 1: execute only the read-only allowlist; everything else is plumbing-only

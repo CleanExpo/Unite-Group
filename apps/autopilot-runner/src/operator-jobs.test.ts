@@ -186,6 +186,63 @@ describe('runOperatorJobsOnce', () => {
     expect(events).not.toContain('evidence_added') // no execution happened
   })
 
+  it('runs a wiki_enhance job through the injected Tier 2 executor to done', async () => {
+    const wiki = job({ task_type: 'wiki_enhance', lane_id: 'wiki', title: 'Wiki Knowledge Base enhancement run' })
+    const { fn, calls } = router([
+      { test: (u, m) => m === 'GET' && u.includes('/operator_jobs'), body: [wiki] },
+      { test: (u, m) => m === 'PATCH' && u.includes('status=in.(planned,queued)'), body: [{ ...wiki, status: 'running' }] },
+      { test: (u, m) => m === 'POST', body: [] },
+      { test: (u, m) => m === 'PATCH', body: [] },
+    ])
+    const runTier2 = vi.fn(async () => ({
+      ok: true,
+      summary: 'wiki-growth scan complete — report at _system/wiki-growth/REPORT-2026-07-04.md',
+      evidenceRef: '_system/wiki-growth/REPORT-2026-07-04.md',
+    }))
+    const out = await runOperatorJobsOnce(config(), { ...deps(fn), runTier2 })
+    expect(runTier2).toHaveBeenCalledOnce()
+    expect(out.outcome).toBe('done')
+    if (out.outcome === 'done') expect(out.summary).toContain('wiki-growth scan complete')
+    const evidence = calls.find(
+      (c) => c.method === 'POST' && (c.body as any[])[0]?.event_type === 'evidence_added',
+    )
+    expect((evidence?.body as any[])[0].evidence_ref).toBe('_system/wiki-growth/REPORT-2026-07-04.md')
+    const finalPatch = calls.reverse().find((c) => c.method === 'PATCH' && !c.url.includes('status=in'))
+    expect((finalPatch?.body as any).status).toBe('done')
+  })
+
+  it('marks a wiki_enhance job failed (never fake-done) when the executor reports failure', async () => {
+    const wiki = job({ task_type: 'wiki_enhance' })
+    const { fn, calls } = router([
+      { test: (u, m) => m === 'GET' && u.includes('/operator_jobs'), body: [wiki] },
+      { test: (u, m) => m === 'PATCH' && u.includes('status=in.(planned,queued)'), body: [{ ...wiki, status: 'running' }] },
+      { test: (u, m) => m === 'POST', body: [] },
+      { test: (u, m) => m === 'PATCH', body: [] },
+    ])
+    const runTier2 = vi.fn(async () => ({ ok: false, summary: 'wiki-growth scan exited 1 — boom' }))
+    const out = await runOperatorJobsOnce(config(), { ...deps(fn), runTier2 })
+    expect(out.outcome).toBe('blocked')
+    if (out.outcome === 'blocked') expect(out.reason).toContain('exited 1')
+    const finalPatch = calls.reverse().find((c) => c.method === 'PATCH' && !c.url.includes('status=in'))
+    expect((finalPatch?.body as any).status).toBe('failed')
+  })
+
+  it('still hard-gates wiki_enhance if escalation flags are set (Tier 2 never bypasses gates)', async () => {
+    const wiki = job({ task_type: 'wiki_enhance', production_action_requested: true })
+    const { fn, calls } = router([
+      { test: (u, m) => m === 'GET', body: [wiki] },
+      { test: (u, m) => m === 'PATCH' && u.includes('status=in.(planned,queued)'), body: [{ ...wiki, status: 'running' }] },
+      { test: (u, m) => m === 'POST', body: [] },
+      { test: (u, m) => m === 'PATCH', body: [] },
+    ])
+    const runTier2 = vi.fn(async () => ({ ok: true, summary: 'should never run' }))
+    const out = await runOperatorJobsOnce(config(), { ...deps(fn), runTier2 })
+    expect(out.outcome).toBe('blocked')
+    expect(runTier2).not.toHaveBeenCalled()
+    const events = calls.filter((c) => c.method === 'POST').map((c) => (c.body as any[])[0].event_type)
+    expect(events).toContain('gate_blocked')
+  })
+
   it('blocks a safe-but-unsupported task type (no Tier 2 executor) without executing', async () => {
     const code = job({ task_type: 'feature_implementation' })
     const { fn, calls } = router([

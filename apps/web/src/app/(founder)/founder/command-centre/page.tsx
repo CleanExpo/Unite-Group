@@ -34,6 +34,7 @@ import { ProviderUsageCockpit } from '@/components/command-centre/provider-usage
 import { ActivityFeedPanel } from '@/components/command-centre/activity/ActivityFeedPanel'
 import { DailyCrmDigestPanel } from '@/components/command-centre/digest/DailyCrmDigestPanel'
 import { ProjectIntegrationWorkPacketControl } from './ProjectIntegrationWorkPacketControl'
+import { WikiEnhanceControl } from './WikiEnhanceControl'
 import { CommandSteps } from './CommandSteps'
 import styles from './command-deck.module.css'
 
@@ -195,6 +196,15 @@ export default async function CommandDeckPage() {
       <section className={`${styles.reveal}`} style={{ animationDelay: '0.06s' }}>
         <QueueBoard />
       </section>
+
+      {/* ── Wiki knowledge base ──────────────────────────────────────── */}
+      <div className={styles.sectionHead} id="wiki-knowledge-base">
+        <div className={styles.sectionTitleGroup}>
+          <span className={styles.sectionLabel}>Wiki Knowledge Base</span>
+          <span className={styles.sectionMeta}>button → queue → Mac runner → wiki-growth report</span>
+        </div>
+        <WikiEnhanceControl />
+      </div>
 
       {/* ── Portfolio ────────────────────────────────────────────────── */}
       <div className={styles.sectionHead} id="portfolio">
