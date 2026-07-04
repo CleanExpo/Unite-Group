@@ -18,10 +18,11 @@
   ],
   "regime_status": "named_unconfirmed",
   "data_plane": {
-    "project": "CleanExpo/Unite-Hub",
+    "project": "own Supabase project (restoreassist-prod-2026) — inferred, pending Phill confirmation",
     "region": "AU",
     "tenancy": "RLS per case / provider; NOT the Nexus CRM"
   },
+  "data_plane_amendment": "05/07/2026: was 'CleanExpo/Unite-Hub'; Unite-Hub decommissioned 20/06/2026, reference void.",
   "source_spec": "apps/spec-board/projects/restoreassist-pack/spec.md#6c",
   "issue": "RA-6812"
 }

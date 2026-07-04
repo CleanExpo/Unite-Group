@@ -8,9 +8,13 @@
 
 - **A template, not a live migration.** The OS is shared spec + schema, **not one shared
   database** (core spec §2). Each vertical copies this file into **its own** Supabase project
-  (Lodgey AU-Sydney; RestoreAssist Unite-Hub; …) and applies it on a **database branch first**.
-  No vertical is wired here — that satisfies the Phase 1 DoD ("template migration file lands +
-  reviewed; no vertical wired").
+  (Lodgey AU-Sydney; RestoreAssist `restoreassist-prod-2026`; …) and applies it on a **database
+  branch first**. No vertical is wired here — that satisfies the Phase 1 DoD ("template migration
+  file lands + reviewed; no vertical wired").
+
+  *Amendment (05/07/2026): the RestoreAssist example above previously named `Unite-Hub`, which was
+  decommissioned 20/06/2026 (repo root `CLAUDE.md`); it now names RestoreAssist's own Supabase
+  project, `restoreassist-prod-2026` — inferred, pending Phill's confirmation.*
 - **The minimum contract.** Columns are the floor. A vertical MAY add columns (see each pack's
   §6a "pack-added columns"); it must NOT change or remove a core column — doing so means the
   pack has diverged from core, which is a core issue (UNI-2170), never a pack workaround.
