@@ -228,5 +228,7 @@ All inherited from core, re-used not re-declared:
 
 ---
 
-[STATUS] gate: awaiting approval — Phill + Duncan sign-off required (`needs-phill-signoff`).
-Maps onto merged core UNI-2170 (`nexus-concierge-os/spec.md`, commit 8bdc85b). Zero core changes.
+[STATUS] gate: Phill signed off 2026-07-04 (core UNI-2170 approved same day — Phase 2 unlocked).
+Awaiting Duncan sign-off; the ITR-Button core-adoption refactor (per
+`nexus-concierge-os/migrations/RECONCILIATION-itr-button.md`) starts on his approval.
+Maps onto approved core UNI-2170 (`nexus-concierge-os/spec.md`, commit 8bdc85b). Zero core changes.

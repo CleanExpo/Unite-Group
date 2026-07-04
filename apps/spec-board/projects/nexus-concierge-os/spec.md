@@ -1,7 +1,8 @@
 ---
 type: spec
 product: nexus-concierge-os
-status: draft
+status: approved
+approved: 2026-07-04 # Phill sign-off (Phase 0 DoD met) — typed approval in session e9c9eda2
 locale: en-AU
 created: 2026-07-01
 issue: UNI-2170
@@ -242,4 +243,6 @@ this definition unchanged; it merely stops being Lodgey-private.
   code is Windows-hosted (out of this scope) — note only. `[VERIFIED]`
   (`au-nz-market-dominance-architecture.md:61-70`).
 
-[STATUS] gate: awaiting approval — Phill sign-off required (`needs-phill-signoff`).
+[STATUS] gate: APPROVED — Phill signed off 2026-07-04 (Phase 0 DoD met; core schema verifier
+re-run green same day: ALL INVARIANTS HOLD). Phase 2 (Lodgey adoption, UNI-2171) is unlocked;
+Duncan's pack sign-off is the remaining Lodgey gate.
