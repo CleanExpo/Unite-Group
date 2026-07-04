@@ -24,6 +24,13 @@ sources:
 > SRT, the provider panel, and the no-TFN/PII-free-handoff invariants unchanged. `[VERIFIED]`
 > (core §5 Phase 3 + §Vertical-pack notes, `nexus-concierge-os/spec.md:135-137,226-228`).
 
+> **Amendment (05/07/2026):** `CleanExpo/Unite-Hub` was decommissioned 20/06/2026 (repo root
+> `CLAUDE.md` `[VERIFIED]`), voiding every reference below that names it as RestoreAssist's data
+> plane. The data plane is now RestoreAssist's own Supabase project, `restoreassist-prod-2026`.
+> `[INFERENCE — pending Phill confirmation]` (inferred from `restoreassist-live-db` memory; not
+> yet re-verified against this spec's sourcing). All "Unite-Hub" mentions in this document below
+> are read as `restoreassist-prod-2026` per this amendment.
+
 ## 1. Finish line
 
 A mapping that instantiates the UNI-2170 core for the **RestoreAssist concierge** — the AI-
@@ -31,7 +38,7 @@ fronted disaster-recovery intake that opens a **case** for a distressed homeowne
 damage as **SRTs**, and dispatches a **vetted contractor** under the crisis-flow safety gates —
 such that every RestoreAssist concept lands on a core table (`case`, `srt`, `srt_return`,
 `consent`, `provider`, `handoff`, `referral_ledger`, `nudge`, `vertical_pack`) or on a declared
-**pack-local** table in RestoreAssist's own data plane (`CleanExpo/Unite-Hub`), and the core
+**pack-local** table in RestoreAssist's own data plane (`restoreassist-prod-2026` — see Amendment), and the core
 contract is touched **nowhere**. Done when: the crisis-intake → `case` mapping is defined, the
 three safety gates (`G4-DISPATCH`/`G4-COMMS`/`G4-ONBOARD`) are expressed as pack-local state
 guards (not core edits), the PII-free-handoff-vs-physical-dispatch tension is resolved without a
@@ -40,12 +47,14 @@ Phase 3 DoD "RA maps onto core; two verticals share one core" (`nexus-concierge-
 
 ## 2. Decision up front
 
-**RestoreAssist is instantiated as a pack in its own data plane (`Unite-Hub`), not by extending
-the core.** `[VERIFIED]` — RestoreAssist's code lives in `CleanExpo/Unite-Hub`, a *separate
-product* from the Nexus CRM (`production-readiness-loop.md:3,9`). This pack therefore delivers
+**RestoreAssist is instantiated as a pack in its own data plane (`restoreassist-prod-2026`), not by
+extending the core.** `[INFERENCE — pending Phill confirmation, see Amendment]` — RestoreAssist's
+code and data now live in `restoreassist-prod-2026` (Unite-Hub decommissioned 20/06/2026), a
+*separate product* from the Nexus CRM (`production-readiness-loop.md:3,9`). This pack therefore
+delivers
 (a) a `vertical_pack` manifest, (b) a **core→RA column mapping** for the nine core tables, and
 (c) pack-local tables (dispatch guard, vetting records, crisis-comms templates) that live in
-Unite-Hub beside the core tables and never alter the core contract.
+`restoreassist-prod-2026` (see Amendment) beside the core tables and never alter the core contract.
 
 **The concierge vertical ≠ the restoreassist.app restorer SaaS.** RA-6812 is the *homeowner-
 facing crisis concierge* (content→lead→CRM→contractor dispatch) `[VERIFIED]`
@@ -83,7 +92,8 @@ a phase-0 compliance blocker (`P5.8-REGIME`) that Lens + a lawyer must sign. `[V
 - **NOT** re-defining SRT, the provider panel, the case states, or the no-TFN/PII-free rules —
   all inherited. `[VERIFIED]` (core §Non-goals `nexus-concierge-os/spec.md:65`).
 - **NOT** building the RA concierge here — this is the pack **spec**; the RA production-readiness
-  loop owns build/gate execution against Unite-Hub. `[VERIFIED]` (`production-readiness-loop.md:9`).
+  loop owns build/gate execution against RestoreAssist's data plane (`restoreassist-prod-2026` —
+  see Amendment). `[VERIFIED]` (`production-readiness-loop.md:9`).
 - **NOT** the restoreassist.app restorer SaaS (CRM/job-management/IICRC workflows) — separate
   product surface. `[VERIFIED]` (`restoreassist-product-facts` memory).
 - **NOT** resolving RA's own phase-0 blockers (compliance regime sign-off, surge target, payment
@@ -102,11 +112,11 @@ provider's vetting is fresh (`G4-DISPATCH`), a provider is not on the panel at a
 credentials + insurance are verified (`G4-ONBOARD`), and every crisis message is a template-
 bound, human-escalated **`nudge`** (`G4-COMMS`). The homeowner's **address is never carried in
 the handoff token**; it is released to the contractor only *after* they accept, from RA's own
-authenticated surface in Unite-Hub — so the core PII-free-handoff invariant holds unchanged
+authenticated surface in `restoreassist-prod-2026` (see Amendment) — so the core PII-free-handoff invariant holds unchanged
 (§7). The contractor's completion report is a **`srt_return`**; job value and any referral clip
 is a disclosed **`referral_ledger`** row (payments capped at AUD $0 auto-approve in pilot). All
-of this lives in RA's **own** Unite-Hub data plane; the core tables are instantiated there
-unmodified.
+of this lives in RA's **own** data plane (`restoreassist-prod-2026` — see Amendment); the core
+tables are instantiated there unmodified.
 
 ## 5. Phased plan (smallest first)
 
@@ -115,7 +125,7 @@ unmodified.
   approved (`needs-phill-signoff`) + RA's `P5.8-REGIME` phase-0 compliance blocker acknowledged
   as a precondition to any RA build. Gate evidence comment posted to UNI-2170. `[VERIFIED]`
   (`nexus-concierge-os/spec.md:218`; `production-readiness-loop.md:91`).
-- **Phase 1 — Instantiate core tables in Unite-Hub.** Apply the core migration template (nine
+- **Phase 1 — Instantiate core tables in `restoreassist-prod-2026` (see Amendment).** Apply the core migration template (nine
   tables) to RA's data plane; add pack-local extension tables (§6b). **DoD:** RA carries all nine
   core tables unmodified + its pack-local set; grep proves no core table's contract was altered.
 - **Phase 2 — Wire crisis-intake + assessment.** Crisis lead → `case`; damage assessment →
@@ -130,7 +140,7 @@ unmodified.
 ## 6. Data model — the core→RestoreAssist mapping
 
 RA owns its instance of the **nine core tables** (contract unchanged) plus **pack-local** tables
-the core does not define, all in Unite-Hub. Core columns are the minimum contract; a pack MAY add
+the core does not define, all in `restoreassist-prod-2026` (see Amendment). Core columns are the minimum contract; a pack MAY add
 columns without changing the core. `[VERIFIED]` (`nexus-concierge-os/spec.md:157`).
 
 ### 6a. Core tables — how RestoreAssist fills them
@@ -147,7 +157,7 @@ columns without changing the core. `[VERIFIED]` (`nexus-concierge-os/spec.md:157
 | `nudge` | Never-close follow-up **and** crisis-comms escalation (15-min ack → auto-escalate); template-bound | `template_ref`, `escalation_tier` | `[VERIFIED]` (`production-readiness-loop.md:77`) |
 | `vertical_pack` | one manifest row for RestoreAssist (§6c) | — | `[INFERENCE]` core registry (`nexus-concierge-os/spec.md:154`) |
 
-### 6b. Pack-local tables (Unite-Hub data plane only — NOT core; proves zero-core-change)
+### 6b. Pack-local tables (`restoreassist-prod-2026` data plane only — see Amendment; NOT core; proves zero-core-change)
 
 `dispatch_guard` (evaluates `G4-DISPATCH`: fresh-vetting + fairness before a `handoff` may be
 created), `vetting_records` (licence, public-liability + workers-comp insurance, ID, police
@@ -166,7 +176,7 @@ so they impose **no** change on the core contract. `[VERIFIED]` (core §2 data-p
 | `kb_ref` | RA crisis-flow knowledge base (make-safe / remediation guidance) `[INFERENCE]` |
 | `panel_ref` | the `provider` panel (vetted contractors, re-verified before dispatch) `[VERIFIED]` (`production-readiness-loop.md:102`) |
 | `regime` | PCI-DSS (SAQ-A); Privacy Act 1988 + APPs + OAIC breach notification; state contractor licensing (QBCC/equiv) + WHS; ACL; GST; **insurance = facilitate/refer only** (avoids AFSL claims-handling) — Lens + lawyer sign-off (R1) `[VERIFIED]` (`production-readiness-loop.md:103`) |
-| `data_plane` | `CleanExpo/Unite-Hub`, AU-region, RLS per case/provider; **not** the Nexus CRM `[VERIFIED]` (`production-readiness-loop.md:9`) |
+| `data_plane` | `restoreassist-prod-2026` (Supabase; Unite-Hub decommissioned 20/06/2026 — see Amendment), AU-region, RLS per case/provider; **not** the Nexus CRM `[INFERENCE — pending Phill confirmation]` |
 
 ### Case states — RestoreAssist mapping
 
@@ -184,7 +194,7 @@ Inherited from core, re-used not re-declared — plus RA's crisis-specific struc
 - **PII-free handoff vs physical dispatch (the resolved tension).** RA must route a contractor
   to a home address, yet core mandates `handoff.carries_pii=false`. Resolution **without a core
   change**: the `handoff` token stays PII-free; the address + contact PII is released to the
-  contractor **only after acceptance**, fetched from RA's own authenticated Unite-Hub surface
+  contractor **only after acceptance**, fetched from RA's own authenticated `restoreassist-prod-2026` surface (see Amendment)
   keyed by the opaque token — never embedded in the token or the ledger. `[INFERENCE]` — the core
   invariant (`nexus-concierge-os/spec.md:179`) holds if PII delivery is a post-accept pack-local
   step; this is the pack's central design assertion (R2).
@@ -199,7 +209,7 @@ Inherited from core, re-used not re-declared — plus RA's crisis-specific struc
   `[VERIFIED]` (core §7 `nexus-concierge-os/spec.md:178`).
 - **Payments queue, never auto-fire in pilot.** `referral_ledger.payment_status` starts `queued`;
   auto-cap AUD $0; insurance facilitate/refer only. `[VERIFIED]` (`production-readiness-loop.md:102,103`).
-- **Data-plane isolation + cost.** RA data stays in Unite-Hub; no new standing cost introduced by
+- **Data-plane isolation + cost.** RA data stays in `restoreassist-prod-2026` (see Amendment); no new standing cost introduced by
   the mapping; surge target ~100 concurrent intakes owned by RA's load gate. `[VERIFIED]`
   (`production-readiness-loop.md:9,92`).
 
@@ -219,7 +229,7 @@ Inherited from core, re-used not re-declared — plus RA's crisis-specific struc
 2. Is the damage assessment one evolving `srt` (rolled forward) or a new `srt` per site visit? (lean: append a new `srt` per visit, per the append-only rule) `[UNCONFIRMED]`
 3. Does the contractor return arrive as a core `srt_return`, or only as a `handoff.status` change? (lean: `srt_return`, to keep the bidirectional obligation) `[UNCONFIRMED]`
 4. Is the provider panel RA-local, or shared with CARSI credentialing / DR-NRPG contractor directory? (inherits core OQ1; lean: RA-local for now) `[UNCONFIRMED]`
-5. Where does the post-accept address release run — Unite-Hub edge function or the contractor's authenticated portal? (inherits core OQ2; lean: contractor portal) `[UNCONFIRMED]`
+5. Where does the post-accept address release run — a `restoreassist-prod-2026` Supabase Edge Function (see Amendment) or the contractor's authenticated portal? (inherits core OQ2; lean: contractor portal) `[UNCONFIRMED]`
 
 ## 10. Verification plan
 
@@ -227,7 +237,7 @@ Inherited from core, re-used not re-declared — plus RA's crisis-specific struc
   returns empty for this PR; no core migration-template file is modified. `[VERIFIED]` method.
 - **PII-free handoff (RA's headline invariant):** the Phase-3 acceptance test asserts a `handoff`
   row (and `referral_ledger` row) contains no address/contact PII; address release is a separate
-  post-accept fetch. `[VERIFIED]` method (design-level here; test lands in Unite-Hub).
+  post-accept fetch. `[VERIFIED]` method (design-level here; test lands in `restoreassist-prod-2026`, see Amendment).
 - **Safety gates are guards, not core edits:** `G4-DISPATCH`/`G4-ONBOARD`/`G4-COMMS` appear in §6b
   (pack-local) / §7, never as new core columns — grep the core `case`/`provider`/`handoff` rows.
 - **Evidence-tag integrity:** every claim carries `[VERIFIED]`/`[INFERENCE]`/`[UNCONFIRMED]`; every
