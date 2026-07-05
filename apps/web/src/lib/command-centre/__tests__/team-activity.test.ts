@@ -10,7 +10,19 @@ import {
 
 const NOW = '2026-07-05T00:00:00.000Z'
 
-const RANA: TeamMember = { id: 'rana', name: 'Rana Muzamil', emails: ['mmlrana00@gmail.com', 'ranamuzamil1199@gmail.com'] }
+const RANA: TeamMember = {
+  id: 'rana',
+  name: 'Rana Muzamil',
+  emails: ['mmlrana00@gmail.com', 'ranamuzamil1199@gmail.com'],
+  repos: ['CleanExpo/CCW-CRM'],
+}
+
+const PHILL: TeamMember = {
+  id: 'phill',
+  name: 'Phill McGurk',
+  emails: ['support@carsi.com.au', 'phill.mcgurk@gmail.com'],
+  repos: ['CleanExpo/Unite-Group', 'CleanExpo/Pi-Dev-Ops'],
+}
 
 function commit(over: Partial<CommitRecord> = {}): CommitRecord {
   return {
@@ -18,6 +30,7 @@ function commit(over: Partial<CommitRecord> = {}): CommitRecord {
     committerEmail: 'mmlrana00@gmail.com',
     authoredAt: '2026-07-04T02:00:00.000Z',
     subject: 'feat: add thing',
+    repo: 'CleanExpo/CCW-CRM',
     ...over,
   }
 }
@@ -81,6 +94,37 @@ describe('deriveMemberActivity', () => {
   })
 })
 
+describe('deriveMemberActivity — repo-scoped multi-repo attribution', () => {
+  it('matches Phill on either of his emails, across his own repos', () => {
+    const commits = [
+      commit({ authorEmail: 'support@carsi.com.au', repo: 'CleanExpo/Unite-Group' }),
+      commit({ authorEmail: 'phill.mcgurk@gmail.com', repo: 'CleanExpo/Pi-Dev-Ops' }),
+    ]
+    expect(deriveMemberActivity(PHILL, commits).commitCount).toBe(2)
+  })
+
+  it('buckets a member\'s commits across multiple repos into one combined activity', () => {
+    const commits = [
+      commit({ authorEmail: 'support@carsi.com.au', repo: 'CleanExpo/Unite-Group', authoredAt: '2026-07-04T00:00:00.000Z' }),
+      commit({ authorEmail: 'support@carsi.com.au', repo: 'CleanExpo/Pi-Dev-Ops', authoredAt: '2026-07-04T05:00:00.000Z' }),
+    ]
+    const a = deriveMemberActivity(PHILL, commits)
+    expect(a.commitCount).toBe(2)
+    expect(a.activeDays).toBe(1)
+    expect(a.daySpans[0]!.commitCount).toBe(2)
+  })
+
+  it('does NOT match a commit whose repo is outside the member\'s repo list', () => {
+    const commits = [commit({ authorEmail: 'support@carsi.com.au', repo: 'CleanExpo/CCW-CRM' })]
+    expect(deriveMemberActivity(PHILL, commits).commitCount).toBe(0)
+  })
+
+  it('does NOT match the autogit bot email, even inside the member\'s own repo', () => {
+    const commits = [commit({ authorEmail: 'noreply@unite-group.dev', repo: 'CleanExpo/Unite-Group' })]
+    expect(deriveMemberActivity(PHILL, commits).commitCount).toBe(0)
+  })
+})
+
 describe('buildTeamActivity', () => {
   it('always carries the founder-approved not-clock-hours disclaimer', () => {
     const p = buildTeamActivity({ now: NOW, repo: 'CleanExpo/CCW-CRM', windowDays: 14, roster: [RANA], commits: { ok: true, commits: [commit()] } })
@@ -98,5 +142,31 @@ describe('buildTeamActivity', () => {
   it('renders the Linear half as source not connected', () => {
     const p = buildTeamActivity({ now: NOW, repo: 'CleanExpo/CCW-CRM', windowDays: 14, roster: [RANA], commits: { ok: true, commits: [] } })
     expect(p.linear.source).toBe('not_connected')
+  })
+
+  it('buckets commits per member across a multi-member, multi-repo roster without cross-attribution', () => {
+    const commits = [
+      commit({ authorEmail: 'mmlrana00@gmail.com', repo: 'CleanExpo/CCW-CRM' }),
+      commit({ authorEmail: 'support@carsi.com.au', repo: 'CleanExpo/Unite-Group' }),
+      commit({ authorEmail: 'phill.mcgurk@gmail.com', repo: 'CleanExpo/Pi-Dev-Ops' }),
+    ]
+    const p = buildTeamActivity({ now: NOW, repo: 'CleanExpo/CCW-CRM, CleanExpo/Unite-Group, CleanExpo/Pi-Dev-Ops', windowDays: 14, roster: [RANA, PHILL], commits: { ok: true, commits } })
+    expect(p.members[0]!.id).toBe('rana')
+    expect(p.members[0]!.commitCount).toBe(1)
+    expect(p.members[1]!.id).toBe('phill')
+    expect(p.members[1]!.commitCount).toBe(2)
+  })
+
+  it('stays live with a partial-failure detail note when only some repos failed (ok:true + detail)', () => {
+    const p = buildTeamActivity({
+      now: NOW,
+      repo: 'CleanExpo/CCW-CRM, CleanExpo/Unite-Group',
+      windowDays: 14,
+      roster: [RANA],
+      commits: { ok: true, commits: [commit()], detail: '1/2 repos fetched — failed: CleanExpo/Unite-Group (repo not found)' },
+    })
+    expect(p.github).toBe('live')
+    expect(p.githubDetail).toMatch(/1\/2 repos fetched/)
+    expect(p.members[0]!.commitCount).toBe(1)
   })
 })
