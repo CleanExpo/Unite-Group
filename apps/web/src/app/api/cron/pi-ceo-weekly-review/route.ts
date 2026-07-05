@@ -24,6 +24,13 @@ export const maxDuration = 180
 
 const GITHUB_ORG = process.env.GITHUB_OWNER ?? 'CleanExpo'
 
+/** Postgres 42P01 = undefined_table. Distinguishes "table not migrated yet" from a
+ *  genuine zero-execution week, so a migration gap doesn't silently read as perfect
+ *  (but empty) agent activity in the weekly review (UNI-2284). */
+export function isUndefinedTableError(error: unknown): boolean {
+  return Boolean(error && typeof error === 'object' && (error as { code?: string }).code === '42P01')
+}
+
 export async function GET(request: Request) {
   const startTime = Date.now()
 
@@ -109,6 +116,11 @@ export async function GET(request: Request) {
     }
 
     // Process agent metrics
+    // agent_executions currently has no migration in apps/web (UNI-2284) — the
+    // query survives via Promise.allSettled, but without this check a 42P01
+    // (undefined_table) reads identically to a real zero-execution week.
+    const agentTableMissing =
+      agentResult.status === 'fulfilled' && isUndefinedTableError(agentResult.value.error)
     const agentData = agentResult.status === 'fulfilled' ? (agentResult.value.data ?? []) : []
     const successfulAgents = agentData.filter((a: Record<string, unknown>) => a.status === 'completed')
     const agentDurations = agentData
@@ -177,6 +189,7 @@ export async function GET(request: Request) {
       blockers: [
         overdue > 0 ? `${overdue} overdue items` : 'No overdue items',
         blockedDecisions > 0 ? `${blockedDecisions} blocked decisions` : 'No blocked decisions',
+        ...(agentTableMissing ? ['agent_executions table not migrated — agent activity metrics unavailable'] : []),
       ],
       risks: [
         inFlight > shipped * 3 ? 'WIP exceeds shipped by 3x — consider WIP limits' : 'WIP under control',
@@ -193,7 +206,7 @@ export async function GET(request: Request) {
         linear: { shipped, inFlight, overdue, created: shipped + inFlight },
         github: { commits: githubCommits, openPRs: githubOpenPRs, configured: githubConfigured },
         vault: { notesAdded, notesTotal: vaultCount, projectsActive: projectsSet.size },
-        agents: { executions: agentData.length, avgDurationSec: avgDuration, successRate: successRate === null ? null : Math.round(successRate * 100) },
+        agents: { executions: agentData.length, avgDurationSec: avgDuration, successRate: successRate === null ? null : Math.round(successRate * 100), tableMigrated: !agentTableMissing },
         decisions: { open: openDecisions, blocked: blockedDecisions },
         video: {
           totalJobs: videoJobsTotal,
@@ -312,7 +325,7 @@ export function formatBriefMarkdown(brief: {
     `| Vault Notes Total | ${m.vault?.notesTotal ?? 0} |`,
     `| Vault Notes Added | ${m.vault?.notesAdded ?? 0} |`,
     `| Agent Executions | ${m.agents?.executions ?? 0} |`,
-    `| Agent Success Rate | ${m.agents?.successRate == null ? 'N/A (no agent runs tracked)' : `${m.agents.successRate}%`} |`,
+    `| Agent Success Rate | ${m.agents?.tableMigrated === false ? 'N/A (table not migrated)' : m.agents?.successRate == null ? 'N/A (no agent runs tracked)' : `${m.agents.successRate}%`} |`,
     `| Open Decisions | ${m.decisions?.open ?? 0} |`,
     `| Blocked Decisions | ${m.decisions?.blocked ?? 0} |`,
   ].join('\n')
