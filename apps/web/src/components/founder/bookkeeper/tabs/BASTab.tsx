@@ -3,9 +3,80 @@
 import { useEffect, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { BASLabel } from '../shared/BASLabel'
+import { BusinessFilter } from '../shared/BusinessFilter'
 import { formatAUD, formatDate } from '../shared/formatters'
-import { BUSINESSES } from '@/lib/businesses'
+import { BUSINESSES, type BusinessKey } from '@/lib/businesses'
 import type { BASQuarterSummary, BASResponse, BookkeeperTransaction, TransactionsResponse } from '@/lib/bookkeeper/types'
+
+const DEFAULT_EXPORT_BUSINESS: BusinessKey = 'dr'
+
+/** Accountant hand-off pack: BAS summary, transaction register, invoice register CSVs. */
+export function AccountantPackDownload({ business, quarter }: { business: BusinessKey; quarter: BASQuarterSummary }) {
+  // Server-reported data source, read from the export's own `# source:` banner
+  // line so the founder knows the pack is mock BEFORE downloading it.
+  const [source, setSource] = useState<'mock' | 'xero' | null>(null)
+
+  const params = new URLSearchParams({
+    business,
+    from: quarter.startDate,
+    to: quarter.endDate,
+  }).toString()
+
+  useEffect(() => {
+    let cancelled = false
+    setSource(null)
+    async function probe() {
+      try {
+        const res = await fetch(`/api/bookkeeper/export/bas?${params}`)
+        if (!res.ok) return
+        const text = await res.text()
+        if (!cancelled) setSource(text.startsWith('# source: mock') ? 'mock' : 'xero')
+      } catch {
+        // Source unknown — render no badge rather than a wrong one.
+      }
+    }
+    void probe()
+    return () => { cancelled = true }
+  }, [params])
+
+  const links: Array<{ label: string; href: string }> = [
+    { label: 'BAS summary', href: `/api/bookkeeper/export/bas?${params}` },
+    { label: 'Transactions', href: `/api/bookkeeper/export/transactions?${params}` },
+    { label: 'Invoices', href: `/api/bookkeeper/export/invoices?${params}` },
+  ]
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
+      <span className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--color-text-disabled)' }}>
+        Accountant pack:
+      </span>
+      {links.map((link) => (
+        <a
+          key={link.label}
+          href={link.href}
+          download
+          className="text-[11px] px-2 py-1 rounded-sm border transition-colors hover:bg-black/[0.05]"
+          style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+        >
+          {link.label}
+        </a>
+      ))}
+      {source === 'mock' && (
+        <span
+          className="text-[9px] font-medium tracking-widest uppercase px-1.5 py-0.5 rounded-sm"
+          style={{ color: '#eab308', backgroundColor: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.2)' }}
+        >
+          Preview data — mock, Xero not connected
+        </span>
+      )}
+      {source === 'xero' && (
+        <span className="text-[9px] font-medium tracking-widest uppercase" style={{ color: 'var(--color-text-disabled)' }}>
+          Source: Xero
+        </span>
+      )}
+    </div>
+  )
+}
 
 function SkeletonCard() {
   return (
@@ -122,6 +193,7 @@ export function BASTab() {
   const [quarterTransactions, setQuarterTransactions] = useState<BookkeeperTransaction[]>([])
   const [loadingTransactions, setLoadingTransactions] = useState(false)
   const [transactionsError, setTransactionsError] = useState(false)
+  const [exportBusiness, setExportBusiness] = useState<BusinessKey | 'all'>(DEFAULT_EXPORT_BUSINESS)
 
   useEffect(() => {
     let cancelled = false
@@ -200,7 +272,14 @@ export function BASTab() {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-[11px]" style={{ color: 'var(--color-text-disabled)' }}>
+          Accountant pack business:
+        </span>
+        <BusinessFilter value={exportBusiness} onChange={setExportBusiness} />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {quarters.map((q) => {
         const current = isCurrentQuarter(q)
         const due = isDueQuarter(quarters, q)
@@ -263,6 +342,13 @@ export function BASTab() {
               <BASLabel label="11" amountCents={q.label11_gstPayableCents} />
             </div>
 
+            {/* Accountant hand-off export */}
+            {exportBusiness !== 'all' && (
+              <div className="border-t border-[var(--color-border)] mt-3 pt-3">
+                <AccountantPackDownload business={exportBusiness} quarter={q} />
+              </div>
+            )}
+
             {/* Expanded transactions */}
             <AnimatePresence>
               {expanded && (
@@ -293,6 +379,7 @@ export function BASTab() {
           </motion.div>
         )
       })}
+      </div>
     </div>
   )
 }

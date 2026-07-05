@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useUIStore } from '@/store/ui'
 import { createClient } from '@/lib/supabase/client'
 import { VaultChangePassword } from '@/components/founder/vault/VaultChangePassword'
+import { EmailIntegrationsSection } from '@/components/founder/settings/EmailIntegrationsSection'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 export function SettingsPageClient() {
@@ -92,6 +93,9 @@ export function SettingsPageClient() {
             Change Password
           </button>
         </section>
+
+        {/* ── Integrations — Email Accounts ─────────────────────────── */}
+        <EmailIntegrationsSection founderEmail={email} />
 
         {/* ── Account ─────────────────────────────────────────────── */}
         <section

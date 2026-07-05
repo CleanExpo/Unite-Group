@@ -32,6 +32,29 @@ export interface MicrosoftSender {
   displayName: string | null
 }
 
+export interface ConnectedMicrosoftAccount {
+  email: string
+  businessKey: string
+  label: string
+}
+
+export async function getConnectedMicrosoftAccounts(founderId: string): Promise<ConnectedMicrosoftAccount[]> {
+  const { createServiceClient } = await import('@/lib/supabase/service')
+  const supabase = createServiceClient()
+
+  const { data } = await supabase
+    .from('credentials_vault')
+    .select('label, notes, metadata')
+    .eq('founder_id', founderId)
+    .eq('service', 'microsoft')
+
+  return (data ?? []).map(row => ({
+    email: row.notes ?? '',
+    businessKey: (row.metadata as { businessKey?: string })?.businessKey ?? 'personal',
+    label: row.label,
+  }))
+}
+
 interface MicrosoftRefreshedTokens {
   access_token: string
   refresh_token?: string
