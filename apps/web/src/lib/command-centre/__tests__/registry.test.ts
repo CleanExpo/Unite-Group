@@ -137,6 +137,16 @@ describe('mapPortfolioYamlToProjects (fixture, offline)', () => {
   it('throws on malformed YAML missing a products array', () => {
     expect(() => mapPortfolioYamlToProjects('schema_version: 1\n')).toThrow(/malformed PORTFOLIO\.yaml/)
   })
+
+  it('reports a friendly error (not a raw TypeError) for a product missing canonical_name', () => {
+    const broken = 'products:\n  - purpose: no name here\n    status: active\n'
+    expect(() => mapPortfolioYamlToProjects(broken)).toThrow(/products\[0\] is missing a string canonical_name\/purpose/)
+  })
+
+  it('reports a friendly error for a product missing purpose', () => {
+    const broken = 'products:\n  - canonical_name: Ghost\n    status: active\n'
+    expect(() => mapPortfolioYamlToProjects(broken)).toThrow(/products\[0\] is missing a string canonical_name\/purpose/)
+  })
 })
 
 describe('getProjects (real repo-root PORTFOLIO.yaml)', () => {

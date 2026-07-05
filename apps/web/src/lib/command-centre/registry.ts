@@ -4,6 +4,12 @@
 // Derives every project from the portfolio SSOT (`.portfolio/PORTFOLIO.yaml`
 // at the repo root) so a product added there appears on the deck with no
 // second edit — see UNI-2297. No DB writes, no secrets — env var names only.
+//
+// Deployment note: the root YAML sits OUTSIDE apps/web's output-file-tracing
+// root, so it never enters the Vercel lambda bundle. The `prebuild` step
+// (scripts/sync-portfolio-registry.mjs) copies it to the in-tree
+// `data/command-centre/portfolio.yaml`, which this module reads first; the
+// root path is a fallback for dev/test where the copy may not exist yet.
 
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
@@ -34,7 +40,8 @@ export interface CommandCentreProject {
 }
 
 // -- PORTFOLIO.yaml shape (only the fields this mapper reads) ---------------
-// Full schema: .portfolio/schema/portfolio.schema.json
+// The root .portfolio/ has no schema file or CI validation of its own; this
+// module's guards below are the validation the deck relies on.
 
 interface PortfolioProduct {
   canonical_name: string
@@ -54,8 +61,13 @@ interface PortfolioYaml {
   products: PortfolioProduct[]
 }
 
-/** Absolute path to the portfolio SSOT, two levels above apps/web (repo root). */
-function portfolioYamlPath(): string {
+/** In-tree copy written by `prebuild` — the path that ships in the lambda bundle. */
+function inTreePortfolioYamlPath(): string {
+  return path.join(process.cwd(), 'data', 'command-centre', 'portfolio.yaml')
+}
+
+/** The SSOT itself, two levels above apps/web (repo root). Dev/test fallback only. */
+function repoRootPortfolioYamlPath(): string {
   return path.join(process.cwd(), '..', '..', '.portfolio', 'PORTFOLIO.yaml')
 }
 
@@ -151,13 +163,18 @@ function toCommandCentreProject(product: PortfolioProduct): CommandCentreProject
 
 /**
  * Keep the richer (longer `purpose`) entry when two products share a
- * canonical_name — e.g. the historical CCW / CCW-CRM duplicate. The SSOT is
- * expected to be unique already (enforced by .portfolio's own CI validation);
- * this is a defensive second gate so the deck never renders a duplicate row.
+ * canonical_name — e.g. the historical CCW / CCW-CRM duplicate. There is no
+ * CI validation on the root SSOT, so this is the gate that ensures the deck
+ * never renders a duplicate row.
  */
 function dedupeByCanonicalName(products: PortfolioProduct[]): PortfolioProduct[] {
   const byName = new Map<string, PortfolioProduct>()
-  for (const product of products) {
+  for (const [index, product] of products.entries()) {
+    if (typeof product?.canonical_name !== 'string' || typeof product?.purpose !== 'string') {
+      throw new Error(
+        `command-centre registry: malformed PORTFOLIO.yaml — products[${index}] is missing a string canonical_name/purpose`,
+      )
+    }
     const key = product.canonical_name.toLowerCase()
     const existing = byName.get(key)
     if (!existing || product.purpose.length > existing.purpose.length) {
@@ -176,14 +193,29 @@ export function mapPortfolioYamlToProjects(yamlSource: string): CommandCentrePro
   return dedupeByCanonicalName(parsed.products).map(toCommandCentreProject)
 }
 
+/** In-tree bundled copy first (production); repo-root SSOT as dev/test fallback. */
+async function readPortfolioSource(): Promise<string> {
+  try {
+    return await readFile(inTreePortfolioYamlPath(), 'utf-8')
+  } catch {
+    return readFile(repoRootPortfolioYamlPath(), 'utf-8')
+  }
+}
+
 /**
  * Load every project from the portfolio SSOT. Read-only.
- * Throws if the file is missing or malformed so callers fail loudly rather
- * than silently serving an empty registry.
+ * A missing or malformed SSOT degrades to an EMPTY registry (with the error
+ * logged) rather than throwing — a blank tile is honest and recoverable; an
+ * error boundary across the whole deck is not.
  */
 export async function getProjects(): Promise<CommandCentreProject[]> {
-  const raw = await readFile(portfolioYamlPath(), 'utf-8')
-  return mapPortfolioYamlToProjects(raw)
+  try {
+    const raw = await readPortfolioSource()
+    return mapPortfolioYamlToProjects(raw)
+  } catch (error) {
+    console.error('command-centre registry: failed to load portfolio SSOT — serving empty registry.', error)
+    return []
+  }
 }
 
 /** Look up a single project by its canonical name (case-insensitive). */

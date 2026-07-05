@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-// The Portfolio Registry section renders STATIC seed config (data/command-centre/
-// projects.json). No-Invaders #1: configured data must not be dressed as live
-// monitoring. This guards the honesty caption + the absence of a liveness claim
-// on a server component that reads from the filesystem (can't render-test directly).
+// The Portfolio Registry section renders CONFIGURED data derived from the
+// portfolio SSOT (.portfolio/PORTFOLIO.yaml via lib/command-centre/registry.ts).
+// No-Invaders #1: configured data must not be dressed as live monitoring. This
+// guards the honesty caption + the absence of a liveness claim on a server
+// component that reads from the filesystem (can't render-test directly).
 const source = readFileSync(
   join(process.cwd(), 'src/app/(founder)/founder/command-centre/page.tsx'),
   'utf8',

@@ -4,6 +4,15 @@ import path from 'node:path';
 const nextConfig = {
   reactStrictMode: true,
 
+  // UNI-2297: the command-centre registry reads the prebuild-generated
+  // data/command-centre/portfolio.yaml at request time (fs.readFile, not an
+  // import), so force it into the lambda bundle for every surface that calls
+  // getProjects(). Without this the read ENOENTs in production.
+  outputFileTracingIncludes: {
+    '/founder/command-centre': ['./data/command-centre/portfolio.yaml'],
+    '/api/command-centre/**': ['./data/command-centre/portfolio.yaml'],
+  },
+
   // Note: zustand and @clerk/nextjs removed from serverExternalPackages.
   // zustand MUST be bundled to share React instance (prevents useRef null errors during SSG).
   // @clerk/nextjs is unused (v1 cruft — Nexus 2.0 uses Supabase auth).

@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "next dev -p 3008",
     "dev:all": "turbo run dev",
-    "prebuild": "node scripts/validate-env.mjs --ci",
+    "prebuild": "node scripts/sync-portfolio-registry.mjs && node scripts/validate-env.mjs --ci",
     "build": "next build",
     "validate:env": "node scripts/validate-env.mjs",
     "build:all": "turbo run build",
