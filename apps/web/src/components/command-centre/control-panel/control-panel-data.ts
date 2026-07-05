@@ -33,6 +33,14 @@ export interface AddOnGate {
   lastRequestedAt?: string
 }
 
+// UNI-2282: the ElevenLabs voice add-on seed must not claim 'live' unless
+// its config is actually present — the control-panel API only promotes an
+// add-on to 'live' when a matching cc_tasks row proves it (status='done');
+// absent that row, this seed is what founders actually see.
+const ELEVENLABS_CONFIGURED = Boolean(
+  process.env.ELEVENLABS_API_KEY?.trim() && process.env.ELEVENLABS_MARGOT_AGENT_ID?.trim(),
+)
+
 export const CONTROL_WORKSTREAMS: ControlWorkstream[] = [
   {
     id: 'ug-v0-01',
@@ -118,7 +126,7 @@ export const ADD_ON_GATES: AddOnGate[] = [
     id: 'voice',
     label: 'ElevenLabs voice UX',
     category: 'intake',
-    state: 'live',
+    state: ELEVENLABS_CONFIGURED ? 'building' : 'planned',
     approval: 'Pi-CEO/Margot owns decisions',
   },
   {
