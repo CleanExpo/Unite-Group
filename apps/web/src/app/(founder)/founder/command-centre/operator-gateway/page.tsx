@@ -470,7 +470,7 @@ export default async function OperatorGatewayPage() {
               <div>
                 {jobEvents.slice(0, 20).map((ev) => (
                   <div key={ev.id} style={{ borderBottom: `1px solid ${theme.borderSoft}`, padding: '0.45rem 0', fontSize: 13 }}>
-                    <span style={{ color: theme.muted, fontFamily: 'var(--font-mono, monospace)' }}>{new Date(ev.at).toLocaleTimeString('en-AU')}</span>{' '}
+                    <span style={{ color: theme.muted, fontFamily: 'var(--font-mono, monospace)' }}>{new Date(ev.at).toLocaleTimeString('en-AU', { timeZone: 'Australia/Brisbane' })}</span>{' '}
                     <Pill tone={ev.eventType === 'gate_blocked' ? 'bad' : ev.toStatus === 'done' ? 'ok' : 'info'}>{ev.eventType}</Pill>{' '}
                     {ev.fromStatus && ev.toStatus ? (
                       <span style={{ color: theme.muted }}>{ev.fromStatus}→{ev.toStatus} · </span>
