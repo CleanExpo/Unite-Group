@@ -60,10 +60,20 @@ describe('makeAuthor', () => {
     expect(r).toMatchObject({ ok: false })
     expect(r.error).toContain('worker spawn failed')
   })
+
+  it('invokes the worker with the pinned model by default (regression: UNI-2307 dropped this pin silently)', async () => {
+    const run = vi.fn(async () => ({ exitCode: 0, stdout: '', stderr: '' }))
+    await makeAuthor(fakeDeps({ run }))(packet, '/wt')
+    expect(run).toHaveBeenCalledWith(expect.stringMatching(/--model\s+claude-sonnet-5\b/), '/wt')
+  })
 })
 
 describe('defaultClaudeCommand', () => {
   it('references the prompt file', () => {
     expect(defaultClaudeCommand('/wt/p.txt')).toContain('/wt/p.txt')
+  })
+
+  it('pins the model to claude-sonnet-5 (regression: UNI-2307 dropped this pin silently)', () => {
+    expect(defaultClaudeCommand('/wt/p.txt')).toMatch(/--model\s+claude-sonnet-5\b/)
   })
 })
