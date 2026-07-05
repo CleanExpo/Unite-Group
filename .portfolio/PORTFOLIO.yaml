@@ -78,7 +78,7 @@ products:
       - Unite-Group Dashboard
       - Empire
       - Authority Site
-    purpose: FORMER standalone authority site / CEO dashboard. Unique surface (Stripe billing/webhooks, command centre, GitHub/Telegram webhooks) ported into apps/web 12/06/2026; legacy app removed from the tree (recoverable at commit d63a37f3). Deferred subsystems listed in docs/convergence/migration-map.md.
+    purpose: FORMER standalone authority site / CEO dashboard. Unique surface (command centre, GitHub/Telegram webhooks) ported into apps/web 12/06/2026; legacy app removed from the tree (recoverable at commit d63a37f3). Deferred subsystems listed in docs/convergence/migration-map.md.
     status: retired  # absorbed into apps/web; migration map CLOSED
     owner: phill
     github:
