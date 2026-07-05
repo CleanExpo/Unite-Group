@@ -41,6 +41,15 @@ import { WikiGraphTile } from '@/components/command-centre/wiki-graph/WikiGraphT
 import { ProjectIntegrationWorkPacketControl } from './ProjectIntegrationWorkPacketControl'
 import { WikiEnhanceControl } from './WikiEnhanceControl'
 import { CommandSteps } from './CommandSteps'
+// Founder cockpit tiles — consolidated from the retired /founder/dashboard (UNI-2306)
+// so the command deck is the one canonical console. Surface move: data routes unchanged.
+import { getUser } from '@/lib/supabase/server'
+import { KPIGrid } from '@/components/founder/dashboard/KPIGrid'
+import { IntegrationStatus } from '@/components/founder/dashboard/IntegrationStatus'
+import { FounderStats } from '@/components/founder/dashboard/FounderStats'
+import { CoachBriefs } from '@/components/founder/dashboard/CoachBriefs'
+import { ExperimentsDashboardWidget } from '@/components/founder/dashboard/ExperimentsDashboardWidget'
+import { HubStatusWidget } from '@/components/founder/dashboard/HubStatusWidget'
 import styles from './command-deck.module.css'
 
 const chakra = Chakra_Petch({
@@ -100,7 +109,7 @@ function hostOf(url?: string): string {
 }
 
 export default async function CommandDeckPage() {
-  const [projects, tools, dashboard, evidence, actionQueue, blockedLanes, inProgressPRs] = await Promise.all([
+  const [projects, tools, dashboard, evidence, actionQueue, blockedLanes, inProgressPRs, user] = await Promise.all([
     getProjects(),
     getToolCatalogue(),
     summariseDashboard(),
@@ -108,6 +117,7 @@ export default async function CommandDeckPage() {
     loadActionQueueData(),
     loadBlockedLanesData(),
     listInProgressPRs(),
+    getUser(),
   ])
   const integrationStatuses = await loadProjectIntegrationStatuses(projects)
 
@@ -483,6 +493,37 @@ export default async function CommandDeckPage() {
 
       <section className={`${styles.reveal}`} style={{ animationDelay: '0.2s' }}>
         <InProgressPRsTile data={inProgressPRs} />
+      </section>
+
+      {/* ── Founder Cockpit (consolidated from the retired /founder/dashboard · UNI-2306) ─ */}
+      <div className={styles.sectionHead} id="founder-cockpit">
+        <span className={styles.sectionLabel}>Founder Cockpit</span>
+        <span className={styles.sectionMeta}>integrations · CRM · revenue · hub health · coaches · experiments</span>
+        <span className={styles.sectionCaption}>
+          Consolidated from the retired <code style={{ fontSize: '0.7rem' }}>/founder/dashboard</code> so this
+          deck is the one canonical console. Each tile renders its own live source and error state.
+        </span>
+      </div>
+
+      {user && (
+        <section className={`${styles.reveal}`} style={{ animationDelay: '0.22s' }}>
+          <IntegrationStatus founderId={user.id} />
+        </section>
+      )}
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.24s' }}>
+        <FounderStats />
+      </section>
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.26s' }}>
+        <KPIGrid />
+      </section>
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.28s' }}>
+        <HubStatusWidget />
+      </section>
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.3s' }}>
+        <CoachBriefs />
+      </section>
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.32s' }}>
+        <ExperimentsDashboardWidget />
       </section>
       </details>
 

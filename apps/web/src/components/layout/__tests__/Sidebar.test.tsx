@@ -41,7 +41,7 @@ describe('Sidebar', () => {
 
   it('renders all global nav items', () => {
     render(<Sidebar user={testUser} />)
-    expect(screen.getByText('Dashboard')).toBeInTheDocument()
+    expect(screen.getByText('Command Centre')).toBeInTheDocument()
     expect(screen.getByText('Kanban')).toBeInTheDocument()
     expect(screen.getByText('Vault')).toBeInTheDocument()
     expect(screen.getByText('Knowledge Console')).toBeInTheDocument()
@@ -73,6 +73,6 @@ describe('Sidebar', () => {
     })
     render(<Sidebar user={testUser} />)
     expect(screen.queryByText('NEXUS')).not.toBeInTheDocument()
-    expect(screen.queryByText('Dashboard')).not.toBeInTheDocument()
+    expect(screen.queryByText('Command Centre')).not.toBeInTheDocument()
   })
 })
