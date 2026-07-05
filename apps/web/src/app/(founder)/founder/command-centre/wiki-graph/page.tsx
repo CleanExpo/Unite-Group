@@ -23,6 +23,7 @@ function formatSync(iso: string | null): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return 'unknown'
   return d.toLocaleString('en-AU', {
+    timeZone: 'Australia/Brisbane',
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
