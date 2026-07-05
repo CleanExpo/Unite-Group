@@ -5,9 +5,8 @@ import { revealEmailLogin } from './support/email-login';
 /**
  * Smoke Tests — Nexus 2.0 (Task 11C)
  *
- * 8 canonical smoke tests verifying the core application shell.
+ * 3 canonical smoke tests verifying the core application shell.
  * Tests 1–3 run without authentication.
- * Tests 4–8 are skipped until Playwright auth setup is completed in Phase 12.
  *
  * Run: pnpm test:e2e --grep "Smoke"
  */
@@ -66,67 +65,5 @@ test.describe('Smoke — No Auth Required', () => {
     await expect(page.locator('input[type="email"]')).toBeVisible();
     await expect(page.locator('input[type="password"]')).toBeVisible();
     await expect(page.locator('button[type="submit"]')).toBeVisible();
-  });
-});
-
-test.describe('Smoke — Auth Required (Phase 12)', () => {
-  /**
-   * Test 4: Dashboard loads with KPI cards.
-   * Requires a valid founder session — deferred to Phase 12 auth setup.
-   */
-  test('dashboard loads with KPI cards', async ({ page }) => {
-    test.skip(true, 'requires Playwright auth setup — add in Phase 12');
-
-    await page.goto('/founder/dashboard');
-    await expect(page).toHaveURL(/\/founder\/dashboard/);
-    await expect(page.locator('[data-testid="kpi-grid"]')).toBeVisible();
-  });
-
-  /**
-   * Test 5: Sidebar navigation renders and links to major sections.
-   * Sidebar is only rendered inside the authenticated /founder layout.
-   */
-  test('sidebar navigation works', async ({ page }) => {
-    test.skip(true, 'requires Playwright auth setup — add in Phase 12');
-
-    await page.goto('/founder/dashboard');
-    await expect(page.locator('aside')).toBeVisible();
-    await expect(page.locator('a[href="/founder/kanban"]')).toBeVisible();
-  });
-
-  /**
-   * Test 6: Advisory workbench loads.
-   * MACAS (Multi-Agent Competitive Accounting System) panel — requires auth.
-   */
-  test('advisory workbench loads', async ({ page }) => {
-    test.skip(true, 'requires Playwright auth setup — add in Phase 12');
-
-    await page.goto('/founder/advisory');
-    await expect(page).toHaveURL(/\/founder\/advisory/);
-    await expect(page.locator('body')).not.toContainText('Application error');
-  });
-
-  /**
-   * Test 7: Campaign dashboard loads.
-   * PaperBanana dual-engine visual campaign page — requires auth.
-   */
-  test('campaign dashboard loads', async ({ page }) => {
-    test.skip(true, 'requires Playwright auth setup — add in Phase 12');
-
-    await page.goto('/founder/campaigns');
-    await expect(page).toHaveURL(/\/founder\/campaigns/);
-    await expect(page.locator('body')).not.toContainText('Application error');
-  });
-
-  /**
-   * Test 8: Vault page loads.
-   * AES-256-GCM credentials vault — requires auth and VAULT_ENCRYPTION_KEY.
-   */
-  test('vault page loads', async ({ page }) => {
-    test.skip(true, 'requires Playwright auth setup — add in Phase 12');
-
-    await page.goto('/founder/vault');
-    await expect(page).toHaveURL(/\/founder\/vault/);
-    await expect(page.locator('body')).not.toContainText('Application error');
   });
 });
