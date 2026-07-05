@@ -15,6 +15,7 @@ having been met.
 | `apps/workspace/` | Hermes workspace — agent command centre (Vite/React 19) |
 | `apps/empire/` | Pi-CEO / Margot voice / CEO activity app — source of voice + activity routes now ported to `apps/web`. Retained for reference only; do not build new features here. |
 | `apps/spec-board/` | Fabel-Prompt-Engineer — plain-English vision → verified, build-ready spec (Next.js 15, npm, own Supabase project `yhteftfnoegmdkimzzjd`). Keeps its own lockfile/toolchain. Live founder data (visions/specs/board) untouched by the fold-in. |
+| `apps/autopilot-runner/` | `@unite/autopilot-runner` — Stage-3 Autopilot Runner, the hosted executor that lets the deployed Unite-Group app run the Linear autonomous loop unattended, off the Mac; lineage UNI-2143. |
 | `packages/spine/` | Unite-Group-Spine — greenfield shared-identity schema (gated, non-prod) |
 | `packages/pi-ceo-operator-mcp/` | Portfolio-health MCP server |
 | `docs/brain/` | Strategic knowledge vault (formerly brain-1) |
