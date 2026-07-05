@@ -16,17 +16,17 @@ function MemberCard({ m }: { m: MemberActivity }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '8px 0', borderBottom: '1px solid var(--deck-line, rgba(207,224,236,0.12))' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
         <span style={{ color: 'var(--deck-text, #e6f7ff)', fontWeight: 600, fontSize: 13 }}>{m.name}</span>
-        <span style={{ color: 'var(--deck-cyan, #00F5FF)', fontSize: 11 }}>
+        <span style={{ color: 'var(--deck-cyan-text, #15803d)', fontSize: 11 }}>
           {m.activeDays} active day{m.activeDays === 1 ? '' : 's'} · {m.commitCount} commit{m.commitCount === 1 ? '' : 's'}
         </span>
       </div>
 
       {m.daySpans.length === 0 ? (
-        <span style={{ color: 'rgba(207,224,236,0.45)', fontSize: 11 }}>No commits in the window.</span>
+        <span style={{ color: 'var(--deck-muted)', fontSize: 11 }}>No commits in the window.</span>
       ) : (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           {m.daySpans.map((d) => (
-            <span key={d.date} style={{ color: 'rgba(207,224,236,0.7)', fontSize: 11, background: 'rgba(0,245,255,0.06)', padding: '1px 6px', borderRadius: 2 }}>
+            <span key={d.date} style={{ color: 'var(--deck-muted)', fontSize: 11, background: 'rgba(0,245,255,0.06)', padding: '1px 6px', borderRadius: 2 }}>
               {d.date}: {d.firstAt}–{d.lastAt} AEST ({d.commitCount})
             </span>
           ))}
@@ -34,7 +34,7 @@ function MemberCard({ m }: { m: MemberActivity }) {
       )}
 
       {m.recentSubjects.length > 0 && (
-        <ul style={{ margin: '2px 0 0', paddingLeft: 14, color: 'rgba(207,224,236,0.55)', fontSize: 11 }}>
+        <ul style={{ margin: '2px 0 0', paddingLeft: 14, color: 'var(--deck-muted)', fontSize: 11 }}>
           {m.recentSubjects.map((s, i) => (
             <li key={i} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s}</li>
           ))}
@@ -78,7 +78,7 @@ export function TeamActivityTile() {
       </div>
 
       {payload && (
-        <p data-testid="team-activity-disclaimer" style={{ color: '#fbbf24', fontSize: 11, margin: 0 }}>
+        <p data-testid="team-activity-disclaimer" style={{ color: 'var(--deck-amber-text, #b45309)', fontSize: 11, margin: 0 }}>
           {payload.disclaimer}
         </p>
       )}
@@ -86,7 +86,7 @@ export function TeamActivityTile() {
       {error && <p style={{ color: 'var(--deck-abort, #f87171)', fontSize: 12, margin: 0 }}>Could not load team activity: {error}</p>}
 
       {payload && payload.github !== 'live' && (
-        <p style={{ color: 'rgba(207,224,236,0.6)', fontSize: 11, margin: 0 }}>
+        <p style={{ color: 'var(--deck-muted)', fontSize: 11, margin: 0 }}>
           GitHub {payload.github === 'not_connected' ? 'not connected' : 'signal error'}
           {payload.githubDetail ? ` — ${payload.githubDetail}` : ''}
         </p>
@@ -95,7 +95,7 @@ export function TeamActivityTile() {
       {payload && <div>{payload.members.map((m) => <MemberCard key={m.id} m={m} />)}</div>}
 
       {payload && (
-        <p style={{ color: 'rgba(207,224,236,0.45)', fontSize: 11, margin: 0 }}>
+        <p style={{ color: 'var(--deck-muted)', fontSize: 11, margin: 0 }}>
           Linear (issues by assignee): source not connected — {payload.linear.detail}
         </p>
       )}

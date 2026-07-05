@@ -18,9 +18,9 @@ const STATE_LABEL: Record<EmailAccountState, string> = {
 }
 
 function stateColor(state: EmailAccountState): string {
-  if (state === 'connected') return 'var(--deck-cyan, #00F5FF)'
-  if (state === 'needs_reauth') return '#fbbf24'
-  return 'rgba(207,224,236,0.45)'
+  if (state === 'connected') return 'var(--deck-cyan-text, #15803d)'
+  if (state === 'needs_reauth') return 'var(--deck-amber-text, #b45309)'
+  return 'var(--deck-muted)'
 }
 
 function relTime(iso: string | null): string | null {
@@ -67,7 +67,7 @@ export function EmailAccountsTile() {
       </div>
 
       {payload && (
-        <p style={{ color: 'rgba(207,224,236,0.45)', fontSize: 11, margin: 0 }}>
+        <p style={{ color: 'var(--deck-muted)', fontSize: 11, margin: 0 }}>
           {payload.summary.connected} connected · {payload.summary.needsReauth} need reauth · {payload.summary.notConnected} not connected
         </p>
       )}
@@ -85,14 +85,14 @@ export function EmailAccountsTile() {
                 <span style={{ marginLeft: 'auto', color: stateColor(p.state), fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   {STATE_LABEL[p.state]}
                 </span>
-                {rel && <span style={{ color: 'rgba(207,224,236,0.4)', fontSize: 10 }}>{rel}</span>}
+                {rel && <span style={{ color: 'var(--deck-muted)', fontSize: 10 }}>{rel}</span>}
               </div>
             )
           })}
         </div>
       )}
 
-      <a href="/founder/settings" style={{ color: 'var(--deck-cyan, #00F5FF)', fontSize: 11, textDecoration: 'underline' }}>
+      <a href="/founder/settings" style={{ color: 'var(--deck-cyan-text, #15803d)', fontSize: 11, textDecoration: 'underline' }}>
         ↗ manage in Settings
       </a>
     </section>

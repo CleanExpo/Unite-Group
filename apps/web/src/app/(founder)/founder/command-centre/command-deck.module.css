@@ -29,7 +29,10 @@
   --cc-ink: var(--deck-text);
   --cc-ink-dim: #3f574a;
   --cc-ink-hush: var(--deck-muted);
-  --cc-signal: var(--deck-cyan);
+  /* Text-safe: bright --deck-cyan (#2dbb57) fails as TEXT on the light deck
+     (~2.5:1). Consolidated cc-* panels use --cc-signal for alert TEXT, so alias
+     it to the AA-passing green (~5:1); fills/dots stay clearly green. */
+  --cc-signal: var(--deck-cyan-text);
   --cc-pulse-duration: 2.4s;
 
   position: relative;

@@ -101,7 +101,7 @@ export function MeshFleetTile() {
       </div>
 
       {!loading && !configured && !fetchError && (
-        <p style={{ color: 'rgba(207,224,236,0.45)', fontSize: 12, margin: 0 }}>
+        <p style={{ color: 'var(--deck-muted)', fontSize: 12, margin: 0 }}>
           Mesh fleet not configured — PI_CEO_API_URL / PI_CEO_API_KEY missing in this environment.
         </p>
       )}
@@ -126,8 +126,8 @@ export function MeshFleetTile() {
             >
               <span style={{ color: 'var(--deck-text)' }}>
                 {m.host}
-                {m.state && <span style={{ color: 'rgba(207,224,236,0.45)' }}> · {m.state}</span>}
-                {m.current_task && <span style={{ color: 'rgba(207,224,236,0.45)' }}> · {m.current_task}</span>}
+                {m.state && <span style={{ color: 'var(--deck-muted)' }}> · {m.state}</span>}
+                {m.current_task && <span style={{ color: 'var(--deck-muted)' }}> · {m.current_task}</span>}
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span
@@ -141,7 +141,7 @@ export function MeshFleetTile() {
                 >
                   {m.is_stale ? 'stale' : 'fresh'}
                 </span>
-                <span style={{ color: 'rgba(207,224,236,0.45)' }}>{formatLastSeen(m.last_seen)}</span>
+                <span style={{ color: 'var(--deck-muted)' }}>{formatLastSeen(m.last_seen)}</span>
               </span>
             </div>
           ))}
@@ -149,7 +149,7 @@ export function MeshFleetTile() {
       )}
 
       {configured && machines.length === 0 && !loading && !degradedReason && (
-        <p style={{ color: 'rgba(207,224,236,0.45)', fontSize: 12, margin: 0 }}>No machines reporting yet.</p>
+        <p style={{ color: 'var(--deck-muted)', fontSize: 12, margin: 0 }}>No machines reporting yet.</p>
       )}
     </section>
   )
