@@ -20,10 +20,11 @@ const STATE_LABELS: Record<OperationNodeState, string> = {
   idle: 'idle',
 }
 
+// Text-only usage (state label) — AA-safe darkened signal.
 function stateColor(state: OperationNodeState): string {
   if (state === 'working') return 'var(--cc-ink)'
   if (state === 'queued') return 'var(--cc-ink-dim)'
-  if (state === 'blocked') return 'var(--cc-signal)'
+  if (state === 'blocked') return 'var(--cc-signal-text)'
   return 'var(--cc-ink-hush)'
 }
 
@@ -154,7 +155,7 @@ function SummaryCell({ label, value, alert = false }: { label: string; value: nu
       </span>
       <span
         className="mt-1 block font-mono text-2xl leading-none"
-        style={{ color: alert ? 'var(--cc-signal)' : 'var(--cc-ink)', fontVariantNumeric: 'tabular-nums' }}
+        style={{ color: alert ? 'var(--cc-signal-text)' : 'var(--cc-ink)', fontVariantNumeric: 'tabular-nums' }}
       >
         {value}
       </span>
@@ -226,7 +227,7 @@ function NodeMetric({ label, value, alert = false }: { label: string; value: num
       <span className="block font-mono text-[9px] uppercase tracking-[0.14em]" style={{ color: 'var(--cc-ink-hush)' }}>
         {label}
       </span>
-      <span className="block font-mono text-lg leading-none" style={{ color: alert ? 'var(--cc-signal)' : 'var(--cc-ink)' }}>
+      <span className="block font-mono text-lg leading-none" style={{ color: alert ? 'var(--cc-signal-text)' : 'var(--cc-ink)' }}>
         {value}
       </span>
     </div>
@@ -256,7 +257,7 @@ function WorkQueueCard({ items }: { items: OperationWorkItem[] }) {
         {items.map((item) => (
           <div key={`${item.id}-${item.state}`} className="text-xs leading-relaxed">
             <div className="flex items-center justify-between gap-3 font-mono text-[10px] uppercase tracking-[0.12em]">
-              <span style={{ color: item.approvalRequired ? 'var(--cc-signal)' : 'var(--cc-ink)' }}>{item.id}</span>
+              <span style={{ color: item.approvalRequired ? 'var(--cc-signal-text)' : 'var(--cc-ink)' }}>{item.id}</span>
               <span style={{ color: 'var(--cc-ink-hush)' }}>{item.state}</span>
             </div>
             <p className="line-clamp-2" style={{ color: 'var(--cc-ink-dim)' }}>

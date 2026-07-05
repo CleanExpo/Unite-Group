@@ -69,7 +69,7 @@ export function MargotHealthTile() {
         <SourceBadge mode={mode} label="Margot" lastUpdatedAt={payload?.generatedAt} />
       </div>
 
-      {error && <p style={{ color: 'var(--deck-abort, #f87171)', fontSize: 12, margin: 0 }}>Could not load Margot state: {error}</p>}
+      {error && <p style={{ color: 'var(--deck-abort-text, #d02f35)', fontSize: 12, margin: 0 }}>Could not load Margot state: {error}</p>}
 
       {payload && (
         <>
@@ -94,7 +94,7 @@ export function MargotHealthTile() {
             <span>
               Last voice session:{' '}
               <b style={{ color: 'var(--deck-text, #e6f7ff)' }}>{relTime(payload.voice.latestSessionAt)}</b>
-              {payload.voice.source === 'error' && <span style={{ color: 'var(--deck-abort, #f87171)' }}> · read error</span>}
+              {payload.voice.source === 'error' && <span style={{ color: 'var(--deck-abort-text, #d02f35)' }}> · read error</span>}
             </span>
             <span>{payload.voice.sessionsInWindow} in {payload.windowDays}d</span>
           </div>
@@ -103,7 +103,7 @@ export function MargotHealthTile() {
             <span>
               Agent heartbeat:{' '}
               <b style={{ color: 'var(--deck-text, #e6f7ff)' }}>{relTime(payload.agents.latestSeenAt)}</b>
-              {payload.agents.source === 'error' && <span style={{ color: 'var(--deck-abort, #f87171)' }}> · read error</span>}
+              {payload.agents.source === 'error' && <span style={{ color: 'var(--deck-abort-text, #d02f35)' }}> · read error</span>}
             </span>
             <span>{payload.agents.activeCount} agent{payload.agents.activeCount === 1 ? '' : 's'} seen</span>
           </div>
