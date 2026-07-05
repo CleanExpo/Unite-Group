@@ -1,5 +1,6 @@
 // POST /api/content/generate — Generate AI content for a business
 import { sanitiseError } from '@/lib/error-reporting'
+import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 import { NextResponse } from 'next/server'
 import { getUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -66,7 +67,7 @@ export async function POST(request: Request) {
           hashtags: result.hashtags,
           cta: result.cta,
           character_used: result.characterUsed,
-          ai_model: 'claude-sonnet-4-5-20250929',
+          ai_model: ANTHROPIC_MODELS.SONNET,
           generation_source: 'manual_request',
           status: 'generated',
         })

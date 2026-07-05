@@ -372,3 +372,43 @@ What genuinely works now: the two live-provider policies the ticket asked for ar
 What was deliberately NOT done: no live transcription call, no live or sandbox email send, no new env vars, no schema change. Both live proofs remain **UNKNOWN / HUMAN-GATED** per the ticket's constraints (no billing without explicit approval, no real recipients).
 
 Exact human steps to unblock: (1) add `ELEVENLABS_API_KEY` to Vercel + typed approval "approve live transcription sample"; (2) add `SENDGRID_API_KEY`/`SENDGRID_FROM_EMAIL` to Vercel + typed approval "approve drip sandbox send proof".
+
+## UNI-2153 live Gmail import attempt — consent not yet persisted — 2026-07-05T17:05+10:00
+
+The founder asked to run the live Gmail import following a Google consent click. The import was
+**not run** and **no contact was created** — two independent blockers, both verified read-only this
+session, prevent an honest live proof. Nothing was mocked or faked.
+
+- **Blocker A — consent did not persist [VERIFIED].** The prod credentials vault
+  (`lksfwktwtmyznckodsau`, `credentials_vault` where `service='google'`) shows **no write today**:
+  `count=6`, newest `created_at` 14/03/2026, newest `updated_at` 28/06/2026, newest
+  `last_accessed_at` 08/05/2026 (Supabase MCP, timestamps only — encrypted columns never read).
+  The Google OAuth callback upserts a `credentials_vault` row on a successful token exchange
+  (`src/app/api/auth/google/callback/route.ts:91-105`); the absence of any 05/07 write means the
+  consent flow did not complete a successful vault write. The connect click needs to be repeated and
+  land back on `/founder/email?connected=<email>` (not an `?error=…` redirect) before a real token exists.
+- **Blocker B — the import route has no non-browser invocation path [VERIFIED].** It requires a
+  founder session (`src/app/api/email/contacts/import/route.ts:186`) and `/api/email` is not in
+  `src/proxy.ts` `PUBLIC_PATHS`, so it is additionally gated by `hasPrivateAccess` on `/api/*`. There
+  is no `CRON_SECRET`/bearer lane. The agent has no founder session token, so even with a valid
+  credential the agent cannot invoke this route headlessly — it is a browser-only action by design.
+  (`/api/cron/import-contacts` is CRON-authenticated but is a different bulk flow writing
+  `crm_contacts`, not the ticket's `POST /api/email/contacts/import` → `contacts` proof.)
+- **Outlook: not connected [VERIFIED, decision re-recorded].** `MICROSOFT_CLIENT_ID`/`SECRET` absent
+  from Vercel prod; route guards remain unit-proved. Marked not connected for this proof per the
+  recorded default (DECISIONS_NEEDED #32).
+
+Exact human step to unblock Gmail: while logged in as founder on prod, connect Google via Settings →
+Integrations — Email Accounts → **Connect Google** (or hit `/api/auth/google/authorize?email=<your-gmail>`
+directly), complete consent, and confirm the redirect lands on `/founder/email?connected=<email>`.
+A fresh `credentials_vault` google row (today's timestamp) is the objective signal that consent
+persisted; the live import is then a ~30-second founder-browser action from `/founder/email`. Because
+the route is session-gated, this final import click is a founder action, not an agent action.
+
+## 2026-07-05 21:50 AEST — UNI-2153 LIVE GMAIL IMPORT PROVEN (agent + founder, this closes the Gmail half)
+
+- Root causes fixed in sequence: (1) redirect_uri never registered on the GCP OAuth client (founder added `https://unite-group.in/api/auth/google/callback`, 05/07); (2) Gmail API not enabled in project 774234455958 (enabled via gcloud, operation acat.p2-774234455958-66510555 finished successfully).
+- Consent completed for phill.mcgurk@gmail.com through the REAL callback: landed `/founder/email?connected=phill.mcgurk%40gmail.com`; vault row "Personal Gmail" updated_at/last_accessed_at = 2026-07-05T09:40:03Z [VERIFIED PostgREST].
+- Live proof: `GET /api/email/threads?account=phill.mcgurk@gmail.com` → 200, 5 real threads. `POST /api/email/contacts/import {source:'gmail', threadId:'19f30dffa9eb8718', accountEmail:'phill.mcgurk@gmail.com'}` → **201 created:true**, contact 82821b4f-a407-4956-9ae6-d6fa36857287 (no-reply@accounts.google.com, tags [gmail_import], importMode live_gmail_thread, founder-scoped) [VERIFIED response + independent PostgREST read].
+- Cleanup decision: proof contact was a robot noreply address → DELETED (1 row, PostgREST return=representation). No fixture retained.
+- Outlook: remains NOT CONNECTED per the recorded default (MICROSOFT_CLIENT_ID/SECRET absent from prod).

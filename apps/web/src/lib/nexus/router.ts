@@ -2,15 +2,14 @@
 // Nexus AI provider router — selects the optimal provider/model based on
 // work complexity, remaining token budget, and the cost/capability matrix.
 //
-// Decision logic (per AC):
-//   high complexity   → Claude Sonnet (best capability)
-//   medium complexity → GPT-4o-mini   (balanced)
-//   low complexity    → GPT-3.5-turbo when budget is constrained,
-//                       else Gemini 1.5 Flash
+// Decision logic (Anthropic-first — Claude-only after Wave 2):
+//   high complexity   → Claude Sonnet 5 (best capability)
+//   medium complexity → Claude Haiku 4.5 (balanced cost/quality)
+//   low complexity    → Claude Haiku 4.5 (cheapest capable model)
 //
-// The budget guardrail mirrors the provider-pool design: when the remaining
-// token budget is below a threshold, the router downgrades to the cheapest
-// capable model to avoid over-spend.
+// The budget guardrail is retained for the reasoning trail: when the remaining
+// token budget is below a threshold, the router notes it downgraded to the
+// cheapest capable model. Both low lanes resolve to Haiku 4.5.
 
 import {
   type NexusProvider,
@@ -19,6 +18,7 @@ import {
   toComplexityTier,
   PROVIDER_MATRIX,
 } from './provider-config'
+import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 
 // ── Public contract ──────────────────────────────────────────────────────────
 
@@ -72,10 +72,10 @@ export const BUDGET_CONSTRAINED_THRESHOLD = 50_000
 
 // ── Per-tier model assignments ───────────────────────────────────────────────
 
-const HIGH_COMPLEXITY_MODEL: NexusModel = 'claude-sonnet-4-6'
-const MEDIUM_COMPLEXITY_MODEL: NexusModel = 'gpt-4o-mini'
-const LOW_COMPLEXITY_UNCONSTRAINED_MODEL: NexusModel = 'gemini-1.5-flash'
-const LOW_COMPLEXITY_CONSTRAINED_MODEL: NexusModel = 'gpt-3.5-turbo'
+const HIGH_COMPLEXITY_MODEL: NexusModel = ANTHROPIC_MODELS.SONNET
+const MEDIUM_COMPLEXITY_MODEL: NexusModel = ANTHROPIC_MODELS.HAIKU
+const LOW_COMPLEXITY_UNCONSTRAINED_MODEL: NexusModel = ANTHROPIC_MODELS.HAIKU
+const LOW_COMPLEXITY_CONSTRAINED_MODEL: NexusModel = ANTHROPIC_MODELS.HAIKU
 
 // ── Router ───────────────────────────────────────────────────────────────────
 

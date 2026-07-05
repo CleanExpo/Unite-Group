@@ -2,10 +2,33 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 
 import { CoachBriefs } from '../CoachBriefs'
+import type { CoachReport } from '@/lib/coaches/types'
 
 beforeEach(() => {
   vi.clearAllMocks()
 })
+
+function report(overrides: Partial<CoachReport>): CoachReport {
+  return {
+    id: 'r1',
+    founder_id: 'f1',
+    coach_type: 'life',
+    business_key: null,
+    report_date: '2026-07-06',
+    status: 'completed',
+    brief_markdown: '## Today at a Glance\n- All quiet',
+    raw_data: null,
+    metrics: null,
+    input_tokens: null,
+    output_tokens: null,
+    model: null,
+    duration_ms: null,
+    error_message: null,
+    created_at: '2026-07-06T00:00:00Z',
+    updated_at: '2026-07-06T00:00:00Z',
+    ...overrides,
+  }
+}
 
 describe('CoachBriefs — honest error vs empty', () => {
   it('shows an honest error (not empty coach cards) when the fetch fails', async () => {
@@ -30,5 +53,51 @@ describe('CoachBriefs — honest error vs empty', () => {
     })
     // A successful empty load is not an error.
     expect(screen.queryByText(/coach briefs unavailable/i)).toBeNull()
+  })
+})
+
+describe('CoachBriefs — mock/live source badge (UNI-2283)', () => {
+  it('renders a "seed" source badge for a mock-data report, not just the LLM prompt caveat', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ reports: [report({ raw_data: { source: 'mock' } })] }),
+    } as Response)
+
+    render(<CoachBriefs />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Daily Coaches')).toBeDefined()
+    })
+    const badge = document.querySelector('[data-source-mode="seed"]')
+    expect(badge).not.toBeNull()
+  })
+
+  it('renders a "live" source badge for a live-data report', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ reports: [report({ raw_data: { source: 'live' } })] }),
+    } as Response)
+
+    render(<CoachBriefs />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Daily Coaches')).toBeDefined()
+    })
+    const badge = document.querySelector('[data-source-mode="live"]')
+    expect(badge).not.toBeNull()
+  })
+
+  it('renders no source badge when the report carries no provenance signal', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ reports: [report({ raw_data: null })] }),
+    } as Response)
+
+    render(<CoachBriefs />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Daily Coaches')).toBeDefined()
+    })
+    expect(document.querySelector('[data-source-mode]')).toBeNull()
   })
 })

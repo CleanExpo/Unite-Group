@@ -3,6 +3,7 @@
 // Pattern: same as generator.ts (getAIClient + Zod validation, no retry on parse failure).
 
 import type Anthropic from '@anthropic-ai/sdk'
+import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 import { z } from 'zod'
 import { getAIClient } from '@/lib/ai/client'
 import { buildReplySystemPrompt, buildReplyUserMessage } from './prompts/reply'
@@ -10,7 +11,7 @@ import type { BrandIdentity } from './types'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const MODEL = 'claude-sonnet-4-5-20250929'
+const MODEL = ANTHROPIC_MODELS.SONNET
 const MAX_OUTPUT_TOKENS = 1024
 
 // ── Types ────────────────────────────────────────────────────────────────────

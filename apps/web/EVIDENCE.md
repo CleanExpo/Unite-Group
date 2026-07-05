@@ -708,3 +708,25 @@ PR: https://github.com/CleanExpo/Unite-Hub/pull/93
 - Dry-run re-verification: `pnpm vitest run src/app/api/files/transcribe/__tests__/route.test.ts src/app/api/campaigns/drip/__tests__/route.test.ts` -> PASS, `2` files / `11` tests (transcribe `4/4`, drip `7/7`), 02/07/2026 21:55 AEST.
 - Safety-floor inspection (read, no code change): `src/lib/ai/features/transcription.ts` `resolveProvider` -> `503 provider_not_configured` unless `UNITE_HUB_TEST_MOCK_TRANSCRIPTION=1` + `__PW_TEST__` cache key; `src/app/api/campaigns/drip/route.ts` `process_pending` -> no provider call on any branch, `provider_send='not_attempted'`.
 - No live provider call, no email send, no env var change, no schema change in this pass. Docs-only diff.
+
+### UNI-2153 live Gmail import — read-only verification, import blocked - 2026-07-05T17:05+10:00
+- Branch: `docs/uni-2153-live-proof` (off `origin/main` @ `e14bf375`).
+- Trigger: founder message "Google consent done — run the live Gmail import."
+- Route re-read [VERIFIED]: `src/app/api/email/contacts/import/route.ts` — `POST` requires `getUser()` (line 186); `source='gmail'` needs `threadId` or `messageId` (lines 204-207); resolves the founder's connected Google account via `resolveGoogleAccount` → `getConnectedGoogleAccounts` (returns `503 gmail_account_not_connected` when zero, `400 gmail_account_required` when >1); fetches the thread/message via Gmail API and upserts a `contacts` row (`tags: ['gmail_import']`, `metadata.importMode='live_gmail_thread'`).
+- Auth-gate re-read [VERIFIED]: `src/proxy.ts` `PUBLIC_PATHS` (lines 53-66) does **not** include `/api/email`; unauthenticated/`!hasPrivateAccess` requests to `/api/*` get `403` (lines 137-149). No `CRON_SECRET`/bearer branch exists in the import route. Conclusion: the route is founder-session-only — no headless/agent invocation path.
+- Service-lane check [VERIFIED]: `src/app/api/cron/import-contacts/route.ts` authenticates by `CRON_SECRET` (GET) but writes `crm_contacts` from a Xero+Gmail fan-out — a different table and flow, not a proof of the ticket's `POST /api/email/contacts/import` → `contacts` upsert.
+- Repo-script check [VERIFIED]: `apps/web/scripts/` and `apps/web/package.json` grep for `contacts/import` / `gmail import` → no live-import invocation script exists; the only related script is the mocked `test:e2e:email-import` (`gmail_mock`, `@unite-hub.test` senders).
+- Consent-persist check [VERIFIED, Supabase MCP, prod `lksfwktwtmyznckodsau`, timestamps/count only, no encrypted columns]:
+  - `SELECT count(*), max(created_at), max(updated_at), max(last_accessed_at) FROM credentials_vault WHERE service='google'` → `count=6`, `created_at≤2026-03-14`, `updated_at≤2026-06-28`, `last_accessed_at≤2026-05-08`.
+  - No row was inserted or updated on 05/07/2026, so the reported consent did not complete a successful callback vault write (`callback/route.ts:91-105` upserts on success). Blocker A.
+- Gmail MCP `search_threads subject:UNI-2153` → **error: token expired, re-authorisation required** [VERIFIED tool error]. Could not confirm whether a tagged test thread was prepared; moot given the route is not agent-invocable.
+- Outcome: **no import run, no contact row created, no cleanup needed**. No tokens, secrets, or encrypted vault columns were read or printed at any point.
+- Outlook: `MICROSOFT_CLIENT_ID`/`SECRET` still absent from Vercel prod (per 02/07 comment); marked not connected per DECISIONS_NEEDED #32. No live Microsoft action attempted.
+
+## 2026-07-05 21:50 AEST — UNI-2153 LIVE GMAIL IMPORT PROVEN (agent + founder, this closes the Gmail half)
+
+- Root causes fixed in sequence: (1) redirect_uri never registered on the GCP OAuth client (founder added `https://unite-group.in/api/auth/google/callback`, 05/07); (2) Gmail API not enabled in project 774234455958 (enabled via gcloud, operation acat.p2-774234455958-66510555 finished successfully).
+- Consent completed for phill.mcgurk@gmail.com through the REAL callback: landed `/founder/email?connected=phill.mcgurk%40gmail.com`; vault row "Personal Gmail" updated_at/last_accessed_at = 2026-07-05T09:40:03Z [VERIFIED PostgREST].
+- Live proof: `GET /api/email/threads?account=phill.mcgurk@gmail.com` → 200, 5 real threads. `POST /api/email/contacts/import {source:'gmail', threadId:'19f30dffa9eb8718', accountEmail:'phill.mcgurk@gmail.com'}` → **201 created:true**, contact 82821b4f-a407-4956-9ae6-d6fa36857287 (no-reply@accounts.google.com, tags [gmail_import], importMode live_gmail_thread, founder-scoped) [VERIFIED response + independent PostgREST read].
+- Cleanup decision: proof contact was a robot noreply address → DELETED (1 row, PostgREST return=representation). No fixture retained.
+- Outlook: remains NOT CONNECTED per the recorded default (MICROSOFT_CLIENT_ID/SECRET absent from prod).

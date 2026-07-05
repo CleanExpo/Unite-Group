@@ -101,6 +101,99 @@ describe('GET /api/integrations/status', () => {
     expect(body.summary.connected).toBeGreaterThanOrEqual(3) // xero + linkedin + linear
   })
 
+  it('HeyGen (env source): connected/configured when HEYGEN_API_KEY present, not otherwise', async () => {
+    process.env.HEYGEN_API_KEY = 'heygen_test_key'
+
+    const { client } = makeSupabase([], [])
+    vi.mocked(createClient).mockResolvedValue(client)
+
+    const res = await GET()
+    const body = await res.json()
+    const heygen = body.providers.find((p: { id: string }) => p.id === 'heygen')
+
+    expect(heygen.connected).toBe(true)
+    expect(heygen.configured).toBe(true)
+  })
+
+  it('HeyGen (env source): not connected when HEYGEN_API_KEY absent', async () => {
+    delete process.env.HEYGEN_API_KEY
+
+    const { client } = makeSupabase([], [])
+    vi.mocked(createClient).mockResolvedValue(client)
+
+    const res = await GET()
+    const body = await res.json()
+    const heygen = body.providers.find((p: { id: string }) => p.id === 'heygen')
+
+    expect(heygen.connected).toBe(false)
+    expect(heygen.configured).toBe(false)
+  })
+
+  it('Telegram (env source): connected/configured when bot token + chat id present', async () => {
+    process.env.TELEGRAM_BOT_TOKEN = 'bot-token'
+    process.env.TELEGRAM_CHAT_ID = 'chat-id'
+
+    const { client } = makeSupabase([], [])
+    vi.mocked(createClient).mockResolvedValue(client)
+
+    const res = await GET()
+    const body = await res.json()
+    const telegram = body.providers.find((p: { id: string }) => p.id === 'telegram')
+
+    expect(telegram.connected).toBe(true)
+    expect(telegram.configured).toBe(true)
+  })
+
+  it('Telegram (env source): not connected when either key is missing', async () => {
+    process.env.TELEGRAM_BOT_TOKEN = 'bot-token'
+    delete process.env.TELEGRAM_CHAT_ID
+
+    const { client } = makeSupabase([], [])
+    vi.mocked(createClient).mockResolvedValue(client)
+
+    const res = await GET()
+    const body = await res.json()
+    const telegram = body.providers.find((p: { id: string }) => p.id === 'telegram')
+
+    expect(telegram.connected).toBe(false)
+    expect(telegram.configured).toBe(false)
+  })
+
+  it('Outlook (vault source): reports not_connected honestly when Microsoft OAuth is unconfigured and no vault row exists', async () => {
+    delete process.env.MICROSOFT_CLIENT_ID
+    delete process.env.MICROSOFT_CLIENT_SECRET
+
+    const { client } = makeSupabase([], [])
+    vi.mocked(createClient).mockResolvedValue(client)
+
+    const res = await GET()
+    const body = await res.json()
+    const outlook = body.providers.find((p: { id: string }) => p.id === 'outlook')
+
+    expect(outlook.configured).toBe(false)
+    expect(outlook.connected).toBe(false)
+    expect(outlook.tokenCount).toBe(0)
+  })
+
+  it('Outlook (vault source): connected when a credentials_vault row exists for service "microsoft", independent of env presence', async () => {
+    delete process.env.MICROSOFT_CLIENT_ID
+    delete process.env.MICROSOFT_CLIENT_SECRET
+
+    const { client } = makeSupabase(
+      [{ service: 'microsoft', created_at: '2026-05-01T00:00:00Z', updated_at: '2026-05-02T00:00:00Z', last_accessed_at: null }],
+      []
+    )
+    vi.mocked(createClient).mockResolvedValue(client)
+
+    const res = await GET()
+    const body = await res.json()
+    const outlook = body.providers.find((p: { id: string }) => p.id === 'outlook')
+
+    expect(outlook.connected).toBe(true)
+    expect(outlook.tokenCount).toBe(1)
+    expect(outlook.configured).toBe(false)
+  })
+
   it('returns 500 when a read errors', async () => {
     const { client } = makeSupabase([], [], { vaultError: true })
     vi.mocked(createClient).mockResolvedValue(client)

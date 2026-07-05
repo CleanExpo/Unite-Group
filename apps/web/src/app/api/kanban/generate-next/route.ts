@@ -7,6 +7,7 @@
 // the production execution pipeline.
 
 import { sanitiseError } from '@/lib/error-reporting'
+import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 import { NextResponse } from 'next/server'
 import type Anthropic from '@anthropic-ai/sdk'
 import { getUser } from '@/lib/supabase/server'
@@ -15,7 +16,7 @@ import { createIssue, resolveOrCreateLabelIds } from '@/lib/integrations/linear'
 
 export const dynamic = 'force-dynamic'
 
-const MODEL = 'claude-sonnet-4-5-20250929'
+const MODEL = ANTHROPIC_MODELS.SONNET
 const HERMES_LABELS = ['mesh:auto', 'pi-dev:autonomous', 'source:hermes-kanban']
 
 // The project the generator must understand before proposing work.

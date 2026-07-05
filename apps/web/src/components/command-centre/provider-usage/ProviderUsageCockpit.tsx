@@ -25,11 +25,21 @@ const STATE_LABEL: Record<ProviderState, string> = {
   unknown: 'unknown',
 }
 
+// Fill variant — bright signal, used for the usage-meter bar.
 function stateColor(state: ProviderState): string {
   if (state === 'available') return 'var(--cc-ink)'
   if (state === 'watching') return 'var(--cc-ink-dim)'
   if (state === 'near_limit') return 'var(--cc-signal)'
   if (state === 'blocked') return 'var(--cc-signal)'
+  return 'var(--cc-ink-hush)'
+}
+
+// Text variant — AA-safe darkened signal, used for the state label.
+function stateTextColor(state: ProviderState): string {
+  if (state === 'available') return 'var(--cc-ink)'
+  if (state === 'watching') return 'var(--cc-ink-dim)'
+  if (state === 'near_limit') return 'var(--cc-signal-text)'
+  if (state === 'blocked') return 'var(--cc-signal-text)'
   return 'var(--cc-ink-hush)'
 }
 
@@ -49,6 +59,7 @@ function sourceMode(payload: ProviderCockpitPayload | null, loading: boolean, er
 
 function ProviderMeter({ provider }: { provider: ProviderCockpitEntry }) {
   const color = stateColor(provider.state)
+  const textColor = stateTextColor(provider.state)
   const pct = provider.usagePct ?? 0
   return (
     <div className="cc-provider-row" style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '8px 0' }}>
@@ -56,7 +67,7 @@ function ProviderMeter({ provider }: { provider: ProviderCockpitEntry }) {
         <span style={{ color: 'var(--cc-ink)', fontWeight: 600, fontSize: 13 }}>{provider.label}</span>
         <span
           data-testid={`provider-state-${provider.id}`}
-          style={{ color, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em' }}
+          style={{ color: textColor, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em' }}
         >
           {STATE_LABEL[provider.state]}
         </span>
@@ -80,7 +91,7 @@ function ProviderMeter({ provider }: { provider: ProviderCockpitEntry }) {
         <span>resets {provider.resetCadence}</span>
       </div>
       {provider.missingSetupReason && (
-        <span style={{ fontSize: 11, color: 'var(--cc-signal)' }}>⚠ {provider.missingSetupReason}</span>
+        <span style={{ fontSize: 11, color: 'var(--cc-signal-text)' }}>⚠ {provider.missingSetupReason}</span>
       )}
     </div>
   )
@@ -137,8 +148,8 @@ export function ProviderUsageCockpit() {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, fontSize: 11, color: 'var(--cc-ink-dim)' }}>
             <span>{payload.summary.available} available</span>
             <span>{payload.summary.watching} watching</span>
-            <span style={{ color: 'var(--cc-signal)' }}>{payload.summary.nearLimit} near limit</span>
-            <span style={{ color: 'var(--cc-signal)' }}>{payload.summary.blocked} blocked</span>
+            <span style={{ color: 'var(--cc-signal-text)' }}>{payload.summary.nearLimit} near limit</span>
+            <span style={{ color: 'var(--cc-signal-text)' }}>{payload.summary.blocked} blocked</span>
             <span>{payload.summary.unknown} unknown</span>
           </div>
 
@@ -157,7 +168,7 @@ export function ProviderUsageCockpit() {
               {payload.routing.map((r) => (
                 <li key={r.lane} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
                   <span style={{ color: 'var(--cc-ink-dim)' }}>{LANE_LABEL[r.lane]}</span>
-                  <span style={{ color: r.recommended ? 'var(--cc-ink)' : 'var(--cc-signal)' }}>
+                  <span style={{ color: r.recommended ? 'var(--cc-ink)' : 'var(--cc-signal-text)' }}>
                     {r.recommended ?? 'no provider'} <span style={{ color: 'var(--cc-ink-hush)' }}>· {r.reason}</span>
                   </span>
                 </li>

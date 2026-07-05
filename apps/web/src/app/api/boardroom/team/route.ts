@@ -3,6 +3,7 @@
 // POST /api/boardroom/team — add team member
 
 import { NextResponse } from 'next/server'
+import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 import { getUser, createClient } from '@/lib/supabase/server'
 import { sanitiseError } from '@/lib/error-reporting'
 
@@ -33,7 +34,7 @@ export async function GET() {
         github_login: null,
         metadata: {
           description: 'AI programmer agent. Assigned tasks from the Boardroom, ships via GitHub and Linear.',
-          model: 'claude-sonnet-4-5-20250929',
+          model: ANTHROPIC_MODELS.SONNET,
         },
       })
       .select()

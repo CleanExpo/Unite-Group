@@ -14,14 +14,14 @@ import { getGrantsIncentivesPrompt } from './prompts/grants-incentives'
 import { getCashflowOptimisationPrompt } from './prompts/cashflow-optimisation'
 import { getCompliancePrompt } from './prompts/compliance'
 import { getJudgePrompt } from './prompts/judge'
-import { calculateThinkingBudget } from '@/lib/ai/features/thinking'
+import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const FIRM_MODEL = 'claude-sonnet-4-5-20250929'
-const JUDGE_MODEL = 'claude-opus-4-5-20251101'
+const FIRM_MODEL = ANTHROPIC_MODELS.SONNET
+const JUDGE_MODEL = ANTHROPIC_MODELS.OPUS
 const DEFAULT_MAX_OUTPUT_TOKENS = 4096
-// Judge max_tokens includes adaptive thinking budget (up to 8 000) + structured output (~2 000).
+// Judge max_tokens covers adaptive thinking + structured output (~2 000).
 const JUDGE_MAX_OUTPUT_TOKENS = 10000
 
 // Tool schemas — computed once at module load, reused across all calls.
@@ -238,10 +238,9 @@ export async function callJudgeAgent(userMessage: string): Promise<JudgeCallResu
   const client = getAIClient()
   const config = getJudgeAgentConfig()
 
-  // Adaptive thinking: judge deliberates on complex 5-round debates —
-  // budget scales with actual message complexity (4 000–8 000 tokens).
-  const thinkingBudget = Math.min(Math.max(calculateThinkingBudget(userMessage), 4000), 8000)
-
+  // Adaptive thinking: the judge (Opus 4.8) deliberates on complex 5-round
+  // debates. `{ type: 'enabled', budget_tokens }` returns 400 on Opus 4.8 —
+  // adaptive thinking replaces the fixed budget.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const judgeParams: any = {
     model: config.model,
@@ -250,7 +249,7 @@ export async function callJudgeAgent(userMessage: string): Promise<JudgeCallResu
     messages: [{ role: 'user', content: userMessage }],
     tools: [JUDGE_OUTPUT_TOOL],
     tool_choice: { type: 'tool', name: 'judge_output' },
-    thinking: { type: 'enabled', budget_tokens: thinkingBudget },
+    thinking: { type: 'adaptive' },
   }
 
   const response = await client.messages.create(judgeParams)

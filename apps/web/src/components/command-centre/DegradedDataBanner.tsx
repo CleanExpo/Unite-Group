@@ -22,7 +22,7 @@ export function DegradedDataBanner({ source, reason }: DegradedDataBannerProps) 
         borderLeft: '2px solid var(--cc-signal)',
       }}
     >
-      <span className="uppercase tracking-[0.18em]" style={{ color: 'var(--cc-signal)' }}>
+      <span className="uppercase tracking-[0.18em]" style={{ color: 'var(--cc-signal-text)' }}>
         Degraded data · {source}
       </span>
       <span style={{ color: 'var(--cc-ink-dim)' }}>

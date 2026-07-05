@@ -26,6 +26,9 @@ import { BlockedLanesTile } from './BlockedLanesTile'
 import { InProgressPRsTile } from './InProgressPRsTile'
 import { RepoCampaignsTile } from '@/components/command-centre/repo-campaigns/RepoCampaignsTile'
 import { ProviderAccountsTile } from '@/components/command-centre/provider-accounts/ProviderAccountsTile'
+import { MargotHealthTile } from '@/components/command-centre/margot-health/MargotHealthTile'
+import { TeamActivityTile } from '@/components/command-centre/team-activity/TeamActivityTile'
+import { EmailAccountsTile } from '@/components/command-centre/email-accounts/EmailAccountsTile'
 // Consolidated from the retired US-spelling command-center page (self-contained panels).
 import { HermesControlPanel } from '@/components/command-centre/control-panel/HermesControlPanel'
 import { BusinessFocusRail } from '@/components/command-centre/business-focus/BusinessFocusRail'
@@ -33,9 +36,21 @@ import { LiveAgentOperationsMap } from '@/components/command-centre/live-agent-o
 import { ProviderUsageCockpit } from '@/components/command-centre/provider-usage/ProviderUsageCockpit'
 import { ActivityFeedPanel } from '@/components/command-centre/activity/ActivityFeedPanel'
 import { DailyCrmDigestPanel } from '@/components/command-centre/digest/DailyCrmDigestPanel'
+import { MeshFleetTile } from '@/components/command-centre/mesh-fleet/MeshFleetTile'
+import { PortfolioHealthTile } from '@/components/command-centre/portfolio-health/PortfolioHealthTile'
+import { WikiGraphTile } from '@/components/command-centre/wiki-graph/WikiGraphTile'
 import { ProjectIntegrationWorkPacketControl } from './ProjectIntegrationWorkPacketControl'
 import { WikiEnhanceControl } from './WikiEnhanceControl'
 import { CommandSteps } from './CommandSteps'
+// Founder cockpit tiles — consolidated from the retired /founder/dashboard (UNI-2306)
+// so the command deck is the one canonical console. Surface move: data routes unchanged.
+import { getUser } from '@/lib/supabase/server'
+import { KPIGrid } from '@/components/founder/dashboard/KPIGrid'
+import { IntegrationStatus } from '@/components/founder/dashboard/IntegrationStatus'
+import { FounderStats } from '@/components/founder/dashboard/FounderStats'
+import { CoachBriefs } from '@/components/founder/dashboard/CoachBriefs'
+import { ExperimentsDashboardWidget } from '@/components/founder/dashboard/ExperimentsDashboardWidget'
+import { HubStatusWidget } from '@/components/founder/dashboard/HubStatusWidget'
 import styles from './command-deck.module.css'
 
 const chakra = Chakra_Petch({
@@ -95,7 +110,7 @@ function hostOf(url?: string): string {
 }
 
 export default async function CommandDeckPage() {
-  const [projects, tools, dashboard, evidence, actionQueue, blockedLanes, inProgressPRs] = await Promise.all([
+  const [projects, tools, dashboard, evidence, actionQueue, blockedLanes, inProgressPRs, user] = await Promise.all([
     getProjects(),
     getToolCatalogue(),
     summariseDashboard(),
@@ -103,6 +118,7 @@ export default async function CommandDeckPage() {
     loadActionQueueData(),
     loadBlockedLanesData(),
     listInProgressPRs(),
+    getUser(),
   ])
   const integrationStatuses = await loadProjectIntegrationStatuses(projects)
 
@@ -139,7 +155,7 @@ export default async function CommandDeckPage() {
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <LiveClock className={styles.clock} />
-          <span className={styles.clockLabel}>Mission Time · UTC</span>
+          <span className={styles.clockLabel}>Mission Time · AEST</span>
         </div>
 
         <div className={styles.metrics}>
@@ -175,6 +191,26 @@ export default async function CommandDeckPage() {
       {/* ── Morning digest ───────────────────────────────────────────── */}
       <section className={`${styles.reveal}`} style={{ animationDelay: '0.01s' }}>
         <DigestBanner />
+      </section>
+
+      {/* ── Operations visibility (UNI-2296) ─────────────────────────── */}
+      <div className={styles.sectionHead} id="operations-visibility">
+        <div className={styles.sectionTitleGroup}>
+          <span className={styles.sectionLabel}>Operations Visibility</span>
+          <span className={styles.sectionMeta}>Margot state · contractor activity · email roster</span>
+        </div>
+      </div>
+
+      <section className={`${styles.integrationGrid} ${styles.reveal}`} style={{ animationDelay: '0.015s' }}>
+        <article className={styles.panel}>
+          <MargotHealthTile />
+        </article>
+        <article className={styles.panel}>
+          <TeamActivityTile />
+        </article>
+        <article className={styles.panel}>
+          <EmailAccountsTile />
+        </article>
       </section>
 
       {/* ── Idea intake ──────────────────────────────────────────────── */}
@@ -246,6 +282,20 @@ export default async function CommandDeckPage() {
       </section>
       <section className={`${styles.reveal}`} style={{ animationDelay: '0.14s' }}>
         <DailyCrmDigestPanel />
+      </section>
+      {/* UNI-2305 — Mesh Fleet: Railway Pi-CEO machine heartbeats + ships in flight. */}
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.15s' }}>
+        <MeshFleetTile />
+      </section>
+
+      {/* UNI-2201 — Portfolio Health: live CI + P0/P1 health across RA / Synthex / Nexus, red/yellow/green, 60s refresh. */}
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.155s' }}>
+        <PortfolioHealthTile />
+      </section>
+
+      {/* Wiki Graph (UNI-2304) — knowledge-base graph summary + link to full view. */}
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.16s' }}>
+        <WikiGraphTile />
       </section>
 
       <section className={styles.panelGrid}>
@@ -449,6 +499,37 @@ export default async function CommandDeckPage() {
 
       <section className={`${styles.reveal}`} style={{ animationDelay: '0.2s' }}>
         <InProgressPRsTile data={inProgressPRs} />
+      </section>
+
+      {/* ── Founder Cockpit (consolidated from the retired /founder/dashboard · UNI-2306) ─ */}
+      <div className={styles.sectionHead} id="founder-cockpit">
+        <span className={styles.sectionLabel}>Founder Cockpit</span>
+        <span className={styles.sectionMeta}>integrations · CRM · revenue · hub health · coaches · experiments</span>
+        <span className={styles.sectionCaption}>
+          Consolidated from the retired <code style={{ fontSize: '0.7rem' }}>/founder/dashboard</code> so this
+          deck is the one canonical console. Each tile renders its own live source and error state.
+        </span>
+      </div>
+
+      {user && (
+        <section className={`${styles.reveal}`} style={{ animationDelay: '0.22s' }}>
+          <IntegrationStatus founderId={user.id} />
+        </section>
+      )}
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.24s' }}>
+        <FounderStats />
+      </section>
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.26s' }}>
+        <KPIGrid />
+      </section>
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.28s' }}>
+        <HubStatusWidget />
+      </section>
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.3s' }}>
+        <CoachBriefs />
+      </section>
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.32s' }}>
+        <ExperimentsDashboardWidget />
       </section>
       </details>
 

@@ -6,6 +6,7 @@
 // This prevents context anxiety as data volume grows, per the harness design doc.
 
 import { getAIClient } from '@/lib/ai/client'
+import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 import type { GitHubCommitSummary, GitHubPRSummary } from '@/lib/integrations/github-board'
 import type { LinearCompletedIssue, LinearInFlightIssue, LinearIssueWithDue } from '@/lib/integrations/linear-board'
 
@@ -131,7 +132,7 @@ export async function runDailyBriefing(input: BriefingInput): Promise<BoardMeeti
   ].join('\n')
 
   const response = await ai.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
+    model: ANTHROPIC_MODELS.SONNET,
     max_tokens: 4000,
     system: SYSTEM_PROMPT,
     messages: [{ role: 'user', content: handoffMessage }],
@@ -165,7 +166,7 @@ async function summariseSection(
 ): Promise<string> {
   try {
     const response = await ai.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: ANTHROPIC_MODELS.HAIKU,
       max_tokens: 250,
       system: 'You are a concise data summariser. Produce a 3–5 bullet point summary of the provided data. Be specific about numbers and names. Output plain text only.',
       messages: [{ role: 'user', content: `Summarise this ${sectionName} data:\n\n${rawData}` }],

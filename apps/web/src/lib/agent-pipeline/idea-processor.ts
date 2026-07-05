@@ -3,6 +3,7 @@
 // Uses Claude Sonnet to classify business, write acceptance criteria, and set priority.
 
 import { getAIClient } from '@/lib/ai/client'
+import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 import { BUSINESSES } from '@/lib/businesses'
 import { BUSINESS_TO_TEAM, type CreateIssueInput } from '@/lib/integrations/linear'
 
@@ -33,7 +34,7 @@ export async function processIdea(
   const client = getAIClient()
 
   const response = await client.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
+    model: ANTHROPIC_MODELS.SONNET,
     max_tokens: 1024,
     system: SYSTEM_PROMPT,
     messages: [

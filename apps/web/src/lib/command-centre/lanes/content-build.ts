@@ -2,6 +2,7 @@
 // Orchestrates the content build step: brand load → AI generation → persist to cc_tasks.metadata.content
 
 import { createServiceClient } from '@/lib/supabase/service'
+import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 import { getTaskById, mergeTaskMetadata, appendTaskEvent } from '@/lib/command-centre/tasks'
 import { generateContent as _generateContent } from '@/lib/content/generator'
 import { mapBrand } from '@/lib/content/brand-mapper'
@@ -120,7 +121,7 @@ export async function runContentBuild(
         hashtags: result.hashtags,
         cta: result.cta,
         character_used: result.characterUsed,
-        ai_model: 'claude-sonnet-4-5-20250929',
+        ai_model: ANTHROPIC_MODELS.SONNET,
         generation_source: 'manual_request',
         status: 'generated',
       })

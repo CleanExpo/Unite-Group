@@ -78,7 +78,7 @@ products:
       - Unite-Group Dashboard
       - Empire
       - Authority Site
-    purpose: FORMER standalone authority site / CEO dashboard. Unique surface (Stripe billing/webhooks, command centre, GitHub/Telegram webhooks) ported into apps/web 12/06/2026; legacy app removed from the tree (recoverable at commit d63a37f3). Deferred subsystems listed in docs/convergence/migration-map.md.
+    purpose: FORMER standalone authority site / CEO dashboard. Unique surface (command centre, GitHub/Telegram webhooks) ported into apps/web 12/06/2026; legacy app removed from the tree (recoverable at commit d63a37f3). Deferred subsystems listed in docs/convergence/migration-map.md.
     status: retired  # absorbed into apps/web; migration map CLOSED
     owner: phill
     github:
@@ -469,6 +469,35 @@ products:
       ci_required_checks:
         - typecheck
         - build
+  - canonical_name: ATIA
+    aliases: []
+    purpose: >-
+      Multi-trade trades-network vertical pack for Nexus Concierge OS —
+      strategy and standards for a multi-trade concierge marketplace across
+      plumbers, electricians, carpenters, cabinet makers, cleaners,
+      restorers, HVAC, tilers, and other home/business service trades
+      (source: UNI-2173).
+    status: blocked
+    note: blocked on trademark contest (UNI-2173)
+    owner: phill
+    github:
+      org: null
+      repo: null
+      url: null
+      default_branch: null
+    local:
+      canonical_path: null
+      do_not_clone_to: []
+    vercel:
+      team_id: team_KMZACI5rIltoCRhAtGCXlxUf
+      production:
+        project_id: null
+        project_name: null
+        domain: null
+      sandbox:
+        project_id: null
+        project_name: null
+        domain: null
 retired_repos:
   - org: CleanExpo
     repo: _archived_Downunder-Miles_2026-05-24
