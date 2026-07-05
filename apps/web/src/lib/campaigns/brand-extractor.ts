@@ -3,13 +3,14 @@
 // + Claude Sonnet (text analysis) to build structured brand profiles from any website URL.
 
 import { ApifyClient } from 'apify-client'
+import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 import { getAIClient } from '@/lib/ai/client'
 import { getGeminiClient } from '@/lib/ai/gemini-client'
 import type { BrandDNA, ApifyScrapeResult } from './types'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const CLAUDE_MODEL = 'claude-sonnet-4-5-20250929'
+const CLAUDE_MODEL = ANTHROPIC_MODELS.SONNET
 
 // ─── Apify Page Function ──────────────────────────────────────────────────────
 

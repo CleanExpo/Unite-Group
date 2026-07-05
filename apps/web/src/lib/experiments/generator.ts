@@ -3,6 +3,7 @@
 // Pattern: same as MACAS firm agents (getAIClient + Zod validation, no retry on parse failure).
 
 import type Anthropic from '@anthropic-ai/sdk'
+import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 import { z } from 'zod'
 import { getAIClient } from '@/lib/ai/client'
 import { getSynthexStrategistPrompt } from '@/lib/experiments/prompts/synthex-strategist'
@@ -11,7 +12,7 @@ import { EXPERIMENT_TYPES, PRIMARY_METRICS } from '@/lib/experiments/types'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const MODEL = 'claude-sonnet-4-5-20250929'
+const MODEL = ANTHROPIC_MODELS.SONNET
 const MAX_OUTPUT_TOKENS = 4096
 
 // ── Context passed to the generator ──────────────────────────────────────────

@@ -4,6 +4,7 @@
 
 import { z } from 'zod'
 import { createCapability } from '../types'
+import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 
 export type TriageCategory = 'IMPORTANT' | 'INVOICE' | 'TASK' | 'NEWSLETTER' | 'PROMOTIONAL' | 'SOCIAL' | 'SPAM'
 export type TriageAction = 'KEEP' | 'ARCHIVE' | 'CREATE_TASK' | 'FLAG_REVIEW'
@@ -33,7 +34,7 @@ type TriageOutput = z.infer<typeof TriageOutputSchema>
 
 export const emailTriageCapability = createCapability({
   id: 'email-triage',
-  model: 'claude-sonnet-4-5-20250929',
+  model: ANTHROPIC_MODELS.SONNET,
   maxTokens: 1024,
   features: {
     structuredOutput: TriageOutputSchema,

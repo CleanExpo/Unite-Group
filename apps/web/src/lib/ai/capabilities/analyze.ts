@@ -2,10 +2,11 @@
 // Deep strategic analysis capability with extended thinking
 
 import { createCapability } from '../types'
+import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 
 export const analyzeCapability = createCapability({
   id: 'analyze',
-  model: 'claude-opus-4-5-20251101',
+  model: ANTHROPIC_MODELS.OPUS,
   // maxTokens includes thinking budget — 20 000 allows up to 16 000 thinking + 4 000 response.
   maxTokens: 20000,
   features: {

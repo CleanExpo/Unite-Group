@@ -5,6 +5,7 @@
 // uses Opus so founders get deep, thoughtful answers to on-demand questions.
 
 import { createCapability } from '../types'
+import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 import type { CoachType } from '@/lib/coaches/types'
 
 const COACH_PERSONAS: Record<CoachType, string> = {
@@ -39,7 +40,7 @@ const COACH_PERSONAS: Record<CoachType, string> = {
 
 export const coachCapability = createCapability({
   id: 'coach',
-  model: 'claude-opus-4-5-20251101',
+  model: ANTHROPIC_MODELS.OPUS,
   // Opus 4.6 + adaptive thinking 2k–8k + response tokens = needs headroom
   maxTokens: 12000,
   features: {

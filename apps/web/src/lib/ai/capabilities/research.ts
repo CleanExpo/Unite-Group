@@ -4,10 +4,11 @@
 // Returns citations from both web search results and any ATO/legislation references in the text.
 
 import { createCapability } from '../types'
+import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 
 export const researchCapability = createCapability({
   id: 'research',
-  model: 'claude-sonnet-4-5-20250929',
+  model: ANTHROPIC_MODELS.SONNET,
   maxTokens: 4096,
   features: {
     webSearch: { maxResults: 5 },
