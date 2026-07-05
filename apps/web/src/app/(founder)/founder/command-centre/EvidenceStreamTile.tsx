@@ -13,7 +13,13 @@ function fmtTime(iso: string | null): string {
   // for the compact table. Truncates the trailing milliseconds and the
   // 'Z' marker. Defensive: if the ISO is malformed, return as-is.
   if (!/^\d{4}-\d{2}-\d{2}T/.test(iso)) return iso
-  return iso.replace('T', ' ').replace(/\.\d+Z$/, ' UTC')
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return `${new Intl.DateTimeFormat('en-AU', {
+    timeZone: 'Australia/Brisbane',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+  }).format(d)} AEST`
 }
 
 function shortSha(sha: string | null): string {
