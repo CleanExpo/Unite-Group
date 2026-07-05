@@ -15,7 +15,7 @@ type Source = 'vault' | 'social' | 'env'
 interface ProviderDef {
   id: string
   label: string
-  category: 'accounting' | 'email' | 'calendar' | 'storage' | 'social' | 'project' | 'dev'
+  category: 'accounting' | 'email' | 'calendar' | 'storage' | 'social' | 'project' | 'dev' | 'video' | 'messaging'
   source: Source
   vaultService?: string   // source 'vault'
   socialPlatform?: string // source 'social'
@@ -39,6 +39,11 @@ const PROVIDERS: ProviderDef[] = [
   { id: 'sendgrid',  label: 'SendGrid',        category: 'email',      source: 'env',    envKeys: ['SENDGRID_API_KEY'] },
   { id: 'reddit',    label: 'Reddit',          category: 'social',     source: 'env',    envKeys: ['REDDIT_CLIENT_ID', 'REDDIT_CLIENT_SECRET'] },
   { id: 'github',    label: 'GitHub',          category: 'dev',        source: 'env',    envKeys: ['GITHUB_TOKEN'] },
+  { id: 'heygen',    label: 'HeyGen',          category: 'video',      source: 'env',    envKeys: ['HEYGEN_API_KEY'] },
+  { id: 'telegram',  label: 'Telegram',        category: 'messaging',  source: 'env',    envKeys: ['TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID'] },
+  // Microsoft OAuth is not configured on this deployment (no MICROSOFT_CLIENT_ID/SECRET) —
+  // this row honestly reports not_connected rather than fabricating a status (UNI-2153 default).
+  { id: 'outlook',   label: 'Outlook',         category: 'email',      source: 'vault',  vaultService: 'microsoft', envKeys: ['MICROSOFT_CLIENT_ID', 'MICROSOFT_CLIENT_SECRET'] },
 ]
 
 function latest(values: Array<string | null | undefined>): string | null {
