@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "next dev -p 3008",
     "dev:all": "turbo run dev",
-    "prebuild": "node scripts/validate-env.mjs --ci",
+    "prebuild": "node scripts/sync-portfolio-registry.mjs && node scripts/validate-env.mjs --ci",
     "build": "next build",
     "validate:env": "node scripts/validate-env.mjs",
     "build:all": "turbo run build",
@@ -151,6 +151,7 @@
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^13.0.0",
     "xero-node": "^13.3.0",
+    "yaml": "^2.9.0",
     "zod": "^3.25.76",
     "zustand": "^4.5.7",
     "stripe": "^22.1.1"
