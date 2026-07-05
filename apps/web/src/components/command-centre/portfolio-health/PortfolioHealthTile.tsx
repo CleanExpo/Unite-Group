@@ -129,7 +129,7 @@ export function PortfolioHealthTile() {
       </div>
 
       {!loading && !configured && !fetchError && (
-        <p style={{ color: 'rgba(207,224,236,0.45)', fontSize: 12, margin: 0 }}>
+        <p style={{ color: 'var(--deck-muted)', fontSize: 12, margin: 0 }}>
           Portfolio health not configured — GITHUB_TOKEN missing in this environment.
         </p>
       )}
@@ -160,19 +160,19 @@ export function PortfolioHealthTile() {
                   style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: DOT[r.color] }}
                 />
                 {r.repo}
-                <span style={{ color: 'rgba(207,224,236,0.45)' }}>
+                <span style={{ color: 'var(--deck-muted)' }}>
                   {r.error ? '· unreadable' : `· ${r.latestConclusion}`}
                   {!r.error && r.failCountLast10 > 0 && ` · ${r.failCountLast10}/10 fails`}
                 </span>
               </span>
-              <span style={{ color: 'rgba(207,224,236,0.45)' }}>{formatRunAt(r.latestRunAt)}</span>
+              <span style={{ color: 'var(--deck-muted)' }}>{formatRunAt(r.latestRunAt)}</span>
             </div>
           ))}
         </div>
       )}
 
       {configured && repos.length === 0 && !loading && !degradedReason && (
-        <p style={{ color: 'rgba(207,224,236,0.45)', fontSize: 12, margin: 0 }}>No repos reporting yet.</p>
+        <p style={{ color: 'var(--deck-muted)', fontSize: 12, margin: 0 }}>No repos reporting yet.</p>
       )}
     </section>
   )
