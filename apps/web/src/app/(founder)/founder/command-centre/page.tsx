@@ -26,6 +26,9 @@ import { BlockedLanesTile } from './BlockedLanesTile'
 import { InProgressPRsTile } from './InProgressPRsTile'
 import { RepoCampaignsTile } from '@/components/command-centre/repo-campaigns/RepoCampaignsTile'
 import { ProviderAccountsTile } from '@/components/command-centre/provider-accounts/ProviderAccountsTile'
+import { MargotHealthTile } from '@/components/command-centre/margot-health/MargotHealthTile'
+import { TeamActivityTile } from '@/components/command-centre/team-activity/TeamActivityTile'
+import { EmailAccountsTile } from '@/components/command-centre/email-accounts/EmailAccountsTile'
 // Consolidated from the retired US-spelling command-center page (self-contained panels).
 import { HermesControlPanel } from '@/components/command-centre/control-panel/HermesControlPanel'
 import { BusinessFocusRail } from '@/components/command-centre/business-focus/BusinessFocusRail'
@@ -175,6 +178,26 @@ export default async function CommandDeckPage() {
       {/* ── Morning digest ───────────────────────────────────────────── */}
       <section className={`${styles.reveal}`} style={{ animationDelay: '0.01s' }}>
         <DigestBanner />
+      </section>
+
+      {/* ── Operations visibility (UNI-2296) ─────────────────────────── */}
+      <div className={styles.sectionHead} id="operations-visibility">
+        <div className={styles.sectionTitleGroup}>
+          <span className={styles.sectionLabel}>Operations Visibility</span>
+          <span className={styles.sectionMeta}>Margot state · contractor activity · email roster</span>
+        </div>
+      </div>
+
+      <section className={`${styles.integrationGrid} ${styles.reveal}`} style={{ animationDelay: '0.015s' }}>
+        <article className={styles.panel}>
+          <MargotHealthTile />
+        </article>
+        <article className={styles.panel}>
+          <TeamActivityTile />
+        </article>
+        <article className={styles.panel}>
+          <EmailAccountsTile />
+        </article>
       </section>
 
       {/* ── Idea intake ──────────────────────────────────────────────── */}
