@@ -53,7 +53,7 @@ export function runWikiEnhanceScan(env: NodeJS.ProcessEnv = process.env): Promis
     const cwd = vaultPath(env)
     const child = spawn(
       'claude',
-      ['-p', '/wiki-growth scan', '--allowedTools', ALLOWED_TOOLS],
+      ['-p', '/wiki-growth scan', '--model', 'claude-sonnet-5', '--allowedTools', ALLOWED_TOOLS],
       { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] },
     )
 
