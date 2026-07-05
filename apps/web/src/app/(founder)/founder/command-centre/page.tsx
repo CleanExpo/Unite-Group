@@ -37,6 +37,7 @@ import { ProviderUsageCockpit } from '@/components/command-centre/provider-usage
 import { ActivityFeedPanel } from '@/components/command-centre/activity/ActivityFeedPanel'
 import { DailyCrmDigestPanel } from '@/components/command-centre/digest/DailyCrmDigestPanel'
 import { MeshFleetTile } from '@/components/command-centre/mesh-fleet/MeshFleetTile'
+import { PortfolioHealthTile } from '@/components/command-centre/portfolio-health/PortfolioHealthTile'
 import { WikiGraphTile } from '@/components/command-centre/wiki-graph/WikiGraphTile'
 import { ProjectIntegrationWorkPacketControl } from './ProjectIntegrationWorkPacketControl'
 import { WikiEnhanceControl } from './WikiEnhanceControl'
@@ -285,6 +286,11 @@ export default async function CommandDeckPage() {
       {/* UNI-2305 — Mesh Fleet: Railway Pi-CEO machine heartbeats + ships in flight. */}
       <section className={`${styles.reveal}`} style={{ animationDelay: '0.15s' }}>
         <MeshFleetTile />
+      </section>
+
+      {/* UNI-2201 — Portfolio Health: live CI + P0/P1 health across RA / Synthex / Nexus, red/yellow/green, 60s refresh. */}
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.155s' }}>
+        <PortfolioHealthTile />
       </section>
 
       {/* Wiki Graph (UNI-2304) — knowledge-base graph summary + link to full view. */}
