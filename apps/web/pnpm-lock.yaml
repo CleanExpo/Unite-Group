@@ -191,6 +191,9 @@ importers:
       xero-node:
         specifier: ^13.3.0
         version: 13.4.0
+      yaml:
+        specifier: ^2.9.0
+        version: 2.9.0
       zod:
         specifier: ^3.25.76
         version: 3.25.76
