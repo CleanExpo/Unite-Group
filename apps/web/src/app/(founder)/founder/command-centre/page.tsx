@@ -155,7 +155,7 @@ export default async function CommandDeckPage() {
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <LiveClock className={styles.clock} />
-          <span className={styles.clockLabel}>Mission Time · UTC</span>
+          <span className={styles.clockLabel}>Mission Time · AEST</span>
         </div>
 
         <div className={styles.metrics}>

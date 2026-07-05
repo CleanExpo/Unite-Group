@@ -5,23 +5,27 @@
 
 import { useEffect, useState } from 'react'
 
-function formatUTC(d: Date): string {
-  const p = (n: number) => String(n).padStart(2, '0')
-  return `${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())}`
+const BRISBANE_TIME = new Intl.DateTimeFormat('en-AU', {
+  timeZone: 'Australia/Brisbane',
+  hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+})
+
+function formatBrisbane(d: Date): string {
+  return BRISBANE_TIME.format(d)
 }
 
 export function LiveClock({ className }: { className?: string }) {
   const [time, setTime] = useState<string>('--:--:--')
 
   useEffect(() => {
-    const tick = () => setTime(formatUTC(new Date()))
+    const tick = () => setTime(formatBrisbane(new Date()))
     tick()
     const id = window.setInterval(tick, 1000)
     return () => window.clearInterval(id)
   }, [])
 
   return (
-    <span className={className} aria-label="Mission time, UTC" suppressHydrationWarning>
+    <span className={className} aria-label="Mission time, Brisbane (AEST)" suppressHydrationWarning>
       {time}
     </span>
   )

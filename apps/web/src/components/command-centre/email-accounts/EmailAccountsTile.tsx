@@ -72,7 +72,7 @@ export function EmailAccountsTile() {
         </p>
       )}
 
-      {error && <p style={{ color: 'var(--deck-abort, #f87171)', fontSize: 12, margin: 0 }}>Could not load email accounts: {error}</p>}
+      {error && <p style={{ color: 'var(--deck-abort-text, #d02f35)', fontSize: 12, margin: 0 }}>Could not load email accounts: {error}</p>}
 
       {payload && (
         <div>
