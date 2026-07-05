@@ -389,3 +389,11 @@ was run, no contact was created, nothing was faked.
 | Live Outlook / Microsoft Graph import | NOT CONNECTED (decision re-recorded) | `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` remain absent from Vercel prod (per this ticket's 02/07 comment). Route guards stay unit-proved; Outlook is explicitly marked **not connected** for this proof per the recorded default decision (DECISIONS_NEEDED #32). Reverses cleanly later by registering the Azure app + adding the two vars. |
 
 Fresh commands run this session (read-only): Supabase MCP `execute_sql` against `lksfwktwtmyznckodsau` (google vault timestamps + count only); Gmail MCP `search_threads subject:UNI-2153` → **token expired, re-authorisation required** [VERIFIED tool error], so a prepared tagged test thread could not be confirmed — moot, as the import cannot be invoked headlessly regardless.
+
+## 2026-07-05 21:50 AEST — UNI-2153 LIVE GMAIL IMPORT PROVEN (agent + founder, this closes the Gmail half)
+
+- Root causes fixed in sequence: (1) redirect_uri never registered on the GCP OAuth client (founder added `https://unite-group.in/api/auth/google/callback`, 05/07); (2) Gmail API not enabled in project 774234455958 (enabled via gcloud, operation acat.p2-774234455958-66510555 finished successfully).
+- Consent completed for phill.mcgurk@gmail.com through the REAL callback: landed `/founder/email?connected=phill.mcgurk%40gmail.com`; vault row "Personal Gmail" updated_at/last_accessed_at = 2026-07-05T09:40:03Z [VERIFIED PostgREST].
+- Live proof: `GET /api/email/threads?account=phill.mcgurk@gmail.com` → 200, 5 real threads. `POST /api/email/contacts/import {source:'gmail', threadId:'19f30dffa9eb8718', accountEmail:'phill.mcgurk@gmail.com'}` → **201 created:true**, contact 82821b4f-a407-4956-9ae6-d6fa36857287 (no-reply@accounts.google.com, tags [gmail_import], importMode live_gmail_thread, founder-scoped) [VERIFIED response + independent PostgREST read].
+- Cleanup decision: proof contact was a robot noreply address → DELETED (1 row, PostgREST return=representation). No fixture retained.
+- Outlook: remains NOT CONNECTED per the recorded default (MICROSOFT_CLIENT_ID/SECRET absent from prod).
