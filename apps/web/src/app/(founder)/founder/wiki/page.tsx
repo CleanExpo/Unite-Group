@@ -2,18 +2,28 @@ export const dynamic = 'force-dynamic'
 
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { getUser } from '@/lib/supabase/server'
+import { getUser, createClient } from '@/lib/supabase/server'
+import { sanitiseError } from '@/lib/error-reporting'
 import type { WikiPageSummary } from '@/types/wiki'
 
 async function getWikiPages(): Promise<WikiPageSummary[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
-  try {
-    const res = await fetch(`${baseUrl}/api/wiki`, { cache: 'no-store' })
-    if (!res.ok) return []
-    return res.json()
-  } catch {
-    return []
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('wiki_pages')
+    .select('id, title, word_count, tags, updated_at')
+    .order('title')
+
+  if (error) {
+    throw new Error(sanitiseError(error, 'Failed to load wiki pages', { route: '/founder/wiki' }))
   }
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    title: row.title,
+    word_count: row.word_count ?? 0,
+    tags: row.tags ?? [],
+    updated_at: row.updated_at ?? '',
+  }))
 }
 
 function formatDate(iso: string): string {

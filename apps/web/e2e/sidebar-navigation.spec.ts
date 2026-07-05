@@ -55,7 +55,16 @@ test.describe('Sidebar Navigation', () => {
     test('sidebar navigation links are clickable', async ({ page }) => {
       const kanbanLink = page.locator('a[href="/founder/kanban"]')
       await kanbanLink.click()
-      await expect(page).toHaveURL(/\/founder\/kanban/)
+      // UNI-2278: /founder/kanban is not visited by any other test in this suite, so
+      // against the Playwright webServer (`pnpm dev`) this is the first-ever hit and
+      // Next.js JIT-compiles the route (KanbanBoard + @dnd-kit + 5 sibling components)
+      // on demand. Under CI load that compile can outrun the default 5s expect
+      // timeout even though the click and navigation are correct — confirmed via a
+      // captured failure snapshot showing the sidebar link already marked active
+      // (client router had committed to the transition) while Next Dev Tools still
+      // read "Compiling…". Wait on the navigation itself with a timeout sized for a
+      // cold compile, instead of the default expect timeout.
+      await page.waitForURL(/\/founder\/kanban/, { timeout: 15_000 })
     })
   })
 })
