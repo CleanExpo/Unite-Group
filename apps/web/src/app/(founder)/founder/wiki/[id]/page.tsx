@@ -2,18 +2,30 @@ export const dynamic = 'force-dynamic'
 
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
-import { getUser } from '@/lib/supabase/server'
+import { getUser, createClient } from '@/lib/supabase/server'
+import { sanitiseError } from '@/lib/error-reporting'
 import type { WikiPage } from '@/types/wiki'
 
 async function getWikiPage(id: string): Promise<WikiPage | null> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
-  try {
-    const res = await fetch(`${baseUrl}/api/wiki/${encodeURIComponent(id)}`, { cache: 'no-store' })
-    if (res.status === 404) return null
-    if (!res.ok) return null
-    return res.json()
-  } catch {
-    return null
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('wiki_pages')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (error) {
+    if (error.code === 'PGRST116') return null
+    throw new Error(sanitiseError(error, 'Failed to load wiki page', { route: '/founder/wiki/[id]' }))
+  }
+
+  return {
+    id: data.id,
+    title: data.title,
+    content: data.content,
+    word_count: data.word_count ?? 0,
+    tags: data.tags ?? [],
+    updated_at: data.updated_at ?? '',
   }
 }
 
