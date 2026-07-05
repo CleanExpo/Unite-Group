@@ -75,7 +75,7 @@ describe('CommandBar', () => {
 
   it('shows all navigation items', () => {
     render(<CommandBar />)
-    expect(screen.getByText('Dashboard')).toBeInTheDocument()
+    expect(screen.getByText('Bookkeeper')).toBeInTheDocument()
     expect(screen.getByText('Contacts')).toBeInTheDocument()
     expect(screen.getByText('Vault')).toBeInTheDocument()
     expect(screen.getByText('Knowledge Console')).toBeInTheDocument()
@@ -93,9 +93,9 @@ describe('CommandBar', () => {
   it('navigates to correct path and closes on nav item select', async () => {
     const user = userEvent.setup()
     render(<CommandBar />)
-    const dashboardItem = screen.getByText('Dashboard').closest('[data-testid="command-item"]')!
-    await user.click(dashboardItem)
-    expect(mockPush).toHaveBeenCalledWith('/founder/dashboard')
+    const bookkeeperItem = screen.getByText('Bookkeeper').closest('[data-testid="command-item"]')!
+    await user.click(bookkeeperItem)
+    expect(mockPush).toHaveBeenCalledWith('/founder/bookkeeper')
     expect(mockToggleCommandBar).toHaveBeenCalled()
   })
 
