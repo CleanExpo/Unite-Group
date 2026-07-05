@@ -133,7 +133,7 @@ export function MeshFleetTile() {
                 <span
                   data-testid={`mesh-badge-${m.host}`}
                   style={{
-                    color: m.is_stale ? 'var(--deck-abort)' : 'var(--deck-text)',
+                    color: m.is_stale ? 'var(--deck-abort-text)' : 'var(--deck-text)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.04em',
                     fontSize: 11,

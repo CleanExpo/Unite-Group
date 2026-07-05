@@ -28,9 +28,18 @@ const MODE_LABEL: Record<SourceMode, string> = {
   degraded: 'degraded',
 }
 
-function colorFor(mode: SourceMode): string {
+// 'degraded' is a warning, not an alert — amber family (matches the deck's
+// own --deck-amber tokens), not the cc-signal green/red. Dot uses the bright
+// fill; text uses the AA-passing darkened variant.
+function dotColorFor(mode: SourceMode): string {
   if (mode === 'live') return 'var(--cc-ink, #cfe0ec)'
-  if (mode === 'degraded') return 'var(--cc-signal, #f87171)'
+  if (mode === 'degraded') return 'var(--deck-amber, #f4820f)'
+  return 'var(--cc-ink-hush, rgba(207,224,236,0.45))'
+}
+
+function textColorFor(mode: SourceMode): string {
+  if (mode === 'live') return 'var(--cc-ink, #cfe0ec)'
+  if (mode === 'degraded') return 'var(--deck-amber-text, #b45309)'
   return 'var(--cc-ink-hush, rgba(207,224,236,0.45))'
 }
 
@@ -46,7 +55,8 @@ function formatTimestamp(iso: string): string | null {
 }
 
 export function SourceBadge({ mode, label, lastUpdatedAt }: SourceBadgeProps) {
-  const color = colorFor(mode)
+  const dotColor = dotColorFor(mode)
+  const textColor = textColorFor(mode)
   const stamp = mode === 'live' && lastUpdatedAt ? formatTimestamp(lastUpdatedAt) : null
   return (
     <span
@@ -62,10 +72,10 @@ export function SourceBadge({ mode, label, lastUpdatedAt }: SourceBadgeProps) {
           width: 6,
           height: 6,
           borderRadius: '50%',
-          background: color,
+          background: dotColor,
         }}
       />
-      <span style={{ color }}>{MODE_LABEL[mode]}</span>
+      <span style={{ color: textColor }}>{MODE_LABEL[mode]}</span>
       <span>·</span>
       <span style={{ color: 'var(--cc-ink-dim, #6f879b)' }}>{label}</span>
       {stamp && (

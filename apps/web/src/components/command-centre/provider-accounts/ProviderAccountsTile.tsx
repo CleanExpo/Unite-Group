@@ -23,10 +23,11 @@ interface VaultEntry { id: string; label: string; service: string }
 
 const PROVIDERS = ['claude', 'openai', 'minimax', 'gemini', 'openrouter'] as const
 
+// Text-only usage (state label) — AA-safe darkened abort-red.
 function stateColor(state: string, usable: boolean): string {
   if (state === 'available') return 'var(--deck-text)'
   if (state === 'watching') return 'var(--deck-muted)'
-  if (state === 'near_limit' || state === 'blocked') return 'var(--deck-abort)'
+  if (state === 'near_limit' || state === 'blocked') return 'var(--deck-abort-text)'
   if (usable) return 'var(--deck-text)'
   return 'var(--deck-muted)'
 }
@@ -161,7 +162,7 @@ export function ProviderAccountsTile() {
                 data-testid={`account-remove-${a.accountId}`}
                 onClick={() => removeAccount(a.accountId)}
                 disabled={busyId === a.accountId}
-                style={{ ...ctrlStyle, color: 'var(--deck-abort)', borderColor: 'var(--deck-abort)' }}
+                style={{ ...ctrlStyle, color: 'var(--deck-abort-text)', borderColor: 'var(--deck-abort)' }}
               >
                 remove
               </button>
@@ -170,7 +171,7 @@ export function ProviderAccountsTile() {
         ))}
       </div>
 
-      {error && <p style={{ color: 'var(--deck-abort)', fontSize: 12, margin: 0 }}>{error}</p>}
+      {error && <p style={{ color: 'var(--deck-abort-text)', fontSize: 12, margin: 0 }}>{error}</p>}
 
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginTop: 4 }}>
         <select value={form.provider} onChange={(e) => setForm({ ...form, provider: e.target.value })} style={inputStyle}>

@@ -85,7 +85,7 @@ export function RepoCampaignsTile() {
           {!payload.githubConnected && ' · GitHub not connected (set GITHUB_TOKEN for live signal)'}
         </p>
       )}
-      {error && <p style={{ color: 'var(--deck-abort)', fontSize: 12, margin: 0 }}>Could not load campaigns: {error}</p>}
+      {error && <p style={{ color: 'var(--deck-abort-text)', fontSize: 12, margin: 0 }}>Could not load campaigns: {error}</p>}
       <div>{payload?.campaigns.map((c) => <CampaignRow key={c.name} c={c} />)}</div>
     </section>
   )

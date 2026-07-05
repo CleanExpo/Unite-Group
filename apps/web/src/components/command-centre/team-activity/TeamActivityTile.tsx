@@ -83,7 +83,7 @@ export function TeamActivityTile() {
         </p>
       )}
 
-      {error && <p style={{ color: 'var(--deck-abort, #f87171)', fontSize: 12, margin: 0 }}>Could not load team activity: {error}</p>}
+      {error && <p style={{ color: 'var(--deck-abort-text, #d02f35)', fontSize: 12, margin: 0 }}>Could not load team activity: {error}</p>}
 
       {payload && payload.github !== 'live' && (
         <p style={{ color: 'var(--deck-muted)', fontSize: 11, margin: 0 }}>
