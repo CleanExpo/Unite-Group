@@ -34,7 +34,7 @@ function msg(err: unknown): string {
  * - `< /dev/null`: close stdin so the CLI doesn't stall (prompt is passed via -p).
  */
 export function defaultClaudeCommand(promptFile: string): string {
-  return `claude --safe-mode -p "$(cat ${promptFile})" --dangerously-skip-permissions < /dev/null`
+  return `claude --safe-mode --model claude-sonnet-5 -p "$(cat ${promptFile})" --dangerously-skip-permissions < /dev/null`
 }
 
 /**
