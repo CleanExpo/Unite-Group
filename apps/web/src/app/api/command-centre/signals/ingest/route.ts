@@ -56,8 +56,14 @@ export async function POST(request: Request): Promise<Response> {
   if (typeof body.externalRef !== 'string' || !body.externalRef) {
     return NextResponse.json({ error: 'externalRef is required' }, { status: 400 })
   }
+  if (!/^[\w:.\-]{1,200}$/.test(body.externalRef)) {
+    return NextResponse.json({ error: 'externalRef malformed' }, { status: 400 })
+  }
   if (typeof body.text !== 'string') {
     return NextResponse.json({ error: 'text is required' }, { status: 400 })
+  }
+  if (body.text.length > 4000) {
+    return NextResponse.json({ error: 'text exceeds 4000 chars' }, { status: 400 })
   }
 
   const severity =
