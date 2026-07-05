@@ -18,22 +18,21 @@ import {
 describe('MODEL_IDS', () => {
   it('contains all supported model identifiers', () => {
     expect(MODEL_IDS).toEqual([
-      'claude-opus-4-5-20251101',
-      'claude-opus-4-5-20250514',
-      'claude-sonnet-4-5-20250929',
+      'claude-opus-4-8',
+      'claude-sonnet-5',
       'claude-haiku-4-5-20251001',
     ])
   })
 
   it('is a readonly tuple', () => {
     // Ensure const assertion — length should match the registry
-    expect(MODEL_IDS).toHaveLength(4)
+    expect(MODEL_IDS).toHaveLength(3)
   })
 })
 
 describe('Type contracts', () => {
   it('ModelId accepts valid model strings', () => {
-    const id: ModelId = 'claude-sonnet-4-5-20250929'
+    const id: ModelId = 'claude-sonnet-5'
     expect(MODEL_IDS).toContain(id)
   })
 

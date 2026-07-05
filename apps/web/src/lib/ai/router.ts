@@ -117,8 +117,11 @@ export async function execute(
     } else {
       thinkingBudget = t.budgetTokens ?? 10000
     }
+    // Adaptive thinking — the capabilities that declare thinking (analyze, coach)
+    // route to Opus 4.8, where `{ type: 'enabled', budget_tokens }` returns 400.
+    // The computed thinkingBudget is retained below purely as response telemetry.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(params as any).thinking = { type: 'enabled', budget_tokens: thinkingBudget }
+    ;(params as any).thinking = { type: 'adaptive' }
   }
 
   // Structured output — force tool_use so Claude returns schema-conformant JSON.

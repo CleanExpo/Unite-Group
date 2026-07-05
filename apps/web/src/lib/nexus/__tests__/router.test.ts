@@ -5,42 +5,42 @@ import { routeRequest, BUDGET_CONSTRAINED_THRESHOLD } from '../router'
 const AMPLE_BUDGET = BUDGET_CONSTRAINED_THRESHOLD + 100_000
 const TIGHT_BUDGET = BUDGET_CONSTRAINED_THRESHOLD - 1
 
-describe('routeRequest — Nexus AI provider router', () => {
+describe('routeRequest — Nexus AI provider router (Anthropic-only)', () => {
   // ── High complexity ────────────────────────────────────────────────────────
 
-  it('routes high-complexity work to Claude Sonnet', () => {
+  it('routes high-complexity work to Claude Sonnet 5', () => {
     const result = routeRequest({
       workType: 'deep_reasoning',
       complexity: 85,
       tokenBudgetRemaining: AMPLE_BUDGET,
     })
     expect(result.provider).toBe('claude')
-    expect(result.model).toBe('claude-sonnet-4-6')
+    expect(result.model).toBe('claude-sonnet-5')
     expect(result.complexityTier).toBe('high')
     expect(result.reasoning).toMatch(/high/i)
-    expect(result.reasoning).toMatch(/claude-sonnet-4-6/)
+    expect(result.reasoning).toMatch(/claude-sonnet-5/)
   })
 
-  it('routes complexity=70 (boundary) as high tier to Claude Sonnet', () => {
+  it('routes complexity=70 (boundary) as high tier to Claude Sonnet 5', () => {
     const result = routeRequest({
       workType: 'coding',
       complexity: 70,
       tokenBudgetRemaining: AMPLE_BUDGET,
     })
     expect(result.complexityTier).toBe('high')
-    expect(result.model).toBe('claude-sonnet-4-6')
+    expect(result.model).toBe('claude-sonnet-5')
   })
 
   // ── Medium complexity ──────────────────────────────────────────────────────
 
-  it('routes medium-complexity work to GPT-4o-mini', () => {
+  it('routes medium-complexity work to Claude Haiku 4.5', () => {
     const result = routeRequest({
       workType: 'content_generation',
       complexity: 55,
       tokenBudgetRemaining: AMPLE_BUDGET,
     })
-    expect(result.provider).toBe('openai')
-    expect(result.model).toBe('gpt-4o-mini')
+    expect(result.provider).toBe('claude')
+    expect(result.model).toBe('claude-haiku-4-5-20251001')
     expect(result.complexityTier).toBe('medium')
     expect(result.reasoning).toMatch(/medium/i)
   })
@@ -52,55 +52,55 @@ describe('routeRequest — Nexus AI provider router', () => {
       tokenBudgetRemaining: AMPLE_BUDGET,
     })
     expect(result.complexityTier).toBe('medium')
-    expect(result.model).toBe('gpt-4o-mini')
+    expect(result.model).toBe('claude-haiku-4-5-20251001')
   })
 
   // ── Low complexity, budget NOT constrained ────────────────────────────────
 
-  it('routes low-complexity unconstrained work to Gemini Flash', () => {
+  it('routes low-complexity unconstrained work to Claude Haiku 4.5', () => {
     const result = routeRequest({
       workType: 'classification',
       complexity: 20,
       tokenBudgetRemaining: AMPLE_BUDGET,
     })
-    expect(result.provider).toBe('gemini')
-    expect(result.model).toBe('gemini-1.5-flash')
+    expect(result.provider).toBe('claude')
+    expect(result.model).toBe('claude-haiku-4-5-20251001')
     expect(result.complexityTier).toBe('low')
     expect(result.reasoning).not.toMatch(/constrained/i)
   })
 
   // ── Low complexity, budget constrained ────────────────────────────────────
 
-  it('routes low-complexity budget-constrained work to GPT-3.5-turbo', () => {
+  it('routes low-complexity budget-constrained work to Claude Haiku 4.5', () => {
     const result = routeRequest({
       workType: 'bulk_text',
       complexity: 10,
       tokenBudgetRemaining: TIGHT_BUDGET,
     })
-    expect(result.provider).toBe('openai')
-    expect(result.model).toBe('gpt-3.5-turbo')
+    expect(result.provider).toBe('claude')
+    expect(result.model).toBe('claude-haiku-4-5-20251001')
     expect(result.complexityTier).toBe('low')
     expect(result.reasoning).toMatch(/constrained/i)
-    expect(result.reasoning).toMatch(/gpt-3.5-turbo/)
+    expect(result.reasoning).toMatch(/claude-haiku-4-5-20251001/)
   })
 
-  it('uses GPT-3.5-turbo when tokenBudgetRemaining is exactly the threshold minus 1', () => {
+  it('uses Haiku 4.5 when tokenBudgetRemaining is exactly the threshold minus 1', () => {
     const result = routeRequest({
       workType: 'question_answering',
       complexity: 30,
       tokenBudgetRemaining: BUDGET_CONSTRAINED_THRESHOLD - 1,
     })
-    expect(result.model).toBe('gpt-3.5-turbo')
+    expect(result.model).toBe('claude-haiku-4-5-20251001')
   })
 
-  it('uses Gemini Flash when tokenBudgetRemaining equals the threshold exactly', () => {
+  it('uses Haiku 4.5 when tokenBudgetRemaining equals the threshold exactly', () => {
     // threshold is NOT constrained (must be strictly below)
     const result = routeRequest({
       workType: 'data_extraction',
       complexity: 25,
       tokenBudgetRemaining: BUDGET_CONSTRAINED_THRESHOLD,
     })
-    expect(result.model).toBe('gemini-1.5-flash')
+    expect(result.model).toBe('claude-haiku-4-5-20251001')
   })
 
   // ── Return shape ──────────────────────────────────────────────────────────
@@ -129,14 +129,14 @@ describe('routeRequest — Nexus AI provider router', () => {
 
   // ── Budget threshold boundary ─────────────────────────────────────────────
 
-  it('high-complexity tasks always use Claude regardless of budget', () => {
+  it('high-complexity tasks always use Claude Sonnet 5 regardless of budget', () => {
     const result = routeRequest({
       workType: 'deep_reasoning',
       complexity: 75,
       tokenBudgetRemaining: 1, // near-zero budget
     })
-    // High complexity always routes to Claude — budget doesn't downgrade it
+    // High complexity always routes to Sonnet 5 — budget doesn't downgrade it
     expect(result.provider).toBe('claude')
-    expect(result.model).toBe('claude-sonnet-4-6')
+    expect(result.model).toBe('claude-sonnet-5')
   })
 })

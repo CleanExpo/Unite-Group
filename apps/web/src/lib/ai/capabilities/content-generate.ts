@@ -3,11 +3,12 @@
 // Uses structuredOutput so the router forces tool_use and returns validated ContentGenerateOutput.
 
 import { createCapability } from '../types'
+import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 import { ContentGenerateOutputSchema } from '@/lib/content/schemas'
 
 export const contentGenerateCapability = createCapability({
   id: 'content-generate',
-  model: 'claude-sonnet-4-5-20250929',
+  model: ANTHROPIC_MODELS.SONNET,
   maxTokens: 4096,
   features: {
     structuredOutput: ContentGenerateOutputSchema,

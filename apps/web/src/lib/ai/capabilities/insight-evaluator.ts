@@ -6,10 +6,11 @@
 // actionability (CEO can act on this today). Pass threshold: 7/10.
 
 import { createCapability } from '../types'
+import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 
 export const insightEvaluatorCapability = createCapability({
   id: 'insight-evaluator',
-  model: 'claude-haiku-4-5-20251001',
+  model: ANTHROPIC_MODELS.HAIKU,
   maxTokens: 512,
   features: {},
   systemPrompt: () => `You are a critical evaluator of business strategy insights.

@@ -3,6 +3,7 @@
 // Follows the same Zod validation + no-retry pattern as src/lib/content/generator.ts.
 
 import type Anthropic from '@anthropic-ai/sdk'
+import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 import { z } from 'zod'
 import { getAIClient } from '@/lib/ai/client'
 import { zodToToolSchema, parseStructuredResponse } from '@/lib/ai/features/structured'
@@ -12,7 +13,7 @@ import type { SocialPlatform } from '@/lib/integrations/social/types'
 import { PLATFORMS } from '@/lib/integrations/social/types'
 import { VISUAL_TYPES } from './types'
 
-const MODEL = 'claude-sonnet-4-5-20250929'
+const MODEL = ANTHROPIC_MODELS.SONNET
 const MAX_TOKENS = 8192
 
 // ─── Zod Schema ──────────────────────────────────────────────────────────────

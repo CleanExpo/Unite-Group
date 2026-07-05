@@ -3,9 +3,10 @@
 // Runs as a non-critical enrichment step — on parse failure, returns originals unchanged.
 
 import { z } from 'zod'
+import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 import { getAIClient } from '@/lib/ai/client'
 
-const MODEL = 'claude-sonnet-4-5-20250929'
+const MODEL = ANTHROPIC_MODELS.SONNET
 const MAX_TOKENS = 4096
 
 // ─── Public Types ─────────────────────────────────────────────────────────────

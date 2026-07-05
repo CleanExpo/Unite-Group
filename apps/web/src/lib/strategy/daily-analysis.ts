@@ -4,6 +4,7 @@
 
 import type Anthropic from '@anthropic-ai/sdk'
 import { getAIClient } from '@/lib/ai/client'
+import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 import { BUSINESSES } from '@/lib/businesses'
 
 // ---------------------------------------------------------------------------
@@ -99,17 +100,17 @@ export async function runDailyAnalysis({ businessKey, linearIssueCount = 0 }: An
 Apply all four analytical lenses and return 3–5 high-value insight cards that Phill (founder) can action this week.
 Focus on specific, concrete recommendations — not generic advice.`
 
-  const response = await ai.beta.messages.create({
-    model: 'claude-opus-4-5-20250514',
+  // Adaptive thinking (Opus 4.8): `{ type: 'enabled', budget_tokens }` and the
+  // interleaved-thinking beta both 400 on Opus 4.8 — adaptive thinking is GA and
+  // interleaves automatically, so this drops to the non-beta messages endpoint.
+  const params = {
+    model: ANTHROPIC_MODELS.OPUS,
     max_tokens: 16000,
-    thinking: {
-      type: 'enabled',
-      budget_tokens: 8000,
-    },
-    betas: ['interleaved-thinking-2025-05-14'],
     system: systemPrompt,
     messages: [{ role: 'user', content: userMessage }],
-  }) as Anthropic.Message
+  } as Anthropic.MessageCreateParamsNonStreaming
+  ;(params as { thinking?: unknown }).thinking = { type: 'adaptive' }
+  const response = (await ai.messages.create(params)) as Anthropic.Message
 
   // Extract text content (thinking blocks are separate and not included in text blocks)
   const textContent = (response.content as Anthropic.ContentBlock[])

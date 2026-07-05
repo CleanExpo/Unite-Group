@@ -4,10 +4,11 @@
 // produce calculations, and return structured findings with citations.
 
 import { createCapability } from '../types'
+import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 
 export const dataAnalystCapability = createCapability({
   id: 'data-analyst',
-  model: 'claude-sonnet-4-5-20250929',
+  model: ANTHROPIC_MODELS.SONNET,
   maxTokens: 4096,
   features: {
     codeExecution: true,

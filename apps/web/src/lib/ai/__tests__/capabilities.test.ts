@@ -23,7 +23,7 @@ import { registerCapability } from '../router'
 describe('analyzeCapability', () => {
   it('has correct id, model, and maxTokens', () => {
     expect(analyzeCapability.id).toBe('analyze')
-    expect(analyzeCapability.model).toBe('claude-opus-4-5-20251101')
+    expect(analyzeCapability.model).toBe('claude-opus-4-8')
     expect(analyzeCapability.maxTokens).toBe(20000)
   })
 
@@ -53,7 +53,7 @@ describe('analyzeCapability', () => {
 describe('ideasCapability', () => {
   it('has correct id, model, and maxTokens', () => {
     expect(ideasCapability.id).toBe('ideas')
-    expect(ideasCapability.model).toBe('claude-sonnet-4-5-20250929')
+    expect(ideasCapability.model).toBe('claude-sonnet-5')
     expect(ideasCapability.maxTokens).toBe(1024)
   })
 
@@ -68,7 +68,7 @@ describe('ideasCapability', () => {
 describe('debateCapability', () => {
   it('has correct id, model, and maxTokens', () => {
     expect(debateCapability.id).toBe('debate')
-    expect(debateCapability.model).toBe('claude-sonnet-4-5-20250929')
+    expect(debateCapability.model).toBe('claude-sonnet-5')
     expect(debateCapability.maxTokens).toBe(4096)
   })
 

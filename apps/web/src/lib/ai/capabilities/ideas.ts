@@ -3,10 +3,11 @@
 
 import { buildSystemPrompt } from '@/lib/ideas/conversation'
 import { createCapability } from '../types'
+import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 
 export const ideasCapability = createCapability({
   id: 'ideas',
-  model: 'claude-sonnet-4-5-20250929',
+  model: ANTHROPIC_MODELS.SONNET,
   maxTokens: 1024,
   systemPrompt: () => buildSystemPrompt(),
 })
