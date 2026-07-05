@@ -234,8 +234,12 @@ export function quarterSlug(fromDate: string): string {
 // ── CSV serialisation ──────────────────────────────────────────────────────────
 
 function csvEscape(value: string | number): string {
-  const str = String(value)
-  if (/[",\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`
+  let str = String(value)
+  // Neutralise spreadsheet formula injection: a leading = + - @ (or tab/CR)
+  // in free-text fields (description, contact name, invoice number) would
+  // execute as a formula when the accountant opens the CSV in Excel.
+  if (/^[=+\-@\t\r]/.test(str)) str = `'${str}`
+  if (/[",\n\r]/.test(str)) return `"${str.replace(/"/g, '""')}"`
   return str
 }
 

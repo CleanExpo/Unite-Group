@@ -199,3 +199,74 @@ describe('CSV serialisation — mock-banner rule', () => {
     expect(csv.split('\n')[0]).toBe('# source: mock — NOT real financials')
   })
 })
+
+describe('CSV serialisation — formula injection neutralisation', () => {
+  it('neutralises a =HYPERLINK(...) contact name with a leading apostrophe and quoting', () => {
+    const csv = toInvoicesCsv({
+      source: 'xero',
+      rows: [{
+        date: '2025-07-10',
+        invoiceNumber: 'INV-9',
+        contactName: '=HYPERLINK("http://evil.example","click")',
+        type: 'ACCREC',
+        status: 'AUTHORISED',
+        totalCents: 100,
+        amountDueCents: 0,
+      }],
+    })
+    const row = csv.trim().split('\n')[2]
+    // Apostrophe-prefixed, and force-quoted (contains quotes/commas) with doubled quotes.
+    expect(row).toContain(`"'=HYPERLINK(""http://evil.example"",""click"")"`)
+    expect(row.includes(',=HYPERLINK')).toBe(false)
+  })
+
+  it('neutralises a +-prefixed transaction description', () => {
+    const csv = toTransactionsCsv({
+      source: 'xero',
+      rows: [{
+        transactionDate: '2025-07-05',
+        description: '+1-2+cmd|calc',
+        amountCents: 100,
+        gstAmountCents: 10,
+        taxCode: 'OUTPUT',
+        reconciliationStatus: 'auto_matched',
+      }],
+    })
+    const row = csv.trim().split('\n')[2]
+    expect(row).toBe(`2025-07-05,'+1-2+cmd|calc,1.00,0.10,OUTPUT,auto_matched`)
+  })
+
+  it('neutralises an @-prefixed invoice number', () => {
+    const csv = toInvoicesCsv({
+      source: 'mock',
+      rows: [{
+        date: '2025-07-10',
+        invoiceNumber: '@SUM(1+9)',
+        contactName: 'Acme',
+        type: 'ACCREC',
+        status: 'AUTHORISED',
+        totalCents: 100,
+        amountDueCents: 0,
+      }],
+    })
+    const row = csv.trim().split('\n')[2]
+    expect(row).toContain(`'@SUM(1+9)`)
+    expect(row.includes(',@SUM')).toBe(false)
+  })
+
+  it('leaves amount columns untouched (negative amounts keep their leading minus)', () => {
+    const csv = toTransactionsCsv({
+      source: 'xero',
+      rows: [{
+        transactionDate: '2025-07-05',
+        description: 'Refund',
+        amountCents: -12_345,
+        gstAmountCents: -1_234,
+        taxCode: 'INPUT',
+        reconciliationStatus: 'auto_matched',
+      }],
+    })
+    const row = csv.trim().split('\n')[2]
+    expect(row).toBe('2025-07-05,Refund,-123.45,-12.34,INPUT,auto_matched')
+  })
+})

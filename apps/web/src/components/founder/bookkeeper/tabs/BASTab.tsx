@@ -11,12 +11,33 @@ import type { BASQuarterSummary, BASResponse, BookkeeperTransaction, Transaction
 const DEFAULT_EXPORT_BUSINESS: BusinessKey = 'dr'
 
 /** Accountant hand-off pack: BAS summary, transaction register, invoice register CSVs. */
-function AccountantPackDownload({ business, quarter }: { business: BusinessKey; quarter: BASQuarterSummary }) {
+export function AccountantPackDownload({ business, quarter }: { business: BusinessKey; quarter: BASQuarterSummary }) {
+  // Server-reported data source, read from the export's own `# source:` banner
+  // line so the founder knows the pack is mock BEFORE downloading it.
+  const [source, setSource] = useState<'mock' | 'xero' | null>(null)
+
   const params = new URLSearchParams({
     business,
     from: quarter.startDate,
     to: quarter.endDate,
   }).toString()
+
+  useEffect(() => {
+    let cancelled = false
+    setSource(null)
+    async function probe() {
+      try {
+        const res = await fetch(`/api/bookkeeper/export/bas?${params}`)
+        if (!res.ok) return
+        const text = await res.text()
+        if (!cancelled) setSource(text.startsWith('# source: mock') ? 'mock' : 'xero')
+      } catch {
+        // Source unknown — render no badge rather than a wrong one.
+      }
+    }
+    void probe()
+    return () => { cancelled = true }
+  }, [params])
 
   const links: Array<{ label: string; href: string }> = [
     { label: 'BAS summary', href: `/api/bookkeeper/export/bas?${params}` },
@@ -40,6 +61,19 @@ function AccountantPackDownload({ business, quarter }: { business: BusinessKey; 
           {link.label}
         </a>
       ))}
+      {source === 'mock' && (
+        <span
+          className="text-[9px] font-medium tracking-widest uppercase px-1.5 py-0.5 rounded-sm"
+          style={{ color: '#eab308', backgroundColor: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.2)' }}
+        >
+          Preview data — mock, Xero not connected
+        </span>
+      )}
+      {source === 'xero' && (
+        <span className="text-[9px] font-medium tracking-widest uppercase" style={{ color: 'var(--color-text-disabled)' }}>
+          Source: Xero
+        </span>
+      )}
     </div>
   )
 }
