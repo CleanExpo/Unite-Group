@@ -7,12 +7,24 @@ vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn(), createClient: vi.fn(
 import { getUser, createClient } from '@/lib/supabase/server'
 import { GET } from '../route'
 
-/** Build a supabase mock whose wiki_pages select resolves to { data, error }. */
+/** Build a supabase mock whose wiki_pages select().limit() resolves to { data, error }. */
 function mockSupabase(result: { data: unknown; error: unknown }) {
-  const select = vi.fn().mockResolvedValue(result)
+  const limit = vi.fn().mockResolvedValue(result)
+  const select = vi.fn().mockReturnValue({ limit })
   const from = vi.fn().mockReturnValue({ select })
   vi.mocked(createClient).mockResolvedValue({ from } as never)
-  return { from, select }
+  return { from, select, limit }
+}
+
+/** Build `count` page rows, each a distinct node with no links. */
+function makeRows(count: number) {
+  return Array.from({ length: count }, (_, i) => ({
+    id: `p${i}`,
+    title: `Page ${i}`,
+    tags: null,
+    content: '',
+    updated_at: '2026-07-01T00:00:00.000Z',
+  }))
 }
 
 describe('GET /api/command-centre/wiki-graph', () => {
@@ -27,7 +39,7 @@ describe('GET /api/command-centre/wiki-graph', () => {
 
   it('returns a founder-scoped graph with resolved edges', async () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
-    const { from } = mockSupabase({
+    const { from, limit } = mockSupabase({
       data: [
         { id: 'a', title: 'A', tags: ['t'], content: 'links [[b]] and [[ghost]]', updated_at: '2026-06-01T00:00:00.000Z' },
         { id: 'b', title: 'B', tags: null, content: 'orphan', updated_at: '2026-07-01T00:00:00.000Z' },
@@ -44,15 +56,36 @@ describe('GET /api/command-centre/wiki-graph', () => {
       pageCount: number
       edgeCount: number
       lastSync: string
+      truncated: boolean
     }
 
     expect(from).toHaveBeenCalledWith('wiki_pages')
+    expect(limit).toHaveBeenCalledWith(1000)
     expect(body.source).toBe('wiki_pages')
     expect(body.pageCount).toBe(2)
     expect(body.nodes.map((n) => n.id).sort()).toEqual(['a', 'b'])
     expect(body.edges).toEqual([{ source: 'a', target: 'b' }]) // ghost dropped
     expect(body.edgeCount).toBe(1)
     expect(body.lastSync).toBe('2026-07-01T00:00:00.000Z')
+    expect(body.truncated).toBe(false)
+  })
+
+  it('is not truncated at 999 rows (below the PostgREST cap)', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    mockSupabase({ data: makeRows(999), error: null })
+    const res = await GET()
+    const body = (await res.json()) as { pageCount: number; truncated: boolean }
+    expect(body.pageCount).toBe(999)
+    expect(body.truncated).toBe(false)
+  })
+
+  it('reports truncated when exactly the 1000-row limit comes back', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    mockSupabase({ data: makeRows(1000), error: null })
+    const res = await GET()
+    const body = (await res.json()) as { pageCount: number; truncated: boolean }
+    expect(body.pageCount).toBe(1000)
+    expect(body.truncated).toBe(true)
   })
 
   it('returns an honest empty graph when the wiki is unsynced', async () => {
