@@ -47,7 +47,7 @@ export function makeGithubCommitFetcher(deps: FetchDeps) {
     try {
       for (let page = 1; page <= MAX_PAGES; page++) {
         const url = `${GH}/repos/${repo}/commits?since=${encodeURIComponent(sinceIso)}&per_page=${PER_PAGE}&page=${page}`
-        const res = await fetchFn(url, { headers })
+        const res = await fetchFn(url, { headers, signal: AbortSignal.timeout(8000) })
         if (res.status === 404) return { ok: false, reason: 'error', detail: 'repo not found' }
         if (!res.ok) return { ok: false, reason: 'error', detail: `commits HTTP ${res.status}` }
 

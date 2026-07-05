@@ -146,7 +146,11 @@ export function WikiGraphCanvas({ nodes, edges }: Props) {
       canvas!.style.width = `${rect.width}px`
       canvas!.style.height = `${rect.height}px`
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0)
-      sim.force('center', forceCenter(rect.width / 2, rect.height / 2))
+      // World-space centroid stays at the origin — the initial zoom transform
+      // below already translates that origin to the screen centre. Centring
+      // the force here too would double-translate and start the cluster
+      // off-centre.
+      sim.force('center', forceCenter(0, 0))
     }
 
     const sim = forceSimulation(simNodes)
