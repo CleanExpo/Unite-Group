@@ -5,6 +5,8 @@ The single canonical monorepo for the Unite-Group product and ecosystem
 
 - **Product**: `apps/web` — Unite-Group (AI-first CRM + command centre), Next.js 16 / React 19 / Supabase / Vercel
 - **Agent command centre**: `apps/workspace`
+- **Spec engine**: `apps/spec-board` — Fabel-Prompt-Engineer, plain-English vision → verified, build-ready spec
+- **Stage-3 Autopilot Runner**: `apps/autopilot-runner` — hosted executor for the Linear autonomous loop, unattended off the Mac
 - **Identity spine (gated greenfield)**: `packages/spine`
 - **Portfolio-health MCP**: `packages/pi-ceo-operator-mcp`
 - **Knowledge vault**: `docs/brain`
