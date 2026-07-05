@@ -36,6 +36,7 @@ import { LiveAgentOperationsMap } from '@/components/command-centre/live-agent-o
 import { ProviderUsageCockpit } from '@/components/command-centre/provider-usage/ProviderUsageCockpit'
 import { ActivityFeedPanel } from '@/components/command-centre/activity/ActivityFeedPanel'
 import { DailyCrmDigestPanel } from '@/components/command-centre/digest/DailyCrmDigestPanel'
+import { MeshFleetTile } from '@/components/command-centre/mesh-fleet/MeshFleetTile'
 import { ProjectIntegrationWorkPacketControl } from './ProjectIntegrationWorkPacketControl'
 import { WikiEnhanceControl } from './WikiEnhanceControl'
 import { CommandSteps } from './CommandSteps'
@@ -269,6 +270,10 @@ export default async function CommandDeckPage() {
       </section>
       <section className={`${styles.reveal}`} style={{ animationDelay: '0.14s' }}>
         <DailyCrmDigestPanel />
+      </section>
+      {/* UNI-2305 — Mesh Fleet: Railway Pi-CEO machine heartbeats + ships in flight. */}
+      <section className={`${styles.reveal}`} style={{ animationDelay: '0.15s' }}>
+        <MeshFleetTile />
       </section>
 
       <section className={styles.panelGrid}>
