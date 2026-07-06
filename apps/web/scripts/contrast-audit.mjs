@@ -52,9 +52,16 @@ const pairs = [
   ['MargotHealth meta', 'rgba(207,224,236,0.6)', PANEL, 4.5, 'voice/agents meta'],
   ['ProviderAccounts muted', 'rgba(207,224,236,0.45)', PANEL, 4.5, 'label/provider/plan/disabled'],
   ['RepoCampaigns muted', 'rgba(207,224,236,0.45)', PANEL, 4.5, 'header + empty'],
-  ['SourceBadge degraded label', 'var(--cc-signal)=#2dbb57', PANEL, 4.5, 'badge text on light deck'],
+  // UNI-2309: SourceBadge 'degraded' was rendering cc-signal green with a
+  // #f87171 red fallback — neither matches the deck's own amber-family
+  // "warning" vocabulary. Fixed to --deck-amber/-amber-text (both dot + text).
+  ['SourceBadge degraded label', 'var(--deck-amber)=#f4820f', PANEL, 4.5, 'badge text on light deck (degraded = amber family, not green/red)'],
   ['DegradedDataBanner label', 'var(--cc-signal)=#2dbb57', PANEL, 4.5, 'banner text'],
   ['cc-signal alert text (WorkPacket/Hermes/Provider/LiveAgent/BizFocus)', 'var(--cc-signal)=#2dbb57', PANEL, 4.5, 'alert/near-limit/blocked text'],
+  // UNI-2309: --deck-abort (#e5484d, candy red) used as TEXT computes 3.91:1
+  // on white — fails AA (4.5:1). Darkened text-only variant added; fills,
+  // dots and borders keep the bright --deck-abort.
+  ['deck-abort text (MargotHealth/ProviderAccounts/WikiGraph/TeamActivity/RepoCampaigns/MeshFleet/EmailAccounts/wiki-graph error)', 'var(--deck-abort)=#e5484d', PANEL, 4.5, 'error/abort text on light deck'],
 ];
 // AFTER replacements
 const after = {
@@ -65,7 +72,9 @@ const after = {
   'rgba(207,224,236,0.55)': 'var(--deck-muted)=#5a6b62',
   'var(--deck-cyan)=#2dbb57': 'var(--deck-cyan-text)=#15803d',
   '#fbbf24': 'var(--deck-amber-text)=#b45309',
-  'var(--cc-signal)=#2dbb57': 'var(--cc-signal→deck-cyan-text)=#15803d',
+  'var(--cc-signal)=#2dbb57': 'var(--cc-signal-text)=#15803d',
+  'var(--deck-amber)=#f4820f': 'var(--deck-amber-text)=#b45309',
+  'var(--deck-abort)=#e5484d': 'var(--deck-abort-text)=#d02f35',
 };
 const hex = (v) => v.includes('=') ? v.split('=')[1] : v;
 
@@ -73,6 +82,7 @@ console.log('\n=== KEPT tokens (verify pass) ===');
 for (const [name, c] of [
   ['--deck-muted #5a6b62 / white', '#5a6b62'], ['--deck-muted / tint', '#5a6b62'],
   ['--deck-cyan-text #15803d / white', '#15803d'], ['--deck-amber-text #b45309 / white', '#b45309'],
+  ['--deck-abort-text #d02f35 / white', '#d02f35'], ['--cc-signal-text #15803d / white', '#15803d'],
   ['--deck-text #14241b / white', '#14241b'], ['--cc-ink-dim #3f574a / white', '#3f574a'],
 ]) {
   const bg = name.includes('tint') ? PANEL_TINT : PANEL;

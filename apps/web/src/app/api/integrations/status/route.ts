@@ -15,7 +15,7 @@ type Source = 'vault' | 'social' | 'env'
 interface ProviderDef {
   id: string
   label: string
-  category: 'accounting' | 'email' | 'calendar' | 'storage' | 'social' | 'project' | 'dev'
+  category: 'accounting' | 'email' | 'calendar' | 'storage' | 'social' | 'project' | 'dev' | 'video' | 'messaging'
   source: Source
   vaultService?: string   // source 'vault'
   socialPlatform?: string // source 'social'
@@ -39,6 +39,11 @@ const PROVIDERS: ProviderDef[] = [
   { id: 'sendgrid',  label: 'SendGrid',        category: 'email',      source: 'env',    envKeys: ['SENDGRID_API_KEY'] },
   { id: 'reddit',    label: 'Reddit',          category: 'social',     source: 'env',    envKeys: ['REDDIT_CLIENT_ID', 'REDDIT_CLIENT_SECRET'] },
   { id: 'github',    label: 'GitHub',          category: 'dev',        source: 'env',    envKeys: ['GITHUB_TOKEN'] },
+  { id: 'heygen',    label: 'HeyGen',          category: 'video',      source: 'env',    envKeys: ['HEYGEN_API_KEY'] },
+  { id: 'telegram',  label: 'Telegram',        category: 'messaging',  source: 'env',    envKeys: ['TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID'] },
+  // Microsoft OAuth is not configured on this deployment (no MICROSOFT_CLIENT_ID/SECRET) —
+  // this row honestly reports not_connected rather than fabricating a status (UNI-2153 default).
+  { id: 'outlook',   label: 'Outlook',         category: 'email',      source: 'vault',  vaultService: 'microsoft', envKeys: ['MICROSOFT_CLIENT_ID', 'MICROSOFT_CLIENT_SECRET'] },
 ]
 
 function latest(values: Array<string | null | undefined>): string | null {
@@ -59,11 +64,9 @@ export async function GET() {
       .select('service, created_at, updated_at, last_accessed_at')
       .eq('founder_id', user.id),
     supabase
-      // social_channels is single-tenant via legacy `owner_id` (holds the founder uuid),
-      // not `founder_id`; columns are `connected` / `last_post_at`.
       .from('social_channels')
-      .select('platform, connected, last_post_at, updated_at')
-      .eq('owner_id', user.id),
+      .select('platform, is_connected, last_post_at, updated_at')
+      .eq('founder_id', user.id),
   ])
 
   if (vaultRes.error || socialRes.error) {
@@ -72,7 +75,7 @@ export async function GET() {
   }
 
   const vaultRows = (vaultRes.data ?? []) as Array<{ service: string; created_at: string; updated_at: string; last_accessed_at: string | null }>
-  const socialRows = (socialRes.data ?? []) as unknown as Array<{ platform: string; connected: boolean; last_post_at: string | null; updated_at: string }>
+  const socialRows = (socialRes.data ?? []) as unknown as Array<{ platform: string; is_connected: boolean; last_post_at: string | null; updated_at: string }>
 
   const providers = PROVIDERS.map((p) => {
     const configured = p.envKeys.every((k) => !!process.env[k]?.trim())
@@ -87,7 +90,7 @@ export async function GET() {
       connected = rows.length > 0
       lastSync = latest(rows.map((r) => r.last_accessed_at ?? r.updated_at ?? r.created_at))
     } else if (p.source === 'social') {
-      const rows = socialRows.filter((r) => r.platform === p.socialPlatform && r.connected)
+      const rows = socialRows.filter((r) => r.platform === p.socialPlatform && r.is_connected)
       tokenCount = rows.length
       connected = rows.length > 0
       lastSync = latest(rows.map((r) => r.last_post_at ?? r.updated_at))

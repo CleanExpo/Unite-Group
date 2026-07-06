@@ -55,7 +55,7 @@ export function WikiGraphTile() {
       </div>
 
       {error ? (
-        <p style={{ color: 'var(--deck-abort)', fontSize: 12, margin: 0 }}>Could not load wiki graph: {error}</p>
+        <p style={{ color: 'var(--deck-abort-text)', fontSize: 12, margin: 0 }}>Could not load wiki graph: {error}</p>
       ) : (
         <p style={{ color: 'var(--deck-muted)', fontSize: 12, margin: 0 }}>
           <b style={{ color: 'var(--deck-text)' }}>{summary?.pageCount ?? 0}</b> pages ·{' '}

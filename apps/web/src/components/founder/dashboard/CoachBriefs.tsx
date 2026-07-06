@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import type { CoachType, CoachReport } from '@/lib/coaches/types'
 import { COACH_CONFIGS } from '@/lib/coaches/types'
+import { SourceBadge, type SourceMode } from '@/components/command-centre/SourceBadge'
 
 // ── Coach visual config ──────────────────────────────────────────────────────
 
@@ -69,6 +70,18 @@ function StatusBadge({ status }: { status: CoachReport['status'] }) {
   }
 }
 
+// Deterministic mock/live provenance badge (UNI-2283). fetchLifeData (and any
+// other coach data fetcher) stamps an honest `source` on the context it persists
+// to raw_data — this reads it back so the badge never depends on the model
+// remembering to mention it in the brief text.
+function sourceModeFromReport(report: CoachReport | undefined): SourceMode | null {
+  const source = report?.raw_data?.source
+  if (source === 'live') return 'live'
+  if (source === 'mock') return 'seed'
+  if (source === 'error') return 'degraded'
+  return null
+}
+
 // ── Single coach card ────────────────────────────────────────────────────────
 
 function CoachCard({
@@ -87,6 +100,7 @@ function CoachCard({
   const Icon = COACH_ICONS[type]
   const colour = COACH_COLOURS[type]
   const config = COACH_CONFIGS[type]
+  const sourceMode = sourceModeFromReport(report)
 
   async function askCoach() {
     if (!question.trim() || asking) return
@@ -136,6 +150,7 @@ function CoachCard({
             {config.name}
           </span>
         </div>
+        {sourceMode && <SourceBadge mode={sourceMode} label={config.name} />}
         {report ? (
           <StatusBadge status={report.status} />
         ) : (
