@@ -22,18 +22,38 @@ ALTER TABLE public.social_channels
   ADD COLUMN IF NOT EXISTS follower_count          INTEGER DEFAULT 0,
   ADD COLUMN IF NOT EXISTS metadata                JSONB NOT NULL DEFAULT '{}';
 
--- Backfill canonical columns from the legacy shape.
-UPDATE public.social_channels
-SET founder_id = owner_id
-WHERE founder_id IS NULL AND owner_id IS NOT NULL;
+-- Backfill canonical columns from the legacy shape. Guarded per-column: fresh
+-- environments created from 20260309000000_nexus_schema.sql never had the
+-- legacy columns, and an unguarded UPDATE would abort the migration there.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'social_channels' AND column_name = 'owner_id'
+  ) THEN
+    UPDATE public.social_channels
+    SET founder_id = owner_id
+    WHERE founder_id IS NULL AND owner_id IS NOT NULL;
+  END IF;
 
-UPDATE public.social_channels
-SET is_connected = connected
-WHERE connected IS TRUE AND is_connected IS FALSE;
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'social_channels' AND column_name = 'connected'
+  ) THEN
+    UPDATE public.social_channels
+    SET is_connected = connected
+    WHERE connected IS TRUE AND is_connected IS FALSE;
+  END IF;
 
-UPDATE public.social_channels
-SET channel_name = COALESCE(channel_name, handle)
-WHERE channel_name IS NULL AND handle IS NOT NULL;
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'social_channels' AND column_name = 'handle'
+  ) THEN
+    UPDATE public.social_channels
+    SET channel_name = COALESCE(channel_name, handle)
+    WHERE channel_name IS NULL AND handle IS NOT NULL;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_social_channels_founder_id
   ON public.social_channels (founder_id);
