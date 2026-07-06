@@ -54,23 +54,39 @@ function daysSince(isoDate: string | null): number | null {
 
 // ── Supabase queries ──────────────────────────────────────────────────────────
 
+async function fetchBusinessIdMap(
+  supabase: ReturnType<typeof createServiceClient>,
+  founderId: string
+): Promise<Map<string, string>> {
+  const { data } = await supabase
+    .from('businesses')
+    .select('id, slug')
+    .eq('founder_id', founderId)
+
+  return new Map(
+    ((data as Array<{ id: string; slug: string }> | null) ?? []).map(row => [row.slug, row.id])
+  )
+}
+
 async function fetchLastMacasVerdictDate(
   supabase: ReturnType<typeof createServiceClient>,
   founderId: string,
-  businessKey: string
+  businessId: string | null
 ): Promise<string | null> {
+  // Live per-business signal only — no proxy. A satellite with no businesses
+  // row or no judged cases honestly reports null ("Never").
+  if (!businessId) return null
+
   const { data } = await supabase
     .from('advisory_cases')
     .select('created_at')
     .eq('founder_id', founderId)
+    .eq('business_id', businessId)
     .eq('status', 'judged')
     .order('created_at', { ascending: false })
     .limit(1)
-    .single()
+    .maybeSingle()
 
-  // Best-effort: if no judged cases, check for business_id match via businesses table
-  // For now, return any judged case date as a proxy
-  void businessKey // suppress unused warning — future: filter by business_id
   return (data as { created_at: string } | null)?.created_at ?? null
 }
 
@@ -142,12 +158,17 @@ export async function GET(request: Request) {
     ])
   )
 
+  // --- Resolve businesses slug → id once, for per-business MACAS lookups ---
+  const businessIdMap = await fetchBusinessIdMap(supabase, founderId)
+
   const results: Array<{ businessKey: string; status: 'ok' | 'error'; error?: string }> = []
 
   for (const business of ownedBusinesses) {
     try {
       const existing = existingMap.get(business.key)
-      const repoUrl = existing?.repo_url ?? null
+      // User-set repo_url wins; fall back to the registry default so GitHub
+      // commit data is live without manual seeding.
+      const repoUrl = existing?.repo_url ?? business.repoUrl ?? null
 
       // --- GitHub: last commit ---
       let lastCommitSha: string | null = null
@@ -165,7 +186,7 @@ export async function GET(request: Request) {
 
       // --- Supabase: MACAS + bookkeeper dates ---
       const [lastMacasDate, lastBookkeeperDate] = await Promise.all([
-        fetchLastMacasVerdictDate(supabase, founderId, business.key),
+        fetchLastMacasVerdictDate(supabase, founderId, businessIdMap.get(business.key) ?? null),
         fetchLastBookkeeperRunDate(supabase, founderId, business.key),
       ])
 
