@@ -1,0 +1,17 @@
+---
+type: index
+name: legacy/authority-site/superpowers
+description: OKF index — 0 concepts, 2 subfolders
+okf_version: "0.1"
+updated: 2026-07-06
+---
+
+<!-- okf:generated -->
+# legacy/authority-site/superpowers — index
+
+_Read this first. Lists every concept + subfolder here so an agent loads only what it needs (OKF / LLM-Wiki pattern)._
+
+## Subfolders
+- [[plans/index]]
+- [[specs/index]]
+
