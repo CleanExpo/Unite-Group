@@ -133,6 +133,7 @@
     "@vercel/functions": "^3.4.3",
     "apify-client": "^2.22.2",
     "class-variance-authority": "^0.7.1",
+    "cloudinary": "^2.10.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "d3-force": "^3.0.0",
