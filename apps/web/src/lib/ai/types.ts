@@ -3,14 +3,16 @@
 // All capabilities, requests, and responses conform to these contracts.
 
 import type { ZodObject, ZodRawShape } from 'zod'
+import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 
 // ── Model registry ──────────────────────────────────────────────────────────
 
+// Whitelist of model IDs a capability may target. Derived from the SSOT registry
+// so it can never drift: src/lib/anthropic/models.ts is the single definition point.
 export const MODEL_IDS = [
-  'claude-opus-4-5-20251101',
-  'claude-opus-4-5-20250514',
-  'claude-sonnet-4-5-20250929',
-  'claude-haiku-4-5-20251001',
+  ANTHROPIC_MODELS.OPUS,   // claude-opus-4-8
+  ANTHROPIC_MODELS.SONNET, // claude-sonnet-5
+  ANTHROPIC_MODELS.HAIKU,  // claude-haiku-4-5-20251001
 ] as const
 
 export type ModelId = (typeof MODEL_IDS)[number]

@@ -1,8 +1,10 @@
 // src/lib/command-centre/team-activity.ts
 //
 // Mission Control "Per-person contractor activity" — derives a per-contractor
-// activity picture from GitHub commits on a target repo (CCW-CRM first). The
-// contractor roster is config-driven; Rana is seeded first.
+// activity picture from GitHub commits across each member's own repos. The
+// contractor roster is config-driven; Rana is seeded first. A commit only
+// counts for a member if BOTH the email matches AND the commit's repo is one
+// of that member's `repos` — this keeps attribution scoped per person.
 //
 // MANDATORY HONESTY: every figure here is ACTIVITY-DERIVED, NOT CLOCK HOURS.
 // Commit author timestamps are batch-clustered (a contractor commits in bursts,
@@ -20,12 +22,15 @@ export const ACTIVITY_DISCLAIMER =
 
 const TZ = 'Australia/Brisbane'
 
-/** One contractor in the roster. Matched against commit author/committer email. */
+/** One contractor in the roster. Matched against commit author/committer email
+ *  AND the commit's repo (must be one of this member's `repos`). */
 export interface TeamMember {
   id: string
   name: string
   /** All email addresses this person commits under (lower-cased match). */
   emails: string[]
+  /** Repos (owner/name) whose commits count toward this member. */
+  repos: string[]
 }
 
 /** Config-driven roster. Rana first, per founder directive. */
@@ -34,6 +39,13 @@ export const TEAM_ROSTER: TeamMember[] = [
     id: 'rana',
     name: 'Rana Muzamil',
     emails: ['mmlrana00@gmail.com', 'ranamuzamil1199@gmail.com'],
+    repos: ['CleanExpo/CCW-CRM'],
+  },
+  {
+    id: 'phill',
+    name: 'Phill McGurk',
+    emails: ['support@carsi.com.au', 'phill.mcgurk@gmail.com'],
+    repos: ['CleanExpo/Unite-Group', 'CleanExpo/Pi-Dev-Ops'],
   },
 ]
 
@@ -47,6 +59,8 @@ export interface CommitRecord {
   authoredAt: string
   /** First line of the commit message. */
   subject: string
+  /** Repo (owner/name) this commit was fetched from. */
+  repo: string
 }
 
 export type TeamActivitySource = 'live' | 'not_connected' | 'error'
@@ -119,7 +133,8 @@ function matchMember(commit: CommitRecord, member: TeamMember): boolean {
   const emails = new Set(member.emails.map((e) => e.toLowerCase()))
   const author = commit.authorEmail?.toLowerCase()
   const committer = commit.committerEmail?.toLowerCase()
-  return (!!author && emails.has(author)) || (!!committer && emails.has(committer))
+  const emailMatch = (!!author && emails.has(author)) || (!!committer && emails.has(committer))
+  return emailMatch && member.repos.includes(commit.repo)
 }
 
 /** Derive one member's activity from their matched commits. */
@@ -170,7 +185,7 @@ export interface BuildTeamActivityInput {
   windowDays: number
   roster?: TeamMember[]
   commits:
-    | { ok: true; commits: CommitRecord[] }
+    | { ok: true; commits: CommitRecord[]; detail?: string }
     | { ok: false; reason: 'not_connected' | 'error'; detail?: string }
 }
 
@@ -180,7 +195,7 @@ export function buildTeamActivity(input: BuildTeamActivityInput): TeamActivityPa
   const commits = input.commits.ok ? input.commits.commits : []
   const github: TeamActivitySource = input.commits.ok ? 'live' : input.commits.reason
   const githubDetail = input.commits.ok
-    ? null
+    ? (input.commits.detail ?? null)
     : (input.commits.detail ??
       (input.commits.reason === 'not_connected' ? 'GITHUB_TOKEN not configured' : 'commit fetch failed'))
 

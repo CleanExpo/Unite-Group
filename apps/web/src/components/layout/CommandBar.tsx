@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  LayoutDashboard, Users, Lock, ClipboardCheck,
+  Users, Lock, ClipboardCheck,
   Scale, Share2, Settings, Zap,
   BookOpen, Receipt, Columns2, FileText, Mail,
   CalendarDays, Brain, Library,
@@ -40,7 +40,6 @@ interface ActionCommand {
 type Command = NavCommand | ActionCommand
 
 const NAV_COMMANDS: NavCommand[] = [
-  { type: 'nav', label: 'Dashboard',  icon: LayoutDashboard, path: '/founder/dashboard' },
   { type: 'nav', label: 'Bookkeeper', icon: BookOpen,        path: '/founder/bookkeeper' },
   { type: 'nav', label: 'Xero',       icon: Receipt,         path: '/founder/xero' },
   { type: 'nav', label: 'Kanban',     icon: Columns2,        path: '/founder/kanban' },

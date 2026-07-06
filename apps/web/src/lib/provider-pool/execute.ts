@@ -29,10 +29,15 @@ export const OPENAI_COMPATIBLE_BASE: Partial<Record<ProviderId, string>> = {
  * exact ids are verified against each provider at call time.
  */
 export const DEFAULT_MODEL: Partial<Record<ProviderId, string>> = {
+  // These are genuinely-separate provider accounts (their own quota is the
+  // point of the pool), so non-Anthropic entries stay intact. Claude routes
+  // never reach here — they return `needs_anthropic_path` and use the ai/router
+  // (Haiku 4.5) path — so there is no Anthropic default to pin. The retired
+  // Gemini flash model is bumped to the current Gemini flash tier.
   openai: 'gpt-4o-mini',
   minimax: 'MiniMax-Text-01',
   openrouter: 'openai/gpt-4o-mini',
-  gemini: 'gemini-1.5-flash',
+  gemini: 'gemini-2.0-flash',
 }
 
 export type ExecuteChatResult =

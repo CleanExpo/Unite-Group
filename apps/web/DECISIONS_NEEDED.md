@@ -249,3 +249,5 @@ Leftover test IDs for marker 2026-06-07T12:06:12.154Z: {"contacts":[],"workspace
 
 39. **Re-confirm the Outlook "not connected" decision (unchanged)**
    - `MICROSOFT_CLIENT_ID`/`MICROSOFT_CLIENT_SECRET` remain absent from Vercel prod. Outlook stays **not connected** for this proof per the recorded default (item #32); route guards remain unit-proved. Reverses cleanly by registering the Azure app and adding the two vars, then following the same consent → tagged import pattern.
+
+- 2026-07-05: UNI-2153 items #38 (Gmail) RESOLVED — live import proven, proof row deleted. #39 (Outlook) stands: not connected by default until Azure app + secrets exist.

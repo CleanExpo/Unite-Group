@@ -46,6 +46,25 @@ describe('POST /api/command-centre/signals/ingest', () => {
     expect((await POST(req({ ...validBody, text: undefined }))).status).toBe(400)
   })
 
+  it('400 when text exceeds 4000 chars', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    const res = await POST(req({ ...validBody, text: 'a'.repeat(4001) }))
+    expect(res.status).toBe(400)
+  })
+
+  it('400 when externalRef is malformed (contains a space or exceeds 200 chars)', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    expect((await POST(req({ ...validBody, externalRef: 'has a space' }))).status).toBe(400)
+    expect((await POST(req({ ...validBody, externalRef: 'a'.repeat(201) }))).status).toBe(400)
+  })
+
+  it('accepts a valid small payload (still succeeds)', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    vi.mocked(ingestSignal).mockResolvedValue({ status: 'created', task: { id: 't1' } as never })
+    const res = await POST(req(validBody))
+    expect(res.status).toBe(201)
+  })
+
   it('201 and returns the created task on a fresh signal (founder session)', async () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
     vi.mocked(ingestSignal).mockResolvedValue({ status: 'created', task: { id: 't1' } as never })

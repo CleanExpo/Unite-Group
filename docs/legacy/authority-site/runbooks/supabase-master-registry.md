@@ -52,12 +52,19 @@ I need answers to these before designing the consolidation:
 | Field | Value |
 |-------|-------|
 | **Project Ref (Original)** | `oxeiaavuspvpvanzcrjc` |
-| **Project Ref (2026?)** | `udooysjajglluvuxkijp` — **NEW — PURPOSE UNKNOWN** |
+| **Project Ref (LIVE PROD)** | `udooysjajglluvuxkijp` — **restoreassist-prod-2026, LIVE production** (confirmed 06/07/2026 estate audit) |
 | **Region** | ap-southeast-2 (Sydney) |
 | **Purpose** | Property restoration SaaS |
 | **PITR** | UNKNOWN — check required |
 | **Product URL** | https://restoreassist.app |
 | **Notes** | Standalone product, may have its own clients |
+
+#### CARSI (added 06/07/2026 — missing from original registry)
+| Field | Value |
+|-------|-------|
+| **Project Ref** | `ofzafxvxobjggjisrbsa` |
+| **Purpose** | IICRC-aligned training LMS (carsi.com.au) — live production |
+| **PITR** | UNKNOWN — check required |
 
 #### Synthex
 | Field | Value |
@@ -66,7 +73,7 @@ I need answers to these before designing the consolidation:
 | **Region** | ap-southeast-2 (Singapore) |
 | **Purpose** | AI content/marketing engine |
 | **PITR** | UNKNOWN — check required |
-| **Notes** | Should this move to Sydney for AU/NZ data residency? |
+| **Notes** | Should this move to Sydney for AU/NZ data residency? **06/07/2026 estate audit:** ref `vwfgksqkajnpfjospbpe` found referenced in current Synthex code/env as the working project — the two refs need reconciliation; treat this row's ref as possibly superseded. |
 
 #### Pi-CEO (Autonomous DevOps Agent)
 | Field | Value |
@@ -110,7 +117,7 @@ I need answers to these before designing the consolidation:
 
 | Project Ref | Name | Region | Purpose | Status |
 |-------------|------|--------|---------|--------|
-| `xgqwfwqumliuguzhshwv` | Unite-Group Test | us-west-1 | Sandbox/testing | KEEP |
+| `xgqwfwqumliuguzhshwv` | Unite-Group Test | us-west-1 | Sandbox/testing | **DELETED 15/06/2026** (per root CLAUDE.md — no standing sandbox; use Supabase database branches) |
 
 ---
 

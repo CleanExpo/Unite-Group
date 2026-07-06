@@ -15,11 +15,13 @@
   --deck-panel-hi: #fffdf7;
   --deck-text: #14241b;     /* deep green-charcoal (dark text on light) */
   --deck-muted: #5a6b62;
-  /* WCAG-AA text variants: the bright candy green/amber fail contrast as TEXT
-     on the light deck (~2.4:1). Use these for coloured text; keep the bright
-     --deck-cyan/-go/-amber for fills, borders, LEDs and glows. */
+  /* WCAG-AA text variants: the bright candy green/amber/red fail contrast as
+     TEXT on the light deck (~2.4-3.9:1). Use these for coloured text; keep
+     the bright --deck-cyan/-go/-amber/-abort for fills, borders, LEDs and
+     glows. */
   --deck-cyan-text: #15803d;  /* green text on light → ~5:1 */
   --deck-amber-text: #b45309; /* amber text on light → ~5:1 */
+  --deck-abort-text: #d02f35; /* red text on light → ~5.07:1 (deck-abort is 3.91:1, fails AA) */
 
   /* Aliases so panels consolidated from the retired command-center page (which
      use the --cc-* namespace) resolve their colours on this deck. */
@@ -29,7 +31,13 @@
   --cc-ink: var(--deck-text);
   --cc-ink-dim: #3f574a;
   --cc-ink-hush: var(--deck-muted);
+  /* --cc-signal stays the bright candy green: consolidated cc-* panels use it
+     for fills/dots/LEDs/borders (ActivityRow, HermesControlPanel backgrounds,
+     WorkPacketLane borders, ActivityLog dot, DegradedDataBanner borderLeft).
+     Bright --deck-cyan (#2dbb57) fails as TEXT on the light deck (~2.5:1), so
+     TEXT consumers use --cc-signal-text (AA-passing, ~5:1) instead. */
   --cc-signal: var(--deck-cyan);
+  --cc-signal-text: var(--deck-cyan-text);
   --cc-pulse-duration: 2.4s;
 
   position: relative;

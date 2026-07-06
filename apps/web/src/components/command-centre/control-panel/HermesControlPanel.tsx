@@ -42,8 +42,18 @@ const RYG_LABELS: Record<ControlRyg, string> = {
   red: 'RED',
 }
 
+// Fill/border variant — bright signal, used for dots, LEDs and borders.
 function statusColor(status: ControlStatus, ryg?: ControlRyg) {
   if (ryg === 'red' || status === 'gated') return 'var(--cc-signal)'
+  if (status === 'live') return 'var(--cc-ink)'
+  if (status === 'building') return 'var(--cc-ink-dim)'
+  return 'var(--cc-ink-hush)'
+}
+
+// Text variant — AA-safe darkened signal, used wherever the status colour
+// paints text content.
+function statusTextColor(status: ControlStatus, ryg?: ControlRyg) {
+  if (ryg === 'red' || status === 'gated') return 'var(--cc-signal-text)'
   if (status === 'live') return 'var(--cc-ink)'
   if (status === 'building') return 'var(--cc-ink-dim)'
   return 'var(--cc-ink-hush)'
@@ -271,7 +281,7 @@ export function HermesControlPanel({ initialPayload }: HermesControlPanelProps =
                 >
                   <span
                     className="font-semibold"
-                    style={{ color: addOnOutcome.ok ? 'var(--cc-ink)' : 'var(--cc-signal)' }}
+                    style={{ color: addOnOutcome.ok ? 'var(--cc-ink)' : 'var(--cc-signal-text)' }}
                   >
                     {addOnOutcome.title}
                   </span>
@@ -342,7 +352,7 @@ function SidebarMetric({ label, value, signal = false }: { label: string; value:
       <span className="block font-mono text-[9px] uppercase tracking-[0.12em]" style={{ color: 'var(--cc-ink-hush)' }}>
         {label}
       </span>
-      <span className="mt-1 block font-mono text-lg leading-none" style={{ color: signal ? 'var(--cc-signal)' : 'var(--cc-ink)' }}>
+      <span className="mt-1 block font-mono text-lg leading-none" style={{ color: signal ? 'var(--cc-signal-text)' : 'var(--cc-ink)' }}>
         {value}
       </span>
     </div>
@@ -350,12 +360,12 @@ function SidebarMetric({ label, value, signal = false }: { label: string; value:
 }
 
 function SummaryCell({ label, value, tone }: { label: string; value: number; tone: ControlRyg }) {
-  const color = tone === 'red' ? 'var(--cc-signal)' : 'var(--cc-ink)'
+  const color = tone === 'red' ? 'var(--cc-signal-text)' : 'var(--cc-ink)'
   return (
     <div className="min-w-24 px-4 py-3" style={{ background: 'var(--cc-bg-soft)' }}>
       <span
         className="block font-mono text-[10px] uppercase tracking-[0.18em]"
-        style={{ color: tone === 'red' ? 'var(--cc-signal)' : 'var(--cc-ink-hush)' }}
+        style={{ color: tone === 'red' ? 'var(--cc-signal-text)' : 'var(--cc-ink-hush)' }}
       >
         {label}
       </span>
@@ -371,6 +381,7 @@ function SummaryCell({ label, value, tone }: { label: string; value: number; ton
 
 function WorkstreamDetail({ item }: { item: LiveControlWorkstream }) {
   const color = statusColor(item.status, item.ryg)
+  const textColor = statusTextColor(item.status, item.ryg)
   const isSignal = item.ryg === 'red' || item.status === 'gated'
   const ccTaskEvidence = item.ccTaskId
     ? `CC task ${item.ccTaskId}${item.ccTaskStatus ? ` · ${item.ccTaskStatus}` : ''}`
@@ -412,10 +423,10 @@ function WorkstreamDetail({ item }: { item: LiveControlWorkstream }) {
       </header>
 
       <div className="grid max-w-4xl gap-2 font-mono text-[11px] leading-relaxed md:grid-cols-2">
-        <MetaLine label="state" value={stateLabel(item.status, item.ryg)} color={color} />
+        <MetaLine label="state" value={stateLabel(item.status, item.ryg)} color={textColor} />
         <MetaLine label="owner" value={item.owner} />
         <MetaLine label="depends" value={item.dependency} />
-        <MetaLine label="gate" value={item.gate} color={isSignal ? 'var(--cc-signal)' : undefined} />
+        <MetaLine label="gate" value={item.gate} color={isSignal ? 'var(--cc-signal-text)' : undefined} />
       </div>
 
       <p className="max-w-3xl border px-5 py-4 text-sm leading-relaxed" style={{ borderColor: 'var(--cc-grid)', color: 'var(--cc-ink-dim)' }}>
@@ -483,7 +494,7 @@ function AddOnRow({
       </span>
       <span
         className="font-mono text-[11px] leading-relaxed"
-        style={{ color: isSignal ? 'var(--cc-signal)' : 'var(--cc-ink-dim)' }}
+        style={{ color: isSignal ? 'var(--cc-signal-text)' : 'var(--cc-ink-dim)' }}
       >
         {item.approval}
       </span>

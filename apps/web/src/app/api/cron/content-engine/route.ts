@@ -4,6 +4,7 @@
 // Auto-generates social content to fill calendar gaps for all businesses.
 
 import { sanitiseError } from '@/lib/error-reporting'
+import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { generateContent } from '@/lib/content/generator'
@@ -225,7 +226,7 @@ async function processBusinessContent(
           cta: item.cta,
           media_prompt: item.mediaPrompt,
           character_used: item.characterUsed,
-          ai_model: 'claude-sonnet-4-5-20250929',
+          ai_model: ANTHROPIC_MODELS.SONNET,
           generation_source: 'cron_auto',
           status: 'generated',
         })

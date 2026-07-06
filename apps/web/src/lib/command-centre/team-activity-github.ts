@@ -47,7 +47,7 @@ export function makeGithubCommitFetcher(deps: FetchDeps) {
     try {
       for (let page = 1; page <= MAX_PAGES; page++) {
         const url = `${GH}/repos/${repo}/commits?since=${encodeURIComponent(sinceIso)}&per_page=${PER_PAGE}&page=${page}`
-        const res = await fetchFn(url, { headers })
+        const res = await fetchFn(url, { headers, signal: AbortSignal.timeout(8000) })
         if (res.status === 404) return { ok: false, reason: 'error', detail: 'repo not found' }
         if (!res.ok) return { ok: false, reason: 'error', detail: `commits HTTP ${res.status}` }
 
@@ -63,6 +63,7 @@ export function makeGithubCommitFetcher(deps: FetchDeps) {
             committerEmail: c?.committer?.email ?? null,
             authoredAt,
             subject: (c?.message ?? '').split('\n')[0]!.trim(),
+            repo,
           })
         }
 
@@ -73,4 +74,44 @@ export function makeGithubCommitFetcher(deps: FetchDeps) {
       return { ok: false, reason: 'error', detail: err instanceof Error ? err.message : 'fetch failed' }
     }
   }
+}
+
+export interface RepoFetchFailure {
+  repo: string
+  reason: 'not_connected' | 'error'
+  detail?: string
+}
+
+export interface TeamCommitsResult {
+  commits: CommitRecord[]
+  failures: RepoFetchFailure[]
+}
+
+/**
+ * Fetch commits across multiple repos — each repo fetched exactly once (dedup'd),
+ * reusing the same per-repo fetcher (timeout + pagination unchanged). Per-repo
+ * failures are collected, never thrown, so one bad repo doesn't drop commits —
+ * and therefore members — from the others.
+ */
+export async function fetchTeamCommits(
+  repos: string[],
+  sinceIso: string,
+  deps: FetchDeps,
+): Promise<TeamCommitsResult> {
+  const fetchCommits = makeGithubCommitFetcher(deps)
+  const uniqueRepos = [...new Set(repos)]
+
+  const commits: CommitRecord[] = []
+  const failures: RepoFetchFailure[] = []
+
+  for (const repo of uniqueRepos) {
+    const res = await fetchCommits(repo, sinceIso)
+    if (res.ok) {
+      commits.push(...res.commits)
+    } else {
+      failures.push({ repo, reason: res.reason, detail: res.detail })
+    }
+  }
+
+  return { commits, failures }
 }

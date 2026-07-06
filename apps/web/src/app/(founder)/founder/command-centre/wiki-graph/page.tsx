@@ -14,11 +14,16 @@ import { getUser, createClient } from '@/lib/supabase/server'
 import { buildWikiGraph, type WikiPageRow } from '@/lib/command-centre/wiki-graph'
 import { WikiGraphCanvas } from '@/components/command-centre/wiki-graph/WikiGraphCanvas'
 
+// PostgREST's default row cap — made explicit so truncation can be surfaced
+// honestly instead of silently rendering a partial graph as complete.
+const WIKI_PAGES_LIMIT = 1000
+
 function formatSync(iso: string | null): string {
   if (!iso) return 'never'
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return 'unknown'
   return d.toLocaleString('en-AU', {
+    timeZone: 'Australia/Brisbane',
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -35,8 +40,11 @@ export default async function WikiGraphPage() {
   const { data, error } = await supabase
     .from('wiki_pages')
     .select('id, title, tags, content, updated_at')
+    .limit(WIKI_PAGES_LIMIT)
 
-  const graph = error ? null : buildWikiGraph((data ?? []) as WikiPageRow[])
+  const rows = (data ?? []) as WikiPageRow[]
+  const graph = error ? null : buildWikiGraph(rows)
+  const truncated = !error && rows.length === WIKI_PAGES_LIMIT
 
   return (
     <div
@@ -59,6 +67,11 @@ export default async function WikiGraphPage() {
           <h1 style={{ fontSize: '1.4rem', fontWeight: 600, letterSpacing: '-0.01em', color: '#15803d', margin: 0 }}>
             Wiki Graph
           </h1>
+          {truncated && (
+            <span style={{ fontSize: 11, color: '#b45309' }}>
+              showing first {WIKI_PAGES_LIMIT} pages
+            </span>
+          )}
         </div>
         <div style={{ display: 'flex', gap: '1.25rem', fontSize: 12, color: '#5a6b62' }}>
           <span>

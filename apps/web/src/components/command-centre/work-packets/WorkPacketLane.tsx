@@ -236,7 +236,7 @@ function PacketColumn({
       >
         <span
           className="font-mono text-[10px] uppercase tracking-[0.18em]"
-          style={{ color: alert ? 'var(--cc-signal)' : 'var(--cc-ink-dim)' }}
+          style={{ color: alert ? 'var(--cc-signal-text)' : 'var(--cc-ink-dim)' }}
         >
           {COLUMN_LABELS[status]}
         </span>
@@ -315,7 +315,7 @@ function PacketCard({
               className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] transition-opacity disabled:opacity-40"
               style={{
                 borderColor: action.key === 'approve' ? 'var(--cc-signal)' : 'var(--cc-grid)',
-                color: action.key === 'approve' ? 'var(--cc-signal)' : 'var(--cc-ink-dim)',
+                color: action.key === 'approve' ? 'var(--cc-signal-text)' : 'var(--cc-ink-dim)',
                 background: 'var(--cc-bg)',
               }}
             >
@@ -342,12 +342,15 @@ function OwnerBadge({ owner }: { owner: WorkPacket['nextActionOwner'] }) {
 }
 
 function ApprovalMarker({ approved }: { approved: boolean }) {
-  const color = approved ? 'var(--cc-ink)' : 'var(--cc-signal)'
+  // Border stays the bright signal (non-text UI); the text + icon (which
+  // inherits via currentColor) use the AA-safe text variant.
+  const borderColor = approved ? 'var(--cc-ink)' : 'var(--cc-signal)'
+  const color = approved ? 'var(--cc-ink)' : 'var(--cc-signal-text)'
   return (
     <span
       data-approval-required
       className="inline-flex items-center gap-1.5 rounded-sm border px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em]"
-      style={{ borderColor: color, color }}
+      style={{ borderColor, color }}
       aria-label={approved ? 'Approval granted' : 'Approval required'}
     >
       <ShieldIcon />

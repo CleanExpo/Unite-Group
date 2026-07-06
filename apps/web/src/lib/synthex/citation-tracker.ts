@@ -10,6 +10,9 @@
 // Perplexity API key: PERPLEXITY_API_KEY env var.
 // If absent → mock mode is activated automatically.
 
+/** Discriminates whether a signal came from a real API call, was inferred from another signal, or is unavailable. */
+export type CitationSignalSource = 'live' | 'inferred' | 'unavailable'
+
 export interface CitationCheckResult {
   keyword: string
   contentUrl?: string
@@ -19,8 +22,12 @@ export interface CitationCheckResult {
   perplexityPosition?: number // 1-10 if found in top citations
   // Google AI Overview check (inferred from presence patterns)
   googleAIOPresence: boolean
+  // No public Google AIO API exists — this signal is always inferred from Perplexity presence, never live.
+  googleAIOSource: CitationSignalSource
   // ChatGPT check
   chatgptMentioned: boolean
+  // No public ChatGPT citation API exists — this signal is always unavailable, never live.
+  chatgptSource: CitationSignalSource
   // Combined citation score
   citationScore: number // 0-100
   citationSources: string[] // which AI engines cited this content
@@ -132,7 +139,9 @@ function mockCitationCheck(keyword: string, contentUrl?: string): CitationCheckR
     perplexityMentioned,
     perplexityPosition,
     googleAIOPresence,
+    googleAIOSource: 'inferred',
     chatgptMentioned,
+    chatgptSource: 'unavailable',
     citationScore,
     citationSources: buildCitationSources(perplexityMentioned, googleAIOPresence, chatgptMentioned),
   }
@@ -249,7 +258,9 @@ export async function checkCitation(
     perplexityMentioned,
     perplexityPosition,
     googleAIOPresence,
+    googleAIOSource: 'inferred',
     chatgptMentioned,
+    chatgptSource: 'unavailable',
     citationScore,
     citationSources: buildCitationSources(perplexityMentioned, googleAIOPresence, chatgptMentioned),
   }

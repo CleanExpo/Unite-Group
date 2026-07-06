@@ -41,7 +41,11 @@ export async function GET() {
         .from('operator_agent_presence')
         .select('last_seen_at')
         .eq('founder_id', user.id)
-        .order('last_seen_at', { ascending: false }),
+        .order('last_seen_at', { ascending: false })
+        // Defensive cap: (founder_id, agent_id) is the table's PK — writers upsert
+        // one row per agent, so this never actually grows unbounded — but bound it
+        // anyway rather than trust that invariant forever.
+        .limit(500),
     ])
 
     const voice: MargotVoiceRead =

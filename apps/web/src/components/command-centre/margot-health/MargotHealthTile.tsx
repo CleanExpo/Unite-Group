@@ -29,7 +29,7 @@ function Flag({ on, label }: { on: boolean; label: string }) {
         style={{ width: 6, height: 6, borderRadius: '50%', background: on ? 'var(--deck-cyan, #00F5FF)' : 'var(--deck-muted, #6f879b)' }}
       />
       <span style={{ color: 'var(--deck-text, #e6f7ff)', fontSize: 12 }}>{label}</span>
-      <span style={{ marginLeft: 'auto', color: on ? 'var(--deck-cyan, #00F5FF)' : 'rgba(207,224,236,0.45)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+      <span style={{ marginLeft: 'auto', color: on ? 'var(--deck-cyan-text, #15803d)' : 'var(--deck-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
         {on ? 'present' : 'absent'}
       </span>
     </div>
@@ -69,7 +69,7 @@ export function MargotHealthTile() {
         <SourceBadge mode={mode} label="Margot" lastUpdatedAt={payload?.generatedAt} />
       </div>
 
-      {error && <p style={{ color: 'var(--deck-abort, #f87171)', fontSize: 12, margin: 0 }}>Could not load Margot state: {error}</p>}
+      {error && <p style={{ color: 'var(--deck-abort-text, #d02f35)', fontSize: 12, margin: 0 }}>Could not load Margot state: {error}</p>}
 
       {payload && (
         <>
@@ -90,20 +90,20 @@ export function MargotHealthTile() {
             <Flag on={payload.config.founderConfigured} label="Founder id configured" />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, color: 'rgba(207,224,236,0.6)', fontSize: 11, paddingTop: 4, borderTop: '1px solid var(--deck-line, rgba(207,224,236,0.12))' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, color: 'var(--deck-muted)', fontSize: 11, paddingTop: 4, borderTop: '1px solid var(--deck-line, rgba(207,224,236,0.12))' }}>
             <span>
               Last voice session:{' '}
               <b style={{ color: 'var(--deck-text, #e6f7ff)' }}>{relTime(payload.voice.latestSessionAt)}</b>
-              {payload.voice.source === 'error' && <span style={{ color: 'var(--deck-abort, #f87171)' }}> · read error</span>}
+              {payload.voice.source === 'error' && <span style={{ color: 'var(--deck-abort-text, #d02f35)' }}> · read error</span>}
             </span>
             <span>{payload.voice.sessionsInWindow} in {payload.windowDays}d</span>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, color: 'rgba(207,224,236,0.6)', fontSize: 11 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, color: 'var(--deck-muted)', fontSize: 11 }}>
             <span>
               Agent heartbeat:{' '}
               <b style={{ color: 'var(--deck-text, #e6f7ff)' }}>{relTime(payload.agents.latestSeenAt)}</b>
-              {payload.agents.source === 'error' && <span style={{ color: 'var(--deck-abort, #f87171)' }}> · read error</span>}
+              {payload.agents.source === 'error' && <span style={{ color: 'var(--deck-abort-text, #d02f35)' }}> · read error</span>}
             </span>
             <span>{payload.agents.activeCount} agent{payload.agents.activeCount === 1 ? '' : 's'} seen</span>
           </div>

@@ -9,10 +9,11 @@ const SIGNAL_LABEL: Record<BusinessSignal, string> = {
   needs_url: 'url needed',
 }
 
+// Text-only usage (signal label) — AA-safe darkened signal.
 function signalColor(signal: BusinessSignal): string {
   if (signal === 'live') return 'var(--cc-ink)'
   if (signal === 'watch') return 'var(--cc-ink-dim)'
-  return 'var(--cc-signal)'
+  return 'var(--cc-signal-text)'
 }
 
 function BusinessRow({ item }: { item: BusinessFocusItem }) {

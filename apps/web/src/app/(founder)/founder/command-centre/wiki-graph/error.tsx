@@ -16,7 +16,8 @@ export default function Error({ reset }: { error: Error; reset: () => void }) {
         fontFamily: 'var(--font-chakra), system-ui, sans-serif',
       }}
     >
-      <span style={{ fontSize: 14, fontWeight: 600, color: '#e5484d' }}>Wiki graph failed to render</span>
+      {/* #d02f35 = --deck-abort-text (darkened abort-red, ~5.07:1 on white); #e5484d fails AA as text at 3.91:1 */}
+      <span style={{ fontSize: 14, fontWeight: 600, color: '#d02f35' }}>Wiki graph failed to render</span>
       <button
         onClick={reset}
         style={{

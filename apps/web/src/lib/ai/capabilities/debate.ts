@@ -4,10 +4,11 @@
 // this capability exists for registry completeness and future unified dispatching.
 
 import { createCapability } from '../types'
+import { ANTHROPIC_MODELS } from '@/lib/anthropic/models'
 
 export const debateCapability = createCapability({
   id: 'debate',
-  model: 'claude-sonnet-4-5-20250929',
+  model: ANTHROPIC_MODELS.SONNET,
   maxTokens: 4096,
   systemPrompt:
     'You are a specialist accounting firm agent participating in a multi-agent debate. Follow the debate protocol and respond with structured JSON proposals.',

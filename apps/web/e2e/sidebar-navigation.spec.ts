@@ -36,7 +36,7 @@ test.describe('Sidebar Navigation', () => {
 
     test('sidebar contains links to major sections', async ({ page }) => {
       const expectedLinks = [
-        { href: '/founder/dashboard', label: 'Dashboard' },
+        { href: '/founder/command-centre', label: 'Command Centre' },
         { href: '/founder/kanban', label: 'Kanban' },
         { href: '/founder/vault', label: 'Vault' },
         { href: '/founder/approvals', label: 'Approvals' },
