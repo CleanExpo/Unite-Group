@@ -18,7 +18,7 @@ having been met.
 | `apps/autopilot-runner/` | `@unite/autopilot-runner` — Stage-3 Autopilot Runner, the hosted executor that lets the deployed Unite-Group app run the Linear autonomous loop unattended, off the Mac; lineage UNI-2143. |
 | `packages/spine/` | Unite-Group-Spine — greenfield shared-identity schema (gated, non-prod) |
 | `packages/pi-ceo-operator-mcp/` | Portfolio-health MCP server |
-| `docs/brain/` | Strategic knowledge vault (formerly brain-1) |
+| `docs/brain/` | Residual brain files (Drafts, NEXUS.md) — the strategic knowledge vault lives canonically at `~/2nd Brain/2nd Brain` (CleanExpo/brain-1); the stale `2nd Brain/` snapshot was removed 06/07/2026 after its 4 unique files were rescued to the canonical vault |
 | `docs/legacy/authority-site/` | Old Authority-Site docs |
 | `docs/convergence/` | Migration map + cutover & deletion runbook |
 | `.portfolio/PORTFOLIO.yaml` | Portfolio registry SSOT (moved here from Unite-Hub) |
