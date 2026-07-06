@@ -75,7 +75,7 @@ export async function fetchIssuesWithDueDates(): Promise<LinearIssueWithDue[]> {
       query IssuesWithDueDates {
         issues(
           filter: { dueDate: { null: false }, state: { type: { nin: ["cancelled", "completed"] } } }
-          orderBy: dueDate
+          orderBy: updatedAt
           first: 100
         ) {
           nodes {
@@ -94,7 +94,8 @@ export async function fetchIssuesWithDueDates(): Promise<LinearIssueWithDue[]> {
         }
       }
     `)
-    return data.issues.nodes
+    // Linear's orderBy enum only allows createdAt/updatedAt — sort by dueDate here.
+    return [...data.issues.nodes].sort((a, b) => a.dueDate.localeCompare(b.dueDate))
   } catch (err) {
     console.error('[Linear Board] fetchIssuesWithDueDates error:', err)
     return []
@@ -113,7 +114,7 @@ export async function fetchRecentlyCompletedIssues(since: Date): Promise<LinearC
       query RecentlyCompleted($since: DateTimeOrDuration) {
         issues(
           filter: { completedAt: { gte: $since }, state: { type: { eq: "completed" } } }
-          orderBy: completedAt
+          orderBy: updatedAt
           first: 50
         ) {
           nodes {
@@ -128,7 +129,8 @@ export async function fetchRecentlyCompletedIssues(since: Date): Promise<LinearC
         }
       }
     `, { since: since.toISOString() })
-    return data.issues.nodes
+    // Linear's orderBy enum only allows createdAt/updatedAt — sort by completedAt here.
+    return [...data.issues.nodes].sort((a, b) => b.completedAt.localeCompare(a.completedAt))
   } catch (err) {
     console.error('[Linear Board] fetchRecentlyCompletedIssues error:', err)
     return []
