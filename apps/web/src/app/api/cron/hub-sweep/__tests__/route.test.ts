@@ -63,14 +63,14 @@ function setupEnv() {
   process.env.FOUNDER_USER_ID = 'founder-uuid'
 }
 
-function setupSupabaseMocks() {
+function setupSupabaseMocks(opts: { businessRows?: Array<{ id: string; slug: string }> } = {}) {
   // advisory_cases query
   const advisoryChain = {
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
-    single: vi.fn().mockResolvedValue({ data: null, error: null }),
+    maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
   }
 
   // bookkeeper_runs query
@@ -79,6 +79,12 @@ function setupSupabaseMocks() {
     eq: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
     limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+  }
+
+  // businesses slug → id lookup
+  const businessesChain = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockResolvedValue({ data: opts.businessRows ?? [], error: null }),
   }
 
   // hub_satellites select (existing rows)
@@ -95,6 +101,7 @@ function setupSupabaseMocks() {
   mockFrom.mockImplementation((table: string) => {
     if (table === 'advisory_cases') return advisoryChain
     if (table === 'bookkeeper_runs') return bookkeeperChain
+    if (table === 'businesses') return businessesChain
     if (table === 'hub_satellites') {
       // Return select chain first, then upsert chain
       return {
@@ -105,7 +112,7 @@ function setupSupabaseMocks() {
     return hubUpsertChain
   })
 
-  return { advisoryChain, bookkeeperChain, hubSelectChain, hubUpsertChain }
+  return { advisoryChain, bookkeeperChain, businessesChain, hubSelectChain, hubUpsertChain }
 }
 
 // ---------------------------------------------------------------------------
@@ -182,6 +189,30 @@ describe('GET /api/cron/hub-sweep', () => {
     await GET(req)
 
     expect(mockFetchLastCommit).toHaveBeenCalledWith('CleanExpo', 'Synthex')
+  })
+
+  it('falls back to the registry repoUrl when the satellite row has none', async () => {
+    setupSupabaseMocks()
+    mockParseRepoUrl.mockReturnValue(null)
+
+    const req = makeRequest()
+    await GET(req)
+
+    // No satellite rows exist, so every owned business uses its registry default.
+    expect(mockParseRepoUrl).toHaveBeenCalledWith('https://github.com/CleanExpo/Disaster-Recovery')
+    expect(mockParseRepoUrl).toHaveBeenCalledWith('https://github.com/CleanExpo/Synthex')
+  })
+
+  it('queries MACAS verdicts per business via the businesses slug map', async () => {
+    const { advisoryChain } = setupSupabaseMocks({ businessRows: [{ id: 'biz-dr', slug: 'dr' }] })
+
+    const req = makeRequest()
+    await GET(req)
+
+    // Only 'dr' has a businesses row — advisory_cases is filtered by its id,
+    // and no proxy query runs for the other satellites.
+    expect(advisoryChain.eq).toHaveBeenCalledWith('business_id', 'biz-dr')
+    expect(advisoryChain.maybeSingle).toHaveBeenCalledTimes(1)
   })
 
   it('does NOT sweep CCW (client-type business)', async () => {

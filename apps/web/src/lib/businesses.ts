@@ -1,13 +1,16 @@
 // src/lib/businesses.ts
+// repoUrl: canonical GitHub repo per owned business — the hub sweep's default
+// when no repo_url has been set on the satellite row, so GitHub last-commit
+// data is live without manual seeding.
 export const BUSINESSES = [
-  { key: 'dr',      name: 'Disaster Recovery',   color: '#ef4444', status: 'active', type: 'owned'  },
-  { key: 'nrpg',   name: 'NRPG',                color: '#f97316', status: 'active', type: 'owned'  },
-  { key: 'carsi',  name: 'CARSI',               color: '#eab308', status: 'active', type: 'owned'  },
-  { key: 'restore', name: 'RestoreAssist',       color: '#22c55e', status: 'active', type: 'owned'  },
-  { key: 'synthex', name: 'SYNTHEX',             color: '#f97316', status: 'active', type: 'owned'  },
-  { key: 'ato',    name: 'ATO App',              color: '#3b82f6', status: 'active', type: 'owned'  },
-  { key: 'itr',    name: 'ITR-Button',           color: '#6366f1', status: 'active', type: 'owned'  },
-  { key: 'ccw',    name: 'CCW-ERP/CRM',          color: '#DDA0DD', status: 'active', type: 'client' },
+  { key: 'dr',      name: 'Disaster Recovery',   color: '#ef4444', status: 'active', type: 'owned', repoUrl: 'https://github.com/CleanExpo/Disaster-Recovery' },
+  { key: 'nrpg',   name: 'NRPG',                color: '#f97316', status: 'active', type: 'owned', repoUrl: 'https://github.com/CleanExpo/DR-NRPG' },
+  { key: 'carsi',  name: 'CARSI',               color: '#eab308', status: 'active', type: 'owned', repoUrl: 'https://github.com/CleanExpo/CARSI' },
+  { key: 'restore', name: 'RestoreAssist',       color: '#22c55e', status: 'active', type: 'owned', repoUrl: 'https://github.com/CleanExpo/RestoreAssist' },
+  { key: 'synthex', name: 'SYNTHEX',             color: '#f97316', status: 'active', type: 'owned', repoUrl: 'https://github.com/CleanExpo/Synthex' },
+  { key: 'ato',    name: 'ATO App',              color: '#3b82f6', status: 'active', type: 'owned', repoUrl: 'https://github.com/CleanExpo/ATO' },
+  { key: 'itr',    name: 'ITR-Button',           color: '#6366f1', status: 'active', type: 'owned', repoUrl: 'https://github.com/CleanExpo/ITR-Button' },
+  { key: 'ccw',    name: 'CCW-ERP/CRM',          color: '#DDA0DD', status: 'active', type: 'client', repoUrl: 'https://github.com/CleanExpo/CCW-CRM' },
 ] as const
 
 export type BusinessKey = typeof BUSINESSES[number]['key']
