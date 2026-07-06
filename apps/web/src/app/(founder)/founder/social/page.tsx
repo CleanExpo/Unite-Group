@@ -36,7 +36,7 @@ export default async function SocialPage({
     return (
       <div className="p-6">
         <PageHeader title="Social Platforms" subtitle="Authentication required" />
-        <p className="text-sm text-muted mt-4">Please log in to manage social connections.</p>
+        <p className="text-sm text-muted-foreground mt-4">Please log in to manage social connections.</p>
       </div>
     )
   }
@@ -66,12 +66,12 @@ export default async function SocialPage({
       )}
 
       <div className="flex items-center gap-4 text-sm">
-        <div className="border border-white/[0.08] px-4 py-2 rounded-sm" style={{ background: 'var(--surface-card)' }}>
-          <span className="text-muted">Configured:</span>{' '}
+        <div className="border border-black/[0.08] px-4 py-2 rounded-sm" style={{ background: 'var(--surface-card)' }}>
+          <span className="text-muted-foreground">Configured:</span>{' '}
           <span className="text-[#15803d]">{configuredCount}/{platforms.length}</span>
         </div>
-        <div className="border border-white/[0.08] px-4 py-2 rounded-sm" style={{ background: 'var(--surface-card)' }}>
-          <span className="text-muted">Connected:</span>{' '}
+        <div className="border border-black/[0.08] px-4 py-2 rounded-sm" style={{ background: 'var(--surface-card)' }}>
+          <span className="text-muted-foreground">Connected:</span>{' '}
           <span className="text-[#15803d]">{connectedCount}/{platforms.length}</span>
         </div>
       </div>
@@ -80,7 +80,7 @@ export default async function SocialPage({
         {platforms.map((platform) => (
           <div
             key={platform.key}
-            className="flex items-center justify-between border border-white/[0.08] px-5 py-4 rounded-sm"
+            className="flex items-center justify-between border border-black/[0.08] px-5 py-4 rounded-sm"
             style={{ background: 'var(--surface-card)' }}
           >
             <div className="flex items-center gap-4">
@@ -117,7 +117,7 @@ export default async function SocialPage({
                   href={platform.setupUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[10px] uppercase tracking-widest text-muted border border-white/[0.08] px-3 py-1.5 rounded-sm hover:border-white/20 transition-colors"
+                  className="text-[10px] uppercase tracking-widest text-muted-foreground border border-black/[0.08] px-3 py-1.5 rounded-sm hover:border-black/20 transition-colors"
                 >
                   Setup
                 </a>
@@ -128,7 +128,7 @@ export default async function SocialPage({
               ) : (
                 <a
                   href={`/api/social/${platform.key}/connect`}
-                  className="text-[10px] uppercase tracking-widest text-white border border-white/20 bg-white/[0.03] px-3 py-1.5 rounded-sm hover:bg-black/[0.05] transition-colors"
+                  className="text-[10px] uppercase tracking-widest text-[#15803d] border border-[#16a34a]/30 bg-[#16a34a]/[0.08] px-3 py-1.5 rounded-sm hover:bg-[#16a34a]/[0.15] transition-colors"
                 >
                   Connect
                 </a>
@@ -138,8 +138,8 @@ export default async function SocialPage({
         ))}
       </div>
 
-      <div className="mt-8 border border-white/[0.08] px-5 py-4 rounded-sm max-w-3xl" style={{ background: 'var(--surface-card)' }}>
-        <p className="text-[10px] uppercase tracking-[0.3em] text-muted mb-3">Setup Checklist</p>
+      <div className="mt-8 border border-black/[0.08] px-5 py-4 rounded-sm max-w-3xl" style={{ background: 'var(--surface-card)' }}>
+        <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-3">Setup Checklist</p>
         <div className="space-y-2">
           {platforms.map((platform) => (
             <div key={platform.key} className="flex items-center gap-2 text-xs">
@@ -164,7 +164,7 @@ export default async function SocialPage({
         </div>
       </div>
 
-      <div className="mt-6 text-xs text-muted">
+      <div className="mt-6 text-xs text-muted-foreground">
         <p>After creating apps on each platform, add their credentials to your environment variables.</p>
         <p className="mt-1">Then click Connect to authorize access. Tokens are stored encrypted in the vault.</p>
       </div>
