@@ -101,7 +101,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^5.2.2",
-    "@linear/sdk": "^38.0.0",
+    "@linear/sdk": "^88.0.0",
     "@opentelemetry/context-async-hooks": "^2.6.0",
     "@opentelemetry/core": "^2.6.0",
     "@opentelemetry/instrumentation": "^0.208.0",
