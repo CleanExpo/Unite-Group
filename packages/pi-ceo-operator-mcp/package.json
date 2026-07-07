@@ -13,17 +13,17 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6",
-    "skybridge": "^1.0.2",
-    "vite": "^8.0.3"
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "skybridge": "^1.2.4",
+    "vite": "^8.1.3"
   },
   "devDependencies": {
     "@skybridge/devtools": "^1.0.0",
     "@types/node": "^24.12.0",
-    "@types/react": "^19.2.15",
+    "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "alpic": "^1.104.1",
+    "alpic": "^1.148.1",
     "typescript": "^6.0.2"
   },
   "engines": {
