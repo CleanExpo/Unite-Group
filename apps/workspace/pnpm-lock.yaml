@@ -69,8 +69,8 @@ importers:
         specifier: ^0.17.0
         version: 0.17.0
       marked:
-        specifier: ^17.0.6
-        version: 17.0.6
+        specifier: ^18.0.5
+        version: 18.0.5
       motion:
         specifier: ^12.42.2
         version: 12.42.2(@emotion/is-prop-valid@1.4.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -4298,6 +4298,11 @@ packages:
 
   marked@17.0.6:
     resolution: {integrity: sha512-gB0gkNafnonOw0obSTEGZTT86IuhILt2Wfx0mWH/1Au83kybTayroZ/V6nS25mN7u8ASy+5fMhgB3XPNrOZdmA==}
+    engines: {node: '>= 20'}
+    hasBin: true
+
+  marked@18.0.5:
+    resolution: {integrity: sha512-S6GcvALHg6K4ohtu4E7x0a1AqhAjp6cV8KhLSyN9qVapnzJkusVBxZRcIU9AeYsbe6P1hKDusSbEOzGyyuce6w==}
     engines: {node: '>= 20'}
     hasBin: true
 
@@ -10746,6 +10751,8 @@ snapshots:
 
   marked@17.0.6: {}
 
+  marked@18.0.5: {}
+
   matcher@3.0.0:
     dependencies:
       escape-string-regexp: 4.0.0
@@ -11349,7 +11356,7 @@ snapshots:
 
   node-abi@4.33.0:
     dependencies:
-      semver: 7.7.4
+      semver: 7.8.5
 
   node-api-version@0.2.1:
     dependencies:
