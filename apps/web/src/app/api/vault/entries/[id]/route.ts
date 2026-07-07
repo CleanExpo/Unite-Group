@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
 import { encrypt, decrypt, type VaultPayload } from '@/lib/vault'
 import { sanitiseError } from '@/lib/error-reporting'
+import type { TablesUpdate } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
 
@@ -117,7 +118,7 @@ export async function PATCH(
 
   const { error } = await supabase
     .from('credentials_vault')
-    .update(update)
+    .update(update as TablesUpdate<'credentials_vault'>)
     .eq('id', id)
     .eq('founder_id', user.id)
 

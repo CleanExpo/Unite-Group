@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
 import { sanitiseError } from '@/lib/error-reporting'
+import type { TablesUpdate } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
 
@@ -56,7 +57,7 @@ export async function PATCH(
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('contacts')
-    .update(updates)
+    .update(updates as TablesUpdate<'contacts'>)
     .eq('id', id)
     .eq('founder_id', user.id)
     .select()

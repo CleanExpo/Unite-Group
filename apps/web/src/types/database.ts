@@ -3439,100 +3439,97 @@ export type Database = {
       }
       businesses: {
         Row: {
-          abn: string | null
-          acn: string | null
           arr_aud: number | null
-          business_hours: Json | null
-          country: string | null
-          created_at: string | null
-          description_long: string | null
-          description_medium: string | null
-          description_short: string | null
-          email: string | null
+          created_at: string
+          description: string | null
+          domain: string | null
+          founder_id: string
+          github_repo: string | null
           id: string
-          latitude: number | null
-          legal_name: string
-          licenses: Json | null
-          longitude: number | null
-          phone: string
-          phone_format: string | null
-          postcode: string
-          primary_category: string | null
-          secondary_categories: string[] | null
-          service_areas: string[] | null
-          service_radius_km: number | null
-          social_profiles: Json | null
-          state: string
-          street_address: string
-          suburb: string
-          trading_name: string | null
-          updated_at: string | null
-          user_id: string
+          is_sandbox: boolean
+          key_risks: string | null
+          linear_project_id: string | null
+          linear_team_id: string | null
+          metadata: Json
+          mission: string | null
+          name: string
+          pi_ceo_key: string | null
+          positioning: string | null
+          railway_service_id: string | null
+          slug: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_current_period_end: string | null
+          subscription_status: string | null
+          subscription_tier: string | null
+          supabase_project_ref: string | null
+          updated_at: string
+          vercel_project: string | null
           website_url: string | null
+          wiki_slug: string | null
         }
         Insert: {
-          abn?: string | null
-          acn?: string | null
           arr_aud?: number | null
-          business_hours?: Json | null
-          country?: string | null
-          created_at?: string | null
-          description_long?: string | null
-          description_medium?: string | null
-          description_short?: string | null
-          email?: string | null
+          created_at?: string
+          description?: string | null
+          domain?: string | null
+          founder_id: string
+          github_repo?: string | null
           id?: string
-          latitude?: number | null
-          legal_name: string
-          licenses?: Json | null
-          longitude?: number | null
-          phone: string
-          phone_format?: string | null
-          postcode: string
-          primary_category?: string | null
-          secondary_categories?: string[] | null
-          service_areas?: string[] | null
-          service_radius_km?: number | null
-          social_profiles?: Json | null
-          state: string
-          street_address: string
-          suburb: string
-          trading_name?: string | null
-          updated_at?: string | null
-          user_id: string
+          is_sandbox?: boolean
+          key_risks?: string | null
+          linear_project_id?: string | null
+          linear_team_id?: string | null
+          metadata?: Json
+          mission?: string | null
+          name: string
+          pi_ceo_key?: string | null
+          positioning?: string | null
+          railway_service_id?: string | null
+          slug: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_current_period_end?: string | null
+          subscription_status?: string | null
+          subscription_tier?: string | null
+          supabase_project_ref?: string | null
+          updated_at?: string
+          vercel_project?: string | null
           website_url?: string | null
+          wiki_slug?: string | null
         }
         Update: {
-          abn?: string | null
-          acn?: string | null
           arr_aud?: number | null
-          business_hours?: Json | null
-          country?: string | null
-          created_at?: string | null
-          description_long?: string | null
-          description_medium?: string | null
-          description_short?: string | null
-          email?: string | null
+          created_at?: string
+          description?: string | null
+          domain?: string | null
+          founder_id?: string
+          github_repo?: string | null
           id?: string
-          latitude?: number | null
-          legal_name?: string
-          licenses?: Json | null
-          longitude?: number | null
-          phone?: string
-          phone_format?: string | null
-          postcode?: string
-          primary_category?: string | null
-          secondary_categories?: string[] | null
-          service_areas?: string[] | null
-          service_radius_km?: number | null
-          social_profiles?: Json | null
-          state?: string
-          street_address?: string
-          suburb?: string
-          trading_name?: string | null
-          updated_at?: string | null
-          user_id?: string
+          is_sandbox?: boolean
+          key_risks?: string | null
+          linear_project_id?: string | null
+          linear_team_id?: string | null
+          metadata?: Json
+          mission?: string | null
+          name?: string
+          pi_ceo_key?: string | null
+          positioning?: string | null
+          railway_service_id?: string | null
+          slug?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_current_period_end?: string | null
+          subscription_status?: string | null
+          subscription_tier?: string | null
+          supabase_project_ref?: string | null
+          updated_at?: string
+          vercel_project?: string | null
           website_url?: string | null
+          wiki_slug?: string | null
         }
         Relationships: []
       }
@@ -9164,46 +9161,64 @@ export type Database = {
       }
       nexus_pages: {
         Row: {
+          archived_at: string | null
+          body: Json | null
           business_id: string | null
-          content: Json
           cover_url: string | null
-          created_at: string
-          founder_id: string
+          created_at: string | null
+          embedding: string | null
           icon: string | null
           id: string
-          is_published: boolean
+          is_favorite: boolean | null
+          is_template: boolean | null
+          owner_id: string
+          page_type: string | null
           parent_id: string | null
-          sort_order: number
+          properties: Json | null
+          sort_order: number | null
           title: string
-          updated_at: string
+          updated_at: string | null
+          workspace_id: string | null
         }
         Insert: {
+          archived_at?: string | null
+          body?: Json | null
           business_id?: string | null
-          content?: Json
           cover_url?: string | null
-          created_at?: string
-          founder_id: string
+          created_at?: string | null
+          embedding?: string | null
           icon?: string | null
           id?: string
-          is_published?: boolean
+          is_favorite?: boolean | null
+          is_template?: boolean | null
+          owner_id: string
+          page_type?: string | null
           parent_id?: string | null
-          sort_order?: number
+          properties?: Json | null
+          sort_order?: number | null
           title?: string
-          updated_at?: string
+          updated_at?: string | null
+          workspace_id?: string | null
         }
         Update: {
+          archived_at?: string | null
+          body?: Json | null
           business_id?: string | null
-          content?: Json
           cover_url?: string | null
-          created_at?: string
-          founder_id?: string
+          created_at?: string | null
+          embedding?: string | null
           icon?: string | null
           id?: string
-          is_published?: boolean
+          is_favorite?: boolean | null
+          is_template?: boolean | null
+          owner_id?: string
+          page_type?: string | null
           parent_id?: string | null
-          sort_order?: number
+          properties?: Json | null
+          sort_order?: number | null
           title?: string
-          updated_at?: string
+          updated_at?: string | null
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -9217,31 +9232,37 @@ export type Database = {
       }
       nexus_rows: {
         Row: {
-          created_at: string
+          archived_at: string | null
+          cells: Json | null
+          created_at: string | null
           database_id: string
-          founder_id: string
           id: string
-          properties: Json
-          sort_order: number
-          updated_at: string
+          owner_id: string
+          sort_order: number | null
+          starred: boolean | null
+          updated_at: string | null
         }
         Insert: {
-          created_at?: string
+          archived_at?: string | null
+          cells?: Json | null
+          created_at?: string | null
           database_id: string
-          founder_id: string
           id?: string
-          properties?: Json
-          sort_order?: number
-          updated_at?: string
+          owner_id: string
+          sort_order?: number | null
+          starred?: boolean | null
+          updated_at?: string | null
         }
         Update: {
-          created_at?: string
+          archived_at?: string | null
+          cells?: Json | null
+          created_at?: string | null
           database_id?: string
-          founder_id?: string
           id?: string
-          properties?: Json
-          sort_order?: number
-          updated_at?: string
+          owner_id?: string
+          sort_order?: number | null
+          starred?: boolean | null
+          updated_at?: string | null
         }
         Relationships: [
           {
