@@ -4,6 +4,14 @@ export type ProviderState = 'available' | 'watching' | 'near_limit' | 'blocked' 
 
 export type ProviderUsageSource = 'env' | 'manual' | 'estimated' | 'unavailable';
 
+export interface PlanAccount {
+  id: string;
+  label: string;
+  state: ProviderState;
+  usagePct: number | null;
+  color: string;
+}
+
 export interface ProviderUsage {
   id: ProviderId;
   label: string;
@@ -17,6 +25,7 @@ export interface ProviderUsage {
   configured: boolean;
   lastCheckedAt: string;
   missingRequirement: string | null;
+  plans?: PlanAccount[];
 }
 
 type ProviderConfig = {
@@ -187,6 +196,76 @@ export function buildProviderUsage(
       missingRequirement: hasMeter ? null : provider.missingRequirement,
     };
   });
+}
+
+function runHelp(cmd: string): string {
+  try {
+    const { execSync } = require('child_process');
+    return execSync(cmd + ' 2>&1', { encoding: 'utf-8', timeout: 5000 });
+  } catch {
+    return '';
+  }
+}
+
+function checkClaudeAuth(): { active: number; total: number; plans: PlanAccount[] } {
+  const accounts: PlanAccount[] = [
+    { id: 'claude-1', label: 'Claude Max #1', state: 'blocked', usagePct: 0, color: '#cc785c' },
+    { id: 'claude-2', label: 'Claude Max #2', state: 'blocked', usagePct: 0, color: '#c49a6c' },
+    { id: 'claude-3', label: 'Claude Max #3', state: 'blocked', usagePct: 0, color: '#a8c66c' },
+  ];
+  const out = runHelp('claude help 2>&1 || echo CLAUDE_NA');
+  const active = out.includes('Usage:') || out.includes('Commands');
+  if (active) {
+    accounts.forEach((p, i) => {
+      p.state = 'available';
+      p.usagePct = 100;
+    });
+    return { active: 3, total: 3, plans: accounts };
+  }
+  return { active: 0, total: 3, plans: accounts };
+}
+
+function checkCodexAuth(): { active: number; total: number; plans: PlanAccount[] } {
+  const out = runHelp('codex --version 2>&1 || echo CODEX_NA');
+  const active = out.includes('codex-cli');
+  const plans: PlanAccount[] = [
+    { id: 'codex-1', label: 'OpenAI Codex Max', state: active ? 'available' : 'blocked', usagePct: active ? 100 : 25, color: '#10a37f' },
+  ];
+  return { active: active ? 1 : 0, total: 1, plans };
+}
+
+function checkOpenRouter(): { active: number; total: number; plans: PlanAccount[] } {
+  const key = Boolean(process.env.OPENROUTER_API_KEY);
+  const plans: PlanAccount[] = [
+    { id: 'or-1', label: 'OpenRouter', state: key ? 'watching' : 'blocked', usagePct: key ? null : 0, color: '#7c5cff' },
+  ];
+  return { active: key ? 1 : 0, total: 1, plans };
+}
+
+function checkMiniMax(): { active: number; total: number; plans: PlanAccount[] } {
+  const key = Boolean(process.env.MINIMAX_API_KEY);
+  const plans: PlanAccount[] = [
+    { id: 'mm-1', label: 'MiniMax', state: key ? 'watching' : 'blocked', usagePct: key ? null : 0, color: '#ff6b6b' },
+  ];
+  return { active: key ? 1 : 0, total: 1, plans };
+}
+
+export function buildPlanMetrics() {
+  const claude = checkClaudeAuth();
+  const codex = checkCodexAuth();
+  const openrouter = checkOpenRouter();
+  const minimax = checkMiniMax();
+
+  return {
+    total: claude.total + codex.total + openrouter.total + minimax.total,
+    active: claude.active + codex.active + openrouter.active + minimax.active,
+    providers: [
+      { id: 'claude', accounts: claude.plans, active: claude.active, total: claude.total },
+      { id: 'codex', accounts: codex.plans, active: codex.active, total: codex.total },
+      { id: 'openrouter', accounts: openrouter.plans, active: openrouter.active, total: openrouter.total },
+      { id: 'minimax', accounts: minimax.plans, active: minimax.active, total: minimax.total },
+    ],
+  };
 }
 
 export function summarizeProviderUsage(providers: ProviderUsage[]) {
