@@ -31,8 +31,6 @@ export async function DELETE(request: Request) {
   // Explicit deletes for tables that may lack CASCADE from auth.users
   const tables = [
     'contacts',
-    'nexus_pages',
-    'nexus_rows',
     'credentials_vault',
     'approval_queue',
     'social_channels',
@@ -49,6 +47,12 @@ export async function DELETE(request: Request) {
 
   for (const table of tables) {
     await supabase.from(table).delete().eq('founder_id', founderId)
+  }
+
+  // nexus_* is the older owner_id-scoped sub-system (no founder_id column) —
+  // deleting by founder_id silently removed nothing for these two tables.
+  for (const table of ['nexus_pages', 'nexus_rows'] as const) {
+    await supabase.from(table).delete().eq('owner_id', founderId)
   }
 
   // Delete the auth user — cascades FK-linked tables (experiments, nexus_databases, etc.)

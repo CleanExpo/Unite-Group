@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
 import { captureApiError } from '@/lib/error-reporting'
+import type { TablesUpdate } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,7 +33,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  const updates: Record<string, unknown> = {}
+  const updates: TablesUpdate<'hub_satellites'> = {}
   if (body.notes !== undefined) updates.notes = body.notes
   if (body.stack !== undefined) updates.stack = body.stack
   if (body.repoUrl !== undefined) updates.repo_url = body.repoUrl

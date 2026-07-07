@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import { getUser, createClient } from '@/lib/supabase/server'
 import { sanitiseError } from '@/lib/error-reporting'
+import type { TablesUpdate } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,7 +28,7 @@ export async function PATCH(
   }
 
   // Only allow explicit fields — never spread body directly to prevent field injection
-  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() }
+  const patch: TablesUpdate<'ceo_decisions'> = { updated_at: new Date().toISOString() }
   if (body.status       !== undefined) patch.status       = body.status
   if (body.rationale    !== undefined) patch.rationale    = body.rationale
   if (body.amount_aud   !== undefined) patch.amount_aud   = body.amount_aud
