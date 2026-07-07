@@ -322,8 +322,8 @@ importers:
         specifier: ^2.14.6
         version: 2.14.6(@types/node@20.19.41)(typescript@5.9.3)
       open:
-        specifier: ^10.1.0
-        version: 10.2.0
+        specifier: ^11.0.0
+        version: 11.0.0
       ora:
         specifier: ^8.1.1
         version: 8.2.0
@@ -10517,7 +10517,7 @@ snapshots:
   '@dxup/nuxt@0.3.2(magicast@0.5.3)':
     dependencies:
       '@dxup/unimport': 0.1.2
-      '@nuxt/kit': 4.3.1(magicast@0.5.3)
+      '@nuxt/kit': 4.4.8(magicast@0.5.3)
       chokidar: 5.0.0
       pathe: 2.0.3
       tinyglobby: 0.2.17
@@ -17982,6 +17982,7 @@ snapshots:
       define-lazy-prop: 3.0.0
       is-inside-container: 1.0.0
       wsl-utils: 0.1.0
+    optional: true
 
   open@11.0.0:
     dependencies:
@@ -20753,6 +20754,7 @@ snapshots:
   wsl-utils@0.1.0:
     dependencies:
       is-wsl: 3.1.1
+    optional: true
 
   wsl-utils@0.3.1:
     dependencies:
