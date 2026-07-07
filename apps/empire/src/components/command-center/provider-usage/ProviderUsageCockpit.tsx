@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { DegradedDataBanner } from '../DegradedDataBanner';
 import { SourceBadge, type SourceMode } from '../SourceBadge';
-import type { ProviderUsage, ProviderState } from '@/lib/mission-control/provider-usage';
+import type { ProviderUsage, ProviderState, PlanAccount } from '@/lib/mission-control/provider-usage';
 
 type ProviderUsagePayload = {
   source: string;
@@ -17,6 +17,16 @@ type ProviderUsagePayload = {
     near_limit: number;
     blocked: number;
     unknown: number;
+  };
+  planMetrics?: {
+    total: number;
+    active: number;
+    providers: {
+      id: string;
+      accounts: PlanAccount[];
+      active: number;
+      total: number;
+    }[];
   };
 };
 
@@ -84,6 +94,7 @@ export function ProviderUsageCockpit({ initialPayload }: { initialPayload?: Prov
 
   const providers = payload?.providers ?? [];
   const summary = payload?.summary;
+  const planMetrics = payload?.planMetrics;
   const blocked = summary ? summary.blocked + summary.unknown : 0;
 
   return (
@@ -145,6 +156,55 @@ export function ProviderUsageCockpit({ initialPayload }: { initialPayload?: Prov
           </div>
         )}
       </div>
+
+      {planMetrics && (
+        <div
+          className="flex flex-col gap-4 px-6 py-5"
+          style={{
+            background: 'var(--cc-bg)',
+            borderTop: '1px solid var(--cc-grid)',
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-1">
+              <span
+                className="font-mono text-[11px] uppercase tracking-[0.22em]"
+                style={{ color: 'var(--cc-ink-dim)' }}
+              >
+                Plan Breakdown
+              </span>
+              <span className="text-sm" style={{ color: 'var(--cc-ink-hush)' }}>
+                Individual account usage with MoA routing
+              </span>
+            </div>
+            <div
+              className="flex items-center gap-2 rounded-full px-3 py-1 font-mono text-[10px] uppercase tracking-[0.14em]"
+              style={{
+                background: planMetrics.active > 0 ? 'rgba(16,185,129,0.10)' : 'rgba(239,68,68,0.10)',
+                color: planMetrics.active > 0 ? 'var(--cc-ink)' : 'var(--cc-signal)',
+              }}
+            >
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: planMetrics.active > 0 ? '#10b981' : 'var(--cc-signal)',
+                }}
+              />
+              CMUX {planMetrics.active}/{planMetrics.total} Active
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {planMetrics.providers.map((group) =>
+              group.accounts.map((plan) => (
+                <PlanBar key={plan.id} plan={plan} />
+              ))
+            )}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -219,12 +279,64 @@ function ProviderMeter({ provider }: { provider: ProviderUsage }) {
       <div className="space-y-2 text-xs leading-relaxed" style={{ color: 'var(--cc-ink-dim)' }}>
         <p>{provider.bestUse}</p>
         <p className="font-mono text-[10px] uppercase tracking-[0.14em]" style={{ color: 'var(--cc-ink-hush)' }}>
-          {provider.usageSource} · reset {provider.resetCadence}
+          {provider.usageSource} {provider.resetCadence}
         </p>
         {provider.missingRequirement && (
           <p style={{ color: 'var(--cc-signal)' }}>{provider.missingRequirement}</p>
         )}
       </div>
     </article>
+  );
+}
+
+function PlanBar({ plan }: { plan: PlanAccount }) {
+  const color = stateColor(plan.state);
+  const pct = plan.usagePct ?? 0;
+  const opacity = plan.usagePct === null ? 0.34 : 1;
+
+  return (
+    <div
+      className="flex items-center gap-3 rounded-lg px-4 py-3"
+      style={{ background: 'var(--cc-bg-soft)', border: '1px solid var(--cc-grid)' }}
+    >
+      <div
+        className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg"
+        style={{ background: `${plan.color}14`, color: plan.color }}
+      >
+        <span className="font-mono text-[10px] font-bold uppercase">
+          {plan.label.substring(0, 2)}
+        </span>
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium" style={{ color: 'var(--cc-ink)' }}>
+            {plan.label}
+          </span>
+          <span
+            className="rounded px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em]"
+            style={{
+              background: plan.state === 'available' ? 'rgba(16,185,129,0.12)' : plan.state === 'blocked' ? 'rgba(239,68,68,0.12)' : 'rgba(100,116,139,0.12)',
+              color,
+            }}
+          >
+            {STATE_LABELS[plan.state]}
+          </span>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full" style={{ background: 'var(--cc-grid)' }}>
+          <div
+            className="h-full rounded-full"
+            style={{
+              width: `${pct}%`,
+              background: plan.color,
+              opacity,
+              transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+            }}
+          />
+        </div>
+        <span className="font-mono text-[9px] uppercase tracking-[0.12em]" style={{ color: 'var(--cc-ink-hush)' }}>
+          {plan.usagePct !== null ? `${plan.usagePct}%` : 'no meter'}
+        </span>
+      </div>
+    </div>
   );
 }
