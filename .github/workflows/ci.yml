@@ -128,7 +128,9 @@ jobs:
     needs: [web]
     # Opt-in gate: set the E2E_ENABLED repo variable to 'true' and wire the
     # E2E_SUPABASE_* secrets (pointing to the dedicated non-prod e2e-gate branch).
-    if: vars.E2E_ENABLED == 'true'
+    # Dependabot-triggered runs cannot read repo secrets (GitHub policy), so the
+    # E2E lane would always fail on the placeholder key — skip it for dependabot.
+    if: vars.E2E_ENABLED == 'true' && github.actor != 'dependabot[bot]'
     defaults:
       run:
         working-directory: apps/web
