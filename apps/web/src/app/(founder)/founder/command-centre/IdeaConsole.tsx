@@ -13,6 +13,7 @@
 // honestly — success is only ever claimed on a 2xx response.
 
 import { useId, useRef, useState } from 'react'
+import Link from 'next/link'
 import styles from './idea-console.module.css'
 
 // ── Mirror of the API response shapes we actually render ──────────────────────
@@ -463,7 +464,18 @@ export function IdeaConsole({ projects }: { projects: IdeaConsoleProject[] }) {
               <span className={styles.cardTitle}>{task.title}</span>
               <span className={styles.chip}>{task.status}</span>
             </div>
-            <span className={styles.taskId}>id · {task.id}</span>
+            <span className={styles.taskId}>
+              id · {task.id}
+              {' · '}
+              {/* UNI-2341: the Visual Campaign Studio requires ?taskId= and had
+                  no caller anywhere — this is its one entry point. */}
+              <Link
+                href={`/founder/command-centre/studio?taskId=${encodeURIComponent(task.id)}`}
+                style={{ textDecoration: 'underline', textUnderlineOffset: 3 }}
+              >
+                open in Studio ↗
+              </Link>
+            </span>
           </div>
         )}
 

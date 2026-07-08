@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import {
   ADD_ON_GATES,
   CONTROL_WORKSTREAMS,
@@ -186,6 +187,22 @@ export function HermesControlPanel({ initialPayload }: HermesControlPanelProps =
             Command-centre operating spine
           </h2>
           <SourceBadge mode={badgeMode} label={badgeLabel} lastUpdatedAt={payload?.generatedAt} />
+          {/* UNI-2341: forward links to the two sub-consoles that were orphaned
+              (working routes, zero inbound links anywhere in the app). */}
+          <span className="flex flex-wrap gap-3 font-mono text-[11px]" style={{ color: 'var(--cc-ink-dim)' }}>
+            <Link
+              href="/founder/command-centre/hermes-control-panel"
+              style={{ color: 'var(--cc-ink-dim)', textDecoration: 'underline', textUnderlineOffset: 3 }}
+            >
+              Modules &amp; security ↗
+            </Link>
+            <Link
+              href="/founder/command-centre/operator-gateway"
+              style={{ color: 'var(--cc-ink-dim)', textDecoration: 'underline', textUnderlineOffset: 3 }}
+            >
+              Operator gateway ↗
+            </Link>
+          </span>
         </div>
 
         <div
