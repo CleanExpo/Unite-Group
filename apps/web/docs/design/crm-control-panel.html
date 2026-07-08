@@ -6,100 +6,112 @@
 <title>Unite-Group Nexus — CRM Control Panel · Design Canvas</title>
 <!--
   CRM CONTROL PANEL — DESIGN CANVAS (self-contained, opens anywhere, no build).
-  Register:            Gun Metal + Candy Red, GLASSMORPHIC (frosted depth, ambient light).
+  Register:            Gun Metal + Candy Red, GLASSMORPHIC (frosted depth, ambient light, grain).
   Design constitution: .claude/DESIGN.md (Gun Metal + Candy Red, Phill's 7 rules).
   Layout thesis:       docs/UNITE_COMMAND_CENTER_UI_UX_BRIEF.md
                        (dark graphite, very limited accent, three-column, evidence-led).
   Information arch:    spec.md §8 (single signal accent, provenance, recommendation-only).
   Resolves the drift:  supersedes the light candy-green Command Deck + bright-cyan
                        Scientific Luxury as the CEO/Control-Panel register.
-  Anti-slop:           NO purple gradients (DESIGN.md Rule 3). Accent light is Gun Metal
-                       graphite + a single low-opacity Candy-Red ember — signal, not decoration.
+  Anti-slop:           NO purple gradients (DESIGN.md Rule 3). The only chroma in the
+                       ambient light is Gun-Metal graphite + a single low-opacity Candy-Red
+                       ember. Grain, drift and specular edges create depth — not colour.
 -->
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
   /* ============================================================= TOKENS */
   :root{
     /* Gun Metal ground (DESIGN.md CEO register) */
-    --canvas:      #0b0d11;   /* base — a touch deeper so glass reads */
-    --surface-1:   #14171d;   /* solid panel reference */
-    --surface-2:   #191d24;   /* raised panel / row hover */
-    --surface-3:   #21262f;   /* input, chip */
-    --line:        #262c36;   /* hairline border */
+    --canvas:      #090b0e;   /* base — deep so glass and grain read */
+    --surface-1:   #14171d;
+    --surface-2:   #191d24;
+    --surface-3:   #21262f;
+    --line:        #262c36;
     --line-soft:   #1b2027;
 
-    /* Glass — translucent layers that sit over the ambient ground */
-    --glass-1:     rgba(22, 26, 33, 0.58);   /* standard panel */
-    --glass-2:     rgba(28, 33, 42, 0.62);   /* raised / interactive */
-    --glass-3:     rgba(34, 40, 51, 0.55);   /* chips, deals */
-    --glass-hi:    rgba(255, 255, 255, 0.055);/* top inner highlight */
-    --glass-brd:   rgba(255, 255, 255, 0.075);/* frosted edge */
-    --blur:        blur(22px) saturate(140%);
-    --blur-lite:   blur(12px) saturate(130%);
+    /* Glass — translucent layers over the ambient ground */
+    --glass-1:     rgba(21, 25, 32, 0.55);
+    --glass-2:     rgba(28, 33, 42, 0.60);
+    --glass-3:     rgba(34, 40, 51, 0.52);
+    --glass-hi:    rgba(255, 255, 255, 0.06);   /* top inner highlight */
+    --glass-brd:   rgba(255, 255, 255, 0.08);   /* frosted edge */
+    --blur:        blur(26px) saturate(145%);
+    --blur-lite:   blur(14px) saturate(135%);
 
     /* Ink */
-    --ink:         #eef1f5;   /* primary text  ~15.8:1 on canvas */
-    --ink-dim:     #a4adba;   /* secondary     ~7.4:1 */
-    --ink-hush:    #6b7686;   /* tertiary/meta ~4.6:1 (AA body-min, use sparingly) */
+    --ink:         #f0f3f7;
+    --ink-dim:     #a6afbc;
+    --ink-hush:    #6d7887;
 
-    /* Signal — ONE accent, reserved for signal states only (DESIGN.md Rule 3) */
-    --red:         #b30000;   /* Candy Red — primary action / approval-required / live-blocking */
-    --red-bright:  #e5484d;   /* red on dark for text/borders — AA-safe */
-    --orange:      #e07020;   /* CEO secondary — caution / waiting */
-    --green:       #00a854;   /* CEO success — running / healthy / approved */
-    --green-txt:   #34d399;   /* green as text on dark — AA-safe */
+    /* Signal — ONE accent, signal states only (DESIGN.md Rule 3) */
+    --red:         #b30000;
+    --red-bright:  #e5484d;
+    --orange:      #e07020;
+    --green:       #00a854;
+    --green-txt:   #34d399;
     --amber-txt:   #f0a94c;
 
     /* Radius — CEO register: sharp 4–6px */
     --r-sm: 4px;
     --r-md: 6px;
+    --r-lg: 8px;
 
-    /* Depth — layered, physical shadows (ambient + key + inset highlight) */
-    --sh-1: 0 1px 0 var(--glass-hi) inset, 0 8px 24px -12px rgba(0,0,0,.7), 0 1px 2px rgba(0,0,0,.4);
-    --sh-2: 0 1px 0 var(--glass-hi) inset, 0 18px 48px -20px rgba(0,0,0,.85), 0 2px 6px rgba(0,0,0,.5);
-    --sh-red: 0 0 0 1px rgba(229,72,77,.35), 0 8px 30px -10px rgba(179,0,0,.35);
+    /* Depth — layered physical shadows (ambient occlusion + key + rim highlight) */
+    --sh-1: 0 1px 0 var(--glass-hi) inset, 0 10px 28px -14px rgba(0,0,0,.72), 0 1px 2px rgba(0,0,0,.45);
+    --sh-2: 0 1px 0 var(--glass-hi) inset, 0 22px 56px -22px rgba(0,0,0,.9), 0 3px 8px rgba(0,0,0,.55);
+    --sh-red: 0 0 0 1px rgba(229,72,77,.4), 0 10px 34px -12px rgba(179,0,0,.42);
 
-    /* Motion — signature "rise", expo easing */
     --ease: cubic-bezier(0.19, 1, 0.22, 1);
-
     --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
     --sans: 'Inter', system-ui, -apple-system, sans-serif;
+
+    --tnum: tabular-nums;
   }
 
   *{ box-sizing:border-box; }
   html,body{ margin:0; color:var(--ink);
     font-family:var(--sans); font-size:14px; line-height:1.45;
-    -webkit-font-smoothing:antialiased; }
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
   h1,h2,h3,h4{ margin:0; font-weight:700; letter-spacing:-0.01em; }
   a{ color:inherit; }
   ::selection{ background:rgba(229,72,77,.28); }
+  .num{ font-variant-numeric:var(--tnum); }
 
   /* ------------------------------------------------ AMBIENT GROUND
-     The light behind the glass. Gun-Metal graphite pools + ONE faint
-     Candy-Red ember low-right. No purple, no rainbow — signal, not decoration. */
+     Light behind the glass: Gun-Metal graphite pools + ONE faint Candy-Red ember.
+     A second fixed layer slowly drifts, so the light feels alive, never flat.
+     No purple, no rainbow — depth from luminance, not chroma. */
   body{
     background:
-      radial-gradient(1100px 720px at 14% -8%,  rgba(60,72,92,.28), transparent 60%),
-      radial-gradient(900px 620px at 108% 118%, rgba(179,0,0,.10),  transparent 55%),
-      radial-gradient(700px 700px at 92% -20%,  rgba(38,44,54,.6),   transparent 60%),
+      radial-gradient(1200px 780px at 12% -10%, rgba(64,78,100,.30), transparent 60%),
+      radial-gradient(760px 760px at 92% -22%, rgba(40,47,58,.62), transparent 60%),
       var(--canvas);
-    background-attachment:fixed;
-    min-height:100vh;
+    background-attachment:fixed; min-height:100vh; overflow-x:hidden;
   }
-  /* faint precision grid — reads as an engineering plane, barely there */
+  /* drifting ember + cool pool — the "alive" layer */
   body::before{
-    content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
-    background-image:
-      linear-gradient(rgba(255,255,255,.014) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,.014) 1px, transparent 1px);
-    background-size:52px 52px;
-    mask-image:radial-gradient(1200px 800px at 30% 0%, #000 30%, transparent 80%);
+    content:''; position:fixed; inset:-20% -10% -10% -10%; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(680px 520px at 106% 116%, rgba(179,0,0,.11), transparent 55%),
+      radial-gradient(560px 620px at -6% 70%, rgba(56,70,92,.20), transparent 60%);
+    animation:drift 34s var(--ease) infinite alternate;
   }
+  @keyframes drift{
+    0%  { transform:translate3d(0,0,0) scale(1); }
+    100%{ transform:translate3d(-2.2%, -1.6%, 0) scale(1.06); }
+  }
+  /* frosted grain — authentic glass micro-texture, barely there */
+  body::after{
+    content:''; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.5;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    mix-blend-mode:overlay;
+  }
+  @media (prefers-reduced-motion: reduce){ body::before{ animation:none; } }
 
   /* rise reveal */
   @keyframes rise { from{ opacity:0; transform:translateY(10px);} to{ opacity:1; transform:none;} }
-  .rise{ animation:rise .55s var(--ease) both; }
+  .rise{ animation:rise .6s var(--ease) both; }
 
   /* breathing pulse — gated to genuinely live/blocking states only */
   @keyframes breathe { 0%,100%{ opacity:1;} 50%{ opacity:.35;} }
@@ -110,53 +122,77 @@
   @media (prefers-reduced-motion: reduce){ .rise,.live-dot.blocking{ animation:none; } }
 
   /* ============================================================= SHELL */
-  .app{ position:relative; z-index:1; display:grid; grid-template-columns:216px 1fr; min-height:100vh; }
+  .app{ position:relative; z-index:1; display:grid; grid-template-columns:220px 1fr; min-height:100vh; }
 
   /* left rail — vertical frosted glass slab */
-  .rail{ position:sticky; top:0; height:100vh; overflow:auto; padding:16px 12px;
-    background:linear-gradient(180deg, rgba(20,24,31,.72), rgba(13,15,19,.66));
+  .rail{ position:sticky; top:0; height:100vh; overflow:auto; padding:18px 13px;
+    background:linear-gradient(180deg, rgba(20,24,31,.74), rgba(12,14,18,.66));
     backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur);
     border-right:1px solid var(--glass-brd);
-    box-shadow:1px 0 0 rgba(0,0,0,.4), 8px 0 30px -18px rgba(0,0,0,.8); }
-  .brand{ display:flex; align-items:center; gap:9px; padding:6px 8px 16px; }
-  .brand .logo{ width:30px; height:30px; display:grid; place-items:center; border-radius:var(--r-sm);
-    background:linear-gradient(150deg, rgba(229,72,77,.18), rgba(179,0,0,.06));
-    border:1px solid rgba(229,72,77,.28); box-shadow:0 0 18px -6px rgba(179,0,0,.5), var(--glass-hi) 0 1px 0 inset; }
-  .brand b{ font-size:13.5px; letter-spacing:.02em; }
+    box-shadow:1px 0 0 rgba(0,0,0,.4), 10px 0 34px -20px rgba(0,0,0,.85); }
+  .brand{ display:flex; align-items:center; gap:10px; padding:4px 8px 18px; }
+  .brand .logo{ width:32px; height:32px; display:grid; place-items:center; border-radius:var(--r-sm);
+    background:linear-gradient(150deg, rgba(229,72,77,.2), rgba(179,0,0,.05));
+    border:1px solid rgba(229,72,77,.3);
+    box-shadow:0 0 22px -6px rgba(179,0,0,.6), 0 1px 0 var(--glass-hi) inset; }
+  .brand b{ font-size:14px; letter-spacing:.02em; }
   .brand span{ color:var(--ink-hush); font-size:11px; font-family:var(--mono); display:block; margin-top:1px; }
   .navlbl{ font-family:var(--mono); font-size:10px; text-transform:uppercase;
-    letter-spacing:.14em; color:var(--ink-hush); padding:14px 8px 6px; }
-  .navitem{ position:relative; display:flex; align-items:center; gap:10px; padding:7px 9px; border-radius:var(--r-sm);
+    letter-spacing:.15em; color:var(--ink-hush); padding:15px 8px 6px; }
+  .navitem{ position:relative; display:flex; align-items:center; gap:10px; padding:8px 9px; border-radius:var(--r-sm);
     color:var(--ink-dim); cursor:pointer; font-size:13px; user-select:none;
-    transition:background .2s var(--ease), color .2s var(--ease), transform .2s var(--ease); }
+    transition:background .22s var(--ease), color .22s var(--ease), transform .22s var(--ease); }
   .navitem:hover{ background:var(--glass-2); color:var(--ink); transform:translateX(2px); }
   .navitem.active{ color:var(--ink);
-    background:linear-gradient(90deg, rgba(229,72,77,.14), rgba(229,72,77,.02));
-    box-shadow:inset 2px 0 0 var(--red-bright), 0 0 24px -12px rgba(179,0,0,.6); }
-  .navitem .count{ margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--ink-hush); }
+    background:linear-gradient(90deg, rgba(229,72,77,.15), rgba(229,72,77,.02));
+    box-shadow:inset 2px 0 0 var(--red-bright), 0 0 26px -12px rgba(179,0,0,.65); }
+  .navitem .count{ margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--ink-hush); font-variant-numeric:var(--tnum); }
   .navitem.active .count{ color:var(--red-bright); }
 
   /* main column */
   .main{ display:flex; flex-direction:column; min-width:0; }
 
   /* status strip — frosted, sticky, floats over content on scroll */
-  .statusbar{ position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:18px; padding:12px 24px;
-    background:linear-gradient(180deg, rgba(17,20,25,.78), rgba(11,13,17,.62));
+  .statusbar{ position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:18px; padding:13px 26px;
+    background:linear-gradient(180deg, rgba(17,20,25,.8), rgba(10,12,16,.6));
     backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur);
     border-bottom:1px solid var(--glass-brd);
-    box-shadow:0 1px 0 var(--glass-hi) inset, 0 10px 30px -22px rgba(0,0,0,.9); }
-  .clock{ font-family:var(--mono); font-size:12.5px; color:var(--ink-dim); }
+    box-shadow:0 1px 0 var(--glass-hi) inset, 0 12px 34px -24px rgba(0,0,0,.9); }
+  .clock{ font-family:var(--mono); font-size:12.5px; color:var(--ink-dim); font-variant-numeric:var(--tnum); }
   .clock b{ color:var(--ink); }
   .cmdk{ margin-left:auto; display:flex; align-items:center; gap:8px;
     background:var(--glass-3); backdrop-filter:var(--blur-lite); -webkit-backdrop-filter:var(--blur-lite);
-    border:1px solid var(--glass-brd); color:var(--ink-hush); padding:7px 11px; border-radius:var(--r-sm);
-    font-size:12.5px; min-width:288px; cursor:text; transition:border-color .2s var(--ease), box-shadow .2s var(--ease); }
-  .cmdk:hover{ border-color:rgba(229,72,77,.3); box-shadow:0 0 20px -10px rgba(179,0,0,.5); }
-  .cmdk kbd{ margin-left:auto; font-family:var(--mono); font-size:10.5px; background:rgba(11,13,17,.6);
+    border:1px solid var(--glass-brd); color:var(--ink-hush); padding:8px 12px; border-radius:var(--r-sm);
+    font-size:12.5px; min-width:296px; cursor:text; transition:border-color .22s var(--ease), box-shadow .22s var(--ease); }
+  .cmdk:hover{ border-color:rgba(229,72,77,.32); box-shadow:0 0 22px -10px rgba(179,0,0,.55); }
+  .cmdk kbd{ margin-left:auto; font-family:var(--mono); font-size:10.5px; background:rgba(10,12,16,.6);
     border:1px solid var(--glass-brd); border-radius:3px; padding:1px 5px; color:var(--ink-dim); }
   .sysstat{ display:flex; align-items:center; gap:7px; font-size:12px; color:var(--ink-dim); }
 
-  .content{ padding:24px; display:flex; flex-direction:column; gap:20px; max-width:1520px; width:100%; }
+  .content{ padding:26px; display:flex; flex-direction:column; gap:22px; max-width:1560px; width:100%; }
+
+  /* ===================================================== HERO / COCKPIT BAND
+     A confident opening moment: who, when, and the one number that matters,
+     over an elevated glass slab with a soft Candy-Red horizon glow. */
+  .hero{ position:relative; overflow:hidden; padding:22px 24px; border-radius:var(--r-lg);
+    background:linear-gradient(135deg, rgba(26,31,40,.66), rgba(15,18,23,.6));
+    backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur);
+    border:1px solid var(--glass-brd); box-shadow:var(--sh-2);
+    display:flex; align-items:center; gap:28px; }
+  .hero::after{ content:''; position:absolute; inset:0 0 auto 0; height:1px;
+    background:linear-gradient(90deg, transparent, rgba(255,255,255,.16), transparent); }
+  .hero .glow{ position:absolute; right:-80px; top:-120px; width:360px; height:360px; pointer-events:none;
+    background:radial-gradient(circle, rgba(179,0,0,.16), transparent 62%); }
+  .hero .greet{ flex:1; min-width:0; }
+  .hero .eyebrow{ font-family:var(--mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.16em; color:var(--ink-hush); }
+  .hero h1{ font-size:24px; font-weight:800; letter-spacing:-0.02em; margin-top:6px; }
+  .hero h1 em{ font-style:normal; color:var(--red-bright); }
+  .hero .sub{ color:var(--ink-dim); font-size:13px; margin-top:6px; line-height:1.5; max-width:520px; }
+  .hero .kpi{ text-align:right; padding-left:26px; border-left:1px solid var(--line-soft); }
+  .hero .kpi .k{ font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.12em; color:var(--ink-hush); }
+  .hero .kpi .v{ font-size:34px; font-weight:800; letter-spacing:-0.02em; margin-top:4px; font-variant-numeric:var(--tnum);
+    background:linear-gradient(180deg, #ffffff, #c2cbd8); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+  .hero .kpi .d{ font-size:11.5px; color:var(--green-txt); margin-top:2px; font-variant-numeric:var(--tnum); }
 
   /* section head */
   .sec-h{ display:flex; align-items:baseline; gap:10px; margin-bottom:4px; }
@@ -172,28 +208,25 @@
   .src.live{ color:var(--green-txt); border-color:rgba(0,168,84,.35); background:rgba(0,168,84,.06); }
   .src.stale{ color:var(--amber-txt); border-color:rgba(224,112,32,.4); background:rgba(224,112,32,.06); }
 
-  /* ---- the glass panel primitive ---- */
+  /* ---- glass panel primitive ---- */
   .panel{ position:relative; border-radius:var(--r-md);
     background:var(--glass-1); backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur);
     border:1px solid var(--glass-brd); box-shadow:var(--sh-1); }
-  /* crisp top-edge light on every glass surface */
   .panel::after{ content:''; position:absolute; inset:0 0 auto 0; height:1px; border-radius:var(--r-md) var(--r-md) 0 0;
     background:linear-gradient(90deg, transparent, rgba(255,255,255,.14), transparent); pointer-events:none; }
   .grid{ display:grid; gap:16px; }
 
-  /* ===================================================== TODAY'S PRIORITIES
-     Phill Rule 5: every metric paired with an action. Decisions over dashboards. */
+  /* ===================================================== TODAY'S PRIORITIES */
   .priorities{ grid-template-columns:repeat(3,1fr); }
   .prio{ padding:18px; display:flex; flex-direction:column; gap:11px; overflow:hidden;
-    transition:transform .28s var(--ease), box-shadow .28s var(--ease), border-color .28s var(--ease); }
-  .prio:hover{ transform:translateY(-3px); box-shadow:var(--sh-2); border-color:rgba(255,255,255,.12); }
-  /* accent spine as a soft glow bar, not a flat rule */
+    transition:transform .3s var(--ease), box-shadow .3s var(--ease), border-color .3s var(--ease); }
+  .prio:hover{ transform:translateY(-3px); box-shadow:var(--sh-2); border-color:rgba(255,255,255,.13); }
   .prio::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
-    background:linear-gradient(180deg, var(--red-bright), var(--red)); box-shadow:0 0 16px 0 rgba(179,0,0,.5); }
-  .prio.warn::before{ background:linear-gradient(180deg, var(--amber-txt), var(--orange)); box-shadow:0 0 16px 0 rgba(224,112,32,.45); }
-  .prio.ok::before{ background:linear-gradient(180deg, var(--green-txt), var(--green)); box-shadow:0 0 16px 0 rgba(0,168,84,.4); }
+    background:linear-gradient(180deg, var(--red-bright), var(--red)); box-shadow:0 0 18px 0 rgba(179,0,0,.5); }
+  .prio.warn::before{ background:linear-gradient(180deg, var(--amber-txt), var(--orange)); box-shadow:0 0 18px 0 rgba(224,112,32,.45); }
+  .prio.ok::before{ background:linear-gradient(180deg, var(--green-txt), var(--green)); box-shadow:0 0 18px 0 rgba(0,168,84,.4); }
   .prio .flag{ font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-hush); }
-  .prio .metric{ font-size:28px; font-weight:700; letter-spacing:-0.02em; }
+  .prio .metric{ font-size:28px; font-weight:800; letter-spacing:-0.02em; font-variant-numeric:var(--tnum); }
   .prio .metric small{ font-size:13px; color:var(--ink-dim); font-weight:500; }
   .prio .why{ color:var(--ink-dim); font-size:12.5px; line-height:1.45; }
   .prio .act{ margin-top:auto; }
@@ -202,56 +235,60 @@
     border:1px solid transparent; cursor:pointer; display:inline-flex; align-items:center; gap:7px;
     transition:transform .18s var(--ease), box-shadow .18s var(--ease), background .18s var(--ease), border-color .18s var(--ease); }
   .btn:active{ transform:translateY(1px); }
-  .btn.primary{ background:linear-gradient(180deg, #c81212, var(--red)); color:#fff;
-    box-shadow:0 1px 0 rgba(255,255,255,.18) inset, 0 8px 22px -10px rgba(179,0,0,.8); }
-  .btn.primary:hover{ box-shadow:0 1px 0 rgba(255,255,255,.22) inset, 0 10px 30px -8px rgba(179,0,0,.95); transform:translateY(-1px); }
-  .btn.ghost{ background:rgba(255,255,255,.03); border-color:var(--glass-brd); color:var(--ink);
+  .btn.primary{ background:linear-gradient(180deg, #cf1616, var(--red)); color:#fff;
+    box-shadow:0 1px 0 rgba(255,255,255,.2) inset, 0 8px 22px -10px rgba(179,0,0,.85); }
+  .btn.primary:hover{ box-shadow:0 1px 0 rgba(255,255,255,.24) inset, 0 12px 32px -8px rgba(179,0,0,1); transform:translateY(-1px); }
+  .btn.ghost{ background:rgba(255,255,255,.035); border-color:var(--glass-brd); color:var(--ink);
     backdrop-filter:var(--blur-lite); -webkit-backdrop-filter:var(--blur-lite); }
-  .btn.ghost:hover{ border-color:rgba(255,255,255,.2); background:rgba(255,255,255,.06); }
+  .btn.ghost:hover{ border-color:rgba(255,255,255,.22); background:rgba(255,255,255,.07); }
   .btn.sm{ padding:6px 11px; font-size:12px; }
 
   /* ===================================================== PIPELINE + FORECAST */
-  .pipe-wrap{ grid-template-columns:1fr 312px; align-items:start; }
+  .pipe-wrap{ grid-template-columns:1fr 320px; align-items:start; }
   .board{ display:grid; grid-template-columns:repeat(5,1fr); gap:12px; padding:16px; }
   .col-h{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;
     padding-bottom:8px; border-bottom:1px solid var(--line-soft); }
   .col-h .name{ font-family:var(--mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-dim); }
-  .col-h .n{ font-family:var(--mono); font-size:11px; color:var(--ink-hush); }
-  .stage{ display:flex; flex-direction:column; gap:9px; }
-  .deal{ position:relative; border-radius:var(--r-sm); padding:10px 11px; cursor:pointer;
+  .col-h .n{ font-family:var(--mono); font-size:11px; color:var(--ink-hush); font-variant-numeric:var(--tnum); }
+  .stage{ display:flex; flex-direction:column; gap:10px; }
+  .deal{ position:relative; border-radius:var(--r-sm); padding:11px 12px; cursor:pointer;
     background:var(--glass-3); backdrop-filter:var(--blur-lite); -webkit-backdrop-filter:var(--blur-lite);
-    border:1px solid var(--glass-brd); box-shadow:0 1px 0 var(--glass-hi) inset, 0 4px 14px -8px rgba(0,0,0,.7);
-    transition:transform .22s var(--ease), box-shadow .22s var(--ease), border-color .22s var(--ease); }
-  .deal:hover{ transform:translateY(-2px); border-color:rgba(255,255,255,.16);
-    box-shadow:0 1px 0 var(--glass-hi) inset, 0 10px 24px -10px rgba(0,0,0,.85); }
+    border:1px solid var(--glass-brd); box-shadow:0 1px 0 var(--glass-hi) inset, 0 5px 16px -9px rgba(0,0,0,.72);
+    transition:transform .24s var(--ease), box-shadow .24s var(--ease), border-color .24s var(--ease); }
+  .deal:hover{ transform:translateY(-2px); border-color:rgba(255,255,255,.17);
+    box-shadow:0 1px 0 var(--glass-hi) inset, 0 12px 26px -11px rgba(0,0,0,.88); }
   .deal.stale{ border-color:rgba(229,72,77,.5); box-shadow:var(--sh-red); }
-  .deal .co{ font-weight:600; font-size:12.5px; }
-  .deal .val{ font-family:var(--mono); font-size:12px; color:var(--green-txt); margin-top:2px; }
-  .deal .meta{ display:flex; align-items:center; gap:6px; margin-top:7px; font-size:10.5px; color:var(--ink-hush); }
+  .deal .dhead{ display:flex; align-items:center; gap:8px; }
+  .ava{ width:20px; height:20px; flex:0 0 auto; border-radius:var(--r-sm); display:grid; place-items:center;
+    font-family:var(--mono); font-size:9px; font-weight:500; letter-spacing:.02em; color:var(--ink);
+    background:linear-gradient(150deg, rgba(255,255,255,.1), rgba(255,255,255,.02));
+    border:1px solid var(--glass-brd); }
+  .deal .co{ font-weight:600; font-size:12.5px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .deal .val{ font-family:var(--mono); font-size:12px; color:var(--green-txt); margin-top:6px; font-variant-numeric:var(--tnum); }
+  .deal .meta{ display:flex; align-items:center; gap:6px; margin-top:7px; font-size:10.5px; color:var(--ink-hush); font-variant-numeric:var(--tnum); }
   .prob{ height:4px; border-radius:2px; background:rgba(255,255,255,.06); overflow:hidden; margin-top:8px; }
   .prob > i{ display:block; height:100%; background:linear-gradient(90deg, var(--green), var(--green-txt));
     box-shadow:0 0 8px -1px rgba(0,168,84,.6); }
 
   .forecast{ padding:18px; display:flex; flex-direction:column; gap:15px; }
-  .fc-total{ font-size:32px; font-weight:700; letter-spacing:-0.02em;
+  .fc-total{ font-size:32px; font-weight:800; letter-spacing:-0.02em; font-variant-numeric:var(--tnum);
     background:linear-gradient(180deg, #ffffff, #b9c2cf); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
   .fc-total small{ display:block; font-size:11px; font-family:var(--mono); color:var(--ink-hush);
     text-transform:uppercase; letter-spacing:.1em; margin-bottom:5px; font-weight:400; -webkit-text-fill-color:var(--ink-hush); }
+  .spark{ display:block; width:100%; height:38px; }
   .fc-row{ display:flex; align-items:center; gap:10px; font-size:12.5px; }
-  .fc-row .bar{ flex:1; height:7px; background:rgba(255,255,255,.06); border-radius:4px; overflow:hidden;
-    box-shadow:0 1px 1px rgba(0,0,0,.4) inset; }
+  .fc-row .bar{ flex:1; height:7px; background:rgba(255,255,255,.06); border-radius:4px; overflow:hidden; box-shadow:0 1px 1px rgba(0,0,0,.4) inset; }
   .fc-row .bar > i{ display:block; height:100%; border-radius:4px; }
   .fc-row .lbl{ width:66px; color:var(--ink-dim); }
-  .fc-row .amt{ font-family:var(--mono); color:var(--ink); width:64px; text-align:right; }
+  .fc-row .amt{ font-family:var(--mono); color:var(--ink); width:64px; text-align:right; font-variant-numeric:var(--tnum); }
 
-  /* ===================================================== APPROVAL QUEUE
-     recommendation-only: AI advises, the human commits. Impossible to confuse with a write. */
+  /* ===================================================== APPROVAL QUEUE */
   .approvals{ grid-template-columns:1fr 1fr; }
   .appr{ padding:16px; display:flex; flex-direction:column; gap:12px; }
   .appr-item{ border:1px solid var(--glass-brd); border-radius:var(--r-sm); overflow:hidden;
-    background:rgba(255,255,255,.015); box-shadow:0 4px 16px -12px rgba(0,0,0,.8); }
+    background:rgba(255,255,255,.016); box-shadow:0 5px 18px -13px rgba(0,0,0,.82); }
   .appr-item .top{ display:flex; align-items:center; gap:9px; padding:11px 13px;
-    background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01)); border-bottom:1px solid var(--line-soft); }
+    background:linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.01)); border-bottom:1px solid var(--line-soft); }
   .actor{ display:inline-flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ink-dim); }
   .actor .who{ color:var(--ink); font-weight:600; }
   .rec-chip{ margin-left:auto; font-family:var(--mono); font-size:9.5px; letter-spacing:.1em;
@@ -272,17 +309,16 @@
   .evidence{ padding:6px 0; }
   .ev-row{ display:flex; align-items:center; gap:11px; padding:10px 18px; border-bottom:1px solid var(--line-soft); font-size:12.5px;
     transition:background .2s var(--ease); }
-  .ev-row:hover{ background:rgba(255,255,255,.02); }
+  .ev-row:hover{ background:rgba(255,255,255,.022); }
   .ev-row:last-child{ border-bottom:0; }
-  .ev-row .t{ font-family:var(--mono); font-size:11px; color:var(--ink-hush); width:52px; }
+  .ev-row .t{ font-family:var(--mono); font-size:11px; color:var(--ink-hush); width:52px; font-variant-numeric:var(--tnum); }
   .ev-row .txt{ color:var(--ink-dim); }
   .ev-row .txt b{ color:var(--ink); font-weight:600; }
   .ev-row .tag{ margin-left:auto; }
 
   /* legend / footer note */
-  .note{ color:var(--ink-hush); font-size:12px; padding:6px 2px 30px; line-height:1.65; max-width:940px; }
-  .note code{ font-family:var(--mono); color:var(--ink-dim); background:rgba(255,255,255,.04);
-    padding:1px 5px; border-radius:3px; }
+  .note{ color:var(--ink-hush); font-size:12px; padding:8px 2px 32px; line-height:1.65; max-width:960px; }
+  .note code{ font-family:var(--mono); color:var(--ink-dim); background:rgba(255,255,255,.04); padding:1px 5px; border-radius:3px; }
 
   /* geometric marks (DESIGN.md Rule 2 — hexagon-derived, 24×24, 1.5 stroke, square caps) */
   .mk{ width:16px; height:16px; flex:0 0 auto; }
@@ -345,6 +381,21 @@
 
     <div class="content">
 
+      <!-- ============ HERO / COCKPIT BAND ============ -->
+      <div class="hero rise">
+        <div class="glow"></div>
+        <div class="greet">
+          <div class="eyebrow">Founder command · Unite-Group Nexus</div>
+          <h1>Morning, Phill. <em>3 decisions</em> need you.</h1>
+          <div class="sub">Nothing writes without your approval. Two proposal deals have gone stale and the quarter is tracking $18k ahead of last week.</div>
+        </div>
+        <div class="kpi">
+          <div class="k">Weighted forecast · Q3</div>
+          <div class="v">$212,400</div>
+          <div class="d">▲ $18,000 wk · 78% of target</div>
+        </div>
+      </div>
+
       <!-- ============ TODAY'S PRIORITIES ============ -->
       <div>
         <div class="sec-h">
@@ -355,19 +406,19 @@
         <div class="grid priorities">
           <div class="panel prio rise">
             <div class="flag">Approval required</div>
-            <div class="metric">3 <small>awaiting you</small></div>
+            <div class="metric num">3 <small>awaiting you</small></div>
             <div class="why">Margot drafted a lead→contact conversion and 2 field edits. Nothing writes until you approve.</div>
             <div class="act"><button class="btn primary"><svg class="mk"><use href="#m-appr"/></svg> Review queue</button></div>
           </div>
           <div class="panel prio warn rise" style="animation-delay:.06s">
             <div class="flag">Pipeline at risk</div>
-            <div class="metric">$48k <small>2 deals stale &gt;7d</small></div>
+            <div class="metric num">$48k <small>2 deals stale &gt;7d</small></div>
             <div class="why">Aspect Restoration &amp; Coastal Facilities haven’t moved since 30/06. Both in Proposal.</div>
             <div class="act"><button class="btn ghost">Open the 2 deals</button></div>
           </div>
           <div class="panel prio ok rise" style="animation-delay:.12s">
             <div class="flag">Forecast · this quarter</div>
-            <div class="metric">$212k <small>weighted AUD</small></div>
+            <div class="metric num">$212k <small>weighted AUD</small></div>
             <div class="why">Up $18k on last week. 78% of target with 6 weeks to close.</div>
             <div class="act"><button class="btn ghost">See forecast</button></div>
           </div>
@@ -387,36 +438,49 @@
               <!-- Lead -->
               <div class="stage">
                 <div class="col-h"><span class="name">Lead</span><span class="n">5 · $61k</span></div>
-                <div class="deal"><div class="co">Meridian Group</div><div class="val">$14,000</div><div class="prob"><i style="width:20%"></i></div><div class="meta">score 62 · 2d</div></div>
-                <div class="deal"><div class="co">Harbourline Co</div><div class="val">$9,500</div><div class="prob"><i style="width:15%"></i></div><div class="meta">score 48 · 1d</div></div>
+                <div class="deal"><div class="dhead"><span class="ava">MG</span><span class="co">Meridian Group</span></div><div class="val">$14,000</div><div class="prob"><i style="width:20%"></i></div><div class="meta">62% · 2d</div></div>
+                <div class="deal"><div class="dhead"><span class="ava">HC</span><span class="co">Harbourline Co</span></div><div class="val">$9,500</div><div class="prob"><i style="width:15%"></i></div><div class="meta">48% · 1d</div></div>
               </div>
               <!-- Qualified -->
               <div class="stage">
                 <div class="col-h"><span class="name">Qualified</span><span class="n">4 · $52k</span></div>
-                <div class="deal"><div class="co">Novara Facilities</div><div class="val">$22,000</div><div class="prob"><i style="width:40%"></i></div><div class="meta">score 74 · 4d</div></div>
-                <div class="deal"><div class="co">Delta Works</div><div class="val">$11,000</div><div class="prob"><i style="width:35%"></i></div><div class="meta">score 71 · 3d</div></div>
+                <div class="deal"><div class="dhead"><span class="ava">NF</span><span class="co">Novara Facilities</span></div><div class="val">$22,000</div><div class="prob"><i style="width:40%"></i></div><div class="meta">74% · 4d</div></div>
+                <div class="deal"><div class="dhead"><span class="ava">DW</span><span class="co">Delta Works</span></div><div class="val">$11,000</div><div class="prob"><i style="width:35%"></i></div><div class="meta">71% · 3d</div></div>
               </div>
               <!-- Proposal -->
               <div class="stage">
                 <div class="col-h"><span class="name">Proposal</span><span class="n">3 · $71k</span></div>
-                <div class="deal stale"><div class="co">Aspect Restoration</div><div class="val">$26,000</div><div class="prob"><i style="width:55%;background:linear-gradient(90deg,var(--orange),var(--amber-txt));box-shadow:0 0 8px -1px rgba(224,112,32,.6)"></i></div><div class="meta"><span class="live-dot blocking" style="width:5px;height:5px"></span> stale 8d</div></div>
-                <div class="deal stale"><div class="co">Coastal Facilities</div><div class="val">$22,000</div><div class="prob"><i style="width:50%;background:linear-gradient(90deg,var(--orange),var(--amber-txt));box-shadow:0 0 8px -1px rgba(224,112,32,.6)"></i></div><div class="meta"><span class="live-dot blocking" style="width:5px;height:5px"></span> stale 8d</div></div>
+                <div class="deal stale"><div class="dhead"><span class="ava">AR</span><span class="co">Aspect Restoration</span></div><div class="val">$26,000</div><div class="prob"><i style="width:55%;background:linear-gradient(90deg,var(--orange),var(--amber-txt));box-shadow:0 0 8px -1px rgba(224,112,32,.6)"></i></div><div class="meta"><span class="live-dot blocking" style="width:5px;height:5px"></span> stale 8d</div></div>
+                <div class="deal stale"><div class="dhead"><span class="ava">CF</span><span class="co">Coastal Facilities</span></div><div class="val">$22,000</div><div class="prob"><i style="width:50%;background:linear-gradient(90deg,var(--orange),var(--amber-txt));box-shadow:0 0 8px -1px rgba(224,112,32,.6)"></i></div><div class="meta"><span class="live-dot blocking" style="width:5px;height:5px"></span> stale 8d</div></div>
               </div>
               <!-- Negotiation -->
               <div class="stage">
                 <div class="col-h"><span class="name">Negotiation</span><span class="n">2 · $58k</span></div>
-                <div class="deal"><div class="co">Ridgeline Trust</div><div class="val">$34,000</div><div class="prob"><i style="width:75%"></i></div><div class="meta">score 88 · 1d</div></div>
+                <div class="deal"><div class="dhead"><span class="ava">RT</span><span class="co">Ridgeline Trust</span></div><div class="val">$34,000</div><div class="prob"><i style="width:75%"></i></div><div class="meta">88% · 1d</div></div>
               </div>
               <!-- Won -->
               <div class="stage">
                 <div class="col-h"><span class="name">Won</span><span class="n">3 · $41k</span></div>
-                <div class="deal"><div class="co">Pinnacle Ops</div><div class="val">$19,000</div><div class="prob"><i style="width:100%"></i></div><div class="meta">closed 05/07</div></div>
+                <div class="deal"><div class="dhead"><span class="ava">PO</span><span class="co">Pinnacle Ops</span></div><div class="val">$19,000</div><div class="prob"><i style="width:100%"></i></div><div class="meta">closed 05/07</div></div>
               </div>
             </div>
           </div>
 
           <div class="panel forecast rise" style="animation-delay:.06s">
             <div class="fc-total"><small>Weighted forecast · Q3 (AUD)</small>$212,400</div>
+            <!-- 12-week trend sparkline (area + line), signal-neutral graphite with a green tip -->
+            <svg class="spark" viewBox="0 0 300 40" preserveAspectRatio="none" aria-hidden="true">
+              <defs>
+                <linearGradient id="sparkfill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="rgba(52,211,153,.28)"/>
+                  <stop offset="1" stop-color="rgba(52,211,153,0)"/>
+                </linearGradient>
+              </defs>
+              <path d="M0,32 L27,30 L54,31 L82,26 L109,27 L136,22 L163,23 L191,18 L218,17 L245,12 L272,11 L300,7 L300,40 L0,40 Z" fill="url(#sparkfill)"/>
+              <polyline points="0,32 27,30 54,31 82,26 109,27 136,22 163,23 191,18 218,17 245,12 272,11 300,7"
+                fill="none" stroke="var(--green-txt)" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"/>
+              <circle cx="300" cy="7" r="2.4" fill="var(--green-txt)"/>
+            </svg>
             <div class="fc-row"><span class="lbl">Committed</span><div class="bar"><i style="width:41%;background:linear-gradient(90deg,var(--green),var(--green-txt))"></i></div><span class="amt">$87.0k</span></div>
             <div class="fc-row"><span class="lbl">Best case</span><div class="bar"><i style="width:34%;background:linear-gradient(90deg,var(--orange),var(--amber-txt))"></i></div><span class="amt">$72.4k</span></div>
             <div class="fc-row"><span class="lbl">Pipeline</span><div class="bar"><i style="width:25%;background:linear-gradient(90deg,#4a5464,var(--ink-hush))"></i></div><span class="amt">$53.0k</span></div>
@@ -500,12 +564,13 @@
       </div>
 
       <p class="note">
-        <b>Design register.</b> Gun Metal ground <code>#0b0d11</code> · Candy Red <code>#b30000</code> reserved for signal &amp; approval-required
-        only · CEO Orange <code>#e07020</code> = caution/stale · CEO Green <code>#00a854</code> = healthy/won · Inter 700/400 · sharp 4–6px radii ·
+        <b>Design register.</b> Gun Metal ground <code>#090b0e</code> · Candy Red <code>#b30000</code> reserved for signal &amp; approval-required
+        only · CEO Orange <code>#e07020</code> = caution/stale · CEO Green <code>#00a854</code> = healthy/won · Inter 700/800/400 · sharp 4–6px radii ·
         custom hexagon-derived geometric marks (no icon library) · every metric paired with an action (Rule 5) · provenance visible on
-        every surface · AI advises, the human commits. <b>Glassmorphic:</b> frosted layered surfaces (<code>backdrop-filter</code>) over an
-        ambient Gun-Metal ground with a single low-opacity Candy-Red ember — depth &amp; light, never purple gradient slop. Motion is “rise” +
-        a breathing pulse gated to genuinely live/blocking states.
+        every surface · AI advises, the human commits. <b>Glassmorphic:</b> frosted layered surfaces (<code>backdrop-filter</code>) with authentic
+        grain (<code>feTurbulence</code>) over an ambient Gun-Metal ground and one slow-drifting low-opacity Candy-Red ember — depth from
+        luminance, never a purple gradient. Financial figures use <code>tabular-nums</code>. Motion is “rise”, a 34s ambient drift, and a
+        breathing pulse gated to genuinely live/blocking states.
         Constitution: <code>.claude/DESIGN.md</code> · Layout: <code>docs/UNITE_COMMAND_CENTER_UI_UX_BRIEF.md</code> · IA: <code>spec.md §8</code>.
       </p>
 
