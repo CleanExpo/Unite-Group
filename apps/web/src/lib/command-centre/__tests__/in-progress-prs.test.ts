@@ -1,71 +1,76 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { listInProgressPRs } from '@/lib/command-centre/in-progress-prs'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import path from 'node:path'
 
-describe('listInProgressPRs', () => {
-  it('returns a structured empty result when gh is not installed (ENOENT)', async () => {
-    // Use a temp dir with a PATH that has no `gh`. macOS ships `gh` to
-    // /usr/local/bin or ~/.local/bin, but a minimal PATH won't.
-    const dir = await mkdtemp(path.join(tmpdir(), 'cc-no-gh-'))
-    const originalPath = process.env.PATH
-    const originalPathExt = process.env.PATHEXT
-    process.env.PATH = dir
-    if (process.platform === 'win32') process.env.PATHEXT = ''
+const NOW = () => new Date('2026-07-08T12:00:00.000Z')
 
-    try {
-      const r = await listInProgressPRs(dir)
-      expect(r.gh_available).toBe(false)
-      expect(r.entries).toEqual([])
-      expect(r.read_error).toMatch(/gh CLI not found|PATH|ENOENT/i)
-      expect(r.status_message).toContain('gh CLI not installed')
-    } finally {
-      if (originalPath === undefined) delete process.env.PATH
-      else process.env.PATH = originalPath
-      if (originalPathExt === undefined) delete process.env.PATHEXT
-      else process.env.PATHEXT = originalPathExt
-      await rm(dir, { recursive: true, force: true })
-    }
+function pull(n: number, repo: string, createdAt: string, over: Record<string, unknown> = {}) {
+  return {
+    number: n,
+    title: `PR ${n}`,
+    user: { login: 'phill' },
+    head: { ref: `feat/x-${n}` },
+    created_at: createdAt,
+    html_url: `https://github.com/${repo}/pull/${n}`,
+    ...over,
+  }
+}
+
+function okJson(body: unknown) {
+  return { ok: true, status: 200, json: async () => body } as unknown as Response
+}
+
+describe('listInProgressPRs (UNI-2340 — GitHub API, serverless-safe)', () => {
+  it('no token → honest unavailable result, no fetch attempted', async () => {
+    const fetchFn = vi.fn()
+    const r = await listInProgressPRs({ token: undefined, fetchFn, repos: ['a/b'], now: NOW })
+    expect(r.available).toBe(false)
+    expect(r.entries).toEqual([])
+    expect(r.read_error).toMatch(/GITHUB_TOKEN not configured/)
+    expect(fetchFn).not.toHaveBeenCalled()
   })
 
-  it('exposes a stable typed result shape even on failure', async () => {
-    // No mocking of execFile; we rely on the real `gh` behaviour on this
-    // machine. If `gh` is present but unauthenticated, the function
-    // returns a structured failure (gh_available=false); if not, the
-    // ENOENT branch above covers it. Either way the shape is stable.
-    const r = await listInProgressPRs()
-    expect(typeof r.gh_available).toBe('boolean')
-    expect(Array.isArray(r.entries)).toBe(true)
-    expect(typeof r.scanned_at).toBe('string')
-    expect(typeof r.status_message).toBe('string')
-    expect(typeof r.gh_path).toBe('string')
-    // read_error is null on success and a string on failure.
-    expect(r.read_error === null || typeof r.read_error === 'string').toBe(true)
+  it('aggregates open PRs across repos, newest first, with repo attribution', async () => {
+    const fetchFn = vi.fn(async (url: RequestInfo | URL) => {
+      const u = String(url)
+      if (u.includes('/repos/org/one/')) return okJson([pull(1, 'org/one', '2026-07-06T00:00:00Z')])
+      if (u.includes('/repos/org/two/')) return okJson([pull(9, 'org/two', '2026-07-07T00:00:00Z')])
+      throw new Error(`unexpected url ${u}`)
+    })
+    const r = await listInProgressPRs({ token: 't', fetchFn, repos: ['org/one', 'org/two'], now: NOW })
+    expect(r.available).toBe(true)
+    expect(r.entries.map((e) => `${e.repo}#${e.number}`)).toEqual(['org/two#9', 'org/one#1'])
+    expect(r.entries[0]).toMatchObject({ author: 'phill', head_ref: 'feat/x-9', age_days: 2 })
+    expect(r.status_message).toBe('2 open PRs across 2 repos')
+    expect(r.read_error).toBeNull()
   })
 
-  it('returns gh_available=true with entries when gh is authenticated and there are open PRs (live)', async () => {
-    // This test is data-dependent: it asserts what the function actually
-    // returns against the live `gh` state of the repo. We accept either
-    // an empty list (no open PRs, which is the current state) or a
-    // populated list, but the shape invariants are strict.
-    const r = await listInProgressPRs()
-    if (r.gh_available) {
-      for (const e of r.entries) {
-        expect(typeof e.number).toBe('string')
-        expect(typeof e.title).toBe('string')
-        expect(typeof e.author).toBe('string')
-        expect(typeof e.head_ref).toBe('string')
-        expect(typeof e.created_at).toBe('string')
-        expect(typeof e.url).toBe('string')
-        expect(e.age_days === null || typeof e.age_days === 'number').toBe(true)
-        // Newest first.
-        for (let i = 1; i < r.entries.length; i++) {
-          const prev = r.entries[i - 1]!
-          const curr = r.entries[i]!
-          expect(prev.created_at >= curr.created_at).toBe(true)
-        }
-      }
-    }
+  it('partial repo failure keeps successes and reports the failure honestly', async () => {
+    const fetchFn = vi.fn(async (url: RequestInfo | URL) => {
+      const u = String(url)
+      if (u.includes('/repos/org/good/')) return okJson([pull(2, 'org/good', '2026-07-05T00:00:00Z')])
+      return { ok: false, status: 403, json: async () => ({}) } as unknown as Response
+    })
+    const r = await listInProgressPRs({ token: 't', fetchFn, repos: ['org/good', 'org/denied'], now: NOW })
+    expect(r.available).toBe(true)
+    expect(r.entries).toHaveLength(1)
+    expect(r.read_error).toMatch(/org\/denied: HTTP 403/)
+    expect(r.status_message).toMatch(/1 open PRs across 1 repos \(1 of 2 repos unreachable\)/)
+  })
+
+  it('all repos failing → available:false with per-repo detail', async () => {
+    const fetchFn = vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) }) as unknown as Response)
+    const r = await listInProgressPRs({ token: 't', fetchFn, repos: ['a/b', 'c/d'], now: NOW })
+    expect(r.available).toBe(false)
+    expect(r.entries).toEqual([])
+    expect(r.status_message).toMatch(/failed for every repo/)
+  })
+
+  it('drops malformed rows and invalid repo names without throwing', async () => {
+    const fetchFn = vi.fn(async () =>
+      okJson([pull(3, 'org/one', '2026-07-04T00:00:00Z'), { number: 'bad' }, null]),
+    )
+    const r = await listInProgressPRs({ token: 't', fetchFn, repos: ['org/one', 'not-a-repo'], now: NOW })
+    expect(r.entries).toHaveLength(1)
+    expect(r.read_error).toMatch(/not-a-repo: invalid repo name/)
   })
 })

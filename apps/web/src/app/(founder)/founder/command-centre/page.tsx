@@ -110,14 +110,17 @@ function hostOf(url?: string): string {
 }
 
 export default async function CommandDeckPage() {
-  const [projects, tools, dashboard, evidence, actionQueue, blockedLanes, inProgressPRs, user] = await Promise.all([
-    getProjects(),
+  // getProjects first (fast local YAML) so the PRs scanner reuses the same
+  // repo list instead of re-reading the registry (review finding, UNI-2340).
+  const projects = await getProjects()
+  const portfolioRepos = [...new Set(projects.map((p) => p.github_repo).filter((r): r is string => !!r))]
+  const [tools, dashboard, evidence, actionQueue, blockedLanes, inProgressPRs, user] = await Promise.all([
     getToolCatalogue(),
     summariseDashboard(),
     tailEvidence(),
     loadActionQueueData(),
     loadBlockedLanesData(),
-    listInProgressPRs(),
+    listInProgressPRs({ repos: portfolioRepos }),
     getUser(),
   ])
   const integrationStatuses = await loadProjectIntegrationStatuses(projects)
@@ -491,9 +494,9 @@ export default async function CommandDeckPage() {
       <div className={styles.sectionHead} id="in-progress-prs">
         <span className={styles.sectionLabel}>In-Progress PRs</span>
         <span className={styles.sectionMeta}>
-          {inProgressPRs.gh_available
-            ? <>{inProgressPRs.status_message} · via <code style={{ fontSize: '0.7rem' }}>{inProgressPRs.gh_path}</code></>
-            : 'local-only (gh CLI)'}
+          {inProgressPRs.available
+            ? <>{inProgressPRs.status_message} · via <code style={{ fontSize: '0.7rem' }}>GitHub API</code></>
+            : inProgressPRs.status_message}
         </span>
       </div>
 
