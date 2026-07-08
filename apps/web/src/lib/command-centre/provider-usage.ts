@@ -6,9 +6,12 @@
 // and OpenRouter so the operator can see what's available, watching, near limit,
 // blocked, or unknown — and how routing should fall back.
 //
-// SAFETY: this module handles **metadata only**. It reads provider *presence*
-// (is a key configured) as booleans — never the key values — and never returns
-// API keys, tokens, cookies, account IDs, or billing identifiers.
+// SAFETY: this module handles **metadata only**. For provider keys it reads
+// *presence* (is a key configured) as booleans — never the key values — and it
+// never returns API keys, tokens, cookies, account IDs, or billing identifiers.
+// The only env VALUES it reads are the dedicated non-secret usage-pressure
+// entries (PROVIDER_USAGE_PRESSURE_* / PLAN_SEAT_PRESSURE_*, UNI-2338): plain
+// 0..1 numbers, NaN-rejected and clamped; anything non-numeric is discarded.
 
 export type ProviderId = 'claude' | 'minimax' | 'gemini' | 'openai' | 'openrouter'
 export type ProviderState = 'available' | 'watching' | 'near_limit' | 'blocked' | 'unknown'
