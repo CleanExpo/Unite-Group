@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Unite-Group Nexus — CRM Control Panel · Design Canvas</title>
+<!--
+  CRM CONTROL PANEL — DESIGN CANVAS (self-contained, opens anywhere, no build).
+  Design constitution: .claude/DESIGN.md (Gun Metal + Candy Red, Phill's 7 rules).
+  Layout thesis:       docs/UNITE_COMMAND_CENTER_UI_UX_BRIEF.md
+                       (dark graphite, very limited accent, three-column, evidence-led).
+  Information arch:    spec.md §8 (single signal accent, provenance, recommendation-only).
+  Resolves the drift:  supersedes the light candy-green Command Deck + bright-cyan
+                       Scientific Luxury as the CEO/Control-Panel register.
+-->
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  /* ============================================================= TOKENS */
+  :root{
+    /* Gun Metal ground (DESIGN.md CEO register) */
+    --canvas:      #0e1014;   /* base */
+    --surface-1:   #14171d;   /* panel */
+    --surface-2:   #191d24;   /* raised panel / row hover */
+    --surface-3:   #21262f;   /* input, chip */
+    --line:        #262c36;   /* hairline border */
+    --line-soft:   #1b2027;
+
+    /* Ink */
+    --ink:         #eef1f5;   /* primary text  ~15.8:1 on canvas */
+    --ink-dim:     #a4adba;   /* secondary     ~7.4:1 */
+    --ink-hush:    #6b7686;   /* tertiary/meta ~4.6:1 (AA body-min, use sparingly) */
+
+    /* Signal — ONE accent, reserved for signal states only (DESIGN.md Rule 3) */
+    --red:         #b30000;   /* Candy Red — primary action / approval-required / live-blocking */
+    --red-bright:  #e5484d;   /* red on dark for text/borders — AA-safe */
+    --orange:      #e07020;   /* CEO secondary — caution / waiting */
+    --green:       #00a854;   /* CEO success — running / healthy / approved */
+    --green-txt:   #34d399;   /* green as text on dark — AA-safe */
+    --amber-txt:   #f0a94c;
+
+    /* Radius — CEO register: sharp 4–6px */
+    --r-sm: 4px;
+    --r-md: 6px;
+
+    /* Motion — signature "rise", expo easing */
+    --ease: cubic-bezier(0.19, 1, 0.22, 1);
+
+    --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+    --sans: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; background:var(--canvas); color:var(--ink);
+    font-family:var(--sans); font-size:14px; line-height:1.45;
+    -webkit-font-smoothing:antialiased; }
+  h1,h2,h3,h4{ margin:0; font-weight:700; letter-spacing:-0.01em; }
+  a{ color:inherit; }
+  ::selection{ background:rgba(229,72,77,.28); }
+
+  /* rise reveal */
+  @keyframes rise { from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:none;} }
+  .rise{ animation:rise .5s var(--ease) both; }
+
+  /* breathing pulse — gated to genuinely live/blocking states only */
+  @keyframes breathe { 0%,100%{ opacity:1;} 50%{ opacity:.35;} }
+  .live-dot{ width:7px; height:7px; border-radius:50%; background:var(--green);
+    box-shadow:0 0 0 3px rgba(0,168,84,.16); display:inline-block; }
+  .live-dot.blocking{ background:var(--red-bright); box-shadow:0 0 0 3px rgba(229,72,77,.18);
+    animation:breathe 2.4s var(--ease) infinite; }
+  @media (prefers-reduced-motion: reduce){ .rise,.live-dot.blocking{ animation:none; } }
+
+  /* ============================================================= SHELL */
+  .app{ display:grid; grid-template-columns:212px 1fr; min-height:100vh; }
+
+  /* left rail */
+  .rail{ border-right:1px solid var(--line); background:var(--surface-1);
+    padding:16px 12px; position:sticky; top:0; height:100vh; overflow:auto; }
+  .brand{ display:flex; align-items:center; gap:9px; padding:6px 8px 14px; }
+  .brand b{ font-size:13.5px; letter-spacing:.02em; }
+  .brand span{ color:var(--ink-hush); font-size:11px; font-family:var(--mono); display:block; margin-top:1px; }
+  .navlbl{ font-family:var(--mono); font-size:10px; text-transform:uppercase;
+    letter-spacing:.14em; color:var(--ink-hush); padding:14px 8px 6px; }
+  .navitem{ display:flex; align-items:center; gap:10px; padding:7px 8px; border-radius:var(--r-sm);
+    color:var(--ink-dim); cursor:pointer; font-size:13px; user-select:none; }
+  .navitem:hover{ background:var(--surface-2); color:var(--ink); }
+  .navitem.active{ background:var(--surface-2); color:var(--ink); box-shadow:inset 2px 0 0 var(--red); }
+  .navitem .count{ margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--ink-hush); }
+  .navitem.active .count{ color:var(--red-bright); }
+
+  /* main column */
+  .main{ display:flex; flex-direction:column; min-width:0; }
+
+  /* status strip */
+  .statusbar{ display:flex; align-items:center; gap:18px; padding:11px 22px;
+    border-bottom:1px solid var(--line); background:linear-gradient(180deg,#111419,#0e1014); }
+  .clock{ font-family:var(--mono); font-size:12.5px; color:var(--ink-dim); }
+  .clock b{ color:var(--ink); }
+  .cmdk{ margin-left:auto; display:flex; align-items:center; gap:8px; background:var(--surface-3);
+    border:1px solid var(--line); color:var(--ink-hush); padding:6px 10px; border-radius:var(--r-sm);
+    font-size:12.5px; min-width:280px; cursor:text; }
+  .cmdk kbd{ margin-left:auto; font-family:var(--mono); font-size:10.5px; background:var(--surface-1);
+    border:1px solid var(--line); border-radius:3px; padding:1px 5px; color:var(--ink-dim); }
+  .sysstat{ display:flex; align-items:center; gap:7px; font-size:12px; color:var(--ink-dim); }
+
+  .content{ padding:22px; display:flex; flex-direction:column; gap:18px; max-width:1500px; width:100%; }
+
+  /* section head */
+  .sec-h{ display:flex; align-items:baseline; gap:10px; margin-bottom:2px; }
+  .sec-h h2{ font-size:15px; }
+  .sec-h .sub{ color:var(--ink-hush); font-size:12px; font-family:var(--mono); }
+  .sec-h .more{ margin-left:auto; font-size:12px; color:var(--ink-dim); cursor:pointer; }
+  .sec-h .more:hover{ color:var(--red-bright); }
+
+  /* provenance badge (Truth is visible) */
+  .src{ display:inline-flex; align-items:center; gap:5px; font-family:var(--mono); font-size:10px;
+    text-transform:uppercase; letter-spacing:.06em; color:var(--ink-hush);
+    border:1px solid var(--line); border-radius:3px; padding:2px 6px; }
+  .src.live{ color:var(--green-txt); border-color:rgba(0,168,84,.35); }
+  .src.stale{ color:var(--amber-txt); border-color:rgba(224,112,32,.4); }
+
+  .panel{ background:var(--surface-1); border:1px solid var(--line); border-radius:var(--r-md); }
+  .grid{ display:grid; gap:14px; }
+
+  /* ===================================================== TODAY'S PRIORITIES
+     Phill Rule 5: every metric paired with an action. Decisions over dashboards. */
+  .priorities{ grid-template-columns:repeat(3,1fr); }
+  .prio{ padding:16px; display:flex; flex-direction:column; gap:10px; position:relative; overflow:hidden; }
+  .prio::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--red); }
+  .prio.warn::before{ background:var(--orange); }
+  .prio.ok::before{ background:var(--green); }
+  .prio .flag{ font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-hush); }
+  .prio .metric{ font-size:26px; font-weight:700; letter-spacing:-0.02em; }
+  .prio .metric small{ font-size:13px; color:var(--ink-dim); font-weight:500; }
+  .prio .why{ color:var(--ink-dim); font-size:12.5px; line-height:1.4; }
+  .prio .act{ margin-top:auto; }
+
+  .btn{ font:inherit; font-size:12.5px; font-weight:600; padding:7px 13px; border-radius:var(--r-sm);
+    border:1px solid transparent; cursor:pointer; display:inline-flex; align-items:center; gap:7px; }
+  .btn.primary{ background:var(--red); color:#fff; }
+  .btn.primary:hover{ background:#c81212; }
+  .btn.ghost{ background:transparent; border-color:var(--line); color:var(--ink); }
+  .btn.ghost:hover{ border-color:var(--ink-hush); background:var(--surface-2); }
+  .btn.sm{ padding:5px 10px; font-size:12px; }
+
+  /* ===================================================== PIPELINE + FORECAST */
+  .pipe-wrap{ grid-template-columns:1fr 300px; align-items:start; }
+  .board{ display:grid; grid-template-columns:repeat(5,1fr); gap:10px; padding:14px; }
+  .col-h{ display:flex; align-items:center; justify-content:space-between; margin-bottom:9px; }
+  .col-h .name{ font-family:var(--mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-dim); }
+  .col-h .n{ font-family:var(--mono); font-size:11px; color:var(--ink-hush); }
+  .stage{ display:flex; flex-direction:column; gap:8px; }
+  .deal{ background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r-sm);
+    padding:9px 10px; cursor:pointer; }
+  .deal:hover{ border-color:var(--ink-hush); }
+  .deal.stale{ box-shadow:inset 0 0 0 1px rgba(229,72,77,.5); }
+  .deal .co{ font-weight:600; font-size:12.5px; }
+  .deal .val{ font-family:var(--mono); font-size:12px; color:var(--green-txt); margin-top:2px; }
+  .deal .meta{ display:flex; align-items:center; gap:6px; margin-top:6px; font-size:10.5px; color:var(--ink-hush); }
+  .prob{ height:3px; border-radius:2px; background:var(--surface-3); overflow:hidden; margin-top:7px; }
+  .prob > i{ display:block; height:100%; background:var(--green); }
+
+  .forecast{ padding:16px; display:flex; flex-direction:column; gap:14px; }
+  .fc-total{ font-size:30px; font-weight:700; letter-spacing:-0.02em; }
+  .fc-total small{ display:block; font-size:11px; font-family:var(--mono); color:var(--ink-hush);
+    text-transform:uppercase; letter-spacing:.1em; margin-bottom:4px; font-weight:400; }
+  .fc-row{ display:flex; align-items:center; gap:10px; font-size:12.5px; }
+  .fc-row .bar{ flex:1; height:6px; background:var(--surface-3); border-radius:3px; overflow:hidden; }
+  .fc-row .bar > i{ display:block; height:100%; }
+  .fc-row .lbl{ width:66px; color:var(--ink-dim); }
+  .fc-row .amt{ font-family:var(--mono); color:var(--ink); width:64px; text-align:right; }
+
+  /* ===================================================== APPROVAL QUEUE
+     recommendation-only: AI advises, the human commits. Impossible to confuse with a write. */
+  .approvals{ grid-template-columns:1fr 1fr; }
+  .appr{ padding:14px; display:flex; flex-direction:column; gap:11px; }
+  .appr-item{ border:1px solid var(--line); border-radius:var(--r-sm); overflow:hidden; }
+  .appr-item .top{ display:flex; align-items:center; gap:9px; padding:10px 12px; background:var(--surface-2); }
+  .actor{ display:inline-flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ink-dim); }
+  .actor .who{ color:var(--ink); font-weight:600; }
+  .rec-chip{ margin-left:auto; font-family:var(--mono); font-size:9.5px; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--amber-txt); border:1px solid rgba(224,112,32,.4);
+    border-radius:3px; padding:2px 7px; }
+  .diff{ padding:10px 12px; font-family:var(--mono); font-size:12px; }
+  .diff .row{ display:flex; gap:8px; padding:2px 0; }
+  .diff .k{ color:var(--ink-hush); width:82px; }
+  .diff .was{ color:var(--ink-hush); text-decoration:line-through; }
+  .diff .now{ color:var(--green-txt); }
+  .rationale{ padding:0 12px 10px; color:var(--ink-dim); font-size:12px; border-bottom:1px solid var(--line-soft); }
+  .appr-act{ display:flex; gap:8px; padding:10px 12px; }
+  .appr-act .btn.reject{ background:transparent; border-color:var(--line); color:var(--ink-dim); }
+  .appr-act .btn.reject:hover{ border-color:var(--red-bright); color:var(--red-bright); }
+  .safety{ font-size:11px; color:var(--ink-hush); font-style:italic; padding:0 2px; line-height:1.4; }
+
+  /* ===================================================== EVIDENCE / RECEIPTS */
+  .evidence{ padding:6px 0; }
+  .ev-row{ display:flex; align-items:center; gap:11px; padding:9px 16px; border-bottom:1px solid var(--line-soft); font-size:12.5px; }
+  .ev-row:last-child{ border-bottom:0; }
+  .ev-row .t{ font-family:var(--mono); font-size:11px; color:var(--ink-hush); width:52px; }
+  .ev-row .txt{ color:var(--ink-dim); }
+  .ev-row .txt b{ color:var(--ink); font-weight:600; }
+  .ev-row .tag{ margin-left:auto; }
+
+  /* legend / footer note */
+  .note{ color:var(--ink-hush); font-size:12px; padding:6px 2px 26px; line-height:1.6; max-width:900px; }
+  .note code{ font-family:var(--mono); color:var(--ink-dim); background:var(--surface-2);
+    padding:1px 5px; border-radius:3px; }
+
+  /* geometric marks (DESIGN.md Rule 2 — hexagon-derived, 24×24, 1.5 stroke, square caps) */
+  .mk{ width:16px; height:16px; flex:0 0 auto; }
+  .mk path,.mk line,.mk polyline,.mk polygon{ fill:none; stroke:currentColor;
+    stroke-width:1.5; stroke-linecap:square; stroke-linejoin:miter; }
+</style>
+</head>
+<body>
+
+<!-- inline SVG mark definitions (custom geometric marks, NOT an icon library) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <g id="m-hex"><polygon points="12,3 20,7.5 20,16.5 12,21 4,16.5 4,7.5"/></g>
+  <g id="m-today"><polygon points="12,3 20,7.5 20,16.5 12,21 4,16.5 4,7.5"/><line x1="12" y1="9" x2="12" y2="12.5"/><line x1="12" y1="12.5" x2="15" y2="14"/></g>
+  <g id="m-cmd"><polyline points="6,8 10,12 6,16"/><line x1="12" y1="16" x2="18" y2="16"/></g>
+  <g id="m-appr"><polygon points="12,3 20,7.5 20,16.5 12,21 4,16.5 4,7.5"/><polyline points="8.5,12 11,14.5 15.5,9.5"/></g>
+  <g id="m-port"><rect x="4" y="4" width="7" height="7"/><rect x="13" y="4" width="7" height="7"/><rect x="4" y="13" width="7" height="7"/><rect x="13" y="13" width="7" height="7"/></g>
+  <g id="m-money"><line x1="12" y1="3" x2="12" y2="21"/><path d="M16 7 H10 a3 3 0 0 0 0 6 h4 a3 3 0 0 1 0 6 H8"/></g>
+  <g id="m-ev"><polyline points="7,4 17,4 17,20 7,20 7,4"/><line x1="10" y1="9" x2="14" y2="9"/><line x1="10" y1="13" x2="14" y2="13"/></g>
+  <g id="m-mach"><rect x="5" y="8" width="14" height="10"/><line x1="9" y1="8" x2="9" y2="4"/><line x1="15" y1="8" x2="15" y2="4"/></g>
+  <g id="m-vault"><rect x="4" y="5" width="16" height="14"/><line x1="12" y1="10" x2="12" y2="14"/></g>
+  <g id="m-margot"><polygon points="12,3 19,8 19,16 12,21 5,16 5,8"/><line x1="12" y1="9" x2="12" y2="15"/><line x1="9" y1="12" x2="15" y2="12"/></g>
+</defs></svg>
+
+<div class="app">
+
+  <!-- ============================ LEFT RAIL ============================ -->
+  <nav class="rail">
+    <div class="brand">
+      <svg class="mk" style="width:22px;height:22px;color:var(--red-bright)"><use href="#m-hex"/></svg>
+      <div><b>Nexus</b><span>control panel</span></div>
+    </div>
+
+    <div class="navlbl">Command</div>
+    <div class="navitem active"><svg class="mk"><use href="#m-today"/></svg> Today <span class="count">4</span></div>
+    <div class="navitem"><svg class="mk"><use href="#m-cmd"/></svg> Command</div>
+    <div class="navitem"><svg class="mk"><use href="#m-appr"/></svg> Approvals <span class="count">3</span></div>
+
+    <div class="navlbl">Operate</div>
+    <div class="navitem"><svg class="mk"><use href="#m-port"/></svg> Pipeline</div>
+    <div class="navitem"><svg class="mk"><use href="#m-hex"/></svg> Contacts <span class="count">1.2k</span></div>
+    <div class="navitem"><svg class="mk"><use href="#m-money"/></svg> Money</div>
+    <div class="navitem"><svg class="mk"><use href="#m-port"/></svg> Portfolio</div>
+
+    <div class="navlbl">Trace</div>
+    <div class="navitem"><svg class="mk"><use href="#m-ev"/></svg> Evidence</div>
+    <div class="navitem"><svg class="mk"><use href="#m-mach"/></svg> Machines</div>
+    <div class="navitem"><svg class="mk"><use href="#m-vault"/></svg> Vault</div>
+  </nav>
+
+  <!-- ============================ MAIN ============================ -->
+  <div class="main">
+
+    <!-- status strip -->
+    <div class="statusbar">
+      <span class="clock"><b>08:42</b> AEST · Tue 08/07/2026</span>
+      <span class="sysstat"><span class="live-dot"></span> All systems nominal</span>
+      <span class="sysstat"><span class="live-dot blocking"></span> 1 lane blocked</span>
+      <div class="cmdk"><svg class="mk" style="color:var(--ink-hush)"><use href="#m-cmd"/></svg> Search or run a command… <kbd>⌘K</kbd></div>
+    </div>
+
+    <div class="content">
+
+      <!-- ============ TODAY'S PRIORITIES ============ -->
+      <div>
+        <div class="sec-h">
+          <h2>Today’s priorities</h2>
+          <span class="sub">decisions, not dashboards</span>
+          <span class="src live"><span class="live-dot" style="width:5px;height:5px;box-shadow:none"></span> live · supabase</span>
+        </div>
+        <div class="grid priorities">
+          <div class="panel prio rise">
+            <div class="flag">Approval required</div>
+            <div class="metric">3 <small>awaiting you</small></div>
+            <div class="why">Margot drafted a lead→contact conversion and 2 field edits. Nothing writes until you approve.</div>
+            <div class="act"><button class="btn primary"><svg class="mk"><use href="#m-appr"/></svg> Review queue</button></div>
+          </div>
+          <div class="panel prio warn rise" style="animation-delay:.05s">
+            <div class="flag">Pipeline at risk</div>
+            <div class="metric">$48k <small>2 deals stale &gt;7d</small></div>
+            <div class="why">Aspect Restoration &amp; Coastal Facilities haven’t moved since 30/06. Both in Proposal.</div>
+            <div class="act"><button class="btn ghost">Open the 2 deals</button></div>
+          </div>
+          <div class="panel prio ok rise" style="animation-delay:.1s">
+            <div class="flag">Forecast · this quarter</div>
+            <div class="metric">$212k <small>weighted AUD</small></div>
+            <div class="why">Up $18k on last week. 78% of target with 6 weeks to close.</div>
+            <div class="act"><button class="btn ghost">See forecast</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ PIPELINE + FORECAST ============ -->
+      <div>
+        <div class="sec-h">
+          <h2>Pipeline</h2>
+          <span class="sub">read-only · stage change is approval-gated, not free-drag</span>
+          <span class="more">Board view →</span>
+        </div>
+        <div class="grid pipe-wrap">
+          <div class="panel">
+            <div class="board">
+              <!-- Lead -->
+              <div class="stage">
+                <div class="col-h"><span class="name">Lead</span><span class="n">5 · $61k</span></div>
+                <div class="deal"><div class="co">Meridian Group</div><div class="val">$14,000</div><div class="prob"><i style="width:20%"></i></div><div class="meta">score 62 · 2d</div></div>
+                <div class="deal"><div class="co">Harbourline Co</div><div class="val">$9,500</div><div class="prob"><i style="width:15%"></i></div><div class="meta">score 48 · 1d</div></div>
+              </div>
+              <!-- Qualified -->
+              <div class="stage">
+                <div class="col-h"><span class="name">Qualified</span><span class="n">4 · $52k</span></div>
+                <div class="deal"><div class="co">Novara Facilities</div><div class="val">$22,000</div><div class="prob"><i style="width:40%"></i></div><div class="meta">score 74 · 4d</div></div>
+                <div class="deal"><div class="co">Delta Works</div><div class="val">$11,000</div><div class="prob"><i style="width:35%"></i></div><div class="meta">score 71 · 3d</div></div>
+              </div>
+              <!-- Proposal -->
+              <div class="stage">
+                <div class="col-h"><span class="name">Proposal</span><span class="n">3 · $71k</span></div>
+                <div class="deal stale"><div class="co">Aspect Restoration</div><div class="val">$26,000</div><div class="prob"><i style="width:55%;background:var(--orange)"></i></div><div class="meta"><span class="live-dot blocking" style="width:5px;height:5px"></span> stale 8d</div></div>
+                <div class="deal stale"><div class="co">Coastal Facilities</div><div class="val">$22,000</div><div class="prob"><i style="width:50%;background:var(--orange)"></i></div><div class="meta"><span class="live-dot blocking" style="width:5px;height:5px"></span> stale 8d</div></div>
+              </div>
+              <!-- Negotiation -->
+              <div class="stage">
+                <div class="col-h"><span class="name">Negotiation</span><span class="n">2 · $58k</span></div>
+                <div class="deal"><div class="co">Ridgeline Trust</div><div class="val">$34,000</div><div class="prob"><i style="width:75%"></i></div><div class="meta">score 88 · 1d</div></div>
+              </div>
+              <!-- Won -->
+              <div class="stage">
+                <div class="col-h"><span class="name">Won</span><span class="n">3 · $41k</span></div>
+                <div class="deal"><div class="co">Pinnacle Ops</div><div class="val">$19,000</div><div class="prob"><i style="width:100%"></i></div><div class="meta">closed 05/07</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel forecast rise">
+            <div class="fc-total"><small>Weighted forecast · Q3 (AUD)</small>$212,400</div>
+            <div class="fc-row"><span class="lbl">Committed</span><div class="bar"><i style="width:41%;background:var(--green)"></i></div><span class="amt">$87.0k</span></div>
+            <div class="fc-row"><span class="lbl">Best case</span><div class="bar"><i style="width:34%;background:var(--amber-txt)"></i></div><span class="amt">$72.4k</span></div>
+            <div class="fc-row"><span class="lbl">Pipeline</span><div class="bar"><i style="width:25%;background:var(--ink-hush)"></i></div><span class="amt">$53.0k</span></div>
+            <div style="border-top:1px solid var(--line-soft);padding-top:12px;color:var(--ink-dim);font-size:12px;line-height:1.5">
+              Single-currency AUD by construction. Reconciles to the API to the cent.
+            </div>
+            <button class="btn ghost sm" style="align-self:flex-start">Export board pack</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ APPROVAL QUEUE (recommendation-only) ============ -->
+      <div>
+        <div class="sec-h">
+          <h2>Approval queue</h2>
+          <span class="sub">AI advises · the human commits · zero auto-writes</span>
+          <span class="more">All 3 →</span>
+        </div>
+        <div class="grid approvals">
+
+          <div class="panel appr rise">
+            <div class="appr-item">
+              <div class="top">
+                <svg class="mk" style="color:var(--amber-txt)"><use href="#m-margot"/></svg>
+                <span class="actor"><span class="who">Margot</span> proposes · lead → contact</span>
+                <span class="rec-chip">recommendation</span>
+              </div>
+              <div class="diff">
+                <div class="row"><span class="k">type</span><span class="was">crm_lead</span> → <span class="now">crm_contact</span></div>
+                <div class="row"><span class="k">company</span><span class="now">Novara Facilities Pty Ltd</span></div>
+                <div class="row"><span class="k">owner</span><span class="now">Phill McGurk</span></div>
+              </div>
+              <div class="rationale">Score 74 (qualified band). Strong identity match on ABN + domain. No duplicate contact found.</div>
+              <div class="appr-act">
+                <button class="btn primary sm"><svg class="mk"><use href="#m-appr"/></svg> Approve</button>
+                <button class="btn ghost sm">Edit</button>
+                <button class="btn reject sm">Reject</button>
+              </div>
+            </div>
+            <div class="safety">Lead score is recommendation-only. Board-approved conversion rules and strong identity checks are required before client creation or CRM identity merge.</div>
+          </div>
+
+          <div class="panel appr rise" style="animation-delay:.06s">
+            <div class="appr-item">
+              <div class="top">
+                <svg class="mk" style="color:var(--ink-dim)"><use href="#m-hex"/></svg>
+                <span class="actor"><span class="who">You</span> requested · field edit</span>
+                <span class="rec-chip" style="color:var(--ink-dim);border-color:var(--line)">gated write</span>
+              </div>
+              <div class="diff">
+                <div class="row"><span class="k">contact</span><span class="now">Ridgeline Trust</span></div>
+                <div class="row"><span class="k">stage</span><span class="was">Proposal</span> → <span class="now">Negotiation</span></div>
+                <div class="row"><span class="k">value</span><span class="was">$28,000</span> → <span class="now">$34,000</span></div>
+              </div>
+              <div class="rationale">Manual stage advance. Writes one <code style="font-family:var(--mono)">agent_actions</code> audit row on approve.</div>
+              <div class="appr-act">
+                <button class="btn primary sm"><svg class="mk"><use href="#m-appr"/></svg> Approve</button>
+                <button class="btn ghost sm">Edit</button>
+                <button class="btn reject sm">Reject</button>
+              </div>
+            </div>
+            <div class="safety">Every decision writes an audit row. Counts reconcile with the Hermes panel and the daily digest.</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ============ EVIDENCE / RECEIPTS ============ -->
+      <div>
+        <div class="sec-h">
+          <h2>Evidence stream</h2>
+          <span class="sub">receipts are first-class · every action leaves a trail</span>
+          <span class="src live"><span class="live-dot" style="width:5px;height:5px;box-shadow:none"></span> live</span>
+        </div>
+        <div class="panel evidence rise">
+          <div class="ev-row"><span class="t">08:41</span><span class="txt"><b>Pinnacle Ops</b> marked Won — $19,000 · audit row written</span><span class="tag src">agent_actions</span></div>
+          <div class="ev-row"><span class="t">08:19</span><span class="txt"><b>Margot</b> scored 3 new leads — highest Novara (74)</span><span class="tag src">qualify-lead</span></div>
+          <div class="ev-row"><span class="t">07:55</span><span class="txt"><b>Daily digest</b> generated — 5 leads, 12 opportunities, 3 approvals</span><span class="tag src">cron · 07:55</span></div>
+          <div class="ev-row"><span class="t">07:30</span><span class="txt"><b>Composio</b> synced 14 email threads to contacts</span><span class="tag src live">connected</span></div>
+        </div>
+      </div>
+
+      <p class="note">
+        <b>Design register.</b> Gun Metal ground <code>#0e1014</code> · Candy Red <code>#b30000</code> reserved for signal &amp; approval-required
+        only · CEO Orange <code>#e07020</code> = caution/stale · CEO Green <code>#00a854</code> = healthy/won · Inter 700/400 · sharp 4–6px radii ·
+        custom hexagon-derived geometric marks (no icon library) · every metric paired with an action (Rule 5) · provenance visible on
+        every surface · AI advises, the human commits. Motion is “rise” + a breathing pulse gated to genuinely live/blocking states.
+        Constitution: <code>.claude/DESIGN.md</code> · Layout: <code>docs/UNITE_COMMAND_CENTER_UI_UX_BRIEF.md</code> · IA: <code>spec.md §8</code>.
+      </p>
+
+    </div>
+  </div>
+</div>
+</body>
+</html>
