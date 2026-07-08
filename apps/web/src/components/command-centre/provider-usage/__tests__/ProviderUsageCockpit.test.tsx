@@ -32,8 +32,14 @@ describe('ProviderUsageCockpit', () => {
     expect(screen.getByText('Google Gemini')).toBeInTheDocument()
     expect(screen.getByText('OpenRouter')).toBeInTheDocument()
 
-    // visual meters (one per provider)
-    expect(screen.getAllByRole('meter')).toHaveLength(5)
+    // visual meters — one per provider (5) plus UNI-2338 per-seat plan bars
+    // (3 Claude Max + 1 Codex Max from the declared inventory) = 9
+    expect(screen.getAllByRole('meter')).toHaveLength(9)
+
+    // seat bars render honestly: configured provider without per-seat telemetry
+    // shows 'no telemetry', never a fabricated fill
+    expect(screen.getByTestId('plan-seat-claude_max_1')).toHaveTextContent(/no telemetry/i)
+    expect(screen.getByTestId('plan-seat-codex_max_1')).toHaveTextContent(/no telemetry/i)
 
     // a near-limit provider shows its state, an unconfigured one shows blocked
     expect(screen.getByTestId('provider-state-openai')).toHaveTextContent('near limit')
