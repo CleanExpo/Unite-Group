@@ -114,6 +114,9 @@ export async function listInProgressPRs(deps: InProgressPRsDeps = {}): Promise<I
         const res = await fetchFn(`${GH}/repos/${repo}/pulls?state=open&per_page=${PER_REPO_LIMIT}`, {
           headers,
           signal: AbortSignal.timeout(8000),
+          // Short data-cache window: absorbs founder page reloads and serves
+          // through brief GitHub degradations (matches sibling tiles' 60s cadence).
+          next: { revalidate: 60 },
         })
         if (!res.ok) {
           failures.push(`${repo}: HTTP ${res.status}`)
@@ -164,12 +167,15 @@ export async function listInProgressPRs(deps: InProgressPRsDeps = {}): Promise<I
     .slice(0, MAX_ENTRIES)
 
   const allFailed = failures.length === repos.length
+  const reachable = repos.length - failures.length
+  // Honesty: a partial failure must never read as an all-clear.
+  const unreachableNote = failures.length > 0 ? ` (${failures.length} of ${repos.length} repos unreachable)` : ''
   const status =
     entries.length === 0
       ? allFailed
         ? 'GitHub queries failed for every repo'
-        : 'no open PRs across portfolio repos'
-      : `${entries.length} open PRs across ${repos.length - failures.length} repos`
+        : `no open PRs across reachable repos${unreachableNote}`
+      : `${entries.length} open PRs across ${reachable} repos${unreachableNote}`
 
   return {
     source: 'github_api',

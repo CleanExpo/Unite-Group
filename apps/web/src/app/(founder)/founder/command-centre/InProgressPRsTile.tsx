@@ -26,16 +26,19 @@ function fmtRelative(iso: string): string {
 
 export function InProgressPRsTile({ data }: { data: InProgressPRsResult }) {
   if (data.entries.length === 0) {
-    // Either GitHub is not connected or there are genuinely no open PRs.
-    // The NorthStar says surface the source; the empty state is honest.
+    // Either GitHub is not connected, some repos failed, or there are genuinely
+    // no open PRs. Green only when the sweep was clean — a partial failure must
+    // never render as an all-clear (NorthStar honesty).
     const unavailable = !data.available
-    const tone = unavailable ? 'var(--color-text-muted)' : '#34d399'
+    const partial = data.available && data.read_error !== null
+    const tone = unavailable || partial ? 'var(--color-text-muted)' : '#34d399'
     return (
       <p
         data-testid="in-progress-prs-tile-empty"
         style={{ color: tone, fontSize: '0.85rem', margin: 0 }}
       >
-        {unavailable ? `${data.status_message}${data.read_error ? ` — ${data.read_error}` : ''}` : data.status_message}
+        {data.status_message}
+        {data.read_error ? ` — ${data.read_error}` : ''}
       </p>
     )
   }
@@ -51,6 +54,11 @@ export function InProgressPRsTile({ data }: { data: InProgressPRsResult }) {
       >
         {data.status_message}
       </div>
+      {data.read_error && (
+        <div style={{ color: 'var(--color-text-muted)', fontSize: '0.7rem', marginBottom: '0.4rem' }}>
+          ⚠ {data.read_error}
+        </div>
+      )}
       <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: '0.3rem' }}>
         {data.entries.map((pr: InProgressPR) => (
           <li

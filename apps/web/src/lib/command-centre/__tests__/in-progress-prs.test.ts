@@ -54,6 +54,7 @@ describe('listInProgressPRs (UNI-2340 — GitHub API, serverless-safe)', () => {
     expect(r.available).toBe(true)
     expect(r.entries).toHaveLength(1)
     expect(r.read_error).toMatch(/org\/denied: HTTP 403/)
+    expect(r.status_message).toMatch(/1 open PRs across 1 repos \(1 of 2 repos unreachable\)/)
   })
 
   it('all repos failing → available:false with per-repo detail', async () => {
