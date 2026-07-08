@@ -55,6 +55,46 @@ export function resetRegistry(): void {
 
 // ── Execute ─────────────────────────────────────────────────────────────────
 
+// ── 429/529 retry (UNI-2344) ─────────────────────────────────────────────────
+// Every capability caller shares one Anthropic capacity pool; cron bursts
+// (strategy-daily × 7 businesses, ceo-board) were failing outright on 429.
+// Bounded retry with exponential backoff + jitter, honouring retry-after.
+// Only overload-class errors retry — 4xx logic errors still throw immediately.
+const RETRYABLE_STATUS = new Set([429, 529])
+const MAX_ATTEMPTS = 4
+const BASE_DELAY_MS = 2_000
+
+function retryDelayMs(attempt: number, retryAfterHeader: string | null | undefined): number {
+  const retryAfter = retryAfterHeader ? Number(retryAfterHeader) : NaN
+  if (Number.isFinite(retryAfter) && retryAfter > 0) return Math.min(retryAfter * 1_000, 60_000)
+  const expo = BASE_DELAY_MS * 2 ** (attempt - 1)
+  return Math.min(expo, 30_000) + Math.floor(Math.random() * 500)
+}
+
+async function createWithRetry(
+  client: ReturnType<typeof getAIClient>,
+  params: Anthropic.MessageCreateParamsNonStreaming,
+): Promise<Anthropic.Message> {
+  let lastError: unknown
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      return await client.messages.create(params)
+    } catch (err) {
+      lastError = err
+      const status = (err as { status?: number }).status
+      if (status === undefined || !RETRYABLE_STATUS.has(status) || attempt === MAX_ATTEMPTS) throw err
+      const headers = (err as { headers?: Record<string, string> | Headers }).headers
+      const retryAfter =
+        headers instanceof Headers ? headers.get('retry-after') :
+        headers ? headers['retry-after'] : undefined
+      const delay = retryDelayMs(attempt, retryAfter)
+      console.warn(`[ai/router] ${status} from Anthropic — retry ${attempt}/${MAX_ATTEMPTS - 1} in ${delay}ms`)
+      await new Promise((r) => setTimeout(r, delay))
+    }
+  }
+  throw lastError
+}
+
 /** Dispatch an AI request through a registered capability. */
 export async function execute(
   capabilityId: string,
@@ -183,7 +223,7 @@ export async function execute(
   }
 
   const client = getAIClient()
-  const response = await client.messages.create(params)
+  const response = await createWithRetry(client, params)
 
   // Extract content from response blocks
   let textContent = ''

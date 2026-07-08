@@ -217,3 +217,54 @@ describe('execute', () => {
     )
   })
 })
+
+describe('UNI-2344 — 429/529 retry with backoff', () => {
+  beforeEach(() => {
+    resetRegistry()
+    mockCreate.mockReset()
+  })
+
+  it('retries a 429 then succeeds', async () => {
+    vi.useFakeTimers()
+    try {
+      registerCapability({ ...baseCap, id: 'retry-cap' })
+      const err = Object.assign(new Error('rate limited'), { status: 429, headers: { 'retry-after': '1' } })
+      mockCreate
+        .mockRejectedValueOnce(err)
+        .mockResolvedValueOnce({
+          content: [{ type: 'text', text: 'ok' }],
+          usage: { input_tokens: 1, output_tokens: 1 },
+          model: 'claude-sonnet-4-5-20250929',
+        })
+      const promise = execute('retry-cap', { messages: [{ role: 'user', content: 'x' }] })
+      await vi.advanceTimersByTimeAsync(1_100)
+      const res = await promise
+      expect(res.content).toBe('ok')
+      expect(mockCreate).toHaveBeenCalledTimes(2)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('does not retry non-overload errors', async () => {
+    registerCapability({ ...baseCap, id: 'noretry-cap' })
+    mockCreate.mockRejectedValue(Object.assign(new Error('bad request'), { status: 400 }))
+    await expect(execute('noretry-cap', { messages: [{ role: 'user', content: 'x' }] })).rejects.toThrow('bad request')
+    expect(mockCreate).toHaveBeenCalledTimes(1)
+  })
+
+  it('gives up after max attempts on persistent 429', async () => {
+    vi.useFakeTimers()
+    try {
+      registerCapability({ ...baseCap, id: 'giveup-cap' })
+      mockCreate.mockRejectedValue(Object.assign(new Error('rate limited'), { status: 429 }))
+      const promise = execute('giveup-cap', { messages: [{ role: 'user', content: 'x' }] })
+      const assertion = expect(promise).rejects.toThrow('rate limited')
+      await vi.advanceTimersByTimeAsync(120_000)
+      await assertion
+      expect(mockCreate).toHaveBeenCalledTimes(4)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})

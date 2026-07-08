@@ -68,9 +68,11 @@ export async function GET(request: Request) {
       .map((r: { title: string; type: string; body: string }) => `[${r.type}] ${r.title}: ${r.body.slice(0, 100)}`)
       .join('\n')
 
-    // Evaluate each insight in parallel via Haiku adversarial evaluator
-    const evaluations = await Promise.allSettled(
-      insights.map(async (ins) => {
+    // Evaluate insights SEQUENTIALLY (UNI-2344): seven businesses cron in a
+    // 30-min window sharing one Anthropic pool — the parallel burst here was
+    // 429ing every run. A cron can afford serial latency; the router now also
+    // retries 429s with backoff.
+    const evaluateOne = async (ins: (typeof insights)[number]) => {
         const prompt = `Recent insights for ${businessKey} (last 7 days):\n${recentContext || 'None yet.'}\n\nNew insight to evaluate:\nType: ${ins.type}\nTitle: ${ins.title}\nBody: ${ins.body}\nPriority: ${ins.priority}`
         const response = await execute('insight-evaluator', {
           messages: [{ role: 'user' as const, content: prompt }],
@@ -83,8 +85,15 @@ export async function GET(request: Request) {
           if (match) return JSON.parse(match[0]) as { score: number; pass: boolean; reason: string }
           return { score: 5, pass: true, reason: 'parse error — defaulting to pass' }
         }
-      })
-    )
+      }
+    const evaluations: PromiseSettledResult<{ score: number; pass: boolean; reason: string }>[] = []
+    for (const ins of insights) {
+      try {
+        evaluations.push({ status: 'fulfilled', value: await evaluateOne(ins) })
+      } catch (err) {
+        evaluations.push({ status: 'rejected', reason: err })
+      }
+    }
 
     // Only store insights that passed evaluation (score >= 7)
     const rows = insights
