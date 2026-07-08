@@ -31,12 +31,32 @@ export interface ProviderConfig {
   fallback: ProviderId | null
   /** Env var names whose *presence* (not value) marks the provider configured. */
   envKeys: string[]
+  /** Declared plan seats (subscription inventory) — UNI-2338. Optional; only
+   *  providers with multiple concurrent plan accounts declare them. */
+  seats?: { id: string; label: string }[]
+}
+
+/** One plan seat's derived readiness — UNI-2338 plan-usage bars.
+ *  usagePct is null unless real telemetry exists (manual env entry or a
+ *  future usage writer). Never fabricated. */
+export interface PlanSeat {
+  id: string
+  label: string
+  state: ProviderState
+  usagePct: number | null
+  truthLevel: TruthLevel
 }
 
 /** Static catalogue — identity + routing role only. No secrets. */
 export const PROVIDERS: ProviderConfig[] = [
-  { id: 'claude', label: 'Claude Max', planType: 'Max subscription', resetCadence: '5h rolling', bestUseLane: 'deep_reasoning', fallback: 'openai', envKeys: ['ANTHROPIC_API_KEY', 'CLAUDE_API_KEY'] },
-  { id: 'openai', label: 'OpenAI Max', planType: 'Max plan', resetCadence: 'monthly', bestUseLane: 'coding', fallback: 'claude', envKeys: ['OPENAI_API_KEY'] },
+  { id: 'claude', label: 'Claude Max', planType: 'Max subscription', resetCadence: '5h rolling', bestUseLane: 'deep_reasoning', fallback: 'openai', envKeys: ['ANTHROPIC_API_KEY', 'CLAUDE_API_KEY'], seats: [
+    { id: 'claude_max_1', label: 'Claude Max #1' },
+    { id: 'claude_max_2', label: 'Claude Max #2' },
+    { id: 'claude_max_3', label: 'Claude Max #3' },
+  ] },
+  { id: 'openai', label: 'OpenAI Max', planType: 'Max plan', resetCadence: 'monthly', bestUseLane: 'coding', fallback: 'claude', envKeys: ['OPENAI_API_KEY'], seats: [
+    { id: 'codex_max_1', label: 'OpenAI Codex Max' },
+  ] },
   { id: 'minimax', label: 'MiniMax Max', planType: 'Max subscription', resetCadence: 'daily', bestUseLane: 'video_media', fallback: 'gemini', envKeys: ['MINIMAX_API_KEY'] },
   { id: 'gemini', label: 'Google Gemini', planType: 'Plan', resetCadence: 'per-minute + daily', bestUseLane: 'fast_drafting', fallback: 'openrouter', envKeys: ['GEMINI_API_KEY', 'GOOGLE_API_KEY', 'GOOGLE_GENERATIVE_AI_API_KEY'] },
   { id: 'openrouter', label: 'OpenRouter', planType: 'Credits', resetCadence: 'credit balance', bestUseLane: 'fallback_aggregator', fallback: null, envKeys: ['OPENROUTER_API_KEY'] },
@@ -51,6 +71,9 @@ export interface ProviderSignal {
   truth?: TruthLevel
   /** Explicit block reason (e.g. plan suspended). */
   blockedReason?: string
+  /** Per-seat usage pressure 0..1, keyed by seat id — UNI-2338. Manual or
+   *  telemetry-fed; a seat with no entry renders as unknown, never invented. */
+  seatPressures?: Record<string, number>
 }
 
 export interface ProviderCockpitEntry {
@@ -66,6 +89,8 @@ export interface ProviderCockpitEntry {
   /** 0..100 when known, else null. */
   usagePct: number | null
   lastChecked: string
+  /** Per-seat plan bars — UNI-2338. Present only for providers declaring seats. */
+  plans?: PlanSeat[]
 }
 
 export interface RoutingHint {
@@ -152,6 +177,18 @@ export function buildProviderCockpit(input: BuildProviderCockpitInput): Provider
   const providers: ProviderCockpitEntry[] = PROVIDERS.map((p) => {
     const signal = input.signals[p.id] ?? { configured: false }
     const d = deriveProviderState(signal)
+    const plans = p.seats?.map((seat): PlanSeat => {
+      if (!signal.configured) {
+        return { id: seat.id, label: seat.label, state: 'blocked', usagePct: null, truthLevel: 'unavailable' }
+      }
+      const pressure = signal.seatPressures?.[seat.id]
+      if (pressure === undefined) {
+        // Configured provider, no per-seat telemetry — honest unknown.
+        return { id: seat.id, label: seat.label, state: 'unknown', usagePct: null, truthLevel: 'unavailable' }
+      }
+      const seatDerived = deriveProviderState({ configured: true, usagePressure: pressure, truth: 'manual' })
+      return { id: seat.id, label: seat.label, state: seatDerived.state, usagePct: seatDerived.usagePct, truthLevel: 'manual' }
+    })
     return {
       id: p.id,
       label: p.label,
@@ -164,6 +201,7 @@ export function buildProviderCockpit(input: BuildProviderCockpitInput): Provider
       missingSetupReason: d.missingSetupReason,
       usagePct: d.usagePct,
       lastChecked: input.now,
+      ...(plans ? { plans } : {}),
     }
   })
 
@@ -195,9 +233,31 @@ export function readProviderSignalsFromEnv(
   env: Record<string, string | undefined>,
 ): Record<ProviderId, ProviderSignal> {
   const present = (keys: string[]): boolean => keys.some((k) => typeof env[k] === 'string' && env[k]!.length > 0)
+  // Usage-pressure envs hold a plain 0..1 number (operator-maintained metadata,
+  // not a secret) — reading the value is within the presence-only key rule.
+  const pressure = (name: string): number | undefined => {
+    const raw = env[name]
+    if (typeof raw !== 'string' || raw.length === 0) return undefined
+    const n = Number(raw)
+    return Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : undefined
+  }
   const signals = {} as Record<ProviderId, ProviderSignal>
   for (const p of PROVIDERS) {
-    signals[p.id] = { configured: present(p.envKeys) }
+    const signal: ProviderSignal = { configured: present(p.envKeys) }
+    const providerPressure = pressure(`PROVIDER_USAGE_PRESSURE_${p.id.toUpperCase()}`)
+    if (providerPressure !== undefined) {
+      signal.usagePressure = providerPressure
+      signal.truth = 'manual'
+    }
+    if (p.seats?.length) {
+      const seatPressures: Record<string, number> = {}
+      for (const seat of p.seats) {
+        const sp = pressure(`PLAN_SEAT_PRESSURE_${seat.id.toUpperCase()}`)
+        if (sp !== undefined) seatPressures[seat.id] = sp
+      }
+      if (Object.keys(seatPressures).length) signal.seatPressures = seatPressures
+    }
+    signals[p.id] = signal
   }
   return signals
 }

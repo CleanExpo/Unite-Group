@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react'
 import type {
   ProviderCockpitPayload,
   ProviderCockpitEntry,
+  PlanSeat,
   ProviderState,
   UseLane,
 } from '@/lib/command-centre/provider-usage'
@@ -93,6 +94,40 @@ function ProviderMeter({ provider }: { provider: ProviderCockpitEntry }) {
       {provider.missingSetupReason && (
         <span style={{ fontSize: 11, color: 'var(--cc-signal-text)' }}>⚠ {provider.missingSetupReason}</span>
       )}
+      {/* UNI-2338 — per-seat plan bars. usagePct null renders as "no telemetry",
+          never a fabricated fill. */}
+      {provider.plans && provider.plans.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, paddingLeft: 10, marginTop: 2 }}>
+          {provider.plans.map((seat) => (
+            <PlanSeatBar key={seat.id} seat={seat} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function PlanSeatBar({ seat }: { seat: PlanSeat }) {
+  const pct = seat.usagePct ?? 0
+  return (
+    <div data-testid={`plan-seat-${seat.id}`} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+        <span style={{ color: 'var(--cc-ink-dim)' }}>{seat.label}</span>
+        <span style={{ color: stateTextColor(seat.state), textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          {STATE_LABEL[seat.state]}
+          {seat.usagePct !== null ? ` · ${seat.usagePct}%` : ' · no telemetry'}
+        </span>
+      </div>
+      <div
+        role="meter"
+        aria-label={`${seat.label} plan usage`}
+        aria-valuenow={seat.usagePct ?? undefined}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        style={{ height: 4, borderRadius: 2, background: 'var(--cc-ink-hush)', overflow: 'hidden' }}
+      >
+        <div style={{ width: `${pct}%`, height: '100%', background: stateColor(seat.state) }} />
+      </div>
     </div>
   )
 }
@@ -161,8 +196,22 @@ export function ProviderUsageCockpit() {
 
           {/* Routing hints — shift when a provider is near-limit/blocked */}
           <div style={{ borderTop: '1px solid var(--cc-ink-hush)', paddingTop: 8 }}>
-            <span style={{ fontSize: 11, color: 'var(--cc-ink-dim)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Routing
+            <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <span style={{ fontSize: 11, color: 'var(--cc-ink-dim)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Routing
+              </span>
+              {/* UNI-2338 — MoA badge derived from the live routing payload only. */}
+              <span
+                data-testid="moa-routing-badge"
+                style={{
+                  fontSize: 10,
+                  color: payload.routing.every((r) => r.recommended) ? 'var(--cc-ink)' : 'var(--cc-signal-text)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                }}
+              >
+                MoA {payload.routing.filter((r) => r.recommended).length}/{payload.routing.length} lanes routable
+              </span>
             </span>
             <ul style={{ listStyle: 'none', margin: '4px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
               {payload.routing.map((r) => (
