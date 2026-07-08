@@ -104,3 +104,66 @@ describe('buildProviderCockpit', () => {
     expect(fast?.reason).toMatch(/blocked/)
   })
 })
+
+describe('UNI-2338 — plan seats (honest per-seat bars)', () => {
+  it('claude declares 3 seats, openai 1, others none', () => {
+    const payload = buildProviderCockpit({ signals: allConfigured(), now: NOW })
+    const byId = new Map(payload.providers.map((p) => [p.id, p]))
+    expect(byId.get('claude')?.plans).toHaveLength(3)
+    expect(byId.get('openai')?.plans).toHaveLength(1)
+    expect(byId.get('gemini')?.plans).toBeUndefined()
+    expect(byId.get('openrouter')?.plans).toBeUndefined()
+  })
+
+  it('unconfigured provider → seats blocked with null pct (never fabricated)', () => {
+    const payload = buildProviderCockpit({
+      signals: allConfigured({ claude: { configured: false } }),
+      now: NOW,
+    })
+    const claude = payload.providers.find((p) => p.id === 'claude')!
+    for (const seat of claude.plans!) {
+      expect(seat.state).toBe('blocked')
+      expect(seat.usagePct).toBeNull()
+      expect(seat.truthLevel).toBe('unavailable')
+    }
+  })
+
+  it('configured but no per-seat telemetry → unknown with null pct', () => {
+    const payload = buildProviderCockpit({
+      signals: allConfigured({ claude: { configured: true } }),
+      now: NOW,
+    })
+    const claude = payload.providers.find((p) => p.id === 'claude')!
+    for (const seat of claude.plans!) {
+      expect(seat.state).toBe('unknown')
+      expect(seat.usagePct).toBeNull()
+    }
+  })
+
+  it('seatPressures drive per-seat state/pct at truth=manual', () => {
+    const payload = buildProviderCockpit({
+      signals: allConfigured({
+        claude: { configured: true, seatPressures: { claude_max_1: 0.6, claude_max_3: 0.97 } },
+      }),
+      now: NOW,
+    })
+    const seats = new Map(payload.providers.find((p) => p.id === 'claude')!.plans!.map((s) => [s.id, s]))
+    expect(seats.get('claude_max_1')).toMatchObject({ state: 'watching', usagePct: 60, truthLevel: 'manual' })
+    expect(seats.get('claude_max_2')).toMatchObject({ state: 'unknown', usagePct: null })
+    expect(seats.get('claude_max_3')).toMatchObject({ state: 'blocked', usagePct: 97, truthLevel: 'manual' })
+  })
+
+  it('readProviderSignalsFromEnv parses pressure envs and ignores junk', () => {
+    const signals = readProviderSignalsFromEnv({
+      ANTHROPIC_API_KEY: 'x',
+      PROVIDER_USAGE_PRESSURE_CLAUDE: '0.7',
+      PLAN_SEAT_PRESSURE_CLAUDE_MAX_1: '0.4',
+      PLAN_SEAT_PRESSURE_CLAUDE_MAX_2: 'not-a-number',
+      PLAN_SEAT_PRESSURE_CODEX_MAX_1: '1.7',
+      OPENAI_API_KEY: 'y',
+    })
+    expect(signals.claude).toMatchObject({ configured: true, usagePressure: 0.7, truth: 'manual' })
+    expect(signals.claude.seatPressures).toEqual({ claude_max_1: 0.4 })
+    expect(signals.openai.seatPressures).toEqual({ codex_max_1: 1 }) // clamped
+  })
+})
