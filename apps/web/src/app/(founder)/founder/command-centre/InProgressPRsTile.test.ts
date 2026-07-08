@@ -1,6 +1,10 @@
 // src/app/(founder)/founder/command-centre/InProgressPRsTile.test.ts
 //
 // Lane 16.5 — Lane 16 component source contract tests.
+//
+// UNI-2340 fast-follow: converted to a 'use client' tile that fetches its own
+// data (mirroring the sibling GitHub tiles) instead of blocking the command
+// deck's SSR — see InProgressPRsTile.tsx header comment for the incident.
 
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
@@ -15,8 +19,16 @@ const path = join(
 describe('InProgressPRsTile source contract', () => {
   const src = readFileSync(path, 'utf8')
 
-  it('is a server component (no "use client" directive)', () => {
-    expect(src).not.toMatch(/^['"]use client['"]/m)
+  it('is a client component (fetches its own data, does not block SSR)', () => {
+    expect(src).toMatch(/^['"]use client['"]/m)
+  })
+
+  it('fetches the dedicated command-centre API route', () => {
+    expect(src).toContain("fetch('/api/command-centre/in-progress-prs')")
+  })
+
+  it('polls on an interval rather than fetching once', () => {
+    expect(src).toMatch(/setInterval\(load, POLL_MS\)/)
   })
 
   it('renders the data-testid hook used by the deck selector', () => {
@@ -31,12 +43,7 @@ describe('InProgressPRsTile source contract', () => {
     expect(src).toContain('data-pr-number={pr.number}')
   })
 
-  it('does not import from any client-only React hooks (useState/useEffect)', () => {
-    expect(src).not.toMatch(/\buse(State|Effect|Reducer|Ref)\b/)
-  })
-
-  it('does not introduce browser automation, secret storage, or network calls', () => {
+  it('does not store or read any secret-shaped env vars', () => {
     expect(src).not.toMatch(/process\.env\.[A-Z_]*(?:SECRET|KEY|TOKEN)/)
-    expect(src).not.toMatch(/fetch\(|axios\.|http\.|https\./)
   })
 })

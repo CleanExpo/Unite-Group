@@ -11,7 +11,6 @@ import { getToolCatalogue } from '@/lib/command-centre/tools/catalogue'
 import { summariseDashboard } from '@/lib/command-centre/dashboard-summary'
 import { loadDashboardHealthFromSupabase } from '@/lib/command-centre/dashboard-health-supabase'
 import { tailEvidence } from '@/lib/command-centre/evidence-stream'
-import { listInProgressPRs } from '@/lib/command-centre/in-progress-prs'
 import { loadProjectIntegrationStatuses } from '@/lib/command-centre/project-integrations'
 import { loadActionQueueData } from './ActionQueueTile'
 import { loadBlockedLanesData } from './BlockedLanesTile'
@@ -111,11 +110,8 @@ function hostOf(url?: string): string {
 }
 
 export default async function CommandDeckPage() {
-  // getProjects first (fast local YAML) so the PRs scanner reuses the same
-  // repo list instead of re-reading the registry (review finding, UNI-2340).
   const projects = await getProjects()
-  const portfolioRepos = [...new Set(projects.map((p) => p.github_repo).filter((r): r is string => !!r))]
-  const [tools, dashboard, evidence, actionQueue, blockedLanes, inProgressPRs, user] = await Promise.all([
+  const [tools, dashboard, evidence, actionQueue, blockedLanes, user] = await Promise.all([
     getToolCatalogue(),
     // UNI-2229: cloud substrate first (works on Vercel); local .agentic_nexus
     // dir remains the dev fallback when the table is unreachable or empty.
@@ -127,7 +123,6 @@ export default async function CommandDeckPage() {
     tailEvidence(),
     loadActionQueueData(),
     loadBlockedLanesData(),
-    listInProgressPRs({ repos: portfolioRepos }),
     getUser(),
   ])
   const integrationStatuses = await loadProjectIntegrationStatuses(projects)
@@ -500,15 +495,11 @@ export default async function CommandDeckPage() {
       {/* ── In-Progress PRs (Lane 16.5) ─────────────────────────────────── */}
       <div className={styles.sectionHead} id="in-progress-prs">
         <span className={styles.sectionLabel}>In-Progress PRs</span>
-        <span className={styles.sectionMeta}>
-          {inProgressPRs.available
-            ? <>{inProgressPRs.status_message} · via <code style={{ fontSize: '0.7rem' }}>GitHub API</code></>
-            : inProgressPRs.status_message}
-        </span>
+        <span className={styles.sectionMeta}>via <code style={{ fontSize: '0.7rem' }}>GitHub API</code></span>
       </div>
 
       <section className={`${styles.reveal}`} style={{ animationDelay: '0.2s' }}>
-        <InProgressPRsTile data={inProgressPRs} />
+        <InProgressPRsTile />
       </section>
 
       {/* ── Founder Cockpit (consolidated from the retired /founder/dashboard · UNI-2306) ─ */}
