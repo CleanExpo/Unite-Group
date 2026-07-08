@@ -9,6 +9,7 @@ import { Chakra_Petch } from 'next/font/google'
 import { getProjects, type CommandCentreProject } from '@/lib/command-centre/registry'
 import { getToolCatalogue } from '@/lib/command-centre/tools/catalogue'
 import { summariseDashboard } from '@/lib/command-centre/dashboard-summary'
+import { loadDashboardHealthFromSupabase } from '@/lib/command-centre/dashboard-health-supabase'
 import { tailEvidence } from '@/lib/command-centre/evidence-stream'
 import { listInProgressPRs } from '@/lib/command-centre/in-progress-prs'
 import { loadProjectIntegrationStatuses } from '@/lib/command-centre/project-integrations'
@@ -116,7 +117,13 @@ export default async function CommandDeckPage() {
   const portfolioRepos = [...new Set(projects.map((p) => p.github_repo).filter((r): r is string => !!r))]
   const [tools, dashboard, evidence, actionQueue, blockedLanes, inProgressPRs, user] = await Promise.all([
     getToolCatalogue(),
-    summariseDashboard(),
+    // UNI-2229: cloud substrate first (works on Vercel); local .agentic_nexus
+    // dir remains the dev fallback when the table is unreachable or empty.
+    (async () => {
+      const cloud = await loadDashboardHealthFromSupabase()
+      if (cloud.ok && cloud.result.entries.length > 0) return cloud.result
+      return summariseDashboard()
+    })(),
     tailEvidence(),
     loadActionQueueData(),
     loadBlockedLanesData(),
