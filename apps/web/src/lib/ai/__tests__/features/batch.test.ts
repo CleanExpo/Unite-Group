@@ -174,5 +174,30 @@ describe('Batch API', () => {
       expect(results[1].message).toBeUndefined()
       expect(results[1].error?.message).toBe('rate limited')
     })
+
+    it('preserves request order under bounded concurrency (slowest first)', async () => {
+      mockGetAIClientMode.mockReturnValue('oauth')
+      let call = 0
+      mockMessagesCreate.mockImplementation(async () => {
+        const n = call++
+        await new Promise((r) => setTimeout(r, n === 0 ? 30 : 5))
+        return {
+          content: [{ type: 'text', text: `resp-${n}` }],
+          usage: { input_tokens: 1, output_tokens: 1 },
+          model: 'claude-sonnet-4-20250514',
+        }
+      })
+      const requests = ['a', 'b', 'c'].map((id) =>
+        buildBatchRequest(id, {
+          model: 'claude-sonnet-4-20250514',
+          maxTokens: 1024,
+          messages: [{ role: 'user', content: id }],
+        })
+      )
+      const batch = await createBatch(requests)
+      const items = await retrieveBatchResults(batch.id)
+      expect(items.map((i) => i.customId)).toEqual(['a', 'b', 'c'])
+      expect(mockMessagesCreate).toHaveBeenCalledTimes(3)
+    })
   })
 })

@@ -64,40 +64,56 @@ function makeSequentialBatchId(): string {
   return `seq_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
 }
 
-/** Runs each batch request through messages.create in turn, carrying per-item errors. */
+// Bounded concurrency: strictly serial ran up to 50 threads × N accounts inside
+// the calling cron's maxDuration (review should-fix). 4 keeps wall-time ~N/4
+// without burst-firing the shared Anthropic pool (429 handling stays in
+// ai/router createWithRetry for capability calls; these direct calls stay tame).
+const SEQUENTIAL_CONCURRENCY = 4
+
+/** Runs batch requests through messages.create with bounded concurrency,
+ *  carrying per-item errors and preserving request order in the results. */
 async function runSequentially(
   client: Anthropic,
   requests: BatchRequest[]
 ): Promise<BatchItemResult[]> {
-  const results: BatchItemResult[] = []
+  const results: BatchItemResult[] = new Array(requests.length)
+  let next = 0
 
-  for (const req of requests) {
-    try {
-      const message = await client.messages.create(req.params)
-      results.push({
-        customId: req.custom_id,
-        status: 'succeeded',
-        message: {
-          content: message.content as unknown[],
-          usage: {
-            input_tokens: message.usage.input_tokens,
-            output_tokens: message.usage.output_tokens,
+  async function worker(): Promise<void> {
+    while (next < requests.length) {
+      const index = next
+      next += 1
+      const req = requests[index]
+      try {
+        const message = await client.messages.create(req.params)
+        results[index] = {
+          customId: req.custom_id,
+          status: 'succeeded',
+          message: {
+            content: message.content as unknown[],
+            usage: {
+              input_tokens: message.usage.input_tokens,
+              output_tokens: message.usage.output_tokens,
+            },
+            model: message.model,
           },
-          model: message.model,
-        },
-      })
-    } catch (err) {
-      results.push({
-        customId: req.custom_id,
-        status: 'errored',
-        error: {
-          type: err instanceof APIError ? (err.type ?? err.name) : 'error',
-          message: err instanceof Error ? err.message : String(err),
-        },
-      })
+        }
+      } catch (err) {
+        results[index] = {
+          customId: req.custom_id,
+          status: 'errored',
+          error: {
+            type: err instanceof APIError ? (err.type ?? err.name) : 'error',
+            message: err instanceof Error ? err.message : String(err),
+          },
+        }
+      }
     }
   }
 
+  await Promise.all(
+    Array.from({ length: Math.min(SEQUENTIAL_CONCURRENCY, requests.length) }, () => worker())
+  )
   return results
 }
 
