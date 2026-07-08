@@ -1,0 +1,217 @@
+/* pipeline-board.module.css — Gun Metal + Candy Red, glassmorphic.
+ *
+ * Frosted layered surfaces over the deck's ambient ground. The register mirrors
+ * the design canvas (docs/design/crm-control-panel.html): translucent glass,
+ * a crisp top-edge light, and the single Candy-Red signal reserved for the
+ * stale-deal boundary. Colour comes from cc-* tokens with hard-coded Gun Metal
+ * fallbacks so the board renders correctly outside the deck shell too.
+ *
+ * Radius is rounded-sm (4px) per the app's enforced border rule.
+ */
+
+.board {
+  --pb-glass-1: rgba(22, 26, 33, 0.58);
+  --pb-glass-3: rgba(34, 40, 51, 0.55);
+  --pb-brd: rgba(255, 255, 255, 0.075);
+  --pb-hi: rgba(255, 255, 255, 0.055);
+  --pb-line-soft: #1b2027;
+  --pb-ink: var(--cc-ink, #eef1f5);
+  --pb-ink-dim: var(--cc-ink-dim, #a4adba);
+  --pb-ink-hush: var(--cc-ink-hush, #6b7686);
+  --pb-green-txt: #34d399;
+  --pb-red-bright: #e5484d;
+  --pb-red: #b30000;
+  --pb-orange: #e07020;
+  --pb-amber: #f0a94c;
+  --pb-ease: cubic-bezier(0.19, 1, 0.22, 1);
+
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  padding: 16px;
+  border-radius: 4px;
+  background: var(--pb-glass-1);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  backdrop-filter: blur(22px) saturate(140%);
+  border: 1px solid var(--pb-brd);
+  box-shadow:
+    0 1px 0 var(--pb-hi) inset,
+    0 8px 24px -12px rgba(0, 0, 0, 0.7),
+    0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+/* crisp top-edge light */
+.board::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  border-radius: 4px 4px 0 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.14), transparent);
+  pointer-events: none;
+}
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+}
+
+.stageHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--pb-line-soft);
+}
+
+.stageName {
+  font-family: var(--font-mono, 'IBM Plex Mono', ui-monospace, monospace);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--pb-ink-dim);
+}
+
+.stageCount {
+  font-family: var(--font-mono, 'IBM Plex Mono', ui-monospace, monospace);
+  font-size: 11px;
+  color: var(--pb-ink-hush);
+}
+
+.deal {
+  position: relative;
+  border-radius: 4px;
+  padding: 10px 11px;
+  cursor: pointer;
+  background: var(--pb-glass-3);
+  -webkit-backdrop-filter: blur(12px) saturate(130%);
+  backdrop-filter: blur(12px) saturate(130%);
+  border: 1px solid var(--pb-brd);
+  box-shadow:
+    0 1px 0 var(--pb-hi) inset,
+    0 4px 14px -8px rgba(0, 0, 0, 0.7);
+  transition:
+    transform 0.22s var(--pb-ease),
+    box-shadow 0.22s var(--pb-ease),
+    border-color 0.22s var(--pb-ease);
+  text-align: left;
+  width: 100%;
+  font: inherit;
+  color: inherit;
+}
+
+.deal:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow:
+    0 1px 0 var(--pb-hi) inset,
+    0 10px 24px -10px rgba(0, 0, 0, 0.85);
+}
+
+.deal:focus-visible {
+  outline: 2px solid var(--pb-red-bright);
+  outline-offset: 2px;
+}
+
+/* stale > 7 days — the single Candy-Red signal on the board */
+.dealStale {
+  border-color: rgba(229, 72, 77, 0.5);
+  box-shadow:
+    0 0 0 1px rgba(229, 72, 77, 0.35),
+    0 8px 30px -10px rgba(179, 0, 0, 0.35);
+}
+
+.co {
+  font-weight: 600;
+  font-size: 12.5px;
+  color: var(--pb-ink);
+}
+
+.val {
+  font-family: var(--font-mono, 'IBM Plex Mono', ui-monospace, monospace);
+  font-size: 12px;
+  color: var(--pb-green-txt);
+  margin-top: 2px;
+}
+
+.prob {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.probFill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #00a854, var(--pb-green-txt));
+  box-shadow: 0 0 8px -1px rgba(0, 168, 84, 0.6);
+}
+
+.probFillStale {
+  background: linear-gradient(90deg, var(--pb-orange), var(--pb-amber));
+  box-shadow: 0 0 8px -1px rgba(224, 112, 32, 0.6);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 7px;
+  font-size: 10.5px;
+  color: var(--pb-ink-hush);
+}
+
+.staleDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--pb-red-bright);
+  box-shadow: 0 0 0 3px rgba(229, 72, 77, 0.18);
+}
+
+/* empty stage — honest, quiet */
+.stageEmpty {
+  padding: 12px 8px;
+  font-size: 11px;
+  color: var(--pb-ink-hush);
+  border: 1px dashed var(--pb-line-soft);
+  border-radius: 4px;
+  text-align: center;
+}
+
+/* board-level empty / not-connected state (no fake-as-real data) */
+.boardEmpty {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+  text-align: center;
+}
+
+.boardEmptyTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pb-ink-dim);
+}
+
+.boardEmptyBody {
+  font-size: 12px;
+  color: var(--pb-ink-hush);
+  max-width: 380px;
+  line-height: 1.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deal {
+    transition: none;
+  }
+}
