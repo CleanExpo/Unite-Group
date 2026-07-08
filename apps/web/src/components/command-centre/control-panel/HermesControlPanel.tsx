@@ -189,7 +189,7 @@ export function HermesControlPanel({ initialPayload }: HermesControlPanelProps =
           <SourceBadge mode={badgeMode} label={badgeLabel} lastUpdatedAt={payload?.generatedAt} />
           {/* UNI-2341: forward links to the two sub-consoles that were orphaned
               (working routes, zero inbound links anywhere in the app). */}
-          <span className="flex gap-3 font-mono text-[11px]" style={{ color: 'var(--cc-ink-dim)' }}>
+          <span className="flex flex-wrap gap-3 font-mono text-[11px]" style={{ color: 'var(--cc-ink-dim)' }}>
             <Link
               href="/founder/command-centre/hermes-control-panel"
               style={{ color: 'var(--cc-ink-dim)', textDecoration: 'underline', textUnderlineOffset: 3 }}
