@@ -67,6 +67,9 @@ export function getAIClient(): Anthropic {
   if (oauthToken) {
     _mode = 'oauth'
     const client = new Anthropic({
+    // UNI-2344: retry policy lives in ai/router createWithRetry — SDK default
+    // maxRetries=2 would stack multiplicatively under it (4×3 HTTP calls).
+    maxRetries: 0,
       authToken: oauthToken,
       // Force OAuth-only: the SDK defaults apiKey to process.env.ANTHROPIC_API_KEY,
       // which (if set) would make it send BOTH x-api-key AND Authorization headers
@@ -102,7 +105,12 @@ export function getAIClient(): Anthropic {
     )
   }
   _mode = 'apikey'
-  _instance = new Anthropic({ apiKey })
+  _instance = new Anthropic({
+    apiKey,
+    // UNI-2344: retry policy lives in ai/router createWithRetry — SDK default
+    // maxRetries=2 would stack multiplicatively under it (4×3 HTTP calls).
+    maxRetries: 0,
+  })
   return _instance
 }
 
