@@ -2,9 +2,10 @@
 //
 // Lane 16.5 — CRM Command-Centre tile: In-Progress PRs.
 //
-// Server component. Renders the most recent open PRs in the repo
-// (across all authors), newest first. Renders honestly when the
-// `gh` CLI is unavailable or the repo has no open PRs.
+// Server component. Renders the most recent open PRs across all portfolio
+// repos (UNI-2340: GitHub REST API — serverless-safe; previously a local-only
+// gh-CLI view that was permanently empty in production). Renders honestly
+// when GitHub is not connected or there are genuinely no open PRs.
 //
 // Read-only. No mutations, no network calls beyond the lib helper.
 
@@ -23,24 +24,18 @@ function fmtRelative(iso: string): string {
   return `${d}d`
 }
 
-function hostOf(url: string): string {
-  return url.replace(/^https?:\/\//, '').replace(/\/.*$/, '')
-}
-
 export function InProgressPRsTile({ data }: { data: InProgressPRsResult }) {
   if (data.entries.length === 0) {
-    // Either `gh` is missing or there are genuinely no open PRs. The
-    // NorthStar says surface the source; the empty state is honest.
-    const ghMissing = !data.gh_available
-    const tone = ghMissing ? 'var(--color-text-muted)' : '#34d399'
+    // Either GitHub is not connected or there are genuinely no open PRs.
+    // The NorthStar says surface the source; the empty state is honest.
+    const unavailable = !data.available
+    const tone = unavailable ? 'var(--color-text-muted)' : '#34d399'
     return (
       <p
         data-testid="in-progress-prs-tile-empty"
         style={{ color: tone, fontSize: '0.85rem', margin: 0 }}
       >
-        {ghMissing
-          ? 'Open PRs are shown in the “Campaigns (repos)” tile (live via GitHub) — the gh-CLI view is local-only.'
-          : data.status_message}
+        {unavailable ? `${data.status_message}${data.read_error ? ` — ${data.read_error}` : ''}` : data.status_message}
       </p>
     )
   }
@@ -59,7 +54,7 @@ export function InProgressPRsTile({ data }: { data: InProgressPRsResult }) {
       <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: '0.3rem' }}>
         {data.entries.map((pr: InProgressPR) => (
           <li
-            key={pr.number}
+            key={`${pr.repo}#${pr.number}`}
             data-pr-number={pr.number}
             style={{
               display: 'flex',
@@ -100,7 +95,7 @@ export function InProgressPRsTile({ data }: { data: InProgressPRsResult }) {
                 fontFamily: 'ui-monospace, SFMono-Regular, monospace',
               }}
             >
-              {fmtRelative(pr.created_at)} ago · {hostOf(pr.url)}
+              {fmtRelative(pr.created_at)} ago · {pr.repo}
             </span>
           </li>
         ))}
