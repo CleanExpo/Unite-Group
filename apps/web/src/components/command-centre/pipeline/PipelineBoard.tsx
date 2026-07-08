@@ -118,7 +118,7 @@ export function PipelineBoard({
         <h2 style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em' }}>Pipeline</h2>
         <span
           style={{
-            fontFamily: "var(--font-mono, 'IBM Plex Mono', ui-monospace, monospace)",
+            fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
             fontSize: 12,
             color: 'var(--cc-ink-hush, #6b7686)',
           }}
