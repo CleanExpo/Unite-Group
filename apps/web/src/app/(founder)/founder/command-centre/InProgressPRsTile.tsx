@@ -1,15 +1,23 @@
+'use client'
+
 // src/app/(founder)/founder/command-centre/InProgressPRsTile.tsx
 //
 // Lane 16.5 — CRM Command-Centre tile: In-Progress PRs.
 //
-// Server component. Renders the most recent open PRs across all portfolio
-// repos (UNI-2340: GitHub REST API — serverless-safe; previously a local-only
-// gh-CLI view that was permanently empty in production). Renders honestly
-// when GitHub is not connected or there are genuinely no open PRs.
+// Client component (UNI-2340 fast-follow): fetches /api/command-centre/in-progress-prs
+// on mount + 60s poll, mirroring the sibling GitHub tiles (RepoCampaignsTile,
+// TeamActivityTile, PortfolioHealthTile) instead of blocking the command deck's
+// SSR with ~9 parallel GitHub calls (previously awaited server-side in page.tsx —
+// a GitHub degradation pinned the whole deck's TTFB near 8s). Renders honestly
+// when GitHub is not connected, some repos fail, the fetch itself fails, or
+// there are genuinely no open PRs.
 //
-// Read-only. No mutations, no network calls beyond the lib helper.
+// Read-only. No mutations.
 
+import { useEffect, useState } from 'react'
 import type { InProgressPR, InProgressPRsResult } from '@/lib/command-centre/in-progress-prs'
+
+const POLL_MS = 60000
 
 function fmtRelative(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime()
@@ -24,7 +32,55 @@ function fmtRelative(iso: string): string {
   return `${d}d`
 }
 
-export function InProgressPRsTile({ data }: { data: InProgressPRsResult }) {
+export function InProgressPRsTile() {
+  const [data, setData] = useState<InProgressPRsResult | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    async function load() {
+      try {
+        const res = await fetch('/api/command-centre/in-progress-prs')
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const json = (await res.json()) as InProgressPRsResult
+        if (alive) { setData(json); setError(null) }
+      } catch (e) {
+        if (alive) setError(e instanceof Error ? e.message : 'load failed')
+      } finally {
+        if (alive) setLoading(false)
+      }
+    }
+    load()
+    const t = setInterval(load, POLL_MS)
+    return () => { alive = false; clearInterval(t) }
+  }, [])
+
+  // Loading (no data yet) and fetch-failure (this route itself unreachable) are
+  // distinct from a GitHub-unavailable payload (data.available === false, which
+  // the route can return with a 200 — see the empty-state branch below).
+  if (loading && !data) {
+    return (
+      <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', margin: 0 }}>
+        Loading in-progress PRs…
+      </p>
+    )
+  }
+
+  if (error && !data) {
+    return (
+      <p data-testid="in-progress-prs-tile-error" style={{ color: '#d02f35', fontSize: '0.85rem', margin: 0 }}>
+        Could not load in-progress PRs: {error}
+      </p>
+    )
+  }
+
+  if (!data) {
+    // Unreachable in practice (loading/error above cover the only paths that
+    // leave data null), but keeps the component total for TypeScript.
+    return null
+  }
+
   if (data.entries.length === 0) {
     // Either GitHub is not connected, some repos failed, or there are genuinely
     // no open PRs. Green only when the sweep was clean — a partial failure must
