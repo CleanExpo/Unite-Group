@@ -3,75 +3,10 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BookOpen, Columns2, Lock, FileText, ClipboardCheck, Scale, Share2, FlaskConical, Users, Settings, Receipt, Mail, CalendarDays, Brain, Sparkles, BarChart2, Megaphone, ScrollText, Building2, Library, Command, Bot, NotebookText, GitPullRequest, TrendingUp, Clapperboard } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-// Grouped into a few clearly-labelled sections so the nav reads as organised,
-// not a squashed wall of 24 flat links. Section labels show when expanded; a thin
-// divider separates groups when collapsed.
-const NAV_GROUPS = [
-  {
-    label: null,
-    items: [
-      { href: '/founder/command-centre', label: 'Command Centre',  icon: Command },
-      { href: '/founder/nexus',          label: 'PR Approvals',    icon: GitPullRequest },
-    ],
-  },
-  {
-    label: 'Money',
-    items: [
-      { href: '/founder/bookkeeper', label: 'Bookkeeper', icon: BookOpen },
-      { href: '/founder/xero',       label: 'Xero',       icon: Receipt },
-      { href: '/founder/invoices',   label: 'Invoices',   icon: ScrollText },
-      { href: '/founder/approvals',  label: 'Approvals',  icon: ClipboardCheck },
-    ],
-  },
-  {
-    label: 'Pipeline',
-    items: [
-      { href: '/founder/kanban',        label: 'Kanban',        icon: Columns2 },
-      { href: '/founder/opportunities', label: 'Opportunities', icon: TrendingUp },
-      { href: '/founder/contacts',      label: 'Contacts',      icon: Users },
-      { href: '/founder/email',    label: 'Email',    icon: Mail },
-      { href: '/founder/calendar', label: 'Calendar', icon: CalendarDays },
-    ],
-  },
-  {
-    label: 'Growth',
-    items: [
-      { href: '/founder/social',      label: 'Social',      icon: Share2 },
-      { href: '/founder/campaigns',   label: 'Campaigns',   icon: Megaphone },
-      { href: '/founder/brand-video', label: 'Brand Video', icon: Clapperboard },
-      { href: '/founder/analytics',   label: 'Analytics',   icon: BarChart2 },
-      { href: '/founder/experiments', label: 'Experiments', icon: FlaskConical },
-    ],
-  },
-  {
-    label: 'Advisory',
-    items: [
-      { href: '/founder/advisory',  label: 'Advisory',  icon: Scale },
-      { href: '/founder/strategy',  label: 'Strategy',  icon: Brain },
-      { href: '/founder/boardroom', label: 'Boardroom', icon: Building2 },
-    ],
-  },
-  {
-    label: 'Knowledge',
-    items: [
-      { href: '/founder/notes',             label: 'Notes',             icon: FileText },
-      { href: '/founder/knowledge-console', label: 'Knowledge Console', icon: Library },
-      { href: '/founder/wiki',              label: 'Wiki',              icon: NotebookText },
-      { href: '/founder/pi',                label: 'Pi',                icon: Bot },
-      { href: '/founder/skills',            label: 'Skills',            icon: Sparkles },
-    ],
-  },
-  {
-    label: 'System',
-    items: [
-      { href: '/founder/vault',    label: 'Vault',    icon: Lock },
-      { href: '/founder/settings', label: 'Settings', icon: Settings },
-    ],
-  },
-] as const
+// Grouped nav data lives in the shared manifest (UNI-2341) so the global ⌘K
+// CommandBar derives from the same source and can never drift from this list.
+import { FOUNDER_NAV_GROUPS as NAV_GROUPS } from '@/lib/navigation/founder-nav'
 
 interface SidebarNavProps { collapsed: boolean }
 
