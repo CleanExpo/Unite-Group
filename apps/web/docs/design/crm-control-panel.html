@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Unite-Group Nexus — CRM Control Panel · Design Canvas</title>
+<!--
+  CRM CONTROL PANEL — DESIGN CANVAS (self-contained, opens anywhere, no build).
+  Register:            Gun Metal + Candy Red, GLASSMORPHIC (frosted depth, ambient light, grain).
+  Design constitution: .claude/DESIGN.md (Gun Metal + Candy Red, Phill's 7 rules).
+  Layout thesis:       docs/UNITE_COMMAND_CENTER_UI_UX_BRIEF.md
+                       (dark graphite, very limited accent, three-column, evidence-led).
+  Information arch:    spec.md §8 (single signal accent, provenance, recommendation-only).
+  Resolves the drift:  supersedes the light candy-green Command Deck + bright-cyan
+                       Scientific Luxury as the CEO/Control-Panel register.
+  Anti-slop:           NO purple gradients (DESIGN.md Rule 3). The only chroma in the
+                       ambient light is Gun-Metal graphite + a single low-opacity Candy-Red
+                       ember. Grain, drift and specular edges create depth — not colour.
+-->
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  /* ============================================================= TOKENS */
+  :root{
+    /* Gun Metal ground (DESIGN.md CEO register) */
+    --canvas:      #090b0e;   /* base — deep so glass and grain read */
+    --surface-1:   #14171d;
+    --surface-2:   #191d24;
+    --surface-3:   #21262f;
+    --line:        #262c36;
+    --line-soft:   #1b2027;
+
+    /* Glass — translucent layers over the ambient ground */
+    --glass-1:     rgba(21, 25, 32, 0.55);
+    --glass-2:     rgba(28, 33, 42, 0.60);
+    --glass-3:     rgba(34, 40, 51, 0.52);
+    --glass-hi:    rgba(255, 255, 255, 0.06);   /* top inner highlight */
+    --glass-brd:   rgba(255, 255, 255, 0.08);   /* frosted edge */
+    --blur:        blur(26px) saturate(145%);
+    --blur-lite:   blur(14px) saturate(135%);
+
+    /* Ink */
+    --ink:         #f0f3f7;
+    --ink-dim:     #a6afbc;
+    --ink-hush:    #6d7887;
+
+    /* Signal — ONE accent, signal states only (DESIGN.md Rule 3) */
+    --red:         #b30000;
+    --red-bright:  #e5484d;
+    --orange:      #e07020;
+    --green:       #00a854;
+    --green-txt:   #34d399;
+    --amber-txt:   #f0a94c;
+
+    /* Radius — CEO register: sharp 4–6px */
+    --r-sm: 4px;
+    --r-md: 6px;
+    --r-lg: 8px;
+
+    /* Depth — layered physical shadows (ambient occlusion + key + rim highlight) */
+    --sh-1: 0 1px 0 var(--glass-hi) inset, 0 10px 28px -14px rgba(0,0,0,.72), 0 1px 2px rgba(0,0,0,.45);
+    --sh-2: 0 1px 0 var(--glass-hi) inset, 0 22px 56px -22px rgba(0,0,0,.9), 0 3px 8px rgba(0,0,0,.55);
+    --sh-red: 0 0 0 1px rgba(229,72,77,.4), 0 10px 34px -12px rgba(179,0,0,.42);
+
+    --ease: cubic-bezier(0.19, 1, 0.22, 1);
+    --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+    --sans: 'Inter', system-ui, -apple-system, sans-serif;
+
+    --tnum: tabular-nums;
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; color:var(--ink);
+    font-family:var(--sans); font-size:14px; line-height:1.45;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
+  h1,h2,h3,h4{ margin:0; font-weight:700; letter-spacing:-0.01em; }
+  a{ color:inherit; }
+  ::selection{ background:rgba(229,72,77,.28); }
+  .num{ font-variant-numeric:var(--tnum); }
+
+  /* ------------------------------------------------ AMBIENT GROUND
+     Light behind the glass: Gun-Metal graphite pools + ONE faint Candy-Red ember.
+     A second fixed layer slowly drifts, so the light feels alive, never flat.
+     No purple, no rainbow — depth from luminance, not chroma. */
+  body{
+    background:
+      radial-gradient(1200px 780px at 12% -10%, rgba(64,78,100,.30), transparent 60%),
+      radial-gradient(760px 760px at 92% -22%, rgba(40,47,58,.62), transparent 60%),
+      var(--canvas);
+    background-attachment:fixed; min-height:100vh; overflow-x:hidden;
+  }
+  /* drifting ember + cool pool — the "alive" layer */
+  body::before{
+    content:''; position:fixed; inset:-20% -10% -10% -10%; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(680px 520px at 106% 116%, rgba(179,0,0,.11), transparent 55%),
+      radial-gradient(560px 620px at -6% 70%, rgba(56,70,92,.20), transparent 60%);
+    animation:drift 34s var(--ease) infinite alternate;
+  }
+  @keyframes drift{
+    0%  { transform:translate3d(0,0,0) scale(1); }
+    100%{ transform:translate3d(-2.2%, -1.6%, 0) scale(1.06); }
+  }
+  /* frosted grain — authentic glass micro-texture, barely there */
+  body::after{
+    content:''; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.5;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    mix-blend-mode:overlay;
+  }
+  @media (prefers-reduced-motion: reduce){ body::before{ animation:none; } }
+
+  /* rise reveal */
+  @keyframes rise { from{ opacity:0; transform:translateY(10px);} to{ opacity:1; transform:none;} }
+  .rise{ animation:rise .6s var(--ease) both; }
+
+  /* breathing pulse — gated to genuinely live/blocking states only */
+  @keyframes breathe { 0%,100%{ opacity:1;} 50%{ opacity:.35;} }
+  .live-dot{ width:7px; height:7px; border-radius:50%; background:var(--green);
+    box-shadow:0 0 0 3px rgba(0,168,84,.16); display:inline-block; }
+  .live-dot.blocking{ background:var(--red-bright); box-shadow:0 0 0 3px rgba(229,72,77,.18);
+    animation:breathe 2.4s var(--ease) infinite; }
+  @media (prefers-reduced-motion: reduce){ .rise,.live-dot.blocking{ animation:none; } }
+
+  /* ============================================================= SHELL */
+  .app{ position:relative; z-index:1; display:grid; grid-template-columns:220px 1fr; min-height:100vh; }
+
+  /* left rail — vertical frosted glass slab */
+  .rail{ position:sticky; top:0; height:100vh; overflow:auto; padding:18px 13px;
+    background:linear-gradient(180deg, rgba(20,24,31,.74), rgba(12,14,18,.66));
+    backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur);
+    border-right:1px solid var(--glass-brd);
+    box-shadow:1px 0 0 rgba(0,0,0,.4), 10px 0 34px -20px rgba(0,0,0,.85); }
+  .brand{ display:flex; align-items:center; gap:10px; padding:4px 8px 18px; }
+  .brand .logo{ width:32px; height:32px; display:grid; place-items:center; border-radius:var(--r-sm);
+    background:linear-gradient(150deg, rgba(229,72,77,.2), rgba(179,0,0,.05));
+    border:1px solid rgba(229,72,77,.3);
+    box-shadow:0 0 22px -6px rgba(179,0,0,.6), 0 1px 0 var(--glass-hi) inset; }
+  .brand b{ font-size:14px; letter-spacing:.02em; }
+  .brand span{ color:var(--ink-hush); font-size:11px; font-family:var(--mono); display:block; margin-top:1px; }
+  .navlbl{ font-family:var(--mono); font-size:10px; text-transform:uppercase;
+    letter-spacing:.15em; color:var(--ink-hush); padding:15px 8px 6px; }
+  .navitem{ position:relative; display:flex; align-items:center; gap:10px; padding:8px 9px; border-radius:var(--r-sm);
+    color:var(--ink-dim); cursor:pointer; font-size:13px; user-select:none;
+    transition:background .22s var(--ease), color .22s var(--ease), transform .22s var(--ease); }
+  .navitem:hover{ background:var(--glass-2); color:var(--ink); transform:translateX(2px); }
+  .navitem.active{ color:var(--ink);
+    background:linear-gradient(90deg, rgba(229,72,77,.15), rgba(229,72,77,.02));
+    box-shadow:inset 2px 0 0 var(--red-bright), 0 0 26px -12px rgba(179,0,0,.65); }
+  .navitem .count{ margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--ink-hush); font-variant-numeric:var(--tnum); }
+  .navitem.active .count{ color:var(--red-bright); }
+
+  /* main column */
+  .main{ display:flex; flex-direction:column; min-width:0; }
+
+  /* status strip — frosted, sticky, floats over content on scroll */
+  .statusbar{ position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:18px; padding:13px 26px;
+    background:linear-gradient(180deg, rgba(17,20,25,.8), rgba(10,12,16,.6));
+    backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur);
+    border-bottom:1px solid var(--glass-brd);
+    box-shadow:0 1px 0 var(--glass-hi) inset, 0 12px 34px -24px rgba(0,0,0,.9); }
+  .clock{ font-family:var(--mono); font-size:12.5px; color:var(--ink-dim); font-variant-numeric:var(--tnum); }
+  .clock b{ color:var(--ink); }
+  .cmdk{ margin-left:auto; display:flex; align-items:center; gap:8px;
+    background:var(--glass-3); backdrop-filter:var(--blur-lite); -webkit-backdrop-filter:var(--blur-lite);
+    border:1px solid var(--glass-brd); color:var(--ink-hush); padding:8px 12px; border-radius:var(--r-sm);
+    font-size:12.5px; min-width:296px; cursor:text; transition:border-color .22s var(--ease), box-shadow .22s var(--ease); }
+  .cmdk:hover{ border-color:rgba(229,72,77,.32); box-shadow:0 0 22px -10px rgba(179,0,0,.55); }
+  .cmdk kbd{ margin-left:auto; font-family:var(--mono); font-size:10.5px; background:rgba(10,12,16,.6);
+    border:1px solid var(--glass-brd); border-radius:3px; padding:1px 5px; color:var(--ink-dim); }
+  .sysstat{ display:flex; align-items:center; gap:7px; font-size:12px; color:var(--ink-dim); }
+
+  .content{ padding:26px; display:flex; flex-direction:column; gap:22px; max-width:1560px; width:100%; }
+
+  /* ===================================================== HERO / COCKPIT BAND
+     A confident opening moment: who, when, and the one number that matters,
+     over an elevated glass slab with a soft Candy-Red horizon glow. */
+  .hero{ position:relative; overflow:hidden; padding:22px 24px; border-radius:var(--r-lg);
+    background:linear-gradient(135deg, rgba(26,31,40,.66), rgba(15,18,23,.6));
+    backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur);
+    border:1px solid var(--glass-brd); box-shadow:var(--sh-2);
+    display:flex; align-items:center; gap:28px; }
+  .hero::after{ content:''; position:absolute; inset:0 0 auto 0; height:1px;
+    background:linear-gradient(90deg, transparent, rgba(255,255,255,.16), transparent); }
+  .hero .glow{ position:absolute; right:-80px; top:-120px; width:360px; height:360px; pointer-events:none;
+    background:radial-gradient(circle, rgba(179,0,0,.16), transparent 62%); }
+  .hero .greet{ flex:1; min-width:0; }
+  .hero .eyebrow{ font-family:var(--mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.16em; color:var(--ink-hush); }
+  .hero h1{ font-size:24px; font-weight:800; letter-spacing:-0.02em; margin-top:6px; }
+  .hero h1 em{ font-style:normal; color:var(--red-bright); }
+  .hero .sub{ color:var(--ink-dim); font-size:13px; margin-top:6px; line-height:1.5; max-width:520px; }
+  .hero .kpi{ text-align:right; padding-left:26px; border-left:1px solid var(--line-soft); }
+  .hero .kpi .k{ font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.12em; color:var(--ink-hush); }
+  .hero .kpi .v{ font-size:34px; font-weight:800; letter-spacing:-0.02em; margin-top:4px; font-variant-numeric:var(--tnum);
+    background:linear-gradient(180deg, #ffffff, #c2cbd8); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+  .hero .kpi .d{ font-size:11.5px; color:var(--green-txt); margin-top:2px; font-variant-numeric:var(--tnum); }
+
+  /* section head */
+  .sec-h{ display:flex; align-items:baseline; gap:10px; margin-bottom:4px; }
+  .sec-h h2{ font-size:15px; }
+  .sec-h .sub{ color:var(--ink-hush); font-size:12px; font-family:var(--mono); }
+  .sec-h .more{ margin-left:auto; font-size:12px; color:var(--ink-dim); cursor:pointer; transition:color .2s var(--ease); }
+  .sec-h .more:hover{ color:var(--red-bright); }
+
+  /* provenance badge (Truth is visible) */
+  .src{ display:inline-flex; align-items:center; gap:5px; font-family:var(--mono); font-size:10px;
+    text-transform:uppercase; letter-spacing:.06em; color:var(--ink-hush);
+    border:1px solid var(--glass-brd); border-radius:3px; padding:2px 6px; background:rgba(255,255,255,.02); }
+  .src.live{ color:var(--green-txt); border-color:rgba(0,168,84,.35); background:rgba(0,168,84,.06); }
+  .src.stale{ color:var(--amber-txt); border-color:rgba(224,112,32,.4); background:rgba(224,112,32,.06); }
+
+  /* ---- glass panel primitive ---- */
+  .panel{ position:relative; border-radius:var(--r-md);
+    background:var(--glass-1); backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur);
+    border:1px solid var(--glass-brd); box-shadow:var(--sh-1); }
+  .panel::after{ content:''; position:absolute; inset:0 0 auto 0; height:1px; border-radius:var(--r-md) var(--r-md) 0 0;
+    background:linear-gradient(90deg, transparent, rgba(255,255,255,.14), transparent); pointer-events:none; }
+  .grid{ display:grid; gap:16px; }
+
+  /* ===================================================== TODAY'S PRIORITIES */
+  .priorities{ grid-template-columns:repeat(3,1fr); }
+  .prio{ padding:18px; display:flex; flex-direction:column; gap:11px; overflow:hidden;
+    transition:transform .3s var(--ease), box-shadow .3s var(--ease), border-color .3s var(--ease); }
+  .prio:hover{ transform:translateY(-3px); box-shadow:var(--sh-2); border-color:rgba(255,255,255,.13); }
+  .prio::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+    background:linear-gradient(180deg, var(--red-bright), var(--red)); box-shadow:0 0 18px 0 rgba(179,0,0,.5); }
+  .prio.warn::before{ background:linear-gradient(180deg, var(--amber-txt), var(--orange)); box-shadow:0 0 18px 0 rgba(224,112,32,.45); }
+  .prio.ok::before{ background:linear-gradient(180deg, var(--green-txt), var(--green)); box-shadow:0 0 18px 0 rgba(0,168,84,.4); }
+  .prio .flag{ font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-hush); }
+  .prio .metric{ font-size:28px; font-weight:800; letter-spacing:-0.02em; font-variant-numeric:var(--tnum); }
+  .prio .metric small{ font-size:13px; color:var(--ink-dim); font-weight:500; }
+  .prio .why{ color:var(--ink-dim); font-size:12.5px; line-height:1.45; }
+  .prio .act{ margin-top:auto; }
+
+  .btn{ font:inherit; font-size:12.5px; font-weight:600; padding:8px 14px; border-radius:var(--r-sm);
+    border:1px solid transparent; cursor:pointer; display:inline-flex; align-items:center; gap:7px;
+    transition:transform .18s var(--ease), box-shadow .18s var(--ease), background .18s var(--ease), border-color .18s var(--ease); }
+  .btn:active{ transform:translateY(1px); }
+  .btn.primary{ background:linear-gradient(180deg, #cf1616, var(--red)); color:#fff;
+    box-shadow:0 1px 0 rgba(255,255,255,.2) inset, 0 8px 22px -10px rgba(179,0,0,.85); }
+  .btn.primary:hover{ box-shadow:0 1px 0 rgba(255,255,255,.24) inset, 0 12px 32px -8px rgba(179,0,0,1); transform:translateY(-1px); }
+  .btn.ghost{ background:rgba(255,255,255,.035); border-color:var(--glass-brd); color:var(--ink);
+    backdrop-filter:var(--blur-lite); -webkit-backdrop-filter:var(--blur-lite); }
+  .btn.ghost:hover{ border-color:rgba(255,255,255,.22); background:rgba(255,255,255,.07); }
+  .btn.sm{ padding:6px 11px; font-size:12px; }
+
+  /* ===================================================== PIPELINE + FORECAST */
+  .pipe-wrap{ grid-template-columns:1fr 320px; align-items:start; }
+  .board{ display:grid; grid-template-columns:repeat(5,1fr); gap:12px; padding:16px; }
+  .col-h{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;
+    padding-bottom:8px; border-bottom:1px solid var(--line-soft); }
+  .col-h .name{ font-family:var(--mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-dim); }
+  .col-h .n{ font-family:var(--mono); font-size:11px; color:var(--ink-hush); font-variant-numeric:var(--tnum); }
+  .stage{ display:flex; flex-direction:column; gap:10px; }
+  .deal{ position:relative; border-radius:var(--r-sm); padding:11px 12px; cursor:pointer;
+    background:var(--glass-3); backdrop-filter:var(--blur-lite); -webkit-backdrop-filter:var(--blur-lite);
+    border:1px solid var(--glass-brd); box-shadow:0 1px 0 var(--glass-hi) inset, 0 5px 16px -9px rgba(0,0,0,.72);
+    transition:transform .24s var(--ease), box-shadow .24s var(--ease), border-color .24s var(--ease); }
+  .deal:hover{ transform:translateY(-2px); border-color:rgba(255,255,255,.17);
+    box-shadow:0 1px 0 var(--glass-hi) inset, 0 12px 26px -11px rgba(0,0,0,.88); }
+  .deal.stale{ border-color:rgba(229,72,77,.5); box-shadow:var(--sh-red); }
+  .deal .dhead{ display:flex; align-items:center; gap:8px; }
+  .ava{ width:20px; height:20px; flex:0 0 auto; border-radius:var(--r-sm); display:grid; place-items:center;
+    font-family:var(--mono); font-size:9px; font-weight:500; letter-spacing:.02em; color:var(--ink);
+    background:linear-gradient(150deg, rgba(255,255,255,.1), rgba(255,255,255,.02));
+    border:1px solid var(--glass-brd); }
+  .deal .co{ font-weight:600; font-size:12.5px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .deal .val{ font-family:var(--mono); font-size:12px; color:var(--green-txt); margin-top:6px; font-variant-numeric:var(--tnum); }
+  .deal .meta{ display:flex; align-items:center; gap:6px; margin-top:7px; font-size:10.5px; color:var(--ink-hush); font-variant-numeric:var(--tnum); }
+  .prob{ height:4px; border-radius:2px; background:rgba(255,255,255,.06); overflow:hidden; margin-top:8px; }
+  .prob > i{ display:block; height:100%; background:linear-gradient(90deg, var(--green), var(--green-txt));
+    box-shadow:0 0 8px -1px rgba(0,168,84,.6); }
+
+  .forecast{ padding:18px; display:flex; flex-direction:column; gap:15px; }
+  .fc-total{ font-size:32px; font-weight:800; letter-spacing:-0.02em; font-variant-numeric:var(--tnum);
+    background:linear-gradient(180deg, #ffffff, #b9c2cf); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+  .fc-total small{ display:block; font-size:11px; font-family:var(--mono); color:var(--ink-hush);
+    text-transform:uppercase; letter-spacing:.1em; margin-bottom:5px; font-weight:400; -webkit-text-fill-color:var(--ink-hush); }
+  .spark{ display:block; width:100%; height:38px; }
+  .fc-row{ display:flex; align-items:center; gap:10px; font-size:12.5px; }
+  .fc-row .bar{ flex:1; height:7px; background:rgba(255,255,255,.06); border-radius:4px; overflow:hidden; box-shadow:0 1px 1px rgba(0,0,0,.4) inset; }
+  .fc-row .bar > i{ display:block; height:100%; border-radius:4px; }
+  .fc-row .lbl{ width:66px; color:var(--ink-dim); }
+  .fc-row .amt{ font-family:var(--mono); color:var(--ink); width:64px; text-align:right; font-variant-numeric:var(--tnum); }
+
+  /* ===================================================== APPROVAL QUEUE */
+  .approvals{ grid-template-columns:1fr 1fr; }
+  .appr{ padding:16px; display:flex; flex-direction:column; gap:12px; }
+  .appr-item{ border:1px solid var(--glass-brd); border-radius:var(--r-sm); overflow:hidden;
+    background:rgba(255,255,255,.016); box-shadow:0 5px 18px -13px rgba(0,0,0,.82); }
+  .appr-item .top{ display:flex; align-items:center; gap:9px; padding:11px 13px;
+    background:linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.01)); border-bottom:1px solid var(--line-soft); }
+  .actor{ display:inline-flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ink-dim); }
+  .actor .who{ color:var(--ink); font-weight:600; }
+  .rec-chip{ margin-left:auto; font-family:var(--mono); font-size:9.5px; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--amber-txt); border:1px solid rgba(224,112,32,.4);
+    border-radius:3px; padding:2px 7px; background:rgba(224,112,32,.07); }
+  .diff{ padding:11px 13px; font-family:var(--mono); font-size:12px; }
+  .diff .row{ display:flex; gap:8px; padding:2px 0; }
+  .diff .k{ color:var(--ink-hush); width:82px; }
+  .diff .was{ color:var(--ink-hush); text-decoration:line-through; }
+  .diff .now{ color:var(--green-txt); }
+  .rationale{ padding:0 13px 11px; color:var(--ink-dim); font-size:12px; }
+  .appr-act{ display:flex; gap:8px; padding:11px 13px; border-top:1px solid var(--line-soft); }
+  .appr-act .btn.reject{ background:transparent; border-color:var(--glass-brd); color:var(--ink-dim); }
+  .appr-act .btn.reject:hover{ border-color:var(--red-bright); color:var(--red-bright); }
+  .safety{ font-size:11px; color:var(--ink-hush); font-style:italic; padding:0 2px; line-height:1.45; }
+
+  /* ===================================================== EVIDENCE / RECEIPTS */
+  .evidence{ padding:6px 0; }
+  .ev-row{ display:flex; align-items:center; gap:11px; padding:10px 18px; border-bottom:1px solid var(--line-soft); font-size:12.5px;
+    transition:background .2s var(--ease); }
+  .ev-row:hover{ background:rgba(255,255,255,.022); }
+  .ev-row:last-child{ border-bottom:0; }
+  .ev-row .t{ font-family:var(--mono); font-size:11px; color:var(--ink-hush); width:52px; font-variant-numeric:var(--tnum); }
+  .ev-row .txt{ color:var(--ink-dim); }
+  .ev-row .txt b{ color:var(--ink); font-weight:600; }
+  .ev-row .tag{ margin-left:auto; }
+
+  /* legend / footer note */
+  .note{ color:var(--ink-hush); font-size:12px; padding:8px 2px 32px; line-height:1.65; max-width:960px; }
+  .note code{ font-family:var(--mono); color:var(--ink-dim); background:rgba(255,255,255,.04); padding:1px 5px; border-radius:3px; }
+
+  /* geometric marks (DESIGN.md Rule 2 — hexagon-derived, 24×24, 1.5 stroke, square caps) */
+  .mk{ width:16px; height:16px; flex:0 0 auto; }
+  .mk path,.mk line,.mk polyline,.mk polygon,.mk rect{ fill:none; stroke:currentColor;
+    stroke-width:1.5; stroke-linecap:square; stroke-linejoin:miter; }
+</style>
+</head>
+<body>
+
+<!-- inline SVG mark definitions (custom geometric marks, NOT an icon library) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <g id="m-hex"><polygon points="12,3 20,7.5 20,16.5 12,21 4,16.5 4,7.5"/></g>
+  <g id="m-today"><polygon points="12,3 20,7.5 20,16.5 12,21 4,16.5 4,7.5"/><line x1="12" y1="9" x2="12" y2="12.5"/><line x1="12" y1="12.5" x2="15" y2="14"/></g>
+  <g id="m-cmd"><polyline points="6,8 10,12 6,16"/><line x1="12" y1="16" x2="18" y2="16"/></g>
+  <g id="m-appr"><polygon points="12,3 20,7.5 20,16.5 12,21 4,16.5 4,7.5"/><polyline points="8.5,12 11,14.5 15.5,9.5"/></g>
+  <g id="m-port"><rect x="4" y="4" width="7" height="7"/><rect x="13" y="4" width="7" height="7"/><rect x="4" y="13" width="7" height="7"/><rect x="13" y="13" width="7" height="7"/></g>
+  <g id="m-money"><line x1="12" y1="3" x2="12" y2="21"/><path d="M16 7 H10 a3 3 0 0 0 0 6 h4 a3 3 0 0 1 0 6 H8"/></g>
+  <g id="m-ev"><polyline points="7,4 17,4 17,20 7,20 7,4"/><line x1="10" y1="9" x2="14" y2="9"/><line x1="10" y1="13" x2="14" y2="13"/></g>
+  <g id="m-mach"><rect x="5" y="8" width="14" height="10"/><line x1="9" y1="8" x2="9" y2="4"/><line x1="15" y1="8" x2="15" y2="4"/></g>
+  <g id="m-vault"><rect x="4" y="5" width="16" height="14"/><line x1="12" y1="10" x2="12" y2="14"/></g>
+  <g id="m-margot"><polygon points="12,3 19,8 19,16 12,21 5,16 5,8"/><line x1="12" y1="9" x2="12" y2="15"/><line x1="9" y1="12" x2="15" y2="12"/></g>
+</defs></svg>
+
+<div class="app">
+
+  <!-- ============================ LEFT RAIL ============================ -->
+  <nav class="rail">
+    <div class="brand">
+      <span class="logo"><svg class="mk" style="width:18px;height:18px;color:var(--red-bright)"><use href="#m-hex"/></svg></span>
+      <div><b>Nexus</b><span>control panel</span></div>
+    </div>
+
+    <div class="navlbl">Command</div>
+    <div class="navitem active"><svg class="mk"><use href="#m-today"/></svg> Today <span class="count">4</span></div>
+    <div class="navitem"><svg class="mk"><use href="#m-cmd"/></svg> Command</div>
+    <div class="navitem"><svg class="mk"><use href="#m-appr"/></svg> Approvals <span class="count">3</span></div>
+
+    <div class="navlbl">Operate</div>
+    <div class="navitem"><svg class="mk"><use href="#m-port"/></svg> Pipeline</div>
+    <div class="navitem"><svg class="mk"><use href="#m-hex"/></svg> Contacts <span class="count">1.2k</span></div>
+    <div class="navitem"><svg class="mk"><use href="#m-money"/></svg> Money</div>
+    <div class="navitem"><svg class="mk"><use href="#m-port"/></svg> Portfolio</div>
+
+    <div class="navlbl">Trace</div>
+    <div class="navitem"><svg class="mk"><use href="#m-ev"/></svg> Evidence</div>
+    <div class="navitem"><svg class="mk"><use href="#m-mach"/></svg> Machines</div>
+    <div class="navitem"><svg class="mk"><use href="#m-vault"/></svg> Vault</div>
+  </nav>
+
+  <!-- ============================ MAIN ============================ -->
+  <div class="main">
+
+    <!-- status strip -->
+    <div class="statusbar">
+      <span class="clock"><b>08:42</b> AEST · Tue 08/07/2026</span>
+      <span class="sysstat"><span class="live-dot"></span> All systems nominal</span>
+      <span class="sysstat"><span class="live-dot blocking"></span> 1 lane blocked</span>
+      <div class="cmdk"><svg class="mk" style="color:var(--ink-hush)"><use href="#m-cmd"/></svg> Search or run a command… <kbd>⌘K</kbd></div>
+    </div>
+
+    <div class="content">
+
+      <!-- ============ HERO / COCKPIT BAND ============ -->
+      <div class="hero rise">
+        <div class="glow"></div>
+        <div class="greet">
+          <div class="eyebrow">Founder command · Unite-Group Nexus</div>
+          <h1>Morning, Phill. <em>3 decisions</em> need you.</h1>
+          <div class="sub">Nothing writes without your approval. Two proposal deals have gone stale and the quarter is tracking $18k ahead of last week.</div>
+        </div>
+        <div class="kpi">
+          <div class="k">Weighted forecast · Q3</div>
+          <div class="v">$212,400</div>
+          <div class="d">▲ $18,000 wk · 78% of target</div>
+        </div>
+      </div>
+
+      <!-- ============ TODAY'S PRIORITIES ============ -->
+      <div>
+        <div class="sec-h">
+          <h2>Today’s priorities</h2>
+          <span class="sub">decisions, not dashboards</span>
+          <span class="src live"><span class="live-dot" style="width:5px;height:5px;box-shadow:none"></span> live · supabase</span>
+        </div>
+        <div class="grid priorities">
+          <div class="panel prio rise">
+            <div class="flag">Approval required</div>
+            <div class="metric num">3 <small>awaiting you</small></div>
+            <div class="why">Margot drafted a lead→contact conversion and 2 field edits. Nothing writes until you approve.</div>
+            <div class="act"><button class="btn primary"><svg class="mk"><use href="#m-appr"/></svg> Review queue</button></div>
+          </div>
+          <div class="panel prio warn rise" style="animation-delay:.06s">
+            <div class="flag">Pipeline at risk</div>
+            <div class="metric num">$48k <small>2 deals stale &gt;7d</small></div>
+            <div class="why">Aspect Restoration &amp; Coastal Facilities haven’t moved since 30/06. Both in Proposal.</div>
+            <div class="act"><button class="btn ghost">Open the 2 deals</button></div>
+          </div>
+          <div class="panel prio ok rise" style="animation-delay:.12s">
+            <div class="flag">Forecast · this quarter</div>
+            <div class="metric num">$212k <small>weighted AUD</small></div>
+            <div class="why">Up $18k on last week. 78% of target with 6 weeks to close.</div>
+            <div class="act"><button class="btn ghost">See forecast</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ PIPELINE + FORECAST ============ -->
+      <div>
+        <div class="sec-h">
+          <h2>Pipeline</h2>
+          <span class="sub">read-only · stage change is approval-gated, not free-drag</span>
+          <span class="more">Board view →</span>
+        </div>
+        <div class="grid pipe-wrap">
+          <div class="panel rise">
+            <div class="board">
+              <!-- Lead -->
+              <div class="stage">
+                <div class="col-h"><span class="name">Lead</span><span class="n">5 · $61k</span></div>
+                <div class="deal"><div class="dhead"><span class="ava">MG</span><span class="co">Meridian Group</span></div><div class="val">$14,000</div><div class="prob"><i style="width:20%"></i></div><div class="meta">62% · 2d</div></div>
+                <div class="deal"><div class="dhead"><span class="ava">HC</span><span class="co">Harbourline Co</span></div><div class="val">$9,500</div><div class="prob"><i style="width:15%"></i></div><div class="meta">48% · 1d</div></div>
+              </div>
+              <!-- Qualified -->
+              <div class="stage">
+                <div class="col-h"><span class="name">Qualified</span><span class="n">4 · $52k</span></div>
+                <div class="deal"><div class="dhead"><span class="ava">NF</span><span class="co">Novara Facilities</span></div><div class="val">$22,000</div><div class="prob"><i style="width:40%"></i></div><div class="meta">74% · 4d</div></div>
+                <div class="deal"><div class="dhead"><span class="ava">DW</span><span class="co">Delta Works</span></div><div class="val">$11,000</div><div class="prob"><i style="width:35%"></i></div><div class="meta">71% · 3d</div></div>
+              </div>
+              <!-- Proposal -->
+              <div class="stage">
+                <div class="col-h"><span class="name">Proposal</span><span class="n">3 · $71k</span></div>
+                <div class="deal stale"><div class="dhead"><span class="ava">AR</span><span class="co">Aspect Restoration</span></div><div class="val">$26,000</div><div class="prob"><i style="width:55%;background:linear-gradient(90deg,var(--orange),var(--amber-txt));box-shadow:0 0 8px -1px rgba(224,112,32,.6)"></i></div><div class="meta"><span class="live-dot blocking" style="width:5px;height:5px"></span> stale 8d</div></div>
+                <div class="deal stale"><div class="dhead"><span class="ava">CF</span><span class="co">Coastal Facilities</span></div><div class="val">$22,000</div><div class="prob"><i style="width:50%;background:linear-gradient(90deg,var(--orange),var(--amber-txt));box-shadow:0 0 8px -1px rgba(224,112,32,.6)"></i></div><div class="meta"><span class="live-dot blocking" style="width:5px;height:5px"></span> stale 8d</div></div>
+              </div>
+              <!-- Negotiation -->
+              <div class="stage">
+                <div class="col-h"><span class="name">Negotiation</span><span class="n">2 · $58k</span></div>
+                <div class="deal"><div class="dhead"><span class="ava">RT</span><span class="co">Ridgeline Trust</span></div><div class="val">$34,000</div><div class="prob"><i style="width:75%"></i></div><div class="meta">88% · 1d</div></div>
+              </div>
+              <!-- Won -->
+              <div class="stage">
+                <div class="col-h"><span class="name">Won</span><span class="n">3 · $41k</span></div>
+                <div class="deal"><div class="dhead"><span class="ava">PO</span><span class="co">Pinnacle Ops</span></div><div class="val">$19,000</div><div class="prob"><i style="width:100%"></i></div><div class="meta">closed 05/07</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel forecast rise" style="animation-delay:.06s">
+            <div class="fc-total"><small>Weighted forecast · Q3 (AUD)</small>$212,400</div>
+            <!-- 12-week trend sparkline (area + line), signal-neutral graphite with a green tip -->
+            <svg class="spark" viewBox="0 0 300 40" preserveAspectRatio="none" aria-hidden="true">
+              <defs>
+                <linearGradient id="sparkfill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="rgba(52,211,153,.28)"/>
+                  <stop offset="1" stop-color="rgba(52,211,153,0)"/>
+                </linearGradient>
+              </defs>
+              <path d="M0,32 L27,30 L54,31 L82,26 L109,27 L136,22 L163,23 L191,18 L218,17 L245,12 L272,11 L300,7 L300,40 L0,40 Z" fill="url(#sparkfill)"/>
+              <polyline points="0,32 27,30 54,31 82,26 109,27 136,22 163,23 191,18 218,17 245,12 272,11 300,7"
+                fill="none" stroke="var(--green-txt)" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"/>
+              <circle cx="300" cy="7" r="2.4" fill="var(--green-txt)"/>
+            </svg>
+            <div class="fc-row"><span class="lbl">Committed</span><div class="bar"><i style="width:41%;background:linear-gradient(90deg,var(--green),var(--green-txt))"></i></div><span class="amt">$87.0k</span></div>
+            <div class="fc-row"><span class="lbl">Best case</span><div class="bar"><i style="width:34%;background:linear-gradient(90deg,var(--orange),var(--amber-txt))"></i></div><span class="amt">$72.4k</span></div>
+            <div class="fc-row"><span class="lbl">Pipeline</span><div class="bar"><i style="width:25%;background:linear-gradient(90deg,#4a5464,var(--ink-hush))"></i></div><span class="amt">$53.0k</span></div>
+            <div style="border-top:1px solid var(--line-soft);padding-top:13px;color:var(--ink-dim);font-size:12px;line-height:1.5">
+              Single-currency AUD by construction. Reconciles to the API to the cent.
+            </div>
+            <button class="btn ghost sm" style="align-self:flex-start">Export board pack</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ APPROVAL QUEUE (recommendation-only) ============ -->
+      <div>
+        <div class="sec-h">
+          <h2>Approval queue</h2>
+          <span class="sub">AI advises · the human commits · zero auto-writes</span>
+          <span class="more">All 3 →</span>
+        </div>
+        <div class="grid approvals">
+
+          <div class="panel appr rise">
+            <div class="appr-item">
+              <div class="top">
+                <svg class="mk" style="color:var(--amber-txt)"><use href="#m-margot"/></svg>
+                <span class="actor"><span class="who">Margot</span> proposes · lead → contact</span>
+                <span class="rec-chip">recommendation</span>
+              </div>
+              <div class="diff">
+                <div class="row"><span class="k">type</span><span class="was">crm_lead</span> → <span class="now">crm_contact</span></div>
+                <div class="row"><span class="k">company</span><span class="now">Novara Facilities Pty Ltd</span></div>
+                <div class="row"><span class="k">owner</span><span class="now">Phill McGurk</span></div>
+              </div>
+              <div class="rationale">Score 74 (qualified band). Strong identity match on ABN + domain. No duplicate contact found.</div>
+              <div class="appr-act">
+                <button class="btn primary sm"><svg class="mk"><use href="#m-appr"/></svg> Approve</button>
+                <button class="btn ghost sm">Edit</button>
+                <button class="btn reject sm">Reject</button>
+              </div>
+            </div>
+            <div class="safety">Lead score is recommendation-only. Board-approved conversion rules and strong identity checks are required before client creation or CRM identity merge.</div>
+          </div>
+
+          <div class="panel appr rise" style="animation-delay:.06s">
+            <div class="appr-item">
+              <div class="top">
+                <svg class="mk" style="color:var(--ink-dim)"><use href="#m-hex"/></svg>
+                <span class="actor"><span class="who">You</span> requested · field edit</span>
+                <span class="rec-chip" style="color:var(--ink-dim);border-color:var(--line);background:rgba(255,255,255,.03)">gated write</span>
+              </div>
+              <div class="diff">
+                <div class="row"><span class="k">contact</span><span class="now">Ridgeline Trust</span></div>
+                <div class="row"><span class="k">stage</span><span class="was">Proposal</span> → <span class="now">Negotiation</span></div>
+                <div class="row"><span class="k">value</span><span class="was">$28,000</span> → <span class="now">$34,000</span></div>
+              </div>
+              <div class="rationale">Manual stage advance. Writes one <code style="font-family:var(--mono)">agent_actions</code> audit row on approve.</div>
+              <div class="appr-act">
+                <button class="btn primary sm"><svg class="mk"><use href="#m-appr"/></svg> Approve</button>
+                <button class="btn ghost sm">Edit</button>
+                <button class="btn reject sm">Reject</button>
+              </div>
+            </div>
+            <div class="safety">Every decision writes an audit row. Counts reconcile with the Hermes panel and the daily digest.</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ============ EVIDENCE / RECEIPTS ============ -->
+      <div>
+        <div class="sec-h">
+          <h2>Evidence stream</h2>
+          <span class="sub">receipts are first-class · every action leaves a trail</span>
+          <span class="src live"><span class="live-dot" style="width:5px;height:5px;box-shadow:none"></span> live</span>
+        </div>
+        <div class="panel evidence rise">
+          <div class="ev-row"><span class="t">08:41</span><span class="txt"><b>Pinnacle Ops</b> marked Won — $19,000 · audit row written</span><span class="tag src">agent_actions</span></div>
+          <div class="ev-row"><span class="t">08:19</span><span class="txt"><b>Margot</b> scored 3 new leads — highest Novara (74)</span><span class="tag src">qualify-lead</span></div>
+          <div class="ev-row"><span class="t">07:55</span><span class="txt"><b>Daily digest</b> generated — 5 leads, 12 opportunities, 3 approvals</span><span class="tag src">cron · 07:55</span></div>
+          <div class="ev-row"><span class="t">07:30</span><span class="txt"><b>Composio</b> synced 14 email threads to contacts</span><span class="tag src live">connected</span></div>
+        </div>
+      </div>
+
+      <p class="note">
+        <b>Design register.</b> Gun Metal ground <code>#090b0e</code> · Candy Red <code>#b30000</code> reserved for signal &amp; approval-required
+        only · CEO Orange <code>#e07020</code> = caution/stale · CEO Green <code>#00a854</code> = healthy/won · Inter 700/800/400 · sharp 4–6px radii ·
+        custom hexagon-derived geometric marks (no icon library) · every metric paired with an action (Rule 5) · provenance visible on
+        every surface · AI advises, the human commits. <b>Glassmorphic:</b> frosted layered surfaces (<code>backdrop-filter</code>) with authentic
+        grain (<code>feTurbulence</code>) over an ambient Gun-Metal ground and one slow-drifting low-opacity Candy-Red ember — depth from
+        luminance, never a purple gradient. Financial figures use <code>tabular-nums</code>. Motion is “rise”, a 34s ambient drift, and a
+        breathing pulse gated to genuinely live/blocking states.
+        Constitution: <code>.claude/DESIGN.md</code> · Layout: <code>docs/UNITE_COMMAND_CENTER_UI_UX_BRIEF.md</code> · IA: <code>spec.md §8</code>.
+      </p>
+
+    </div>
+  </div>
+</div>
+</body>
+</html>
