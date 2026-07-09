@@ -62,3 +62,17 @@ GitHub repo + Vercel project deleted 20/06/2026 — per Phill's typed approval).
   `codex/mobile-voice-intake`, recovered via #285). One issue → one branch off
   the latest `main` → one PR into `main`.
 - Locale: en-AU | DD/MM/YYYY | AUD | AEST/AEDT.
+
+## Claude skills — Nexus operating doctrine
+
+The skills in `.claude/skills/` are the operating doctrine for this repo.
+Consult and follow them:
+
+- **nexus-conventions** — before writing, reviewing, or committing any code.
+- **supabase-schema-gate** — before any code that reads or writes a Supabase
+  table ships; verify prod schema read-only first.
+- **credential-triage** — for any integration failure, cron error, or the
+  weekly health check.
+- **live-verify** — before pinning or reporting any time-sensitive fact
+  (model IDs, package versions, API limits, pricing, provider status). End
+  such outputs with: Verified live <date>: <fact> — <source URL>.
