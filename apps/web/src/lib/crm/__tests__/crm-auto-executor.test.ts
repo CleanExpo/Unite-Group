@@ -47,9 +47,17 @@ describe('dormant defaults (Board gate)', () => {
     expect(isCrmDispatchArmed()).toBe(true);
   });
 
-  it('resolveSubjectExecutor returns null for every subject (no real mutations yet)', () => {
+  it('resolveSubjectExecutor returns null without a context (nothing to bind to)', () => {
     for (const s of ['lead_conversion', 'opportunity_commitment', 'client_merge', 'data_export', 'other']) {
       expect(resolveSubjectExecutor(s)).toBeNull();
+    }
+  });
+
+  it('resolveSubjectExecutor binds lead_conversion when given a context; other subjects stay null', () => {
+    const ctx = { client: {}, founderId: 'f1', subjectId: 'lead_1' };
+    expect(resolveSubjectExecutor('lead_conversion', ctx)).toBeInstanceOf(Function);
+    for (const s of ['opportunity_commitment', 'client_merge', 'data_export', 'other']) {
+      expect(resolveSubjectExecutor(s, ctx)).toBeNull();
     }
   });
 });

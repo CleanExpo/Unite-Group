@@ -13,6 +13,7 @@
 import type { CrmApprovalLifecycleEvaluation } from './approval-lifecycle';
 import type { CrmAdmissionDecision } from './mission-control-execution';
 import type { EvidenceLedgerInsert } from '@/lib/obsidian/evidence';
+import { executeLeadConversion, type LeadConversionClient } from './executors/lead-conversion';
 
 /** A concrete per-subject CRM mutation. Contract: perform the mutation, then
  *  read back the committed state and resolve with it (write-then-confirm); throw
@@ -36,13 +37,33 @@ export function isCrmDispatchArmed(): boolean {
   return process.env.CRM_DISPATCH_ARMED === '1';
 }
 
+/** Founder-scoped context a concrete executor needs (DB client + who + which subject). */
+export interface CrmExecutorContext {
+  /** Founder-scoped Supabase client (structurally a LeadConversionClient for CRM tables). */
+  client: unknown;
+  founderId: string;
+  /** The subject row id the approval acts on (e.g. crm_leads.id for lead_conversion). */
+  subjectId: string;
+  now?: () => string;
+}
+
 /**
- * Resolve the concrete mutation for a subject type. Returns null for every
- * subject today — real per-type executors (lead_conversion first) are implemented
- * at Board go-live, not before. A null executor is safe: runCrmAutoExecution never
- * mutates and routes to needs-review.
+ * Resolve the concrete mutation for a subject type. Without a context (or for a
+ * subject with no implemented executor) returns null — a null executor is safe:
+ * runCrmAutoExecution never mutates and routes to needs-review. `lead_conversion`
+ * is implemented (L1); L2/L3 subjects intentionally return null.
  */
-export function resolveSubjectExecutor(_subjectType: string): CrmExecutor | null {
+export function resolveSubjectExecutor(subjectType: string, ctx?: CrmExecutorContext): CrmExecutor | null {
+  if (!ctx) return null;
+  if (subjectType === 'lead_conversion') {
+    return () =>
+      executeLeadConversion({
+        client: ctx.client as LeadConversionClient,
+        founderId: ctx.founderId,
+        subjectId: ctx.subjectId,
+        now: ctx.now,
+      });
+  }
   return null;
 }
 

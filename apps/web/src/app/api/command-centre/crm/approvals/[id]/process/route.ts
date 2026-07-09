@@ -13,7 +13,7 @@
 // docs/superpowers/specs/2026-07-09-crm-mission-control-system-of-action-design.md.
 
 import { NextResponse } from 'next/server'
-import { getUser } from '@/lib/supabase/server'
+import { getUser, createClient } from '@/lib/supabase/server'
 import { sanitiseError } from '@/lib/error-reporting'
 import {
   evaluateCrmApprovalLifecycle,
@@ -80,12 +80,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     // are off, so `execution` is null and behaviour is unchanged.
     let execution: CrmExecutionResult | null = null
     if (decision.admitted && isCrmDispatchArmed()) {
-      execution = await runCrmAutoExecution(
-        lifecycle,
-        decision,
-        resolveSubjectExecutor(lifecycle.subjectType),
-        { journal: journalAutoExecution },
-      )
+      const supa = await createClient()
+      const executor = resolveSubjectExecutor(lifecycle.subjectType, {
+        client: supa,
+        founderId: user.id,
+        subjectId: str(body.subjectId) ?? '',
+      })
+      execution = await runCrmAutoExecution(lifecycle, decision, executor, { journal: journalAutoExecution })
     }
 
     return NextResponse.json(
