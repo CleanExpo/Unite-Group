@@ -8,6 +8,7 @@
 // docs/superpowers/specs/2026-07-09-crm-mission-control-system-of-action-design.md.
 
 import { AUTO_EXEC_MATRIX, AUTO_EXEC_CONFIG, type AutoExecuteSubjectType } from '@/lib/crm/auto-exec-matrix'
+import type { CrmMissionControlJobsResult } from '@/lib/command-centre/crm-mission-control-jobs-supabase'
 import styles from './CrmAutonomyPanel.module.css'
 
 const STATES: { state: string; label: string; blurb: string }[] = [
@@ -27,7 +28,15 @@ const SUBJECT_LABELS: Record<AutoExecuteSubjectType, string> = {
   other: 'Other',
 }
 
-export function CrmAutonomyPanel() {
+function stateLabel(state: string): string {
+  return STATES.find((s) => s.state === state)?.label ?? state
+}
+
+function subjectLabel(subject: string): string {
+  return (SUBJECT_LABELS as Record<string, string>)[subject] ?? subject
+}
+
+export function CrmAutonomyPanel({ recentJobs }: { recentJobs?: CrmMissionControlJobsResult } = {}) {
   const armed = process.env.CRM_AUTO_EXECUTE === '1'
   const subjects = Object.keys(AUTO_EXEC_MATRIX) as AutoExecuteSubjectType[]
 
@@ -77,6 +86,32 @@ export function CrmAutonomyPanel() {
           </ul>
         </section>
       </div>
+
+      {recentJobs ? (
+        <section>
+          <h4 className={styles.subhead}>Recent CRM jobs</h4>
+          {recentJobs.source !== 'connected' ? (
+            <p className={styles.footnote}>
+              {recentJobs.source === 'not_connected'
+                ? 'Sign in to view recorded CRM jobs.'
+                : 'CRM job history is temporarily unavailable.'}
+            </p>
+          ) : recentJobs.jobs.length === 0 ? (
+            <p className={styles.footnote}>No CRM jobs recorded yet.</p>
+          ) : (
+            <ul className={styles.list}>
+              {recentJobs.jobs.map((job) => (
+                <li key={job.id} data-state={job.missionControlState}>
+                  <span className={styles.term}>
+                    {stateLabel(job.missionControlState)} · {subjectLabel(job.subjectType)}
+                  </span>
+                  <span className={styles.def}>{job.reason ?? 'No reason recorded.'}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : null}
 
       <p className={styles.footnote}>
         Live dispatch of a real CRM mutation is a separate Board gate + founder go-live

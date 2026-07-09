@@ -36,4 +36,35 @@ describe('CrmAutonomyPanel', () => {
     expect(screen.getByText(/L3 · Client merge/)).toBeInTheDocument()
     expect(screen.getByText(/Live dispatch of a real CRM mutation is a separate Board gate/i)).toBeInTheDocument()
   })
+
+  it('omits the Recent CRM jobs section when no recentJobs prop is passed', () => {
+    render(<CrmAutonomyPanel />)
+    expect(screen.queryByText('Recent CRM jobs')).not.toBeInTheDocument()
+  })
+
+  it('renders recorded CRM jobs with their mission-control state and subject', () => {
+    render(
+      <CrmAutonomyPanel
+        recentJobs={{
+          source: 'connected',
+          jobs: [
+            { id: 'job_1', subjectType: 'lead_conversion', missionControlState: 'needs_review', reason: 'kill_switch_off', admitted: false, createdAt: '2026-07-10T00:00:00.000Z' },
+          ],
+        }}
+      />,
+    )
+    expect(screen.getByText('Recent CRM jobs')).toBeInTheDocument()
+    expect(screen.getByText(/Needs review · Lead conversion/)).toBeInTheDocument()
+    expect(screen.getByText('kill_switch_off')).toBeInTheDocument()
+  })
+
+  it('shows an honest empty state when connected but there are no jobs', () => {
+    render(<CrmAutonomyPanel recentJobs={{ source: 'connected', jobs: [] }} />)
+    expect(screen.getByText('No CRM jobs recorded yet.')).toBeInTheDocument()
+  })
+
+  it('never fabricates jobs when the read is not connected', () => {
+    render(<CrmAutonomyPanel recentJobs={{ source: 'not_connected', jobs: [] }} />)
+    expect(screen.getByText(/Sign in to view recorded CRM jobs/i)).toBeInTheDocument()
+  })
 })

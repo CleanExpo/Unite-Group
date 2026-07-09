@@ -12,6 +12,7 @@ import { summariseDashboard } from '@/lib/command-centre/dashboard-summary'
 import { loadDashboardHealthFromSupabase } from '@/lib/command-centre/dashboard-health-supabase'
 import { tailEvidence } from '@/lib/command-centre/evidence-stream'
 import { loadEvidenceLedgerFromSupabase } from '@/lib/command-centre/evidence-ledger-supabase'
+import { loadCrmMissionControlJobs } from '@/lib/command-centre/crm-mission-control-jobs-supabase'
 import { loadProjectIntegrationStatuses } from '@/lib/command-centre/project-integrations'
 import { loadActionQueueData } from './ActionQueueTile'
 import { loadBlockedLanesData } from './BlockedLanesTile'
@@ -166,6 +167,9 @@ export default async function CommandDeckPage() {
   // Needs user.id from the batch above, so it runs after. Degrades honestly
   // (empty board + 'degraded' badge) when the session or query is unavailable.
   const pipeline = await loadPipelineOpportunities(user?.id ?? null)
+  // Recent CRM Mission Control jobs (UNI-2234 slice 3). Founder-scoped; degrades
+  // honestly (not_connected / error) when the session or query is unavailable.
+  const crmMissionControlJobs = await loadCrmMissionControlJobs(user?.id ?? null)
 
   const activeCount = projects.filter((p) => p.status === 'active').length
   const sources = tools.reduce<Record<string, number>>((acc, t) => {
@@ -357,7 +361,7 @@ export default async function CommandDeckPage() {
         className={`${shell.canvasScope} ${shell.glassPanel} ${shell.glassSection} ${styles.reveal}`}
         style={{ animationDelay: '0.065s' }}
       >
-        <CrmAutonomyPanel />
+        <CrmAutonomyPanel recentJobs={crmMissionControlJobs} />
       </section>
 
       {/* ── Wiki knowledge base — canvas register (UNI-2339 slice 2) ── */}
