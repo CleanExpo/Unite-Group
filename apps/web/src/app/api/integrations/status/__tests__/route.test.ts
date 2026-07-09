@@ -63,7 +63,7 @@ describe('GET /api/integrations/status', () => {
 
     const { client, eqCalls } = makeSupabase(
       [{ service: 'xero', created_at: '2026-05-01T00:00:00Z', updated_at: '2026-05-02T00:00:00Z', last_accessed_at: null }],
-      [{ platform: 'linkedin', is_connected: true, last_post_at: '2026-05-03T00:00:00Z', updated_at: '2026-05-03T00:00:00Z' }]
+      [{ platform: 'linkedin', is_connected: true, updated_at: '2026-05-03T00:00:00Z' }]
     )
     vi.mocked(createClient).mockResolvedValue(client)
 
@@ -86,8 +86,9 @@ describe('GET /api/integrations/status', () => {
     // vault: gmail (service 'google') has no row → disconnected
     expect(by('gmail').connected).toBe(false)
 
-    // social: linkedin connected; facebook not
+    // social: linkedin connected (lastSync from updated_at — canonical schema has no last_post_at); facebook not
     expect(by('linkedin').connected).toBe(true)
+    expect(by('linkedin').lastSync).toBe('2026-05-03T00:00:00Z')
     expect(by('facebook').connected).toBe(false)
 
     // env: linear key present → connected/configured; sendgrid absent → not
