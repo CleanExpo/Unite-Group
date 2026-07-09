@@ -36,6 +36,7 @@ import { BusinessFocusRail } from '@/components/command-centre/business-focus/Bu
 import { LiveAgentOperationsMap } from '@/components/command-centre/live-agent-operations/LiveAgentOperationsMap'
 import { ProviderUsageCockpit } from '@/components/command-centre/provider-usage/ProviderUsageCockpit'
 import { ActivityFeedPanel } from '@/components/command-centre/activity/ActivityFeedPanel'
+import { CrmAutonomyPanel } from '@/components/command-centre/crm-autonomy/CrmAutonomyPanel'
 import { DailyCrmDigestPanel } from '@/components/command-centre/digest/DailyCrmDigestPanel'
 import { MeshFleetTile } from '@/components/command-centre/mesh-fleet/MeshFleetTile'
 import { PortfolioHealthTile } from '@/components/command-centre/portfolio-health/PortfolioHealthTile'
@@ -344,6 +345,19 @@ export default async function CommandDeckPage() {
         style={{ animationDelay: '0.06s' }}
       >
         <QueueBoard />
+      </section>
+
+      {/* ── CRM auto-execution — system-of-action, dormant behind the kill switch (UNI-2234) ── */}
+      <div className={`${shell.canvasScope} ${shell.glassSectionHead}`} id="crm-autonomy">
+        <h2>CRM Auto-Execution</h2>
+        <span className={shell.glassSub}>approval → lifecycle gate → operator job · dispatch is Board-gated</span>
+      </div>
+
+      <section
+        className={`${shell.canvasScope} ${shell.glassPanel} ${shell.glassSection} ${styles.reveal}`}
+        style={{ animationDelay: '0.065s' }}
+      >
+        <CrmAutonomyPanel />
       </section>
 
       {/* ── Wiki knowledge base — canvas register (UNI-2339 slice 2) ── */}
