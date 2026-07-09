@@ -11,6 +11,7 @@ import { getToolCatalogue } from '@/lib/command-centre/tools/catalogue'
 import { summariseDashboard } from '@/lib/command-centre/dashboard-summary'
 import { loadDashboardHealthFromSupabase } from '@/lib/command-centre/dashboard-health-supabase'
 import { tailEvidence } from '@/lib/command-centre/evidence-stream'
+import { loadEvidenceLedgerFromSupabase } from '@/lib/command-centre/evidence-ledger-supabase'
 import { loadProjectIntegrationStatuses } from '@/lib/command-centre/project-integrations'
 import { loadActionQueueData } from './ActionQueueTile'
 import { loadBlockedLanesData } from './BlockedLanesTile'
@@ -120,7 +121,13 @@ export default async function CommandDeckPage() {
       if (cloud.ok && cloud.result.entries.length > 0) return cloud.result
       return summariseDashboard()
     })(),
-    tailEvidence(),
+    // UNI-2227: cloud substrate first (works on Vercel); local ledger tail
+    // remains the dev fallback when the table is unreachable or empty.
+    (async () => {
+      const cloud = await loadEvidenceLedgerFromSupabase()
+      if (cloud.ok && cloud.result.entries.length > 0) return cloud.result
+      return tailEvidence()
+    })(),
     loadActionQueueData(),
     loadBlockedLanesData(),
     getUser(),

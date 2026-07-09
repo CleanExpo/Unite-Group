@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mkdtemp, rm, readFile, mkdir, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -17,6 +17,10 @@ afterEach(async () => {
   else process.env.WIKI_PATH = originalWikiPath
   await rm(tempWiki, { recursive: true, force: true })
 })
+
+// Shared no-op ledger client: keeps pre-existing tests from exercising
+// createServiceClient() (no Supabase env here) and spamming caught errors.
+const noopLedger = { from: () => ({ insert: async () => ({ error: null }) }) }
 
 describe('resolveWikiPath', () => {
   it('uses WIKI_PATH when set', () => {
@@ -39,7 +43,7 @@ describe('writeEvidence', () => {
       frontmatter: { title: 'Starter validation', tags: ['command-center', 'evidence'], confidence: 'high' },
       body: 'All gates green.',
       sources: ['D:/Unite-Hub/package.json'],
-    })
+    }, noopLedger)
 
     expect(result.notePath).toContain(path.join('raw', 'command-centre', 'Unite-Hub'))
     expect(result.suffixed).toBe(false)
@@ -62,11 +66,11 @@ describe('writeEvidence', () => {
     const first = await writeEvidence({
       project: 'Synthex', taskId: 'CC-DUP', kind: 'summary',
       frontmatter: { title: 'First' }, body: 'one',
-    })
+    }, noopLedger)
     const second = await writeEvidence({
       project: 'Synthex', taskId: 'CC-DUP', kind: 'summary',
       frontmatter: { title: 'Second' }, body: 'two',
-    })
+    }, noopLedger)
 
     expect(second.suffixed).toBe(true)
     expect(second.notePath).not.toBe(first.notePath)
@@ -110,5 +114,66 @@ describe('writeEvidence', () => {
         body: 'SUPABASE_SERVICE_ROLE_KEY=xxxxx',
       }),
     ).rejects.toThrow(/secret/i)
+  })
+})
+
+describe('writeEvidence — evidence_ledger cloud mirror (UNI-2227, best-effort)', () => {
+  it('inserts a row shaped from kind/summary/detail/evidence_path when the ledger client succeeds', async () => {
+    const insert = vi.fn().mockResolvedValue({ error: null })
+    const ledgerClient = { from: vi.fn().mockReturnValue({ insert }) }
+
+    const result = await writeEvidence(
+      {
+        project: 'Unite-Hub', taskId: 'CC-LEDGER', kind: 'validation',
+        frontmatter: { title: 'Ledger mirror' },
+        body: 'All gates green.',
+      },
+      ledgerClient,
+    )
+
+    expect(ledgerClient.from).toHaveBeenCalledWith('evidence_ledger')
+    expect(insert).toHaveBeenCalledTimes(1)
+    const row = insert.mock.calls[0][0]
+    expect(row).toMatchObject({ kind: 'validation', summary: 'Ledger mirror', evidence_path: result.relativePath })
+    expect(row.detail).toMatchObject({ body: 'All gates green.' })
+  })
+
+  it('a rejected/errored insert is swallowed — writeEvidence still resolves normally', async () => {
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const insert = vi.fn().mockRejectedValue(new Error('network down'))
+    const ledgerClient = { from: vi.fn().mockReturnValue({ insert }) }
+
+    const result = await writeEvidence(
+      {
+        project: 'Unite-Hub', taskId: 'CC-LEDGER-FAIL', kind: 'validation',
+        frontmatter: { title: 'Ledger mirror fail' },
+        body: 'Still writes locally.',
+      },
+      ledgerClient,
+    )
+
+    expect(result.suffixed).toBe(false)
+    expect(await readFile(result.notePath, 'utf-8')).toContain('Still writes locally.')
+    expect(errSpy).toHaveBeenCalled()
+    errSpy.mockRestore()
+  })
+
+  it('an insert that resolves with a Supabase error object is also swallowed', async () => {
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const insert = vi.fn().mockResolvedValue({ error: { message: 'relation missing' } })
+    const ledgerClient = { from: vi.fn().mockReturnValue({ insert }) }
+
+    await expect(
+      writeEvidence(
+        {
+          project: 'Unite-Hub', taskId: 'CC-LEDGER-FAIL2', kind: 'validation',
+          frontmatter: { title: 'Ledger mirror fail 2' },
+          body: 'Local write unaffected.',
+        },
+        ledgerClient,
+      ),
+    ).resolves.toMatchObject({ suffixed: false })
+    expect(errSpy).toHaveBeenCalled()
+    errSpy.mockRestore()
   })
 })
