@@ -201,15 +201,17 @@ export function HubStatusWidget() {
     <section>
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-[16px] font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+          {/* UNI-2339: this header sits directly on the deck ground (outside the cards),
+              so it reads the deck tokens with the original app tokens as off-deck fallback. */}
+          <h2 className="text-[16px] font-semibold" style={{ color: 'var(--deck-text, var(--color-text-primary))' }}>
             Hub Status
           </h2>
-          <p className="text-[12px] mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+          <p className="text-[12px] mt-0.5" style={{ color: 'var(--deck-muted, var(--color-text-muted))' }}>
             Owned satellites — live data from nightly sweep
           </p>
         </div>
         {!loading && satellites.length > 0 && (
-          <span className="text-[11px]" style={{ color: 'var(--color-text-disabled)' }}>
+          <span className="text-[11px]" style={{ color: 'var(--deck-muted, var(--color-text-disabled))' }}>
             {satellites.length} satellite{satellites.length !== 1 ? 's' : ''}
           </span>
         )}

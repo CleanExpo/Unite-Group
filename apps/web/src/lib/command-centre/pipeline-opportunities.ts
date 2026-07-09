@@ -43,11 +43,20 @@ export interface PipelineBoardData {
   lastUpdatedAt?: string
   /** Why the read degraded (query error / auth missing). */
   error?: string
+  /** Honest counts (RA-1109): rows fetched vs rows the rollup dropped
+   *  (terminal/parked stages) — so the board never silently under-reports. */
+  totalFetched: number
+  excludedCount: number
 }
 
-/** Pure mapper: crm_opportunities rows → the board's Opportunity props.
- *  Rows in unmapped (terminal/parked) stages are dropped. */
-export function mapOpportunityRows(rows: OpportunityRow[]): Opportunity[] {
+/** Pure mapper: crm_opportunities rows → the board's Opportunity props plus
+ *  honest counts. Rows in unmapped (terminal/parked) stages are dropped —
+ *  and counted, so the drop is reported, never silent. */
+export function mapOpportunityRows(rows: OpportunityRow[]): {
+  opportunities: Opportunity[]
+  totalFetched: number
+  excludedCount: number
+} {
   const mapped: Opportunity[] = []
   for (const row of rows) {
     const stage = STAGE_ROLLUP[row.stage]
@@ -61,17 +70,21 @@ export function mapOpportunityRows(rows: OpportunityRow[]): Opportunity[] {
       lastActivityAt: row.updated_at,
     })
   }
-  return mapped
+  return {
+    opportunities: mapped,
+    totalFetched: rows.length,
+    excludedCount: rows.length - mapped.length,
+  }
 }
 
 /** Founder-scoped pipeline read. Mirrors /api/founder/opportunities:
  *  founder_id filter, newest first, 500-row cap. */
 export async function loadPipelineOpportunities(founderId: string | null): Promise<PipelineBoardData> {
   if (!founderId) {
-    return { opportunities: [], source: 'degraded', error: 'no_founder_session' }
+    return { opportunities: [], source: 'degraded', error: 'no_founder_session', totalFetched: 0, excludedCount: 0 }
   }
   if (!hasSupabaseConfig()) {
-    return { opportunities: [], source: 'degraded', error: 'supabase_not_configured' }
+    return { opportunities: [], source: 'degraded', error: 'supabase_not_configured', totalFetched: 0, excludedCount: 0 }
   }
   try {
     const supabase = await createClient()
@@ -83,12 +96,12 @@ export async function loadPipelineOpportunities(founderId: string | null): Promi
       .limit(500)
     if (error) throw error
     return {
-      opportunities: mapOpportunityRows((data ?? []) as OpportunityRow[]),
+      ...mapOpportunityRows((data ?? []) as OpportunityRow[]),
       source: 'live',
       lastUpdatedAt: new Date().toISOString(),
     }
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err)
-    return { opportunities: [], source: 'degraded', error: reason }
+    return { opportunities: [], source: 'degraded', error: reason, totalFetched: 0, excludedCount: 0 }
   }
 }

@@ -16,6 +16,18 @@ const pageSrc = readFileSync(join(dir, 'page.tsx'), 'utf8')
 const shellCss = readFileSync(join(dir, 'shell.module.css'), 'utf8')
 const deckCss = readFileSync(join(dir, 'command-deck.module.css'), 'utf8')
 const stepsCss = readFileSync(join(dir, 'CommandSteps.module.css'), 'utf8')
+const boardSrc = readFileSync(
+  join(process.cwd(), 'src/components/command-centre/pipeline/PipelineBoard.tsx'),
+  'utf8',
+)
+const hubSrc = readFileSync(
+  join(process.cwd(), 'src/components/founder/dashboard/HubStatusWidget.tsx'),
+  'utf8',
+)
+const coachSrc = readFileSync(
+  join(process.cwd(), 'src/components/founder/dashboard/CoachBriefs.tsx'),
+  'utf8',
+)
 
 describe('command-centre shell slice 2 — canvas migration regression gate', () => {
   it('renders the Operate launch-pad from the static BUSINESSES registry (no invented fields)', () => {
@@ -148,6 +160,36 @@ describe('command-centre shell slice 2 — canvas migration regression gate', ()
     expect(nameBlock).toContain('color: var(--ink)')
     expect(metaBlock).toContain('color: var(--ink-dim)')
     expect(linkBlock).toContain('color: var(--green-txt)')
+  })
+
+  it('surfaces the rollup-excluded count in the pipeline head — no silent under-report (RA-1109)', () => {
+    // The read model drops terminal/parked rows by design; the page must say
+    // so whenever the drop is non-zero, next to the provenance label.
+    expect(pageSrc).toContain('pipeline.excludedCount > 0')
+    expect(pageSrc).toContain('lost/parked excluded')
+  })
+
+  it('keeps the empty-state copy honest per source — degraded never claims "connected"', () => {
+    expect(boardSrc).toContain('Pipeline source degraded — opportunity data unavailable.')
+    // The "connected" line must be the connected-empty branch, gated on source,
+    // not the unconditional fallback for every empty render.
+    expect(boardSrc).toMatch(
+      /source === 'degraded'\s*\?\s*'Pipeline source degraded[\s\S]*?The pipeline is connected but holds no open opportunities/,
+    )
+  })
+
+  it('keeps cockpit section headers readable on the deck ground (deck tokens with off-deck fallback)', () => {
+    // HubStatusWidget / CoachBriefs headers sit directly on the #0e1014 deck
+    // (outside their light cards, outside canvasScope). They must read the
+    // deck tokens (17.11:1 / 8.60:1 on the canvas) and fall back to their
+    // original colours anywhere else.
+    expect(hubSrc).toContain('var(--deck-text, var(--color-text-primary))')
+    expect(hubSrc).toContain('var(--deck-muted, var(--color-text-muted))')
+    expect(hubSrc).toContain('var(--deck-muted, var(--color-text-disabled))')
+    expect(coachSrc).toContain('var(--deck-text, #52525b)')
+    expect(coachSrc).toContain('var(--deck-muted, var(--color-text-muted))')
+    // The old dark-on-dark literal class must be gone from the coach header.
+    expect(coachSrc).not.toContain('text-[#52525b]')
   })
 
   it('re-points the app-global muted ink inside canvas scope (tiles imported unchanged)', () => {

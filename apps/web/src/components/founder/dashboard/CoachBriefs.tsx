@@ -321,11 +321,13 @@ export function CoachBriefs() {
 
   return (
     <div>
-      <h2 className="text-base font-medium text-[#52525b] mb-3 tracking-tight">
+      {/* UNI-2339: this header sits directly on the deck ground (outside the cards),
+          so it reads the deck tokens with the original colours as off-deck fallback. */}
+      <h2 className="text-base font-medium mb-3 tracking-tight" style={{ color: 'var(--deck-text, #52525b)' }}>
         Daily Coaches
       </h2>
       {loading ? (
-        <div className="flex items-center gap-2 text-sm py-4" style={{ color: 'var(--color-text-muted)' }}>
+        <div className="flex items-center gap-2 text-sm py-4" style={{ color: 'var(--deck-muted, var(--color-text-muted))' }}>
           <Loader2 size={14} className="animate-spin" />
           Loading coach briefs...
         </div>
