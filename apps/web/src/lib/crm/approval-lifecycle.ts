@@ -3,7 +3,7 @@
 // (evaluateAutoExecute, from the sibling auto-exec-matrix module) to compute
 // safeToAutoExecute/autoExecuteReason; still no external/DB/network imports.
 
-import { evaluateAutoExecute } from './auto-exec-matrix';
+import { evaluateAutoExecute, type AutoExecuteResult, type AutoExecuteSignals } from './auto-exec-matrix';
 
 export type CrmApprovalSubjectType = 'lead_conversion' | 'opportunity_commitment' | 'client_merge' | 'data_export' | 'other';
 
@@ -59,6 +59,25 @@ export interface CrmApprovalLifecycleEvaluation {
   autoExecuteReason: string;
 }
 
+/**
+ * safeToAutoExecute may only ever be true when the lifecycle decision itself is
+ * executable ('may_execute'). Every current call site passes no signals (so the
+ * matrix already returns safe: false), but the coupling must be structural: a
+ * future caller wiring real signals into a rejected/cancelled/expired
+ * evaluation must never surface safe: true.
+ */
+export function evaluateDecisionGatedAutoExecute(
+  subjectType: string,
+  decision: CrmApprovalDecision,
+  signals: AutoExecuteSignals = {},
+): AutoExecuteResult {
+  const autoExec = evaluateAutoExecute(subjectType, signals);
+  if (autoExec.safe && decision !== 'may_execute') {
+    return { ...autoExec, safe: false, reason: 'decision_not_executable' };
+  }
+  return autoExec;
+}
+
 const KNOWN_SUBJECT_TYPES: CrmApprovalSubjectType[] = ['lead_conversion', 'opportunity_commitment', 'client_merge', 'data_export', 'other'];
 const KNOWN_STATUSES: CrmApprovalKnownStatus[] = ['requested', 'approved', 'rejected', 'cancelled', 'executed', 'expired'];
 const HIGH_RISK_SUBJECT_TYPES: CrmApprovalSubjectType[] = ['client_merge', 'data_export'];
@@ -77,7 +96,7 @@ function invalidResult(
   reasons: string[],
   subjectType: CrmApprovalLifecycleSubjectType = normalizedSubjectType(input.subjectType),
 ): CrmApprovalLifecycleEvaluation {
-  const autoExec = evaluateAutoExecute(subjectType, {});
+  const autoExec = evaluateDecisionGatedAutoExecute(subjectType, 'invalid_request');
   return {
     id: input.id,
     subjectType,
@@ -192,7 +211,7 @@ export function evaluateCrmApprovalLifecycle(input: CrmApprovalLifecycleInput): 
 
   if (expiresTime !== null && rawStatus !== 'executed') {
     if (nowTime > expiresTime) {
-      const autoExec = evaluateAutoExecute(outputSubjectType, {});
+      const autoExec = evaluateDecisionGatedAutoExecute(outputSubjectType, 'do_not_execute');
       return {
         id: input.id,
         subjectType: outputSubjectType,
@@ -207,7 +226,7 @@ export function evaluateCrmApprovalLifecycle(input: CrmApprovalLifecycleInput): 
   }
 
   if (rawStatus === 'requested') {
-    const autoExec = evaluateAutoExecute(outputSubjectType, {});
+    const autoExec = evaluateDecisionGatedAutoExecute(outputSubjectType, 'await_approval');
     return {
       id: input.id,
       subjectType: outputSubjectType,
@@ -225,7 +244,7 @@ export function evaluateCrmApprovalLifecycle(input: CrmApprovalLifecycleInput): 
       return invalidResult(input, ['Approved approvals require both approvedBy and approvalReference before execution can be recommended.'], outputSubjectType);
     }
 
-    const autoExec = evaluateAutoExecute(outputSubjectType, {});
+    const autoExec = evaluateDecisionGatedAutoExecute(outputSubjectType, 'may_execute');
     return {
       id: input.id,
       subjectType: outputSubjectType,
@@ -243,7 +262,7 @@ export function evaluateCrmApprovalLifecycle(input: CrmApprovalLifecycleInput): 
 
   if (rawStatus === 'rejected') {
     const rejectionDetail = clean(input.rejectionReason) ? ' Rejection reason recorded.' : '';
-    const autoExec = evaluateAutoExecute(outputSubjectType, {});
+    const autoExec = evaluateDecisionGatedAutoExecute(outputSubjectType, 'do_not_execute');
     return {
       id: input.id,
       subjectType: outputSubjectType,
@@ -257,7 +276,7 @@ export function evaluateCrmApprovalLifecycle(input: CrmApprovalLifecycleInput): 
   }
 
   if (rawStatus === 'cancelled') {
-    const autoExec = evaluateAutoExecute(outputSubjectType, {});
+    const autoExec = evaluateDecisionGatedAutoExecute(outputSubjectType, 'do_not_execute');
     return {
       id: input.id,
       subjectType: outputSubjectType,
@@ -271,7 +290,7 @@ export function evaluateCrmApprovalLifecycle(input: CrmApprovalLifecycleInput): 
   }
 
   if (rawStatus === 'expired') {
-    const autoExec = evaluateAutoExecute(outputSubjectType, {});
+    const autoExec = evaluateDecisionGatedAutoExecute(outputSubjectType, 'do_not_execute');
     return {
       id: input.id,
       subjectType: outputSubjectType,
@@ -292,7 +311,7 @@ export function evaluateCrmApprovalLifecycle(input: CrmApprovalLifecycleInput): 
     return invalidResult(input, ['executedAt must be parseable as an ISO-ish timestamp when supplied.'], outputSubjectType);
   }
 
-  const autoExec = evaluateAutoExecute(outputSubjectType, {});
+  const autoExec = evaluateDecisionGatedAutoExecute(outputSubjectType, 'already_executed');
   return {
     id: input.id,
     subjectType: outputSubjectType,
