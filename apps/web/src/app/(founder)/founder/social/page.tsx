@@ -66,11 +66,11 @@ export default async function SocialPage({
       )}
 
       <div className="flex items-center gap-4 text-sm">
-        <div className="border border-black/[0.08] px-4 py-2 rounded-sm" style={{ background: 'var(--surface-card)' }}>
+        <div className="border border-black/8 px-4 py-2 rounded-sm" style={{ background: 'var(--surface-card)' }}>
           <span className="text-muted-foreground">Configured:</span>{' '}
           <span className="text-[#15803d]">{configuredCount}/{platforms.length}</span>
         </div>
-        <div className="border border-black/[0.08] px-4 py-2 rounded-sm" style={{ background: 'var(--surface-card)' }}>
+        <div className="border border-black/8 px-4 py-2 rounded-sm" style={{ background: 'var(--surface-card)' }}>
           <span className="text-muted-foreground">Connected:</span>{' '}
           <span className="text-[#15803d]">{connectedCount}/{platforms.length}</span>
         </div>
@@ -80,12 +80,12 @@ export default async function SocialPage({
         {platforms.map((platform) => (
           <div
             key={platform.key}
-            className="flex items-center justify-between border border-black/[0.08] px-5 py-4 rounded-sm"
+            className="flex items-center justify-between border border-black/8 px-5 py-4 rounded-sm"
             style={{ background: 'var(--surface-card)' }}
           >
             <div className="flex items-center gap-4">
               <div
-                className="w-10 h-10 rounded-sm flex items-center justify-center text-sm font-bold flex-shrink-0"
+                className="w-10 h-10 rounded-sm flex items-center justify-center text-sm font-bold shrink-0"
                 style={{
                   background: platform.connected
                     ? 'rgba(22, 163, 74, 0.1)'
@@ -117,7 +117,7 @@ export default async function SocialPage({
                   href={platform.setupUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[10px] uppercase tracking-widest text-muted-foreground border border-black/[0.08] px-3 py-1.5 rounded-sm hover:border-black/20 transition-colors"
+                  className="text-[10px] uppercase tracking-widest text-muted-foreground border border-black/8 px-3 py-1.5 rounded-sm hover:border-black/20 transition-colors"
                 >
                   Setup
                 </a>
@@ -128,7 +128,7 @@ export default async function SocialPage({
               ) : (
                 <a
                   href={`/api/social/${platform.key}/connect`}
-                  className="text-[10px] uppercase tracking-widest text-[#15803d] border border-[#16a34a]/30 bg-[#16a34a]/[0.08] px-3 py-1.5 rounded-sm hover:bg-[#16a34a]/[0.15] transition-colors"
+                  className="text-[10px] uppercase tracking-widest text-[#15803d] border border-[#16a34a]/30 bg-[#16a34a]/8 px-3 py-1.5 rounded-sm hover:bg-[#16a34a]/15 transition-colors"
                 >
                   Connect
                 </a>
@@ -138,13 +138,13 @@ export default async function SocialPage({
         ))}
       </div>
 
-      <div className="mt-8 border border-black/[0.08] px-5 py-4 rounded-sm max-w-3xl" style={{ background: 'var(--surface-card)' }}>
+      <div className="mt-8 border border-black/8 px-5 py-4 rounded-sm max-w-3xl" style={{ background: 'var(--surface-card)' }}>
         <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-3">Setup Checklist</p>
         <div className="space-y-2">
           {platforms.map((platform) => (
             <div key={platform.key} className="flex items-center gap-2 text-xs">
               <div
-                className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                className="w-1.5 h-1.5 rounded-full shrink-0"
                 style={{
                   background: platform.connected
                     ? '#16a34a'

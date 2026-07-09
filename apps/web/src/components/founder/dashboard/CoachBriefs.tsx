@@ -142,7 +142,7 @@ function CoachCard({
     >
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-black/[0.05] transition-colors"
+        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-black/5 transition-colors"
       >
         <Icon size={18} style={{ color: colour }} />
         <div className="flex-1 min-w-0">
@@ -194,7 +194,7 @@ function CoachCard({
               placeholder={`Ask the ${config.name.toLowerCase()} anything…`}
               rows={3}
               maxLength={2000}
-              className="w-full resize-none rounded-sm border bg-transparent px-3 py-2 text-[13px] outline-none"
+              className="w-full resize-none rounded-sm border bg-transparent px-3 py-2 text-[13px] outline-hidden"
               style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
             />
             <div className="flex items-center justify-between mt-2">

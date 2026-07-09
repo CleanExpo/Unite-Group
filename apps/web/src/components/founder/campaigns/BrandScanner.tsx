@@ -63,7 +63,7 @@ function ColourSwatch({ colour, label }: ColourSwatchProps) {
   return (
     <div className="flex flex-col items-center gap-1.5">
       <div
-        className="w-8 h-8 rounded-sm border border-[var(--color-border)]"
+        className="w-8 h-8 rounded-sm border border-border"
         style={{ backgroundColor: colour }}
         title={colour}
       />
@@ -81,7 +81,7 @@ interface BrandDNACardProps {
 
 function BrandDNACard({ result, onCreateCampaign }: BrandDNACardProps) {
   return (
-    <div className="flex flex-col gap-5 pt-5 border-t border-white/[0.06]">
+    <div className="flex flex-col gap-5 pt-5 border-t border-white/6">
       {/* Section label */}
       <div className="flex items-center gap-2">
         <div className="w-1.5 h-1.5 rounded-sm bg-[#16a34a]" />
@@ -217,7 +217,7 @@ export function BrandScanner({ onScanComplete }: BrandScannerProps) {
   }, [result, onScanComplete])
 
   return (
-    <div className="bg-[#fff7ec] border border-white/[0.06] rounded-sm p-6 flex flex-col gap-5">
+    <div className="bg-[#fff7ec] border border-white/6 rounded-sm p-6 flex flex-col gap-5">
       {/* Header */}
       <div className="flex flex-col gap-1">
         <h2 className="text-[15px] font-semibold text-[#0A0A0A] tracking-tight">
@@ -241,7 +241,7 @@ export function BrandScanner({ onScanComplete }: BrandScannerProps) {
             onChange={e => setClientName(e.target.value)}
             disabled={isDisabled}
             placeholder="Acme Pty Ltd"
-            className="bg-[var(--surface-card)] border border-[var(--color-border)] rounded-sm px-3 py-2 text-[13px] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:border-[#16a34a]/50 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-100"
+            className="bg-(--surface-card) border border-border rounded-sm px-3 py-2 text-[13px] text-(--color-text-primary) placeholder-(--color-text-muted) focus:border-[#16a34a]/50 focus:outline-hidden disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-100"
           />
         </div>
 
@@ -256,7 +256,7 @@ export function BrandScanner({ onScanComplete }: BrandScannerProps) {
             onChange={e => setWebsiteUrl(e.target.value)}
             disabled={isDisabled}
             placeholder="https://example.com.au"
-            className="bg-[var(--surface-card)] border border-[var(--color-border)] rounded-sm px-3 py-2 text-[13px] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:border-[#16a34a]/50 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-100"
+            className="bg-(--surface-card) border border-border rounded-sm px-3 py-2 text-[13px] text-(--color-text-primary) placeholder-(--color-text-muted) focus:border-[#16a34a]/50 focus:outline-hidden disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-100"
           />
         </div>
       </div>

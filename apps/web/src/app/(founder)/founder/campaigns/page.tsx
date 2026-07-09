@@ -34,7 +34,7 @@ function mapRow(row: CampaignRow): Pick<Campaign, 'id' | 'theme' | 'objective' |
 }
 
 const STATUS_STYLES: Record<CampaignStatus, { label: string; className: string }> = {
-  draft:      { label: 'Draft',      className: 'text-[#5f5f66] bg-white/[0.06] border border-white/10' },
+  draft:      { label: 'Draft',      className: 'text-[#5f5f66] bg-white/6 border border-white/10' },
   generating: { label: 'Generating', className: 'text-[#15803d] bg-[#16a34a]/10 border border-[#16a34a]/20 animate-pulse' },
   ready:      { label: 'Ready',      className: 'text-emerald-700 bg-emerald-400/10 border border-emerald-400/20' },
   published:  { label: 'Published',  className: 'text-blue-700 bg-blue-400/10 border border-blue-400/20' },
@@ -85,7 +85,7 @@ function CampaignCard({ campaign }: CampaignCardProps) {
       className="block group"
     >
       <div
-        className="rounded-sm border border-white/[0.06] bg-[#fff7ec] p-5 flex flex-col gap-3 transition-colors duration-150 hover:border-[#16a34a]/30 hover:bg-[#16a34a]/[0.02]"
+        className="rounded-sm border border-white/6 bg-[#fff7ec] p-5 flex flex-col gap-3 transition-colors duration-150 hover:border-[#16a34a]/30 hover:bg-[#16a34a]/2"
       >
         {/* Theme + status row */}
         <div className="flex items-start justify-between gap-3">
@@ -138,7 +138,7 @@ function EmptyState() {
       className="rounded-sm py-20 flex flex-col items-center justify-center text-center gap-4"
       style={{ border: '1px dashed rgba(22, 163, 74,0.15)' }}
     >
-      <div className="w-10 h-10 rounded-sm bg-[#16a34a]/[0.06] border border-[#16a34a]/20 flex items-center justify-center">
+      <div className="w-10 h-10 rounded-sm bg-[#16a34a]/6 border border-[#16a34a]/20 flex items-center justify-center">
         <span className="text-[#15803d] text-lg">⚡</span>
       </div>
       <div className="flex flex-col gap-1">

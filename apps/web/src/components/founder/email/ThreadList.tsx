@@ -63,7 +63,7 @@ export function ThreadList({
         {hasMore && !loading && (
           <button
             onClick={onLoadMore}
-            className="w-full py-3 text-xs text-[#5f5f66] hover:text-[#3f3f46] transition-colors border-t border-white/[0.04]"
+            className="w-full py-3 text-xs text-[#5f5f66] hover:text-[#3f3f46] transition-colors border-t border-white/4"
           >
             Load more
           </button>

@@ -33,7 +33,7 @@ export function ApprovalQueue({ items }: { items: ApprovalItem[] }) {
       {items.map((item) => (
         <div
           key={item.id}
-          className="bg-[#fff7ec] border border-white/[0.06] rounded-sm px-4 py-3 flex items-start gap-4"
+          className="bg-[#fff7ec] border border-white/6 rounded-sm px-4 py-3 flex items-start gap-4"
         >
           <div className="flex flex-col gap-1 flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">

@@ -198,7 +198,7 @@ export function KanbanBoard() {
         {COLUMN_ORDER.map((id) => (
           <div
             key={id}
-            className="w-64 flex-shrink-0 rounded-sm animate-pulse"
+            className="w-64 shrink-0 rounded-sm animate-pulse"
             style={{ background: 'var(--surface-card)', height: 200 }}
           />
         ))}

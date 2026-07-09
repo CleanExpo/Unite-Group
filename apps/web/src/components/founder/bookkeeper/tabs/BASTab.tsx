@@ -55,7 +55,7 @@ export function AccountantPackDownload({ business, quarter }: { business: Busine
           key={link.label}
           href={link.href}
           download
-          className="text-[11px] px-2 py-1 rounded-sm border transition-colors hover:bg-black/[0.05]"
+          className="text-[11px] px-2 py-1 rounded-sm border transition-colors hover:bg-black/5"
           style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
         >
           {link.label}
@@ -80,7 +80,7 @@ export function AccountantPackDownload({ business, quarter }: { business: Busine
 
 function SkeletonCard() {
   return (
-    <div className="bg-[var(--surface-card)] border border-[var(--color-border)] rounded-sm p-4 animate-pulse">
+    <div className="bg-(--surface-card) border border-border rounded-sm p-4 animate-pulse">
       <div className="h-4 w-40 bg-white/5 rounded-sm mb-4" />
       <div className="space-y-3">
         {Array.from({ length: 5 }).map((_, i) => (
@@ -118,10 +118,10 @@ function MiniTransactionTable({ transactions, loading }: { transactions: Bookkee
   }
 
   return (
-    <div className="overflow-x-auto border border-[var(--color-border)] rounded-sm mt-3">
+    <div className="overflow-x-auto border border-border rounded-sm mt-3">
       <table className="w-full text-[11px]">
         <thead>
-          <tr className="border-b border-[var(--color-border)]" style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}>
+          <tr className="border-b border-border" style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}>
             <th className="text-left px-2.5 py-2 font-medium" style={{ color: 'var(--color-text-disabled)' }}>Date</th>
             <th className="text-left px-2.5 py-2 font-medium" style={{ color: 'var(--color-text-disabled)' }}>Business</th>
             <th className="text-left px-2.5 py-2 font-medium" style={{ color: 'var(--color-text-disabled)' }}>Description</th>
@@ -134,13 +134,13 @@ function MiniTransactionTable({ transactions, loading }: { transactions: Bookkee
           {transactions.slice(0, 50).map((tx) => {
             const biz = BUSINESSES.find(b => b.key === tx.businessKey)
             return (
-              <tr key={tx.id} className="border-b border-[var(--color-border)] hover:bg-black/[0.05] transition-colors">
+              <tr key={tx.id} className="border-b border-border hover:bg-black/5 transition-colors">
                 <td className="px-2.5 py-1.5 tabular-nums whitespace-nowrap" style={{ color: 'var(--color-text-secondary)' }}>
                   {formatDate(tx.transactionDate)}
                 </td>
                 <td className="px-2.5 py-1.5">
                   <div className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: biz?.color ?? '#888' }} />
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: biz?.color ?? '#888' }} />
                     <span style={{ color: 'var(--color-text-secondary)' }}>{biz?.name ?? tx.businessKey}</span>
                   </div>
                 </td>
@@ -255,7 +255,7 @@ export function BASTab() {
 
   if (error) {
     return (
-      <div className="border border-[var(--color-danger)]/20 rounded-sm p-4 text-[13px]" style={{ color: 'var(--color-danger)' }}>
+      <div className="border border-danger/20 rounded-sm p-4 text-[13px]" style={{ color: 'var(--color-danger)' }}>
         {error}
       </div>
     )
@@ -263,7 +263,7 @@ export function BASTab() {
 
   if (quarters.length === 0) {
     return (
-      <div className="border border-[var(--color-border)] rounded-sm p-8 text-center">
+      <div className="border border-border rounded-sm p-8 text-center">
         <p className="text-[13px]" style={{ color: 'var(--color-text-secondary)' }}>
           No BAS data available yet.
         </p>
@@ -289,7 +289,7 @@ export function BASTab() {
           <motion.div
             key={q.label}
             layout
-            className="bg-[var(--surface-card)] border rounded-sm p-4 cursor-pointer transition-colors hover:bg-black/[0.05]"
+            className="bg-(--surface-card) border rounded-sm p-4 cursor-pointer transition-colors hover:bg-black/5"
             style={{
               borderColor: current ? 'rgba(22, 163, 74,0.3)' : 'var(--color-border)',
             }}
@@ -334,7 +334,7 @@ export function BASTab() {
             </div>
 
             {/* BAS Labels */}
-            <div className="border-t border-[var(--color-border)] pt-2">
+            <div className="border-t border-border pt-2">
               <BASLabel label="1A" amountCents={q.label1A_totalSalesCents} />
               <BASLabel label="1B" amountCents={q.label1B_gstOnSalesCents} />
               <BASLabel label="7" amountCents={q.label7_totalPurchasesCents} />
@@ -344,7 +344,7 @@ export function BASTab() {
 
             {/* Accountant hand-off export */}
             {exportBusiness !== 'all' && (
-              <div className="border-t border-[var(--color-border)] mt-3 pt-3">
+              <div className="border-t border-border mt-3 pt-3">
                 <AccountantPackDownload business={exportBusiness} quarter={q} />
               </div>
             )}
@@ -360,7 +360,7 @@ export function BASTab() {
                   className="overflow-hidden"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="border-t border-[var(--color-border)] mt-3 pt-3">
+                  <div className="border-t border-border mt-3 pt-3">
                     <p className="text-[10px] uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-disabled)' }}>
                       Contributing Transactions
                     </p>

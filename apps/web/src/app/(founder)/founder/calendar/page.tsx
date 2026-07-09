@@ -68,12 +68,12 @@ export default async function CalendarPage() {
           {events.map((event) => (
             <div
               key={event.id}
-              className="border px-4 py-3 rounded-sm flex items-center gap-4 hover:border-white/[0.18] transition-colors"
+              className="border px-4 py-3 rounded-sm flex items-center gap-4 hover:border-white/18 transition-colors"
               style={{ borderColor: 'var(--color-border)' }}
             >
               {/* Business colour stripe */}
               <div
-                className="w-1 h-10 rounded-full flex-shrink-0"
+                className="w-1 h-10 rounded-full shrink-0"
                 style={{ backgroundColor: event.colour }}
               />
               <div className="min-w-0 flex-1">
@@ -85,7 +85,7 @@ export default async function CalendarPage() {
                   })}
                 </p>
               </div>
-              <div className="text-right flex-shrink-0">
+              <div className="text-right shrink-0">
                 <span className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>
                   {event.businessKey}
                 </span>

@@ -170,7 +170,7 @@ function OperationNodeCard({ node }: { node: OperationNode }) {
     <article className="flex min-h-52 flex-col justify-between gap-4 px-5 py-4" style={{ background: 'var(--cc-bg-soft)' }}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="break-words font-mono text-sm uppercase tracking-[0.16em]" style={{ color: 'var(--cc-ink)' }}>
+          <h3 className="wrap-break-word font-mono text-sm uppercase tracking-[0.16em]" style={{ color: 'var(--cc-ink)' }}>
             {node.label}
           </h3>
           <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em]" style={{ color: 'var(--cc-ink-hush)' }}>

@@ -168,7 +168,7 @@ export function HermesControlPanel({ initialPayload }: HermesControlPanelProps =
 
   return (
     <section
-      className="flex min-h-[42rem] flex-col"
+      className="flex min-h-168 flex-col"
       style={{ background: 'var(--cc-bg-soft)', borderTop: '1px solid var(--cc-grid)' }}
       aria-label="CEO Control Panel"
     >

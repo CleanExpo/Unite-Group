@@ -9,16 +9,16 @@ import { Slot } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
 
 export const buttonVariants = cva(
-  'inline-flex items-center justify-center rounded-sm font-medium focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed',
+  'inline-flex items-center justify-center rounded-sm font-medium focus:outline-hidden disabled:opacity-50 disabled:cursor-not-allowed',
   {
     variants: {
       variant: {
-        primary: 'bg-[var(--color-accent-10)] border border-[var(--color-accent-border)] text-[var(--color-accent)] hover:bg-[var(--color-accent-20)]',
-        secondary: 'bg-white/[0.04] border border-white/[0.1] text-[#3f3f46] hover:bg-black/[0.05] hover:text-[#0A0A0A]',
-        danger: 'bg-[var(--color-danger-dim)] border border-[var(--color-danger)]/40 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/20',
-        success: 'bg-[var(--color-success-dim)] border border-[var(--color-success)]/40 text-[var(--color-success)] hover:bg-[var(--color-success)]/20',
-        outline: 'bg-transparent border border-white/[0.1] text-[#3f3f46] hover:border-white/[0.2] hover:text-[#0A0A0A]',
-        ghost: 'bg-transparent text-[#52525b] hover:bg-black/[0.05] hover:text-[#3f3f46]',
+        primary: 'bg-(--color-accent-10) border border-(--color-accent-border) text-accent hover:bg-(--color-accent-20)',
+        secondary: 'bg-white/4 border border-white/10 text-[#3f3f46] hover:bg-black/5 hover:text-[#0A0A0A]',
+        danger: 'bg-(--color-danger-dim) border border-danger/40 text-danger hover:bg-danger/20',
+        success: 'bg-(--color-success-dim) border border-success/40 text-success hover:bg-success/20',
+        outline: 'bg-transparent border border-white/10 text-[#3f3f46] hover:border-white/20 hover:text-[#0A0A0A]',
+        ghost: 'bg-transparent text-[#52525b] hover:bg-black/5 hover:text-[#3f3f46]',
       },
       size: {
         sm: 'px-3 py-1.5 text-sm',

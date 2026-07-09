@@ -27,7 +27,7 @@ export function PageHeader({ title, subtitle, tip, actions, className }: PageHea
             {subtitle}
           </p>
         </div>
-        {actions && <div className="flex-shrink-0">{actions}</div>}
+        {actions && <div className="shrink-0">{actions}</div>}
       </div>
       {tip && (
         <div
@@ -38,7 +38,7 @@ export function PageHeader({ title, subtitle, tip, actions, className }: PageHea
             color: 'var(--color-text-muted)',
           }}
         >
-          <Lightbulb size={13} className="mt-0.5 flex-shrink-0" strokeWidth={1.5} />
+          <Lightbulb size={13} className="mt-0.5 shrink-0" strokeWidth={1.5} />
           <span>{tip}</span>
         </div>
       )}

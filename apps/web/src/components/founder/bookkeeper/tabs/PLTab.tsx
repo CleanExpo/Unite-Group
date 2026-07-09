@@ -67,7 +67,7 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 
 function ChartSkeleton() {
   return (
-    <div className="bg-[var(--surface-card)] border border-[var(--color-border)] rounded-sm p-4 animate-pulse">
+    <div className="bg-(--surface-card) border border-border rounded-sm p-4 animate-pulse">
       <div className="h-[320px] flex items-end gap-3 px-8 pb-6">
         {Array.from({ length: 12 }).map((_, i) => (
           <div key={i} className="flex-1 flex gap-1 items-end">
@@ -160,7 +160,7 @@ export function PLTab() {
 
       {/* Error */}
       {error && (
-        <div className="border border-[var(--color-danger)]/20 rounded-sm p-4 text-[13px]" style={{ color: 'var(--color-danger)' }}>
+        <div className="border border-danger/20 rounded-sm p-4 text-[13px]" style={{ color: 'var(--color-danger)' }}>
           {error}
         </div>
       )}
@@ -171,7 +171,7 @@ export function PLTab() {
           {loading || !mounted ? (
             <ChartSkeleton />
           ) : transactions.length === 0 ? (
-            <div className="border border-[var(--color-border)] rounded-sm p-8 text-center">
+            <div className="border border-border rounded-sm p-8 text-center">
               <p className="text-[13px]" style={{ color: 'var(--color-text-secondary)' }}>
                 No transaction data for P&amp;L chart.
               </p>
@@ -180,7 +180,7 @@ export function PLTab() {
             <motion.div
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-[var(--surface-card)] border border-[var(--color-border)] rounded-sm p-4"
+              className="bg-(--surface-card) border border-border rounded-sm p-4"
             >
               <p className="text-[11px] uppercase tracking-wide mb-4" style={{ color: 'var(--color-text-disabled)' }}>
                 Revenue vs Expenses (12 months)
@@ -217,7 +217,7 @@ export function PLTab() {
               transition={{ delay: 0.1 }}
               className="flex gap-6 flex-wrap"
             >
-              <div className="bg-[var(--surface-card)] border border-[var(--color-border)] rounded-sm px-4 py-3 flex-1 min-w-[140px]">
+              <div className="bg-(--surface-card) border border-border rounded-sm px-4 py-3 flex-1 min-w-[140px]">
                 <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-disabled)' }}>
                   Total Revenue
                 </p>
@@ -225,7 +225,7 @@ export function PLTab() {
                   {formatAUD(totals.revenue)}
                 </p>
               </div>
-              <div className="bg-[var(--surface-card)] border border-[var(--color-border)] rounded-sm px-4 py-3 flex-1 min-w-[140px]">
+              <div className="bg-(--surface-card) border border-border rounded-sm px-4 py-3 flex-1 min-w-[140px]">
                 <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-disabled)' }}>
                   Total Expenses
                 </p>
@@ -233,7 +233,7 @@ export function PLTab() {
                   {formatAUD(totals.expenses)}
                 </p>
               </div>
-              <div className="bg-[var(--surface-card)] border border-[var(--color-border)] rounded-sm px-4 py-3 flex-1 min-w-[140px]">
+              <div className="bg-(--surface-card) border border-border rounded-sm px-4 py-3 flex-1 min-w-[140px]">
                 <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-disabled)' }}>
                   Net Profit
                 </p>
@@ -244,7 +244,7 @@ export function PLTab() {
                   {totals.net < 0 ? '-' : ''}{formatAUD(Math.abs(totals.net))}
                 </p>
               </div>
-              <div className="bg-[var(--surface-card)] border border-[var(--color-border)] rounded-sm px-4 py-3 flex-1 min-w-[140px]">
+              <div className="bg-(--surface-card) border border-border rounded-sm px-4 py-3 flex-1 min-w-[140px]">
                 <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: 'var(--color-text-disabled)' }}>
                   GST Position
                 </p>

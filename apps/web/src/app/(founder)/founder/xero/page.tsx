@@ -113,12 +113,12 @@ export default async function XeroPage({
                   return (
                     <div
                       key={business.key}
-                      className="flex items-center justify-between border border-white/[0.08] px-5 py-4 rounded-sm"
+                      className="flex items-center justify-between border border-white/8 px-5 py-4 rounded-sm"
                       style={{ background: 'var(--surface-card)' }}
                     >
                       <div className="flex items-center gap-3">
                         <div
-                          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                          className="w-2.5 h-2.5 rounded-full shrink-0"
                           style={{ backgroundColor: business.color }}
                         />
                         <div>

@@ -48,7 +48,7 @@ export function KanbanCard({ id, title, businessKey, businessColor, isDone, onCl
     >
       <div className={`flex items-center gap-2 ${isDone ? 'opacity-50' : ''}`}>
         <span
-          className="w-2 h-2 rounded-sm flex-shrink-0"
+          className="w-2 h-2 rounded-sm shrink-0"
           style={{ background: businessColor }}
           aria-label={BUSINESSES.find((b) => b.key === businessKey)?.name ?? businessKey}
         />

@@ -38,7 +38,7 @@ function formatDuration(startedAt: string, completedAt: string | null): string {
 
 function SkeletonRow() {
   return (
-    <tr className="border-b border-[var(--color-border)]">
+    <tr className="border-b border-border">
       {Array.from({ length: 7 }).map((_, i) => (
         <td key={i} className="px-3 py-3">
           <div className="h-3 bg-white/5 rounded-sm animate-pulse" style={{ width: `${50 + i * 10}px` }} />
@@ -80,7 +80,7 @@ export function RunHistoryTab() {
 
   if (error && runs.length === 0) {
     return (
-      <div className="border border-[var(--color-danger)]/20 rounded-sm p-4 text-[13px]" style={{ color: 'var(--color-danger)' }}>
+      <div className="border border-danger/20 rounded-sm p-4 text-[13px]" style={{ color: 'var(--color-danger)' }}>
         {error}
       </div>
     )
@@ -88,7 +88,7 @@ export function RunHistoryTab() {
 
   if (!loading && runs.length === 0) {
     return (
-      <div className="border border-[var(--color-border)] rounded-sm p-8 text-center">
+      <div className="border border-border rounded-sm p-8 text-center">
         <p className="text-[13px]" style={{ color: 'var(--color-text-secondary)' }}>
           No runs recorded yet.
         </p>
@@ -98,10 +98,10 @@ export function RunHistoryTab() {
 
   return (
     <div className="space-y-3">
-      <div className="overflow-x-auto border border-[var(--color-border)] rounded-sm">
+      <div className="overflow-x-auto border border-border rounded-sm">
         <table className="w-full text-[12px]">
           <thead>
-            <tr className="border-b border-[var(--color-border)]" style={{ backgroundColor: 'var(--surface-card)' }}>
+            <tr className="border-b border-border" style={{ backgroundColor: 'var(--surface-card)' }}>
               <th className="text-left px-3 py-2.5 font-medium" style={{ color: 'var(--color-text-disabled)' }}>Started</th>
               <th className="text-left px-3 py-2.5 font-medium" style={{ color: 'var(--color-text-disabled)' }}>Duration</th>
               <th className="text-left px-3 py-2.5 font-medium" style={{ color: 'var(--color-text-disabled)' }}>Status</th>
@@ -165,7 +165,7 @@ function RunRow({ run, expanded, onToggle }: { run: BookkeeperRun; expanded: boo
     <>
       <tr
         onClick={onToggle}
-        className="border-b border-[var(--color-border)] cursor-pointer hover:bg-black/[0.05] transition-colors"
+        className="border-b border-border cursor-pointer hover:bg-black/5 transition-colors"
       >
         <td className="px-3 py-2.5 tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>
           {formatDate(run.startedAt)}

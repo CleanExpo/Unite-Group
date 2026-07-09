@@ -113,7 +113,7 @@ export function ContactsPageClient() {
   }
 
   const inputClass =
-    'rounded-sm border border-[var(--color-border)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-[#16a34a] focus:outline-none'
+    'rounded-sm border border-border bg-(--surface-elevated) px-3 py-2 text-sm text-(--color-text-primary) placeholder:text-(--color-text-muted) focus:border-[#16a34a] focus:outline-hidden'
 
   return (
     <div className="space-y-6">
@@ -224,7 +224,7 @@ export function ContactsPageClient() {
           </div>
 
           {/* Table */}
-          <div className="rounded-sm border border-[var(--color-border)] bg-[var(--surface-card)]">
+          <div className="rounded-sm border border-border bg-(--surface-card)">
             <ContactsTable
               contacts={filtered}
               loading={loading}

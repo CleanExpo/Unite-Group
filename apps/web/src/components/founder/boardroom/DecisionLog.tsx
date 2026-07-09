@@ -149,14 +149,14 @@ export function DecisionLog() {
             value={form.title}
             onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
             placeholder="Decision title *"
-            className="w-full h-8 px-3 rounded-sm border text-[12px] outline-none"
+            className="w-full h-8 px-3 rounded-sm border text-[12px] outline-hidden"
             style={{ borderColor: 'var(--color-border)', background: 'var(--surface-canvas)', color: 'var(--color-text-primary)' }}
           />
           <div className="grid grid-cols-2 gap-2">
             <select
               value={form.type}
               onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
-              className="h-8 px-3 rounded-sm border text-[12px] outline-none bg-transparent"
+              className="h-8 px-3 rounded-sm border text-[12px] outline-hidden bg-transparent"
               style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
             >
               {['strategic', 'budget', 'timeline', 'shipping', 'hiring'].map((t) => (
@@ -166,7 +166,7 @@ export function DecisionLog() {
             <select
               value={form.business_key}
               onChange={(e) => setForm((f) => ({ ...f, business_key: e.target.value }))}
-              className="h-8 px-3 rounded-sm border text-[12px] outline-none bg-transparent"
+              className="h-8 px-3 rounded-sm border text-[12px] outline-hidden bg-transparent"
               style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
             >
               <option value="">All businesses</option>
@@ -179,14 +179,14 @@ export function DecisionLog() {
               onChange={(e) => setForm((f) => ({ ...f, amount_aud: e.target.value }))}
               placeholder="AUD amount (optional)"
               type="number"
-              className="h-8 px-3 rounded-sm border text-[12px] outline-none"
+              className="h-8 px-3 rounded-sm border text-[12px] outline-hidden"
               style={{ borderColor: 'var(--color-border)', background: 'var(--surface-canvas)', color: 'var(--color-text-primary)' }}
             />
             <input
               value={form.deadline}
               onChange={(e) => setForm((f) => ({ ...f, deadline: e.target.value }))}
               type="date"
-              className="h-8 px-3 rounded-sm border text-[12px] outline-none bg-transparent"
+              className="h-8 px-3 rounded-sm border text-[12px] outline-hidden bg-transparent"
               style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
             />
           </div>
@@ -195,7 +195,7 @@ export function DecisionLog() {
             onChange={(e) => setForm((f) => ({ ...f, rationale: e.target.value }))}
             placeholder="Rationale (optional)"
             rows={2}
-            className="w-full resize-none rounded-sm border px-3 py-2 text-[12px] outline-none"
+            className="w-full resize-none rounded-sm border px-3 py-2 text-[12px] outline-hidden"
             style={{ borderColor: 'var(--color-border)', background: 'var(--surface-canvas)', color: 'var(--color-text-primary)' }}
           />
           {formError && (
@@ -222,7 +222,7 @@ export function DecisionLog() {
         <div className="space-y-2 animate-pulse" aria-label="Loading decisions">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="rounded-sm border px-4 py-3 flex items-start gap-3" style={{ borderColor: 'var(--color-border)', background: 'var(--surface-card)', borderLeft: '3px solid var(--surface-elevated)' }}>
-              <div className="w-3 h-3 rounded-sm mt-0.5 flex-shrink-0" style={{ background: 'var(--surface-elevated)' }} />
+              <div className="w-3 h-3 rounded-sm mt-0.5 shrink-0" style={{ background: 'var(--surface-elevated)' }} />
               <div className="flex-1 space-y-2">
                 <div className="h-3 rounded-sm w-56" style={{ background: 'var(--surface-elevated)' }} />
                 <div className="flex gap-2">
@@ -230,7 +230,7 @@ export function DecisionLog() {
                   <div className="h-2.5 rounded-sm w-24" style={{ background: 'var(--surface-elevated)' }} />
                 </div>
               </div>
-              <div className="h-6 w-20 rounded-sm flex-shrink-0" style={{ background: 'var(--surface-elevated)' }} />
+              <div className="h-6 w-20 rounded-sm shrink-0" style={{ background: 'var(--surface-elevated)' }} />
             </div>
           ))}
         </div>
@@ -260,7 +260,7 @@ export function DecisionLog() {
                 {d.rationale && <p className="text-[11px] mt-1" style={{ color: 'var(--color-text-muted)' }}>{d.rationale}</p>}
               </div>
               {NEXT_STATUS[d.status] && (
-                <button onClick={() => void advance(d.id, d.status)} className="text-[10px] px-2 py-1 rounded-sm border flex-shrink-0" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-disabled)' }}>
+                <button onClick={() => void advance(d.id, d.status)} className="text-[10px] px-2 py-1 rounded-sm border shrink-0" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-disabled)' }}>
                   → {NEXT_STATUS[d.status]}
                 </button>
               )}

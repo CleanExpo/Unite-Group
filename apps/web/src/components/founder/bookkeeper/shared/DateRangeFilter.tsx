@@ -13,7 +13,7 @@ export function DateRangeFilter({ from, to, onChange }: DateRangeFilterProps) {
         type="date"
         value={from}
         onChange={(e) => onChange(e.target.value, to)}
-        className="text-[12px] bg-transparent border rounded-sm px-2 py-1.5 focus:outline-none focus:border-[#16a34a]/40"
+        className="text-[12px] bg-transparent border rounded-sm px-2 py-1.5 focus:outline-hidden focus:border-[#16a34a]/40"
         style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)', colorScheme: 'dark' }}
       />
       <span className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>to</span>
@@ -21,7 +21,7 @@ export function DateRangeFilter({ from, to, onChange }: DateRangeFilterProps) {
         type="date"
         value={to}
         onChange={(e) => onChange(from, e.target.value)}
-        className="text-[12px] bg-transparent border rounded-sm px-2 py-1.5 focus:outline-none focus:border-[#16a34a]/40"
+        className="text-[12px] bg-transparent border rounded-sm px-2 py-1.5 focus:outline-hidden focus:border-[#16a34a]/40"
         style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)', colorScheme: 'dark' }}
       />
     </div>

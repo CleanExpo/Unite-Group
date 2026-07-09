@@ -36,7 +36,7 @@ export function IntegrationSettingsSection({ settings, onSave, loading }: Integr
             value={googleDriveFolderId}
             onChange={(e) => setGoogleDriveFolderId(e.target.value)}
             placeholder="Paste your Google Drive folder ID here"
-            className="w-full bg-surface-elevated text-color-text-primary rounded-sm px-3 py-2 border border-surface-elevated hover:border-color-text-muted focus:outline-none focus:border-cyan-400 font-mono text-xs"
+            className="w-full bg-surface-elevated text-color-text-primary rounded-sm px-3 py-2 border border-surface-elevated hover:border-color-text-muted focus:outline-hidden focus:border-cyan-400 font-mono text-xs"
             disabled={loading || saving}
           />
           <p className="text-xs text-color-text-muted mt-2">

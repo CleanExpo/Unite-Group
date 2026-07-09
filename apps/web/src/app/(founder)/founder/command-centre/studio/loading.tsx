@@ -7,20 +7,20 @@ export default function Loading() {
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className="aspect-square rounded-sm border border-[#00F5FF22] bg-white/[0.04] animate-pulse"
+              className="aspect-square rounded-sm border border-[#00F5FF22] bg-white/4 animate-pulse"
             />
           ))}
         </div>
         <div className="mt-4 flex flex-col gap-2">
-          <div className="h-3 w-2/3 rounded-sm bg-white/[0.06] animate-pulse" />
-          <div className="h-3 w-1/2 rounded-sm bg-white/[0.06] animate-pulse" />
+          <div className="h-3 w-2/3 rounded-sm bg-white/6 animate-pulse" />
+          <div className="h-3 w-1/2 rounded-sm bg-white/6 animate-pulse" />
         </div>
       </div>
 
       {/* Docked composer placeholder */}
       <div className="flex items-center gap-2 border-t border-neutral-800 p-3">
-        <div className="h-9 w-24 rounded-sm bg-white/[0.06] animate-pulse" />
-        <div className="h-9 flex-1 rounded-sm bg-white/[0.06] animate-pulse" />
+        <div className="h-9 w-24 rounded-sm bg-white/6 animate-pulse" />
+        <div className="h-9 flex-1 rounded-sm bg-white/6 animate-pulse" />
         <div className="h-9 w-28 rounded-sm bg-[#00F5FF22] animate-pulse" />
       </div>
     </div>

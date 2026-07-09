@@ -146,11 +146,11 @@ export function HermesKanbanStatus() {
       <form onSubmit={createTask} className="mt-4 grid gap-2 rounded-sm border p-3 lg:grid-cols-[1fr_1.5fr_auto]" style={{ borderColor: 'var(--color-border)', background: 'var(--surface-canvas)' }}>
         <label className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
           Hermes task title
-          <input value={title} onChange={(event) => setTitle(event.target.value)} className="mt-1 w-full rounded-sm border bg-transparent px-2 py-2 text-[12px] outline-none" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }} placeholder="Founder approved next task" />
+          <input value={title} onChange={(event) => setTitle(event.target.value)} className="mt-1 w-full rounded-sm border bg-transparent px-2 py-2 text-[12px] outline-hidden" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }} placeholder="Founder approved next task" />
         </label>
         <label className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
           Hermes task context
-          <input value={body} onChange={(event) => setBody(event.target.value)} className="mt-1 w-full rounded-sm border bg-transparent px-2 py-2 text-[12px] outline-none" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }} placeholder="Evidence, scope, handoff notes" />
+          <input value={body} onChange={(event) => setBody(event.target.value)} className="mt-1 w-full rounded-sm border bg-transparent px-2 py-2 text-[12px] outline-hidden" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }} placeholder="Evidence, scope, handoff notes" />
         </label>
         <button type="submit" disabled={submitting || !title.trim()} className="self-end rounded-sm border px-3 py-2 text-[11px] font-medium disabled:opacity-40" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}>
           Create Hermes task

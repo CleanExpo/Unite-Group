@@ -194,7 +194,7 @@ export function PiRouterPanel() {
             value={message}
             onChange={(event) => setMessage(event.target.value)}
             rows={7}
-            className="border-white/[0.08] bg-black/30 text-[#0A0A0A] placeholder:text-[#5f5f66]"
+            className="border-white/8 bg-black/30 text-[#0A0A0A] placeholder:text-[#5f5f66]"
             placeholder="Tell Pi what you want built, checked, researched, routed, or approved..."
           />
 
@@ -232,7 +232,7 @@ export function PiRouterPanel() {
                   className={`w-full rounded-sm border p-3 text-left transition ${
                     selected
                       ? 'border-cyan-300/40 bg-cyan-300/[0.07]'
-                      : 'border-white/[0.08] bg-white/[0.02] hover:border-white/[0.18] hover:bg-black/[0.05]'
+                      : 'border-white/8 bg-white/2 hover:border-white/18 hover:bg-black/5'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
@@ -248,7 +248,7 @@ export function PiRouterPanel() {
               )
             })}
             {queueItems.length === 0 && (
-              <div className="rounded-sm border border-dashed border-white/[0.12] bg-white/[0.02] p-4 text-sm text-[#5f5f66]">
+              <div className="rounded-sm border border-dashed border-white/12 bg-white/2 p-4 text-sm text-[#5f5f66]">
                 No queued Pi tasks yet. Route a command to create the first operational run.
               </div>
             )}
@@ -288,7 +288,7 @@ export function PiRouterPanel() {
 
               <ResultCard title="Next action">
                 <p className="text-sm leading-6 text-[#3f3f46]">{activeItem.contextPack.nextRecommendedAction}</p>
-                <div className="mt-4 rounded-sm border border-white/[0.08] bg-black/20 p-3 font-mono text-xs text-[#5f5f66]">
+                <div className="mt-4 rounded-sm border border-white/8 bg-black/20 p-3 font-mono text-xs text-[#5f5f66]">
                   {latestReceipt?.id ?? 'receipt pending'}
                 </div>
               </ResultCard>
@@ -302,7 +302,7 @@ export function PiRouterPanel() {
               <p className="text-sm leading-6 text-[#3f3f46]">{activeItem.contextPack.durableSummary}</p>
               <div className="grid gap-2 md:grid-cols-2">
                 {activeItem.contextPack.constraints.map((constraint) => (
-                  <div key={constraint} className="rounded-sm border border-white/[0.08] bg-white/[0.02] p-3 text-sm text-[#52525b]">
+                  <div key={constraint} className="rounded-sm border border-white/8 bg-white/2 p-3 text-sm text-[#52525b]">
                     {constraint}
                   </div>
                 ))}
@@ -341,12 +341,12 @@ export function PiRouterPanel() {
               <div className="rounded-sm border border-green-400/20 bg-green-500/10 p-3 text-xs leading-5 text-green-700/80">
                 {workflowState.verificationSummary}
               </div>
-              <div className="rounded-sm border border-cyan-300/20 bg-cyan-300/[0.06] p-3 text-sm leading-6 text-cyan-700/80">
+              <div className="rounded-sm border border-cyan-300/20 bg-cyan-300/6 p-3 text-sm leading-6 text-cyan-700/80">
                 {workflowState.nextAction}
               </div>
             </div>
           ) : (
-            <div className="rounded-sm border border-dashed border-white/[0.12] p-3 text-sm text-[#5f5f66]">
+            <div className="rounded-sm border border-dashed border-white/12 p-3 text-sm text-[#5f5f66]">
               Workflow evidence not loaded yet.
             </div>
           )}
@@ -379,7 +379,7 @@ export function PiRouterPanel() {
             rows={3}
             placeholder="Transition note, blocker, or completion summary..."
             disabled={!activeItem}
-            className="border-white/[0.08] bg-black/20"
+            className="border-white/8 bg-black/20"
           />
           <Textarea
             value={evidenceLink}
@@ -387,7 +387,7 @@ export function PiRouterPanel() {
             rows={2}
             placeholder="Evidence required for Complete, e.g. loop:3x-green or CI URL..."
             disabled={!activeItem}
-            className="border-white/[0.08] bg-black/20"
+            className="border-white/8 bg-black/20"
           />
 
           <div className="grid grid-cols-2 gap-2">
@@ -412,13 +412,13 @@ export function PiRouterPanel() {
             <CardDescription>Latest operational proof attached to the selected run.</CardDescription>
           </div>
           {latestReceipt ? (
-            <div className="rounded-sm border border-cyan-300/20 bg-cyan-300/[0.05] p-3">
+            <div className="rounded-sm border border-cyan-300/20 bg-cyan-300/5 p-3">
               <div className="font-mono text-xs text-cyan-700/80">{latestReceipt.id}</div>
               <div className="mt-2 text-sm text-[#3f3f46]">{latestReceipt.note ?? latestReceipt.type ?? 'Receipt recorded'}</div>
               {latestReceipt.evidenceLink && <div className="mt-2 break-all text-xs text-green-700">{latestReceipt.evidenceLink}</div>}
             </div>
           ) : (
-            <div className="rounded-sm border border-dashed border-white/[0.12] p-3 text-sm text-[#5f5f66]">No receipt selected yet.</div>
+            <div className="rounded-sm border border-dashed border-white/12 p-3 text-sm text-[#5f5f66]">No receipt selected yet.</div>
           )}
 
           {activeItem?.contextPack.evidenceLinks.map((link) => (
@@ -440,7 +440,7 @@ export function PiRouterPanel() {
 function Metric({ label, value, tone }: { label: string; value: number; tone: 'neutral' | 'warning' | 'info' }) {
   const toneClass = tone === 'warning' ? 'text-amber-700' : tone === 'info' ? 'text-sky-700' : 'text-[#3f3f46]'
   return (
-    <div className="rounded-sm border border-white/[0.08] bg-white/[0.02] p-3">
+    <div className="rounded-sm border border-white/8 bg-white/2 p-3">
       <div className="text-xs text-[#5f5f66]">{label}</div>
       <div className={`mt-1 text-2xl font-semibold tabular-nums ${toneClass}`}>{value}</div>
     </div>
@@ -458,7 +458,7 @@ function ResultCard({ title, children }: { title: string; children: React.ReactN
 
 function ResultRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-white/[0.06] pb-2 text-sm last:border-0">
+    <div className="flex items-start justify-between gap-4 border-b border-white/6 pb-2 text-sm last:border-0">
       <span className="text-[#5f5f66]">{label}</span>
       <span className="text-right text-[#3f3f46]">{value}</span>
     </div>
@@ -467,7 +467,7 @@ function ResultRow({ label, value }: { label: string; value: string }) {
 
 function InfoTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-sm border border-white/[0.08] bg-white/[0.025] p-3">
+    <div className="rounded-sm border border-white/8 bg-white/2.5 p-3">
       <div className="text-xs uppercase tracking-[0.16em] text-[#5f5f66]">{label}</div>
       <div className="mt-2 line-clamp-2 text-sm text-[#3f3f46]">{value}</div>
     </div>
@@ -484,7 +484,7 @@ function StatusPill({ status, label }: { status: string; label?: string }) {
           ? 'border-sky-300/30 bg-sky-400/10 text-sky-700'
           : status.includes('completed')
             ? 'border-green-300/30 bg-green-400/10 text-green-700'
-            : 'border-white/[0.12] bg-white/[0.04] text-[#52525b]'
+            : 'border-white/12 bg-white/4 text-[#52525b]'
 
   return (
     <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.16em] ${color}`}>

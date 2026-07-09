@@ -22,10 +22,10 @@ export default function Card({
   ...props
 }: CardProps) {
   const variantClasses = {
-    default: 'bg-white/[0.02] border-[0.5px] border-white/[0.06] rounded-sm',
-    bordered: 'bg-white/[0.02] border border-white/[0.1] rounded-sm',
-    elevated: 'bg-white/[0.03] border-[0.5px] border-white/[0.08] rounded-sm',
-    flat: 'bg-white/[0.01] rounded-sm',
+    default: 'bg-white/2 border-[0.5px] border-white/6 rounded-sm',
+    bordered: 'bg-white/2 border border-white/10 rounded-sm',
+    elevated: 'bg-white/3 border-[0.5px] border-white/8 rounded-sm',
+    flat: 'bg-white/1 rounded-sm',
   };
 
   const paddingClasses = {
@@ -41,7 +41,7 @@ export default function Card({
       {...props}
     >
       {header && (
-        <div className={`border-b border-white/[0.06] ${paddingClasses[padding]} pb-4`}>
+        <div className={`border-b border-white/6 ${paddingClasses[padding]} pb-4`}>
           {header}
         </div>
       )}
@@ -51,7 +51,7 @@ export default function Card({
       </div>
 
       {footer && (
-        <div className={`border-t border-white/[0.06] ${paddingClasses[padding]} pt-4`}>
+        <div className={`border-t border-white/6 ${paddingClasses[padding]} pt-4`}>
           {footer}
         </div>
       )}

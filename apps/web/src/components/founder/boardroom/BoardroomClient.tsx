@@ -98,12 +98,12 @@ export function BoardroomClient() {
             <div className="space-y-3 animate-pulse" aria-label="Loading board meetings">
               {[...Array(3)].map((_, i) => (
                 <div key={i} className="rounded-sm border px-4 py-3 flex items-start gap-3" style={{ borderColor: 'var(--color-border)', background: 'var(--surface-card)', borderLeft: '3px solid var(--surface-elevated)' }}>
-                  <div className="w-3 h-3 rounded-sm mt-0.5 flex-shrink-0" style={{ background: 'var(--surface-elevated)' }} />
+                  <div className="w-3 h-3 rounded-sm mt-0.5 shrink-0" style={{ background: 'var(--surface-elevated)' }} />
                   <div className="flex-1 space-y-2">
                     <div className="h-3 rounded-sm w-48" style={{ background: 'var(--surface-elevated)' }} />
                     <div className="h-2.5 rounded-sm w-72" style={{ background: 'var(--surface-elevated)' }} />
                   </div>
-                  <div className="h-5 w-16 rounded-sm flex-shrink-0" style={{ background: 'var(--surface-elevated)' }} />
+                  <div className="h-5 w-16 rounded-sm shrink-0" style={{ background: 'var(--surface-elevated)' }} />
                 </div>
               ))}
             </div>

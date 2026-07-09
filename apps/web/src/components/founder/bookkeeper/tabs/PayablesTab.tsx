@@ -9,7 +9,7 @@ import type { XeroInvoice } from '@/lib/integrations/xero/types'
 
 function SkeletonRow() {
   return (
-    <tr className="border-b border-[var(--color-border)]">
+    <tr className="border-b border-border">
       {Array.from({ length: 6 }).map((_, i) => (
         <td key={i} className="px-3 py-3">
           <div className="h-3 bg-white/5 rounded-sm animate-pulse" style={{ width: `${50 + i * 12}px` }} />
@@ -119,7 +119,7 @@ export function PayablesTab() {
         <motion.div
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-[var(--surface-card)] border border-[var(--color-border)] rounded-sm p-4 flex items-center justify-between"
+          className="bg-(--surface-card) border border-border rounded-sm p-4 flex items-center justify-between"
         >
           <span className="text-[11px] uppercase tracking-wide" style={{ color: 'var(--color-text-disabled)' }}>
             Total Payable
@@ -131,17 +131,17 @@ export function PayablesTab() {
       )}
 
       {error && (
-        <div className="border border-[var(--color-danger)]/20 rounded-sm p-4 text-[13px]" style={{ color: 'var(--color-danger)' }}>
+        <div className="border border-danger/20 rounded-sm p-4 text-[13px]" style={{ color: 'var(--color-danger)' }}>
           {error}
         </div>
       )}
 
       {/* Table */}
       {!error && (
-        <div className="overflow-x-auto border border-[var(--color-border)] rounded-sm">
+        <div className="overflow-x-auto border border-border rounded-sm">
           <table className="w-full text-[12px]">
             <thead>
-              <tr className="border-b border-[var(--color-border)]" style={{ backgroundColor: 'var(--surface-card)' }}>
+              <tr className="border-b border-border" style={{ backgroundColor: 'var(--surface-card)' }}>
                 <th className="text-left px-3 py-2.5 font-medium" style={{ color: 'var(--color-text-disabled)' }}>Supplier</th>
                 <th className="text-left px-3 py-2.5 font-medium" style={{ color: 'var(--color-text-disabled)' }}>Bill #</th>
                 <th className="text-right px-3 py-2.5 font-medium" style={{ color: 'var(--color-text-disabled)' }}>Amount</th>
@@ -167,7 +167,7 @@ export function PayablesTab() {
                     <motion.tr
                       key={inv.InvoiceID}
                       layout
-                      className="border-b border-[var(--color-border)] hover:bg-black/[0.05] transition-colors"
+                      className="border-b border-border hover:bg-black/5 transition-colors"
                     >
                       <td className="px-3 py-2.5" style={{ color: 'var(--color-text-primary)' }}>
                         {inv.Contact?.Name ?? '--'}

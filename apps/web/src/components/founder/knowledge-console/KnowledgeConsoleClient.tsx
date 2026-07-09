@@ -457,7 +457,7 @@ export function KnowledgeConsoleClient() {
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder="Search notes"
-                className="h-9 min-w-0 flex-1 bg-transparent text-[12px] outline-none"
+                className="h-9 min-w-0 flex-1 bg-transparent text-[12px] outline-hidden"
                 style={{ color: 'var(--color-text-primary)' }}
               />
             </div>

@@ -54,11 +54,11 @@ export function ThreadViewer({ threadId, account, onArchive, onDelete, onClose }
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06] flex-shrink-0">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/6 shrink-0">
         {thread && (
           <h2 className="text-sm font-medium text-[#0A0A0A] truncate flex-1 mr-4">{thread.subject}</h2>
         )}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => setShowReply(v => !v)}
             className="text-xs border border-white/20 px-3 py-1 rounded-sm text-[#52525b] hover:text-[#0A0A0A] hover:border-white/40 transition-colors"
@@ -104,7 +104,7 @@ export function ThreadViewer({ threadId, account, onArchive, onDelete, onClose }
         )}
 
         {thread && (
-          <div className="divide-y divide-white/[0.04]">
+          <div className="divide-y divide-white/4">
             {thread.messages.map((msg, i) => (
               <div key={msg.id} className="p-4">
                 {/* Message meta */}
@@ -113,19 +113,19 @@ export function ThreadViewer({ threadId, account, onArchive, onDelete, onClose }
                     <p className="text-xs text-[#3f3f46] font-medium">{msg.from}</p>
                     <p className="text-[10px] text-[#5f5f66] mt-0.5">To: {msg.to}</p>
                   </div>
-                  <span className="text-[10px] text-[#5f5f66] flex-shrink-0">{msg.date}</span>
+                  <span className="text-[10px] text-[#5f5f66] shrink-0">{msg.date}</span>
                 </div>
                 {/* Message body — DOMPurify sanitises before iframe injection; sandbox="" blocks scripts */}
                 {msg.bodyHtml ? (
                   <iframe
                     srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:sans-serif;font-size:14px;color:#ccc;background:#fff7ec;margin:0;padding:12px}a{color:#16a34a}</style></head><body>${DOMPurify.sanitize(msg.bodyHtml, { FORCE_BODY: true })}</body></html>`}
                     sandbox=""
-                    className="w-full min-h-[200px] border-0 rounded-sm bg-[var(--surface-card)]"
+                    className="w-full min-h-[200px] border-0 rounded-sm bg-(--surface-card)"
                     style={{ height: i === thread.messages.length - 1 ? '400px' : '200px' }}
                     title={`Message ${msg.id}`}
                   />
                 ) : (
-                  <pre className="text-xs text-[#52525b] whitespace-pre-wrap break-words">
+                  <pre className="text-xs text-[#52525b] whitespace-pre-wrap wrap-break-word">
                     {msg.bodyText ?? '(no content)'}
                   </pre>
                 )}
@@ -147,7 +147,7 @@ export function ThreadViewer({ threadId, account, onArchive, onDelete, onClose }
 
       {/* Reply composer */}
       {showReply && lastMessage && thread && (
-        <div className="flex-shrink-0">
+        <div className="shrink-0">
           <ReplyComposer
             threadId={threadId}
             account={account}

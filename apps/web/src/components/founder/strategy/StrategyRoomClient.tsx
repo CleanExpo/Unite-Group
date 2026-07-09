@@ -175,7 +175,7 @@ export function StrategyRoomClient() {
         <select
           value={business}
           onChange={e => setBusiness(e.target.value)}
-          className="w-full h-9 px-3 rounded-sm border bg-transparent text-[13px] outline-none"
+          className="w-full h-9 px-3 rounded-sm border bg-transparent text-[13px] outline-hidden"
           style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
         >
           <option value="">All businesses</option>
@@ -230,7 +230,7 @@ export function StrategyRoomClient() {
           onChange={e => setPrompt(e.target.value)}
           placeholder="What strategic decision are you thinking through?"
           rows={6}
-          className="w-full resize-none rounded-sm border bg-transparent px-3 py-2 text-[13px] outline-none"
+          className="w-full resize-none rounded-sm border bg-transparent px-3 py-2 text-[13px] outline-hidden"
           style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
         />
       </div>

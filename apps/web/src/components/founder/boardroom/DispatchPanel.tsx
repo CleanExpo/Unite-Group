@@ -147,7 +147,7 @@ export function DispatchPanel() {
               background: 'var(--surface-card)',
             }}
           >
-            <span className="w-1.5 h-1.5 rounded-sm flex-shrink-0" style={{ background: b.color }} />
+            <span className="w-1.5 h-1.5 rounded-sm shrink-0" style={{ background: b.color }} />
             {b.name}
           </button>
         ))}
@@ -183,7 +183,7 @@ export function DispatchPanel() {
             value={form.title}
             onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
             placeholder="Task title *"
-            className="w-full h-8 px-3 rounded-sm border text-[12px] outline-none"
+            className="w-full h-8 px-3 rounded-sm border text-[12px] outline-hidden"
             style={{ borderColor: 'var(--color-border)', background: 'var(--surface-canvas)', color: 'var(--color-text-primary)' }}
           />
 
@@ -191,7 +191,7 @@ export function DispatchPanel() {
             <select
               value={form.businessKey}
               onChange={e => setForm(f => ({ ...f, businessKey: e.target.value as BusinessKey }))}
-              className="h-8 px-3 rounded-sm border text-[12px] outline-none bg-transparent"
+              className="h-8 px-3 rounded-sm border text-[12px] outline-hidden bg-transparent"
               style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
             >
               {ownedBusinesses.map(b => <option key={b.key} value={b.key}>{b.name}</option>)}
@@ -199,7 +199,7 @@ export function DispatchPanel() {
             <select
               value={form.type}
               onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
-              className="h-8 px-3 rounded-sm border text-[12px] outline-none bg-transparent"
+              className="h-8 px-3 rounded-sm border text-[12px] outline-hidden bg-transparent"
               style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
             >
               {TYPE_OPTIONS.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
@@ -207,7 +207,7 @@ export function DispatchPanel() {
             <select
               value={form.priority}
               onChange={e => setForm(f => ({ ...f, priority: parseInt(e.target.value) }))}
-              className="h-8 px-3 rounded-sm border text-[12px] outline-none bg-transparent"
+              className="h-8 px-3 rounded-sm border text-[12px] outline-hidden bg-transparent"
               style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
             >
               {PRIORITY_OPTIONS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
@@ -219,7 +219,7 @@ export function DispatchPanel() {
               value={form.deadline}
               onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))}
               type="date"
-              className="h-8 px-3 rounded-sm border text-[12px] outline-none bg-transparent"
+              className="h-8 px-3 rounded-sm border text-[12px] outline-hidden bg-transparent"
               style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
             />
             <span className="text-[11px] flex items-center" style={{ color: 'var(--color-text-muted)' }}>
@@ -232,7 +232,7 @@ export function DispatchPanel() {
             onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
             placeholder="Context, acceptance criteria, links… (optional)"
             rows={3}
-            className="w-full resize-none rounded-sm border px-3 py-2 text-[12px] outline-none"
+            className="w-full resize-none rounded-sm border px-3 py-2 text-[12px] outline-hidden"
             style={{ borderColor: 'var(--color-border)', background: 'var(--surface-canvas)', color: 'var(--color-text-primary)' }}
           />
 
@@ -273,7 +273,7 @@ export function DispatchPanel() {
                   <div className="h-2.5 rounded-sm w-24" style={{ background: 'var(--surface-elevated)' }} />
                 </div>
               </div>
-              <div className="h-6 w-20 rounded-sm flex-shrink-0" style={{ background: 'var(--surface-elevated)' }} />
+              <div className="h-6 w-20 rounded-sm shrink-0" style={{ background: 'var(--surface-elevated)' }} />
             </div>
           ))}
         </div>
@@ -309,7 +309,7 @@ export function DispatchPanel() {
                 </div>
                 {d.description && <p className="text-[11px] mt-1 line-clamp-1" style={{ color: 'var(--color-text-muted)' }}>{d.description}</p>}
               </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex items-center gap-2 shrink-0">
                 <span className="text-[10px] px-1.5 py-0.5 rounded-sm border" style={{ color: statusColor, borderColor: `${statusColor}40` }}>{d.status.replace('_', ' ')}</span>
                 {d.linear_issue_url && (
                   <a

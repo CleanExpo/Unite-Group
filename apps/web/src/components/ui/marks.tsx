@@ -12,7 +12,7 @@
 //
 // Usage:
 //   import { HexMark, ApproveMark } from '@/components/ui/marks'
-//   <HexMark className="text-[--red-bright]" />
+//   <HexMark className="text-(--red-bright)" />
 //   <ApproveMark size={20} aria-label="Approve" />
 
 import * as React from 'react'
