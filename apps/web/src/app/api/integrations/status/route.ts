@@ -65,7 +65,7 @@ export async function GET() {
       .eq('founder_id', user.id),
     supabase
       .from('social_channels')
-      .select('platform, is_connected, last_post_at, updated_at')
+      .select('platform, is_connected, updated_at')
       .eq('founder_id', user.id),
   ])
 
@@ -75,7 +75,7 @@ export async function GET() {
   }
 
   const vaultRows = (vaultRes.data ?? []) as Array<{ service: string; created_at: string; updated_at: string; last_accessed_at: string | null }>
-  const socialRows = (socialRes.data ?? []) as unknown as Array<{ platform: string; is_connected: boolean; last_post_at: string | null; updated_at: string }>
+  const socialRows = (socialRes.data ?? []) as Array<{ platform: string; is_connected: boolean; updated_at: string }>
 
   const providers = PROVIDERS.map((p) => {
     const configured = p.envKeys.every((k) => !!process.env[k]?.trim())
@@ -93,7 +93,7 @@ export async function GET() {
       const rows = socialRows.filter((r) => r.platform === p.socialPlatform && r.is_connected)
       tokenCount = rows.length
       connected = rows.length > 0
-      lastSync = latest(rows.map((r) => r.last_post_at ?? r.updated_at))
+      lastSync = latest(rows.map((r) => r.updated_at))
     } else {
       // env source: env-key presence IS the connection (no per-founder token)
       connected = configured
