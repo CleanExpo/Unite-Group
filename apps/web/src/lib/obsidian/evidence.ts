@@ -149,6 +149,18 @@ interface EvidenceLedgerClient {
   }
 }
 
+const LEDGER_MIRROR_TIMEOUT_MS = 8_000
+
+/** Reject after ms so a hung network call can't stall the caller indefinitely. */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`evidence_ledger mirror timed out after ${ms}ms`)), ms).unref?.(),
+    ),
+  ])
+}
+
 /** Insert one row into `evidence_ledger`. Throws on failure — callers decide how to handle it. */
 export async function insertEvidenceLedgerRow(
   row: EvidenceLedgerInsert,
@@ -227,9 +239,12 @@ export async function writeEvidence(
   const logLine = `- **Command Centre evidence** \`${input.project}\` ${fm.type} → \`${relativePath}\` (${now.toISOString()})\n`
   await appendFile(path.join(wikiPath, 'log.md'), logLine, { encoding: 'utf-8' })
 
-  // --- Best-effort cloud mirror (fire-and-forget; never throws) -----------
+  // --- Best-effort cloud mirror (awaited-but-swallowed; never throws) -----
+  // Awaiting is deliberate: a detached promise can be killed on lambda freeze,
+  // losing the row. Bounded so a hung Supabase can't stall the caller's POST
+  // beyond LEDGER_MIRROR_TIMEOUT_MS — on timeout the row is dropped and logged.
   try {
-    await insertEvidenceLedgerRow(
+    await withTimeout(insertEvidenceLedgerRow(
       {
         kind: fm.type,
         summary: fm.title,
@@ -237,7 +252,7 @@ export async function writeEvidence(
         evidence_path: relativePath,
       },
       ledgerClient,
-    )
+    ), LEDGER_MIRROR_TIMEOUT_MS)
   } catch (err) {
     console.error('writeEvidence: evidence_ledger cloud mirror failed (best-effort, ignored)', err)
   }

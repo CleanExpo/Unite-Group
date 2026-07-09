@@ -18,6 +18,10 @@ afterEach(async () => {
   await rm(tempWiki, { recursive: true, force: true })
 })
 
+// Shared no-op ledger client: keeps pre-existing tests from exercising
+// createServiceClient() (no Supabase env here) and spamming caught errors.
+const noopLedger = { from: () => ({ insert: async () => ({ error: null }) }) }
+
 describe('resolveWikiPath', () => {
   it('uses WIKI_PATH when set', () => {
     process.env.WIKI_PATH = tempWiki
@@ -39,7 +43,7 @@ describe('writeEvidence', () => {
       frontmatter: { title: 'Starter validation', tags: ['command-center', 'evidence'], confidence: 'high' },
       body: 'All gates green.',
       sources: ['D:/Unite-Hub/package.json'],
-    })
+    }, noopLedger)
 
     expect(result.notePath).toContain(path.join('raw', 'command-centre', 'Unite-Hub'))
     expect(result.suffixed).toBe(false)
@@ -62,11 +66,11 @@ describe('writeEvidence', () => {
     const first = await writeEvidence({
       project: 'Synthex', taskId: 'CC-DUP', kind: 'summary',
       frontmatter: { title: 'First' }, body: 'one',
-    })
+    }, noopLedger)
     const second = await writeEvidence({
       project: 'Synthex', taskId: 'CC-DUP', kind: 'summary',
       frontmatter: { title: 'Second' }, body: 'two',
-    })
+    }, noopLedger)
 
     expect(second.suffixed).toBe(true)
     expect(second.notePath).not.toBe(first.notePath)
