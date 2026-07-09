@@ -107,8 +107,17 @@ journal success on a race win.
     other decision unsafe); route + task-evidence builder populate them: **done**. Founder-confirmed
     2026-07-09 (Q1 conversion semantics = `crm_contacts` client_contact / `converted_client_id` null;
     Q2 wire both signals). Still inert in prod: `CRM_AUTO_EXECUTE` unset ⇒ `kill_switch_off`.
-  - Checklist step 2 — persist admitted approvals as `operator_jobs` (CRM lane): **not started** (needs
-    the production operator_jobs write client + founder-insert RLS check on a Supabase database branch).
+  - Checklist step 2 — persist processed approvals as `operator_jobs` (CRM lane): **done**. Every processed
+    approval now writes one founder-scoped `operator_jobs` row + a `created` `operator_event` via the session
+    client (`persistCrmMissionControlJob`), authoritative (throws ⇒ 500, no false-green) and deduped on the
+    approval id. DB gate verified read-only against prod (`lksfwktwtmyznckodsau`): both tables exist,
+    `operator_jobs_all` = `FOR ALL (founder_id = auth.uid())`, `operator_events_insert` requires a
+    founder-owned parent — a founder-authenticated insert is allowed; no prod write or migration needed.
+    **SAFETY (poller decoupling):** the Mac-side autopilot-runner poller (`apps/autopilot-runner`) claims
+    `operator_jobs` with `status IN (planned, queued)` and no `task_type` pre-filter, so CRM rows are always
+    persisted `status:'blocked'` (poller-inert); the founder-facing state lives in
+    `metadata.missionControlState`. CRM execution stays the route's own synchronous, Board-gated concern —
+    never the shared poller. Behaviour-neutral (no CRM mutation, no dispatch).
 
 ## 7. Success criteria
 
