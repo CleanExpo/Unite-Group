@@ -112,13 +112,23 @@
   max-width: 640px;
 }
 
-/* ── Glass section head (canvas .sec-h) ── */
+/* ── Glass section head (canvas .sec-h) ──
+   During the two-tone slice these heads sit directly on the retained LIGHT
+   candy deck, so they carry their own OPAQUE dark ground — near-white --ink
+   on the bare deck measures ~1.09:1 (invisible), and a translucent glass wash
+   would grey out over the light deck and fail contrast too. Slice 2 migrates
+   the deck itself; this padding/background can then merge into the panel. */
 .glassSectionHead {
   display: flex;
   align-items: baseline;
   gap: 10px;
   margin: 0 0 8px;
   flex-wrap: wrap;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  border: 1px solid var(--glass-brd);
+  box-shadow: var(--sh-1);
 }
 .glassSectionHead h2 {
   font-size: 16px;
@@ -126,8 +136,10 @@
   color: var(--ink);
   margin: 0;
 }
+/* --ink-dim (not --ink-hush): 12px/10px mono on --surface-2 needs >= 4.5:1;
+   --ink-dim measures ~7.2:1, --ink-hush only ~3.6:1. */
 .glassSub {
-  color: var(--ink-hush);
+  color: var(--ink-dim);
   font-family: var(--font-jbmono), ui-monospace, monospace;
   font-size: 12px;
 }
@@ -139,7 +151,7 @@
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--ink-hush);
+  color: var(--ink-dim);
   border: 1px solid var(--glass-brd);
   border-radius: 3px;
   padding: 2px 6px;

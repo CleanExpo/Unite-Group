@@ -33,6 +33,10 @@ describe('greetingFor', () => {
   it('returns Evening from 18:00 AEST', () => {
     expect(greetingFor(() => new Date('2026-07-08T10:00:00.000Z'))).toBe('Evening') // 20:00 AEST
   })
+  it('returns Morning in the midnight hour (h24 formats 00:xx as "24" → false Evening)', () => {
+    expect(greetingFor(() => new Date('2026-07-08T14:00:00.000Z'))).toBe('Morning') // 00:00 AEST
+    expect(greetingFor(() => new Date('2026-07-08T14:30:00.000Z'))).toBe('Morning') // 00:30 AEST
+  })
 })
 
 describe('HeroBand', () => {

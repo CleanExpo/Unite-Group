@@ -56,4 +56,15 @@ describe('command-centre shell slice 1 — reshell regression gate', () => {
     expect(supportsGuards.length).toBeGreaterThan(0)
     expect(backdropDecls.length).toBe(supportsGuards.length)
   })
+
+  it('gives the section heads their own opaque dark ground (near-white --ink on the light deck is ~1.09:1)', () => {
+    const headBlock = shellCss.match(/\.glassSectionHead \{[^}]*\}/)?.[0] ?? ''
+    expect(headBlock).toContain('background: var(--surface-2)')
+    // Small mono taglines use --ink-dim (~7.2:1 on --surface-2), never
+    // --ink-hush (~3.6:1, below AA for 12px/10px text).
+    const subBlock = shellCss.match(/\.glassSub \{[^}]*\}/)?.[0] ?? ''
+    const srcBlock = shellCss.match(/\.glassSrc \{[^}]*\}/)?.[0] ?? ''
+    expect(subBlock).toContain('color: var(--ink-dim)')
+    expect(srcBlock).toContain('color: var(--ink-dim)')
+  })
 })

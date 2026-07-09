@@ -13,11 +13,13 @@ import shell from './shell.module.css'
  *  rest of the deck's Australia/Brisbane convention — see LiveClock,
  *  EvidenceStreamTile). */
 export function greetingFor(now: () => Date = () => new Date()): 'Morning' | 'Afternoon' | 'Evening' {
+  // hourCycle 'h23' is load-bearing: bare hour12:false resolves en-AU to h24,
+  // where midnight formats as "24" and 00:xx would greet "Evening".
   const hour = Number(
     new Intl.DateTimeFormat('en-AU', {
       timeZone: 'Australia/Brisbane',
       hour: 'numeric',
-      hour12: false,
+      hourCycle: 'h23',
     }).format(now()),
   )
   if (hour < 12) return 'Morning'
