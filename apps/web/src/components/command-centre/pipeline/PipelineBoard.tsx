@@ -137,7 +137,9 @@ export function PipelineBoard({
             <span className={styles.boardEmptyBody}>
               {source === 'loading'
                 ? 'Loading pipeline…'
-                : 'The pipeline is connected but holds no open opportunities. New deals appear here as they are created.'}
+                : source === 'degraded'
+                  ? 'Pipeline source degraded — opportunity data unavailable.'
+                  : 'The pipeline is connected but holds no open opportunities. New deals appear here as they are created.'}
             </span>
           </div>
         ) : (

@@ -233,7 +233,11 @@ export default async function CommandDeckPage() {
       <div className={`${shell.canvasScope} ${shell.glassSectionHead}`} id="pipeline">
         <h2>Pipeline</h2>
         <span className={shell.glassSub}>read-only · stage change is approval-gated</span>
-        <span className={shell.glassSrc}>crm_opportunities · forecast only</span>
+        <span className={shell.glassSrc}>
+          crm_opportunities · forecast only
+          {pipeline.excludedCount > 0 &&
+            ` · ${pipeline.opportunities.length} open · ${pipeline.excludedCount} lost/parked excluded`}
+        </span>
       </div>
 
       <section
