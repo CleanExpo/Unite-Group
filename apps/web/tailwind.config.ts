@@ -57,6 +57,22 @@ const config = {
         success: {
           DEFAULT: 'var(--color-success)',
         },
+        // Editorial text/surface tokens (globals.css vars; light + dark blocks).
+        // Makes text-color-text-*, bg-surface-*, border-surface-* utilities real (UNI-2334).
+        'color-text': {
+          primary: 'var(--color-text-primary)',
+          secondary: 'var(--color-text-secondary)',
+          muted: 'var(--color-text-muted)',
+          disabled: 'var(--color-text-disabled)',
+        },
+        surface: {
+          canvas: 'var(--surface-canvas)',
+          sidebar: 'var(--surface-sidebar)',
+          card: 'var(--surface-card)',
+          elevated: 'var(--surface-elevated)',
+          overlay: 'var(--surface-overlay)',
+          selected: 'var(--surface-selected)',
+        },
         // Unite-Hub Brand Colors (from logo)
         'unite': {
           'teal': '#3b9ba8',      // Primary teal from logo circle
