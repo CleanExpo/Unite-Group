@@ -361,6 +361,76 @@ describe('evaluateCrmApprovalLifecycle', () => {
       expect(gated).toEqual({ safe: false, tier: 'L1', reason: 'decision_not_executable' });
     }
   });
+
+  it('UNI-2234 step 2b: an approved lead_conversion with passing L1 signals and the kill switch on is safe to auto-execute', () => {
+    process.env.CRM_AUTO_EXECUTE = '1';
+    const result = evaluateCrmApprovalLifecycle({
+      ...baseInput,
+      status: 'approved',
+      approvedBy: 'Phill',
+      approvalReference: 'BOARD-2026-05-23-CRM-1',
+      signals: { confidence: 0.9, hasExistingClientLink: false },
+    });
+
+    expect(result.decision).toBe('may_execute');
+    expect(result.safeToAutoExecute).toBe(true);
+    expect(result.autoExecuteReason).toBe('l1_confidence_and_no_link_ok');
+  });
+
+  it('UNI-2234 step 2b: an approved lead_conversion with confidence below threshold is not safe', () => {
+    process.env.CRM_AUTO_EXECUTE = '1';
+    const result = evaluateCrmApprovalLifecycle({
+      ...baseInput,
+      status: 'approved',
+      approvedBy: 'Phill',
+      approvalReference: 'BOARD-2026-05-23-CRM-1',
+      signals: { confidence: 0.5, hasExistingClientLink: false },
+    });
+
+    expect(result.decision).toBe('may_execute');
+    expect(result.safeToAutoExecute).toBe(false);
+    expect(result.autoExecuteReason).toBe('l1_confidence_below_threshold');
+  });
+
+  it('UNI-2234 step 2b: an approved lead_conversion already linked to a client is not safe', () => {
+    process.env.CRM_AUTO_EXECUTE = '1';
+    const result = evaluateCrmApprovalLifecycle({
+      ...baseInput,
+      status: 'approved',
+      approvedBy: 'Phill',
+      approvalReference: 'BOARD-2026-05-23-CRM-1',
+      signals: { confidence: 0.95, hasExistingClientLink: true },
+    });
+
+    expect(result.safeToAutoExecute).toBe(false);
+    expect(result.autoExecuteReason).toBe('l1_existing_client_link');
+  });
+
+  it('UNI-2234 step 2b: passing L1 signals stay inert while the kill switch is off (prod default)', () => {
+    delete process.env.CRM_AUTO_EXECUTE;
+    const result = evaluateCrmApprovalLifecycle({
+      ...baseInput,
+      status: 'approved',
+      approvedBy: 'Phill',
+      approvalReference: 'BOARD-2026-05-23-CRM-1',
+      signals: { confidence: 0.9, hasExistingClientLink: false },
+    });
+
+    expect(result.safeToAutoExecute).toBe(false);
+    expect(result.autoExecuteReason).toBe('kill_switch_off');
+  });
+
+  it('UNI-2234 step 2b: signals on a non-executable (requested) decision never admit, even with the kill switch on', () => {
+    process.env.CRM_AUTO_EXECUTE = '1';
+    const result = evaluateCrmApprovalLifecycle({
+      ...baseInput,
+      status: 'requested',
+      signals: { confidence: 0.9, hasExistingClientLink: false },
+    });
+
+    expect(result.decision).toBe('await_approval');
+    expect(result.safeToAutoExecute).toBe(false);
+  });
 });
 
 describe('buildCrmApprovalLifecycleInputFromTaskEvidence', () => {
@@ -541,5 +611,49 @@ describe('buildCrmApprovalLifecycleInputFromTaskEvidence', () => {
     expect(input.rejectionReason).toBe('Rejection reason recorded in task metadata.');
     expect(input.rejectionReason).not.toContain(sensitiveBoardId);
     expect(input.rejectionReason).not.toContain(sensitiveApprovalReference);
+  });
+
+  it('UNI-2234 step 2b: extracts numeric confidence and boolean hasExistingClientLink from task metadata into signals', () => {
+    process.env.CRM_AUTO_EXECUTE = '1';
+    const input = buildCrmApprovalLifecycleInputFromTaskEvidence({
+      ...baseTaskEvidence,
+      metadata: {
+        subjectType: 'lead_conversion',
+        approvalStatus: 'approved',
+        approvedBy: 'Phill',
+        approvalReference: 'BOARD-2026-05-23-CRM-12',
+        confidence: 0.9,
+        hasExistingClientLink: false,
+      },
+    });
+
+    expect(input.signals).toEqual({ confidence: 0.9, hasExistingClientLink: false });
+
+    const result = evaluateCrmApprovalLifecycle(input);
+    expect(result.decision).toBe('may_execute');
+    expect(result.safeToAutoExecute).toBe(true);
+    expect(result.autoExecuteReason).toBe('l1_confidence_and_no_link_ok');
+  });
+
+  it('UNI-2234 step 2b: omits signals when task metadata has no confidence or hasExistingClientLink fields', () => {
+    const input = buildCrmApprovalLifecycleInputFromTaskEvidence({
+      ...baseTaskEvidence,
+      metadata: { subjectType: 'lead_conversion' },
+    });
+
+    expect(input.signals).toBeUndefined();
+  });
+
+  it('UNI-2234 step 2b: ignores wrong-typed signal metadata rather than guessing', () => {
+    const input = buildCrmApprovalLifecycleInputFromTaskEvidence({
+      ...baseTaskEvidence,
+      metadata: {
+        subjectType: 'lead_conversion',
+        confidence: 'high',
+        hasExistingClientLink: 'no',
+      },
+    });
+
+    expect(input.signals).toBeUndefined();
   });
 });

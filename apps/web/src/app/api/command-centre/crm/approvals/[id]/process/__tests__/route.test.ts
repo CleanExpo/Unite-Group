@@ -93,4 +93,25 @@ describe('POST /api/command-centre/crm/approvals/[id]/process', () => {
     expect(json.execution).toBeNull()
     delete process.env.CRM_DISPATCH_ARMED
   })
+
+  it('UNI-2234 step 2b: admits an approved lead_conversion with passing L1 signals when the kill switch is on (dispatch still off)', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    process.env.CRM_AUTO_EXECUTE = '1'
+    delete process.env.CRM_DISPATCH_ARMED
+    const res = await POST(req({ ...approvedLead, confidence: 0.9, hasExistingClientLink: false }), params())
+    const json = await res.json()
+    expect(json.admitted).toBe(true)
+    expect(json.state).toBe('queued')
+    expect(json.dispatchEnabled).toBe(false)
+    expect(json.execution).toBeNull()
+  })
+
+  it('UNI-2234 step 2b: an approved lead_conversion with below-threshold confidence stays needs-review even with the kill switch on', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    process.env.CRM_AUTO_EXECUTE = '1'
+    const res = await POST(req({ ...approvedLead, confidence: 0.4, hasExistingClientLink: false }), params())
+    const json = await res.json()
+    expect(json.admitted).toBe(false)
+    expect(json.state).toBe('needs_review')
+  })
 })
