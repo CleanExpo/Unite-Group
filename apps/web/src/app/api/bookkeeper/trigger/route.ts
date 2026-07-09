@@ -13,6 +13,7 @@ import {
 } from '@/lib/bookkeeper/orchestrator'
 import { captureApiError , sanitiseError } from '@/lib/error-reporting'
 import { triggerMacasAdvisory } from '@/lib/advisory/auto-trigger'
+import { prepareBookkeeperRun } from '@/lib/bookkeeper/run-control'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300 // 5 min — Vercel Pro limit
@@ -37,6 +38,19 @@ export async function POST(req: NextRequest) {
     }
 
   try {
+        const runControl = await prepareBookkeeperRun(user.id)
+        if (runControl.activeRun) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'Bookkeeper run already in progress',
+              activeRunId: runControl.activeRun.id,
+              activeRunStartedAt: runControl.activeRun.startedAt,
+            },
+            { status: 409 },
+          )
+        }
+
         if (businessKey) {
                 // --- Single-business mode ---
           console.log(`[Bookkeeper] Manual trigger by ${user.id} for business: ${businessKey}`)
@@ -68,7 +82,7 @@ export async function POST(req: NextRequest) {
           }
 
           return NextResponse.json({
-                    success: result.status !== 'failed',
+                    success: result.status === 'completed',
                     mode: 'single',
                     businessKey,
                     runId: result.runId,
@@ -80,6 +94,7 @@ export async function POST(req: NextRequest) {
                     gstPaidCents: result.gstPaidCents,
                     netGstCents: result.netGstCents,
                     durationMs,
+                    recoveredStaleRunIds: runControl.recoveredStaleRunIds,
                     businessResults: result.businessResults.map((b) => ({
                                 businessKey: b.businessKey,
                                 businessName: b.businessName,
@@ -93,6 +108,8 @@ export async function POST(req: NextRequest) {
                                 statementLinesFetched: b.statementLinesFetched,
                                 error: b.error,
                     })),
+          }, {
+            status: result.status === 'failed' ? 500 : result.status === 'partial' ? 207 : 200,
           })
         } else {
                 // --- All-businesses mode ---
@@ -128,7 +145,7 @@ export async function POST(req: NextRequest) {
           }
 
           return NextResponse.json({
-                    success: result.status !== 'failed',
+                    success: result.status === 'completed',
                     mode: 'all',
                     runId: result.runId,
                     status: result.status,
@@ -139,6 +156,7 @@ export async function POST(req: NextRequest) {
                     gstPaidCents: result.gstPaidCents,
                     netGstCents: result.netGstCents,
                     durationMs,
+                    recoveredStaleRunIds: runControl.recoveredStaleRunIds,
                     businessResults: result.businessResults.map((b) => ({
                                 businessKey: b.businessKey,
                                 businessName: b.businessName,
@@ -152,6 +170,8 @@ export async function POST(req: NextRequest) {
                                 statementLinesFetched: b.statementLinesFetched,
                                 error: b.error,
                     })),
+          }, {
+            status: result.status === 'failed' ? 500 : result.status === 'partial' ? 207 : 200,
           })
         }
   } catch (error) {

@@ -7,14 +7,20 @@ vi.mock('@/lib/bookkeeper/orchestrator', () => ({
   runBookkeeperForAllBusinesses: vi.fn(),
 }))
 
+vi.mock('@/lib/bookkeeper/run-control', () => ({
+  prepareBookkeeperRun: vi.fn(),
+}))
+
 // ── Static imports (resolved AFTER vi.mock() hoisting) ──────────────────────
 
 import { runBookkeeperForAllBusinesses } from '@/lib/bookkeeper/orchestrator'
+import { prepareBookkeeperRun } from '@/lib/bookkeeper/run-control'
 import { GET } from '../route'
 
 // ── Mock helpers ────────────────────────────────────────────────────────────
 
 const mockRunBookkeeper = vi.mocked(runBookkeeperForAllBusinesses)
+const mockPrepareBookkeeperRun = vi.mocked(prepareBookkeeperRun)
 
 function makeRequest(authHeader?: string): Request {
   const headers = new Headers()
@@ -73,6 +79,10 @@ describe('GET /api/cron/bookkeeper', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    mockPrepareBookkeeperRun.mockResolvedValue({
+      activeRun: null,
+      recoveredStaleRunIds: [],
+    })
     // Isolate env changes per test
     process.env = {
       ...ORIGINAL_ENV,
@@ -109,6 +119,18 @@ describe('GET /api/cron/bookkeeper', () => {
 
     expect(response.status).toBe(401)
     expect(body.error).toBe('Unauthorised')
+  })
+
+  it('fails closed when CRON_SECRET is not configured', async () => {
+    delete process.env.CRON_SECRET
+
+    const response = await GET(makeRequest('Bearer undefined'))
+    const body = await response.json()
+
+    expect(response.status).toBe(500)
+    expect(body.error).toBe('CRON_SECRET not configured')
+    expect(mockPrepareBookkeeperRun).not.toHaveBeenCalled()
+    expect(mockRunBookkeeper).not.toHaveBeenCalled()
   })
 
   // ── Environment validation ──────────────────────────────────────────────
@@ -162,6 +184,42 @@ describe('GET /api/cron/bookkeeper', () => {
     expect(mockRunBookkeeper).toHaveBeenCalledWith('founder-uuid-123')
   })
 
+  it('returns 409 without invoking the orchestrator when a fresh run is active', async () => {
+    mockPrepareBookkeeperRun.mockResolvedValue({
+      activeRun: {
+        id: 'active-run-456',
+        startedAt: '2026-07-10T05:55:00.000Z',
+      },
+      recoveredStaleRunIds: [],
+    })
+
+    const response = await GET(makeRequest('Bearer test-cron-secret'))
+    const body = await response.json()
+
+    expect(response.status).toBe(409)
+    expect(body).toEqual({
+      success: false,
+      error: 'Bookkeeper run already in progress',
+      activeRunId: 'active-run-456',
+      activeRunStartedAt: '2026-07-10T05:55:00.000Z',
+    })
+    expect(mockRunBookkeeper).not.toHaveBeenCalled()
+  })
+
+  it('reports recovered stale run ids in the successful response', async () => {
+    mockPrepareBookkeeperRun.mockResolvedValue({
+      activeRun: null,
+      recoveredStaleRunIds: ['stale-run-1', 'stale-run-2'],
+    })
+    mockRunBookkeeper.mockResolvedValue(makeSuccessResult())
+
+    const response = await GET(makeRequest('Bearer test-cron-secret'))
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.recoveredStaleRunIds).toEqual(['stale-run-1', 'stale-run-2'])
+  })
+
   it('response includes correct summary fields', async () => {
     mockRunBookkeeper.mockResolvedValue(makeSuccessResult())
 
@@ -198,7 +256,7 @@ describe('GET /api/cron/bookkeeper', () => {
     })
   })
 
-  it('returns success=false when orchestrator status is "failed"', async () => {
+  it('returns 500 when orchestrator status is "failed" so scheduler transport is not green', async () => {
     mockRunBookkeeper.mockResolvedValue(
       makeSuccessResult({ status: 'failed', failedCount: 2 })
     )
@@ -206,12 +264,12 @@ describe('GET /api/cron/bookkeeper', () => {
     const response = await GET(makeRequest('Bearer test-cron-secret'))
     const body = await response.json()
 
-    expect(response.status).toBe(200)
+    expect(response.status).toBe(500)
     expect(body.success).toBe(false)
     expect(body.status).toBe('failed')
   })
 
-  it('returns success=true when orchestrator status is "partial"', async () => {
+  it('returns 207 when orchestrator status is "partial"', async () => {
     mockRunBookkeeper.mockResolvedValue(
       makeSuccessResult({ status: 'partial', failedCount: 1 })
     )
@@ -219,8 +277,8 @@ describe('GET /api/cron/bookkeeper', () => {
     const response = await GET(makeRequest('Bearer test-cron-secret'))
     const body = await response.json()
 
-    expect(response.status).toBe(200)
-    expect(body.success).toBe(true)
+    expect(response.status).toBe(207)
+    expect(body.success).toBe(false)
     expect(body.status).toBe('partial')
   })
 

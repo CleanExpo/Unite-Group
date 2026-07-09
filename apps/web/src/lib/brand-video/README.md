@@ -51,10 +51,11 @@ is marked `failed` with the error — it no longer parks at `needs_local_render`
 
 A Vercel function can't run ffmpeg or long jobs, so the worker runs in GitHub
 Actions where ffmpeg exists: `.github/workflows/brand-video-render.yml`
-(`workflow_dispatch` + `schedule` every ~5 min). Each run installs ffmpeg + Node +
-Python, installs `apps/web` deps, then runs the worker to claim and render one
-queued job, uploading the mp4 to `BRAND_VIDEO_BUCKET` and setting
-`status=done` + `output_url`.
+(`workflow_dispatch` only). Automatic event dispatch is intentionally deferred
+until a production GitHub credential and a tested queue-owner emitter are connected.
+Each manual run installs ffmpeg + Node + Python, installs `apps/web` deps, then
+runs the worker to claim and render one queued job, uploading the mp4 to
+`BRAND_VIDEO_BUCKET` and setting `status=done` + `output_url`.
 
 ### Required GitHub Actions secrets (repo Settings → Secrets and variables → Actions)
 

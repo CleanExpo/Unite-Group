@@ -373,12 +373,12 @@ export async function runBookkeeperForAllBusinesses(
       gst_collected_cents: gstCollectedCents,
       gst_paid_cents: gstPaidCents,
       net_gst_cents: netGstCents,
-      error_log: errorLog.length > 0 ? errorLog : null,
+      error_log: errorLog,
     })
     .eq('id', runId)
 
   if (updateError) {
-    console.error(`[Bookkeeper] Failed to update run record ${runId}:`, updateError)
+    throw new Error(`Failed to finalise bookkeeper run record: ${updateError.message}`)
   }
 
   return {
@@ -492,7 +492,7 @@ export async function runBookkeeperForOneBusiness(
     const netGstCents = gstCollectedCents - gstPaidCents
 
     // Update run record
-    await supabase
+    const { error: updateError } = await supabase
       .from('bookkeeper_runs')
       .update({
               completed_at: completedAt.toISOString(),
@@ -508,6 +508,10 @@ export async function runBookkeeperForOneBusiness(
               error_log: businessResult.error ? [{ businessKey: business.key, error: businessResult.error }] : [],
       })
       .eq('id', runId)
+
+    if (updateError) {
+          throw new Error(`Failed to finalise bookkeeper run record: ${updateError.message}`)
+    }
 
     return {
           runId,
