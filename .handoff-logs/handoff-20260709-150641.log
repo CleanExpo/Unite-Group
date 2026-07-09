@@ -1,0 +1,12 @@
+== handoff gate 20260709-150641 — main @ 8585c147
+== tsc --noEmit
+TYPE-CHECK: PASS
+== eslint (session surfaces)
+LINT: PASS
+== vitest full
+
+ Test Files  496 passed (496)
+      Tests  3031 passed (3031)
+   Start at  15:06:59
+   Duration  22.45s (transform 6.59s, setup 22.35s, collect 28.33s, tests 34.10s, environment 22.48s, prepare 30.00s)
+
