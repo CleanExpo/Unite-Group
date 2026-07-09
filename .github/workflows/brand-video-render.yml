@@ -6,13 +6,11 @@ name: Brand Video Render
 # (Gemini images -> ElevenLabs VO -> ffmpeg 1080p stitch), uploads the mp4 to
 # the BRAND_VIDEO_BUCKET Storage bucket, and sets status=done + output_url.
 #
-# schedule only fires on the default branch (main); use workflow_dispatch to
-# test from any branch. Secrets are configured in repo Settings → Secrets.
+# Runs only when requested manually. Automated queue dispatch is deferred until
+# the production GitHub credential is genuinely connected and can be canaried.
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '*/5 * * * *' # every ~5 minutes
 
 permissions:
   contents: read

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Install the operator-jobs queue sweep as a macOS LaunchAgent that runs one
-# bounded sweep every 60 seconds (StartInterval — the tick exits after each
+# bounded reconciliation sweep every 15 minutes (StartInterval — the tick exits after each
 # sweep by design, so no KeepAlive).
 #
 #   bash apps/autopilot-runner/scripts/install-operator-jobs-service.sh
@@ -39,7 +39,7 @@ cat > "$PLIST" <<PLIST_EOF
     <string>$WRAPPER</string>
   </array>
   <key>RunAtLoad</key><true/>
-  <key>StartInterval</key><integer>60</integer>
+  <key>StartInterval</key><integer>900</integer>
   <key>StandardOutPath</key><string>$LOG</string>
   <key>StandardErrorPath</key><string>$LOG</string>
   <key>EnvironmentVariables</key>
@@ -50,7 +50,8 @@ cat > "$PLIST" <<PLIST_EOF
 </plist>
 PLIST_EOF
 
-echo "Wrote $PLIST"
+/usr/bin/plutil -lint "$PLIST" >/dev/null
+echo "Wrote and validated $PLIST"
 
 # Reload (unload if already present, then load).
 launchctl unload "$PLIST" 2>/dev/null || true

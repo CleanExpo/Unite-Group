@@ -73,7 +73,11 @@ vi.mock('@/lib/bookkeeper/bas-calculator', () => ({
 }))
 
 // NOW import the system under test (after all mocks are set up)
-import { runBookkeeperForAllBusinesses, processOneBusiness } from '../orchestrator'
+import {
+  runBookkeeperForAllBusinesses,
+  runBookkeeperForOneBusiness,
+  processOneBusiness,
+} from '../orchestrator'
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -208,6 +212,7 @@ function setupSupabaseMocks(options?: {
   runId?: string
   insertError?: { message: string } | null
   runInsertError?: { message: string } | null
+  updateError?: { message: string } | null
 }) {
   const runId = options?.runId ?? RUN_ID
 
@@ -224,7 +229,7 @@ function setupSupabaseMocks(options?: {
           }),
         }),
         update: mockUpdate.mockReturnValue({
-          eq: mockEq.mockResolvedValue({ error: null }),
+          eq: mockEq.mockResolvedValue({ error: options?.updateError ?? null }),
         }),
       }
     }
@@ -542,13 +547,21 @@ describe('runBookkeeperForAllBusinesses', () => {
     )
   })
 
-  it('sets error_log to null when no errors occur', async () => {
+  it('sets error_log to an empty array when no errors occur', async () => {
     await runBookkeeperForAllBusinesses(FOUNDER_ID)
 
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
-        error_log: null,
+        error_log: [],
       }),
+    )
+  })
+
+  it('fails the run when the final run-record update is not persisted', async () => {
+    setupSupabaseMocks({ updateError: { message: 'write failed' } })
+
+    await expect(runBookkeeperForAllBusinesses(FOUNDER_ID)).rejects.toThrow(
+      'Failed to finalise bookkeeper run record: write failed',
     )
   })
 
@@ -581,5 +594,16 @@ describe('runBookkeeperForAllBusinesses', () => {
     expect(errorResults).toHaveLength(0)
     // With all skipped (0 success, 0 error), status should be 'completed'
     expect(result.status).toBe('completed')
+  })
+})
+
+describe('runBookkeeperForOneBusiness', () => {
+  it('fails the run when the final run-record update is not persisted', async () => {
+    setupSupabaseMocks({ updateError: { message: 'write failed' } })
+    const businessKey = OWNED_BUSINESSES.find((business) => business.status === 'active')!.key
+
+    await expect(runBookkeeperForOneBusiness(FOUNDER_ID, businessKey)).rejects.toThrow(
+      'Failed to finalise bookkeeper run record: write failed',
+    )
   })
 })
