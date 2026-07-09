@@ -101,8 +101,9 @@ function buildApifyPageFn(): string {
  * Extracts HTML, text content, CSS colour values, font families, and images.
  */
 async function scrapeWebsite(websiteUrl: string): Promise<ApifyScrapeResult> {
-  const apiToken = process.env.APIFY_API_TOKEN
-  if (!apiToken) throw new Error('APIFY_API_TOKEN is not set.')
+  // Prod defines APIFY_API_KEY (UNI-2332); accept both names.
+  const apiToken = process.env.APIFY_API_TOKEN || process.env.APIFY_API_KEY
+  if (!apiToken) throw new Error('APIFY_API_TOKEN (or APIFY_API_KEY) is not set.')
 
   const client = new ApifyClient({ token: apiToken })
 

@@ -79,7 +79,11 @@ export async function POST(
     .single()
 
   const fromAddress: EmailRecipient = {
-    email: process.env.SENDGRID_FROM_EMAIL?.trim() || `noreply@${campaign.business_key}.com.au`,
+    email:
+      process.env.SENDGRID_FROM_EMAIL?.trim() ||
+      // Prod names the sender address DEFAULT_FROM (UNI-2332); accept both.
+      process.env.DEFAULT_FROM?.trim() ||
+      `noreply@${campaign.business_key}.com.au`,
     name: brand?.business_key?.toUpperCase() ?? campaign.business_key,
   }
 
