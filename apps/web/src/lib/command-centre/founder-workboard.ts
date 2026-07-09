@@ -152,7 +152,7 @@ function toBlockedIssue(node: unknown): FounderBlockedIssue | null {
 const ACTION_QUEUE_QUERY = `query FounderActionQueue {
   viewer {
     assignedIssues(
-      first: 50
+      first: 250
       filter: { completedAt: { null: true }, canceledAt: { null: true } }
       orderBy: updatedAt
     ) {

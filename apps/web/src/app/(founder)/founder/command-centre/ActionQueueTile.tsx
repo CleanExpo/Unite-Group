@@ -145,7 +145,11 @@ export function ActionQueueTile({ data }: { data: ActionQueueTileData }) {
   const idxAction = findColumnIndex(data.headers, 'action')
   const idxOwner = findColumnIndex(data.headers, 'owner')
   const idxStop = findColumnIndex(data.headers, 'stop')
-  const cols = [idxNum, idxAction, idxOwner, idxStop].filter((i) => i >= 0)
+  // Linear-sourced headers (UNI-2340 review fix): Priority is the point of the
+  // re-source — render it (and Updated) when present; file-fallback lacks them.
+  const idxPriority = findColumnIndex(data.headers, 'priority')
+  const idxUpdated = findColumnIndex(data.headers, 'updated')
+  const cols = [idxNum, idxAction, idxOwner, idxStop, idxPriority, idxUpdated].filter((i) => i >= 0)
   const colHeaders = cols.map((i) => data.headers[i]!)
   const colRows = data.rows.map((r) => cols.map((i) => r[i] ?? ''))
 
