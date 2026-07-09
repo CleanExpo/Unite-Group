@@ -3,6 +3,9 @@
 # dependencies
 node_modules/
 /node_modules
+# no-trailing-slash form: also match node_modules SYMLINKS (a worktree gate-running
+# symlink got committed 2026-07-09 and broke CI+Vercel installs with ENOTDIR)
+node_modules
 /.pnp
 .pnp.*
 .yarn/*
