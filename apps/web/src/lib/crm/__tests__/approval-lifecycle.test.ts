@@ -1,7 +1,11 @@
 // Ported from Authority-Site tests/unit/lib/crm/approval-lifecycle.test.ts, 12/06/2026.
 // Schema/API assumptions not yet validated against apps/web — see docs/convergence/migration-map.md.
 
-import { buildCrmApprovalLifecycleInputFromTaskEvidence, evaluateCrmApprovalLifecycle } from '@/lib/crm/approval-lifecycle';
+import {
+  buildCrmApprovalLifecycleInputFromTaskEvidence,
+  evaluateCrmApprovalLifecycle,
+  evaluateDecisionGatedAutoExecute,
+} from '@/lib/crm/approval-lifecycle';
 
 const baseInput = {
   id: 'approval-1',
@@ -10,6 +14,17 @@ const baseInput = {
   requestedAt: '2026-05-23T09:00:00+10:00',
   now: '2026-05-23T10:00:00+10:00',
 };
+
+// The kill-switch assertions below depend on CRM_AUTO_EXECUTE being unset —
+// isolate from ambient CI env rather than assuming it.
+const ORIGINAL_CRM_AUTO_EXECUTE = process.env.CRM_AUTO_EXECUTE;
+beforeEach(() => {
+  delete process.env.CRM_AUTO_EXECUTE;
+});
+afterEach(() => {
+  if (ORIGINAL_CRM_AUTO_EXECUTE === undefined) delete process.env.CRM_AUTO_EXECUTE;
+  else process.env.CRM_AUTO_EXECUTE = ORIGINAL_CRM_AUTO_EXECUTE;
+});
 
 describe('evaluateCrmApprovalLifecycle', () => {
   it('classifies a requested approval as awaiting Phill review without auto-execution', () => {
@@ -329,6 +344,21 @@ describe('evaluateCrmApprovalLifecycle', () => {
     } finally {
       if (original === undefined) delete process.env.CRM_AUTO_EXECUTE;
       else process.env.CRM_AUTO_EXECUTE = original;
+    }
+  });
+
+  it('UNI-2234 review should-fix: a matrix-safe evaluation is forced unsafe when the decision is not may_execute', () => {
+    process.env.CRM_AUTO_EXECUTE = '1';
+    const safeSignals = { confidence: 0.9, hasExistingClientLink: false };
+
+    // Sanity: with the kill switch on and passing L1 signals, the matrix alone says safe.
+    const executable = evaluateDecisionGatedAutoExecute('lead_conversion', 'may_execute', safeSignals);
+    expect(executable).toEqual({ safe: true, tier: 'L1', reason: 'l1_confidence_and_no_link_ok' });
+
+    // The same signals under any non-executable decision must never surface safe: true.
+    for (const decision of ['do_not_execute', 'await_approval', 'already_executed', 'invalid_request'] as const) {
+      const gated = evaluateDecisionGatedAutoExecute('lead_conversion', decision, safeSignals);
+      expect(gated).toEqual({ safe: false, tier: 'L1', reason: 'decision_not_executable' });
     }
   });
 });
