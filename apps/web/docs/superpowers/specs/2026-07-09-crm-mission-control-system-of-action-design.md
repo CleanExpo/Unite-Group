@@ -100,6 +100,16 @@ journal success on a race win.
   4. Founder go-live: `CRM_DISPATCH_ARMED=1` then `CRM_AUTO_EXECUTE=1` (in that order), lead_conversion
      L1 only, for the 2-week proving window. L2/L3 stay off per the autonomy ladder.
 
+  **Go-live progress (dormant — arming steps 3–4 remain Board + founder):**
+  - Checklist step 1 — `resolveSubjectExecutor('lead_conversion')` real write-then-confirm executor: **done** (PR #736, merged to `main`).
+  - Admission-signal wiring (step 2b) — `evaluateCrmApprovalLifecycle` now threads `confidence` +
+    `hasExistingClientLink` into the L1 matrix at the `may_execute` path only (decision-gate keeps every
+    other decision unsafe); route + task-evidence builder populate them: **done**. Founder-confirmed
+    2026-07-09 (Q1 conversion semantics = `crm_contacts` client_contact / `converted_client_id` null;
+    Q2 wire both signals). Still inert in prod: `CRM_AUTO_EXECUTE` unset ⇒ `kill_switch_off`.
+  - Checklist step 2 — persist admitted approvals as `operator_jobs` (CRM lane): **not started** (needs
+    the production operator_jobs write client + founder-insert RLS check on a Supabase database branch).
+
 ## 7. Success criteria
 
 - Slices 1–3 merge behind `CRM_AUTO_EXECUTE` unset with **zero prod behaviour change** (no mutation

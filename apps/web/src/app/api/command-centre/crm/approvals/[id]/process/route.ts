@@ -20,7 +20,7 @@ import {
   type CrmApprovalLifecycleInput,
 } from '@/lib/crm/approval-lifecycle'
 import { resolveCrmAdmission, buildCrmAdmissionEvidenceRow } from '@/lib/crm/mission-control-execution'
-import { journalAutoExecution } from '@/lib/crm/auto-exec-matrix'
+import { journalAutoExecution, type AutoExecuteSignals } from '@/lib/crm/auto-exec-matrix'
 import {
   runCrmAutoExecution,
   isCrmDispatchArmed,
@@ -50,6 +50,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Field "subjectType" is required' }, { status: 400 })
   }
 
+  // L1 auto-execution signals — only correctly-typed values are carried; the
+  // matrix degrades a missing/wrong-typed signal to 'signal_unavailable'.
+  const signals: AutoExecuteSignals = {}
+  if (typeof body.confidence === 'number' && Number.isFinite(body.confidence)) signals.confidence = body.confidence
+  if (typeof body.hasExistingClientLink === 'boolean') signals.hasExistingClientLink = body.hasExistingClientLink
+
   const now = str(body.now) ?? new Date().toISOString()
   const input: CrmApprovalLifecycleInput = {
     id,
@@ -63,6 +69,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     approvalReference: str(body.approvalReference) ?? null,
     executedAt: str(body.executedAt) ?? null,
     rejectionReason: str(body.rejectionReason) ?? null,
+    signals: Object.keys(signals).length > 0 ? signals : undefined,
   }
 
   try {

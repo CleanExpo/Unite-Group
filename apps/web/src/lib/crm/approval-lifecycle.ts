@@ -30,6 +30,13 @@ export interface CrmApprovalLifecycleInput {
   approvalReference?: string | null;
   executedAt?: string | null;
   rejectionReason?: string | null;
+  /**
+   * Auto-execution signals (confidence, hasExistingClientLink) for the risk
+   * matrix. Only consumed on the 'may_execute' path — the decision-gate keeps
+   * every other decision unsafe regardless. Absent ⇒ matrix degrades to
+   * 'signal_unavailable' (never guesses).
+   */
+  signals?: AutoExecuteSignals;
 }
 
 export interface CrmApprovalTaskEvidence {
@@ -91,6 +98,22 @@ function cleanMetadataString(metadata: Record<string, unknown> | null | undefine
   return typeof value === 'string' ? clean(value) : '';
 }
 
+/**
+ * Extract the L1 auto-execution signals (confidence, hasExistingClientLink)
+ * from task metadata. Only correctly-typed values are carried; a
+ * missing/wrong-typed field is left out so the matrix degrades to
+ * 'signal_unavailable' rather than guessing. Returns undefined when neither
+ * signal is present.
+ */
+function extractAutoExecuteSignals(metadata: Record<string, unknown> | null | undefined): AutoExecuteSignals | undefined {
+  const confidence = metadata?.confidence;
+  const hasExistingClientLink = metadata?.hasExistingClientLink;
+  const signals: AutoExecuteSignals = {};
+  if (typeof confidence === 'number' && Number.isFinite(confidence)) signals.confidence = confidence;
+  if (typeof hasExistingClientLink === 'boolean') signals.hasExistingClientLink = hasExistingClientLink;
+  return Object.keys(signals).length > 0 ? signals : undefined;
+}
+
 function invalidResult(
   input: CrmApprovalLifecycleInput,
   reasons: string[],
@@ -146,6 +169,7 @@ export function buildCrmApprovalLifecycleInputFromTaskEvidence(task: CrmApproval
     approvalReference: cleanMetadataString(metadata, 'approvalReference') || null,
     executedAt: cleanMetadataString(metadata, 'executedAt') || null,
     rejectionReason: status === 'rejected' ? buildTaskEvidenceRejectionReason(metadata) : null,
+    signals: extractAutoExecuteSignals(metadata),
   };
 }
 
@@ -244,7 +268,7 @@ export function evaluateCrmApprovalLifecycle(input: CrmApprovalLifecycleInput): 
       return invalidResult(input, ['Approved approvals require both approvedBy and approvalReference before execution can be recommended.'], outputSubjectType);
     }
 
-    const autoExec = evaluateDecisionGatedAutoExecute(outputSubjectType, 'may_execute');
+    const autoExec = evaluateDecisionGatedAutoExecute(outputSubjectType, 'may_execute', input.signals ?? {});
     return {
       id: input.id,
       subjectType: outputSubjectType,
