@@ -19,7 +19,12 @@ import {
   evaluateCrmApprovalLifecycle,
   type CrmApprovalLifecycleInput,
 } from '@/lib/crm/approval-lifecycle'
-import { resolveCrmAdmission, buildCrmAdmissionEvidenceRow } from '@/lib/crm/mission-control-execution'
+import {
+  resolveCrmAdmission,
+  buildCrmAdmissionEvidenceRow,
+  persistCrmMissionControlJob,
+  type CrmOperatorJobsWriteClient,
+} from '@/lib/crm/mission-control-execution'
 import { journalAutoExecution, type AutoExecuteSignals } from '@/lib/crm/auto-exec-matrix'
 import {
   runCrmAutoExecution,
@@ -76,20 +81,32 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const lifecycle = evaluateCrmApprovalLifecycle(input)
     const decision = resolveCrmAdmission(lifecycle)
 
+    const db = await createClient()
+
+    // Persist the Mission Control record (go-live step 2). Authoritative — the
+    // operator_jobs row is the state-of-record, so a write failure surfaces as a
+    // 500, never a green 200. Founder-scoped session client; the row is always
+    // status:'blocked' (poller-inert) so the shared autopilot poller can never
+    // claim a CRM approval. No CRM mutation is performed here.
+    const persisted = await persistCrmMissionControlJob({
+      client: db as unknown as CrmOperatorJobsWriteClient,
+      founderId: user.id,
+      evaluation: lifecycle,
+      decision,
+    })
+
     // Write-then-confirm: journal the admission decision after it is computed.
     // Best-effort (journalAutoExecution never throws) — a ledger failure must not
     // fail the founder's request. No CRM mutation is performed here.
     await journalAutoExecution(buildCrmAdmissionEvidenceRow(lifecycle, decision))
 
     // Execution stage — DORMANT. Only runs when the approval is admitted AND the
-    // Board go-live flip (CRM_DISPATCH_ARMED) is on. Even when armed, the per-subject
-    // executor registry is empty today, so no CRM mutation runs. In prod both gates
-    // are off, so `execution` is null and behaviour is unchanged.
+    // Board go-live flip (CRM_DISPATCH_ARMED) is on. In prod both gates are off,
+    // so `execution` is null and behaviour is unchanged.
     let execution: CrmExecutionResult | null = null
     if (decision.admitted && isCrmDispatchArmed()) {
-      const supa = await createClient()
       const executor = resolveSubjectExecutor(lifecycle.subjectType, {
-        client: supa,
+        client: db,
         founderId: user.id,
         subjectId: str(body.subjectId) ?? '',
       })
@@ -102,6 +119,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         state: decision.state,
         admitted: decision.admitted,
         operatorStatus: decision.operatorStatus,
+        operatorJobId: persisted.jobId,
         reason: decision.reason,
         dispatchEnabled: decision.dispatchEnabled,
         execution,

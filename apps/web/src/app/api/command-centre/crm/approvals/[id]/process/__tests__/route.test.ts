@@ -2,15 +2,45 @@
 // Auth gate + lifecycle admission + evidence journaling + the dispatch-disabled invariant.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn() }))
+vi.mock('@/lib/supabase/server', () => ({ getUser: vi.fn(), createClient: vi.fn() }))
 vi.mock('@/lib/crm/auto-exec-matrix', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/crm/auto-exec-matrix')>()),
   journalAutoExecution: vi.fn().mockResolvedValue(undefined),
 }))
 
-import { getUser } from '@/lib/supabase/server'
+import { getUser, createClient } from '@/lib/supabase/server'
 import { journalAutoExecution } from '@/lib/crm/auto-exec-matrix'
 import { POST } from '../route'
+
+// Fake founder client for the operator_jobs persistence path (go-live step 2).
+function fakeDb(opts: { existing?: Array<{ id: string }>; insertError?: string } = {}) {
+  const selectBuilder = {
+    eq() {
+      return this
+    },
+    async limit() {
+      return { data: opts.existing ?? [], error: null }
+    },
+  }
+  return {
+    from(table: string) {
+      if (table === 'operator_jobs') {
+        return {
+          select: () => selectBuilder,
+          insert: () => ({
+            select: () => ({
+              single: async () => ({
+                data: opts.insertError ? null : { id: 'job_route' },
+                error: opts.insertError ? { message: opts.insertError } : null,
+              }),
+            }),
+          }),
+        }
+      }
+      return { insert: async () => ({ data: null, error: null }) }
+    },
+  }
+}
 
 const params = (id = 'appr_1') => ({ params: Promise.resolve({ id }) })
 const req = (b: unknown) =>
@@ -31,7 +61,10 @@ const approvedLead = {
 
 describe('POST /api/command-centre/crm/approvals/[id]/process', () => {
   const originalKillSwitch = process.env.CRM_AUTO_EXECUTE
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(createClient).mockResolvedValue(fakeDb() as never)
+  })
   afterEach(() => {
     if (originalKillSwitch === undefined) delete process.env.CRM_AUTO_EXECUTE
     else process.env.CRM_AUTO_EXECUTE = originalKillSwitch
@@ -113,5 +146,26 @@ describe('POST /api/command-centre/crm/approvals/[id]/process', () => {
     const json = await res.json()
     expect(json.admitted).toBe(false)
     expect(json.state).toBe('needs_review')
+  })
+
+  it('UNI-2234 step 2: persists an operator_jobs record and returns its id for a processed approval', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    const res = await POST(req(approvedLead), params())
+    const json = await res.json()
+    expect(res.status).toBe(200)
+    expect(json.operatorJobId).toBe('job_route')
+  })
+
+  it('UNI-2234 step 2: returns the deduped operator_jobs id when a record already exists for the approval', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    vi.mocked(createClient).mockResolvedValue(fakeDb({ existing: [{ id: 'job_existing' }] }) as never)
+    const json = await (await POST(req(approvedLead), params())).json()
+    expect(json.operatorJobId).toBe('job_existing')
+  })
+
+  it('UNI-2234 step 2: a persistence failure is authoritative — returns 500, never a green 200', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    vi.mocked(createClient).mockResolvedValue(fakeDb({ insertError: 'rls denied' }) as never)
+    expect((await POST(req(approvedLead), params())).status).toBe(500)
   })
 })
