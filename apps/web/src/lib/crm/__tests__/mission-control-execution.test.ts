@@ -8,9 +8,11 @@ import {
   buildCrmOperatorJobInsert,
   buildCrmOperatorEventInsert,
   persistCrmMissionControlJob,
+  applyCrmExecutionOutcome,
   CRM_MISSION_CONTROL_LANE_ID,
   type CrmMissionControlState,
   type CrmOperatorJobsWriteClient,
+  type CrmOperatorJobOutcomeUpdate,
 } from '@/lib/crm/mission-control-execution';
 import {
   evaluateCrmApprovalLifecycle,
@@ -282,5 +284,177 @@ describe('persistCrmMissionControlJob', () => {
     await expect(
       persistCrmMissionControlJob({ client, founderId: 'f1', evaluation: evalResult, decision }),
     ).rejects.toThrow(/CRM operator_jobs dedup lookup failed/);
+  });
+});
+
+describe('applyCrmExecutionOutcome (go-live step: synchronous executor outcome → job row)', () => {
+  interface JobUpdate {
+    payload: CrmOperatorJobOutcomeUpdate;
+    filters: Array<[string, string]>;
+  }
+
+  function fakeClient(opts: { updateError?: string; eventError?: string } = {}): {
+    client: CrmOperatorJobsWriteClient;
+    jobUpdates: JobUpdate[];
+    eventInserts: Array<Record<string, unknown>>;
+  } {
+    const jobUpdates: JobUpdate[] = [];
+    const eventInserts: Array<Record<string, unknown>> = [];
+    const client = {
+      from(table: string) {
+        if (table === 'operator_jobs') {
+          return {
+            select: () => ({ eq() { return this; }, async limit() { return { data: [], error: null }; } }),
+            insert: () => ({ select: () => ({ single: async () => ({ data: { id: 'x' }, error: null }) }) }),
+            update: (payload: CrmOperatorJobOutcomeUpdate) => {
+              const filters: Array<[string, string]> = [];
+              jobUpdates.push({ payload, filters });
+              return {
+                eq: (c1: string, v1: string) => {
+                  filters.push([c1, v1]);
+                  return {
+                    eq: async (c2: string, v2: string) => {
+                      filters.push([c2, v2]);
+                      return { data: null, error: opts.updateError ? { message: opts.updateError } : null };
+                    },
+                  };
+                },
+              };
+            },
+          };
+        }
+        return {
+          insert: async (payload: Record<string, unknown>) => {
+            eventInserts.push(payload);
+            return { data: null, error: opts.eventError ? { message: opts.eventError } : null };
+          },
+        };
+      },
+    } as unknown as CrmOperatorJobsWriteClient;
+    return { client, jobUpdates, eventInserts };
+  }
+
+  const admitted = resolveCrmAdmission(
+    evaluation({ safeToAutoExecute: true, autoExecuteReason: 'l1_confidence_and_no_link_ok' }),
+  );
+  const evalAdmitted = evaluation({ safeToAutoExecute: true, autoExecuteReason: 'l1_confidence_and_no_link_ok' });
+
+  it('executed: transitions blocked → running → done via two status_changed events, carrying the execution outcome in metadata', async () => {
+    const { client, jobUpdates, eventInserts } = fakeClient();
+
+    await applyCrmExecutionOutcome({
+      client,
+      founderId: 'f1',
+      jobId: 'job_1',
+      evaluation: evalAdmitted,
+      decision: admitted,
+      execution: { state: 'executed', reason: 'executed_confirmed' },
+    });
+
+    expect(jobUpdates.map((u) => u.payload.status)).toEqual(['running', 'done']);
+    // Founder-scoped: every update filters by id + founder_id.
+    for (const u of jobUpdates) {
+      expect(u.filters).toEqual([['id', 'job_1'], ['founder_id', 'f1']]);
+    }
+    // Final row carries the executed mission-control state + the execution reason.
+    expect(jobUpdates[1].payload.metadata).toMatchObject({
+      approvalId: 'appr_1',
+      missionControlState: 'executed',
+      executionReason: 'executed_confirmed',
+    });
+    // Intermediate row is 'executing'.
+    expect(jobUpdates[0].payload.metadata).toMatchObject({ missionControlState: 'executing' });
+
+    expect(eventInserts.map((e) => e.event_type)).toEqual(['status_changed', 'status_changed']);
+    expect(eventInserts.map((e) => [e.from_status, e.to_status])).toEqual([
+      ['blocked', 'running'],
+      ['running', 'done'],
+    ]);
+  });
+
+  it('failed: transitions blocked → running → failed', async () => {
+    const { client, jobUpdates, eventInserts } = fakeClient();
+
+    await applyCrmExecutionOutcome({
+      client,
+      founderId: 'f1',
+      jobId: 'job_1',
+      evaluation: evalAdmitted,
+      decision: admitted,
+      execution: { state: 'failed', reason: 'execution_timeout' },
+    });
+
+    expect(jobUpdates.map((u) => u.payload.status)).toEqual(['running', 'failed']);
+    expect(jobUpdates[1].payload.metadata).toMatchObject({
+      missionControlState: 'failed',
+      executionReason: 'execution_timeout',
+    });
+    expect(eventInserts.map((e) => [e.from_status, e.to_status])).toEqual([
+      ['blocked', 'running'],
+      ['running', 'failed'],
+    ]);
+  });
+
+  it('needs_review (admitted but no executor): keeps status blocked with a note event — never a status_changed', async () => {
+    const { client, jobUpdates, eventInserts } = fakeClient();
+
+    await applyCrmExecutionOutcome({
+      client,
+      founderId: 'f1',
+      jobId: 'job_1',
+      evaluation: evalAdmitted,
+      decision: admitted,
+      execution: { state: 'needs_review', reason: 'no_executor' },
+    });
+
+    expect(jobUpdates.map((u) => u.payload.status)).toEqual(['blocked']);
+    expect(jobUpdates[0].payload.metadata).toMatchObject({ missionControlState: 'needs_review' });
+    expect(eventInserts.map((e) => e.event_type)).toEqual(['note']);
+  });
+
+  it('SAFETY: no outcome write ever sets a poller-claimable status (planned/queued)', async () => {
+    for (const state of ['executed', 'failed', 'needs_review'] as const) {
+      const { client, jobUpdates } = fakeClient();
+      await applyCrmExecutionOutcome({
+        client,
+        founderId: 'f1',
+        jobId: 'job_1',
+        evaluation: evalAdmitted,
+        decision: admitted,
+        execution: { state, reason: 'r' },
+      });
+      for (const u of jobUpdates) {
+        expect(u.payload.status).not.toBe('planned');
+        expect(u.payload.status).not.toBe('queued');
+      }
+    }
+  });
+
+  it('is authoritative — throws when a job update fails (no silent false-green after a real mutation ran)', async () => {
+    const { client } = fakeClient({ updateError: 'rls denied' });
+    await expect(
+      applyCrmExecutionOutcome({
+        client,
+        founderId: 'f1',
+        jobId: 'job_1',
+        evaluation: evalAdmitted,
+        decision: admitted,
+        execution: { state: 'executed', reason: 'executed_confirmed' },
+      }),
+    ).rejects.toThrow(/CRM operator_jobs outcome update failed/);
+  });
+
+  it('throws when an outcome event insert fails', async () => {
+    const { client } = fakeClient({ eventError: 'event rls denied' });
+    await expect(
+      applyCrmExecutionOutcome({
+        client,
+        founderId: 'f1',
+        jobId: 'job_1',
+        evaluation: evalAdmitted,
+        decision: admitted,
+        execution: { state: 'executed', reason: 'executed_confirmed' },
+      }),
+    ).rejects.toThrow(/CRM operator_events outcome event insert failed/);
   });
 });

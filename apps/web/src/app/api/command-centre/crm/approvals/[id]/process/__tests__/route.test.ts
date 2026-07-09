@@ -42,6 +42,66 @@ function fakeDb(opts: { existing?: Array<{ id: string }>; insertError?: string }
   }
 }
 
+// Fully-wired fake for the armed path: operator_jobs/events persistence + outcome
+// update, plus the real lead_conversion executor's crm_leads/crm_contacts calls.
+// Captures every operator_jobs.update so the test can assert the job row reaches
+// the terminal outcome status.
+function fakeArmedDb() {
+  const jobUpdates: Array<{ status: string; metadata: Record<string, unknown> }> = []
+  const lead = {
+    id: 'lead_1',
+    founder_id: 'u1',
+    status: 'qualified',
+    converted_at: null,
+    first_name: 'Ada',
+    last_name: 'Lovelace',
+    email: 'ada@example.com',
+    phone: null,
+    company: null,
+    job_title: null,
+    marketing_consent: true,
+  }
+  const client = {
+    from(table: string) {
+      if (table === 'operator_jobs') {
+        return {
+          select: () => ({ eq() { return this }, async limit() { return { data: [], error: null } } }),
+          insert: () => ({ select: () => ({ single: async () => ({ data: { id: 'job_route' }, error: null }) }) }),
+          update: (payload: { status: string; metadata: Record<string, unknown> }) => {
+            jobUpdates.push(payload)
+            return { eq: () => ({ eq: async () => ({ data: null, error: null }) }) }
+          },
+        }
+      }
+      if (table === 'operator_events') {
+        return { insert: async () => ({ data: null, error: null }) }
+      }
+      if (table === 'crm_leads') {
+        return {
+          select: () => ({
+            eq: () => ({ eq: () => ({ single: async () => ({ data: lead, error: null }) }) }),
+          }),
+          update: () => ({
+            eq: () => ({
+              eq: () => ({
+                select: () => ({
+                  single: async () => ({
+                    data: { ...lead, status: 'converted', converted_at: '2026-07-09T00:02:00.000Z' },
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          }),
+        }
+      }
+      // crm_contacts
+      return { insert: () => ({ select: () => ({ single: async () => ({ data: { id: 'contact_1' }, error: null }) }) }) }
+    },
+  }
+  return { client, jobUpdates }
+}
+
 const params = (id = 'appr_1') => ({ params: Promise.resolve({ id }) })
 const req = (b: unknown) =>
   new Request('https://app.test/api/command-centre/crm/approvals/appr_1/process', {
@@ -167,5 +227,28 @@ describe('POST /api/command-centre/crm/approvals/[id]/process', () => {
     vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
     vi.mocked(createClient).mockResolvedValue(fakeDb({ insertError: 'rls denied' }) as never)
     expect((await POST(req(approvedLead), params())).status).toBe(500)
+  })
+
+  it('UNI-2234 go-live: when admitted AND armed, the real executor runs and the outcome is reflected onto the job row (blocked → running → done)', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    process.env.CRM_AUTO_EXECUTE = '1'
+    process.env.CRM_DISPATCH_ARMED = '1'
+    const { client, jobUpdates } = fakeArmedDb()
+    vi.mocked(createClient).mockResolvedValue(client as never)
+
+    const res = await POST(
+      req({ ...approvedLead, confidence: 0.9, hasExistingClientLink: false, subjectId: 'lead_1' }),
+      params(),
+    )
+    const json = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(json.admitted).toBe(true)
+    expect(json.execution).toMatchObject({ state: 'executed', reason: 'executed_confirmed' })
+    // The job row was transitioned blocked → running → done, ending 'executed'.
+    expect(jobUpdates.map((u) => u.status)).toEqual(['running', 'done'])
+    expect(jobUpdates.at(-1)?.metadata).toMatchObject({ missionControlState: 'executed' })
+
+    delete process.env.CRM_DISPATCH_ARMED
   })
 })
