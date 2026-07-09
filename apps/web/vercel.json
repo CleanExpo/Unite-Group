@@ -65,6 +65,10 @@
       "schedule": "*/30 * * * *"
     },
     {
+      "path": "/api/cron/os-health-rollup",
+      "schedule": "*/15 * * * *"
+    },
+    {
       "path": "/api/cron/ceo-board-meeting",
       "schedule": "50 1 * * *"
     },
