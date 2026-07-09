@@ -23,6 +23,7 @@ import {
   resolveCrmAdmission,
   buildCrmAdmissionEvidenceRow,
   persistCrmMissionControlJob,
+  applyCrmExecutionOutcome,
   type CrmOperatorJobsWriteClient,
 } from '@/lib/crm/mission-control-execution'
 import { journalAutoExecution, type AutoExecuteSignals } from '@/lib/crm/auto-exec-matrix'
@@ -111,6 +112,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         subjectId: str(body.subjectId) ?? '',
       })
       execution = await runCrmAutoExecution(lifecycle, decision, executor, { journal: journalAutoExecution })
+
+      // Reflect the outcome onto the operator_jobs row (blocked → running → done|failed).
+      // Authoritative — if a mutation ran but its outcome can't be recorded, surface a
+      // 500 rather than a green 200 over a stale job row.
+      await applyCrmExecutionOutcome({
+        client: db as unknown as CrmOperatorJobsWriteClient,
+        founderId: user.id,
+        jobId: persisted.jobId,
+        evaluation: lifecycle,
+        decision,
+        execution,
+      })
     }
 
     return NextResponse.json(
