@@ -2,16 +2,19 @@
 //
 // Lane 16 — CRM Command-Centre tile: Blocked Lanes.
 //
-// Server component. Renders the lanes from
-// 2nd-brain/.agentic_nexus/ACTIVE_PROGRAMME_BACKLOG.md whose "Autonomous"
-// column indicates they are blocked or gated (i.e. need a Phill grant).
+// Server component. UNI-2340 slice 5: lanes now come from Linear — open
+// issues in a blocked-named workflow state, plus open issues carrying a
+// "blocked" label — the local ACTIVE_PROGRAMME_BACKLOG.md fossil from a
+// retired supervisor is a dev-only fallback for when LINEAR_API_KEY isn't
+// configured.
 //
-// Read-only. If the file is missing or malformed, render a clear
-// empty/error state with the file path visible.
+// Read-only. If Linear isn't configured AND the local file is missing,
+// render a clear "Linear not connected" state — never fabricate data.
 
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { parseMarkdownTable, findColumnIndex } from '@/lib/command-centre/markdown'
+import { fetchBlockedLanes, mapBlockedIssuesToRows } from '@/lib/command-centre/founder-workboard'
 
 function defaultPath(): string {
   const home = process.env.HOME || process.env.USERPROFILE || ''
@@ -48,10 +51,47 @@ export function isBlocked(autonomous: string): boolean {
   return lower.startsWith('no') || lower.includes('blocked') || lower.includes('partial')
 }
 
-/** Server-side loader. NEVER throws; returns a structured result with read_error populated. */
+/**
+ * Server-side loader. NEVER throws; returns a structured result with
+ * read_error populated. Cloud-first: Linear (works on Vercel); the local
+ * backlog file is the dev fallback used ONLY when LINEAR_API_KEY isn't
+ * configured (mirrors the dashboard-health cloud-first predicate in
+ * page.tsx). A configured-but-failing Linear call surfaces its own honest
+ * error rather than silently falling back to a stale local file.
+ */
 export async function loadBlockedLanesData(
   backlogPath: string = defaultPath(),
   now: () => Date = () => new Date(),
+): Promise<BlockedLanesData> {
+  const linear = await fetchBlockedLanes()
+  if (linear.ok === 'not_configured') {
+    return loadBlockedLanesDataFromFile(backlogPath, now)
+  }
+  if (!linear.ok) {
+    return {
+      backlog_path: 'linear:issues(blocked)',
+      scanned_at: now().toISOString(),
+      total_lanes: 0,
+      blocked_count: 0,
+      rows: [],
+      read_error: `Linear: ${linear.error}`,
+    }
+  }
+  const rows = mapBlockedIssuesToRows(linear.issues)
+  return {
+    backlog_path: 'Linear — blocked-state or blocked-label issues',
+    scanned_at: now().toISOString(),
+    total_lanes: rows.length,
+    blocked_count: rows.length,
+    rows,
+    read_error: null,
+  }
+}
+
+/** Dev-only fallback: the legacy local markdown-file reader. */
+async function loadBlockedLanesDataFromFile(
+  backlogPath: string,
+  now: () => Date,
 ): Promise<BlockedLanesData> {
   try {
     const raw = await readFile(backlogPath, 'utf-8')
@@ -134,7 +174,7 @@ export function BlockedLanesTile({ data }: { data: BlockedLanesData }) {
         style={{ color: localOnly ? 'var(--color-text-muted)' : '#fb923c', fontSize: '0.85rem', margin: 0 }}
       >
         {localOnly
-          ? 'Backlog lives in the local 2nd-brain vault — not available in this environment.'
+          ? "Linear not connected (LINEAR_API_KEY not set) — and the local backlog fallback isn't available in this environment."
           : `Could not read backlog: ${data.read_error}`}
       </p>
     )
