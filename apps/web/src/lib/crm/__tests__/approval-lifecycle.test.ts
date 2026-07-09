@@ -27,6 +27,7 @@ describe('evaluateCrmApprovalLifecycle', () => {
       requiresPhillReview: true,
       reasons: expect.arrayContaining([expect.stringContaining('awaiting approval')]),
       safeToAutoExecute: false,
+      autoExecuteReason: 'kill_switch_off',
     });
   });
 
@@ -311,6 +312,24 @@ describe('evaluateCrmApprovalLifecycle', () => {
     expect(result.reasons.join(' ')).toContain('high-risk');
     expect(result.reasons.join(' ')).toContain('Board/Phill review');
     expect(result.reasons.join(' ')).not.toContain('BOARD-HIGH-RISK-PADDED-1');
+  });
+
+  it('UNI-2234 regression: every evaluation carries a non-empty autoExecuteReason alongside safeToAutoExecute', () => {
+    const original = process.env.CRM_AUTO_EXECUTE;
+    delete process.env.CRM_AUTO_EXECUTE;
+
+    try {
+      const requested = evaluateCrmApprovalLifecycle({ ...baseInput, status: 'requested' });
+      const invalid = evaluateCrmApprovalLifecycle({ ...baseInput, status: 'needs_legal_review' });
+
+      expect(requested.safeToAutoExecute).toBe(false);
+      expect(requested.autoExecuteReason).toBe('kill_switch_off');
+      expect(invalid.safeToAutoExecute).toBe(false);
+      expect(invalid.autoExecuteReason).toBe('kill_switch_off');
+    } finally {
+      if (original === undefined) delete process.env.CRM_AUTO_EXECUTE;
+      else process.env.CRM_AUTO_EXECUTE = original;
+    }
   });
 });
 

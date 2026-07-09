@@ -1,5 +1,9 @@
 // Ported from Authority-Site src/lib/crm/approval-lifecycle.ts, 12/06/2026.
-// Pure helper — no external imports. No schema/API assumptions.
+// Pure helper — no schema/API assumptions. UNI-2234 added one internal import
+// (evaluateAutoExecute, from the sibling auto-exec-matrix module) to compute
+// safeToAutoExecute/autoExecuteReason; still no external/DB/network imports.
+
+import { evaluateAutoExecute } from './auto-exec-matrix';
 
 export type CrmApprovalSubjectType = 'lead_conversion' | 'opportunity_commitment' | 'client_merge' | 'data_export' | 'other';
 
@@ -50,7 +54,9 @@ export interface CrmApprovalLifecycleEvaluation {
   decision: CrmApprovalDecision;
   requiresPhillReview: boolean;
   reasons: string[];
-  safeToAutoExecute: false;
+  safeToAutoExecute: boolean;
+  /** Machine-readable reason from evaluateAutoExecute (auto-exec-matrix.ts) for the safeToAutoExecute value above. */
+  autoExecuteReason: string;
 }
 
 const KNOWN_SUBJECT_TYPES: CrmApprovalSubjectType[] = ['lead_conversion', 'opportunity_commitment', 'client_merge', 'data_export', 'other'];
@@ -71,6 +77,7 @@ function invalidResult(
   reasons: string[],
   subjectType: CrmApprovalLifecycleSubjectType = normalizedSubjectType(input.subjectType),
 ): CrmApprovalLifecycleEvaluation {
+  const autoExec = evaluateAutoExecute(subjectType, {});
   return {
     id: input.id,
     subjectType,
@@ -78,7 +85,8 @@ function invalidResult(
     decision: 'invalid_request',
     requiresPhillReview: true,
     reasons,
-    safeToAutoExecute: false,
+    safeToAutoExecute: autoExec.safe,
+    autoExecuteReason: autoExec.reason,
   };
 }
 
@@ -184,6 +192,7 @@ export function evaluateCrmApprovalLifecycle(input: CrmApprovalLifecycleInput): 
 
   if (expiresTime !== null && rawStatus !== 'executed') {
     if (nowTime > expiresTime) {
+      const autoExec = evaluateAutoExecute(outputSubjectType, {});
       return {
         id: input.id,
         subjectType: outputSubjectType,
@@ -191,12 +200,14 @@ export function evaluateCrmApprovalLifecycle(input: CrmApprovalLifecycleInput): 
         decision: 'do_not_execute',
         requiresPhillReview: false,
         reasons: [`Approval expired at ${cleanedExpiresAt} and must not be executed.`, ...highRiskReasons],
-        safeToAutoExecute: false,
+        safeToAutoExecute: autoExec.safe,
+        autoExecuteReason: autoExec.reason,
       };
     }
   }
 
   if (rawStatus === 'requested') {
+    const autoExec = evaluateAutoExecute(outputSubjectType, {});
     return {
       id: input.id,
       subjectType: outputSubjectType,
@@ -204,7 +215,8 @@ export function evaluateCrmApprovalLifecycle(input: CrmApprovalLifecycleInput): 
       decision: 'await_approval',
       requiresPhillReview: true,
       reasons: ['Approval is awaiting approval from Phill/Board before execution.', ...highRiskReasons],
-      safeToAutoExecute: false,
+      safeToAutoExecute: autoExec.safe,
+      autoExecuteReason: autoExec.reason,
     };
   }
 
@@ -213,6 +225,7 @@ export function evaluateCrmApprovalLifecycle(input: CrmApprovalLifecycleInput): 
       return invalidResult(input, ['Approved approvals require both approvedBy and approvalReference before execution can be recommended.'], outputSubjectType);
     }
 
+    const autoExec = evaluateAutoExecute(outputSubjectType, {});
     return {
       id: input.id,
       subjectType: outputSubjectType,
@@ -223,12 +236,14 @@ export function evaluateCrmApprovalLifecycle(input: CrmApprovalLifecycleInput): 
         'Approval was approved by recorded approver with approval reference recorded; manual execution may proceed within scope.',
         ...highRiskReasons,
       ],
-      safeToAutoExecute: false,
+      safeToAutoExecute: autoExec.safe,
+      autoExecuteReason: autoExec.reason,
     };
   }
 
   if (rawStatus === 'rejected') {
     const rejectionDetail = clean(input.rejectionReason) ? ' Rejection reason recorded.' : '';
+    const autoExec = evaluateAutoExecute(outputSubjectType, {});
     return {
       id: input.id,
       subjectType: outputSubjectType,
@@ -236,11 +251,13 @@ export function evaluateCrmApprovalLifecycle(input: CrmApprovalLifecycleInput): 
       decision: 'do_not_execute',
       requiresPhillReview: false,
       reasons: [`Approval was rejected and must not be executed.${rejectionDetail}`, ...highRiskReasons],
-      safeToAutoExecute: false,
+      safeToAutoExecute: autoExec.safe,
+      autoExecuteReason: autoExec.reason,
     };
   }
 
   if (rawStatus === 'cancelled') {
+    const autoExec = evaluateAutoExecute(outputSubjectType, {});
     return {
       id: input.id,
       subjectType: outputSubjectType,
@@ -248,11 +265,13 @@ export function evaluateCrmApprovalLifecycle(input: CrmApprovalLifecycleInput): 
       decision: 'do_not_execute',
       requiresPhillReview: false,
       reasons: ['Approval was cancelled and must not be executed.', ...highRiskReasons],
-      safeToAutoExecute: false,
+      safeToAutoExecute: autoExec.safe,
+      autoExecuteReason: autoExec.reason,
     };
   }
 
   if (rawStatus === 'expired') {
+    const autoExec = evaluateAutoExecute(outputSubjectType, {});
     return {
       id: input.id,
       subjectType: outputSubjectType,
@@ -260,7 +279,8 @@ export function evaluateCrmApprovalLifecycle(input: CrmApprovalLifecycleInput): 
       decision: 'do_not_execute',
       requiresPhillReview: false,
       reasons: ['Approval is expired and must not be executed.', ...highRiskReasons],
-      safeToAutoExecute: false,
+      safeToAutoExecute: autoExec.safe,
+      autoExecuteReason: autoExec.reason,
     };
   }
 
@@ -272,6 +292,7 @@ export function evaluateCrmApprovalLifecycle(input: CrmApprovalLifecycleInput): 
     return invalidResult(input, ['executedAt must be parseable as an ISO-ish timestamp when supplied.'], outputSubjectType);
   }
 
+  const autoExec = evaluateAutoExecute(outputSubjectType, {});
   return {
     id: input.id,
     subjectType: outputSubjectType,
@@ -279,6 +300,7 @@ export function evaluateCrmApprovalLifecycle(input: CrmApprovalLifecycleInput): 
     decision: 'already_executed',
     requiresPhillReview: false,
     reasons: [`Approval already executed at ${cleanedExecutedAt}.`, ...highRiskReasons],
-    safeToAutoExecute: false,
+    safeToAutoExecute: autoExec.safe,
+    autoExecuteReason: autoExec.reason,
   };
 }
