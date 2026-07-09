@@ -39,6 +39,10 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 30
 
 const MARGOT_WINDOW_DAYS = 14
+// Review should-fix: bound every Supabase call so the 30s maxDuration is
+// deterministic — only the two HTTP sources carried explicit timeouts before.
+const SUPABASE_TIMEOUT_MS = 8_000
+
 const MESH_FETCH_TIMEOUT_MS = 8000
 
 type HealthStatus = 'GREEN' | 'AMBER' | 'RED'
@@ -212,19 +216,22 @@ async function buildMargotRow(supabase: ServiceClient): Promise<HealthRow> {
       .from('margot_voice_sessions')
       .select('id', { count: 'exact', head: true })
       .eq('founder_id', founderId)
-      .gte('created_at', sinceIso),
+      .gte('created_at', sinceIso)
+      .abortSignal(AbortSignal.timeout(SUPABASE_TIMEOUT_MS)),
     supabase
       .from('margot_voice_sessions')
       .select('created_at')
       .eq('founder_id', founderId)
       .order('created_at', { ascending: false })
-      .limit(1),
+      .limit(1)
+      .abortSignal(AbortSignal.timeout(SUPABASE_TIMEOUT_MS)),
     supabase
       .from('operator_agent_presence')
       .select('last_seen_at')
       .eq('founder_id', founderId)
       .order('last_seen_at', { ascending: false })
-      .limit(500),
+      .limit(500)
+      .abortSignal(AbortSignal.timeout(SUPABASE_TIMEOUT_MS)),
   ])
 
   const voice: MargotVoiceRead =
@@ -296,6 +303,7 @@ async function buildEmailAccountsRow(supabase: ServiceClient): Promise<HealthRow
     .from('credentials_vault')
     .select('service, updated_at, last_accessed_at, metadata')
     .eq('founder_id', founderId)
+    .abortSignal(AbortSignal.timeout(SUPABASE_TIMEOUT_MS))
 
   if (error) throw new Error(error.message)
 
@@ -359,17 +367,20 @@ export async function GET(request: Request) {
       }
     }
 
-    const { error } = await supabase.from('dashboard_health').upsert(
-      {
-        id: row.id,
-        title: row.title,
-        status: row.status,
-        severity: row.severity,
-        detail: row.detail,
-        reported_at: reportedAt,
-      },
-      { onConflict: 'id' },
-    )
+    const { error } = await supabase
+      .from('dashboard_health')
+      .upsert(
+        {
+          id: row.id,
+          title: row.title,
+          status: row.status,
+          severity: row.severity,
+          detail: row.detail,
+          reported_at: reportedAt,
+        },
+        { onConflict: 'id' },
+      )
+      .abortSignal(AbortSignal.timeout(SUPABASE_TIMEOUT_MS))
 
     if (error) {
       errors.push({ id, error: error.message })

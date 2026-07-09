@@ -14,6 +14,7 @@ function makeChain(table: string) {
     gte: vi.fn(),
     order: vi.fn(),
     limit: vi.fn(),
+    abortSignal: vi.fn(),
     upsert: vi.fn(),
     then(onFulfilled: any, onRejected: any) {
       const queue = responses[table] ?? []
@@ -26,7 +27,18 @@ function makeChain(table: string) {
   b.gte.mockReturnValue(b)
   b.order.mockReturnValue(b)
   b.limit.mockReturnValue(b)
-  b.upsert.mockImplementation(() => Promise.resolve({ data: null, error: null }))
+  b.abortSignal.mockReturnValue(b)
+  // upsert returns a builder that is both abortSignal-chainable and thenable
+  b.upsert.mockImplementation(() => {
+    const u: Record<string, any> = {
+      abortSignal: vi.fn(),
+      then(onFulfilled: any, onRejected: any) {
+        return Promise.resolve({ data: null, error: null }).then(onFulfilled, onRejected)
+      },
+    }
+    u.abortSignal.mockReturnValue(u)
+    return u
+  })
   return b
 }
 
