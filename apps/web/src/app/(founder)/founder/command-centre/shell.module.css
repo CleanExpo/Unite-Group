@@ -1,10 +1,11 @@
-/* shell.module.css — UNI-2339 slice 1 canvas register.
+/* shell.module.css — UNI-2339 canvas register (slice 1 + slice 2).
    Tokens translated verbatim from the ratified design canvas
    (apps/web/docs/design/crm-control-panel.html) — Gun Metal ground +
    Candy Red signal, glassmorphic frosted surfaces, Syne + JetBrains Mono.
    Scoped to a CSS module so it composes with the existing command-deck
-   register without touching it (slice 1 restyles the hero band + two
-   proof sections only; the rest of the deck migrates in slice 2). */
+   register without touching it. Slice 2 migrates the deck ground itself
+   (command-deck.module.css goes dark) and adds the Operate launch-pad +
+   Pipeline sections. */
 
 .canvasScope {
   --canvas: #0e1014;
@@ -41,6 +42,12 @@
 
   color: var(--ink);
   font-family: var(--font-syne), system-ui, -apple-system, sans-serif;
+
+  /* Slice 2 — tiles are imported UNCHANGED, so tokens they consume are
+     re-pointed here instead of editing them. --color-text-muted is the
+     app-global light-theme muted ink (#5f5f66, ~2.4:1 on --surface-2 —
+     fails); inside canvas glass it resolves to --ink-dim (7.18:1). */
+  --color-text-muted: var(--ink-dim);
 }
 
 .mono {
@@ -113,16 +120,16 @@
 }
 
 /* ── Glass section head (canvas .sec-h) ──
-   During the two-tone slice these heads sit directly on the retained LIGHT
-   candy deck, so they carry their own OPAQUE dark ground — near-white --ink
-   on the bare deck measures ~1.09:1 (invisible), and a translucent glass wash
-   would grey out over the light deck and fail contrast too. Slice 2 migrates
-   the deck itself; this padding/background can then merge into the panel. */
+   Slice 2 flipped the deck ground dark (command-deck.module.css), so the
+   head's opaque --surface-2 ground now reads as a quiet card on the canvas
+   (--ink 14.28:1 on it) rather than the slice-1 island on the light deck. */
 .glassSectionHead {
   display: flex;
   align-items: baseline;
   gap: 10px;
-  margin: 0 0 8px;
+  /* Slice 2: the deck's .sectionHead (which carried the 2rem section rhythm)
+     is gone — the glass head now owns the inter-section spacing. */
+  margin: 20px 0 8px;
   flex-wrap: wrap;
   padding: 10px 14px;
   border-radius: var(--r-md);
@@ -161,6 +168,79 @@
 /* ── Glass section body wrapper (canvas .panel) ── */
 .glassSection {
   padding: 16px 18px;
+}
+
+/* ── Slice 2 — glass section-head extras ── */
+/* Full-width honesty caption inside a glass head (migrated from the deck's
+   .sectionCaption). 12px body copy on --surface-2 → --ink-dim (7.18:1). */
+.glassCaption {
+  flex-basis: 100%;
+  font-size: 12px;
+  line-height: 1.45;
+  letter-spacing: 0.02em;
+  color: var(--ink-dim);
+}
+/* Right-aligned control cluster inside a glass head (WikiEnhanceControl,
+   ProjectIntegrationWorkPacketControl migrate in unchanged). */
+.glassHeadTools {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── Slice 2 — Operate launch-pad (canvas §Operate, BUSINESSES registry) ──
+   Compact opaque tiles inside a glass panel: no backdrop-filter here, so the
+   @supports guard/decl parity is untouched. Text grounds are the solid
+   --surface-3 (#232b3a): --ink 12.77:1, --ink-dim 6.41:1, --green-txt
+   7.39:1 — all AA for their sizes (computed, not eyeballed). */
+.launchGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+}
+.launchTile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--surface-3);
+  border: 1px solid var(--glass-brd);
+  border-left: 3px solid var(--swatch, var(--red-500));
+  box-shadow: var(--sh-1);
+}
+.launchName {
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.launchMeta {
+  font-family: var(--font-jbmono), ui-monospace, monospace;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-dim);
+}
+.launchLink {
+  font-family: var(--font-jbmono), ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--green-txt);
+  text-decoration: none;
+  width: fit-content;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.launchLink:hover {
+  text-decoration: underline;
 }
 
 @media (max-width: 640px) {

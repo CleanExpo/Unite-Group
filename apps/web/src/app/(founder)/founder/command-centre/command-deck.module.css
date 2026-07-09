@@ -3,39 +3,40 @@
    Signal palette: cyan (primary) / go-green / caution-amber / abort-red. */
 
 .deck {
-  /* Candy theme — light, glossy, green + orange (supersedes the dark cyan deck).
-     First pass: tuned via tokens so the whole console re-skins from here. */
-  --deck-cyan: #2dbb57;     /* primary accent → candy green */
-  --deck-go: #2dbb57;       /* go → candy green */
-  --deck-amber: #f4820f;    /* caution → candy orange */
-  --deck-abort: #e5484d;    /* abort → candy red */
-  --deck-line: rgba(45, 187, 87, 0.20);
-  --deck-line-soft: rgba(45, 187, 87, 0.10);
-  --deck-panel: #ffffff;
-  --deck-panel-hi: #fffdf7;
-  --deck-text: #14241b;     /* deep green-charcoal (dark text on light) */
-  --deck-muted: #5a6b62;
-  /* WCAG-AA text variants: the bright candy green/amber/red fail contrast as
-     TEXT on the light deck (~2.4-3.9:1). Use these for coloured text; keep
-     the bright --deck-cyan/-go/-amber/-abort for fills, borders, LEDs and
-     glows. */
-  --deck-cyan-text: #15803d;  /* green text on light → ~5:1 */
-  --deck-amber-text: #b45309; /* amber text on light → ~5:1 */
-  --deck-abort-text: #d02f35; /* red text on light → ~5.07:1 (deck-abort is 3.91:1, fails AA) */
+  /* UNI-2339 slice 2 — the deck ground migrates onto the ratified Gun Metal
+     canvas (shell.module.css register). Every tile consumes colour via these
+     tokens (tiles imported unchanged), so the flip happens here. All TEXT
+     tokens computed against the darkest panel they land on (--deck-panel
+     #1c2230) and the bare canvas (#0e1014) — ratios noted per token. */
+  --deck-cyan: #2dbb57;     /* primary accent — fills, LEDs, glows only */
+  --deck-go: #2dbb57;       /* go — fills/LEDs only */
+  --deck-amber: #f4820f;    /* caution — fills/LEDs only */
+  --deck-abort: #e5484d;    /* abort — fills/LEDs only */
+  --deck-line: rgba(255, 255, 255, 0.10);
+  --deck-line-soft: rgba(255, 255, 255, 0.05);
+  --deck-panel: #1c2230;    /* canvas --surface-2 */
+  --deck-panel-hi: #232b3a; /* canvas --surface-3 */
+  --deck-text: #f0f3f7;     /* canvas --ink → 14.28:1 on panel, 17.11:1 on canvas */
+  --deck-muted: #a6afbc;    /* canvas --ink-dim → 7.18:1 on panel, 8.60:1 on canvas */
+  /* WCAG-AA text variants: the bright candy green/amber/red are kept for
+     fills/LEDs; TEXT consumers get light-on-dark variants that clear 4.5:1
+     on --deck-panel (#1c2230). */
+  --deck-cyan-text: #34d399;  /* 8.27:1 on panel, 9.90:1 on canvas */
+  --deck-amber-text: #f0a94c; /* 7.94:1 on panel, 9.51:1 on canvas */
+  --deck-abort-text: #f87171; /* 5.75:1 on panel, 6.88:1 on canvas */
 
   /* Aliases so panels consolidated from the retired command-center page (which
      use the --cc-* namespace) resolve their colours on this deck. */
   --cc-bg: var(--deck-panel);
-  --cc-bg-soft: #fff7ec;
+  --cc-bg-soft: #141820;    /* canvas --surface-1 */
   --cc-grid: var(--deck-line);
   --cc-ink: var(--deck-text);
-  --cc-ink-dim: #3f574a;
-  --cc-ink-hush: var(--deck-muted);
+  --cc-ink-dim: var(--deck-muted);
+  --cc-ink-hush: #8b96a5;   /* hushed but AA: 5.30:1 on panel, 5.93:1 on bg-soft */
   /* --cc-signal stays the bright candy green: consolidated cc-* panels use it
      for fills/dots/LEDs/borders (ActivityRow, HermesControlPanel backgrounds,
      WorkPacketLane borders, ActivityLog dot, DegradedDataBanner borderLeft).
-     Bright --deck-cyan (#2dbb57) fails as TEXT on the light deck (~2.5:1), so
-     TEXT consumers use --cc-signal-text (AA-passing, ~5:1) instead. */
+     TEXT consumers use --cc-signal-text (AA-passing on the dark grounds). */
   --cc-signal: var(--deck-cyan);
   --cc-signal-text: var(--deck-cyan-text);
   --cc-pulse-duration: 2.4s;
@@ -45,20 +46,20 @@
   padding: 1.75rem 1.75rem 3rem;
   color: var(--deck-text);
   font-family: var(--font-chakra), var(--font-geist-sans), system-ui, sans-serif;
-  background-color: #fffdf7;
+  background-color: #0e1014;
   background-image:
-    radial-gradient(120% 80% at 50% -10%, rgba(244, 130, 15, 0.12), transparent 60%),
-    radial-gradient(100% 70% at 100% 0%, rgba(45, 187, 87, 0.10), transparent 55%);
+    radial-gradient(120% 80% at 50% -10%, rgba(179, 0, 0, 0.07), transparent 60%),
+    radial-gradient(100% 70% at 100% 0%, rgba(255, 255, 255, 0.03), transparent 55%);
   overflow: hidden;
 }
 
-/* Top gloss sheen (replaces the dark scanline — candy = shiny, not matte) */
+/* Top ambient light (was the candy gloss sheen — canvas = matte, faint) */
 .deck::after {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), transparent 28%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 28%);
   z-index: 0;
 }
 
@@ -75,7 +76,7 @@
   border: 1px solid var(--deck-line);
   border-radius: 12px;
   background: linear-gradient(180deg, var(--deck-panel-hi), var(--deck-panel));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 8px 30px rgba(45, 120, 70, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 30px rgba(0, 0, 0, 0.45);
 }
 
 .brand { display: flex; align-items: center; gap: 0.75rem; }
@@ -166,48 +167,8 @@
 }
 .kbd b { color: var(--deck-text); font-weight: 600; }
 
-/* ── Section labels (HUD) ─────────────────────────────────────────────── */
-.sectionHead {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 1rem; margin: 2rem 0 0.85rem;
-  flex-wrap: wrap;
-}
-.sectionTitleGroup {
-  display: flex;
-  align-items: baseline;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-.sectionLabel {
-  display: flex; align-items: center; gap: 0.6rem;
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
-  color: var(--deck-muted);
-}
-.sectionLabel::before {
-  content: "";
-  width: 14px; height: 1px;
-  background: var(--deck-cyan);
-  box-shadow: 0 0 8px var(--deck-cyan);
-}
-.sectionMeta {
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 0.62rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--deck-muted);
-}
-/* Honesty caption — clarifies a panel's data provenance (e.g. configured registry
-   vs. live monitoring). Full-width so it wraps below the section head row. */
-.sectionCaption {
-  flex-basis: 100%;
-  font-size: 0.62rem;
-  line-height: 1.4;
-  letter-spacing: 0.04em;
-  color: var(--deck-muted);
-}
+/* Section labels (HUD) removed — UNI-2339 slice 2 migrated every section
+   head to the canvas register (shell.module.css .glassSectionHead). */
 
 /* ── Panel grid ───────────────────────────────────────────────────────── */
 .panelGrid {
@@ -223,8 +184,8 @@
   border: 1px solid var(--deck-line);
   border-left: 3px solid var(--swatch, var(--deck-cyan));
   border-radius: 14px;
-  background: linear-gradient(165deg, #ffffff 0%, #fff7ec 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 6px 18px rgba(45, 120, 70, 0.10);
+  background: linear-gradient(165deg, var(--deck-panel-hi) 0%, var(--deck-panel) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 6px 18px rgba(0, 0, 0, 0.35);
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 /* Instrument bezel corner ticks */
@@ -264,11 +225,11 @@
   width: 8px; height: 8px; border-radius: 50%;
   flex-shrink: 0;
   background: var(--deck-muted);
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.12);
 }
 .led[data-state="active"] {
   background: var(--deck-go);
-  box-shadow: 0 0 10px var(--deck-go), 0 0 0 2px rgba(255, 255, 255, 0.7);
+  box-shadow: 0 0 10px var(--deck-go), 0 0 0 2px rgba(255, 255, 255, 0.12);
   animation: pulse 2.4s ease-in-out infinite;
 }
 .led[data-state="stub"] { background: var(--deck-amber); box-shadow: 0 0 8px var(--deck-amber); }
@@ -412,7 +373,7 @@
   border-radius: 10px;
   color: #eaf3ec;
   background: rgba(8, 15, 24, 0.82);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
   cursor: pointer;
   transition: border-color 0.14s ease, color 0.14s ease, background 0.14s ease;
 }

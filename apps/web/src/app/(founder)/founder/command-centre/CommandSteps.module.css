@@ -11,17 +11,20 @@
   font-weight: 600;
   margin: 0 0 0.45rem;
 }
+/* Head text sits directly on the deck ground — token-driven so it follows the
+   UNI-2339 slice-2 canvas flip (the old #14241b/#5a6b62 would be ~1.6:1 on the
+   dark canvas). The white step cards below keep their own opaque ground. */
 .title {
   font-size: 1.6rem;
   font-weight: 600;
-  color: #14241b;
+  color: var(--deck-text, #14241b);
   margin: 0;
   letter-spacing: -0.01em;
 }
 .sub {
   font-size: 0.98rem;
   line-height: 1.5;
-  color: #5a6b62;
+  color: var(--deck-muted, #5a6b62);
   margin: 0.5rem 0 0;
 }
 
