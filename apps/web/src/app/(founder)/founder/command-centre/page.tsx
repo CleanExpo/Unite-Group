@@ -5,7 +5,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { Chakra_Petch } from 'next/font/google'
+import { Chakra_Petch, Syne, JetBrains_Mono } from 'next/font/google'
 import { getProjects, type CommandCentreProject } from '@/lib/command-centre/registry'
 import { getToolCatalogue } from '@/lib/command-centre/tools/catalogue'
 import { summariseDashboard } from '@/lib/command-centre/dashboard-summary'
@@ -43,6 +43,11 @@ import { WikiGraphTile } from '@/components/command-centre/wiki-graph/WikiGraphT
 import { ProjectIntegrationWorkPacketControl } from './ProjectIntegrationWorkPacketControl'
 import { WikiEnhanceControl } from './WikiEnhanceControl'
 import { CommandSteps } from './CommandSteps'
+// UNI-2339 slice 1 — canvas shell: hero band + glass chrome for the
+// Priorities (Action Queue) and Evidence Stream sections. Fonts scoped to
+// this route only via next/font/google variables (see shell.module.css).
+import { HeroBand } from './HeroBand'
+import shell from './shell.module.css'
 // Founder cockpit tiles — consolidated from the retired /founder/dashboard (UNI-2306)
 // so the command deck is the one canonical console. Surface move: data routes unchanged.
 import { getUser } from '@/lib/supabase/server'
@@ -58,6 +63,23 @@ const chakra = Chakra_Petch({
   weight: ['400', '500', '600', '700'],
   subsets: ['latin'],
   variable: '--font-chakra',
+  display: 'swap',
+})
+
+// UNI-2339 slice 1 — canvas register typography (Syne display + JetBrains
+// Mono data/KPIs), scoped to this route via CSS variables consumed only by
+// shell.module.css. Does not replace Chakra_Petch, which the rest of the
+// (unmigrated) deck still uses this slice.
+const syne = Syne({
+  weight: ['400', '500', '600', '700', '800'],
+  subsets: ['latin'],
+  variable: '--font-syne',
+  display: 'swap',
+})
+const jbMono = JetBrains_Mono({
+  weight: ['400', '500', '600'],
+  subsets: ['latin'],
+  variable: '--font-jbmono',
   display: 'swap',
 })
 
@@ -146,11 +168,14 @@ export default async function CommandDeckPage() {
   const deckLabel = hasDegradedManifest ? 'Some manifests degraded' : 'Deck loaded'
 
   return (
-    <div className={`${chakra.variable} ${styles.deck}`}>
+    <div className={`${chakra.variable} ${syne.variable} ${jbMono.variable} ${styles.deck}`}>
       <CommandPalette
         projects={projects.map((p) => ({ name: p.name, status: p.status, production_url: p.production_url }))}
         tools={tools.map((t) => ({ tool_key: t.tool_key, source: t.source, risk_class: t.risk_class }))}
       />
+
+      {/* ── Canvas shell hero band (UNI-2339 slice 1) ─────────────────── */}
+      <HeroBand data={actionQueue} />
 
       <details id="system-detail" className={styles.systemDetail} open>
         <summary className={styles.systemSummary}>Mission Control deck — live agents, queues, approvals, repos &amp; logs (click to collapse)</summary>
@@ -463,27 +488,35 @@ export default async function CommandDeckPage() {
         <OperatingHealthTile data={dashboard} />
       </section>
 
-      {/* ── Live Evidence Stream (Lane 16) ────────────────────────────── */}
-      <div className={styles.sectionHead} id="evidence-stream">
-        <span className={styles.sectionLabel}>Live Evidence Stream</span>
-        <span className={styles.sectionMeta}>
+      {/* ── Live Evidence Stream (Lane 16) — canvas glass chrome (UNI-2339 slice 1) ── */}
+      <div className={`${shell.canvasScope} ${shell.glassSectionHead}`} id="evidence-stream">
+        <h2>Evidence stream</h2>
+        <span className={shell.glassSub}>receipts are first-class · every action leaves a trail</span>
+        <span className={shell.glassSrc}>
           last {evidence.entries.length} of {evidence.total_lines} ledger entries
         </span>
       </div>
 
-      <section className={`${styles.reveal}`} style={{ animationDelay: '0.14s' }}>
+      <section
+        className={`${shell.canvasScope} ${shell.glassPanel} ${shell.glassSection} ${styles.reveal}`}
+        style={{ animationDelay: '0.14s' }}
+      >
         <EvidenceStreamTile data={evidence} />
       </section>
 
-      {/* ── Action Queue (Lane 16) ─────────────────────────────────────── */}
-      <div className={styles.sectionHead} id="action-queue">
-        <span className={styles.sectionLabel}>Action Queue</span>
-        <span className={styles.sectionMeta}>
+      {/* ── Action Queue / Today's priorities (Lane 16) — canvas glass chrome (UNI-2339 slice 1) ── */}
+      <div className={`${shell.canvasScope} ${shell.glassSectionHead}`} id="action-queue">
+        <h2>Today&rsquo;s priorities</h2>
+        <span className={shell.glassSub}>decisions, not dashboards</span>
+        <span className={shell.glassSrc}>
           top {actionQueue.shown_rows} of {actionQueue.total_rows} senior-PM actions
         </span>
       </div>
 
-      <section className={`${styles.reveal}`} style={{ animationDelay: '0.16s' }}>
+      <section
+        className={`${shell.canvasScope} ${shell.glassPanel} ${shell.glassSection} ${styles.reveal}`}
+        style={{ animationDelay: '0.16s' }}
+      >
         <ActionQueueTile data={actionQueue} />
       </section>
 
