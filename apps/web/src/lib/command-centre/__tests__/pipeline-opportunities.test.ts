@@ -73,13 +73,36 @@ describe('pipeline-opportunities — crm_opportunities → PipelineBoard read mo
       row({ id: 'c', stage: 'paused', status: 'paused' }),
       row({ id: 'd', stage: 'blocked_review', status: 'blocked_review' }),
     ]
-    const mapped = mapOpportunityRows(rows)
+    const { opportunities: mapped } = mapOpportunityRows(rows)
     expect(mapped.map((o) => o.id)).toEqual(['a'])
     expect(mapped[0].stage).toBe('lead')
   })
 
+  it('reports honest counts for the rollup drop — never a silent under-report (RA-1109)', () => {
+    // One lost row among two → totalFetched 2, excludedCount 1.
+    const { opportunities, totalFetched, excludedCount } = mapOpportunityRows([
+      row({ id: 'a', stage: 'qualified' }),
+      row({ id: 'b', stage: 'lost', status: 'lost' }),
+    ])
+    expect(opportunities).toHaveLength(1)
+    expect(totalFetched).toBe(2)
+    expect(excludedCount).toBe(1)
+
+    // Nothing dropped → excludedCount 0 (the page only surfaces it when > 0).
+    const clean = mapOpportunityRows([row({ id: 'a', stage: 'qualified' })])
+    expect(clean.totalFetched).toBe(1)
+    expect(clean.excludedCount).toBe(0)
+
+    // Empty read stays honest too.
+    const empty = mapOpportunityRows([])
+    expect(empty.totalFetched).toBe(0)
+    expect(empty.excludedCount).toBe(0)
+  })
+
   it('maps row fields onto the board contract without fabricating values', () => {
-    const [opp] = mapOpportunityRows([
+    const {
+      opportunities: [opp],
+    } = mapOpportunityRows([
       row({ id: 'x', name: 'CCW rollout', stage: 'proposal_sent', value_amount: null, probability: null }),
     ])
     expect(opp).toEqual({
