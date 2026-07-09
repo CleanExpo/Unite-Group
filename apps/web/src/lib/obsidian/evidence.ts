@@ -13,6 +13,7 @@
 import { mkdir, writeFile, appendFile, access } from 'node:fs/promises'
 import { constants as fsConstants } from 'node:fs'
 import path from 'node:path'
+import { createServiceClient } from '@/lib/supabase/service'
 
 /** Canonical fallback vault when WIKI_PATH is not set. */
 export const DEFAULT_WIKI_PATH = 'D:\\Hermes\\wiki'
@@ -126,6 +127,38 @@ function buildFrontmatter(fm: EvidenceFrontmatter, now: string, sources: string[
   return lines.join('\n')
 }
 
+// ─── Cloud mirror (UNI-2227) ────────────────────────────────────────────────
+// The local vault write above is the source of truth for local/dev, but on
+// Vercel serverless there is no persistent disk — resolveWikiPath()'s fallback
+// silently swallows every note. Best-effort mirror each event into the
+// `evidence_ledger` table via service_role so the Live Evidence Stream tile
+// has something to read in production. A failure here must never break the
+// caller (compound moves / operator gateway depend on writeEvidence
+// succeeding even when Supabase is unreachable).
+
+export interface EvidenceLedgerInsert {
+  kind: string
+  summary: string
+  detail: Record<string, unknown>
+  evidence_path: string | null
+}
+
+interface EvidenceLedgerClient {
+  from(table: string): {
+    insert(row: EvidenceLedgerInsert): Promise<{ error: { message: string } | null }>
+  }
+}
+
+/** Insert one row into `evidence_ledger`. Throws on failure — callers decide how to handle it. */
+export async function insertEvidenceLedgerRow(
+  row: EvidenceLedgerInsert,
+  client?: EvidenceLedgerClient,
+): Promise<void> {
+  const db = client ?? (createServiceClient() as unknown as EvidenceLedgerClient)
+  const { error } = await db.from('evidence_ledger').insert(row)
+  if (error) throw new Error(error.message)
+}
+
 async function pathExists(p: string): Promise<boolean> {
   try {
     await access(p, fsConstants.F_OK)
@@ -141,7 +174,10 @@ async function pathExists(p: string): Promise<boolean> {
  * - Never overwrites: a collision gets a timestamp suffix.
  * - Appends one line to `<WIKI_PATH>/log.md`.
  */
-export async function writeEvidence(input: WriteEvidenceInput): Promise<WriteEvidenceResult> {
+export async function writeEvidence(
+  input: WriteEvidenceInput,
+  ledgerClient?: EvidenceLedgerClient,
+): Promise<WriteEvidenceResult> {
   const wikiPath = resolveWikiPath()
   const now = new Date()
   const isoDate = now.toISOString().slice(0, 10)
@@ -190,6 +226,21 @@ export async function writeEvidence(input: WriteEvidenceInput): Promise<WriteEvi
   const relativePath = path.relative(wikiPath, notePath).replace(/\\/g, '/')
   const logLine = `- **Command Centre evidence** \`${input.project}\` ${fm.type} → \`${relativePath}\` (${now.toISOString()})\n`
   await appendFile(path.join(wikiPath, 'log.md'), logLine, { encoding: 'utf-8' })
+
+  // --- Best-effort cloud mirror (fire-and-forget; never throws) -----------
+  try {
+    await insertEvidenceLedgerRow(
+      {
+        kind: fm.type,
+        summary: fm.title,
+        detail: { body: input.body, sources, frontmatter: fm },
+        evidence_path: relativePath,
+      },
+      ledgerClient,
+    )
+  } catch (err) {
+    console.error('writeEvidence: evidence_ledger cloud mirror failed (best-effort, ignored)', err)
+  }
 
   return { notePath, relativePath, suffixed }
 }
