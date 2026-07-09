@@ -48,6 +48,13 @@ import { CommandSteps } from './CommandSteps'
 // this route only via next/font/google variables (see shell.module.css).
 import { HeroBand } from './HeroBand'
 import shell from './shell.module.css'
+// UNI-2339 slice 2 — Operate launch-pad (static BUSINESSES registry),
+// PipelineBoard revived read-only (server-side crm_opportunities read, no
+// new API route), and the remaining deck sections migrated onto the canvas
+// register (command-deck.module.css ground flips dark; tiles unchanged).
+import { BUSINESSES } from '@/lib/businesses'
+import { PipelineBoard } from '@/components/command-centre/pipeline/PipelineBoard'
+import { loadPipelineOpportunities } from '@/lib/command-centre/pipeline-opportunities'
 // Founder cockpit tiles — consolidated from the retired /founder/dashboard (UNI-2306)
 // so the command deck is the one canonical console. Surface move: data routes unchanged.
 import { getUser } from '@/lib/supabase/server'
@@ -155,6 +162,9 @@ export default async function CommandDeckPage() {
     getUser(),
   ])
   const integrationStatuses = await loadProjectIntegrationStatuses(projects)
+  // Needs user.id from the batch above, so it runs after. Degrades honestly
+  // (empty board + 'degraded' badge) when the session or query is unavailable.
+  const pipeline = await loadPipelineOpportunities(user?.id ?? null)
 
   const activeCount = projects.filter((p) => p.status === 'active').length
   const sources = tools.reduce<Record<string, number>>((acc, t) => {
@@ -176,6 +186,67 @@ export default async function CommandDeckPage() {
 
       {/* ── Canvas shell hero band (UNI-2339 slice 1) ─────────────────── */}
       <HeroBand data={actionQueue} />
+
+      {/* ── Operate launch-pad (UNI-2339 slice 2) — static BUSINESSES registry.
+          The registry carries name/type/status/repoUrl only (no purpose field),
+          so the tiles show exactly that — nothing invented. ── */}
+      <div className={`${shell.canvasScope} ${shell.glassSectionHead}`} id="operate-launch-pad">
+        <h2>Operate</h2>
+        <span className={shell.glassSub}>portfolio launch pad</span>
+        <span className={shell.glassSrc}>{BUSINESSES.length} businesses · static registry</span>
+      </div>
+
+      <section
+        className={`${shell.canvasScope} ${shell.glassPanel} ${shell.glassSection} ${styles.reveal}`}
+        style={{ animationDelay: '0.02s' }}
+      >
+        <div className={shell.launchGrid}>
+          {BUSINESSES.map((business) => (
+            <article
+              key={business.key}
+              className={shell.launchTile}
+              style={{ '--swatch': business.color } as React.CSSProperties}
+              data-testid={`launch-tile-${business.key}`}
+            >
+              <span className={shell.launchName}>{business.name}</span>
+              <span className={shell.launchMeta}>
+                {business.type} · {business.status}
+              </span>
+              <a
+                className={shell.launchLink}
+                href={business.repoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                ↗ {hostOf(business.repoUrl)}
+              </a>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Pipeline (UNI-2339 slice 2) — PipelineBoard revived READ-ONLY.
+          Founder-scoped crm_opportunities read runs server-side (same query
+          the /api/founder/opportunities route makes — no new route). No
+          onSelectOpportunity handler is wired: stage change stays
+          approval-gated, per the board's own contract. ── */}
+      <div className={`${shell.canvasScope} ${shell.glassSectionHead}`} id="pipeline">
+        <h2>Pipeline</h2>
+        <span className={shell.glassSub}>read-only · stage change is approval-gated</span>
+        <span className={shell.glassSrc}>crm_opportunities · forecast only</span>
+      </div>
+
+      <section
+        className={`${shell.canvasScope} ${shell.glassPanel} ${shell.glassSection} ${styles.reveal}`}
+        style={{ animationDelay: '0.04s' }}
+      >
+        <PipelineBoard
+          opportunities={pipeline.opportunities}
+          source={pipeline.source}
+          sourceLabel="crm_opportunities"
+          lastUpdatedAt={pipeline.lastUpdatedAt}
+        />
+      </section>
 
       <details id="system-detail" className={styles.systemDetail} open>
         <summary className={styles.systemSummary}>Mission Control deck — live agents, queues, approvals, repos &amp; logs (click to collapse)</summary>
@@ -230,12 +301,10 @@ export default async function CommandDeckPage() {
         <DigestBanner />
       </section>
 
-      {/* ── Operations visibility (UNI-2296) ─────────────────────────── */}
-      <div className={styles.sectionHead} id="operations-visibility">
-        <div className={styles.sectionTitleGroup}>
-          <span className={styles.sectionLabel}>Operations Visibility</span>
-          <span className={styles.sectionMeta}>Margot state · contractor activity · email roster</span>
-        </div>
+      {/* ── Operations visibility (UNI-2296) — canvas register (UNI-2339 slice 2) ── */}
+      <div className={`${shell.canvasScope} ${shell.glassSectionHead}`} id="operations-visibility">
+        <h2>Operations Visibility</h2>
+        <span className={shell.glassSub}>Margot state · contractor activity · email roster</span>
       </div>
 
       <section className={`${styles.integrationGrid} ${styles.reveal}`} style={{ animationDelay: '0.015s' }}>
@@ -250,40 +319,43 @@ export default async function CommandDeckPage() {
         </article>
       </section>
 
-      {/* ── Idea intake ──────────────────────────────────────────────── */}
-      <div className={styles.sectionHead} id="idea-intake">
-        <span className={styles.sectionLabel}>Idea Intake</span>
-        <span className={styles.sectionMeta}>idea → board → queue</span>
+      {/* ── Idea intake — canvas register (UNI-2339 slice 2) ─────────── */}
+      <div className={`${shell.canvasScope} ${shell.glassSectionHead}`} id="idea-intake">
+        <h2>Idea Intake</h2>
+        <span className={shell.glassSub}>idea → board → queue</span>
       </div>
 
       <section className={`${styles.reveal}`} style={{ animationDelay: '0.02s' }}>
         <IdeaConsole projects={projects.map((p) => ({ name: p.name }))} />
       </section>
 
-      {/* ── Task queue ───────────────────────────────────────────────── */}
-      <div className={styles.sectionHead} id="task-queue">
-        <span className={styles.sectionLabel}>Task Queue</span>
-        <span className={styles.sectionMeta}>proposed → approve → queued</span>
+      {/* ── Task queue / approvals — canvas glass chrome (UNI-2339 slice 2) ── */}
+      <div className={`${shell.canvasScope} ${shell.glassSectionHead}`} id="task-queue">
+        <h2>Task Queue</h2>
+        <span className={shell.glassSub}>proposed → approve → queued</span>
       </div>
 
-      <section className={`${styles.reveal}`} style={{ animationDelay: '0.06s' }}>
+      <section
+        className={`${shell.canvasScope} ${shell.glassPanel} ${shell.glassSection} ${styles.reveal}`}
+        style={{ animationDelay: '0.06s' }}
+      >
         <QueueBoard />
       </section>
 
-      {/* ── Wiki knowledge base ──────────────────────────────────────── */}
-      <div className={styles.sectionHead} id="wiki-knowledge-base">
-        <div className={styles.sectionTitleGroup}>
-          <span className={styles.sectionLabel}>Wiki Knowledge Base</span>
-          <span className={styles.sectionMeta}>button → queue → Mac runner → wiki-growth report</span>
+      {/* ── Wiki knowledge base — canvas register (UNI-2339 slice 2) ── */}
+      <div className={`${shell.canvasScope} ${shell.glassSectionHead}`} id="wiki-knowledge-base">
+        <h2>Wiki Knowledge Base</h2>
+        <span className={shell.glassSub}>button → queue → Mac runner → wiki-growth report</span>
+        <div className={shell.glassHeadTools}>
+          <WikiEnhanceControl />
         </div>
-        <WikiEnhanceControl />
       </div>
 
-      {/* ── Portfolio ────────────────────────────────────────────────── */}
-      <div className={styles.sectionHead} id="portfolio">
-        <span className={styles.sectionLabel}>Portfolio Registry</span>
-        <span className={styles.sectionMeta}>{projects.length} units · {activeCount} active</span>
-        <span className={styles.sectionCaption}>
+      {/* ── Portfolio — canvas register (UNI-2339 slice 2) ───────────── */}
+      <div className={`${shell.canvasScope} ${shell.glassSectionHead}`} id="portfolio">
+        <h2>Portfolio Registry</h2>
+        <span className={shell.glassSub}>{projects.length} units · {activeCount} active</span>
+        <span className={shell.glassCaption}>
           Declared from the static project registry — status is each project&apos;s
           configured lifecycle state (active / stub / paused), not a live health probe.
         </span>
@@ -320,8 +392,17 @@ export default async function CommandDeckPage() {
       <section className={`${styles.reveal}`} style={{ animationDelay: '0.14s' }}>
         <DailyCrmDigestPanel />
       </section>
-      {/* UNI-2305 — Mesh Fleet: Railway Pi-CEO machine heartbeats + ships in flight. */}
-      <section className={`${styles.reveal}`} style={{ animationDelay: '0.15s' }}>
+      {/* ── Agent fleet (UNI-2305 Mesh Fleet) — canvas glass chrome (UNI-2339 slice 2).
+          Railway Pi-CEO machine heartbeats + ships in flight; tile unchanged. ── */}
+      <div className={`${shell.canvasScope} ${shell.glassSectionHead}`} id="agent-fleet">
+        <h2>Agent Fleet</h2>
+        <span className={shell.glassSub}>Railway Pi-CEO mesh · heartbeats · ships in flight</span>
+      </div>
+
+      <section
+        className={`${shell.canvasScope} ${shell.glassPanel} ${shell.glassSection} ${styles.reveal}`}
+        style={{ animationDelay: '0.15s' }}
+      >
         <MeshFleetTile />
       </section>
 
@@ -383,12 +464,12 @@ export default async function CommandDeckPage() {
       {/* ── Project integrations ─────────────────────────────────────── */}
       {integrationStatuses.length > 0 && (
         <>
-          <div className={styles.sectionHead} id="project-integrations">
-            <div className={styles.sectionTitleGroup}>
-              <span className={styles.sectionLabel}>Project Integrations</span>
-              <span className={styles.sectionMeta}>{integrationStatuses.length} manifests · metadata-only</span>
+          <div className={`${shell.canvasScope} ${shell.glassSectionHead}`} id="project-integrations">
+            <h2>Project Integrations</h2>
+            <span className={shell.glassSub}>{integrationStatuses.length} manifests · metadata-only</span>
+            <div className={shell.glassHeadTools}>
+              <ProjectIntegrationWorkPacketControl />
             </div>
-            <ProjectIntegrationWorkPacketControl />
           </div>
 
           <section className={styles.integrationGrid}>
@@ -434,10 +515,10 @@ export default async function CommandDeckPage() {
         </>
       )}
 
-      {/* ── Capability bus ───────────────────────────────────────────── */}
-      <div className={styles.sectionHead} id="capability-bus">
-        <span className={styles.sectionLabel}>Capability Bus</span>
-        <span className={styles.sectionMeta}>{tools.length} tools · {Object.keys(sources).length} sources</span>
+      {/* ── Capability bus — canvas register (UNI-2339 slice 2) ──────── */}
+      <div className={`${shell.canvasScope} ${shell.glassSectionHead}`} id="capability-bus">
+        <h2>Capability Bus</h2>
+        <span className={shell.glassSub}>{tools.length} tools · {Object.keys(sources).length} sources</span>
       </div>
 
       <section className={`${styles.bus} ${styles.reveal}`} style={{ animationDelay: '0.1s' }}>
@@ -475,16 +556,19 @@ export default async function CommandDeckPage() {
         </div>
       </section>
 
-      {/* ── Operating System Health (Lane 16) ─────────────────────────── */}
-      <div className={styles.sectionHead} id="os-health">
-        <span className={styles.sectionLabel}>Operating System Health</span>
-        <span className={styles.sectionMeta}>
+      {/* ── Operating System Health (Lane 16) — canvas glass chrome (UNI-2339 slice 2) ── */}
+      <div className={`${shell.canvasScope} ${shell.glassSectionHead}`} id="os-health">
+        <h2>Operating System Health</h2>
+        <span className={shell.glassSrc}>
           {dashboard.entries.length} sources · {dashboard.red_count} red · {dashboard.amber_count} amber ·{' '}
           {dashboard.green_count} green · {dashboard.error_count} errors
         </span>
       </div>
 
-      <section className={`${styles.reveal}`} style={{ animationDelay: '0.12s' }}>
+      <section
+        className={`${shell.canvasScope} ${shell.glassPanel} ${shell.glassSection} ${styles.reveal}`}
+        style={{ animationDelay: '0.12s' }}
+      >
         <OperatingHealthTile data={dashboard} />
       </section>
 
@@ -520,33 +604,42 @@ export default async function CommandDeckPage() {
         <ActionQueueTile data={actionQueue} />
       </section>
 
-      {/* ── Blocked Lanes (Lane 16) ────────────────────────────────────── */}
-      <div className={styles.sectionHead} id="blocked-lanes">
-        <span className={styles.sectionLabel}>Blocked Lanes</span>
-        <span className={styles.sectionMeta}>
+      {/* ── Blocked Lanes (Lane 16) — canvas glass chrome (UNI-2339 slice 2) ── */}
+      <div className={`${shell.canvasScope} ${shell.glassSectionHead}`} id="blocked-lanes">
+        <h2>Blocked Lanes</h2>
+        <span className={shell.glassSub}>
           {blockedLanes.blocked_count} of {blockedLanes.total_lanes} lanes need Phill action
         </span>
       </div>
 
-      <section className={`${styles.reveal}`} style={{ animationDelay: '0.18s' }}>
+      <section
+        className={`${shell.canvasScope} ${shell.glassPanel} ${shell.glassSection} ${styles.reveal}`}
+        style={{ animationDelay: '0.18s' }}
+      >
         <BlockedLanesTile data={blockedLanes} />
       </section>
 
-      {/* ── In-Progress PRs (Lane 16.5) ─────────────────────────────────── */}
-      <div className={styles.sectionHead} id="in-progress-prs">
-        <span className={styles.sectionLabel}>In-Progress PRs</span>
-        <span className={styles.sectionMeta}>via <code style={{ fontSize: '0.7rem' }}>GitHub API</code></span>
+      {/* ── In-Progress PRs (Lane 16.5) — canvas glass chrome (UNI-2339 slice 2) ── */}
+      <div className={`${shell.canvasScope} ${shell.glassSectionHead}`} id="in-progress-prs">
+        <h2>In-Progress PRs</h2>
+        <span className={shell.glassSub}>via <code style={{ fontSize: '0.7rem' }}>GitHub API</code></span>
       </div>
 
-      <section className={`${styles.reveal}`} style={{ animationDelay: '0.2s' }}>
+      <section
+        className={`${shell.canvasScope} ${shell.glassPanel} ${shell.glassSection} ${styles.reveal}`}
+        style={{ animationDelay: '0.2s' }}
+      >
         <InProgressPRsTile />
       </section>
 
-      {/* ── Founder Cockpit (consolidated from the retired /founder/dashboard · UNI-2306) ─ */}
-      <div className={styles.sectionHead} id="founder-cockpit">
-        <span className={styles.sectionLabel}>Founder Cockpit</span>
-        <span className={styles.sectionMeta}>integrations · CRM · revenue · hub health · coaches · experiments</span>
-        <span className={styles.sectionCaption}>
+      {/* ── Founder Cockpit (consolidated from the retired /founder/dashboard · UNI-2306) —
+          canvas head (UNI-2339 slice 2). The cockpit tiles keep their own opaque
+          light-card grounds (dark-on-light internally) — deep restyling is out of
+          slice-2 scope; the canvas ground around them is the migration. ── */}
+      <div className={`${shell.canvasScope} ${shell.glassSectionHead}`} id="founder-cockpit">
+        <h2>Founder Cockpit</h2>
+        <span className={shell.glassSub}>integrations · CRM · revenue · hub health · coaches · experiments</span>
+        <span className={shell.glassCaption}>
           Consolidated from the retired <code style={{ fontSize: '0.7rem' }}>/founder/dashboard</code> so this
           deck is the one canonical console. Each tile renders its own live source and error state.
         </span>

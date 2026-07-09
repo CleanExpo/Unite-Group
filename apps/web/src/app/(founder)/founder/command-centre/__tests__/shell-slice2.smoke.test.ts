@@ -1,0 +1,160 @@
+// src/app/(founder)/founder/command-centre/__tests__/shell-slice2.smoke.test.ts
+//
+// UNI-2339 slice 2 — canvas migration regression gate. Source-contract style
+// (mirrors shell-slice1.smoke.test.ts): the page is a Server Component with
+// async data loaders, so it is asserted against its source. Covers the
+// Operate launch-pad, the read-only PipelineBoard revival, the Approvals
+// (Task Queue) + Agent fleet migration, the deck-ground flip, and the
+// contrast pins for every token the flip re-points.
+
+import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
+const dir = join(process.cwd(), 'src/app/(founder)/founder/command-centre')
+const pageSrc = readFileSync(join(dir, 'page.tsx'), 'utf8')
+const shellCss = readFileSync(join(dir, 'shell.module.css'), 'utf8')
+const deckCss = readFileSync(join(dir, 'command-deck.module.css'), 'utf8')
+const stepsCss = readFileSync(join(dir, 'CommandSteps.module.css'), 'utf8')
+
+describe('command-centre shell slice 2 — canvas migration regression gate', () => {
+  it('renders the Operate launch-pad from the static BUSINESSES registry (no invented fields)', () => {
+    expect(pageSrc).toContain("import { BUSINESSES } from '@/lib/businesses'")
+    expect(pageSrc).toContain('id="operate-launch-pad"')
+    expect(pageSrc).toContain('{BUSINESSES.map((business) =>')
+    // The registry has no purpose/description field — the tile shows only
+    // name, type · status and the repo link. No other business copy exists.
+    expect(pageSrc).toContain('{business.name}')
+    expect(pageSrc).toContain('{business.type} · {business.status}')
+    expect(pageSrc).toContain('href={business.repoUrl}')
+  })
+
+  it('revives PipelineBoard READ-ONLY: server-side read model, no mutation handler wired', () => {
+    expect(pageSrc).toContain(
+      "import { PipelineBoard } from '@/components/command-centre/pipeline/PipelineBoard'",
+    )
+    expect(pageSrc).toContain(
+      "import { loadPipelineOpportunities } from '@/lib/command-centre/pipeline-opportunities'",
+    )
+    expect(pageSrc).toContain('id="pipeline"')
+    // Read-only contract: the board's only interactive prop is never passed
+    // (the '=' matters — the page comment names the prop to explain why not).
+    expect(pageSrc).not.toContain('onSelectOpportunity=')
+    // Honest provenance: the badge label names the system of record.
+    expect(pageSrc).toContain('sourceLabel="crm_opportunities"')
+  })
+
+  it('migrates Approvals (Task Queue) and Agent fleet onto the canvas register, tiles unchanged', () => {
+    // Heads carry the glass chrome; ids stay (task-queue pre-existing,
+    // agent-fleet new this slice).
+    for (const id of ['task-queue', 'agent-fleet']) {
+      expect(pageSrc).toMatch(
+        new RegExp(`\\$\\{shell\\.canvasScope\\} \\$\\{shell\\.glassSectionHead\\}\`\\} id="${id}"`),
+      )
+    }
+    // Tiles are imported and rendered exactly as before.
+    expect(pageSrc).toContain('<QueueBoard />')
+    expect(pageSrc).toContain('<MeshFleetTile />')
+  })
+
+  it('leaves no section on the retired light-deck head register', () => {
+    expect(pageSrc).not.toContain('styles.sectionHead')
+    expect(pageSrc).not.toContain('styles.sectionLabel')
+    expect(pageSrc).not.toContain('styles.sectionCaption')
+  })
+
+  it('keeps every pre-existing section anchor id intact (CommandPalette + smoke contracts)', () => {
+    const ids = [
+      'operations-visibility',
+      'idea-intake',
+      'task-queue',
+      'wiki-knowledge-base',
+      'portfolio',
+      'project-integrations',
+      'capability-bus',
+      'os-health',
+      'evidence-stream',
+      'action-queue',
+      'blocked-lanes',
+      'in-progress-prs',
+      'founder-cockpit',
+      'system-detail',
+    ]
+    for (const id of ids) {
+      expect(pageSrc).toContain(`id="${id}"`)
+    }
+  })
+
+  it('keeps backdrop-filter guard/declaration parity in shell.module.css (perf auto-degrade)', () => {
+    const supportsGuards =
+      shellCss.match(
+        /@supports \(backdrop-filter: blur\(1px\)\) or \(-webkit-backdrop-filter: blur\(1px\)\) \{/g,
+      ) ?? []
+    const backdropDecls = shellCss.match(/(?<!-webkit-)backdrop-filter: var\(--blur/g) ?? []
+    expect(supportsGuards.length).toBeGreaterThan(0)
+    expect(backdropDecls.length).toBe(supportsGuards.length)
+    // The launch tiles are deliberately solid --surface-3 (no new backdrop use).
+    const tileBlock = shellCss.match(/\.launchTile \{[^}]*\}/)?.[0] ?? ''
+    expect(tileBlock).toContain('background: var(--surface-3)')
+    expect(tileBlock).not.toContain('backdrop-filter')
+  })
+
+  it('flips the deck ground to the canvas register (Gun Metal, not candy light)', () => {
+    const deckBlock = deckCss.match(/\.deck \{[\s\S]*?\n\}/)?.[0] ?? ''
+    expect(deckBlock).toContain('background-color: #0e1014')
+    expect(deckBlock).not.toContain('#fffdf7')
+    expect(deckBlock).not.toContain('#ffffff')
+  })
+
+  it('re-points every deck TEXT token to a computed AA pairing on the dark grounds', () => {
+    // Ratios computed against --deck-panel #1c2230 (worst-case opaque panel)
+    // and the #0e1014 canvas. WCAG relative-luminance math, not eyeballed:
+    //   --deck-text  #f0f3f7 → 14.28:1 panel / 17.11:1 canvas
+    //   --deck-muted #a6afbc →  7.18:1 panel /  8.60:1 canvas
+    //   --deck-cyan-text  #34d399 → 8.27:1 panel
+    //   --deck-amber-text #f0a94c → 7.94:1 panel
+    //   --deck-abort-text #f87171 → 5.75:1 panel
+    //   --cc-ink-hush #8b96a5 → 5.30:1 panel / 5.93:1 on --cc-bg-soft #141820
+    expect(deckCss).toContain('--deck-text: #f0f3f7')
+    expect(deckCss).toContain('--deck-muted: #a6afbc')
+    expect(deckCss).toContain('--deck-cyan-text: #34d399')
+    expect(deckCss).toContain('--deck-amber-text: #f0a94c')
+    expect(deckCss).toContain('--deck-abort-text: #f87171')
+    expect(deckCss).toContain('--cc-ink-hush: #8b96a5')
+    // Panels resolve from the flipped tokens — no hard-coded light card left.
+    expect(deckCss).toContain('--deck-panel: #1c2230')
+    expect(deckCss).toContain('--deck-panel-hi: #232b3a')
+    expect(deckCss).toContain('--cc-bg-soft: #141820')
+    expect(deckCss).not.toContain('#fff7ec')
+  })
+
+  it('keeps dark-on-light text off the dark canvas (CommandSteps head is token-driven)', () => {
+    // The 1-2-3 hero head sits directly on the deck ground; its old literals
+    // (#14241b / #5a6b62) would be ~1.6:1 on #0e1014. The white step CARDS
+    // below keep their own opaque ground and stay dark-on-light.
+    const titleBlock = stepsCss.match(/\.title \{[^}]*\}/)?.[0] ?? ''
+    const subBlock = stepsCss.match(/\.sub \{[^}]*\}/)?.[0] ?? ''
+    expect(titleBlock).toContain('color: var(--deck-text')
+    expect(subBlock).toContain('color: var(--deck-muted')
+    expect(stepsCss).toContain('background: #ffffff')
+  })
+
+  it('pins the launch-tile text pairings on their solid --surface-3 ground', () => {
+    // --ink #f0f3f7 on #232b3a → 12.77:1; --ink-dim #a6afbc → 6.41:1;
+    // --green-txt #34d399 (repo link) → 7.39:1. Computed, all AA.
+    const nameBlock = shellCss.match(/\.launchName \{[^}]*\}/)?.[0] ?? ''
+    const metaBlock = shellCss.match(/\.launchMeta \{[^}]*\}/)?.[0] ?? ''
+    const linkBlock = shellCss.match(/\.launchLink \{[^}]*\}/)?.[0] ?? ''
+    expect(nameBlock).toContain('color: var(--ink)')
+    expect(metaBlock).toContain('color: var(--ink-dim)')
+    expect(linkBlock).toContain('color: var(--green-txt)')
+  })
+
+  it('re-points the app-global muted ink inside canvas scope (tiles imported unchanged)', () => {
+    // --color-text-muted is #5f5f66 app-wide (~2.4:1 on --surface-2); tiles
+    // that use it (ActionQueue error, Blocked Lanes, In-Progress PRs) now sit
+    // in canvas glass, so the scope resolves it to --ink-dim (7.18:1).
+    const scopeBlock = shellCss.match(/\.canvasScope \{[\s\S]*?\n\}/)?.[0] ?? ''
+    expect(scopeBlock).toContain('--color-text-muted: var(--ink-dim)')
+  })
+})
