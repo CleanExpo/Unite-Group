@@ -85,9 +85,20 @@ journal success on a race win.
 - **Slice 3 — Mission Control surface.** Render the 6 states in the command-centre approvals deck
   (read-only view over operator_jobs filtered to the CRM lane) + a "Process" action that calls
   Slice 2. Component/source tests.
-- **Slice 4 — Board-gated activation (separate, not autonomous).** Real `execute()` per subject
-  type + `productionActionRequested` flip + `CRM_AUTO_EXECUTE=1` at go-live. Requires Board sign-off,
-  Supabase-branch validation of any new columns, and the autonomy-ladder gate. **Not built here.**
+- **Slice 4 — dormant execution stage (built) + Board-gated arming (NOT autonomous).**
+  Built inert: `runCrmAutoExecution` (timeout + write-then-confirm journal + executing→executed|failed),
+  `isCrmDispatchArmed()` (`CRM_DISPATCH_ARMED`, default off), and an empty `resolveSubjectExecutor`
+  registry, wired into the route behind `admitted && armed`. Doubly inert (flag off + null executors)
+  ⇒ no CRM mutation, no schema, no prod change.
+
+  **Go-live / arming checklist (Board sign-off required — never autonomous):**
+  1. Implement `resolveSubjectExecutor('lead_conversion')` — the real mutation, write-then-confirm
+     (perform, read back committed state, resolve; throw if unconfirmed).
+  2. Persist admitted approvals as `operator_jobs` (CRM lane) via a **production** operator_jobs write
+     client — needs the client + any schema on a **Supabase database branch**, validated, never prod-direct.
+  3. Board gate: set `productionActionRequested` semantics true for the CRM lane (`jobs.ts:127`).
+  4. Founder go-live: `CRM_DISPATCH_ARMED=1` then `CRM_AUTO_EXECUTE=1` (in that order), lead_conversion
+     L1 only, for the 2-week proving window. L2/L3 stay off per the autonomy ladder.
 
 ## 7. Success criteria
 

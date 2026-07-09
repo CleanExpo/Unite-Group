@@ -78,4 +78,19 @@ describe('POST /api/command-centre/crm/approvals/[id]/process', () => {
     expect(json.dispatchEnabled).toBe(false)
     expect(json.state).toBe('needs_review')
   })
+
+  it('execution stays null (no dispatch) with the arming flip off', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    delete process.env.CRM_DISPATCH_ARMED
+    const json = await (await POST(req(approvedLead), params())).json()
+    expect(json.execution).toBeNull()
+  })
+
+  it('execution still null even with CRM_DISPATCH_ARMED=1 (nothing is admitted via the real lifecycle)', async () => {
+    vi.mocked(getUser).mockResolvedValue({ id: 'u1' } as never)
+    process.env.CRM_DISPATCH_ARMED = '1'
+    const json = await (await POST(req(approvedLead), params())).json()
+    expect(json.execution).toBeNull()
+    delete process.env.CRM_DISPATCH_ARMED
+  })
 })

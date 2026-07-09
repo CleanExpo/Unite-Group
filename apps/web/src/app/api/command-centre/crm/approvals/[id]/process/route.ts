@@ -21,6 +21,12 @@ import {
 } from '@/lib/crm/approval-lifecycle'
 import { resolveCrmAdmission, buildCrmAdmissionEvidenceRow } from '@/lib/crm/mission-control-execution'
 import { journalAutoExecution } from '@/lib/crm/auto-exec-matrix'
+import {
+  runCrmAutoExecution,
+  isCrmDispatchArmed,
+  resolveSubjectExecutor,
+  type CrmExecutionResult,
+} from '@/lib/crm/crm-auto-executor'
 
 export const dynamic = 'force-dynamic'
 
@@ -68,6 +74,20 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     // fail the founder's request. No CRM mutation is performed here.
     await journalAutoExecution(buildCrmAdmissionEvidenceRow(lifecycle, decision))
 
+    // Execution stage — DORMANT. Only runs when the approval is admitted AND the
+    // Board go-live flip (CRM_DISPATCH_ARMED) is on. Even when armed, the per-subject
+    // executor registry is empty today, so no CRM mutation runs. In prod both gates
+    // are off, so `execution` is null and behaviour is unchanged.
+    let execution: CrmExecutionResult | null = null
+    if (decision.admitted && isCrmDispatchArmed()) {
+      execution = await runCrmAutoExecution(
+        lifecycle,
+        decision,
+        resolveSubjectExecutor(lifecycle.subjectType),
+        { journal: journalAutoExecution },
+      )
+    }
+
     return NextResponse.json(
       {
         id,
@@ -76,6 +96,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         operatorStatus: decision.operatorStatus,
         reason: decision.reason,
         dispatchEnabled: decision.dispatchEnabled,
+        execution,
         lifecycle: {
           decision: lifecycle.decision,
           normalizedStatus: lifecycle.normalizedStatus,
