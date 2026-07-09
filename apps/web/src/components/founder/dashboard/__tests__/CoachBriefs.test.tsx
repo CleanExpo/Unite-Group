@@ -68,8 +68,11 @@ describe('CoachBriefs — mock/live source badge (UNI-2283)', () => {
     await waitFor(() => {
       expect(screen.getByText('Daily Coaches')).toBeDefined()
     })
-    const badge = document.querySelector('[data-source-mode="seed"]')
-    expect(badge).not.toBeNull()
+    // Query inside waitFor — the badge commits in a later flush than the header, so a
+    // bare query races the state update under full-suite CPU load (passes in isolation).
+    await waitFor(() => {
+      expect(document.querySelector('[data-source-mode="seed"]')).not.toBeNull()
+    })
   })
 
   it('renders a "live" source badge for a live-data report', async () => {
@@ -83,8 +86,10 @@ describe('CoachBriefs — mock/live source badge (UNI-2283)', () => {
     await waitFor(() => {
       expect(screen.getByText('Daily Coaches')).toBeDefined()
     })
-    const badge = document.querySelector('[data-source-mode="live"]')
-    expect(badge).not.toBeNull()
+    // Query inside waitFor — see the "seed" case above (badge commits after the header).
+    await waitFor(() => {
+      expect(document.querySelector('[data-source-mode="live"]')).not.toBeNull()
+    })
   })
 
   it('renders no source badge when the report carries no provenance signal', async () => {
