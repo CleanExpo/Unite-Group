@@ -121,13 +121,13 @@ export function MeetingCard({ meeting, onStatusChange }: MeetingCardProps) {
           </div>
         </button>
         <span
-          className="text-[10px] px-2 py-0.5 rounded-sm border flex-shrink-0"
+          className="text-[10px] px-2 py-0.5 rounded-sm border shrink-0"
           style={{ color: STATUS_COLORS[meeting.status], borderColor: `${STATUS_COLORS[meeting.status]}40` }}
         >
           {meeting.status.toUpperCase()}
         </span>
         {(meeting.metrics.decisionsRequired ?? 0) > 0 && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded-sm flex-shrink-0" style={{ background: '#ef444420', color: '#ef4444' }}>
+          <span className="text-[10px] px-1.5 py-0.5 rounded-sm shrink-0" style={{ background: '#ef444420', color: '#ef4444' }}>
             {meeting.metrics.decisionsRequired} decisions
           </span>
         )}
@@ -196,7 +196,7 @@ export function MeetingCard({ meeting, onStatusChange }: MeetingCardProps) {
                 onChange={(e) => setNoteText(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') void submitNote() }}
                 placeholder="Add board note…"
-                className="flex-1 h-8 px-3 rounded-sm border text-[12px] outline-none"
+                className="flex-1 h-8 px-3 rounded-sm border text-[12px] outline-hidden"
                 style={{ borderColor: 'var(--color-border)', background: 'var(--surface-canvas)', color: 'var(--color-text-primary)' }}
               />
               <button

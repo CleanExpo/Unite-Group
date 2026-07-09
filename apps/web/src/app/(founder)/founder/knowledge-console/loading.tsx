@@ -2,8 +2,8 @@ export default function Loading() {
   return (
     <div className="flex min-h-full flex-col gap-5 p-4 md:p-6">
       <div className="space-y-2">
-        <div className="h-5 w-56 animate-pulse rounded-sm bg-white/[0.06]" />
-        <div className="h-3 w-96 max-w-full animate-pulse rounded-sm bg-white/[0.06]" />
+        <div className="h-5 w-56 animate-pulse rounded-sm bg-white/6" />
+        <div className="h-3 w-96 max-w-full animate-pulse rounded-sm bg-white/6" />
       </div>
       <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)_320px]">
         {[0, 1, 2].map((column) => (
@@ -16,7 +16,7 @@ export default function Loading() {
               {[0, 1, 2, 3, 4].map((row) => (
                 <div
                   key={row}
-                  className="h-3 animate-pulse rounded-sm bg-white/[0.06]"
+                  className="h-3 animate-pulse rounded-sm bg-white/6"
                   style={{ width: `${90 - row * 10}%` }}
                 />
               ))}

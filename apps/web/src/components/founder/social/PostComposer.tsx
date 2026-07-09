@@ -153,7 +153,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
           <select
             value={businessKey}
             onChange={e => setBusinessKey(e.target.value)}
-            className="w-full rounded-sm px-3 py-2 text-[13px] focus:outline-none focus:border-[#16a34a]/30"
+            className="w-full rounded-sm px-3 py-2 text-[13px] focus:outline-hidden focus:border-[#16a34a]/30"
             style={{ background: 'var(--surface-elevated)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
           >
             {BUSINESSES.map(b => <option key={b.key} value={b.key}>{b.name}</option>)}
@@ -201,7 +201,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
                   value={aiTopic}
                   onChange={e => setAiTopic(e.target.value)}
                   placeholder="e.g. Summer road safety tips"
-                  className="w-full rounded-sm px-3 py-1.5 text-[12px] placeholder:text-[#5f5f66] focus:outline-none focus:border-[#16a34a]/30"
+                  className="w-full rounded-sm px-3 py-1.5 text-[12px] placeholder:text-[#5f5f66] focus:outline-hidden focus:border-[#16a34a]/30"
                   style={{ background: 'var(--surface-elevated)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
                 />
               </div>
@@ -234,7 +234,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
                 <select
                   value={aiPlatform}
                   onChange={e => setAiPlatform(e.target.value)}
-                  className="w-full rounded-sm px-3 py-1.5 text-[12px] focus:outline-none focus:border-[#16a34a]/30"
+                  className="w-full rounded-sm px-3 py-1.5 text-[12px] focus:outline-hidden focus:border-[#16a34a]/30"
                   style={{ background: 'var(--surface-elevated)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
                 >
                   <option value="">Multi-platform</option>
@@ -322,7 +322,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
             onChange={e => setContent(e.target.value)}
             rows={4}
             placeholder="What do you want to share?"
-            className="w-full rounded-sm px-3 py-2 text-[13px] placeholder:text-[#5f5f66] focus:outline-none focus:border-[#16a34a]/30 resize-none"
+            className="w-full rounded-sm px-3 py-2 text-[13px] placeholder:text-[#5f5f66] focus:outline-hidden focus:border-[#16a34a]/30 resize-none"
             style={{ background: 'var(--surface-elevated)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
           />
           <p className="text-[10px] mt-1" style={{ color: 'var(--color-text-secondary)' }}>{content.length} chars</p>
@@ -361,7 +361,7 @@ export function PostComposer({ channels, onClose, onCreated }: Props) {
             type="datetime-local"
             value={scheduledAt}
             onChange={e => setScheduledAt(e.target.value)}
-            className="w-full rounded-sm px-3 py-2 text-[13px] focus:outline-none focus:border-[#16a34a]/30"
+            className="w-full rounded-sm px-3 py-2 text-[13px] focus:outline-hidden focus:border-[#16a34a]/30"
             style={{ background: 'var(--surface-elevated)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
           />
         </div>

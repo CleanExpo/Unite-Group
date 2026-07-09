@@ -133,7 +133,7 @@ export function CreateIssueModal({ open, onClose, onCreated }: CreateIssueModalP
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Issue title"
                   required
-                  className="rounded-sm px-3 py-2 text-[13px] outline-none transition-colors"
+                  className="rounded-sm px-3 py-2 text-[13px] outline-hidden transition-colors"
                   style={{
                     background: '#fffdf7',
                     border: '1px solid rgba(255, 255, 255, 0.08)',
@@ -154,7 +154,7 @@ export function CreateIssueModal({ open, onClose, onCreated }: CreateIssueModalP
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Optional description"
                   rows={3}
-                  className="rounded-sm px-3 py-2 text-[13px] outline-none resize-none transition-colors"
+                  className="rounded-sm px-3 py-2 text-[13px] outline-hidden resize-none transition-colors"
                   style={{
                     background: '#fffdf7',
                     border: '1px solid rgba(255, 255, 255, 0.08)',
@@ -176,7 +176,7 @@ export function CreateIssueModal({ open, onClose, onCreated }: CreateIssueModalP
                     <select
                       value={businessKey}
                       onChange={(e) => setBusinessKey(e.target.value)}
-                      className="w-full rounded-sm pl-7 pr-3 py-2 text-[13px] outline-none appearance-none transition-colors"
+                      className="w-full rounded-sm pl-7 pr-3 py-2 text-[13px] outline-hidden appearance-none transition-colors"
                       style={{
                         background: '#fffdf7',
                         border: '1px solid rgba(255, 255, 255, 0.08)',
@@ -209,7 +209,7 @@ export function CreateIssueModal({ open, onClose, onCreated }: CreateIssueModalP
                   <select
                     value={priority}
                     onChange={(e) => setPriority(Number(e.target.value))}
-                    className="w-full rounded-sm px-3 py-2 text-[13px] outline-none appearance-none transition-colors"
+                    className="w-full rounded-sm px-3 py-2 text-[13px] outline-hidden appearance-none transition-colors"
                     style={{
                       background: '#fffdf7',
                       border: '1px solid rgba(255, 255, 255, 0.08)',

@@ -50,7 +50,7 @@ export function PostsList({ posts }: Props) {
                 <p className="text-[11px] mt-1" style={{ color: '#ef4444' }}>{post.errorMessage}</p>
               )}
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
               <div className="flex gap-1">
                 {(post.platforms as SocialPlatform[]).map(p => (
                   <span

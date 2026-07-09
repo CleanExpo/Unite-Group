@@ -33,7 +33,7 @@ export function AccountSettingsSection({ settings, onSave, loading }: AccountSet
           <select
             value={timezone}
             onChange={(e) => setTimezone(e.target.value)}
-            className="w-full bg-surface-elevated text-color-text-primary rounded-sm px-3 py-2 border border-surface-elevated hover:border-color-text-muted focus:outline-none focus:border-cyan-400"
+            className="w-full bg-surface-elevated text-color-text-primary rounded-sm px-3 py-2 border border-surface-elevated hover:border-color-text-muted focus:outline-hidden focus:border-cyan-400"
             disabled={loading || saving}
           >
             <option value="Australia/Brisbane">Brisbane (AEST, no DST)</option>
@@ -48,7 +48,7 @@ export function AccountSettingsSection({ settings, onSave, loading }: AccountSet
           <select
             value={locale}
             onChange={(e) => setLocale(e.target.value)}
-            className="w-full bg-surface-elevated text-color-text-primary rounded-sm px-3 py-2 border border-surface-elevated hover:border-color-text-muted focus:outline-none focus:border-cyan-400"
+            className="w-full bg-surface-elevated text-color-text-primary rounded-sm px-3 py-2 border border-surface-elevated hover:border-color-text-muted focus:outline-hidden focus:border-cyan-400"
             disabled={loading || saving}
           >
             <option value="en-AU">Australian English (DD/MM/YYYY)</option>

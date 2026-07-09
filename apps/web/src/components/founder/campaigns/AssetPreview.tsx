@@ -124,7 +124,7 @@ export function AssetPreview({ asset, businessKey, onPublished, onRegenerateImag
   }
 
   return (
-    <div className="bg-[#fff7ec] border border-white/[0.06] rounded-sm p-4 flex flex-col gap-3">
+    <div className="bg-[#fff7ec] border border-white/6 rounded-sm p-4 flex flex-col gap-3">
       {/* Header row — platform + visual type + status badges */}
       <div className="flex items-center gap-2 flex-wrap">
         <span className={`text-xs font-medium px-2 py-0.5 rounded-sm ${PLATFORM_BADGE[asset.platform]}`}>
@@ -153,7 +153,7 @@ export function AssetPreview({ asset, businessKey, onPublished, onRegenerateImag
           className="w-full aspect-square object-cover rounded-sm"
         />
       ) : (
-        <div className="w-full aspect-square bg-white/[0.03] border border-white/[0.06] rounded-sm flex items-center justify-center">
+        <div className="w-full aspect-square bg-white/3 border border-white/6 rounded-sm flex items-center justify-center">
           <span className="text-[#5f5f66] text-sm">
             {asset.status === 'generating_image' ? 'Image generating…' : 'No image'}
           </span>

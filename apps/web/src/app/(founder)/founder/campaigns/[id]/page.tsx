@@ -147,7 +147,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
       <div className="flex items-start gap-3">
         <Link
           href="/founder/campaigns"
-          className="mt-1 p-1.5 rounded-sm border transition-colors flex-shrink-0"
+          className="mt-1 p-1.5 rounded-sm border transition-colors shrink-0"
           style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
           aria-label="Back to campaigns"
         >
@@ -173,7 +173,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
             {published > 0 && <span style={{ color: '#3b82f6' }}>{published} published</span>}
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => void load()}
             disabled={loading}

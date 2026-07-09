@@ -38,14 +38,14 @@ export function ThreadRow({ thread, selected, active, triageInfo, onCheck, onCli
         'flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors border-l-2',
         active
           ? 'bg-[#16a34a]/5 border-l-[#16a34a]'
-          : 'border-l-transparent hover:bg-black/[0.05]',
-        thread.unread ? 'border-b border-white/[0.06]' : 'border-b border-white/[0.04]',
+          : 'border-l-transparent hover:bg-black/5',
+        thread.unread ? 'border-b border-white/6' : 'border-b border-white/4',
       ].join(' ')}
       onClick={() => onClick(thread.id)}
     >
       {/* Checkbox */}
       <div
-        className="mt-0.5 flex-shrink-0"
+        className="mt-0.5 shrink-0"
         onClick={e => { e.stopPropagation(); onCheck(thread.id, !selected) }}
       >
         <div className={[
@@ -62,7 +62,7 @@ export function ThreadRow({ thread, selected, active, triageInfo, onCheck, onCli
 
       {/* Unread indicator */}
       <div
-        className="mt-2 w-1.5 h-1.5 rounded-full flex-shrink-0"
+        className="mt-2 w-1.5 h-1.5 rounded-full shrink-0"
         style={{
           backgroundColor: thread.unread ? '#16a34a' : 'transparent',
           border: thread.unread ? 'none' : '1px solid rgba(255,255,255,0.15)',
@@ -75,7 +75,7 @@ export function ThreadRow({ thread, selected, active, triageInfo, onCheck, onCli
           <p className={`text-sm truncate flex-1 ${thread.unread ? 'text-[#0A0A0A] font-medium' : 'text-[#52525b]'}`}>
             {thread.subject}
           </p>
-          <span className="text-[10px] text-[#5f5f66] flex-shrink-0">{formatDate(thread.date)}</span>
+          <span className="text-[10px] text-[#5f5f66] shrink-0">{formatDate(thread.date)}</span>
         </div>
         <div className="flex items-center gap-2">
           <p className="text-xs text-[#5f5f66] truncate flex-1">{thread.from} · {thread.snippet}</p>

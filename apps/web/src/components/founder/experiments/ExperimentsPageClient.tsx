@@ -54,7 +54,7 @@ export function ExperimentsPageClient({ experiments }: Props) {
         <select
           value={businessFilter}
           onChange={(e) => setBusinessFilter(e.target.value as BusinessKey | '')}
-          className="text-[11px] px-3 py-1.5 rounded-sm border bg-transparent outline-none"
+          className="text-[11px] px-3 py-1.5 rounded-sm border bg-transparent outline-hidden"
           style={{
             borderColor: 'var(--color-border)',
             color: 'var(--color-text-secondary)',
@@ -72,7 +72,7 @@ export function ExperimentsPageClient({ experiments }: Props) {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as ExperimentStatus | '')}
-          className="text-[11px] px-3 py-1.5 rounded-sm border bg-transparent outline-none"
+          className="text-[11px] px-3 py-1.5 rounded-sm border bg-transparent outline-hidden"
           style={{
             borderColor: 'var(--color-border)',
             color: 'var(--color-text-secondary)',

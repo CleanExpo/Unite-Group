@@ -24,7 +24,7 @@ export function FileTree({ files, onSelectFile }: FileTreeProps) {
         placeholder="Search notes..."
         value={searchTerm}
         onChange={e => setSearchTerm(e.target.value)}
-        className="px-3 py-2 rounded-sm bg-surface-elevated text-color-text-primary text-sm placeholder-color-text-muted focus:outline-none focus:ring-1 focus:ring-cyan-400"
+        className="px-3 py-2 rounded-sm bg-surface-elevated text-color-text-primary text-sm placeholder-color-text-muted focus:outline-hidden focus:ring-1 focus:ring-cyan-400"
       />
 
       <div className="flex-1 overflow-y-auto space-y-1">

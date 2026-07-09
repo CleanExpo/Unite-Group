@@ -113,7 +113,7 @@ export function ContactDetailClient({ id }: ContactDetailClientProps) {
   const backLink = (
     <Link
       href="/founder/contacts"
-      className="inline-flex items-center gap-1.5 text-[13px] text-[var(--color-text-muted)] hover:text-[#15803d] transition-colors"
+      className="inline-flex items-center gap-1.5 text-[13px] text-(--color-text-muted) hover:text-[#15803d] transition-colors"
     >
       <ArrowLeft /> Contacts
     </Link>
@@ -123,11 +123,11 @@ export function ContactDetailClient({ id }: ContactDetailClientProps) {
     return (
       <div className="space-y-6">
         {backLink}
-        <div className="h-5 w-48 bg-white/[0.06] rounded-sm animate-pulse" />
-        <div className="bg-[#fff7ec] border border-white/[0.06] rounded-sm p-4 flex flex-col gap-3">
-          <div className="h-2 w-2/3 bg-white/[0.06] rounded-sm animate-pulse" />
-          <div className="h-2 w-1/2 bg-white/[0.06] rounded-sm animate-pulse" />
-          <div className="h-2 w-3/4 bg-white/[0.06] rounded-sm animate-pulse" />
+        <div className="h-5 w-48 bg-white/6 rounded-sm animate-pulse" />
+        <div className="bg-[#fff7ec] border border-white/6 rounded-sm p-4 flex flex-col gap-3">
+          <div className="h-2 w-2/3 bg-white/6 rounded-sm animate-pulse" />
+          <div className="h-2 w-1/2 bg-white/6 rounded-sm animate-pulse" />
+          <div className="h-2 w-3/4 bg-white/6 rounded-sm animate-pulse" />
         </div>
       </div>
     )
@@ -138,8 +138,8 @@ export function ContactDetailClient({ id }: ContactDetailClientProps) {
       <div className="space-y-6">
         {backLink}
         <div className="flex flex-col items-center justify-center min-h-[300px] gap-2 text-center">
-          <p className="text-sm text-[var(--color-text-primary)]">Contact not found</p>
-          <p className="text-[13px] text-[var(--color-text-muted)]">
+          <p className="text-sm text-(--color-text-primary)">Contact not found</p>
+          <p className="text-[13px] text-(--color-text-muted)">
             It may have been deleted, or it belongs to a different account.
           </p>
         </div>
@@ -155,7 +155,7 @@ export function ContactDetailClient({ id }: ContactDetailClientProps) {
           <p className="text-[13px] text-[#52525b]">{error}</p>
           <button
             onClick={fetchContact}
-            className="border border-white/[0.12] text-[#52525b] text-[13px] rounded-sm px-4 py-2 hover:border-white/20 hover:text-[#3f3f46] transition-colors"
+            className="border border-white/12 text-[#52525b] text-[13px] rounded-sm px-4 py-2 hover:border-white/20 hover:text-[#3f3f46] transition-colors"
           >
             Try again
           </button>
@@ -182,7 +182,7 @@ export function ContactDetailClient({ id }: ContactDetailClientProps) {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex flex-col gap-2">
-          <h1 className="text-lg font-semibold text-[var(--color-text-primary)]">{fullName(contact)}</h1>
+          <h1 className="text-lg font-semibold text-(--color-text-primary)">{fullName(contact)}</h1>
           <span
             className="inline-flex w-fit items-center rounded-sm px-2 py-0.5 text-xs font-medium capitalize"
             style={{ background: badge.bg, color: badge.fg }}
@@ -201,7 +201,7 @@ export function ContactDetailClient({ id }: ContactDetailClientProps) {
           <button
             onClick={handleDelete}
             disabled={deleting}
-            className="inline-flex items-center gap-1.5 rounded-sm border border-white/[0.12] px-3 py-2 text-[13px] text-[#52525b] hover:border-[#ef4444]/40 hover:text-[#f87171] transition-colors disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 rounded-sm border border-white/12 px-3 py-2 text-[13px] text-[#52525b] hover:border-[#ef4444]/40 hover:text-[#f87171] transition-colors disabled:opacity-40"
           >
             <Trash2 /> {deleting ? 'Deleting…' : 'Delete'}
           </button>
@@ -209,12 +209,12 @@ export function ContactDetailClient({ id }: ContactDetailClientProps) {
       </div>
 
       {/* Detail fields */}
-      <div className="bg-[#fff7ec] border border-white/[0.06] rounded-sm divide-y divide-white/[0.06]">
+      <div className="bg-[#fff7ec] border border-white/6 rounded-sm divide-y divide-white/6">
         {fields.map((f) => (
           <div key={f.label} className="flex items-center justify-between gap-4 px-4 py-3">
-            <span className="text-[13px] text-[var(--color-text-muted)]">{f.label}</span>
-            <span className="text-[13px] text-[var(--color-text-primary)] text-right">
-              {f.value ? f.value : <span className="text-[var(--color-text-muted)]">—</span>}
+            <span className="text-[13px] text-(--color-text-muted)">{f.label}</span>
+            <span className="text-[13px] text-(--color-text-primary) text-right">
+              {f.value ? f.value : <span className="text-(--color-text-muted)">—</span>}
             </span>
           </div>
         ))}
@@ -226,7 +226,7 @@ export function ContactDetailClient({ id }: ContactDetailClientProps) {
           {contact.tags.map((tag) => (
             <span
               key={tag}
-              className="rounded-sm border border-white/[0.12] px-2 py-0.5 text-xs text-[var(--color-text-muted)]"
+              className="rounded-sm border border-white/12 px-2 py-0.5 text-xs text-(--color-text-muted)"
             >
               {tag}
             </span>

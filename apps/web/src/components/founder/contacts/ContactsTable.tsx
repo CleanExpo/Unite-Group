@@ -21,7 +21,7 @@ interface ContactsTableProps {
 export function ContactsTable({ contacts, loading, onEdit, onDelete }: ContactsTableProps) {
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12 text-[var(--color-text-muted)]">
+      <div className="flex items-center justify-center py-12 text-(--color-text-muted)">
         Loading contacts...
       </div>
     )
@@ -29,7 +29,7 @@ export function ContactsTable({ contacts, loading, onEdit, onDelete }: ContactsT
 
   if (contacts.length === 0) {
     return (
-      <div className="flex items-center justify-center py-12 text-[var(--color-text-muted)]">
+      <div className="flex items-center justify-center py-12 text-(--color-text-muted)">
         No contacts yet
       </div>
     )
@@ -39,7 +39,7 @@ export function ContactsTable({ contacts, loading, onEdit, onDelete }: ContactsT
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-[var(--color-border)] text-left text-[var(--color-text-muted)]">
+          <tr className="border-b border-border text-left text-(--color-text-muted)">
             <th className="px-4 py-3 font-medium">Name</th>
             <th className="px-4 py-3 font-medium">Email</th>
             <th className="px-4 py-3 font-medium">Company</th>
@@ -54,18 +54,18 @@ export function ContactsTable({ contacts, loading, onEdit, onDelete }: ContactsT
             return (
               <tr
                 key={contact.id}
-                className="group border-b border-[var(--color-border)] transition-colors hover:bg-[var(--surface-elevated)]"
+                className="group border-b border-border transition-colors hover:bg-(--surface-elevated)"
               >
                 <td className="px-4 py-3">
                   <Link
                     href={`/founder/contacts/${contact.id}`}
-                    className="text-[var(--color-text-primary)] transition-colors hover:text-[#15803d]"
+                    className="text-(--color-text-primary) transition-colors hover:text-[#15803d]"
                   >
                     {name}
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-[var(--color-text-muted)]">{contact.email ?? '—'}</td>
-                <td className="px-4 py-3 text-[var(--color-text-muted)]">{contact.company ?? '—'}</td>
+                <td className="px-4 py-3 text-(--color-text-muted)">{contact.email ?? '—'}</td>
+                <td className="px-4 py-3 text-(--color-text-muted)">{contact.company ?? '—'}</td>
                 <td className="px-4 py-3">
                   <span
                     className="inline-block rounded-sm px-2 py-0.5 text-xs font-medium"
@@ -99,13 +99,13 @@ export function ContactsTable({ contacts, loading, onEdit, onDelete }: ContactsT
                   <div className="flex items-center justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100">
                     <button
                       onClick={() => onEdit(contact)}
-                      className="rounded-sm px-2 py-1 text-xs text-[var(--color-text-muted)] transition-colors hover:text-[#15803d]"
+                      className="rounded-sm px-2 py-1 text-xs text-(--color-text-muted) transition-colors hover:text-[#15803d]"
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => onDelete(contact.id)}
-                      className="rounded-sm px-2 py-1 text-xs text-[var(--color-text-muted)] transition-colors hover:text-[#ef4444]"
+                      className="rounded-sm px-2 py-1 text-xs text-(--color-text-muted) transition-colors hover:text-[#ef4444]"
                     >
                       Delete
                     </button>

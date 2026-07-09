@@ -84,7 +84,7 @@ export function BrandProfileSelector({
   }, [loadProfiles]);
 
   return (
-    <div className="bg-[#fff7ec] border border-white/[0.06] rounded-sm p-6 flex flex-col gap-5">
+    <div className="bg-[#fff7ec] border border-white/6 rounded-sm p-6 flex flex-col gap-5">
       <div className="flex items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
           <h2 className="text-[15px] font-semibold text-[#0A0A0A] tracking-tight">
@@ -105,7 +105,7 @@ export function BrandProfileSelector({
       </div>
 
       {loadState === "loading" && (
-        <div className="rounded-sm border border-white/[0.06] bg-white/[0.02] px-4 py-5">
+        <div className="rounded-sm border border-white/6 bg-white/2 px-4 py-5">
           <p className="text-[12px] text-[#5f5f66]">
             Loading eligible child brands…
           </p>
@@ -126,7 +126,7 @@ export function BrandProfileSelector({
       )}
 
       {loadState === "empty" && (
-        <div className="rounded-sm border border-white/[0.06] bg-white/[0.02] px-4 py-5 flex flex-col gap-3">
+        <div className="rounded-sm border border-white/6 bg-white/2 px-4 py-5 flex flex-col gap-3">
           <p className="text-[12px] text-[#5f5f66]">
             No ready child brands found yet. Scan a brand website to create the
             first campaign-ready identity.
@@ -148,7 +148,7 @@ export function BrandProfileSelector({
               key={profile.id}
               type="button"
               onClick={() => onSelect(profile)}
-              className="text-left rounded-sm border border-white/[0.08] bg-white/[0.02] hover:border-[#16a34a]/40 hover:bg-[#16a34a]/[0.04] px-4 py-3 transition-colors"
+              className="text-left rounded-sm border border-white/8 bg-white/2 hover:border-[#16a34a]/40 hover:bg-[#16a34a]/4 px-4 py-3 transition-colors"
             >
               <span className="block text-[13px] font-medium text-[#3f3f46]">
                 {profile.clientName}

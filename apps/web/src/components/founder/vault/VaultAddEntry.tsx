@@ -49,7 +49,7 @@ export function VaultAddEntry({ onClose, onAdded }: VaultAddEntryProps) {
     }
   }
 
-  const inputClass = 'w-full px-3 h-9 rounded-sm text-[13px] text-[#0A0A0A] outline-none'
+  const inputClass = 'w-full px-3 h-9 rounded-sm text-[13px] text-[#0A0A0A] outline-hidden'
   const inputStyle = { background: 'var(--surface-elevated)', border: '1px solid var(--color-border)' }
   const labelClass = 'text-[11px] font-medium uppercase tracking-wider block mb-1'
   const labelStyle = { color: 'var(--color-text-muted)' }

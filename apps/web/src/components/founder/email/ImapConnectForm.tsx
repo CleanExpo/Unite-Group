@@ -43,7 +43,7 @@ export function ImapConnectForm({ email, label }: Props) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="text-[10px] uppercase tracking-wider hover:text-[#3f3f46] transition-colors flex-shrink-0"
+        className="text-[10px] uppercase tracking-wider hover:text-[#3f3f46] transition-colors shrink-0"
         style={{ color: 'var(--color-text-secondary)' }}
       >
         Connect →
@@ -63,7 +63,7 @@ export function ImapConnectForm({ email, label }: Props) {
         onChange={e => setPassword(e.target.value)}
         required
         autoFocus
-        className="bg-[var(--surface-card)] border border-[var(--color-border)] rounded-sm px-2 py-1 text-xs text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:border-[#16a34a] focus:outline-none"
+        className="bg-(--surface-card) border border-border rounded-sm px-2 py-1 text-xs text-(--color-text-primary) placeholder-(--color-text-muted) focus:border-[#16a34a] focus:outline-hidden"
       />
       {error && <p className="text-red-700 text-xs">{error}</p>}
       <div className="flex gap-2">

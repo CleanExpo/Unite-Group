@@ -184,9 +184,9 @@ export function EmailWorkbench({ accounts }: Props) {
           <p className="text-sm text-[#5f5f66]">No Gmail accounts with write access. Reconnect above.</p>
         </div>
       ) : (
-        <div className="flex flex-col flex-1 min-h-0 border border-white/[0.08] rounded-sm overflow-hidden">
+        <div className="flex flex-col flex-1 min-h-0 border border-white/8 rounded-sm overflow-hidden">
           {/* Account tabs */}
-          <div className="px-4 pt-3 pb-0 bg-[var(--surface-sidebar)]">
+          <div className="px-4 pt-3 pb-0 bg-(--surface-sidebar)">
             <AccountTabs
               accounts={unreadCounts}
               activeAccount={activeAccount}
@@ -197,7 +197,7 @@ export function EmailWorkbench({ accounts }: Props) {
           {/* Split panel */}
           <div className="flex flex-1 min-h-0">
             {/* Thread list — 35% */}
-            <div className="w-[35%] min-w-[260px] border-r border-white/[0.06] flex flex-col overflow-hidden">
+            <div className="w-[35%] min-w-[260px] border-r border-white/6 flex flex-col overflow-hidden">
               {error && !loading && threads.filter(t => t.email === activeAccount).length === 0 ? (
                 <div role="alert" className="flex flex-1 items-center justify-center p-6 text-center">
                   <p className="text-sm" style={{ color: 'var(--color-danger, #ef4444)' }}>

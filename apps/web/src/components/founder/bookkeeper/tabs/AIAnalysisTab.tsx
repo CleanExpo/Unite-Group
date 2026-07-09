@@ -208,7 +208,7 @@ export function AIAnalysisTab() {
           onChange={e => setQuestion(e.target.value)}
           placeholder="e.g. Where are we losing margin compared to last quarter?"
           rows={5}
-          className="w-full resize-none rounded-sm border bg-transparent px-3 py-2 text-[13px] outline-none"
+          className="w-full resize-none rounded-sm border bg-transparent px-3 py-2 text-[13px] outline-hidden"
           style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
         />
       </div>

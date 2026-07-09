@@ -14,7 +14,7 @@ interface Props {
 
 export function AccountTabs({ accounts, activeAccount, onSelect }: Props) {
   return (
-    <div className="flex items-center gap-1 overflow-x-auto pb-1 border-b border-white/[0.06]">
+    <div className="flex items-center gap-1 overflow-x-auto pb-1 border-b border-white/6">
       {accounts.map(account => {
         const active = account.email === activeAccount
         return (
@@ -22,7 +22,7 @@ export function AccountTabs({ accounts, activeAccount, onSelect }: Props) {
             key={account.email}
             onClick={() => onSelect(account.email)}
             className={[
-              'flex items-center gap-1.5 px-3 py-2 text-xs rounded-sm transition-colors flex-shrink-0',
+              'flex items-center gap-1.5 px-3 py-2 text-xs rounded-sm transition-colors shrink-0',
               active
                 ? 'bg-[#16a34a]/10 text-[#15803d] border border-[#16a34a]/30'
                 : 'text-[#52525b] hover:text-[#3f3f46] border border-transparent hover:border-white/10',

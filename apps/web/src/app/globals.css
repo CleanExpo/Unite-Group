@@ -1,8 +1,233 @@
 /* Geist Sans & Mono Typography — loaded via `geist` npm package in layout.tsx */
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@plugin 'tailwindcss-animate';
+
+@custom-variant dark (&:is(.dark *));
+
+@utility container {
+  margin-inline: auto;
+  padding-inline: 2rem;
+  @media (width >= --theme(--breakpoint-sm)) {
+    max-width: none;
+  }
+  @media (width >= 1400px) {
+    max-width: 1400px;
+  }
+}
+
+/* `inline` so utilities embed these values directly (v3 behaviour) instead of
+   emitting --color-* vars on :root — the editorial :root block below already
+   owns --color-accent/--color-danger/--color-success at runtime; emitting
+   theme vars of the same names would collide (accent) or self-reference
+   (danger/success). */
+@theme inline {
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --color-danger: var(--color-danger);
+
+  --color-success: var(--color-success);
+
+  --color-color-text-primary: var(--color-text-primary);
+  --color-color-text-secondary: var(--color-text-secondary);
+  --color-color-text-muted: var(--color-text-muted);
+  --color-color-text-disabled: var(--color-text-disabled);
+
+  --color-surface-canvas: var(--surface-canvas);
+  --color-surface-sidebar: var(--surface-sidebar);
+  --color-surface-card: var(--surface-card);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-overlay: var(--surface-overlay);
+  --color-surface-selected: var(--surface-selected);
+
+  --color-unite-teal: #3b9ba8;
+  --color-unite-blue: #2563ab;
+  --color-unite-orange: #f39c12;
+  --color-unite-gold: #e67e22;
+  --color-unite-navy: #1e3a5f;
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+/* Phase 37: Standardized Spacing System */
+@utility page-padding {
+  /* Page spacing */
+  @apply px-4 sm:px-6 lg:px-8 py-6 sm:py-8;
+}
+@utility section-margin {
+  /* Section spacing */
+  @apply mb-6 sm:mb-8;
+}
+@utility card-padding {
+  /* Card padding */
+  @apply p-4 sm:p-6;
+}
+@utility chatbot-safe {
+  /* Chatbot safe zone - prevents content overlap with chatbot */
+  @apply pb-20 lg:pb-0 lg:pr-96;
+}
+@utility grid-gap-sm {
+  /* Responsive grid gaps */
+  @apply gap-2 sm:gap-3;
+}
+@utility grid-gap-md {
+  @apply gap-4 sm:gap-6;
+}
+@utility grid-gap-lg {
+  @apply gap-6 sm:gap-8;
+}
+@utility container-sm {
+  /* Standard breakpoint containers */
+  @apply max-w-2xl mx-auto;
+}
+@utility container-md {
+  @apply max-w-4xl mx-auto;
+}
+@utility container-lg {
+  @apply max-w-6xl mx-auto;
+}
+@utility container-xl {
+  @apply max-w-7xl mx-auto;
+}
+@utility input-focus {
+  /* Input focus/error border utilities — avoids Tailwind opacity-modifier + CSS var limitation */
+  border-color: rgba(0, 0, 0, 0.08);
+  &:focus {
+    border-color: var(--color-accent-border);
+  }
+}
+@utility input-focus-error {
+  border-color: rgba(239, 68, 68, 0.4);
+  &:focus {
+    border-color: rgba(239, 68, 68, 0.6);
+  }
+}
+@utility nav-item-hover {
+  /* Nav item hover — CSS vars can't be used in Tailwind hover: modifiers */
+  &:hover {
+    background: var(--surface-card);
+    color: var(--color-text-secondary);
+  }
+  & svg.lucide {
+    transition:
+      filter 0.12s ease,
+      transform 0.12s ease;
+  }
+  &:hover svg.lucide {
+    filter: drop-shadow(0 1.5px 1px rgba(0, 0, 0, 0.28))
+      drop-shadow(0 -0.5px 0.5px rgba(255, 255, 255, 0.5));
+    transform: translateY(-0.5px);
+  }
+}
+/* 3D icon depth — give every icon a subtle embossed lift (dark drop below +
+   faint light highlight above) so the line icons read with depth, not flat.
+   Plain rules, NOT @utility: `lucide` is lucide-react's own svg class, never a
+   utility the scanner would see in our markup, so an @utility version only
+   emits by accident. */
+svg.lucide {
+  filter: drop-shadow(0 1px 0.5px rgba(0, 0, 0, 0.22))
+    drop-shadow(0 -0.5px 0.5px rgba(255, 255, 255, 0.45));
+}
+.nav-item-hover svg.lucide {
+  transition:
+    filter 0.12s ease,
+    transform 0.12s ease;
+}
+.nav-item-hover:hover svg.lucide {
+  filter: drop-shadow(0 1.5px 1px rgba(0, 0, 0, 0.28))
+    drop-shadow(0 -0.5px 0.5px rgba(255, 255, 255, 0.5));
+  transform: translateY(-0.5px);
+}
+@utility glassmorphic {
+  /* Glassmorphism Utility */
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border: var(--border-style);
+  border-radius: var(--radius-component);
+}
+@utility bento-tile {
+  /* Bento Tile — no box-shadow (elevation via surface lightness only) */
+  background: var(--bg-surface, #ffffff);
+  border: var(--border-style);
+  border-radius: var(--radius-bento);
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+}
+@utility theme-unite-hub {
+  /* Theme Classes */
+  --bg-primary: var(--unite-bg-primary);
+  --bg-surface: var(--unite-bg-surface);
+  --accent: var(--unite-accent);
+  --status-ok: var(--unite-status-ok);
+}
+@utility theme-synthex {
+  --bg-primary: var(--synthex-bg-primary);
+  --bg-surface: var(--synthex-bg-surface);
+  --accent: var(--synthex-accent);
+  --agent-active: var(--synthex-agent-active);
+
+  /* Radial background grid */
+  background-image:
+    radial-gradient(
+      circle at 25% 25%,
+      rgba(168, 85, 247, 0.1) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 75% 75%,
+      rgba(244, 114, 182, 0.1) 0%,
+      transparent 50%
+    );
+}
 
 @layer base {
   /* Modern Design Tokens & Light Mode (default) */
@@ -192,129 +417,6 @@
     min-width: 320px;
     overflow-x: hidden;
   }
-}
-
-/* Phase 37: Standardized Spacing System */
-@layer utilities {
-  /* Page spacing */
-  .page-padding {
-    @apply px-4 sm:px-6 lg:px-8 py-6 sm:py-8;
-  }
-
-  /* Section spacing */
-  .section-margin {
-    @apply mb-6 sm:mb-8;
-  }
-
-  /* Card padding */
-  .card-padding {
-    @apply p-4 sm:p-6;
-  }
-
-  /* Chatbot safe zone - prevents content overlap with chatbot */
-  .chatbot-safe {
-    @apply pb-20 lg:pb-0 lg:pr-96;
-  }
-
-  /* Responsive grid gaps */
-  .grid-gap-sm {
-    @apply gap-2 sm:gap-3;
-  }
-
-  .grid-gap-md {
-    @apply gap-4 sm:gap-6;
-  }
-
-  .grid-gap-lg {
-    @apply gap-6 sm:gap-8;
-  }
-
-  /* Standard breakpoint containers */
-  .container-sm {
-    @apply max-w-2xl mx-auto;
-  }
-
-  .container-md {
-    @apply max-w-4xl mx-auto;
-  }
-
-  .container-lg {
-    @apply max-w-6xl mx-auto;
-  }
-
-  .container-xl {
-    @apply max-w-7xl mx-auto;
-  }
-
-  /* Input focus/error border utilities — avoids Tailwind opacity-modifier + CSS var limitation */
-  .input-focus { border-color: rgba(0,0,0,0.08); }
-  .input-focus:focus { border-color: var(--color-accent-border); }
-  .input-focus-error { border-color: rgba(239,68,68,0.4); }
-  .input-focus-error:focus { border-color: rgba(239,68,68,0.6); }
-
-  /* Nav item hover — CSS vars can't be used in Tailwind hover: modifiers */
-  .nav-item-hover:hover {
-    background: var(--surface-card);
-    color: var(--color-text-secondary);
-  }
-
-  /* 3D icon depth — give every icon a subtle embossed lift (dark drop below +
-     faint light highlight above) so the line icons read with depth, not flat. */
-  svg.lucide {
-    filter:
-      drop-shadow(0 1px 0.5px rgba(0, 0, 0, 0.22))
-      drop-shadow(0 -0.5px 0.5px rgba(255, 255, 255, 0.45));
-  }
-  .nav-item-hover svg.lucide {
-    transition: filter 0.12s ease, transform 0.12s ease;
-  }
-  .nav-item-hover:hover svg.lucide {
-    filter:
-      drop-shadow(0 1.5px 1px rgba(0, 0, 0, 0.28))
-      drop-shadow(0 -0.5px 0.5px rgba(255, 255, 255, 0.5));
-    transform: translateY(-0.5px);
-  }
-
-  /* Glassmorphism Utility */
-  .glassmorphic {
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--glass-blur)) saturate(160%);
-    border: var(--border-style);
-    border-radius: var(--radius-component);
-  }
-
-  /* Bento Tile — no box-shadow (elevation via surface lightness only) */
-  .bento-tile {
-    background: var(--bg-surface, #ffffff);
-    border: var(--border-style);
-    border-radius: var(--radius-bento);
-    transition: all 0.3s ease;
-  }
-
-  .bento-tile:hover {
-    transform: translateY(-2px);
-  }
-
-  /* Theme Classes */
-  .theme-unite-hub {
-    --bg-primary: var(--unite-bg-primary);
-    --bg-surface: var(--unite-bg-surface);
-    --accent: var(--unite-accent);
-    --status-ok: var(--unite-status-ok);
-  }
-
-  .theme-synthex {
-    --bg-primary: var(--synthex-bg-primary);
-    --bg-surface: var(--synthex-bg-surface);
-    --accent: var(--synthex-accent);
-    --agent-active: var(--synthex-agent-active);
-
-    /* Radial background grid */
-    background-image:
-      radial-gradient(circle at 25% 25%, rgba(168, 85, 247, 0.1) 0%, transparent 50%),
-      radial-gradient(circle at 75% 75%, rgba(244, 114, 182, 0.1) 0%, transparent 50%);
-  }
-
 }
 
 /* Focus ring — keyboard nav only */
