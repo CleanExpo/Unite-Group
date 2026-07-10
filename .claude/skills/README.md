@@ -26,6 +26,22 @@ Each skill is a folder with a `SKILL.md` (YAML frontmatter + instructions).
 Claude loads only the name + description until a task matches, then pulls in
 the body — so the pack costs almost nothing until it's needed.
 
+## Per-business context skills
+
+Brand, voice, key entities, and a strict claims guardrail per portfolio brand,
+so agents write on-voice content and never fabricate capabilities. Slugs match
+the event-routing org slugs in `credential-triage`. Each inherits the
+Unite-Group Nexus human voice and layers brand-specific facts.
+
+| Skill | Brand | Guardrail highlight |
+|---|---|---|
+| `restore` | RestoreAssist (`restoreassist.app`) | Domain is `.app` not `.com.au`; no invented capabilities |
+| `dr` | Disaster Recovery (`disasterrecovery.com.au`) | Consumer front door — keep distinct from `nrpg` |
+| `nrpg` | NRPG — National Restoration Practitioners Group (`nrpg.business`) | Contractor/B2B — "Certified Firm" is NRPG's own program |
+| `ccw` | Carpet Cleaners Warehouse (`ccwonline.com.au` / `ccw-crm`) | A client, not a portfolio business; never `ccw.com.au` |
+| `carsi` | CARSI LMS (`carsi.com.au`) | IICRC/CEC claims are fail-closed and opt-in per course |
+| `ato` | ITR Button (`ato-ai.app`) | NOT the government ATO; a TASA s90-5 tool, not a tax agent |
+
 ## Installation
 
 **Claude Code (recommended — versions with the code):** commit the three
@@ -48,8 +64,8 @@ per-business context skills).
   `agent_actions` sources.
 - `go-live-arming` — the CRM_AUTO_EXECUTE / CRM_DISPATCH_ARMED checklist as
   executable procedure.
-- Per-business context skills (`dr`, `nrpg`, `ccw`, `carsi`, `ato`,
-  `restore`) — brand, tone, and key entities for on-voice content.
+- ~~Per-business context skills (`dr`, `nrpg`, `ccw`, `carsi`, `ato`,
+  `restore`)~~ — done; see "Per-business context skills" above.
 
 ## Maintenance
 
