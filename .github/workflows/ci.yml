@@ -12,6 +12,16 @@ env:
   NODE_VERSION: "24"
 
 jobs:
+  au-english:
+    name: Australian-English content guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: node scripts/check-au-english.mjs
+
   web:
     name: apps/web — lint, type-check, test, build
     runs-on: ubuntu-latest
