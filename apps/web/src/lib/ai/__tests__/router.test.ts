@@ -262,7 +262,28 @@ describe('UNI-2344 — 429/529 retry with backoff', () => {
       const assertion = expect(promise).rejects.toThrow('rate limited')
       await vi.advanceTimersByTimeAsync(120_000)
       await assertion
-      expect(mockCreate).toHaveBeenCalledTimes(4)
+      expect(mockCreate).toHaveBeenCalledTimes(6)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('stops retrying once cumulative backoff would exceed the budget', async () => {
+    vi.useFakeTimers()
+    try {
+      registerCapability({ ...baseCap, id: 'budget-cap' })
+      // Large retry-after (60s each) blows the 90s cumulative cap after the
+      // second wait — so it must give up well before MAX_ATTEMPTS.
+      mockCreate.mockRejectedValue(
+        Object.assign(new Error('rate limited'), { status: 429, headers: { 'retry-after': '60' } }),
+      )
+      const promise = execute('budget-cap', { messages: [{ role: 'user', content: 'x' }] })
+      const assertion = expect(promise).rejects.toThrow('rate limited')
+      await vi.advanceTimersByTimeAsync(200_000)
+      await assertion
+      // attempt1 fail → wait 60s (total 60) → attempt2 fail → next 60s would
+      // exceed 90s cap → throw. Two calls only.
+      expect(mockCreate).toHaveBeenCalledTimes(2)
     } finally {
       vi.useRealTimers()
     }

@@ -61,8 +61,14 @@ export function resetRegistry(): void {
 // Bounded retry with exponential backoff + jitter, honouring retry-after.
 // Only overload-class errors retry — 4xx logic errors still throw immediately.
 const RETRYABLE_STATUS = new Set([429, 529])
-const MAX_ATTEMPTS = 4
-const BASE_DELAY_MS = 2_000
+// 6 attempts × 3s base expo (3+6+12+24+30 ≈ 75s of backoff) lets a per-minute
+// rate_limit_error clear even when Anthropic sends no retry-after header — the
+// old 4×2s (~14s) exhausted inside the same limited minute. MAX_TOTAL_BACKOFF
+// then hard-bounds cumulative waiting so a run can never approach the crons'
+// 120s function ceiling (i.e. never trade a 429 for a timeout).
+const MAX_ATTEMPTS = 6
+const BASE_DELAY_MS = 3_000
+const MAX_TOTAL_BACKOFF_MS = 90_000
 
 function retryDelayMs(attempt: number, retryAfterHeader: string | null | undefined): number {
   const retryAfter = retryAfterHeader ? Number(retryAfterHeader) : NaN
@@ -76,6 +82,7 @@ async function createWithRetry(
   params: Anthropic.MessageCreateParamsNonStreaming,
 ): Promise<Anthropic.Message> {
   let lastError: unknown
+  let totalBackoff = 0
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
       return await client.messages.create(params)
@@ -88,6 +95,10 @@ async function createWithRetry(
         headers instanceof Headers ? headers.get('retry-after') :
         headers ? headers['retry-after'] : undefined
       const delay = retryDelayMs(attempt, retryAfter)
+      // Never let cumulative backoff approach the function budget — give up
+      // early rather than retry into a timeout.
+      if (totalBackoff + delay > MAX_TOTAL_BACKOFF_MS) throw err
+      totalBackoff += delay
       console.warn(`[ai/router] ${status} from Anthropic — retry ${attempt}/${MAX_ATTEMPTS - 1} in ${delay}ms`)
       await new Promise((r) => setTimeout(r, delay))
     }
