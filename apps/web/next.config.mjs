@@ -16,6 +16,11 @@ const nextConfig = {
   // Note: zustand and @clerk/nextjs removed from serverExternalPackages.
   // zustand MUST be bundled to share React instance (prevents useRef null errors during SSG).
   // @clerk/nextjs is unused (v1 cruft — Nexus 2.0 uses Supabase auth).
+  //
+  // @1password/sdk is WASM-backed — keep it external so its core_bg.wasm resolves
+  // from node_modules at runtime instead of being copied to a broken bundled path
+  // (UNI-2310). The Node runtime is required; the read helper imports it lazily.
+  serverExternalPackages: ['@1password/sdk', '@1password/sdk-core'],
 
   experimental: {
     // Enable optimized compilation
