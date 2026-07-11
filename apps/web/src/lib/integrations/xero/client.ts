@@ -66,6 +66,7 @@ const XERO_TENANT_ENV_BY_BUSINESS_KEY: Record<string, string[]> = {
   dr: ['XERO_TENANT_ID_DR', 'XERO_TENANT_ID_DISASTER_RECOVERY'],
   nrpg: ['XERO_TENANT_ID_NRPG', 'XERO_TENANT_ID_DRQLD', 'XERO_TENANT_ID_DISASTER_RECOVERY_QLD'],
   carsi: ['XERO_TENANT_ID_CARSI'],
+  unite: ['XERO_TENANT_ID_UNITE_GROUP'],
 }
 
 export function getExpectedXeroTenantId(businessKey: string): string | null {

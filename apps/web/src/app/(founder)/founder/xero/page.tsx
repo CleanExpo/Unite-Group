@@ -5,15 +5,38 @@ import { isXeroConfigured, loadXeroTokens } from '@/lib/integrations/xero'
 import { ConnectCard } from '@/components/founder/integrations/ConnectCard'
 import { XeroConnectButton } from '@/components/founder/xero/XeroConnectButton'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { BUSINESSES, type Business } from '@/lib/businesses'
+import { BUSINESSES } from '@/lib/businesses'
 
-function businessesByKey(keys: string[]): Business[] {
+// The Xero page connects real entities, which is a superset of the portfolio
+// satellites in BUSINESSES: it also includes Unite-Group itself (the parent
+// company's own books). Unite-Group is deliberately NOT in BUSINESSES — that
+// list drives the sidebar / KPI grid / bookkeeper / hub-sweep satellite loops,
+// and the parent is not a satellite. So the Xero page uses its own minimal
+// entity shape and defines the Unite-Group row locally (UNI-2330).
+type XeroEntity = { key: string; name: string; color: string; type: 'owned' | 'client' }
+
+function businessesByKey(keys: string[]): XeroEntity[] {
   return keys
     .map((key) => BUSINESSES.find((business) => business.key === key))
-    .filter((business): business is Business => Boolean(business))
+    .filter((business): business is (typeof BUSINESSES)[number] => Boolean(business))
+}
+
+// Parent company (Unite-Group Nexus Pty Ltd). Connect flow + token storage key
+// on this string; credentials fall back to the shared XERO_CLIENT_ID/SECRET, and
+// the callback resolves the org via XERO_TENANT_ID_UNITE_GROUP (see xero/client.ts).
+const UNITE_GROUP_ENTITY: XeroEntity = {
+  key: 'unite',
+  name: 'Unite-Group',
+  color: '#00F5FF',
+  type: 'owned',
 }
 
 const XERO_ACCOUNTS = [
+  {
+    label: 'Owned - Unite-Group (Parent)',
+    description: "Unite-Group Nexus Pty Ltd — the parent company's own books",
+    businesses: [UNITE_GROUP_ENTITY],
+  },
   {
     label: 'Owned - Disaster Recovery Group',
     description: 'Disaster Recovery and NRPG bookkeeping entities',
