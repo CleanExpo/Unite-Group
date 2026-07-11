@@ -307,6 +307,23 @@ export async function runBookkeeperForAllBusinesses(
   const startedAt = new Date()
   const supabase = createServiceClient()
 
+  // Reap orphaned runs (UNI-2351): a run that timed out mid-flight leaves a
+  // 'running' row forever, which reads as a false-green "in progress". Mark any
+  // run still 'running' after 15 min (safely past the 5-min function ceiling)
+  // as 'failed' before starting a fresh one. Self-heals past orphans and
+  // prevents new ones.
+  const staleCutoff = new Date(startedAt.getTime() - 15 * 60_000).toISOString()
+  await supabase
+    .from('bookkeeper_runs')
+    .update({
+      status: 'failed',
+      completed_at: startedAt.toISOString(),
+      error_log: [{ businessKey: '_run', error: 'Reaped: run left running past the function timeout' }],
+    })
+    .eq('founder_id', founderId)
+    .eq('status', 'running')
+    .lt('started_at', staleCutoff)
+
   // Create run record
   const { data: run, error: runError } = await supabase
     .from('bookkeeper_runs')
