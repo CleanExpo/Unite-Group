@@ -27,6 +27,7 @@ const mockSelect = vi.fn()
 const mockSingle = vi.fn()
 const mockUpdate = vi.fn()
 const mockEq = vi.fn()
+const mockLt = vi.fn()
 const mockFrom = vi.fn()
 
 vi.mock('@/lib/supabase/service', () => ({
@@ -228,8 +229,16 @@ function setupSupabaseMocks(options?: {
             ),
           }),
         }),
-        update: mockUpdate.mockReturnValue({
-          eq: mockEq.mockResolvedValue({ error: options?.updateError ?? null }),
+        // Chainable + thenable so both the terminal `.update().eq('id', …)` and
+        // the reaper's `.update().eq().eq().lt()` resolve to { error }.
+        update: mockUpdate.mockImplementation(() => {
+          const chain: Record<string, unknown> = {
+            eq: mockEq.mockImplementation(() => chain),
+            lt: mockLt.mockImplementation(() => chain),
+            then: (resolve: (v: unknown) => void) =>
+              resolve({ error: options?.updateError ?? null }),
+          }
+          return chain
         }),
       }
     }
@@ -521,6 +530,23 @@ describe('runBookkeeperForAllBusinesses', () => {
         status: 'completed',
       }),
     )
+  })
+
+  it('reaps orphaned running runs before starting (UNI-2351)', async () => {
+    await runBookkeeperForAllBusinesses(FOUNDER_ID)
+
+    // The reaper marks stale 'running' rows failed, filtering on status +
+    // an age cutoff, before the fresh run is created.
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'failed',
+        error_log: expect.arrayContaining([
+          expect.objectContaining({ businessKey: '_run' }),
+        ]),
+      }),
+    )
+    expect(mockEq).toHaveBeenCalledWith('status', 'running')
+    expect(mockLt).toHaveBeenCalledWith('started_at', expect.any(String))
   })
 
   it('includes error_log when businesses fail', async () => {
