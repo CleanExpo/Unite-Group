@@ -107,17 +107,38 @@ function buildTransactionRecords(
 // ---------------------------------------------------------------------------
 
 /**
+ * Nightly incremental lookback window (days). The nightly CRON only needs to
+ * refresh recent activity — full history is a one-time backfill served by the
+ * manual trigger (`runBookkeeperForOneBusiness`). Without a bound the nightly
+ * run paginates ALL Xero history for every connected business (carsi dates back
+ * to 2022) and blows the 300s function ceiling. 100 days comfortably covers the
+ * current BAS quarter plus a margin for late-modified transactions.
+ */
+const NIGHTLY_LOOKBACK_DAYS = 100
+
+/** ISO yyyy-mm-dd for `days` ago from now, for the Xero Date>= where-filter. */
+function lookbackFromDate(days: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() - days)
+  return d.toISOString().slice(0, 10)
+}
+
+/**
  * Process a single business through the full bookkeeper pipeline.
  *
  * Steps:
  * 1. Load and validate Xero tokens (skip if not connected)
- * 2. Fetch bank transactions (last 30 days)
- * 3. Fetch invoices (last 90 days)
+ * 2. Fetch bank transactions (from `options.fromDate`, else all history)
+ * 3. Fetch invoices (from `options.fromDate`, else all history)
  * 4. Fetch contacts
  * 5. Reconcile transactions against invoices
  * 6. Optimise deduction categorisation
  * 7. Calculate BAS for the current quarter
  * 8. Insert transaction records into the database
+ *
+ * @param options.fromDate - Lower bound (ISO date) for the Xero fetch. The
+ *   nightly CRON passes a recent window; the manual backfill omits it to pull
+ *   full history.
  */
 export async function processOneBusiness(
   founderId: string,
@@ -125,6 +146,7 @@ export async function processOneBusiness(
   businessName: string,
   runId: string,
   supabase: SupabaseClient,
+  options?: { fromDate?: string },
 ): Promise<BusinessResult> {
   // Step 1: Load Xero tokens — skip if not connected
   const storedTokens = await loadXeroTokens(founderId, businessKey)
@@ -153,14 +175,15 @@ export async function processOneBusiness(
   }
   const tenantId = validTokens.tenant_id
 
-    // Step 3: Fetch ALL bank transactions (no date filter — paginate through all pages)
-      // CARSI data dates back to 2022 and we need full history for tax overhaul
+    // Step 3: Fetch bank transactions from options.fromDate (nightly = recent
+      // window; manual backfill = all history). Paginate through all pages.
       const allBankTransactions: XeroBankTransaction[] = []
       let bankTxnPage = 1
       let hasMoreBankTxns = true
       while (hasMoreBankTxns) {
               const bankTxnResponse = await fetchBankTransactions(founderId, businessKey, {
                         page: bankTxnPage,
+                        fromDate: options?.fromDate,
               })
               allBankTransactions.push(...bankTxnResponse.items)
               if (bankTxnResponse.pagination && bankTxnResponse.pagination.page < bankTxnResponse.pagination.pageCount) {
@@ -180,13 +203,15 @@ export async function processOneBusiness(
       // The unreconciled items are already captured above (IsReconciled === false).
       const statementLines: XeroBankStatementLine[] = []
   
-    // Step 4: Fetch ALL invoices (no date filter for full tax overhaul coverage)
+    // Step 4: Fetch invoices from options.fromDate (nightly = recent window;
+      // manual backfill = all history).
       const allInvoices: XeroInvoice[] = []
       let invoicePage = 1
       let hasMoreInvoices = true
       while (hasMoreInvoices) {
               const invoiceResponse = await fetchInvoices(founderId, businessKey, {
                         page: invoicePage,
+                        fromDate: options?.fromDate,
               })
               allInvoices.push(...invoiceResponse.items)
               if (invoiceResponse.pagination && invoiceResponse.pagination.page < invoiceResponse.pagination.pageCount) {
@@ -306,6 +331,11 @@ export async function runBookkeeperForAllBusinesses(
   const businessResults: BusinessResult[] = []
   const errorLog: Array<{ businessKey: string; error: string }> = []
 
+  // Nightly incremental window — recent activity only. Full history is the
+  // manual backfill's job (runBookkeeperForOneBusiness), keeping each nightly
+  // per-business pass well within the 300s function ceiling.
+  const nightlyFromDate = lookbackFromDate(NIGHTLY_LOOKBACK_DAYS)
+
   // Process each business sequentially for Xero rate-limit compliance
   for (const business of activeBusinesses) {
     try {
@@ -315,6 +345,7 @@ export async function runBookkeeperForAllBusinesses(
         business.name,
         runId,
         supabase,
+        { fromDate: nightlyFromDate },
       )
       businessResults.push(result)
     } catch (err: unknown) {
