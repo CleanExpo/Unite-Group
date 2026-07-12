@@ -1,3 +1,4 @@
+import { performance } from 'node:perf_hooks'
 import { describe, expect, it } from 'vitest'
 import {
   evaluateEligibility,
@@ -232,6 +233,40 @@ describe('evaluateEligibility', () => {
     })
   })
 
+  it.each([
+    'Research deployment options and deploy to production',
+    'Review cleanup plan and delete all customer records',
+    'Research options. Deploy to production',
+  ])('limits advisory exemption to the advisory clause: %s', (title) => {
+    expect(evaluateEligibility(task({ title }))).toEqual({
+      eligible: false,
+      reason: 'dangerous-language',
+    })
+  })
+
+  it.each([
+    {
+      title: 'Perform the scheduled operation',
+      objective: 'Production database migration',
+    },
+    {
+      title: 'Copy the requested value',
+      objective: 'API key for the service',
+    },
+  ])('gates action and target split across title and objective: $title', ({ title, objective }) => {
+    expect(evaluateEligibility(task({ title, objective }))).toEqual({
+      eligible: false,
+      reason: 'dangerous-language',
+    })
+  })
+
+  it('gates an unambiguous destructive action with a pronoun target', () => {
+    expect(evaluateEligibility(task({ title: 'Delete it now' }))).toEqual({
+      eligible: false,
+      reason: 'dangerous-language',
+    })
+  })
+
   it('gates mission text over the explicit input bound before matching', () => {
     expect(evaluateEligibility(task({ title: 'a'.repeat(MISSION_TEXT_LIMIT + 1), objective: '' }))).toEqual({
       eligible: false,
@@ -318,6 +353,32 @@ describe('redactMissionText', () => {
     expect(redacted).toContain('keep the report.')
   })
 
+  it('redacts standard prefixed credential labels in assignments, JSON, and CLI flags', () => {
+    const input =
+      'AWS_SECRET_ACCESS_KEY=aws-secret-123 {"AWS_SECRET_ACCESS_KEY":"aws-json-456"} --github-token gh-token-789; keep context.'
+
+    const redacted = redactMissionText(input)
+
+    expect(redacted).not.toContain('aws-secret-123')
+    expect(redacted).not.toContain('aws-json-456')
+    expect(redacted).not.toContain('gh-token-789')
+    expect(redacted).toContain('AWS_SECRET_ACCESS_KEY=[REDACTED]')
+    expect(redacted).toContain('{"AWS_SECRET_ACCESS_KEY":"[REDACTED]"}')
+    expect(redacted).toContain('--github-token [REDACTED]')
+    expect(redacted).toContain('keep context.')
+  })
+
+  it('handles hostile word-boundary email input at the cap in bounded time', () => {
+    const hostile = 'A-'.repeat(MISSION_TEXT_LIMIT / 2)
+    const started = performance.now()
+
+    let redacted = ''
+    for (let iteration = 0; iteration < 4; iteration += 1) redacted = redactMissionText(hostile)
+
+    expect(performance.now() - started).toBeLessThan(250)
+    expect(redacted).toBe(hostile)
+  })
+
   it('caps hostile redaction input and output before applying patterns', () => {
     const hostile = `Useful prefix token=secret-value ${'x'.repeat(MISSION_TEXT_LIMIT * 4)}`
     const redacted = redactMissionText(hostile)
@@ -386,6 +447,7 @@ describe('extractOwnestState', () => {
     ['blank lease owner', { ...ownestState, leaseOwner: ' ' }],
     ['invalid lease expiry', { ...ownestState, leaseExpiresAt: 'tomorrow' }],
     ['invalid heartbeat', { ...ownestState, lastHeartbeatAt: 'recently' }],
+    ['invalid calendar date', { ...ownestState, leaseExpiresAt: '2026-02-30T00:00:00Z' }],
     ['invalid dispatch timestamp', { ...ownestState, dispatchedAt: 'not-iso' }],
     ['invalid reconciliation timestamp', { ...ownestState, reconciledAt: '12/07/2026' }],
     ['blank Hermes task ID', { ...ownestState, hermesTaskId: '' }],

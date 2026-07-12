@@ -7,6 +7,7 @@ export const MAX_MISSION_TEXT_LENGTH = 16 * 1024
 const CLEAR_ADVISORY_INTENT =
   /^\s*(?:research|document|review|analyse|analyze|compare|study|assess|summarise|summarize|explain|audit)\b/i
 
+const PAYMENT_ACTION = /\b(?:pay|purchase|buy|checkout|spend|charge|refund|transfer funds?)\b/i
 const PAYMENT_BOUNDARY =
   /\b(?:pay|payment|payments|purchase|buy|checkout|spend|invoice|charge|refund|transfer funds?|billing)\b/i
 const OUTBOUND_ACTION =
@@ -51,7 +52,7 @@ const MERGE_ACTION_REQUEST =
   /^\s*(?:please[ \t]+)?(?:merge|land|integrate)\b|\b(?:can|could|would)[ \t]+(?:you|we)[ \t]+(?:merge|land|integrate)\b|\b(?:must|should|need|needs)[ \t]+(?:to[ \t]+)?(?:be[ \t]+)?(?:merge(?:d)?|land(?:ed)?|integrat(?:e|ed))\b/i
 
 const MIXED_BOUNDARY_ACTION_CLASSIFIERS = [
-  PAYMENT_BOUNDARY,
+  PAYMENT_ACTION,
   OUTBOUND_ACTION,
   OUTBOUND_NOMINAL_ACTION,
   PRODUCTION_ACTION,
@@ -67,16 +68,29 @@ const MIXED_BOUNDARY_ACTION_CLASSIFIERS = [
 const MIXED_BOUNDARY_ACTION_SOURCE = MIXED_BOUNDARY_ACTION_CLASSIFIERS.map(
   (classifier) => `(?:${classifier.source})`,
 ).join('|')
-const MIXED_ACTION_SEQUENCE = new RegExp(
-  `(?:\\b(?:and[ \\t]+)?then\\b|[,;])[ \\t,:;-]{0,24}(?:${MIXED_BOUNDARY_ACTION_SOURCE})`,
+const MISSION_CLAUSE_SEPARATOR = new RegExp(
+  `\\b(?:and[ \\t]+then|then|and)\\b|[.;\\n]|,(?=[ \\t]{0,24}(?:${MIXED_BOUNDARY_ACTION_SOURCE}))`,
   'i',
 )
 
-const ISO_TIMESTAMP =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/
+const HARD_ACTION_TARGET_BOUNDARIES = [
+  [OUTBOUND_NOMINAL_ACTION, OUTBOUND_NOMINAL_TARGET],
+  [PRODUCTION_ACTION, PRODUCTION_TARGET],
+  [PRODUCTION_NOMINAL_ACTION, PRODUCTION_NOMINAL_TARGET],
+  [CREDENTIAL_ACTION, CREDENTIAL_TARGET],
+  [PRIVILEGE_ACTION, PRIVILEGE_TARGET],
+  [CREDENTIAL_NOMINAL_ACTION, CREDENTIAL_NOMINAL_TARGET],
+  [DESTRUCTIVE_ACTION, DESTRUCTIVE_TARGET],
+  [ACCESS_CONTROL_ACTION, ACCESS_CONTROL_TARGET],
+  [BRANCH_PROTECTION_ACTION, BRANCH_PROTECTION_TARGET],
+  [MERGE_ACTION, MERGE_TARGET],
+] as const
 
-const SECRET_LABEL_SOURCE = String.raw`[A-Z0-9_-]{0,64}(?:API[-_ ]?(?:KEY|TOKEN)|ACCESS[-_ ]?TOKEN|AUTH[-_ ]?TOKEN|REFRESH[-_ ]?TOKEN|ID[-_ ]?TOKEN|CLIENT[-_ ]?SECRET|SERVICE[-_ ]?ROLE[-_ ]?KEY|SECRET|TOKEN|PASSWORD|PASSWD|CREDENTIAL)`
-const CLI_SECRET_FLAG_SOURCE = String.raw`--(?:API[-_]?KEY|API[-_]?TOKEN|ACCESS[-_]?TOKEN|CLIENT[-_]?SECRET|SERVICE[-_]?ROLE[-_]?KEY|SECRET|TOKEN|PASSWORD|PASSWD|CREDENTIAL)`
+const ISO_TIMESTAMP =
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(Z|[+-](\d{2}):(\d{2}))$/
+
+const SECRET_LABEL_SOURCE = String.raw`[A-Z0-9_-]{0,48}(?:API[-_ ]?(?:KEY|TOKEN)|SECRET[-_ ]?ACCESS[-_ ]?KEY|ACCESS[-_ ]?(?:KEY|TOKEN)|AUTH[-_ ]?TOKEN|REFRESH[-_ ]?TOKEN|ID[-_ ]?TOKEN|CLIENT[-_ ]?SECRET|SERVICE[-_ ]?ROLE[-_ ]?KEY|SECRET|TOKEN|PASSWORD|PASSWD|CREDENTIAL)[A-Z0-9_-]{0,32}`
+const CLI_SECRET_FLAG_SOURCE = String.raw`--[A-Z0-9_-]{0,32}(?:API[-_]?KEY|API[-_]?TOKEN|SECRET[-_]?ACCESS[-_]?KEY|ACCESS[-_]?(?:KEY|TOKEN)|CLIENT[-_]?SECRET|SERVICE[-_]?ROLE[-_]?KEY|SECRET|TOKEN|PASSWORD|PASSWD|CREDENTIAL)[A-Z0-9_-]{0,16}`
 const JSON_SECRET = new RegExp(
   `(["'])(${SECRET_LABEL_SOURCE})\\1([ \\t]*:[ \\t]*)(["'])([^"'\\r\\n]{0,2048})\\4`,
   'gi',
@@ -129,12 +143,33 @@ function isNullableNonEmptyString(value: unknown): value is string | null {
 }
 
 function isIsoTimestamp(value: unknown): value is string {
-  return (
-    typeof value === 'string' &&
-    value.length <= 40 &&
-    ISO_TIMESTAMP.test(value) &&
-    Number.isFinite(Date.parse(value))
-  )
+  if (typeof value !== 'string' || value.length > 40) return false
+
+  const match = ISO_TIMESTAMP.exec(value)
+  if (!match) return false
+
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  const hour = Number(match[4])
+  const minute = Number(match[5])
+  const second = Number(match[6])
+  const offsetHour = Number(match[9] ?? 0)
+  const offsetMinute = Number(match[10] ?? 0)
+
+  if (month < 1 || month > 12 || hour > 23 || minute > 59 || second > 59) return false
+  if (offsetHour > 23 || offsetMinute > 59) return false
+
+  const calendarRoundTrip = new Date(Date.UTC(year, month - 1, day))
+  if (
+    calendarRoundTrip.getUTCFullYear() !== year ||
+    calendarRoundTrip.getUTCMonth() !== month - 1 ||
+    calendarRoundTrip.getUTCDate() !== day
+  ) {
+    return false
+  }
+
+  return Number.isFinite(Date.parse(value))
 }
 
 function isNullableIsoTimestamp(value: unknown): value is string | null {
@@ -205,31 +240,34 @@ function matchesBoundary(text: string, action: RegExp, target: RegExp): boolean 
 }
 
 function isClearlyAdvisory(text: string): boolean {
-  return CLEAR_ADVISORY_INTENT.test(text) && !MIXED_ACTION_SEQUENCE.test(text)
+  return CLEAR_ADVISORY_INTENT.test(text)
 }
 
-function containsDangerousAction(text: string): boolean {
-  if (isClearlyAdvisory(text)) return false
+function containsDangerousClause(clause: string): boolean {
+  const text = clause.trim()
+  if (!text || isClearlyAdvisory(text)) return false
 
   return (
     PAYMENT_BOUNDARY.test(text) ||
     OUTBOUND_ACTION.test(text) ||
-    matchesBoundary(text, OUTBOUND_NOMINAL_ACTION, OUTBOUND_NOMINAL_TARGET) ||
-    matchesBoundary(text, PRODUCTION_ACTION, PRODUCTION_TARGET) ||
-    matchesBoundary(text, PRODUCTION_NOMINAL_ACTION, PRODUCTION_NOMINAL_TARGET) ||
-    matchesBoundary(text, CREDENTIAL_ACTION, CREDENTIAL_TARGET) ||
-    matchesBoundary(text, PRIVILEGE_ACTION, PRIVILEGE_TARGET) ||
-    matchesBoundary(text, CREDENTIAL_NOMINAL_ACTION, CREDENTIAL_NOMINAL_TARGET) ||
-    matchesBoundary(text, DESTRUCTIVE_ACTION, DESTRUCTIVE_TARGET) ||
-    matchesBoundary(text, ACCESS_CONTROL_ACTION, ACCESS_CONTROL_TARGET) ||
-    matchesBoundary(text, BRANCH_PROTECTION_ACTION, BRANCH_PROTECTION_TARGET) ||
+    DESTRUCTIVE_ACTION.test(text) ||
     MERGE_ACTION_REQUEST.test(text) ||
-    matchesBoundary(text, MERGE_ACTION, MERGE_TARGET)
+    HARD_ACTION_TARGET_BOUNDARIES.some(([action, target]) => matchesBoundary(text, action, target))
+  )
+}
+
+function hasCrossFieldBoundary(title: string, objective: string): boolean {
+  return HARD_ACTION_TARGET_BOUNDARIES.some(
+    ([action, target]) =>
+      (!isClearlyAdvisory(title) && action.test(title) && target.test(objective)) ||
+      (!isClearlyAdvisory(objective) && action.test(objective) && target.test(title)),
   )
 }
 
 function containsDangerousLanguage(task: CcTask): boolean {
-  return containsDangerousAction(task.title) || containsDangerousAction(task.objective)
+  const missionText = `${task.title}\n${task.objective}`
+  const clauseIsDangerous = missionText.split(MISSION_CLAUSE_SEPARATOR).some(containsDangerousClause)
+  return clauseIsDangerous || hasCrossFieldBoundary(task.title, task.objective)
 }
 
 /** Pure, fail-closed admission policy for the initial advisory canary. */
@@ -270,11 +308,75 @@ export function idempotencyKey(crmTaskId: string): string {
   return `cc-task:${crmTaskId}:v1`
 }
 
+function isAsciiLetter(code: number): boolean {
+  return (code >= 65 && code <= 90) || (code >= 97 && code <= 122)
+}
+
+function isAsciiDigit(code: number): boolean {
+  return code >= 48 && code <= 57
+}
+
+function isEmailTokenCharacter(code: number): boolean {
+  return (
+    isAsciiLetter(code) ||
+    isAsciiDigit(code) ||
+    code === 37 ||
+    code === 43 ||
+    code === 45 ||
+    code === 46 ||
+    code === 64 ||
+    code === 95
+  )
+}
+
+function isValidEmailToken(token: string): boolean {
+  const at = token.indexOf('@')
+  if (at <= 0 || at !== token.lastIndexOf('@') || at >= token.length - 1) return false
+
+  const local = token.slice(0, at)
+  const domain = token.slice(at + 1)
+  const lastDot = domain.lastIndexOf('.')
+  if (local.startsWith('.') || local.endsWith('.') || local.includes('..')) return false
+  if (lastDot <= 0 || lastDot >= domain.length - 2 || domain.includes('..')) return false
+
+  for (let index = 0; index < domain.length; index += 1) {
+    const code = domain.charCodeAt(index)
+    if (!isAsciiLetter(code) && !isAsciiDigit(code) && code !== 45 && code !== 46) return false
+  }
+  for (let index = lastDot + 1; index < domain.length; index += 1) {
+    if (!isAsciiLetter(domain.charCodeAt(index))) return false
+  }
+
+  return true
+}
+
+function redactEmailAddresses(value: string): string {
+  const parts: string[] = []
+  let outputCursor = 0
+  let index = 0
+
+  while (index < value.length) {
+    if (!isEmailTokenCharacter(value.charCodeAt(index))) {
+      index += 1
+      continue
+    }
+
+    const tokenStart = index
+    while (index < value.length && isEmailTokenCharacter(value.charCodeAt(index))) index += 1
+    if (!isValidEmailToken(value.slice(tokenStart, index))) continue
+
+    parts.push(value.slice(outputCursor, tokenStart), '[REDACTED]')
+    outputCursor = index
+  }
+
+  if (outputCursor === 0) return value
+  parts.push(value.slice(outputCursor))
+  return parts.join('')
+}
+
 /** Redacts sensitive values while leaving mission context and labels readable. */
 export function redactMissionText(value: string): string {
-  return value
-    .slice(0, MAX_MISSION_TEXT_LENGTH)
-    .replace(/\b[\w.%+-]+@[\w.-]+\.[A-Za-z]{2,}\b/g, '[REDACTED]')
+  return redactEmailAddresses(value.slice(0, MAX_MISSION_TEXT_LENGTH))
     .replace(
       /\b(Authorization[ \t]*:[ \t]*)(?:Bearer|Basic|ApiKey)[ \t]+[^\s,;]{1,2048}/gi,
       '$1[REDACTED]',
