@@ -920,7 +920,7 @@ describe('buildValidationRequirements', () => {
     ['short', 'a'.repeat(63)],
     ['uppercase', 'A'.repeat(64)],
     ['non-hex pattern', 'g'.repeat(64)],
-    ['token-style', 'integrity-nonce-canary-20260712'],
+    ['token-style', 'integrity-nonce-canary-20260712'], // gitleaks:allow -- synthetic invalid-nonce fixture
     ['single-byte pattern', 'ab'.repeat(32)],
     [
       'seven-byte pattern',
