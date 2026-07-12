@@ -6,9 +6,11 @@
   "scripts": {
     "verify:web": "cd apps/web && pnpm install --frozen-lockfile && pnpm run type-check && pnpm run lint && pnpm run test && pnpm run build",
     "verify:workspace": "cd apps/workspace && pnpm install --frozen-lockfile && pnpm run check && pnpm run build",
+    "verify:autopilot": "cd apps/autopilot-runner && npm ci && npm run test && npm run type-check && npm run build",
     "verify:mcp": "cd packages/pi-ceo-operator-mcp && npm ci && npm run build",
     "verify:spec-board": "cd apps/spec-board && npm ci && npx tsc --noEmit && npm test && npm run build",
-    "verify": "npm run verify:web && npm run verify:workspace && npm run verify:mcp && npm run verify:spec-board",
+    "verify:readiness": "node --test scripts/__tests__/nexus-project-readiness.test.mjs && node scripts/nexus-project-readiness.mjs --root . --json --gate",
+    "verify": "npm run verify:readiness && npm run verify:web && npm run verify:workspace && npm run verify:autopilot && npm run verify:mcp && npm run verify:spec-board",
     "env:check": "node scripts/check-env.mjs --package all",
     "mission-control:linear-loop:preflight": "npm --prefix apps/empire run mission-control:linear-loop:preflight",
     "mission-control:linear-loop": "npm --prefix apps/empire run mission-control:linear-loop",

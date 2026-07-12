@@ -107,6 +107,49 @@ jobs:
       - name: Build
         run: pnpm run build
 
+  autopilot:
+    name: apps/autopilot-runner — test, type-check, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/autopilot-runner
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: apps/autopilot-runner/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test
+        run: npm run test
+
+      - name: Type-check
+        run: npm run type-check
+
+      - name: Build
+        run: npm run build
+
+  project-readiness:
+    name: Nexus project-readiness P0 gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Test readiness kernel
+        run: node --test scripts/__tests__/nexus-project-readiness.test.mjs
+
+      - name: Enforce configured P0 findings
+        run: node scripts/nexus-project-readiness.mjs --root . --json --gate
+
   mcp:
     name: packages/pi-ceo-operator-mcp — build
     runs-on: ubuntu-latest
