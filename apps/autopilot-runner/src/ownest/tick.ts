@@ -563,6 +563,49 @@ async function completeTask(
       failureClass: 'integrity',
     })
   }
+  let verification
+  try {
+    verification = await ctx.deps.verifier.verifyCompletion({
+      taskId: authority.task.id,
+      expectedContract: authority.contract,
+      completion,
+      nowIso: ctx.nowIso,
+    })
+  } catch (error) {
+    return persistTerminal(ctx, authority.task, authority.state, {
+      gateState: 'gated',
+      code: failureCode('independent-verifier-unavailable'),
+      detail: boundedError(error, ctx.config),
+      failureClass: 'permanent',
+    })
+  }
+  if (
+    verification.approved !== true ||
+    verification.evidenceDigestsVerified !== true ||
+    verification.independentValidationVerified !== true ||
+    verification.verifier.trim().length === 0
+  ) {
+    return persistTerminal(ctx, authority.task, authority.state, {
+      gateState: 'gated',
+      code: failureCode('independent-validation'),
+      detail: boundedError(
+        verification.detail || 'Independent completion verification was not satisfied',
+        ctx.config,
+      ),
+      failureClass: 'permanent',
+    })
+  }
+  await ctx.deps.crm.appendTaskEvent({
+    taskId: authority.task.id,
+    type: 'comment',
+    actor: 'ownest-independent-verifier',
+    payload: {
+      schema: 'ownest.independent-verification.v1',
+      verifier: verification.verifier,
+      evidenceDigestsVerified: true,
+      independentValidationVerified: true,
+    },
+  })
   const receiptState: HardenedOwnestStateV1 = {
     ...authority.state,
     leaseExpiresAt: ctx.leaseExpiresAt,

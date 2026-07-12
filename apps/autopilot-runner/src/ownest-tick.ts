@@ -5,6 +5,7 @@ import { redactMissionText } from './ownest/policy.js'
 import { runOwnestTick } from './ownest/tick.js'
 import type {
   OwnestConfig,
+  OwnestCompletionVerifier,
   OwnestCrmClient,
   OwnestHermesClient,
   OwnestTickDeps,
@@ -22,11 +23,25 @@ type TickRunner = (
 export interface OwnestEntrypointDeps {
   crm?: OwnestCrmClient
   hermes?: OwnestHermesClient
+  verifier?: OwnestCompletionVerifier
   fetch?: typeof fetch
   runTick?: TickRunner
   now?: () => Date
   randomUUID?: () => string
   writeLine?: (line: string) => void
+}
+
+const dormantVerifier: OwnestCompletionVerifier = {
+  async verifyCompletion() {
+    return {
+      approved: false,
+      evidenceDigestsVerified: false,
+      independentValidationVerified: false,
+      verifier: 'not-installed',
+      detail:
+        'Independent evidence retrieval, digest verification, and model-family validation are not installed',
+    }
+  },
 }
 
 type PublicSummary = {
@@ -90,6 +105,7 @@ export async function main(
     const result = await (overrides.runTick ?? runOwnestTick)(config, {
       crm,
       hermes,
+      verifier: overrides.verifier ?? dormantVerifier,
       now: overrides.now ?? (() => new Date()),
       randomUUID: overrides.randomUUID ?? nodeRandomUUID,
     })

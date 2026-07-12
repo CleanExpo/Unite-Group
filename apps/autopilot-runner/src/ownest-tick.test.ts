@@ -15,6 +15,8 @@ function validEnv(overrides: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
     SUPABASE_SERVICE_ROLE_KEY: SERVICE_KEY,
     FOUNDER_USER_ID: 'founder-1',
     CC_OWNEST_WORKER_ID: 'ownest-worker-1',
+    CC_OWNEST_HERMES_BIN: '/usr/local/bin/hermes',
+    CC_OWNEST_LOCAL_DEVELOPMENT: '1',
     HERMES_CWD: '/tmp/hermes-workspace',
     CC_OWNEST_LIVE: '0',
     ...overrides,
@@ -80,7 +82,7 @@ describe('OWNEST bounded entrypoint', () => {
     })
   })
 
-  it('emits exactly one deterministic JSON summary line for a clean tick', async () => {
+  it('fails closed before dispatch when live admission is requested', async () => {
     const fixture = harness(summary({ outcome: 'dispatched', dispatched: 1, taskId: 'task-1' }))
 
     await expect(main(validEnv({
@@ -88,15 +90,13 @@ describe('OWNEST bounded entrypoint', () => {
       CC_OWNEST_LIVE: '1',
       CC_OWNEST_ROLLOUT_ID: 'rollout-1',
       CC_OWNEST_CANARY_TASK_ID: 'task-1',
-    }), fixture.deps)).resolves.toBe(0)
+    }), fixture.deps)).resolves.toBe(1)
 
+    expect(fixture.runTick).not.toHaveBeenCalled()
     expect(fixture.lines).toHaveLength(1)
     expect(fixture.lines[0]).toBe(JSON.stringify({
       schema: 'ownest.tick.summary.v1',
-      outcome: 'dispatched',
-      reconciled: 0,
-      dispatched: 1,
-      taskId: 'task-1',
+      outcome: 'config_error',
     }))
   })
 

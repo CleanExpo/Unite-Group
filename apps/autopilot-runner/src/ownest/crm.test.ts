@@ -11,6 +11,7 @@ import {
   listManagedTasks,
   listMirroredTasks,
   loadOwnestConfig,
+  OWNEST_PRODUCTION_CRM_ORIGIN,
 } from './crm.js'
 import {
   buildMissionContract,
@@ -48,10 +49,11 @@ const TASK_COLUMNS = [
 const serviceRoleKey = 'service-role-secret-DO-NOT-LEAK'
 
 const config: OwnestConfig = {
-  supabaseUrl: 'https://example.supabase.co',
+  supabaseUrl: OWNEST_PRODUCTION_CRM_ORIGIN,
   serviceRoleKey,
   founderId: 'founder-1',
   workerId: 'ownest-worker-1',
+  hermesBinary: '/usr/local/bin/hermes',
   hermesCwd: '/tmp/hermes-workspace',
   hermesProfile: 'ownest',
   hermesBoard: 'unite-group-ownest',
@@ -74,10 +76,11 @@ const expectedUpdatedAt = '2026-07-12T00:00:00.000Z'
 const completionNowIso = '2026-07-12T00:04:00.000Z'
 
 const validEnv: NodeJS.ProcessEnv = {
-  SUPABASE_URL: 'https://example.supabase.co',
+  SUPABASE_URL: OWNEST_PRODUCTION_CRM_ORIGIN,
   SUPABASE_SERVICE_ROLE_KEY: serviceRoleKey,
   FOUNDER_USER_ID: 'founder-1',
   CC_OWNEST_WORKER_ID: 'ownest-worker-1',
+  CC_OWNEST_HERMES_BIN: '/usr/local/bin/hermes',
 }
 
 function ownestState(taskId: string, hermesTaskId: string | null = 'hermes-1') {
@@ -475,7 +478,7 @@ describe('loadOwnestConfig', () => {
     expect(result.error).toContain('SUPABASE_SERVICE_ROLE_KEY')
     expect(result.error).toContain('FOUNDER_USER_ID')
     expect(result.error).toContain('CC_OWNEST_WORKER_ID')
-    expect(result.error).toContain('HERMES_AGENT_ID')
+    expect(result.error).toContain('CC_OWNEST_HERMES_BIN')
   })
 
   it('never exposes configured values when URL validation fails', () => {
@@ -497,10 +500,23 @@ describe('loadOwnestConfig', () => {
   })
 
   it.each([
-    ['https URL', { ...validEnv, SUPABASE_URL: '  https://EXAMPLE.supabase.co///  ' }, 'https://example.supabase.co'],
+    [
+      'https URL',
+      {
+        ...validEnv,
+        SUPABASE_URL: `  https://${new URL(OWNEST_PRODUCTION_CRM_ORIGIN).hostname.toUpperCase()}///  `,
+      },
+      OWNEST_PRODUCTION_CRM_ORIGIN,
+    ],
     [
       'NEXT_PUBLIC fallback',
-      { ...validEnv, SUPABASE_URL: undefined, NEXT_PUBLIC_SUPABASE_URL: 'http://localhost:54321/' },
+      {
+        ...validEnv,
+        SUPABASE_URL: undefined,
+        NEXT_PUBLIC_SUPABASE_URL: 'http://localhost:54321/',
+        CC_OWNEST_LOCAL_DEVELOPMENT: '1',
+        NODE_ENV: 'test',
+      },
       'http://localhost:54321',
     ],
   ])('normalises a valid %s', (_label, env, expectedUrl) => {
@@ -526,13 +542,29 @@ describe('loadOwnestConfig', () => {
     expect(result.error).not.toContain(supabaseUrl)
   })
 
+  it('refuses to send the service-role credential to an arbitrary valid HTTPS origin', () => {
+    const attackerOrigin = 'https://attacker.example'
+    const result = loadOwnestConfig({
+      ...validEnv,
+      SUPABASE_URL: attackerOrigin,
+      NEXT_PUBLIC_SUPABASE_URL: attackerOrigin,
+    })
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error).toContain('approved Unite-Group CRM origin')
+      expect(result.error).not.toContain(attackerOrigin)
+      expect(result.error).not.toContain(serviceRoleKey)
+    }
+  })
+
   it.each([
     [undefined, false],
     ['0', false],
     ['true', false],
     [' 1 ', false],
     ['1', true],
-  ])('enables live mode only for the exact value "1" (%s)', (raw, expected) => {
+  ])('parses live mode only for the exact value "1" (%s)', (raw, expected) => {
     const result = loadOwnestConfig({
       ...validEnv,
       CC_OWNEST_LIVE: raw,
@@ -545,9 +577,12 @@ describe('loadOwnestConfig', () => {
         : {}),
     })
 
-    expect(result.ok).toBe(true)
-    if (!result.ok) return
-    expect(result.config.live).toBe(expected)
+    expect(result.ok).toBe(!expected)
+    if (expected) {
+      if (!result.ok) expect(result.error).toContain('activation is unavailable')
+      return
+    }
+    if (result.ok) expect(result.config.live).toBe(false)
   })
 
   it('applies safe defaults for absent or invalid numeric controls', () => {
@@ -606,18 +641,18 @@ describe('loadOwnestConfig', () => {
     if (fallback.ok) expect(fallback.config.hermesCwd).toBe(process.cwd())
   })
 
-  it('accepts HERMES_AGENT_ID as the explicit worker identity fallback', () => {
+  it('rejects the generic Hermes agent alias instead of creating a second worker-id name', () => {
     const result = loadOwnestConfig({
       ...validEnv,
       CC_OWNEST_WORKER_ID: undefined,
       HERMES_AGENT_ID: ' hermes-agent-1 ',
     })
 
-    expect(result.ok).toBe(true)
-    if (result.ok) expect(result.config.workerId).toBe('hermes-agent-1')
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.error).toContain('CC_OWNEST_WORKER_ID')
   })
 
-  it('selects the Hermes board by OWNEST override, Hermes fallback, then safe default', () => {
+  it('selects only the OWNEST board override or its dedicated safe default', () => {
     const explicit = loadOwnestConfig({
       ...validEnv,
       CC_OWNEST_HERMES_BOARD: ' ownest_primary ',
@@ -633,7 +668,7 @@ describe('loadOwnestConfig', () => {
     expect(fallback.ok).toBe(true)
     expect(defaulted.ok).toBe(true)
     if (explicit.ok) expect(explicit.config.hermesBoard).toBe('ownest_primary')
-    if (fallback.ok) expect(fallback.config.hermesBoard).toBe('hermes_fallback')
+    if (fallback.ok) expect(fallback.config.hermesBoard).toBe('unite-group-ownest')
     if (defaulted.ok) expect(defaulted.config.hermesBoard).toBe('unite-group-ownest')
   })
 
@@ -703,11 +738,8 @@ describe('loadOwnestConfig', () => {
       expect(missing.error).toContain('CC_OWNEST_ROLLOUT_ID')
       expect(missing.error).toContain('CC_OWNEST_CANARY_TASK_ID')
     }
-    expect(configured.ok).toBe(true)
-    if (configured.ok) {
-      expect(configured.config.rolloutId).toBe('rollout-2026-07-12')
-      expect(configured.config.canaryTaskId).toBe('task_123')
-    }
+    expect(configured.ok).toBe(false)
+    if (!configured.ok) expect(configured.error).toContain('activation is unavailable')
   })
 
   it.each([
@@ -772,12 +804,12 @@ describe('loadOwnestConfig', () => {
   it('accepts matching normalized Supabase origins when both URL variables are present', () => {
     const result = loadOwnestConfig({
       ...validEnv,
-      SUPABASE_URL: ' https://EXAMPLE.supabase.co/// ',
-      NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co',
+      SUPABASE_URL: ` ${OWNEST_PRODUCTION_CRM_ORIGIN}/// `,
+      NEXT_PUBLIC_SUPABASE_URL: OWNEST_PRODUCTION_CRM_ORIGIN,
     })
 
     expect(result.ok).toBe(true)
-    if (result.ok) expect(result.config.supabaseUrl).toBe('https://example.supabase.co')
+    if (result.ok) expect(result.config.supabaseUrl).toBe(OWNEST_PRODUCTION_CRM_ORIGIN)
   })
 
   it('rejects mismatched Supabase origins without exposing either configured URL', () => {

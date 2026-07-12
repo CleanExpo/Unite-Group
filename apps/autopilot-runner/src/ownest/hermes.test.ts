@@ -40,6 +40,7 @@ const config: OwnestConfig = {
   serviceRoleKey: 'unused-in-hermes-adapter',
   founderId: 'founder-1',
   workerId: 'worker-1',
+  hermesBinary: '/usr/local/bin/hermes',
   hermesCwd: '/tmp/hermes-workspace',
   hermesProfile: 'ownest',
   hermesBoard: 'unite-group-ownest',
@@ -551,7 +552,7 @@ describe('createHermesClient.createMission', () => {
 
     expect(run).toHaveBeenCalledTimes(1)
     const call = run.mock.calls[0]
-    expect(call?.[0]).toBe('hermes')
+    expect(call?.[0]).toBe(config.hermesBinary)
     expect(call?.[2]).toBe(config.hermesCwd)
     expect(Array.isArray(call?.[1])).toBe(true)
 
@@ -1204,7 +1205,7 @@ describe('createHermesClient.showMission', () => {
     await showWithContract(client, 'hermes-1')
 
     expect(run).toHaveBeenCalledWith(
-      'hermes',
+      config.hermesBinary,
       [
         '--profile',
         'ownest',
@@ -2010,19 +2011,19 @@ describe('createHermesClient.stopMission', () => {
     })
 
     expect(run.mock.calls).toEqual([
-      ['hermes', [...STOP_BASE_ARGS, 'show', 'hermes-1', '--json'], config.hermesCwd],
+      [config.hermesBinary, [...STOP_BASE_ARGS, 'show', 'hermes-1', '--json'], config.hermesCwd],
       [
-        'hermes',
+        config.hermesBinary,
         [...STOP_BASE_ARGS, 'reclaim', 'hermes-1', '--reason', STOP_REASON],
         config.hermesCwd,
       ],
-      ['hermes', [...STOP_BASE_ARGS, 'show', 'hermes-1', '--json'], config.hermesCwd],
-      ['hermes', [...STOP_BASE_ARGS, 'assign', 'hermes-1', 'none'], config.hermesCwd],
-      ['hermes', [...STOP_BASE_ARGS, 'show', 'hermes-1', '--json'], config.hermesCwd],
-      ['hermes', [...STOP_BASE_ARGS, 'archive', 'hermes-1'], config.hermesCwd],
-      ['hermes', [...STOP_BASE_ARGS, 'show', 'hermes-1', '--json'], config.hermesCwd],
+      [config.hermesBinary, [...STOP_BASE_ARGS, 'show', 'hermes-1', '--json'], config.hermesCwd],
+      [config.hermesBinary, [...STOP_BASE_ARGS, 'assign', 'hermes-1', 'none'], config.hermesCwd],
+      [config.hermesBinary, [...STOP_BASE_ARGS, 'show', 'hermes-1', '--json'], config.hermesCwd],
+      [config.hermesBinary, [...STOP_BASE_ARGS, 'archive', 'hermes-1'], config.hermesCwd],
+      [config.hermesBinary, [...STOP_BASE_ARGS, 'show', 'hermes-1', '--json'], config.hermesCwd],
     ])
-    expect(run.mock.calls.every(([command]) => command === 'hermes')).toBe(true)
+    expect(run.mock.calls.every(([command]) => command === config.hermesBinary)).toBe(true)
   })
 
   it.each([

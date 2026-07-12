@@ -30,6 +30,7 @@ const baseConfig: OwnestConfig = {
   serviceRoleKey: 'service-role-secret-DO-NOT-LEAK',
   founderId: 'founder-1',
   workerId: 'ownest-worker-1',
+  hermesBinary: '/usr/local/bin/hermes',
   hermesCwd: '/tmp/hermes-workspace',
   hermesProfile: 'ownest',
   hermesBoard: 'unite-group-ownest',
@@ -363,12 +364,32 @@ function hermesHarness() {
 function tickDeps(
   crm: OwnestCrmClient,
   hermes: OwnestHermesClient,
-  options: { nowIso?: string; randomUUID?: string } = {},
+  options: {
+    nowIso?: string
+    randomUUID?: string
+    verificationApproved?: boolean
+  } = {},
 ) {
   const now = vi.fn(() => new Date(options.nowIso ?? NOW_ISO))
   const randomUUID = vi.fn(() => options.randomUUID ?? ATTEMPT_ID)
-  const deps: OwnestTickDeps = { crm, hermes, now, randomUUID }
-  return { deps, now, randomUUID }
+  const verifyCompletion = vi.fn(async () => ({
+    approved: options.verificationApproved !== false,
+    evidenceDigestsVerified: options.verificationApproved !== false,
+    independentValidationVerified: options.verificationApproved !== false,
+    verifier: 'independent-test-harness',
+    detail:
+      options.verificationApproved === false
+        ? 'Independent verification is not installed'
+        : 'Independent test harness verified completion',
+  }))
+  const deps: OwnestTickDeps = {
+    crm,
+    hermes,
+    now,
+    randomUUID,
+    verifier: { verifyCompletion },
+  }
+  return { deps, now, randomUUID, verifyCompletion }
 }
 
 describe('runOwnestTick reconciliation and bounded admission', () => {
@@ -990,6 +1011,33 @@ describe('runOwnestTick authority, completion, and failure recovery', () => {
       receiptSha256: completion.receiptSha256,
       evidenceUri: completion.evidenceUri,
       failureCount: 0,
+    })
+  })
+
+  it('blocks Hermes self-attestation when independent verification is unavailable', async () => {
+    const managed = claimedTask()
+    const crm = crmHarness({ tasks: [managed] })
+    const hermes = hermesHarness()
+    const completion = completedHermes(managed)
+    hermes.showMission.mockResolvedValueOnce(completion)
+    const { deps, verifyCompletion } = tickDeps(crm.client, hermes.client, {
+      verificationApproved: false,
+    })
+
+    const result = await runOwnestTick(config(), deps)
+
+    expect(result).toMatchObject({ outcome: 'blocked', reconciled: 1, dispatched: 0 })
+    expect(verifyCompletion).toHaveBeenCalledWith({
+      taskId: managed.id,
+      expectedContract: contractOf(managed),
+      completion,
+      nowIso: NOW_ISO,
+    })
+    expect(crm.ensureCompletionArtifacts).not.toHaveBeenCalled()
+    expect(crm.getTask()?.status).toBe('blocked')
+    expect(stateOf(crm.getTask() as CcTask)).toMatchObject({
+      gateState: 'gated',
+      failureCode: 'ownest-independent-validation',
     })
   })
 

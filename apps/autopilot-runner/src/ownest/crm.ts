@@ -1,4 +1,5 @@
 import { StringDecoder } from 'node:string_decoder'
+import { isAbsolute } from 'node:path'
 import { isDeepStrictEqual } from 'node:util'
 import {
   buildMissionContract,
@@ -160,6 +161,10 @@ const COMPLETION_VALIDATION_KEYS = new Set([
   'status',
 ])
 
+/** Public project origin verified against the Supabase management plane. */
+export const OWNEST_PRODUCTION_CRM_ORIGIN =
+  'https://lksfwktwtmyznckodsau.supabase.co'
+
 function optionalTrimmedString(value: unknown): string | null {
   if (typeof value !== 'string') return null
   const trimmed = value.trim()
@@ -191,6 +196,23 @@ function normaliseSupabaseUrl(value: string): string | null {
   }
 }
 
+function isApprovedCrmOrigin(
+  origin: string,
+  env: NodeJS.ProcessEnv,
+): boolean {
+  if (origin === OWNEST_PRODUCTION_CRM_ORIGIN) return true
+  const url = new URL(origin)
+  const localHost =
+    url.hostname === 'localhost' ||
+    url.hostname === '127.0.0.1' ||
+    url.hostname === '[::1]'
+  return (
+    localHost &&
+    env.CC_OWNEST_LOCAL_DEVELOPMENT === '1' &&
+    env.NODE_ENV !== 'production'
+  )
+}
+
 function boundedInteger(
   value: unknown,
   fallback: number,
@@ -214,13 +236,11 @@ export function loadOwnestConfig(env: NodeJS.ProcessEnv = process.env): LoadOwne
   const supabaseUrl = normalisedSupabaseUrl ?? normalisedPublicSupabaseUrl
   const serviceRoleKey = optionalTrimmedString(env.SUPABASE_SERVICE_ROLE_KEY)
   const founderId = optionalTrimmedString(env.FOUNDER_USER_ID)
-  const workerId =
-    optionalTrimmedString(env.CC_OWNEST_WORKER_ID) ?? optionalTrimmedString(env.HERMES_AGENT_ID)
+  const workerId = optionalTrimmedString(env.CC_OWNEST_WORKER_ID)
   const hermesProfile = optionalTrimmedString(env.CC_OWNEST_HERMES_PROFILE) ?? 'ownest'
+  const hermesBinary = optionalTrimmedString(env.CC_OWNEST_HERMES_BIN)
   const hermesBoard =
-    optionalTrimmedString(env.CC_OWNEST_HERMES_BOARD) ??
-    optionalTrimmedString(env.HERMES_KANBAN_BOARD) ??
-    'unite-group-ownest'
+    optionalTrimmedString(env.CC_OWNEST_HERMES_BOARD) ?? 'unite-group-ownest'
   const rolloutId = optionalTrimmedString(env.CC_OWNEST_ROLLOUT_ID)
   const canaryTaskId = optionalTrimmedString(env.CC_OWNEST_CANARY_TASK_ID)
   const live = env.CC_OWNEST_LIVE === '1'
@@ -250,14 +270,20 @@ export function loadOwnestConfig(env: NodeJS.ProcessEnv = process.env): LoadOwne
   ) {
     problems.push('SUPABASE_URL and NEXT_PUBLIC_SUPABASE_URL must resolve to the same origin')
   }
+  if (supabaseUrl && !isApprovedCrmOrigin(supabaseUrl, env)) {
+    problems.push('Supabase origin is not the approved Unite-Group CRM origin')
+  }
   if (!serviceRoleKey) problems.push('SUPABASE_SERVICE_ROLE_KEY is required')
   if (!founderId) problems.push('FOUNDER_USER_ID is required')
-  if (!workerId) problems.push('CC_OWNEST_WORKER_ID or HERMES_AGENT_ID is required')
+  if (!workerId) problems.push('CC_OWNEST_WORKER_ID is required')
+  if (!hermesBinary || !isAbsolute(hermesBinary) || hermesBinary.includes('\0')) {
+    problems.push('CC_OWNEST_HERMES_BIN must be an absolute executable path')
+  }
   if (!HERMES_PROFILE.test(hermesProfile)) {
     problems.push('CC_OWNEST_HERMES_PROFILE is invalid')
   }
   if (!HERMES_BOARD.test(hermesBoard)) {
-    problems.push('CC_OWNEST_HERMES_BOARD or HERMES_KANBAN_BOARD is invalid')
+    problems.push('CC_OWNEST_HERMES_BOARD is invalid')
   }
   if (rolloutId && !ROLLOUT_OR_TASK_ID.test(rolloutId)) {
     problems.push('CC_OWNEST_ROLLOUT_ID is invalid')
@@ -282,8 +308,20 @@ export function loadOwnestConfig(env: NodeJS.ProcessEnv = process.env): LoadOwne
   if (live && dailyDispatchLimit !== 1) {
     problems.push('CC_OWNEST_DAILY_DISPATCH_LIMIT must be 1 when live')
   }
+  if (live) {
+    problems.push(
+      'CC_OWNEST_LIVE activation is unavailable until dedicated-UID isolation and independent completion verification are installed',
+    )
+  }
 
-  if (problems.length > 0 || !supabaseUrl || !serviceRoleKey || !founderId || !workerId) {
+  if (
+    problems.length > 0 ||
+    !supabaseUrl ||
+    !serviceRoleKey ||
+    !founderId ||
+    !workerId ||
+    !hermesBinary
+  ) {
     return { ok: false, error: `Invalid OWNEST configuration: ${problems.join('; ')}` }
   }
 
@@ -294,6 +332,7 @@ export function loadOwnestConfig(env: NodeJS.ProcessEnv = process.env): LoadOwne
       serviceRoleKey,
       founderId,
       workerId,
+      hermesBinary,
       hermesCwd: optionalTrimmedString(env.HERMES_CWD) ?? process.cwd(),
       hermesProfile,
       hermesBoard,

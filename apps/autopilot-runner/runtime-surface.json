@@ -1,0 +1,56 @@
+{
+  "schema": "unite.autopilot.runtime-surface.v1",
+  "retiredPaths": [
+    "deploy/ai.hermes.presence.plist",
+    "src/adapters/author.test.ts",
+    "src/adapters/author.ts",
+    "src/adapters/exec.test.ts",
+    "src/adapters/exec.ts",
+    "src/adapters/git-repo.test.ts",
+    "src/adapters/git-repo.ts",
+    "src/adapters/github-octokit.test.ts",
+    "src/adapters/github-octokit.ts",
+    "src/adapters/github.test.ts",
+    "src/adapters/github.ts",
+    "src/adapters/handoff.test.ts",
+    "src/adapters/handoff.ts",
+    "src/end-to-end-shadow.test.ts",
+    "src/gauntlet.test.ts",
+    "src/gauntlet.ts",
+    "src/heartbeat.ts",
+    "src/loop.test.ts",
+    "src/loop.ts",
+    "src/merge-policy.test.ts",
+    "src/merge-policy.ts",
+    "src/operator-jobs-tick.ts",
+    "src/operator-jobs.test.ts",
+    "src/operator-jobs.ts",
+    "src/packet.test.ts",
+    "src/packet.ts",
+    "src/presence.test.ts",
+    "src/presence.ts",
+    "src/run-once.test.ts",
+    "src/run-once.ts",
+    "src/shadow.test.ts",
+    "src/shadow.ts",
+    "src/wiki-enhance-executor.test.ts",
+    "src/wiki-enhance-executor.ts",
+    "src/worktree.test.ts",
+    "src/worktree.ts"
+  ],
+  "surfaces": {
+    "retirementContainer": {
+      "config": "tsconfig.container.json",
+      "entrypoints": [
+        "src/index.ts"
+      ],
+      "sources": [
+        "src/index.ts"
+      ],
+      "outputDirectory": "dist/container",
+      "emitted": [
+        "index.js"
+      ]
+    }
+  }
+}

@@ -223,6 +223,7 @@ export interface OwnestConfig {
   serviceRoleKey: string
   founderId: string
   workerId: string
+  hermesBinary: string
   hermesCwd: string
   hermesProfile: string
   hermesBoard: string
@@ -317,6 +318,21 @@ export interface EnsureCompletionArtifactsResult {
   readonly completionEventId: string
 }
 
+export interface OwnestCompletionVerification {
+  readonly approved: boolean
+  readonly evidenceDigestsVerified: boolean
+  readonly independentValidationVerified: boolean
+  readonly verifier: string
+  readonly detail: string
+}
+
+/** A separately implemented trust domain; Hermes cannot approve its own work. */
+export interface OwnestCompletionVerifier {
+  verifyCompletion: (
+    input: EnsureCompletionArtifactsInput,
+  ) => Promise<OwnestCompletionVerification>
+}
+
 /** Founder-scoped CRM operations consumed by the pure tick state machine. */
 export interface OwnestCrmClient {
   listCandidateTasks: () => Promise<CcTask[]>
@@ -350,6 +366,7 @@ export interface OwnestHermesClient {
 export interface OwnestTickDeps {
   crm: OwnestCrmClient
   hermes: OwnestHermesClient
+  verifier: OwnestCompletionVerifier
   now: () => Date
   randomUUID: () => string
 }

@@ -1130,12 +1130,12 @@ function isProcessResult(value: unknown): value is ProcessResult {
 async function invokeHermes(
   operation: 'create' | 'show',
   args: readonly string[],
-  cwd: string,
+  config: OwnestConfig,
   run: ProcessRunner,
 ): Promise<ProcessResult> {
   let result: unknown
   try {
-    result = await run('hermes', args, cwd)
+    result = await run(config.hermesBinary, args, config.hermesCwd)
   } catch (error) {
     throw hermesError(operation, 'process rejected', safeDetail(stringifyUnknown(error)))
   }
@@ -1448,7 +1448,7 @@ async function invokeStopProcess(
 ): Promise<ProcessResult> {
   let result: unknown
   try {
-    result = await run('hermes', args, config.hermesCwd)
+    result = await run(config.hermesBinary, args, config.hermesCwd)
   } catch (error) {
     throw hermesError(
       'stop',
@@ -1913,7 +1913,7 @@ export function createHermesClient(
   return {
     async createMission(task, contract) {
       const { args, expectedKey } = buildCreateRequest(task, contract, config)
-      const result = await invokeHermes('create', args, config.hermesCwd, deps.run)
+      const result = await invokeHermes('create', args, config, deps.run)
       const parsed = parseCreateResponse(parseJson('create', result), expectedKey)
       if (!parsed || parsed.assignee !== config.hermesProfile) {
         throw hermesError('create', 'returned an unrecognised JSON shape', resultDetail(result))
@@ -1934,7 +1934,7 @@ export function createHermesClient(
         safeTaskId,
         '--json',
       ]
-      const result = await invokeHermes('show', args, config.hermesCwd, deps.run)
+      const result = await invokeHermes('show', args, config, deps.run)
       const parsed = parseShowResponse(parseJson('show', result), trustedContract, config)
       if (!parsed || parsed.id !== safeTaskId) {
         throw hermesError('show', 'returned an unrecognised JSON shape', resultDetail(result))
