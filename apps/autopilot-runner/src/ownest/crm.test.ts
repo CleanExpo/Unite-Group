@@ -678,8 +678,8 @@ describe('listManagedTasks', () => {
 
   it('returns every row through identity-attested id-keyset pagination', async () => {
     const allRows = Array.from({ length: 101 }, (_, index) => managedTask(index))
-    const firstPage = allRows.slice(0, 50)
-    const secondPage = allRows.slice(50)
+    const firstPage = allRows.slice(0, 100)
+    const secondPage = allRows.slice(100)
     const identities = taskIdentities(allRows)
     const fetchImpl = vi
       .fn<typeof fetch>()
@@ -722,10 +722,10 @@ describe('listManagedTasks', () => {
       'id.asc',
       'id.asc',
     ])
-    expect(fullReads.map(({ url }) => url.searchParams.get('limit'))).toEqual(['100', '51'])
+    expect(fullReads.map(({ url }) => url.searchParams.get('limit'))).toEqual(['100', '1'])
     expect(fullReads.map(({ url }) => url.searchParams.get('id'))).toEqual([
       null,
-      'gt.task-0049',
+      'gt.task-0099',
     ])
     expect(fullReads.every(({ url }) => !url.searchParams.has('offset'))).toBe(true)
   })
@@ -754,6 +754,28 @@ describe('listManagedTasks', () => {
     await expect(listManagedTasks(config, deps(fetchImpl))).rejects.toThrow(
       /pagination|ended|identity/i,
     )
+  })
+
+  it('rejects the first short full-row page without amplifying requests', async () => {
+    const rows = Array.from({ length: 500 }, (_, index) => managedTask(index))
+    let fullRowReads = 0
+    const fetchImpl = vi.fn<typeof fetch>().mockImplementation(async (input, init) => {
+      const url = new URL(String(input))
+      if (init?.method === 'HEAD') return countResponse('0-0/500')
+      if (url.searchParams.get('select') === 'id,updated_at') {
+        return jsonResponse(taskIdentities(rows))
+      }
+
+      fullRowReads += 1
+      if (fullRowReads === 1) return jsonResponse([rows[0]])
+      throw new Error('short-page amplification continued')
+    })
+
+    const error = await capturedError(() => listManagedTasks(config, deps(fetchImpl)))
+
+    expect(error.message).toMatch(/short|page size/i)
+    expect(fullRowReads).toBe(1)
+    expect(fetchImpl).toHaveBeenCalledTimes(3)
   })
 
   it('fails closed instead of truncating when the managed-task hard cap is exceeded', async () => {

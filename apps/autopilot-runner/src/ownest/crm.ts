@@ -840,11 +840,8 @@ export async function listManagedTasks(config: OwnestConfig, deps: CrmDeps): Pro
     if (cursor !== null) params.set('id', `gt.${cursor}`)
 
     const page = await getTaskRows('Failed to list managed CRM tasks', config, deps, params)
-    if (page.length === 0) {
-      throw new Error('Managed CRM keyset pagination ended before the identity attestation')
-    }
-    if (page.length > requestLimit) {
-      throw new Error('Managed CRM keyset pagination exceeded the requested page size')
+    if (page.length !== requestLimit) {
+      throw new Error('Managed CRM keyset pagination returned a short or oversized page')
     }
 
     for (const row of page) {
