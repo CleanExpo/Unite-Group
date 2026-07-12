@@ -147,12 +147,42 @@ describe('evaluateEligibility', () => {
     expect(evaluateEligibility(task({ title }))).toEqual({ eligible: false, reason: 'dangerous-language' })
   })
 
+  const nominalActionRegressions = [
+    ['production deployment', 'Production deployment'],
+    ['production deployment reversed', 'Deployment to production'],
+    ['production database mutation', 'Production database mutation'],
+    ['production database mutation reversed', 'Mutation of production database records'],
+    ['outbound publication', 'Outbound publication of the weekly newsletter'],
+    ['newsletter publication reversed', 'Weekly newsletter publication to customers'],
+    ['credential disclosure', 'Credential disclosure to a contractor'],
+    ['credential exposure', 'Exposure of credentials to a vendor'],
+    ['RBAC update', 'Update RBAC rules'],
+    ['access-control modification', 'Modify access control rules'],
+    ['RLS update', 'Update row-level security policy'],
+    ['branch-protection update', 'Update branch protection rules'],
+    ['branch-protection modification', 'Modify the branch protection settings'],
+    ['merge feature', 'Merge the feature'],
+    ['merge without object', 'Merge it now'],
+    ['merge question', 'Can you merge this?'],
+    ['merge passive request', 'The feature must be merged'],
+  ] as const
+
+  it.each(nominalActionRegressions)('rejects nominal/action regression: %s', (_category, title) => {
+    expect(evaluateEligibility(task({ title }))).toEqual({ eligible: false, reason: 'dangerous-language' })
+  })
+
   it.each([
     'Research production deployment best practices',
     'Analyse company blog publishing trends',
     'Review API key rotation policy options',
     'Compare protected branch strategies',
     'Research merge strategies for linear history',
+    'Review production database mutation risks',
+    'Research outbound publication patterns',
+    'Document credential disclosure controls',
+    'Document the branch protection policy',
+    'Document the RBAC policy',
+    'Review a merge strategy',
   ])('preserves clearly advisory research: %s', (title) => {
     expect(evaluateEligibility(task({ title }))).toEqual({ eligible: true })
   })

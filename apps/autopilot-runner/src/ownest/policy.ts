@@ -21,11 +21,11 @@ const DANGEROUS_ACTION_TARGETS = [
     /\b(?:secrets?|credentials?|passwords?|tokens?|api[-_ ]?keys?|service[-_ ]?roles?|privileges?|permissions?)\b/i,
   ],
   [
-    /\b(?:change|modify|disable|enable|grant|revoke|alter|remove|bypass|turn\s+off)\b/i,
+    /\b(?:change|modify|update|disable|enable|grant|revoke|alter|remove|bypass|turn\s+off)\b/i,
     /\b(?:access[- ]control|rbac|row[- ]level security|rls|permissions?|role assignments?)\b/i,
   ],
   [
-    /\b(?:change|modify|disable|enable|remove|bypass|turn\s+off)\b/i,
+    /\b(?:change|modify|update|disable|enable|remove|bypass|turn\s+off)\b/i,
     /\b(?:branch[- ]protection|protected branch(?:es)?|protection\b[\s\S]{0,40}\bbranch(?:es)?)\b/i,
   ],
   [
@@ -34,9 +34,19 @@ const DANGEROUS_ACTION_TARGETS = [
   ],
 ] as const
 
-const SENSITIVE_NOMINAL_ACTION = /\b(?:rotation|escalation)\b/i
-const SENSITIVE_NOMINAL_TARGET = /\b(?:secrets?|credentials?|passwords?|tokens?|api[-_ ]?keys?|service[-_ ]?accounts?|privileges?|permissions?)\b/i
-const CLEAR_ADVISORY_INTENT = /^\s*(?:research|analyse|analyze|review|compare|study|assess)\b/i
+const DANGEROUS_NOMINAL_TARGETS = [
+  [/\b(?:deployment|mutation)\b/i, /\bprod(?:uction)?\b/i],
+  [/\bpublication\b/i, /\b(?:outbound|newsletters?|customers?|public(?:ly)?|external(?:ly)?|blog|posts?)\b/i],
+  [/\b(?:disclosure|exposure)\b/i, /\b(?:secrets?|credentials?|passwords?|tokens?|api[-_ ]?keys?)\b/i],
+  [
+    /\b(?:rotation|escalation)\b/i,
+    /\b(?:secrets?|credentials?|passwords?|tokens?|api[-_ ]?keys?|service[-_ ]?accounts?|privileges?|permissions?)\b/i,
+  ],
+] as const
+
+const MERGE_ACTION_REQUEST =
+  /(?:^|\n)\s*(?:please\s+)?merge\b|\b(?:can|could|would)\s+(?:you|we)\s+merge\b|\b(?:must|should|needs? to)\s+(?:be\s+)?merge(?:d)?\b/i
+const CLEAR_ADVISORY_INTENT = /^\s*(?:research|analyse|analyze|review|compare|study|assess|document)\b/i
 
 const CREDENTIAL_LABEL = String.raw`(?:[A-Z0-9_-]*(?:API[-_ ]?(?:KEY|TOKEN)|ACCESS[-_ ]?TOKEN|AUTH[-_ ]?TOKEN|REFRESH[-_ ]?TOKEN|ID[-_ ]?TOKEN|CLIENT[-_ ]?SECRET|SERVICE[-_ ]?ROLE[-_ ]?KEY|SECRET|TOKEN|PASSWORD|PASSWD|CREDENTIAL)[A-Z0-9_-]*)`
 
@@ -131,14 +141,14 @@ export function extractOwnestState(metadata: unknown): OwnestStateV1 | null {
 function containsDangerousLanguage(task: CcTask): boolean {
   const missionText = `${task.title}\n${task.objective}`
   if (ALWAYS_DANGEROUS_LANGUAGE.some((pattern) => pattern.test(missionText))) return true
+  if (MERGE_ACTION_REQUEST.test(missionText)) return true
   if (DANGEROUS_ACTION_TARGETS.some(([action, target]) => action.test(missionText) && target.test(missionText))) {
     return true
   }
 
   return [task.title, task.objective].some(
     (text) =>
-      SENSITIVE_NOMINAL_ACTION.test(text) &&
-      SENSITIVE_NOMINAL_TARGET.test(text) &&
+      DANGEROUS_NOMINAL_TARGETS.some(([action, target]) => action.test(text) && target.test(text)) &&
       !CLEAR_ADVISORY_INTENT.test(text),
   )
 }
