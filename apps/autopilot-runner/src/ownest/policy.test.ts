@@ -8,6 +8,8 @@ import {
 } from './policy.js'
 import type { CcTask, OwnestStateV1 } from './types.js'
 
+const MISSION_TEXT_LIMIT = 16 * 1024
+
 function task(overrides: Partial<CcTask> = {}): CcTask {
   return {
     id: 'task-1',
@@ -85,12 +87,15 @@ describe('evaluateEligibility', () => {
     expect(evaluateEligibility(task({ status }))).toMatchObject({ eligible: false })
   })
 
-  it('rejects an existing OWNEST dead letter', () => {
+  it.each([
+    ['gated', 'ownest-gated'],
+    ['dead_letter', 'dead-letter'],
+  ] as const)('rejects an existing OWNEST %s state', (gateState, reason) => {
     expect(
       evaluateEligibility(
-        task({ metadata: { ownest: { ...ownestState, gateState: 'dead_letter', lastError: 'retry limit' } } }),
+        task({ metadata: { ownest: { ...ownestState, gateState, lastError: 'policy gate' } } }),
       ),
-    ).toMatchObject({ eligible: false })
+    ).toEqual({ eligible: false, reason })
   })
 
   it('rejects an existing Hermes mirror', () => {
@@ -172,6 +177,20 @@ describe('evaluateEligibility', () => {
   })
 
   it.each([
+    ['production database action', 'Perform a production database migration'],
+    ['outbound notification', 'Notify Jane about the delay'],
+    ['credential copy', 'Copy the API key into the report'],
+    ['privilege grant', 'Make Alice an admin'],
+    ['destructive record removal', 'Remove all customer records'],
+    ['branch unprotection', 'Unprotect the main branch'],
+    ['pull-request landing', 'Land pull request 42'],
+  ] as const)('rejects reviewed fail-open phrase: %s', (_category, title) => {
+    expect(evaluateEligibility(task({ title }))).toEqual({ eligible: false, reason: 'dangerous-language' })
+  })
+
+  it.each([
+    'Research payment trends',
+    'Research how to deploy safely to production',
     'Research production deployment best practices',
     'Analyse company blog publishing trends',
     'Review API key rotation policy options',
@@ -185,6 +204,20 @@ describe('evaluateEligibility', () => {
     'Review a merge strategy',
   ])('preserves clearly advisory research: %s', (title) => {
     expect(evaluateEligibility(task({ title }))).toEqual({ eligible: true })
+  })
+
+  it('rejects a mixed advisory and production action request', () => {
+    expect(evaluateEligibility(task({ title: 'Research deployment options, then deploy to production' }))).toEqual({
+      eligible: false,
+      reason: 'dangerous-language',
+    })
+  })
+
+  it('gates mission text over the explicit input bound before matching', () => {
+    expect(evaluateEligibility(task({ title: 'a'.repeat(MISSION_TEXT_LIMIT + 1), objective: '' }))).toEqual({
+      eligible: false,
+      reason: 'mission-text-too-long',
+    })
   })
 
   it('rejects dangerous objective language case-insensitively', () => {
@@ -238,6 +271,42 @@ describe('redactMissionText', () => {
     expect(redacted).toContain('Run a safe check')
     expect(redacted).toContain('then cite results.')
   })
+
+  it('redacts JSON credential values while preserving surrounding JSON and prose', () => {
+    const input =
+      'Keep context {"token":"tok_json_123","OPENAI_API_KEY":"sk-json-456"} and retain this explanation.'
+
+    const redacted = redactMissionText(input)
+
+    expect(redacted).not.toContain('tok_json_123')
+    expect(redacted).not.toContain('sk-json-456')
+    expect(redacted).toContain('{"token":"[REDACTED]","OPENAI_API_KEY":"[REDACTED]"}')
+    expect(redacted).toContain('Keep context')
+    expect(redacted).toContain('retain this explanation.')
+  })
+
+  it('redacts ApiKey authorization and common CLI credential values', () => {
+    const input =
+      'Run check --api-key cli-key-123 --client-secret="cli secret 456" with Authorization: ApiKey auth-key-789; keep the report.'
+
+    const redacted = redactMissionText(input)
+
+    expect(redacted).not.toContain('cli-key-123')
+    expect(redacted).not.toContain('cli secret 456')
+    expect(redacted).not.toContain('auth-key-789')
+    expect(redacted).toContain('--api-key [REDACTED]')
+    expect(redacted).toContain('--client-secret="[REDACTED]"')
+    expect(redacted).toContain('keep the report.')
+  })
+
+  it('caps hostile redaction input and output before applying patterns', () => {
+    const hostile = `Useful prefix token=secret-value ${'x'.repeat(MISSION_TEXT_LIMIT * 4)}`
+    const redacted = redactMissionText(hostile)
+
+    expect(redacted.length).toBeLessThanOrEqual(MISSION_TEXT_LIMIT)
+    expect(redacted).not.toContain('secret-value')
+    expect(redacted).toContain('Useful prefix token=[REDACTED]')
+  })
 })
 
 describe('mapHermesStatus', () => {
@@ -255,15 +324,22 @@ describe('mapHermesStatus', () => {
       expect(mapHermesStatus(status)).toBeNull()
     },
   )
+
+  it.each(['DONE', ' done ', 'BLOCKED', ' review ', null, { status: 'done' }])(
+    'keeps drifted or non-string Hermes state %# non-terminal',
+    (status) => {
+      expect(mapHermesStatus(status)).toBeNull()
+    },
+  )
 })
 
 describe('extractOwnestState', () => {
   it('returns a fully validated OWNEST v1 state', () => {
-    expect(extractOwnestState({ ownest: ownestState })).toEqual(ownestState)
+    expect(extractOwnestState({ ownest: ownestState }, 'task-1')).toEqual(ownestState)
   })
 
   it('returns null when metadata has no OWNEST state', () => {
-    expect(extractOwnestState({})).toBeNull()
+    expect(extractOwnestState({}, 'task-1')).toBeNull()
   })
 
   it.each([
@@ -275,10 +351,50 @@ describe('extractOwnestState', () => {
     { ...ownestState, evidenceUri: 42 },
     { version: 1, crmTaskId: 'task-1' },
   ])('does not trust malformed metadata.ownest %#', (malformedOwnest) => {
-    expect(extractOwnestState({ ownest: malformedOwnest })).toBeNull()
+    expect(extractOwnestState({ ownest: malformedOwnest }, 'task-1')).toBeNull()
   })
 
   it('does not trust a non-record metadata container', () => {
-    expect(extractOwnestState('not-metadata')).toBeNull()
+    expect(extractOwnestState('not-metadata', 'task-1')).toBeNull()
+  })
+
+  const semanticCorruptions: Array<[string, Record<string, unknown>]> = [
+    ['wrong CRM task ID', { ...ownestState, crmTaskId: 'task-2' }],
+    ['non-canonical idempotency key', { ...ownestState, idempotencyKey: 'cc-task:task-1:v2' }],
+    ['blank CRM task ID', { ...ownestState, crmTaskId: '  ' }],
+    ['blank idempotency key', { ...ownestState, idempotencyKey: '' }],
+    ['blank attempt ID', { ...ownestState, attemptId: '' }],
+    ['blank lease owner', { ...ownestState, leaseOwner: ' ' }],
+    ['invalid lease expiry', { ...ownestState, leaseExpiresAt: 'tomorrow' }],
+    ['invalid heartbeat', { ...ownestState, lastHeartbeatAt: 'recently' }],
+    ['invalid dispatch timestamp', { ...ownestState, dispatchedAt: 'not-iso' }],
+    ['invalid reconciliation timestamp', { ...ownestState, reconciledAt: '12/07/2026' }],
+    ['blank Hermes task ID', { ...ownestState, hermesTaskId: '' }],
+    ['blank evidence URI', { ...ownestState, evidenceUri: ' ' }],
+    ['blank last error', { ...ownestState, lastError: '' }],
+  ]
+
+  it.each(semanticCorruptions)('rejects semantic OWNEST corruption: %s', (_label, malformedOwnest) => {
+    expect(extractOwnestState({ ownest: malformedOwnest }, 'task-1')).toBeNull()
+  })
+
+  it.each(semanticCorruptions)('gates a task carrying semantic OWNEST corruption: %s', (_label, malformedOwnest) => {
+    expect(evaluateEligibility(task({ metadata: { ownest: malformedOwnest } }))).toEqual({
+      eligible: false,
+      reason: 'invalid-ownest-state',
+    })
+  })
+
+  it('accepts parseable non-null timestamps and non-empty nullable strings', () => {
+    const completeState: OwnestStateV1 = {
+      ...ownestState,
+      hermesTaskId: 'hermes-1',
+      dispatchedAt: '2026-07-12T00:01:00.000Z',
+      reconciledAt: '2026-07-12T00:02:00+00:00',
+      evidenceUri: 'wiki://evidence/task-1',
+      lastError: 'previous recoverable error',
+    }
+
+    expect(extractOwnestState({ ownest: completeState }, 'task-1')).toEqual(completeState)
   })
 })
