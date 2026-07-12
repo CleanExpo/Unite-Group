@@ -17,7 +17,8 @@ services:
     volumes:
       - pgdata_ug:/var/lib/postgresql/data
     ports:
-      - "64326:5432"
+      # Loopback-bind so the sandbox Postgres is not reachable from the LAN.
+      - "127.0.0.1:64326:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U sandbox -d unite_group_sandbox"]
       interval: 5s
@@ -30,7 +31,8 @@ services:
     image: redis:7-alpine
     container_name: ug-sandbox-redis
     ports:
-      - "64796:6379"
+      # Loopback-bind so the sandbox Redis is not reachable from the LAN.
+      - "127.0.0.1:64796:6379"
     volumes:
       - redisdata_ug:/data
     networks:

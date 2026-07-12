@@ -73,7 +73,11 @@ services:
       retries: 5
       start_period: 15s
     ports:
-      - '8642:8642'
+      # Loopback-bind the published gateway port so it is not reachable from
+      # the LAN. Service-to-service traffic uses the docker network
+      # (hermes-agent:8642) and is unaffected. To expose off-loopback set a
+      # strong API_SERVER_KEY (see above) and override this mapping.
+      - '127.0.0.1:8642:8642'
 
   # The Hermes Workspace Web UI
   # Connects to hermes-agent at http://hermes-agent:8642
