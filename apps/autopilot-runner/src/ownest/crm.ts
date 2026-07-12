@@ -1,3 +1,5 @@
+import { StringDecoder } from 'node:string_decoder'
+import { isDeepStrictEqual } from 'node:util'
 import { extractOwnestState } from './policy.js'
 import type {
   AppendOwnestEventInput,
@@ -13,6 +15,10 @@ import type {
 const REQUEST_TIMEOUT_MS = 10_000
 const ERROR_DETAIL_LIMIT = 800
 const TASK_LIMIT = 100
+const SUCCESS_RESPONSE_BODY_LIMIT = 1024 * 1024
+const ERROR_RESPONSE_BODY_LIMIT = 64 * 1024
+const OUTBOUND_JSON_BODY_LIMIT = 256 * 1024
+const MAX_JSON_DEPTH = 64
 
 const TASK_COLUMNS = [
   'id',
@@ -291,6 +297,157 @@ function redactedError(context: string, error: unknown, serviceRoleKey: string):
   return new Error(message.slice(0, ERROR_DETAIL_LIMIT))
 }
 
+function checkedByteTotal(current: number, addition: number, maximum: number): number {
+  if (addition > maximum - current) {
+    throw new Error(`JSON body exceeded ${maximum} bytes`)
+  }
+  return current + addition
+}
+
+function jsonStringByteLength(value: string, maximum: number): number {
+  if (Buffer.byteLength(value) > maximum) {
+    throw new Error(`JSON string exceeded ${maximum} bytes`)
+  }
+  const encoded = JSON.stringify(value)
+  return Buffer.byteLength(encoded)
+}
+
+function measureJsonBytes(
+  value: unknown,
+  maximum: number,
+  ancestors: Set<object>,
+  depth: number,
+): number {
+  if (depth > MAX_JSON_DEPTH) throw new Error(`JSON body exceeded ${MAX_JSON_DEPTH} levels`)
+  if (value === null) return 4
+
+  switch (typeof value) {
+    case 'string':
+      return jsonStringByteLength(value, maximum)
+    case 'boolean':
+      return value ? 4 : 5
+    case 'number':
+      return Buffer.byteLength(JSON.stringify(value))
+    case 'bigint':
+      throw new Error('BigInt is not valid JSON')
+    case 'undefined':
+    case 'function':
+    case 'symbol':
+      throw new Error(`Unsupported ${typeof value} JSON value`)
+    case 'object':
+      break
+  }
+
+  if (ancestors.has(value)) throw new Error('Circular JSON values are not allowed')
+  ancestors.add(value)
+
+  try {
+    if (Array.isArray(value)) {
+      let total = 2
+      for (let index = 0; index < value.length; index += 1) {
+        if (index > 0) total = checkedByteTotal(total, 1, maximum)
+        const descriptor = Object.getOwnPropertyDescriptor(value, String(index))
+        if (!descriptor) {
+          total = checkedByteTotal(total, 4, maximum)
+          continue
+        }
+        if (!Object.prototype.hasOwnProperty.call(descriptor, 'value')) {
+          throw new Error('JSON arrays must not contain accessors')
+        }
+        total = checkedByteTotal(
+          total,
+          measureJsonBytes(descriptor.value, maximum, ancestors, depth + 1),
+          maximum,
+        )
+      }
+      return total
+    }
+
+    if (!isPlainRecord(value)) throw new Error('JSON objects must be plain records')
+    if (Object.getOwnPropertyDescriptor(value, 'toJSON')) {
+      throw new Error('Custom JSON serialization is not allowed')
+    }
+
+    let total = 2
+    const keys = Object.keys(value)
+    for (let index = 0; index < keys.length; index += 1) {
+      const key = keys[index]
+      if (key === undefined) continue
+      const descriptor = Object.getOwnPropertyDescriptor(value, key)
+      if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, 'value')) {
+        throw new Error('JSON objects must not contain accessors')
+      }
+      if (index > 0) total = checkedByteTotal(total, 1, maximum)
+      total = checkedByteTotal(total, jsonStringByteLength(key, maximum), maximum)
+      total = checkedByteTotal(total, 1, maximum)
+      total = checkedByteTotal(
+        total,
+        measureJsonBytes(descriptor.value, maximum, ancestors, depth + 1),
+        maximum,
+      )
+    }
+    return total
+  } finally {
+    ancestors.delete(value)
+  }
+}
+
+function boundedJsonBody(
+  context: string,
+  value: unknown,
+  config: OwnestConfig,
+): string {
+  try {
+    measureJsonBytes(value, OUTBOUND_JSON_BODY_LIMIT, new Set<object>(), 0)
+    const body = JSON.stringify(value)
+    if (Buffer.byteLength(body) > OUTBOUND_JSON_BODY_LIMIT) {
+      throw new Error(`JSON body exceeded ${OUTBOUND_JSON_BODY_LIMIT} bytes`)
+    }
+    return body
+  } catch (error) {
+    throw redactedError(context, error, config.serviceRoleKey)
+  }
+}
+
+async function readBoundedResponseBody(response: Response, maximum: number): Promise<string> {
+  if (!response.body) return ''
+
+  const reader = response.body.getReader()
+  const decoder = new StringDecoder('utf8')
+  const chunks: string[] = []
+  let byteLength = 0
+  let completed = false
+
+  try {
+    while (true) {
+      const result = await reader.read()
+      if (result.done) break
+
+      const chunk = result.value
+      const remaining = maximum - byteLength
+      if (chunk.byteLength > remaining) {
+        if (remaining > 0) {
+          // StringDecoder retains an incomplete trailing code point. Because
+          // `end()` is deliberately not called on this path, the retained
+          // prefix can never manufacture U+FFFD at the byte boundary.
+          chunks.push(decoder.write(Buffer.from(chunk.subarray(0, remaining))))
+        }
+        await reader.cancel().catch(() => undefined)
+        throw new Error(`response body exceeded ${maximum} bytes`)
+      }
+
+      byteLength += chunk.byteLength
+      chunks.push(decoder.write(Buffer.from(chunk)))
+    }
+
+    completed = true
+    return chunks.join('') + decoder.end()
+  } finally {
+    if (!completed) await reader.cancel().catch(() => undefined)
+    reader.releaseLock()
+  }
+}
+
 function taskUrl(config: OwnestConfig, params: URLSearchParams): URL {
   const url = new URL('/rest/v1/cc_tasks', config.supabaseUrl)
   url.search = params.toString()
@@ -315,7 +472,7 @@ async function crmRequest(
   init: RequestInit,
   config: OwnestConfig,
   deps: CrmDeps,
-): Promise<Response> {
+): Promise<string> {
   try {
     const response = await deps.fetch(url, {
       ...init,
@@ -323,11 +480,41 @@ async function crmRequest(
     })
 
     if (!response.ok) {
-      const body = await response.clone().text()
+      let body: string
+      try {
+        body = await readBoundedResponseBody(response, ERROR_RESPONSE_BODY_LIMIT)
+      } catch (error) {
+        throw new Error(
+          `HTTP ${response.status} ${response.statusText}: ${stringifyUnknown(error)}`,
+        )
+      }
       throw new Error(`HTTP ${response.status} ${response.statusText}: ${body}`)
     }
 
-    return response
+    return await readBoundedResponseBody(response, SUCCESS_RESPONSE_BODY_LIMIT)
+  } catch (error) {
+    throw redactedError(context, error, config.serviceRoleKey)
+  }
+}
+
+function parseTaskRows(
+  context: string,
+  body: string,
+  config: OwnestConfig,
+): CcTask[] {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(body)
+  } catch {
+    throw redactedError(
+      context,
+      new Error('CRM response contained malformed JSON'),
+      config.serviceRoleKey,
+    )
+  }
+
+  try {
+    return parseTaskList(parsed, config.founderId)
   } catch (error) {
     throw redactedError(context, error, config.serviceRoleKey)
   }
@@ -339,14 +526,14 @@ async function getTaskRows(
   deps: CrmDeps,
   params: URLSearchParams,
 ): Promise<CcTask[]> {
-  const response = await crmRequest(
+  const body = await crmRequest(
     context,
     taskUrl(config, params),
     { method: 'GET', headers: serviceHeaders(config) },
     config,
     deps,
   )
-  return parseTaskList(await response.clone().json(), config.founderId)
+  return parseTaskRows(context, body, config)
 }
 
 /** Returns the bounded, priority-ordered founder queue eligible for policy evaluation. */
@@ -423,7 +610,10 @@ export async function compareAndSetTask(
   params.set('status', `eq.${input.expectedStatus}`)
   params.set('select', TASK_SELECT)
 
-  const response = await crmRequest(
+  const patchBody = boundedJsonBody('Failed to serialise CRM task update', input.patch, config)
+  const normalisedPatch = JSON.parse(patchBody) as Record<string, unknown>
+
+  const body = await crmRequest(
     'Failed to compare and set CRM task',
     taskUrl(config, params),
     {
@@ -433,12 +623,12 @@ export async function compareAndSetTask(
         'content-type': 'application/json',
         Prefer: 'return=representation',
       },
-      body: JSON.stringify(input.patch),
+      body: patchBody,
     },
     config,
     deps,
   )
-  const rows = parseTaskList(await response.clone().json(), config.founderId)
+  const rows = parseTaskRows('Failed to compare and set CRM task', body, config)
   if (rows.length === 0) return null
   if (rows.length !== 1) throw new Error('CRM task update returned an invalid row count')
 
@@ -449,6 +639,12 @@ export async function compareAndSetTask(
   const confirmedStatus = input.patch.status ?? input.expectedStatus
   if (row.status !== confirmedStatus) {
     throw new Error('CRM task update did not confirm the requested status')
+  }
+  if (
+    Object.prototype.hasOwnProperty.call(normalisedPatch, 'metadata') &&
+    !isDeepStrictEqual(row.metadata, normalisedPatch.metadata)
+  ) {
+    throw new Error('CRM task update did not confirm the requested metadata')
   }
   return row
 }
@@ -476,13 +672,17 @@ export async function appendTaskEvent(
     {
       method: 'POST',
       headers: { ...serviceHeaders(config), 'content-type': 'application/json' },
-      body: JSON.stringify({
-        founder_id: config.founderId,
-        task_id: input.taskId,
-        type: input.type,
-        actor,
-        payload,
-      }),
+      body: boundedJsonBody(
+        'Failed to serialise CRM task event',
+        {
+          founder_id: config.founderId,
+          task_id: input.taskId,
+          type: input.type,
+          actor,
+          payload,
+        },
+        config,
+      ),
     },
     config,
     deps,
@@ -516,14 +716,18 @@ export async function appendEvidence(
     {
       method: 'POST',
       headers: { ...serviceHeaders(config), 'content-type': 'application/json' },
-      body: JSON.stringify({
-        founder_id: config.founderId,
-        task_id: input.taskId,
-        wiki_path: input.wikiPath,
-        kind,
-        sources,
-        confidence,
-      }),
+      body: boundedJsonBody(
+        'Failed to serialise CRM evidence',
+        {
+          founder_id: config.founderId,
+          task_id: input.taskId,
+          wiki_path: input.wikiPath,
+          kind,
+          sources,
+          confidence,
+        },
+        config,
+      ),
     },
     config,
     deps,

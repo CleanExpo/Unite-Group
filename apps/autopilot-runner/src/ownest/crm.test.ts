@@ -96,6 +96,31 @@ function jsonResponse(body: unknown, status = 200): Response {
   })
 }
 
+function streamingResponse(body: string, status = 200): {
+  response: Response
+  wasCancelled: () => boolean
+} {
+  const bytes = new TextEncoder().encode(body)
+  let offset = 0
+  let cancelled = false
+  const stream = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      const nextOffset = Math.min(offset + 8 * 1024, bytes.byteLength)
+      controller.enqueue(bytes.subarray(offset, nextOffset))
+      offset = nextOffset
+      if (offset === bytes.byteLength) controller.close()
+    },
+    cancel() {
+      cancelled = true
+    },
+  })
+
+  return {
+    response: new Response(stream, { status, headers: { 'content-type': 'application/json' } }),
+    wasCancelled: () => cancelled,
+  }
+}
+
 function mockFetch(response: Response = jsonResponse([])) {
   return vi.fn<typeof fetch>().mockResolvedValue(response)
 }
@@ -325,6 +350,44 @@ describe('listCandidateTasks', () => {
 
     await expect(listCandidateTasks(config, deps(fetchImpl))).rejects.toThrow()
   })
+
+  it('parses a successful body once from its bounded stream without clone/text/json helpers', async () => {
+    const response = jsonResponse([task()])
+    const clone = vi.spyOn(response, 'clone')
+    const text = vi.spyOn(response, 'text')
+    const json = vi.spyOn(response, 'json')
+    const fetchImpl = mockFetch(response)
+
+    await expect(listCandidateTasks(config, deps(fetchImpl))).resolves.toEqual([task()])
+
+    expect(clone).not.toHaveBeenCalled()
+    expect(text).not.toHaveBeenCalled()
+    expect(json).not.toHaveBeenCalled()
+  })
+
+  it('cancels and rejects an oversized successful response with a redacted capped error', async () => {
+    const oversized = streamingResponse(
+      JSON.stringify([task({ title: `${serviceRoleKey}:${'x'.repeat(2 * 1024 * 1024)}` })]),
+    )
+    const fetchImpl = mockFetch(oversized.response)
+
+    const error = await capturedError(() => listCandidateTasks(config, deps(fetchImpl)))
+
+    expect(oversized.wasCancelled()).toBe(true)
+    expect(error.message).toContain('Failed to list candidate CRM tasks')
+    expect(error.message).not.toContain(serviceRoleKey)
+    expect(error.message.length).toBeLessThanOrEqual(800)
+  })
+
+  it('wraps malformed successful JSON in a redacted capped request error', async () => {
+    const fetchImpl = mockFetch(new Response(`{${serviceRoleKey}`, { status: 200 }))
+
+    const error = await capturedError(() => listCandidateTasks(config, deps(fetchImpl)))
+
+    expect(error.message).toContain('Failed to list candidate CRM tasks')
+    expect(error.message).not.toContain(serviceRoleKey)
+    expect(error.message.length).toBeLessThanOrEqual(800)
+  })
 })
 
 describe('listMirroredTasks', () => {
@@ -452,6 +515,84 @@ describe('compareAndSetTask', () => {
       compareAndSetTask(unsafeInput as never, config, deps(fetchImpl)),
     ).rejects.toThrow()
     expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['missing metadata', {}],
+    ['altered metadata', { ownest: ownestState('task-1'), nested: { expected: false } }],
+  ])('rejects a returned row with %s when patched metadata is not confirmed', async (_label, returnedMetadata) => {
+    const metadata = { ownest: ownestState('task-1'), nested: { expected: true } }
+    const fetchImpl = mockFetch(
+      jsonResponse([task({ status: 'running', metadata: returnedMetadata })]),
+    )
+
+    await expect(
+      compareAndSetTask(
+        {
+          taskId: 'task-1',
+          expectedStatus: 'queued',
+          patch: { status: 'running', metadata },
+        },
+        config,
+        deps(fetchImpl),
+      ),
+    ).rejects.toThrow(/metadata/i)
+  })
+
+  it('accepts JSON-semantically identical metadata regardless of object key order', async () => {
+    const metadata = { alpha: 1, nested: { beta: true, gamma: ['x'] } }
+    const returnedMetadata = { nested: { gamma: ['x'], beta: true }, alpha: 1 }
+    const updated = task({ status: 'running', metadata: returnedMetadata })
+    const fetchImpl = mockFetch(jsonResponse([updated]))
+
+    await expect(
+      compareAndSetTask(
+        {
+          taskId: 'task-1',
+          expectedStatus: 'queued',
+          patch: { status: 'running', metadata },
+        },
+        config,
+        deps(fetchImpl),
+      ),
+    ).resolves.toEqual(updated)
+  })
+
+  it.each([
+    [
+      'cyclic metadata',
+      () => {
+        const metadata: Record<string, unknown> = { marker: serviceRoleKey }
+        metadata.self = metadata
+        return { status: 'running' as const, metadata }
+      },
+    ],
+    [
+      'BigInt metadata',
+      () => ({ status: 'running' as const, metadata: { marker: serviceRoleKey, value: 1n } }),
+    ],
+    [
+      'oversized metadata',
+      () => ({
+        status: 'running' as const,
+        metadata: { marker: serviceRoleKey, value: 'x'.repeat(2 * 1024 * 1024) },
+      }),
+    ],
+  ])('rejects %s deterministically before fetch with a redacted capped error', async (_label, makePatch) => {
+    const fetchImpl = mockFetch()
+
+    const error = await capturedError(() =>
+      compareAndSetTask(
+        { taskId: 'task-1', expectedStatus: 'queued', patch: makePatch() },
+        config,
+        deps(fetchImpl),
+      ),
+    )
+
+    expect(fetchImpl).not.toHaveBeenCalled()
+    expect(error.message).toContain('Failed to serialise CRM task update')
+    expect(error.message).not.toContain(serviceRoleKey)
+    expect(error.message.length).toBeLessThanOrEqual(800)
   })
 })
 
@@ -594,6 +735,24 @@ describe('request failure handling', () => {
     expect(errorLog).not.toHaveBeenCalled()
   })
 
+  it('streams, cancels, and caps an oversized non-2xx response without response helpers', async () => {
+    const oversized = streamingResponse(`${serviceRoleKey}:${'x'.repeat(2 * 1024 * 1024)}`, 503)
+    const clone = vi.spyOn(oversized.response, 'clone')
+    const text = vi.spyOn(oversized.response, 'text')
+    const json = vi.spyOn(oversized.response, 'json')
+    const fetchImpl = mockFetch(oversized.response)
+
+    const error = await capturedError(() => listCandidateTasks(config, deps(fetchImpl)))
+
+    expect(oversized.wasCancelled()).toBe(true)
+    expect(clone).not.toHaveBeenCalled()
+    expect(text).not.toHaveBeenCalled()
+    expect(json).not.toHaveBeenCalled()
+    expect(error.message).toContain('503')
+    expect(error.message).not.toContain(serviceRoleKey)
+    expect(error.message.length).toBeLessThanOrEqual(800)
+  })
+
   it('attaches a deterministic bounded timeout signal without sleeping', async () => {
     const timeout = vi.spyOn(AbortSignal, 'timeout')
     const fetchImpl = mockFetch(jsonResponse([]))
@@ -610,7 +769,7 @@ describe('request failure handling', () => {
 
 describe('createCrmClient', () => {
   it('binds the configured founder scope and injected fetch to every operation', async () => {
-    const fetchImpl = mockFetch(jsonResponse([]))
+    const fetchImpl = vi.fn<typeof fetch>().mockImplementation(async () => jsonResponse([]))
     const client = createCrmClient(config, deps(fetchImpl))
 
     await client.listCandidateTasks()
