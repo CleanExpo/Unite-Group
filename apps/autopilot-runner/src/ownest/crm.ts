@@ -48,6 +48,9 @@ const TASK_COLUMNS = [
 
 const TASK_SELECT = TASK_COLUMNS.join(',')
 const TASK_COLUMN_SET = new Set<string>(TASK_COLUMNS)
+const MANAGED_IDENTITY_COLUMNS = ['id', 'updated_at'] as const
+const MANAGED_IDENTITY_SELECT = MANAGED_IDENTITY_COLUMNS.join(',')
+const MANAGED_IDENTITY_COLUMN_SET = new Set<string>(MANAGED_IDENTITY_COLUMNS)
 
 const TASK_PRIORITIES = new Set(['P0', 'P1', 'P2', 'P3'])
 const TASK_STATUSES = new Set([
@@ -331,6 +334,42 @@ function parseTaskList(value: unknown, founderId: string): CcTask[] {
   return value.map((row) => parseTask(row, founderId))
 }
 
+interface ManagedTaskIdentity {
+  id: string
+  updated_at: string
+}
+
+function parseManagedTaskIdentityList(value: unknown): ManagedTaskIdentity[] {
+  if (!Array.isArray(value)) throw new Error('Managed CRM identity snapshot must be an array')
+  if (value.length > MANAGED_TASK_HARD_CAP) {
+    throw new Error('Managed CRM identity snapshot exceeded the hard cap')
+  }
+
+  const identities: ManagedTaskIdentity[] = []
+  let previousId: string | null = null
+  for (const row of value) {
+    if (!isRecord(row)) throw new Error('Managed CRM identity row must be an object')
+    const keys = Object.keys(row)
+    if (
+      keys.length !== MANAGED_IDENTITY_COLUMNS.length ||
+      keys.some((key) => !MANAGED_IDENTITY_COLUMN_SET.has(key))
+    ) {
+      throw new Error('Managed CRM identity row has an invalid column set')
+    }
+    if (!isNonEmptyString(row.id)) throw new Error('Managed CRM identity row has an invalid id')
+    if (!isIsoTimestamp(row.updated_at)) {
+      throw new Error('Managed CRM identity row has an invalid updated timestamp')
+    }
+    if (previousId !== null && row.id <= previousId) {
+      throw new Error('Managed CRM identity snapshot contains duplicate or out-of-order ids')
+    }
+
+    identities.push({ id: row.id, updated_at: row.updated_at })
+    previousId = row.id
+  }
+  return identities
+}
+
 function stringifyUnknown(value: unknown): string {
   if (value instanceof Error) return `${value.name}: ${value.message}`
   try {
@@ -590,6 +629,29 @@ function parseTaskRows(
   }
 }
 
+function parseManagedTaskIdentityRows(
+  context: string,
+  body: string,
+  config: OwnestConfig,
+): ManagedTaskIdentity[] {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(body)
+  } catch {
+    throw redactedError(
+      context,
+      new Error('Managed CRM identity snapshot contained malformed JSON'),
+      config.serviceRoleKey,
+    )
+  }
+
+  try {
+    return parseManagedTaskIdentityList(parsed)
+  } catch (error) {
+    throw redactedError(context, error, config.serviceRoleKey)
+  }
+}
+
 async function getTaskRows(
   context: string,
   config: OwnestConfig,
@@ -604,6 +666,34 @@ async function getTaskRows(
     deps,
   )
   return parseTaskRows(context, body, config)
+}
+
+function managedTaskParams(config: OwnestConfig, select: string): URLSearchParams {
+  const params = new URLSearchParams()
+  params.set('select', select)
+  params.set('founder_id', `eq.${config.founderId}`)
+  params.set('status', 'in.(running,blocked,awaiting_approval,failed)')
+  params.set('metadata->ownest->>version', 'eq.1')
+  return params
+}
+
+async function getManagedTaskIdentitySnapshot(
+  context: string,
+  config: OwnestConfig,
+  deps: CrmDeps,
+): Promise<ManagedTaskIdentity[]> {
+  const params = managedTaskParams(config, MANAGED_IDENTITY_SELECT)
+  params.set('order', 'id.asc')
+  params.set('limit', String(MANAGED_TASK_HARD_CAP + 1))
+
+  const body = await crmRequest(
+    context,
+    taskUrl(config, params),
+    { method: 'GET', headers: serviceHeaders(config) },
+    config,
+    deps,
+  )
+  return parseManagedTaskIdentityRows(context, body, config)
 }
 
 function parseExactCount(response: Response): number {
@@ -718,11 +808,7 @@ export async function getOwnedTask(
 
 /** Reads every founder-owned task governed by the hardened OWNEST state machine. */
 export async function listManagedTasks(config: OwnestConfig, deps: CrmDeps): Promise<CcTask[]> {
-  const countParams = new URLSearchParams()
-  countParams.set('select', 'id')
-  countParams.set('founder_id', `eq.${config.founderId}`)
-  countParams.set('status', 'in.(running,blocked,awaiting_approval,failed)')
-  countParams.set('metadata->ownest->>version', 'eq.1')
+  const countParams = managedTaskParams(config, 'id')
 
   const expectedCount = await countTaskRows(
     'Failed to attest managed CRM task count',
@@ -734,26 +820,31 @@ export async function listManagedTasks(config: OwnestConfig, deps: CrmDeps): Pro
     throw new Error('Managed CRM task read exceeded the hard cap')
   }
 
-  const rows: CcTask[] = []
-  let previous: CcTask | null = null
+  const beforeIdentities = await getManagedTaskIdentitySnapshot(
+    'Failed to read initial managed CRM identity attestation',
+    config,
+    deps,
+  )
+  if (beforeIdentities.length !== expectedCount) {
+    throw new Error('Managed CRM exact count disagreed with the identity attestation')
+  }
 
-  while (rows.length < expectedCount) {
-    const requestLimit = Math.min(TASK_LIMIT, expectedCount - rows.length)
-    const params = new URLSearchParams()
-    params.set('select', TASK_SELECT)
-    params.set('founder_id', `eq.${config.founderId}`)
-    params.set('status', 'in.(running,blocked,awaiting_approval,failed)')
-    params.set('metadata->ownest->>version', 'eq.1')
-    params.set('order', 'created_at.asc,id.asc')
+  const rows: CcTask[] = []
+  let cursor: string | null = null
+
+  while (rows.length < beforeIdentities.length) {
+    const requestLimit = Math.min(TASK_LIMIT, beforeIdentities.length - rows.length)
+    const params = managedTaskParams(config, TASK_SELECT)
+    params.set('order', 'id.asc')
     params.set('limit', String(requestLimit))
-    params.set('offset', String(rows.length))
+    if (cursor !== null) params.set('id', `gt.${cursor}`)
 
     const page = await getTaskRows('Failed to list managed CRM tasks', config, deps, params)
     if (page.length === 0) {
-      throw new Error('Managed CRM pagination ended before the attested count')
+      throw new Error('Managed CRM keyset pagination ended before the identity attestation')
     }
     if (page.length > requestLimit) {
-      throw new Error('Managed CRM pagination exceeded the requested page size')
+      throw new Error('Managed CRM keyset pagination exceeded the requested page size')
     }
 
     for (const row of page) {
@@ -764,30 +855,27 @@ export async function listManagedTasks(config: OwnestConfig, deps: CrmDeps): Pro
         throw new Error('Managed CRM response contained invalid hardened OWNEST state')
       }
 
-      if (previous) {
-        const previousCreatedAt = Date.parse(previous.created_at)
-        const createdAt = Date.parse(row.created_at)
-        if (
-          createdAt < previousCreatedAt ||
-          (createdAt === previousCreatedAt && row.id <= previous.id)
-        ) {
-          throw new Error('Managed CRM pagination returned duplicate or out-of-order rows')
-        }
+      const expectedIdentity = beforeIdentities[rows.length]
+      if (
+        !expectedIdentity ||
+        row.id !== expectedIdentity.id ||
+        row.updated_at !== expectedIdentity.updated_at
+      ) {
+        throw new Error('Managed CRM keyset pagination row did not match its identity attestation')
       }
 
       rows.push(row)
-      previous = row
+      cursor = row.id
     }
   }
 
-  const confirmedCount = await countTaskRows(
-    'Failed to confirm managed CRM task count',
+  const afterIdentities = await getManagedTaskIdentitySnapshot(
+    'Failed to read final managed CRM identity attestation',
     config,
     deps,
-    countParams,
   )
-  if (confirmedCount !== expectedCount) {
-    throw new Error('Managed CRM task count changed during pagination')
+  if (!isDeepStrictEqual(afterIdentities, beforeIdentities)) {
+    throw new Error('Managed CRM identity attestation changed during pagination')
   }
 
   return rows

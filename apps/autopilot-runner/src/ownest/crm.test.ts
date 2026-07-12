@@ -672,57 +672,88 @@ describe('listManagedTasks', () => {
     })
   }
 
-  it('returns every hardened claimed row through stable bounded pagination', async () => {
-    const firstPage = Array.from({ length: 50 }, (_, index) => managedTask(index))
-    const secondPage = Array.from({ length: 51 }, (_, index) => managedTask(index + 50))
+  function taskIdentities(rows: readonly CcTask[]) {
+    return rows.map(({ id, updated_at }) => ({ id, updated_at }))
+  }
+
+  it('returns every row through identity-attested id-keyset pagination', async () => {
+    const allRows = Array.from({ length: 101 }, (_, index) => managedTask(index))
+    const firstPage = allRows.slice(0, 50)
+    const secondPage = allRows.slice(50)
+    const identities = taskIdentities(allRows)
     const fetchImpl = vi
       .fn<typeof fetch>()
       .mockResolvedValueOnce(countResponse('0-0/101'))
+      .mockResolvedValueOnce(jsonResponse(identities))
       .mockResolvedValueOnce(jsonResponse(firstPage))
       .mockResolvedValueOnce(jsonResponse(secondPage))
-      .mockResolvedValueOnce(countResponse('0-0/101'))
+      .mockResolvedValueOnce(jsonResponse(identities))
 
-    await expect(listManagedTasks(config, deps(fetchImpl))).resolves.toEqual([
-      ...firstPage,
-      ...secondPage,
-    ])
+    await expect(listManagedTasks(config, deps(fetchImpl))).resolves.toEqual(allRows)
 
     const requests = fetchImpl.mock.calls.map(([input, init]) => ({
       url: new URL(String(input)),
       init,
     }))
-    const reads = requests.filter(({ init }) => init?.method === 'GET')
-    const attestations = requests.filter(({ init }) => init?.method === 'HEAD')
-    expect(requests).toHaveLength(4)
-    expect(reads).toHaveLength(2)
-    expect(attestations).toHaveLength(2)
-    expect(reads[0]?.url.pathname).toBe('/rest/v1/cc_tasks')
-    expect(reads[0]?.url.searchParams.get('select')).toBe(TASK_COLUMNS)
-    expect(reads[0]?.url.searchParams.get('founder_id')).toBe(`eq.${config.founderId}`)
-    expect(reads[0]?.url.searchParams.get('status')).toBe(
-      'in.(running,blocked,awaiting_approval,failed)',
+    const identityReads = requests.filter(
+      ({ url, init }) => init?.method === 'GET' && url.searchParams.get('select') === 'id,updated_at',
     )
-    expect(reads[0]?.url.searchParams.get('metadata->ownest->>version')).toBe('eq.1')
-    expect(reads.map(({ url }) => url.searchParams.get('order'))).toEqual([
-      'created_at.asc,id.asc',
-      'created_at.asc,id.asc',
+    const fullReads = requests.filter(
+      ({ url, init }) => init?.method === 'GET' && url.searchParams.get('select') === TASK_COLUMNS,
+    )
+    expect(requests).toHaveLength(5)
+    expect(identityReads).toHaveLength(2)
+    expect(fullReads).toHaveLength(2)
+    for (const { url } of requests) {
+      expect(url.pathname).toBe('/rest/v1/cc_tasks')
+      expect(url.searchParams.getAll('founder_id')).toEqual([`eq.${config.founderId}`])
+      expect(url.searchParams.getAll('status')).toEqual([
+        'in.(running,blocked,awaiting_approval,failed)',
+      ])
+      expect(url.searchParams.getAll('metadata->ownest->>version')).toEqual(['eq.1'])
+    }
+    for (const { url } of identityReads) {
+      expect(url.searchParams.get('order')).toBe('id.asc')
+      expect(url.searchParams.get('limit')).toBe('501')
+      expect(url.searchParams.has('id')).toBe(false)
+      expect(url.searchParams.has('offset')).toBe(false)
+    }
+    expect(fullReads.map(({ url }) => url.searchParams.get('order'))).toEqual([
+      'id.asc',
+      'id.asc',
     ])
-    expect(reads.map(({ url }) => url.searchParams.get('limit'))).toEqual(['100', '51'])
-    expect(reads.map(({ url }) => url.searchParams.get('offset'))).toEqual(['0', '50'])
-    expect(
-      attestations.every(({ init }) => new Headers(init?.headers).get('prefer') === 'count=exact'),
-    ).toBe(true)
+    expect(fullReads.map(({ url }) => url.searchParams.get('limit'))).toEqual(['100', '51'])
+    expect(fullReads.map(({ url }) => url.searchParams.get('id'))).toEqual([
+      null,
+      'gt.task-0049',
+    ])
+    expect(fullReads.every(({ url }) => !url.searchParams.has('offset'))).toBe(true)
   })
 
-  it('fails closed when pagination repeats or moves backwards', async () => {
+  it('fails closed when keyset pagination repeats or moves backwards', async () => {
+    const allRows = Array.from({ length: 101 }, (_, index) => managedTask(index))
     const firstPage = Array.from({ length: 100 }, (_, index) => managedTask(index))
     const fetchImpl = vi
       .fn<typeof fetch>()
       .mockResolvedValueOnce(countResponse('0-0/101'))
+      .mockResolvedValueOnce(jsonResponse(taskIdentities(allRows)))
       .mockResolvedValueOnce(jsonResponse(firstPage))
       .mockResolvedValueOnce(jsonResponse([managedTask(50)]))
 
     await expect(listManagedTasks(config, deps(fetchImpl))).rejects.toThrow(/pagination|order/i)
+  })
+
+  it('fails closed when keyset pagination ends before the identity snapshot', async () => {
+    const row = managedTask(0)
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(countResponse('0-0/1'))
+      .mockResolvedValueOnce(jsonResponse(taskIdentities([row])))
+      .mockResolvedValueOnce(jsonResponse([]))
+
+    await expect(listManagedTasks(config, deps(fetchImpl))).rejects.toThrow(
+      /pagination|ended|identity/i,
+    )
   })
 
   it('fails closed instead of truncating when the managed-task hard cap is exceeded', async () => {
@@ -734,16 +765,121 @@ describe('listManagedTasks', () => {
     expect(firstRequest(fetchImpl).init.method).toBe('HEAD')
   })
 
-  it('fails closed when the exact managed-task count changes during pagination', async () => {
-    const firstPage = Array.from({ length: 100 }, (_, index) => managedTask(index))
+  it('fails closed when exact count and the initial identity snapshot disagree', async () => {
+    const rows = Array.from({ length: 100 }, (_, index) => managedTask(index))
     const fetchImpl = vi
       .fn<typeof fetch>()
       .mockResolvedValueOnce(countResponse('0-0/101'))
-      .mockResolvedValueOnce(jsonResponse(firstPage))
-      .mockResolvedValueOnce(jsonResponse([managedTask(100)]))
-      .mockResolvedValueOnce(countResponse('0-0/100'))
+      .mockResolvedValueOnce(jsonResponse(taskIdentities(rows)))
 
-    await expect(listManagedTasks(config, deps(fetchImpl))).rejects.toThrow(/count|changed|drift/i)
+    await expect(listManagedTasks(config, deps(fetchImpl))).rejects.toThrow(/count|identity|attest/i)
+  })
+
+  it('rejects same-count membership replacement that offset pagination would omit', async () => {
+    const initialRows = Array.from({ length: 101 }, (_, index) => managedTask(index))
+    const replacedRows = [...initialRows.slice(1), managedTask(101)]
+    let membershipReplaced = false
+    const fetchImpl = vi.fn<typeof fetch>().mockImplementation(async (input, init) => {
+      const url = new URL(String(input))
+      if (init?.method === 'HEAD') return countResponse('0-0/101')
+
+      if (url.searchParams.get('select') === 'id,updated_at') {
+        return jsonResponse(taskIdentities(membershipReplaced ? replacedRows : initialRows))
+      }
+
+      const source = membershipReplaced ? replacedRows : initialRows
+      const limit = Number(url.searchParams.get('limit'))
+      const cursor = url.searchParams.get('id')?.replace(/^gt\./, '')
+      const offset = Number(url.searchParams.get('offset') ?? '0')
+      const candidates = cursor ? source.filter(({ id }) => id > cursor) : source.slice(offset)
+      const page = candidates.slice(0, limit)
+      membershipReplaced = true
+      return jsonResponse(page)
+    })
+
+    await expect(listManagedTasks(config, deps(fetchImpl))).rejects.toThrow(
+      /identity|membership|changed|attest/i,
+    )
+  })
+
+  it('rejects updated_at churn between the two identity snapshots', async () => {
+    const original = managedTask(0)
+    const changed = { ...original, updated_at: '2026-07-12T00:00:00.001Z' }
+    let churned = false
+    const fetchImpl = vi.fn<typeof fetch>().mockImplementation(async (input, init) => {
+      const url = new URL(String(input))
+      if (init?.method === 'HEAD') return countResponse('0-0/1')
+      if (url.searchParams.get('select') === 'id,updated_at') {
+        return jsonResponse(taskIdentities([churned ? changed : original]))
+      }
+
+      const response = jsonResponse([original])
+      churned = true
+      return response
+    })
+
+    await expect(listManagedTasks(config, deps(fetchImpl))).rejects.toThrow(
+      /identity|updated|changed|attest/i,
+    )
+  })
+
+  it('rejects a full row whose identity differs from the initial attestation', async () => {
+    const original = managedTask(0)
+    const changed = { ...original, updated_at: '2026-07-12T00:00:00.001Z' }
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(countResponse('0-0/1'))
+      .mockResolvedValueOnce(jsonResponse(taskIdentities([original])))
+      .mockResolvedValueOnce(jsonResponse([changed]))
+
+    await expect(listManagedTasks(config, deps(fetchImpl))).rejects.toThrow(
+      /identity|updated|attest/i,
+    )
+  })
+
+  it.each([
+    ['non-array body', { id: 'task-0000', updated_at: expectedUpdatedAt }, 1],
+    ['missing field', [{ id: 'task-0000' }], 1],
+    [
+      'extra field',
+      [{ id: 'task-0000', updated_at: expectedUpdatedAt, status: 'running' }],
+      1,
+    ],
+    ['blank id', [{ id: ' ', updated_at: expectedUpdatedAt }], 1],
+    ['invalid timestamp', [{ id: 'task-0000', updated_at: 'recently' }], 1],
+    [
+      'duplicate ids',
+      [
+        { id: 'task-0000', updated_at: expectedUpdatedAt },
+        { id: 'task-0000', updated_at: expectedUpdatedAt },
+      ],
+      2,
+    ],
+    [
+      'out-of-order ids',
+      [
+        { id: 'task-0001', updated_at: expectedUpdatedAt },
+        { id: 'task-0000', updated_at: expectedUpdatedAt },
+      ],
+      2,
+    ],
+  ])('strictly rejects an identity snapshot with %s', async (_label, body, count) => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(countResponse(`0-0/${count}`))
+      .mockResolvedValueOnce(jsonResponse(body))
+
+    await expect(listManagedTasks(config, deps(fetchImpl))).rejects.toThrow(/identity|attest/i)
+  })
+
+  it('rejects an identity snapshot above the explicit hard cap', async () => {
+    const rows = Array.from({ length: 501 }, (_, index) => managedTask(index))
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(countResponse('0-0/500'))
+      .mockResolvedValueOnce(jsonResponse(taskIdentities(rows)))
+
+    await expect(listManagedTasks(config, deps(fetchImpl))).rejects.toThrow(/hard cap|identity/i)
   })
 
   it.each([
@@ -776,9 +912,11 @@ describe('listManagedTasks', () => {
       task({ status: 'done', metadata: { ownest: hardenedOwnestState('task-1') } }),
     ],
   ])('fails closed for a %s row', async (_label, row) => {
+    const validIdentity = taskIdentities([managedTask(0)])
     const fetchImpl = vi
       .fn<typeof fetch>()
       .mockResolvedValueOnce(countResponse('0-0/1'))
+      .mockResolvedValueOnce(jsonResponse(validIdentity))
       .mockResolvedValueOnce(jsonResponse([row]))
 
     await expect(listManagedTasks(config, deps(fetchImpl))).rejects.toThrow()
@@ -1360,22 +1498,22 @@ describe('createCrmClient', () => {
     await client.appendTaskEvent({ taskId: 'task-1', type: 'started' })
     await client.appendEvidence({ taskId: 'task-1', wikiPath: 'Wiki/OWNEST/task-1.md' })
 
-    expect(fetchImpl).toHaveBeenCalledTimes(10)
+    expect(fetchImpl).toHaveBeenCalledTimes(11)
     for (const [, init] of fetchImpl.mock.calls) {
       expect(init?.redirect).toBe('error')
     }
-    for (const [input] of fetchImpl.mock.calls.slice(0, 8)) {
+    for (const [input] of fetchImpl.mock.calls.slice(0, 9)) {
       const url = new URL(String(input))
       expect(url.pathname).toBe('/rest/v1/cc_tasks')
       expect(url.searchParams.get('founder_id')).toBe(`eq.${config.founderId}`)
     }
     expect(
-      new URL(String(fetchImpl.mock.calls[5]?.[0])).searchParams.get(
+      new URL(String(fetchImpl.mock.calls[6]?.[0])).searchParams.get(
         'metadata->ownest->>rolloutId',
       ),
     ).toBe('eq.rollout-client-test')
     expect(
-      new URL(String(fetchImpl.mock.calls[6]?.[0])).searchParams.getAll(
+      new URL(String(fetchImpl.mock.calls[7]?.[0])).searchParams.getAll(
         'metadata->ownest->>claimedAt',
       ),
     ).toEqual([
