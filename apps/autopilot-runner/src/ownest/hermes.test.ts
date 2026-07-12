@@ -228,7 +228,7 @@ function completionReceipt(
       {
         id: 'ev-001',
         kind: 'research',
-        uri: 'https://evidence.example/reports/retention',
+        uri: 'https://evidence.example.com/reports/retention',
         digest: sha256Digest('retention-evidence'),
       },
     ],
@@ -245,7 +245,7 @@ function completionEvidence(overrides: Record<string, unknown> = {}): Record<str
   return {
     id: 'ev-001',
     kind: 'research',
-    uri: 'https://evidence.example/reports/retention',
+    uri: 'https://evidence.example.com/reports/retention',
     digest: sha256Digest('retention-evidence'),
     ...overrides,
   }
@@ -1093,7 +1093,6 @@ describe('createHermesClient.showMission', () => {
   it('normalises one valid installed completed run into a canonical OWNEST receipt', async () => {
     const contract = contractFor()
     const receipt = completionReceipt('hermes-1', contract)
-    const metadata = { ownest: receipt }
     const run = mockRunner(jsonResult(completedLiveShow('hermes-1', contract)))
     const client = createHermesClient(config, { run })
 
@@ -1115,7 +1114,7 @@ describe('createHermesClient.showMission', () => {
         outcome: 'completed',
         summary: 'Completed the retention evidence brief.',
         error: null,
-        metadata,
+        metadata: null,
         workerPid: 4321,
         startedAt: 1_784_000_000,
         endedAt: 1_784_000_120,
@@ -1170,6 +1169,29 @@ describe('createHermesClient.showMission', () => {
   })
 
   it.each([
+    ['missing nominated canary', { ...config, canaryTaskId: null }],
+    ['wrong nominated canary', { ...config, canaryTaskId: 'task-2' }],
+    ['missing rollout', { ...config, rolloutId: null }],
+    ['wrong rollout', { ...config, rolloutId: 'rollout-2' }],
+  ])('rejects SHOW contract scope with %s before invoking Hermes', async (_label, scopedConfig) => {
+    const run = mockRunner(jsonResult(completedLiveShow()))
+    const client = createHermesClient(scopedConfig, { run })
+
+    await expect(client.showMission('hermes-1', contractFor())).rejects.toThrow(/contract|scope/i)
+    expect(run).not.toHaveBeenCalled()
+  })
+
+  it('allows scoped reconciliation while live mode is off', async () => {
+    const run = mockRunner(jsonResult(completedLiveShow()))
+    const client = createHermesClient({ ...config, live: false }, { run })
+
+    await expect(client.showMission('hermes-1', contractFor())).resolves.toMatchObject({
+      status: 'done',
+    })
+    expect(run).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
     [
       'out-of-order runs',
       [
@@ -1183,6 +1205,12 @@ describe('createHermesClient.showMission', () => {
         liveRun({ id: 7, started_at: 1_784_000_000 }),
         liveRun({ id: 7, started_at: 1_784_000_100 }),
       ],
+    ],
+    ['nonpositive run id', [liveRun({ id: 0 })]],
+    ['negative run start', [liveRun({ started_at: -1 })]],
+    [
+      'run end before start',
+      [liveRun({ started_at: 1_784_000_120, ended_at: 1_784_000_119 })],
     ],
   ])('rejects a structurally unsafe live SHOW with %s', async (_label, runs) => {
     const payload = liveShow(liveTask(), { runs })
@@ -1202,6 +1230,18 @@ describe('createHermesClient.showMission', () => {
       'blank worker session id',
       () => completedLiveShow('hermes-1', contractFor(), {
         metadata: { ownest: completionReceipt(), worker_session_id: ' ' },
+      }),
+    ],
+    [
+      'credential-like worker session id',
+      () => completedLiveShow('hermes-1', contractFor(), {
+        metadata: { ownest: completionReceipt(), worker_session_id: 'token=secret' },
+      }),
+    ],
+    [
+      'oversized worker session id',
+      () => completedLiveShow('hermes-1', contractFor(), {
+        metadata: { ownest: completionReceipt(), worker_session_id: 'w'.repeat(129) },
       }),
     ],
   ])('downgrades done when receipt outer metadata has %s', async (_label, build) => {
@@ -1242,13 +1282,32 @@ describe('createHermesClient.showMission', () => {
 
   it('downgrades an oversized serialized receipt before accepting its fields', async () => {
     const evidence = [completionEvidence({
-      uri: `https://evidence.example/${'a'.repeat(33 * 1024)}`,
+      uri: `https://evidence.example.com/${'a'.repeat(33 * 1024)}`,
     })]
 
     await expectReceiptReview(
       completedLiveShow('hermes-1', contractFor(), { receipt: { evidence } }),
       'receipt-oversize',
     )
+  })
+
+  it('downgrades deeply nested receipt metadata with a stable oversize result', async () => {
+    const marker = '__DEEPLY_NESTED_OWNEST__'
+    const payload = completedLiveShow('hermes-1', contractFor(), {
+      metadata: { ownest: marker },
+    })
+    const nested = `${'{"nested":'.repeat(12_000)}null${'}'.repeat(12_000)}`
+    const stdout = JSON.stringify(payload).replace(JSON.stringify(marker), nested)
+    const run = mockRunner({ exitCode: 0, stdout, stderr: '' })
+    const client = createHermesClient(config, { run })
+
+    await expect(client.showMission('hermes-1', contractFor())).resolves.toMatchObject({
+      status: 'review',
+      receipt: null,
+      receiptSha256: null,
+      evidenceUri: null,
+      error: 'ownest-receipt-invalid:receipt-oversize',
+    })
   })
 
   it.each([
@@ -1293,10 +1352,23 @@ describe('createHermesClient.showMission', () => {
     ['relative path', './report.md'],
     ['absolute path', '/tmp/report.md'],
     ['scratch path', 'scratch:/report.md'],
+    ['undotted intranet hostname', 'https://intranet/report'],
+    ['internal suffix', 'https://evidence.internal/report'],
+    ['LAN suffix', 'https://evidence.lan/report'],
+    ['home suffix', 'https://evidence.home/report'],
+    ['corp suffix', 'https://evidence.corp/report'],
+    ['local suffix', 'https://evidence.local/report'],
+    ['localhost suffix', 'https://evidence.localhost/report'],
+    ['test suffix', 'https://evidence.test/report'],
+    ['invalid suffix', 'https://evidence.invalid/report'],
+    ['example suffix', 'https://evidence.example/report'],
     ['localhost', 'https://localhost/report'],
     ['private IPv4', 'https://192.168.1.8/report'],
     ['loopback IPv6', 'https://[::1]/report'],
-    ['over 2048 bytes', `https://evidence.example/${'a'.repeat(2030)}`],
+    ['global IPv6', 'https://[2001:4860:4860::8888]/report'],
+    ['site-local IPv6', 'https://[fec0::1]/report'],
+    ['multicast IPv6', 'https://[ff02::1]/report'],
+    ['over 2048 bytes', `https://evidence.example.com/${'a'.repeat(2030)}`],
   ])('downgrades done for a non-durable %s evidence URI', async (_label, uri) => {
     await expectReceiptReview(
       completedLiveShow('hermes-1', contractFor(), {
@@ -1359,12 +1431,20 @@ describe('createHermesClient.showMission', () => {
     ['missing latest run', { runs: [] }, 'latest-run-missing'],
     ['missing task completion time', { task: { completed_at: null } }, 'task-completed-at'],
     ['negative task completion time', { task: { completed_at: -1 } }, 'task-completed-at'],
-    ['nonpositive latest run id', { run: { id: 0 } }, 'latest-run-id'],
+    [
+      'task completion after latest run end',
+      { task: { completed_at: 1_784_000_121 } },
+      'task-completed-at',
+    ],
+    [
+      'task completion more than one second before latest run end',
+      { task: { completed_at: 1_784_000_118 } },
+      'task-completed-at',
+    ],
     ['wrong latest run profile', { run: { profile: 'agent7' } }, 'latest-run-profile'],
     ['active latest run status', { run: { status: 'running' } }, 'latest-run-status'],
     ['wrong latest run outcome', { run: { outcome: 'failed' } }, 'latest-run-outcome'],
     ['missing latest run end', { run: { ended_at: null } }, 'latest-run-ended-at'],
-    ['negative latest run end', { run: { ended_at: -1 } }, 'latest-run-ended-at'],
     ['latest run error', { run: { error: 'completion failed' } }, 'latest-run-error'],
     ['blank latest run summary', { run: { summary: '' } }, 'latest-run-summary'],
     [
@@ -1378,6 +1458,12 @@ describe('createHermesClient.showMission', () => {
       completedLiveShow('hermes-1', contractFor(), options),
       code,
     )
+  })
+
+  it('rejects a structurally unsafe done task with a negative latest run end', async () => {
+    await expect(
+      showPayload(completedLiveShow('hermes-1', contractFor(), { run: { ended_at: -1 } })),
+    ).rejects.toThrow(/Hermes show/i)
   })
 
   it('uses only the latest run when an earlier run has a valid receipt', async () => {
@@ -1398,6 +1484,16 @@ describe('createHermesClient.showMission', () => {
     })
 
     await expectReceiptReview(payload, 'receipt-verdict')
+  })
+
+  it('accepts task completion one second before the latest run end', async () => {
+    const result = await showPayload(
+      completedLiveShow('hermes-1', contractFor(), {
+        task: { completed_at: 1_784_000_119 },
+      }),
+    )
+
+    expect(result.status).toBe('done')
   })
 
   it('does not let an older valid receipt override a later active run', async () => {
@@ -1433,10 +1529,11 @@ describe('createHermesClient.showMission', () => {
     expect(result.status).toBe('done')
     expect(result.receipt).toEqual(receipt)
     expect(result.receiptSha256).toBe(sha256Digest(JSON.stringify(receipt)))
+    expect(result.latestRun?.metadata).toBeNull()
   })
 
   it.each([
-    'https://fcorp.example/reports/retention',
+    'https://fcorp.example.com/reports/retention',
     'wiki:/evidence/retention-report',
     'git:/unite-group/nexus/commit/abcdef1',
     'github:/unite-group/nexus/pull/42',

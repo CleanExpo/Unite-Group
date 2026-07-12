@@ -434,6 +434,10 @@ function validateExpectedMissionContract(
     !HERMES_BOARD.test(value.hermesBoard) ||
     value.hermesProfile !== config.hermesProfile ||
     value.hermesBoard !== config.hermesBoard ||
+    config.canaryTaskId === null ||
+    config.rolloutId === null ||
+    value.crmTaskId !== config.canaryTaskId ||
+    value.rolloutId !== config.rolloutId ||
     !isHmacSha256Digest(value.missionDigest) ||
     !Array.isArray(value.validationRequirements) ||
     value.validationRequirements.length < 1 ||
@@ -669,18 +673,23 @@ function isPrivateOrLoopbackIpv4(hostname: string): boolean {
 
 function isPrivateOrLoopbackHost(hostnameValue: string): boolean {
   const hostname = hostnameValue.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '')
-  const isIpv6 = hostname.includes(':')
+  const reservedSuffixes = [
+    '.internal',
+    '.lan',
+    '.home',
+    '.corp',
+    '.local',
+    '.localhost',
+    '.test',
+    '.invalid',
+    '.example',
+  ]
   if (
-    hostname === 'localhost' ||
-    hostname.endsWith('.localhost') ||
-    hostname.endsWith('.local') ||
-    hostname === '::' ||
-    hostname === '::1' ||
-    (isIpv6 &&
-      (hostname.startsWith('fc') ||
-        hostname.startsWith('fd') ||
-        /^fe[89ab]/.test(hostname) ||
-        hostname.startsWith('::ffff:')))
+    !hostname.includes('.') ||
+    hostname.includes(':') ||
+    reservedSuffixes.some(
+      (suffix) => hostname === suffix.slice(1) || hostname.endsWith(suffix),
+    )
   ) {
     return true
   }
@@ -735,14 +744,20 @@ function validateCompletionReceipt(
       metadataKeys[1] === 'worker_session_id')
   if (
     !validOuterKeys ||
-    ('worker_session_id' in metadata && !isNonEmptyString(metadata.worker_session_id)) ||
+    ('worker_session_id' in metadata && !isSafeOwnestToken(metadata.worker_session_id)) ||
     !isPlainRecord(metadata.ownest)
   ) {
     return { ok: false, code: 'metadata-shape' }
   }
 
   const value = metadata.ownest
-  if (Buffer.byteLength(JSON.stringify(value), 'utf8') > COMPLETION_RECEIPT_MAX_BYTES) {
+  let serialisedValue: string
+  try {
+    serialisedValue = JSON.stringify(value)
+  } catch {
+    return { ok: false, code: 'receipt-shape' }
+  }
+  if (Buffer.byteLength(serialisedValue, 'utf8') > COMPLETION_RECEIPT_MAX_BYTES) {
     return { ok: false, code: 'receipt-oversize' }
   }
   if (!hasExactKeys(value, RECEIPT_KEYS)) return { ok: false, code: 'receipt-shape' }
@@ -912,7 +927,11 @@ function normaliseLiveShow(
     const run = runValue as Record<string, unknown>
     const runId = run.id as number
     const startedAt = run.started_at as number
+    const endedAt = run.ended_at as number | null
     if (
+      runId <= 0 ||
+      startedAt < 0 ||
+      (endedAt !== null && endedAt < startedAt) ||
       seenRunIds.has(runId) ||
       (previousStartedAt !== null && startedAt < previousStartedAt) ||
       (previousStartedAt === startedAt && previousId !== null && runId <= previousId)
@@ -966,6 +985,12 @@ function normaliseLiveShow(
   if (latestRun.endedAt === null || latestRun.endedAt < 0) {
     return invalidReceiptTask(task, latestRun, 'latest-run-ended-at')
   }
+  if (
+    liveTask.completed_at > latestRun.endedAt ||
+    latestRun.endedAt - liveTask.completed_at > 1
+  ) {
+    return invalidReceiptTask(task, latestRun, 'task-completed-at')
+  }
   if (latestValue.error !== null) {
     return invalidReceiptTask(task, latestRun, 'latest-run-error')
   }
@@ -994,7 +1019,7 @@ function normaliseLiveShow(
     completedAt: completedAt.toISOString(),
     receipt,
     receiptSha256: sha256Digest(JSON.stringify(receipt)),
-    latestRun,
+    latestRun: { ...latestRun, metadata: null },
     evidenceUri: `hermes-kanban:/boards/${encodeURIComponent(config.hermesBoard)}/tasks/${encodeURIComponent(task.id)}/runs/${latestRun.id}`,
     error: null,
   }
