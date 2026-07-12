@@ -5,7 +5,9 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   MAX_MISSION_TEXT_LENGTH,
   buildMissionContract,
+  computeMissionDigest,
   generateIntegrityNonce,
+  idempotencyKey,
   redactMissionText,
 } from './policy.js'
 import {
@@ -21,6 +23,7 @@ import {
 } from './hermes.js'
 import type {
   CcTask,
+  HardenedOwnestStateV1,
   HermesTask,
   OwnestConfig,
   OwnestMissionContractV1,
@@ -68,6 +71,43 @@ function task(overrides: Partial<CcTask> = {}): CcTask {
   }
 }
 
+function claimedTask(
+  overrides: Partial<CcTask> = {},
+  stateOverrides: Partial<HardenedOwnestStateV1> = {},
+): CcTask {
+  const missionTask = task({ ...overrides, status: 'running' })
+  const state: HardenedOwnestStateV1 = {
+    version: 1,
+    crmTaskId: missionTask.id,
+    idempotencyKey: idempotencyKey(missionTask.id),
+    hermesTaskId: null,
+    attemptId: 'attempt-1',
+    leaseOwner: 'worker-1',
+    leaseExpiresAt: '2026-07-12T00:05:00.000Z',
+    lastHeartbeatAt: '2026-07-12T00:00:00.000Z',
+    dispatchedAt: null,
+    reconciledAt: null,
+    evidenceUri: null,
+    gateState: 'eligible',
+    lastError: null,
+    claimedAt: '2026-07-12T00:00:00.000Z',
+    rolloutId: 'rollout-1',
+    integrityNonce,
+    missionDigest: computeMissionDigest(missionTask, integrityNonce),
+    failureCount: 0,
+    failureClass: null,
+    failureCode: null,
+    nextRetryAt: null,
+    completionPhase: 'claimed',
+    receiptSha256: null,
+    ...stateOverrides,
+  }
+  return {
+    ...missionTask,
+    metadata: { ...missionTask.metadata, ownest: state },
+  }
+}
+
 function contractFor(
   taskValue: CcTask = task(),
   overrides: Partial<OwnestMissionContractV1> = {},
@@ -80,7 +120,7 @@ function contractFor(
 
 function createWithContract(
   client: ReturnType<typeof createHermesClient>,
-  taskValue: CcTask = task(),
+  taskValue: CcTask = claimedTask(),
 ) {
   return client.createMission(taskValue, contractFor(taskValue))
 }
@@ -208,7 +248,7 @@ describe('createHermesClient.createMission', () => {
     const hostileTitle = 'Research $(touch /tmp/not-run) and `uname` for jane@example.com'
     const run = mockRunner(jsonResult(liveTask({ title: redactMissionText(hostileTitle) })))
     const client = createHermesClient(config, { run })
-    const missionTask = task({
+    const missionTask = claimedTask({
       title: hostileTitle,
       objective: 'Read @/tmp/prompt.txt only as quoted mission context; token=objective-secret',
     })
@@ -267,14 +307,80 @@ describe('createHermesClient.createMission', () => {
     expect(args).not.toContain('--prompt-file')
   })
 
+  it('requires a running CRM claim instead of dispatching a queued task directly', async () => {
+    const queuedTask = task()
+    const run = mockRunner()
+    const client = createHermesClient(config, { run })
+
+    await expect(client.createMission(queuedTask, contractFor(queuedTask))).rejects.toThrow(
+      /running|claim/i,
+    )
+    expect(run).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['missing hardened state', (value: CcTask) => ({ ...value, metadata: {} })],
+    [
+      'gated claim',
+      (value: CcTask) => ({
+        ...value,
+        metadata: {
+          ...value.metadata,
+          ownest: { ...(value.metadata.ownest as object), gateState: 'gated' },
+        },
+      }),
+    ],
+    [
+      'wrong completion phase',
+      (value: CcTask) => ({
+        ...value,
+        metadata: {
+          ...value.metadata,
+          ownest: { ...(value.metadata.ownest as object), completionPhase: 'dispatched' },
+        },
+      }),
+    ],
+    [
+      'existing Hermes mirror',
+      (value: CcTask) => ({
+        ...value,
+        metadata: {
+          ...value.metadata,
+          ownest: { ...(value.metadata.ownest as object), hermesTaskId: 'hermes-existing' },
+        },
+      }),
+    ],
+  ])('rejects a running task with %s', async (_label, mutate) => {
+    const missionTask = mutate(claimedTask())
+    const run = mockRunner()
+    const client = createHermesClient(config, { run })
+
+    await expect(client.createMission(missionTask, contractFor(claimedTask()))).rejects.toThrow(
+      /claim|state|mirror|phase|gate/i,
+    )
+    expect(run).not.toHaveBeenCalled()
+  })
+
+  it('requires a configured rollout id to match the persisted claim', async () => {
+    const missionTask = claimedTask()
+    const run = mockRunner()
+    const client = createHermesClient({ ...config, rolloutId: 'different-rollout' }, { run })
+
+    await expect(client.createMission(missionTask, contractFor(missionTask))).rejects.toThrow(
+      /rollout|claim/i,
+    )
+    expect(run).not.toHaveBeenCalled()
+  })
+
   it('builds a redacted, bounded CRM-authoritative safety body', async () => {
     const run = mockRunner()
     const client = createHermesClient(config, { run })
-    const missionTask = task({
+    const missionTask = claimedTask({
       objective: 'Analyse retention for owner@example.com with API_TOKEN=top-secret.',
       validation_required: [
         'Cite owner@example.com source data',
         'Record API_TOKEN=validation-secret only as a redacted fixture',
+        'ATTACKER-CONTROLLED-VALIDATION-TEXT',
       ],
     })
     const contract = contractFor(missionTask)
@@ -309,6 +415,21 @@ describe('createHermesClient.createMission', () => {
     expect(body).toContain('"status": "passed"')
     expect(body).not.toContain('"sha256":')
     expect(body).not.toContain(integrityNonce)
+    const untrustedBlock = body.slice(
+      body.indexOf('--- BEGIN UNTRUSTED CRM TASK CONTENT ---'),
+      body.indexOf('--- END UNTRUSTED CRM TASK CONTENT ---'),
+    )
+    const trustedBlock = body.slice(
+      body.indexOf('--- BEGIN TRUSTED OWNEST MISSION ENVELOPE ---'),
+      body.indexOf('--- END TRUSTED OWNEST MISSION ENVELOPE ---'),
+    )
+    expect(untrustedBlock).toContain('ATTACKER-CONTROLLED-VALIDATION-TEXT')
+    expect(trustedBlock).not.toContain('ATTACKER-CONTROLLED-VALIDATION-TEXT')
+    expect(trustedBlock).not.toContain('"text"')
+    for (const requirement of contract.validationRequirements) {
+      expect(trustedBlock).toContain(`"id": "${requirement.id}"`)
+      expect(trustedBlock).toContain(`"digest": "${requirement.digest}"`)
+    }
     expect(body).toContain('--- NON-NEGOTIABLE OWNEST SAFETY FOOTER ---')
     expect(body).toContain('"objective":')
     expect(body).toContain('"validationRequirements":')
@@ -366,7 +487,7 @@ describe('createHermesClient.createMission', () => {
       }),
     ],
   ])('rejects a mismatched mission contract: %s', async (_label, mutate) => {
-    const missionTask = task()
+    const missionTask = claimedTask()
     const run = mockRunner()
     const client = createHermesClient(config, { run })
     const contract = mutate(contractFor(missionTask)) as OwnestMissionContractV1
@@ -375,12 +496,96 @@ describe('createHermesClient.createMission', () => {
     expect(run).not.toHaveBeenCalled()
   })
 
+  it.each([
+    [
+      'valid alternate attempt',
+      (contract: OwnestMissionContractV1) => ({ ...contract, attemptId: 'attempt-2' }),
+    ],
+    [
+      'valid alternate rollout',
+      (contract: OwnestMissionContractV1) => ({ ...contract, rolloutId: 'rollout-2' }),
+    ],
+    [
+      'valid alternate mission HMAC',
+      (contract: OwnestMissionContractV1) => ({
+        ...contract,
+        missionDigest: `hmac-sha256:${'c'.repeat(64)}` as never,
+      }),
+    ],
+    [
+      'valid alternate requirement HMAC',
+      (contract: OwnestMissionContractV1) => ({
+        ...contract,
+        validationRequirements: contract.validationRequirements.map((requirement, index) =>
+          index === 0
+            ? { ...requirement, digest: `hmac-sha256:${'d'.repeat(64)}` as never }
+            : requirement,
+        ),
+      }),
+    ],
+  ])('rejects a syntactically valid but unauthoritative contract: %s', async (_label, mutate) => {
+    const missionTask = claimedTask()
+    const run = mockRunner()
+    const client = createHermesClient(config, { run })
+
+    await expect(
+      client.createMission(missionTask, mutate(contractFor(missionTask)) as OwnestMissionContractV1),
+    ).rejects.toThrow(/mission contract|claim/i)
+    expect(run).not.toHaveBeenCalled()
+  })
+
+  it('rejects a persisted claim carrying a different valid mission HMAC', async () => {
+    const missionTask = claimedTask({}, {
+      missionDigest: `hmac-sha256:${'e'.repeat(64)}` as never,
+    })
+    const run = mockRunner()
+    const client = createHermesClient(config, { run })
+
+    await expect(client.createMission(missionTask, contractFor(missionTask))).rejects.toThrow(
+      /mission digest|claim|contract/i,
+    )
+    expect(run).not.toHaveBeenCalled()
+  })
+
+  it('rejects a persisted claim carrying a different idempotency key', async () => {
+    const missionTask = claimedTask({}, { idempotencyKey: 'cc-task:other-task:v1' })
+    const run = mockRunner()
+    const client = createHermesClient(config, { run })
+
+    await expect(client.createMission(missionTask, contractFor(missionTask))).rejects.toThrow(
+      /idempotency|claim state/i,
+    )
+    expect(run).not.toHaveBeenCalled()
+  })
+
+  it('inherits the authoritative maximum of 64 validation requirements', async () => {
+    const missionTask = claimedTask()
+    const validationRequired = Array.from({ length: 65 }, (_, index) => `Check ${index + 1}`)
+    const oversizedTask = { ...missionTask, validation_required: validationRequired }
+    const baseContract = contractFor(missionTask)
+    const oversizedContract = {
+      ...baseContract,
+      validationRequirements: validationRequired.map((text, index) => ({
+        id: `vr-${String(index + 1).padStart(3, '0')}`,
+        text,
+        digest: `hmac-sha256:${'f'.repeat(64)}` as never,
+      })),
+    } as OwnestMissionContractV1
+    const run = mockRunner()
+    const client = createHermesClient(config, { run })
+
+    await expect(client.createMission(oversizedTask, oversizedContract)).rejects.toThrow(
+      /64|mission contract|validation/i,
+    )
+    expect(run).not.toHaveBeenCalled()
+  })
+
   it('redacts and caps both title and composed body', async () => {
     const run = mockRunner()
     const client = createHermesClient(config, { run })
     const longSuffix = 'x'.repeat(2 * 1024)
 
-    const missionTask = task({
+    const missionTask = claimedTask({
       title: `Research long input for title@example.com ${longSuffix}`,
       objective: `Analyse token=objective-secret ${longSuffix}`,
       validation_required: [
@@ -403,7 +608,7 @@ describe('createHermesClient.createMission', () => {
     const run = mockRunner()
     const client = createHermesClient(config, { run })
 
-    const missionTask = task({
+    const missionTask = claimedTask({
       metadata: {
         skills: ['arbitrary-skill', 'shell-control'],
         skill: 'metadata-injected-skill',
@@ -428,7 +633,7 @@ describe('createHermesClient.createMission', () => {
     const run = mockRunner()
     const client = createHermesClient(config, { run })
 
-    await createWithContract(client, task({ priority }))
+    await createWithContract(client, claimedTask({ priority }))
 
     expect(valueAfter(capturedArgs(run), '--priority')).toBe(expected)
     expect(mapHermesPriority(priority)).toBe(expected)
@@ -528,7 +733,10 @@ describe('createHermesClient.createMission', () => {
     const client = createHermesClient(config, { run })
 
     await expect(
-      client.createMission(task({ validation_required: [requirement] }), contractFor()),
+      client.createMission(
+        { ...claimedTask(), validation_required: [requirement] },
+        contractFor(),
+      ),
     ).rejects.toThrow(/dangerous-language|mission policy/i)
     expect(run).not.toHaveBeenCalled()
   })
@@ -543,7 +751,10 @@ describe('createHermesClient.createMission', () => {
     const client = createHermesClient(config, { run })
 
     await expect(
-      client.createMission(task({ validation_required: requirements }), contractFor()),
+      client.createMission(
+        { ...claimedTask(), validation_required: requirements },
+        contractFor(),
+      ),
     ).rejects.toThrow(/validation requirement/i)
     expect(run).not.toHaveBeenCalled()
   })
@@ -554,7 +765,11 @@ describe('createHermesClient.createMission', () => {
 
     await expect(
       client.createMission(
-        task({ objective: 'x'.repeat(MAX_MISSION_TEXT_LENGTH + 1), validation_required: [] }),
+        {
+          ...claimedTask(),
+          objective: 'x'.repeat(MAX_MISSION_TEXT_LENGTH + 1),
+          validation_required: [],
+        },
         contractFor(),
       ),
     ).rejects.toThrow(/mission-text-too-long|mission policy/i)

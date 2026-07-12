@@ -1,9 +1,11 @@
 import { spawn, type ChildProcess } from 'node:child_process'
 import { StringDecoder } from 'node:string_decoder'
+import { isDeepStrictEqual } from 'node:util'
 import {
   MAX_MISSION_TEXT_LENGTH,
+  buildMissionContract,
   evaluateEligibility,
-  idempotencyKey,
+  extractHardenedOwnestState,
   redactMissionText,
 } from './policy.js'
 import type {
@@ -11,7 +13,7 @@ import type {
   HermesDeps,
   HermesTask,
   HermesTaskStatus,
-  HmacSha256Digest,
+  HardenedOwnestStateV1,
   OwnestConfig,
   OwnestHermesClient,
   OwnestMissionContractV1,
@@ -30,18 +32,6 @@ export const MAX_VALIDATION_TEXT_LENGTH = 4 * 1024
 const UNTRUSTED_TITLE_PREFIX = '[UNTRUSTED CRM TASK] '
 
 const FORCED_SKILLS = ['nexus', 'forward-planner', 'verify-test'] as const
-const MISSION_CONTRACT_KEYS = [
-  'attemptId',
-  'crmTaskId',
-  'idempotencyKey',
-  'missionDigest',
-  'rolloutId',
-  'schema',
-  'validationRequirements',
-] as const
-const VALIDATION_CONTRACT_KEYS = ['digest', 'id', 'text'] as const
-const SAFE_CONTRACT_TOKEN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/
-const HMAC_SHA256_DIGEST = /^hmac-sha256:[0-9a-f]{64}$/
 
 const PRIORITY_BY_CRM: Readonly<Record<CcTask['priority'], string>> = {
   P0: '100',
@@ -348,10 +338,6 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(isNonEmptyString)
 }
 
-function isHmacSha256Digest(value: unknown): value is HmacSha256Digest {
-  return typeof value === 'string' && HMAC_SHA256_DIGEST.test(value)
-}
-
 function normaliseTypedTask(value: unknown): HermesTask | null {
   if (!isRecord(value) || !hasExactKeys(value, NORMALISED_TASK_KEYS)) return null
   if (!isNonEmptyString(value.id)) return null
@@ -591,79 +577,55 @@ function validatedRequirements(value: unknown): string[] {
 }
 
 function validateMissionContract(
-  taskId: string,
-  rawRequirements: readonly string[],
+  task: CcTask,
+  state: HardenedOwnestStateV1,
   value: unknown,
 ): OwnestMissionContractV1 {
-  if (!isRecord(value) || !hasExactKeys(value, MISSION_CONTRACT_KEYS)) {
-    throw new Error('Mission contract has an invalid shape')
+  const authoritative = buildMissionContract(
+    task,
+    state.attemptId,
+    state.rolloutId,
+    state.integrityNonce,
+  )
+  if (state.idempotencyKey !== authoritative.idempotencyKey) {
+    throw new Error('Claim idempotency key does not match the authoritative task')
   }
-  if (value.schema !== 'ownest.mission.v1') {
-    throw new Error('Mission contract has an invalid schema')
+  if (state.missionDigest !== authoritative.missionDigest) {
+    throw new Error('Claim mission digest does not match the authoritative task')
   }
-  if (value.crmTaskId !== taskId) {
-    throw new Error('Mission contract CRM task id does not match the task')
+  if (!isDeepStrictEqual(value, authoritative)) {
+    throw new Error('Mission contract does not match the authoritative CRM claim')
   }
-  if (value.idempotencyKey !== idempotencyKey(taskId)) {
-    throw new Error('Mission contract idempotency key does not match the task')
-  }
-  if (typeof value.attemptId !== 'string' || !SAFE_CONTRACT_TOKEN.test(value.attemptId)) {
-    throw new Error('Mission contract has an invalid attempt id')
-  }
-  if (typeof value.rolloutId !== 'string' || !SAFE_CONTRACT_TOKEN.test(value.rolloutId)) {
-    throw new Error('Mission contract has an invalid rollout id')
-  }
-  if (!isHmacSha256Digest(value.missionDigest)) {
-    throw new Error('Mission contract has an invalid mission digest')
-  }
-  if (
-    !Array.isArray(value.validationRequirements) ||
-    value.validationRequirements.length !== rawRequirements.length ||
-    value.validationRequirements.length === 0
-  ) {
-    throw new Error('Mission contract validation requirements do not match the task')
-  }
-
-  const validationRequirements = value.validationRequirements.map((requirement, index) => {
-    if (!isRecord(requirement) || !hasExactKeys(requirement, VALIDATION_CONTRACT_KEYS)) {
-      throw new Error('Mission contract validation requirement has an invalid shape')
-    }
-    const expectedId = `vr-${String(index + 1).padStart(3, '0')}`
-    if (requirement.id !== expectedId) {
-      throw new Error('Mission contract validation requirement id is invalid')
-    }
-    if (requirement.text !== redactMissionText(rawRequirements[index] ?? '')) {
-      throw new Error('Mission contract validation text does not match the task')
-    }
-    if (!isHmacSha256Digest(requirement.digest)) {
-      throw new Error('Mission contract validation digest is invalid')
-    }
-    return {
-      id: expectedId,
-      text: requirement.text,
-      digest: requirement.digest,
-    }
-  })
-
-  return {
-    schema: 'ownest.mission.v1',
-    crmTaskId: taskId,
-    attemptId: value.attemptId,
-    idempotencyKey: idempotencyKey(taskId),
-    rolloutId: value.rolloutId,
-    missionDigest: value.missionDigest,
-    validationRequirements,
-  }
+  return authoritative
 }
 
 function prepareMissionContent(
   task: CcTask,
   contractValue: OwnestMissionContractV1,
+  expectedRolloutId: string | null,
 ): PreparedMissionContent {
   const taskId = assertTaskId(task.id, 'CRM task ID')
   const requirements = validatedRequirements(task.validation_required)
+  if (task.status !== 'running') {
+    throw new Error('Hermes mission creation requires a running CRM claim')
+  }
+  const state = extractHardenedOwnestState(task.metadata, taskId)
+  if (!state) throw new Error('Hermes mission creation requires valid hardened claim state')
+  if (state.gateState !== 'eligible') {
+    throw new Error('Hermes mission creation requires an eligible claim gate')
+  }
+  if (state.completionPhase !== 'claimed') {
+    throw new Error('Hermes mission creation requires the claimed completion phase')
+  }
+  if (state.hermesTaskId !== null) {
+    throw new Error('Hermes mission creation requires a claim without an existing mirror')
+  }
+  if (expectedRolloutId !== null && state.rolloutId !== expectedRolloutId) {
+    throw new Error('Hermes mission claim does not match the configured rollout')
+  }
   const decision = evaluateEligibility({
     ...task,
+    status: 'queued',
     objective: [task.objective, ...requirements].join('\n'),
     validation_required: requirements,
   })
@@ -677,7 +639,7 @@ function prepareMissionContent(
     0,
     MAX_MISSION_TEXT_LENGTH - UNTRUSTED_TITLE_PREFIX.length,
   )}`
-  const contract = validateMissionContract(taskId, requirements, contractValue)
+  const contract = validateMissionContract(task, state, contractValue)
 
   return {
     taskId,
@@ -699,7 +661,22 @@ function buildPreparedMissionBody(content: PreparedMissionContent): string {
     null,
     2,
   )
-  const trustedEnvelope = JSON.stringify(content.contract, null, 2)
+  const trustedEnvelope = JSON.stringify(
+    {
+      schema: content.contract.schema,
+      crmTaskId: content.contract.crmTaskId,
+      attemptId: content.contract.attemptId,
+      idempotencyKey: content.contract.idempotencyKey,
+      rolloutId: content.contract.rolloutId,
+      missionDigest: content.contract.missionDigest,
+      validationRequirements: content.contract.validationRequirements.map((requirement) => ({
+        id: requirement.id,
+        digest: requirement.digest,
+      })),
+    },
+    null,
+    2,
+  )
   const completionReceipt = JSON.stringify(
     {
       ownest: {
@@ -772,7 +749,7 @@ export function buildMissionBody(
   task: CcTask,
   contract: OwnestMissionContractV1,
 ): string {
-  return buildPreparedMissionBody(prepareMissionContent(task, contract))
+  return buildPreparedMissionBody(prepareMissionContent(task, contract, null))
 }
 
 interface PreparedCreateRequest {
@@ -785,7 +762,7 @@ function buildCreateRequest(
   contract: OwnestMissionContractV1,
   config: OwnestConfig,
 ): PreparedCreateRequest {
-  const content = prepareMissionContent(task, contract)
+  const content = prepareMissionContent(task, contract, config.rolloutId)
 
   return {
     args: [
