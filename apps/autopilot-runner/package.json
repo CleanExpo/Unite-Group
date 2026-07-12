@@ -9,7 +9,8 @@
     "test": "vitest run",
     "build": "tsc -p tsconfig.build.json",
     "heartbeat": "node dist/heartbeat.js",
-    "operator-jobs": "node dist/operator-jobs-tick.js"
+    "operator-jobs": "node dist/operator-jobs-tick.js",
+    "ownest": "node dist/ownest-tick.js"
   },
   "devDependencies": {
     "@types/node": "^20.16.0",
