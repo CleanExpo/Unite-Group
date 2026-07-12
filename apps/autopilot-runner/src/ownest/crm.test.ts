@@ -71,6 +71,7 @@ const artifactConfig: OwnestConfig = {
 }
 
 const expectedUpdatedAt = '2026-07-12T00:00:00.000Z'
+const completionNowIso = '2026-07-12T00:04:00.000Z'
 
 const validEnv: NodeJS.ProcessEnv = {
   SUPABASE_URL: 'https://example.supabase.co',
@@ -390,6 +391,7 @@ function completionArtifactApi(
   options: {
     initial?: Partial<Record<ArtifactTable, readonly Record<string, unknown>[]>>
     failOnce?: (table: ArtifactTable, row: Record<string, unknown>) => boolean
+    taskReads?: readonly CcTask[]
   } = {},
 ): { fetchImpl: ReturnType<typeof mockFetch>; store: ArtifactStore } {
   const store = Object.fromEntries(
@@ -404,11 +406,18 @@ function completionArtifactApi(
     ]),
   ) as ArtifactStore
   let failureConsumed = false
+  let taskReadIndex = 0
   const fetchImpl = vi.fn<typeof fetch>().mockImplementation(async (input, init) => {
     const url = new URL(String(input))
     const table = url.pathname.split('/').at(-1)
     const method = init?.method ?? 'GET'
-    if (table === 'cc_tasks' && method === 'GET') return jsonResponse([freshTask])
+    if (table === 'cc_tasks' && method === 'GET') {
+      const configuredTaskReads = options.taskReads ?? []
+      const taskForRead =
+        configuredTaskReads[Math.min(taskReadIndex, configuredTaskReads.length - 1)] ?? freshTask
+      taskReadIndex += 1
+      return jsonResponse([taskForRead])
+    }
     if (!ARTIFACT_TABLES.includes(table as ArtifactTable)) {
       throw new Error(`unexpected artifact table ${String(table)}`)
     }
@@ -1647,6 +1656,7 @@ describe('createCrmClient.ensureCompletionArtifacts', () => {
         taskId: fixture.freshTask.id,
         expectedContract: fixture.expectedContract,
         completion: fixture.completion,
+        nowIso: completionNowIso,
       }),
     ).resolves.toEqual(expected.result)
 
@@ -1663,6 +1673,7 @@ describe('createCrmClient.ensureCompletionArtifacts', () => {
       ['GET', '/rest/v1/cc_evidence_records'],
       ['POST', '/rest/v1/cc_task_events'],
       ['GET', '/rest/v1/cc_task_events'],
+      ['GET', '/rest/v1/cc_tasks'],
       ['POST', '/rest/v1/cc_task_events'],
       ['GET', '/rest/v1/cc_task_events'],
     ])
@@ -1682,7 +1693,23 @@ describe('createCrmClient.ensureCompletionArtifacts', () => {
         Prefer: 'resolution=ignore-duplicates,return=minimal',
       })
     }
-    for (const [input] of fetchImpl.mock.calls.slice(1).filter(([, init]) => init?.method === 'GET')) {
+    const taskReads = fetchImpl.mock.calls.filter(
+      ([input, init]) =>
+        (init?.method ?? 'GET') === 'GET' &&
+        new URL(String(input)).pathname === '/rest/v1/cc_tasks',
+    )
+    expect(taskReads).toHaveLength(2)
+    for (const [input] of taskReads) {
+      const url = new URL(String(input))
+      expect(url.searchParams.get('founder_id')).toBe(`eq.${artifactConfig.founderId}`)
+      expect(url.searchParams.get('id')).toBe(`eq.${fixture.freshTask.id}`)
+      expect(url.searchParams.get('select')).toBe(TASK_COLUMNS)
+    }
+    for (const [input] of fetchImpl.mock.calls.filter(
+      ([request, init]) =>
+        init?.method === 'GET' &&
+        new URL(String(request)).pathname !== '/rest/v1/cc_tasks',
+    )) {
       const url = new URL(String(input))
       expect(url.searchParams.get('founder_id')).toBe(`eq.${artifactConfig.founderId}`)
       expect(url.searchParams.get('id')).toMatch(/^eq\.[0-9a-f-]{36}$/)
@@ -1700,6 +1727,7 @@ describe('createCrmClient.ensureCompletionArtifacts', () => {
       taskId: fixture.freshTask.id,
       expectedContract: fixture.expectedContract,
       completion: fixture.completion,
+      nowIso: completionNowIso,
     }
 
     const first = await client.ensureCompletionArtifacts(input)
@@ -1743,6 +1771,7 @@ describe('createCrmClient.ensureCompletionArtifacts', () => {
         taskId: fixture.freshTask.id,
         expectedContract: fixture.expectedContract,
         completion: fixture.completion,
+        nowIso: completionNowIso,
       }),
     ).rejects.toThrow(/integrity/i)
     expect(fetchImpl).toHaveBeenCalledTimes(3)
@@ -1761,6 +1790,7 @@ describe('createCrmClient.ensureCompletionArtifacts', () => {
       taskId: fixture.freshTask.id,
       expectedContract: fixture.expectedContract,
       completion: fixture.completion,
+      nowIso: completionNowIso,
     }
 
     const firstError = await capturedError(() => client.ensureCompletionArtifacts(input))
@@ -1781,6 +1811,43 @@ describe('createCrmClient.ensureCompletionArtifacts', () => {
     expect(store.cc_task_events.has(expected.result.completionEventId)).toBe(true)
     expect(fetchImpl.mock.calls.some(([, init]) => init?.method === 'PATCH')).toBe(false)
   })
+
+  it.each([
+    ['cancellation is requested', (freshTask: CcTask) => {
+      ;(freshTask.metadata.ownest as Record<string, unknown>).cancelRequestedAt =
+        '2026-07-12T00:04:30.000Z'
+    }],
+    ['the mission contract changes', (freshTask: CcTask) => {
+      freshTask.title = 'Tampered mission title'
+    }],
+  ] as const)(
+    're-attests full completion authority before the immutable completed event when %s',
+    async (_label, mutate) => {
+      const fixture = completionFixture()
+      const expected = expectedArtifactRows(fixture)
+      const changedTask = structuredClone(fixture.freshTask)
+      mutate(changedTask)
+      const { fetchImpl, store } = completionArtifactApi(fixture.freshTask, {
+        taskReads: [fixture.freshTask, changedTask],
+      })
+      const client = createCrmClient(artifactConfig, deps(fetchImpl))
+
+      await expect(
+        client.ensureCompletionArtifacts({
+          taskId: fixture.freshTask.id,
+          expectedContract: fixture.expectedContract,
+          completion: fixture.completion,
+          nowIso: completionNowIso,
+        }),
+      ).rejects.toThrow()
+
+      expect(fetchImpl.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(4)
+      expect(store.cc_validation_runs.size).toBe(2)
+      expect(store.cc_evidence_records.size).toBe(1)
+      expect(store.cc_task_events.has(expected.result.evidenceAddedEventId)).toBe(true)
+      expect(store.cc_task_events.has(expected.result.completionEventId)).toBe(false)
+    },
+  )
 
   it.each([
     ['changed mission field', (value: CompletionFixture) => {
@@ -1807,6 +1874,36 @@ describe('createCrmClient.ensureCompletionArtifacts', () => {
     }],
     ['wrong completion phase', (value: CompletionFixture) => {
       ;(value.freshTask.metadata.ownest as Record<string, unknown>).completionPhase = 'dispatched'
+    }],
+    ['cancel requested timestamp', (value: CompletionFixture) => {
+      ;(value.freshTask.metadata.ownest as Record<string, unknown>).cancelRequestedAt =
+        '2026-07-12T00:03:00.000Z'
+    }],
+    ['cancel reason', (value: CompletionFixture) => {
+      ;(value.freshTask.metadata.ownest as Record<string, unknown>).cancelReason =
+        'Founder requested cancellation'
+    }],
+    ['requested stop phase', (value: CompletionFixture) => {
+      ;(value.freshTask.metadata.ownest as Record<string, unknown>).stopPhase = 'requested'
+    }],
+    ['reclaimed stop phase', (value: CompletionFixture) => {
+      ;(value.freshTask.metadata.ownest as Record<string, unknown>).stopPhase = 'reclaimed'
+    }],
+    ['unassigned stop phase', (value: CompletionFixture) => {
+      ;(value.freshTask.metadata.ownest as Record<string, unknown>).stopPhase = 'unassigned'
+    }],
+    ['archived stop phase', (value: CompletionFixture) => {
+      ;(value.freshTask.metadata.ownest as Record<string, unknown>).stopPhase = 'archived'
+    }],
+    ['wrong lease owner', (value: CompletionFixture) => {
+      ;(value.freshTask.metadata.ownest as Record<string, unknown>).leaseOwner = 'other-worker'
+    }],
+    ['expired lease', (value: CompletionFixture) => {
+      ;(value.freshTask.metadata.ownest as Record<string, unknown>).leaseExpiresAt =
+        '2026-07-12T00:03:59.999Z'
+    }],
+    ['lease expiring at trusted now', (value: CompletionFixture) => {
+      ;(value.freshTask.metadata.ownest as Record<string, unknown>).leaseExpiresAt = completionNowIso
     }],
     ['wrong persisted receipt digest', (value: CompletionFixture) => {
       ;(value.freshTask.metadata.ownest as Record<string, unknown>).receiptSha256 = `sha256:${'a'.repeat(64)}`
@@ -1839,6 +1936,7 @@ describe('createCrmClient.ensureCompletionArtifacts', () => {
         taskId: fixture.freshTask.id,
         expectedContract: fixture.expectedContract,
         completion: fixture.completion,
+        nowIso: completionNowIso,
       }),
     ).rejects.toThrow()
     expect(fetchImpl).toHaveBeenCalledTimes(1)
@@ -1862,6 +1960,7 @@ describe('createCrmClient.ensureCompletionArtifacts', () => {
         taskId: fixture.freshTask.id,
         expectedContract: fixture.expectedContract,
         completion: fixture.completion,
+        nowIso: completionNowIso,
       }),
     ).rejects.toThrow()
     expect(fetchImpl).not.toHaveBeenCalled()
@@ -1878,9 +1977,30 @@ describe('createCrmClient.ensureCompletionArtifacts', () => {
         taskId: fixture.freshTask.id,
         expectedContract: fixture.expectedContract,
         completion: fixture.completion,
+        nowIso: completionNowIso,
       }),
     ).rejects.toThrow(/founder/i)
     expect(fetchImpl).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
+    ['non-timestamp text', 'not-a-time'],
+    ['non-canonical offset', '2026-07-12T10:04:00.000+10:00'],
+    ['impossible calendar date', '2026-02-30T00:04:00.000Z'],
+  ])('rejects malformed trusted now (%s) before service-role fetch', async (_label, nowIso) => {
+    const fixture = completionFixture()
+    const { fetchImpl } = completionArtifactApi(fixture.freshTask)
+    const client = createCrmClient(artifactConfig, deps(fetchImpl))
+
+    await expect(
+      client.ensureCompletionArtifacts({
+        taskId: fixture.freshTask.id,
+        expectedContract: fixture.expectedContract,
+        completion: fixture.completion,
+        nowIso,
+      }),
+    ).rejects.toThrow(/input/i)
+    expect(fetchImpl).not.toHaveBeenCalled()
   })
 })
 

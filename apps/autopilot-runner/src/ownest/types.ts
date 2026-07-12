@@ -307,6 +307,7 @@ export interface EnsureCompletionArtifactsInput {
   taskId: string
   expectedContract: OwnestMissionContractV1
   completion: HermesTask
+  nowIso: string
 }
 
 export interface EnsureCompletionArtifactsResult {

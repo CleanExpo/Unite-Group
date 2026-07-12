@@ -113,7 +113,7 @@ const COMPLETION_EVIDENCE_KINDS = new Set([
   'commit',
   'report',
 ])
-const COMPLETION_INPUT_KEYS = new Set(['completion', 'expectedContract', 'taskId'])
+const COMPLETION_INPUT_KEYS = new Set(['completion', 'expectedContract', 'nowIso', 'taskId'])
 const COMPLETION_TASK_KEYS = new Set([
   'assignee',
   'completedAt',
@@ -1158,7 +1158,8 @@ function validateCompletionInputAuthority(
   if (
     !isPlainRecord(input) ||
     !hasExactKeys(input, COMPLETION_INPUT_KEYS) ||
-    !isSafeCompletionToken(input.taskId)
+    !isSafeCompletionToken(input.taskId) ||
+    !isCanonicalUtcTimestamp(input.nowIso)
   ) {
     throw new Error('CRM completion artifact input is invalid')
   }
@@ -1206,7 +1207,12 @@ function validateCompletionPreflight(
     state.hermesBoard !== config.hermesBoard ||
     state.hermesBoard !== input.expectedContract.hermesBoard ||
     state.hermesTaskId === null ||
-    state.completionPhase !== 'receipt_validated'
+    state.completionPhase !== 'receipt_validated' ||
+    state.cancelRequestedAt !== null ||
+    state.cancelReason !== null ||
+    state.stopPhase !== null ||
+    state.leaseOwner !== config.workerId ||
+    !(Date.parse(state.leaseExpiresAt) > Date.parse(input.nowIso))
   ) {
     throw new Error('CRM completion task authority or phase is invalid')
   }
@@ -1493,6 +1499,11 @@ export async function ensureCompletionArtifacts(
     }
     await ensureCompletionArtifactRow('cc_evidence_records', plan.evidenceRow, config, deps)
     await ensureCompletionArtifactRow('cc_task_events', plan.evidenceEventRow, config, deps)
+    const reattestedTask = await getOwnedTask(input.taskId, config, deps)
+    if (!reattestedTask) {
+      throw new Error('CRM completion task was not found during final authority re-attestation')
+    }
+    validateCompletionPreflight(reattestedTask, input, config)
     await ensureCompletionArtifactRow('cc_task_events', plan.completionEventRow, config, deps)
     return plan.result
   } catch (error) {
