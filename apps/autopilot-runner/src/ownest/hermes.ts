@@ -599,10 +599,36 @@ function validateMissionContract(
   return authoritative
 }
 
+function validateCreateScope(
+  task: CcTask,
+  taskId: string,
+  state: HardenedOwnestStateV1,
+  config: OwnestConfig,
+): void {
+  if (!config.live) {
+    throw new Error('Hermes mission creation requires live OWNEST mode')
+  }
+  if (task.founder_id !== config.founderId) {
+    throw new Error('Hermes mission task does not match the configured founder')
+  }
+  if (config.canaryTaskId === null || taskId !== config.canaryTaskId) {
+    throw new Error('Hermes mission task does not match the nominated canary')
+  }
+  if (config.rolloutId === null || state.rolloutId !== config.rolloutId) {
+    throw new Error('Hermes mission claim does not match the configured rollout')
+  }
+  if (state.leaseOwner !== config.workerId) {
+    throw new Error('Hermes mission claim does not match the configured worker')
+  }
+  if (!(Date.parse(state.leaseExpiresAt) > Date.now())) {
+    throw new Error('Hermes mission creation requires an active claim lease')
+  }
+}
+
 function prepareMissionContent(
   task: CcTask,
   contractValue: OwnestMissionContractV1,
-  expectedRolloutId: string | null,
+  createConfig: OwnestConfig | null,
 ): PreparedMissionContent {
   const taskId = assertTaskId(task.id, 'CRM task ID')
   const requirements = validatedRequirements(task.validation_required)
@@ -620,9 +646,7 @@ function prepareMissionContent(
   if (state.hermesTaskId !== null) {
     throw new Error('Hermes mission creation requires a claim without an existing mirror')
   }
-  if (expectedRolloutId !== null && state.rolloutId !== expectedRolloutId) {
-    throw new Error('Hermes mission claim does not match the configured rollout')
-  }
+  if (createConfig !== null) validateCreateScope(task, taskId, state, createConfig)
   const decision = evaluateEligibility({
     ...task,
     status: 'queued',
@@ -762,7 +786,7 @@ function buildCreateRequest(
   contract: OwnestMissionContractV1,
   config: OwnestConfig,
 ): PreparedCreateRequest {
-  const content = prepareMissionContent(task, contract, config.rolloutId)
+  const content = prepareMissionContent(task, contract, config)
 
   return {
     args: [

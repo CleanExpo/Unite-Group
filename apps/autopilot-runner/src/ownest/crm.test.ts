@@ -291,7 +291,7 @@ describe('loadOwnestConfig', () => {
       canaryLimit: 1,
       maxInProgress: 1,
       leaseMs: 300_000,
-      dailyDispatchLimit: 3,
+      dailyDispatchLimit: 1,
     })
     for (const value of [
       result.config.canaryLimit,
@@ -452,6 +452,25 @@ describe('loadOwnestConfig', () => {
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(result.error).toMatch(/Hermes.*(?:profile|board)|CC_OWNEST_HERMES/i)
+  })
+
+  it.each([
+    ['CC_OWNEST_CANARY_LIMIT', '2'],
+    ['CC_OWNEST_MAX_IN_PROGRESS', '2'],
+    ['CC_OWNEST_DAILY_DISPATCH_LIMIT', '2'],
+  ])('rejects live configuration when %s exceeds one', (variable, value) => {
+    const result = loadOwnestConfig({
+      ...validEnv,
+      NEXT_PUBLIC_SUPABASE_URL: validEnv.SUPABASE_URL,
+      CC_OWNEST_LIVE: '1',
+      CC_OWNEST_ROLLOUT_ID: 'rollout-safe',
+      CC_OWNEST_CANARY_TASK_ID: 'task-safe',
+      [variable]: value,
+    })
+
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.error).toContain(variable)
   })
 
   it.each([

@@ -157,6 +157,10 @@ export function loadOwnestConfig(env: NodeJS.ProcessEnv = process.env): LoadOwne
   const rolloutId = optionalTrimmedString(env.CC_OWNEST_ROLLOUT_ID)
   const canaryTaskId = optionalTrimmedString(env.CC_OWNEST_CANARY_TASK_ID)
   const live = env.CC_OWNEST_LIVE === '1'
+  const canaryLimit = boundedInteger(env.CC_OWNEST_CANARY_LIMIT, 1, 1, 3)
+  const maxInProgress = boundedInteger(env.CC_OWNEST_MAX_IN_PROGRESS, 1, 1, 3)
+  const leaseMs = boundedInteger(env.CC_OWNEST_LEASE_MS, 300_000, 60_000, 1_800_000)
+  const dailyDispatchLimit = boundedInteger(env.CC_OWNEST_DAILY_DISPATCH_LIMIT, 1, 1, 25)
 
   const problems: string[] = []
   if (!rawSupabaseUrl && !rawPublicSupabaseUrl) {
@@ -202,6 +206,15 @@ export function loadOwnestConfig(env: NodeJS.ProcessEnv = process.env): LoadOwne
   if (live && hermesBoard !== 'unite-group-ownest') {
     problems.push('CC_OWNEST_HERMES_BOARD must be unite-group-ownest when live')
   }
+  if (live && canaryLimit !== 1) {
+    problems.push('CC_OWNEST_CANARY_LIMIT must be 1 when live')
+  }
+  if (live && maxInProgress !== 1) {
+    problems.push('CC_OWNEST_MAX_IN_PROGRESS must be 1 when live')
+  }
+  if (live && dailyDispatchLimit !== 1) {
+    problems.push('CC_OWNEST_DAILY_DISPATCH_LIMIT must be 1 when live')
+  }
 
   if (problems.length > 0 || !supabaseUrl || !serviceRoleKey || !founderId || !workerId) {
     return { ok: false, error: `Invalid OWNEST configuration: ${problems.join('; ')}` }
@@ -220,10 +233,10 @@ export function loadOwnestConfig(env: NodeJS.ProcessEnv = process.env): LoadOwne
       rolloutId,
       canaryTaskId,
       live,
-      canaryLimit: boundedInteger(env.CC_OWNEST_CANARY_LIMIT, 1, 1, 3),
-      maxInProgress: boundedInteger(env.CC_OWNEST_MAX_IN_PROGRESS, 1, 1, 3),
-      leaseMs: boundedInteger(env.CC_OWNEST_LEASE_MS, 300_000, 60_000, 1_800_000),
-      dailyDispatchLimit: boundedInteger(env.CC_OWNEST_DAILY_DISPATCH_LIMIT, 3, 1, 25),
+      canaryLimit,
+      maxInProgress,
+      leaseMs,
+      dailyDispatchLimit,
     },
   }
 }

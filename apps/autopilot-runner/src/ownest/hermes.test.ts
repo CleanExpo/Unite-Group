@@ -41,9 +41,9 @@ const config: OwnestConfig = {
   hermesCwd: '/tmp/hermes-workspace',
   hermesProfile: 'ownest',
   hermesBoard: 'unite-group-ownest',
-  rolloutId: null,
-  canaryTaskId: null,
-  live: false,
+  rolloutId: 'rollout-1',
+  canaryTaskId: 'task-1',
+  live: true,
   canaryLimit: 1,
   maxInProgress: 1,
   leaseMs: 300_000,
@@ -83,7 +83,7 @@ function claimedTask(
     hermesTaskId: null,
     attemptId: 'attempt-1',
     leaseOwner: 'worker-1',
-    leaseExpiresAt: '2026-07-12T00:05:00.000Z',
+    leaseExpiresAt: '2099-01-01T00:00:00.000Z',
     lastHeartbeatAt: '2026-07-12T00:00:00.000Z',
     dispatchedAt: null,
     reconciledAt: null,
@@ -316,6 +316,76 @@ describe('createHermesClient.createMission', () => {
       /running|claim/i,
     )
     expect(run).not.toHaveBeenCalled()
+  })
+
+  it('refuses to invoke Hermes while OWNEST live mode is off', async () => {
+    const missionTask = claimedTask()
+    const run = mockRunner()
+    const client = createHermesClient({ ...config, live: false }, { run })
+
+    await expect(client.createMission(missionTask, contractFor(missionTask))).rejects.toThrow(
+      /live|armed/i,
+    )
+    expect(run).not.toHaveBeenCalled()
+  })
+
+  it('rejects a claimed task outside the configured founder scope', async () => {
+    const missionTask = claimedTask({ founder_id: 'other-founder' })
+    const run = mockRunner()
+    const client = createHermesClient(config, { run })
+
+    await expect(client.createMission(missionTask, contractFor(missionTask))).rejects.toThrow(
+      /founder|scope/i,
+    )
+    expect(run).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['missing nominated task', { canaryTaskId: null }],
+    ['wrong nominated task', { canaryTaskId: 'task-2' }],
+    ['missing rollout', { rolloutId: null }],
+  ])('rejects a live create with %s', async (_label, override) => {
+    const missionTask = claimedTask()
+    const run = mockRunner()
+    const client = createHermesClient({ ...config, ...override }, { run })
+
+    await expect(client.createMission(missionTask, contractFor(missionTask))).rejects.toThrow(
+      /canary|nominated|rollout/i,
+    )
+    expect(run).not.toHaveBeenCalled()
+  })
+
+  it('rejects a claim leased to a different worker', async () => {
+    const missionTask = claimedTask()
+    const run = mockRunner()
+    const client = createHermesClient({ ...config, workerId: 'other-worker' }, { run })
+
+    await expect(client.createMission(missionTask, contractFor(missionTask))).rejects.toThrow(
+      /lease|worker/i,
+    )
+    expect(run).not.toHaveBeenCalled()
+  })
+
+  it('rejects an expired or exactly-expiring claim lease', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-12T00:05:00.000Z'))
+    try {
+      for (const leaseExpiresAt of [
+        '2026-07-12T00:04:59.999Z',
+        '2026-07-12T00:05:00.000Z',
+      ]) {
+        const missionTask = claimedTask({}, { leaseExpiresAt })
+        const run = mockRunner()
+        const client = createHermesClient(config, { run })
+
+        await expect(client.createMission(missionTask, contractFor(missionTask))).rejects.toThrow(
+          /lease|expired|active/i,
+        )
+        expect(run).not.toHaveBeenCalled()
+      }
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it.each([
