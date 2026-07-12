@@ -75,6 +75,10 @@ DB gate (verified read-only against prod <project-ref>, <date>):
 No prod write or migration needed.  — or —  Migration required: <link>.
 ```
 
+## Cross-reference
+
+This gate is applied against branches created via the `supabase-db-branch` skill.
+
 ## Red flags that mean the gate was skipped
 
 - "It works locally" or "the types compile" offered as schema evidence.
