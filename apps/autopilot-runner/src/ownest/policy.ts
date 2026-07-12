@@ -51,19 +51,22 @@ const MERGE_TARGET =
 const MERGE_ACTION_REQUEST =
   /^\s*(?:please[ \t]+)?(?:merge|land|integrate)\b|\b(?:can|could|would)[ \t]+(?:you|we)[ \t]+(?:merge|land|integrate)\b|\b(?:must|should|need|needs)[ \t]+(?:to[ \t]+)?(?:be[ \t]+)?(?:merge(?:d)?|land(?:ed)?|integrat(?:e|ed))\b/i
 
-const MIXED_BOUNDARY_ACTION_CLASSIFIERS = [
+const HARD_BOUNDARY_ACTION_CLASSIFIERS = [
   PAYMENT_ACTION,
   OUTBOUND_ACTION,
-  OUTBOUND_NOMINAL_ACTION,
   PRODUCTION_ACTION,
-  PRODUCTION_NOMINAL_ACTION,
   CREDENTIAL_ACTION,
   PRIVILEGE_ACTION,
-  CREDENTIAL_NOMINAL_ACTION,
   DESTRUCTIVE_ACTION,
   ACCESS_CONTROL_ACTION,
   BRANCH_PROTECTION_ACTION,
   MERGE_ACTION,
+] as const
+const MIXED_BOUNDARY_ACTION_CLASSIFIERS = [
+  ...HARD_BOUNDARY_ACTION_CLASSIFIERS,
+  OUTBOUND_NOMINAL_ACTION,
+  PRODUCTION_NOMINAL_ACTION,
+  CREDENTIAL_NOMINAL_ACTION,
 ] as const
 const MIXED_BOUNDARY_ACTION_SOURCE = MIXED_BOUNDARY_ACTION_CLASSIFIERS.map(
   (classifier) => `(?:${classifier.source})`,
@@ -243,6 +246,10 @@ function isClearlyAdvisory(text: string): boolean {
   return CLEAR_ADVISORY_INTENT.test(text)
 }
 
+function containsHardBoundaryAction(text: string): boolean {
+  return HARD_BOUNDARY_ACTION_CLASSIFIERS.some((classifier) => classifier.test(text))
+}
+
 function containsDangerousClause(clause: string): boolean {
   const text = clause.trim()
   if (!text || isClearlyAdvisory(text)) return false
@@ -266,7 +273,19 @@ function hasCrossFieldBoundary(title: string, objective: string): boolean {
 
 function containsDangerousLanguage(task: CcTask): boolean {
   const missionText = `${task.title}\n${task.objective}`
-  const clauseIsDangerous = missionText.split(MISSION_CLAUSE_SEPARATOR).some(containsDangerousClause)
+  let advisoryContext = false
+  const clauseIsDangerous = missionText.split(MISSION_CLAUSE_SEPARATOR).some((clause) => {
+    const text = clause.trim()
+    if (!text) return false
+    if (isClearlyAdvisory(text)) {
+      advisoryContext = true
+      return false
+    }
+    if (advisoryContext && !containsHardBoundaryAction(text)) return false
+
+    advisoryContext = false
+    return containsDangerousClause(text)
+  })
   return clauseIsDangerous || hasCrossFieldBoundary(task.title, task.objective)
 }
 

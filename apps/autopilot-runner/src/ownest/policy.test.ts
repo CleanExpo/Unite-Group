@@ -207,6 +207,15 @@ describe('evaluateEligibility', () => {
     expect(evaluateEligibility(task({ title }))).toEqual({ eligible: true })
   })
 
+  it.each([
+    'Research payment and billing trends',
+    'Review invoices and billing controls',
+    'Research outbound publication and payment trends',
+    'Research payment trends. Billing forecasts for next year',
+  ])('preserves advisory context across noun-only clauses: %s', (title) => {
+    expect(evaluateEligibility(task({ title }))).toEqual({ eligible: true })
+  })
+
   it('rejects a mixed advisory and production action request', () => {
     expect(evaluateEligibility(task({ title: 'Research deployment options, then deploy to production' }))).toEqual({
       eligible: false,
