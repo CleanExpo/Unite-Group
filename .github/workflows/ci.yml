@@ -242,4 +242,25 @@ jobs:
           # keep the static build verifiable before repo secrets are wired.
           SUPABASE_URL: ${{ secrets.FABEL_SUPABASE_URL || 'https://example.supabase.co' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.FABEL_SUPABASE_SERVICE_ROLE_KEY || 'ci-placeholder-service-role-key' }}
+
+  gitleaks:
+    name: gitleaks — secret scan (git commits)
+    runs-on: ubuntu-latest
+    steps:
+      # Full history so the action can scan the event's commit range.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Scan git history for secrets
+        # Pinned to the full commit SHA of gitleaks-action v3.0.0 for supply-chain
+        # integrity. Runs in git mode (scans commits), config is .gitleaks.toml.
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+          # gitleaks-action requires a license only for GitHub organizations.
+          # Harmless (unused) for a personal-account repo; passed through so the
+          # job keeps working if the repo later moves under an org.
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'ci-placeholder-anthropic-key' }}
