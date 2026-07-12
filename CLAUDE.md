@@ -42,7 +42,7 @@ GitHub repo + Vercel project deleted 20/06/2026 — per Phill's typed approval).
   (`xgqwfwqumliuguzhshwv`) was deleted 15/06/2026 and won't be replaced. Prod
   (`lksfwktwtmyznckodsau`) moves only via a merged, approved branch — never apply
   to prod directly, never autonomously. founder_id scoping only in apps/web.
-  See `apps/empire/CLAUDE.md` for the workflow.
+  See `apps/empire/CLAUDE.md` for the workflow. See `supabase-db-branch` skill for the branch process.
 - **No writes to other repos.** `brain-1`, `hermes-workspace`, and
   `pi-ceo-operator-mcp` are frozen pending deletion per the runbook.
   **`CleanExpo/Unite-Group-Spine` was ARCHIVED on GitHub 05/07/2026** (Phill's
