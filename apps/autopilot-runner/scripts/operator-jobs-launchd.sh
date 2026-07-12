@@ -24,8 +24,11 @@ if [ -f "$REPO_ROOT/.env.local" ]; then
 fi
 set +a
 
-# Default to the prod project URL if .env.local didn't set one.
-export SUPABASE_URL="${SUPABASE_URL:-https://lksfwktwtmyznckodsau.supabase.co}"
+if [ -z "${SUPABASE_URL:-}" ]; then
+  printf '%s\n' 'SUPABASE_URL is required; refusing to infer a production target.' >&2
+  exit 78
+fi
+export SUPABASE_URL
 # The claude CLI installs to ~/.local/bin by default — launchd PATH won't have it.
 export PATH="$HOME/.local/bin:$PATH"
 

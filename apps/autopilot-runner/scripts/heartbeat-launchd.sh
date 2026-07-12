@@ -20,8 +20,11 @@ if [ -f "$REPO_ROOT/.env.local" ]; then
 fi
 set +a
 
-# Default to the prod project URL if .env.local didn't set one.
-export SUPABASE_URL="${SUPABASE_URL:-https://lksfwktwtmyznckodsau.supabase.co}"
+if [ -z "${SUPABASE_URL:-}" ]; then
+  printf '%s\n' 'SUPABASE_URL is required; refusing to infer a production target.' >&2
+  exit 78
+fi
+export SUPABASE_URL
 
 cd "$RUNNER_DIR" || exit 1
 exec node dist/heartbeat.js
