@@ -149,7 +149,7 @@
     "imapflow": "^1.4.6",
     "lowlight": "^3.3.0",
     "lucide-react": "^1.23.0",
-    "nanoid": "^5.1.16",
+    "nanoid": "^6.0.0",
     "next": "^16.2.10",
     "novel": "^1.0.2",
     "react": "^19.2.7",
