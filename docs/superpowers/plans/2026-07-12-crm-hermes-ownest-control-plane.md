@@ -438,16 +438,22 @@ The entrypoint performs exactly one bounded reconcile-first sweep and exits. `CC
 
 - source the runtime repo's `.env.local` without echoing it;
 - prepend `$HOME/.local/bin` for Hermes;
+- launch Node through an explicit CRM/OWNEST environment allowlist, then launch Hermes through a second route environment that excludes CRM and unrelated/provider credentials;
+- require a backup-first, atomic allowlist sanitisation of `~/.hermes/profiles/ownest/.env` before any canary so Hermes cannot internally reload a broad credential clone after spawn;
 - run `node dist/ownest-tick.js` from the runner directory;
+- hold a non-blocking local `lockf` lock so launchd, a manual run, and a delayed prior tick cannot overlap;
+- set `umask 077` and fail closed with live admission off by default;
 - use `set -euo pipefail` and default live off.
 
 `install-ownest-service.sh` must:
 
 - build before installation;
+- require the canonical GitHub origin, a clean dedicated runtime checkout, Node 22, and an explicit exact verified commit present on an origin remote-tracking ref;
 - install `in.unite-group.ownest` with `StartInterval=60` and no `KeepAlive`;
 - write no credentials to the plist;
 - validate the plist with `plutil -lint`;
 - unload/reload idempotently;
+- back up and restore the previous plist on bootstrap failure and provide a reversible uninstall;
 - log to `~/Library/Logs/unite-ownest.log`.
 
 - [ ] **Step 5: Run tests, build, and shell syntax checks**

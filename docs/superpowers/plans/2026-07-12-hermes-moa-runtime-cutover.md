@@ -266,11 +266,17 @@ Pass criteria:
 **Files:**
 - Restore source: `~/.hermes/change-backups/2026-07-12-ownest-moa/`
 
+- [x] **Step 0: Minimise and attest the OWNEST profile environment**
+
+Run `apps/autopilot-runner/scripts/sanitize-ownest-profile-env.sh`, retain the printed private backup path, and verify `hermes --profile ownest config check` plus `hermes --profile ownest moa list`. The profile must contain exactly one OpenRouter route, no direct Anthropic credential, and no unrelated CRM, payment, social, email, source-control, or deployment credential before the canary is armed.
+
+Local evidence on 2026-07-12: the sanitizer retained 13 allowlisted assignments and removed 68; the resulting profile and rollback backup are owner-only mode 600; `config check`, `moa list`, and gateway status passed. No value was emitted. This completes the credential prerequisite only—it does not arm a canary or authorise spend.
+
 - [ ] **Step 1: Test the OWNEST stop path**
 
-Turn `CC_OWNEST_LIVE` off, unload `in.unite-group.ownest`, and verify no new mirror appears during a two-minute observation window.
+Turn `CC_OWNEST_LIVE` off, block or cancel the CRM canary, run one bounded live-off reconciliation, verify its Hermes projection is stopped or safely dead-lettered, then unload `in.unite-group.ownest`. Verify no new mirror appears during a two-minute observation window.
 
-Expected: stop completes within one minute and existing CRM evidence remains intact.
+Expected: admission closes immediately, the active projection reaches a verified safe stop before the worker unloads, total stop completes within one minute, and existing CRM evidence remains intact.
 
 - [ ] **Step 2: Test the Hermes configuration rollback without deleting evidence**
 

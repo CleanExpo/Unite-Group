@@ -161,6 +161,19 @@ Every project receives a versioned `nexus.project-runtime.v1` manifest and the s
 
 Project 1 is Unite-Group because it owns the control plane. Synthex is the next workload because it already has a deterministic offline AI evaluation harness and is the natural home for the industry-image reference use case.
 
+### Project 1 readiness snapshot
+
+The current deterministic scan is honest rather than all-green: six domains pass, four P1 domains fail, no result is unknown, and neither configured P0 finding is blocking. The remaining P1 inventory is:
+
+- 17 nested `.github/workflows` files that GitHub will not execute from their current monorepo locations; each must be migrated to root CI, explicitly retired, or retained only as labelled historical evidence;
+- 14 floating container references that still require reviewed manifest-digest pins;
+- six reported container input problems requiring build-context/fixture reconciliation rather than blindly creating files;
+- a Node 22/24 package and container matrix that must be made explicit per package instead of pretending one global major applies to every runtime.
+
+These results block the phrase “Project 1 is completely clean,” but they do not hide a P0. They form the next measured maintenance batch after the control-plane and watcher PR; the scanner remains the gate for every later project so the same classes cannot disappear into chat history.
+
+The autopilot runner's development toolchain was separately upgraded from Vitest 2 to Vitest 4.1.10. Its production and complete dependency audits now both report zero known vulnerabilities, and the full 1,016-test package gate, type-check, and build pass on Node 22 and Node 24. This removes that package-level finding; it does not erase the four repository-level P1 domains above.
+
 ## 6. Multi-model execution without self-validation
 
 Independence is defined by the underlying model family, not the gateway or account. Claude through OpenRouter is still Anthropic; GPT through Hermes is still OpenAI.
@@ -189,6 +202,7 @@ Every subscription-backed executor therefore runs through a route-specific envir
 - API, OpenRouter, and cloud-provider lanes run in separate child environments, carry an explicit spend class and budget, and never inherit subscription credentials;
 - a route whose billing identity cannot be attested is `unknown_blocked`, not an automatic fallback;
 - no wrapper sources a broad project `.env.local` and then launches every model CLI with the resulting ambient environment;
+- consumer-subscription lanes run only through vendor-supported local CLI/app surfaces and their published plan terms; credentials are never transplanted into a container, API service, or shared daemon to imitate an API entitlement;
 - receipts record the attested route ID and auth class, never the credential or raw authentication output.
 
 This is the control that turns existing Max plans into usable capacity without allowing a convenience fallback to become unreported spend.

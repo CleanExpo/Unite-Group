@@ -121,6 +121,8 @@ interface OwnestMissionStateV1 {
 
 The idempotency key is a deterministic UUIDv8 projection identity derived from the CRM task, rollout, attempt, profile, and board and formatted as `ownest:<uuid>`. A retry of the same claimed attempt therefore resolves to the same non-archived Hermes task; a later authorised attempt cannot collide with the previous execution.
 
+Current `canaryTaskId` and `rolloutId` configuration authorise admission and creation only. Once admitted, the fresh founder-scoped hardened CRM state and its rebuilt persisted contract authorise show, STOP, receipt validation, and recovery. Clearing or advancing the admission canary must never orphan an older projection; profile and board remain pinned to the dedicated OWNEST lane throughout reconciliation.
+
 ## 6. Eligibility and hard gates
 
 A mission may enter the Hermes mirror only when every condition is true:
@@ -146,18 +148,20 @@ The following always gate instead of executing:
 
 Task titles and objectives are treated as untrusted content. They are passed as fixed process arguments, never interpolated into a shell command. Known secret shapes and PII are redacted before the Hermes body is created.
 
+The process boundary is two envelopes: the CRM worker receives only its CRM and OWNEST controls, while the Hermes child receives only runtime/Hermes variables. Hermes may also load its profile-local `.env` internally, so that file is a third enforced boundary: before a canary it must be atomically reduced, after a mode-600 backup, to one OpenRouter route, optional Browser Use routing, and the non-secret TAO settings. Direct Anthropic and unrelated CRM, payment, social, email, source-control, and deployment credentials are prohibited from the OWNEST profile even when they exist elsewhere on the machine.
+
 ## 7. Dispatch, lease, and recovery protocol
 
 One bounded tick performs reconciliation before dispatch:
 
-1. Load CRM tasks already carrying an OWNEST mirror ID.
+1. Load founder-owned CRM tasks carrying a hardened OWNEST state, plus the exact configured canary; never use the legacy candidate/mirror queries as a fallback.
 2. Query Hermes with `kanban show --json` using fixed argv.
 3. Renew the CRM metadata lease for live tasks and reconcile terminal state.
 4. Append a CRM event only when the state actually changes.
 5. Persist a Hermes evidence URI and validation receipt before marking `done`.
 6. Mark repeated failures as `blocked` with `gateState = dead_letter`; do not bounce routine failure to Phill.
 7. Count live OWNEST tasks.
-8. Select the oldest/highest-priority eligible queued task up to the remaining concurrency capacity.
+8. Evaluate only the exact configured canary after persisted rollout/daily/concurrency quotas pass; absence, ineligibility, or CAS contention produces no fallback selection.
 9. Create it with `hermes --profile ownest kanban --board unite-group-ownest create ... --json`, a deterministic idempotency key, `--goal`, a four-turn goal cap, a ten-minute runtime cap, a retry cap, and a fixed skill allowlist.
 10. Persist the mirror ID, attempt ID, lease, and a `started` event back to CRM.
 
@@ -184,9 +188,10 @@ The one-minute stop path is layered:
 
 1. turn off the OWNEST worker live switch so no new mission is mirrored;
 2. block or cancel queued CRM missions from Mission Control;
-3. stop the launchd OWNEST worker;
-4. stop the Hermes gateway only for a runtime-wide emergency;
-5. restore timestamped Hermes configuration backups and restart the gateway.
+3. trigger or observe one live-off reconcile-first tick and verify any active Hermes projection is stopped or safely dead-lettered;
+4. stop the launchd OWNEST worker only after that reconciliation proof;
+5. stop the Hermes gateway only for a runtime-wide emergency;
+6. restore timestamped Hermes configuration backups and restart the gateway.
 
 Stopping only the Hermes PID is not a valid kill switch because launchd uses `KeepAlive`. The service must be unloaded or stopped through Hermes/launchd.
 
