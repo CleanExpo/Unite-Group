@@ -202,8 +202,29 @@ export interface HermesProcessLimits {
 export type SpawnChildProcess = (
   command: string,
   args: readonly string[],
-  options: { cwd: string; shell: false },
+  options: { cwd: string; shell: false; env: NodeJS.ProcessEnv },
 ) => ChildProcess
+
+const HERMES_CHILD_ENV_ALLOWLIST = [
+  'HOME',
+  'PATH',
+  'TMPDIR',
+  'LANG',
+  'LC_ALL',
+  'LC_CTYPE',
+  'TZ',
+  'USER',
+  'LOGNAME',
+  'SHELL',
+  'HERMES_HOME',
+  'XDG_CONFIG_HOME',
+  'XDG_CACHE_HOME',
+  'SSL_CERT_FILE',
+  'SSL_CERT_DIR',
+  'NODE_EXTRA_CA_CERTS',
+  'TERM',
+  'NO_COLOR',
+] as const
 
 const DEFAULT_PROCESS_LIMITS: HermesProcessLimits = {
   timeoutMs: HERMES_PROCESS_TIMEOUT_MS,
@@ -215,9 +236,18 @@ const DEFAULT_PROCESS_LIMITS: HermesProcessLimits = {
 function spawnChildProcess(
   command: string,
   args: readonly string[],
-  options: { cwd: string; shell: false },
+  options: { cwd: string; shell: false; env: NodeJS.ProcessEnv },
 ): ChildProcess {
   return spawn(command, [...args], options)
+}
+
+function hermesChildEnvironment(parentEnv: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const childEnv: NodeJS.ProcessEnv = {}
+  for (const name of HERMES_CHILD_ENV_ALLOWLIST) {
+    const value = parentEnv[name]
+    if (typeof value === 'string' && value.length > 0) childEnv[name] = value
+  }
+  return childEnv
 }
 
 function resolveProcessLimits(overrides: Partial<HermesProcessLimits>): HermesProcessLimits {
@@ -277,8 +307,10 @@ function boundedReason(detail: string, existing: string, maxBytes: number): stri
 export function createProcessRunner(
   overrides: Partial<HermesProcessLimits> = {},
   spawnChild: SpawnChildProcess = spawnChildProcess,
+  parentEnv: NodeJS.ProcessEnv = process.env,
 ): ProcessRunner {
   const limits = resolveProcessLimits(overrides)
+  const childEnv = hermesChildEnvironment(parentEnv)
 
   return (command, args, cwd) =>
     new Promise<ProcessResult>((resolve) => {
@@ -363,7 +395,7 @@ export function createProcessRunner(
       }
 
       try {
-        child = spawnChild(command, args, { cwd, shell: false })
+        child = spawnChild(command, args, { cwd, shell: false, env: childEnv })
         child.stdout?.on('data', onStdoutData)
         child.stderr?.on('data', onStderrData)
         child.once('error', onError)
@@ -805,7 +837,10 @@ function validateCompletionReceipt(
   try {
     serialisedValue = JSON.stringify(value)
   } catch {
-    return { ok: false, code: 'receipt-shape' }
+    // Hermes metadata arrived through JSON.parse, so it cannot be cyclic.
+    // A stringify failure here is a runtime-dependent depth/size exhaustion;
+    // classify it with the same stable fail-closed result as a byte oversize.
+    return { ok: false, code: 'receipt-oversize' }
   }
   if (Buffer.byteLength(serialisedValue, 'utf8') > COMPLETION_RECEIPT_MAX_BYTES) {
     return { ok: false, code: 'receipt-oversize' }

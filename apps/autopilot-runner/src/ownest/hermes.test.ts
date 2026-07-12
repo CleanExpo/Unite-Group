@@ -2716,6 +2716,47 @@ describe('createHermesClient.stopMission', () => {
 })
 
 describe('Hermes process failures', () => {
+  it('spawns Hermes with a route-scoped environment that excludes CRM and provider credentials', async () => {
+    const { child, events } = fakeChildProcess()
+    const spawnChild = vi.fn(() => child)
+    const parentEnv: NodeJS.ProcessEnv = {
+      HOME: '/tmp/ownest-home',
+      PATH: '/usr/bin:/bin',
+      HERMES_HOME: '/tmp/ownest-hermes',
+      LANG: 'en_AU.UTF-8',
+      SUPABASE_SERVICE_ROLE_KEY: 'crm-secret',
+      ANTHROPIC_API_KEY: 'anthropic-secret',
+      OPENAI_API_KEY: 'openai-secret',
+      OPENROUTER_API_KEY: 'openrouter-secret',
+      STRIPE_SECRET_KEY: 'stripe-secret',
+    }
+    const run = createProcessRunner(
+      {
+        timeoutMs: 1_000,
+        stdoutMaxBytes: 1_024,
+        stderrMaxBytes: 1_024,
+        killGraceMs: 50,
+      },
+      spawnChild,
+      parentEnv,
+    )
+
+    const pending = run('hermes', [], process.cwd())
+    events.emit('close', 0, null)
+    await expect(pending).resolves.toMatchObject({ exitCode: 0 })
+
+    expect(spawnChild).toHaveBeenCalledWith('hermes', [], {
+      cwd: process.cwd(),
+      shell: false,
+      env: {
+        HOME: '/tmp/ownest-home',
+        PATH: '/usr/bin:/bin',
+        HERMES_HOME: '/tmp/ownest-hermes',
+        LANG: 'en_AU.UTF-8',
+      },
+    })
+  })
+
   it('exports finite production process bounds', () => {
     expect(HERMES_PROCESS_TIMEOUT_MS).toBe(60_000)
     expect(HERMES_PROCESS_STDOUT_MAX_BYTES).toBe(1024 * 1024)
