@@ -322,6 +322,8 @@ git commit -m "feat(ownest): add strict CRM mission adapter"
 
 ### Task 5: Implement reconcile-first bounded execution
 
+> **Hardening amendment:** implement this task against `../specs/2026-07-12-ownest-canary-hardening-amendment.md`. In particular, claim CRM before Hermes, require `expectedUpdatedAt`, nominate one task and rollout, validate the closing-run receipt, repair deterministic audit records, and propagate cancellation. The earlier create-before-CAS pseudocode below is retained as historical context and is not authoritative.
+
 **Files:**
 - Create: `apps/autopilot-runner/src/ownest/tick.ts`
 - Create: `apps/autopilot-runner/src/ownest/tick.test.ts`
@@ -516,7 +518,7 @@ The reviewer must check tenant isolation, service-role scope, shell injection, r
 
 Expected: no P0/P1 finding remains unresolved.
 
-- [ ] **Step 2: Run a shadow tick against fixture data**
+- [ ] **Step 2: Run a kill-switch smoke test and fixture-backed state-machine proof**
 
 Run the built entrypoint with `CC_OWNEST_LIVE=0` and real configuration present.
 

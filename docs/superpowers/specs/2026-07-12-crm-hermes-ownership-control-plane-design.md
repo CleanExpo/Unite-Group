@@ -2,7 +2,7 @@
 
 **Date:** 12 July 2026
 
-**Status:** Board-approved for a constrained canary
+**Status:** Board-approved for a constrained canary; superseded where stricter by `2026-07-12-ownest-canary-hardening-amendment.md`
 
 **Decision:** `APPROVE_BUILD` at 0.85 confidence
 
@@ -34,7 +34,7 @@ The design follows the system that exists rather than introducing a replacement 
 - Hermes Agent 0.18.2 is already the healthy, launchd-managed runtime and Telegram edge. OpenClaw is a predecessor/migration source exposed through `hermes claw`; it is not a second model or an installed runtime.
 - Hermes MoA is installed and configured, but no preset is active. The existing Empire preset uses uncapped, per-iteration advisor fan-out, which is unsuitable for unattended continuous work.
 - The current `operator_jobs` launchd poller runs from an orphaned worktree and repeatedly polls an empty queue. It has no lease or crash recovery and does not fail on every non-2xx write.
-- Hermes has 21 duplicate enabled `claim job` cron entries scheduled together and two bridge jobs that exceed the current 90-second script timeout.
+- Discovery found 21 duplicate enabled `claim job` cron entries and two bridge jobs carrying historical 90-second timeout errors. All 21 duplicate jobs are now paused, both bridge jobs have completed successfully under the 300-second bound, and the orphaned poller remains quarantined.
 - Hermes Kanban already supports idempotency keys, runtime limits, retry limits, goal-turn budgets, assignee routing, projects, worktrees, task JSON, and a dispatcher.
 
 The missing component is therefore not another agent framework. It is the ownership and reconciliation loop joining the CRM mission ledger to the existing Hermes executor.
@@ -179,7 +179,7 @@ No runtime change is applied without preserving file mode and a timestamped back
 
 ## 10. Cutover sequence
 
-1. **Hygiene:** pause 20 duplicate claim jobs; quarantine the orphaned legacy poller; diagnose the two timed-out bridge jobs; set explicit concurrency and assignee limits.
+1. **Hygiene:** pause all 21 orphaned duplicate claim jobs; quarantine the orphaned legacy poller; prove both formerly timed-out bridge jobs under the corrected bound; set explicit concurrency and assignee limits.
 2. **Safety baseline:** manual approvals, fail-closed Tirith, PII redaction, no lazy installs, hard loop stop, verify-on-stop, destructive slash confirmation.
 3. **Bridge in shadow:** build and test eligibility, redaction, fixed-argv Hermes calls, leases, idempotency, reconciliation, dead-lettering, and non-2xx failure handling.
 4. **Runtime activation:** enable the bounded Empire MoA preset while keeping the default interactive model unchanged.

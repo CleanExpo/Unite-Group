@@ -51,11 +51,11 @@ Expected: gateway healthy, MoA preset present but inactive, and the pre-change K
 
 - [ ] **Step 1: Identify the duplicate set by content, not by title alone**
 
-Use a read-only parser to group active cron entries by `(name, prompt, script, schedule)`. Confirm there are exactly 21 identical active `claim job` entries and select the oldest job ID as the survivor.
+Use a read-only parser to group active cron entries by `(name, prompt, script, schedule)`. Confirm there are exactly 21 identical orphaned `claim job` entries. No survivor is required because the OWNEST worker replaces this unowned claim loop.
 
 Expected: one survivor ID and 20 pause IDs; abort this task if the group shape changed.
 
-- [ ] **Step 2: Pause 20 duplicates and verify one survivor**
+- [x] **Step 2: Pause all 21 duplicates and verify zero active orphaned claim loops**
 
 For each pause ID:
 
@@ -205,7 +205,7 @@ CC_OWNEST_LIVE=0 node dist/ownest-tick.js
 bash scripts/install-ownest-service.sh
 ```
 
-Expected: tests/build pass, shadow tick drains, LaunchAgent is loaded, and no CRM/Hermes mission is created.
+Expected: tests/build pass, the kill-switch smoke test drains, LaunchAgent is loaded live-off, and no CRM/Hermes mission is created.
 
 ### Task 6: Execute one low-risk advisory canary
 
