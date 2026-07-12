@@ -40,6 +40,7 @@ const config: OwnestConfig = {
   founderId: 'founder-1',
   workerId: 'ownest-worker-1',
   hermesCwd: '/tmp/hermes-workspace',
+  hermesProfile: 'ownest',
   hermesBoard: 'unite-group-ownest',
   rolloutId: null,
   canaryTaskId: null,
@@ -362,6 +363,34 @@ describe('loadOwnestConfig', () => {
     if (defaulted.ok) expect(defaulted.config.hermesBoard).toBe('unite-group-ownest')
   })
 
+  it('selects a strict dedicated Hermes profile with ownest as the default', () => {
+    const explicit = loadOwnestConfig({
+      ...validEnv,
+      CC_OWNEST_HERMES_PROFILE: ' agent7 ',
+    })
+    const defaulted = loadOwnestConfig(validEnv)
+
+    expect(explicit.ok).toBe(true)
+    expect(defaulted.ok).toBe(true)
+    if (explicit.ok) expect(explicit.config.hermesProfile).toBe('agent7')
+    if (defaulted.ok) expect(defaulted.config.hermesProfile).toBe('ownest')
+  })
+
+  it.each(['Ownest', 'own-est', 'own_est', 'contains space', 'a'.repeat(65)])(
+    'rejects an unsafe Hermes profile without echoing it: %s',
+    (hermesProfile) => {
+      const result = loadOwnestConfig({
+        ...validEnv,
+        CC_OWNEST_HERMES_PROFILE: hermesProfile,
+      })
+
+      expect(result.ok).toBe(false)
+      if (result.ok) return
+      expect(result.error).toContain('CC_OWNEST_HERMES_PROFILE')
+      expect(result.error).not.toContain(hermesProfile)
+    },
+  )
+
   it.each([
     'Uppercase',
     '-leading-hyphen',
@@ -405,6 +434,24 @@ describe('loadOwnestConfig', () => {
       expect(configured.config.rolloutId).toBe('rollout-2026-07-12')
       expect(configured.config.canaryTaskId).toBe('task_123')
     }
+  })
+
+  it.each([
+    ['non-dedicated profile', { CC_OWNEST_HERMES_PROFILE: 'empire' }],
+    ['non-dedicated board', { CC_OWNEST_HERMES_BOARD: 'other-board' }],
+  ])('fails live configuration for a %s', (_label, override) => {
+    const result = loadOwnestConfig({
+      ...validEnv,
+      NEXT_PUBLIC_SUPABASE_URL: validEnv.SUPABASE_URL,
+      CC_OWNEST_LIVE: '1',
+      CC_OWNEST_ROLLOUT_ID: 'rollout-safe',
+      CC_OWNEST_CANARY_TASK_ID: 'task-safe',
+      ...override,
+    })
+
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.error).toMatch(/Hermes.*(?:profile|board)|CC_OWNEST_HERMES/i)
   })
 
   it.each([

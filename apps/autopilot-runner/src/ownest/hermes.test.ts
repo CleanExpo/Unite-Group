@@ -2,7 +2,12 @@ import { EventEmitter } from 'node:events'
 import { PassThrough } from 'node:stream'
 import type { ChildProcess } from 'node:child_process'
 import { describe, expect, it, vi } from 'vitest'
-import { MAX_MISSION_TEXT_LENGTH, redactMissionText } from './policy.js'
+import {
+  MAX_MISSION_TEXT_LENGTH,
+  buildMissionContract,
+  generateIntegrityNonce,
+  redactMissionText,
+} from './policy.js'
 import {
   HERMES_PROCESS_KILL_GRACE_MS,
   HERMES_PROCESS_STDERR_MAX_BYTES,
@@ -18,9 +23,12 @@ import type {
   CcTask,
   HermesTask,
   OwnestConfig,
+  OwnestMissionContractV1,
   ProcessResult,
   ProcessRunner,
 } from './types.js'
+
+const integrityNonce = generateIntegrityNonce()
 
 const config: OwnestConfig = {
   supabaseUrl: 'https://example.invalid',
@@ -28,6 +36,7 @@ const config: OwnestConfig = {
   founderId: 'founder-1',
   workerId: 'worker-1',
   hermesCwd: '/tmp/hermes-workspace',
+  hermesProfile: 'ownest',
   hermesBoard: 'unite-group-ownest',
   rolloutId: null,
   canaryTaskId: null,
@@ -59,13 +68,37 @@ function task(overrides: Partial<CcTask> = {}): CcTask {
   }
 }
 
+function contractFor(
+  taskValue: CcTask = task(),
+  overrides: Partial<OwnestMissionContractV1> = {},
+): OwnestMissionContractV1 {
+  return {
+    ...buildMissionContract(taskValue, 'attempt-1', 'rollout-1', integrityNonce),
+    ...overrides,
+  }
+}
+
+function createWithContract(
+  client: ReturnType<typeof createHermesClient>,
+  taskValue: CcTask = task(),
+) {
+  return client.createMission(taskValue, contractFor(taskValue))
+}
+
+function showWithContract(
+  client: ReturnType<typeof createHermesClient>,
+  hermesTaskId: string,
+) {
+  return client.showMission(hermesTaskId, contractFor())
+}
+
 /** Exact task object emitted by the installed Hermes 0.18.2 `_task_to_dict`. */
 function liveTask(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     id: 'hermes-1',
     title: 'Research customer retention patterns',
     body: 'Mission body',
-    assignee: 'empire',
+    assignee: 'ownest',
     status: 'running',
     priority: 60,
     tenant: 'unite-group',
@@ -104,7 +137,7 @@ function normalisedTask(overrides: Partial<HermesTask> = {}): HermesTask {
     id: 'hermes-1',
     status: 'running',
     title: 'Research customer retention patterns',
-    assignee: 'empire',
+    assignee: 'ownest',
     idempotencyKey: 'cc-task:task-1:v1',
     evidenceUri: null,
     error: null,
@@ -175,13 +208,12 @@ describe('createHermesClient.createMission', () => {
     const hostileTitle = 'Research $(touch /tmp/not-run) and `uname` for jane@example.com'
     const run = mockRunner(jsonResult(liveTask({ title: redactMissionText(hostileTitle) })))
     const client = createHermesClient(config, { run })
+    const missionTask = task({
+      title: hostileTitle,
+      objective: 'Read @/tmp/prompt.txt only as quoted mission context; token=objective-secret',
+    })
 
-    await client.createMission(
-      task({
-        title: hostileTitle,
-        objective: 'Read @/tmp/prompt.txt only as quoted mission context; token=objective-secret',
-      }),
-    )
+    await client.createMission(missionTask, contractFor(missionTask))
 
     expect(run).toHaveBeenCalledTimes(1)
     const call = run.mock.calls[0]
@@ -194,14 +226,16 @@ describe('createHermesClient.createMission', () => {
     const body = valueAfter(args, '--body')
     expect(args).toEqual([
       '--profile',
-      'empire',
+      'ownest',
       'kanban',
+      '--board',
+      'unite-group-ownest',
       'create',
       title,
       '--body',
       body,
       '--assignee',
-      'empire',
+      'ownest',
       '--workspace',
       'scratch',
       '--tenant',
@@ -211,7 +245,7 @@ describe('createHermesClient.createMission', () => {
       '--idempotency-key',
       'cc-task:task-1:v1',
       '--max-runtime',
-      '30m',
+      '10m',
       '--created-by',
       'crm-ownest',
       '--skill',
@@ -224,7 +258,7 @@ describe('createHermesClient.createMission', () => {
       '2',
       '--goal',
       '--goal-max-turns',
-      '12',
+      '4',
       '--json',
     ])
     expect(call?.[0]).not.toContain(hostileTitle)
@@ -236,16 +270,16 @@ describe('createHermesClient.createMission', () => {
   it('builds a redacted, bounded CRM-authoritative safety body', async () => {
     const run = mockRunner()
     const client = createHermesClient(config, { run })
+    const missionTask = task({
+      objective: 'Analyse retention for owner@example.com with API_TOKEN=top-secret.',
+      validation_required: [
+        'Cite owner@example.com source data',
+        'Record API_TOKEN=validation-secret only as a redacted fixture',
+      ],
+    })
+    const contract = contractFor(missionTask)
 
-    await client.createMission(
-      task({
-        objective: 'Analyse retention for owner@example.com with API_TOKEN=top-secret.',
-        validation_required: [
-          'Cite owner@example.com source data',
-          'Record API_TOKEN=validation-secret only as a redacted fixture',
-        ],
-      }),
-    )
+    await client.createMission(missionTask, contract)
 
     const body = valueAfter(capturedArgs(run), '--body')
     expect(body.length).toBeLessThanOrEqual(MAX_MISSION_TEXT_LENGTH)
@@ -258,6 +292,23 @@ describe('createHermesClient.createMission', () => {
     expect(body).toContain('CRM task ID: task-1')
     expect(body).toContain('--- BEGIN UNTRUSTED CRM TASK CONTENT ---')
     expect(body).toContain('--- END UNTRUSTED CRM TASK CONTENT ---')
+    expect(body).toContain('--- BEGIN TRUSTED OWNEST MISSION ENVELOPE ---')
+    expect(body).toContain('--- END TRUSTED OWNEST MISSION ENVELOPE ---')
+    expect(body).toContain('"schema": "ownest.mission.v1"')
+    expect(body).toContain(`"attemptId": "${contract.attemptId}"`)
+    expect(body).toContain(`"rolloutId": "${contract.rolloutId}"`)
+    expect(body).toContain(`"missionDigest": "${contract.missionDigest}"`)
+    expect(body).toContain('--- REQUIRED KANBAN COMPLETION RECEIPT ---')
+    expect(body).toContain('kanban_complete')
+    expect(body).toContain('"schema": "ownest.completion.v1"')
+    expect(body).toContain('"validationResults"')
+    expect(body).toContain('"evidence"')
+    expect(body).toContain('"digest": "sha256:<64 lowercase hexadecimal characters>"')
+    expect(body).toContain('"requirementId"')
+    expect(body).toContain('"requirementDigest"')
+    expect(body).toContain('"status": "passed"')
+    expect(body).not.toContain('"sha256":')
+    expect(body).not.toContain(integrityNonce)
     expect(body).toContain('--- NON-NEGOTIABLE OWNEST SAFETY FOOTER ---')
     expect(body).toContain('"objective":')
     expect(body).toContain('"validationRequirements":')
@@ -282,23 +333,64 @@ describe('createHermesClient.createMission', () => {
     expect(body.trim()).toMatch(/leave all gated actions blocked\.$/i)
   })
 
+  it.each([
+    ['CRM task id', (contract: OwnestMissionContractV1) => ({ ...contract, crmTaskId: 'other-task' })],
+    [
+      'idempotency key',
+      (contract: OwnestMissionContractV1) => ({ ...contract, idempotencyKey: 'cc-task:other:v1' }),
+    ],
+    ['rollout id', (contract: OwnestMissionContractV1) => ({ ...contract, rolloutId: 'bad rollout' })],
+    [
+      'mission digest',
+      (contract: OwnestMissionContractV1) => ({
+        ...contract,
+        missionDigest: `sha256:${'a'.repeat(64)}` as never,
+      }),
+    ],
+    [
+      'validation text',
+      (contract: OwnestMissionContractV1) => ({
+        ...contract,
+        validationRequirements: contract.validationRequirements.map((requirement, index) =>
+          index === 0 ? { ...requirement, text: 'Changed validation text' } : requirement,
+        ),
+      }),
+    ],
+    [
+      'validation digest',
+      (contract: OwnestMissionContractV1) => ({
+        ...contract,
+        validationRequirements: contract.validationRequirements.map((requirement, index) =>
+          index === 0 ? { ...requirement, digest: `sha256:${'b'.repeat(64)}` as never } : requirement,
+        ),
+      }),
+    ],
+  ])('rejects a mismatched mission contract: %s', async (_label, mutate) => {
+    const missionTask = task()
+    const run = mockRunner()
+    const client = createHermesClient(config, { run })
+    const contract = mutate(contractFor(missionTask)) as OwnestMissionContractV1
+
+    await expect(client.createMission(missionTask, contract)).rejects.toThrow(/mission contract/i)
+    expect(run).not.toHaveBeenCalled()
+  })
+
   it('redacts and caps both title and composed body', async () => {
     const run = mockRunner()
     const client = createHermesClient(config, { run })
     const longSuffix = 'x'.repeat(2 * 1024)
 
-    await client.createMission(
-      task({
-        title: `Research long input for title@example.com ${longSuffix}`,
-        objective: `Analyse token=objective-secret ${longSuffix}`,
-        validation_required: [
-          `Record API_TOKEN=validation-secret as a redacted fixture ${longSuffix}`,
-        ],
-      }),
-    )
+    const missionTask = task({
+      title: `Research long input for title@example.com ${longSuffix}`,
+      objective: `Analyse token=objective-secret ${longSuffix}`,
+      validation_required: [
+        `Record API_TOKEN=validation-secret as a redacted fixture ${longSuffix}`,
+      ],
+    })
+    await createWithContract(client, missionTask)
 
     const args = capturedArgs(run)
-    const title = args[4]
+    const title = args[6]
     const body = valueAfter(args, '--body')
     expect(title?.length).toBeLessThanOrEqual(MAX_MISSION_TEXT_LENGTH)
     expect(body.length).toBeLessThanOrEqual(MAX_MISSION_TEXT_LENGTH)
@@ -311,14 +403,13 @@ describe('createHermesClient.createMission', () => {
     const run = mockRunner()
     const client = createHermesClient(config, { run })
 
-    await client.createMission(
-      task({
-        metadata: {
-          skills: ['arbitrary-skill', 'shell-control'],
-          skill: 'metadata-injected-skill',
-        },
-      }),
-    )
+    const missionTask = task({
+      metadata: {
+        skills: ['arbitrary-skill', 'shell-control'],
+        skill: 'metadata-injected-skill',
+      },
+    })
+    await createWithContract(client, missionTask)
 
     const args = capturedArgs(run)
     const skills = args.flatMap((value, index) => (value === '--skill' ? [args[index + 1]] : []))
@@ -337,7 +428,7 @@ describe('createHermesClient.createMission', () => {
     const run = mockRunner()
     const client = createHermesClient(config, { run })
 
-    await client.createMission(task({ priority }))
+    await createWithContract(client, task({ priority }))
 
     expect(valueAfter(capturedArgs(run), '--priority')).toBe(expected)
     expect(mapHermesPriority(priority)).toBe(expected)
@@ -348,11 +439,11 @@ describe('createHermesClient.createMission', () => {
     const run = mockRunner(jsonResult(liveTask()))
     const client = createHermesClient(config, { run })
 
-    await expect(client.createMission(task())).resolves.toEqual({
+    await expect(createWithContract(client)).resolves.toEqual({
       id: 'hermes-1',
       status: 'running',
       title: 'Research customer retention patterns',
-      assignee: 'empire',
+      assignee: 'ownest',
       idempotencyKey: null,
       evidenceUri: null,
       error: null,
@@ -364,7 +455,7 @@ describe('createHermesClient.createMission', () => {
     const run = mockRunner(jsonResult({ task: existing, created: false }))
     const client = createHermesClient(config, { run })
 
-    await expect(client.createMission(task())).resolves.toEqual(existing)
+    await expect(createWithContract(client)).resolves.toEqual(existing)
   })
 
   it('accepts the documented newly-created response', async () => {
@@ -372,14 +463,16 @@ describe('createHermesClient.createMission', () => {
     const run = mockRunner(jsonResult({ task: created, created: true }))
     const client = createHermesClient(config, { run })
 
-    await expect(client.createMission(task())).resolves.toEqual(created)
+    await expect(createWithContract(client)).resolves.toEqual(created)
   })
 
   it('rejects an empty CRM task ID without invoking Hermes', async () => {
     const run = mockRunner()
     const client = createHermesClient(config, { run })
 
-    await expect(client.createMission(task({ id: '   ' }))).rejects.toThrow(/CRM task ID/i)
+    await expect(
+      client.createMission(task({ id: '   ' }), contractFor()),
+    ).rejects.toThrow(/CRM task ID/i)
     expect(run).not.toHaveBeenCalled()
   })
 
@@ -396,21 +489,21 @@ describe('createHermesClient.createMission', () => {
     const run = mockRunner({ exitCode: 0, stdout, stderr: '' })
     const client = createHermesClient(config, { run })
 
-    await expect(client.createMission(task())).rejects.toThrow(/Hermes create/i)
+    await expect(createWithContract(client)).rejects.toThrow(/Hermes create/i)
   })
 
   it('rejects an empty returned task ID', async () => {
     const run = mockRunner(jsonResult(liveTask({ id: '   ' })))
     const client = createHermesClient(config, { run })
 
-    await expect(client.createMission(task())).rejects.toThrow(/Hermes create/i)
+    await expect(createWithContract(client)).rejects.toThrow(/Hermes create/i)
   })
 
   it('rejects an unknown returned status', async () => {
     const run = mockRunner(jsonResult(liveTask({ status: 'complete-ish' })))
     const client = createHermesClient(config, { run })
 
-    await expect(client.createMission(task())).rejects.toThrow(/Hermes create/i)
+    await expect(createWithContract(client)).rejects.toThrow(/Hermes create/i)
   })
 
   it('rejects a documented response carrying the wrong idempotency key', async () => {
@@ -421,7 +514,7 @@ describe('createHermesClient.createMission', () => {
     const run = mockRunner(jsonResult(response))
     const client = createHermesClient(config, { run })
 
-    await expect(client.createMission(task())).rejects.toThrow(/Hermes create/i)
+    await expect(createWithContract(client)).rejects.toThrow(/Hermes create/i)
   })
 
   it.each([
@@ -435,7 +528,7 @@ describe('createHermesClient.createMission', () => {
     const client = createHermesClient(config, { run })
 
     await expect(
-      client.createMission(task({ validation_required: [requirement] })),
+      client.createMission(task({ validation_required: [requirement] }), contractFor()),
     ).rejects.toThrow(/dangerous-language|mission policy/i)
     expect(run).not.toHaveBeenCalled()
   })
@@ -450,7 +543,7 @@ describe('createHermesClient.createMission', () => {
     const client = createHermesClient(config, { run })
 
     await expect(
-      client.createMission(task({ validation_required: requirements })),
+      client.createMission(task({ validation_required: requirements }), contractFor()),
     ).rejects.toThrow(/validation requirement/i)
     expect(run).not.toHaveBeenCalled()
   })
@@ -462,6 +555,7 @@ describe('createHermesClient.createMission', () => {
     await expect(
       client.createMission(
         task({ objective: 'x'.repeat(MAX_MISSION_TEXT_LENGTH + 1), validation_required: [] }),
+        contractFor(),
       ),
     ).rejects.toThrow(/mission-text-too-long|mission policy/i)
     expect(run).not.toHaveBeenCalled()
@@ -473,11 +567,20 @@ describe('createHermesClient.showMission', () => {
     const run = mockRunner(jsonResult(liveShow()))
     const client = createHermesClient(config, { run })
 
-    await client.showMission('hermes-1')
+    await showWithContract(client, 'hermes-1')
 
     expect(run).toHaveBeenCalledWith(
       'hermes',
-      ['--profile', 'empire', 'kanban', 'show', 'hermes-1', '--json'],
+      [
+        '--profile',
+        'ownest',
+        'kanban',
+        '--board',
+        'unite-group-ownest',
+        'show',
+        'hermes-1',
+        '--json',
+      ],
       config.hermesCwd,
     )
   })
@@ -497,7 +600,7 @@ describe('createHermesClient.showMission', () => {
     )
     const client = createHermesClient(config, { run })
 
-    await expect(client.showMission('hermes-2')).resolves.toEqual({
+    await expect(showWithContract(client, 'hermes-2')).resolves.toEqual({
       id: 'hermes-2',
       status: 'review',
       title: 'Existing task',
@@ -513,14 +616,14 @@ describe('createHermesClient.showMission', () => {
     const run = mockRunner(jsonResult({ task: shown }))
     const client = createHermesClient(config, { run })
 
-    await expect(client.showMission('hermes-3')).resolves.toEqual(shown)
+    await expect(showWithContract(client, 'hermes-3')).resolves.toEqual(shown)
   })
 
   it('rejects an empty requested task ID without invoking Hermes', async () => {
     const run = mockRunner(jsonResult(liveShow()))
     const client = createHermesClient(config, { run })
 
-    await expect(client.showMission(' \n ')).rejects.toThrow(/Hermes task ID/i)
+    await expect(showWithContract(client, ' \n ')).rejects.toThrow(/Hermes task ID/i)
     expect(run).not.toHaveBeenCalled()
   })
 
@@ -535,28 +638,28 @@ describe('createHermesClient.showMission', () => {
     const run = mockRunner({ exitCode: 0, stdout, stderr: '' })
     const client = createHermesClient(config, { run })
 
-    await expect(client.showMission('hermes-1')).rejects.toThrow(/Hermes show/i)
+    await expect(showWithContract(client, 'hermes-1')).rejects.toThrow(/Hermes show/i)
   })
 
   it('rejects an empty returned task ID', async () => {
     const run = mockRunner(jsonResult(liveShow(liveTask({ id: '' }))))
     const client = createHermesClient(config, { run })
 
-    await expect(client.showMission('hermes-1')).rejects.toThrow(/Hermes show/i)
+    await expect(showWithContract(client, 'hermes-1')).rejects.toThrow(/Hermes show/i)
   })
 
   it('rejects an unknown returned status', async () => {
     const run = mockRunner(jsonResult(liveShow(liveTask({ status: 'unknown' }))))
     const client = createHermesClient(config, { run })
 
-    await expect(client.showMission('hermes-1')).rejects.toThrow(/Hermes show/i)
+    await expect(showWithContract(client, 'hermes-1')).rejects.toThrow(/Hermes show/i)
   })
 
   it('rejects a response whose task ID differs from the requested ID', async () => {
     const run = mockRunner(jsonResult(liveShow(liveTask({ id: 'different-task' }))))
     const client = createHermesClient(config, { run })
 
-    await expect(client.showMission('hermes-1')).rejects.toThrow(/Hermes show/i)
+    await expect(showWithContract(client, 'hermes-1')).rejects.toThrow(/Hermes show/i)
   })
 })
 
@@ -802,8 +905,8 @@ describe('Hermes process failures', () => {
   })
 
   it.each([
-    ['create', (client: ReturnType<typeof createHermesClient>) => client.createMission(task())],
-    ['show', (client: ReturnType<typeof createHermesClient>) => client.showMission('hermes-1')],
+    ['create', (client: ReturnType<typeof createHermesClient>) => createWithContract(client)],
+    ['show', (client: ReturnType<typeof createHermesClient>) => showWithContract(client, 'hermes-1')],
   ] as const)('fails closed when Hermes %s exits non-zero', async (_operation, invoke) => {
     const run = mockRunner({
       exitCode: 2,
@@ -828,7 +931,7 @@ describe('Hermes process failures', () => {
       .mockRejectedValue(new Error(`token=spawn-secret owner@example.com ${'x'.repeat(1_500)}`))
     const client = createHermesClient(config, { run })
 
-    const error = await client.createMission(task()).catch((value: unknown) => value)
+    const error = await createWithContract(client).catch((value: unknown) => value)
     expect(error).toBeInstanceOf(Error)
     const message = (error as Error).message
     expect(message).not.toContain('spawn-secret')

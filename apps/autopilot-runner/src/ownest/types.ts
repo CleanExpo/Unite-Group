@@ -136,6 +136,7 @@ export interface OwnestConfig {
   founderId: string
   workerId: string
   hermesCwd: string
+  hermesProfile: string
   hermesBoard: string
   rolloutId: string | null
   canaryTaskId: string | null
@@ -229,8 +230,11 @@ export interface OwnestCrmClient {
 
 /** Idempotent Hermes operations consumed by the pure tick state machine. */
 export interface OwnestHermesClient {
-  createMission: (task: CcTask) => Promise<HermesTask>
-  showMission: (taskId: string) => Promise<HermesTask>
+  createMission: (task: CcTask, contract: OwnestMissionContractV1) => Promise<HermesTask>
+  showMission: (
+    taskId: string,
+    expectedContract: OwnestMissionContractV1,
+  ) => Promise<HermesTask>
 }
 
 export interface OwnestTickDeps {

@@ -11,8 +11,10 @@ import type {
   HermesDeps,
   HermesTask,
   HermesTaskStatus,
+  HmacSha256Digest,
   OwnestConfig,
   OwnestHermesClient,
+  OwnestMissionContractV1,
   ProcessResult,
   ProcessRunner,
 } from './types.js'
@@ -28,6 +30,18 @@ export const MAX_VALIDATION_TEXT_LENGTH = 4 * 1024
 const UNTRUSTED_TITLE_PREFIX = '[UNTRUSTED CRM TASK] '
 
 const FORCED_SKILLS = ['nexus', 'forward-planner', 'verify-test'] as const
+const MISSION_CONTRACT_KEYS = [
+  'attemptId',
+  'crmTaskId',
+  'idempotencyKey',
+  'missionDigest',
+  'rolloutId',
+  'schema',
+  'validationRequirements',
+] as const
+const VALIDATION_CONTRACT_KEYS = ['digest', 'id', 'text'] as const
+const SAFE_CONTRACT_TOKEN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/
+const HMAC_SHA256_DIGEST = /^hmac-sha256:[0-9a-f]{64}$/
 
 const PRIORITY_BY_CRM: Readonly<Record<CcTask['priority'], string>> = {
   P0: '100',
@@ -334,6 +348,10 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(isNonEmptyString)
 }
 
+function isHmacSha256Digest(value: unknown): value is HmacSha256Digest {
+  return typeof value === 'string' && HMAC_SHA256_DIGEST.test(value)
+}
+
 function normaliseTypedTask(value: unknown): HermesTask | null {
   if (!isRecord(value) || !hasExactKeys(value, NORMALISED_TASK_KEYS)) return null
   if (!isNonEmptyString(value.id)) return null
@@ -549,6 +567,7 @@ interface PreparedMissionContent {
   title: string
   objective: string
   validationRequirements: string[]
+  contract: OwnestMissionContractV1
 }
 
 function validatedRequirements(value: unknown): string[] {
@@ -560,19 +579,87 @@ function validatedRequirements(value: unknown): string[] {
     if (typeof item !== 'string' || !item.trim()) {
       throw new Error('Every validation requirement must be a non-empty string')
     }
-    const requirement = item.trim()
-    aggregateLength += requirement.length + (requirements.length ? 1 : 0)
+    aggregateLength += item.length + (requirements.length ? 1 : 0)
     if (aggregateLength > MAX_VALIDATION_TEXT_LENGTH) {
       throw new Error(
         `Validation requirements exceed ${MAX_VALIDATION_TEXT_LENGTH} characters`,
       )
     }
-    requirements.push(requirement)
+    requirements.push(item)
   }
   return requirements
 }
 
-function prepareMissionContent(task: CcTask): PreparedMissionContent {
+function validateMissionContract(
+  taskId: string,
+  rawRequirements: readonly string[],
+  value: unknown,
+): OwnestMissionContractV1 {
+  if (!isRecord(value) || !hasExactKeys(value, MISSION_CONTRACT_KEYS)) {
+    throw new Error('Mission contract has an invalid shape')
+  }
+  if (value.schema !== 'ownest.mission.v1') {
+    throw new Error('Mission contract has an invalid schema')
+  }
+  if (value.crmTaskId !== taskId) {
+    throw new Error('Mission contract CRM task id does not match the task')
+  }
+  if (value.idempotencyKey !== idempotencyKey(taskId)) {
+    throw new Error('Mission contract idempotency key does not match the task')
+  }
+  if (typeof value.attemptId !== 'string' || !SAFE_CONTRACT_TOKEN.test(value.attemptId)) {
+    throw new Error('Mission contract has an invalid attempt id')
+  }
+  if (typeof value.rolloutId !== 'string' || !SAFE_CONTRACT_TOKEN.test(value.rolloutId)) {
+    throw new Error('Mission contract has an invalid rollout id')
+  }
+  if (!isHmacSha256Digest(value.missionDigest)) {
+    throw new Error('Mission contract has an invalid mission digest')
+  }
+  if (
+    !Array.isArray(value.validationRequirements) ||
+    value.validationRequirements.length !== rawRequirements.length ||
+    value.validationRequirements.length === 0
+  ) {
+    throw new Error('Mission contract validation requirements do not match the task')
+  }
+
+  const validationRequirements = value.validationRequirements.map((requirement, index) => {
+    if (!isRecord(requirement) || !hasExactKeys(requirement, VALIDATION_CONTRACT_KEYS)) {
+      throw new Error('Mission contract validation requirement has an invalid shape')
+    }
+    const expectedId = `vr-${String(index + 1).padStart(3, '0')}`
+    if (requirement.id !== expectedId) {
+      throw new Error('Mission contract validation requirement id is invalid')
+    }
+    if (requirement.text !== redactMissionText(rawRequirements[index] ?? '')) {
+      throw new Error('Mission contract validation text does not match the task')
+    }
+    if (!isHmacSha256Digest(requirement.digest)) {
+      throw new Error('Mission contract validation digest is invalid')
+    }
+    return {
+      id: expectedId,
+      text: requirement.text,
+      digest: requirement.digest,
+    }
+  })
+
+  return {
+    schema: 'ownest.mission.v1',
+    crmTaskId: taskId,
+    attemptId: value.attemptId,
+    idempotencyKey: idempotencyKey(taskId),
+    rolloutId: value.rolloutId,
+    missionDigest: value.missionDigest,
+    validationRequirements,
+  }
+}
+
+function prepareMissionContent(
+  task: CcTask,
+  contractValue: OwnestMissionContractV1,
+): PreparedMissionContent {
   const taskId = assertTaskId(task.id, 'CRM task ID')
   const requirements = validatedRequirements(task.validation_required)
   const decision = evaluateEligibility({
@@ -590,6 +677,7 @@ function prepareMissionContent(task: CcTask): PreparedMissionContent {
     0,
     MAX_MISSION_TEXT_LENGTH - UNTRUSTED_TITLE_PREFIX.length,
   )}`
+  const contract = validateMissionContract(taskId, requirements, contractValue)
 
   return {
     taskId,
@@ -597,6 +685,7 @@ function prepareMissionContent(task: CcTask): PreparedMissionContent {
     title,
     objective: redactMissionText(task.objective),
     validationRequirements: requirements.map((requirement) => redactMissionText(requirement)),
+    contract,
   }
 }
 
@@ -610,12 +699,53 @@ function buildPreparedMissionBody(content: PreparedMissionContent): string {
     null,
     2,
   )
+  const trustedEnvelope = JSON.stringify(content.contract, null, 2)
+  const completionReceipt = JSON.stringify(
+    {
+      ownest: {
+        schema: 'ownest.completion.v1',
+        crmTaskId: content.contract.crmTaskId,
+        hermesTaskId: '<current Hermes task id>',
+        attemptId: content.contract.attemptId,
+        rolloutId: content.contract.rolloutId,
+        missionDigest: content.contract.missionDigest,
+        verdict: 'passed',
+        evidence: [
+          {
+            id: 'ev-001',
+            kind: 'research',
+            uri: '<durable https/wiki/git/github URI>',
+            digest: 'sha256:<64 lowercase hexadecimal characters>',
+          },
+        ],
+        validationResults: content.contract.validationRequirements.map((requirement) => ({
+          requirementId: requirement.id,
+          requirementDigest: requirement.digest,
+          status: 'passed',
+          evidenceIds: ['ev-001'],
+        })),
+      },
+    },
+    null,
+    2,
+  )
 
   const body = [
     `CRM task ID: ${content.taskId}`,
     '--- BEGIN UNTRUSTED CRM TASK CONTENT ---',
     untrustedPayload,
     '--- END UNTRUSTED CRM TASK CONTENT ---',
+    '',
+    '--- BEGIN TRUSTED OWNEST MISSION ENVELOPE ---',
+    trustedEnvelope,
+    '--- END TRUSTED OWNEST MISSION ENVELOPE ---',
+    '',
+    '--- REQUIRED KANBAN COMPLETION RECEIPT ---',
+    'On successful completion, call kanban_complete exactly once with a non-empty summary and metadata matching this exact-key receipt shape:',
+    completionReceipt,
+    'Use 1-32 sequential ev-NNN evidence items with durable credential-free URIs and lowercase SHA-256 digests.',
+    'Return every validation result in trusted contract order with exact requirementId and requirementDigest, status="passed", and 1-8 existing evidence IDs.',
+    'Do not add receipt keys, expose credentials, or use file, scratch, or plain-text evidence paths.',
     '',
     '--- NON-NEGOTIABLE OWNEST SAFETY FOOTER ---',
     'CRM cc_tasks is the authoritative mission ledger. Hermes Kanban is a disposable execution mirror.',
@@ -638,43 +768,60 @@ function buildPreparedMissionBody(content: PreparedMissionContent): string {
   return body
 }
 
-export function buildMissionBody(task: CcTask): string {
-  return buildPreparedMissionBody(prepareMissionContent(task))
+export function buildMissionBody(
+  task: CcTask,
+  contract: OwnestMissionContractV1,
+): string {
+  return buildPreparedMissionBody(prepareMissionContent(task, contract))
 }
 
-function buildCreateArgs(task: CcTask): readonly string[] {
-  const content = prepareMissionContent(task)
+interface PreparedCreateRequest {
+  args: readonly string[]
+  expectedKey: string
+}
 
-  return [
-    '--profile',
-    'empire',
-    'kanban',
-    'create',
-    content.argvTitle,
-    '--body',
-    buildPreparedMissionBody(content),
-    '--assignee',
-    'empire',
-    '--workspace',
-    'scratch',
-    '--tenant',
-    'unite-group',
-    '--priority',
-    mapHermesPriority(task.priority),
-    '--idempotency-key',
-    idempotencyKey(content.taskId),
-    '--max-runtime',
-    '30m',
-    '--created-by',
-    'crm-ownest',
-    ...FORCED_SKILLS.flatMap((skill) => ['--skill', skill]),
-    '--max-retries',
-    '2',
-    '--goal',
-    '--goal-max-turns',
-    '12',
-    '--json',
-  ]
+function buildCreateRequest(
+  task: CcTask,
+  contract: OwnestMissionContractV1,
+  config: OwnestConfig,
+): PreparedCreateRequest {
+  const content = prepareMissionContent(task, contract)
+
+  return {
+    args: [
+      '--profile',
+      config.hermesProfile,
+      'kanban',
+      '--board',
+      config.hermesBoard,
+      'create',
+      content.argvTitle,
+      '--body',
+      buildPreparedMissionBody(content),
+      '--assignee',
+      config.hermesProfile,
+      '--workspace',
+      'scratch',
+      '--tenant',
+      'unite-group',
+      '--priority',
+      mapHermesPriority(task.priority),
+      '--idempotency-key',
+      content.contract.idempotencyKey,
+      '--max-runtime',
+      '10m',
+      '--created-by',
+      'crm-ownest',
+      ...FORCED_SKILLS.flatMap((skill) => ['--skill', skill]),
+      '--max-retries',
+      '2',
+      '--goal',
+      '--goal-max-turns',
+      '4',
+      '--json',
+    ],
+    expectedKey: content.contract.idempotencyKey,
+  }
 }
 
 export function createHermesClient(
@@ -682,20 +829,30 @@ export function createHermesClient(
   deps: HermesDeps = { run: defaultProcessRunner },
 ): OwnestHermesClient {
   return {
-    async createMission(task) {
-      const args = buildCreateArgs(task)
-      const expectedKey = idempotencyKey(task.id)
+    async createMission(task, contract) {
+      const { args, expectedKey } = buildCreateRequest(task, contract, config)
       const result = await invokeHermes('create', args, config.hermesCwd, deps.run)
       const parsed = parseCreateResponse(parseJson('create', result), expectedKey)
-      if (!parsed) {
+      if (!parsed || parsed.assignee !== config.hermesProfile) {
         throw hermesError('create', 'returned an unrecognised JSON shape', resultDetail(result))
       }
       return parsed
     },
 
-    async showMission(taskId) {
+    async showMission(taskId, expectedContract) {
+      // TODO(ownest-receipt): bind show normalization to the expected contract.
+      void expectedContract
       const safeTaskId = assertTaskId(taskId, 'Hermes task ID')
-      const args = ['--profile', 'empire', 'kanban', 'show', safeTaskId, '--json']
+      const args = [
+        '--profile',
+        config.hermesProfile,
+        'kanban',
+        '--board',
+        config.hermesBoard,
+        'show',
+        safeTaskId,
+        '--json',
+      ]
       const result = await invokeHermes('show', args, config.hermesCwd, deps.run)
       const parsed = parseShowResponse(parseJson('show', result))
       if (!parsed || parsed.id !== safeTaskId) {

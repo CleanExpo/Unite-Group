@@ -90,6 +90,7 @@ const EVIDENCE_CONFIDENCE_LEVELS = new Set(['high', 'medium', 'low'])
 const ISO_TIMESTAMP =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(Z|[+-](\d{2}):(\d{2}))$/
 const HERMES_BOARD = /^[a-z0-9][a-z0-9_-]{0,63}$/
+const HERMES_PROFILE = /^[a-z0-9]{1,64}$/
 const ROLLOUT_OR_TASK_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/
 
 function optionalTrimmedString(value: unknown): string | null {
@@ -148,6 +149,7 @@ export function loadOwnestConfig(env: NodeJS.ProcessEnv = process.env): LoadOwne
   const founderId = optionalTrimmedString(env.FOUNDER_USER_ID)
   const workerId =
     optionalTrimmedString(env.CC_OWNEST_WORKER_ID) ?? optionalTrimmedString(env.HERMES_AGENT_ID)
+  const hermesProfile = optionalTrimmedString(env.CC_OWNEST_HERMES_PROFILE) ?? 'ownest'
   const hermesBoard =
     optionalTrimmedString(env.CC_OWNEST_HERMES_BOARD) ??
     optionalTrimmedString(env.HERMES_KANBAN_BOARD) ??
@@ -180,6 +182,9 @@ export function loadOwnestConfig(env: NodeJS.ProcessEnv = process.env): LoadOwne
   if (!serviceRoleKey) problems.push('SUPABASE_SERVICE_ROLE_KEY is required')
   if (!founderId) problems.push('FOUNDER_USER_ID is required')
   if (!workerId) problems.push('CC_OWNEST_WORKER_ID or HERMES_AGENT_ID is required')
+  if (!HERMES_PROFILE.test(hermesProfile)) {
+    problems.push('CC_OWNEST_HERMES_PROFILE is invalid')
+  }
   if (!HERMES_BOARD.test(hermesBoard)) {
     problems.push('CC_OWNEST_HERMES_BOARD or HERMES_KANBAN_BOARD is invalid')
   }
@@ -191,6 +196,12 @@ export function loadOwnestConfig(env: NodeJS.ProcessEnv = process.env): LoadOwne
   }
   if (live && !rolloutId) problems.push('CC_OWNEST_ROLLOUT_ID is required when live')
   if (live && !canaryTaskId) problems.push('CC_OWNEST_CANARY_TASK_ID is required when live')
+  if (live && hermesProfile !== 'ownest') {
+    problems.push('CC_OWNEST_HERMES_PROFILE must be ownest when live')
+  }
+  if (live && hermesBoard !== 'unite-group-ownest') {
+    problems.push('CC_OWNEST_HERMES_BOARD must be unite-group-ownest when live')
+  }
 
   if (problems.length > 0 || !supabaseUrl || !serviceRoleKey || !founderId || !workerId) {
     return { ok: false, error: `Invalid OWNEST configuration: ${problems.join('; ')}` }
@@ -204,6 +215,7 @@ export function loadOwnestConfig(env: NodeJS.ProcessEnv = process.env): LoadOwne
       founderId,
       workerId,
       hermesCwd: optionalTrimmedString(env.HERMES_CWD) ?? process.cwd(),
+      hermesProfile,
       hermesBoard,
       rolloutId,
       canaryTaskId,
