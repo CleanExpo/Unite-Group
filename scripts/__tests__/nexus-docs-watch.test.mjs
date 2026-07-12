@@ -271,6 +271,66 @@ test('fetch accepts only same-host or explicitly allowlisted redirects', async (
   assert.equal(languageHeader, 'en-AU,en;q=0.9')
 })
 
+test('conditional validators are never forwarded to a different redirect resource', async () => {
+  const redirected = source({
+    allowedHosts: ['docs.example.com', 'reference.example.com'],
+  })
+  const input = registry([redirected])
+  const baseline = watcherModule.buildFingerprintBaseline(
+    buildReport(
+      [successfulResult(redirected)],
+      null,
+      '2026-07-12T00:00:00.000Z',
+      false,
+    ),
+    input,
+  )
+  const requests = []
+
+  await assert.rejects(fetchOfficialSource(redirected, input.defaults, {
+    baseline: baseline.sources[0],
+    resolveHost: publicResolver,
+    fetchImpl: async (url, options) => {
+      requests.push({ url: String(url), headers: options.headers })
+      if (requests.length === 1) {
+        return new Response(null, {
+          status: 302,
+          headers: { location: 'https://reference.example.com/releases' },
+        })
+      }
+      return new Response(null, { status: 304 })
+    },
+  }), /304|baseline|resource|validator/i)
+
+  assert.equal(requests[0].headers['if-none-match'], '"v1"')
+  assert.equal(requests[1].headers['if-none-match'], undefined)
+  assert.equal(requests[1].headers['if-modified-since'], undefined)
+})
+
+test('an unsolicited 304 without a baseline validator is rejected', async () => {
+  const input = registry([source()])
+  const baseline = watcherModule.buildFingerprintBaseline(
+    buildReport(
+      [successfulResult()],
+      null,
+      '2026-07-12T00:00:00.000Z',
+      false,
+    ),
+    input,
+  )
+  baseline.sources[0].responseHeaders = { etag: null, lastModified: null }
+
+  await assert.rejects(fetchOfficialSource(source(), input.defaults, {
+    baseline: baseline.sources[0],
+    resolveHost: publicResolver,
+    fetchImpl: async (_url, options) => {
+      assert.equal(options.headers['if-none-match'], undefined)
+      assert.equal(options.headers['if-modified-since'], undefined)
+      return new Response(null, { status: 304 })
+    },
+  }), /304|validator|baseline/i)
+})
+
 test('fetch rejects declared and streamed responses above the byte cap', async () => {
   const defaults = { ...registry([source()]).defaults, maxBytes: 16 }
 
@@ -442,6 +502,15 @@ test('report comparison is deterministic for first-seen, unchanged and changed c
 
   assert.equal(renderJson(changed), renderJson(changed))
   assert.match(renderMarkdown(changed), /1 changed/)
+
+  const provenanceChanged = buildReport([{
+    ...current[0],
+    finalUrl: `${current[0].finalUrl}?canonical-drift=1`,
+  }], baseline, '2026-07-12T00:00:00.000Z', true)
+  assert.equal(provenanceChanged.sources[0].change, 'changed')
+  assert.deepEqual(provenanceChanged.sources[0].changeReasons, ['final_url'])
+  assert.deepEqual(provenanceChanged.gates.materialChanges, ['example.changelog'])
+  assert.equal(provenanceChanged.gates.exitCode, 3)
 })
 
 test('fingerprint baselines are strict, registry-bound, complete and body-free', async () => {
@@ -520,7 +589,7 @@ test('fingerprint baselines are strict, registry-bound, complete and body-free',
   assert.equal(requestCalled, false)
 })
 
-test('only configured critical failures are nonzero without a material gate', () => {
+test('every source failure is non-green while criticality controls escalation', () => {
   const failed = (critical) => ({
     id: critical ? 'critical.source' : 'normal.source',
     vendor: 'Example',
@@ -532,14 +601,24 @@ test('only configured critical failures are nonzero without a material gate', ()
     error: 'Unexpected HTTP status 503',
   })
 
-  assert.equal(
-    buildReport([failed(false)], null, '2026-07-12T00:00:00.000Z', false).gates.exitCode,
-    0,
+  const normalFailure = buildReport(
+    [failed(false)],
+    null,
+    '2026-07-12T00:00:00.000Z',
+    false,
   )
-  assert.equal(
-    buildReport([failed(true)], null, '2026-07-12T00:00:00.000Z', false).gates.exitCode,
-    2,
+  assert.deepEqual(normalFailure.gates.monitorFailures, ['normal.source'])
+  assert.equal(normalFailure.gates.exitCode, 1)
+
+  const criticalFailure = buildReport(
+    [failed(true)],
+    null,
+    '2026-07-12T00:00:00.000Z',
+    false,
   )
+  assert.deepEqual(criticalFailure.gates.monitorFailures, ['critical.source'])
+  assert.deepEqual(criticalFailure.gates.criticalFailures, ['critical.source'])
+  assert.equal(criticalFailure.gates.exitCode, 2)
 })
 
 test('a 304 response reuses an explicit baseline and sends conditional headers', async () => {
@@ -621,6 +700,7 @@ test('root scripts and the weekly workflow stay read-only and artifact-only', as
     'utf8',
   )
   assert.match(workflow, /contents:\s*read/)
+  assert.match(workflow, /cron:\s*'17 16 \* \* 6'/)
   assert.match(workflow, /persist-credentials:\s*false/)
   assert.match(workflow, /upload-artifact/)
   assert.match(workflow, /--baseline config\/nexus-official-sources\.baseline\.json/)
@@ -650,4 +730,21 @@ test('root scripts and the weekly workflow stay read-only and artifact-only', as
   watcherModule.validateBaseline(committedBaseline, committedRegistry)
   assert.equal(committedBaseline.sources.length, committedRegistry.sources.length)
   assert.doesNotMatch(JSON.stringify(committedBaseline), /"(?:body|content)"\s*:/i)
+})
+
+test('pull-request CI enforces watcher tests on Node 22 and 24', async () => {
+  const rootCi = await readFile(
+    new URL('../../.github/workflows/ci.yml', import.meta.url),
+    'utf8',
+  )
+  const start = rootCi.indexOf('\n  docs-watch:')
+  assert.notEqual(start, -1, 'root CI is missing the docs-watch job')
+  const remainder = rootCi.slice(start + 1)
+  const nextJob = remainder.slice(1).search(/\n  [a-z0-9-]+:\n/)
+  const job = nextJob === -1 ? remainder : remainder.slice(0, nextJob + 1)
+
+  assert.match(job, /node-version:\s*\['22', '24'\]/)
+  assert.match(job, /npm run verify:docs-watch/)
+  assert.match(job, /actions\/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0/)
+  assert.match(job, /actions\/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e/)
 })

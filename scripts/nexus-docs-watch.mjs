@@ -732,28 +732,52 @@ export function buildFingerprintBaseline(report, registry) {
   return validateBaseline(baseline, registry)
 }
 
-function baselineHeaders(baseline) {
+function hasBaselineValidator(baseline) {
+  return Boolean(
+    baseline?.responseHeaders.etag ||
+    baseline?.responseHeaders.lastModified,
+  )
+}
+
+function baselineMatchesResource(baseline, currentUrl) {
+  return Boolean(
+    baseline &&
+    new URL(baseline.finalUrl).toString() === currentUrl.toString(),
+  )
+}
+
+function baselineHeaders(baseline, currentUrl) {
   const headers = {
     accept: 'text/markdown,text/plain;q=0.95,application/json;q=0.9,application/atom+xml;q=0.9,application/xml;q=0.85,text/html;q=0.8,*/*;q=0.1',
     'accept-language': 'en-AU,en;q=0.9',
     'user-agent': 'Unite-Group-Nexus-Docs-Watch/1.0',
   }
-  if (baseline?.responseHeaders.etag) headers['if-none-match'] = baseline.responseHeaders.etag
-  if (baseline?.responseHeaders.lastModified) {
+  if (!baselineMatchesResource(baseline, currentUrl) || !hasBaselineValidator(baseline)) {
+    return headers
+  }
+  if (baseline.responseHeaders.etag) headers['if-none-match'] = baseline.responseHeaders.etag
+  if (baseline.responseHeaders.lastModified) {
     headers['if-modified-since'] = baseline.responseHeaders.lastModified
   }
   return headers
 }
 
-function baselineReuse(source, baseline, response) {
-  if (!baseline) {
-    throw new WatchError('invalid_304', `Source ${source.id} returned 304 without a usable baseline`)
+function baselineReuse(source, baseline, response, currentUrl) {
+  if (
+    !baseline ||
+    !hasBaselineValidator(baseline) ||
+    !baselineMatchesResource(baseline, currentUrl)
+  ) {
+    throw new WatchError(
+      'invalid_304',
+      `Source ${source.id} returned 304 without an exact resource validator`,
+    )
   }
   return {
     id: source.id,
     vendor: source.vendor,
     url: source.url,
-    finalUrl: baseline.finalUrl ?? source.url,
+    finalUrl: currentUrl.toString(),
     outcome: 'ok',
     httpStatus: response.status,
     contentType: baseline.contentType ?? null,
@@ -810,7 +834,7 @@ export async function fetchOfficialSource(source, defaults, options = {}) {
         response = await requestImpl({
           url: currentUrl,
           approvedAddresses,
-          headers: baselineHeaders(options.baseline),
+          headers: baselineHeaders(options.baseline, currentUrl),
           signal: controller.signal,
         })
       } catch (error) {
@@ -836,7 +860,7 @@ export async function fetchOfficialSource(source, defaults, options = {}) {
       }
 
       if (response.status === 304) {
-        return baselineReuse(source, options.baseline, response)
+        return baselineReuse(source, options.baseline, response, currentUrl)
       }
       if (response.status !== 200) {
         throw new WatchError('http_status', `Unexpected HTTP status ${response.status}`)
@@ -899,26 +923,34 @@ function previousSources(baseline) {
 }
 
 function comparableSource(result, baselineSource) {
-  const change = result.outcome !== 'ok'
-    ? null
-    : !baselineSource
-      ? 'first_seen'
-      : baselineSource.normalisedSha256 === result.normalisedSha256
-        ? 'unchanged'
-        : 'changed'
-
   if (result.outcome !== 'ok') {
     return {
       id: result.id,
       vendor: result.vendor,
       url: result.url,
       outcome: 'failed',
-      change,
+      change: null,
+      changeReasons: null,
       critical: result.critical,
       gateOnChange: result.gateOnChange,
       errorCode: result.errorCode,
       error: result.error,
     }
+  }
+
+  const changeReasons = []
+  let change
+  if (!baselineSource) {
+    change = 'first_seen'
+    changeReasons.push('no_baseline')
+  } else {
+    if (baselineSource.normalisedSha256 !== result.normalisedSha256) {
+      changeReasons.push('normalised_content')
+    }
+    if (baselineSource.finalUrl !== result.finalUrl) {
+      changeReasons.push('final_url')
+    }
+    change = changeReasons.length > 0 ? 'changed' : 'unchanged'
   }
 
   return {
@@ -928,6 +960,7 @@ function comparableSource(result, baselineSource) {
     finalUrl: result.finalUrl,
     outcome: 'ok',
     change,
+    changeReasons,
     httpStatus: result.httpStatus,
     contentType: result.contentType,
     bytes: result.bytes,
@@ -947,6 +980,10 @@ export function buildReport(results, baseline, generatedAt, gateMaterial) {
     .map((result) => comparableSource(result, previous.get(result.id)))
 
   const count = (predicate) => sources.filter(predicate).length
+  const monitorFailures = sources
+    .filter((source) => source.outcome === 'failed')
+    .map((source) => source.id)
+    .sort()
   const criticalFailures = sources
     .filter((source) => source.outcome === 'failed' && source.critical)
     .map((source) => source.id)
@@ -963,7 +1000,9 @@ export function buildReport(results, baseline, generatedAt, gateMaterial) {
       ? 2
       : materialChanges.length > 0
         ? 3
-        : 0
+        : monitorFailures.length > 0
+          ? 1
+          : 0
 
   return {
     schemaVersion: 1,
@@ -978,6 +1017,7 @@ export function buildReport(results, baseline, generatedAt, gateMaterial) {
       changed: count((source) => source.change === 'changed'),
     },
     gates: {
+      monitorFailures,
       criticalFailures,
       materialChanges,
       exitCode,
@@ -1011,6 +1051,7 @@ export function renderMarkdown(report) {
   }
 
   lines.push('', '## Gates', '')
+  lines.push(`- Monitor failures: ${report.gates.monitorFailures.length}`)
   lines.push(`- Critical failures: ${report.gates.criticalFailures.length}`)
   lines.push(`- Material changes: ${report.gates.materialChanges.length}`)
   lines.push(`- Exit code: ${report.gates.exitCode}`)

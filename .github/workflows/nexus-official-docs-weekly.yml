@@ -2,8 +2,8 @@ name: Nexus official-docs weekly evidence
 
 on:
   schedule:
-    # 02:17 Monday Australia/Brisbane (AEST, UTC+10; no daylight saving).
-    - cron: '17 16 * * 0'
+    # 02:17 Sunday Australia/Brisbane (AEST, UTC+10; no daylight saving).
+    - cron: '17 16 * * 6'
   workflow_dispatch:
 
 permissions:
