@@ -884,7 +884,7 @@ export async function fetchOfficialSource(source, defaults, options = {}) {
       }
       const normalised = normaliseContent(rawText, contentType)
 
-      return {
+      const result = {
         id: source.id,
         vendor: source.vendor,
         url: source.url,
@@ -900,6 +900,12 @@ export async function fetchOfficialSource(source, defaults, options = {}) {
         critical: source.critical,
         gateOnChange: source.gateOnChange,
       }
+      // Only the review layer needs the normalised body; keep it off the
+      // default result so report.json and baselines stay body-free.
+      if (options.captureContent) {
+        result.normalised = normalised
+      }
+      return result
     }
   } catch (error) {
     if (
@@ -1095,6 +1101,22 @@ async function atomicWrite(target, value) {
   await rename(temporary, target)
 }
 
+async function writeContentSnapshots(root, contentDir, results) {
+  const safeDirectory = assertPathInsideRoot(root, contentDir)
+  await mkdir(safeDirectory, { recursive: true })
+  const written = []
+  const writes = []
+  for (const result of results) {
+    if (result.outcome !== 'ok' || typeof result.normalised !== 'string') continue
+    const target = assertPathInsideRoot(root, path.join(contentDir, `${result.id}.txt`))
+    writes.push(atomicWrite(target, `${result.normalised}\n`))
+    written.push(result.id)
+  }
+  await Promise.all(writes)
+  written.sort()
+  return { directory: safeDirectory, sourceIds: written }
+}
+
 async function writeReports(root, outputDir, json, markdown, baselineCandidateJson) {
   const safeDirectory = assertPathInsideRoot(root, outputDir)
   await mkdir(safeDirectory, { recursive: true })
@@ -1159,6 +1181,7 @@ export async function runWatcher(options) {
   }
   const sources = options.registry.sources.filter((source) => !requestedIds || requestedIds.has(source.id))
   const concurrency = options.registry.defaults.concurrency ?? 3
+  const captureContent = Boolean(options.contentDir)
 
   const results = await mapWithConcurrency(sources, concurrency, async (source) => {
     try {
@@ -1167,6 +1190,7 @@ export async function runWatcher(options) {
         fetchImpl: options.fetchImpl,
         requestImpl: options.requestImpl,
         resolveHost: options.resolveHost,
+        captureContent,
       })
     } catch (error) {
       return failureResult(source, error)
@@ -1196,7 +1220,19 @@ export async function runWatcher(options) {
       baselineCandidateJson,
     )
   }
-  return { report, json, markdown, baselineCandidate, baselineCandidateJson, writtenTo }
+  let contentWrittenTo = null
+  if (captureContent) {
+    contentWrittenTo = await writeContentSnapshots(root, options.contentDir, results)
+  }
+  return {
+    report,
+    json,
+    markdown,
+    baselineCandidate,
+    baselineCandidateJson,
+    writtenTo,
+    contentWrittenTo,
+  }
 }
 
 function usage() {
@@ -1208,6 +1244,7 @@ function usage() {
     '  --config <file>       Registry JSON inside root (default: config/nexus-official-sources.json)',
     '  --baseline <file>     Explicit fingerprint baseline JSON inside root (read-only)',
     '  --write <dir>         Explicit output directory inside root; omitted means no writes',
+    '  --write-content <dir> Persist normalised content snapshots to <dir>/<sourceId>.txt (review input)',
     '  --only <id,id>        Fetch only named source ids',
     '  --gate-material       Exit nonzero for changed sources configured with gateOnChange',
     '  --help                Show this help',
@@ -1220,11 +1257,12 @@ function parseArgs(argv) {
     config: 'config/nexus-official-sources.json',
     baseline: null,
     outputDir: null,
+    contentDir: null,
     onlyIds: null,
     gateMaterial: false,
     help: false,
   }
-  const valueFlags = new Set(['--root', '--config', '--baseline', '--write', '--only'])
+  const valueFlags = new Set(['--root', '--config', '--baseline', '--write', '--write-content', '--only'])
 
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index]
@@ -1238,6 +1276,7 @@ function parseArgs(argv) {
       if (argument === '--config') parsed.config = value
       if (argument === '--baseline') parsed.baseline = value
       if (argument === '--write') parsed.outputDir = value
+      if (argument === '--write-content') parsed.contentDir = value
       if (argument === '--only') parsed.onlyIds = value.split(',').map((id) => id.trim()).filter(Boolean)
       continue
     }
@@ -1286,6 +1325,7 @@ async function main() {
     baseline,
     root,
     outputDir: args.outputDir,
+    contentDir: args.contentDir,
     onlyIds: args.onlyIds,
     gateMaterial: args.gateMaterial,
   })

@@ -681,6 +681,44 @@ test('watcher writes nothing by default and writes reports only to an explicit i
   assert.throws(() => assertPathInsideRoot(root, path.join(root, '..', 'outside')), /inside/i)
 })
 
+test('--write-content persists normalised snapshots while the report stays body-free', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'nexus-doc-watch-content-'))
+  const input = registry([source()])
+  const fetchImpl = async () => new Response('<main>Release 1</main>', {
+    headers: { 'content-type': 'text/html' },
+  })
+
+  // Default: no content directory is created.
+  await runWatcher({
+    registry: input,
+    root,
+    now: '2026-07-12T00:00:00.000Z',
+    fetchImpl,
+    resolveHost: publicResolver,
+  })
+  assert.deepEqual(await readdir(root), [])
+
+  // With --write-content, normalised snapshots are persisted per source id.
+  const result = await runWatcher({
+    registry: input,
+    root,
+    contentDir: 'content',
+    now: '2026-07-12T00:00:00.000Z',
+    fetchImpl,
+    resolveHost: publicResolver,
+  })
+
+  assert.deepEqual(await readdir(root), ['content'])
+  const snapshot = await readFile(path.join(root, 'content', 'example.changelog.txt'), 'utf8')
+  assert.equal(snapshot, 'Release 1\n')
+  assert.deepEqual(result.contentWrittenTo.sourceIds, ['example.changelog'])
+
+  // The report and its JSON never carry the normalised body.
+  assert.doesNotMatch(result.json, /"normalised"/)
+  assert.doesNotMatch(result.json, /Release 1/)
+  assert.equal(result.report.sources[0].normalisedSha256, sha256('Release 1'))
+})
+
 test('root scripts and the weekly workflow stay read-only and artifact-only', async () => {
   const packageJson = JSON.parse(await readFile(
     new URL('../../package.json', import.meta.url),
