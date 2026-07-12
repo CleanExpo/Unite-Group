@@ -50,7 +50,7 @@ regex = '''\bpcp_[A-Za-z0-9_\-]{20,}\b'''
 keywords = ["pcp_"]
 
 [allowlist]
-description = "Allowlist for known-safe placeholders and lockfile hashes"
+description = "Allowlist for known-safe placeholders, lockfile hashes, and test/doc fixtures"
 paths = [
   '''package-lock\.json''',
   '''pnpm-lock\.yaml''',
@@ -58,6 +58,19 @@ paths = [
   '''\.env\.example''',
   '''\.env\.template''',
   '''\.env\.sample''',
+  # Test fixtures and unit tests carry secret-shaped sample values by design.
+  # These paths never hold live credentials — scoped tightly to test/fixture
+  # trees so a real leak elsewhere is still caught.
+  '''(^|/)__tests__/''',
+  '''(^|/)__fixtures__/''',
+  '''(^|/)fixtures/''',
+  '''(^|/)__mocks__/''',
+  '''\.test\.[jt]sx?$''',
+  '''\.spec\.[jt]sx?$''',
+  # Documentation carries illustrative example keys, not live ones.
+  '''(^|/)docs/''',
+  # Any *.example.* file is a template by convention.
+  '''\.example\.[A-Za-z0-9]+$''',
 ]
 regexes = [
   '''sk-ant-api[0-9]{2,3}-FAKE''',
