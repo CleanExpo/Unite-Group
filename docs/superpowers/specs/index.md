@@ -23,4 +23,4 @@ _Read this first. Lists every concept + subfolder here so an agent loads only wh
 - [[2026-07-10-uni-2234-crm-arming-go-live-spec]] — CRM Arming — Go-Live Specification
 - [[2026-07-12-crm-hermes-ownership-control-plane-design]] — CRM–Hermes OWNEST Control Plane
 - [[2026-07-12-nexus-agentic-automation-foundation]] — Nexus Agentic Automation Foundation
-- [[2026-07-12-ownest-canary-hardening-amendment]] — OWNEST One-Canary Hardening Amendment
+- [[2026-07-12-ownest-canary-hardening-amendment]] — OWNEST One-Canary Hardening Amendment — Historical Contract, Not Activation Authority

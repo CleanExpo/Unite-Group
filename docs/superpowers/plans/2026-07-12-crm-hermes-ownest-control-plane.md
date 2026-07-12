@@ -1,12 +1,36 @@
-# CRM–Hermes OWNEST Control Plane Implementation Plan
+# CRM–Hermes OWNEST Control Plane — Superseded Historical Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Status: SUPERSEDED — do not execute this plan.** The same-user launchd
+> service and live-admission path described in the original plan are retired.
+> `ownest-launchd.sh` is an inert exit-78 tombstone and
+> `install-ownest-service.sh` supports `--uninstall` only. Production activation
+> remains blocked until a separately designed dedicated-UID executor and an
+> independent completion verifier exist. Historical implementation/TDD steps
+> below preserve design evidence only and are not an implementation queue or
+> activation authority. The current build emits only
+> `dist/container/index.js`; it has no OWNEST package command, `dist/host`,
+> heartbeat/presence code, or host worker.
 
-**Goal:** Make Unite-Group CRM the authoritative mission ledger and continuously execute eligible background work through an idempotent, bounded, dedicated Hermes OWNEST/MoA mirror with leases, recovery, and CRM evidence.
+> The former profile sanitizer is also retired. Its same-UID plaintext rollback
+> copies and the broader host credential concentration are an operational
+> migration blocker. Do not create another backup, provision a real service-role
+> key to this package, or remove/rotate the historic copies without the separate
+> founder-authorised credential-remediation runbook.
 
-**Architecture:** A new `apps/autopilot-runner/src/ownest` module reads founder-scoped `cc_tasks` through PostgREST, applies a pure fail-closed eligibility policy, invokes Hermes Kanban with fixed argv, and reconciles task state and evidence back to CRM. Existing tables and Hermes capabilities are reused; no schema or dependency is added.
+**Historical goal:** Make Unite-Group CRM the authoritative mission ledger and implement a
+bounded, testable OWNEST/Hermes projection state machine. Continuous production
+execution is explicitly out of scope for the current slice.
 
-**Tech Stack:** Node.js 22, TypeScript, Vitest, built-in `child_process.spawn`, Supabase PostgREST, Hermes Agent CLI/Kanban.
+**Design/test architecture:** `apps/autopilot-runner/src/ownest` models
+founder-scoped `cc_tasks`, fail-closed eligibility, fixed-argv Hermes projection,
+CRM reconciliation, and independent completion verification. These modules are
+not emitted or connected to credentials. Existing tables and Hermes capabilities
+are referenced by the contract; no runtime/schema/dependency is activated.
+
+**Historical tech stack:** Node.js 22, TypeScript, Vitest, built-in
+`child_process.spawn`, Supabase PostgREST, Hermes Agent CLI/Kanban. The current
+monorepo engine contract is Node >=24.14.1 <25; this superseded plan is not a
+runtime recipe.
 
 ---
 
@@ -23,10 +47,10 @@
 | `apps/autopilot-runner/src/ownest/crm.test.ts` | tenant scoping, compare-and-swap, event, evidence, and outage tests |
 | `apps/autopilot-runner/src/ownest/tick.ts` | reconcile-first bounded lease/dispatch/dead-letter state machine |
 | `apps/autopilot-runner/src/ownest/tick.test.ts` | crash recovery, duplicate prevention, canary limit, rollback, evidence tests |
-| `apps/autopilot-runner/src/ownest-tick.ts` | one bounded production sweep and exit-code contract |
+| `apps/autopilot-runner/src/ownest-tick.ts` | design/test-only sweep contract; production live config is blocked and the file is not emitted |
 | `apps/autopilot-runner/src/ownest-tick.test.ts` | config and kill-switch entrypoint tests |
-| `apps/autopilot-runner/scripts/ownest-launchd.sh` | secret-safe launchd wrapper |
-| `apps/autopilot-runner/scripts/install-ownest-service.sh` | idempotent LaunchAgent installer and plist validation |
+| `apps/autopilot-runner/scripts/ownest-launchd.sh` | exit-78 security tombstone for the retired user-level wrapper |
+| `apps/autopilot-runner/scripts/install-ownest-service.sh` | uninstall-only cleanup for any stale LaunchAgent |
 | `apps/autopilot-runner/package.json` | build/run script for the new worker |
 | `apps/autopilot-runner/README.md` | authoritative operating, recovery, and canary runbook |
 
@@ -252,6 +276,12 @@ git commit -m "feat(ownest): add idempotent Hermes adapter"
 
 ### Task 4: Add the strict founder-scoped CRM adapter
 
+> Historical test contract only: this adapter intentionally exercises the old
+> RLS-bypassing service-role interface so scoping/failure behaviour is testable.
+> It is not deployable and no real key may be placed in an autopilot env,
+> profile, container, or process. A future runtime requires a narrower brokered
+> operation capability.
+
 **Files:**
 - Create: `apps/autopilot-runner/src/ownest/crm.ts`
 - Create: `apps/autopilot-runner/src/ownest/crm.test.ts`
@@ -395,84 +425,78 @@ git add apps/autopilot-runner/src/ownest/tick.ts apps/autopilot-runner/src/ownes
 git commit -m "feat(ownest): reconcile CRM missions with Hermes"
 ```
 
-### Task 6: Add the bounded entrypoint and durable service wrapper
+### Task 6: Add the bounded entrypoint and retire the unsafe service wrapper
 
 **Files:**
-- Create: `apps/autopilot-runner/src/ownest-tick.ts`
-- Create: `apps/autopilot-runner/src/ownest-tick.test.ts`
-- Create: `apps/autopilot-runner/scripts/ownest-launchd.sh`
-- Create: `apps/autopilot-runner/scripts/install-ownest-service.sh`
+- Modify: `apps/autopilot-runner/src/ownest-tick.ts`
+- Modify: `apps/autopilot-runner/src/ownest-tick.test.ts`
+- Replace with tombstone: `apps/autopilot-runner/scripts/ownest-launchd.sh`
+- Replace with uninstall-only cleanup: `apps/autopilot-runner/scripts/install-ownest-service.sh`
 - Modify: `apps/autopilot-runner/package.json`
 
-- [ ] **Step 1: Write failing entrypoint tests**
+- [ ] **Step 1: Write entrypoint and service-boundary tests**
 
 Assert:
 
 - invalid configuration returns exit code 1;
-- live off still invokes one reconcile-first tick so cancellation, STOP, lease, and terminal-state repair remain active, but cannot admit or create a new mission;
+- live off can exercise one reconcile-first tick through injected fixtures but cannot admit or create a new mission;
+- production live configuration fails before dispatch because dedicated-UID isolation is absent;
 - a clean tick returns 0 and emits one secret-free JSON summary line;
 - a failed tick returns 1;
-- logs never contain the service-role key.
+- logs never contain the service-role key;
+- the user-level wrapper exits `78` without reading environment/configuration;
+- the installer rejects every mode except `--uninstall`.
 
-- [ ] **Step 2: Run the tests and verify red**
+- [ ] **Step 2: Run the focused tests**
 
 ```bash
-npx vitest run src/ownest-tick.test.ts
+npx vitest run src/ownest-tick.test.ts src/ownest-service.test.ts
 ```
 
-Expected: FAIL because the entrypoint does not exist.
+Expected: entrypoint/state-machine tests pass and the service tests prove the
+retirement tombstones.
 
-- [ ] **Step 3: Implement the entrypoint and package script**
+- [x] **Step 3: Reject the historical host-entrypoint/package-script proposal**
 
-Add:
+The original plan proposed an `ownest` package command targeting
+`dist/host/ownest-tick.js`. Security review rejected that surface. The current
+package has no such command, the build manifest has no host surface, and
+`src/ownest-tick.ts` remains design/test input only.
 
-```json
-"ownest": "node dist/ownest-tick.js"
-```
+- [ ] **Step 4: Implement the service retirement boundary**
 
-The entrypoint performs exactly one bounded reconcile-first sweep and exits. `CC_OWNEST_LIVE=0` disables admission, not reconciliation. Continuous operation belongs to launchd, preventing a hung in-process loop from becoming immortal.
+`ownest-launchd.sh` must exit `78` immediately and explain that dedicated-UID
+isolation plus independent verification are missing. It must not source `.env`,
+resolve binaries, start Node/Hermes, inspect Git, or access the network.
 
-- [ ] **Step 4: Implement the wrappers**
+`install-ownest-service.sh` must reject install, dry-run, and verified-commit
+modes with exit `78`. Its only supported operation is `--uninstall`, which
+bootouts any stale `in.unite-group.ownest` service, verifies it is absent,
+archives the plist with restrictive permissions, and retains the log.
 
-`ownest-launchd.sh` must:
-
-- source the runtime repo's `.env.local` without echoing it;
-- prepend `$HOME/.local/bin` for Hermes;
-- launch Node through an explicit CRM/OWNEST environment allowlist, then launch Hermes through a second route environment that excludes CRM and unrelated/provider credentials;
-- require a backup-first, atomic allowlist sanitisation of `~/.hermes/profiles/ownest/.env` before any canary so Hermes cannot internally reload a broad credential clone after spawn;
-- run `node dist/ownest-tick.js` from the runner directory;
-- hold a non-blocking local `lockf` lock so launchd, a manual run, and a delayed prior tick cannot overlap;
-- set `umask 077` and fail closed with live admission off by default;
-- use `set -euo pipefail` and default live off.
-
-`install-ownest-service.sh` must:
-
-- build before installation;
-- require the canonical GitHub origin, a clean dedicated runtime checkout, Node 22, and an explicit exact verified commit present on an origin remote-tracking ref;
-- install `in.unite-group.ownest` with `StartInterval=60` and no `KeepAlive`;
-- write no credentials to the plist;
-- validate the plist with `plutil -lint`;
-- unload/reload idempotently;
-- back up and restore the previous plist on bootstrap failure and provide a reversible uninstall;
-- log to `~/Library/Logs/unite-ownest.log`.
+A replacement design must use a dedicated OS identity, sealed HOME/workspace,
+immutable Hermes binary digest, brokered operation-scoped CRM credential, enforceable
+egress/tool policy, and independent verifier. That work requires a new plan.
 
 - [ ] **Step 5: Run tests, build, and shell syntax checks**
 
 ```bash
-npx vitest run src/ownest-tick.test.ts
+npx vitest run src/ownest-tick.test.ts src/ownest-service.test.ts
 npm run type-check
 npm run build
 bash -n scripts/ownest-launchd.sh
 bash -n scripts/install-ownest-service.sh
 ```
 
-Expected: PASS.
+Expected: tests and type-check pass; `npm run build` emits only the one-file
+retirement container, while shell checks prove the service wrappers remain
+refusal/uninstall-only boundaries.
 
-- [ ] **Step 6: Commit the service slice**
+- [ ] **Step 6: Commit the entrypoint and retirement slice**
 
 ```bash
 git add apps/autopilot-runner/src/ownest-tick.ts apps/autopilot-runner/src/ownest-tick.test.ts apps/autopilot-runner/scripts/ownest-launchd.sh apps/autopilot-runner/scripts/install-ownest-service.sh apps/autopilot-runner/package.json
-git commit -m "feat(ownest): add bounded runtime service"
+git commit -m "security(ownest): retire unsafe user-level service"
 ```
 
 ### Task 7: Document operations and verify the whole runner
@@ -486,11 +510,12 @@ Document:
 
 - CRM `cc_tasks` is authoritative and Hermes is a mirror;
 - exact eligibility and hard gates;
-- all required and optional environment variables;
-- canary limit 1 and proven cap 3;
-- launchd install/status/log/stop commands;
+- the legacy design/test configuration names, explicitly marked as
+  non-provisionable rather than a runtime environment recipe;
+- reserved canary limit 1 and parser ceiling 3, with no claimed live proven cap;
+- the uninstall-only service cleanup and replacement prerequisites;
 - Hermes and CRM reconciliation evidence;
-- the one-minute kill path;
+- the absent current service, stale-plist cleanup, and future STOP/rollback requirement;
 - the orphaned `operator_jobs` poller is legacy and must remain unloaded;
 - OpenClaw is a migration source, not the active model/runtime.
 
@@ -526,13 +551,15 @@ Expected: no P0/P1 finding remains unresolved.
 
 - [ ] **Step 2: Run a kill-switch smoke test and fixture-backed state-machine proof**
 
-Run the built entrypoint with `CC_OWNEST_LIVE=0` and real configuration present.
+Run fixture-backed entrypoint/config tests. Do not supply real production
+configuration or manually invoke a production CRM sweep.
 
 ```bash
-CC_OWNEST_LIVE=0 node dist/ownest-tick.js
+npx vitest run src/ownest-tick.test.ts src/ownest/tick.test.ts
 ```
 
-Expected: exit 0, `drained`, and no CRM/Hermes writes.
+Expected: live-off fixtures cannot admit work, live configuration is rejected by
+the isolation gate, and completion is rejected without an independent verifier.
 
 - [ ] **Step 3: Record the verified commit**
 

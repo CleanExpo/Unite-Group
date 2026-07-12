@@ -2,7 +2,10 @@
 
 **Date:** 12 July 2026
 
-**Status:** Architecture baseline; Project 1 control-plane implementation in progress; production and spend gates remain closed
+**Status:** Architecture baseline plus design/test controls. The configured
+repository-readiness scanner reports 10 pass / 0 fail / 0 unknown / 0 blocking;
+production, credential migration, autonomous runtime, service installation,
+live admission, merge, and spend gates remain closed
 
 **Scope:** Unite-Group CRM, Nexus, Hermes/OpenClaw migration surface, Pi-Dev-Ops specialised skills, 2nd Brain/Wiki, model routes, project readiness, weekly vendor intelligence, and the first industry-image reference workload
 
@@ -14,7 +17,8 @@ The target is an operating system, not a parts catalogue:
 2. Nexus establishes the real objective, constraints, authority, evidence bar, and likely downstream moves;
 3. CRM records the immutable mission and remains the authority for priority, risk, approval, cancellation, and outcome;
 4. the system selects existing skills, tools, model families, and agents before proposing anything new;
-5. Hermes executes a bounded projection through the dedicated OWNEST profile;
+5. after credential migration and isolation/verifier gates are proven, a future
+   brokered executor projects one bounded mission through the dedicated OWNEST profile;
 6. deterministic checks and independent model families validate the work;
 7. evidence, usage, failures, and recovery are reconciled into CRM and the Wiki;
 8. the completed project continues operating while the same readiness factory advances to the next project.
@@ -27,11 +31,11 @@ This is an integration and governance build, not a new agent framework.
 
 | Layer | Reuse now | Missing load-bearing capability |
 |---|---|---|
-| Authority | Unite-Group `cc_tasks`, task events, evidence records | Reconcile-first OWNEST worker with durable receipts and cancellation |
+| Authority | Unite-Group `cc_tasks`, task events, evidence records | Isolated brokered executor plus independent completion verifier; current OWNEST code is design/test-only |
 | Orchestration | Nexus, CEO Board, specialised skills, Hermes Kanban | Automatic intent expansion, skill-gap resolution, and evidence-bound routing |
-| Execution | Hermes, browser, Playwright, computer-use, subagents | Explicit tool triggers, dedicated OWNEST profile, bounded continuous operation |
+| Execution | Hermes, browser, Playwright, computer-use, subagents | Explicit tool triggers plus a dedicated-UID, brokered, independently verified OWNEST runtime |
 | Research | Apify, Firecrawl, Exa/Margot, browsers | Rights-aware source routing, provenance schema, deduplication, evaluation |
-| Models | Authenticated routes for OpenAI, Anthropic, Gemini, MiniMax, OpenRouter/local options | Model-family registry, auth-class policy, family-excluding validation |
+| Models | Observed provider configuration/authentication for OpenAI, Anthropic, Gemini, MiniMax, OpenRouter/local options | Attested execution capacity, model-family registry, auth-class policy, family-excluding validation |
 | Evaluation | Synthex offline AI evals, tests, CI, gstack benchmark adapters | Common receipt schema, blind comparison, calibrated independent judges |
 | Knowledge | Wiki/2nd Brain and project Markdown | One governed current-platform baseline per project plus material-change updates |
 | Operations | launchd, Hermes cron, GitHub Actions, Docker | One reusable project readiness manifest, clean stop/recovery, observable schedules |
@@ -45,7 +49,7 @@ flowchart LR
     I["Simple idea or signal"] --> N["Nexus intent and depth resolver"]
     N --> C["CRM mission ledger"]
     C --> G["Policy, authority, quota and evidence gates"]
-    G -->|"eligible"| H["Hermes OWNEST projection"]
+    G -->|"eligible after future runtime approval"| H["Brokered Hermes OWNEST projection"]
     G -->|"consequential"| B["CEO Board decision packet"]
     H --> S["Skills, subagents and tools"]
     S --> D["Deterministic verification"]
@@ -59,7 +63,7 @@ flowchart LR
 Rules:
 
 - CRM is authoritative; Hermes, Linear, GitHub, the Wiki, and model conversations are projections.
-- The dedicated `ownest` profile and `unite-group-ownest` board are the only continuous MoA lane.
+- The dedicated `ownest` profile and `unite-group-ownest` board are the reserved MoA projection lane; no continuous OWNEST service is authorised or installed.
 - The default and Empire profiles retain their existing models and workloads.
 - One CRM claim maps to one attempt, one rollout identity, and one Hermes projection.
 - Production, spend, credentials/privileges, external publication, destructive action, and merge/deploy remain explicit gates.
@@ -154,8 +158,9 @@ Every project receives a versioned `nexus.project-runtime.v1` manifest and the s
 9. Run bounded heterogeneous validation.
 10. Prove cancellation, crash recovery, rollback, and no duplicate execution.
 11. Commit one governed runtime baseline and runbook.
-12. Admit one low-risk task through OWNEST.
-13. Observe it to a valid completion receipt.
+12. After credential migration, dedicated isolation, and an independent verifier
+    are proven, request approval to admit one low-risk task through OWNEST.
+13. If approved, observe it to a valid independently verified completion receipt.
 14. Keep the cleaned project working at its proven limit.
 15. Advance the factory to the next project.
 
@@ -163,16 +168,40 @@ Project 1 is Unite-Group because it owns the control plane. Synthex is the next 
 
 ### Project 1 readiness snapshot
 
-The current deterministic scan is honest rather than all-green: six domains pass, four P1 domains fail, no result is unknown, and neither configured P0 finding is blocking. The remaining P1 inventory is:
+The current deterministic scan reports 10 pass / 0 fail / 0 unknown / 0
+blocking. The previous four P1 classes were closed in this branch: inert nested
+workflows were removed or replaced at the root, external container images were
+digest-pinned, missing/dynamic container inputs were reconciled, and active
+package/CI/container engines were aligned to Node 24.14.1. The scanner result is
+repository evidence, not production or autonomy approval.
 
-- 17 nested `.github/workflows` files that GitHub will not execute from their current monorepo locations; each must be migrated to root CI, explicitly retired, or retained only as labelled historical evidence;
-- 14 floating container references that still require reviewed manifest-digest pins;
-- six reported container input problems requiring build-context/fixture reconciliation rather than blindly creating files;
-- a Node 22/24 package and container matrix that must be made explicit per package instead of pretending one global major applies to every runtime.
+The autopilot runner's development toolchain was separately upgraded to Vitest
+4.1.10 and its dependency audits reported zero known vulnerabilities. Its
+reviewed build manifest now permits exactly one surface: `src/index.ts` emits
+only `dist/container/index.js`, the legacy-runner refusal tombstone. There is no
+`dist/host`, OWNEST package command, presence/heartbeat source, or emitted host
+worker. The OWNEST CRM/Hermes code remains available only to type-check and unit
+test the proposed contracts.
 
-These results block the phrase “Project 1 is completely clean,” but they do not hide a P0. They form the next measured maintenance batch after the control-plane and watcher PR; the scanner remains the gate for every later project so the same classes cannot disappear into chat history.
+A separate operational blocker remains outside the readiness scanner's current
+file/config checks. A names-only host audit found broad same-UID credential
+concentration and historic plaintext rollback copies created by the former
+OWNEST profile sanitizer. The sanitizer now refuses before reading the profile,
+but the retained credentials still require a founder-authorised inventory,
+rotation/relocation, verified consumer migration, revocation, and then safe
+removal. No OWNEST or presence service may be armed before both that migration
+and the isolated brokered runtime/independent-verifier architecture are proven.
 
-The autopilot runner's development toolchain was separately upgraded from Vitest 2 to Vitest 4.1.10. Its production and complete dependency audits now both report zero known vulnerabilities, and the full 1,016-test package gate, type-check, and build pass on Node 22 and Node 24. This removes that package-level finding; it does not erase the four repository-level P1 domains above.
+The legacy hosted `CC_LINEAR_LIVE` executor is permanently retired, not merely switched off. Review found that its untrusted Claude worker shared a Unix identity, PID namespace, and linked Git administration directory with the privileged parent; it could inherit or recover control-plane credentials, poison Git hooks/filters before privileged publication, leave descendants, and pass a vacuous `true` gauntlet. Exact `CC_LINEAR_LIVE=1` now exits 2 before configuration, credentials, filesystem, subprocess, Git, or network access. Both authenticated web claim/handoff routes return `410` without Linear imports, and the older Empire Mission Control launcher exits `2` before imports or environment access. Linear queue health is now a read-only retired-projection inventory, not a stale/healthy executor signal. GitHub Actions builds and smokes the one-file image as non-root with no network, a read-only filesystem, dropped capabilities, resource limits, no Git/Claude/Hermes binaries, and sentinel credential checks. Re-enabling hosted authoring requires a new separately isolated UID/PID/filesystem/network executor with brokered operation-scoped credentials; an environment change cannot reactivate it.
+
+Package and harness hardening evidence captured during this slice is listed
+below. The branch continued changing after some runs, so these snapshots do not
+replace the required fresh final verification at the eventual PR head:
+
+- root verification and GitHub Actions now share a build-only web wrapper with fixed non-secret structural placeholders, an exact child environment, Node >=24.14.1 <25, and pnpm 9.15.0; every active package and reviewed container surface uses the same Node >=24.14.1 <25 contract;
+- the web lock fell from 20,696 to 14,346 lines after disabling unused automatic peer installation, and a clean frozen install reduced its generated dependency tree from the observed stale 4.4 GB to 1.2 GB with no Nuxt, Vue, Svelte, or Remix packages; lint, type-check, 519 files/3,190 tests, build, production audit, and complete audit are green;
+- spec-board and the Pi-CEO operator MCP both have frozen-install, build/test where present, and zero-audit evidence; their temporary PostCSS and esbuild security overrides cross upstream-declared version constraints, so they remain explicit compatibility exceptions that expire when Next and Skybridge natively accept the patched lines;
+- workspace Vite 7.3.6 legitimately removes the vulnerable esbuild 0.27 path. Monaco and its 73 MB local footprint were then removed rather than false-greened with an override: its two narrow drafting surfaces now share one accessible native editor, the jsDelivr script/style CSP allowance is gone, and both production and complete dependency audits report zero known vulnerabilities. The remaining DOMPurify path is the patched 3.4.11 copy through Lobehub/Mermaid;
 
 ## 6. Multi-model execution without self-validation
 
@@ -205,7 +234,13 @@ Every subscription-backed executor therefore runs through a route-specific envir
 - consumer-subscription lanes run only through vendor-supported local CLI/app surfaces and their published plan terms; credentials are never transplanted into a container, API service, or shared daemon to imitate an API entitlement;
 - receipts record the attested route ID and auth class, never the credential or raw authentication output.
 
-This is the control that turns existing Max plans into usable capacity without allowing a convenience fallback to become unreported spend.
+These controls are the prerequisites for using existing Max plans without
+allowing a convenience fallback to become unreported spend. Current evidence is
+auth-only: successful Claude/Codex sign-in and provider configuration do not
+prove that an autonomous executor consumed plan capacity, that capacity remains,
+or that a receipt was billed to the intended subscription. Until route-specific
+execution receipts and vendor-supported usage telemetry exist, capacity is
+`unknown`, not active or available.
 
 Validation sequence:
 
@@ -231,7 +266,7 @@ A local or fine-tuned model additionally requires base checkpoint and tokenizer 
 
 ## 8. Weekly top-tier documentation intelligence
 
-The monitor reads only authoritative vendor sources. Remote documentation is untrusted input: redirects stay inside an allowlist, active content is stripped, examples are never executed, and materiality is determined from normalised hashes and extracted facts before a model sees the content.
+The current branch implements a monitor that reads only authoritative vendor sources. Remote documentation is untrusted input: redirects stay inside an allowlist, active content is stripped, examples are never executed, and materiality is determined from normalised hashes and extracted facts before a model sees the content.
 
 ### Initial registry
 
@@ -254,19 +289,34 @@ Coverage disposition verified 12 July 2026: every item in this initial registry 
 - `P2 REVIEW`: useful capability or performance improvement not yet used.
 - `P3 INFO`: editorial or non-semantic change.
 
-P0/P1 creates a CEO Board packet. P2 may create a draft branch after compatibility tests. P3 appears only in the digest. Nothing auto-merges or mutates production.
+The current branch's watcher classifies and gates material fingerprint changes but
+does not create CRM rows, CEO Board packets, Telegram messages, draft branches,
+or project Markdown patches. Those are target workflow stages. Nothing in the
+current workflow auto-merges or mutates production.
 
-### Cadence in Australia/Brisbane
+### Implemented cadence in Australia/Brisbane
 
-- Daily 05:15: ETag/Last-Modified/hash fingerprint for critical sources; no model call when unchanged.
-- Sunday 01:50: CRM creates one idempotent weekly run.
-- 02:00–03:30: fetch, normalise, deduplicate, classify, and independently validate material changes.
-- 03:30–04:30: scan project manifests and run compatibility/link/schema/secret checks on isolated branches.
-- 05:00: store CRM evidence and Board packets.
-- 05:15: Telegram sends task, PR, impact, and evidence links—no secrets and no pasted bulk report.
+- The branch defines a Sunday 02:17 GitHub Actions schedule for one read-only
+  fetch/fingerprint comparison against the committed registry and baseline; it
+  is not active on `main` while the merge gate remains closed.
+- When dispatched, the workflow tests the watcher first, writes JSON/Markdown plus a candidate
+  baseline under an artifact directory, gates material changes, and retains the
+  uploaded evidence for 30 days.
+- The branch's root CI job tests the watcher on Node 24 without performing external
+  source requests.
+- There is no implemented daily watcher, CRM/Board write, Telegram delivery,
+  monthly benchmark dispatch, automatic PR, or automatic Markdown update.
+
+### Target cadence (not yet implemented)
+
+- Daily 05:15: conditional ETag/Last-Modified/hash fingerprint for critical sources; no model call when unchanged.
+- Sunday: one idempotent CRM run, material-change analysis, isolated compatibility checks, evidence/Board packet creation, and a link-only Telegram summary.
 - First Sunday monthly: run the saved cross-model benchmark corpus.
 
-Each project owns one `docs/platform-current.md` and one machine-readable runtime manifest. A no-change week updates the CRM evidence ledger, not every Markdown timestamp. A material change patches only the governed section and opens a reviewable PR.
+The target governance model gives each project one `docs/platform-current.md`
+and one machine-readable runtime manifest. A no-change week should update only
+the evidence ledger; a material change should patch only the governed section
+through a reviewable PR. Neither behaviour exists yet.
 
 ## 9. Anthropic Access Transparency boundary
 
@@ -286,7 +336,12 @@ This workload is the proving ground for the general skill factory, not a one-off
 
 ### Verified Synthex foundation
 
-Read-only inspection on 12 July 2026 confirms that Synthex already contains the implementation substrate:
+Read-only inspection on 12 July 2026 found the implementation substrate in both
+the local checkout at `05b2aba448594023a560e6df898991a02a3dba99` and
+`origin/main` at `b3124854a1963599e8d4062f9314c34fc640807a` after a live
+fetch. The local checkout was dirty (one untracked handoff) and 118 commits behind `origin/main`,
+so it is provenance evidence, not a frozen current baseline. The named files and
+locked dependencies were also confirmed directly on `origin/main`:
 
 - `scripts/marketing-agency-apify-intelligence.ts` runs selected Actors and records run/dataset outcomes;
 - `lib/auto-research/apify/client.ts` is the shared typed Actor/dataset adapter;
@@ -318,8 +373,8 @@ The library is a provenance graph and retrieval index, not an unbounded folder o
 
 ## 11. Twenty-move rollout
 
-1. Complete the CRM/Hermes receipt, STOP, cancellation, and reconcile-first worker.
-2. Prove the dedicated profile/board configuration in shadow mode.
+1. Complete the CRM/Hermes receipt, STOP, cancellation, and reconcile-first design/test state machine.
+2. Retain the historical dedicated profile/board evidence without treating it as a runtime or capacity proof.
 3. Disable the latent Anthropic round-robin route without exposing credentials.
 4. Repair the standalone Codex launcher or formally route Codex through Hermes.
 5. Record all model routes by family, auth class, limits, and spend policy.
@@ -328,16 +383,16 @@ The library is a provenance graph and retrieval index, not an unbounded folder o
 8. Run one read-only weekly-doc capture canary.
 9. Produce the first Unite-Group platform impact report.
 10. Finish deterministic completion artifacts and partial-write repair.
-11. Run one CRM-nominated advisory OWNEST canary.
-12. Prove stop, rollback, no duplicate execution, and receipt integrity.
-13. Freeze Synthex's current commit and run its readiness audit.
-14. Extend Synthex's offline eval envelope with common receipts.
-15. Add Docker-pinned deterministic benchmark execution.
-16. Build the rights/provenance schema and reference-foundry golden cases.
-17. Run bounded Apify/Firecrawl/Exa research against official and licensed sources.
-18. Blind outputs and calibrate family-excluding validators.
-19. Admit the image-reference skill through the same one-task OWNEST gate.
-20. Keep the proven project operating and advance the factory project by project.
+11. Design and build the dedicated-UID executor, sealed workspace, pinned binary, brokered CRM credential, and egress/tool policy.
+12. Implement the separately operated evidence/digest/model-family completion verifier.
+13. Prove isolation, stop, rollback, no duplicate execution, and receipt integrity under adversarial tests.
+14. Only then ask the Board whether to admit one CRM-nominated advisory OWNEST canary.
+15. Freeze Synthex at the current `origin/main` commit and run its readiness audit.
+16. Extend Synthex's offline eval envelope and add Docker-pinned deterministic execution.
+17. Build the rights/provenance schema and reference-foundry golden cases.
+18. Run bounded Apify/Firecrawl/Exa research against official and licensed sources.
+19. Blind outputs and calibrate family-excluding validators, then admit the image-reference skill only through an approved one-task gate.
+20. Keep each proven project operating at its measured limit and advance the factory project by project.
 
 ## 12. Promotion scorecard
 

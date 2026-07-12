@@ -10,6 +10,11 @@ status: resolved
 
 # E2E Playwright tests run against a dedicated non-prod Supabase branch
 
+> **Current boundary (12/07/2026):** the historical URL fallback described in
+> the root-cause record below has been removed from CI. The job now receives only
+> dedicated `E2E_SUPABASE_*` secrets or inert placeholders; production secrets
+> are not fallback inputs. Missing or mismatched E2E configuration fails closed.
+
 ## Problem
 
 The `apps/web — Playwright E2E` job (CI, `.github/workflows/ci.yml`) was red on
@@ -22,8 +27,8 @@ empty (it was querying the wrong repo — always pass `--repo CleanExpo/Unite-Gr
 A Supabase **branch** of the Unite-Group prod project
 (`lksfwktwtmyznckodsau`) named `e2e-gate` (branch ref `jhqjxomxlvvmjslgzqhd`)
 was created on 2026-06-22 and `E2E_SUPABASE_SERVICE_ROLE_KEY` was set — but
-**`E2E_SUPABASE_URL` was never pointed at the branch.** So the job used the
-*branch's* service-role key against the *prod* URL (via the
+**`E2E_SUPABASE_URL` was never pointed at the branch.** At that time, the job used the
+*branch's* service-role key against the *prod* URL (via the former
 `NEXT_PUBLIC_SUPABASE_URL` fallback) → mismatch → "Database error creating new
 user." The branch's auth schema is healthy: `public.handle_new_user` fires on
 `auth.users` insert and creates a `public.user_profiles` row (FK to

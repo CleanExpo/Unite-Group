@@ -14,5 +14,5 @@ _Read this first. Lists every concept + subfolder here so an agent loads only wh
 ## Concepts
 - [[2026-06-23-idea-intake-routing-front-half]] — Idea Intake & Routing Front-Half — Implementation Plan
 - [[2026-06-23-visual-campaign-studio-phase-1]] — Visual Campaign Studio — Phase 1 (Shell + Concept Round) Implementation Plan
-- [[2026-07-12-crm-hermes-ownest-control-plane]] — CRM–Hermes OWNEST Control Plane — Implementation Plan
-- [[2026-07-12-hermes-moa-runtime-cutover]] — Hermes OWNEST MoA Runtime Cutover — Implementation Plan
+- [[2026-07-12-crm-hermes-ownest-control-plane]] — CRM–Hermes OWNEST Control Plane — Superseded Historical Plan
+- [[2026-07-12-hermes-moa-runtime-cutover]] — Hermes OWNEST MoA Runtime Cutover — Superseded Historical Plan

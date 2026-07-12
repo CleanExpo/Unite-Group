@@ -1,61 +1,59 @@
-# Hermes OWNEST MoA Runtime Cutover Implementation Plan
+# Hermes OWNEST MoA Runtime Cutover — Superseded Historical Plan
 
-> **Superseding runtime decision (12 July 2026):** MoA is isolated to a dedicated `ownest` profile and `unite-group-ownest` board. The default and Empire profiles keep their current Codex models. The commands below implement that dedicated-profile decision.
+> **Status: SUPERSEDED — do not execute this plan.** MoA configuration was isolated to a
+> dedicated `ownest` profile and `unite-group-ownest` board. The default and
+> Empire profiles keep their current Codex models. The former same-user OWNEST
+> LaunchAgent and live activation steps are retired: profile validation is
+> configuration evidence only until a dedicated-UID executor and independent verifier
+> are separately designed and approved.
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> The task list below preserves the 12 July investigation and configuration
+> history; it is not an implementation queue. The reviewed package now emits
+> only the one-file refusal container—no OWNEST command, `dist/host`, heartbeat,
+> presence writer, or host worker. The former sanitizer is an exit-78 tombstone.
+> Its historic same-UID plaintext rollback copies are a credential-migration
+> blocker and must not be recreated or deleted outside the separately authorised
+> security runbook.
 
-**Goal:** Safely activate continuous, bounded MoA reasoning for CRM-owned background missions while removing duplicate/stale runtime work and retaining a one-minute rollback.
+**Historical goal:** Preserve a bounded OWNEST MoA configuration and clean
+duplicate/stale runtime work without activating continuous production execution.
 
-**Architecture:** The default Hermes gateway remains the fast Telegram/intake edge and dispatches CRM mirrors to the dedicated `ownest` profile and board. Only `ownest` persists the MoA provider. It has no independent gateway, cron jobs, launch agent, or aliases. Runtime changes are scalar, reversible, backed up with original permissions, and applied only after queue hygiene; the canary runs at concurrency one before any later widening decision.
+**Architecture:** The default Hermes gateway remains the Telegram/intake edge.
+Only `ownest` retained the reserved MoA provider/board configuration. It has no
+independent gateway, cron job, launch agent, alias, authorised dispatcher, or
+emitted runner. No current step in this document may mutate that profile.
 
-**Tech Stack:** Hermes Agent 0.18.2, launchd, Hermes Kanban/Cron/MoA CLI, YAML configuration, Unite-Group OWNEST runner.
+**Historical surfaces:** Hermes Agent 0.18.2, launchd, Hermes Kanban/Cron/MoA CLI, and YAML configuration. There is no Unite-Group OWNEST runtime surface.
 
 ---
 
-### Task 1: Capture a rollback-safe baseline
+### Historical task 1: Baseline evidence and the invalid backup assumption
 
-**Files:**
-- Read: `~/.hermes/config.yaml`
-- Read: `~/.hermes/profiles/empire/config.yaml`
-- Read: `~/.hermes/cron/jobs.json`
-- Read: `~/Library/LaunchAgents/in.unite-group.operator-jobs.plist`
+Read-only health and queue evidence was captured before the configuration work.
+The original plan also copied Hermes/profile configuration into timestamped
+same-UID files and treated mode `0600` as sufficient. Later security review
+invalidated that assumption: processes under the same UID can read those files,
+and broader plaintext rollback copies now exist outside this repository.
 
-- [ ] **Step 1: Create timestamped, permission-preserving backups**
+Do not repeat those copy commands. Preserve the files untouched until a
+founder-authorised credential-migration runbook inventories names/consumers,
+creates verified replacements in 1Password or platform-native secret stores,
+rotates/revokes the old values, and only then safely removes the historic copies.
+No value was read during this documentation/security audit.
 
-```bash
-mkdir -p "$HOME/.hermes/change-backups/2026-07-12-ownest-moa"
-cp -p "$HOME/.hermes/config.yaml" "$HOME/.hermes/change-backups/2026-07-12-ownest-moa/default-config.yaml"
-cp -p "$HOME/.hermes/profiles/empire/config.yaml" "$HOME/.hermes/change-backups/2026-07-12-ownest-moa/empire-config.yaml"
-cp -p "$HOME/.hermes/cron/jobs.json" "$HOME/.hermes/change-backups/2026-07-12-ownest-moa/default-cron-jobs.json"
-cp -p "$HOME/Library/LaunchAgents/in.unite-group.operator-jobs.plist" "$HOME/.hermes/change-backups/2026-07-12-ownest-moa/operator-jobs.plist"
-```
-
-Expected: files exist, configuration backups remain mode `0600`, and no secret value is printed.
-
-- [ ] **Step 2: Record read-only health and queue evidence**
-
-```bash
-hermes status
-hermes gateway status
-hermes cron status
-hermes --profile empire moa list
-hermes --profile empire kanban list --json --sort created-desc
-curl --silent --show-error --max-time 3 http://127.0.0.1:8642/health | jq '{status,version}'
-```
-
-Expected: gateway healthy, MoA preset present but inactive, and the pre-change Kanban/cron counts captured without credentials.
-
-### Task 2: Quarantine duplicate and orphaned work
+### Historical task 2: Quarantine duplicate and orphaned work
 
 **Files:**
 - Modify through CLI: `~/.hermes/cron/jobs.json`
 - Quarantine: `~/Library/LaunchAgents/in.unite-group.operator-jobs.plist`
 
-- [ ] **Step 1: Identify the duplicate set by content, not by title alone**
+- [x] **Step 1: Identify the duplicate set by content, not by title alone**
 
-Use a read-only parser to group active cron entries by `(name, prompt, script, schedule)`. Confirm there are exactly 21 identical orphaned `claim job` entries. No survivor is required because the OWNEST worker replaces this unowned claim loop.
+The read-only pre-cleanup parser grouped entries by
+`(name, prompt, script, schedule)` and identified exactly 21 identical orphaned
+`claim job` entries. No survivor was retained.
 
-Expected: one survivor ID and 20 pause IDs; abort this task if the group shape changed.
+Expected: 21 pause IDs and no survivor; abort this task if the group shape changed.
 
 - [x] **Step 2: Pause all 21 duplicates and verify zero active orphaned claim loops**
 
@@ -67,9 +65,9 @@ hermes cron pause <JOB_ID>
 
 Then rerun the grouping check and `hermes cron status`.
 
-Expected: exactly one active member remains; no job is deleted.
+Expected: zero active members remain; no job is deleted.
 
-- [ ] **Step 3: Unload and quarantine the orphaned legacy poller**
+- [x] **Step 3: Unload and quarantine the orphaned legacy poller**
 
 ```bash
 launchctl unload "$HOME/Library/LaunchAgents/in.unite-group.operator-jobs.plist"
@@ -78,9 +76,10 @@ mv "$HOME/Library/LaunchAgents/in.unite-group.operator-jobs.plist" "$HOME/Librar
 launchctl list | rg 'in\.unite-group\.operator-jobs' && exit 1 || true
 ```
 
-Expected: no loaded service and the plist remains recoverable in the dated quarantine directory.
+Recorded result: no loaded service remains and the plist is recoverable in the
+dated quarantine directory.
 
-- [ ] **Step 4: Diagnose, then resolve, the two 90-second bridge failures**
+- [x] **Step 4: Diagnose, then resolve, the two 90-second bridge failures**
 
 Inspect their last-run output and the invoked script. Classify each as one of:
 
@@ -88,9 +87,16 @@ Inspect their last-run output and the invoked script. Classify each as one of:
 - valid long-running profile tick: run one observed manual tick with a bounded external timeout, capture actual duration, then set `cron.script_timeout_seconds` to at least twice the measured healthy duration and no more than 900 seconds;
 - genuinely hung work: leave paused and create a CRM blocker with evidence.
 
-Expected: no active bridge job remains in a known repeat-timeout state before canary.
+Recorded result: both bridge jobs completed under the 300-second bound; no active
+bridge remains in a known repeat-timeout state. This is hygiene evidence, not
+canary authority.
 
-### Task 3: Apply the fail-closed runtime baseline
+### Historical task 3: Apply the fail-closed runtime baseline
+
+The commands in historical tasks 3–4 record the settings considered/applied on
+12 July. They are retained for audit context only and must not be re-run from
+this plan. Configuration/profile state is not a runtime, credential boundary, or
+capacity proof.
 
 **Files:**
 - Modify through CLI: `~/.hermes/config.yaml`
@@ -146,7 +152,7 @@ hermes --profile empire config check
 
 Expected: both exit 0. On failure, restore both backup files and stop.
 
-### Task 4: Persist the bounded OWNEST MoA provider
+### Historical task 4: Persist the bounded OWNEST MoA provider
 
 **Files:**
 - Create through CLI: `~/.hermes/profiles/ownest/config.yaml`
@@ -187,110 +193,71 @@ hermes --profile ownest moa list
 curl --silent --show-error --max-time 3 http://127.0.0.1:8642/health | jq '{status,version}'
 ```
 
-Expected: gateway healthy, OWNEST MoA active, no independent OWNEST gateway/cron/service exists, and no model change occurred on the default or Empire profiles.
+Expected: gateway healthy, OWNEST MoA preset configured but not executing, no
+independent OWNEST gateway/cron/service exists, and no model change occurred on
+the default or Empire profiles.
 
-### Task 5: Deploy the OWNEST worker in a reproducible runtime checkout
+### Current containment task 5: Retire any stale user-level OWNEST service
 
 **Files:**
-- Runtime checkout: `/Users/phill-mac/Unite-Group-OWNEST`
-- Service: `~/Library/LaunchAgents/in.unite-group.ownest.plist`
+- Security tombstone: `apps/autopilot-runner/scripts/ownest-launchd.sh`
+- Uninstall-only cleanup: `apps/autopilot-runner/scripts/install-ownest-service.sh`
+- Possible stale service: `~/Library/LaunchAgents/in.unite-group.ownest.plist`
 
-- [ ] **Step 1: Create or update a registered runtime worktree**
+- [ ] **Step 1: Verify the service cannot start or install**
 
-Create the runtime checkout from the exact verified OWNEST commit. Do not reuse `/Users/phill-mac/Unite-Group-runner`. Preserve the existing `.env.local` by copying it without printing and retain its restrictive file mode.
+The wrapper must exit `78` before environment/configuration access. The installer
+must reject every mode except `--uninstall`; there is no dry-run or
+verified-commit installation path.
 
-Expected: `git -C /Users/phill-mac/Unite-Group-OWNEST status --short --branch` identifies a registered worktree at the verified commit.
-
-- [ ] **Step 2: Build and install with the live switch still off**
+- [ ] **Step 2: Remove a stale service if present**
 
 ```bash
-cd /Users/phill-mac/Unite-Group-OWNEST/apps/autopilot-runner
+cd apps/autopilot-runner
+bash scripts/install-ownest-service.sh --uninstall
+```
+
+Expected: `in.unite-group.ownest` is absent from launchd, any plist is archived,
+and the log is retained. No worker is started.
+
+### Current containment task 6: Keep OWNEST in design/test verification
+
+- [ ] **Step 1: Run package verification without production configuration**
+
+```bash
+cd apps/autopilot-runner
 npm ci
 npm test
 npm run type-check
 npm run build
-CC_OWNEST_LIVE=0 node dist/ownest-tick.js
-bash scripts/install-ownest-service.sh
 ```
 
-Expected: tests/build pass, the live-off smoke test still runs one reconcile-first sweep, the LaunchAgent is loaded live-off, and no new CRM/Hermes mission is admitted or created. Any pre-existing managed mission remains subject to CRM cancellation, STOP, lease, and terminal-state repair.
+Expected: tests prove reconcile-first state transitions, the isolation gate
+rejects production live configuration, an absolute Hermes path is validated as
+a contract input, and the default independent verifier rejects completion. The
+build must emit only `dist/container/index.js`; there is no built worker to
+invoke and no real service-role credential may be supplied to this package.
 
-### Task 6: Execute one low-risk advisory canary
+- [ ] **Step 2: Record configuration evidence accurately**
 
-**Files:**
-- Modify at runtime: `/Users/phill-mac/Unite-Group-OWNEST/.env.local`
-- Write through worker: founder-scoped CRM events/evidence and one Hermes mirror task
+`hermes --profile ownest config check` and `hermes --profile ownest moa list` may
+prove only profile shape. They do not prove a service is running, a Max plan is
+being consumed, remaining capacity, independent validation, or spend authority.
 
-- [ ] **Step 1: Pin canary controls**
+### Future architecture gate 7: Specify the replacement before any canary
 
-Set without printing secret values:
+A future canary requires a new reviewed design with all of these controls:
 
-```text
-CC_OWNEST_LIVE=1
-CC_OWNEST_CANARY_LIMIT=1
-CC_OWNEST_MAX_IN_PROGRESS=1
-CC_OWNEST_DAILY_DISPATCH_LIMIT=1
-CC_OWNEST_LEASE_MS=300000
-CC_OWNEST_HERMES_PROFILE=ownest
-CC_OWNEST_HERMES_BOARD=unite-group-ownest
-```
+- a dedicated OS UID and sealed HOME/workspace;
+- a pinned, integrity-checked Hermes executable;
+- brokered operation-scoped CRM credentials rather than a reusable service role
+  visible to the child;
+- enforceable filesystem, process, network-egress, and tool policy;
+- a separately operated completion verifier that independently retrieves
+  evidence and validates artifact digests/model-family separation;
+- observable scheduling, overlap prevention, STOP/rollback proof, and a
+  founder-approved one-task admission packet.
 
-Expected: one new dispatch maximum for the day.
-
-- [ ] **Step 2: Trigger one bounded tick and capture evidence**
-
-```bash
-cd /Users/phill-mac/Unite-Group-OWNEST/apps/autopilot-runner
-node dist/ownest-tick.js
-hermes --profile ownest kanban list --board unite-group-ownest --json --sort created-desc
-```
-
-Expected: exactly one eligible low-risk advisory CRM task receives one Hermes mirror ID and one started event. No second task is created.
-
-- [ ] **Step 3: Reconcile to terminal evidence**
-
-Allow launchd ticks to continue. Inspect CRM task, task events, evidence record, Hermes task JSON, service log, and gateway health.
-
-Pass criteria:
-
-- deterministic idempotency key;
-- one Hermes task only;
-- current lease/heartbeat while live;
-- terminal status matches Hermes;
-- evidence is written before CRM `done`;
-- no secret/PII appears in body, output, or logs;
-- no production/spend/external/destructive action occurs.
-
-### Task 7: Prove the stop/restore path and keep widening gated
-
-**Files:**
-- Restore source: `~/.hermes/change-backups/2026-07-12-ownest-moa/`
-
-- [x] **Step 0: Minimise and attest the OWNEST profile environment**
-
-Run `apps/autopilot-runner/scripts/sanitize-ownest-profile-env.sh`, retain the printed private backup path, and verify `hermes --profile ownest config check` plus `hermes --profile ownest moa list`. The profile must contain exactly one OpenRouter route, no direct Anthropic credential, and no unrelated CRM, payment, social, email, source-control, or deployment credential before the canary is armed.
-
-Local evidence on 2026-07-12: the sanitizer retained 13 allowlisted assignments and removed 68; the resulting profile and rollback backup are owner-only mode 600; `config check`, `moa list`, and gateway status passed. No value was emitted. This completes the credential prerequisite only—it does not arm a canary or authorise spend.
-
-- [ ] **Step 1: Test the OWNEST stop path**
-
-Turn `CC_OWNEST_LIVE` off, block or cancel the CRM canary, run one bounded live-off reconciliation, verify its Hermes projection is stopped or safely dead-lettered, then unload `in.unite-group.ownest`. Verify no new mirror appears during a two-minute observation window.
-
-Expected: admission closes immediately, the active projection reaches a verified safe stop before the worker unloads, total stop completes within one minute, and existing CRM evidence remains intact.
-
-- [ ] **Step 2: Test the Hermes configuration rollback without deleting evidence**
-
-```bash
-cp -p "$HOME/.hermes/change-backups/2026-07-12-ownest-moa/default-config.yaml" "$HOME/.hermes/config.yaml"
-cp -p "$HOME/.hermes/change-backups/2026-07-12-ownest-moa/empire-config.yaml" "$HOME/.hermes/profiles/empire/config.yaml"
-hermes gateway restart
-hermes gateway status
-```
-
-Expected: prior models/settings restored and gateway healthy. Reapply the verified cutover only after this drill passes.
-
-- [ ] **Step 3: Produce a widening decision packet**
-
-Do not widen in this cut. After the canary and rollback proof are clean, record measured reliability, duplication, receipt, stop, latency, token/provider, and cost evidence in CRM for a new Board decision. Any later approved widening applies only to `ownest`; it must not change the default or Empire queue limits.
-
-Expected: live limits remain `1`, every hard action gate remains unchanged, and the widening packet is evidence only—not an implicit runtime authorisation.
+Until those controls pass adversarial review, `CC_OWNEST_LIVE=1` remains blocked,
+no canary is run, and no widening packet can treat profile authentication as
+execution evidence.

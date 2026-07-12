@@ -1,14 +1,28 @@
 # OWNEST One-Canary Hardening Amendment
 
-**Date:** 2026-07-12  
-**Status:** Board-approved for build; always-on execution remains disarmed  
+**Date:** 2026-07-12
+**Status:** Historical canary contract; live execution is now blocked by the
+superseding dedicated-UID and independent-verifier requirements
 **Applies to:** `2026-07-12-crm-hermes-ownership-control-plane-design.md`
 
-## Decision
+> **Superseding security boundary:** This amendment still defines the desired
+> one-task semantics, but it is not activation authority. The user-level
+> LaunchAgent is retired, `CC_OWNEST_LIVE=1` is rejected by current production
+> configuration, and the default independent verifier rejects completion. A new
+> reviewed runtime design must satisfy the isolation and verification controls
+> in the current OWNEST runbook before this canary contract can be reconsidered.
+> The current build emits only the container refusal tombstone; there is no
+> OWNEST command or host artifact. The retired sanitizer's historic same-UID
+> plaintext rollback copies also require founder-authorised credential migration
+> before any credential-bearing autonomy can be reconsidered.
 
-The first live proof is one explicitly nominated, low-risk advisory CRM task on one host, pinned to profile `ownest` and board `unite-group-ownest`. It is not a general queue worker and it is not an always-on rollout.
+## Historical decision
 
-Required runtime controls:
+The historical contract proposed one explicitly nominated, low-risk advisory
+CRM task on one isolated host, pinned to profile `ownest` and board
+`unite-group-ownest`. It did not authorise a general queue worker or always-on rollout.
+
+Proposed runtime controls, retained as design evidence only:
 
 - `CC_OWNEST_LIVE=1` only for the bounded canary window;
 - a required, persistent `CC_OWNEST_ROLLOUT_ID`;
@@ -45,7 +59,9 @@ The canary guarantee is an at-most-one admission for the lifetime of the rollout
 - the UTC daily quota counts the half-open interval from `00:00:00Z` to the next midnight;
 - restarting the process or changing worker identity does not reset either quota.
 
-The host lock prevents local overlap but is not the correctness boundary. CRM compare-and-set remains authoritative.
+The historical host-lock proposal prevented local overlap but was never a
+security or correctness boundary. No host worker is currently emitted; any
+future distributed correctness boundary remains CRM compare-and-set.
 
 ## Completion receipt
 
@@ -94,7 +110,9 @@ Before every Hermes operation, recompute the mission digest and confirm the CRM 
 
 The in-flight stop path uses fixed arguments on the pinned board to reclaim the active Hermes task, verifies termination, removes its assignee to prevent redispatch, and archives the projection. An unconfirmed local or remote worker termination is a dead letter and is never automatically recreated.
 
-`CC_OWNEST_LIVE=0` is an admission kill switch. It prevents new claims; it does not by itself terminate a mission already running in Hermes. Runtime emergency stop remains a service-manager operation, not a PID kill.
+In the historical contract, `CC_OWNEST_LIVE=0` was an admission kill switch, not
+an in-flight stop. The current package has no service-manager or worker surface;
+exact `1` is rejected and the wrappers refuse execution.
 
 ## Promotion gate
 
