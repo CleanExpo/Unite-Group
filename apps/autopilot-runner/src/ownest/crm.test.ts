@@ -663,25 +663,87 @@ describe('getOwnedTask', () => {
 })
 
 describe('listManagedTasks', () => {
-  it('returns hardened claimed work including a running task with no Hermes mirror yet', async () => {
-    const claimed = task({
+  function managedTask(index: number): CcTask {
+    const id = `task-${String(index).padStart(4, '0')}`
+    return task({
+      id,
       status: 'running',
-      metadata: { ownest: hardenedOwnestState('task-1', null) },
+      metadata: { ownest: hardenedOwnestState(id, null) },
     })
-    const fetchImpl = mockFetch(jsonResponse([claimed]))
+  }
 
-    await expect(listManagedTasks(config, deps(fetchImpl))).resolves.toEqual([claimed])
+  it('returns every hardened claimed row through stable bounded pagination', async () => {
+    const firstPage = Array.from({ length: 50 }, (_, index) => managedTask(index))
+    const secondPage = Array.from({ length: 51 }, (_, index) => managedTask(index + 50))
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(countResponse('0-0/101'))
+      .mockResolvedValueOnce(jsonResponse(firstPage))
+      .mockResolvedValueOnce(jsonResponse(secondPage))
+      .mockResolvedValueOnce(countResponse('0-0/101'))
 
-    const { url, init } = firstRequest(fetchImpl)
-    expect(url.pathname).toBe('/rest/v1/cc_tasks')
-    expect(url.searchParams.get('select')).toBe(TASK_COLUMNS)
-    expect(url.searchParams.get('founder_id')).toBe(`eq.${config.founderId}`)
-    expect(url.searchParams.get('status')).toBe(
+    await expect(listManagedTasks(config, deps(fetchImpl))).resolves.toEqual([
+      ...firstPage,
+      ...secondPage,
+    ])
+
+    const requests = fetchImpl.mock.calls.map(([input, init]) => ({
+      url: new URL(String(input)),
+      init,
+    }))
+    const reads = requests.filter(({ init }) => init?.method === 'GET')
+    const attestations = requests.filter(({ init }) => init?.method === 'HEAD')
+    expect(requests).toHaveLength(4)
+    expect(reads).toHaveLength(2)
+    expect(attestations).toHaveLength(2)
+    expect(reads[0]?.url.pathname).toBe('/rest/v1/cc_tasks')
+    expect(reads[0]?.url.searchParams.get('select')).toBe(TASK_COLUMNS)
+    expect(reads[0]?.url.searchParams.get('founder_id')).toBe(`eq.${config.founderId}`)
+    expect(reads[0]?.url.searchParams.get('status')).toBe(
       'in.(running,blocked,awaiting_approval,failed)',
     )
-    expect(url.searchParams.get('metadata->ownest->>version')).toBe('eq.1')
-    expect(url.searchParams.get('limit')).toBe('100')
-    expect(init.method).toBe('GET')
+    expect(reads[0]?.url.searchParams.get('metadata->ownest->>version')).toBe('eq.1')
+    expect(reads.map(({ url }) => url.searchParams.get('order'))).toEqual([
+      'created_at.asc,id.asc',
+      'created_at.asc,id.asc',
+    ])
+    expect(reads.map(({ url }) => url.searchParams.get('limit'))).toEqual(['100', '51'])
+    expect(reads.map(({ url }) => url.searchParams.get('offset'))).toEqual(['0', '50'])
+    expect(
+      attestations.every(({ init }) => new Headers(init?.headers).get('prefer') === 'count=exact'),
+    ).toBe(true)
+  })
+
+  it('fails closed when pagination repeats or moves backwards', async () => {
+    const firstPage = Array.from({ length: 100 }, (_, index) => managedTask(index))
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(countResponse('0-0/101'))
+      .mockResolvedValueOnce(jsonResponse(firstPage))
+      .mockResolvedValueOnce(jsonResponse([managedTask(50)]))
+
+    await expect(listManagedTasks(config, deps(fetchImpl))).rejects.toThrow(/pagination|order/i)
+  })
+
+  it('fails closed instead of truncating when the managed-task hard cap is exceeded', async () => {
+    const fetchImpl = mockFetch(countResponse('0-0/501'))
+
+    await expect(listManagedTasks(config, deps(fetchImpl))).rejects.toThrow(/hard cap|overflow/i)
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+    expect(firstRequest(fetchImpl).init.method).toBe('HEAD')
+  })
+
+  it('fails closed when the exact managed-task count changes during pagination', async () => {
+    const firstPage = Array.from({ length: 100 }, (_, index) => managedTask(index))
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(countResponse('0-0/101'))
+      .mockResolvedValueOnce(jsonResponse(firstPage))
+      .mockResolvedValueOnce(jsonResponse([managedTask(100)]))
+      .mockResolvedValueOnce(countResponse('0-0/100'))
+
+    await expect(listManagedTasks(config, deps(fetchImpl))).rejects.toThrow(/count|changed|drift/i)
   })
 
   it.each([
@@ -714,7 +776,10 @@ describe('listManagedTasks', () => {
       task({ status: 'done', metadata: { ownest: hardenedOwnestState('task-1') } }),
     ],
   ])('fails closed for a %s row', async (_label, row) => {
-    const fetchImpl = mockFetch(jsonResponse([row]))
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(countResponse('0-0/1'))
+      .mockResolvedValueOnce(jsonResponse([row]))
 
     await expect(listManagedTasks(config, deps(fetchImpl))).rejects.toThrow()
   })
@@ -732,7 +797,7 @@ describe('persistent claim quotas', () => {
     expect(url.searchParams.get('select')).toBe('id')
     expect(url.searchParams.get('founder_id')).toBe(`eq.${config.founderId}`)
     expect(url.searchParams.get('metadata->ownest->>rolloutId')).toBe(`eq.${rolloutId}`)
-    expect(url.searchParams.get('metadata->ownest->>claimedAt')).toBe('not.is.null')
+    expect(url.searchParams.has('metadata->ownest->>claimedAt')).toBe(false)
     expect(url.searchParams.has('status')).toBe(false)
     expect(url.toString()).toContain('rollout%3A2026.07_12-test')
     expect(init.method).toBe('HEAD')
@@ -765,8 +830,8 @@ describe('persistent claim quotas', () => {
   )
 
   it('counts a half-open UTC claim interval with two injection-safe timestamp filters', async () => {
-    const fromIso = '2026-07-12T00:00:00+10:00'
-    const toIso = '2026-07-13T00:00:00+10:00'
+    const fromIso = '2026-07-12T00:00:00.000Z'
+    const toIso = '2026-07-13T00:00:00.000Z'
     const fetchImpl = mockFetch(countResponse('0-0/3'))
 
     await expect(countDailyClaims(fromIso, toIso, config, deps(fetchImpl))).resolves.toBe(3)
@@ -779,7 +844,7 @@ describe('persistent claim quotas', () => {
       `lt.${toIso}`,
     ])
     expect(url.searchParams.has('status')).toBe(false)
-    expect(url.toString()).toContain('%2B10%3A00')
+    expect(url.toString()).toContain('2026-07-12T00%3A00%3A00.000Z')
     expect(init.method).toBe('HEAD')
     expect(new Headers(init.headers).get('prefer')).toBe('count=exact')
     expect(new Headers(init.headers).get('range')).toBe('0-0')
@@ -800,6 +865,15 @@ describe('persistent claim quotas', () => {
     ],
     ['equal bounds', '2026-07-12T00:00:00.000Z', '2026-07-12T00:00:00.000Z'],
     ['reversed bounds', '2026-07-13T00:00:00.000Z', '2026-07-12T00:00:00.000Z'],
+    [
+      'offset bounds',
+      '2026-07-12T00:00:00.000+10:00',
+      '2026-07-13T00:00:00.000+10:00',
+    ],
+    ['missing milliseconds', '2026-07-12T00:00:00Z', '2026-07-13T00:00:00Z'],
+    ['non-midnight from', '2026-07-12T00:00:00.001Z', '2026-07-13T00:00:00.000Z'],
+    ['non-midnight to', '2026-07-12T00:00:00.000Z', '2026-07-13T00:00:00.001Z'],
+    ['two-day interval', '2026-07-12T00:00:00.000Z', '2026-07-14T00:00:00.000Z'],
   ])('rejects %s before fetch', async (_label, fromIso, toIso) => {
     const fetchImpl = mockFetch(countResponse('*/0', 200))
 
@@ -815,12 +889,23 @@ describe('persistent claim quotas', () => {
     ['wrong returned range', '1-1/2'],
     ['leading-zero total', '0-0/01'],
     ['over-safe total', '0-0/9007199254740992'],
+    ['overlong header', `0-0/1${'x'.repeat(10_000)}`],
   ])('rejects a %s Content-Range count', async (_label, contentRange) => {
     const fetchImpl = mockFetch(countResponse(contentRange))
 
     await expect(countRolloutClaims('rollout-count-test', config, deps(fetchImpl))).rejects.toThrow(
       /count|content-range/i,
     )
+  })
+
+  it('rejects an overlong digit count before invoking BigInt', async () => {
+    const bigint = vi.spyOn(globalThis, 'BigInt')
+    const fetchImpl = mockFetch(countResponse(`0-0/${'9'.repeat(10_000)}`))
+
+    await expect(countRolloutClaims('rollout-count-test', config, deps(fetchImpl))).rejects.toThrow(
+      /count|content-range/i,
+    )
+    expect(bigint).not.toHaveBeenCalled()
   })
 
   it('rejects non-2xx count responses through the shared redacted request boundary', async () => {
@@ -1275,22 +1360,22 @@ describe('createCrmClient', () => {
     await client.appendTaskEvent({ taskId: 'task-1', type: 'started' })
     await client.appendEvidence({ taskId: 'task-1', wikiPath: 'Wiki/OWNEST/task-1.md' })
 
-    expect(fetchImpl).toHaveBeenCalledTimes(9)
+    expect(fetchImpl).toHaveBeenCalledTimes(10)
     for (const [, init] of fetchImpl.mock.calls) {
       expect(init?.redirect).toBe('error')
     }
-    for (const [input] of fetchImpl.mock.calls.slice(0, 7)) {
+    for (const [input] of fetchImpl.mock.calls.slice(0, 8)) {
       const url = new URL(String(input))
       expect(url.pathname).toBe('/rest/v1/cc_tasks')
       expect(url.searchParams.get('founder_id')).toBe(`eq.${config.founderId}`)
     }
     expect(
-      new URL(String(fetchImpl.mock.calls[4]?.[0])).searchParams.get(
+      new URL(String(fetchImpl.mock.calls[5]?.[0])).searchParams.get(
         'metadata->ownest->>rolloutId',
       ),
     ).toBe('eq.rollout-client-test')
     expect(
-      new URL(String(fetchImpl.mock.calls[5]?.[0])).searchParams.getAll(
+      new URL(String(fetchImpl.mock.calls[6]?.[0])).searchParams.getAll(
         'metadata->ownest->>claimedAt',
       ),
     ).toEqual([

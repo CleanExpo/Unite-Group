@@ -1,6 +1,10 @@
 import { StringDecoder } from 'node:string_decoder'
 import { isDeepStrictEqual } from 'node:util'
-import { extractHardenedOwnestState, extractOwnestState } from './policy.js'
+import {
+  extractHardenedOwnestState,
+  extractOwnestState,
+  isCanonicalUtcTimestamp,
+} from './policy.js'
 import type {
   AppendOwnestEventInput,
   AppendOwnestEvidenceInput,
@@ -15,11 +19,14 @@ import type {
 const REQUEST_TIMEOUT_MS = 10_000
 const ERROR_DETAIL_LIMIT = 800
 const TASK_LIMIT = 100
+const MANAGED_TASK_HARD_CAP = 500
 const SUCCESS_RESPONSE_BODY_LIMIT = 1024 * 1024
 const ERROR_RESPONSE_BODY_LIMIT = 64 * 1024
 const OUTBOUND_JSON_BODY_LIMIT = 256 * 1024
 const MAX_JSON_DEPTH = 64
 const MAX_SAFE_COUNT = BigInt(Number.MAX_SAFE_INTEGER)
+const MAX_EXACT_COUNT_CONTENT_RANGE_LENGTH = `0-0/${Number.MAX_SAFE_INTEGER}`.length
+const UTC_DAY_MS = 24 * 60 * 60 * 1000
 
 const TASK_COLUMNS = [
   'id',
@@ -601,9 +608,15 @@ async function getTaskRows(
 
 function parseExactCount(response: Response): number {
   const contentRange = response.headers.get('content-range')
+  if (
+    contentRange === null ||
+    contentRange.length > MAX_EXACT_COUNT_CONTENT_RANGE_LENGTH
+  ) {
+    throw new Error('CRM exact count response has an invalid Content-Range')
+  }
   if (contentRange === '*/0') return 0
 
-  const match = /^0-0\/([1-9][0-9]*)$/.exec(contentRange ?? '')
+  const match = /^0-0\/([1-9][0-9]*)$/.exec(contentRange)
   if (!match?.[1]) throw new Error('CRM exact count response has an invalid Content-Range')
 
   const count = BigInt(match[1])
@@ -705,22 +718,78 @@ export async function getOwnedTask(
 
 /** Reads every founder-owned task governed by the hardened OWNEST state machine. */
 export async function listManagedTasks(config: OwnestConfig, deps: CrmDeps): Promise<CcTask[]> {
-  const params = new URLSearchParams()
-  params.set('select', TASK_SELECT)
-  params.set('founder_id', `eq.${config.founderId}`)
-  params.set('status', 'in.(running,blocked,awaiting_approval,failed)')
-  params.set('metadata->ownest->>version', 'eq.1')
-  params.set('limit', String(TASK_LIMIT))
+  const countParams = new URLSearchParams()
+  countParams.set('select', 'id')
+  countParams.set('founder_id', `eq.${config.founderId}`)
+  countParams.set('status', 'in.(running,blocked,awaiting_approval,failed)')
+  countParams.set('metadata->ownest->>version', 'eq.1')
 
-  const rows = await getTaskRows('Failed to list managed CRM tasks', config, deps, params)
-  for (const row of rows) {
-    if (!MANAGED_TASK_STATUSES.has(row.status)) {
-      throw new Error('Managed CRM response contained a task outside the managed status set')
+  const expectedCount = await countTaskRows(
+    'Failed to attest managed CRM task count',
+    config,
+    deps,
+    countParams,
+  )
+  if (expectedCount > MANAGED_TASK_HARD_CAP) {
+    throw new Error('Managed CRM task read exceeded the hard cap')
+  }
+
+  const rows: CcTask[] = []
+  let previous: CcTask | null = null
+
+  while (rows.length < expectedCount) {
+    const requestLimit = Math.min(TASK_LIMIT, expectedCount - rows.length)
+    const params = new URLSearchParams()
+    params.set('select', TASK_SELECT)
+    params.set('founder_id', `eq.${config.founderId}`)
+    params.set('status', 'in.(running,blocked,awaiting_approval,failed)')
+    params.set('metadata->ownest->>version', 'eq.1')
+    params.set('order', 'created_at.asc,id.asc')
+    params.set('limit', String(requestLimit))
+    params.set('offset', String(rows.length))
+
+    const page = await getTaskRows('Failed to list managed CRM tasks', config, deps, params)
+    if (page.length === 0) {
+      throw new Error('Managed CRM pagination ended before the attested count')
     }
-    if (!extractHardenedOwnestState(row.metadata, row.id)) {
-      throw new Error('Managed CRM response contained invalid hardened OWNEST state')
+    if (page.length > requestLimit) {
+      throw new Error('Managed CRM pagination exceeded the requested page size')
+    }
+
+    for (const row of page) {
+      if (!MANAGED_TASK_STATUSES.has(row.status)) {
+        throw new Error('Managed CRM response contained a task outside the managed status set')
+      }
+      if (!extractHardenedOwnestState(row.metadata, row.id)) {
+        throw new Error('Managed CRM response contained invalid hardened OWNEST state')
+      }
+
+      if (previous) {
+        const previousCreatedAt = Date.parse(previous.created_at)
+        const createdAt = Date.parse(row.created_at)
+        if (
+          createdAt < previousCreatedAt ||
+          (createdAt === previousCreatedAt && row.id <= previous.id)
+        ) {
+          throw new Error('Managed CRM pagination returned duplicate or out-of-order rows')
+        }
+      }
+
+      rows.push(row)
+      previous = row
     }
   }
+
+  const confirmedCount = await countTaskRows(
+    'Failed to confirm managed CRM task count',
+    config,
+    deps,
+    countParams,
+  )
+  if (confirmedCount !== expectedCount) {
+    throw new Error('Managed CRM task count changed during pagination')
+  }
+
   return rows
 }
 
@@ -738,7 +807,6 @@ export async function countRolloutClaims(
   params.set('select', 'id')
   params.set('founder_id', `eq.${config.founderId}`)
   params.set('metadata->ownest->>rolloutId', `eq.${rolloutId}`)
-  params.set('metadata->ownest->>claimedAt', 'not.is.null')
 
   return countTaskRows('Failed to count CRM rollout claims', config, deps, params)
 }
@@ -750,11 +818,16 @@ export async function countDailyClaims(
   config: OwnestConfig,
   deps: CrmDeps,
 ): Promise<number> {
-  if (!isIsoTimestamp(fromIso) || !isIsoTimestamp(toIso)) {
-    throw new Error('CRM daily claim count requires valid ISO timestamp bounds')
+  if (
+    !isCanonicalUtcTimestamp(fromIso) ||
+    !isCanonicalUtcTimestamp(toIso) ||
+    !fromIso.endsWith('T00:00:00.000Z') ||
+    !toIso.endsWith('T00:00:00.000Z')
+  ) {
+    throw new Error('CRM daily claim count requires canonical UTC midnight bounds')
   }
-  if (Date.parse(fromIso) >= Date.parse(toIso)) {
-    throw new Error('CRM daily claim count requires an increasing half-open interval')
+  if (Date.parse(toIso) - Date.parse(fromIso) !== UTC_DAY_MS) {
+    throw new Error('CRM daily claim count requires exactly one UTC day')
   }
 
   const params = new URLSearchParams()

@@ -157,6 +157,7 @@ const HARD_ACTION_TARGET_BOUNDARIES = [
 
 const ISO_TIMESTAMP =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(Z|[+-](\d{2}):(\d{2}))$/
+const CANONICAL_UTC_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
 
 const SECRET_LABEL_SOURCE = String.raw`[A-Z0-9_-]{0,48}(?:API[-_ ]?(?:KEY|TOKEN)|SECRET[-_ ]?ACCESS[-_ ]?KEY|ACCESS[-_ ]?(?:KEY|TOKEN)|AUTH[-_ ]?TOKEN|REFRESH[-_ ]?TOKEN|ID[-_ ]?TOKEN|CLIENT[-_ ]?SECRET|SERVICE[-_ ]?ROLE[-_ ]?KEY|SECRET|TOKEN|PASSWORD|PASSWD|CREDENTIAL)[A-Z0-9_-]{0,32}`
 const CLI_SECRET_FLAG_SOURCE = String.raw`--[A-Z0-9_-]{0,32}(?:API[-_]?KEY|API[-_]?TOKEN|SECRET[-_]?ACCESS[-_]?KEY|ACCESS[-_]?(?:KEY|TOKEN)|CLIENT[-_]?SECRET|SERVICE[-_]?ROLE[-_]?KEY|SECRET|TOKEN|PASSWORD|PASSWD|CREDENTIAL)[A-Z0-9_-]{0,16}`
@@ -239,6 +240,14 @@ function isIsoTimestamp(value: unknown): value is string {
   }
 
   return Number.isFinite(Date.parse(value))
+}
+
+/** Accepts only the exact millisecond UTC form persisted for claim accounting. */
+export function isCanonicalUtcTimestamp(value: unknown): value is string {
+  if (typeof value !== 'string' || !CANONICAL_UTC_TIMESTAMP.test(value)) return false
+
+  const parsed = new Date(value)
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString() === value
 }
 
 function isNullableIsoTimestamp(value: unknown): value is string | null {
@@ -360,7 +369,7 @@ export function extractOwnestState(metadata: unknown, expectedTaskId: string): O
     return null
   }
 
-  if (hasOwn(value, 'claimedAt') && !isIsoTimestamp(claimedAt)) return null
+  if (hasOwn(value, 'claimedAt') && !isCanonicalUtcTimestamp(claimedAt)) return null
   if (hasOwn(value, 'rolloutId') && !isSafeOwnestToken(rolloutId)) return null
   if (hasOwn(value, 'integrityNonce') && !isIntegrityNonce(integrityNonce)) return null
   if (hasOwn(value, 'missionDigest') && !isHmacSha256Digest(missionDigest)) return null

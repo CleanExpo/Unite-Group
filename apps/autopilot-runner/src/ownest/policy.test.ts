@@ -646,6 +646,10 @@ describe('extractOwnestState', () => {
   it.each([
     ['claimedAt', null],
     ['claimedAt', '2026-02-30T00:00:00Z'],
+    ['claimedAt', '2026-07-12T10:00:00.000+10:00'],
+    ['claimedAt', '2026-07-12T00:00:00Z'],
+    ['claimedAt', '2026-07-12T00:00:00.00Z'],
+    ['claimedAt', '2026-07-12T00:00:00.0000Z'],
     ['rolloutId', 'bad rollout'],
     ['rolloutId', `r${'x'.repeat(128)}`],
     ['integrityNonce', 'a'.repeat(62)],
