@@ -213,6 +213,25 @@ describe('evaluateEligibility', () => {
     })
   })
 
+  it.each([
+    'Research payment options, then pay the supplier invoice',
+    'Research credential storage, then retrieve the API key',
+    'Research user roles, then elevate Alice to admin',
+    'Research access-control options, then revoke permissions',
+    'Research branch protection, then enable the main branch',
+    'Research release options, then release to production',
+    'Research announcements, then broadcast to customers',
+    'Research cleanup options, then truncate the database',
+    'Research payment options; charge the supplier account',
+    'Research the release path, deploy to production',
+    'Research review options and then land pull request 42',
+  ])('rejects an advisory-prefixed hard-boundary sequence: %s', (title) => {
+    expect(evaluateEligibility(task({ title }))).toEqual({
+      eligible: false,
+      reason: 'dangerous-language',
+    })
+  })
+
   it('gates mission text over the explicit input bound before matching', () => {
     expect(evaluateEligibility(task({ title: 'a'.repeat(MISSION_TEXT_LIMIT + 1), objective: '' }))).toEqual({
       eligible: false,

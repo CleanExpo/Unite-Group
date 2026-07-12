@@ -6,8 +6,6 @@ export const MAX_MISSION_TEXT_LENGTH = 16 * 1024
 
 const CLEAR_ADVISORY_INTENT =
   /^\s*(?:research|document|review|analyse|analyze|compare|study|assess|summarise|summarize|explain|audit)\b/i
-const MIXED_ACTION_SEQUENCE =
-  /\b(?:then|next|afterwards|subsequently)\b[\s,:;-]{0,16}(?:perform|run|apply|execute|migrate|deploy|mutate|write|change|notify|email|send|publish|post|share|message|copy|expose|disclose|rotate|access|reveal|grant|make|promote|escalate|remove|delete|purge|wipe|drop|destroy|unprotect|disable|update|modify|merge|land|integrate)\b/i
 
 const PAYMENT_BOUNDARY =
   /\b(?:pay|payment|payments|purchase|buy|checkout|spend|invoice|charge|refund|transfer funds?|billing)\b/i
@@ -51,6 +49,28 @@ const MERGE_TARGET =
   /\b(?:pull request|pull requests|pr|prs|change request|change requests|feature|changes|branch|branches|commit|commits|code)\b/i
 const MERGE_ACTION_REQUEST =
   /^\s*(?:please[ \t]+)?(?:merge|land|integrate)\b|\b(?:can|could|would)[ \t]+(?:you|we)[ \t]+(?:merge|land|integrate)\b|\b(?:must|should|need|needs)[ \t]+(?:to[ \t]+)?(?:be[ \t]+)?(?:merge(?:d)?|land(?:ed)?|integrat(?:e|ed))\b/i
+
+const MIXED_BOUNDARY_ACTION_CLASSIFIERS = [
+  PAYMENT_BOUNDARY,
+  OUTBOUND_ACTION,
+  OUTBOUND_NOMINAL_ACTION,
+  PRODUCTION_ACTION,
+  PRODUCTION_NOMINAL_ACTION,
+  CREDENTIAL_ACTION,
+  PRIVILEGE_ACTION,
+  CREDENTIAL_NOMINAL_ACTION,
+  DESTRUCTIVE_ACTION,
+  ACCESS_CONTROL_ACTION,
+  BRANCH_PROTECTION_ACTION,
+  MERGE_ACTION,
+] as const
+const MIXED_BOUNDARY_ACTION_SOURCE = MIXED_BOUNDARY_ACTION_CLASSIFIERS.map(
+  (classifier) => `(?:${classifier.source})`,
+).join('|')
+const MIXED_ACTION_SEQUENCE = new RegExp(
+  `(?:\\b(?:and[ \\t]+)?then\\b|[,;])[ \\t,:;-]{0,24}(?:${MIXED_BOUNDARY_ACTION_SOURCE})`,
+  'i',
+)
 
 const ISO_TIMESTAMP =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/
