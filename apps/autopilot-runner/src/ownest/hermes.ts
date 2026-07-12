@@ -170,7 +170,9 @@ function decodeCompleteUtf8Prefix(bytes: Buffer): string {
 
 function boundedReason(detail: string, existing: string, maxBytes: number): string {
   const reason = Buffer.from(`[ownest] ${detail}`)
-  if (reason.byteLength >= maxBytes) return reason.subarray(0, maxBytes).toString('utf8')
+  if (reason.byteLength >= maxBytes) {
+    return decodeCompleteUtf8Prefix(reason.subarray(0, maxBytes))
+  }
 
   const separator = existing ? Buffer.from('\n') : Buffer.alloc(0)
   const remaining = maxBytes - reason.byteLength - separator.byteLength

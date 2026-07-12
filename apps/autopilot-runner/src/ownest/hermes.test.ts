@@ -775,6 +775,29 @@ describe('Hermes process failures', () => {
     expect(result.stderr).toContain('spawn failed')
   })
 
+  it('decodes a byte-truncated child-error reason as a complete UTF-8 prefix', async () => {
+    const { child, events } = fakeChildProcess()
+    const run = createProcessRunner(
+      {
+        timeoutMs: 1_000,
+        stdoutMaxBytes: 128,
+        stderrMaxBytes: 18,
+        killGraceMs: 25,
+      },
+      () => child,
+    )
+    const pending = run('missing-hermes', [], process.cwd())
+
+    events.emit('error', new Error('€'))
+    events.emit('close', null, null)
+    const result = await pending
+
+    expect(result.exitCode).toBe(-1)
+    expect(result.stderr).toBe('[ownest] Error: ')
+    expect(result.stderr).not.toContain('\uFFFD')
+    expect(Buffer.byteLength(result.stderr)).toBeLessThanOrEqual(18)
+  })
+
   it.each([
     ['create', (client: ReturnType<typeof createHermesClient>) => client.createMission(task())],
     ['show', (client: ReturnType<typeof createHermesClient>) => client.showMission('hermes-1')],
