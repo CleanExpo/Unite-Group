@@ -253,6 +253,21 @@ This workload is the proving ground for the general skill factory, not a one-off
 - Add one orchestration skill only where no existing skill owns rights-aware discovery, normalisation, provenance, similarity, and reference-pack generation end to end.
 - Use Apify, Firecrawl, and Exa together by role; they are not three redundant first choices.
 
+### Verified Synthex foundation
+
+Read-only inspection on 12 July 2026 confirms that Synthex already contains the implementation substrate:
+
+- `scripts/marketing-agency-apify-intelligence.ts` runs selected Actors and records run/dataset outcomes;
+- `lib/auto-research/apify/client.ts` is the shared typed Actor/dataset adapter;
+- `lib/marketing-agency/research/apify-intelligence.ts` normalises and ranks creative records;
+- `lib/marketing-agency/intelligence/apify-signal-adapter.ts` maps them into governed signals;
+- `apify-client` and `@mendable/firecrawl-js` are locked dependencies;
+- the Apify token passes a non-secret live identity check and is present in Synthex's Development, Preview, and Production Vercel environments.
+
+This is still incomplete for the Foundry. The current creative record has no actor/run/dataset identity, licence or terms evidence, content checksum, media type/dimensions, rights class, retention decision, or exact/near-duplicate identity. Its `permissionContext: 'public'` assignment is inferred from visibility and is not sufficient rights evidence. The existing social Actor list must therefore be re-approved per actor, price, input schema, target terms, and intended use before any run.
+
+Firecrawl code is installed and used elsewhere in Synthex, but no Firecrawl credential was found in the inspected local or Vercel environment names. No Exa package or credential was found in Synthex, and Hermes also reports Exa as unconfigured. Choice 1 therefore remains the target router—Apify for durable Actor runs/datasets, Firecrawl for stable extraction, Exa for discovery/highlights—but Firecrawl and Exa must report `blocked_unconfigured` until an already-owned credential is connected. Browser/plain HTTPS remains the no-new-spend fallback. No paid Actor was run during discovery.
+
 ### Pipeline
 
 1. turn industry, job, asset type, audience, locale, style, constraints, and desired learning into a reference brief;
