@@ -1,13 +1,20 @@
 /**
  * Bulcs Holdings — Professional SEO & Digital Presence Audit (7+ pages)
- * Run: SEMRUSH_API_KEY=8a9cd10576ea2e989b0d8945b6e1ce56 node scripts/generate-bulcs-pro-audit.mjs
+ * Run: SEMRUSH_API_KEY=<your-semrush-key> node scripts/generate-bulcs-pro-audit.mjs
  */
 
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { writeFileSync } from 'fs';
 
-const SEMRUSH_KEY = process.env.SEMRUSH_API_KEY || '8a9cd10576ea2e989b0d8945b6e1ce56';
+const SEMRUSH_KEY = process.env.SEMRUSH_API_KEY;
+if (!SEMRUSH_KEY) {
+  console.error(
+    'SEMRUSH_API_KEY is not set. Refusing to run without a key. ' +
+      'Set SEMRUSH_API_KEY in the environment and retry.',
+  );
+  process.exit(1);
+}
 const OUTPUT = '/tmp/bulcs-holdings-professional-audit.pdf';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
