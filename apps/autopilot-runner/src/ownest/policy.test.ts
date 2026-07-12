@@ -217,12 +217,20 @@ describe('evaluateEligibility', () => {
   })
 
   it.each([
+    'Research performance. The local benchmark should be run',
+    'Review the evidence. The analysis should be performed against cited sources',
+    'Research deployment policy. The strategy should be updated with current guidance',
+  ])('allows target-free passive advisory work: %s', (title) => {
+    expect(evaluateEligibility(task({ title }))).toEqual({ eligible: true })
+  })
+
+  it.each([
     'Research trends. Payment to the supplier',
     'Research merge options. The approved changes must be merged',
     'Research payment options. The supplier should be paid',
     'Research publication options. The report needs to be published',
     'Research outbound options. The report must be sent',
-    'Research deployment options. The release should be deployed',
+    'Research deployment options. The release should be deployed to production',
     'Research cleanup options. The records need to be deleted',
   ])('gates actionable clauses after an advisory introduction: %s', (title) => {
     expect(evaluateEligibility(task({ title }))).toEqual({

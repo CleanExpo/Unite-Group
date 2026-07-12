@@ -76,11 +76,17 @@ const HARD_BOUNDARY_ACTION_CLASSIFIERS = [
   BRANCH_PROTECTION_ACTION,
   MERGE_ACTION,
 ] as const
-const HARD_BOUNDARY_ACTION_SOURCE = HARD_BOUNDARY_ACTION_CLASSIFIERS.map(
+const UNCONDITIONAL_DIRECTED_ACTION_CLASSIFIERS = [
+  PAYMENT_ACTION,
+  OUTBOUND_ACTION,
+  DESTRUCTIVE_ACTION,
+  MERGE_ACTION,
+] as const
+const UNCONDITIONAL_DIRECTED_ACTION_SOURCE = UNCONDITIONAL_DIRECTED_ACTION_CLASSIFIERS.map(
   (classifier) => `(?:${classifier.source})`,
 ).join('|')
 const DIRECTED_HARD_ACTION_REQUEST = new RegExp(
-  `\\b(?:must|should|needs?)\\b[ \\t]+(?:to[ \\t]+)?(?:be[ \\t]+)?(?:${HARD_BOUNDARY_ACTION_SOURCE})`,
+  `\\b(?:must|should|needs?)\\b[ \\t]+(?:to[ \\t]+)?(?:be[ \\t]+)?(?:${UNCONDITIONAL_DIRECTED_ACTION_SOURCE})`,
   'i',
 )
 const MIXED_BOUNDARY_ACTION_CLASSIFIERS = [
