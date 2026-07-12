@@ -1,60 +1,33 @@
 #!/bin/bash
-# Install the Hermes presence heartbeat as a macOS LaunchAgent so it auto-starts
-# on login, restarts if it dies (KeepAlive), and survives reboots / terminal exit.
-#
-#   bash apps/autopilot-runner/scripts/install-heartbeat-service.sh
-#
-# Idempotent: re-running rewrites + reloads the plist. Uninstall:
-#   launchctl unload ~/Library/LaunchAgents/in.unite-group.hermes-heartbeat.plist
-#   rm ~/Library/LaunchAgents/in.unite-group.hermes-heartbeat.plist
-#
-# No secrets are written to the plist — the wrapper sources them from .env.local.
+# Uninstall-only boundary for the retired service-role presence LaunchAgent.
+
 set -euo pipefail
+umask 077
 
-LABEL="in.unite-group.hermes-heartbeat"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-RUNNER_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-WRAPPER="$SCRIPT_DIR/heartbeat-launchd.sh"
-NODE_BIN="$(command -v node)"
-NODE_DIR="$(dirname "$NODE_BIN")"
-LOG="$HOME/Library/Logs/hermes-heartbeat.log"
-PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
+readonly LABEL='in.unite-group.hermes-heartbeat'
+readonly DOMAIN="gui/$(id -u)"
+readonly PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
+readonly LOG="$HOME/Library/Logs/hermes-heartbeat.log"
 
-echo "Building the runner…"
-( cd "$RUNNER_DIR" && npm run build >/dev/null )
+if [ "${1:-}" != '--uninstall' ] || [ "$#" -ne 1 ]; then
+  printf '%s\n' 'Hermes heartbeat installation is unavailable: use --uninstall only.' >&2
+  printf '%s\n' 'Required replacement: a brokered least-privilege heartbeat that never exposes a CRM service-role key to an agent process.' >&2
+  exit 78
+fi
 
-mkdir -p "$HOME/Library/LaunchAgents" "$HOME/Library/Logs"
+/bin/launchctl bootout "$DOMAIN/$LABEL" 2>/dev/null || true
+if /bin/launchctl print "$DOMAIN/$LABEL" >/dev/null 2>&1; then
+  printf '%s\n' 'Hermes heartbeat LaunchAgent is still loaded; plist was not archived.' >&2
+  exit 1
+fi
 
-cat > "$PLIST" <<PLIST_EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key><string>$LABEL</string>
-  <key>ProgramArguments</key>
-  <array>
-    <string>/bin/bash</string>
-    <string>$WRAPPER</string>
-  </array>
-  <key>RunAtLoad</key><true/>
-  <key>KeepAlive</key><true/>
-  <key>ThrottleInterval</key><integer>15</integer>
-  <key>StandardOutPath</key><string>$LOG</string>
-  <key>StandardErrorPath</key><string>$LOG</string>
-  <key>EnvironmentVariables</key>
-  <dict>
-    <key>PATH</key><string>$NODE_DIR:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
-  </dict>
-</dict>
-</plist>
-PLIST_EOF
-
-echo "Wrote $PLIST"
-
-# Reload (unload if already present, then load).
-launchctl unload "$PLIST" 2>/dev/null || true
-launchctl load "$PLIST"
-
-echo "Loaded LaunchAgent: $LABEL"
-echo "Logs: $LOG"
-echo "Status: launchctl list | grep $LABEL"
+if [ -f "$PLIST" ]; then
+  archive_dir="$HOME/Library/LaunchAgents.disabled-$(date -u +%Y%m%dT%H%M%SZ)-hermes-heartbeat"
+  mkdir -p "$archive_dir"
+  chmod 700 "$archive_dir"
+  mv "$PLIST" "$archive_dir/"
+  printf 'Unloaded and archived: %s\n' "$archive_dir/$LABEL.plist"
+else
+  printf 'LaunchAgent already absent: %s\n' "$LABEL"
+fi
+printf 'Log retained: %s\n' "$LOG"

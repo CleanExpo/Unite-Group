@@ -107,7 +107,10 @@ function makeFakeDb() {
                 order: orderLimit.order,
                 single() {
                   const matched = run()
-                  return Promise.resolve({ data: matched[0] ?? null, error: matched[0] ? null : { message: 'no row' } })
+                  return Promise.resolve({
+                    data: matched[0] ?? null,
+                    error: matched[0] ? null : { code: 'PGRST116', message: 'no row' },
+                  })
                 },
               }
               return chain

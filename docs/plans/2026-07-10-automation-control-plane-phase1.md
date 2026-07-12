@@ -1,4 +1,14 @@
-# Phase 1 — Automation Control-Plane Cleanup
+# Superseded historical plan — Phase 1 Automation Control-Plane Cleanup
+
+> **SUPERSEDED — DO NOT EXECUTE THE INSTALL OR ROLLOUT COMMANDS BELOW.** This
+> file preserves the 2026-07-10 plan as audit history. The operator-jobs worker
+> and installer were subsequently permanently retired and now refuse before
+> reading configuration, credentials, files, Node, or network. CRM remains the
+> authority, but no live OWNEST executor is emitted by `apps/autopilot-runner`;
+> its build produces only the retirement refusal container. Current runtime and
+> credential boundaries are documented in
+> [`apps/autopilot-runner/README.md`](../../apps/autopilot-runner/README.md) and
+> [`docs/security/credential-concentration-remediation-2026-07-12.md`](../security/credential-concentration-remediation-2026-07-12.md).
 
 **Date:** 10/07/2026
 **Branch:** `fix/automation-control-plane-phase1`
@@ -99,7 +109,7 @@ Phase 1 is complete when the repository has:
 - Invoke the bookkeeper route once through the authorised production path and require one of: `200 completed`, `207 partial`, `409 already running`, or an honest `500`; a transport `200` with body status `failed` is a rollback condition.
 - Observe for 24 hours before proceeding.
 
-### Batch 2 — local operator backstop
+### Historical Batch 2 — retired local operator backstop (do not execute)
 
 - Rebuild and install the canonical LaunchAgent only after Batch 1 remains healthy:
 

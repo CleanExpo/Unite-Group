@@ -32,7 +32,6 @@ const PORTFOLIO_REPOS = [
   "RestoreAssist",
   "CARSI",
   "Unite-Group",
-  "Unite-Hub",
   "Synthex",
   "CCW-CRM",
 ] as const;
@@ -141,7 +140,7 @@ const server = new McpServer(
     {
       name: "get-portfolio-health",
       description:
-        "Get a snapshot of CI health across all 10 Unite-Group portfolio repos on the main branch. Returns per-repo latest-run conclusion + rolling-10 failure count. Read-only. No external mutations.",
+        "Get a snapshot of CI health across the current Unite-Group portfolio repositories on the main branch. Returns per-repo latest-run conclusion + rolling-10 failure count. Read-only. No external mutations.",
       inputSchema: {},
       annotations: {
         readOnlyHint: true,

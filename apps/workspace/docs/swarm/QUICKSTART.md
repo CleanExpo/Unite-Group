@@ -6,7 +6,7 @@ This quickstart gets a local Hermes Workspace checkout running, confirms profile
 
 You need:
 
-- Node.js 22+
+- Node.js >=24.14.1 <25
 - pnpm
 - git
 - tmux for persistent TUI-backed workers

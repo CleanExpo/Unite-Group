@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Hermes Workspace — one-liner installer
+# Hermes Workspace — verified installer
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/outsourc-e/hermes-workspace/main/install.sh | bash
+#   git clone https://github.com/outsourc-e/hermes-workspace.git
+#   bash hermes-workspace/install.sh
 #
 # What it does:
-#   1. Verifies Node 22+, git, pnpm
+#   1. Verifies Node >=24.14.1 <25, git, pnpm
 #   2. Installs hermes-agent via Nous's official upstream installer
 #   3. Clones hermes-workspace
 #   4. Sets up .env, enables the Hermes API server, installs deps,
@@ -15,10 +16,19 @@
 
 set -euo pipefail
 
+SCRIPT_PATH="$(/usr/bin/perl -MCwd=realpath -e 'print realpath($ARGV[0])' "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="${SCRIPT_PATH%/*}"
+PINNED_HELPER="$SCRIPT_DIR/scripts/install-pinned-hermes.sh"
+PINNED_HELPER_REAL="$(/usr/bin/perl -MCwd=realpath -e 'print realpath($ARGV[0])' "$PINNED_HELPER" 2>/dev/null || true)"
+if [[ -z "$PINNED_HELPER_REAL" || "$PINNED_HELPER_REAL" != "$PINNED_HELPER" || ! -f "$PINNED_HELPER" ]]; then
+  printf 'Trusted pinned Hermes installer helper could not be resolved.\n' >&2
+  exit 1
+fi
 REPO_URL="${REPO_URL:-https://github.com/outsourc-e/hermes-workspace.git}"
 INSTALL_DIR="${INSTALL_DIR:-$HOME/hermes-workspace}"
 GATEWAY_PORT="${GATEWAY_PORT:-8642}"
-NOUS_INSTALLER_URL="${NOUS_INSTALLER_URL:-https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh}"
+REQUIRED_NODE_RANGE=">=24.14.1 <25"
+PNPM_VERSION="9.15.0"
 
 # ─── helpers ──────────────────────────────────────────────────────────────
 
@@ -30,6 +40,34 @@ bold()   { printf "\033[1m%s\033[0m\n" "$*"; }
 
 need() { command -v "$1" &>/dev/null || { red "Missing: $1"; red "$2"; exit 1; }; }
 
+check_node_range() {
+  node -e '
+    const [major, minor, patch] = process.versions.node.split(".").map(Number)
+    if (major !== 24 || minor < 14 || (minor === 14 && patch < 1)) process.exit(1)
+  '
+}
+
+ensure_pnpm() {
+  local installed=""
+  if command -v pnpm &>/dev/null; then
+    installed="$(pnpm --version 2>/dev/null || true)"
+  fi
+  [[ "$installed" == "$PNPM_VERSION" ]] && return 0
+
+  if command -v corepack &>/dev/null; then
+    corepack enable >/dev/null 2>&1 || true
+    corepack prepare "pnpm@$PNPM_VERSION" --activate >/dev/null
+    hash -r
+    installed="$(pnpm --version 2>/dev/null || true)"
+    [[ "$installed" == "$PNPM_VERSION" ]] && return 0
+  fi
+
+  need npm "Install npm with Node $REQUIRED_NODE_RANGE: https://nodejs.org/"
+  npm install -g "pnpm@$PNPM_VERSION"
+  hash -r
+  [[ "$(pnpm --version 2>/dev/null || true)" == "$PNPM_VERSION" ]]
+}
+
 banner() {
   cat <<'EOF'
 
@@ -39,16 +77,6 @@ banner() {
    ╰────────────────────────────────────────────╯
 
 EOF
-}
-
-# ensure_path: prepend a dir to PATH for this shell if it's not already there
-ensure_path() {
-  local candidate="$1"
-  [[ -d "$candidate" ]] || return 0
-  case ":$PATH:" in
-    *":$candidate:"*) ;;
-    *) export PATH="$candidate:$PATH" ;;
-  esac
 }
 
 ensure_env_key() {
@@ -88,10 +116,9 @@ ensure_env_key() {
 banner
 cyan "→ Checking prerequisites…"
 
-need node "Install Node 22+: https://nodejs.org/"
-node_major=$(node -v | sed -E 's/v([0-9]+).*/\1/')
-if [[ "$node_major" -lt 22 ]]; then
-  red "Node $node_major detected; need 22+."
+need node "Install Node $REQUIRED_NODE_RANGE: https://nodejs.org/"
+if ! check_node_range; then
+  red "Node $(node -v) detected; need $REQUIRED_NODE_RANGE."
   exit 1
 fi
 green "  Node $(node -v) ✓"
@@ -102,11 +129,11 @@ green "  git $(git --version | awk '{print $3}') ✓"
 need curl "Install curl (usually: apt install curl / brew install curl)"
 green "  curl ✓"
 
-if ! command -v pnpm &>/dev/null; then
-  yellow "  pnpm not found — installing via corepack…"
-  corepack enable 2>/dev/null || npm install -g pnpm
+if ! ensure_pnpm; then
+  red "Unable to activate pnpm $PNPM_VERSION."
+  exit 1
 fi
-green "  pnpm $(pnpm --version) ✓"
+green "  pnpm $(pnpm --version) ✓ (pinned)"
 
 # ─── install hermes-agent (delegate to Nous upstream installer) ──────────
 # hermes-agent is NOT on PyPI. It installs from source via Nous's own
@@ -114,31 +141,28 @@ green "  pnpm $(pnpm --version) ✓"
 # only need to ensure `hermes` ends up on PATH before continuing.
 
 cyan "→ Installing hermes-agent (via Nous upstream installer)…"
-# Pick up hermes if it was installed in a prior run but not on PATH yet
-ensure_path "$HOME/.hermes/bin"
-ensure_path "$HOME/.local/bin"
-
-if command -v hermes &>/dev/null; then
-  green "  hermes-agent already installed ✓ ($(command -v hermes))"
-else
-  yellow "  Delegating to: $NOUS_INSTALLER_URL"
-  if ! curl -fsSL "$NOUS_INSTALLER_URL" | bash; then
-    red "  Nous installer failed. See its output above for details."
-    red "  You can retry manually:"
-    red "    curl -fsSL $NOUS_INSTALLER_URL | bash"
-    exit 1
-  fi
-  # Nous typically installs `hermes` to ~/.hermes/bin or ~/.local/bin
-  ensure_path "$HOME/.hermes/bin"
-  ensure_path "$HOME/.local/bin"
-  if ! command -v hermes &>/dev/null; then
-    red "  hermes-agent installed, but 'hermes' is not on PATH in this shell."
-    yellow "  Open a new shell (or: source ~/.bashrc / ~/.zshrc) and re-run:"
-    yellow "    curl -fsSL https://hermes-workspace.com/install.sh | bash"
-    exit 1
-  fi
-  green "  hermes-agent installed ✓ ($(command -v hermes))"
+if ! /bin/bash "$PINNED_HELPER"; then
+  red "  Verified Nous installer failed. See its output above for details."
+  exit 1
 fi
+# Correlate the command this script will use with the exact regular launcher
+# attested by install-pinned-hermes.sh; never accept an earlier PATH alias.
+if [[ -f "$HOME/.local/bin/hermes" && ! -L "$HOME/.local/bin/hermes" ]]; then
+  EXPECTED_HERMES_LAUNCHER="$HOME/.local/bin/hermes"
+elif [[ -f /usr/local/bin/hermes && ! -L /usr/local/bin/hermes ]]; then
+  EXPECTED_HERMES_LAUNCHER="/usr/local/bin/hermes"
+else
+  red "  Attested Hermes launcher is unavailable."
+  exit 1
+fi
+export PATH="${EXPECTED_HERMES_LAUNCHER%/*}:$PATH"
+hash -r
+resolved_hermes="$(command -v hermes 2>/dev/null || true)"
+if [[ "$resolved_hermes" != "$EXPECTED_HERMES_LAUNCHER" ]]; then
+  red "  Hermes command does not match the attested launcher."
+  exit 1
+fi
+green "  hermes-agent installed and commit-attested ✓ ($resolved_hermes)"
 
 # ─── clone workspace ──────────────────────────────────────────────────────
 
@@ -166,10 +190,10 @@ ensure_env_key "$INSTALL_DIR/.env" "HERMES_API_URL" "http://127.0.0.1:${GATEWAY_
 green "  .env ready ✓"
 
 cyan "→ Enabling Hermes API server…"
-HERMES_ENV_PATH="$(hermes config env-path 2>/dev/null || true)"
-if [[ -z "$HERMES_ENV_PATH" ]]; then
-  HERMES_ENV_PATH="$HOME/.hermes/.env"
-fi
+# The pinned helper installs with the canonical user-scoped HERMES_HOME. Avoid
+# executing even the attested CLI during installation; write only its canonical
+# environment file and leave runtime execution to the operator.
+HERMES_ENV_PATH="$HOME/.hermes/.env"
 ensure_env_key "$HERMES_ENV_PATH" "API_SERVER_ENABLED" "true"
 green "  Hermes env updated: $HERMES_ENV_PATH ✓"
 
@@ -179,12 +203,12 @@ green "  Hermes env updated: $HERMES_ENV_PATH ✓"
 # ignored, which produces a "gateway starts but API server never binds"
 # failure that's hard to diagnose from the UI.
 if [[ -f "$HERMES_ENV_PATH" ]]; then
-  SUSPICIOUS=$(grep -E "^(API[A-Z]+|HERMES[A-Z]+)=" "$HERMES_ENV_PATH" 2>/dev/null \
-    | grep -vE "^(API_|HERMES_)" || true)
-  if [[ -n "$SUSPICIOUS" ]]; then
+  SUSPICIOUS_KEYS=$(grep -E "^(API[A-Z]+|HERMES[A-Z]+)=" "$HERMES_ENV_PATH" 2>/dev/null \
+    | grep -vE "^(API_|HERMES_)" | cut -d= -f1 || true)
+  if [[ -n "$SUSPICIOUS_KEYS" ]]; then
     yellow ""
     yellow "⚠  Found env var names missing underscores in $HERMES_ENV_PATH:"
-    echo "$SUSPICIOUS" | sed 's/^/      /'
+    printf '%s\n' "$SUSPICIOUS_KEYS" | sed 's/^/      /'
     yellow "   The gateway reads names with underscores (API_SERVER_ENABLED,"
     yellow "   not APISERVERENABLED). These lines will be silently ignored."
     yellow "   Fix them and run: hermes gateway run --replace"
@@ -192,8 +216,8 @@ if [[ -f "$HERMES_ENV_PATH" ]]; then
   fi
 fi
 
-cyan "→ Installing npm deps (pnpm install)…"
-pnpm install --silent
+cyan "→ Installing npm deps (pnpm install --frozen-lockfile)…"
+pnpm install --frozen-lockfile --silent
 green "  deps installed ✓"
 
 # ─── seed Hermes skills (Conductor needs workspace-dispatch) ─────────────

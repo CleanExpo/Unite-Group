@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1@sha256:87999aa3d42bdc6bea60565083ee17e86d1f3339802f543c0d03998580f9cb89
 
 # Dockerfile for a Skybridge MCP server.
 #
@@ -6,7 +6,7 @@
 # (For bun or deno, adapt the install/build/prune commands below.)
 
 # Build stage: install deps, compile the app, then prune dev deps.
-FROM node:24-slim AS build
+FROM node:24.14.1-slim@sha256:b506e7321f176aae77317f99d67a24b272c1f09f1d10f1761f2773447d8da26c AS build
 WORKDIR /app
 
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./
@@ -35,7 +35,7 @@ RUN if [ -f package-lock.json ]; then \
     fi
 
 # Runtime stage: copy built artifacts and prod deps, run as non-root.
-FROM node:24-slim AS runtime
+FROM node:24.14.1-slim@sha256:b506e7321f176aae77317f99d67a24b272c1f09f1d10f1761f2773447d8da26c AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 

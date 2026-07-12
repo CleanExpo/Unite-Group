@@ -8,7 +8,7 @@ name: unite-group-sandbox
 
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
     container_name: ug-sandbox-db
     environment:
       POSTGRES_DB: unite_group_sandbox
@@ -27,7 +27,7 @@ services:
       - sandbox
 
   redis:
-    image: redis:7-alpine
+    image: redis:7-alpine@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99
     container_name: ug-sandbox-redis
     ports:
       - "64796:6379"

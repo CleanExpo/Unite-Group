@@ -1,13 +1,21 @@
 ---
 type: spec
-status: code-complete + verified 2026-06-30 — awaiting founder turn-on
+status: superseded 2026-07-12 — local presence writer permanently retired
 created: 2026-06-28
 author: SPM
 ---
 
-# Web CC ↔ gateway bridge (Phase 2)
+# Superseded historical spec — Web CC ↔ gateway bridge (Phase 2)
 
-## Verification record (2026-06-30) `[VERIFIED this session]`
+> **SUPERSEDED — DO NOT EXECUTE THE TURN-ON STEPS BELOW.** This file preserves
+> the 2026-06-30 design and verification record only. The local presence writer,
+> its source, and its LaunchAgent were subsequently deleted; `start-presence.sh`
+> is now a refusal tombstone. Do not place a production Supabase service-role key
+> in a user profile or attempt to recreate this bridge. Current truth is recorded
+> in [`apps/autopilot-runner/README.md`](../../apps/autopilot-runner/README.md) and
+> [`docs/security/credential-concentration-remediation-2026-07-12.md`](../security/credential-concentration-remediation-2026-07-12.md).
+
+## Historical verification record (2026-06-30) `[VERIFIED then; runtime now deleted]`
 
 Both sides of the bridge exist and pass tests in the deps-complete checkout:
 - **Read side** — `apps/web/src/lib/operator-gateway/presence.ts` (`getGatewayConnection`) +
@@ -44,7 +52,7 @@ existing **presence heartbeat**, which crosses the boundary via Supabase:
 
 No gateway port is exposed; the agent only makes outbound HTTPS to Supabase.
 
-## Turn-on (founder-gated)
+## Retired historical turn-on (do not execute)
 
 1. Set in `~/.hermes/.env` (prod values): `SUPABASE_URL` (lksfwktwtmyznckodsau),
    `SUPABASE_SERVICE_ROLE_KEY`, `FOUNDER_USER_ID`. (`HERMES_API_URL` defaults to :8642.)

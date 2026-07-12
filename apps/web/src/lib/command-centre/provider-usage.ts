@@ -52,16 +52,10 @@ export interface PlanSeat {
 
 /** Static catalogue — identity + routing role only. No secrets. */
 export const PROVIDERS: ProviderConfig[] = [
-  { id: 'claude', label: 'Claude Max', planType: 'Max subscription', resetCadence: '5h rolling', bestUseLane: 'deep_reasoning', fallback: 'openai', envKeys: ['ANTHROPIC_API_KEY', 'CLAUDE_API_KEY'], seats: [
-    { id: 'claude_max_1', label: 'Claude Max #1' },
-    { id: 'claude_max_2', label: 'Claude Max #2' },
-    { id: 'claude_max_3', label: 'Claude Max #3' },
-  ] },
-  { id: 'openai', label: 'OpenAI Max', planType: 'Max plan', resetCadence: 'monthly', bestUseLane: 'coding', fallback: 'claude', envKeys: ['OPENAI_API_KEY'], seats: [
-    { id: 'codex_max_1', label: 'OpenAI Codex Max' },
-  ] },
-  { id: 'minimax', label: 'MiniMax Max', planType: 'Max subscription', resetCadence: 'daily', bestUseLane: 'video_media', fallback: 'gemini', envKeys: ['MINIMAX_API_KEY'] },
-  { id: 'gemini', label: 'Google Gemini', planType: 'Plan', resetCadence: 'per-minute + daily', bestUseLane: 'fast_drafting', fallback: 'openrouter', envKeys: ['GEMINI_API_KEY', 'GOOGLE_API_KEY', 'GOOGLE_GENERATIVE_AI_API_KEY'] },
+  { id: 'claude', label: 'Anthropic API', planType: 'Metered API route', resetCadence: 'provider limits', bestUseLane: 'deep_reasoning', fallback: 'openai', envKeys: ['ANTHROPIC_API_KEY'] },
+  { id: 'openai', label: 'OpenAI API', planType: 'Metered API route', resetCadence: 'provider limits', bestUseLane: 'coding', fallback: 'claude', envKeys: ['OPENAI_API_KEY'] },
+  { id: 'minimax', label: 'MiniMax API', planType: 'Metered API route', resetCadence: 'provider limits', bestUseLane: 'video_media', fallback: 'gemini', envKeys: ['MINIMAX_API_KEY'] },
+  { id: 'gemini', label: 'Gemini API', planType: 'Metered API route', resetCadence: 'provider limits', bestUseLane: 'fast_drafting', fallback: 'openrouter', envKeys: ['GEMINI_API_KEY', 'GOOGLE_API_KEY', 'GOOGLE_GENERATIVE_AI_API_KEY'] },
   { id: 'openrouter', label: 'OpenRouter', planType: 'Credits', resetCadence: 'credit balance', bestUseLane: 'fallback_aggregator', fallback: null, envKeys: ['OPENROUTER_API_KEY'] },
 ]
 
@@ -110,7 +104,7 @@ export interface ProviderCockpitPayload {
   routing: RoutingHint[]
 }
 
-const USABLE_STATES: ReadonlySet<ProviderState> = new Set(['available', 'watching', 'unknown'])
+const USABLE_STATES: ReadonlySet<ProviderState> = new Set(['available', 'watching'])
 
 function clamp01(n: number): number {
   if (Number.isNaN(n)) return 0
@@ -130,7 +124,7 @@ export function deriveProviderState(signal: ProviderSignal): Derived {
       state: 'blocked',
       truthLevel: signal.truth ?? 'unavailable',
       usagePct: null,
-      missingSetupReason: signal.blockedReason ?? 'Plan/API key not configured',
+      missingSetupReason: signal.blockedReason ?? 'API route not configured or attested',
     }
   }
   if (signal.blockedReason) {
@@ -138,7 +132,12 @@ export function deriveProviderState(signal: ProviderSignal): Derived {
   }
   if (signal.usagePressure === undefined) {
     // Configured, but no usage telemetry available.
-    return { state: 'unknown', truthLevel: signal.truth ?? 'unavailable', usagePct: null, missingSetupReason: null }
+    return {
+      state: 'unknown',
+      truthLevel: signal.truth ?? 'unavailable',
+      usagePct: null,
+      missingSetupReason: 'Runtime usage telemetry unavailable',
+    }
   }
   const p = clamp01(signal.usagePressure)
   const usagePct = Math.round(p * 100)
@@ -168,7 +167,7 @@ function recommendForLane(lane: UseLane, entries: Map<ProviderId, ProviderCockpi
     }
     cursor = PROVIDERS.find((p) => p.id === cursor)?.fallback ?? null
   }
-  return { lane, recommended: null, reason: 'all candidates near-limit or blocked' }
+  return { lane, recommended: null, reason: 'no candidate has usable runtime telemetry' }
 }
 
 export interface BuildProviderCockpitInput {

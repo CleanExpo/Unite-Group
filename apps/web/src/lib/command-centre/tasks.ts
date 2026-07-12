@@ -149,17 +149,35 @@ export const CC_TASKS_TABLE = 'cc_tasks'
 export const CC_TASK_EVENTS_TABLE = 'cc_task_events'
 export const CC_EVIDENCE_RECORDS_TABLE = 'cc_evidence_records'
 
+interface SupabaseErrorLike {
+  message: string
+  code?: string
+}
+
+export class TaskStoreError extends Error {
+  constructor(
+    operation: string,
+    error: SupabaseErrorLike,
+  ) {
+    super(`${operation} failed: ${error.message}`)
+    this.name = 'TaskStoreError'
+    this.code = error.code ?? null
+  }
+
+  readonly code: string | null
+}
+
 // A minimal structural type for the Supabase client we depend on, so the
 // accessors are testable with a mock and don't pull the full generated types.
 export interface SupabaseLike {
   from(table: string): {
     insert(values: unknown): {
-      select(columns?: string): { single(): Promise<{ data: unknown; error: { message: string } | null }> }
+      select(columns?: string): { single(): Promise<{ data: unknown; error: SupabaseErrorLike | null }> }
     }
     update(values: unknown): {
       eq(column: string, value: unknown): {
         eq(column: string, value: unknown): {
-          select(columns?: string): { single(): Promise<{ data: unknown; error: { message: string } | null }> }
+          select(columns?: string): { single(): Promise<{ data: unknown; error: SupabaseErrorLike | null }> }
         }
       }
     }
@@ -167,12 +185,12 @@ export interface SupabaseLike {
       eq(column: string, value: unknown): {
         eq(column: string, value: unknown): {
           order(column: string, opts: { ascending: boolean }): {
-            limit(n: number): Promise<{ data: unknown; error: { message: string } | null }>
+            limit(n: number): Promise<{ data: unknown; error: SupabaseErrorLike | null }>
           }
-          single(): Promise<{ data: unknown; error: { message: string } | null }>
+          single(): Promise<{ data: unknown; error: SupabaseErrorLike | null }>
         }
         order(column: string, opts: { ascending: boolean }): {
-          limit(n: number): Promise<{ data: unknown; error: { message: string } | null }>
+          limit(n: number): Promise<{ data: unknown; error: SupabaseErrorLike | null }>
         }
       }
     }
@@ -216,8 +234,63 @@ export async function createTask(
   }
 
   const { data, error } = await db.from(CC_TASKS_TABLE).insert(row).select('*').single()
-  if (error) throw new Error(`createTask failed: ${error.message}`)
+  if (error) throw new TaskStoreError('createTask', error)
   return data as CommandCentreTask
+}
+
+export interface GetTaskByExternalRefInput {
+  founderId: string
+  externalRef: string
+}
+
+/** Exact, founder-scoped lookup used by idempotent producers. */
+export async function getTaskByExternalRef(
+  input: GetTaskByExternalRefInput,
+  client?: SupabaseLike,
+): Promise<CommandCentreTask | null> {
+  const db = client ?? ((await createClient()) as unknown as SupabaseLike)
+  const { data, error } = await db
+    .from(CC_TASKS_TABLE)
+    .select('*')
+    .eq('founder_id', input.founderId)
+    .eq('external_ref', input.externalRef)
+    .single()
+  if (error?.code === 'PGRST116') return null
+  if (error) throw new TaskStoreError('getTaskByExternalRef', error)
+  return (data as CommandCentreTask | null) ?? null
+}
+
+export interface CreateTaskOnceResult {
+  task: CommandCentreTask
+  created: boolean
+}
+
+/**
+ * Uses the schema's UNIQUE(founder_id, external_ref) constraint as the atomic
+ * deduplication boundary. A losing concurrent insert reuses the winner by an
+ * exact key lookup; no capped list scan or process-local lock is involved.
+ */
+export async function createTaskOnce(
+  input: CreateTaskInput,
+  client?: SupabaseLike,
+): Promise<CreateTaskOnceResult> {
+  if (!input.externalRef) {
+    return { task: await createTask(input, client), created: true }
+  }
+
+  try {
+    return { task: await createTask(input, client), created: true }
+  } catch (error) {
+    if (!(error instanceof TaskStoreError) || error.code !== '23505') throw error
+    const existing = await getTaskByExternalRef(
+      { founderId: input.founderId, externalRef: input.externalRef },
+      client,
+    )
+    if (!existing) {
+      throw new Error('createTaskOnce lost the unique-key winner before it could be read')
+    }
+    return { task: existing, created: false }
+  }
 }
 
 /**

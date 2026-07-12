@@ -1,24 +1,25 @@
-# Scoped Pi-CEO workspace
+# Scoped Pi-CEO reference workspace
 
-@../Unite-Hub/.portfolio/PORTFOLIO.yaml
+> `apps/empire` is retained inside the canonical Unite-Group monorepo for
+> historical Pi-CEO/Margot reference. New product work belongs in `apps/web`.
+> The canonical portfolio registry is `../../.portfolio/PORTFOLIO.yaml`.
 
 ## Identity (SSOT)
-**Canonical name:** Authority-Site
+**Historical name:** Authority-Site
 **Aliases this project answers to:** "Empire Command Center", "CEO Dashboard", "Synthex Authority Hub", "Unite-Group Dashboard", "Empire", "Authority Site"
-**Canonical local path:** `D:\Authority-Site`
-**Access via:** `D:\Unite-Group\Authority-Site` (junction)
+**Canonical local path:** `apps/empire/` within the current Unite-Group checkout
 **GitHub:** `CleanExpo/Unite-Group`
 
-> **Sibling product:** Unite-Hub (the CRM at `D:\Unite-Hub`) is a SEPARATE product.
-> If the user says "Unite-Group" or "Unite Group" generically, they MOST LIKELY mean Unite-Hub (the CRM).
-> Only operate in THIS project if the user references Empire, CEO dashboard, Pi-CEO, or portfolio metrics.
->
-> Registry: see `D:\Unite-Hub\.portfolio\PORTFOLIO.yaml` (the single source of truth for both products).
+> Unite-Hub is deleted; `apps/web` is the CRM and command-centre authority. Only
+> operate in this retained reference app when the task explicitly names Empire,
+> legacy Pi-CEO material, or a porting comparison.
 
 ---
 
-This is an isolated autonomous workspace. Only read and edit files
-inside this directory. Do not walk upward into parent directories.
+This is a scoped historical workspace. Only edit it when a task explicitly
+targets retained Empire/Pi-CEO reference material; new CRM/product work belongs
+in `apps/web`. Follow the monorepo root instructions and do not infer authority
+from the former standalone layout.
 
 ## Database changes — Supabase branching (load-bearing)
 

@@ -1,73 +1,89 @@
-import { NextResponse } from 'next/server'
-import { getUser, createClient } from '@/lib/supabase/server'
-import { createIssue } from '@/lib/integrations/linear'
-import { buildWorkPacket, createPacketLinearWork, type WorkPacketRequest } from '@/lib/command-centre/work-packet'
+import { NextResponse } from "next/server";
+import { getUser, createClient } from "@/lib/supabase/server";
+import {
+  buildWorkPacket,
+  parseWorkPacketRequest,
+  planPacketLinearProjection,
+} from "@/lib/command-centre/work-packet";
 import {
   saveWorkPacket,
   listWorkPackets,
   type ListWorkPacketsFilter,
-} from '@/lib/command-centre/work-packet-store'
-import type { PacketStatus } from '@/lib/command-centre/work-packet'
-import type { SupabaseLike } from '@/lib/command-centre/tasks'
+} from "@/lib/command-centre/work-packet-store";
+import type { PacketStatus } from "@/lib/command-centre/work-packet";
+import type { SupabaseLike } from "@/lib/command-centre/tasks";
 
 // UNI-2147 — Mission Control work generator. Founder-auth. Builds an execution
 // packet from a plain request, persists it (so it survives a restart / approval
-// round-trip), and returns it + the (dry-run) Linear issue input. Live Linear
-// creation is gated by CC_LINEAR_LIVE; the dry-run path makes no call.
+// round-trip), and returns it + a plan-only Linear projection input. This route
+// has no Linear write dependency.
 // GET lists the founder's durable packets.
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic";
 
-const PACKET_STATUSES: PacketStatus[] = ['draft', 'routed', 'running', 'blocked', 'awaiting_approval', 'completed']
+const PACKET_STATUSES: PacketStatus[] = [
+  "draft",
+  "routed",
+  "running",
+  "blocked",
+  "awaiting_approval",
+  "completed",
+];
 
 export async function POST(request: Request) {
-  const user = await getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+  const user = await getUser();
+  if (!user)
+    return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
 
-  let body: WorkPacketRequest
+  let rawBody: unknown;
   try {
-    body = (await request.json()) as WorkPacketRequest
+    rawBody = await request.json();
   } catch {
-    return NextResponse.json({ error: 'invalid_body' }, { status: 400 })
+    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
   }
-  if (!body || typeof body.outcome !== 'string' || body.outcome.trim().length === 0) {
-    return NextResponse.json({ error: 'outcome_required' }, { status: 400 })
+  const parsed = parseWorkPacketRequest(rawBody);
+  if (!parsed.ok) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
-  const packet = buildWorkPacket(body, { now: new Date().toISOString() })
-  const result = await createPacketLinearWork(packet, { createIssue }, { live: true })
+  const packet = buildWorkPacket(parsed.value, { now: new Date().toISOString() });
+  const result = planPacketLinearProjection(packet);
 
   // Persist the (possibly Linear-stamped) packet so it is durable. Read back
   // through the store so the response reflects exactly what was stored.
-  const db = (await createClient()) as unknown as SupabaseLike
-  const saved = await saveWorkPacket(db, user.id, result.packet)
+  const db = (await createClient()) as unknown as SupabaseLike;
+  const saved = await saveWorkPacket(db, user.id, result.packet);
 
   return NextResponse.json(
     { ...result, packet: saved },
-    { headers: { 'Cache-Control': 'no-store' } },
-  )
+    { headers: { "Cache-Control": "no-store" } },
+  );
 }
 
 export async function GET(request: Request) {
-  const user = await getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+  const user = await getUser();
+  if (!user)
+    return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
 
-  const url = new URL(request.url)
-  const statusParam = url.searchParams.get('status')
-  const projectKey = url.searchParams.get('projectKey') ?? undefined
-  const limitParam = url.searchParams.get('limit')
+  const url = new URL(request.url);
+  const statusParam = url.searchParams.get("status");
+  const projectKey = url.searchParams.get("projectKey") ?? undefined;
+  const limitParam = url.searchParams.get("limit");
 
-  const filter: ListWorkPacketsFilter = {}
+  const filter: ListWorkPacketsFilter = {};
   if (statusParam && PACKET_STATUSES.includes(statusParam as PacketStatus)) {
-    filter.status = statusParam as PacketStatus
+    filter.status = statusParam as PacketStatus;
   }
-  if (projectKey) filter.projectKey = projectKey
+  if (projectKey) filter.projectKey = projectKey;
   if (limitParam) {
-    const limit = Number.parseInt(limitParam, 10)
-    if (Number.isFinite(limit)) filter.limit = limit
+    const limit = Number.parseInt(limitParam, 10);
+    if (Number.isFinite(limit)) filter.limit = limit;
   }
 
-  const db = (await createClient()) as unknown as SupabaseLike
-  const packets = await listWorkPackets(db, user.id, filter)
+  const db = (await createClient()) as unknown as SupabaseLike;
+  const packets = await listWorkPackets(db, user.id, filter);
 
-  return NextResponse.json({ packets }, { headers: { 'Cache-Control': 'no-store' } })
+  return NextResponse.json(
+    { packets },
+    { headers: { "Cache-Control": "no-store" } },
+  );
 }

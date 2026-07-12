@@ -24,7 +24,10 @@
 
 ## Swarm Mode
 
-Hermes Agent Swarm turns the workspace into a live control plane: unlimited Hermes Agents, 1 orchestrator, 0 humans manually dispatching.
+Hermes Agent Swarm turns the workspace into a live control plane with one
+orchestrator and a configurable worker roster. Each worker defaults to one
+concurrent dispatched task (`maxConcurrentTasks: 1`); capacity must be widened
+explicitly rather than inferred from the number of available agents.
 Persistent tmux workers keep context across tasks, rotate safely, and report proof-bearing checkpoints.
 Role-based dispatch routes builders, reviewers, docs, research, ops, triage, QA, and lab lanes without turning Eric into the task router.
 A byte-verified review gate protects release branches before PRs ship.
@@ -46,7 +49,7 @@ Start here: [docs/swarm/](./docs/swarm/)
 - 🧠 **Memory** — Browse, search, and edit agent memory; markdown live editor
 - 🧩 **Skills** — Browse 2,000+ skills with origin badges, filters, source paths, marketplace
 - 🔌 **MCP** — Full /mcp page (catalog + marketplace + sources), or fallback to local config CRUD
-- 📁 **Files + Terminal** — Full workspace file browser with Monaco; cross-platform PTY terminal
+- 📁 **Files + Terminal** — Workspace file browser with an accessible native text editor; cross-platform PTY terminal
 - 🎮 **Operations** — Multi-agent dashboard with profile presets (Sage/Trader/Builder/Scribe/Ops) and 'Needs setup' detection
 - 📡 **Conductor** — Mission dispatch + decomposition (requires upstream dashboard plugin, see [#262](https://github.com/outsourc-e/hermes-workspace/issues/262))
 - 👥 **Agent View** — Live agent panel in chat with avatar, queue, history, usage meter
@@ -86,16 +89,23 @@ Three paths — pick the one that matches you:
 | Path                                         | Best for                                         | Time   |
 | -------------------------------------------- | ------------------------------------------------ | ------ |
 | **🐳 [Docker Compose](#-docker-quickstart)** | Self-hosters, home labs, "give me a compose gig" | ~2 min |
-| **🌐 One-line install**                      | Local dev on macOS/Linux                         | ~3 min |
+| **🔐 Verified local installer**              | Local dev on macOS/Linux                         | ~3 min |
 | **🔌 Attach to existing `hermes-agent`**     | You already run Hermes Agent                     | ~1 min |
 
-### One-line install
+### Verified local install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/outsourc-e/hermes-workspace/main/install.sh | bash
+git clone https://github.com/outsourc-e/hermes-workspace.git "$HOME/hermes-workspace"
+bash "$HOME/hermes-workspace/install.sh"
 ```
 
-This installs `hermes-agent` via Nous's official installer, clones this repo, sets up `.env`, and installs dependencies. Then:
+Run the installer only from the checked-out workspace. `install.sh` enforces
+Node >=24.14.1 <25 and always invokes the bundled
+[`scripts/install-pinned-hermes.sh`](./scripts/install-pinned-hermes.sh). That
+helper owns the immutable Nous commit and digest, verifies the downloaded
+installer's SHA-256 before execution, and refuses completion unless the
+installed Hermes checkout HEAD attests the same commit. The workspace installer
+then sets up `.env` and installs frozen dependencies. Then:
 
 ```bash
 hermes gateway run                  # terminal 1
@@ -167,7 +177,7 @@ Hermes Workspace works with any OpenAI-compatible backend. If your backend also 
 
 #### Prerequisites
 
-- **Node.js 22+** — [nodejs.org](https://nodejs.org/)
+- **Node.js >=24.14.1 <25** — [nodejs.org](https://nodejs.org/)
 - **An OpenAI-compatible backend** — local, self-hosted, or remote
 - **Optional:** Python 3.11+ if you want to run a Hermes Agent gateway locally
 
@@ -181,15 +191,19 @@ Point Hermes Workspace at any backend that supports:
 Example Hermes Agent gateway setup (from scratch):
 
 ```bash
-# Install hermes-agent via Nous's official installer
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+# Run the reviewed workspace installer; it invokes the bundled pinned/attesting helper
+git clone https://github.com/outsourc-e/hermes-workspace.git "$HOME/hermes-workspace"
+bash "$HOME/hermes-workspace/install.sh"
 
 # Configure a provider + start the gateway
 hermes setup
 hermes gateway run
 ```
 
-Our one-liner installer (below) does both steps automatically. If you're using another OpenAI-compatible server, just note its base URL.
+The verified workspace installer performs the local setup automatically. Its
+bundled helper verifies the pinned Nous installer artifact and the installed
+checkout HEAD. If you're using another OpenAI-compatible server, just note its
+base URL.
 
 ### Step 2: Install & Run Hermes Workspace
 
@@ -352,8 +366,8 @@ docker compose up
 
 This pulls two pre-built images and starts them:
 
-- **hermes-agent** → `nousresearch/hermes-agent:latest` on port **8642**
-- **hermes-workspace** → `ghcr.io/outsourc-e/hermes-workspace:latest` on port **3000**
+- **hermes-agent** → `nousresearch/hermes-agent:latest@sha256:4f0cf12465c50a12e6a747e319794640ab87ec1ce260b1ce9070c3c8950506c8` on port **8642**
+- **hermes-workspace** → `ghcr.io/outsourc-e/hermes-workspace:latest@sha256:bf0fd5e65c4ec45b7f772630946b60b1b4424b586eeba08ba3afa54da43990fa` on port **3000**
 
 No local build. First run takes a minute to pull; subsequent starts are instant.
 Agent state (config, sessions, skills, memory, credentials) persists in the
@@ -377,7 +391,8 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 The base `docker-compose.yml` stays untouched — the overlay adds a `build:`
 block for the `hermes-workspace` service so the local repo is compiled
 instead of pulled. The Hermes Agent service still uses the canonical
-`nousresearch/hermes-agent:latest` image; if you need a custom agent
+`nousresearch/hermes-agent:latest@sha256:4f0cf12465c50a12e6a747e319794640ab87ec1ce260b1ce9070c3c8950506c8`
+reference; if you need a custom agent
 build, tag it locally and override `image:` in your own
 `compose.override.yml`.
 
@@ -387,14 +402,15 @@ Deploying Hermes Workspace to a PaaS or home-lab stack? Pull the image
 directly from GitHub Container Registry:
 
 ```
-ghcr.io/outsourc-e/hermes-workspace:latest
+ghcr.io/outsourc-e/hermes-workspace:latest@sha256:bf0fd5e65c4ec45b7f772630946b60b1b4424b586eeba08ba3afa54da43990fa
 ```
 
 Available tags:
 
 | Tag          | What it is                                 |
 | ------------ | ------------------------------------------ |
-| `latest`     | Latest `main` commit (stable; recommended) |
+| `latest@sha256:…` | Reviewed tag plus immutable multi-platform digest (recommended) |
+| `latest`     | Moving tag for discovery only; do not deploy unqualified |
 | `v2.0.0`     | Pinned semver tag                          |
 | `main-<sha>` | Specific commit                            |
 
@@ -402,7 +418,7 @@ Minimal Coolify / Easypanel config:
 
 ```yaml
 service: hermes-workspace
-image: ghcr.io/outsourc-e/hermes-workspace:latest
+image: ghcr.io/outsourc-e/hermes-workspace:latest@sha256:bf0fd5e65c4ec45b7f772630946b60b1b4424b586eeba08ba3afa54da43990fa
 port: 3000
 env:
   HERMES_API_URL: http://hermes-agent:8642 # point at your gateway
@@ -410,8 +426,10 @@ env:
 ```
 
 The image is built for `linux/amd64` and `linux/arm64`. Pair it with either
-a `nousresearch/hermes-agent:latest` container (what our `docker-compose.yml`
-does by default) or an existing gateway on another host.
+`nousresearch/hermes-agent:latest@sha256:4f0cf12465c50a12e6a747e319794640ab87ec1ce260b1ce9070c3c8950506c8`
+as pinned in `docker-compose.yml`, or an existing gateway on another host. Refresh both
+references only through the reviewed
+[container-image digest runbook](../../docs/container-image-digest-refresh.md).
 
 ---
 

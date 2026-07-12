@@ -1,48 +1,82 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock('@/lib/integrations/linear', () => ({
+vi.mock("@/lib/integrations/linear", () => ({
   fetchClaimCandidates: vi.fn(),
   resolveStateId: vi.fn(),
   updateIssueState: vi.fn(),
   addComment: vi.fn(),
-}))
-vi.mock('@/lib/command-centre/linear-claim', () => ({
-  claimNextEligibleIssue: vi.fn(),
-  AUTONOMOUS_LABELS: ['mesh:auto'],
-}))
+}));
 
-import { fetchClaimCandidates } from '@/lib/integrations/linear'
-import { claimNextEligibleIssue } from '@/lib/command-centre/linear-claim'
-import { GET } from '../route'
+import {
+  addComment,
+  fetchClaimCandidates,
+  resolveStateId,
+  updateIssueState,
+} from "@/lib/integrations/linear";
+import { GET } from "../route";
 
-vi.stubEnv('CRON_SECRET', 'test-secret')
+const originalCronSecret = process.env.CRON_SECRET;
+const originalLiveGate = process.env.CC_LINEAR_LIVE;
 
-function req(auth = 'Bearer test-secret') {
-  return new Request('https://app.test', { headers: { authorization: auth } })
+function request(auth = "Bearer test-secret") {
+  return new Request("https://unite.test/api/cron/linear-claim", {
+    headers: { authorization: auth },
+  });
 }
 
-describe('GET /api/cron/linear-claim', () => {
-  beforeEach(() => vi.clearAllMocks())
+describe("GET /api/cron/linear-claim", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.CRON_SECRET = "test-secret";
+    delete process.env.CC_LINEAR_LIVE;
+  });
 
-  it('returns 401 when unauthorized', async () => {
-    const res = await GET(req('bad'))
-    expect(res.status).toBe(401)
-  })
+  afterEach(() => {
+    if (originalCronSecret === undefined) delete process.env.CRON_SECRET;
+    else process.env.CRON_SECRET = originalCronSecret;
+    if (originalLiveGate === undefined) delete process.env.CC_LINEAR_LIVE;
+    else process.env.CC_LINEAR_LIVE = originalLiveGate;
+  });
 
-  it('returns ok when no candidates', async () => {
-    vi.mocked(fetchClaimCandidates).mockResolvedValue({ issues: [] } as any)
-    vi.mocked(claimNextEligibleIssue).mockReturnValue(null)
+  it("returns 500 when the cron authentication boundary is not configured", async () => {
+    delete process.env.CRON_SECRET;
 
-    const res = await GET(req())
-    expect(res.status).toBe(200)
-    const body = await res.json()
-    expect(body.ok).toBe(true)
-  })
+    const response = await GET(request());
 
-  it('returns 500 when claim throws', async () => {
-    vi.mocked(claimNextEligibleIssue).mockRejectedValue(new Error('Linear API error'))
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: "CRON_SECRET not configured",
+    });
+  });
 
-    const res = await GET(req())
-    expect(res.status).toBe(500)
-  })
-})
+  it("returns 401 before disclosing the retirement response", async () => {
+    const response = await GET(request("Bearer wrong"));
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: "Unauthorised" });
+  });
+
+  it.each([undefined, "0", "1"])(
+    "is permanently retired for CC_LINEAR_LIVE=%s",
+    async (value) => {
+      if (value === undefined) delete process.env.CC_LINEAR_LIVE;
+      else process.env.CC_LINEAR_LIVE = value;
+
+      const response = await GET(request());
+
+      expect(response.status).toBe(410);
+      expect(await response.json()).toEqual({
+        ok: false,
+        retired: true,
+        source: "command-centre:linear-claim",
+        error:
+          "Legacy Linear autonomous claim is permanently retired. CRM OWNEST is authoritative.",
+        next_action: "use_crm_ownest",
+      });
+      expect(fetchClaimCandidates).not.toHaveBeenCalled();
+      expect(resolveStateId).not.toHaveBeenCalled();
+      expect(updateIssueState).not.toHaveBeenCalled();
+      expect(addComment).not.toHaveBeenCalled();
+    },
+  );
+});

@@ -9,7 +9,7 @@ export default function KanbanPage() {
     <div className="p-6" style={{ background: 'var(--surface-canvas)', minHeight: '100%' }}>
       <PageHeader
         title="Kanban"
-        subtitle="Linear plus Hermes Kanban — execution stays visible across the Unite-Group ecosystem"
+        subtitle="Read-only Linear and Hermes projections; CRM is the mission source of truth"
         className="mb-6"
       />
       <div className="mb-6">

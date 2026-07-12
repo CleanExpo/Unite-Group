@@ -1,5 +1,12 @@
 # Go-Live Readiness — Sequenced (2026-06-21)
 
+> **SUPERSEDED FOR EXECUTION AUTHORITY 12/07/2026:** the Linear claim/handoff
+> routes and Empire Mission Control loop described below are permanently retired.
+> They do not claim, author, commit, push, or complete work. CRM `cc_tasks` is
+> authoritative; Linear and Hermes are projections. Use the current Nexus
+> foundation and OWNEST runbooks. Historical measurements below are retained as
+> dated evidence and must not be used as go-live instructions.
+
 > **Honest headline.** Foundations are **close** — every SSOT artefact (single Linear project + 2 epics + 10 sub-issues, the registry join, two gate-ready specs, the four agent-infra pieces, the brain vault) is present and substantive `[VERIFIED across Brief 5]`. The live `apps/web` deployment is real, READY, and auth-gated in prod `[VERIFIED Brief 1]`. But the four stages do **not** all advance together: **CRM V1 (Stage 2) is partial** and blocked first on a *definitional* model fork, not code; the **autonomous take-over loop (Stage 3) is far and is the single largest build** — **the deployed app does not yet run the orchestration loop.** It can pull/claim from Linear but cannot plan, build, verify, or ship, because the swarm runs **locally on the Mac via tmux** and **no hosted runner exists** `[VERIFIED Brief 4; CC_LINEAR_LIVE gate + hardcoded TEAM_KEY/PROJECT_NAME + zero swarm symbols in apps/web/src confirmed this session]`. The one liberating finding: **first product (Stage 4) is NOT gated by Stage 2** — both Duncan ventures live outside `apps/web`, so ITR Phase 1 can ship on its own Sydney project in parallel `[VERIFIED Brief 5]`. The binding constraints on first-ship are **legal + human sign-off**, not engineering.
 
 ## The finish line (sequenced)

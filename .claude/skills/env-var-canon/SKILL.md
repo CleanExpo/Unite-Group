@@ -33,12 +33,17 @@ single place a name is canonical before it is pinned anywhere.
   (`NEXT_PUBLIC_*`, `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, OAuth client
   IDs/secrets, provider API keys, the CRM arming gates).
 - **Local hermes fleet `~/.hermes/.env`** — what the Mac-side runner/daemons
-  read (`HERMES_HOME`, `CLAUDE_HOME`, `LINEAR_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN`,
+  read (`HERMES_HOME`, `CLAUDE_HOME`, `LINEAR_API_KEY`,
   fleet paths). A dead value here fails silently (see `credential-triage`).
 
 A variable can legitimately live on both planes; a variable that must be on
 one and is only on the other is a classic silent-failure. Verify with the
 Vercel MCP (prod) and by reading `~/.hermes/.env` (fleet) — do not trust recall.
+
+OWNEST is a third, future **brokered host plane**, not an extension of either
+plane above. Until that boundary exists, do not copy CRM service credentials
+into a Hermes profile, repository `.env`, browser profile, or same-UID child
+process. The user-level service remains retired.
 
 ## Registry — load-bearing variables (verified from source, grouped)
 
@@ -63,11 +68,22 @@ recorded here; confirm placement live per "Two planes".
 `CRM_DISPATCH_ARMED` (dispatch flag, default off) ·
 `DR_NRPG_CRM_LEAD_INTEGRATION_ALLOW_PROD_WRITES`.
 
+**OWNEST host profile (local-only, dormant and not armable)**
+`SUPABASE_URL` · `SUPABASE_SERVICE_ROLE_KEY` (server-only; never passed to
+Hermes) · `FOUNDER_USER_ID` · `CC_OWNEST_WORKER_ID` ·
+`CC_OWNEST_HERMES_BIN` (absolute path) · `HERMES_CWD` ·
+`CC_OWNEST_LIVE` (must remain `0`; `1` is rejected in code) ·
+`CC_OWNEST_LOCAL_DEVELOPMENT` · `CC_OWNEST_HERMES_PROFILE` ·
+`CC_OWNEST_HERMES_BOARD` · `CC_OWNEST_ROLLOUT_ID` ·
+`CC_OWNEST_CANARY_TASK_ID` · `CC_OWNEST_CANARY_LIMIT` ·
+`CC_OWNEST_MAX_IN_PROGRESS` · `CC_OWNEST_LEASE_MS` ·
+`CC_OWNEST_DAILY_DISPATCH_LIMIT`. These names describe a future isolated
+worker envelope; they are not a LaunchAgent activation recipe.
+
 **Fleet / Linear / Anthropic**
 `HERMES_HOME` · `CLAUDE_HOME` · `HERMES_API_URL` · `LINEAR_API_KEY` (secret) ·
-`CC_LINEAR_LIVE` (live-vs-dry Linear flag) · `ANTHROPIC_API_KEY` /
-`CLAUDE_CODE_OAUTH_TOKEN` (distinct credential types — a 403 "scope
-requirement" means the wrong one is set; see `credential-triage`) ·
+`ANTHROPIC_API_KEY` (metered server route only) · Claude Code CLI session state
+(local subscription route, never copied into `apps/web`) ·
 `PI_CEO_API_KEY` · `PI_CEO_API_URL` · `CLAUDE_API_URL` · `GITHUB_TOKEN` ·
 `GITHUB_OWNER`.
 

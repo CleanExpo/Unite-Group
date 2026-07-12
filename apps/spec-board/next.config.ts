@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Keep Turbopack inside this package even when a developer has unrelated
+  // lockfiles higher in their home directory.
+  turbopack: {
+    root: import.meta.dirname,
+  },
   // The /api/run route reads the engine prompt from skills/ at runtime;
   // make sure Vercel bundles it with the serverless function.
   outputFileTracingIncludes: {

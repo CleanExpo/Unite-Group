@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "p0FindingIds": [
+    "ci.active-package-coverage",
+    "security.tracked-auth-artifacts"
+  ],
+  "activePackages": [
+    {
+      "path": "apps/web",
+      "manager": "pnpm",
+      "lockfile": "pnpm-lock.yaml",
+      "requiredScripts": [
+        "lint",
+        "type-check",
+        "test",
+        "build"
+      ]
+    },
+    {
+      "path": "apps/workspace",
+      "manager": "pnpm",
+      "lockfile": "pnpm-lock.yaml",
+      "requiredScripts": [
+        "type-check",
+        "test",
+        "build"
+      ]
+    },
+    {
+      "path": "apps/autopilot-runner",
+      "manager": "npm",
+      "lockfile": "package-lock.json",
+      "requiredScripts": [
+        "test",
+        "type-check",
+        "build",
+        "verify:container"
+      ]
+    },
+    {
+      "path": "apps/spec-board",
+      "manager": "npm",
+      "lockfile": "package-lock.json",
+      "requiredScripts": [
+        "type-check",
+        "test",
+        "build"
+      ]
+    },
+    {
+      "path": "packages/pi-ceo-operator-mcp",
+      "manager": "npm",
+      "lockfile": "package-lock.json",
+      "requiredScripts": [
+        "build"
+      ]
+    },
+    {
+      "path": "packages/spine/packages/spine",
+      "manager": "npm",
+      "lockfile": "package-lock.json",
+      "requiredScripts": [
+        "typecheck",
+        "test"
+      ]
+    }
+  ],
+  "sourceOfTruthChecks": [
+    {
+      "id": "unite-hub-retirement",
+      "description": "Reconcile the superseded Unite-Hub live-product instruction with the canonical retirement record.",
+      "assertions": [
+        {
+          "path": "AGENTS.md",
+          "forbid": [
+            "Unite-Hub is a SEPARATE LIVE"
+          ]
+        },
+        {
+          "path": "SOURCE-OF-TRUTH.md",
+          "require": [
+            "SUPERSEDED 2026-06-20"
+          ]
+        }
+      ]
+    }
+  ]
+}

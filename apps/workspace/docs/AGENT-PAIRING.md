@@ -32,9 +32,16 @@ claude --version
 ### Fix (if hermes-agent not installed)
 
 ```bash
-# Official Nous installer — works on macOS, Linux, WSL
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+# Use the checked-out workspace installer; never pipe a remote script to a shell
+git clone https://github.com/outsourc-e/hermes-workspace.git "$HOME/hermes-workspace"
+bash "$HOME/hermes-workspace/install.sh"
 ```
+
+`install.sh` enforces Node >=24.14.1 <25 and always invokes the bundled
+[`scripts/install-pinned-hermes.sh`](../scripts/install-pinned-hermes.sh). That
+helper owns the immutable Nous commit and digest, verifies the downloaded
+installer's SHA-256 before execution, and refuses completion unless the
+installed Hermes checkout HEAD attests the same commit.
 
 After install, restart your shell or run:
 

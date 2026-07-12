@@ -1,8 +1,8 @@
 # Environment Variable Matrix — Unite-Group Monorepo
 
-> Generated: 12/06/2026  
-> Source of truth: `/.env.example` (root)  
-> Methodology: `grep -rhoE "process\.env\.[A-Z_0-9]+"` across `apps/web/src`, `apps/web/scripts`, `apps/workspace/src`, `packages/pi-ceo-operator-mcp/src`; cross-referenced against all `.env.example` files and `apps/web/scripts/validate-env.mjs`.
+> Generated: 12/07/2026
+> Source of truth: `/.env.example` (root)
+> Methodology: runtime environment reads across `apps/web`, `apps/workspace`, and `packages/pi-ceo-operator-mcp`, plus design/test-only configuration reads in `apps/autopilot-runner`; cross-referenced against all `.env.example` files, `scripts/check-env.mjs`, and `apps/web/scripts/validate-env.mjs`.
 
 ---
 
@@ -15,6 +15,7 @@
 | **integration** | Optional — feature degrades gracefully when absent |
 | **optional** | Tuning/feature-flag; safe default applies when absent |
 | **workspace** | apps/workspace (Hermes) only — not deployed to Vercel |
+| **design/test** | apps/autopilot-runner contract exercised by TypeScript/tests only — never provision to a host, profile, container, or service |
 | **test** | CI / Playwright / Vitest only — never in Vercel production |
 | **legacy** | Not referenced in any current package — candidate for Vercel deletion |
 
@@ -26,11 +27,11 @@
 |---|---|---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | web | critical | old unite-hub Vercel project | Public; safe in client bundle |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | web | critical | old unite-hub Vercel project | Public; safe in client bundle |
-| `SUPABASE_SERVICE_ROLE_KEY` | web | critical | old unite-hub Vercel project | Server-side only; bypasses RLS |
+| `SUPABASE_SERVICE_ROLE_KEY` | web; autopilot tests | critical (web); design/test (autopilot) | Vercel for web; never provision to autopilot | Server-side web credential; bypasses RLS. The autopilot adapter retains the name only as a test contract; a future executor requires a narrower brokered capability |
 | `ANTHROPIC_API_KEY` | web, workspace | required | old unite-hub Vercel project | Powers Bron AI, Advisory, Strategy. Workspace also uses it as one of multiple LLM provider keys |
 | `VAULT_ENCRYPTION_KEY` | web | required | old unite-hub Vercel project | AES-256-GCM; generate with `openssl rand -hex 32` |
 | `CRON_SECRET` | web | required | old unite-hub Vercel project | Validates scheduled-job route calls |
-| `FOUNDER_USER_ID` | web | required | old unite-hub Vercel project | Supabase auth.users UUID |
+| `FOUNDER_USER_ID` | web; autopilot tests | required (web); design/test (autopilot) | Vercel for web; not provisioned to autopilot | Supabase auth.users UUID; autopilot tests assert explicit founder scoping |
 | `NEXT_PUBLIC_APP_URL` | web | required | old unite-hub Vercel project | Used for OAuth callbacks; `https://unite-group.in` in prod |
 | `DATABASE_URL` | web | required | old unite-hub Vercel project | Direct PostgreSQL connection string |
 | `ENABLE_DB_POOLER` | web | optional | local only | Default `false`; set `true` to use Supabase Pooler |
@@ -57,7 +58,6 @@
 | `MICROSOFT_CLIENT_ID` | web | integration | old unite-hub Vercel project | Microsoft OAuth |
 | `MICROSOFT_CLIENT_SECRET` | web | integration | old unite-hub Vercel project | Microsoft OAuth |
 | `LINEAR_API_KEY` | web | integration | old unite-hub Vercel project | Linear project management sync |
-| `CC_LINEAR_LIVE` | web | optional | local only | Feature flag: `"true"` enables live Linear sync |
 | `GITHUB_TOKEN` | web, workspace | integration | old unite-hub Vercel project | GitHub API access |
 | `GITHUB_OWNER` | web | integration | old unite-hub Vercel project | GitHub owner/org for API calls |
 | `GITHUB_WEBHOOK_SECRET` | web | integration | old unite-group Vercel project | Ported from authority-legacy; GitHub webhook validation |
@@ -141,6 +141,20 @@
 | `SWARM_ORCHESTRATOR_WORKER_ID` | workspace | optional | local only | Swarm orchestrator worker ID |
 | `NEXT_PUBLIC_APP_VERSION` | workspace | optional | local only | App version string (build-time) |
 | `NEXT_PUBLIC_PING_URL` | workspace | optional | local only | Health-check ping URL |
+| `SUPABASE_URL` | autopilot tests | design/test | not provisioned | Test input for CRM-origin validation; not a host connection recipe |
+| `CC_OWNEST_WORKER_ID` | autopilot tests | design/test | not provisioned | Stable identity contract; no worker currently runs |
+| `CC_OWNEST_HERMES_BIN` | autopilot tests | design/test | not provisioned | Absolute-path validation only; the build invokes no Hermes binary |
+| `HERMES_CWD` | autopilot tests | design/test | not provisioned | Cwd contract exercised by tests; no emitted host workspace exists |
+| `CC_OWNEST_LIVE` | autopilot tests | design/test | not provisioned | Exact `1` is rejected; no package command or host artifact can arm execution |
+| `CC_OWNEST_LOCAL_DEVELOPMENT` | autopilot tests | design/test | not provisioned | Allows localhost-origin test coverage; never arms execution |
+| `CC_OWNEST_HERMES_PROFILE` | autopilot tests | design/test | not provisioned | Reserved profile identity in the historical design |
+| `CC_OWNEST_HERMES_BOARD` | autopilot tests | design/test | not provisioned | Reserved projection-board identity in the historical design |
+| `CC_OWNEST_ROLLOUT_ID` | autopilot tests | design/test | not provisioned | Bounded-rollout contract only |
+| `CC_OWNEST_CANARY_TASK_ID` | autopilot tests | design/test | not provisioned | Single-task contract only |
+| `CC_OWNEST_CANARY_LIMIT` | autopilot tests | design/test | not provisioned | Test default `1` |
+| `CC_OWNEST_MAX_IN_PROGRESS` | autopilot tests | design/test | not provisioned | Test default `1` |
+| `CC_OWNEST_LEASE_MS` | autopilot tests | design/test | not provisioned | Test default `300000` |
+| `CC_OWNEST_DAILY_DISPATCH_LIMIT` | autopilot tests | design/test | not provisioned | Test default `1` |
 | `PLAYWRIGHT_TEST_EMAIL` | web | test | local only | E2E test founder login email |
 | `PLAYWRIGHT_TEST_PASSWORD` | web | test | local only | E2E test founder login password |
 | `PLAYWRIGHT_TEST_BASE_URL` | web | test | local only | E2E base URL |
@@ -189,10 +203,11 @@
 |---|---|
 | apps/web (all tiers, excluding test + legacy) | 72 |
 | apps/workspace | 38 |
+| apps/autopilot-runner OWNEST profile | 16 (all dormant; not armable) |
 | packages/pi-ceo-operator-mcp | 0 (uses ambient `gh` CLI auth only) |
 | Test-only vars | 8 |
 | Legacy/retired vars | 28 |
-| **Union (all unique names, all sections)** | **~146** |
+| **Union (all unique names, all sections)** | **~160** |
 
 ---
 
@@ -217,7 +232,6 @@ These are active code references with no example file entry — they would be si
 | `STRIPE_PRICE_ID_BASE` | apps/web/src | Ported from authority-legacy (different name to old STRIPE_PRICE_ID_STARTER) |
 | `OPERATOR_GATEWAY_SANDBOX_SUPABASE_URL` | apps/web/src | Not in .env.example |
 | `OPERATOR_GATEWAY_SANDBOX_SUPABASE_ANON_KEY` | apps/web/src | Not in .env.example |
-| `CC_LINEAR_LIVE` | apps/web/src | Feature flag — not in .env.example |
 | `KNOWLEDGE_CONSOLE_PREVIEW` | apps/web/src | Feature flag — not in .env.example |
 | `WIKI_PATH` | apps/web/src | Local path — not in .env.example |
 | `HERMES_CONFIG` | apps/web/src | Local path — not in .env.example |

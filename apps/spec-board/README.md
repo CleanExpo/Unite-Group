@@ -57,7 +57,7 @@ One page → text box → **Run** → serverless function calls Claude with the
 engine prompt → spec comes back, gets saved to Supabase, and is shown with a
 copy button.
 
-**Stack:** Next.js (App Router) · Vercel · Supabase · switchable LLM provider
+**Stack:** Next.js 16 (App Router) · Vercel · Supabase · switchable LLM provider
 (Anthropic API by default — set `ANTHROPIC_MODEL=claude-fable-5` if you want
 the top-tier model).
 

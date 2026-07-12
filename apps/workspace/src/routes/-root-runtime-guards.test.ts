@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { unregisterServiceWorkers, wrapInlineScript } from './__root'
+import { APP_CSP, unregisterServiceWorkers, wrapInlineScript } from './__root'
 
 describe('root runtime guards', () => {
   it('wraps inline scripts in a top-level try/catch', () => {
@@ -7,6 +7,11 @@ describe('root runtime guards', () => {
     expect(wrapped).toContain('try {')
     expect(wrapped).toContain('window.answer = 42;')
     expect(wrapped).toContain("console.error('Inline bootstrap script failed'")
+  })
+
+  it('does not permit the removed Monaco CDN in script or style policy', () => {
+    expect(APP_CSP).not.toContain('cdn.jsdelivr.net')
+    expect(APP_CSP).toContain("script-src 'self' 'unsafe-inline'")
   })
 
   it('swallows getRegistrations rejections', async () => {
