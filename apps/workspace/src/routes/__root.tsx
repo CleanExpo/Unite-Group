@@ -30,14 +30,14 @@ import { ErrorBoundary } from '@/components/error-boundary'
 import { LoginScreen } from '@/components/auth/login-screen'
 import { fetchClaudeAuthStatus } from '@/lib/claude-auth'
 
-const APP_CSP = [
+export const APP_CSP = [
   "default-src 'self'",
   "base-uri 'self'",
   "object-src 'none'",
   "form-action 'self'",
   // frame-ancestors is ignored in meta CSP and must be sent as an HTTP header.
-  "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data: https://fonts.gstatic.com",
   "connect-src 'self' ws: wss: http: https:",

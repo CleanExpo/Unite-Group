@@ -19,6 +19,10 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
+import {
+  getGatewayApiToken,
+  getGatewayDashboardToken,
+} from './gateway-secret'
 
 type WorkspaceOverrides = {
   claudeApiUrl?: string
@@ -245,8 +249,7 @@ let dashboardTokenPromise: Promise<string> | null = null
 let dashboardTokenCache = ''
 
 /** Optional bearer token for authenticated gateway endpoints. */
-export const BEARER_TOKEN =
-  process.env.HERMES_API_TOKEN || process.env.CLAUDE_API_TOKEN || ''
+export const BEARER_TOKEN = getGatewayApiToken()
 
 /**
  * Optional explicit bearer token for dashboard API calls.
@@ -264,8 +267,7 @@ export const BEARER_TOKEN =
  * CLAUDE_DASHBOARD_TOKEN isn't set, leave this empty and let
  * fetchDashboardToken() fall through to the HTML-scrape legacy path.
  */
-const DASHBOARD_BEARER_TOKEN =
-  process.env.HERMES_DASHBOARD_TOKEN || process.env.CLAUDE_DASHBOARD_TOKEN || ''
+const DASHBOARD_BEARER_TOKEN = getGatewayDashboardToken()
 
 function authHeaders(): Record<string, string> {
   return BEARER_TOKEN ? { Authorization: `Bearer ${BEARER_TOKEN}` } : {}

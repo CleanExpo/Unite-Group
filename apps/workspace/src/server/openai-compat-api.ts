@@ -1,4 +1,5 @@
 import { CLAUDE_API } from './gateway-capabilities'
+import { getGatewayApiToken } from './gateway-secret'
 
 /**
  * Optional bearer token for authenticated OpenAI-compatible endpoints
@@ -14,7 +15,7 @@ import { CLAUDE_API } from './gateway-capabilities'
  * `CLAUDE_API_TOKEN` for back-compat with pre-rename setups.
  */
 function getBearerToken(): string {
-  return process.env.HERMES_API_TOKEN || process.env.CLAUDE_API_TOKEN || ''
+  return getGatewayApiToken()
 }
 
 /** Cached first available model from /v1/models — used as fallback when no model is specified. */

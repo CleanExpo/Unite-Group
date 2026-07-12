@@ -389,7 +389,7 @@ function SettingsRoute() {
           {activeSection === ('editor' as SettingsSectionId) && (
             <SettingsSection
               title="Editor"
-              description="Configure Monaco defaults for the files workspace."
+              description="Configure text editor defaults for the files workspace."
               icon={SourceCodeSquareIcon}
             >
               <SettingsRow
@@ -426,18 +426,6 @@ function SettingsRoute() {
                     updateSettings({ editorWordWrap: checked })
                   }
                   aria-label="Word wrap"
-                />
-              </SettingsRow>
-              <SettingsRow
-                label="Minimap"
-                description="Show minimap preview in Monaco editor."
-              >
-                <Switch
-                  checked={settings.editorMinimap}
-                  onCheckedChange={(checked) =>
-                    updateSettings({ editorMinimap: checked })
-                  }
-                  aria-label="Show minimap"
                 />
               </SettingsRow>
             </SettingsSection>
@@ -1018,8 +1006,7 @@ function ClaudeConfigSection({
     setProviderInput(configData.activeProvider || '')
     setBaseUrlInput((configData.config?.base_url as string) || '')
     const providersConfig = configData.config?.providers as
-      | Record<string, unknown>
-      | undefined
+      Record<string, unknown> | undefined
     const customConfig = (providersConfig?.manifest ||
       providersConfig?.custom) as Record<string, unknown> | undefined
     setCustomBaseUrl((customConfig?.base_url as string) || '')

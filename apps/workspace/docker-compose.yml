@@ -14,8 +14,8 @@
 #
 # Images:
 #   This file pulls pre-built images by default — no local build required.
-#     - nousresearch/hermes-agent:latest  (Hermes Agent, Dockerfile upstream)
-#     - ghcr.io/outsourc-e/hermes-workspace:latest  (this workspace)
+#     - nousresearch/hermes-agent pinned by digest (Hermes Agent, Dockerfile upstream)
+#     - ghcr.io/outsourc-e/hermes-workspace pinned by digest (this workspace)
 #
 #   To build from source instead (e.g. for development), use:
 #     docker compose -f docker-compose.yml -f docker-compose.dev.yml up
@@ -35,9 +35,7 @@ services:
   # The Claude AI Agent Gateway
   # Provides the backend API that the workspace connects to
   hermes-agent:
-    image: nousresearch/hermes-agent:latest
-    env_file:
-      - .env
+    image: nousresearch/hermes-agent:latest@sha256:4f0cf12465c50a12e6a747e319794640ab87ec1ce260b1ce9070c3c8950506c8
     environment:
       # Pass through whichever provider keys are set in .env. hermes-agent
       # uses the one that matches the provider configured in
@@ -78,12 +76,10 @@ services:
   # The Hermes Workspace Web UI
   # Connects to hermes-agent at http://hermes-agent:8642
   hermes-workspace:
-    image: ghcr.io/outsourc-e/hermes-workspace:latest
+    image: ghcr.io/outsourc-e/hermes-workspace:latest@sha256:bf0fd5e65c4ec45b7f772630946b60b1b4424b586eeba08ba3afa54da43990fa
     depends_on:
       hermes-agent:
         condition: service_healthy
-    env_file:
-      - .env
     environment:
       # Internal Docker network URL (not localhost!)
       HERMES_API_URL: http://hermes-agent:8642

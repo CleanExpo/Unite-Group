@@ -13,7 +13,6 @@ export type StudioSettings = {
   accentColor: AccentColor
   editorFontSize: number
   editorWordWrap: boolean
-  editorMinimap: boolean
   notificationsEnabled: boolean
   usageThreshold: number
   smartSuggestionsEnabled: boolean
@@ -37,7 +36,6 @@ export const defaultStudioSettings: StudioSettings = {
   accentColor: 'blue',
   editorFontSize: 13,
   editorWordWrap: true,
-  editorMinimap: false,
   notificationsEnabled: true,
   usageThreshold: 80,
   smartSuggestionsEnabled: false,
@@ -88,16 +86,6 @@ export function useSettings() {
     settings,
     updateSettings,
   }
-}
-
-export function resolveTheme(theme: SettingsThemeMode): 'light' | 'dark' {
-  if (theme === 'light') return 'light'
-  if (theme === 'dark') return 'dark'
-
-  if (typeof window === 'undefined') return 'dark'
-  return window.matchMedia('(prefers-color-scheme: dark)').matches
-    ? 'dark'
-    : 'light'
 }
 
 export function applyTheme(_theme?: SettingsThemeMode) {

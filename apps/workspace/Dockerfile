@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.6
+# syntax=docker/dockerfile:1.6@sha256:ac85f380a63b13dfcefa89046420e1781752bab202122f8f50032edf31be0021
 # Hermes Workspace — production Docker image
 # Publishes to ghcr.io/outsourc-e/hermes-workspace
 #
@@ -7,15 +7,15 @@
 # Run:
 #   docker run -p 3000:3000 -e HERMES_API_URL=http://host.docker.internal:8642 hermes-workspace
 # Or pull pre-built:
-#   docker pull ghcr.io/outsourc-e/hermes-workspace:latest
+#   docker pull ghcr.io/outsourc-e/hermes-workspace@sha256:bf0fd5e65c4ec45b7f772630946b60b1b4424b586eeba08ba3afa54da43990fa
 #
 # ─── build stage ─────────────────────────────────────────────────────────
-FROM node:22-slim AS build
+FROM node:24.14.1-slim@sha256:b506e7321f176aae77317f99d67a24b272c1f09f1d10f1761f2773447d8da26c AS build
 RUN corepack enable && apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 # Install deps (cache-friendly: copy only manifests first)
-COPY package.json pnpm-lock.yaml* ./
+COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # Copy sources and build
@@ -23,7 +23,7 @@ COPY . .
 RUN pnpm build
 
 # ─── runtime stage ────────────────────────────────────────────────────────
-FROM node:22-slim
+FROM node:24.14.1-slim@sha256:b506e7321f176aae77317f99d67a24b272c1f09f1d10f1761f2773447d8da26c
 # python3 is required by scripts/pty-helper.py (terminal feature). Originally
 # added in PR #185 for issue #161; regressed by the 2026-05-01 rename commit
 # efcb7d14 and re-added here per issue #259.
