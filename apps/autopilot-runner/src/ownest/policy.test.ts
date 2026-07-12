@@ -216,6 +216,21 @@ describe('evaluateEligibility', () => {
     expect(evaluateEligibility(task({ title }))).toEqual({ eligible: true })
   })
 
+  it.each([
+    'Research trends. Payment to the supplier',
+    'Research merge options. The approved changes must be merged',
+    'Research payment options. The supplier should be paid',
+    'Research publication options. The report needs to be published',
+    'Research outbound options. The report must be sent',
+    'Research deployment options. The release should be deployed',
+    'Research cleanup options. The records need to be deleted',
+  ])('gates actionable clauses after an advisory introduction: %s', (title) => {
+    expect(evaluateEligibility(task({ title }))).toEqual({
+      eligible: false,
+      reason: 'dangerous-language',
+    })
+  })
+
   it('rejects a mixed advisory and production action request', () => {
     expect(evaluateEligibility(task({ title: 'Research deployment options, then deploy to production' }))).toEqual({
       eligible: false,
@@ -395,6 +410,16 @@ describe('redactMissionText', () => {
     expect(redacted.length).toBeLessThanOrEqual(MISSION_TEXT_LIMIT)
     expect(redacted).not.toContain('secret-value')
     expect(redacted).toContain('Useful prefix token=[REDACTED]')
+  })
+
+  it('caps the fully redacted output when many short emails expand to markers', () => {
+    const input = 'a@b.co '.repeat(2_000).trimEnd()
+    expect(input.length).toBeLessThanOrEqual(MISSION_TEXT_LIMIT)
+
+    const redacted = redactMissionText(input)
+
+    expect(redacted).not.toContain('a@b.co')
+    expect(redacted.length).toBeLessThanOrEqual(MISSION_TEXT_LIMIT)
   })
 })
 

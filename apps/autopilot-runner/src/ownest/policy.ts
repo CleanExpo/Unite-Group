@@ -6,50 +6,64 @@ export const MAX_MISSION_TEXT_LENGTH = 16 * 1024
 
 const CLEAR_ADVISORY_INTENT =
   /^\s*(?:research|document|review|analyse|analyze|compare|study|assess|summarise|summarize|explain|audit)\b/i
+const ADVISORY_CARRYOVER_NOUN =
+  /\b(?:trends?|forecasts?|analys(?:is|es)|research|options?|strateg(?:y|ies)|polic(?:y|ies)|controls?|benchmarks?|insights?|comparisons?|reviews?|assessments?|plans?|documentation|recommendations?)\b/i
 
-const PAYMENT_ACTION = /\b(?:pay|purchase|buy|checkout|spend|charge|refund|transfer funds?)\b/i
-const PAYMENT_BOUNDARY =
-  /\b(?:pay|payment|payments|purchase|buy|checkout|spend|invoice|charge|refund|transfer funds?|billing)\b/i
+const PAYMENT_ACTION_SOURCE = String.raw`pay|paid|purchase(?:d)?|buy|bought|checkout|checked[ -]?out|spend|spent|charge(?:d)?|refund(?:ed)?|transfer(?:red)?(?:[ \t]+funds?)?`
+const PAYMENT_ACTION = new RegExp(`\\b(?:${PAYMENT_ACTION_SOURCE})\\b`, 'i')
+const PAYMENT_BOUNDARY = new RegExp(
+  `\\b(?:${PAYMENT_ACTION_SOURCE}|payment|payments|invoice|billing)\\b`,
+  'i',
+)
 const OUTBOUND_ACTION =
-  /\b(?:notify|notified|email|emailed|send|sent|publish|published|post|posted|share|shared|message|messaged|broadcast|announce|announced)\b/i
+  /\b(?:notify|notified|email|emailed|send|sent|publish|published|post|posted|share|shared|message|messaged|broadcast|broadcasted|announce|announced)\b/i
 const OUTBOUND_NOMINAL_ACTION = /\bpublication\b/i
 const OUTBOUND_NOMINAL_TARGET =
   /\b(?:outbound|newsletter|newsletters|customer|customers|public|external|blog|post|posts)\b/i
 
 const PRODUCTION_ACTION =
-  /\b(?:perform|run|apply|execute|migrate|deploy|mutate|write|change|update|release|promote|ship)\b/i
+  /\b(?:perform|performed|run|apply|applied|execute|executed|migrate|migrated|deploy|deployed|mutate|mutated|write|written|change|changed|update|updated|release|released|promote|promoted|ship|shipped)\b/i
 const PRODUCTION_TARGET = /\b(?:prod|production|database|db|schema|migration)\b/i
 const PRODUCTION_NOMINAL_ACTION = /\b(?:deployment|mutation)\b/i
 const PRODUCTION_NOMINAL_TARGET = /\b(?:prod|production|database|db)\b/i
 
-const CREDENTIAL_ACTION = /\b(?:copy|expose|disclose|rotate|access|reveal|read|retrieve)\b/i
+const CREDENTIAL_ACTION =
+  /\b(?:copy|copied|expose|exposed|disclose|disclosed|rotate|rotated|access|accessed|reveal|revealed|read|retrieve|retrieved)\b/i
 const CREDENTIAL_TARGET =
   /\b(?:secret|secrets|credential|credentials|password|passwords|token|tokens|api[-_ ]?key|api[-_ ]?keys|service[-_ ]?role[-_ ]?key)\b/i
-const PRIVILEGE_ACTION = /\b(?:grant|make|promote|elevate|escalate|change|modify)\b/i
+const PRIVILEGE_ACTION =
+  /\b(?:grant|granted|make|made|promote|promoted|elevate|elevated|escalate|escalated|change|changed|modify|modified)\b/i
 const PRIVILEGE_TARGET =
   /\b(?:admin|administrator|privilege|privileges|permission|permissions|role|roles|access control|rbac|rls|row[- ]level security)\b/i
 const CREDENTIAL_NOMINAL_ACTION = /\b(?:disclosure|exposure|rotation|escalation)\b/i
 const CREDENTIAL_NOMINAL_TARGET =
   /\b(?:secret|secrets|credential|credentials|password|passwords|token|tokens|api[-_ ]?key|api[-_ ]?keys|service[-_ ]?account|service[-_ ]?accounts|privilege|privileges|permission|permissions)\b/i
 
-const DESTRUCTIVE_ACTION = /\b(?:remove|delete|purge|wipe|drop|destroy|truncate|erase)\b/i
+const DESTRUCTIVE_ACTION =
+  /\b(?:remove|removed|delete|deleted|purge|purged|wipe|wiped|drop|dropped|destroy|destroyed|truncate|truncated|erase|erased)\b/i
 const DESTRUCTIVE_TARGET =
   /\b(?:record|records|data|database|db|table|tables|schema|schemas|file|files|repository|repositories|resource|resources)\b/i
 
 const ACCESS_CONTROL_ACTION =
-  /\b(?:change|modify|update|disable|enable|grant|revoke|alter|remove|bypass)\b/i
+  /\b(?:change|changed|modify|modified|update|updated|disable|disabled|enable|enabled|grant|granted|revoke|revoked|alter|altered|remove|removed|bypass|bypassed)\b/i
 const ACCESS_CONTROL_TARGET =
   /\b(?:access control|rbac|rls|row[- ]level security|permission|permissions|role assignment|role assignments)\b/i
 const BRANCH_PROTECTION_ACTION =
-  /\b(?:unprotect|disable|enable|change|modify|update|remove|bypass)\b|\bturn[ \t]+off\b/i
+  /\b(?:unprotect|unprotected|disable|disabled|enable|enabled|change|changed|modify|modified|update|updated|remove|removed|bypass|bypassed)\b|\bturn(?:ed)?[ \t]+off\b/i
 const BRANCH_PROTECTION_TARGET =
   /\b(?:branch protection|protected branch|protected branches|main branch|master branch)\b/i
 
-const MERGE_ACTION = /\b(?:merge|land|integrate)\b/i
+const MERGE_DIRECT_ACTION_SOURCE = String.raw`merge|land|integrate`
+const MERGE_ACTION = new RegExp(
+  `\\b(?:${MERGE_DIRECT_ACTION_SOURCE}|merged|landed|integrated)\\b`,
+  'i',
+)
 const MERGE_TARGET =
   /\b(?:pull request|pull requests|pr|prs|change request|change requests|feature|changes|branch|branches|commit|commits|code)\b/i
-const MERGE_ACTION_REQUEST =
-  /^\s*(?:please[ \t]+)?(?:merge|land|integrate)\b|\b(?:can|could|would)[ \t]+(?:you|we)[ \t]+(?:merge|land|integrate)\b|\b(?:must|should|need|needs)[ \t]+(?:to[ \t]+)?(?:be[ \t]+)?(?:merge(?:d)?|land(?:ed)?|integrat(?:e|ed))\b/i
+const MERGE_ACTION_REQUEST = new RegExp(
+  `^\\s*(?:please[ \\t]+)?(?:${MERGE_DIRECT_ACTION_SOURCE})\\b|\\b(?:can|could|would)[ \\t]+(?:you|we)[ \\t]+(?:${MERGE_DIRECT_ACTION_SOURCE})\\b`,
+  'i',
+)
 
 const HARD_BOUNDARY_ACTION_CLASSIFIERS = [
   PAYMENT_ACTION,
@@ -62,6 +76,13 @@ const HARD_BOUNDARY_ACTION_CLASSIFIERS = [
   BRANCH_PROTECTION_ACTION,
   MERGE_ACTION,
 ] as const
+const HARD_BOUNDARY_ACTION_SOURCE = HARD_BOUNDARY_ACTION_CLASSIFIERS.map(
+  (classifier) => `(?:${classifier.source})`,
+).join('|')
+const DIRECTED_HARD_ACTION_REQUEST = new RegExp(
+  `\\b(?:must|should|needs?)\\b[ \\t]+(?:to[ \\t]+)?(?:be[ \\t]+)?(?:${HARD_BOUNDARY_ACTION_SOURCE})`,
+  'i',
+)
 const MIXED_BOUNDARY_ACTION_CLASSIFIERS = [
   ...HARD_BOUNDARY_ACTION_CLASSIFIERS,
   OUTBOUND_NOMINAL_ACTION,
@@ -250,6 +271,10 @@ function containsHardBoundaryAction(text: string): boolean {
   return HARD_BOUNDARY_ACTION_CLASSIFIERS.some((classifier) => classifier.test(text))
 }
 
+function hasAdvisoryCarryoverNoun(text: string): boolean {
+  return ADVISORY_CARRYOVER_NOUN.test(text)
+}
+
 function containsDangerousClause(clause: string): boolean {
   const text = clause.trim()
   if (!text || isClearlyAdvisory(text)) return false
@@ -281,7 +306,8 @@ function containsDangerousLanguage(task: CcTask): boolean {
       advisoryContext = true
       return false
     }
-    if (advisoryContext && !containsHardBoundaryAction(text)) return false
+    if (DIRECTED_HARD_ACTION_REQUEST.test(text)) return true
+    if (advisoryContext && !containsHardBoundaryAction(text) && hasAdvisoryCarryoverNoun(text)) return false
 
     advisoryContext = false
     return containsDangerousClause(text)
@@ -406,6 +432,7 @@ export function redactMissionText(value: string): string {
     .replace(UNQUOTED_CLI_SECRET, '$1$2[REDACTED]')
     .replace(QUOTED_SECRET_ASSIGNMENT, '$1$2$3[REDACTED]$3')
     .replace(UNQUOTED_SECRET_ASSIGNMENT, '$1$2[REDACTED]')
+    .slice(0, MAX_MISSION_TEXT_LENGTH)
 }
 
 /**
