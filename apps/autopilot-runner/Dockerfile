@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Stage-3 Autopilot Runner — Railway image.
-FROM node:20-slim
+FROM node:22-slim@sha256:53ada149d435c38b14476cb57e4a7da73c15595aba79bd6971b547ceb6d018bf
 
 # git: worktree/clone ops. ca-certificates: HTTPS. The runner authors via Octokit
 # (no gh CLI needed) and runs the Claude CLI as the coding worker.
@@ -9,7 +9,7 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 # The headless coding worker.
-RUN npm install -g @anthropic-ai/claude-code
+RUN npm install -g @anthropic-ai/claude-code@2.1.207
 
 WORKDIR /app
 
@@ -21,7 +21,7 @@ COPY src ./src
 RUN npm run build
 
 # The Claude CLI refuses --dangerously-skip-permissions under root for security.
-# node:20-slim ships a non-root `node` user (uid 1000); run as it. /app build
+# node:22-slim ships a non-root `node` user (uid 1000); run as it. /app build
 # artifacts are world-readable; the runner's work dirs live under /tmp (writable
 # by any user). HOME must point at the node user's writable home for CLI config.
 RUN chown -R node:node /app && mkdir -p /home/node/.claude && chown -R node:node /home/node
