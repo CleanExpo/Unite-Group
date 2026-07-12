@@ -19,6 +19,14 @@ export type HermesTaskStatus =
   | 'triage'
 
 export type OwnestGateState = 'eligible' | 'gated' | 'dead_letter'
+export type Sha256Digest = `sha256:${string}`
+export type OwnestFailureClass = 'transient' | 'permanent' | 'integrity'
+export type OwnestCompletionPhase =
+  | 'claimed'
+  | 'dispatched'
+  | 'receipt_validated'
+  | 'artifacts_written'
+  | 'terminal'
 
 export interface OwnestStateV1 {
   version: 1
@@ -34,6 +42,44 @@ export interface OwnestStateV1 {
   evidenceUri: string | null
   gateState: OwnestGateState
   lastError: string | null
+  claimedAt?: string
+  rolloutId?: string
+  missionDigest?: Sha256Digest
+  failureCount?: number
+  failureClass?: OwnestFailureClass | null
+  failureCode?: string | null
+  nextRetryAt?: string | null
+  completionPhase?: OwnestCompletionPhase
+  receiptSha256?: Sha256Digest | null
+}
+
+/** A post-amendment state with every integrity and retry field persisted. */
+export interface HardenedOwnestStateV1 extends OwnestStateV1 {
+  claimedAt: string
+  rolloutId: string
+  missionDigest: Sha256Digest
+  failureCount: number
+  failureClass: OwnestFailureClass | null
+  failureCode: string | null
+  nextRetryAt: string | null
+  completionPhase: OwnestCompletionPhase
+  receiptSha256: Sha256Digest | null
+}
+
+export interface OwnestValidationRequirementV1 {
+  id: string
+  text: string
+  digest: Sha256Digest
+}
+
+export interface OwnestMissionContractV1 {
+  schema: 'ownest.mission.v1'
+  crmTaskId: string
+  attemptId: string
+  idempotencyKey: string
+  rolloutId: string
+  missionDigest: Sha256Digest
+  validationRequirements: OwnestValidationRequirementV1[]
 }
 
 /** The cc_tasks fields required by the OWNEST worker. */

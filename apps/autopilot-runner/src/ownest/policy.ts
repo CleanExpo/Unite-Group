@@ -1,8 +1,31 @@
-import type { CcTask, CcTaskStatus, OwnestStateV1 } from './types.js'
+import { createHash } from 'node:crypto'
+import type {
+  CcTask,
+  CcTaskStatus,
+  HardenedOwnestStateV1,
+  OwnestMissionContractV1,
+  OwnestStateV1,
+  OwnestValidationRequirementV1,
+  Sha256Digest,
+} from './types.js'
 
 const ALLOWED_OWNERS = new Set(['hermes', 'nexus', 'empire'])
 
 export const MAX_MISSION_TEXT_LENGTH = 16 * 1024
+export const MAX_VALIDATION_REQUIREMENTS = 64
+export const MAX_VALIDATION_AGGREGATE_BYTES = 16 * 1024
+
+const SHA256_DIGEST = /^sha256:[0-9a-f]{64}$/
+const SAFE_OWNEST_TOKEN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/
+const SAFE_FAILURE_CODE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const COMPLETION_PHASES = new Set([
+  'claimed',
+  'dispatched',
+  'receipt_validated',
+  'artifacts_written',
+  'terminal',
+])
+const FAILURE_CLASSES = new Set(['transient', 'permanent', 'integrity'])
 
 const CLEAR_ADVISORY_INTENT =
   /^\s*(?:research|document|review|analyse|analyze|compare|study|assess|summarise|summarize|explain|audit)\b/i
@@ -206,6 +229,45 @@ function isNullableIsoTimestamp(value: unknown): value is string | null {
   return value === null || isIsoTimestamp(value)
 }
 
+function hasOwn(value: object, key: PropertyKey): boolean {
+  return Object.prototype.hasOwnProperty.call(value, key)
+}
+
+function isSafeOwnestToken(value: unknown): value is string {
+  return typeof value === 'string' && SAFE_OWNEST_TOKEN.test(value)
+}
+
+function isSha256Digest(value: unknown): value is Sha256Digest {
+  return typeof value === 'string' && SHA256_DIGEST.test(value)
+}
+
+function isFailureCount(value: unknown): value is number {
+  return Number.isSafeInteger(value) && typeof value === 'number' && value >= 0 && value <= 3
+}
+
+function isNullableFailureClass(
+  value: unknown,
+): value is HardenedOwnestStateV1['failureClass'] {
+  return value === null || (typeof value === 'string' && FAILURE_CLASSES.has(value))
+}
+
+function isNullableFailureCode(value: unknown): value is string | null {
+  return (
+    value === null ||
+    (typeof value === 'string' && value.length <= 64 && SAFE_FAILURE_CODE.test(value))
+  )
+}
+
+function isCompletionPhase(
+  value: unknown,
+): value is HardenedOwnestStateV1['completionPhase'] {
+  return typeof value === 'string' && COMPLETION_PHASES.has(value)
+}
+
+function isNullableSha256Digest(value: unknown): value is Sha256Digest | null {
+  return value === null || isSha256Digest(value)
+}
+
 function hasOwnestMetadata(metadata: unknown): boolean {
   return isRecord(metadata) && Object.prototype.hasOwnProperty.call(metadata, 'ownest')
 }
@@ -232,6 +294,15 @@ export function extractOwnestState(metadata: unknown, expectedTaskId: string): O
     evidenceUri,
     gateState,
     lastError,
+    claimedAt,
+    rolloutId,
+    missionDigest,
+    failureCount,
+    failureClass,
+    failureCode,
+    nextRetryAt,
+    completionPhase,
+    receiptSha256,
   } = value
 
   if (version !== 1) return null
@@ -248,6 +319,35 @@ export function extractOwnestState(metadata: unknown, expectedTaskId: string): O
   if (gateState !== 'eligible' && gateState !== 'gated' && gateState !== 'dead_letter') return null
   if (!isNullableNonEmptyString(lastError)) return null
 
+  if (hasOwn(value, 'claimedAt') && !isIsoTimestamp(claimedAt)) return null
+  if (hasOwn(value, 'rolloutId') && !isSafeOwnestToken(rolloutId)) return null
+  if (hasOwn(value, 'missionDigest') && !isSha256Digest(missionDigest)) return null
+  if (hasOwn(value, 'failureCount') && !isFailureCount(failureCount)) return null
+  if (hasOwn(value, 'failureClass') && !isNullableFailureClass(failureClass)) return null
+  if (hasOwn(value, 'failureCode') && !isNullableFailureCode(failureCode)) return null
+  if (hasOwn(value, 'nextRetryAt') && !isNullableIsoTimestamp(nextRetryAt)) return null
+  if (hasOwn(value, 'completionPhase') && !isCompletionPhase(completionPhase)) return null
+  if (hasOwn(value, 'receiptSha256') && !isNullableSha256Digest(receiptSha256)) return null
+
+  const hardeningFields: Partial<OwnestStateV1> = {}
+  if (hasOwn(value, 'claimedAt')) hardeningFields.claimedAt = claimedAt as string
+  if (hasOwn(value, 'rolloutId')) hardeningFields.rolloutId = rolloutId as string
+  if (hasOwn(value, 'missionDigest')) {
+    hardeningFields.missionDigest = missionDigest as Sha256Digest
+  }
+  if (hasOwn(value, 'failureCount')) hardeningFields.failureCount = failureCount as number
+  if (hasOwn(value, 'failureClass')) {
+    hardeningFields.failureClass = failureClass as HardenedOwnestStateV1['failureClass']
+  }
+  if (hasOwn(value, 'failureCode')) hardeningFields.failureCode = failureCode as string | null
+  if (hasOwn(value, 'nextRetryAt')) hardeningFields.nextRetryAt = nextRetryAt as string | null
+  if (hasOwn(value, 'completionPhase')) {
+    hardeningFields.completionPhase = completionPhase as HardenedOwnestStateV1['completionPhase']
+  }
+  if (hasOwn(value, 'receiptSha256')) {
+    hardeningFields.receiptSha256 = receiptSha256 as Sha256Digest | null
+  }
+
   return {
     version,
     crmTaskId,
@@ -262,7 +362,32 @@ export function extractOwnestState(metadata: unknown, expectedTaskId: string): O
     evidenceUri,
     gateState,
     lastError,
+    ...hardeningFields,
   }
+}
+
+/** Returns only the post-amendment state with every integrity field present. */
+export function extractHardenedOwnestState(
+  metadata: unknown,
+  expectedTaskId: string,
+): HardenedOwnestStateV1 | null {
+  const state = extractOwnestState(metadata, expectedTaskId)
+  if (!state) return null
+
+  const requiredHardeningFields = [
+    'claimedAt',
+    'rolloutId',
+    'missionDigest',
+    'failureCount',
+    'failureClass',
+    'failureCode',
+    'nextRetryAt',
+    'completionPhase',
+    'receiptSha256',
+  ] as const
+
+  if (requiredHardeningFields.some((field) => !hasOwn(state, field))) return null
+  return state as HardenedOwnestStateV1
 }
 
 function matchesBoundary(text: string, action: RegExp, target: RegExp): boolean {
@@ -357,6 +482,182 @@ export function evaluateEligibility(task: CcTask): EligibilityDecision {
 
 export function idempotencyKey(crmTaskId: string): string {
   return `cc-task:${crmTaskId}:v1`
+}
+
+/** Hashes the exact UTF-8 representation of a string. */
+export function sha256Digest(value: string): Sha256Digest {
+  if (typeof value !== 'string') throw new TypeError('SHA-256 input must be a string')
+  return `sha256:${createHash('sha256').update(value, 'utf8').digest('hex')}`
+}
+
+function validatedRawStringArray(
+  value: unknown,
+  label: string,
+  allowEmpty: boolean,
+): string[] {
+  if (!Array.isArray(value)) throw new TypeError(`${label} must be an array`)
+  if (!allowEmpty && value.length === 0) throw new Error(`${label} must not be empty`)
+  if (value.length > MAX_VALIDATION_REQUIREMENTS) {
+    throw new Error(`${label} must contain at most ${MAX_VALIDATION_REQUIREMENTS} entries`)
+  }
+
+  let aggregateBytes = 0
+  const result: string[] = []
+  for (const entry of value) {
+    if (typeof entry !== 'string') throw new TypeError(`${label} entries must be strings`)
+    if (entry.trim().length === 0) throw new Error(`${label} entries must not be blank`)
+    aggregateBytes += Buffer.byteLength(entry, 'utf8')
+    if (aggregateBytes > MAX_VALIDATION_AGGREGATE_BYTES) {
+      throw new Error(`${label} exceeds the aggregate byte limit`)
+    }
+    result.push(entry)
+  }
+  return result
+}
+
+/** Builds immutable-by-value validation identities while preserving the authoritative raw text. */
+export function buildValidationRequirements(
+  validation: string[],
+): OwnestValidationRequirementV1[] {
+  const rawRequirements = validatedRawStringArray(
+    validation,
+    'Validation requirements',
+    false,
+  )
+  return rawRequirements.map((text, index) => ({
+    id: `vr-${String(index + 1).padStart(3, '0')}`,
+    text,
+    digest: sha256Digest(text),
+  }))
+}
+
+function assertMissionTask(task: CcTask): {
+  id: string
+  title: string
+  objective: string
+  priority: CcTask['priority']
+  owner: string
+  risk: CcTask['risk_level']
+  mode: CcTask['execution_mode']
+  dependencies: string[]
+  approval: boolean
+  validation: string[]
+} {
+  if (!isRecord(task)) throw new TypeError('Mission task must be an object')
+  if (!isSafeOwnestToken(task.id)) throw new Error('Mission task has an invalid id')
+  if (!isNonEmptyString(task.title) || !isNonEmptyString(task.objective)) {
+    throw new Error('Mission task title and objective must not be blank')
+  }
+  if (
+    task.title.length > MAX_MISSION_TEXT_LENGTH ||
+    task.objective.length > MAX_MISSION_TEXT_LENGTH ||
+    task.title.length + task.objective.length > MAX_MISSION_TEXT_LENGTH
+  ) {
+    throw new Error('Mission task text exceeds the input limit')
+  }
+  if (task.priority !== 'P0' && task.priority !== 'P1' && task.priority !== 'P2' && task.priority !== 'P3') {
+    throw new Error('Mission task has an invalid priority')
+  }
+  if (!isNonEmptyString(task.agent_owner)) throw new Error('Mission task has an invalid owner')
+  if (
+    task.risk_level !== 'low' &&
+    task.risk_level !== 'medium' &&
+    task.risk_level !== 'high' &&
+    task.risk_level !== 'critical'
+  ) {
+    throw new Error('Mission task has an invalid risk level')
+  }
+  if (
+    task.execution_mode !== 'advisory' &&
+    task.execution_mode !== 'local-code' &&
+    task.execution_mode !== 'branch-preview' &&
+    task.execution_mode !== 'overnight'
+  ) {
+    throw new Error('Mission task has an invalid execution mode')
+  }
+  if (typeof task.human_approval_required !== 'boolean') {
+    throw new Error('Mission task has an invalid approval flag')
+  }
+
+  return {
+    id: task.id,
+    title: task.title,
+    objective: task.objective,
+    priority: task.priority,
+    owner: task.agent_owner.trim().toLowerCase(),
+    risk: task.risk_level,
+    mode: task.execution_mode,
+    dependencies: validatedRawStringArray(task.dependencies, 'Mission dependencies', true),
+    approval: task.human_approval_required,
+    validation: validatedRawStringArray(task.validation_required, 'Mission validation', true),
+  }
+}
+
+/** Digests only the fixed, authoritative mission fields in a fixed JSON key order. */
+export function computeMissionDigest(task: CcTask): Sha256Digest {
+  const mission = assertMissionTask(task)
+  return sha256Digest(
+    JSON.stringify({
+      schema: 'ownest.mission.v1',
+      id: mission.id,
+      title: mission.title,
+      objective: mission.objective,
+      priority: mission.priority,
+      owner: mission.owner,
+      risk: mission.risk,
+      mode: mission.mode,
+      dependencies: mission.dependencies,
+      approval: mission.approval,
+      validation: mission.validation,
+    }),
+  )
+}
+
+/** Creates the trusted mission envelope persisted by CRM before Hermes dispatch. */
+export function buildMissionContract(
+  task: CcTask,
+  attemptId: string,
+  rolloutId: string,
+): OwnestMissionContractV1 {
+  if (!isSafeOwnestToken(attemptId)) throw new Error('Mission attempt id is invalid')
+  if (!isSafeOwnestToken(rolloutId)) throw new Error('Mission rollout id is invalid')
+  const missionDigest = computeMissionDigest(task)
+
+  return {
+    schema: 'ownest.mission.v1',
+    crmTaskId: task.id,
+    attemptId,
+    idempotencyKey: idempotencyKey(task.id),
+    rolloutId,
+    missionDigest,
+    validationRequirements: buildValidationRequirements(task.validation_required),
+  }
+}
+
+/** Derives a stable RFC 9562-compatible UUIDv8 from a scoped SHA-256 input. */
+export function deterministicUuid(scope: string, ...parts: string[]): string {
+  if (!isSafeOwnestToken(scope)) throw new Error('Deterministic UUID scope is invalid')
+  if (parts.length === 0 || parts.length > 64) {
+    throw new Error('Deterministic UUID requires between 1 and 64 parts')
+  }
+
+  let aggregateBytes = Buffer.byteLength(scope, 'utf8')
+  for (const part of parts) {
+    if (typeof part !== 'string') throw new TypeError('Deterministic UUID parts must be strings')
+    if (part.trim().length === 0) throw new Error('Deterministic UUID parts must not be blank')
+    aggregateBytes += Buffer.byteLength(part, 'utf8')
+    if (aggregateBytes > MAX_VALIDATION_AGGREGATE_BYTES) {
+      throw new Error('Deterministic UUID input exceeds the aggregate byte limit')
+    }
+  }
+
+  const bytes = Buffer.from(
+    createHash('sha256').update(JSON.stringify([scope, ...parts]), 'utf8').digest().subarray(0, 16),
+  )
+  bytes[6] = ((bytes[6] ?? 0) & 0x0f) | 0x80
+  bytes[8] = ((bytes[8] ?? 0) & 0x3f) | 0x80
+  const hex = bytes.toString('hex')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
 }
 
 function isAsciiLetter(code: number): boolean {

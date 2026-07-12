@@ -1,13 +1,19 @@
 import { performance } from 'node:perf_hooks'
 import { describe, expect, it } from 'vitest'
 import {
+  buildMissionContract,
+  buildValidationRequirements,
+  computeMissionDigest,
+  deterministicUuid,
   evaluateEligibility,
+  extractHardenedOwnestState,
   extractOwnestState,
   idempotencyKey,
   mapHermesStatus,
   redactMissionText,
+  sha256Digest,
 } from './policy.js'
-import type { CcTask, OwnestStateV1 } from './types.js'
+import type { CcTask, HardenedOwnestStateV1, OwnestStateV1 } from './types.js'
 
 const MISSION_TEXT_LIMIT = 16 * 1024
 
@@ -46,6 +52,19 @@ const ownestState: OwnestStateV1 = {
   evidenceUri: null,
   gateState: 'eligible',
   lastError: null,
+}
+
+const hardenedOwnestState: HardenedOwnestStateV1 = {
+  ...ownestState,
+  claimedAt: '2026-07-12T00:00:00.000Z',
+  rolloutId: 'ownest-canary-20260712',
+  missionDigest: 'sha256:a90900b2f0f17c50fa1bae019afc882e70a76c9b16d8a4e9a679468e385ae3a1',
+  failureCount: 0,
+  failureClass: null,
+  failureCode: null,
+  nextRetryAt: null,
+  completionPhase: 'claimed',
+  receiptSha256: null,
 }
 
 describe('evaluateEligibility', () => {
@@ -519,5 +538,229 @@ describe('extractOwnestState', () => {
     }
 
     expect(extractOwnestState({ ownest: completeState }, 'task-1')).toEqual(completeState)
+  })
+
+  it('preserves exact legacy equality without adding absent hardening fields', () => {
+    const extracted = extractOwnestState({ ownest: ownestState }, 'task-1')
+
+    expect(extracted).toEqual(ownestState)
+    expect(Object.keys(extracted ?? {})).toEqual(Object.keys(ownestState))
+  })
+
+  it('returns every valid optional hardening field without normalising it', () => {
+    expect(extractOwnestState({ ownest: hardenedOwnestState }, 'task-1')).toEqual(
+      hardenedOwnestState,
+    )
+  })
+
+  it.each([
+    ['claimedAt', null],
+    ['claimedAt', '2026-02-30T00:00:00Z'],
+    ['rolloutId', 'bad rollout'],
+    ['rolloutId', `r${'x'.repeat(128)}`],
+    ['missionDigest', 'sha256:ABCDEF'],
+    ['missionDigest', `sha256:${'a'.repeat(63)}`],
+    ['failureCount', -1],
+    ['failureCount', 4],
+    ['failureCount', 1.5],
+    ['failureClass', 'unknown'],
+    ['failureCode', 'Not-Kebab'],
+    ['failureCode', 'x'.repeat(65)],
+    ['nextRetryAt', 'tomorrow'],
+    ['completionPhase', 'complete'],
+    ['receiptSha256', `sha256:${'A'.repeat(64)}`],
+  ])('rejects malformed present optional hardening field %s=%#', (field, value) => {
+    expect(
+      extractOwnestState(
+        { ownest: { ...hardenedOwnestState, [field]: value } },
+        'task-1',
+      ),
+    ).toBeNull()
+  })
+})
+
+describe('extractHardenedOwnestState', () => {
+  it('requires and returns the complete canonical hardened state', () => {
+    expect(extractHardenedOwnestState({ ownest: hardenedOwnestState }, 'task-1')).toEqual(
+      hardenedOwnestState,
+    )
+  })
+
+  it.each([
+    'claimedAt',
+    'rolloutId',
+    'missionDigest',
+    'failureCount',
+    'failureClass',
+    'failureCode',
+    'nextRetryAt',
+    'completionPhase',
+    'receiptSha256',
+  ])('rejects a hardened state missing %s', (field) => {
+    const incomplete = { ...hardenedOwnestState } as Record<string, unknown>
+    delete incomplete[field]
+
+    expect(extractHardenedOwnestState({ ownest: incomplete }, 'task-1')).toBeNull()
+  })
+
+  it('allows canonical nullable retry, failure, and receipt fields', () => {
+    const state: HardenedOwnestStateV1 = {
+      ...hardenedOwnestState,
+      failureCount: 2,
+      failureClass: 'transient',
+      failureCode: 'hermes-timeout',
+      nextRetryAt: '2026-07-12T00:05:00+00:00',
+      completionPhase: 'receipt_validated',
+      receiptSha256: `sha256:${'b'.repeat(64)}`,
+    }
+
+    expect(extractHardenedOwnestState({ ownest: state }, 'task-1')).toEqual(state)
+  })
+})
+
+describe('sha256Digest', () => {
+  it('returns a lowercase prefixed SHA-256 digest of exact UTF-8 input', () => {
+    expect(sha256Digest('abc')).toBe(
+      'sha256:ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
+    )
+    expect(sha256Digest('🪐')).toBe(sha256Digest('🪐'))
+  })
+
+  it('rejects non-string runtime input', () => {
+    expect(() => sha256Digest(42 as never)).toThrow(/string/i)
+  })
+})
+
+describe('buildValidationRequirements', () => {
+  it('numbers requirements deterministically and digests the untrimmed raw text', () => {
+    expect(buildValidationRequirements(['Cite the source data', ' Cite the source data '])).toEqual([
+      {
+        id: 'vr-001',
+        text: 'Cite the source data',
+        digest: 'sha256:f09c7f2f49cbe95f7b284d44de5895e8d815ad3ed4306e51f6bfb39a8fe916d4',
+      },
+      {
+        id: 'vr-002',
+        text: ' Cite the source data ',
+        digest: 'sha256:899c8d8bce4559058b070287da80db4ea4e99ec4d57df544f17bddc967e1b9cd',
+      },
+    ])
+  })
+
+  it.each([
+    ['empty list', []],
+    ['blank entry', ['   ']],
+    ['more than 64 entries', Array.from({ length: 65 }, (_, index) => `check-${index}`)],
+    ['aggregate over 16 KiB', ['x'.repeat(MISSION_TEXT_LIMIT + 1)]],
+    ['non-string entry', [42]],
+  ])('rejects %s', (_label, input) => {
+    expect(() => buildValidationRequirements(input as string[])).toThrow()
+  })
+})
+
+describe('computeMissionDigest', () => {
+  it('hashes the fixed-key canonical authoritative mission with a normalised owner', () => {
+    expect(computeMissionDigest(task({ agent_owner: '  HeRmEs  ' }))).toBe(
+      'sha256:a90900b2f0f17c50fa1bae019afc882e70a76c9b16d8a4e9a679468e385ae3a1',
+    )
+  })
+
+  it('excludes founder, status, metadata, and timestamps from mission authority', () => {
+    const baseline = computeMissionDigest(task())
+    expect(
+      computeMissionDigest(
+        task({
+          founder_id: 'different-founder',
+          status: 'blocked',
+          metadata: { ignored: true },
+          created_at: '2030-01-01T00:00:00.000Z',
+          updated_at: '2030-01-02T00:00:00.000Z',
+        }),
+      ),
+    ).toBe(baseline)
+  })
+
+  it.each([
+    ['title', { title: 'Research 🪐 retention patterns' }],
+    ['objective', { objective: 'Different raw objective' }],
+    ['priority', { priority: 'P1' }],
+    ['owner', { agent_owner: 'Nexus' }],
+    ['risk', { risk_level: 'medium' }],
+    ['mode', { execution_mode: 'overnight' }],
+    ['dependency order', { dependencies: ['b', 'a'] }],
+    ['approval', { human_approval_required: true }],
+    ['validation order', { validation_required: ['second', 'first'] }],
+  ] as Array<[string, Partial<CcTask>]>)('changes when authoritative %s changes', (_field, overrides) => {
+    expect(computeMissionDigest(task(overrides))).not.toBe(computeMissionDigest(task()))
+  })
+
+  it('rejects malformed authoritative fields at runtime', () => {
+    expect(() => computeMissionDigest(task({ agent_owner: null }))).toThrow(/owner/i)
+    expect(() => computeMissionDigest({ ...task(), dependencies: [42] } as never)).toThrow()
+  })
+})
+
+describe('buildMissionContract', () => {
+  it('binds one attempt and rollout to the canonical task and validation requirements', () => {
+    expect(buildMissionContract(task(), 'attempt-1', 'ownest-canary-20260712')).toEqual({
+      schema: 'ownest.mission.v1',
+      crmTaskId: 'task-1',
+      attemptId: 'attempt-1',
+      idempotencyKey: 'cc-task:task-1:v1',
+      rolloutId: 'ownest-canary-20260712',
+      missionDigest: 'sha256:a90900b2f0f17c50fa1bae019afc882e70a76c9b16d8a4e9a679468e385ae3a1',
+      validationRequirements: [
+        {
+          id: 'vr-001',
+          text: 'Cite the source data',
+          digest: 'sha256:f09c7f2f49cbe95f7b284d44de5895e8d815ad3ed4306e51f6bfb39a8fe916d4',
+        },
+      ],
+    })
+  })
+
+  it.each([
+    ['blank attempt', ' ', 'rollout-1'],
+    ['unsafe attempt', 'attempt/1', 'rollout-1'],
+    ['blank rollout', 'attempt-1', ' '],
+    ['unsafe rollout', 'attempt-1', 'rollout/1'],
+    ['overlong rollout', 'attempt-1', `r${'x'.repeat(128)}`],
+  ])('rejects %s', (_label, attemptId, rolloutId) => {
+    expect(() => buildMissionContract(task(), attemptId, rolloutId)).toThrow()
+  })
+})
+
+describe('deterministicUuid', () => {
+  it('returns a stable RFC-compatible UUIDv8 from unambiguous scoped parts', () => {
+    const uuid = deterministicUuid(
+      'ownest.audit',
+      'founder-1',
+      'task-1',
+      'attempt-1',
+      'rollout-1',
+      'completion',
+    )
+
+    expect(uuid).toBe('bd0de84a-10aa-8a88-b36b-f694d7cfca24')
+    expect(uuid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-8[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+  })
+
+  it('is order-sensitive, delimiter-safe, Unicode-deterministic, and scope-separated', () => {
+    expect(deterministicUuid('scope', 'a', 'b')).not.toBe(deterministicUuid('scope', 'b', 'a'))
+    expect(deterministicUuid('scope', 'a|b', 'c')).not.toBe(
+      deterministicUuid('scope', 'a', 'b|c'),
+    )
+    expect(deterministicUuid('scope', '🪐')).toBe(deterministicUuid('scope', '🪐'))
+    expect(deterministicUuid('scope-a', 'x')).not.toBe(deterministicUuid('scope-b', 'x'))
+  })
+
+  it.each([
+    ['blank scope', ' ', ['x']],
+    ['unsafe scope', 'scope/unsafe', ['x']],
+    ['no parts', 'scope', []],
+    ['blank part', 'scope', ['']],
+    ['non-string part', 'scope', [42]],
+  ])('rejects %s', (_label, scope, parts) => {
+    expect(() => deterministicUuid(scope, ...(parts as string[]))).toThrow()
   })
 })
