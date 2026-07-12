@@ -1,6 +1,8 @@
 # Pi-CEO Operator — MCP App
 
-> **Status:** Phase B POC of the Skybridge rollout. See `Pi-CEO/skills/skybridge-rollout/SKILL.md` for the full plan. This SPEC.md captures Phill's first MCP App for the Unite-Group portfolio so the design is reviewable before more tools land.
+> **Status:** Phase B POC of the Skybridge rollout. The former external rollout
+> skill is not present in this canonical monorepo; this document is the package's
+> self-contained review source until a current rollout plan is added here.
 
 ## Value Proposition
 
@@ -34,7 +36,7 @@
 ## UI Overview
 
 **First view:** Portfolio Health Card
-- Grid of 10 repos (Pi-Dev-Ops, Disaster-Recovery, DR-NRPG, ATO, RestoreAssist, CARSI, Unite-Group, Unite-Hub, Synthex, CCW-CRM)
+- Grid of current canonical repos (Pi-Dev-Ops, Disaster-Recovery, DR-NRPG, ATO, RestoreAssist, CARSI, Unite-Group, Synthex, CCW-CRM); the deleted Unite-Hub repo is not queried
 - Per repo: latest-run conclusion (✅/⚠️/❌), rolling-10 fail count, last-deploy-state badge
 - Sticky footer: Pilot V1 last cycle outcome + cron next-run
 
@@ -60,7 +62,9 @@
 
 **Auth method (POC):** None. This MCP server runs locally only via `npm run dev`, exposes itself to Phill's Claude Desktop or ChatGPT via Skybridge's tunnel. No external network ingress.
 
-**Auth method (Phase B.2, if hosted):** Per `Pi-CEO/skills/skybridge-rollout/SKILL.md` §6 row "Internal tools (Pi-CEO, Unite-Hub)" → "No external auth — gated by Supabase or repo-private". For an Alpic-hosted version: env-var allow-list check (only Phill's email or session-token).
+**Auth method (Phase B.2, if hosted):** Undecided. Hosting requires a new
+threat model and explicit authentication design; the deleted Unite-Hub and a
+missing historical rollout skill are not valid security gates.
 
 **Constraints:**
 - Tool calls should complete in <2s for "feel snappy" (10 parallel `gh api` calls cached for 60s should do it)

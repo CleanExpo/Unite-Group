@@ -14,8 +14,8 @@ having been met.
 | `apps/web/` | **The product** — Unite-Group (formerly Unite-Hub CRM engine). Next.js 16, React 19, Supabase, pnpm workspace. Its own `apps/web/CLAUDE.md` rules (NorthStar, No-Invaders, founder_id scoping, Scientific Luxury) still apply inside it. |
 | `apps/workspace/` | Hermes workspace — agent command centre (Vite/React 19) |
 | `apps/empire/` | Pi-CEO / Margot voice / CEO activity app — source of voice + activity routes now ported to `apps/web`. Retained for reference only; do not build new features here. |
-| `apps/spec-board/` | Fabel-Prompt-Engineer — plain-English vision → verified, build-ready spec (Next.js 15, npm, own Supabase project `yhteftfnoegmdkimzzjd`). Keeps its own lockfile/toolchain. Live founder data (visions/specs/board) untouched by the fold-in. |
-| `apps/autopilot-runner/` | `@unite/autopilot-runner` — Stage-3 Autopilot Runner, the hosted executor that lets the deployed Unite-Group app run the Linear autonomous loop unattended, off the Mac; lineage UNI-2143. |
+| `apps/spec-board/` | Fabel-Prompt-Engineer — plain-English vision → verified, build-ready spec (Next.js 16, npm, own Supabase project `yhteftfnoegmdkimzzjd`). Keeps its own lockfile/toolchain. Live founder data (visions/specs/board) untouched by the fold-in. |
+| `apps/autopilot-runner/` | `@unite/autopilot-runner` — design/test-only OWNEST policy and adapters plus a one-file refusal container for the permanently retired Linear executor. Presence/heartbeat and all host runtime outputs are deleted; lineage UNI-2143. |
 | `packages/spine/` | Unite-Group-Spine — greenfield shared-identity schema (gated, non-prod) |
 | `packages/pi-ceo-operator-mcp/` | Portfolio-health MCP server |
 | `docs/brain/` | Residual brain files (Drafts, NEXUS.md) — the strategic knowledge vault lives canonically at `~/2nd Brain/2nd Brain` (CleanExpo/brain-1); the stale `2nd Brain/` snapshot was removed 06/07/2026 after its 4 unique files were rescued to the canonical vault |
@@ -47,12 +47,10 @@ GitHub repo + Vercel project deleted 20/06/2026 — per Phill's typed approval).
   `pi-ceo-operator-mcp` are frozen pending deletion per the runbook.
   **`CleanExpo/Unite-Group-Spine` was ARCHIVED on GitHub 05/07/2026** (Phill's
   typed instruction) — read-only; the canonical Spine is `packages/spine/` here.
-  Full deletion, if ever, still needs runbook gates + Phill's typed approval. **Unite-Hub
-  (`CleanExpo/Unite-Hub`) is being wound down and closed** (per Phill 2026-06-20;
-  supersedes the 2026-06-18 "keep separate" instruction). All env vars have been
-  confirmed present in `apps/web`. The Vercel `unite-hub` project and
-  `CleanExpo/Unite-Hub` repo are pending decommission — deletion requires Phill's
-  typed approval per the runbook. Do not start new work in Unite-Hub.
+  Full deletion, if ever, still needs runbook gates + Phill's typed approval.
+  **Unite-Hub (`CleanExpo/Unite-Hub`) and its Vercel project were deleted on
+  20/06/2026 after the approved wind-down.** Do not describe them as pending,
+  query them as active infrastructure, or start new work against them.
 - **Deletion** of any repo/Supabase/Vercel resource: runbook gates + Phill's
   typed approval only. Never autonomous.
 - **PR base = `main`, always.** Every pull request must target `main` — never

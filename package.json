@@ -3,24 +3,21 @@
   "version": "2.0.0",
   "private": true,
   "description": "Unite-Group — the single canonical monorepo for the entire Unite-Group product and ecosystem. apps/web is the product; everything else supports it.",
+  "packageManager": "pnpm@9.15.0",
   "scripts": {
-    "verify:web": "cd apps/web && pnpm install --frozen-lockfile && pnpm run type-check && pnpm run lint && pnpm run test && pnpm run build",
-    "verify:workspace": "cd apps/workspace && pnpm install --frozen-lockfile && pnpm run check && pnpm run build",
-    "verify:autopilot": "cd apps/autopilot-runner && npm ci && npm run test && npm run type-check && npm run build",
+    "verify:web": "cd apps/web && corepack pnpm@9.15.0 install --frozen-lockfile && corepack pnpm@9.15.0 run type-check && corepack pnpm@9.15.0 run lint && corepack pnpm@9.15.0 run test && node ../../scripts/verify-web-ci-build.mjs",
+    "verify:workspace": "cd apps/workspace && corepack pnpm@9.15.0 install --frozen-lockfile && corepack pnpm@9.15.0 exec tsc --noEmit && corepack pnpm@9.15.0 run test && corepack pnpm@9.15.0 run build",
+    "verify:autopilot": "cd apps/autopilot-runner && npm ci && npm run test && npm run type-check && npm run build && npm run verify:container",
     "verify:mcp": "cd packages/pi-ceo-operator-mcp && npm ci && npm run build",
+    "verify:spine": "cd packages/spine/packages/spine && npm ci && npm run typecheck && npm test",
     "verify:spec-board": "cd apps/spec-board && npm ci && npx tsc --noEmit && npm test && npm run build",
-    "verify:readiness": "node --test scripts/__tests__/nexus-project-readiness.test.mjs && node scripts/nexus-project-readiness.mjs --root . --json --gate",
+    "verify:readiness": "node --test scripts/__tests__/check-env.test.mjs scripts/__tests__/nexus-project-readiness.test.mjs scripts/__tests__/verify-web-ci-build.test.mjs scripts/__tests__/workflow-supply-chain.test.mjs && node scripts/nexus-project-readiness.mjs --root . --json --gate",
     "verify:docs-watch": "node --test scripts/__tests__/nexus-docs-watch.test.mjs",
     "nexus:docs:watch": "node scripts/nexus-docs-watch.mjs --root . --baseline config/nexus-official-sources.baseline.json --gate-material",
-    "verify": "npm run verify:readiness && npm run verify:web && npm run verify:workspace && npm run verify:autopilot && npm run verify:mcp && npm run verify:spec-board",
-    "env:check": "node scripts/check-env.mjs --package all",
-    "mission-control:linear-loop:preflight": "npm --prefix apps/empire run mission-control:linear-loop:preflight",
-    "mission-control:linear-loop": "npm --prefix apps/empire run mission-control:linear-loop",
-    "mission-control:linear-loop:once": "npm --prefix apps/empire run mission-control:linear-loop:once",
-    "mission-control:linear-handoff-loop": "npm --prefix apps/empire run mission-control:linear-handoff-loop",
-    "mission-control:linear-handoff-loop:preflight": "npm --prefix apps/empire run mission-control:linear-handoff-loop:preflight"
+    "verify": "npm run verify:readiness && npm run verify:docs-watch && npm run verify:web && npm run verify:workspace && npm run verify:autopilot && npm run verify:mcp && npm run verify:spine && npm run verify:spec-board",
+    "env:check": "node scripts/check-env.mjs --package all"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=24.14.1 <25"
   }
 }

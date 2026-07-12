@@ -732,7 +732,7 @@ test('root scripts and the weekly workflow stay read-only and artifact-only', as
   assert.doesNotMatch(JSON.stringify(committedBaseline), /"(?:body|content)"\s*:/i)
 })
 
-test('pull-request CI enforces watcher tests on Node 22 and 24', async () => {
+test('pull-request CI enforces watcher tests on the supported Node 24 runtime', async () => {
   const rootCi = await readFile(
     new URL('../../.github/workflows/ci.yml', import.meta.url),
     'utf8',
@@ -743,7 +743,8 @@ test('pull-request CI enforces watcher tests on Node 22 and 24', async () => {
   const nextJob = remainder.slice(1).search(/\n  [a-z0-9-]+:\n/)
   const job = nextJob === -1 ? remainder : remainder.slice(0, nextJob + 1)
 
-  assert.match(job, /node-version:\s*\['22', '24'\]/)
+  assert.match(job, /node-version:\s*\['24'\]/)
+  assert.doesNotMatch(job, /node-version:\s*\[[^\]]*'22'/)
   assert.match(job, /npm run verify:docs-watch/)
   assert.match(job, /actions\/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0/)
   assert.match(job, /actions\/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e/)

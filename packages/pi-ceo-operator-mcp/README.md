@@ -1,6 +1,8 @@
 # Pi-CEO Operator MCP App
 
-> Phase B POC of the Unite-Group Skybridge rollout. Read the strategic plan in [`Pi-CEO/skills/skybridge-rollout/SKILL.md`](../Pi-CEO/skills/skybridge-rollout/SKILL.md). Read this POC's design in [`SPEC.md`](SPEC.md).
+> Phase B POC of the Unite-Group Skybridge rollout. The former external rollout
+> skill is not part of this canonical monorepo; [`SPEC.md`](SPEC.md) is the
+> reviewable design source for this package.
 
 A small MCP App that gives the Unite-Group operator (Phill) a portfolio snapshot inside Claude / ChatGPT without opening 8 browser tabs.
 
@@ -10,7 +12,7 @@ Registers two read-only MCP tools:
 
 | Tool | What it returns | View |
 |---|---|---|
-| `get-portfolio-health` | Per-repo latest-run conclusion + rolling-10 fail count for all 10 Unite-Group repos, fetched via `gh api` | `portfolio-health` card (React) |
+| `get-portfolio-health` | Per-repo latest-run conclusion + rolling-10 fail count for the current canonical portfolio list, fetched via `gh api` | `portfolio-health` card (React) |
 | `get-pilot-v1-outcomes` | Recent Pilot V1 scheduler outcomes from `~/.hermes/logs/pilot_v1_scheduler.log` | (no view — JSON only) |
 
 Both annotated `readOnlyHint: true`, `destructiveHint: false`. No tool mutates anything.
@@ -57,13 +59,16 @@ pi-ceo-operator-mcp/
 
 ## Requirements
 
-- Node.js 22+
+- Node.js 24.14.1+
 - `gh` CLI authenticated for the CleanExpo org (read access to Actions)
-- (optional) Pilot V1 scheduler must be running — see [`Pi-CEO/skills/skybridge-rollout/SKILL.md`](../Pi-CEO/skills/skybridge-rollout/SKILL.md) and the Hermes cron job `7d9268aaa3ac` set up on 2026-05-25.
+- (optional) Pilot V1 scheduler/log source must be independently confirmed
+  current; the 2026-05-25 Hermes job ID in [`SPEC.md`](SPEC.md) is historical
+  evidence, not proof that the scheduler is running now.
 
 ## What this POC proves
 
-- Skybridge `npm create` + `npm run build` work locally with Node 22
+- Skybridge `npm run build` is supported by this package's declared Node
+  24.14.1+ toolchain
 - Type-safe tool → view binding actually works end-to-end
 - Calling out to `gh` CLI from a tool handler returns useful real data
 - Reading the local Pilot V1 log from a tool handler returns useful real data
@@ -71,17 +76,16 @@ pi-ceo-operator-mcp/
 
 ## What's next
 
-Per the rollout SKILL.md Phase G:
+Follow-up work for this POC:
 
 1. Add `trigger_shipit` tool with explicit confirmation pattern (Skybridge supports interactive confirmation flows)
 2. Add per-repo drill-in view (last 10 runs by workflow with click-through to GitHub)
 3. Add Vercel project-state data source
 4. Decide on hosting (Alpic vs self-host) and deploy
-5. Pull this POC's pattern into the Synthex flagship app build (next priority per SKILL.md §2)
+5. Reassess whether this POC's pattern belongs in Synthex after its own current-state audit
 
 ## Related
 
 - Skybridge framework: https://github.com/alpic-ai/skybridge
 - Skybridge docs: https://docs.skybridge.tech
-- Rollout plan: [`Pi-CEO/skills/skybridge-rollout/SKILL.md`](../Pi-CEO/skills/skybridge-rollout/SKILL.md)
-- Technical how-to skill (installed via `npx skills add alpic-ai/skybridge -s skybridge`): `~/Pi-CEO/.agents/skills/skybridge/`
+- Package design and acceptance criteria: [`SPEC.md`](SPEC.md)

@@ -21,6 +21,7 @@
       "manager": "pnpm",
       "lockfile": "pnpm-lock.yaml",
       "requiredScripts": [
+        "type-check",
         "test",
         "build"
       ]
@@ -32,7 +33,8 @@
       "requiredScripts": [
         "test",
         "type-check",
-        "build"
+        "build",
+        "verify:container"
       ]
     },
     {
@@ -40,6 +42,7 @@
       "manager": "npm",
       "lockfile": "package-lock.json",
       "requiredScripts": [
+        "type-check",
         "test",
         "build"
       ]
@@ -50,6 +53,15 @@
       "lockfile": "package-lock.json",
       "requiredScripts": [
         "build"
+      ]
+    },
+    {
+      "path": "packages/spine/packages/spine",
+      "manager": "npm",
+      "lockfile": "package-lock.json",
+      "requiredScripts": [
+        "typecheck",
+        "test"
       ]
     }
   ],

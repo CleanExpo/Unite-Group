@@ -13,6 +13,12 @@ File mode `0600` and directory mode `0700` do not isolate processes running as
 the same UID. Environment scrubbing therefore cannot turn this layout into a
 security boundary.
 
+A redacted patch scan also detected a Supabase-shaped legacy value only on
+deleted lines from the retired nested `kd-sync` workflow. Added lines are clean,
+but deletion does not remove the value from Git history. Treat it as a rotation
+candidate if it is still valid; do not rewrite shared history without a
+separately coordinated incident-remediation plan.
+
 ## Containment completed in this branch
 
 - OWNEST, heartbeat, operator-jobs, and presence LaunchAgents were confirmed

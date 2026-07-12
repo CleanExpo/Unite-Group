@@ -51,6 +51,17 @@ const LOCKFILES = {
   yarn: 'yarn.lock',
   bun: 'bun.lockb',
 };
+const BASE_FINDING_IDS = new Set([
+  'ci.active-package-coverage',
+  'ci.nested-workflows',
+  'containers.floating-images',
+  'containers.missing-local-inputs',
+  'runtime.implicit-production-url-defaults',
+  'scanner.configuration',
+  'security.ssh-home-exposure',
+  'security.tracked-auth-artifacts',
+  'toolchain.package-lock-node-matrix',
+]);
 const FAIL_CLOSED_CONFIG = {
   p0FindingIds: ['scanner.configuration'],
   activePackages: [],
@@ -118,6 +129,137 @@ function readJson(root, path) {
   }
 }
 
+function isPlainObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function unknownKeys(value, allowed) {
+  return Object.keys(value).filter((key) => !allowed.has(key)).sort(stableCompare);
+}
+
+function safeRelativePath(value) {
+  if (typeof value !== 'string' || value.trim() !== value || value === '' || isAbsolute(value)) return false;
+  const path = toPosix(value);
+  return path !== '.' && path !== '..' && !path.startsWith('../') && !path.includes('/../') && !path.endsWith('/..');
+}
+
+function stringArrayErrors(value, label, { nonempty = false } = {}) {
+  const errors = [];
+  if (!Array.isArray(value)) return [`${label} must be an array.`];
+  if (nonempty && value.length === 0) errors.push(`${label} must not be empty.`);
+  const seen = new Set();
+  value.forEach((item, index) => {
+    if (typeof item !== 'string' || item.trim() !== item || item === '') {
+      errors.push(`${label}[${index}] must be a non-empty trimmed string.`);
+    } else if (seen.has(item)) {
+      errors.push(`${label} contains duplicate value ${item}.`);
+    } else {
+      seen.add(item);
+    }
+  });
+  return errors;
+}
+
+function validateConfig(parsed) {
+  if (!isPlainObject(parsed)) return ['Configuration root must be an object.'];
+
+  const errors = [];
+  const topLevelKeys = new Set(['schemaVersion', 'p0FindingIds', 'activePackages', 'sourceOfTruthChecks']);
+  const extras = unknownKeys(parsed, topLevelKeys);
+  if (extras.length > 0) errors.push(`Configuration has unknown keys: ${extras.join(', ')}.`);
+  if (parsed.schemaVersion !== 1) errors.push('schemaVersion must equal 1.');
+  errors.push(...stringArrayErrors(parsed.p0FindingIds, 'p0FindingIds', { nonempty: true }));
+
+  if (!Array.isArray(parsed.activePackages)) {
+    errors.push('activePackages must be an array.');
+  } else {
+    const packagePaths = new Set();
+    parsed.activePackages.forEach((activePackage, index) => {
+      const label = `activePackages[${index}]`;
+      if (!isPlainObject(activePackage)) {
+        errors.push(`${label} must be an object.`);
+        return;
+      }
+      const packageExtras = unknownKeys(activePackage, new Set(['path', 'manager', 'lockfile', 'requiredScripts']));
+      if (packageExtras.length > 0) errors.push(`${label} has unknown keys: ${packageExtras.join(', ')}.`);
+      if (!safeRelativePath(activePackage.path)) {
+        errors.push(`${label}.path must be a safe relative path.`);
+      } else if (packagePaths.has(activePackage.path)) {
+        errors.push(`activePackages contains duplicate path ${activePackage.path}.`);
+      } else {
+        packagePaths.add(activePackage.path);
+      }
+      if (!Object.hasOwn(LOCKFILES, activePackage.manager)) {
+        errors.push(`${label}.manager must be one of ${Object.keys(LOCKFILES).join(', ')}.`);
+      } else if (activePackage.lockfile !== LOCKFILES[activePackage.manager]) {
+        errors.push(`${label}.lockfile must be ${LOCKFILES[activePackage.manager]} for manager ${activePackage.manager}.`);
+      }
+      errors.push(...stringArrayErrors(activePackage.requiredScripts, `${label}.requiredScripts`, { nonempty: true }));
+    });
+  }
+
+  const sourceFindingIds = new Set();
+  if (!Array.isArray(parsed.sourceOfTruthChecks)) {
+    errors.push('sourceOfTruthChecks must be an array.');
+  } else {
+    const checkIds = new Set();
+    parsed.sourceOfTruthChecks.forEach((check, checkIndex) => {
+      const label = `sourceOfTruthChecks[${checkIndex}]`;
+      if (!isPlainObject(check)) {
+        errors.push(`${label} must be an object.`);
+        return;
+      }
+      const checkExtras = unknownKeys(check, new Set(['id', 'description', 'assertions']));
+      if (checkExtras.length > 0) errors.push(`${label} has unknown keys: ${checkExtras.join(', ')}.`);
+      if (typeof check.id !== 'string' || !/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/.test(check.id)) {
+        errors.push(`${label}.id must be a lowercase finding identifier.`);
+      } else if (checkIds.has(check.id)) {
+        errors.push(`sourceOfTruthChecks contains duplicate id ${check.id}.`);
+      } else {
+        checkIds.add(check.id);
+        sourceFindingIds.add(`source-of-truth.${check.id}`);
+      }
+      if (typeof check.description !== 'string' || check.description.trim() !== check.description || check.description === '') {
+        errors.push(`${label}.description must be a non-empty trimmed string.`);
+      }
+      if (!Array.isArray(check.assertions) || check.assertions.length === 0) {
+        errors.push(`${label}.assertions must be a non-empty array.`);
+        return;
+      }
+      check.assertions.forEach((assertion, assertionIndex) => {
+        const assertionLabel = `${label}.assertions[${assertionIndex}]`;
+        if (!isPlainObject(assertion)) {
+          errors.push(`${assertionLabel} must be an object.`);
+          return;
+        }
+        const assertionExtras = unknownKeys(assertion, new Set(['path', 'require', 'forbid']));
+        if (assertionExtras.length > 0) errors.push(`${assertionLabel} has unknown keys: ${assertionExtras.join(', ')}.`);
+        if (!safeRelativePath(assertion.path)) errors.push(`${assertionLabel}.path must be a safe relative path.`);
+        if (assertion.require === undefined && assertion.forbid === undefined) {
+          errors.push(`${assertionLabel} must declare require or forbid values.`);
+        }
+        if (assertion.require !== undefined) {
+          errors.push(...stringArrayErrors(assertion.require, `${assertionLabel}.require`, { nonempty: true }));
+        }
+        if (assertion.forbid !== undefined) {
+          errors.push(...stringArrayErrors(assertion.forbid, `${assertionLabel}.forbid`, { nonempty: true }));
+        }
+      });
+    });
+  }
+
+  if (Array.isArray(parsed.p0FindingIds)) {
+    const knownFindingIds = new Set([...BASE_FINDING_IDS, ...sourceFindingIds]);
+    parsed.p0FindingIds.forEach((id) => {
+      if (typeof id === 'string' && id !== '' && !knownFindingIds.has(id)) {
+        errors.push(`p0FindingIds contains unknown finding id ${id}.`);
+      }
+    });
+  }
+
+  return errors;
+}
+
 function lineNumber(text, index) {
   return text.slice(0, index).split('\n').length;
 }
@@ -167,20 +309,17 @@ function loadConfig(root, requestedPath) {
     };
   }
 
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+  const validationErrors = validateConfig(parsed);
+  if (validationErrors.length > 0) {
     return {
       config: FAIL_CLOSED_CONFIG,
       configPath: path,
-      error: 'Configuration root must be an object.',
+      error: validationErrors.join(' '),
     };
   }
 
   return {
-    config: {
-      p0FindingIds: Array.isArray(parsed.p0FindingIds) ? parsed.p0FindingIds.filter((item) => typeof item === 'string') : [],
-      activePackages: Array.isArray(parsed.activePackages) ? parsed.activePackages : [],
-      sourceOfTruthChecks: Array.isArray(parsed.sourceOfTruthChecks) ? parsed.sourceOfTruthChecks : [],
-    },
+    config: parsed,
     configPath: path,
     error: null,
   };
@@ -213,13 +352,84 @@ function scanNestedWorkflows(root, files, config) {
   });
 }
 
+function uncommentedWorkflowText(text) {
+  return text
+    .split('\n')
+    .filter((line) => !line.trimStart().startsWith('#'))
+    .join('\n');
+}
+
+function workflowJobIsUnconditional(text) {
+  return !uncommentedWorkflowText(text)
+    .split('\n')
+    .some((line) => /^\s*(?:-\s*)?(?:if|continue-on-error):/i.test(line));
+}
+
+function workflowRunCommands(text) {
+  const lines = text.split('\n');
+  const commands = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (line.trimStart().startsWith('#')) continue;
+    const match = line.match(/^\s*(?:-\s*)?run:\s*(.*)$/);
+    if (!match) continue;
+    const value = match[1].trim();
+    if (value !== '|' && value !== '>') {
+      commands.push(value);
+      continue;
+    }
+
+    const indent = line.length - line.trimStart().length;
+    const block = [];
+    for (index += 1; index < lines.length; index += 1) {
+      const blockLine = lines[index];
+      if (blockLine.trim() === '') continue;
+      const blockIndent = blockLine.length - blockLine.trimStart().length;
+      if (blockIndent <= indent) {
+        index -= 1;
+        break;
+      }
+      if (!blockLine.trimStart().startsWith('#')) block.push(blockLine.trim());
+    }
+    commands.push(block.join('\n'));
+  }
+  return commands;
+}
+
+function workflowDefaultWorkingDirectory(text) {
+  const lines = text.split('\n');
+  const jobIndent = lines.find((line) => line.trim() !== '')?.search(/\S/) ?? -1;
+  let defaultsIndent = null;
+  let runIndent = null;
+
+  for (const line of lines) {
+    if (line.trimStart().startsWith('#') || line.trim() === '') continue;
+    const indent = line.length - line.trimStart().length;
+    const trimmed = line.trim();
+    if (defaultsIndent !== null && indent <= defaultsIndent && !/^defaults:\s*$/.test(trimmed)) {
+      defaultsIndent = null;
+      runIndent = null;
+    }
+    if (indent === jobIndent + 2 && /^defaults:\s*$/.test(trimmed)) {
+      defaultsIndent = indent;
+      runIndent = null;
+      continue;
+    }
+    if (defaultsIndent !== null && indent === defaultsIndent + 2 && /^run:\s*$/.test(trimmed)) {
+      runIndent = indent;
+      continue;
+    }
+    if (runIndent !== null && indent === runIndent + 2) {
+      const match = trimmed.match(/^working-directory:\s*(.+)$/);
+      if (match) return toPosix(stripYamlScalar(match[1]).replace(/^\.\//, '').replace(/\/$/, ''));
+    }
+  }
+  return null;
+}
+
 function workflowCoversPackage(text, packagePath) {
-  const escaped = packagePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return [
-    new RegExp(`working-directory:\\s*["']?${escaped}(?:["']|\\s|$)`),
-    new RegExp(`(?:^|\\s)cd\\s+["']?${escaped}(?:["']|\\s|$)`, 'm'),
-    new RegExp(`(?:--prefix|-C)\\s+["']?${escaped}(?:["']|\\s|$)`),
-  ].some((pattern) => pattern.test(text));
+  return workflowJobIsUnconditional(text)
+    && workflowDefaultWorkingDirectory(text) === packagePath;
 }
 
 function workflowJobBlocks(text) {
@@ -256,9 +466,40 @@ function workflowJobBlocks(text) {
   return blocks;
 }
 
-function jobRunsScript(text, script) {
+function managerExecutablePattern(manager) {
+  if (manager === 'pnpm') return '(?:corepack\\s+)?pnpm(?:@[^\\s]+)?';
+  if (manager === 'yarn') return '(?:corepack\\s+)?yarn(?:@[^\\s]+)?';
+  if (manager === 'bun') return 'bun';
+  return 'npm';
+}
+
+function jobRunsLockedInstall(text, manager) {
+  const commands = workflowRunCommands(text);
+  const executable = managerExecutablePattern(manager);
+  if (manager === 'npm') {
+    return commands.some((command) => /(?:^|[;&|]\s*)npm\s+ci(?:\s|$)/m.test(command));
+  }
+  const install = new RegExp(`(?:^|[;&|]\\s*)${executable}\\s+install(?:\\s|$)`, 'm');
+  const frozen = manager === 'yarn'
+    ? /(?:^|\s)(?:--immutable|--frozen-lockfile)(?:\s|$)/m
+    : /(?:^|\s)--frozen-lockfile(?:\s|$)/m;
+  return commands.some((command) => install.test(command) && frozen.test(command));
+}
+
+function jobRunsScript(text, script, manager) {
   const escaped = script.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp(`(?:npm|pnpm|yarn|bun)(?:\\s+run)?\\s+${escaped}(?:\\s|$)`, 'm').test(text);
+  const commands = workflowRunCommands(text);
+  const executable = managerExecutablePattern(manager);
+  const scriptCommand = new RegExp(`(?:^|[;&|]\\s*)${executable}(?:\\s+run)?\\s+${escaped}(?:\\s|$)`, 'm');
+  if (commands.some((command) => scriptCommand.test(command))) {
+    return true;
+  }
+  if (script === 'type-check') {
+    if (manager === 'npm' && commands.some((command) => /(?:^|[;&|]\s*)npx\s+tsc\s+--noEmit(?:\s|$)/m.test(command))) return true;
+    if (manager === 'pnpm' && commands.some((command) => /(?:^|[;&|]\s*)(?:corepack\s+)?pnpm(?:@[^\s]+)?\s+exec\s+tsc\s+--noEmit(?:\s|$)/m.test(command))) return true;
+  }
+  return script === 'build'
+    && commands.some((command) => /(?:^|[;&|]\s*)node\s+\.\.\/\.\.\/scripts\/verify-web-ci-build\.mjs(?:\s|$)/m.test(command));
 }
 
 function scanCiCoverage(root, files, config) {
@@ -297,12 +538,19 @@ function scanCiCoverage(root, files, config) {
     const packageJobs = workflows.flatMap((workflow) => workflow.jobs
       .filter((job) => workflowCoversPackage(job.text, packagePath))
       .map((job) => ({ ...job, path: workflow.path })));
-    const coveredBy = packageJobs.filter((job) => requiredScripts.every((script) => jobRunsScript(job.text, script)));
+    const coveredBy = packageJobs.filter((job) => jobRunsLockedInstall(job.text, activePackage.manager)
+      && requiredScripts.every((script) => jobRunsScript(job.text, script, activePackage.manager)));
     if (coveredBy.length === 0) {
       failed = true;
-      const missingDetail = packageJobs.length === 0
-        ? 'Active package has no executable root CI job.'
-        : `Root CI package job is missing required scripts: ${requiredScripts.filter((script) => !packageJobs.some((job) => jobRunsScript(job.text, script))).join(', ') || requiredScripts.join(', ')}`;
+      let missingDetail = 'Active package has no unconditional root CI job with defaults.run.working-directory bound to its configured path.';
+      if (packageJobs.length > 0) {
+        const missing = [];
+        if (!packageJobs.some((job) => jobRunsLockedInstall(job.text, activePackage.manager))) {
+          missing.push(`${activePackage.manager} frozen install`);
+        }
+        missing.push(...requiredScripts.filter((script) => !packageJobs.some((job) => jobRunsScript(job.text, script, activePackage.manager))));
+        missingDetail = `Root CI package job is missing required locked commands: ${missing.join(', ') || requiredScripts.join(', ')}`;
+      }
       items.push(evidence(packageManifest, missingDetail));
     } else {
       items.push(evidence(coveredBy[0].path, `Root CI job ${coveredBy[0].id} covers ${packagePath}.`));
@@ -547,10 +795,13 @@ function scanFloatingImages(root, files, config) {
     const lines = text.split('\n');
     for (let index = 0; index < lines.length; index += 1) {
       const trimmed = lines[index].trim();
-      if (trimmed === '' || trimmed.startsWith('#')) continue;
+      if (trimmed === '') continue;
       let image = null;
+      const dockerFrontend = trimmed.match(/^#\s*syntax\s*=\s*(\S+)/i);
+      if (trimmed.startsWith('#') && !dockerFrontend) continue;
       const composeImage = trimmed.match(/^image:\s*(.+)$/i);
       const dockerImage = trimmed.match(/^FROM\s+(?:--platform=\S+\s+)?(\S+)/i);
+      if (dockerFrontend) image = dockerFrontend[1];
       if (composeImage) image = stripYamlScalar(composeImage[1]);
       if (dockerImage) image = dockerImage[1];
       if (!image || image === 'scratch') continue;
@@ -791,8 +1042,12 @@ function scanToolchainMatrix(root, files, config) {
   const exactNodeMajors = new Map();
   for (const path of files.filter((entry) => /^\.github\/workflows\/[^/]+\.ya?ml$/.test(entry))) {
     const text = readText(root, path) ?? '';
-    for (const match of text.matchAll(/NODE_VERSION:\s*["']?(\d+)/g)) {
-      exactNodeMajors.set(Number(match[1]), [...(exactNodeMajors.get(Number(match[1])) ?? []), path]);
+    for (const declaration of text.matchAll(/^\s*(?:NODE_VERSION|node-version):\s*(.+)$/gim)) {
+      const value = declaration[1].replace(/\s+#.*$/, '').trim();
+      if (value.includes('${{')) continue;
+      for (const match of value.matchAll(/(?:^|[\s,\[])["']?(\d+)(?:\.(?:\d+|[xX])){0,2}["']?(?=$|[\s,\]])/g)) {
+        exactNodeMajors.set(Number(match[1]), [...(exactNodeMajors.get(Number(match[1])) ?? []), path]);
+      }
     }
   }
   for (const path of files.filter((entry) => /(^|\/)Dockerfile(?:\.[^/]+)?$/i.test(entry))) {

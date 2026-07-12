@@ -12,6 +12,7 @@ import {
 } from '../nexus-project-readiness.mjs';
 
 const SCRIPT_PATH = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'nexus-project-readiness.mjs');
+const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const temporaryRoots = [];
 
 afterEach(() => {
@@ -96,6 +97,7 @@ function makeRoot({ risky = false } = {}) {
       '      run:',
       '        working-directory: apps/autopilot-runner',
       '    steps:',
+      '      - run: npm ci',
       '      - run: npm run test',
       '      - run: npm run type-check',
       '      - run: npm run build',
@@ -153,6 +155,20 @@ function snapshotFiles(root) {
   return output;
 }
 
+function workflowJobBlock(workflow, jobId) {
+  const lines = workflow.split('\n');
+  const start = lines.findIndex((line) => line === `  ${jobId}:`);
+  assert.notEqual(start, -1, `expected workflow job ${jobId}`);
+  let end = lines.length;
+  for (let index = start + 1; index < lines.length; index += 1) {
+    if (/^  [A-Za-z0-9_-]+:\s*$/.test(lines[index])) {
+      end = index;
+      break;
+    }
+  }
+  return lines.slice(start, end).join('\n');
+}
+
 test('reports every required readiness risk with actionable evidence', () => {
   const root = makeRoot({ risky: true });
 
@@ -183,6 +199,57 @@ test('reports every required readiness risk with actionable evidence', () => {
     'security.tracked-auth-artifacts',
   ]);
   assert.equal(gate.exitCode, 1);
+});
+
+test('treats an unpinned Dockerfile frontend as a floating container image', () => {
+  const root = makeRoot();
+  write(root, 'Dockerfile', [
+    '# syntax=docker/dockerfile:1',
+    'FROM node:24-slim@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+    '',
+  ].join('\n'));
+  execFileSync('git', ['add', 'Dockerfile'], { cwd: root });
+
+  const result = finding(scanProject(root), 'containers.floating-images');
+
+  assert.equal(result.status, 'fail');
+  assert.deepEqual(result.evidence[0], {
+    path: 'Dockerfile',
+    detail: 'Container image is not digest-pinned: docker/dockerfile:1',
+    line: 1,
+  });
+});
+
+test('includes explicit setup-node matrix versions in the Node runtime finding', () => {
+  const root = makeRoot();
+  write(root, '.github/workflows/ci.yml', [
+    'env:',
+    '  NODE_VERSION: "24"',
+    'jobs:',
+    '  autopilot:',
+    '    strategy:',
+    '      matrix:',
+    "        node-version: ['22.x', '24.14.1']",
+    '    defaults:',
+    '      run:',
+    '        working-directory: apps/autopilot-runner',
+    '    steps:',
+    '      - uses: actions/setup-node@v6',
+    '        with:',
+    '          node-version: ${{ matrix.node-version }}',
+    '      - run: npm ci',
+    '      - run: npm run test',
+    '      - run: npm run type-check',
+    '      - run: npm run build',
+    '',
+  ].join('\n'));
+  execFileSync('git', ['add', '.github/workflows/ci.yml'], { cwd: root });
+
+  const result = finding(scanProject(root), 'toolchain.package-lock-node-matrix');
+
+  assert.equal(result.status, 'fail');
+  assert.ok(result.evidence.some((item) => item.detail.includes('Observed exact Node major 22')));
+  assert.ok(result.evidence.some((item) => item.detail.includes('Observed exact Node major 24')));
 });
 
 test('is deterministic, read-only, and ignores node_modules, git, and archive inputs', () => {
@@ -254,6 +321,57 @@ test('still rejects SSH paths wired into agent-visible roots and mounts', () => 
   ]);
 });
 
+test('keeps every legacy Linear executor entrypoint permanently retired', () => {
+  const rootManifest = JSON.parse(readFileSync(join(REPOSITORY_ROOT, 'package.json'), 'utf8'));
+  const empireManifest = JSON.parse(readFileSync(join(REPOSITORY_ROOT, 'apps/empire/package.json'), 'utf8'));
+  for (const manifest of [rootManifest, empireManifest]) {
+    assert.deepEqual(
+      Object.keys(manifest.scripts ?? {}).filter((name) => name.startsWith('mission-control:linear-')),
+      [],
+    );
+  }
+
+  const entrypoint = join(REPOSITORY_ROOT, 'apps/empire/scripts/mission-control-linear-loop.mjs');
+  const source = readFileSync(entrypoint, 'utf8');
+  assert.doesNotMatch(source, /\bimport\b|process\.env|process\.loadEnvFile|\bfetch\s*\(|\bspawn|git\s+(?:add|commit|push)/i);
+
+  const result = spawnSync(process.execPath, [entrypoint, '--preflight'], {
+    cwd: REPOSITORY_ROOT,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      LINEAR_API_KEY: 'sentinel-linear-secret',
+      MISSION_CONTROL_RUNNER_CMD: 'sentinel-runner-command',
+      MISSION_CONTROL_PUSH: '1',
+    },
+  });
+  assert.equal(result.status, 2);
+  assert.equal(result.stdout, '');
+  assert.equal(result.stderr, '[mission-control-loop] permanently retired; CRM OWNEST is authoritative.\n');
+  assert.doesNotMatch(`${result.stdout}${result.stderr}`, /sentinel/);
+
+  for (const relativePath of [
+    'apps/empire/scripts/start-mission-control-loop.sh',
+    'apps/empire/scripts/start-mission-control-handoff-loop.sh',
+  ]) {
+    const launcher = readFileSync(join(REPOSITORY_ROOT, relativePath), 'utf8');
+    const executable = launcher
+      .split('\n')
+      .filter((line) => !line.trimStart().startsWith('#'))
+      .join('\n');
+    assert.doesNotMatch(executable, /\.env|MISSION_CONTROL_|\bnode\b|\bexec\b|\bfetch\b|\bgit\b/i);
+  }
+
+  for (const relativePath of [
+    'apps/web/src/app/api/cron/linear-claim/route.ts',
+    'apps/web/src/app/api/cron/linear-handoff/route.ts',
+  ]) {
+    const route = readFileSync(join(REPOSITORY_ROOT, relativePath), 'utf8');
+    assert.match(route, /status:\s*410/);
+    assert.doesNotMatch(route, /integrations\/linear|claimNextEligibleIssue|updateIssueState|addComment|fetchClaimCandidates/);
+  }
+});
+
 test('requires configured validation scripts in the same root CI job', () => {
   const root = makeRoot();
   write(root, '.github/workflows/ci.yml', [
@@ -272,6 +390,244 @@ test('requires configured validation scripts in the same root CI job', () => {
   const report = scanProject(root);
 
   assert.equal(finding(report, 'ci.active-package-coverage').status, 'fail');
+});
+
+test('recognises the governed web build wrapper as the real CI build gate', () => {
+  const root = makeRoot();
+  write(root, 'apps/web/package.json', JSON.stringify({
+    name: 'web',
+    private: true,
+    scripts: {
+      lint: 'eslint src',
+      'type-check': 'tsc --noEmit',
+      test: 'vitest run',
+      build: 'next build',
+    },
+  }, null, 2));
+  write(root, 'config/nexus-project-readiness.json', JSON.stringify({
+    schemaVersion: 1,
+    p0FindingIds: ['ci.active-package-coverage'],
+    activePackages: [{
+      path: 'apps/web',
+      manager: 'pnpm',
+      lockfile: 'pnpm-lock.yaml',
+      requiredScripts: ['lint', 'type-check', 'test', 'build'],
+    }],
+    sourceOfTruthChecks: [],
+  }, null, 2));
+  write(root, 'apps/web/pnpm-lock.yaml', "lockfileVersion: '9.0'\n");
+  write(root, '.github/workflows/ci.yml', [
+    'jobs:',
+    '  web:',
+    '    defaults:',
+    '      run:',
+    '        working-directory: apps/web',
+    '    steps:',
+    '      - run: pnpm install --frozen-lockfile',
+    '      - run: pnpm run lint',
+    '      - run: pnpm run type-check',
+    '      - run: pnpm run test',
+    '      - run: node ../../scripts/verify-web-ci-build.mjs',
+    '',
+  ].join('\n'));
+  execFileSync('git', ['add', '.'], { cwd: root });
+
+  const report = scanProject(root);
+
+  assert.equal(finding(report, 'ci.active-package-coverage').status, 'pass');
+});
+
+test('rejects disabled, conditional, commented, and continue-on-error CI coverage', () => {
+  const root = makeRoot();
+  write(root, '.github/workflows/ci.yml', [
+    'jobs:',
+    '  autopilot:',
+    '    if: ${{ false }}',
+    '    defaults:',
+    '      run:',
+    '        working-directory: apps/autopilot-runner',
+    '    steps:',
+    '      - run: npm ci',
+    '      # - run: npm run test',
+    '      # - run: npm run type-check',
+    '      # - run: npm run build',
+    '      - run: npm run test',
+    '        continue-on-error: true',
+    '      - run: npm run type-check',
+    '      - run: npm run build',
+    '',
+  ].join('\n'));
+  execFileSync('git', ['add', '.'], { cwd: root });
+
+  const report = scanProject(root);
+
+  assert.equal(finding(report, 'ci.active-package-coverage').status, 'fail');
+});
+
+test('fails closed for semantically invalid but parseable readiness configuration', () => {
+  const cases = [
+    {
+      name: 'arbitrary object',
+      config: {},
+      expected: /schemaVersion must equal 1/,
+    },
+    {
+      name: 'empty P0 policy',
+      config: {
+        schemaVersion: 1,
+        p0FindingIds: [],
+        activePackages: [],
+        sourceOfTruthChecks: [],
+      },
+      expected: /p0FindingIds must not be empty/,
+    },
+    {
+      name: 'unknown P0 finding',
+      config: {
+        schemaVersion: 1,
+        p0FindingIds: ['imaginary.all-green'],
+        activePackages: [],
+        sourceOfTruthChecks: [],
+      },
+      expected: /unknown finding id imaginary\.all-green/,
+    },
+    {
+      name: 'mismatched manager lockfile',
+      config: {
+        schemaVersion: 1,
+        p0FindingIds: ['ci.active-package-coverage'],
+        activePackages: [{
+          path: 'apps/autopilot-runner',
+          manager: 'npm',
+          lockfile: 'pnpm-lock.yaml',
+          requiredScripts: ['test'],
+        }],
+        sourceOfTruthChecks: [],
+      },
+      expected: /lockfile must be package-lock\.json for manager npm/,
+    },
+  ];
+
+  for (const scenario of cases) {
+    const root = makeRoot();
+    write(root, 'config/nexus-project-readiness.json', JSON.stringify(scenario.config, null, 2));
+
+    const report = scanProject(root);
+    const configuration = finding(report, 'scanner.configuration');
+
+    assert.equal(configuration.status, 'unknown', scenario.name);
+    assert.match(configuration.evidence[0].detail, scenario.expected, scenario.name);
+    assert.deepEqual(evaluateGate(report), {
+      blockingFindingIds: ['scanner.configuration'],
+      exitCode: 1,
+    }, scenario.name);
+  }
+});
+
+test('requires a frozen install from the configured package manager', () => {
+  const root = makeRoot();
+  write(root, '.github/workflows/ci.yml', [
+    'env:',
+    '  NODE_VERSION: "22"',
+    'jobs:',
+    '  autopilot:',
+    '    defaults:',
+    '      run:',
+    '        working-directory: apps/autopilot-runner',
+    '    steps:',
+    '      - run: npm install',
+    '      - run: npm run test',
+    '      - run: npm run type-check',
+    '      - run: npm run build',
+    '',
+  ].join('\n'));
+
+  const result = finding(scanProject(root), 'ci.active-package-coverage');
+
+  assert.equal(result.status, 'fail');
+  assert.match(result.evidence[0].detail, /npm frozen install/);
+});
+
+test('rejects a locked CI lane that uses a different package manager', () => {
+  const root = makeRoot();
+  write(root, '.github/workflows/ci.yml', [
+    'env:',
+    '  NODE_VERSION: "22"',
+    'jobs:',
+    '  autopilot:',
+    '    defaults:',
+    '      run:',
+    '        working-directory: apps/autopilot-runner',
+    '    steps:',
+    '      - run: pnpm install --frozen-lockfile',
+    '      - run: pnpm run test',
+    '      - run: pnpm run type-check',
+    '      - run: pnpm run build',
+    '',
+  ].join('\n'));
+
+  const result = finding(scanProject(root), 'ci.active-package-coverage');
+
+  assert.equal(result.status, 'fail');
+  assert.match(result.evidence[0].detail, /npm frozen install/);
+  assert.match(result.evidence[0].detail, /test, type-check, build/);
+});
+
+test('rejects verification commands that are not bound to the configured package cwd', () => {
+  const root = makeRoot();
+  write(root, '.github/workflows/ci.yml', [
+    'env:',
+    '  NODE_VERSION: "22"',
+    'jobs:',
+    '  autopilot:',
+    '    steps:',
+    '      - run: npm --prefix apps/autopilot-runner ci',
+    '      - run: npm --prefix apps/autopilot-runner run test',
+    '      - run: npm --prefix apps/autopilot-runner run type-check',
+    '      - run: npm --prefix apps/autopilot-runner run build',
+    '',
+  ].join('\n'));
+
+  const result = finding(scanProject(root), 'ci.active-package-coverage');
+
+  assert.equal(result.status, 'fail');
+  assert.match(result.evidence[0].detail, /defaults\.run\.working-directory/);
+});
+
+test('repository P0 CI policy explicitly covers all production verification lanes', () => {
+  const config = JSON.parse(readFileSync(join(REPOSITORY_ROOT, 'config/nexus-project-readiness.json'), 'utf8'));
+  const packages = new Map(config.activePackages.map((entry) => [entry.path, entry]));
+
+  assert.ok(packages.get('apps/workspace').requiredScripts.includes('type-check'));
+  assert.ok(packages.get('apps/autopilot-runner').requiredScripts.includes('verify:container'));
+  assert.ok(packages.get('apps/spec-board').requiredScripts.includes('type-check'));
+  assert.equal(finding(scanProject(REPOSITORY_ROOT), 'ci.active-package-coverage').status, 'pass');
+});
+
+test('repository containers and active packages use the reviewed Node 24 runtime matrix', () => {
+  const report = scanProject(REPOSITORY_ROOT);
+  for (const id of [
+    'containers.floating-images',
+    'containers.missing-local-inputs',
+    'toolchain.package-lock-node-matrix',
+  ]) {
+    assert.equal(finding(report, id).status, 'pass', `${id} should pass`);
+  }
+
+  const config = JSON.parse(readFileSync(join(REPOSITORY_ROOT, 'config/nexus-project-readiness.json'), 'utf8'));
+  for (const activePackage of config.activePackages) {
+    const manifest = JSON.parse(readFileSync(join(REPOSITORY_ROOT, activePackage.path, 'package.json'), 'utf8'));
+    assert.equal(
+      manifest.engines?.node,
+      '>=24.14.1 <25',
+      `${activePackage.path} must use the reviewed Node 24 range`,
+    );
+    assert.equal(
+      manifest.devDependencies?.['@types/node'],
+      '^24.0.0',
+      `${activePackage.path} must compile against Node 24 types`,
+    );
+  }
 });
 
 test('keeps configuration failure visible and fails the gate closed', () => {
@@ -316,4 +672,37 @@ test('supports --root and --json without writing the target', () => {
   assert.equal(report.root, root);
   assert.equal(report.summary.blocking, 0);
   assert.deepEqual(snapshotFiles(root), before);
+});
+
+test('keeps root package verification non-mutating and bound to the CI toolchain', () => {
+  const rootPackage = JSON.parse(readFileSync(join(REPOSITORY_ROOT, 'package.json'), 'utf8'));
+  const workspacePackage = JSON.parse(readFileSync(join(REPOSITORY_ROOT, 'apps/workspace/package.json'), 'utf8'));
+  const workflow = readFileSync(join(REPOSITORY_ROOT, '.github/workflows/ci.yml'), 'utf8');
+  const webJob = workflowJobBlock(workflow, 'web');
+  const workspaceJob = workflowJobBlock(workflow, 'workspace');
+  const workspaceCommand = rootPackage.scripts?.['verify:workspace'];
+  const webCommand = rootPackage.scripts?.['verify:web'];
+
+  assert.equal(rootPackage.packageManager, 'pnpm@9.15.0');
+  assert.equal(workspacePackage.packageManager, 'pnpm@9.15.0');
+  assert.match(rootPackage.engines?.node ?? '', /24\.14\.1/);
+  assert.match(workspacePackage.engines?.node ?? '', /24\.14\.1/);
+  assert.match(workflow, /NODE_VERSION:\s*["']24["']/);
+  assert.match(webJob, /working-directory:\s*apps\/web/);
+  assert.match(webJob, /version:\s*9\.15\.0/);
+  assert.match(workspaceJob, /working-directory:\s*apps\/workspace/);
+  assert.match(workspaceJob, /version:\s*9\.15\.0/);
+
+  assert.equal(typeof workspaceCommand, 'string');
+  assert.match(workspaceCommand, /corepack pnpm@9\.15\.0 install --frozen-lockfile/);
+  assert.match(workspaceCommand, /corepack pnpm@9\.15\.0 exec tsc --noEmit/);
+  assert.match(workspaceCommand, /corepack pnpm@9\.15\.0 run test/);
+  assert.match(workspaceCommand, /corepack pnpm@9\.15\.0 run build/);
+  assert.doesNotMatch(workspaceCommand, /(?:pnpm run check|--write\b|--fix\b)/);
+
+  assert.equal(typeof webCommand, 'string');
+  assert.match(webCommand, /corepack pnpm@9\.15\.0 install --frozen-lockfile/);
+  assert.match(webCommand, /node \.\.\/\.\.\/scripts\/verify-web-ci-build\.mjs/);
+  assert.match(webJob, /node \.\.\/\.\.\/scripts\/verify-web-ci-build\.mjs/);
+  assert.match(rootPackage.scripts?.verify ?? '', /verify:workspace/);
 });

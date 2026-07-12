@@ -9,6 +9,7 @@
  *   node scripts/check-env.mjs                          # check process.env, all packages
  *   node scripts/check-env.mjs --package web            # apps/web only
  *   node scripts/check-env.mjs --package workspace      # apps/workspace only
+ *   node scripts/check-env.mjs --package autopilot      # dormant OWNEST host profile
  *   node scripts/check-env.mjs --package mcp            # packages/pi-ceo-operator-mcp
  *   node scripts/check-env.mjs --package all            # all packages (default)
  *   node scripts/check-env.mjs --env-file apps/web/.env.example --package web
@@ -37,7 +38,7 @@ for (let i = 0; i < args.length; i++) {
   }
 }
 
-const VALID_PACKAGES = ['web', 'workspace', 'mcp', 'all']
+const VALID_PACKAGES = ['web', 'workspace', 'autopilot', 'mcp', 'all']
 if (!VALID_PACKAGES.includes(packageFilter)) {
   console.error(`Unknown --package value "${packageFilter}". Valid: ${VALID_PACKAGES.join(', ')}`)
   process.exit(1)
@@ -83,6 +84,7 @@ const env = envFile ? parseEnvFile(envFile) : process.env
 // packages: array of package keys this var belongs to.
 //   'web'       = apps/web
 //   'workspace' = apps/workspace
+//   'autopilot' = apps/autopilot-runner (dormant host profile)
 //   'mcp'       = packages/pi-ceo-operator-mcp
 
 /** @type {Array<{name: string, tier: string, packages: string[], hint: string}>} */
@@ -501,12 +503,6 @@ const REGISTRY = [
     hint: 'Default Slack channel (e.g. #nexus-alerts)',
   },
   {
-    name: 'CC_LINEAR_LIVE',
-    tier: 'optional',
-    packages: ['web'],
-    hint: 'Set "true" to enable live Linear sync',
-  },
-  {
     name: 'KNOWLEDGE_CONSOLE_PREVIEW',
     tier: 'optional',
     packages: ['web'],
@@ -821,7 +817,108 @@ const REGISTRY = [
     hint: 'Health-check ping URL',
   },
 
-  // ── Section 6: Test / CI ──────────────────────────────────────────────────
+  // ── Section 5: apps/autopilot-runner — dormant OWNEST host profile ────────
+  // These names are reported, never blockers: the user-level service and live
+  // admission remain unavailable until a separate-UID execution boundary and
+  // an independent completion verifier exist.
+  {
+    name: 'SUPABASE_URL',
+    tier: 'dormant',
+    packages: ['autopilot'],
+    hint: 'Server-side CRM origin; production is pinned in code, local URLs require explicit development mode',
+  },
+  {
+    name: 'SUPABASE_SERVICE_ROLE_KEY',
+    tier: 'dormant',
+    packages: ['autopilot'],
+    hint: 'Server-only RLS-bypassing key; do not expose to Hermes or a same-UID child process',
+  },
+  {
+    name: 'FOUNDER_USER_ID',
+    tier: 'dormant',
+    packages: ['autopilot'],
+    hint: 'Founder scope for every CRM operation',
+  },
+  {
+    name: 'CC_OWNEST_WORKER_ID',
+    tier: 'dormant',
+    packages: ['autopilot'],
+    hint: 'Stable dormant worker identity',
+  },
+  {
+    name: 'CC_OWNEST_HERMES_BIN',
+    tier: 'dormant',
+    packages: ['autopilot'],
+    hint: 'Absolute Hermes executable path; this rejects PATH lookup but does not prove an immutable binary',
+  },
+  {
+    name: 'HERMES_CWD',
+    tier: 'dormant',
+    packages: ['autopilot'],
+    hint: 'Sealed execution workspace path; the repository checkout is not an isolation boundary',
+  },
+  {
+    name: 'CC_OWNEST_LIVE',
+    tier: 'dormant',
+    packages: ['autopilot'],
+    hint: 'Admission switch; must remain 0 because live activation is blocked in code',
+  },
+  {
+    name: 'CC_OWNEST_LOCAL_DEVELOPMENT',
+    tier: 'dormant',
+    packages: ['autopilot'],
+    hint: 'Allows localhost CRM origins only outside production; never an activation flag',
+  },
+  {
+    name: 'CC_OWNEST_HERMES_PROFILE',
+    tier: 'dormant',
+    packages: ['autopilot'],
+    hint: 'Dedicated Hermes profile name (live policy requires ownest)',
+  },
+  {
+    name: 'CC_OWNEST_HERMES_BOARD',
+    tier: 'dormant',
+    packages: ['autopilot'],
+    hint: 'Dedicated read-only projection board name',
+  },
+  {
+    name: 'CC_OWNEST_ROLLOUT_ID',
+    tier: 'dormant',
+    packages: ['autopilot'],
+    hint: 'Bounded rollout identifier; does not arm the worker',
+  },
+  {
+    name: 'CC_OWNEST_CANARY_TASK_ID',
+    tier: 'dormant',
+    packages: ['autopilot'],
+    hint: 'Single allowlisted canary task identifier; does not arm the worker',
+  },
+  {
+    name: 'CC_OWNEST_CANARY_LIMIT',
+    tier: 'dormant',
+    packages: ['autopilot'],
+    hint: 'Bounded canary admission limit (safe default: 1)',
+  },
+  {
+    name: 'CC_OWNEST_MAX_IN_PROGRESS',
+    tier: 'dormant',
+    packages: ['autopilot'],
+    hint: 'Maximum owned in-progress missions (safe default: 1)',
+  },
+  {
+    name: 'CC_OWNEST_LEASE_MS',
+    tier: 'dormant',
+    packages: ['autopilot'],
+    hint: 'Bounded CRM lease duration in milliseconds (safe default: 300000)',
+  },
+  {
+    name: 'CC_OWNEST_DAILY_DISPATCH_LIMIT',
+    tier: 'dormant',
+    packages: ['autopilot'],
+    hint: 'Daily dispatch ceiling (safe default: 1)',
+  },
+
+  // ── Section 7: Test / CI ──────────────────────────────────────────────────
   {
     name: 'PLAYWRIGHT_TEST_EMAIL',
     tier: 'test',
@@ -874,17 +971,15 @@ const REGISTRY = [
 
 // ─── Check logic ─────────────────────────────────────────────────────────────
 
-const BLOCKER_TIERS = new Set(['critical', 'required'])
-const REPORT_TIERS = new Set(['critical', 'required', 'integration'])
-
 const PACKAGE_LABELS = {
   web: 'apps/web',
   workspace: 'apps/workspace',
+  autopilot: 'apps/autopilot-runner (dormant OWNEST profile)',
   mcp: 'packages/pi-ceo-operator-mcp',
 }
 
 const packagesToCheck = packageFilter === 'all'
-  ? ['web', 'workspace', 'mcp']
+  ? ['web', 'workspace', 'autopilot', 'mcp']
   : [packageFilter]
 
 function isSet(value) {
@@ -893,6 +988,7 @@ function isSet(value) {
 
 function checkPackage(pkg) {
   const vars = REGISTRY.filter(v => v.packages.includes(pkg))
+  const policyProblems = []
 
   const results = {
     critical: { missing: [], present: [] },
@@ -900,6 +996,7 @@ function checkPackage(pkg) {
     integration: { missing: [], present: [] },
     optional: { missing: [], present: [] },
     workspace: { missing: [], present: [] },
+    dormant: { missing: [], present: [] },
     test: { missing: [], present: [] },
   }
 
@@ -912,7 +1009,19 @@ function checkPackage(pkg) {
     }
   }
 
-  return { pkg, results, total: vars.length }
+  if (pkg === 'autopilot') {
+    if (isSet(env.CC_OWNEST_LIVE) && String(env.CC_OWNEST_LIVE).trim() !== '0') {
+      policyProblems.push('CC_OWNEST_LIVE must remain 0; live activation is blocked')
+    }
+    if (
+      isSet(env.CC_OWNEST_HERMES_BIN) &&
+      !String(env.CC_OWNEST_HERMES_BIN).trim().startsWith('/')
+    ) {
+      policyProblems.push('CC_OWNEST_HERMES_BIN must be an absolute path')
+    }
+  }
+
+  return { pkg, results, total: vars.length, policyProblems }
 }
 
 // ─── Output ───────────────────────────────────────────────────────────────────
@@ -933,7 +1042,7 @@ let anyBlockers = false
 
 for (const pkg of packagesToCheck) {
   const label = PACKAGE_LABELS[pkg] ?? pkg
-  const { results, total } = checkPackage(pkg)
+  const { results, total, policyProblems } = checkPackage(pkg)
 
   // mcp has no custom env vars
   if (pkg === 'mcp') {
@@ -946,7 +1055,8 @@ for (const pkg of packagesToCheck) {
   const criticalMissing = results.critical.missing
   const requiredMissing = results.required.missing
   const integrationMissing = results.integration.missing
-  const blockers = [...criticalMissing, ...requiredMissing]
+  const dormantMissing = results.dormant.missing
+  const blockers = [...criticalMissing, ...requiredMissing, ...policyProblems]
 
   const criticalOk = results.critical.present.length
   const criticalTotal = results.critical.present.length + criticalMissing.length
@@ -954,43 +1064,68 @@ for (const pkg of packagesToCheck) {
   const requiredTotal = results.required.present.length + requiredMissing.length
   const integrationOk = results.integration.present.length
   const integrationTotal = results.integration.present.length + integrationMissing.length
+  const dormantOk = results.dormant.present.length
+  const dormantTotal = dormantOk + dormantMissing.length
 
   console.log(`│`)
   console.log(`│ ▶ ${label}  (${total} registered vars)`)
   console.log(`│`)
 
-  const critIcon = criticalMissing.length === 0 ? '✓' : '✗'
-  console.log(`│   ${critIcon} CRITICAL   ${criticalOk}/${criticalTotal} present`)
-  if (criticalMissing.length > 0) {
-    for (const v of criticalMissing) {
-      console.log(`│     └ MISSING: ${v.name}`)
-      console.log(`│       ${v.hint}`)
+  if (pkg !== 'autopilot') {
+    const critIcon = criticalMissing.length === 0 ? '✓' : '✗'
+    console.log(`│   ${critIcon} CRITICAL   ${criticalOk}/${criticalTotal} present`)
+    if (criticalMissing.length > 0) {
+      for (const v of criticalMissing) {
+        console.log(`│     └ MISSING: ${v.name}`)
+        console.log(`│       ${v.hint}`)
+      }
+    }
+
+    const reqIcon = requiredMissing.length === 0 ? '✓' : '✗'
+    console.log(`│   ${reqIcon} REQUIRED   ${requiredOk}/${requiredTotal} present`)
+    if (requiredMissing.length > 0) {
+      for (const v of requiredMissing) {
+        console.log(`│     └ MISSING: ${v.name}`)
+        console.log(`│       ${v.hint}`)
+      }
+    }
+
+    const intIcon = integrationMissing.length === 0 ? '✓' : '⚠'
+    console.log(`│   ${intIcon} INTEGRATION ${integrationOk}/${integrationTotal} present (missing is OK — features degrade gracefully)`)
+    if (integrationMissing.length > 0 && integrationMissing.length <= 8) {
+      for (const v of integrationMissing) {
+        console.log(`│     └ ${v.name}`)
+      }
+    } else if (integrationMissing.length > 8) {
+      console.log(`│     └ (${integrationMissing.length} missing — run with --package ${pkg} for full list)`)
     }
   }
 
-  const reqIcon = requiredMissing.length === 0 ? '✓' : '✗'
-  console.log(`│   ${reqIcon} REQUIRED   ${requiredOk}/${requiredTotal} present`)
-  if (requiredMissing.length > 0) {
-    for (const v of requiredMissing) {
-      console.log(`│     └ MISSING: ${v.name}`)
-      console.log(`│       ${v.hint}`)
+  if (dormantTotal > 0) {
+    console.log(`│   ○ DORMANT     ${dormantOk}/${dormantTotal} configured (missing is expected; worker cannot be armed)`)
+    if (dormantMissing.length > 0 && dormantMissing.length <= 8) {
+      for (const v of dormantMissing) {
+        console.log(`│     └ ${v.name}`)
+      }
+    } else if (dormantMissing.length > 8) {
+      console.log(`│     └ (${dormantMissing.length} missing — run with --package ${pkg} for full list)`)
     }
   }
 
-  const intIcon = integrationMissing.length === 0 ? '✓' : '⚠'
-  console.log(`│   ${intIcon} INTEGRATION ${integrationOk}/${integrationTotal} present (missing is OK — features degrade gracefully)`)
-  if (integrationMissing.length > 0 && integrationMissing.length <= 8) {
-    for (const v of integrationMissing) {
-      console.log(`│     └ ${v.name}`)
+  if (policyProblems.length > 0) {
+    console.log(`│   ✗ DORMANT PROFILE POLICY`)
+    for (const problem of policyProblems) {
+      console.log(`│     └ ${problem}`)
     }
-  } else if (integrationMissing.length > 8) {
-    console.log(`│     └ (${integrationMissing.length} missing — run with --package ${pkg} for full list)`)
   }
 
   if (blockers.length > 0) {
     anyBlockers = true
     console.log(`│`)
     console.log(`│   ✗ ${blockers.length} BLOCKER(S) — ${label} will not function correctly`)
+  } else if (pkg === 'autopilot') {
+    console.log(`│`)
+    console.log(`│   ✓ Dormant profile policy is safe; OWNEST remains unarmed`)
   } else {
     console.log(`│`)
     console.log(`│   ✓ All critical + required vars present for ${label}`)
@@ -1012,5 +1147,9 @@ if (anyBlockers) {
   process.exit(1)
 }
 
-console.log('✓ CHECK PASSED — all critical + required vars present for the checked package(s)')
+if (packageFilter === 'autopilot') {
+  console.log('✓ CHECK PASSED — dormant profile policy is valid; OWNEST remains unarmed')
+} else {
+  console.log('✓ CHECK PASSED — all critical + required vars present for the checked package(s)')
+}
 process.exit(0)
