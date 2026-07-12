@@ -8,8 +8,8 @@ import {
   evaluateEligibility,
   extractHardenedOwnestState,
   extractOwnestState,
+  generateIntegrityNonce,
   idempotencyKey,
-  integrityNonceFromBytes,
   mapHermesStatus,
   redactMissionText,
   sha256Digest,
@@ -18,14 +18,15 @@ import type {
   CcTask,
   HardenedOwnestStateV1,
   HmacSha256Digest,
+  IntegrityNonce,
   OwnestMissionContractV1,
   OwnestStateV1,
   Sha256Digest,
 } from './types.js'
 
 const MISSION_TEXT_LIMIT = 16 * 1024
-const integrityNonce = '0123456789abcdef'.repeat(4)
-const differentIntegrityNonce = 'fedcba9876543210'.repeat(4)
+const integrityNonce = generateIntegrityNonce()
+const differentIntegrityNonce = generateIntegrityNonce()
 
 function task(overrides: Partial<CcTask> = {}): CcTask {
   return {
@@ -94,8 +95,10 @@ const hardeningFieldNames = [
 function assertIntegrityContractTypes(contract: OwnestMissionContractV1): void {
   const digest: Sha256Digest = sha256Digest('typed')
   const hmacDigest: HmacSha256Digest = computeMissionDigest(task(), integrityNonce)
+  const generatedNonce: IntegrityNonce = generateIntegrityNonce()
   void digest
   void hmacDigest
+  void generatedNonce
 
   // @ts-expect-error SHA digests must come from a validating factory or runtime guard.
   const forged: Sha256Digest = 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
@@ -107,6 +110,16 @@ function assertIntegrityContractTypes(contract: OwnestMissionContractV1): void {
   const shaFromHmac: Sha256Digest = hmacDigest
   void hmacFromSha
   void shaFromHmac
+
+  // @ts-expect-error Plain hex text cannot cross the branded nonce boundary.
+  const forgedNonce: IntegrityNonce = '0123456789abcdef'.repeat(4)
+  // @ts-expect-error Mission digests require a branded CSPRNG nonce.
+  computeMissionDigest(task(), '0123456789abcdef'.repeat(4))
+  // @ts-expect-error Validation digests require a branded CSPRNG nonce.
+  buildValidationRequirements(['check'], '0123456789abcdef'.repeat(4))
+  // @ts-expect-error Mission contracts require a branded CSPRNG nonce.
+  buildMissionContract(task(), 'attempt-1', 'rollout-1', '0123456789abcdef'.repeat(4))
+  void forgedNonce
 
   // @ts-expect-error Mission contract fields are immutable after construction.
   contract.crmTaskId = 'other-task'
@@ -639,6 +652,11 @@ describe('extractOwnestState', () => {
     ['integrityNonce', 'A'.repeat(64)],
     ['integrityNonce', 'g'.repeat(64)],
     ['integrityNonce', 'integrity-nonce-canary-20260712'],
+    ['integrityNonce', 'ab'.repeat(32)],
+    [
+      'integrityNonce',
+      Array.from({ length: 32 }, (_, index) => (index % 7).toString(16).padStart(2, '0')).join(''),
+    ],
     ['missionDigest', 'sha256:ABCDEF'],
     ['missionDigest', `sha256:${'a'.repeat(63)}`],
     ['failureCount', -1],
@@ -702,42 +720,52 @@ describe('sha256Digest', () => {
   })
 })
 
-describe('integrityNonceFromBytes', () => {
-  it('encodes exactly 32 bytes as canonical lowercase hex without mutating the source', () => {
-    const bytes = Uint8Array.from({ length: 32 }, (_, index) => index)
-    const before = bytes.slice()
+describe('generateIntegrityNonce', () => {
+  it('returns a canonical, nontrivial 256-bit lowercase hexadecimal nonce', () => {
+    const nonce = generateIntegrityNonce()
+    const byteValues = nonce.match(/../g) ?? []
 
-    expect(integrityNonceFromBytes(bytes)).toBe(
-      '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f',
-    )
-    expect(bytes).toEqual(before)
+    expect(nonce).toMatch(/^[0-9a-f]{64}$/)
+    expect(new Set(byteValues).size).toBeGreaterThanOrEqual(8)
   })
 
-  it.each([0, 31, 33])('rejects a %i-byte nonce source', (length) => {
-    expect(() => integrityNonceFromBytes(new Uint8Array(length))).toThrow(/32 bytes/i)
-  })
+  it('produces many unique, nontrivial CSPRNG values', () => {
+    const nonces = Array.from({ length: 128 }, () => generateIntegrityNonce())
 
-  it('rejects a non-Uint8Array runtime value', () => {
-    expect(() => integrityNonceFromBytes(Array(32).fill(0) as never)).toThrow(/Uint8Array/i)
+    expect(new Set(nonces).size).toBe(nonces.length)
+    for (const nonce of nonces) {
+      expect(nonce).toMatch(/^[0-9a-f]{64}$/)
+      expect(new Set(nonce.match(/../g) ?? []).size).toBeGreaterThanOrEqual(8)
+    }
   })
 })
 
 describe('buildValidationRequirements', () => {
   it('numbers requirements deterministically and digests the untrimmed raw text', () => {
-    expect(
-      buildValidationRequirements(['Cite the source data', ' Cite the source data '], integrityNonce),
-    ).toEqual([
+    const requirements = buildValidationRequirements(
+      ['Cite the source data', ' Cite the source data '],
+      integrityNonce,
+    )
+
+    expect(requirements).toMatchObject([
       {
         id: 'vr-001',
         text: 'Cite the source data',
-        digest: 'hmac-sha256:456eb72c0787fd8ba3d92ed528da658bc626f19dbb03f4d8e46f15921452794f',
       },
       {
         id: 'vr-002',
         text: ' Cite the source data ',
-        digest: 'hmac-sha256:0f89653eda2a2aa0fab9c3a9a46f2ca4f60ae2c5d0139d9cca9444c275b387bc',
       },
     ])
+    expect(requirements).toEqual(
+      buildValidationRequirements(
+        ['Cite the source data', ' Cite the source data '],
+        integrityNonce,
+      ),
+    )
+    expect(requirements[0]?.digest).toMatch(/^hmac-sha256:[0-9a-f]{64}$/)
+    expect(requirements[1]?.digest).toMatch(/^hmac-sha256:[0-9a-f]{64}$/)
+    expect(requirements[0]?.digest).not.toBe(requirements[1]?.digest)
   })
 
   it.each([
@@ -773,17 +801,26 @@ describe('buildValidationRequirements', () => {
     ['uppercase', 'A'.repeat(64)],
     ['non-hex pattern', 'g'.repeat(64)],
     ['token-style', 'integrity-nonce-canary-20260712'],
+    ['single-byte pattern', 'ab'.repeat(32)],
+    [
+      'seven-byte pattern',
+      Array.from({ length: 32 }, (_, index) => (index % 7).toString(16).padStart(2, '0')).join(''),
+    ],
   ])('rejects a %s integrity nonce across every digest and contract helper', (_label, nonce) => {
-    expect(() => buildValidationRequirements(['Cite the source data'], nonce)).toThrow(/nonce/i)
-    expect(() => computeMissionDigest(task(), nonce)).toThrow(/nonce/i)
-    expect(() => buildMissionContract(task(), 'attempt-1', 'rollout-1', nonce)).toThrow(/nonce/i)
+    expect(() => buildValidationRequirements(['Cite the source data'], nonce as never)).toThrow(
+      /nonce/i,
+    )
+    expect(() => computeMissionDigest(task(), nonce as never)).toThrow(/nonce/i)
+    expect(() =>
+      buildMissionContract(task(), 'attempt-1', 'rollout-1', nonce as never),
+    ).toThrow(/nonce/i)
   })
 })
 
 describe('computeMissionDigest', () => {
   it('hashes the fixed-key canonical authoritative mission with a normalised owner', () => {
-    expect(computeMissionDigest(task({ agent_owner: '  HeRmEs  ' }), integrityNonce)).toBe(
-      'hmac-sha256:c879d14357c2823ce75cca315e1c34f176a675a6d140feca4bb4878225655e2f',
+    expect(computeMissionDigest(task({ agent_owner: '  HeRmEs  ' }), integrityNonce)).toMatch(
+      /^hmac-sha256:[0-9a-f]{64}$/,
     )
   })
 
@@ -838,23 +875,28 @@ describe('computeMissionDigest', () => {
 
 describe('buildMissionContract', () => {
   it('binds one attempt and rollout to the canonical task and validation requirements', () => {
-    expect(
-      buildMissionContract(task(), 'attempt-1', 'ownest-canary-20260712', integrityNonce),
-    ).toEqual({
+    const contract = buildMissionContract(
+      task(),
+      'attempt-1',
+      'ownest-canary-20260712',
+      integrityNonce,
+    )
+
+    expect(contract).toMatchObject({
       schema: 'ownest.mission.v1',
       crmTaskId: 'task-1',
       attemptId: 'attempt-1',
       idempotencyKey: 'cc-task:task-1:v1',
       rolloutId: 'ownest-canary-20260712',
-      missionDigest: 'hmac-sha256:c879d14357c2823ce75cca315e1c34f176a675a6d140feca4bb4878225655e2f',
       validationRequirements: [
         {
           id: 'vr-001',
           text: 'Cite the source data',
-          digest: 'hmac-sha256:456eb72c0787fd8ba3d92ed528da658bc626f19dbb03f4d8e46f15921452794f',
         },
       ],
     })
+    expect(contract.missionDigest).toMatch(/^hmac-sha256:[0-9a-f]{64}$/)
+    expect(contract.validationRequirements[0]?.digest).toMatch(/^hmac-sha256:[0-9a-f]{64}$/)
   })
 
   it.each([

@@ -1,9 +1,10 @@
-import { createHash, createHmac } from 'node:crypto'
+import { createHash, createHmac, randomBytes } from 'node:crypto'
 import type {
   CcTask,
   CcTaskStatus,
   HardenedOwnestStateV1,
   HmacSha256Digest,
+  IntegrityNonce,
   OwnestMissionContractV1,
   OwnestStateV1,
   OwnestValidationRequirementV1,
@@ -260,8 +261,16 @@ function isHmacSha256Digest(value: unknown): value is HmacSha256Digest {
   return typeof value === 'string' && HMAC_SHA256_DIGEST.test(value)
 }
 
-function isIntegrityNonce(value: unknown): value is string {
-  return typeof value === 'string' && INTEGRITY_NONCE.test(value)
+function isIntegrityNonce(value: unknown): value is IntegrityNonce {
+  if (typeof value !== 'string' || !INTEGRITY_NONCE.test(value)) return false
+
+  // This rejects obvious placeholders and corrupt persisted values. Format and
+  // byte diversity cannot prove the historical source had CSPRNG entropy.
+  const distinctBytes = new Set<string>()
+  for (let index = 0; index < value.length; index += 2) {
+    distinctBytes.add(value.slice(index, index + 2))
+  }
+  return distinctBytes.size >= 8
 }
 
 function isFailureCount(value: unknown): value is number {
@@ -366,7 +375,7 @@ export function extractOwnestState(metadata: unknown, expectedTaskId: string): O
   if (hasOwn(value, 'claimedAt')) hardeningFields.claimedAt = claimedAt as string
   if (hasOwn(value, 'rolloutId')) hardeningFields.rolloutId = rolloutId as string
   if (hasOwn(value, 'integrityNonce')) {
-    hardeningFields.integrityNonce = integrityNonce as string
+    hardeningFields.integrityNonce = integrityNonce as IntegrityNonce
   }
   if (hasOwn(value, 'missionDigest')) {
     hardeningFields.missionDigest = missionDigest as HmacSha256Digest
@@ -514,18 +523,22 @@ export function sha256Digest(value: string): Sha256Digest {
   return `sha256:${createHash('sha256').update(value, 'utf8').digest('hex')}` as Sha256Digest
 }
 
-/** Canonicalises one injected 256-bit CSPRNG result without mutating it. */
-export function integrityNonceFromBytes(bytes: Uint8Array): string {
-  if (!(bytes instanceof Uint8Array)) {
-    throw new TypeError('Integrity nonce source must be a Uint8Array')
+/** Generates one canonical 256-bit nonce exclusively from Node's CSPRNG. */
+export function generateIntegrityNonce(): IntegrityNonce {
+  for (;;) {
+    const bytes = randomBytes(32)
+    try {
+      const nonce = bytes.toString('hex')
+      if (isIntegrityNonce(nonce)) return nonce
+    } finally {
+      bytes.fill(0)
+    }
   }
-  if (bytes.byteLength !== 32) throw new Error('Integrity nonce source must contain exactly 32 bytes')
-  return Buffer.from(bytes).toString('hex')
 }
 
 function nonceBoundDigest(
   domain: 'ownest.mission.digest.v1' | 'ownest.validation.digest.v1',
-  integrityNonce: string,
+  integrityNonce: IntegrityNonce,
   rawPayload: string,
 ): HmacSha256Digest {
   if (!isIntegrityNonce(integrityNonce)) throw new Error('Mission integrity nonce is invalid')
@@ -565,7 +578,7 @@ function validatedRawStringArray(
 /** Builds immutable-by-value validation identities while preserving the authoritative raw text. */
 export function buildValidationRequirements(
   validation: string[],
-  integrityNonce: string,
+  integrityNonce: IntegrityNonce,
 ): readonly OwnestValidationRequirementV1[] {
   if (!isIntegrityNonce(integrityNonce)) throw new Error('Mission integrity nonce is invalid')
   const rawRequirements = validatedRawStringArray(
@@ -643,7 +656,10 @@ function assertMissionTask(task: CcTask): {
 }
 
 /** Digests only the fixed, authoritative mission fields in a fixed JSON key order. */
-export function computeMissionDigest(task: CcTask, integrityNonce: string): HmacSha256Digest {
+export function computeMissionDigest(
+  task: CcTask,
+  integrityNonce: IntegrityNonce,
+): HmacSha256Digest {
   if (!isIntegrityNonce(integrityNonce)) throw new Error('Mission integrity nonce is invalid')
   const mission = assertMissionTask(task)
   return nonceBoundDigest(
@@ -670,7 +686,7 @@ export function buildMissionContract(
   task: CcTask,
   attemptId: string,
   rolloutId: string,
-  integrityNonce: string,
+  integrityNonce: IntegrityNonce,
 ): OwnestMissionContractV1 {
   if (!isSafeOwnestToken(attemptId)) throw new Error('Mission attempt id is invalid')
   if (!isSafeOwnestToken(rolloutId)) throw new Error('Mission rollout id is invalid')

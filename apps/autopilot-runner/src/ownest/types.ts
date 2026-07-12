@@ -23,6 +23,8 @@ declare const sha256DigestBrand: unique symbol
 export type Sha256Digest = string & { readonly [sha256DigestBrand]: true }
 declare const hmacSha256DigestBrand: unique symbol
 export type HmacSha256Digest = string & { readonly [hmacSha256DigestBrand]: true }
+declare const integrityNonceBrand: unique symbol
+export type IntegrityNonce = string & { readonly [integrityNonceBrand]: true }
 export type OwnestFailureClass = 'transient' | 'permanent' | 'integrity'
 export type OwnestCompletionPhase =
   | 'claimed'
@@ -47,7 +49,7 @@ export interface OwnestStateV1 {
   lastError: string | null
   claimedAt?: string
   rolloutId?: string
-  integrityNonce?: string
+  integrityNonce?: IntegrityNonce
   missionDigest?: HmacSha256Digest
   failureCount?: number
   failureClass?: OwnestFailureClass | null
@@ -61,7 +63,7 @@ export interface OwnestStateV1 {
 export interface HardenedOwnestStateV1 extends OwnestStateV1 {
   claimedAt: string
   rolloutId: string
-  integrityNonce: string
+  integrityNonce: IntegrityNonce
   missionDigest: HmacSha256Digest
   failureCount: number
   failureClass: OwnestFailureClass | null
