@@ -164,18 +164,23 @@ const HMAC_SHA256_DIGEST = /^hmac-sha256:[0-9a-f]{64}$/
 const SHA256_DIGEST = /^sha256:[0-9a-f]{64}$/
 const STOP_HERMES_PROFILE = 'ownest'
 const STOP_HERMES_BOARD = 'unite-group-ownest'
+const STOP_HERMES_TENANT = 'unite-group'
+const STOP_HERMES_CREATED_BY = 'crm-ownest'
+const STOP_HERMES_MAX_RETRIES = 2
+const TRUSTED_MISSION_BEGIN = '--- BEGIN TRUSTED OWNEST MISSION ENVELOPE ---'
+const TRUSTED_MISSION_END = '--- END TRUSTED OWNEST MISSION ENVELOPE ---'
 const STOP_CAUSES = new Set<OwnestStopCause>([
   'cancel-requested',
   'authority-revoked',
   'lease-expired',
   'operator-stop',
 ])
-const TERMINATION_METADATA_KEYS = [
-  'hostLocal',
-  'prevPid',
+const TERMINATION_METADATA_WIRE_KEYS = [
+  'host_local',
+  'prev_pid',
   'sigkill',
   'terminated',
-  'terminationAttempted',
+  'termination_attempted',
 ] as const
 
 function stringifyUnknown(value: unknown): string {
@@ -1152,7 +1157,87 @@ interface StopShowState {
   active: boolean
 }
 
-function normaliseStopShow(value: unknown, expectedTaskId: string): StopShowState | null {
+function trustedMissionEnvelope(contract: OwnestMissionContractV1): Record<string, unknown> {
+  return {
+    schema: contract.schema,
+    crmTaskId: contract.crmTaskId,
+    attemptId: contract.attemptId,
+    idempotencyKey: contract.idempotencyKey,
+    rolloutId: contract.rolloutId,
+    hermesProfile: contract.hermesProfile,
+    hermesBoard: contract.hermesBoard,
+    missionDigest: contract.missionDigest,
+    validationRequirements: contract.validationRequirements.map((requirement) => ({
+      id: requirement.id,
+      digest: requirement.digest,
+    })),
+  }
+}
+
+function hasBoundMissionEnvelope(
+  body: unknown,
+  contract: OwnestMissionContractV1,
+): boolean {
+  if (
+    typeof body !== 'string' ||
+    body.length > MAX_MISSION_TEXT_LENGTH ||
+    !body.startsWith(`CRM task ID: ${contract.crmTaskId}\n`)
+  ) {
+    return false
+  }
+  const beginMarker = `\n${TRUSTED_MISSION_BEGIN}\n`
+  const endMarker = `\n${TRUSTED_MISSION_END}\n`
+  const beginIndex = body.indexOf(beginMarker)
+  if (
+    beginIndex < 0 ||
+    body.indexOf(beginMarker, beginIndex + beginMarker.length) !== -1
+  ) {
+    return false
+  }
+  const envelopeStart = beginIndex + beginMarker.length
+  const endIndex = body.indexOf(endMarker, envelopeStart)
+  if (
+    endIndex < 0 ||
+    body.indexOf(endMarker, endIndex + endMarker.length) !== -1
+  ) {
+    return false
+  }
+  let envelope: unknown
+  try {
+    envelope = JSON.parse(body.slice(envelopeStart, endIndex))
+  } catch {
+    return false
+  }
+  return isDeepStrictEqual(envelope, trustedMissionEnvelope(contract))
+}
+
+function isBoundStopProjection(
+  rawTask: Record<string, unknown>,
+  runs: readonly Record<string, unknown>[],
+  contract: OwnestMissionContractV1,
+): boolean {
+  const assignee = rawTask.assignee
+  return (
+    rawTask.tenant === STOP_HERMES_TENANT &&
+    rawTask.created_by === STOP_HERMES_CREATED_BY &&
+    rawTask.workspace_kind === 'scratch' &&
+    rawTask.workspace_path === null &&
+    rawTask.branch_name === null &&
+    rawTask.project_id === null &&
+    rawTask.workflow_template_id === null &&
+    rawTask.max_retries === STOP_HERMES_MAX_RETRIES &&
+    isDeepStrictEqual(rawTask.skills, FORCED_SKILLS) &&
+    (assignee === null || assignee === STOP_HERMES_PROFILE) &&
+    runs.every((run) => run.profile === STOP_HERMES_PROFILE) &&
+    hasBoundMissionEnvelope(rawTask.body, contract)
+  )
+}
+
+function normaliseStopShow(
+  value: unknown,
+  expectedTaskId: string,
+  expectedContract: OwnestMissionContractV1,
+): StopShowState | null {
   if (!isRecord(value) || !hasExactKeys(value, LIVE_SHOW_KEYS)) return null
   if (!isNullableString(value.latest_summary)) return null
   if (!isStringArray(value.parents) || !isStringArray(value.children)) return null
@@ -1164,14 +1249,18 @@ function normaliseStopShow(value: unknown, expectedTaskId: string): StopShowStat
   if (!task || task.id !== expectedTaskId) return null
   const latestRunValue = runs.at(-1) ?? null
   const latestRun = latestRunValue ? normaliseRunView(latestRunValue) : null
+  const active = runs.some(
+    (run) => run.ended_at === null || run.status === 'running',
+  )
+  if (!isBoundStopProjection(value.task as Record<string, unknown>, runs, expectedContract)) {
+    return null
+  }
   return {
     raw: value,
     task,
     latestRunValue,
     latestRun,
-    active: runs.some(
-      (run) => run.ended_at === null || run.status === 'running',
-    ),
+    active,
   }
 }
 
@@ -1183,22 +1272,34 @@ function stopTask(state: StopShowState): HermesTask {
 }
 
 function normaliseTerminationMetadata(value: unknown): HermesTerminationMetadata | null {
-  if (!isPlainRecord(value) || !hasExactKeys(value, TERMINATION_METADATA_KEYS)) return null
+  if (!isPlainRecord(value) || !hasExactKeys(value, TERMINATION_METADATA_WIRE_KEYS)) return null
   if (
-    (value.prevPid !== null && (!isInteger(value.prevPid) || value.prevPid <= 0)) ||
-    typeof value.hostLocal !== 'boolean' ||
-    typeof value.terminationAttempted !== 'boolean' ||
+    (value.prev_pid !== null && (!isInteger(value.prev_pid) || value.prev_pid <= 0)) ||
+    typeof value.host_local !== 'boolean' ||
+    typeof value.termination_attempted !== 'boolean' ||
     typeof value.terminated !== 'boolean' ||
     typeof value.sigkill !== 'boolean'
   ) {
     return null
   }
+  const prevPid = value.prev_pid
+  const hostLocal = value.host_local
+  const terminationAttempted = value.termination_attempted
+  const terminated = value.terminated
+  const sigkill = value.sigkill
+  if (
+    (prevPid === null && (hostLocal || terminationAttempted || terminated || sigkill)) ||
+    (!hostLocal && (terminationAttempted || terminated || sigkill)) ||
+    (!terminationAttempted && (terminated || sigkill))
+  ) {
+    return null
+  }
   return {
-    prevPid: value.prevPid,
-    hostLocal: value.hostLocal,
-    terminationAttempted: value.terminationAttempted,
-    terminated: value.terminated,
-    sigkill: value.sigkill,
+    prevPid,
+    hostLocal,
+    terminationAttempted,
+    terminated,
+    sigkill,
   }
 }
 
@@ -1283,7 +1384,18 @@ function completedStopResult(task: HermesTask, reclaimAttempted: boolean): Herme
 }
 
 function safeToRedispatch(termination: HermesTerminationMetadata | null): boolean {
-  return termination !== null && (termination.prevPid === null || termination.terminated)
+  return (
+    termination !== null &&
+    (
+      termination.prevPid === null ||
+      (
+        termination.prevPid > 0 &&
+        termination.hostLocal &&
+        termination.terminationAttempted &&
+        termination.terminated
+      )
+    )
+  )
 }
 
 type StopProcessAction = 'show' | 'reclaim' | 'assign' | 'archive'
@@ -1327,6 +1439,7 @@ async function invokeStopProcess(
 
 async function readStopState(
   taskId: string,
+  expectedContract: OwnestMissionContractV1,
   config: OwnestConfig,
   run: ProcessRunner,
 ): Promise<StopShowState> {
@@ -1342,7 +1455,7 @@ async function readStopState(
   } catch {
     throw hermesError('stop', 'show returned invalid JSON')
   }
-  const state = normaliseStopShow(value, taskId)
+  const state = normaliseStopShow(value, taskId, expectedContract)
   if (!state) {
     throw hermesError('stop', 'show returned an unrecognised installed payload')
   }
@@ -1388,7 +1501,7 @@ async function stopHermesMission(
     cause,
     config,
   )
-  let state = await readStopState(taskId, config, run)
+  let state = await readStopState(taskId, contract, config, run)
   const initialCompletion = validCompletedStopTask(state, contract, config)
   if (initialCompletion) return completedStopResult(initialCompletion, false)
 
@@ -1415,7 +1528,7 @@ async function stopHermesMission(
       run,
       true,
     )
-    state = await readStopState(taskId, config, run)
+    state = await readStopState(taskId, contract, config, run)
     if (reclaimResult.exitCode !== 0 && reclaimResult.exitCode !== 1) {
       throw hermesError('stop', 'reclaim exited non-zero', resultDetail(reclaimResult))
     }
@@ -1449,7 +1562,7 @@ async function stopHermesMission(
 
   if (state.task.assignee !== null) {
     await invokeStopProcess('assign', stopArgs('assign', taskId, 'none'), config, run)
-    state = await readStopState(taskId, config, run)
+    state = await readStopState(taskId, contract, config, run)
     if (
       state.task.assignee !== null ||
       state.active ||
@@ -1461,7 +1574,7 @@ async function stopHermesMission(
   }
 
   await invokeStopProcess('archive', stopArgs('archive', taskId), config, run)
-  state = await readStopState(taskId, config, run)
+  state = await readStopState(taskId, contract, config, run)
   if (state.task.status !== 'archived' || state.task.assignee !== null || state.active) {
     throw hermesError('stop', 'archive did not produce an inactive unassigned archived task')
   }
@@ -1640,24 +1753,7 @@ function buildPreparedMissionBody(content: PreparedMissionContent): string {
     null,
     2,
   )
-  const trustedEnvelope = JSON.stringify(
-    {
-      schema: content.contract.schema,
-      crmTaskId: content.contract.crmTaskId,
-      attemptId: content.contract.attemptId,
-      idempotencyKey: content.contract.idempotencyKey,
-      rolloutId: content.contract.rolloutId,
-      hermesProfile: content.contract.hermesProfile,
-      hermesBoard: content.contract.hermesBoard,
-      missionDigest: content.contract.missionDigest,
-      validationRequirements: content.contract.validationRequirements.map((requirement) => ({
-        id: requirement.id,
-        digest: requirement.digest,
-      })),
-    },
-    null,
-    2,
-  )
+  const trustedEnvelope = JSON.stringify(trustedMissionEnvelope(content.contract), null, 2)
   const completionReceipt = JSON.stringify(
     {
       ownest: {
@@ -1694,9 +1790,9 @@ function buildPreparedMissionBody(content: PreparedMissionContent): string {
     untrustedPayload,
     '--- END UNTRUSTED CRM TASK CONTENT ---',
     '',
-    '--- BEGIN TRUSTED OWNEST MISSION ENVELOPE ---',
+    TRUSTED_MISSION_BEGIN,
     trustedEnvelope,
-    '--- END TRUSTED OWNEST MISSION ENVELOPE ---',
+    TRUSTED_MISSION_END,
     '',
     '--- REQUIRED KANBAN COMPLETION RECEIPT ---',
     'On successful completion, call kanban_complete exactly once with a non-empty summary and metadata matching this exact-key receipt shape:',
@@ -1761,7 +1857,7 @@ function buildCreateRequest(
       '--workspace',
       'scratch',
       '--tenant',
-      'unite-group',
+      STOP_HERMES_TENANT,
       '--priority',
       mapHermesPriority(task.priority),
       '--idempotency-key',
@@ -1769,10 +1865,10 @@ function buildCreateRequest(
       '--max-runtime',
       '10m',
       '--created-by',
-      'crm-ownest',
+      STOP_HERMES_CREATED_BY,
       ...FORCED_SKILLS.flatMap((skill) => ['--skill', skill]),
       '--max-retries',
-      '2',
+      String(STOP_HERMES_MAX_RETRIES),
       '--goal',
       '--goal-max-turns',
       '4',

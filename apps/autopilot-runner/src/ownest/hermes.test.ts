@@ -17,6 +17,7 @@ import {
   HERMES_PROCESS_STDOUT_MAX_BYTES,
   HERMES_PROCESS_TIMEOUT_MS,
   MAX_VALIDATION_TEXT_LENGTH,
+  buildMissionBody,
   createProcessRunner,
   createHermesClient,
   defaultProcessRunner,
@@ -161,10 +162,11 @@ function stopWithContract(
 
 /** Exact task object emitted by the installed Hermes 0.18.2 `_task_to_dict`. */
 function liveTask(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  const missionTask = claimedTask()
   return {
     id: 'hermes-1',
     title: 'Research customer retention patterns',
-    body: 'Mission body',
+    body: buildMissionBody(missionTask, contractFor(missionTask)),
     assignee: 'ownest',
     status: 'running',
     priority: 60,
@@ -371,6 +373,19 @@ function terminationMetadata(overrides: Record<string, unknown> = {}): Record<st
   }
 }
 
+function terminationWireMetadata(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  const metadata = terminationMetadata(overrides)
+  return {
+    prev_pid: metadata.prevPid,
+    host_local: metadata.hostLocal,
+    termination_attempted: metadata.terminationAttempted,
+    terminated: metadata.terminated,
+    sigkill: metadata.sigkill,
+  }
+}
+
 function activeStopShow(): Record<string, unknown> {
   const active = liveRun({
     status: 'running',
@@ -387,7 +402,7 @@ function activeStopShow(): Record<string, unknown> {
 }
 
 function reclaimedRun(
-  metadata: unknown = terminationMetadata(),
+  metadata: unknown = terminationWireMetadata(),
   overrides: Record<string, unknown> = {},
 ): Record<string, unknown> {
   return liveRun({
@@ -414,7 +429,7 @@ function stoppedShow(
 }
 
 function successfulStopResults(
-  metadata: Record<string, unknown> = terminationMetadata(),
+  metadata: Record<string, unknown> = terminationWireMetadata(),
   reclaimResult: ProcessResult = { exitCode: 0, stdout: '', stderr: '' },
 ): ProcessResult[] {
   const reclaimed = reclaimedRun(metadata)
@@ -1900,32 +1915,238 @@ describe('createHermesClient.stopMission', () => {
 
   it.each([
     [
+      'an unrelated body',
+      (payload: Record<string, unknown>) => ({
+        ...payload,
+        task: { ...(payload.task as Record<string, unknown>), body: 'not an OWNEST mission' },
+      }),
+    ],
+    [
+      'another tenant',
+      (payload: Record<string, unknown>) => ({
+        ...payload,
+        task: { ...(payload.task as Record<string, unknown>), tenant: 'other-tenant' },
+      }),
+    ],
+    [
+      'another creator',
+      (payload: Record<string, unknown>) => ({
+        ...payload,
+        task: { ...(payload.task as Record<string, unknown>), created_by: 'other-system' },
+      }),
+    ],
+    [
+      'another workspace',
+      (payload: Record<string, unknown>) => ({
+        ...payload,
+        task: {
+          ...(payload.task as Record<string, unknown>),
+          workspace_kind: 'dir',
+          workspace_path: '/tmp/unrelated',
+        },
+      }),
+    ],
+    [
+      'a different skill set',
+      (payload: Record<string, unknown>) => ({
+        ...payload,
+        task: { ...(payload.task as Record<string, unknown>), skills: ['nexus'] },
+      }),
+    ],
+    [
+      'a different retry envelope',
+      (payload: Record<string, unknown>) => ({
+        ...payload,
+        task: { ...(payload.task as Record<string, unknown>), max_retries: 3 },
+      }),
+    ],
+    [
+      'another assignee profile',
+      (payload: Record<string, unknown>) => ({
+        ...payload,
+        task: { ...(payload.task as Record<string, unknown>), assignee: 'agent7' },
+      }),
+    ],
+    [
+      'another active-run profile',
+      (payload: Record<string, unknown>) => ({
+        ...payload,
+        runs: [
+          {
+            ...((payload.runs as Record<string, unknown>[])[0] as Record<string, unknown>),
+            profile: 'agent7',
+          },
+        ],
+      }),
+    ],
+    [
+      'a different trusted idempotency key',
+      (payload: Record<string, unknown>) => {
+        const taskValue = payload.task as Record<string, unknown>
+        return {
+          ...payload,
+          task: {
+            ...taskValue,
+            body: (taskValue.body as string).replace(
+              contractFor().idempotencyKey,
+              idempotencyKey(
+                'task-1',
+                'rollout-1',
+                'attempt-2',
+                config.hermesProfile,
+                config.hermesBoard,
+              ),
+            ),
+          },
+        }
+      },
+    ],
+    [
+      'a different trusted board',
+      (payload: Record<string, unknown>) => {
+        const taskValue = payload.task as Record<string, unknown>
+        return {
+          ...payload,
+          task: {
+            ...taskValue,
+            body: (taskValue.body as string).replace(
+              '"hermesBoard": "unite-group-ownest"',
+              '"hermesBoard": "other-board"',
+            ),
+          },
+        }
+      },
+    ],
+    [
+      'a different trusted profile',
+      (payload: Record<string, unknown>) => {
+        const taskValue = payload.task as Record<string, unknown>
+        return {
+          ...payload,
+          task: {
+            ...taskValue,
+            body: (taskValue.body as string).replace(
+              '"hermesProfile": "ownest"',
+              '"hermesProfile": "agent7"',
+            ),
+          },
+        }
+      },
+    ],
+  ] as const)(
+    'rejects %s before the first STOP mutation',
+    async (_label, mutatePayload) => {
+      const results = successfulStopResults()
+      const initialPayload = JSON.parse(results[0]?.stdout ?? '{}') as Record<string, unknown>
+      results[0] = jsonResult(mutatePayload(initialPayload))
+      const run = mockSequence(...results)
+      const client = createHermesClient(config, { run })
+
+      await expect(stopWithContract(client)).rejects.toThrow(/Hermes stop/i)
+      expect(run).toHaveBeenCalledTimes(1)
+      expect(run.mock.calls[0]?.[1]).toEqual([
+        ...STOP_BASE_ARGS,
+        'show',
+        'hermes-1',
+        '--json',
+      ])
+    },
+  )
+
+  it('rebinds the projection after reclaim before unassignment', async () => {
+    const results = successfulStopResults()
+    const postReclaim = JSON.parse(results[2]?.stdout ?? '{}') as Record<string, unknown>
+    results[2] = jsonResult({
+      ...postReclaim,
+      task: { ...(postReclaim.task as Record<string, unknown>), created_by: 'other-system' },
+    })
+    const run = mockSequence(...results)
+    const client = createHermesClient(config, { run })
+
+    await expect(stopWithContract(client)).rejects.toThrow(/Hermes stop/i)
+    expect(run.mock.calls.map((call) => call[1])).toEqual([
+      [...STOP_BASE_ARGS, 'show', 'hermes-1', '--json'],
+      [...STOP_BASE_ARGS, 'reclaim', 'hermes-1', '--reason', STOP_REASON],
+      [...STOP_BASE_ARGS, 'show', 'hermes-1', '--json'],
+    ])
+  })
+
+  it('rebinds the projection after unassignment before archive', async () => {
+    const results = successfulStopResults()
+    const postAssign = JSON.parse(results[4]?.stdout ?? '{}') as Record<string, unknown>
+    results[4] = jsonResult({
+      ...postAssign,
+      task: { ...(postAssign.task as Record<string, unknown>), skills: ['nexus'] },
+    })
+    const run = mockSequence(...results)
+    const client = createHermesClient(config, { run })
+
+    await expect(stopWithContract(client)).rejects.toThrow(/Hermes stop/i)
+    expect(run.mock.calls.map((call) => call[1])).toEqual([
+      [...STOP_BASE_ARGS, 'show', 'hermes-1', '--json'],
+      [...STOP_BASE_ARGS, 'reclaim', 'hermes-1', '--reason', STOP_REASON],
+      [...STOP_BASE_ARGS, 'show', 'hermes-1', '--json'],
+      [...STOP_BASE_ARGS, 'assign', 'hermes-1', 'none'],
+      [...STOP_BASE_ARGS, 'show', 'hermes-1', '--json'],
+    ])
+  })
+
+  it('rejects a drifted projection before archiving crash-recovery state', async () => {
+    const recovered = stoppedShow('ready', null, reclaimedRun())
+    const recoveredTask = recovered.task as Record<string, unknown>
+    const run = mockSequence(
+      jsonResult({
+        ...recovered,
+        task: { ...recoveredTask, tenant: 'other-tenant' },
+      }),
+      { exitCode: 0, stdout: '', stderr: '' },
+      jsonResult(stoppedShow('archived', null, reclaimedRun())),
+    )
+    const client = createHermesClient(config, { run })
+
+    await expect(stopWithContract(client)).rejects.toThrow(/Hermes stop/i)
+    expect(run).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
+    [
       'no previous PID',
-      terminationMetadata({
+      {
         prevPid: null,
+        hostLocal: false,
         terminationAttempted: false,
         terminated: false,
-      }),
+      },
       true,
     ],
     [
       'remote unattempted PID',
-      terminationMetadata({
+      {
         hostLocal: false,
         terminationAttempted: false,
         terminated: false,
-      }),
+      },
       false,
     ],
     [
       'surviving local PID',
-      terminationMetadata({ terminationAttempted: true, terminated: false }),
+      { terminationAttempted: true, terminated: false },
+      false,
+    ],
+    [
+      'local PID without an available signal operation',
+      { terminationAttempted: false, terminated: false },
+      false,
+    ],
+    [
+      'local PID surviving SIGKILL',
+      { terminationAttempted: true, terminated: false, sigkill: true },
       false,
     ],
   ] as const)(
     'archives %s while preserving redispatch safety',
-    async (_label, metadata, safeToRedispatch) => {
-      const run = mockSequence(...successfulStopResults({ ...metadata }))
+    async (_label, overrides, safeToRedispatch) => {
+      const run = mockSequence(...successfulStopResults(terminationWireMetadata(overrides)))
       const client = createHermesClient(config, { run })
 
       const result = await stopWithContract(client)
@@ -1933,12 +2154,53 @@ describe('createHermesClient.stopMission', () => {
       expect(result).toMatchObject({
         outcome: 'stopped',
         safeToRedispatch,
-        termination: metadata,
+        termination: terminationMetadata(overrides),
         task: { status: 'archived', assignee: null },
       })
       expect(result.task.latestRun?.metadata).toBeNull()
     },
   )
+
+  it.each([
+    [
+      'a terminated remote PID',
+      { hostLocal: false, terminationAttempted: false, terminated: true },
+    ],
+    [
+      'a termination attempt against a remote PID',
+      { hostLocal: false, terminationAttempted: true, terminated: false },
+    ],
+    [
+      'a terminated PID without a termination attempt',
+      { hostLocal: true, terminationAttempted: false, terminated: true },
+    ],
+    [
+      'SIGKILL without a termination attempt',
+      { hostLocal: true, terminationAttempted: false, terminated: false, sigkill: true },
+    ],
+    [
+      'host-local state without a previous PID',
+      { prevPid: null, hostLocal: true, terminationAttempted: false, terminated: false },
+    ],
+    [
+      'termination state without a previous PID',
+      { prevPid: null, hostLocal: false, terminationAttempted: false, terminated: true },
+    ],
+  ] as const)('rejects impossible termination proof for %s', async (_label, overrides) => {
+    const run = mockSequence(
+      jsonResult(
+        stoppedShow(
+          'archived',
+          null,
+          reclaimedRun(terminationWireMetadata(overrides)),
+        ),
+      ),
+    )
+    const client = createHermesClient(config, { run })
+
+    await expect(stopWithContract(client)).rejects.toThrow(/termination metadata/i)
+    expect(run).toHaveBeenCalledTimes(1)
+  })
 
   it.each([
     ['cancel-requested', 'ownest:cancel-requested:attempt-1'],
@@ -1972,7 +2234,7 @@ describe('createHermesClient.stopMission', () => {
 
   it('accepts reclaim exit 1 when post-SHOW proves the same run was reclaimed', async () => {
     const run = mockSequence(
-      ...successfulStopResults(terminationMetadata(), {
+      ...successfulStopResults(terminationWireMetadata(), {
         exitCode: 1,
         stdout: '',
         stderr: 'already reclaimed',
@@ -1988,7 +2250,7 @@ describe('createHermesClient.stopMission', () => {
   })
 
   it('accepts reclaim exit 1 when another stopper already archived the matching reclaimed run', async () => {
-    const reclaimed = reclaimedRun(terminationMetadata(), {
+    const reclaimed = reclaimedRun(terminationWireMetadata(), {
       error: 'manual_reclaim: ownest:operator-stop:attempt-1',
     })
     const run = mockSequence(
@@ -2077,7 +2339,7 @@ describe('createHermesClient.stopMission', () => {
   })
 
   it('resumes after unassignment by archiving without repeating assign', async () => {
-    const reclaimed = reclaimedRun(terminationMetadata({ terminated: false }))
+    const reclaimed = reclaimedRun(terminationWireMetadata({ terminated: false }))
     const run = mockSequence(
       jsonResult(stoppedShow('ready', null, reclaimed)),
       { exitCode: 0, stdout: '', stderr: '' },
@@ -2125,15 +2387,15 @@ describe('createHermesClient.stopMission', () => {
       'missing termination field',
       reclaimedRun(
         Object.fromEntries(
-          Object.entries(terminationMetadata()).filter(([key]) => key !== 'sigkill'),
+          Object.entries(terminationWireMetadata()).filter(([key]) => key !== 'sigkill'),
         ),
       ),
     ],
-    ['wrong termination type', reclaimedRun(terminationMetadata({ prevPid: '4321' }))],
-    ['extra termination field', reclaimedRun(terminationMetadata({ signal: 'SIGTERM' }))],
+    ['wrong termination type', reclaimedRun(terminationWireMetadata({ prevPid: '4321' }))],
+    ['extra termination field', reclaimedRun({ ...terminationWireMetadata(), signal: 'SIGTERM' })],
     [
       'wrong reclaim reason',
-      reclaimedRun(terminationMetadata(), {
+      reclaimedRun(terminationWireMetadata(), {
         error: 'manual_reclaim: ownest:operator-stop:attempt-1',
       }),
     ],
