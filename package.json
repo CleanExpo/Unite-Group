@@ -10,6 +10,8 @@
     "verify:mcp": "cd packages/pi-ceo-operator-mcp && npm ci && npm run build",
     "verify:spec-board": "cd apps/spec-board && npm ci && npx tsc --noEmit && npm test && npm run build",
     "verify:readiness": "node --test scripts/__tests__/nexus-project-readiness.test.mjs && node scripts/nexus-project-readiness.mjs --root . --json --gate",
+    "verify:docs-watch": "node --test scripts/__tests__/nexus-docs-watch.test.mjs",
+    "nexus:docs:watch": "node scripts/nexus-docs-watch.mjs --root .",
     "verify": "npm run verify:readiness && npm run verify:web && npm run verify:workspace && npm run verify:autopilot && npm run verify:mcp && npm run verify:spec-board",
     "env:check": "node scripts/check-env.mjs --package all",
     "mission-control:linear-loop:preflight": "npm --prefix apps/empire run mission-control:linear-loop:preflight",

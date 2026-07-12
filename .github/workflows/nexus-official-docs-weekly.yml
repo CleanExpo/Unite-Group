@@ -1,0 +1,46 @@
+name: Nexus official-docs weekly evidence
+
+on:
+  schedule:
+    # 02:17 Monday Australia/Brisbane (AEST, UTC+10; no daylight saving).
+    - cron: '17 16 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nexus-official-docs-weekly
+  cancel-in-progress: false
+
+jobs:
+  evidence:
+    name: Fetch and fingerprint official documentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Test the watcher without external source requests
+        run: npm run verify:docs-watch
+
+      - name: Capture read-only official-source evidence
+        run: |
+          node scripts/nexus-docs-watch.mjs \
+            --root . \
+            --config config/nexus-official-sources.json \
+            --write .artifacts/nexus-official-docs \
+            --gate-material
+
+      - name: Upload deterministic evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nexus-official-docs-${{ github.run_id }}
+          path: .artifacts/nexus-official-docs/
+          if-no-files-found: warn
+          retention-days: 30
