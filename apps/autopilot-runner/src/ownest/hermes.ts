@@ -3,25 +3,38 @@ import { StringDecoder } from 'node:string_decoder'
 import { isDeepStrictEqual } from 'node:util'
 import {
   MAX_MISSION_TEXT_LENGTH,
+  MAX_VALIDATION_AGGREGATE_BYTES,
+  MAX_VALIDATION_REQUIREMENTS,
   buildMissionContract,
   evaluateEligibility,
   extractHardenedOwnestState,
+  idempotencyKey,
   redactMissionText,
+  sha256Digest,
 } from './policy.js'
 import type {
   CcTask,
+  HermesRunView,
   HermesDeps,
   HermesTask,
   HermesTaskStatus,
   HardenedOwnestStateV1,
+  HmacSha256Digest,
   OwnestConfig,
+  OwnestCompletionEvidenceV1,
+  OwnestCompletionReceiptV1,
+  OwnestCompletionValidationResultV1,
   OwnestHermesClient,
   OwnestMissionContractV1,
   ProcessResult,
   ProcessRunner,
+  Sha256Digest,
 } from './types.js'
 
 const ERROR_DETAIL_LIMIT = 800
+const COMPLETION_TEXT_MAX_BYTES = 32 * 1024
+const COMPLETION_RECEIPT_MAX_BYTES = 32 * 1024
+const EVIDENCE_URI_MAX_BYTES = 2048
 
 export const HERMES_PROCESS_TIMEOUT_MS = 60_000
 export const HERMES_PROCESS_STDOUT_MAX_BYTES = 1024 * 1024
@@ -54,11 +67,17 @@ const HERMES_STATUSES = new Set<HermesTaskStatus>([
 
 const NORMALISED_TASK_KEYS = [
   'assignee',
+  'completedAt',
   'error',
   'evidenceUri',
   'id',
   'idempotencyKey',
+  'latestRun',
+  'receipt',
+  'receiptSha256',
+  'runId',
   'status',
+  'summary',
   'title',
 ] as const
 
@@ -96,6 +115,50 @@ const LIVE_SHOW_KEYS = [
   'runs',
   'task',
 ] as const
+
+const MISSION_CONTRACT_KEYS = [
+  'attemptId',
+  'crmTaskId',
+  'hermesBoard',
+  'hermesProfile',
+  'idempotencyKey',
+  'missionDigest',
+  'rolloutId',
+  'schema',
+  'validationRequirements',
+] as const
+const MISSION_REQUIREMENT_KEYS = ['digest', 'id', 'text'] as const
+const RECEIPT_KEYS = [
+  'attemptId',
+  'crmTaskId',
+  'evidence',
+  'hermesTaskId',
+  'missionDigest',
+  'rolloutId',
+  'schema',
+  'validationResults',
+  'verdict',
+] as const
+const EVIDENCE_KEYS = ['digest', 'id', 'kind', 'uri'] as const
+const VALIDATION_RESULT_KEYS = [
+  'evidenceIds',
+  'requirementDigest',
+  'requirementId',
+  'status',
+] as const
+const EVIDENCE_KINDS = new Set<OwnestCompletionEvidenceV1['kind']>([
+  'source',
+  'research',
+  'test',
+  'artifact',
+  'commit',
+  'report',
+])
+const SAFE_OWNEST_TOKEN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/
+const HERMES_PROFILE = /^[a-z0-9]{1,64}$/
+const HERMES_BOARD = /^[a-z0-9][a-z0-9_-]{0,63}$/
+const HMAC_SHA256_DIGEST = /^hmac-sha256:[0-9a-f]{64}$/
+const SHA256_DIGEST = /^sha256:[0-9a-f]{64}$/
 
 function stringifyUnknown(value: unknown): string {
   if (value instanceof Error) return `${value.name}: ${value.message}`
@@ -304,6 +367,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  if (!isRecord(value)) return false
+  const prototype = Object.getPrototypeOf(value)
+  return prototype === Object.prototype || prototype === null
+}
+
 function hasExactKeys(value: Record<string, unknown>, expected: readonly string[]): boolean {
   const actual = Object.keys(value).sort()
   const sortedExpected = [...expected].sort()
@@ -338,6 +407,85 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(isNonEmptyString)
 }
 
+function isSafeOwnestToken(value: unknown): value is string {
+  return typeof value === 'string' && SAFE_OWNEST_TOKEN.test(value)
+}
+
+function isHmacSha256Digest(value: unknown): value is HmacSha256Digest {
+  return typeof value === 'string' && HMAC_SHA256_DIGEST.test(value)
+}
+
+function validateExpectedMissionContract(
+  value: unknown,
+  config: OwnestConfig,
+): OwnestMissionContractV1 {
+  const invalid = () => {
+    throw new Error('Hermes show expected mission contract is invalid')
+  }
+  if (!isPlainRecord(value) || !hasExactKeys(value, MISSION_CONTRACT_KEYS)) return invalid()
+  if (
+    value.schema !== 'ownest.mission.v1' ||
+    !isSafeOwnestToken(value.crmTaskId) ||
+    !isSafeOwnestToken(value.attemptId) ||
+    !isSafeOwnestToken(value.rolloutId) ||
+    typeof value.hermesProfile !== 'string' ||
+    !HERMES_PROFILE.test(value.hermesProfile) ||
+    typeof value.hermesBoard !== 'string' ||
+    !HERMES_BOARD.test(value.hermesBoard) ||
+    value.hermesProfile !== config.hermesProfile ||
+    value.hermesBoard !== config.hermesBoard ||
+    !isHmacSha256Digest(value.missionDigest) ||
+    !Array.isArray(value.validationRequirements) ||
+    value.validationRequirements.length < 1 ||
+    value.validationRequirements.length > MAX_VALIDATION_REQUIREMENTS
+  ) {
+    return invalid()
+  }
+
+  const validationRequirements = [] as OwnestMissionContractV1['validationRequirements'][number][]
+  let aggregateBytes = 0
+  for (let index = 0; index < value.validationRequirements.length; index += 1) {
+    const requirement = value.validationRequirements[index]
+    if (
+      !isPlainRecord(requirement) ||
+      !hasExactKeys(requirement, MISSION_REQUIREMENT_KEYS) ||
+      requirement.id !== `vr-${String(index + 1).padStart(3, '0')}` ||
+      !isNonEmptyString(requirement.text) ||
+      !isHmacSha256Digest(requirement.digest)
+    ) {
+      return invalid()
+    }
+    aggregateBytes += Buffer.byteLength(requirement.text, 'utf8')
+    if (aggregateBytes > MAX_VALIDATION_AGGREGATE_BYTES) return invalid()
+    validationRequirements.push({
+      id: requirement.id,
+      text: requirement.text,
+      digest: requirement.digest,
+    })
+  }
+
+  const expectedKey = idempotencyKey(
+    value.crmTaskId,
+    value.rolloutId,
+    value.attemptId,
+    value.hermesProfile,
+    value.hermesBoard,
+  )
+  if (value.idempotencyKey !== expectedKey) return invalid()
+
+  return {
+    schema: 'ownest.mission.v1',
+    crmTaskId: value.crmTaskId,
+    attemptId: value.attemptId,
+    idempotencyKey: expectedKey,
+    rolloutId: value.rolloutId,
+    hermesProfile: value.hermesProfile,
+    hermesBoard: value.hermesBoard,
+    missionDigest: value.missionDigest,
+    validationRequirements,
+  }
+}
+
 function normaliseTypedTask(value: unknown): HermesTask | null {
   if (!isRecord(value) || !hasExactKeys(value, NORMALISED_TASK_KEYS)) return null
   if (!isNonEmptyString(value.id)) return null
@@ -345,6 +493,16 @@ function normaliseTypedTask(value: unknown): HermesTask | null {
   if (!isNonEmptyString(value.title)) return null
   if (!isNullableNonEmptyString(value.assignee)) return null
   if (!isNullableNonEmptyString(value.idempotencyKey)) return null
+  if (
+    value.summary !== null ||
+    value.runId !== null ||
+    value.completedAt !== null ||
+    value.receipt !== null ||
+    value.receiptSha256 !== null ||
+    value.latestRun !== null
+  ) {
+    return null
+  }
   if (!isNullableNonEmptyString(value.evidenceUri)) return null
   if (!isNullableNonEmptyString(value.error)) return null
 
@@ -354,6 +512,12 @@ function normaliseTypedTask(value: unknown): HermesTask | null {
     title: value.title,
     assignee: value.assignee,
     idempotencyKey: value.idempotencyKey,
+    summary: null,
+    runId: null,
+    completedAt: null,
+    receipt: null,
+    receiptSha256: null,
+    latestRun: null,
     evidenceUri: value.evidenceUri,
     error: value.error,
   }
@@ -391,6 +555,12 @@ function normaliseLiveTask(value: unknown): HermesTask | null {
     title: value.title,
     assignee: value.assignee,
     idempotencyKey: null,
+    summary: null,
+    runId: null,
+    completedAt: null,
+    receipt: null,
+    receiptSha256: null,
+    latestRun: null,
     evidenceUri: null,
     error: null,
   }
@@ -447,14 +617,387 @@ function isLiveRun(value: unknown): boolean {
   )
 }
 
-function normaliseLiveShow(value: unknown): HermesTask | null {
+function boundedRedactedText(value: string, maxBytes: number): string {
+  const redacted = redactMissionText(value)
+  const bytes = Buffer.from(redacted, 'utf8')
+  if (bytes.byteLength <= maxBytes) return redacted
+  return decodeCompleteUtf8Prefix(bytes.subarray(0, maxBytes))
+}
+
+function normaliseRunView(value: Record<string, unknown>): HermesRunView {
+  return {
+    id: value.id as number,
+    profile: value.profile as string | null,
+    status: value.status as string,
+    outcome: value.outcome as string | null,
+    summary:
+      value.summary === null
+        ? null
+        : boundedRedactedText(value.summary as string, COMPLETION_TEXT_MAX_BYTES),
+    error:
+      value.error === null
+        ? null
+        : boundedRedactedText(value.error as string, ERROR_DETAIL_LIMIT),
+    metadata: value.metadata as Record<string, unknown> | null,
+    workerPid: value.worker_pid as number | null,
+    startedAt: value.started_at as number,
+    endedAt: value.ended_at as number | null,
+  }
+}
+
+function isPrivateOrLoopbackIpv4(hostname: string): boolean {
+  const parts = hostname.split('.').map(Number)
+  if (
+    parts.length !== 4 ||
+    parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)
+  ) {
+    return false
+  }
+  const [first = 0, second = 0] = parts
+  return (
+    first === 0 ||
+    first === 10 ||
+    first === 127 ||
+    (first === 100 && second >= 64 && second <= 127) ||
+    (first === 169 && second === 254) ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && second === 168) ||
+    (first === 198 && (second === 18 || second === 19)) ||
+    first >= 224
+  )
+}
+
+function isPrivateOrLoopbackHost(hostnameValue: string): boolean {
+  const hostname = hostnameValue.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '')
+  const isIpv6 = hostname.includes(':')
+  if (
+    hostname === 'localhost' ||
+    hostname.endsWith('.localhost') ||
+    hostname.endsWith('.local') ||
+    hostname === '::' ||
+    hostname === '::1' ||
+    (isIpv6 &&
+      (hostname.startsWith('fc') ||
+        hostname.startsWith('fd') ||
+        /^fe[89ab]/.test(hostname) ||
+        hostname.startsWith('::ffff:')))
+  ) {
+    return true
+  }
+  return isPrivateOrLoopbackIpv4(hostname)
+}
+
+function isDurableEvidenceUri(value: string): boolean {
+  if (
+    Buffer.byteLength(value, 'utf8') > EVIDENCE_URI_MAX_BYTES ||
+    value.trim() !== value ||
+    /[\u0000-\u001f\u007f\s]/.test(value)
+  ) {
+    return false
+  }
+
+  if (/^(?:wiki|git|github):\/[A-Za-z0-9][A-Za-z0-9._~:/-]*$/.test(value)) {
+    const path = value.slice(value.indexOf(':/') + 2)
+    return !path.split('/').some((segment) => segment === '..')
+  }
+
+  try {
+    const url = new URL(value)
+    return (
+      url.protocol === 'https:' &&
+      url.username === '' &&
+      url.password === '' &&
+      url.search === '' &&
+      url.hash === '' &&
+      url.hostname.length > 0 &&
+      !isPrivateOrLoopbackHost(url.hostname)
+    )
+  } catch {
+    return false
+  }
+}
+
+type ReceiptValidationResult =
+  | { ok: true; receipt: OwnestCompletionReceiptV1 }
+  | { ok: false; code: string }
+
+function validateCompletionReceipt(
+  metadata: unknown,
+  hermesTaskId: string,
+  expectedContract: OwnestMissionContractV1,
+): ReceiptValidationResult {
+  if (!isPlainRecord(metadata)) return { ok: false, code: 'metadata-shape' }
+  const metadataKeys = Object.keys(metadata).sort()
+  const validOuterKeys =
+    (metadataKeys.length === 1 && metadataKeys[0] === 'ownest') ||
+    (metadataKeys.length === 2 &&
+      metadataKeys[0] === 'ownest' &&
+      metadataKeys[1] === 'worker_session_id')
+  if (
+    !validOuterKeys ||
+    ('worker_session_id' in metadata && !isNonEmptyString(metadata.worker_session_id)) ||
+    !isPlainRecord(metadata.ownest)
+  ) {
+    return { ok: false, code: 'metadata-shape' }
+  }
+
+  const value = metadata.ownest
+  if (Buffer.byteLength(JSON.stringify(value), 'utf8') > COMPLETION_RECEIPT_MAX_BYTES) {
+    return { ok: false, code: 'receipt-oversize' }
+  }
+  if (!hasExactKeys(value, RECEIPT_KEYS)) return { ok: false, code: 'receipt-shape' }
+  if (
+    value.schema !== 'ownest.completion.v1' ||
+    !isSafeOwnestToken(value.crmTaskId) ||
+    !isSafeOwnestToken(value.hermesTaskId) ||
+    !isSafeOwnestToken(value.attemptId) ||
+    !isSafeOwnestToken(value.rolloutId) ||
+    !isHmacSha256Digest(value.missionDigest) ||
+    !Array.isArray(value.evidence) ||
+    !Array.isArray(value.validationResults)
+  ) {
+    return { ok: false, code: 'receipt-shape' }
+  }
+  if (
+    value.crmTaskId !== expectedContract.crmTaskId ||
+    value.hermesTaskId !== hermesTaskId ||
+    value.attemptId !== expectedContract.attemptId ||
+    value.rolloutId !== expectedContract.rolloutId ||
+    value.missionDigest !== expectedContract.missionDigest
+  ) {
+    return { ok: false, code: 'receipt-identity' }
+  }
+  if (value.verdict !== 'passed') return { ok: false, code: 'receipt-verdict' }
+
+  if (value.evidence.length < 1 || value.evidence.length > 32) {
+    return { ok: false, code: 'evidence-count' }
+  }
+
+  const evidence: OwnestCompletionEvidenceV1[] = []
+  const evidenceIds = new Set<string>()
+  for (let index = 0; index < value.evidence.length; index += 1) {
+    const item = value.evidence[index]
+    if (!isPlainRecord(item) || !hasExactKeys(item, EVIDENCE_KEYS)) {
+      return { ok: false, code: 'evidence-shape' }
+    }
+    const expectedId = `ev-${String(index + 1).padStart(3, '0')}`
+    if (item.id !== expectedId || evidenceIds.has(expectedId)) {
+      return { ok: false, code: 'evidence-id' }
+    }
+    if (typeof item.kind !== 'string' || !EVIDENCE_KINDS.has(item.kind as OwnestCompletionEvidenceV1['kind'])) {
+      return { ok: false, code: 'evidence-kind' }
+    }
+    if (typeof item.uri !== 'string' || !isDurableEvidenceUri(item.uri)) {
+      return { ok: false, code: 'evidence-uri' }
+    }
+    if (typeof item.digest !== 'string' || !SHA256_DIGEST.test(item.digest)) {
+      return { ok: false, code: 'evidence-digest' }
+    }
+    evidenceIds.add(expectedId)
+    evidence.push({
+      id: expectedId,
+      kind: item.kind as OwnestCompletionEvidenceV1['kind'],
+      uri: item.uri,
+      digest: item.digest as Sha256Digest,
+    })
+  }
+
+  if (value.validationResults.length !== expectedContract.validationRequirements.length) {
+    return { ok: false, code: 'validation-count' }
+  }
+  const validationResults: OwnestCompletionValidationResultV1[] = []
+  for (let index = 0; index < value.validationResults.length; index += 1) {
+    const item = value.validationResults[index]
+    const expected = expectedContract.validationRequirements[index]
+    if (!isPlainRecord(item) || !hasExactKeys(item, VALIDATION_RESULT_KEYS)) {
+      return { ok: false, code: 'validation-shape' }
+    }
+    if (
+      !expected ||
+      item.requirementId !== expected.id ||
+      item.requirementDigest !== expected.digest
+    ) {
+      return { ok: false, code: 'validation-identity' }
+    }
+    if (item.status !== 'passed') return { ok: false, code: 'validation-status' }
+    if (
+      !Array.isArray(item.evidenceIds) ||
+      item.evidenceIds.length < 1 ||
+      item.evidenceIds.length > 8 ||
+      !item.evidenceIds.every((id): id is string => typeof id === 'string') ||
+      new Set(item.evidenceIds).size !== item.evidenceIds.length ||
+      item.evidenceIds.some((id) => !evidenceIds.has(id))
+    ) {
+      return { ok: false, code: 'validation-evidence' }
+    }
+    validationResults.push({
+      requirementId: expected.id,
+      requirementDigest: expected.digest,
+      status: 'passed',
+      evidenceIds: [...item.evidenceIds],
+    })
+  }
+
+  return {
+    ok: true,
+    receipt: {
+      schema: 'ownest.completion.v1',
+      crmTaskId: expectedContract.crmTaskId,
+      hermesTaskId,
+      attemptId: expectedContract.attemptId,
+      rolloutId: expectedContract.rolloutId,
+      missionDigest: expectedContract.missionDigest,
+      verdict: 'passed',
+      evidence,
+      validationResults,
+    },
+  }
+}
+
+function invalidReceiptTask(
+  task: HermesTask,
+  latestRun: HermesRunView | null,
+  code: string,
+): HermesTask {
+  return {
+    ...task,
+    status: 'review',
+    summary: null,
+    runId: null,
+    completedAt: null,
+    receipt: null,
+    receiptSha256: null,
+    latestRun: latestRun ? { ...latestRun, metadata: null } : null,
+    evidenceUri: null,
+    error: `ownest-receipt-invalid:${code}`,
+  }
+}
+
+function terminalFailureTask(
+  task: HermesTask,
+  status: Extract<HermesTaskStatus, 'blocked' | 'review'>,
+  error: string,
+  latestRun: HermesRunView | null,
+): HermesTask {
+  return {
+    ...task,
+    status,
+    summary: null,
+    runId: null,
+    completedAt: null,
+    receipt: null,
+    receiptSha256: null,
+    latestRun: latestRun ? { ...latestRun, metadata: null } : null,
+    evidenceUri: null,
+    error,
+  }
+}
+
+function normaliseLiveShow(
+  value: unknown,
+  expectedContract: OwnestMissionContractV1,
+  config: OwnestConfig,
+): HermesTask | null {
   if (!isRecord(value) || !hasExactKeys(value, LIVE_SHOW_KEYS)) return null
   if (!isNullableString(value.latest_summary)) return null
   if (!isStringArray(value.parents) || !isStringArray(value.children)) return null
   if (!Array.isArray(value.comments) || !value.comments.every(isLiveComment)) return null
   if (!Array.isArray(value.events) || !value.events.every(isLiveEvent)) return null
   if (!Array.isArray(value.runs) || !value.runs.every(isLiveRun)) return null
-  return normaliseLiveTask(value.task)
+
+  const seenRunIds = new Set<number>()
+  let previousStartedAt: number | null = null
+  let previousId: number | null = null
+  for (const runValue of value.runs) {
+    const run = runValue as Record<string, unknown>
+    const runId = run.id as number
+    const startedAt = run.started_at as number
+    if (
+      seenRunIds.has(runId) ||
+      (previousStartedAt !== null && startedAt < previousStartedAt) ||
+      (previousStartedAt === startedAt && previousId !== null && runId <= previousId)
+    ) {
+      return null
+    }
+    seenRunIds.add(runId)
+    previousStartedAt = startedAt
+    previousId = runId
+  }
+
+  const latestValue = value.runs.at(-1)
+  const latestRun = isRecord(latestValue) ? normaliseRunView(latestValue) : null
+  const task = normaliseLiveTask(value.task)
+  if (!task) return null
+
+  if (task.status === 'archived') {
+    return terminalFailureTask(task, 'review', 'hermes-task-archived', latestRun)
+  }
+  if (task.status === 'blocked' || task.status === 'review') {
+    const latestClosed = latestRun?.endedAt !== null && (latestRun?.endedAt ?? -1) >= 0
+    const error =
+      latestClosed && latestRun?.error && latestRun.error.trim()
+        ? latestRun.error
+        : latestClosed && latestRun?.summary && latestRun.summary.trim()
+          ? latestRun.summary
+          : `hermes-run-${task.status}`
+    return terminalFailureTask(task, task.status, error, latestRun)
+  }
+  if (task.status !== 'done') return task
+
+  if (!latestRun || !isRecord(latestValue)) {
+    return invalidReceiptTask(task, null, 'latest-run-missing')
+  }
+
+  const liveTask = value.task as Record<string, unknown>
+  const rawSummary = latestValue.summary
+  if (!isInteger(liveTask.completed_at) || liveTask.completed_at < 0) {
+    return invalidReceiptTask(task, latestRun, 'task-completed-at')
+  }
+  if (latestRun.id <= 0) return invalidReceiptTask(task, latestRun, 'latest-run-id')
+  if (latestRun.profile !== config.hermesProfile) {
+    return invalidReceiptTask(task, latestRun, 'latest-run-profile')
+  }
+  if (latestRun.status !== 'done') {
+    return invalidReceiptTask(task, latestRun, 'latest-run-status')
+  }
+  if (latestRun.outcome !== 'completed') {
+    return invalidReceiptTask(task, latestRun, 'latest-run-outcome')
+  }
+  if (latestRun.endedAt === null || latestRun.endedAt < 0) {
+    return invalidReceiptTask(task, latestRun, 'latest-run-ended-at')
+  }
+  if (latestValue.error !== null) {
+    return invalidReceiptTask(task, latestRun, 'latest-run-error')
+  }
+  if (
+    !isNonEmptyString(rawSummary) ||
+    Buffer.byteLength(rawSummary, 'utf8') > COMPLETION_TEXT_MAX_BYTES
+  ) {
+    return invalidReceiptTask(task, latestRun, 'latest-run-summary')
+  }
+  if (value.latest_summary !== rawSummary) {
+    return invalidReceiptTask(task, latestRun, 'summary-mismatch')
+  }
+  const completedAt = new Date(latestRun.endedAt * 1_000)
+  if (!Number.isFinite(completedAt.getTime())) {
+    return invalidReceiptTask(task, latestRun, 'latest-run-ended-at')
+  }
+  const receiptResult = validateCompletionReceipt(latestRun.metadata, task.id, expectedContract)
+  if (!receiptResult.ok) return invalidReceiptTask(task, latestRun, receiptResult.code)
+  const receipt = receiptResult.receipt
+
+  return {
+    ...task,
+    status: 'done',
+    summary: boundedRedactedText(rawSummary, COMPLETION_TEXT_MAX_BYTES),
+    runId: latestRun.id,
+    completedAt: completedAt.toISOString(),
+    receipt,
+    receiptSha256: sha256Digest(JSON.stringify(receipt)),
+    latestRun,
+    evidenceUri: `hermes-kanban:/boards/${encodeURIComponent(config.hermesBoard)}/tasks/${encodeURIComponent(task.id)}/runs/${latestRun.id}`,
+    error: null,
+  }
 }
 
 function safeDetail(value: string): string {
@@ -529,12 +1072,28 @@ function parseCreateResponse(value: unknown, expectedKey: string): HermesTask | 
   return task
 }
 
-function parseShowResponse(value: unknown): HermesTask | null {
-  const liveTask = normaliseLiveShow(value)
+function parseShowResponse(
+  value: unknown,
+  expectedContract: OwnestMissionContractV1,
+  config: OwnestConfig,
+): HermesTask | null {
+  const liveTask = normaliseLiveShow(value, expectedContract, config)
   if (liveTask) return liveTask
 
   if (!isRecord(value) || !hasExactKeys(value, ['task'])) return null
-  return normaliseTypedTask(value.task)
+  const task = normaliseTypedTask(value.task)
+  if (!task) return null
+  if (task.status === 'done') return invalidReceiptTask(task, null, 'latest-run-missing')
+  if (task.status === 'archived') {
+    return terminalFailureTask(task, 'review', 'hermes-task-archived', null)
+  }
+  if (task.status === 'blocked' || task.status === 'review') {
+    const error = task.error
+      ? boundedRedactedText(task.error, ERROR_DETAIL_LIMIT)
+      : `hermes-run-${task.status}`
+    return terminalFailureTask(task, task.status, error, null)
+  }
+  return task
 }
 
 function assertTaskId(value: string, label: string): string {
@@ -860,8 +1419,7 @@ export function createHermesClient(
     },
 
     async showMission(taskId, expectedContract) {
-      // TODO(ownest-receipt): bind show normalization to the expected contract.
-      void expectedContract
+      const trustedContract = validateExpectedMissionContract(expectedContract, config)
       const safeTaskId = assertTaskId(taskId, 'Hermes task ID')
       const args = [
         '--profile',
@@ -874,7 +1432,7 @@ export function createHermesClient(
         '--json',
       ]
       const result = await invokeHermes('show', args, config.hermesCwd, deps.run)
-      const parsed = parseShowResponse(parseJson('show', result))
+      const parsed = parseShowResponse(parseJson('show', result), trustedContract, config)
       if (!parsed || parsed.id !== safeTaskId) {
         throw hermesError('show', 'returned an unrecognised JSON shape', resultDetail(result))
       }

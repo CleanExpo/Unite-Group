@@ -102,6 +102,53 @@ export interface OwnestMissionContractV1 {
   readonly validationRequirements: readonly OwnestValidationRequirementV1[]
 }
 
+export type OwnestCompletionEvidenceKind =
+  | 'source'
+  | 'research'
+  | 'test'
+  | 'artifact'
+  | 'commit'
+  | 'report'
+
+export interface OwnestCompletionEvidenceV1 {
+  readonly id: string
+  readonly kind: OwnestCompletionEvidenceKind
+  readonly uri: string
+  readonly digest: Sha256Digest
+}
+
+export interface OwnestCompletionValidationResultV1 {
+  readonly requirementId: string
+  readonly requirementDigest: HmacSha256Digest
+  readonly status: 'passed'
+  readonly evidenceIds: readonly string[]
+}
+
+export interface OwnestCompletionReceiptV1 {
+  readonly schema: 'ownest.completion.v1'
+  readonly crmTaskId: string
+  readonly hermesTaskId: string
+  readonly attemptId: string
+  readonly rolloutId: string
+  readonly missionDigest: HmacSha256Digest
+  readonly verdict: 'passed'
+  readonly evidence: readonly OwnestCompletionEvidenceV1[]
+  readonly validationResults: readonly OwnestCompletionValidationResultV1[]
+}
+
+export interface HermesRunView {
+  readonly id: number
+  readonly profile: string | null
+  readonly status: string
+  readonly outcome: string | null
+  readonly summary: string | null
+  readonly error: string | null
+  readonly metadata: Readonly<Record<string, unknown>> | null
+  readonly workerPid: number | null
+  readonly startedAt: number
+  readonly endedAt: number | null
+}
+
 /** The cc_tasks fields required by the OWNEST worker. */
 export interface CcTask {
   id: string
@@ -128,6 +175,12 @@ export interface HermesTask {
   title: string
   assignee: string | null
   idempotencyKey: string | null
+  summary: string | null
+  runId: number | null
+  completedAt: string | null
+  receipt: OwnestCompletionReceiptV1 | null
+  receiptSha256: Sha256Digest | null
+  latestRun: HermesRunView | null
   evidenceUri: string | null
   error: string | null
 }

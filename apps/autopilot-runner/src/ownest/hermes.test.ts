@@ -9,6 +9,7 @@ import {
   generateIntegrityNonce,
   idempotencyKey,
   redactMissionText,
+  sha256Digest,
 } from './policy.js'
 import {
   HERMES_PROCESS_KILL_GRACE_MS,
@@ -178,7 +179,10 @@ function liveTask(overrides: Record<string, unknown> = {}): Record<string, unkno
   }
 }
 
-function liveShow(taskValue: Record<string, unknown> = liveTask()): Record<string, unknown> {
+function liveShow(
+  taskValue: Record<string, unknown> = liveTask(),
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
   return {
     task: taskValue,
     latest_summary: null,
@@ -187,7 +191,112 @@ function liveShow(taskValue: Record<string, unknown> = liveTask()): Record<strin
     comments: [],
     events: [],
     runs: [],
+    ...overrides,
   }
+}
+
+function liveRun(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    id: 7,
+    profile: 'ownest',
+    step_key: null,
+    status: 'done',
+    outcome: 'completed',
+    summary: 'Completed the retention evidence brief.',
+    error: null,
+    metadata: null,
+    worker_pid: 4321,
+    started_at: 1_784_000_000,
+    ended_at: 1_784_000_120,
+    ...overrides,
+  }
+}
+
+function completionReceipt(
+  hermesTaskId = 'hermes-1',
+  contract: OwnestMissionContractV1 = contractFor(),
+): Record<string, unknown> {
+  return {
+    schema: 'ownest.completion.v1',
+    crmTaskId: contract.crmTaskId,
+    hermesTaskId,
+    attemptId: contract.attemptId,
+    rolloutId: contract.rolloutId,
+    missionDigest: contract.missionDigest,
+    verdict: 'passed',
+    evidence: [
+      {
+        id: 'ev-001',
+        kind: 'research',
+        uri: 'https://evidence.example/reports/retention',
+        digest: sha256Digest('retention-evidence'),
+      },
+    ],
+    validationResults: contract.validationRequirements.map((requirement) => ({
+      requirementId: requirement.id,
+      requirementDigest: requirement.digest,
+      status: 'passed',
+      evidenceIds: ['ev-001'],
+    })),
+  }
+}
+
+function completionEvidence(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    id: 'ev-001',
+    kind: 'research',
+    uri: 'https://evidence.example/reports/retention',
+    digest: sha256Digest('retention-evidence'),
+    ...overrides,
+  }
+}
+
+function completionValidation(
+  index = 0,
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  const requirement = contractFor().validationRequirements[index]
+  if (!requirement) throw new Error(`missing validation requirement ${index}`)
+  return {
+    requirementId: requirement.id,
+    requirementDigest: requirement.digest,
+    status: 'passed',
+    evidenceIds: ['ev-001'],
+    ...overrides,
+  }
+}
+
+function completedLiveShow(
+  hermesTaskId = 'hermes-1',
+  contract: OwnestMissionContractV1 = contractFor(),
+  options: {
+    receipt?: Record<string, unknown>
+    metadata?: unknown
+    run?: Record<string, unknown>
+    task?: Record<string, unknown>
+    show?: Record<string, unknown>
+    runs?: readonly unknown[]
+  } = {},
+): Record<string, unknown> {
+  const summary = 'Completed the retention evidence brief.'
+  const receipt = { ...completionReceipt(hermesTaskId, contract), ...options.receipt }
+  const metadata = Object.prototype.hasOwnProperty.call(options, 'metadata')
+    ? options.metadata
+    : { ownest: receipt }
+  const run = liveRun({ summary, metadata, ...options.run })
+  return liveShow(
+    liveTask({
+      id: hermesTaskId,
+      status: 'done',
+      completed_at: 1_784_000_120,
+      ...options.task,
+    }),
+    {
+      latest_summary: run.summary,
+      runs: options.runs ?? [run],
+      ...options.show,
+    },
+  )
 }
 
 function normalisedTask(overrides: Partial<HermesTask> = {}): HermesTask {
@@ -203,6 +312,12 @@ function normalisedTask(overrides: Partial<HermesTask> = {}): HermesTask {
       config.hermesProfile,
       config.hermesBoard,
     ),
+    summary: null,
+    runId: null,
+    completedAt: null,
+    receipt: null,
+    receiptSha256: null,
+    latestRun: null,
     evidenceUri: null,
     error: null,
     ...overrides,
@@ -220,6 +335,31 @@ function jsonResult(payload: unknown, overrides: Partial<ProcessResult> = {}): P
 
 function mockRunner(result: ProcessResult = jsonResult(liveTask())) {
   return vi.fn<ProcessRunner>().mockResolvedValue(result)
+}
+
+async function showPayload(
+  payload: unknown,
+  hermesTaskId = 'hermes-1',
+  contract: OwnestMissionContractV1 = contractFor(),
+  configValue: OwnestConfig = config,
+): Promise<HermesTask> {
+  const run = mockRunner(jsonResult(payload))
+  return createHermesClient(configValue, { run }).showMission(hermesTaskId, contract)
+}
+
+async function expectReceiptReview(payload: unknown, code: string): Promise<HermesTask> {
+  const result = await showPayload(payload)
+  expect(result).toMatchObject({
+    status: 'review',
+    summary: null,
+    runId: null,
+    completedAt: null,
+    receipt: null,
+    receiptSha256: null,
+    evidenceUri: null,
+    error: `ownest-receipt-invalid:${code}`,
+  })
+  return result
 }
 
 function capturedArgs(run: ReturnType<typeof mockRunner>): readonly string[] {
@@ -794,6 +934,12 @@ describe('createHermesClient.createMission', () => {
       title: 'Research customer retention patterns',
       assignee: 'ownest',
       idempotencyKey: null,
+      summary: null,
+      runId: null,
+      completedAt: null,
+      receipt: null,
+      receiptSha256: null,
+      latestRun: null,
       evidenceUri: null,
       error: null,
     })
@@ -944,6 +1090,494 @@ describe('createHermesClient.showMission', () => {
     )
   })
 
+  it('normalises one valid installed completed run into a canonical OWNEST receipt', async () => {
+    const contract = contractFor()
+    const receipt = completionReceipt('hermes-1', contract)
+    const metadata = { ownest: receipt }
+    const run = mockRunner(jsonResult(completedLiveShow('hermes-1', contract)))
+    const client = createHermesClient(config, { run })
+
+    await expect(showWithContract(client, 'hermes-1')).resolves.toEqual({
+      id: 'hermes-1',
+      status: 'done',
+      title: 'Research customer retention patterns',
+      assignee: 'ownest',
+      idempotencyKey: null,
+      summary: 'Completed the retention evidence brief.',
+      runId: 7,
+      completedAt: new Date(1_784_000_120_000).toISOString(),
+      receipt,
+      receiptSha256: sha256Digest(JSON.stringify(receipt)),
+      latestRun: {
+        id: 7,
+        profile: 'ownest',
+        status: 'done',
+        outcome: 'completed',
+        summary: 'Completed the retention evidence brief.',
+        error: null,
+        metadata,
+        workerPid: 4321,
+        startedAt: 1_784_000_000,
+        endedAt: 1_784_000_120,
+      },
+      evidenceUri: 'hermes-kanban:/boards/unite-group-ownest/tasks/hermes-1/runs/7',
+      error: null,
+    })
+  })
+
+  it.each([
+    [
+      'missing contract key',
+      () => {
+        const value = { ...contractFor() } as Record<string, unknown>
+        delete value.hermesBoard
+        return value
+      },
+    ],
+    ['unknown contract key', () => ({ ...contractFor(), unexpected: true })],
+    ['wrong idempotency key', () => ({ ...contractFor(), idempotencyKey: 'ownest:wrong' })],
+    [
+      'unknown validation key',
+      () => ({
+        ...contractFor(),
+        validationRequirements: contractFor().validationRequirements.map((requirement) => ({
+          ...requirement,
+          unexpected: true,
+        })),
+      }),
+    ],
+  ])('rejects an unsafe expected contract with %s before invoking Hermes', async (_label, build) => {
+    const run = mockRunner(jsonResult(completedLiveShow()))
+    const client = createHermesClient(config, { run })
+
+    await expect(
+      client.showMission('hermes-1', build() as OwnestMissionContractV1),
+    ).rejects.toThrow(/contract|profile|board/i)
+    expect(run).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['profile', { ...config, hermesProfile: 'agent7' }],
+    ['board', { ...config, hermesBoard: 'other-board' }],
+  ])('rejects expected-contract/config %s drift before invoking Hermes', async (_label, drifted) => {
+    const run = mockRunner(jsonResult(completedLiveShow()))
+    const client = createHermesClient(drifted, { run })
+
+    await expect(client.showMission('hermes-1', contractFor())).rejects.toThrow(
+      /contract|profile|board/i,
+    )
+    expect(run).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    [
+      'out-of-order runs',
+      [
+        liveRun({ id: 8, started_at: 1_784_000_100 }),
+        liveRun({ id: 7, started_at: 1_784_000_000 }),
+      ],
+    ],
+    [
+      'duplicate run ids',
+      [
+        liveRun({ id: 7, started_at: 1_784_000_000 }),
+        liveRun({ id: 7, started_at: 1_784_000_100 }),
+      ],
+    ],
+  ])('rejects a structurally unsafe live SHOW with %s', async (_label, runs) => {
+    const payload = liveShow(liveTask(), { runs })
+
+    await expect(showPayload(payload)).rejects.toThrow(/Hermes show/i)
+  })
+
+  it.each([
+    ['missing ownest metadata', () => completedLiveShow('hermes-1', contractFor(), { metadata: {} })],
+    [
+      'unknown outer metadata key',
+      () => completedLiveShow('hermes-1', contractFor(), {
+        metadata: { ownest: completionReceipt(), unexpected: true },
+      }),
+    ],
+    [
+      'blank worker session id',
+      () => completedLiveShow('hermes-1', contractFor(), {
+        metadata: { ownest: completionReceipt(), worker_session_id: ' ' },
+      }),
+    ],
+  ])('downgrades done when receipt outer metadata has %s', async (_label, build) => {
+    await expectReceiptReview(build(), 'metadata-shape')
+  })
+
+  it.each([
+    [
+      'missing ownest key',
+      () => {
+        const receipt = completionReceipt()
+        delete receipt.verdict
+        return completedLiveShow('hermes-1', contractFor(), { metadata: { ownest: receipt } })
+      },
+    ],
+    [
+      'unknown ownest key',
+      () => completedLiveShow('hermes-1', contractFor(), {
+        metadata: { ownest: { ...completionReceipt(), unexpected: true } },
+      }),
+    ],
+  ])('downgrades done when receipt has an exact-key violation: %s', async (_label, build) => {
+    await expectReceiptReview(build(), 'receipt-shape')
+  })
+
+  it.each([
+    ['CRM task', { crmTaskId: 'task-2' }],
+    ['Hermes task', { hermesTaskId: 'hermes-2' }],
+    ['attempt', { attemptId: 'attempt-2' }],
+    ['rollout', { rolloutId: 'rollout-2' }],
+    ['mission digest', { missionDigest: `hmac-sha256:${'a'.repeat(64)}` }],
+  ])('downgrades done when receipt %s identity differs', async (_label, receipt) => {
+    await expectReceiptReview(
+      completedLiveShow('hermes-1', contractFor(), { receipt }),
+      'receipt-identity',
+    )
+  })
+
+  it('downgrades an oversized serialized receipt before accepting its fields', async () => {
+    const evidence = [completionEvidence({
+      uri: `https://evidence.example/${'a'.repeat(33 * 1024)}`,
+    })]
+
+    await expectReceiptReview(
+      completedLiveShow('hermes-1', contractFor(), { receipt: { evidence } }),
+      'receipt-oversize',
+    )
+  })
+
+  it.each([
+    ['empty evidence', [], 'evidence-count'],
+    [
+      'duplicate evidence ids',
+      [completionEvidence(), completionEvidence()],
+      'evidence-id',
+    ],
+    [
+      'more than 32 evidence items',
+      Array.from({ length: 33 }, (_, index) =>
+        completionEvidence({ id: `ev-${String(index + 1).padStart(3, '0')}` }),
+      ),
+      'evidence-count',
+    ],
+    [
+      'unknown evidence key',
+      [completionEvidence({ unexpected: true })],
+      'evidence-shape',
+    ],
+    ['unknown evidence kind', [completionEvidence({ kind: 'note' })], 'evidence-kind'],
+    [
+      'uppercase evidence digest',
+      [completionEvidence({ digest: `sha256:${'A'.repeat(64)}` })],
+      'evidence-digest',
+    ],
+  ])('downgrades done for %s', async (_label, evidence, code) => {
+    await expectReceiptReview(
+      completedLiveShow('hermes-1', contractFor(), { receipt: { evidence } }),
+      code,
+    )
+  })
+
+  it.each([
+    ['HTTP', 'http://evidence.example/report'],
+    ['userinfo credentials', 'https://user:secret@evidence.example/report'],
+    ['query credentials', 'https://evidence.example/report?token=secret'],
+    ['file', 'file:/tmp/report.md'],
+    ['data', 'data:text/plain,evidence'],
+    ['plain text', 'evidence report'],
+    ['relative path', './report.md'],
+    ['absolute path', '/tmp/report.md'],
+    ['scratch path', 'scratch:/report.md'],
+    ['localhost', 'https://localhost/report'],
+    ['private IPv4', 'https://192.168.1.8/report'],
+    ['loopback IPv6', 'https://[::1]/report'],
+    ['over 2048 bytes', `https://evidence.example/${'a'.repeat(2030)}`],
+  ])('downgrades done for a non-durable %s evidence URI', async (_label, uri) => {
+    await expectReceiptReview(
+      completedLiveShow('hermes-1', contractFor(), {
+        receipt: { evidence: [completionEvidence({ uri })] },
+      }),
+      'evidence-uri',
+    )
+  })
+
+  it.each([
+    ['missing validation', [completionValidation(0)], 'validation-count'],
+    [
+      'extra validation',
+      [completionValidation(0), completionValidation(1), completionValidation(1)],
+      'validation-count',
+    ],
+    [
+      'duplicate validation',
+      [completionValidation(0), completionValidation(0)],
+      'validation-identity',
+    ],
+    [
+      'reordered validation',
+      [completionValidation(1), completionValidation(0)],
+      'validation-identity',
+    ],
+    [
+      'failed validation',
+      [completionValidation(0, { status: 'failed' }), completionValidation(1)],
+      'validation-status',
+    ],
+    [
+      'unknown evidence reference',
+      [completionValidation(0, { evidenceIds: ['ev-999'] }), completionValidation(1)],
+      'validation-evidence',
+    ],
+    [
+      'duplicate evidence reference',
+      [completionValidation(0, { evidenceIds: ['ev-001', 'ev-001'] }), completionValidation(1)],
+      'validation-evidence',
+    ],
+    [
+      'empty evidence reference',
+      [completionValidation(0, { evidenceIds: [] }), completionValidation(1)],
+      'validation-evidence',
+    ],
+    [
+      'unknown validation key',
+      [completionValidation(0, { unexpected: true }), completionValidation(1)],
+      'validation-shape',
+    ],
+  ])('downgrades done for %s', async (_label, validationResults, code) => {
+    await expectReceiptReview(
+      completedLiveShow('hermes-1', contractFor(), { receipt: { validationResults } }),
+      code,
+    )
+  })
+
+  it.each([
+    ['missing latest run', { runs: [] }, 'latest-run-missing'],
+    ['missing task completion time', { task: { completed_at: null } }, 'task-completed-at'],
+    ['negative task completion time', { task: { completed_at: -1 } }, 'task-completed-at'],
+    ['nonpositive latest run id', { run: { id: 0 } }, 'latest-run-id'],
+    ['wrong latest run profile', { run: { profile: 'agent7' } }, 'latest-run-profile'],
+    ['active latest run status', { run: { status: 'running' } }, 'latest-run-status'],
+    ['wrong latest run outcome', { run: { outcome: 'failed' } }, 'latest-run-outcome'],
+    ['missing latest run end', { run: { ended_at: null } }, 'latest-run-ended-at'],
+    ['negative latest run end', { run: { ended_at: -1 } }, 'latest-run-ended-at'],
+    ['latest run error', { run: { error: 'completion failed' } }, 'latest-run-error'],
+    ['blank latest run summary', { run: { summary: '' } }, 'latest-run-summary'],
+    [
+      'oversized latest run summary',
+      { run: { summary: 'x'.repeat(32 * 1024 + 1) } },
+      'latest-run-summary',
+    ],
+    ['latest summary mismatch', { show: { latest_summary: 'different summary' } }, 'summary-mismatch'],
+  ] as const)('downgrades a structurally valid done task with %s', async (_label, options, code) => {
+    await expectReceiptReview(
+      completedLiveShow('hermes-1', contractFor(), options),
+      code,
+    )
+  })
+
+  it('uses only the latest run when an earlier run has a valid receipt', async () => {
+    const earlier = liveRun({
+      id: 6,
+      started_at: 1_783_999_000,
+      ended_at: 1_783_999_120,
+      metadata: { ownest: completionReceipt() },
+    })
+    const latest = liveRun({
+      id: 7,
+      started_at: 1_784_000_000,
+      metadata: { ownest: { ...completionReceipt(), verdict: 'failed' } },
+    })
+    const payload = completedLiveShow('hermes-1', contractFor(), {
+      runs: [earlier, latest],
+      show: { latest_summary: latest.summary },
+    })
+
+    await expectReceiptReview(payload, 'receipt-verdict')
+  })
+
+  it('does not let an older valid receipt override a later active run', async () => {
+    const earlier = liveRun({
+      id: 6,
+      started_at: 1_783_999_000,
+      ended_at: 1_783_999_120,
+      metadata: { ownest: completionReceipt() },
+    })
+    const active = liveRun({
+      id: 7,
+      status: 'running',
+      outcome: null,
+      summary: null,
+      ended_at: null,
+      metadata: null,
+    })
+    const payload = completedLiveShow('hermes-1', contractFor(), {
+      runs: [earlier, active],
+      show: { latest_summary: null },
+    })
+
+    await expectReceiptReview(payload, 'latest-run-status')
+  })
+
+  it('accepts the optional nonempty worker session id without changing the canonical receipt hash', async () => {
+    const receipt = completionReceipt()
+    const payload = completedLiveShow('hermes-1', contractFor(), {
+      metadata: { ownest: receipt, worker_session_id: 'worker-session-7' },
+    })
+    const result = await showPayload(payload)
+
+    expect(result.status).toBe('done')
+    expect(result.receipt).toEqual(receipt)
+    expect(result.receiptSha256).toBe(sha256Digest(JSON.stringify(receipt)))
+  })
+
+  it.each([
+    'https://fcorp.example/reports/retention',
+    'wiki:/evidence/retention-report',
+    'git:/unite-group/nexus/commit/abcdef1',
+    'github:/unite-group/nexus/pull/42',
+  ])('accepts conservative durable evidence URI %s', async (uri) => {
+    const result = await showPayload(
+      completedLiveShow('hermes-1', contractFor(), {
+        receipt: { evidence: [completionEvidence({ uri })] },
+      }),
+    )
+
+    expect(result.status).toBe('done')
+    expect(result.receipt?.evidence[0]?.uri).toBe(uri)
+  })
+
+  it('redacts a valid done summary without splitting a Unicode code point', async () => {
+    const summary = `${'a'.repeat(16_383)}😀 token=summary-secret owner@example.com`
+    const result = await showPayload(
+      completedLiveShow('hermes-1', contractFor(), { run: { summary } }),
+    )
+
+    expect(result.status).toBe('done')
+    expect(result.summary).not.toContain('summary-secret')
+    expect(result.summary).not.toContain('owner@example.com')
+    expect(result.summary).not.toContain('\uFFFD')
+    expect(Buffer.byteLength(result.summary ?? '', 'utf8')).toBeLessThanOrEqual(32 * 1024)
+  })
+
+  it('surfaces the latest closed blocked error with bounded redaction and ignores older success', async () => {
+    const earlier = liveRun({
+      id: 6,
+      started_at: 1_783_999_000,
+      ended_at: 1_783_999_120,
+      metadata: { ownest: completionReceipt() },
+    })
+    const latest = liveRun({
+      id: 7,
+      status: 'blocked',
+      outcome: 'failed',
+      error: `token=blocked-secret owner@example.com ${'😀'.repeat(300)}`,
+      metadata: null,
+    })
+    const payload = liveShow(liveTask({ status: 'blocked' }), {
+      latest_summary: latest.summary,
+      runs: [earlier, latest],
+    })
+    const result = await showPayload(payload)
+
+    expect(result.status).toBe('blocked')
+    expect(result.receipt).toBeNull()
+    expect(result.evidenceUri).toBeNull()
+    expect(result.latestRun?.id).toBe(7)
+    expect(result.error).toContain('[REDACTED]')
+    expect(result.error).not.toContain('blocked-secret')
+    expect(result.error).not.toContain('owner@example.com')
+    expect(result.error).not.toContain('\uFFFD')
+    expect(Buffer.byteLength(result.error ?? '', 'utf8')).toBeLessThanOrEqual(800)
+  })
+
+  it.each([
+    ['blocked summary', 'blocked', 'Blocked after dependency review.', null, 'Blocked after dependency review.'],
+    ['blocked fallback', 'blocked', null, null, 'hermes-run-blocked'],
+    ['review fallback', 'review', null, null, 'hermes-run-review'],
+  ] as const)(
+    'uses the fixed precedence for %s',
+    async (_label, status, runSummary, runError, expectedError) => {
+      const latest = liveRun({
+        status,
+        outcome: 'failed',
+        summary: runSummary,
+        error: runError,
+        metadata: null,
+      })
+      const result = await showPayload(
+        liveShow(liveTask({ status }), { latest_summary: runSummary, runs: [latest] }),
+      )
+
+      expect(result.status).toBe(status)
+      expect(result.error).toBe(expectedError)
+      expect(result.receipt).toBeNull()
+      expect(result.evidenceUri).toBeNull()
+    },
+  )
+
+  it('normalises archived as terminal review even when its latest run has a valid receipt', async () => {
+    const receipt = completionReceipt()
+    const latest = liveRun({ metadata: { ownest: receipt } })
+    const result = await showPayload(
+      liveShow(
+        liveTask({ status: 'archived', completed_at: 1_784_000_120 }),
+        { latest_summary: latest.summary, runs: [latest] },
+      ),
+    )
+
+    expect(result).toMatchObject({
+      status: 'review',
+      summary: null,
+      runId: null,
+      completedAt: null,
+      receipt: null,
+      receiptSha256: null,
+      evidenceUri: null,
+      error: 'hermes-task-archived',
+    })
+  })
+
+  it.each(['ready', 'running', 'scheduled', 'todo', 'triage'] as const)(
+    'keeps %s nonterminal when an older run has a valid receipt',
+    async (status) => {
+      const earlier = liveRun({
+        id: 6,
+        started_at: 1_783_999_000,
+        ended_at: 1_783_999_120,
+        metadata: { ownest: completionReceipt() },
+      })
+      const active = liveRun({
+        id: 7,
+        status: 'running',
+        outcome: null,
+        summary: null,
+        error: null,
+        metadata: null,
+        ended_at: null,
+      })
+      const result = await showPayload(
+        liveShow(liveTask({ status }), { latest_summary: null, runs: [earlier, active] }),
+      )
+
+      expect(result).toMatchObject({
+        status,
+        summary: null,
+        runId: null,
+        completedAt: null,
+        receipt: null,
+        receiptSha256: null,
+        latestRun: null,
+        evidenceUri: null,
+        error: null,
+      })
+    },
+  )
+
   it('accepts and normalises the installed CLI show response', async () => {
     const run = mockRunner(
       jsonResult(
@@ -965,17 +1599,30 @@ describe('createHermesClient.showMission', () => {
       title: 'Existing task',
       assignee: null,
       idempotencyKey: null,
+      summary: null,
+      runId: null,
+      completedAt: null,
+      receipt: null,
+      receiptSha256: null,
+      latestRun: null,
       evidenceUri: null,
-      error: null,
+      error: 'hermes-run-review',
     })
   })
 
-  it('accepts the documented show response', async () => {
+  it('downgrades a documented done response that has no installed run receipt', async () => {
     const shown = normalisedTask({ id: 'hermes-3', status: 'done' })
     const run = mockRunner(jsonResult({ task: shown }))
     const client = createHermesClient(config, { run })
 
-    await expect(showWithContract(client, 'hermes-3')).resolves.toEqual(shown)
+    await expect(showWithContract(client, 'hermes-3')).resolves.toMatchObject({
+      id: 'hermes-3',
+      status: 'review',
+      receipt: null,
+      receiptSha256: null,
+      evidenceUri: null,
+      error: 'ownest-receipt-invalid:latest-run-missing',
+    })
   })
 
   it('rejects an empty requested task ID without invoking Hermes', async () => {
