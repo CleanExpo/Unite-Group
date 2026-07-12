@@ -13,8 +13,9 @@
     "verify:spec-board": "cd apps/spec-board && npm ci && npx tsc --noEmit && npm test && npm run build",
     "verify:readiness": "node --test scripts/__tests__/check-env.test.mjs scripts/__tests__/nexus-project-readiness.test.mjs scripts/__tests__/verify-web-ci-build.test.mjs scripts/__tests__/workflow-supply-chain.test.mjs && node scripts/nexus-project-readiness.mjs --root . --json --gate",
     "verify:docs-watch": "node --test scripts/__tests__/nexus-docs-watch.test.mjs",
+    "verify:docs-review": "node --test scripts/__tests__/nexus-docs-review.test.mjs",
     "nexus:docs:watch": "node scripts/nexus-docs-watch.mjs --root . --baseline config/nexus-official-sources.baseline.json --gate-material",
-    "verify": "npm run verify:readiness && npm run verify:docs-watch && npm run verify:web && npm run verify:workspace && npm run verify:autopilot && npm run verify:mcp && npm run verify:spine && npm run verify:spec-board",
+    "verify": "npm run verify:readiness && npm run verify:docs-watch && npm run verify:docs-review && npm run verify:web && npm run verify:workspace && npm run verify:autopilot && npm run verify:mcp && npm run verify:spine && npm run verify:spec-board",
     "env:check": "node scripts/check-env.mjs --package all"
   },
   "engines": {
