@@ -1,0 +1,633 @@
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import {
+  appendEvidence,
+  appendTaskEvent,
+  compareAndSetTask,
+  createCrmClient,
+  listCandidateTasks,
+  listMirroredTasks,
+  loadOwnestConfig,
+} from './crm.js'
+import type { CcTask, CrmDeps, OwnestConfig } from './types.js'
+
+const TASK_COLUMNS = [
+  'id',
+  'founder_id',
+  'title',
+  'objective',
+  'priority',
+  'status',
+  'agent_owner',
+  'risk_level',
+  'execution_mode',
+  'dependencies',
+  'human_approval_required',
+  'validation_required',
+  'metadata',
+  'created_at',
+  'updated_at',
+].join(',')
+
+const serviceRoleKey = 'service-role-secret-DO-NOT-LEAK'
+
+const config: OwnestConfig = {
+  supabaseUrl: 'https://example.supabase.co',
+  serviceRoleKey,
+  founderId: 'founder-1',
+  workerId: 'ownest-worker-1',
+  hermesCwd: '/tmp/hermes-workspace',
+  live: false,
+  canaryLimit: 1,
+  maxInProgress: 1,
+  leaseMs: 300_000,
+  dailyDispatchLimit: 3,
+}
+
+const validEnv: NodeJS.ProcessEnv = {
+  SUPABASE_URL: 'https://example.supabase.co',
+  SUPABASE_SERVICE_ROLE_KEY: serviceRoleKey,
+  FOUNDER_USER_ID: 'founder-1',
+  CC_OWNEST_WORKER_ID: 'ownest-worker-1',
+}
+
+function ownestState(taskId: string, hermesTaskId = 'hermes-1') {
+  return {
+    version: 1,
+    crmTaskId: taskId,
+    idempotencyKey: `cc-task:${taskId}:v1`,
+    hermesTaskId,
+    attemptId: 'attempt-1',
+    leaseOwner: 'ownest-worker-1',
+    leaseExpiresAt: '2026-07-12T00:05:00.000Z',
+    lastHeartbeatAt: '2026-07-12T00:00:00.000Z',
+    dispatchedAt: '2026-07-12T00:00:00.000Z',
+    reconciledAt: null,
+    evidenceUri: null,
+    gateState: 'eligible',
+    lastError: null,
+  }
+}
+
+function task(overrides: Partial<CcTask> = {}): CcTask {
+  return {
+    id: 'task-1',
+    founder_id: config.founderId,
+    title: 'Research customer retention patterns',
+    objective: 'Prepare an internal advisory brief with cited evidence.',
+    priority: 'P2',
+    status: 'queued',
+    agent_owner: 'Hermes',
+    risk_level: 'low',
+    execution_mode: 'advisory',
+    dependencies: [],
+    human_approval_required: false,
+    validation_required: ['Cite the source data'],
+    metadata: {},
+    created_at: '2026-07-12T00:00:00.000Z',
+    updated_at: '2026-07-12T00:00:00.000Z',
+    ...overrides,
+  }
+}
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'content-type': 'application/json' },
+  })
+}
+
+function mockFetch(response: Response = jsonResponse([])) {
+  return vi.fn<typeof fetch>().mockResolvedValue(response)
+}
+
+function deps(fetchImpl: typeof fetch): CrmDeps {
+  return { fetch: fetchImpl }
+}
+
+function firstRequest(fetchImpl: ReturnType<typeof mockFetch>): {
+  url: URL
+  init: RequestInit
+} {
+  const call = fetchImpl.mock.calls[0]
+  if (!call) throw new Error('fetch was not called')
+  return { url: new URL(String(call[0])), init: call[1] ?? {} }
+}
+
+function requestBody(init: RequestInit): Record<string, unknown> {
+  if (typeof init.body !== 'string') throw new Error('request body was not JSON text')
+  return JSON.parse(init.body) as Record<string, unknown>
+}
+
+async function capturedError(run: () => Promise<unknown>): Promise<Error> {
+  try {
+    await run()
+  } catch (error) {
+    if (error instanceof Error) return error
+    throw new Error('operation rejected with a non-Error value')
+  }
+  throw new Error('operation unexpectedly resolved')
+}
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
+
+describe('loadOwnestConfig', () => {
+  it('fails closed and names every missing required environment variable', () => {
+    const result = loadOwnestConfig({})
+
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.error).toContain('SUPABASE_URL')
+    expect(result.error).toContain('NEXT_PUBLIC_SUPABASE_URL')
+    expect(result.error).toContain('SUPABASE_SERVICE_ROLE_KEY')
+    expect(result.error).toContain('FOUNDER_USER_ID')
+    expect(result.error).toContain('CC_OWNEST_WORKER_ID')
+    expect(result.error).toContain('HERMES_AGENT_ID')
+  })
+
+  it('never exposes configured values when URL validation fails', () => {
+    const unsafeValues = {
+      SUPABASE_URL: 'http://remote.example/secret-url-fragment',
+      SUPABASE_SERVICE_ROLE_KEY: serviceRoleKey,
+      FOUNDER_USER_ID: 'founder-secret-value',
+      CC_OWNEST_WORKER_ID: 'worker-secret-value',
+    }
+
+    const result = loadOwnestConfig(unsafeValues)
+
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.error).toContain('SUPABASE_URL')
+    for (const value of Object.values(unsafeValues)) {
+      expect(result.error).not.toContain(value)
+    }
+  })
+
+  it.each([
+    ['https URL', { ...validEnv, SUPABASE_URL: '  https://EXAMPLE.supabase.co///  ' }, 'https://example.supabase.co'],
+    [
+      'NEXT_PUBLIC fallback',
+      { ...validEnv, SUPABASE_URL: undefined, NEXT_PUBLIC_SUPABASE_URL: 'http://localhost:54321/' },
+      'http://localhost:54321',
+    ],
+  ])('normalises a valid %s', (_label, env, expectedUrl) => {
+    const result = loadOwnestConfig(env)
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.config.supabaseUrl).toBe(expectedUrl)
+  })
+
+  it.each([
+    'http://example.com',
+    'http://localhost.evil.example',
+    'ftp://localhost',
+    'https://user:password@example.com',
+    'not a URL',
+  ])('rejects an unsafe Supabase URL without echoing it: %s', (supabaseUrl) => {
+    const result = loadOwnestConfig({ ...validEnv, SUPABASE_URL: supabaseUrl })
+
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.error).toContain('SUPABASE_URL')
+    expect(result.error).not.toContain(supabaseUrl)
+  })
+
+  it.each([
+    [undefined, false],
+    ['0', false],
+    ['true', false],
+    [' 1 ', false],
+    ['1', true],
+  ])('enables live mode only for the exact value "1" (%s)', (raw, expected) => {
+    const result = loadOwnestConfig({ ...validEnv, CC_OWNEST_LIVE: raw })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.config.live).toBe(expected)
+  })
+
+  it('applies safe defaults for absent or invalid numeric controls', () => {
+    const result = loadOwnestConfig({
+      ...validEnv,
+      CC_OWNEST_CANARY_LIMIT: 'NaN',
+      CC_OWNEST_MAX_IN_PROGRESS: '1.5',
+      CC_OWNEST_LEASE_MS: 'Infinity',
+      CC_OWNEST_DAILY_DISPATCH_LIMIT: '3tasks',
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.config).toMatchObject({
+      canaryLimit: 1,
+      maxInProgress: 1,
+      leaseMs: 300_000,
+      dailyDispatchLimit: 3,
+    })
+    for (const value of [
+      result.config.canaryLimit,
+      result.config.maxInProgress,
+      result.config.leaseMs,
+      result.config.dailyDispatchLimit,
+    ]) {
+      expect(Number.isSafeInteger(value)).toBe(true)
+    }
+  })
+
+  it('clamps valid integer controls to their documented bounds', () => {
+    const result = loadOwnestConfig({
+      ...validEnv,
+      CC_OWNEST_CANARY_LIMIT: '99',
+      CC_OWNEST_MAX_IN_PROGRESS: '-2',
+      CC_OWNEST_LEASE_MS: '2000000',
+      CC_OWNEST_DAILY_DISPATCH_LIMIT: '0',
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.config).toMatchObject({
+      canaryLimit: 3,
+      maxInProgress: 1,
+      leaseMs: 1_800_000,
+      dailyDispatchLimit: 1,
+    })
+  })
+
+  it('uses an explicit Hermes cwd or the existing process cwd as a safe default', () => {
+    const explicit = loadOwnestConfig({ ...validEnv, HERMES_CWD: '  /tmp/hermes-explicit  ' })
+    const fallback = loadOwnestConfig(validEnv)
+
+    expect(explicit.ok).toBe(true)
+    expect(fallback.ok).toBe(true)
+    if (explicit.ok) expect(explicit.config.hermesCwd).toBe('/tmp/hermes-explicit')
+    if (fallback.ok) expect(fallback.config.hermesCwd).toBe(process.cwd())
+  })
+
+  it('accepts HERMES_AGENT_ID as the explicit worker identity fallback', () => {
+    const result = loadOwnestConfig({
+      ...validEnv,
+      CC_OWNEST_WORKER_ID: undefined,
+      HERMES_AGENT_ID: ' hermes-agent-1 ',
+    })
+
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.config.workerId).toBe('hermes-agent-1')
+  })
+})
+
+describe('listCandidateTasks', () => {
+  it('uses the exact bounded founder-scoped queued query and header-only credentials', async () => {
+    const fetchImpl = mockFetch(jsonResponse([task()]))
+
+    await expect(listCandidateTasks(config, deps(fetchImpl))).resolves.toEqual([task()])
+
+    const { url, init } = firstRequest(fetchImpl)
+    expect(url.pathname).toBe('/rest/v1/cc_tasks')
+    expect(url.searchParams.get('select')).toBe(TASK_COLUMNS)
+    expect(url.searchParams.get('founder_id')).toBe(`eq.${config.founderId}`)
+    expect(url.searchParams.get('status')).toBe('eq.queued')
+    expect(url.searchParams.get('order')).toBe('priority.asc,created_at.asc')
+    expect(url.searchParams.get('limit')).toBe('100')
+    expect(init.method).toBe('GET')
+    expect(url.toString()).not.toContain(serviceRoleKey)
+    expect(init.body ?? '').not.toContain(serviceRoleKey)
+
+    const headers = new Headers(init.headers)
+    expect(headers.get('apikey')).toBe(serviceRoleKey)
+    expect(headers.get('authorization')).toBe(`Bearer ${serviceRoleKey}`)
+  })
+
+  it('encodes founder filters so configured values cannot inject query clauses', async () => {
+    const founderId = 'founder&status=eq.done#fragment'
+    const scopedConfig = { ...config, founderId }
+    const fetchImpl = mockFetch(jsonResponse([task({ founder_id: founderId })]))
+
+    await listCandidateTasks(scopedConfig, deps(fetchImpl))
+
+    const { url } = firstRequest(fetchImpl)
+    expect(url.searchParams.get('founder_id')).toBe(`eq.${founderId}`)
+    expect(url.searchParams.getAll('status')).toEqual(['eq.queued'])
+    expect(url.hash).toBe('')
+    expect(url.toString()).toContain('founder%26status%3Deq.done%23fragment')
+  })
+
+  it.each([
+    ['non-array JSON', jsonResponse({ rows: [task()] })],
+    ['malformed JSON', new Response('{', { status: 200 })],
+    ['missing column', jsonResponse([{ ...task(), updated_at: undefined }])],
+    ['unexpected column', jsonResponse([{ ...task(), origin: 'idea' }])],
+    ['wrong enum', jsonResponse([{ ...task(), priority: 'urgent' }])],
+    ['wrong founder', jsonResponse([task({ founder_id: 'other-founder' })])],
+    ['invalid timestamp', jsonResponse([task({ created_at: 'yesterday' })])],
+  ])('fails closed for %s', async (_label, response) => {
+    const fetchImpl = mockFetch(response)
+
+    await expect(listCandidateTasks(config, deps(fetchImpl))).rejects.toThrow()
+  })
+})
+
+describe('listMirroredTasks', () => {
+  it('selects only founder-scoped running/blocked rows carrying an OWNEST mirror', async () => {
+    const running = task({
+      status: 'running',
+      metadata: { ownest: ownestState('task-1') },
+    })
+    const blocked = task({
+      id: 'task-2',
+      status: 'blocked',
+      metadata: { ownest: ownestState('task-2', 'hermes-2') },
+    })
+    const fetchImpl = mockFetch(jsonResponse([running, blocked]))
+
+    await expect(listMirroredTasks(config, deps(fetchImpl))).resolves.toEqual([running, blocked])
+
+    const { url, init } = firstRequest(fetchImpl)
+    expect(url.pathname).toBe('/rest/v1/cc_tasks')
+    expect(url.searchParams.get('select')).toBe(TASK_COLUMNS)
+    expect(url.searchParams.get('founder_id')).toBe(`eq.${config.founderId}`)
+    expect(url.searchParams.get('status')).toBe('in.(running,blocked)')
+    expect(url.searchParams.get('metadata->ownest->>hermesTaskId')).toBe('not.is.null')
+    expect(url.searchParams.get('limit')).toBe('100')
+    expect(init.method).toBe('GET')
+  })
+
+  it('fails closed when an alleged mirrored row has malformed OWNEST state', async () => {
+    const malformed = task({
+      status: 'running',
+      metadata: { ownest: { ...ownestState('task-1'), hermesTaskId: 42 } },
+    })
+    const fetchImpl = mockFetch(jsonResponse([malformed]))
+
+    await expect(listMirroredTasks(config, deps(fetchImpl))).rejects.toThrow()
+  })
+})
+
+describe('compareAndSetTask', () => {
+  it('uses founder/id/expected-status CAS filters and returns one validated representation', async () => {
+    const metadata = { ownest: ownestState('task-1') }
+    const updated = task({ status: 'running', metadata })
+    const fetchImpl = mockFetch(jsonResponse([updated]))
+
+    await expect(
+      compareAndSetTask(
+        {
+          taskId: 'task-1',
+          expectedStatus: 'queued',
+          patch: { status: 'running', metadata },
+        },
+        config,
+        deps(fetchImpl),
+      ),
+    ).resolves.toEqual(updated)
+
+    const { url, init } = firstRequest(fetchImpl)
+    expect(url.pathname).toBe('/rest/v1/cc_tasks')
+    expect(url.searchParams.get('id')).toBe('eq.task-1')
+    expect(url.searchParams.get('founder_id')).toBe(`eq.${config.founderId}`)
+    expect(url.searchParams.get('status')).toBe('eq.queued')
+    expect(url.searchParams.get('select')).toBe(TASK_COLUMNS)
+    expect(init.method).toBe('PATCH')
+    expect(new Headers(init.headers).get('prefer')).toBe('return=representation')
+    expect(requestBody(init)).toEqual({ status: 'running', metadata })
+  })
+
+  it('encodes the task id so it cannot inject or replace the founder filter', async () => {
+    const taskId = 'task-1&founder_id=eq.attacker&status=eq.done'
+    const updated = task({ id: taskId, status: 'running' })
+    const fetchImpl = mockFetch(jsonResponse([updated]))
+
+    await compareAndSetTask(
+      { taskId, expectedStatus: 'queued', patch: { status: 'running' } },
+      config,
+      deps(fetchImpl),
+    )
+
+    const { url } = firstRequest(fetchImpl)
+    expect(url.searchParams.get('id')).toBe(`eq.${taskId}`)
+    expect(url.searchParams.getAll('founder_id')).toEqual([`eq.${config.founderId}`])
+    expect(url.searchParams.getAll('status')).toEqual(['eq.queued'])
+    expect(url.toString()).toContain('task-1%26founder_id%3Deq.attacker%26status%3Deq.done')
+  })
+
+  it('returns null when zero rows are returned because the race was lost', async () => {
+    const fetchImpl = mockFetch(jsonResponse([]))
+
+    await expect(
+      compareAndSetTask(
+        { taskId: 'task-1', expectedStatus: 'queued', patch: { status: 'running' } },
+        config,
+        deps(fetchImpl),
+      ),
+    ).resolves.toBeNull()
+  })
+
+  it.each([
+    ['multiple rows', [task({ status: 'running' }), task({ id: 'task-2', status: 'running' })]],
+    ['malformed row', [{ ...task({ status: 'running' }), metadata: null }]],
+    ['wrong task', [task({ id: 'other-task', status: 'running' })]],
+    ['wrong founder', [task({ founder_id: 'other-founder', status: 'running' })]],
+    ['unconfirmed status', [task({ status: 'queued' })]],
+  ])('fails closed for a %s response', async (_label, body) => {
+    const fetchImpl = mockFetch(jsonResponse(body))
+
+    await expect(
+      compareAndSetTask(
+        { taskId: 'task-1', expectedStatus: 'queued', patch: { status: 'running' } },
+        config,
+        deps(fetchImpl),
+      ),
+    ).rejects.toThrow()
+  })
+
+  it('rejects runtime patch fields other than status and metadata before fetching', async () => {
+    const fetchImpl = mockFetch()
+    const unsafeInput = {
+      taskId: 'task-1',
+      expectedStatus: 'queued',
+      patch: { status: 'running', founder_id: 'attacker' },
+    }
+
+    await expect(
+      compareAndSetTask(unsafeInput as never, config, deps(fetchImpl)),
+    ).rejects.toThrow()
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+})
+
+describe('append-only writes', () => {
+  it('appends a founder-owned event with the configured worker as default actor', async () => {
+    const fetchImpl = mockFetch(new Response(null, { status: 201 }))
+
+    await appendTaskEvent(
+      { taskId: 'task-1', type: 'started', payload: { attemptId: 'attempt-1' } },
+      config,
+      deps(fetchImpl),
+    )
+
+    const { url, init } = firstRequest(fetchImpl)
+    expect(url.pathname).toBe('/rest/v1/cc_task_events')
+    expect(url.search).toBe('')
+    expect(init.method).toBe('POST')
+    expect(requestBody(init)).toEqual({
+      founder_id: config.founderId,
+      task_id: 'task-1',
+      type: 'started',
+      actor: config.workerId,
+      payload: { attemptId: 'attempt-1' },
+    })
+  })
+
+  it('accepts only an allowed event type', async () => {
+    const fetchImpl = mockFetch(new Response(null, { status: 201 }))
+
+    await expect(
+      appendTaskEvent(
+        { taskId: 'task-1', type: 'arbitrary-event' } as never,
+        config,
+        deps(fetchImpl),
+      ),
+    ).rejects.toThrow()
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it('appends founder-owned evidence with explicit values and safe defaults', async () => {
+    const fetchImpl = mockFetch(new Response(null, { status: 201 }))
+
+    await appendEvidence(
+      {
+        taskId: 'task-1',
+        wikiPath: 'Wiki/OWNEST/task-1.md',
+        kind: 'validation',
+        sources: [{ url: 'https://example.invalid/evidence' }],
+        confidence: 'high',
+      },
+      config,
+      deps(fetchImpl),
+    )
+    await appendEvidence(
+      { taskId: 'task-2', wikiPath: 'Wiki/OWNEST/task-2.md' },
+      config,
+      deps(fetchImpl),
+    )
+
+    const first = fetchImpl.mock.calls[0]
+    const second = fetchImpl.mock.calls[1]
+    if (!first || !second) throw new Error('expected two evidence requests')
+    expect(new URL(String(first[0])).pathname).toBe('/rest/v1/cc_evidence_records')
+    expect(first[1]?.method).toBe('POST')
+    expect(requestBody(first[1] ?? {})).toEqual({
+      founder_id: config.founderId,
+      task_id: 'task-1',
+      wiki_path: 'Wiki/OWNEST/task-1.md',
+      kind: 'validation',
+      sources: [{ url: 'https://example.invalid/evidence' }],
+      confidence: 'high',
+    })
+    expect(requestBody(second[1] ?? {})).toEqual({
+      founder_id: config.founderId,
+      task_id: 'task-2',
+      wiki_path: 'Wiki/OWNEST/task-2.md',
+      kind: 'brief',
+      sources: [],
+      confidence: 'medium',
+    })
+  })
+})
+
+describe('request failure handling', () => {
+  it.each([
+    [
+      'candidate GET',
+      (fetchImpl: typeof fetch) => listCandidateTasks(config, deps(fetchImpl)),
+    ],
+    [
+      'mirrored GET',
+      (fetchImpl: typeof fetch) => listMirroredTasks(config, deps(fetchImpl)),
+    ],
+    [
+      'CAS PATCH',
+      (fetchImpl: typeof fetch) =>
+        compareAndSetTask(
+          { taskId: 'task-1', expectedStatus: 'queued', patch: { status: 'running' } },
+          config,
+          deps(fetchImpl),
+        ),
+    ],
+    [
+      'event POST',
+      (fetchImpl: typeof fetch) =>
+        appendTaskEvent({ taskId: 'task-1', type: 'started' }, config, deps(fetchImpl)),
+    ],
+    [
+      'evidence POST',
+      (fetchImpl: typeof fetch) =>
+        appendEvidence(
+          { taskId: 'task-1', wikiPath: 'Wiki/OWNEST/task-1.md' },
+          config,
+          deps(fetchImpl),
+        ),
+    ],
+  ])('rejects a non-2xx %s with a redacted capped error', async (_label, run) => {
+    const body = `${serviceRoleKey}:${'x'.repeat(2_000)}`
+    const fetchImpl = mockFetch(new Response(body, { status: 503, statusText: serviceRoleKey }))
+
+    const error = await capturedError(() => run(fetchImpl))
+
+    expect(error.message).toContain('503')
+    expect(error.message).not.toContain(serviceRoleKey)
+    expect(error.message.length).toBeLessThanOrEqual(800)
+  })
+
+  it('redacts and caps a fetch rejection without logging request secrets', async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockRejectedValue(new Error(`${serviceRoleKey}:${'network-detail'.repeat(200)}`))
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const errorLog = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+    const error = await capturedError(() => listCandidateTasks(config, deps(fetchImpl)))
+
+    expect(error.message).not.toContain(serviceRoleKey)
+    expect(error.message.length).toBeLessThanOrEqual(800)
+    expect(log).not.toHaveBeenCalled()
+    expect(errorLog).not.toHaveBeenCalled()
+  })
+
+  it('attaches a deterministic bounded timeout signal without sleeping', async () => {
+    const timeout = vi.spyOn(AbortSignal, 'timeout')
+    const fetchImpl = mockFetch(jsonResponse([]))
+
+    await listCandidateTasks(config, deps(fetchImpl))
+
+    expect(timeout).toHaveBeenCalledTimes(1)
+    const timeoutMs = timeout.mock.calls[0]?.[0]
+    expect(timeoutMs).toBe(10_000)
+    const { init } = firstRequest(fetchImpl)
+    expect(init.signal).toBe(timeout.mock.results[0]?.value)
+  })
+})
+
+describe('createCrmClient', () => {
+  it('binds the configured founder scope and injected fetch to every operation', async () => {
+    const fetchImpl = mockFetch(jsonResponse([]))
+    const client = createCrmClient(config, deps(fetchImpl))
+
+    await client.listCandidateTasks()
+    await client.listMirroredTasks()
+    await client.compareAndSetTask({
+      taskId: 'task-1',
+      expectedStatus: 'queued',
+      patch: { status: 'running' },
+    })
+    await client.appendTaskEvent({ taskId: 'task-1', type: 'started' })
+    await client.appendEvidence({ taskId: 'task-1', wikiPath: 'Wiki/OWNEST/task-1.md' })
+
+    expect(fetchImpl).toHaveBeenCalledTimes(5)
+    for (const [input] of fetchImpl.mock.calls.slice(0, 3)) {
+      const url = new URL(String(input))
+      expect(url.pathname).toBe('/rest/v1/cc_tasks')
+      expect(url.searchParams.get('founder_id')).toBe(`eq.${config.founderId}`)
+    }
+  })
+})
