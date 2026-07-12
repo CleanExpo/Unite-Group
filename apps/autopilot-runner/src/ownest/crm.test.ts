@@ -236,6 +236,7 @@ describe('loadOwnestConfig', () => {
       CC_OWNEST_LIVE: raw,
       ...(raw === '1'
         ? {
+            NEXT_PUBLIC_SUPABASE_URL: validEnv.SUPABASE_URL,
             CC_OWNEST_ROLLOUT_ID: 'rollout-live-mode-test',
             CC_OWNEST_CANARY_TASK_ID: 'task-live-mode-test',
           }
@@ -361,6 +362,7 @@ describe('loadOwnestConfig', () => {
     const missing = loadOwnestConfig({ ...validEnv, CC_OWNEST_LIVE: '1' })
     const configured = loadOwnestConfig({
       ...validEnv,
+      NEXT_PUBLIC_SUPABASE_URL: validEnv.SUPABASE_URL,
       CC_OWNEST_LIVE: '1',
       CC_OWNEST_ROLLOUT_ID: ' rollout-2026-07-12 ',
       CC_OWNEST_CANARY_TASK_ID: ' task_123 ',
@@ -386,6 +388,7 @@ describe('loadOwnestConfig', () => {
   ])('rejects unsafe %s without exposing its value', (variable, unsafeValue) => {
     const env = {
       ...validEnv,
+      NEXT_PUBLIC_SUPABASE_URL: validEnv.SUPABASE_URL,
       CC_OWNEST_LIVE: '1',
       CC_OWNEST_ROLLOUT_ID: 'rollout-safe',
       CC_OWNEST_CANARY_TASK_ID: 'task-safe',
@@ -425,6 +428,38 @@ describe('loadOwnestConfig', () => {
     expect(result.error).toContain('NEXT_PUBLIC_SUPABASE_URL')
     expect(result.error).not.toContain(privateUrl)
     expect(result.error).not.toContain(publicUrl)
+  })
+
+  it.each([
+    [
+      'SUPABASE_URL',
+      {
+        ...validEnv,
+        SUPABASE_URL: undefined,
+        NEXT_PUBLIC_SUPABASE_URL: 'https://public-only.supabase.co',
+      },
+      'https://public-only.supabase.co',
+    ],
+    [
+      'NEXT_PUBLIC_SUPABASE_URL',
+      {
+        ...validEnv,
+        NEXT_PUBLIC_SUPABASE_URL: undefined,
+      },
+      validEnv.SUPABASE_URL,
+    ],
+  ])('requires %s independently in live mode without exposing the other URL', (variable, env, otherUrl) => {
+    const result = loadOwnestConfig({
+      ...env,
+      CC_OWNEST_LIVE: '1',
+      CC_OWNEST_ROLLOUT_ID: 'rollout-live-origin-test',
+      CC_OWNEST_CANARY_TASK_ID: 'task-live-origin-test',
+    })
+
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.error).toContain(`${variable} is required when live`)
+    if (otherUrl) expect(result.error).not.toContain(otherUrl)
   })
 })
 
@@ -942,6 +977,26 @@ describe('request failure handling', () => {
     const { init } = firstRequest(fetchImpl)
     expect(init.signal).toBe(timeout.mock.results[0]?.value)
   })
+
+  it('refuses a cross-origin redirect before credentials can be forwarded', async () => {
+    const attackerFetch = vi.fn<typeof fetch>()
+    const fetchImpl = vi.fn<typeof fetch>().mockImplementation(async (_input, init) => {
+      if (init?.redirect !== 'error') {
+        await attackerFetch('https://attacker.example/collect', init)
+      }
+      return new Response(null, {
+        status: 302,
+        headers: { location: 'https://attacker.example/collect' },
+      })
+    })
+
+    await expect(listCandidateTasks(config, deps(fetchImpl))).rejects.toThrow(/302/)
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+    expect(attackerFetch).not.toHaveBeenCalled()
+    const { init } = firstRequest(fetchImpl as ReturnType<typeof mockFetch>)
+    expect(init.redirect).toBe('error')
+  })
 })
 
 describe('createCrmClient', () => {
@@ -961,6 +1016,9 @@ describe('createCrmClient', () => {
     await client.appendEvidence({ taskId: 'task-1', wikiPath: 'Wiki/OWNEST/task-1.md' })
 
     expect(fetchImpl).toHaveBeenCalledTimes(5)
+    for (const [, init] of fetchImpl.mock.calls) {
+      expect(init?.redirect).toBe('error')
+    }
     for (const [input] of fetchImpl.mock.calls.slice(0, 3)) {
       const url = new URL(String(input))
       expect(url.pathname).toBe('/rest/v1/cc_tasks')

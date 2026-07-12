@@ -148,6 +148,10 @@ export function loadOwnestConfig(env: NodeJS.ProcessEnv = process.env): LoadOwne
   if (!rawSupabaseUrl && !rawPublicSupabaseUrl) {
     problems.push('SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL is required')
   }
+  if (live && !rawSupabaseUrl) problems.push('SUPABASE_URL is required when live')
+  if (live && !rawPublicSupabaseUrl) {
+    problems.push('NEXT_PUBLIC_SUPABASE_URL is required when live')
+  }
   if (rawSupabaseUrl && !normalisedSupabaseUrl) {
     problems.push('SUPABASE_URL must be a safe URL')
   }
@@ -514,6 +518,7 @@ async function crmRequest(
   try {
     const response = await deps.fetch(url, {
       ...init,
+      redirect: 'error',
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     })
 
