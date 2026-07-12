@@ -204,6 +204,56 @@ test('is deterministic, read-only, and ignores node_modules, git, and archive in
   assert.deepEqual(evaluateGate(first), { blockingFindingIds: [], exitCode: 0 });
 });
 
+test('treats explicit SSH denylist references as a passing security control', () => {
+  const root = makeRoot();
+  write(root, 'apps/workspace/src/swarm-environment.ts', [
+    "export const SWARM_SENSITIVE_HOME_ROOTS = [",
+    "  join(homedir(), '.ssh'),",
+    ']',
+    'export const SWARM_FORBIDDEN_PATHS = [',
+    '  ...SWARM_SENSITIVE_HOME_ROOTS,',
+    ']',
+    'export function getEnvironment() {',
+    '  return {',
+    '    writableRoots: [canonicalRepo],',
+    '    readOnlyRoots: [memoryRoot],',
+    '    forbiddenRoots: SWARM_FORBIDDEN_PATHS,',
+    '  }',
+    '}',
+    '',
+  ].join('\n'));
+
+  const report = scanProject(root);
+
+  assert.equal(finding(report, 'security.ssh-home-exposure').status, 'pass');
+});
+
+test('still rejects SSH paths wired into agent-visible roots and mounts', () => {
+  const root = makeRoot();
+  write(root, 'apps/workspace/src/swarm-selection.ts', [
+    "const SSH_HOME = join(homedir(), '.ssh')",
+    'export const selectionRoots = [SSH_HOME]',
+    '',
+  ].join('\n'));
+  write(root, 'docker-compose.yml', [
+    'services:',
+    '  agent:',
+    '    image: vendor/agent@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    '    volumes:',
+    '      - ${HOME}/.ssh:/agent/.ssh:ro',
+    '',
+  ].join('\n'));
+
+  const report = scanProject(root);
+  const result = finding(report, 'security.ssh-home-exposure');
+
+  assert.equal(result.status, 'fail');
+  assert.deepEqual(result.evidence.map((item) => item.path), [
+    'apps/workspace/src/swarm-selection.ts',
+    'docker-compose.yml',
+  ]);
+});
+
 test('requires configured validation scripts in the same root CI job', () => {
   const root = makeRoot();
   write(root, '.github/workflows/ci.yml', [

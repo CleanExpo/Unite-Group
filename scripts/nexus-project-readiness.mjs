@@ -606,13 +606,112 @@ function scanRuntimeLines(root, files, matcher) {
   return matches;
 }
 
+function containsSshHomeReference(value) {
+  return /homedir\(\).*['"]\.ssh['"]/i.test(value)
+    || /\bhome\b.*['"]\.ssh['"]/i.test(value)
+    || /(?:~|\$HOME|\$\{HOME\})\/\.ssh(?:\/|['"\s,:)]|$)/i.test(value);
+}
+
+function isAgentVisibleRootName(value) {
+  const normalized = value.replace(/[^a-z]/gi, '').toLowerCase();
+  return /^(?:writable|readonly|readable|allowed|selectable|selection|workspace|project)(?:roots?|paths?|dirs?|directories?)$/.test(normalized)
+    || /^(?:mounts?|volumes?|binds?)$/.test(normalized);
+}
+
+function taintedSshBindings(lines) {
+  const definitions = new Map();
+  for (let index = 0; index < lines.length; index += 1) {
+    const declaration = lines[index].match(/^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z0-9_$]+)\s*=\s*(.*)$/);
+    if (!declaration) continue;
+    const name = declaration[1];
+    const parts = [declaration[2]];
+    let depth = (declaration[2].match(/\[/g) ?? []).length - (declaration[2].match(/\]/g) ?? []).length;
+    while (depth > 0 && index + 1 < lines.length) {
+      index += 1;
+      parts.push(lines[index]);
+      depth += (lines[index].match(/\[/g) ?? []).length - (lines[index].match(/\]/g) ?? []).length;
+    }
+    definitions.set(name, parts.join('\n'));
+  }
+
+  const tainted = new Set(
+    [...definitions.entries()]
+      .filter(([, value]) => containsSshHomeReference(value))
+      .map(([name]) => name),
+  );
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const [name, value] of definitions) {
+      if (tainted.has(name)) continue;
+      if ([...tainted].some((binding) => new RegExp(`\\b${binding.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(value))) {
+        tainted.add(name);
+        changed = true;
+      }
+    }
+  }
+  return tainted;
+}
+
+function expressionUsesSshHome(value, taintedBindings) {
+  if (containsSshHomeReference(value)) return true;
+  return [...taintedBindings].some((binding) => new RegExp(`\\b${binding.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(value));
+}
+
 function scanSshExposure(root, files, config) {
-  const matches = scanRuntimeLines(root, files, (line) => {
-    const exposesHomeSsh = /homedir\(\).*['"]\.ssh['"]/i.test(line)
-      || /\bhome\b.*['"]\.ssh['"]/i.test(line)
-      || /(?:~|\$HOME|\$\{HOME\})\/\.ssh(?:\/|['"\s,)]|$)/i.test(line);
-    return exposesHomeSsh ? 'Agent-visible configuration references the SSH home directory.' : null;
-  });
+  const matches = [];
+  const exposureFiles = files.filter((path) => isRuntimeFile(path)
+    || composeFiles([path]).length > 0
+    || /(^|\/)Dockerfile(?:\.[^/]+)?$/i.test(path));
+  for (const path of exposureFiles) {
+    let size;
+    try {
+      size = statSync(join(root, path)).size;
+    } catch {
+      continue;
+    }
+    if (size > 1024 * 1024) continue;
+
+    const lines = (readText(root, path) ?? '').split('\n');
+    const taintedBindings = taintedSshBindings(lines);
+    let visibleContext = null;
+
+    for (let index = 0; index < lines.length; index += 1) {
+      const line = lines[index];
+      const trimmed = line.trim();
+      if (trimmed === '' || trimmed.startsWith('//') || trimmed.startsWith('#')) continue;
+      const indent = line.length - line.trimStart().length;
+      if (visibleContext && indent <= visibleContext.indent && index > visibleContext.line) visibleContext = null;
+
+      const property = line.match(/^\s*["']?([A-Za-z0-9_$-]+)["']?\s*:\s*(.*)$/);
+      if (property) {
+        visibleContext = isAgentVisibleRootName(property[1])
+          ? { name: property[1], indent, line: index }
+          : null;
+        if (visibleContext && expressionUsesSshHome(property[2], taintedBindings)) {
+          matches.push(evidence(path, `Agent-visible ${property[1]} exposes the SSH home directory.`, index + 1));
+          continue;
+        }
+      }
+
+      const declaration = line.match(/^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z0-9_$]+)\s*=\s*(.*)$/);
+      if (declaration && isAgentVisibleRootName(declaration[1]) && expressionUsesSshHome(declaration[2], taintedBindings)) {
+        matches.push(evidence(path, `Agent-visible ${declaration[1]} exposes the SSH home directory.`, index + 1));
+        continue;
+      }
+
+      if (visibleContext && expressionUsesSshHome(line, taintedBindings)) {
+        matches.push(evidence(path, `Agent-visible ${visibleContext.name} exposes the SSH home directory.`, index + 1));
+        continue;
+      }
+
+      const commandMount = /(?:^|\s)(?:--mount|--volume|-v)\s+/i.test(line)
+        || /^\s*VOLUME\s+/i.test(line);
+      if (commandMount && expressionUsesSshHome(line, taintedBindings)) {
+        matches.push(evidence(path, 'Container or command mount exposes the SSH home directory.', index + 1));
+      }
+    }
+  }
   return finding(config, {
     id: 'security.ssh-home-exposure',
     severity: 'P1',
