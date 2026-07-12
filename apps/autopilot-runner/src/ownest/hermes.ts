@@ -1169,9 +1169,9 @@ function normaliseStopShow(value: unknown, expectedTaskId: string): StopShowStat
     task,
     latestRunValue,
     latestRun,
-    active:
-      latestRun !== null &&
-      (latestRun.endedAt === null || latestRun.status === 'running'),
+    active: runs.some(
+      (run) => run.ended_at === null || run.status === 'running',
+    ),
   }
 }
 
@@ -1205,12 +1205,18 @@ function normaliseTerminationMetadata(value: unknown): HermesTerminationMetadata
 function reclaimedTermination(
   state: StopShowState,
   reason: string,
+  archivedAttemptId?: string,
 ): HermesTerminationMetadata | null {
   const run = state.latestRun
   const rawRun = state.latestRunValue
   if (!run || !rawRun) return null
   const hasReclaimedMarker = run.status === 'reclaimed' || run.outcome === 'reclaimed'
   if (!hasReclaimedMarker) return null
+  const reasonMatches = archivedAttemptId === undefined
+    ? run.error === `manual_reclaim: ${reason}`
+    : [...STOP_CAUSES].some(
+        (cause) => run.error === `manual_reclaim: ownest:${cause}:${archivedAttemptId}`,
+      )
   if (
     state.active ||
     run.status !== 'reclaimed' ||
@@ -1218,7 +1224,7 @@ function reclaimedTermination(
     run.profile !== STOP_HERMES_PROFILE ||
     run.endedAt === null ||
     run.endedAt < run.startedAt ||
-    run.error !== `manual_reclaim: ${reason}`
+    !reasonMatches
   ) {
     throw hermesError('stop', 'reclaimed run did not match the requested stop')
   }
@@ -1388,7 +1394,7 @@ async function stopHermesMission(
 
   if (state.task.status === 'archived') {
     if (state.active) throw hermesError('stop', 'archived task retained an active run')
-    const termination = reclaimedTermination(state, reason)
+    const termination = reclaimedTermination(state, reason, contract.attemptId)
     return {
       outcome: 'already-archived',
       task: stopTask(state),
@@ -1415,6 +1421,24 @@ async function stopHermesMission(
     }
     const racedCompletion = validCompletedStopTask(state, contract, config)
     if (racedCompletion) return completedStopResult(racedCompletion, true)
+    if (state.task.status === 'archived') {
+      if (state.active) throw hermesError('stop', 'archived task retained an active run')
+      const archivedTermination = reclaimedTermination(
+        state,
+        reason,
+        contract.attemptId,
+      )
+      if (!archivedTermination) {
+        throw hermesError('stop', 'archived race did not retain the reclaimed run')
+      }
+      return {
+        outcome: 'already-archived',
+        task: stopTask(state),
+        reclaimAttempted: true,
+        safeToRedispatch: safeToRedispatch(archivedTermination),
+        termination: archivedTermination,
+      }
+    }
     termination = requireReclaimedStop(state, reason)
   } else {
     if (!isStopRecoveryStatus(state.task.status)) {

@@ -1987,6 +1987,27 @@ describe('createHermesClient.stopMission', () => {
     })
   })
 
+  it('accepts reclaim exit 1 when another stopper already archived the matching reclaimed run', async () => {
+    const reclaimed = reclaimedRun(terminationMetadata(), {
+      error: 'manual_reclaim: ownest:operator-stop:attempt-1',
+    })
+    const run = mockSequence(
+      jsonResult(activeStopShow()),
+      { exitCode: 1, stdout: '', stderr: 'already reclaimed and archived' },
+      jsonResult(stoppedShow('archived', null, reclaimed)),
+    )
+    const client = createHermesClient(config, { run })
+
+    await expect(stopWithContract(client)).resolves.toMatchObject({
+      outcome: 'already-archived',
+      reclaimAttempted: true,
+      safeToRedispatch: true,
+      termination: terminationMetadata(),
+      task: { status: 'archived', assignee: null, latestRun: { metadata: null } },
+    })
+    expect(run).toHaveBeenCalledTimes(3)
+  })
+
   it('returns a valid completion that won before reclaim without mutating Hermes', async () => {
     const run = mockSequence(jsonResult(completedLiveShow()))
     const client = createHermesClient(config, { run })
@@ -2011,6 +2032,20 @@ describe('createHermesClient.stopMission', () => {
       safeToRedispatch: false,
       termination: null,
       task: { status: 'archived', assignee: null },
+    })
+    expect(run).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps an archived stop idempotent when a retry supplies a different valid cause', async () => {
+    const run = mockSequence(jsonResult(stoppedShow('archived', null, reclaimedRun())))
+    const client = createHermesClient(config, { run })
+
+    await expect(stopWithContract(client, 'operator-stop')).resolves.toMatchObject({
+      outcome: 'already-archived',
+      reclaimAttempted: false,
+      safeToRedispatch: true,
+      termination: terminationMetadata(),
+      task: { status: 'archived', assignee: null, latestRun: { metadata: null } },
     })
     expect(run).toHaveBeenCalledTimes(1)
   })
@@ -2121,6 +2156,28 @@ describe('createHermesClient.stopMission', () => {
 
     await expect(stopWithContract(client)).rejects.toThrow(/Hermes stop/i)
     expect(run).toHaveBeenCalledTimes(3)
+  })
+
+  it('fails closed when any earlier run remains active behind a later reclaimed run', async () => {
+    const earlierActive = liveRun({
+      id: 6,
+      status: 'running',
+      outcome: null,
+      summary: null,
+      error: null,
+      metadata: null,
+      started_at: 1_783_999_000,
+      ended_at: null,
+    })
+    const payload = liveShow(liveTask({ status: 'archived', assignee: null }), {
+      latest_summary: null,
+      runs: [earlierActive, reclaimedRun()],
+    })
+    const run = mockSequence(jsonResult(payload))
+    const client = createHermesClient(config, { run })
+
+    await expect(stopWithContract(client)).rejects.toThrow(/active run/i)
+    expect(run).toHaveBeenCalledTimes(1)
   })
 
   it.each([
