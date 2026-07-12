@@ -13,9 +13,16 @@ import {
   redactMissionText,
   sha256Digest,
 } from './policy.js'
-import type { CcTask, HardenedOwnestStateV1, OwnestStateV1 } from './types.js'
+import type {
+  CcTask,
+  HardenedOwnestStateV1,
+  OwnestMissionContractV1,
+  OwnestStateV1,
+  Sha256Digest,
+} from './types.js'
 
 const MISSION_TEXT_LIMIT = 16 * 1024
+const integrityNonce = 'integrity-nonce-canary-20260712'
 
 function task(overrides: Partial<CcTask> = {}): CcTask {
   return {
@@ -58,7 +65,8 @@ const hardenedOwnestState: HardenedOwnestStateV1 = {
   ...ownestState,
   claimedAt: '2026-07-12T00:00:00.000Z',
   rolloutId: 'ownest-canary-20260712',
-  missionDigest: 'sha256:a90900b2f0f17c50fa1bae019afc882e70a76c9b16d8a4e9a679468e385ae3a1',
+  integrityNonce,
+  missionDigest: sha256Digest('mission-placeholder'),
   failureCount: 0,
   failureClass: null,
   failureCode: null,
@@ -66,6 +74,36 @@ const hardenedOwnestState: HardenedOwnestStateV1 = {
   completionPhase: 'claimed',
   receiptSha256: null,
 }
+
+const hardeningFieldNames = [
+  'claimedAt',
+  'rolloutId',
+  'integrityNonce',
+  'missionDigest',
+  'failureCount',
+  'failureClass',
+  'failureCode',
+  'nextRetryAt',
+  'completionPhase',
+  'receiptSha256',
+] as const
+
+function assertIntegrityContractTypes(contract: OwnestMissionContractV1): void {
+  const digest: Sha256Digest = sha256Digest('typed')
+  void digest
+
+  // @ts-expect-error SHA digests must come from a validating factory or runtime guard.
+  const forged: Sha256Digest = 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+  void forged
+
+  // @ts-expect-error Mission contract fields are immutable after construction.
+  contract.crmTaskId = 'other-task'
+  // @ts-expect-error Validation requirements are immutable after construction.
+  contract.validationRequirements.push(contract.validationRequirements[0])
+  // @ts-expect-error Validation requirement fields are immutable after construction.
+  if (contract.validationRequirements[0]) contract.validationRequirements[0].text = 'changed'
+}
+void assertIntegrityContractTypes
 
 describe('evaluateEligibility', () => {
   it.each([
@@ -553,11 +591,40 @@ describe('extractOwnestState', () => {
     )
   })
 
+  it.each(hardeningFieldNames)(
+    'rejects a nonempty partial hardening shape containing only %s',
+    (field) => {
+      const partial = { ...ownestState, [field]: hardenedOwnestState[field] }
+
+      expect(extractOwnestState({ ownest: partial }, 'task-1')).toBeNull()
+      expect(evaluateEligibility(task({ metadata: { ownest: partial } }))).toEqual({
+        eligible: false,
+        reason: 'invalid-ownest-state',
+      })
+    },
+  )
+
+  it.each(hardeningFieldNames)(
+    'rejects a near-complete hardening shape missing %s',
+    (field) => {
+      const partial = { ...hardenedOwnestState } as Record<string, unknown>
+      delete partial[field]
+
+      expect(extractOwnestState({ ownest: partial }, 'task-1')).toBeNull()
+      expect(evaluateEligibility(task({ metadata: { ownest: partial } }))).toEqual({
+        eligible: false,
+        reason: 'invalid-ownest-state',
+      })
+    },
+  )
+
   it.each([
     ['claimedAt', null],
     ['claimedAt', '2026-02-30T00:00:00Z'],
     ['rolloutId', 'bad rollout'],
     ['rolloutId', `r${'x'.repeat(128)}`],
+    ['integrityNonce', 'bad nonce'],
+    ['integrityNonce', `n${'x'.repeat(128)}`],
     ['missionDigest', 'sha256:ABCDEF'],
     ['missionDigest', `sha256:${'a'.repeat(63)}`],
     ['failureCount', -1],
@@ -586,17 +653,7 @@ describe('extractHardenedOwnestState', () => {
     )
   })
 
-  it.each([
-    'claimedAt',
-    'rolloutId',
-    'missionDigest',
-    'failureCount',
-    'failureClass',
-    'failureCode',
-    'nextRetryAt',
-    'completionPhase',
-    'receiptSha256',
-  ])('rejects a hardened state missing %s', (field) => {
+  it.each(hardeningFieldNames)('rejects a hardened state missing %s', (field) => {
     const incomplete = { ...hardenedOwnestState } as Record<string, unknown>
     delete incomplete[field]
 
@@ -611,7 +668,7 @@ describe('extractHardenedOwnestState', () => {
       failureCode: 'hermes-timeout',
       nextRetryAt: '2026-07-12T00:05:00+00:00',
       completionPhase: 'receipt_validated',
-      receiptSha256: `sha256:${'b'.repeat(64)}`,
+      receiptSha256: sha256Digest('receipt'),
     }
 
     expect(extractHardenedOwnestState({ ownest: state }, 'task-1')).toEqual(state)
@@ -633,16 +690,18 @@ describe('sha256Digest', () => {
 
 describe('buildValidationRequirements', () => {
   it('numbers requirements deterministically and digests the untrimmed raw text', () => {
-    expect(buildValidationRequirements(['Cite the source data', ' Cite the source data '])).toEqual([
+    expect(
+      buildValidationRequirements(['Cite the source data', ' Cite the source data '], integrityNonce),
+    ).toEqual([
       {
         id: 'vr-001',
         text: 'Cite the source data',
-        digest: 'sha256:f09c7f2f49cbe95f7b284d44de5895e8d815ad3ed4306e51f6bfb39a8fe916d4',
+        digest: 'sha256:7bddc85647e93b8f4f8552447d59e5aed833e3bb60c2839dfd806b4313eef8e2',
       },
       {
         id: 'vr-002',
         text: ' Cite the source data ',
-        digest: 'sha256:899c8d8bce4559058b070287da80db4ea4e99ec4d57df544f17bddc967e1b9cd',
+        digest: 'sha256:bd10706d32d1654eeef0df28812e49a27c97b2f6dfdde3a9fcee614e83173b9d',
       },
     ])
   })
@@ -654,19 +713,37 @@ describe('buildValidationRequirements', () => {
     ['aggregate over 16 KiB', ['x'.repeat(MISSION_TEXT_LIMIT + 1)]],
     ['non-string entry', [42]],
   ])('rejects %s', (_label, input) => {
-    expect(() => buildValidationRequirements(input as string[])).toThrow()
+    expect(() => buildValidationRequirements(input as string[], integrityNonce)).toThrow()
+  })
+
+  it('redacts contract text while binding the exact raw secret-bearing text and nonce', () => {
+    const rawOne = 'Email jane.private@example.com with API_TOKEN=secret-one'
+    const rawTwo = 'Email jane.private@example.com with API_TOKEN=secret-two'
+    const first = buildValidationRequirements([rawOne], integrityNonce)[0]
+    const repeated = buildValidationRequirements([rawOne], integrityNonce)[0]
+    const changedRaw = buildValidationRequirements([rawTwo], integrityNonce)[0]
+    const changedNonce = buildValidationRequirements([rawOne], 'different-integrity-nonce')[0]
+
+    expect(first).toEqual(repeated)
+    expect(first?.text).toContain('[REDACTED]')
+    expect(JSON.stringify(first)).not.toContain('jane.private@example.com')
+    expect(JSON.stringify(first)).not.toContain('secret-one')
+    expect(first?.text).toBe(changedRaw?.text)
+    expect(first?.digest).not.toBe(changedRaw?.digest)
+    expect(first?.digest).not.toBe(changedNonce?.digest)
+    expect(JSON.stringify(first)).not.toContain(integrityNonce)
   })
 })
 
 describe('computeMissionDigest', () => {
   it('hashes the fixed-key canonical authoritative mission with a normalised owner', () => {
-    expect(computeMissionDigest(task({ agent_owner: '  HeRmEs  ' }))).toBe(
-      'sha256:a90900b2f0f17c50fa1bae019afc882e70a76c9b16d8a4e9a679468e385ae3a1',
+    expect(computeMissionDigest(task({ agent_owner: '  HeRmEs  ' }), integrityNonce)).toBe(
+      'sha256:0247279b6b0a7f227b8356fda4a46a6c392f12807972f6db908287818a483a6a',
     )
   })
 
   it('excludes founder, status, metadata, and timestamps from mission authority', () => {
-    const baseline = computeMissionDigest(task())
+    const baseline = computeMissionDigest(task(), integrityNonce)
     expect(
       computeMissionDigest(
         task({
@@ -676,6 +753,7 @@ describe('computeMissionDigest', () => {
           created_at: '2030-01-01T00:00:00.000Z',
           updated_at: '2030-01-02T00:00:00.000Z',
         }),
+        integrityNonce,
       ),
     ).toBe(baseline)
   })
@@ -691,29 +769,44 @@ describe('computeMissionDigest', () => {
     ['approval', { human_approval_required: true }],
     ['validation order', { validation_required: ['second', 'first'] }],
   ] as Array<[string, Partial<CcTask>]>)('changes when authoritative %s changes', (_field, overrides) => {
-    expect(computeMissionDigest(task(overrides))).not.toBe(computeMissionDigest(task()))
+    expect(computeMissionDigest(task(overrides), integrityNonce)).not.toBe(
+      computeMissionDigest(task(), integrityNonce),
+    )
   })
 
   it('rejects malformed authoritative fields at runtime', () => {
-    expect(() => computeMissionDigest(task({ agent_owner: null }))).toThrow(/owner/i)
-    expect(() => computeMissionDigest({ ...task(), dependencies: [42] } as never)).toThrow()
+    expect(() => computeMissionDigest(task({ agent_owner: null }), integrityNonce)).toThrow(/owner/i)
+    expect(() =>
+      computeMissionDigest({ ...task(), dependencies: [42] } as never, integrityNonce),
+    ).toThrow()
+  })
+
+  it('is deterministic for one nonce and changes when only the nonce changes', () => {
+    expect(computeMissionDigest(task(), integrityNonce)).toBe(
+      computeMissionDigest(task(), integrityNonce),
+    )
+    expect(computeMissionDigest(task(), integrityNonce)).not.toBe(
+      computeMissionDigest(task(), 'different-integrity-nonce'),
+    )
   })
 })
 
 describe('buildMissionContract', () => {
   it('binds one attempt and rollout to the canonical task and validation requirements', () => {
-    expect(buildMissionContract(task(), 'attempt-1', 'ownest-canary-20260712')).toEqual({
+    expect(
+      buildMissionContract(task(), 'attempt-1', 'ownest-canary-20260712', integrityNonce),
+    ).toEqual({
       schema: 'ownest.mission.v1',
       crmTaskId: 'task-1',
       attemptId: 'attempt-1',
       idempotencyKey: 'cc-task:task-1:v1',
       rolloutId: 'ownest-canary-20260712',
-      missionDigest: 'sha256:a90900b2f0f17c50fa1bae019afc882e70a76c9b16d8a4e9a679468e385ae3a1',
+      missionDigest: 'sha256:0247279b6b0a7f227b8356fda4a46a6c392f12807972f6db908287818a483a6a',
       validationRequirements: [
         {
           id: 'vr-001',
           text: 'Cite the source data',
-          digest: 'sha256:f09c7f2f49cbe95f7b284d44de5895e8d815ad3ed4306e51f6bfb39a8fe916d4',
+          digest: 'sha256:7bddc85647e93b8f4f8552447d59e5aed833e3bb60c2839dfd806b4313eef8e2',
         },
       ],
     })
@@ -726,7 +819,48 @@ describe('buildMissionContract', () => {
     ['unsafe rollout', 'attempt-1', 'rollout/1'],
     ['overlong rollout', 'attempt-1', `r${'x'.repeat(128)}`],
   ])('rejects %s', (_label, attemptId, rolloutId) => {
-    expect(() => buildMissionContract(task(), attemptId, rolloutId)).toThrow()
+    expect(() => buildMissionContract(task(), attemptId, rolloutId, integrityNonce)).toThrow()
+  })
+
+  it('never serialises raw credentials, private email, secret values, or the integrity nonce', () => {
+    const sensitiveTask = task({
+      title: 'Research private access patterns for jane.private@example.com',
+      objective: 'Document API_TOKEN=mission-secret without taking action.',
+      validation_required: [
+        'Cite jane.private@example.com and API_TOKEN=validation-secret in the private source.',
+      ],
+    })
+
+    const contract = buildMissionContract(
+      sensitiveTask,
+      'attempt-1',
+      'ownest-canary-20260712',
+      integrityNonce,
+    )
+    const serialised = JSON.stringify(contract)
+
+    expect(serialised).not.toContain('jane.private@example.com')
+    expect(serialised).not.toContain('mission-secret')
+    expect(serialised).not.toContain('validation-secret')
+    expect(serialised).not.toContain(integrityNonce)
+    expect(serialised).toContain('[REDACTED]')
+  })
+
+  it('is deterministic for identical input and nonce but rebinds every hash for another nonce', () => {
+    const first = buildMissionContract(task(), 'attempt-1', 'rollout-1', integrityNonce)
+    const repeated = buildMissionContract(task(), 'attempt-1', 'rollout-1', integrityNonce)
+    const changed = buildMissionContract(
+      task(),
+      'attempt-1',
+      'rollout-1',
+      'different-integrity-nonce',
+    )
+
+    expect(first).toEqual(repeated)
+    expect(first.missionDigest).not.toBe(changed.missionDigest)
+    expect(first.validationRequirements[0]?.digest).not.toBe(
+      changed.validationRequirements[0]?.digest,
+    )
   })
 })
 

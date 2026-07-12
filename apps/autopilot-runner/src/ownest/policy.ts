@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash, createHmac } from 'node:crypto'
 import type {
   CcTask,
   CcTaskStatus,
@@ -26,6 +26,18 @@ const COMPLETION_PHASES = new Set([
   'terminal',
 ])
 const FAILURE_CLASSES = new Set(['transient', 'permanent', 'integrity'])
+const HARDENING_FIELD_NAMES = [
+  'claimedAt',
+  'rolloutId',
+  'integrityNonce',
+  'missionDigest',
+  'failureCount',
+  'failureClass',
+  'failureCode',
+  'nextRetryAt',
+  'completionPhase',
+  'receiptSha256',
+] as const
 
 const CLEAR_ADVISORY_INTENT =
   /^\s*(?:research|document|review|analyse|analyze|compare|study|assess|summarise|summarize|explain|audit)\b/i
@@ -296,6 +308,7 @@ export function extractOwnestState(metadata: unknown, expectedTaskId: string): O
     lastError,
     claimedAt,
     rolloutId,
+    integrityNonce,
     missionDigest,
     failureCount,
     failureClass,
@@ -319,8 +332,17 @@ export function extractOwnestState(metadata: unknown, expectedTaskId: string): O
   if (gateState !== 'eligible' && gateState !== 'gated' && gateState !== 'dead_letter') return null
   if (!isNullableNonEmptyString(lastError)) return null
 
+  const hardeningFieldCount = HARDENING_FIELD_NAMES.reduce(
+    (count, field) => count + (hasOwn(value, field) ? 1 : 0),
+    0,
+  )
+  if (hardeningFieldCount !== 0 && hardeningFieldCount !== HARDENING_FIELD_NAMES.length) {
+    return null
+  }
+
   if (hasOwn(value, 'claimedAt') && !isIsoTimestamp(claimedAt)) return null
   if (hasOwn(value, 'rolloutId') && !isSafeOwnestToken(rolloutId)) return null
+  if (hasOwn(value, 'integrityNonce') && !isSafeOwnestToken(integrityNonce)) return null
   if (hasOwn(value, 'missionDigest') && !isSha256Digest(missionDigest)) return null
   if (hasOwn(value, 'failureCount') && !isFailureCount(failureCount)) return null
   if (hasOwn(value, 'failureClass') && !isNullableFailureClass(failureClass)) return null
@@ -332,6 +354,9 @@ export function extractOwnestState(metadata: unknown, expectedTaskId: string): O
   const hardeningFields: Partial<OwnestStateV1> = {}
   if (hasOwn(value, 'claimedAt')) hardeningFields.claimedAt = claimedAt as string
   if (hasOwn(value, 'rolloutId')) hardeningFields.rolloutId = rolloutId as string
+  if (hasOwn(value, 'integrityNonce')) {
+    hardeningFields.integrityNonce = integrityNonce as string
+  }
   if (hasOwn(value, 'missionDigest')) {
     hardeningFields.missionDigest = missionDigest as Sha256Digest
   }
@@ -374,19 +399,7 @@ export function extractHardenedOwnestState(
   const state = extractOwnestState(metadata, expectedTaskId)
   if (!state) return null
 
-  const requiredHardeningFields = [
-    'claimedAt',
-    'rolloutId',
-    'missionDigest',
-    'failureCount',
-    'failureClass',
-    'failureCode',
-    'nextRetryAt',
-    'completionPhase',
-    'receiptSha256',
-  ] as const
-
-  if (requiredHardeningFields.some((field) => !hasOwn(state, field))) return null
+  if (HARDENING_FIELD_NAMES.some((field) => !hasOwn(state, field))) return null
   return state as HardenedOwnestStateV1
 }
 
@@ -487,7 +500,21 @@ export function idempotencyKey(crmTaskId: string): string {
 /** Hashes the exact UTF-8 representation of a string. */
 export function sha256Digest(value: string): Sha256Digest {
   if (typeof value !== 'string') throw new TypeError('SHA-256 input must be a string')
-  return `sha256:${createHash('sha256').update(value, 'utf8').digest('hex')}`
+  return `sha256:${createHash('sha256').update(value, 'utf8').digest('hex')}` as Sha256Digest
+}
+
+function nonceBoundDigest(
+  domain: 'ownest.mission.digest.v1' | 'ownest.validation.digest.v1',
+  integrityNonce: string,
+  rawPayload: string,
+): Sha256Digest {
+  if (!isSafeOwnestToken(integrityNonce)) throw new Error('Mission integrity nonce is invalid')
+  const digest = createHmac('sha256', integrityNonce)
+    .update(domain, 'utf8')
+    .update('\0', 'utf8')
+    .update(rawPayload, 'utf8')
+    .digest('hex')
+  return `sha256:${digest}` as Sha256Digest
 }
 
 function validatedRawStringArray(
@@ -518,7 +545,9 @@ function validatedRawStringArray(
 /** Builds immutable-by-value validation identities while preserving the authoritative raw text. */
 export function buildValidationRequirements(
   validation: string[],
-): OwnestValidationRequirementV1[] {
+  integrityNonce: string,
+): readonly OwnestValidationRequirementV1[] {
+  if (!isSafeOwnestToken(integrityNonce)) throw new Error('Mission integrity nonce is invalid')
   const rawRequirements = validatedRawStringArray(
     validation,
     'Validation requirements',
@@ -526,8 +555,8 @@ export function buildValidationRequirements(
   )
   return rawRequirements.map((text, index) => ({
     id: `vr-${String(index + 1).padStart(3, '0')}`,
-    text,
-    digest: sha256Digest(text),
+    text: redactMissionText(text),
+    digest: nonceBoundDigest('ownest.validation.digest.v1', integrityNonce, text),
   }))
 }
 
@@ -594,9 +623,12 @@ function assertMissionTask(task: CcTask): {
 }
 
 /** Digests only the fixed, authoritative mission fields in a fixed JSON key order. */
-export function computeMissionDigest(task: CcTask): Sha256Digest {
+export function computeMissionDigest(task: CcTask, integrityNonce: string): Sha256Digest {
+  if (!isSafeOwnestToken(integrityNonce)) throw new Error('Mission integrity nonce is invalid')
   const mission = assertMissionTask(task)
-  return sha256Digest(
+  return nonceBoundDigest(
+    'ownest.mission.digest.v1',
+    integrityNonce,
     JSON.stringify({
       schema: 'ownest.mission.v1',
       id: mission.id,
@@ -618,10 +650,12 @@ export function buildMissionContract(
   task: CcTask,
   attemptId: string,
   rolloutId: string,
+  integrityNonce: string,
 ): OwnestMissionContractV1 {
   if (!isSafeOwnestToken(attemptId)) throw new Error('Mission attempt id is invalid')
   if (!isSafeOwnestToken(rolloutId)) throw new Error('Mission rollout id is invalid')
-  const missionDigest = computeMissionDigest(task)
+  if (!isSafeOwnestToken(integrityNonce)) throw new Error('Mission integrity nonce is invalid')
+  const missionDigest = computeMissionDigest(task, integrityNonce)
 
   return {
     schema: 'ownest.mission.v1',
@@ -630,7 +664,7 @@ export function buildMissionContract(
     idempotencyKey: idempotencyKey(task.id),
     rolloutId,
     missionDigest,
-    validationRequirements: buildValidationRequirements(task.validation_required),
+    validationRequirements: buildValidationRequirements(task.validation_required, integrityNonce),
   }
 }
 

@@ -19,7 +19,8 @@ export type HermesTaskStatus =
   | 'triage'
 
 export type OwnestGateState = 'eligible' | 'gated' | 'dead_letter'
-export type Sha256Digest = `sha256:${string}`
+declare const sha256DigestBrand: unique symbol
+export type Sha256Digest = string & { readonly [sha256DigestBrand]: true }
 export type OwnestFailureClass = 'transient' | 'permanent' | 'integrity'
 export type OwnestCompletionPhase =
   | 'claimed'
@@ -44,6 +45,7 @@ export interface OwnestStateV1 {
   lastError: string | null
   claimedAt?: string
   rolloutId?: string
+  integrityNonce?: string
   missionDigest?: Sha256Digest
   failureCount?: number
   failureClass?: OwnestFailureClass | null
@@ -57,6 +59,7 @@ export interface OwnestStateV1 {
 export interface HardenedOwnestStateV1 extends OwnestStateV1 {
   claimedAt: string
   rolloutId: string
+  integrityNonce: string
   missionDigest: Sha256Digest
   failureCount: number
   failureClass: OwnestFailureClass | null
@@ -67,19 +70,19 @@ export interface HardenedOwnestStateV1 extends OwnestStateV1 {
 }
 
 export interface OwnestValidationRequirementV1 {
-  id: string
-  text: string
-  digest: Sha256Digest
+  readonly id: string
+  readonly text: string
+  readonly digest: Sha256Digest
 }
 
 export interface OwnestMissionContractV1 {
-  schema: 'ownest.mission.v1'
-  crmTaskId: string
-  attemptId: string
-  idempotencyKey: string
-  rolloutId: string
-  missionDigest: Sha256Digest
-  validationRequirements: OwnestValidationRequirementV1[]
+  readonly schema: 'ownest.mission.v1'
+  readonly crmTaskId: string
+  readonly attemptId: string
+  readonly idempotencyKey: string
+  readonly rolloutId: string
+  readonly missionDigest: Sha256Digest
+  readonly validationRequirements: readonly OwnestValidationRequirementV1[]
 }
 
 /** The cc_tasks fields required by the OWNEST worker. */
