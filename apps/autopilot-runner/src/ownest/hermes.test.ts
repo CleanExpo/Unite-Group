@@ -144,6 +144,29 @@ function fakeChildProcess() {
   return { child, events, stdout, stderr, kill }
 }
 
+const UTF8_BOUNDARY_CASES = [
+  ['2-byte', 'é', 2],
+  ['3-byte', '€', 3],
+  ['4-byte', '😀', 4],
+] as const
+
+function stderrBoundaryCap(codePointBytes: number): number {
+  for (let cap = 96; cap <= 256; cap += 1) {
+    const reasonBytes = Buffer.byteLength(
+      `[ownest] Hermes process stderr exceeded ${cap} bytes`,
+    )
+    const retainedPayloadBytes = cap - reasonBytes - 1
+    if (
+      retainedPayloadBytes > codePointBytes &&
+      cap % codePointBytes !== 0 &&
+      retainedPayloadBytes % codePointBytes !== 0
+    ) {
+      return cap
+    }
+  }
+  throw new Error('could not find a UTF-8 stderr boundary cap')
+}
+
 describe('createHermesClient.createMission', () => {
   it('uses the exact fixed-argv Hermes command family and configured cwd', async () => {
     const hostileTitle = 'Research $(touch /tmp/not-run) and `uname` for jane@example.com'
@@ -600,6 +623,61 @@ describe('Hermes process failures', () => {
     expect(result.stderr).toMatch(/stdout.*exceeded/i)
   })
 
+  it.each(UTF8_BOUNDARY_CASES)(
+    'returns the longest complete %s UTF-8 prefix within the stdout cap',
+    async (_label, character, codePointBytes) => {
+      const cap = codePointBytes + 1
+      const { child, events, stdout } = fakeChildProcess()
+      const run = createProcessRunner(
+        {
+          timeoutMs: 1_000,
+          stdoutMaxBytes: cap,
+          stderrMaxBytes: 128,
+          killGraceMs: 25,
+        },
+        () => child,
+      )
+      const pending = run('hermes', [], process.cwd())
+
+      stdout.write(Buffer.from(character.repeat(2)))
+      events.emit('close', null, 'SIGTERM')
+      const result = await pending
+
+      expect(result.exitCode).toBe(-1)
+      expect(result.stdout).toBe(character)
+      expect(result.stdout).not.toContain('\uFFFD')
+      expect(Buffer.byteLength(result.stdout)).toBeLessThanOrEqual(cap)
+    },
+  )
+
+  it.each(UTF8_BOUNDARY_CASES)(
+    'keeps the synthetic stderr reason within cap without splitting a %s UTF-8 code point',
+    async (_label, character, codePointBytes) => {
+      const cap = stderrBoundaryCap(codePointBytes)
+      const { child, events, stderr } = fakeChildProcess()
+      const run = createProcessRunner(
+        {
+          timeoutMs: 1_000,
+          stdoutMaxBytes: 128,
+          stderrMaxBytes: cap,
+          killGraceMs: 25,
+        },
+        () => child,
+      )
+      const pending = run('hermes', [], process.cwd())
+      const charactersToOverflow = Math.ceil((cap + codePointBytes) / codePointBytes)
+
+      stderr.write(Buffer.from(character.repeat(charactersToOverflow)))
+      events.emit('close', null, 'SIGTERM')
+      const result = await pending
+
+      expect(result.exitCode).toBe(-1)
+      expect(result.stderr).toMatch(/stderr.*exceeded/i)
+      expect(result.stderr).not.toContain('\uFFFD')
+      expect(Buffer.byteLength(result.stderr)).toBeLessThanOrEqual(cap)
+    },
+  )
+
   it('times out a real child, terminates it, and returns only after close', async () => {
     const run = createProcessRunner({
       timeoutMs: 30,
@@ -683,6 +761,10 @@ describe('Hermes process failures', () => {
     })
 
     events.emit('error', new Error('spawn failed'))
+    await Promise.resolve()
+    expect(resolutions).toBe(0)
+    expect(events.listenerCount('close')).toBe(1)
+
     events.emit('close', 0, null)
     const result = await pending
     events.emit('close', 0, null)

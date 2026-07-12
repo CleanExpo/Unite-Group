@@ -1,4 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process'
+import { StringDecoder } from 'node:string_decoder'
 import {
   MAX_MISSION_TEXT_LENGTH,
   evaluateEligibility,
@@ -157,8 +158,14 @@ class BoundedOutput {
   }
 
   toString(): string {
-    return Buffer.concat(this.#chunks, this.#byteLength).toString('utf8')
+    return decodeCompleteUtf8Prefix(Buffer.concat(this.#chunks, this.#byteLength))
   }
+}
+
+function decodeCompleteUtf8Prefix(bytes: Buffer): string {
+  // Intentionally do not call `end()`: StringDecoder holds an incomplete
+  // trailing code point instead of manufacturing U+FFFD for a split boundary.
+  return new StringDecoder('utf8').write(bytes)
 }
 
 function boundedReason(detail: string, existing: string, maxBytes: number): string {
@@ -168,7 +175,7 @@ function boundedReason(detail: string, existing: string, maxBytes: number): stri
   const separator = existing ? Buffer.from('\n') : Buffer.alloc(0)
   const remaining = maxBytes - reason.byteLength - separator.byteLength
   const existingBytes = Buffer.from(existing).subarray(0, Math.max(remaining, 0))
-  return Buffer.concat([reason, separator, existingBytes]).toString('utf8')
+  return decodeCompleteUtf8Prefix(Buffer.concat([reason, separator, existingBytes]))
 }
 
 /**
@@ -207,7 +214,13 @@ export function createProcessRunner(
       }
       const onError = (error: Error) => {
         childError = stringifyUnknown(error)
-        if (!forcedReason) settle(-1)
+        if (!forcedReason && timeoutTimer) {
+          clearTimeout(timeoutTimer)
+          timeoutTimer = null
+        }
+        // Node guarantees `close` after `error` for ChildProcess. Keep the
+        // close listener attached so stdio closure is the single settlement
+        // point; forced failures retain their bounded SIGKILL fallback.
       }
       const onClose = (code: number | null) => {
         settle(forcedReason || childError ? -1 : typeof code === 'number' ? code : -1)
@@ -245,7 +258,8 @@ export function createProcessRunner(
           try {
             child?.kill('SIGKILL')
           } catch {
-            // Close remains the only settlement point for a forced failure.
+            // Node emits `close` after the child terminates; settlement stays
+            // close-only even when the final bounded escalation call throws.
           }
         }, limits.killGraceMs)
         killTimer.unref?.()
