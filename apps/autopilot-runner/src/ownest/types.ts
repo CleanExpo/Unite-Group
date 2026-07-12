@@ -21,6 +21,8 @@ export type HermesTaskStatus =
 export type OwnestGateState = 'eligible' | 'gated' | 'dead_letter'
 declare const sha256DigestBrand: unique symbol
 export type Sha256Digest = string & { readonly [sha256DigestBrand]: true }
+declare const hmacSha256DigestBrand: unique symbol
+export type HmacSha256Digest = string & { readonly [hmacSha256DigestBrand]: true }
 export type OwnestFailureClass = 'transient' | 'permanent' | 'integrity'
 export type OwnestCompletionPhase =
   | 'claimed'
@@ -46,7 +48,7 @@ export interface OwnestStateV1 {
   claimedAt?: string
   rolloutId?: string
   integrityNonce?: string
-  missionDigest?: Sha256Digest
+  missionDigest?: HmacSha256Digest
   failureCount?: number
   failureClass?: OwnestFailureClass | null
   failureCode?: string | null
@@ -60,7 +62,7 @@ export interface HardenedOwnestStateV1 extends OwnestStateV1 {
   claimedAt: string
   rolloutId: string
   integrityNonce: string
-  missionDigest: Sha256Digest
+  missionDigest: HmacSha256Digest
   failureCount: number
   failureClass: OwnestFailureClass | null
   failureCode: string | null
@@ -72,7 +74,7 @@ export interface HardenedOwnestStateV1 extends OwnestStateV1 {
 export interface OwnestValidationRequirementV1 {
   readonly id: string
   readonly text: string
-  readonly digest: Sha256Digest
+  readonly digest: HmacSha256Digest
 }
 
 export interface OwnestMissionContractV1 {
@@ -81,7 +83,7 @@ export interface OwnestMissionContractV1 {
   readonly attemptId: string
   readonly idempotencyKey: string
   readonly rolloutId: string
-  readonly missionDigest: Sha256Digest
+  readonly missionDigest: HmacSha256Digest
   readonly validationRequirements: readonly OwnestValidationRequirementV1[]
 }
 

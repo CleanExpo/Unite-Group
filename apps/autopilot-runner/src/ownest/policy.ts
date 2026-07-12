@@ -3,6 +3,7 @@ import type {
   CcTask,
   CcTaskStatus,
   HardenedOwnestStateV1,
+  HmacSha256Digest,
   OwnestMissionContractV1,
   OwnestStateV1,
   OwnestValidationRequirementV1,
@@ -16,6 +17,8 @@ export const MAX_VALIDATION_REQUIREMENTS = 64
 export const MAX_VALIDATION_AGGREGATE_BYTES = 16 * 1024
 
 const SHA256_DIGEST = /^sha256:[0-9a-f]{64}$/
+const HMAC_SHA256_DIGEST = /^hmac-sha256:[0-9a-f]{64}$/
+const INTEGRITY_NONCE = /^[0-9a-f]{64}$/
 const SAFE_OWNEST_TOKEN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/
 const SAFE_FAILURE_CODE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const COMPLETION_PHASES = new Set([
@@ -253,6 +256,14 @@ function isSha256Digest(value: unknown): value is Sha256Digest {
   return typeof value === 'string' && SHA256_DIGEST.test(value)
 }
 
+function isHmacSha256Digest(value: unknown): value is HmacSha256Digest {
+  return typeof value === 'string' && HMAC_SHA256_DIGEST.test(value)
+}
+
+function isIntegrityNonce(value: unknown): value is string {
+  return typeof value === 'string' && INTEGRITY_NONCE.test(value)
+}
+
 function isFailureCount(value: unknown): value is number {
   return Number.isSafeInteger(value) && typeof value === 'number' && value >= 0 && value <= 3
 }
@@ -342,8 +353,8 @@ export function extractOwnestState(metadata: unknown, expectedTaskId: string): O
 
   if (hasOwn(value, 'claimedAt') && !isIsoTimestamp(claimedAt)) return null
   if (hasOwn(value, 'rolloutId') && !isSafeOwnestToken(rolloutId)) return null
-  if (hasOwn(value, 'integrityNonce') && !isSafeOwnestToken(integrityNonce)) return null
-  if (hasOwn(value, 'missionDigest') && !isSha256Digest(missionDigest)) return null
+  if (hasOwn(value, 'integrityNonce') && !isIntegrityNonce(integrityNonce)) return null
+  if (hasOwn(value, 'missionDigest') && !isHmacSha256Digest(missionDigest)) return null
   if (hasOwn(value, 'failureCount') && !isFailureCount(failureCount)) return null
   if (hasOwn(value, 'failureClass') && !isNullableFailureClass(failureClass)) return null
   if (hasOwn(value, 'failureCode') && !isNullableFailureCode(failureCode)) return null
@@ -358,7 +369,7 @@ export function extractOwnestState(metadata: unknown, expectedTaskId: string): O
     hardeningFields.integrityNonce = integrityNonce as string
   }
   if (hasOwn(value, 'missionDigest')) {
-    hardeningFields.missionDigest = missionDigest as Sha256Digest
+    hardeningFields.missionDigest = missionDigest as HmacSha256Digest
   }
   if (hasOwn(value, 'failureCount')) hardeningFields.failureCount = failureCount as number
   if (hasOwn(value, 'failureClass')) {
@@ -503,18 +514,27 @@ export function sha256Digest(value: string): Sha256Digest {
   return `sha256:${createHash('sha256').update(value, 'utf8').digest('hex')}` as Sha256Digest
 }
 
+/** Canonicalises one injected 256-bit CSPRNG result without mutating it. */
+export function integrityNonceFromBytes(bytes: Uint8Array): string {
+  if (!(bytes instanceof Uint8Array)) {
+    throw new TypeError('Integrity nonce source must be a Uint8Array')
+  }
+  if (bytes.byteLength !== 32) throw new Error('Integrity nonce source must contain exactly 32 bytes')
+  return Buffer.from(bytes).toString('hex')
+}
+
 function nonceBoundDigest(
   domain: 'ownest.mission.digest.v1' | 'ownest.validation.digest.v1',
   integrityNonce: string,
   rawPayload: string,
-): Sha256Digest {
-  if (!isSafeOwnestToken(integrityNonce)) throw new Error('Mission integrity nonce is invalid')
+): HmacSha256Digest {
+  if (!isIntegrityNonce(integrityNonce)) throw new Error('Mission integrity nonce is invalid')
   const digest = createHmac('sha256', integrityNonce)
     .update(domain, 'utf8')
     .update('\0', 'utf8')
     .update(rawPayload, 'utf8')
     .digest('hex')
-  return `sha256:${digest}` as Sha256Digest
+  return `hmac-sha256:${digest}` as HmacSha256Digest
 }
 
 function validatedRawStringArray(
@@ -547,7 +567,7 @@ export function buildValidationRequirements(
   validation: string[],
   integrityNonce: string,
 ): readonly OwnestValidationRequirementV1[] {
-  if (!isSafeOwnestToken(integrityNonce)) throw new Error('Mission integrity nonce is invalid')
+  if (!isIntegrityNonce(integrityNonce)) throw new Error('Mission integrity nonce is invalid')
   const rawRequirements = validatedRawStringArray(
     validation,
     'Validation requirements',
@@ -623,8 +643,8 @@ function assertMissionTask(task: CcTask): {
 }
 
 /** Digests only the fixed, authoritative mission fields in a fixed JSON key order. */
-export function computeMissionDigest(task: CcTask, integrityNonce: string): Sha256Digest {
-  if (!isSafeOwnestToken(integrityNonce)) throw new Error('Mission integrity nonce is invalid')
+export function computeMissionDigest(task: CcTask, integrityNonce: string): HmacSha256Digest {
+  if (!isIntegrityNonce(integrityNonce)) throw new Error('Mission integrity nonce is invalid')
   const mission = assertMissionTask(task)
   return nonceBoundDigest(
     'ownest.mission.digest.v1',
@@ -654,7 +674,7 @@ export function buildMissionContract(
 ): OwnestMissionContractV1 {
   if (!isSafeOwnestToken(attemptId)) throw new Error('Mission attempt id is invalid')
   if (!isSafeOwnestToken(rolloutId)) throw new Error('Mission rollout id is invalid')
-  if (!isSafeOwnestToken(integrityNonce)) throw new Error('Mission integrity nonce is invalid')
+  if (!isIntegrityNonce(integrityNonce)) throw new Error('Mission integrity nonce is invalid')
   const missionDigest = computeMissionDigest(task, integrityNonce)
 
   return {
