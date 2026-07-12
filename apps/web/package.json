@@ -72,7 +72,7 @@
     "eslint": "^9.39.3",
     "eslint-config-next": "^16.2.10",
     "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "glob": "^13.0.3",
     "gray-matter": "^4.0.3",
     "inquirer": "^13.2.0",
