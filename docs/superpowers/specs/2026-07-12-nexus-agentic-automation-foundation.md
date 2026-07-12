@@ -178,6 +178,21 @@ metered_overflow: disabled|board_approved
 allowed_workloads: [string]
 ```
 
+### Subscription and API isolation
+
+An installed CLI is not proof that its included subscription capacity is being used. The executor must attest the active authentication path before work, because ambient environment variables can silently change billing class. In particular, Anthropic documents that `ANTHROPIC_API_KEY` takes precedence over Claude Pro/Max sign-in and causes API charges; Codex likewise supports materially different ChatGPT-sign-in and API-key routes.
+
+Every subscription-backed executor therefore runs through a route-specific environment envelope:
+
+- the Claude Max lane requires `claude auth status` to report `loggedIn: true`, `authMethod: claude.ai`, and `subscriptionType: max`, then removes Anthropic API, Bedrock, Vertex, and Foundry credential selectors from the child process;
+- the Codex plan lane requires `codex login status` to report ChatGPT sign-in and removes API/provider overrides that would select a metered route;
+- API, OpenRouter, and cloud-provider lanes run in separate child environments, carry an explicit spend class and budget, and never inherit subscription credentials;
+- a route whose billing identity cannot be attested is `unknown_blocked`, not an automatic fallback;
+- no wrapper sources a broad project `.env.local` and then launches every model CLI with the resulting ambient environment;
+- receipts record the attested route ID and auth class, never the credential or raw authentication output.
+
+This is the control that turns existing Max plans into usable capacity without allowing a convenience fallback to become unreported spend.
+
 Validation sequence:
 
 1. freeze prompt, rubric, source set, skill hashes, and hard gates;
