@@ -95,3 +95,6 @@ vercel-export-*/
 # Transient agent run artifacts (raw logs / exit codes — never canonical)
 .shipit_evidence/
 outputs/sandbox_voice_migration/
+# Local agent permissions and authenticated browser state are machine-owned.
+**/.claude/settings.local.json
+**/playwright/.auth/
