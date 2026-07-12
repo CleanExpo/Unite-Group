@@ -218,6 +218,10 @@ export interface AppendOwnestEvidenceInput {
 export interface OwnestCrmClient {
   listCandidateTasks: () => Promise<CcTask[]>
   listMirroredTasks: () => Promise<CcTask[]>
+  getOwnedTask: (taskId: string) => Promise<CcTask | null>
+  listManagedTasks: () => Promise<CcTask[]>
+  countRolloutClaims: (rolloutId: string) => Promise<number>
+  countDailyClaims: (fromIso: string, toIso: string) => Promise<number>
   compareAndSetTask: (input: CompareAndSetTaskInput) => Promise<CcTask | null>
   appendTaskEvent: (input: AppendOwnestEventInput) => Promise<void>
   appendEvidence: (input: AppendOwnestEvidenceInput) => Promise<void>

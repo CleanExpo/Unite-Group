@@ -1,6 +1,6 @@
 import { StringDecoder } from 'node:string_decoder'
 import { isDeepStrictEqual } from 'node:util'
-import { extractOwnestState } from './policy.js'
+import { extractHardenedOwnestState, extractOwnestState } from './policy.js'
 import type {
   AppendOwnestEventInput,
   AppendOwnestEvidenceInput,
@@ -19,6 +19,7 @@ const SUCCESS_RESPONSE_BODY_LIMIT = 1024 * 1024
 const ERROR_RESPONSE_BODY_LIMIT = 64 * 1024
 const OUTBOUND_JSON_BODY_LIMIT = 256 * 1024
 const MAX_JSON_DEPTH = 64
+const MAX_SAFE_COUNT = BigInt(Number.MAX_SAFE_INTEGER)
 
 const TASK_COLUMNS = [
   'id',
@@ -53,6 +54,7 @@ const TASK_STATUSES = new Set([
 ])
 const TASK_RISK_LEVELS = new Set(['low', 'medium', 'high', 'critical'])
 const TASK_EXECUTION_MODES = new Set(['advisory', 'local-code', 'branch-preview', 'overnight'])
+const MANAGED_TASK_STATUSES = new Set(['running', 'blocked', 'awaiting_approval', 'failed'])
 const TASK_EVENT_TYPES = new Set([
   'created',
   'status_changed',
@@ -508,13 +510,18 @@ function serviceHeaders(config: OwnestConfig): Record<string, string> {
   }
 }
 
-async function crmRequest(
+interface CrmResponse {
+  response: Response
+  body: string
+}
+
+async function crmResponse(
   context: string,
   url: URL,
   init: RequestInit,
   config: OwnestConfig,
   deps: CrmDeps,
-): Promise<string> {
+): Promise<CrmResponse> {
   try {
     const response = await deps.fetch(url, {
       ...init,
@@ -534,10 +541,23 @@ async function crmRequest(
       throw new Error(`HTTP ${response.status} ${response.statusText}: ${body}`)
     }
 
-    return await readBoundedResponseBody(response, SUCCESS_RESPONSE_BODY_LIMIT)
+    return {
+      response,
+      body: await readBoundedResponseBody(response, SUCCESS_RESPONSE_BODY_LIMIT),
+    }
   } catch (error) {
     throw redactedError(context, error, config.serviceRoleKey)
   }
+}
+
+async function crmRequest(
+  context: string,
+  url: URL,
+  init: RequestInit,
+  config: OwnestConfig,
+  deps: CrmDeps,
+): Promise<string> {
+  return (await crmResponse(context, url, init, config, deps)).body
 }
 
 function parseTaskRows(
@@ -579,6 +599,47 @@ async function getTaskRows(
   return parseTaskRows(context, body, config)
 }
 
+function parseExactCount(response: Response): number {
+  const contentRange = response.headers.get('content-range')
+  if (contentRange === '*/0') return 0
+
+  const match = /^0-0\/([1-9][0-9]*)$/.exec(contentRange ?? '')
+  if (!match?.[1]) throw new Error('CRM exact count response has an invalid Content-Range')
+
+  const count = BigInt(match[1])
+  if (count > MAX_SAFE_COUNT) throw new Error('CRM exact count exceeds the safe integer limit')
+  return Number(count)
+}
+
+async function countTaskRows(
+  context: string,
+  config: OwnestConfig,
+  deps: CrmDeps,
+  params: URLSearchParams,
+): Promise<number> {
+  const result = await crmResponse(
+    context,
+    taskUrl(config, params),
+    {
+      method: 'HEAD',
+      headers: {
+        ...serviceHeaders(config),
+        Prefer: 'count=exact',
+        Range: '0-0',
+        'Range-Unit': 'items',
+      },
+    },
+    config,
+    deps,
+  )
+
+  try {
+    return parseExactCount(result.response)
+  } catch (error) {
+    throw redactedError(context, error, config.serviceRoleKey)
+  }
+}
+
 /** Returns the bounded, priority-ordered founder queue eligible for policy evaluation. */
 export async function listCandidateTasks(config: OwnestConfig, deps: CrmDeps): Promise<CcTask[]> {
   const params = new URLSearchParams()
@@ -615,6 +676,94 @@ export async function listMirroredTasks(config: OwnestConfig, deps: CrmDeps): Pr
     }
   }
   return rows
+}
+
+/** Reads the one nominated founder-owned CRM task without selecting a fallback. */
+export async function getOwnedTask(
+  taskId: string,
+  config: OwnestConfig,
+  deps: CrmDeps,
+): Promise<CcTask | null> {
+  if (!isNonEmptyString(taskId)) throw new Error('CRM owned task read requires a task id')
+
+  const params = new URLSearchParams()
+  params.set('select', TASK_SELECT)
+  params.set('founder_id', `eq.${config.founderId}`)
+  params.set('id', `eq.${taskId}`)
+  params.set('limit', '1')
+
+  const rows = await getTaskRows('Failed to read founder-owned CRM task', config, deps, params)
+  if (rows.length === 0) return null
+  if (rows.length !== 1) throw new Error('Founder-owned CRM task read returned an invalid row count')
+
+  const [row] = rows
+  if (!row || row.id !== taskId) {
+    throw new Error('Founder-owned CRM task read returned the wrong task')
+  }
+  return row
+}
+
+/** Reads every founder-owned task governed by the hardened OWNEST state machine. */
+export async function listManagedTasks(config: OwnestConfig, deps: CrmDeps): Promise<CcTask[]> {
+  const params = new URLSearchParams()
+  params.set('select', TASK_SELECT)
+  params.set('founder_id', `eq.${config.founderId}`)
+  params.set('status', 'in.(running,blocked,awaiting_approval,failed)')
+  params.set('metadata->ownest->>version', 'eq.1')
+  params.set('limit', String(TASK_LIMIT))
+
+  const rows = await getTaskRows('Failed to list managed CRM tasks', config, deps, params)
+  for (const row of rows) {
+    if (!MANAGED_TASK_STATUSES.has(row.status)) {
+      throw new Error('Managed CRM response contained a task outside the managed status set')
+    }
+    if (!extractHardenedOwnestState(row.metadata, row.id)) {
+      throw new Error('Managed CRM response contained invalid hardened OWNEST state')
+    }
+  }
+  return rows
+}
+
+/** Counts every persisted claim consumed by one rollout, regardless of terminal status. */
+export async function countRolloutClaims(
+  rolloutId: string,
+  config: OwnestConfig,
+  deps: CrmDeps,
+): Promise<number> {
+  if (typeof rolloutId !== 'string' || !ROLLOUT_OR_TASK_ID.test(rolloutId)) {
+    throw new Error('CRM rollout claim count requires a valid rollout id')
+  }
+
+  const params = new URLSearchParams()
+  params.set('select', 'id')
+  params.set('founder_id', `eq.${config.founderId}`)
+  params.set('metadata->ownest->>rolloutId', `eq.${rolloutId}`)
+  params.set('metadata->ownest->>claimedAt', 'not.is.null')
+
+  return countTaskRows('Failed to count CRM rollout claims', config, deps, params)
+}
+
+/** Counts persisted claims admitted within one exact half-open time interval. */
+export async function countDailyClaims(
+  fromIso: string,
+  toIso: string,
+  config: OwnestConfig,
+  deps: CrmDeps,
+): Promise<number> {
+  if (!isIsoTimestamp(fromIso) || !isIsoTimestamp(toIso)) {
+    throw new Error('CRM daily claim count requires valid ISO timestamp bounds')
+  }
+  if (Date.parse(fromIso) >= Date.parse(toIso)) {
+    throw new Error('CRM daily claim count requires an increasing half-open interval')
+  }
+
+  const params = new URLSearchParams()
+  params.set('select', 'id')
+  params.set('founder_id', `eq.${config.founderId}`)
+  params.append('metadata->ownest->>claimedAt', `gte.${fromIso}`)
+  params.append('metadata->ownest->>claimedAt', `lt.${toIso}`)
+
+  return countTaskRows('Failed to count CRM daily claims', config, deps, params)
 }
 
 /** Atomically patches one task only while its founder scope and expected status still match. */
@@ -786,6 +935,10 @@ export function createCrmClient(config: OwnestConfig, deps: CrmDeps): OwnestCrmC
   return {
     listCandidateTasks: () => listCandidateTasks(config, deps),
     listMirroredTasks: () => listMirroredTasks(config, deps),
+    getOwnedTask: (taskId) => getOwnedTask(taskId, config, deps),
+    listManagedTasks: () => listManagedTasks(config, deps),
+    countRolloutClaims: (rolloutId) => countRolloutClaims(rolloutId, config, deps),
+    countDailyClaims: (fromIso, toIso) => countDailyClaims(fromIso, toIso, config, deps),
     compareAndSetTask: (input) => compareAndSetTask(input, config, deps),
     appendTaskEvent: (input) => appendTaskEvent(input, config, deps),
     appendEvidence: (input) => appendEvidence(input, config, deps),

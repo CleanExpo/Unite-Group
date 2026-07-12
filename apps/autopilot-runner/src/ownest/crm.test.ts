@@ -3,8 +3,12 @@ import {
   appendEvidence,
   appendTaskEvent,
   compareAndSetTask,
+  countDailyClaims,
+  countRolloutClaims,
   createCrmClient,
+  getOwnedTask,
   listCandidateTasks,
+  listManagedTasks,
   listMirroredTasks,
   loadOwnestConfig,
 } from './crm.js'
@@ -55,7 +59,7 @@ const validEnv: NodeJS.ProcessEnv = {
   CC_OWNEST_WORKER_ID: 'ownest-worker-1',
 }
 
-function ownestState(taskId: string, hermesTaskId = 'hermes-1') {
+function ownestState(taskId: string, hermesTaskId: string | null = 'hermes-1') {
   return {
     version: 1,
     crmTaskId: taskId,
@@ -70,6 +74,22 @@ function ownestState(taskId: string, hermesTaskId = 'hermes-1') {
     evidenceUri: null,
     gateState: 'eligible',
     lastError: null,
+  }
+}
+
+function hardenedOwnestState(taskId: string, hermesTaskId: string | null = null) {
+  return {
+    ...ownestState(taskId, hermesTaskId),
+    claimedAt: '2026-07-12T00:00:00.000Z',
+    rolloutId: 'rollout-2026-07-12',
+    integrityNonce: '000102030405060708090a0b0c0d0e0f'.repeat(2),
+    missionDigest: `hmac-sha256:${'b'.repeat(64)}`,
+    failureCount: 0,
+    failureClass: null,
+    failureCode: null,
+    nextRetryAt: null,
+    completionPhase: 'claimed',
+    receiptSha256: null,
   }
 }
 
@@ -98,6 +118,13 @@ function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { 'content-type': 'application/json' },
+  })
+}
+
+function countResponse(contentRange?: string, status = 206): Response {
+  return new Response(null, {
+    status,
+    headers: contentRange === undefined ? undefined : { 'content-range': contentRange },
   })
 }
 
@@ -588,6 +615,230 @@ describe('listMirroredTasks', () => {
   })
 })
 
+describe('getOwnedTask', () => {
+  it('reads one exact founder-owned task with bounded explicit columns', async () => {
+    const owned = task()
+    const fetchImpl = mockFetch(jsonResponse([owned]))
+
+    await expect(getOwnedTask('task-1', config, deps(fetchImpl))).resolves.toEqual(owned)
+
+    const { url, init } = firstRequest(fetchImpl)
+    expect(url.pathname).toBe('/rest/v1/cc_tasks')
+    expect(url.searchParams.get('select')).toBe(TASK_COLUMNS)
+    expect(url.searchParams.get('founder_id')).toBe(`eq.${config.founderId}`)
+    expect(url.searchParams.get('id')).toBe('eq.task-1')
+    expect(url.searchParams.get('limit')).toBe('1')
+    expect(init.method).toBe('GET')
+    expect(init.redirect).toBe('error')
+  })
+
+  it('returns null when the nominated task is missing', async () => {
+    const fetchImpl = mockFetch(jsonResponse([]))
+
+    await expect(getOwnedTask('missing-task', config, deps(fetchImpl))).resolves.toBeNull()
+  })
+
+  it('encodes the task id without allowing query injection', async () => {
+    const taskId = 'task-1&founder_id=eq.attacker&limit=100'
+    const fetchImpl = mockFetch(jsonResponse([task({ id: taskId })]))
+
+    await getOwnedTask(taskId, config, deps(fetchImpl))
+
+    const { url } = firstRequest(fetchImpl)
+    expect(url.searchParams.getAll('id')).toEqual([`eq.${taskId}`])
+    expect(url.searchParams.getAll('founder_id')).toEqual([`eq.${config.founderId}`])
+    expect(url.searchParams.getAll('limit')).toEqual(['1'])
+    expect(url.toString()).toContain('task-1%26founder_id%3Deq.attacker%26limit%3D100')
+  })
+
+  it.each([
+    ['more than one row', [task(), task({ id: 'task-2' })]],
+    ['wrong row identity', [task({ id: 'task-2' })]],
+    ['wrong founder', [task({ founder_id: 'other-founder' })]],
+  ])('fails closed for %s', async (_label, rows) => {
+    const fetchImpl = mockFetch(jsonResponse(rows))
+
+    await expect(getOwnedTask('task-1', config, deps(fetchImpl))).rejects.toThrow()
+  })
+})
+
+describe('listManagedTasks', () => {
+  it('returns hardened claimed work including a running task with no Hermes mirror yet', async () => {
+    const claimed = task({
+      status: 'running',
+      metadata: { ownest: hardenedOwnestState('task-1', null) },
+    })
+    const fetchImpl = mockFetch(jsonResponse([claimed]))
+
+    await expect(listManagedTasks(config, deps(fetchImpl))).resolves.toEqual([claimed])
+
+    const { url, init } = firstRequest(fetchImpl)
+    expect(url.pathname).toBe('/rest/v1/cc_tasks')
+    expect(url.searchParams.get('select')).toBe(TASK_COLUMNS)
+    expect(url.searchParams.get('founder_id')).toBe(`eq.${config.founderId}`)
+    expect(url.searchParams.get('status')).toBe(
+      'in.(running,blocked,awaiting_approval,failed)',
+    )
+    expect(url.searchParams.get('metadata->ownest->>version')).toBe('eq.1')
+    expect(url.searchParams.get('limit')).toBe('100')
+    expect(init.method).toBe('GET')
+  })
+
+  it.each([
+    [
+      'legacy state',
+      task({ status: 'running', metadata: { ownest: ownestState('task-1', null) } }),
+    ],
+    [
+      'partial hardened state',
+      task({
+        status: 'running',
+        metadata: {
+          ownest: (() => {
+            const partial = { ...hardenedOwnestState('task-1') }
+            delete (partial as Partial<typeof partial>).missionDigest
+            return partial
+          })(),
+        },
+      }),
+    ],
+    [
+      'malformed hardened state',
+      task({
+        status: 'running',
+        metadata: { ownest: { ...hardenedOwnestState('task-1'), failureCount: 4 } },
+      }),
+    ],
+    [
+      'status outside the managed set',
+      task({ status: 'done', metadata: { ownest: hardenedOwnestState('task-1') } }),
+    ],
+  ])('fails closed for a %s row', async (_label, row) => {
+    const fetchImpl = mockFetch(jsonResponse([row]))
+
+    await expect(listManagedTasks(config, deps(fetchImpl))).rejects.toThrow()
+  })
+})
+
+describe('persistent claim quotas', () => {
+  it('counts rollout claims exactly across every task status using metadata only', async () => {
+    const rolloutId = 'rollout:2026.07_12-test'
+    const fetchImpl = mockFetch(countResponse('0-0/7'))
+
+    await expect(countRolloutClaims(rolloutId, config, deps(fetchImpl))).resolves.toBe(7)
+
+    const { url, init } = firstRequest(fetchImpl)
+    expect(url.pathname).toBe('/rest/v1/cc_tasks')
+    expect(url.searchParams.get('select')).toBe('id')
+    expect(url.searchParams.get('founder_id')).toBe(`eq.${config.founderId}`)
+    expect(url.searchParams.get('metadata->ownest->>rolloutId')).toBe(`eq.${rolloutId}`)
+    expect(url.searchParams.get('metadata->ownest->>claimedAt')).toBe('not.is.null')
+    expect(url.searchParams.has('status')).toBe(false)
+    expect(url.toString()).toContain('rollout%3A2026.07_12-test')
+    expect(init.method).toBe('HEAD')
+    expect(init.redirect).toBe('error')
+    expect(init.body).toBeUndefined()
+    expect(url.toString()).not.toContain(serviceRoleKey)
+    const headers = new Headers(init.headers)
+    expect(headers.get('prefer')).toBe('count=exact')
+    expect(headers.get('range')).toBe('0-0')
+    expect(headers.get('apikey')).toBe(serviceRoleKey)
+    expect(headers.get('authorization')).toBe(`Bearer ${serviceRoleKey}`)
+  })
+
+  it('returns zero only from the canonical empty exact-count response', async () => {
+    const fetchImpl = mockFetch(countResponse('*/0', 200))
+
+    await expect(countRolloutClaims('rollout-zero', config, deps(fetchImpl))).resolves.toBe(0)
+  })
+
+  it.each(['', 'bad rollout', 'rollout-safe&status=eq.queued', `r${'x'.repeat(128)}`])(
+    'rejects unsafe rollout input before fetch: %s',
+    async (rolloutId) => {
+      const fetchImpl = mockFetch(countResponse('*/0', 200))
+
+      await expect(countRolloutClaims(rolloutId, config, deps(fetchImpl))).rejects.toThrow(
+        /rollout/i,
+      )
+      expect(fetchImpl).not.toHaveBeenCalled()
+    },
+  )
+
+  it('counts a half-open UTC claim interval with two injection-safe timestamp filters', async () => {
+    const fromIso = '2026-07-12T00:00:00+10:00'
+    const toIso = '2026-07-13T00:00:00+10:00'
+    const fetchImpl = mockFetch(countResponse('0-0/3'))
+
+    await expect(countDailyClaims(fromIso, toIso, config, deps(fetchImpl))).resolves.toBe(3)
+
+    const { url, init } = firstRequest(fetchImpl)
+    expect(url.searchParams.get('select')).toBe('id')
+    expect(url.searchParams.get('founder_id')).toBe(`eq.${config.founderId}`)
+    expect(url.searchParams.getAll('metadata->ownest->>claimedAt')).toEqual([
+      `gte.${fromIso}`,
+      `lt.${toIso}`,
+    ])
+    expect(url.searchParams.has('status')).toBe(false)
+    expect(url.toString()).toContain('%2B10%3A00')
+    expect(init.method).toBe('HEAD')
+    expect(new Headers(init.headers).get('prefer')).toBe('count=exact')
+    expect(new Headers(init.headers).get('range')).toBe('0-0')
+  })
+
+  it.each([
+    ['missing from', '', '2026-07-13T00:00:00.000Z'],
+    ['invalid calendar from', '2026-02-30T00:00:00.000Z', '2026-07-13T00:00:00.000Z'],
+    [
+      'from query injection',
+      '2026-07-12T00:00:00.000Z&status=eq.queued',
+      '2026-07-13T00:00:00.000Z',
+    ],
+    [
+      'to query injection',
+      '2026-07-12T00:00:00.000Z',
+      '2026-07-13T00:00:00.000Z&founder_id=eq.attacker',
+    ],
+    ['equal bounds', '2026-07-12T00:00:00.000Z', '2026-07-12T00:00:00.000Z'],
+    ['reversed bounds', '2026-07-13T00:00:00.000Z', '2026-07-12T00:00:00.000Z'],
+  ])('rejects %s before fetch', async (_label, fromIso, toIso) => {
+    const fetchImpl = mockFetch(countResponse('*/0', 200))
+
+    await expect(countDailyClaims(fromIso, toIso, config, deps(fetchImpl))).rejects.toThrow()
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['missing', undefined],
+    ['negative', '0-0/-1'],
+    ['unknown total', '0-0/*'],
+    ['nonempty wildcard range', '*/5'],
+    ['wrong returned range', '1-1/2'],
+    ['leading-zero total', '0-0/01'],
+    ['over-safe total', '0-0/9007199254740992'],
+  ])('rejects a %s Content-Range count', async (_label, contentRange) => {
+    const fetchImpl = mockFetch(countResponse(contentRange))
+
+    await expect(countRolloutClaims('rollout-count-test', config, deps(fetchImpl))).rejects.toThrow(
+      /count|content-range/i,
+    )
+  })
+
+  it('rejects non-2xx count responses through the shared redacted request boundary', async () => {
+    const fetchImpl = mockFetch(
+      new Response(serviceRoleKey, {
+        status: 503,
+        headers: { 'content-range': '0-0/1' },
+      }),
+    )
+
+    const error = await capturedError(() =>
+      countRolloutClaims('rollout-count-test', config, deps(fetchImpl)),
+    )
+    expect(error.message).toContain('503')
+    expect(error.message).not.toContain(serviceRoleKey)
+  })
+})
+
 describe('compareAndSetTask', () => {
   it('uses founder/id/expected-status CAS filters and returns one validated representation', async () => {
     const metadata = { ownest: ownestState('task-1') }
@@ -1001,11 +1252,20 @@ describe('request failure handling', () => {
 
 describe('createCrmClient', () => {
   it('binds the configured founder scope and injected fetch to every operation', async () => {
-    const fetchImpl = vi.fn<typeof fetch>().mockImplementation(async () => jsonResponse([]))
+    const fetchImpl = vi.fn<typeof fetch>().mockImplementation(async (_input, init) =>
+      init?.method === 'HEAD' ? countResponse('*/0', 200) : jsonResponse([]),
+    )
     const client = createCrmClient(config, deps(fetchImpl))
 
     await client.listCandidateTasks()
     await client.listMirroredTasks()
+    await client.getOwnedTask('task-1')
+    await client.listManagedTasks()
+    await client.countRolloutClaims('rollout-client-test')
+    await client.countDailyClaims(
+      '2026-07-12T00:00:00.000Z',
+      '2026-07-13T00:00:00.000Z',
+    )
     await client.compareAndSetTask({
       taskId: 'task-1',
       expectedStatus: 'queued',
@@ -1015,14 +1275,27 @@ describe('createCrmClient', () => {
     await client.appendTaskEvent({ taskId: 'task-1', type: 'started' })
     await client.appendEvidence({ taskId: 'task-1', wikiPath: 'Wiki/OWNEST/task-1.md' })
 
-    expect(fetchImpl).toHaveBeenCalledTimes(5)
+    expect(fetchImpl).toHaveBeenCalledTimes(9)
     for (const [, init] of fetchImpl.mock.calls) {
       expect(init?.redirect).toBe('error')
     }
-    for (const [input] of fetchImpl.mock.calls.slice(0, 3)) {
+    for (const [input] of fetchImpl.mock.calls.slice(0, 7)) {
       const url = new URL(String(input))
       expect(url.pathname).toBe('/rest/v1/cc_tasks')
       expect(url.searchParams.get('founder_id')).toBe(`eq.${config.founderId}`)
     }
+    expect(
+      new URL(String(fetchImpl.mock.calls[4]?.[0])).searchParams.get(
+        'metadata->ownest->>rolloutId',
+      ),
+    ).toBe('eq.rollout-client-test')
+    expect(
+      new URL(String(fetchImpl.mock.calls[5]?.[0])).searchParams.getAll(
+        'metadata->ownest->>claimedAt',
+      ),
+    ).toEqual([
+      'gte.2026-07-12T00:00:00.000Z',
+      'lt.2026-07-13T00:00:00.000Z',
+    ])
   })
 })
