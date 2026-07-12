@@ -5,6 +5,12 @@ Next.js app (founder cockpit, Mission Control, `command-center/*` topology,
 `api/empire/*`, Pi-CEO surfaces, `mission-control:linear-loop` worker) into the
 monorepo.
 
+> **Retired 12/07/2026:** the folded-in `mission-control:linear-loop` execution
+> lane is retained only as a refusal tombstone. CRM `cc_tasks` is authoritative;
+> OWNEST is a design/test contract only. No replacement execution lane is live;
+> a future canary cannot be considered until credential migration, dedicated
+> isolation, brokered authority, and independent verification are proven.
+
 - **Source:** branch `margot/digest-sensitive-copy-redaction-20260616` — the
   divergent autonomous-churn line (~330 commits off `main`) — snapshotted via
   `git archive` on 2026-06-16. Full backup bundle:

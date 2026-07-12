@@ -23,8 +23,11 @@ These are repo-owner actions (GitHub settings + a non-prod Supabase backend); an
 4. **Make it gate**: Settings → Branches → branch protection for `main` → add
    **"apps/web — Playwright E2E"** as a **required** status check. Without this the job runs but does not block merges.
 
-The job falls back to prod secrets *loudly* (fails) if `E2E_SUPABASE_*` are unset, so a
-misconfiguration is visible, not silent.
+The CI job has **no production-secret fallback**. If `E2E_SUPABASE_*` is unset,
+it receives inert structural placeholders and the authenticated/provisioning
+path fails closed or skips according to its explicit gate. Production Supabase
+secrets are outside this job's authority boundary, so a misconfiguration cannot
+silently redirect the suite to prod.
 
 ## RLS isolation test (B3)
 `rls-isolation.spec.ts` proves `crm_contacts.founder_id = auth.uid()` at the **database (RLS)

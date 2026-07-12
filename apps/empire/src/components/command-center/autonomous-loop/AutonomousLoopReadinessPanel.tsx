@@ -10,9 +10,8 @@ import type {
 } from '@/lib/mission-control/autonomous-loop-readiness';
 
 function colorFor(state: LoopReadinessState) {
-  if (state === 'ready') return 'var(--cc-ink)';
-  if (state === 'warning') return '#f59e0b';
-  return 'var(--cc-signal)';
+  void state;
+  return 'var(--cc-ink-dim)';
 }
 
 function sourceMode(payload: LoopReadinessPayload | null, loading: boolean): SourceMode {
@@ -59,9 +58,7 @@ export function AutonomousLoopReadinessPanel({
     };
   }, [initialPayload]);
 
-  const ready = payload?.checks.filter((check) => check.state === 'ready').length ?? 0;
-  const total = payload?.checks.length ?? 0;
-  const overall = payload?.overall ?? 'blocked';
+  const overall = payload?.overall ?? 'retired';
 
   return (
     <section
@@ -87,11 +84,11 @@ export function AutonomousLoopReadinessPanel({
             Autonomous Loop
           </span>
           <h2 className="text-xl font-semibold leading-tight" style={{ color: 'var(--cc-ink)' }}>
-            Continuous build readiness
+            Legacy execution boundary
           </h2>
           <SourceBadge
             mode={sourceMode(payload, loading)}
-            label={payload ? `${ready}/${total} checks ready` : 'checking loop'}
+            label={payload ? 'Linear loop retired' : 'checking retirement boundary'}
             lastUpdatedAt={payload?.generatedAt}
           />
         </div>
