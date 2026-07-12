@@ -4,7 +4,7 @@
 
 **Status:** Board-approved for a constrained canary; superseded where stricter by `2026-07-12-ownest-canary-hardening-amendment.md`
 
-**Decision:** `APPROVE_BUILD` at 0.85 confidence
+**Decision:** `APPROVE_BUILD` at 0.90 confidence for the dedicated-profile design; live activation remains held until the canary gate passes
 
 **Scope:** Unite-Group CRM, the local Hermes runtime, and the Nexus/Pi-Dev-Ops orchestration boundary
 
@@ -53,7 +53,7 @@ This creates a second orchestration engine, duplicates capabilities already pres
 
 ### C. CRM-authoritative missions with a bounded Hermes/MoA execution mirror
 
-This is the approved design. CRM is the sole mission ledger. Hermes Kanban is a disposable execution projection. The Empire profile runs eligible background missions through a bounded MoA preset. A continuous bridge reconciles Hermes status and evidence into CRM. Linear remains an engineering-delivery projection linked to the CRM task; it is not the portfolio work authority.
+This is the approved design. CRM is the sole mission ledger. Hermes Kanban is a disposable execution projection. A dedicated `ownest` profile on the dedicated `unite-group-ownest` board runs eligible background missions through a bounded MoA preset. It is cloned from the hardened Empire baseline without inheriting Empire's crons, gateway, launch agent, aliases, or changing the default/Empire models. A continuous bridge reconciles Hermes status and evidence into CRM. Linear remains an engineering-delivery projection linked to the CRM task; it is not the portfolio work authority.
 
 ```mermaid
 flowchart LR
@@ -61,7 +61,7 @@ flowchart LR
     C --> P["OWNEST policy and eligibility gate"]
     P -->|"eligible + idempotent"| K["Hermes Kanban execution mirror"]
     P -->|"hard boundary"| A["CRM approval / exception queue"]
-    K --> M["Empire profile — bounded MoA"]
+    K --> M["Dedicated OWNEST profile — bounded MoA"]
     M --> S["Specialised skills, subagents, browser and computer tools"]
     S --> V["Verification and evidence"]
     V --> R["Continuous status/evidence reconciliation"]
@@ -75,8 +75,8 @@ flowchart LR
 | Concern | Authoritative owner | Projection / executor | Rule |
 |---|---|---|---|
 | Business mission, priority, risk, approval, cancellation | CRM `cc_tasks` and approval records | Hermes, Linear, Wiki | A projection cannot re-open or overwrite CRM authority |
-| Orchestration policy and specialised-skill selection | Nexus / OWNEST contract | Hermes Empire profile | Policy is versioned and evidence-producing |
-| Background execution | Hermes Kanban worker | Empire MoA, skills, subagents | Every execution must carry the CRM task ID |
+| Orchestration policy and specialised-skill selection | Nexus / OWNEST contract | Dedicated Hermes `ownest` profile | Policy is versioned and evidence-producing |
+| Background execution | Hermes Kanban worker | OWNEST MoA, skills, subagents | Every execution must carry the CRM task ID, attempt, rollout, profile, and board |
 | Engineering delivery | CRM mission linked to Linear/GitHub | isolated worktree and PR | No direct main/prod mutation |
 | Runtime presence | Hermes process heartbeat | CRM operator/presence views | Owner labels are not process-health evidence |
 | Evidence and outcome | CRM events/evidence | Wiki and task artifacts | No success without a verifiable receipt |
@@ -101,10 +101,25 @@ interface OwnestMissionStateV1 {
   evidenceUri: string | null
   gateState: 'eligible' | 'gated' | 'dead_letter'
   lastError: string | null
+  claimedAt: string
+  rolloutId: string
+  hermesProfile: 'ownest'
+  hermesBoard: 'unite-group-ownest'
+  integrityNonce: string
+  missionDigest: string
+  failureCount: number
+  failureClass: 'transient' | 'permanent' | 'integrity' | null
+  failureCode: string | null
+  nextRetryAt: string | null
+  completionPhase: 'claimed' | 'dispatched' | 'receipt_validated' | 'artifacts_written' | 'terminal'
+  receiptSha256: string | null
+  cancelRequestedAt: string | null
+  cancelReason: string | null
+  stopPhase: string | null
 }
 ```
 
-The idempotency key is deterministic: `cc-task:<crm-task-id>:v1`. A retry therefore resolves to the existing non-archived Hermes task instead of creating another execution.
+The idempotency key is a deterministic UUIDv8 projection identity derived from the CRM task, rollout, attempt, profile, and board and formatted as `ownest:<uuid>`. A retry of the same claimed attempt therefore resolves to the same non-archived Hermes task; a later authorised attempt cannot collide with the previous execution.
 
 ## 6. Eligibility and hard gates
 
@@ -143,17 +158,17 @@ One bounded tick performs reconciliation before dispatch:
 6. Mark repeated failures as `blocked` with `gateState = dead_letter`; do not bounce routine failure to Phill.
 7. Count live OWNEST tasks.
 8. Select the oldest/highest-priority eligible queued task up to the remaining concurrency capacity.
-9. Create it with `hermes --profile empire kanban create --json`, a deterministic idempotency key, `--goal`, a maximum turn count, a maximum runtime, a retry cap, and a fixed skill allowlist.
+9. Create it with `hermes --profile ownest kanban --board unite-group-ownest create ... --json`, a deterministic idempotency key, `--goal`, a four-turn goal cap, a ten-minute runtime cap, a retry cap, and a fixed skill allowlist.
 10. Persist the mirror ID, attempt ID, lease, and a `started` event back to CRM.
 
 If Hermes creation succeeds but the CRM write fails, the next tick calls create with the same idempotency key and receives the same task. If the process dies after CRM state changes, the lease expires and the next tick reconciles or reclaims it. A missing Hermes task never becomes a false success.
 
 ## 8. Continuous MoA policy
 
-MoA is continuous for background Empire missions, not for every interactive chat turn.
+MoA is continuous only for admitted background OWNEST missions, not for every interactive chat turn.
 
-- Persist `model.provider = moa`, `model.default = default`, and `moa.active_preset = default` in the Empire profile only.
-- Keep the default/interactive Hermes profile on `openai-codex:gpt-5.6-sol` for fast intent intake.
+- Persist `model.provider = moa`, `model.default = default`, and `moa.active_preset = default` in the dedicated `ownest` profile only.
+- Keep both the default/interactive and Empire Hermes profiles on their existing `openai-codex:gpt-5.6-sol` model for fast intent intake and existing scheduled work.
 - Change MoA fan-out from `per_iteration` to `user_turn`.
 - Cap each reference advisor at 600 output tokens.
 - Keep the acting aggregator as the only tool-using model.
@@ -182,10 +197,10 @@ No runtime change is applied without preserving file mode and a timestamped back
 1. **Hygiene:** pause all 21 orphaned duplicate claim jobs; quarantine the orphaned legacy poller; prove both formerly timed-out bridge jobs under the corrected bound; set explicit concurrency and assignee limits.
 2. **Safety baseline:** manual approvals, fail-closed Tirith, PII redaction, no lazy installs, hard loop stop, verify-on-stop, destructive slash confirmation.
 3. **Bridge in shadow:** build and test eligibility, redaction, fixed-argv Hermes calls, leases, idempotency, reconciliation, dead-lettering, and non-2xx failure handling.
-4. **Runtime activation:** enable the bounded Empire MoA preset while keeping the default interactive model unchanged.
+4. **Runtime activation:** create the isolated `ownest` profile and board, enable its bounded MoA preset, and keep the default and Empire models unchanged.
 5. **Canary:** dispatch exactly one low-risk advisory CRM task at concurrency 1.
 6. **Proof:** require CRM event/evidence writeback, zero duplicate execution, a healthy Hermes gateway, and a tested stop/restore drill.
-7. **Widen:** raise the execution cap to 3 only after the canary proof is clean.
+7. **Decide:** keep all live limits at 1 and send measured reliability, duplication, receipt, stop, latency, provider, token, and cost evidence to the Board before any widening proposal.
 
 ## 11. Success measures
 

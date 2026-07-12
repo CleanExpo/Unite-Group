@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make Unite-Group CRM the authoritative mission ledger and continuously execute eligible background work through an idempotent, bounded Hermes Empire/MoA mirror with leases, recovery, and CRM evidence.
+**Goal:** Make Unite-Group CRM the authoritative mission ledger and continuously execute eligible background work through an idempotent, bounded, dedicated Hermes OWNEST/MoA mirror with leases, recovery, and CRM evidence.
 
 **Architecture:** A new `apps/autopilot-runner/src/ownest` module reads founder-scoped `cc_tasks` through PostgREST, applies a pure fail-closed eligibility policy, invokes Hermes Kanban with fixed argv, and reconciles task state and evidence back to CRM. Existing tables and Hermes capabilities are reused; no schema or dependency is added.
 
@@ -188,19 +188,19 @@ type ProcessRunner = (command: string, args: readonly string[], cwd: string) => 
 }>
 ```
 
-Assert that create uses the exact argument family below and never uses a shell string:
+The historical example below has been superseded by the hardening amendment. Current tests must pin `--profile ownest`, board `unite-group-ownest`, assignee `ownest`, the projection UUIDv8 key, ten-minute runtime, four goal turns, and the receipt contract, and must never use a shell string:
 
 ```ts
 expect(run).toHaveBeenCalledWith('hermes', expect.arrayContaining([
-  '--profile', 'empire', 'kanban', 'create',
-  '--assignee', 'empire',
-  '--idempotency-key', 'cc-task:task-1:v1',
+  '--profile', 'ownest', 'kanban', '--board', 'unite-group-ownest', 'create',
+  '--assignee', 'ownest',
+  '--idempotency-key', expect.stringMatching(/^ownest:[0-9a-f-]{36}$/),
   '--skill', 'nexus',
   '--skill', 'forward-planner',
   '--skill', 'verify-test',
-  '--max-runtime', '30m',
+  '--max-runtime', '10m',
   '--max-retries', '2',
-  '--goal', '--goal-max-turns', '12', '--json',
+  '--goal', '--goal-max-turns', '4', '--json',
 ]), expect.any(String))
 ```
 

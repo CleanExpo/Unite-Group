@@ -6,7 +6,7 @@
 
 ## Decision
 
-The first live proof is one explicitly nominated, low-risk advisory CRM task on one host. It is not a general queue worker and it is not an always-on rollout.
+The first live proof is one explicitly nominated, low-risk advisory CRM task on one host, pinned to profile `ownest` and board `unite-group-ownest`. It is not a general queue worker and it is not an always-on rollout.
 
 Required runtime controls:
 
@@ -16,7 +16,7 @@ Required runtime controls:
 - rollout limit, daily admission limit, per-tick limit, and concurrency all set to `1`;
 - a dedicated, explicitly pinned Hermes board;
 - the default Hermes profile remains on its fast Codex model;
-- only the Empire profile may use bounded MoA.
+- only the dedicated `ownest` profile may use bounded MoA; the default and Empire profiles retain their existing Codex models.
 
 If the nominated task is absent or ineligible, the tick returns without selecting another task.
 

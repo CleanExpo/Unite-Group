@@ -1,10 +1,12 @@
-# Hermes Empire MoA Runtime Cutover Implementation Plan
+# Hermes OWNEST MoA Runtime Cutover Implementation Plan
+
+> **Superseding runtime decision (12 July 2026):** MoA is isolated to a dedicated `ownest` profile and `unite-group-ownest` board. The default and Empire profiles keep their current Codex models. The commands below implement that dedicated-profile decision.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Safely activate continuous, bounded MoA reasoning for CRM-owned background missions while removing duplicate/stale runtime work and retaining a one-minute rollback.
 
-**Architecture:** The default Hermes gateway remains the fast Telegram/intake edge and dispatches CRM mirrors to the Empire profile. Only Empire persists the MoA provider. Runtime changes are scalar, reversible, backed up with original permissions, and applied only after queue hygiene; the canary runs at concurrency one before the operating cap can rise to three.
+**Architecture:** The default Hermes gateway remains the fast Telegram/intake edge and dispatches CRM mirrors to the dedicated `ownest` profile and board. Only `ownest` persists the MoA provider. It has no independent gateway, cron jobs, launch agent, or aliases. Runtime changes are scalar, reversible, backed up with original permissions, and applied only after queue hygiene; the canary runs at concurrency one before any later widening decision.
 
 **Tech Stack:** Hermes Agent 0.18.2, launchd, Hermes Kanban/Cron/MoA CLI, YAML configuration, Unite-Group OWNEST runner.
 
@@ -144,42 +146,48 @@ hermes --profile empire config check
 
 Expected: both exit 0. On failure, restore both backup files and stop.
 
-### Task 4: Persist the bounded Empire MoA provider
+### Task 4: Persist the bounded OWNEST MoA provider
 
 **Files:**
-- Modify through CLI: `~/.hermes/profiles/empire/config.yaml`
+- Create through CLI: `~/.hermes/profiles/ownest/config.yaml`
 
 - [ ] **Step 1: Bound the existing preset**
 
 ```bash
-hermes --profile empire config set moa.presets.default.fanout user_turn
-hermes --profile empire config set moa.presets.default.reference_max_tokens 600
-hermes --profile empire config set moa.active_preset default
+hermes profile create ownest --clone-from empire --no-alias
+hermes --profile ownest config set moa.presets.default.fanout user_turn
+hermes --profile ownest config set moa.presets.default.reference_max_tokens 600
+hermes --profile ownest config set moa.active_preset default
+hermes --profile ownest config set kanban.default_board unite-group-ownest
+hermes --profile ownest config set kanban.default_assignee ownest
+hermes --profile ownest config set kanban.max_in_progress 1
+hermes --profile ownest config set kanban.max_in_progress_per_profile 1
 ```
 
-Expected: reference and aggregator model mappings are unchanged, fan-out is `user_turn`, advisor output is capped, and the preset is active.
+Expected: the profile exists without an alias, reference and aggregator model mappings are unchanged, fan-out is `user_turn`, advisor output is capped, the preset is active, and the profile is pinned to its dedicated board at concurrency one. Abort if the CLI would copy crons, a gateway, a launch agent, or mutable shared queue state.
 
-- [ ] **Step 2: Persist MoA for Empire only**
+- [ ] **Step 2: Persist MoA for OWNEST only**
 
 ```bash
-hermes --profile empire config set model.provider moa
-hermes --profile empire config set model.default default
+hermes --profile ownest config set model.provider moa
+hermes --profile ownest config set model.default default
 ```
 
-Expected: Empire resolves to `moa:default`; the default profile still resolves to `openai-codex:gpt-5.6-sol`.
+Expected: OWNEST resolves to `moa:default`; the default and Empire profiles still resolve to their unchanged `openai-codex:gpt-5.6-sol` model.
 
 - [ ] **Step 3: Validate and restart the managed gateway**
 
 ```bash
 hermes config check
 hermes --profile empire config check
+hermes --profile ownest config check
 hermes gateway restart
 hermes gateway status
-hermes --profile empire moa list
+hermes --profile ownest moa list
 curl --silent --show-error --max-time 3 http://127.0.0.1:8642/health | jq '{status,version}'
 ```
 
-Expected: gateway healthy, Empire MoA active, no model change on the default profile.
+Expected: gateway healthy, OWNEST MoA active, no independent OWNEST gateway/cron/service exists, and no model change occurred on the default or Empire profiles.
 
 ### Task 5: Deploy the OWNEST worker in a reproducible runtime checkout
 
@@ -223,7 +231,8 @@ CC_OWNEST_CANARY_LIMIT=1
 CC_OWNEST_MAX_IN_PROGRESS=1
 CC_OWNEST_DAILY_DISPATCH_LIMIT=1
 CC_OWNEST_LEASE_MS=300000
-HERMES_PROFILE=empire
+CC_OWNEST_HERMES_PROFILE=ownest
+CC_OWNEST_HERMES_BOARD=unite-group-ownest
 ```
 
 Expected: one new dispatch maximum for the day.
@@ -233,7 +242,7 @@ Expected: one new dispatch maximum for the day.
 ```bash
 cd /Users/phill-mac/Unite-Group-OWNEST/apps/autopilot-runner
 node dist/ownest-tick.js
-hermes --profile empire kanban list --json --sort created-desc
+hermes --profile ownest kanban list --board unite-group-ownest --json --sort created-desc
 ```
 
 Expected: exactly one eligible low-risk advisory CRM task receives one Hermes mirror ID and one started event. No second task is created.
@@ -252,7 +261,7 @@ Pass criteria:
 - no secret/PII appears in body, output, or logs;
 - no production/spend/external/destructive action occurs.
 
-### Task 7: Prove the stop/restore path and widen only after proof
+### Task 7: Prove the stop/restore path and keep widening gated
 
 **Files:**
 - Restore source: `~/.hermes/change-backups/2026-07-12-ownest-moa/`
@@ -274,15 +283,8 @@ hermes gateway status
 
 Expected: prior models/settings restored and gateway healthy. Reapply the verified cutover only after this drill passes.
 
-- [ ] **Step 3: Widen from one to three**
+- [ ] **Step 3: Produce a widening decision packet**
 
-Only after the canary and rollback proof are clean:
+Do not widen in this cut. After the canary and rollback proof are clean, record measured reliability, duplication, receipt, stop, latency, token/provider, and cost evidence in CRM for a new Board decision. Any later approved widening applies only to `ownest`; it must not change the default or Empire queue limits.
 
-```bash
-hermes config set kanban.max_in_progress 3
-hermes config set kanban.max_in_progress_per_profile 2
-hermes --profile empire config set kanban.max_in_progress 3
-hermes --profile empire config set kanban.max_in_progress_per_profile 2
-```
-
-Set `CC_OWNEST_MAX_IN_PROGRESS=3` and a Board-approved daily dispatch budget. Keep every hard action gate unchanged.
+Expected: live limits remain `1`, every hard action gate remains unchanged, and the widening packet is evidence only—not an implicit runtime authorisation.
