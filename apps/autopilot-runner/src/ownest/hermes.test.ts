@@ -189,6 +189,28 @@ function liveTask(overrides: Record<string, unknown> = {}): Record<string, unkno
   }
 }
 
+function liveTaskForContract(
+  contract: OwnestMissionContractV1,
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  const missionTask = claimedTask(
+    { id: contract.crmTaskId },
+    {
+      crmTaskId: contract.crmTaskId,
+      attemptId: contract.attemptId,
+      idempotencyKey: contract.idempotencyKey,
+      rolloutId: contract.rolloutId,
+      hermesProfile: contract.hermesProfile,
+      hermesBoard: contract.hermesBoard,
+      missionDigest: contract.missionDigest,
+    },
+  )
+  return liveTask({
+    body: buildMissionBody(missionTask, contract),
+    ...overrides,
+  })
+}
+
 function liveShow(
   taskValue: Record<string, unknown> = liveTask(),
   overrides: Record<string, unknown> = {},
@@ -295,7 +317,7 @@ function completedLiveShow(
     : { ownest: receipt }
   const run = liveRun({ summary, metadata, ...options.run })
   return liveShow(
-    liveTask({
+    liveTaskForContract(contract, {
       id: hermesTaskId,
       status: 'done',
       completed_at: 1_784_000_120,
@@ -1276,25 +1298,122 @@ describe('createHermesClient.showMission', () => {
   })
 
   it.each([
-    ['missing nominated canary', { ...config, canaryTaskId: null }],
-    ['wrong nominated canary', { ...config, canaryTaskId: 'task-2' }],
-    ['missing rollout', { ...config, rolloutId: null }],
-    ['wrong rollout', { ...config, rolloutId: 'rollout-2' }],
-  ])('rejects SHOW contract scope with %s before invoking Hermes', async (_label, scopedConfig) => {
-    const run = mockRunner(jsonResult(completedLiveShow()))
+    [
+      'null admission scope while live mode is off',
+      { ...config, live: false, canaryTaskId: null, rolloutId: null },
+    ],
+    [
+      'a newer configured canary and rollout while live mode is off',
+      {
+        ...config,
+        live: false,
+        canaryTaskId: 'task-2',
+        rolloutId: 'rollout-2',
+      },
+    ],
+  ])('reconciles a persisted old-rollout SHOW with %s', async (_label, scopedConfig) => {
+    const persistedTask = task({ id: 'task-1' })
+    const persistedContract = buildMissionContract(
+      persistedTask,
+      'attempt-1',
+      'rollout-1',
+      integrityNonce,
+      config.hermesProfile,
+      config.hermesBoard,
+    )
+    const run = mockRunner(
+      jsonResult(completedLiveShow('hermes-1', persistedContract)),
+    )
     const client = createHermesClient(scopedConfig, { run })
 
-    await expect(client.showMission('hermes-1', contractFor())).rejects.toThrow(/contract|scope/i)
+    await expect(client.showMission('hermes-1', persistedContract)).resolves.toMatchObject({
+      status: 'done',
+      receipt: {
+        crmTaskId: 'task-1',
+        rolloutId: 'rollout-1',
+      },
+    })
+    expect(run).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
+    [
+      'profile',
+      'agent7',
+      config.hermesBoard,
+    ],
+    [
+      'board',
+      config.hermesProfile,
+      'other-board',
+    ],
+  ])('rejects a non-OWNEST %s even when config and contract agree', async (_label, profile, board) => {
+    const alternateContract = buildMissionContract(
+      task(),
+      'attempt-1',
+      'rollout-1',
+      integrityNonce,
+      profile,
+      board,
+    )
+    const run = mockRunner(jsonResult(liveShow(liveTaskForContract(alternateContract))))
+    const client = createHermesClient(
+      { ...config, hermesProfile: profile, hermesBoard: board },
+      { run },
+    )
+
+    await expect(client.showMission('hermes-1', alternateContract)).rejects.toThrow(
+      /OWNEST|contract|profile|board/i,
+    )
     expect(run).not.toHaveBeenCalled()
   })
 
-  it('allows scoped reconciliation while live mode is off', async () => {
-    const run = mockRunner(jsonResult(completedLiveShow()))
-    const client = createHermesClient({ ...config, live: false }, { run })
+  it('rejects a structurally valid persisted contract that does not own the observed mirror', async () => {
+    const differentContract = buildMissionContract(
+      task(),
+      'attempt-2',
+      'rollout-2',
+      integrityNonce,
+      config.hermesProfile,
+      config.hermesBoard,
+    )
+    const run = mockRunner(jsonResult(liveShow(liveTask())))
+    const client = createHermesClient(
+      { ...config, rolloutId: 'rollout-2' },
+      { run },
+    )
 
-    await expect(client.showMission('hermes-1', contractFor())).resolves.toMatchObject({
-      status: 'done',
-    })
+    await expect(client.showMission('hermes-1', differentContract)).rejects.toThrow(
+      /Hermes show/i,
+    )
+    expect(run).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
+    ['wrong CRM task envelope', { body: 'CRM task ID: task-2' }],
+    ['wrong tenant', { tenant: 'other-tenant' }],
+    ['wrong creator', { created_by: 'other-system' }],
+    ['wrong skills', { skills: ['nexus'] }],
+    ['wrong assignee profile', { assignee: 'agent7' }],
+  ])('rejects a SHOW mirror with %s', async (_label, taskOverrides) => {
+    const run = mockRunner(jsonResult(liveShow(liveTask(taskOverrides))))
+    const client = createHermesClient(config, { run })
+
+    await expect(client.showMission('hermes-1', contractFor())).rejects.toThrow(
+      /Hermes show/i,
+    )
+    expect(run).toHaveBeenCalledTimes(1)
+  })
+
+  it('rejects a SHOW mirror whose run belongs to another profile', async () => {
+    const run = mockRunner(
+      jsonResult(liveShow(liveTask(), { runs: [liveRun({ profile: 'agent7' })] })),
+    )
+    const client = createHermesClient(config, { run })
+
+    await expect(client.showMission('hermes-1', contractFor())).rejects.toThrow(
+      /Hermes show/i,
+    )
     expect(run).toHaveBeenCalledTimes(1)
   })
 
@@ -1548,7 +1667,6 @@ describe('createHermesClient.showMission', () => {
       { task: { completed_at: 1_784_000_118 } },
       'task-completed-at',
     ],
-    ['wrong latest run profile', { run: { profile: 'agent7' } }, 'latest-run-profile'],
     ['active latest run status', { run: { status: 'running' } }, 'latest-run-status'],
     ['wrong latest run outcome', { run: { outcome: 'failed' } }, 'latest-run-outcome'],
     ['missing latest run end', { run: { ended_at: null } }, 'latest-run-ended-at'],
@@ -1814,19 +1932,13 @@ describe('createHermesClient.showMission', () => {
     })
   })
 
-  it('downgrades a documented done response that has no installed run receipt', async () => {
+  it('rejects a documented response that cannot prove the installed OWNEST envelope', async () => {
     const shown = normalisedTask({ id: 'hermes-3', status: 'done' })
     const run = mockRunner(jsonResult({ task: shown }))
     const client = createHermesClient(config, { run })
 
-    await expect(showWithContract(client, 'hermes-3')).resolves.toMatchObject({
-      id: 'hermes-3',
-      status: 'review',
-      receipt: null,
-      receiptSha256: null,
-      evidenceUri: null,
-      error: 'ownest-receipt-invalid:latest-run-missing',
-    })
+    await expect(showWithContract(client, 'hermes-3')).rejects.toThrow(/Hermes show/i)
+    expect(run).toHaveBeenCalledTimes(1)
   })
 
   it('rejects an empty requested task ID without invoking Hermes', async () => {
@@ -2511,10 +2623,6 @@ describe('createHermesClient.stopMission', () => {
   })
 
   it.each([
-    ['missing canary', { ...config, canaryTaskId: null }, contractFor(), 'hermes-1', 'cancel-requested'],
-    ['wrong canary', { ...config, canaryTaskId: 'task-2' }, contractFor(), 'hermes-1', 'cancel-requested'],
-    ['missing rollout', { ...config, rolloutId: null }, contractFor(), 'hermes-1', 'cancel-requested'],
-    ['wrong rollout', { ...config, rolloutId: 'rollout-2' }, contractFor(), 'hermes-1', 'cancel-requested'],
     [
       'non-OWNEST profile',
       { ...config, hermesProfile: 'agent7' },
@@ -2577,14 +2685,33 @@ describe('createHermesClient.stopMission', () => {
     expect((error as Error).message).not.toContain('raw-termination-secret')
   })
 
-  it('works with live mode off for board-state reconciliation', async () => {
-    const run = mockSequence(jsonResult(stoppedShow('archived', null, null)))
-    const client = createHermesClient({ ...config, live: false }, { run })
+  it.each([
+    [
+      'null admission scope',
+      { ...config, live: false, canaryTaskId: null, rolloutId: null },
+    ],
+    [
+      'a newer canary and rollout',
+      {
+        ...config,
+        live: false,
+        canaryTaskId: 'task-2',
+        rolloutId: 'rollout-2',
+      },
+    ],
+  ])('stops a persisted old-rollout mirror while live mode is off with %s', async (_label, scopedConfig) => {
+    const persistedContract = contractFor()
+    const run = mockSequence(...successfulStopResults())
+    const client = createHermesClient(scopedConfig, { run })
 
-    await expect(stopWithContract(client)).resolves.toMatchObject({
-      outcome: 'already-archived',
+    await expect(
+      client.stopMission('hermes-1', persistedContract, 'cancel-requested'),
+    ).resolves.toMatchObject({
+      outcome: 'stopped',
+      reclaimAttempted: true,
+      task: { status: 'archived', assignee: null },
     })
-    expect(run).toHaveBeenCalledTimes(1)
+    expect(run).toHaveBeenCalledTimes(7)
   })
 })
 

@@ -443,7 +443,7 @@ function validateExpectedMissionContract(
   config: OwnestConfig,
 ): OwnestMissionContractV1 {
   const invalid = () => {
-    throw new Error('Hermes show expected mission contract is invalid')
+    throw new Error('Hermes expected OWNEST mission contract is invalid')
   }
   if (!isPlainRecord(value) || !hasExactKeys(value, MISSION_CONTRACT_KEYS)) return invalid()
   if (
@@ -455,12 +455,12 @@ function validateExpectedMissionContract(
     !HERMES_PROFILE.test(value.hermesProfile) ||
     typeof value.hermesBoard !== 'string' ||
     !HERMES_BOARD.test(value.hermesBoard) ||
+    config.hermesProfile !== STOP_HERMES_PROFILE ||
+    config.hermesBoard !== STOP_HERMES_BOARD ||
+    value.hermesProfile !== STOP_HERMES_PROFILE ||
+    value.hermesBoard !== STOP_HERMES_BOARD ||
     value.hermesProfile !== config.hermesProfile ||
     value.hermesBoard !== config.hermesBoard ||
-    config.canaryTaskId === null ||
-    config.rolloutId === null ||
-    value.crmTaskId !== config.canaryTaskId ||
-    value.rolloutId !== config.rolloutId ||
     !isHmacSha256Digest(value.missionDigest) ||
     !Array.isArray(value.validationRequirements) ||
     value.validationRequirements.length < 1 ||
@@ -975,6 +975,15 @@ function normaliseLiveShow(
   const latestRun = isRecord(latestValue) ? normaliseRunView(latestValue) : null
   const task = normaliseLiveTask(value.task)
   if (!task) return null
+  if (
+    !isBoundOwnestProjection(
+      value.task as Record<string, unknown>,
+      runs,
+      expectedContract,
+    )
+  ) {
+    return null
+  }
 
   if (task.status === 'archived') {
     return terminalFailureTask(task, 'review', 'hermes-task-archived', latestRun)
@@ -1130,23 +1139,7 @@ function parseShowResponse(
   expectedContract: OwnestMissionContractV1,
   config: OwnestConfig,
 ): HermesTask | null {
-  const liveTask = normaliseLiveShow(value, expectedContract, config)
-  if (liveTask) return liveTask
-
-  if (!isRecord(value) || !hasExactKeys(value, ['task'])) return null
-  const task = normaliseTypedTask(value.task)
-  if (!task) return null
-  if (task.status === 'done') return invalidReceiptTask(task, null, 'latest-run-missing')
-  if (task.status === 'archived') {
-    return terminalFailureTask(task, 'review', 'hermes-task-archived', null)
-  }
-  if (task.status === 'blocked' || task.status === 'review') {
-    const error = task.error
-      ? boundedRedactedText(task.error, ERROR_DETAIL_LIMIT)
-      : `hermes-run-${task.status}`
-    return terminalFailureTask(task, task.status, error, null)
-  }
-  return task
+  return normaliseLiveShow(value, expectedContract, config)
 }
 
 interface StopShowState {
@@ -1211,7 +1204,7 @@ function hasBoundMissionEnvelope(
   return isDeepStrictEqual(envelope, trustedMissionEnvelope(contract))
 }
 
-function isBoundStopProjection(
+function isBoundOwnestProjection(
   rawTask: Record<string, unknown>,
   runs: readonly Record<string, unknown>[],
   contract: OwnestMissionContractV1,
@@ -1252,7 +1245,7 @@ function normaliseStopShow(
   const active = runs.some(
     (run) => run.ended_at === null || run.status === 'running',
   )
-  if (!isBoundStopProjection(value.task as Record<string, unknown>, runs, expectedContract)) {
+  if (!isBoundOwnestProjection(value.task as Record<string, unknown>, runs, expectedContract)) {
     return null
   }
   return {
