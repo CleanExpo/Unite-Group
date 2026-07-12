@@ -185,6 +185,28 @@ export interface HermesTask {
   error: string | null
 }
 
+export type OwnestStopCause =
+  | 'cancel-requested'
+  | 'authority-revoked'
+  | 'lease-expired'
+  | 'operator-stop'
+
+export interface HermesTerminationMetadata {
+  readonly prevPid: number | null
+  readonly hostLocal: boolean
+  readonly terminationAttempted: boolean
+  readonly terminated: boolean
+  readonly sigkill: boolean
+}
+
+export interface HermesStopResult {
+  readonly outcome: 'stopped' | 'completed' | 'already-archived'
+  readonly task: HermesTask
+  readonly reclaimAttempted: boolean
+  readonly safeToRedispatch: boolean
+  readonly termination: HermesTerminationMetadata | null
+}
+
 /** Typed JSON envelope emitted by `hermes kanban create --json`. */
 export interface HermesCreateResponse {
   task: HermesTask
@@ -301,6 +323,11 @@ export interface OwnestHermesClient {
     taskId: string,
     expectedContract: OwnestMissionContractV1,
   ) => Promise<HermesTask>
+  stopMission: (
+    hermesTaskId: string,
+    expectedContract: OwnestMissionContractV1,
+    cause: OwnestStopCause,
+  ) => Promise<HermesStopResult>
 }
 
 export interface OwnestTickDeps {

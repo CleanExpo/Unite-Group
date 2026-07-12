@@ -151,6 +151,14 @@ function showWithContract(
   return client.showMission(hermesTaskId, contractFor())
 }
 
+function stopWithContract(
+  client: ReturnType<typeof createHermesClient>,
+  cause: 'cancel-requested' | 'authority-revoked' | 'lease-expired' | 'operator-stop' =
+    'cancel-requested',
+) {
+  return client.stopMission('hermes-1', contractFor(), cause)
+}
+
 /** Exact task object emitted by the installed Hermes 0.18.2 `_task_to_dict`. */
 function liveTask(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -335,6 +343,90 @@ function jsonResult(payload: unknown, overrides: Partial<ProcessResult> = {}): P
 
 function mockRunner(result: ProcessResult = jsonResult(liveTask())) {
   return vi.fn<ProcessRunner>().mockResolvedValue(result)
+}
+
+function mockSequence(...results: ProcessResult[]) {
+  const run = vi.fn<ProcessRunner>()
+  for (const result of results) run.mockResolvedValueOnce(result)
+  return run
+}
+
+const STOP_REASON = 'ownest:cancel-requested:attempt-1'
+const STOP_BASE_ARGS = [
+  '--profile',
+  'ownest',
+  'kanban',
+  '--board',
+  'unite-group-ownest',
+] as const
+
+function terminationMetadata(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    prevPid: 4321,
+    hostLocal: true,
+    terminationAttempted: true,
+    terminated: true,
+    sigkill: false,
+    ...overrides,
+  }
+}
+
+function activeStopShow(): Record<string, unknown> {
+  const active = liveRun({
+    status: 'running',
+    outcome: null,
+    summary: null,
+    error: null,
+    metadata: null,
+    ended_at: null,
+  })
+  return liveShow(liveTask({ status: 'running', assignee: 'ownest' }), {
+    latest_summary: null,
+    runs: [active],
+  })
+}
+
+function reclaimedRun(
+  metadata: unknown = terminationMetadata(),
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return liveRun({
+    status: 'reclaimed',
+    outcome: 'reclaimed',
+    summary: null,
+    error: `manual_reclaim: ${STOP_REASON}`,
+    metadata,
+    worker_pid: null,
+    ended_at: 1_784_000_121,
+    ...overrides,
+  })
+}
+
+function stoppedShow(
+  status: 'ready' | 'blocked' | 'review' | 'archived' = 'ready',
+  assignee: string | null = 'ownest',
+  run: Record<string, unknown> | null = reclaimedRun(),
+): Record<string, unknown> {
+  return liveShow(liveTask({ status, assignee }), {
+    latest_summary: null,
+    runs: run ? [run] : [],
+  })
+}
+
+function successfulStopResults(
+  metadata: Record<string, unknown> = terminationMetadata(),
+  reclaimResult: ProcessResult = { exitCode: 0, stdout: '', stderr: '' },
+): ProcessResult[] {
+  const reclaimed = reclaimedRun(metadata)
+  return [
+    jsonResult(activeStopShow()),
+    reclaimResult,
+    jsonResult(stoppedShow('ready', 'ownest', reclaimed)),
+    { exitCode: 0, stdout: '', stderr: '' },
+    jsonResult(stoppedShow('ready', null, reclaimed)),
+    { exitCode: 0, stdout: '', stderr: '' },
+    jsonResult(stoppedShow('archived', null, reclaimed)),
+  ]
 }
 
 async function showPayload(
@@ -1763,6 +1855,417 @@ describe('createHermesClient.showMission', () => {
     const client = createHermesClient(config, { run })
 
     await expect(showWithContract(client, 'hermes-1')).rejects.toThrow(/Hermes show/i)
+  })
+})
+
+describe('createHermesClient.stopMission', () => {
+  it('reclaims, unassigns, and archives with exact fixed argv and normalized termination', async () => {
+    const run = mockSequence(...successfulStopResults())
+    const client = createHermesClient(config, { run })
+
+    await expect(stopWithContract(client)).resolves.toMatchObject({
+      outcome: 'stopped',
+      reclaimAttempted: true,
+      safeToRedispatch: true,
+      termination: {
+        prevPid: 4321,
+        hostLocal: true,
+        terminationAttempted: true,
+        terminated: true,
+        sigkill: false,
+      },
+      task: {
+        id: 'hermes-1',
+        status: 'archived',
+        assignee: null,
+        latestRun: { metadata: null },
+      },
+    })
+
+    expect(run.mock.calls).toEqual([
+      ['hermes', [...STOP_BASE_ARGS, 'show', 'hermes-1', '--json'], config.hermesCwd],
+      [
+        'hermes',
+        [...STOP_BASE_ARGS, 'reclaim', 'hermes-1', '--reason', STOP_REASON],
+        config.hermesCwd,
+      ],
+      ['hermes', [...STOP_BASE_ARGS, 'show', 'hermes-1', '--json'], config.hermesCwd],
+      ['hermes', [...STOP_BASE_ARGS, 'assign', 'hermes-1', 'none'], config.hermesCwd],
+      ['hermes', [...STOP_BASE_ARGS, 'show', 'hermes-1', '--json'], config.hermesCwd],
+      ['hermes', [...STOP_BASE_ARGS, 'archive', 'hermes-1'], config.hermesCwd],
+      ['hermes', [...STOP_BASE_ARGS, 'show', 'hermes-1', '--json'], config.hermesCwd],
+    ])
+    expect(run.mock.calls.every(([command]) => command === 'hermes')).toBe(true)
+  })
+
+  it.each([
+    [
+      'no previous PID',
+      terminationMetadata({
+        prevPid: null,
+        terminationAttempted: false,
+        terminated: false,
+      }),
+      true,
+    ],
+    [
+      'remote unattempted PID',
+      terminationMetadata({
+        hostLocal: false,
+        terminationAttempted: false,
+        terminated: false,
+      }),
+      false,
+    ],
+    [
+      'surviving local PID',
+      terminationMetadata({ terminationAttempted: true, terminated: false }),
+      false,
+    ],
+  ] as const)(
+    'archives %s while preserving redispatch safety',
+    async (_label, metadata, safeToRedispatch) => {
+      const run = mockSequence(...successfulStopResults({ ...metadata }))
+      const client = createHermesClient(config, { run })
+
+      const result = await stopWithContract(client)
+
+      expect(result).toMatchObject({
+        outcome: 'stopped',
+        safeToRedispatch,
+        termination: metadata,
+        task: { status: 'archived', assignee: null },
+      })
+      expect(result.task.latestRun?.metadata).toBeNull()
+    },
+  )
+
+  it.each([
+    ['cancel-requested', 'ownest:cancel-requested:attempt-1'],
+    ['authority-revoked', 'ownest:authority-revoked:attempt-1'],
+    ['lease-expired', 'ownest:lease-expired:attempt-1'],
+    ['operator-stop', 'ownest:operator-stop:attempt-1'],
+  ] as const)('accepts reclaim exit 1 when %s loses a race to valid completion', async (cause, reason) => {
+    const run = mockSequence(
+      jsonResult(activeStopShow()),
+      { exitCode: 1, stdout: '', stderr: 'run already ended' },
+      jsonResult(completedLiveShow()),
+    )
+    const client = createHermesClient(config, { run })
+
+    await expect(stopWithContract(client, cause)).resolves.toMatchObject({
+      outcome: 'completed',
+      reclaimAttempted: true,
+      safeToRedispatch: false,
+      termination: null,
+      task: { status: 'done', receipt: completionReceipt(), latestRun: { metadata: null } },
+    })
+    expect(run.mock.calls[1]?.[1]).toEqual([
+      ...STOP_BASE_ARGS,
+      'reclaim',
+      'hermes-1',
+      '--reason',
+      reason,
+    ])
+    expect(run).toHaveBeenCalledTimes(3)
+  })
+
+  it('accepts reclaim exit 1 when post-SHOW proves the same run was reclaimed', async () => {
+    const run = mockSequence(
+      ...successfulStopResults(terminationMetadata(), {
+        exitCode: 1,
+        stdout: '',
+        stderr: 'already reclaimed',
+      }),
+    )
+    const client = createHermesClient(config, { run })
+
+    await expect(stopWithContract(client)).resolves.toMatchObject({
+      outcome: 'stopped',
+      reclaimAttempted: true,
+      safeToRedispatch: true,
+    })
+  })
+
+  it('returns a valid completion that won before reclaim without mutating Hermes', async () => {
+    const run = mockSequence(jsonResult(completedLiveShow()))
+    const client = createHermesClient(config, { run })
+
+    await expect(stopWithContract(client)).resolves.toMatchObject({
+      outcome: 'completed',
+      reclaimAttempted: false,
+      safeToRedispatch: false,
+      termination: null,
+      task: { status: 'done', receipt: completionReceipt() },
+    })
+    expect(run).toHaveBeenCalledTimes(1)
+  })
+
+  it('returns an already archived task without recreating or mutating it', async () => {
+    const run = mockSequence(jsonResult(stoppedShow('archived', null, null)))
+    const client = createHermesClient(config, { run })
+
+    await expect(stopWithContract(client)).resolves.toMatchObject({
+      outcome: 'already-archived',
+      reclaimAttempted: false,
+      safeToRedispatch: false,
+      termination: null,
+      task: { status: 'archived', assignee: null },
+    })
+    expect(run).toHaveBeenCalledTimes(1)
+  })
+
+  it('resumes a ready task from its matching reclaimed run', async () => {
+    const reclaimed = reclaimedRun()
+    const run = mockSequence(
+      jsonResult(stoppedShow('ready', 'ownest', reclaimed)),
+      { exitCode: 0, stdout: '', stderr: '' },
+      jsonResult(stoppedShow('ready', null, reclaimed)),
+      { exitCode: 0, stdout: '', stderr: '' },
+      jsonResult(stoppedShow('archived', null, reclaimed)),
+    )
+    const client = createHermesClient(config, { run })
+
+    await expect(stopWithContract(client)).resolves.toMatchObject({
+      outcome: 'stopped',
+      reclaimAttempted: false,
+      safeToRedispatch: true,
+      termination: terminationMetadata(),
+    })
+    expect(run.mock.calls.map((call) => call[1])).toEqual([
+      [...STOP_BASE_ARGS, 'show', 'hermes-1', '--json'],
+      [...STOP_BASE_ARGS, 'assign', 'hermes-1', 'none'],
+      [...STOP_BASE_ARGS, 'show', 'hermes-1', '--json'],
+      [...STOP_BASE_ARGS, 'archive', 'hermes-1'],
+      [...STOP_BASE_ARGS, 'show', 'hermes-1', '--json'],
+    ])
+  })
+
+  it('resumes after unassignment by archiving without repeating assign', async () => {
+    const reclaimed = reclaimedRun(terminationMetadata({ terminated: false }))
+    const run = mockSequence(
+      jsonResult(stoppedShow('ready', null, reclaimed)),
+      { exitCode: 0, stdout: '', stderr: '' },
+      jsonResult(stoppedShow('archived', null, reclaimed)),
+    )
+    const client = createHermesClient(config, { run })
+
+    await expect(stopWithContract(client)).resolves.toMatchObject({
+      outcome: 'stopped',
+      reclaimAttempted: false,
+      safeToRedispatch: false,
+      termination: { prevPid: 4321, terminated: false },
+    })
+    expect(run.mock.calls.map((call) => call[1])).toEqual([
+      [...STOP_BASE_ARGS, 'show', 'hermes-1', '--json'],
+      [...STOP_BASE_ARGS, 'archive', 'hermes-1'],
+      [...STOP_BASE_ARGS, 'show', 'hermes-1', '--json'],
+    ])
+  })
+
+  it.each(['blocked', 'review'] as const)(
+    'continues crash recovery from an inactive %s task without inventing termination proof',
+    async (status) => {
+      const run = mockSequence(
+        jsonResult(stoppedShow(status, 'ownest', null)),
+        { exitCode: 0, stdout: '', stderr: '' },
+        jsonResult(stoppedShow(status, null, null)),
+        { exitCode: 0, stdout: '', stderr: '' },
+        jsonResult(stoppedShow('archived', null, null)),
+      )
+      const client = createHermesClient(config, { run })
+
+      await expect(stopWithContract(client)).resolves.toMatchObject({
+        outcome: 'stopped',
+        reclaimAttempted: false,
+        safeToRedispatch: false,
+        termination: null,
+        task: { status: 'archived', assignee: null },
+      })
+    },
+  )
+
+  it.each([
+    [
+      'missing termination field',
+      reclaimedRun(
+        Object.fromEntries(
+          Object.entries(terminationMetadata()).filter(([key]) => key !== 'sigkill'),
+        ),
+      ),
+    ],
+    ['wrong termination type', reclaimedRun(terminationMetadata({ prevPid: '4321' }))],
+    ['extra termination field', reclaimedRun(terminationMetadata({ signal: 'SIGTERM' }))],
+    [
+      'wrong reclaim reason',
+      reclaimedRun(terminationMetadata(), {
+        error: 'manual_reclaim: ownest:operator-stop:attempt-1',
+      }),
+    ],
+    ['missing termination metadata', reclaimedRun(null)],
+  ])('fails closed on a reclaimed run with %s', async (_label, latestRun) => {
+    const run = mockSequence(jsonResult(stoppedShow('ready', 'ownest', latestRun)))
+    const client = createHermesClient(config, { run })
+
+    await expect(stopWithContract(client)).rejects.toThrow(/Hermes stop/i)
+    expect(run).toHaveBeenCalledTimes(1)
+  })
+
+  it('fails closed when an active run survives the mandatory post-reclaim SHOW', async () => {
+    const run = mockSequence(
+      jsonResult(activeStopShow()),
+      { exitCode: 0, stdout: '', stderr: '' },
+      jsonResult(activeStopShow()),
+    )
+    const client = createHermesClient(config, { run })
+
+    await expect(stopWithContract(client)).rejects.toThrow(/Hermes stop/i)
+    expect(run).toHaveBeenCalledTimes(3)
+  })
+
+  it.each([
+    [
+      'assign',
+      [
+        jsonResult(stoppedShow('ready', 'ownest', reclaimedRun())),
+        {
+          exitCode: 2,
+          stdout: 'owner@example.com token=stop-secret',
+          stderr: '😀'.repeat(1_000),
+        },
+      ],
+    ],
+    [
+      'archive',
+      [
+        jsonResult(stoppedShow('ready', null, reclaimedRun())),
+        {
+          exitCode: 2,
+          stdout: 'owner@example.com token=stop-secret',
+          stderr: '😀'.repeat(1_000),
+        },
+      ],
+    ],
+  ] as const)('throws a bounded redacted error when %s fails', async (_operation, results) => {
+    const run = mockSequence(...results)
+    const client = createHermesClient(config, { run })
+
+    const error = await stopWithContract(client).catch((value: unknown) => value)
+
+    expect(error).toBeInstanceOf(Error)
+    const message = (error as Error).message
+    expect(message).not.toContain('owner@example.com')
+    expect(message).not.toContain('stop-secret')
+    expect(message).toContain('[REDACTED]')
+    expect(message).not.toContain('\uFFFD')
+    expect(Buffer.byteLength(message, 'utf8')).toBeLessThanOrEqual(900)
+    expect(run).toHaveBeenCalledTimes(2)
+  })
+
+  it.each([
+    ['not archived', stoppedShow('ready', null, reclaimedRun())],
+    ['wrong assignee', stoppedShow('archived', 'ownest', reclaimedRun())],
+    ['active run', stoppedShow('archived', null, (activeStopShow().runs as unknown[])[0] as Record<string, unknown>)],
+  ])('fails closed when final SHOW has %s', async (_label, finalShow) => {
+    const run = mockSequence(
+      jsonResult(stoppedShow('ready', null, reclaimedRun())),
+      { exitCode: 0, stdout: '', stderr: '' },
+      jsonResult(finalShow),
+    )
+    const client = createHermesClient(config, { run })
+
+    await expect(stopWithContract(client)).rejects.toThrow(/Hermes stop/i)
+    expect(run).toHaveBeenCalledTimes(3)
+  })
+
+  it('fails closed when assign succeeds but SHOW does not prove a null assignee', async () => {
+    const reclaimed = reclaimedRun()
+    const run = mockSequence(
+      jsonResult(stoppedShow('ready', 'ownest', reclaimed)),
+      { exitCode: 0, stdout: '', stderr: '' },
+      jsonResult(stoppedShow('ready', 'ownest', reclaimed)),
+    )
+    const client = createHermesClient(config, { run })
+
+    await expect(stopWithContract(client)).rejects.toThrow(/Hermes stop/i)
+    expect(run).toHaveBeenCalledTimes(3)
+  })
+
+  it.each([
+    ['missing canary', { ...config, canaryTaskId: null }, contractFor(), 'hermes-1', 'cancel-requested'],
+    ['wrong canary', { ...config, canaryTaskId: 'task-2' }, contractFor(), 'hermes-1', 'cancel-requested'],
+    ['missing rollout', { ...config, rolloutId: null }, contractFor(), 'hermes-1', 'cancel-requested'],
+    ['wrong rollout', { ...config, rolloutId: 'rollout-2' }, contractFor(), 'hermes-1', 'cancel-requested'],
+    [
+      'non-OWNEST profile',
+      { ...config, hermesProfile: 'agent7' },
+      buildMissionContract(
+        task(),
+        'attempt-1',
+        'rollout-1',
+        integrityNonce,
+        'agent7',
+        config.hermesBoard,
+      ),
+      'hermes-1',
+      'cancel-requested',
+    ],
+    [
+      'non-OWNEST board',
+      { ...config, hermesBoard: 'other-board' },
+      buildMissionContract(
+        task(),
+        'attempt-1',
+        'rollout-1',
+        integrityNonce,
+        config.hermesProfile,
+        'other-board',
+      ),
+      'hermes-1',
+      'cancel-requested',
+    ],
+    ['invalid task id', config, contractFor(), 'bad task', 'cancel-requested'],
+    ['invalid cause', config, contractFor(), 'hermes-1', 'shutdown-now'],
+  ] as const)(
+    'rejects %s before any Hermes process mutation',
+    async (_label, configValue, contract, hermesTaskId, cause) => {
+      const run = mockRunner(jsonResult(activeStopShow()))
+      const client = createHermesClient(configValue, { run })
+
+      await expect(
+        client.stopMission(hermesTaskId, contract, cause as 'cancel-requested'),
+      ).rejects.toThrow()
+      expect(run).not.toHaveBeenCalled()
+    },
+  )
+
+  it('does not echo malformed raw termination metadata in STOP errors', async () => {
+    const payload = {
+      runs: [reclaimedRun('raw-termination-secret')],
+      task: liveTask({ status: 'ready' }),
+      latest_summary: null,
+      parents: [],
+      children: [],
+      comments: [],
+      events: [],
+    }
+    const run = mockSequence(jsonResult(payload))
+    const client = createHermesClient(config, { run })
+
+    const error = await stopWithContract(client).catch((value: unknown) => value)
+
+    expect(error).toBeInstanceOf(Error)
+    expect((error as Error).message).not.toContain('raw-termination-secret')
+  })
+
+  it('works with live mode off for board-state reconciliation', async () => {
+    const run = mockSequence(jsonResult(stoppedShow('archived', null, null)))
+    const client = createHermesClient({ ...config, live: false }, { run })
+
+    await expect(stopWithContract(client)).resolves.toMatchObject({
+      outcome: 'already-archived',
+    })
+    expect(run).toHaveBeenCalledTimes(1)
   })
 })
 

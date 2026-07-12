@@ -16,8 +16,10 @@ import type {
   CcTask,
   HermesRunView,
   HermesDeps,
+  HermesStopResult,
   HermesTask,
   HermesTaskStatus,
+  HermesTerminationMetadata,
   HardenedOwnestStateV1,
   HmacSha256Digest,
   OwnestConfig,
@@ -26,6 +28,7 @@ import type {
   OwnestCompletionValidationResultV1,
   OwnestHermesClient,
   OwnestMissionContractV1,
+  OwnestStopCause,
   ProcessResult,
   ProcessRunner,
   Sha256Digest,
@@ -159,6 +162,21 @@ const HERMES_PROFILE = /^[a-z0-9]{1,64}$/
 const HERMES_BOARD = /^[a-z0-9][a-z0-9_-]{0,63}$/
 const HMAC_SHA256_DIGEST = /^hmac-sha256:[0-9a-f]{64}$/
 const SHA256_DIGEST = /^sha256:[0-9a-f]{64}$/
+const STOP_HERMES_PROFILE = 'ownest'
+const STOP_HERMES_BOARD = 'unite-group-ownest'
+const STOP_CAUSES = new Set<OwnestStopCause>([
+  'cancel-requested',
+  'authority-revoked',
+  'lease-expired',
+  'operator-stop',
+])
+const TERMINATION_METADATA_KEYS = [
+  'hostLocal',
+  'prevPid',
+  'sigkill',
+  'terminated',
+  'terminationAttempted',
+] as const
 
 function stringifyUnknown(value: unknown): string {
   if (value instanceof Error) return `${value.name}: ${value.message}`
@@ -621,6 +639,33 @@ function isLiveRun(value: unknown): boolean {
   )
 }
 
+function normaliseLiveRuns(value: unknown): Record<string, unknown>[] | null {
+  if (!Array.isArray(value) || !value.every(isLiveRun)) return null
+  const runs = value as Record<string, unknown>[]
+  const seenRunIds = new Set<number>()
+  let previousStartedAt: number | null = null
+  let previousId: number | null = null
+  for (const run of runs) {
+    const runId = run.id as number
+    const startedAt = run.started_at as number
+    const endedAt = run.ended_at as number | null
+    if (
+      runId <= 0 ||
+      startedAt < 0 ||
+      (endedAt !== null && endedAt < startedAt) ||
+      seenRunIds.has(runId) ||
+      (previousStartedAt !== null && startedAt < previousStartedAt) ||
+      (previousStartedAt === startedAt && previousId !== null && runId <= previousId)
+    ) {
+      return null
+    }
+    seenRunIds.add(runId)
+    previousStartedAt = startedAt
+    previousId = runId
+  }
+  return runs
+}
+
 function boundedRedactedText(value: string, maxBytes: number): string {
   const redacted = redactMissionText(value)
   const bytes = Buffer.from(redacted, 'utf8')
@@ -918,32 +963,10 @@ function normaliseLiveShow(
   if (!isStringArray(value.parents) || !isStringArray(value.children)) return null
   if (!Array.isArray(value.comments) || !value.comments.every(isLiveComment)) return null
   if (!Array.isArray(value.events) || !value.events.every(isLiveEvent)) return null
-  if (!Array.isArray(value.runs) || !value.runs.every(isLiveRun)) return null
+  const runs = normaliseLiveRuns(value.runs)
+  if (!runs) return null
 
-  const seenRunIds = new Set<number>()
-  let previousStartedAt: number | null = null
-  let previousId: number | null = null
-  for (const runValue of value.runs) {
-    const run = runValue as Record<string, unknown>
-    const runId = run.id as number
-    const startedAt = run.started_at as number
-    const endedAt = run.ended_at as number | null
-    if (
-      runId <= 0 ||
-      startedAt < 0 ||
-      (endedAt !== null && endedAt < startedAt) ||
-      seenRunIds.has(runId) ||
-      (previousStartedAt !== null && startedAt < previousStartedAt) ||
-      (previousStartedAt === startedAt && previousId !== null && runId <= previousId)
-    ) {
-      return null
-    }
-    seenRunIds.add(runId)
-    previousStartedAt = startedAt
-    previousId = runId
-  }
-
-  const latestValue = value.runs.at(-1)
+  const latestValue = runs.at(-1)
   const latestRun = isRecord(latestValue) ? normaliseRunView(latestValue) : null
   const task = normaliseLiveTask(value.task)
   if (!task) return null
@@ -1026,7 +1049,7 @@ function normaliseLiveShow(
 }
 
 function safeDetail(value: string): string {
-  return redactMissionText(value).slice(0, ERROR_DETAIL_LIMIT)
+  return boundedRedactedText(value, ERROR_DETAIL_LIMIT)
 }
 
 function resultDetail(result: ProcessResult): string {
@@ -1041,7 +1064,7 @@ function resultDetail(result: ProcessResult): string {
   )
 }
 
-function hermesError(operation: 'create' | 'show', reason: string, detail = ''): Error {
+function hermesError(operation: 'create' | 'show' | 'stop', reason: string, detail = ''): Error {
   return new Error(`Hermes ${operation} ${reason}${detail ? `: ${detail}` : ''}`)
 }
 
@@ -1119,6 +1142,313 @@ function parseShowResponse(
     return terminalFailureTask(task, task.status, error, null)
   }
   return task
+}
+
+interface StopShowState {
+  raw: Record<string, unknown>
+  task: HermesTask
+  latestRunValue: Record<string, unknown> | null
+  latestRun: HermesRunView | null
+  active: boolean
+}
+
+function normaliseStopShow(value: unknown, expectedTaskId: string): StopShowState | null {
+  if (!isRecord(value) || !hasExactKeys(value, LIVE_SHOW_KEYS)) return null
+  if (!isNullableString(value.latest_summary)) return null
+  if (!isStringArray(value.parents) || !isStringArray(value.children)) return null
+  if (!Array.isArray(value.comments) || !value.comments.every(isLiveComment)) return null
+  if (!Array.isArray(value.events) || !value.events.every(isLiveEvent)) return null
+  const runs = normaliseLiveRuns(value.runs)
+  if (!runs) return null
+  const task = normaliseLiveTask(value.task)
+  if (!task || task.id !== expectedTaskId) return null
+  const latestRunValue = runs.at(-1) ?? null
+  const latestRun = latestRunValue ? normaliseRunView(latestRunValue) : null
+  return {
+    raw: value,
+    task,
+    latestRunValue,
+    latestRun,
+    active:
+      latestRun !== null &&
+      (latestRun.endedAt === null || latestRun.status === 'running'),
+  }
+}
+
+function stopTask(state: StopShowState): HermesTask {
+  return {
+    ...state.task,
+    latestRun: state.latestRun ? { ...state.latestRun, metadata: null } : null,
+  }
+}
+
+function normaliseTerminationMetadata(value: unknown): HermesTerminationMetadata | null {
+  if (!isPlainRecord(value) || !hasExactKeys(value, TERMINATION_METADATA_KEYS)) return null
+  if (
+    (value.prevPid !== null && (!isInteger(value.prevPid) || value.prevPid <= 0)) ||
+    typeof value.hostLocal !== 'boolean' ||
+    typeof value.terminationAttempted !== 'boolean' ||
+    typeof value.terminated !== 'boolean' ||
+    typeof value.sigkill !== 'boolean'
+  ) {
+    return null
+  }
+  return {
+    prevPid: value.prevPid,
+    hostLocal: value.hostLocal,
+    terminationAttempted: value.terminationAttempted,
+    terminated: value.terminated,
+    sigkill: value.sigkill,
+  }
+}
+
+function reclaimedTermination(
+  state: StopShowState,
+  reason: string,
+): HermesTerminationMetadata | null {
+  const run = state.latestRun
+  const rawRun = state.latestRunValue
+  if (!run || !rawRun) return null
+  const hasReclaimedMarker = run.status === 'reclaimed' || run.outcome === 'reclaimed'
+  if (!hasReclaimedMarker) return null
+  if (
+    state.active ||
+    run.status !== 'reclaimed' ||
+    run.outcome !== 'reclaimed' ||
+    run.profile !== STOP_HERMES_PROFILE ||
+    run.endedAt === null ||
+    run.endedAt < run.startedAt ||
+    run.error !== `manual_reclaim: ${reason}`
+  ) {
+    throw hermesError('stop', 'reclaimed run did not match the requested stop')
+  }
+  const termination = normaliseTerminationMetadata(rawRun.metadata)
+  if (!termination) {
+    throw hermesError('stop', 'reclaimed run returned invalid termination metadata')
+  }
+  return termination
+}
+
+function requireReclaimedStop(
+  state: StopShowState,
+  reason: string,
+): HermesTerminationMetadata {
+  if (state.task.status !== 'ready' || state.active) {
+    throw hermesError('stop', 'reclaim did not leave an inactive ready task')
+  }
+  const termination = reclaimedTermination(state, reason)
+  if (!termination) throw hermesError('stop', 'reclaim did not produce a reclaimed run')
+  return termination
+}
+
+function preserveTermination(
+  expected: HermesTerminationMetadata | null,
+  state: StopShowState,
+  reason: string,
+): HermesTerminationMetadata | null {
+  const observed = reclaimedTermination(state, reason)
+  if (expected !== null && (observed === null || !isDeepStrictEqual(observed, expected))) {
+    throw hermesError('stop', 'termination proof changed during stop recovery')
+  }
+  return observed ?? expected
+}
+
+function validCompletedStopTask(
+  state: StopShowState,
+  expectedContract: OwnestMissionContractV1,
+  config: OwnestConfig,
+): HermesTask | null {
+  if (state.task.status !== 'done') return null
+  const task = normaliseLiveShow(state.raw, expectedContract, config)
+  if (!task || task.status !== 'done' || task.receipt === null) {
+    throw hermesError('stop', 'done task did not contain a valid completion receipt')
+  }
+  return task
+}
+
+function completedStopResult(task: HermesTask, reclaimAttempted: boolean): HermesStopResult {
+  return {
+    outcome: 'completed',
+    task,
+    reclaimAttempted,
+    safeToRedispatch: false,
+    termination: null,
+  }
+}
+
+function safeToRedispatch(termination: HermesTerminationMetadata | null): boolean {
+  return termination !== null && (termination.prevPid === null || termination.terminated)
+}
+
+type StopProcessAction = 'show' | 'reclaim' | 'assign' | 'archive'
+
+function stopArgs(...args: string[]): readonly string[] {
+  return [
+    '--profile',
+    STOP_HERMES_PROFILE,
+    'kanban',
+    '--board',
+    STOP_HERMES_BOARD,
+    ...args,
+  ]
+}
+
+async function invokeStopProcess(
+  action: StopProcessAction,
+  args: readonly string[],
+  config: OwnestConfig,
+  run: ProcessRunner,
+  allowNonZero = false,
+): Promise<ProcessResult> {
+  let result: unknown
+  try {
+    result = await run('hermes', args, config.hermesCwd)
+  } catch (error) {
+    throw hermesError(
+      'stop',
+      `${action} process rejected`,
+      safeDetail(stringifyUnknown(error)),
+    )
+  }
+  if (!isProcessResult(result)) {
+    throw hermesError('stop', `${action} returned an invalid process result`)
+  }
+  if (!allowNonZero && result.exitCode !== 0) {
+    throw hermesError('stop', `${action} exited non-zero`, resultDetail(result))
+  }
+  return result
+}
+
+async function readStopState(
+  taskId: string,
+  config: OwnestConfig,
+  run: ProcessRunner,
+): Promise<StopShowState> {
+  const result = await invokeStopProcess(
+    'show',
+    stopArgs('show', taskId, '--json'),
+    config,
+    run,
+  )
+  let value: unknown
+  try {
+    value = JSON.parse(result.stdout)
+  } catch {
+    throw hermesError('stop', 'show returned invalid JSON')
+  }
+  const state = normaliseStopShow(value, taskId)
+  if (!state) {
+    throw hermesError('stop', 'show returned an unrecognised installed payload')
+  }
+  return state
+}
+
+function validateStopAuthority(
+  hermesTaskId: string,
+  expectedContract: OwnestMissionContractV1,
+  cause: OwnestStopCause,
+  config: OwnestConfig,
+): { taskId: string; contract: OwnestMissionContractV1; reason: string } {
+  const taskId = assertTaskId(hermesTaskId, 'Hermes task ID')
+  if (config.hermesProfile !== STOP_HERMES_PROFILE) {
+    throw new Error('Hermes stop requires the OWNEST profile authority')
+  }
+  if (config.hermesBoard !== STOP_HERMES_BOARD) {
+    throw new Error('Hermes stop requires the OWNEST board authority')
+  }
+  if (!STOP_CAUSES.has(cause)) throw new Error('Hermes stop cause is invalid')
+  const contract = validateExpectedMissionContract(expectedContract, config)
+  return {
+    taskId,
+    contract,
+    reason: `ownest:${cause}:${contract.attemptId}`,
+  }
+}
+
+function isStopRecoveryStatus(status: HermesTaskStatus): boolean {
+  return status === 'ready' || status === 'blocked' || status === 'review'
+}
+
+async function stopHermesMission(
+  hermesTaskId: string,
+  expectedContract: OwnestMissionContractV1,
+  cause: OwnestStopCause,
+  config: OwnestConfig,
+  run: ProcessRunner,
+): Promise<HermesStopResult> {
+  const { taskId, contract, reason } = validateStopAuthority(
+    hermesTaskId,
+    expectedContract,
+    cause,
+    config,
+  )
+  let state = await readStopState(taskId, config, run)
+  const initialCompletion = validCompletedStopTask(state, contract, config)
+  if (initialCompletion) return completedStopResult(initialCompletion, false)
+
+  if (state.task.status === 'archived') {
+    if (state.active) throw hermesError('stop', 'archived task retained an active run')
+    const termination = reclaimedTermination(state, reason)
+    return {
+      outcome: 'already-archived',
+      task: stopTask(state),
+      reclaimAttempted: false,
+      safeToRedispatch: safeToRedispatch(termination),
+      termination,
+    }
+  }
+
+  let reclaimAttempted = false
+  let termination: HermesTerminationMetadata | null = null
+  if (state.active) {
+    reclaimAttempted = true
+    const reclaimResult = await invokeStopProcess(
+      'reclaim',
+      stopArgs('reclaim', taskId, '--reason', reason),
+      config,
+      run,
+      true,
+    )
+    state = await readStopState(taskId, config, run)
+    if (reclaimResult.exitCode !== 0 && reclaimResult.exitCode !== 1) {
+      throw hermesError('stop', 'reclaim exited non-zero', resultDetail(reclaimResult))
+    }
+    const racedCompletion = validCompletedStopTask(state, contract, config)
+    if (racedCompletion) return completedStopResult(racedCompletion, true)
+    termination = requireReclaimedStop(state, reason)
+  } else {
+    if (!isStopRecoveryStatus(state.task.status)) {
+      throw hermesError('stop', 'inactive task was not in a recoverable stop state')
+    }
+    termination = reclaimedTermination(state, reason)
+  }
+
+  if (state.task.assignee !== null) {
+    await invokeStopProcess('assign', stopArgs('assign', taskId, 'none'), config, run)
+    state = await readStopState(taskId, config, run)
+    if (
+      state.task.assignee !== null ||
+      state.active ||
+      !isStopRecoveryStatus(state.task.status)
+    ) {
+      throw hermesError('stop', 'assign did not leave an inactive unassigned task')
+    }
+    termination = preserveTermination(termination, state, reason)
+  }
+
+  await invokeStopProcess('archive', stopArgs('archive', taskId), config, run)
+  state = await readStopState(taskId, config, run)
+  if (state.task.status !== 'archived' || state.task.assignee !== null || state.active) {
+    throw hermesError('stop', 'archive did not produce an inactive unassigned archived task')
+  }
+  termination = preserveTermination(termination, state, reason)
+  return {
+    outcome: 'stopped',
+    task: stopTask(state),
+    reclaimAttempted,
+    safeToRedispatch: safeToRedispatch(termination),
+    termination,
+  }
 }
 
 function assertTaskId(value: string, label: string): string {
@@ -1462,6 +1792,16 @@ export function createHermesClient(
         throw hermesError('show', 'returned an unrecognised JSON shape', resultDetail(result))
       }
       return parsed
+    },
+
+    async stopMission(hermesTaskId, expectedContract, cause) {
+      return stopHermesMission(
+        hermesTaskId,
+        expectedContract,
+        cause,
+        config,
+        deps.run,
+      )
     },
   }
 }
