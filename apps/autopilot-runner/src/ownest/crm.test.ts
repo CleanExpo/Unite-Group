@@ -36,12 +36,17 @@ const config: OwnestConfig = {
   founderId: 'founder-1',
   workerId: 'ownest-worker-1',
   hermesCwd: '/tmp/hermes-workspace',
+  hermesBoard: 'unite-group-ownest',
+  rolloutId: null,
+  canaryTaskId: null,
   live: false,
   canaryLimit: 1,
   maxInProgress: 1,
   leaseMs: 300_000,
   dailyDispatchLimit: 3,
 }
+
+const expectedUpdatedAt = '2026-07-12T00:00:00.000Z'
 
 const validEnv: NodeJS.ProcessEnv = {
   SUPABASE_URL: 'https://example.supabase.co',
@@ -226,7 +231,16 @@ describe('loadOwnestConfig', () => {
     [' 1 ', false],
     ['1', true],
   ])('enables live mode only for the exact value "1" (%s)', (raw, expected) => {
-    const result = loadOwnestConfig({ ...validEnv, CC_OWNEST_LIVE: raw })
+    const result = loadOwnestConfig({
+      ...validEnv,
+      CC_OWNEST_LIVE: raw,
+      ...(raw === '1'
+        ? {
+            CC_OWNEST_ROLLOUT_ID: 'rollout-live-mode-test',
+            CC_OWNEST_CANARY_TASK_ID: 'task-live-mode-test',
+          }
+        : {}),
+    })
 
     expect(result.ok).toBe(true)
     if (!result.ok) return
@@ -298,6 +312,119 @@ describe('loadOwnestConfig', () => {
 
     expect(result.ok).toBe(true)
     if (result.ok) expect(result.config.workerId).toBe('hermes-agent-1')
+  })
+
+  it('selects the Hermes board by OWNEST override, Hermes fallback, then safe default', () => {
+    const explicit = loadOwnestConfig({
+      ...validEnv,
+      CC_OWNEST_HERMES_BOARD: ' ownest_primary ',
+      HERMES_KANBAN_BOARD: 'hermes-fallback',
+    })
+    const fallback = loadOwnestConfig({
+      ...validEnv,
+      HERMES_KANBAN_BOARD: ' hermes_fallback ',
+    })
+    const defaulted = loadOwnestConfig(validEnv)
+
+    expect(explicit.ok).toBe(true)
+    expect(fallback.ok).toBe(true)
+    expect(defaulted.ok).toBe(true)
+    if (explicit.ok) expect(explicit.config.hermesBoard).toBe('ownest_primary')
+    if (fallback.ok) expect(fallback.config.hermesBoard).toBe('hermes_fallback')
+    if (defaulted.ok) expect(defaulted.config.hermesBoard).toBe('unite-group-ownest')
+  })
+
+  it.each([
+    'Uppercase',
+    '-leading-hyphen',
+    'contains space',
+    `a${'b'.repeat(64)}`,
+  ])('rejects an unsafe Hermes board without echoing it: %s', (hermesBoard) => {
+    const result = loadOwnestConfig({ ...validEnv, CC_OWNEST_HERMES_BOARD: hermesBoard })
+
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.error).toContain('CC_OWNEST_HERMES_BOARD')
+    expect(result.error).not.toContain(hermesBoard)
+  })
+
+  it('keeps rollout and canary identities null while live mode is off', () => {
+    const result = loadOwnestConfig(validEnv)
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.config.rolloutId).toBeNull()
+    expect(result.config.canaryTaskId).toBeNull()
+  })
+
+  it('requires and trims explicit rollout and one-task canary identities in live mode', () => {
+    const missing = loadOwnestConfig({ ...validEnv, CC_OWNEST_LIVE: '1' })
+    const configured = loadOwnestConfig({
+      ...validEnv,
+      CC_OWNEST_LIVE: '1',
+      CC_OWNEST_ROLLOUT_ID: ' rollout-2026-07-12 ',
+      CC_OWNEST_CANARY_TASK_ID: ' task_123 ',
+    })
+
+    expect(missing.ok).toBe(false)
+    if (!missing.ok) {
+      expect(missing.error).toContain('CC_OWNEST_ROLLOUT_ID')
+      expect(missing.error).toContain('CC_OWNEST_CANARY_TASK_ID')
+    }
+    expect(configured.ok).toBe(true)
+    if (configured.ok) {
+      expect(configured.config.rolloutId).toBe('rollout-2026-07-12')
+      expect(configured.config.canaryTaskId).toBe('task_123')
+    }
+  })
+
+  it.each([
+    ['CC_OWNEST_ROLLOUT_ID', 'unsafe/value'],
+    ['CC_OWNEST_CANARY_TASK_ID', 'task?founder=other'],
+    ['CC_OWNEST_ROLLOUT_ID', `r${'x'.repeat(128)}`],
+    ['CC_OWNEST_CANARY_TASK_ID', `t${'x'.repeat(128)}`],
+  ])('rejects unsafe %s without exposing its value', (variable, unsafeValue) => {
+    const env = {
+      ...validEnv,
+      CC_OWNEST_LIVE: '1',
+      CC_OWNEST_ROLLOUT_ID: 'rollout-safe',
+      CC_OWNEST_CANARY_TASK_ID: 'task-safe',
+      [variable]: unsafeValue,
+    }
+    const result = loadOwnestConfig(env)
+
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.error).toContain(variable)
+    expect(result.error).not.toContain(unsafeValue)
+  })
+
+  it('accepts matching normalized Supabase origins when both URL variables are present', () => {
+    const result = loadOwnestConfig({
+      ...validEnv,
+      SUPABASE_URL: ' https://EXAMPLE.supabase.co/// ',
+      NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co',
+    })
+
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.config.supabaseUrl).toBe('https://example.supabase.co')
+  })
+
+  it('rejects mismatched Supabase origins without exposing either configured URL', () => {
+    const privateUrl = 'https://private-project.supabase.co'
+    const publicUrl = 'https://public-project.supabase.co'
+    const result = loadOwnestConfig({
+      ...validEnv,
+      SUPABASE_URL: privateUrl,
+      NEXT_PUBLIC_SUPABASE_URL: publicUrl,
+    })
+
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.error).toContain('SUPABASE_URL')
+    expect(result.error).toContain('NEXT_PUBLIC_SUPABASE_URL')
+    expect(result.error).not.toContain(privateUrl)
+    expect(result.error).not.toContain(publicUrl)
   })
 })
 
@@ -437,6 +564,7 @@ describe('compareAndSetTask', () => {
         {
           taskId: 'task-1',
           expectedStatus: 'queued',
+          expectedUpdatedAt,
           patch: { status: 'running', metadata },
         },
         config,
@@ -449,6 +577,7 @@ describe('compareAndSetTask', () => {
     expect(url.searchParams.get('id')).toBe('eq.task-1')
     expect(url.searchParams.get('founder_id')).toBe(`eq.${config.founderId}`)
     expect(url.searchParams.get('status')).toBe('eq.queued')
+    expect(url.searchParams.get('updated_at')).toBe(`eq.${expectedUpdatedAt}`)
     expect(url.searchParams.get('select')).toBe(TASK_COLUMNS)
     expect(init.method).toBe('PATCH')
     expect(new Headers(init.headers).get('prefer')).toBe('return=representation')
@@ -461,7 +590,7 @@ describe('compareAndSetTask', () => {
     const fetchImpl = mockFetch(jsonResponse([updated]))
 
     await compareAndSetTask(
-      { taskId, expectedStatus: 'queued', patch: { status: 'running' } },
+      { taskId, expectedStatus: 'queued', expectedUpdatedAt, patch: { status: 'running' } },
       config,
       deps(fetchImpl),
     )
@@ -470,7 +599,52 @@ describe('compareAndSetTask', () => {
     expect(url.searchParams.get('id')).toBe(`eq.${taskId}`)
     expect(url.searchParams.getAll('founder_id')).toEqual([`eq.${config.founderId}`])
     expect(url.searchParams.getAll('status')).toEqual(['eq.queued'])
+    expect(url.searchParams.getAll('updated_at')).toEqual([`eq.${expectedUpdatedAt}`])
     expect(url.toString()).toContain('task-1%26founder_id%3Deq.attacker%26status%3Deq.done')
+  })
+
+  it('encodes a valid offset timestamp as one exact CAS filter', async () => {
+    const offsetTimestamp = '2026-07-12T10:00:00+10:00'
+    const fetchImpl = mockFetch(jsonResponse([task({ status: 'running' })]))
+
+    await compareAndSetTask(
+      {
+        taskId: 'task-1',
+        expectedStatus: 'queued',
+        expectedUpdatedAt: offsetTimestamp,
+        patch: { status: 'running' },
+      },
+      config,
+      deps(fetchImpl),
+    )
+
+    const { url } = firstRequest(fetchImpl)
+    expect(url.searchParams.getAll('updated_at')).toEqual([`eq.${offsetTimestamp}`])
+    expect(url.searchParams.getAll('status')).toEqual(['eq.queued'])
+    expect(url.toString()).toContain('%2B10%3A00')
+  })
+
+  it.each([
+    ['missing', undefined],
+    ['empty', ''],
+    ['invalid calendar date', '2026-02-30T00:00:00.000Z'],
+    ['query injection', '2026-07-12T00:00:00.000Z&status=eq.done'],
+  ])('rejects a %s expected updated timestamp before fetching', async (_label, value) => {
+    const fetchImpl = mockFetch()
+
+    await expect(
+      compareAndSetTask(
+        {
+          taskId: 'task-1',
+          expectedStatus: 'queued',
+          expectedUpdatedAt: value,
+          patch: { status: 'running' },
+        } as never,
+        config,
+        deps(fetchImpl),
+      ),
+    ).rejects.toThrow(/updated timestamp/i)
+    expect(fetchImpl).not.toHaveBeenCalled()
   })
 
   it('returns null when zero rows are returned because the race was lost', async () => {
@@ -478,7 +652,7 @@ describe('compareAndSetTask', () => {
 
     await expect(
       compareAndSetTask(
-        { taskId: 'task-1', expectedStatus: 'queued', patch: { status: 'running' } },
+        { taskId: 'task-1', expectedStatus: 'queued', expectedUpdatedAt, patch: { status: 'running' } },
         config,
         deps(fetchImpl),
       ),
@@ -496,7 +670,7 @@ describe('compareAndSetTask', () => {
 
     await expect(
       compareAndSetTask(
-        { taskId: 'task-1', expectedStatus: 'queued', patch: { status: 'running' } },
+        { taskId: 'task-1', expectedStatus: 'queued', expectedUpdatedAt, patch: { status: 'running' } },
         config,
         deps(fetchImpl),
       ),
@@ -508,6 +682,7 @@ describe('compareAndSetTask', () => {
     const unsafeInput = {
       taskId: 'task-1',
       expectedStatus: 'queued',
+      expectedUpdatedAt,
       patch: { status: 'running', founder_id: 'attacker' },
     }
 
@@ -531,6 +706,7 @@ describe('compareAndSetTask', () => {
         {
           taskId: 'task-1',
           expectedStatus: 'queued',
+          expectedUpdatedAt,
           patch: { status: 'running', metadata },
         },
         config,
@@ -550,6 +726,7 @@ describe('compareAndSetTask', () => {
         {
           taskId: 'task-1',
           expectedStatus: 'queued',
+          expectedUpdatedAt,
           patch: { status: 'running', metadata },
         },
         config,
@@ -583,7 +760,7 @@ describe('compareAndSetTask', () => {
 
     const error = await capturedError(() =>
       compareAndSetTask(
-        { taskId: 'task-1', expectedStatus: 'queued', patch: makePatch() },
+        { taskId: 'task-1', expectedStatus: 'queued', expectedUpdatedAt, patch: makePatch() },
         config,
         deps(fetchImpl),
       ),
@@ -690,7 +867,7 @@ describe('request failure handling', () => {
       'CAS PATCH',
       (fetchImpl: typeof fetch) =>
         compareAndSetTask(
-          { taskId: 'task-1', expectedStatus: 'queued', patch: { status: 'running' } },
+          { taskId: 'task-1', expectedStatus: 'queued', expectedUpdatedAt, patch: { status: 'running' } },
           config,
           deps(fetchImpl),
         ),
@@ -777,6 +954,7 @@ describe('createCrmClient', () => {
     await client.compareAndSetTask({
       taskId: 'task-1',
       expectedStatus: 'queued',
+      expectedUpdatedAt,
       patch: { status: 'running' },
     })
     await client.appendTaskEvent({ taskId: 'task-1', type: 'started' })

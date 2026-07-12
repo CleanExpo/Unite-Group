@@ -83,6 +83,9 @@ export interface OwnestConfig {
   founderId: string
   workerId: string
   hermesCwd: string
+  hermesBoard: string
+  rolloutId: string | null
+  canaryTaskId: string | null
   live: boolean
   canaryLimit: number
   maxInProgress: number
@@ -119,6 +122,7 @@ export interface CrmDeps {
 export interface CompareAndSetTaskInput {
   taskId: string
   expectedStatus: CcTaskStatus
+  expectedUpdatedAt: string
   patch: Partial<Pick<CcTask, 'status' | 'metadata'>>
 }
 

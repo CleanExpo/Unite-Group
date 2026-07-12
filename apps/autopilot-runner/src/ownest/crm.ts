@@ -77,6 +77,8 @@ const EVIDENCE_CONFIDENCE_LEVELS = new Set(['high', 'medium', 'low'])
 
 const ISO_TIMESTAMP =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(Z|[+-](\d{2}):(\d{2}))$/
+const HERMES_BOARD = /^[a-z0-9][a-z0-9_-]{0,63}$/
+const ROLLOUT_OR_TASK_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/
 
 function optionalTrimmedString(value: unknown): string | null {
   if (typeof value !== 'string') return null
@@ -123,25 +125,58 @@ function boundedInteger(
 
 /** Loads a dormant-by-default, bounded OWNEST worker configuration. */
 export function loadOwnestConfig(env: NodeJS.ProcessEnv = process.env): LoadOwnestConfigResult {
-  const rawSupabaseUrl =
-    optionalTrimmedString(env.SUPABASE_URL) ?? optionalTrimmedString(env.NEXT_PUBLIC_SUPABASE_URL)
-  const supabaseUrl = rawSupabaseUrl ? normaliseSupabaseUrl(rawSupabaseUrl) : null
+  const rawSupabaseUrl = optionalTrimmedString(env.SUPABASE_URL)
+  const rawPublicSupabaseUrl = optionalTrimmedString(env.NEXT_PUBLIC_SUPABASE_URL)
+  const normalisedSupabaseUrl = rawSupabaseUrl ? normaliseSupabaseUrl(rawSupabaseUrl) : null
+  const normalisedPublicSupabaseUrl = rawPublicSupabaseUrl
+    ? normaliseSupabaseUrl(rawPublicSupabaseUrl)
+    : null
+  const supabaseUrl = normalisedSupabaseUrl ?? normalisedPublicSupabaseUrl
   const serviceRoleKey = optionalTrimmedString(env.SUPABASE_SERVICE_ROLE_KEY)
   const founderId = optionalTrimmedString(env.FOUNDER_USER_ID)
   const workerId =
     optionalTrimmedString(env.CC_OWNEST_WORKER_ID) ?? optionalTrimmedString(env.HERMES_AGENT_ID)
+  const hermesBoard =
+    optionalTrimmedString(env.CC_OWNEST_HERMES_BOARD) ??
+    optionalTrimmedString(env.HERMES_KANBAN_BOARD) ??
+    'unite-group-ownest'
+  const rolloutId = optionalTrimmedString(env.CC_OWNEST_ROLLOUT_ID)
+  const canaryTaskId = optionalTrimmedString(env.CC_OWNEST_CANARY_TASK_ID)
+  const live = env.CC_OWNEST_LIVE === '1'
 
   const problems: string[] = []
-  if (!rawSupabaseUrl) {
+  if (!rawSupabaseUrl && !rawPublicSupabaseUrl) {
     problems.push('SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL is required')
-  } else if (!supabaseUrl) {
-    problems.push('SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL must be a safe URL')
+  }
+  if (rawSupabaseUrl && !normalisedSupabaseUrl) {
+    problems.push('SUPABASE_URL must be a safe URL')
+  }
+  if (rawPublicSupabaseUrl && !normalisedPublicSupabaseUrl) {
+    problems.push('NEXT_PUBLIC_SUPABASE_URL must be a safe URL')
+  }
+  if (
+    normalisedSupabaseUrl &&
+    normalisedPublicSupabaseUrl &&
+    normalisedSupabaseUrl !== normalisedPublicSupabaseUrl
+  ) {
+    problems.push('SUPABASE_URL and NEXT_PUBLIC_SUPABASE_URL must resolve to the same origin')
   }
   if (!serviceRoleKey) problems.push('SUPABASE_SERVICE_ROLE_KEY is required')
   if (!founderId) problems.push('FOUNDER_USER_ID is required')
   if (!workerId) problems.push('CC_OWNEST_WORKER_ID or HERMES_AGENT_ID is required')
+  if (!HERMES_BOARD.test(hermesBoard)) {
+    problems.push('CC_OWNEST_HERMES_BOARD or HERMES_KANBAN_BOARD is invalid')
+  }
+  if (rolloutId && !ROLLOUT_OR_TASK_ID.test(rolloutId)) {
+    problems.push('CC_OWNEST_ROLLOUT_ID is invalid')
+  }
+  if (canaryTaskId && !ROLLOUT_OR_TASK_ID.test(canaryTaskId)) {
+    problems.push('CC_OWNEST_CANARY_TASK_ID is invalid')
+  }
+  if (live && !rolloutId) problems.push('CC_OWNEST_ROLLOUT_ID is required when live')
+  if (live && !canaryTaskId) problems.push('CC_OWNEST_CANARY_TASK_ID is required when live')
 
-  if (!supabaseUrl || !serviceRoleKey || !founderId || !workerId) {
+  if (problems.length > 0 || !supabaseUrl || !serviceRoleKey || !founderId || !workerId) {
     return { ok: false, error: `Invalid OWNEST configuration: ${problems.join('; ')}` }
   }
 
@@ -153,7 +188,10 @@ export function loadOwnestConfig(env: NodeJS.ProcessEnv = process.env): LoadOwne
       founderId,
       workerId,
       hermesCwd: optionalTrimmedString(env.HERMES_CWD) ?? process.cwd(),
-      live: env.CC_OWNEST_LIVE === '1',
+      hermesBoard,
+      rolloutId,
+      canaryTaskId,
+      live,
       canaryLimit: boundedInteger(env.CC_OWNEST_CANARY_LIMIT, 1, 1, 3),
       maxInProgress: boundedInteger(env.CC_OWNEST_MAX_IN_PROGRESS, 1, 1, 3),
       leaseMs: boundedInteger(env.CC_OWNEST_LEASE_MS, 300_000, 60_000, 1_800_000),
@@ -585,6 +623,9 @@ export async function compareAndSetTask(
   if (typeof input.expectedStatus !== 'string' || !TASK_STATUSES.has(input.expectedStatus)) {
     throw new Error('CRM task update has an invalid expected status')
   }
+  if (!isIsoTimestamp(input.expectedUpdatedAt)) {
+    throw new Error('CRM task update has an invalid expected updated timestamp')
+  }
   if (!isPlainRecord(input.patch)) throw new Error('CRM task update patch must be a plain object')
 
   const allowedPatchKeys = new Set(['status', 'metadata'])
@@ -608,6 +649,7 @@ export async function compareAndSetTask(
   params.set('id', `eq.${input.taskId}`)
   params.set('founder_id', `eq.${config.founderId}`)
   params.set('status', `eq.${input.expectedStatus}`)
+  params.set('updated_at', `eq.${input.expectedUpdatedAt}`)
   params.set('select', TASK_SELECT)
 
   const patchBody = boundedJsonBody('Failed to serialise CRM task update', input.patch, config)
