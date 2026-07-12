@@ -33,6 +33,7 @@
     "linear": "node scripts/linear-update.mjs",
     "mobile-voice:approve-board-packet": "tsx scripts/mobile-voice-approve-board-packet.ts",
     "mobile-voice:terminal-exchange": "tsx scripts/mobile-voice-terminal-exchange.ts",
+    "nexus:semantic-backfill": "tsx scripts/nexus-semantic-backfill.ts",
     "test:e2e": "playwright test",
     "test:e2e:contact-crud": "tsx e2e/support/run-with-supabase-admin.ts playwright test e2e/contact-crud.spec.ts",
     "test:e2e:lead-scoring": "tsx e2e/support/run-with-supabase-admin.ts playwright test e2e/lead-scoring.spec.ts",

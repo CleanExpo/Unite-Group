@@ -1,0 +1,297 @@
+{
+  "schema_version": "1.0",
+  "project_id": "unite-group-nexus",
+  "goal": "Unify Nexus page and chunk embedding ingestion and prove complete, fresh retrieval in a Supabase database branch without production writes.",
+  "generated": "2026-07-13",
+  "horizon": 16,
+  "win_condition": [
+    {
+      "id": "wc1",
+      "statement": "620/620 wiki pages have non-null page vectors in the database branch",
+      "check": "auto",
+      "probe": "nexus_semantic_coverage.page_vectors = wiki_pages = 620"
+    },
+    {
+      "id": "wc2",
+      "statement": "620/620 wiki pages own non-null chunks with no duplicate keys",
+      "check": "auto",
+      "probe": "chunk_documents = 620 and duplicate_chunk_keys = 0"
+    },
+    {
+      "id": "wc3",
+      "statement": "No semantic document is stale relative to the 30-day gate or source update",
+      "check": "auto",
+      "probe": "stale_documents = 0"
+    },
+    {
+      "id": "wc4",
+      "statement": "Document and chunk semantic probes return expected sources",
+      "check": "auto",
+      "probe": "recorded probe set passes"
+    },
+    {
+      "id": "wc5",
+      "statement": "Real query plans and index evidence are recorded on the database branch",
+      "check": "auto",
+      "probe": "EXPLAIN (ANALYSE, BUFFERS) artefact"
+    },
+    {
+      "id": "wc6",
+      "statement": "Independent review accepts evidence and rollback before any production action",
+      "check": "human",
+      "probe": "review verdict"
+    }
+  ],
+  "moves": [
+    {
+      "id": "m1",
+      "title": "Ground strategy",
+      "deliverable": "Read strategy, wiki, audit and repo rules",
+      "verify": "Sources listed in foresight brief",
+      "depends_on": [],
+      "unlocks": ["m2"],
+      "satisfies": [],
+      "is_branch_point": false,
+      "branches": []
+    },
+    {
+      "id": "m2",
+      "title": "Inventory writers",
+      "deliverable": "Map divergent legacy ingestion paths",
+      "verify": "Failure modes recorded",
+      "depends_on": ["m1"],
+      "unlocks": ["m3"],
+      "satisfies": [],
+      "is_branch_point": false,
+      "branches": []
+    },
+    {
+      "id": "m3",
+      "title": "Define contract",
+      "deliverable": "One page vector and indexed chunks per wiki page",
+      "verify": "Contract represented by tests",
+      "depends_on": ["m2"],
+      "unlocks": ["m4", "m5", "m6"],
+      "satisfies": ["wc1", "wc2"],
+      "is_branch_point": false,
+      "branches": []
+    },
+    {
+      "id": "m4",
+      "title": "Deterministic chunking",
+      "deliverable": "Pure chunk and fingerprint library",
+      "verify": "Vitest unit tests pass",
+      "depends_on": ["m3"],
+      "unlocks": ["m7"],
+      "satisfies": ["wc2"],
+      "is_branch_point": false,
+      "branches": []
+    },
+    {
+      "id": "m5",
+      "title": "Transactional RPC",
+      "deliverable": "Idempotent page and chunk upsert RPC",
+      "verify": "Branch rerun returns stable counts",
+      "depends_on": ["m3"],
+      "unlocks": ["m7"],
+      "satisfies": ["wc1", "wc2"],
+      "is_branch_point": false,
+      "branches": []
+    },
+    {
+      "id": "m6",
+      "title": "Coverage RPC",
+      "deliverable": "Fail-closed coverage and freshness JSON",
+      "verify": "Unit fixtures fail deficits and pass completeness",
+      "depends_on": ["m3"],
+      "unlocks": ["m9"],
+      "satisfies": ["wc1", "wc2", "wc3"],
+      "is_branch_point": false,
+      "branches": []
+    },
+    {
+      "id": "m7",
+      "title": "Sandbox-only runner",
+      "deliverable": "Paginated guarded embedding runner",
+      "verify": "Prod ref and missing write flag are refused",
+      "depends_on": ["m4", "m5"],
+      "unlocks": ["m8"],
+      "satisfies": ["wc1", "wc2"],
+      "is_branch_point": false,
+      "branches": []
+    },
+    {
+      "id": "m8",
+      "title": "Provision database branch",
+      "deliverable": "Approved ephemeral branch with wiki data",
+      "verify": "Branch ref and 620 wiki page count",
+      "depends_on": ["m7"],
+      "unlocks": ["m9"],
+      "satisfies": [],
+      "is_branch_point": true,
+      "branches": [
+        {
+          "decider": "migration history replays",
+          "if": "yes",
+          "then": ["m9"],
+          "reconverge": "m9"
+        },
+        {
+          "decider": "migration history replays",
+          "if": "no",
+          "then": ["m8a"],
+          "reconverge": "m9"
+        }
+      ]
+    },
+    {
+      "id": "m8a",
+      "title": "Repair migration baseline",
+      "deliverable": "Separate reviewed baseline repair",
+      "verify": "Fresh database branch replays",
+      "depends_on": ["m8"],
+      "unlocks": ["m9"],
+      "satisfies": [],
+      "is_branch_point": false,
+      "branches": []
+    },
+    {
+      "id": "m9",
+      "title": "Replay migration",
+      "deliverable": "Schema, constraints, indexes and RPCs on branch",
+      "verify": "Schema probes pass",
+      "depends_on": ["m6", "m8"],
+      "unlocks": ["m10"],
+      "satisfies": ["wc1", "wc2", "wc3"],
+      "is_branch_point": false,
+      "branches": []
+    },
+    {
+      "id": "m10",
+      "title": "Run full backfill",
+      "deliverable": "All branch pages processed",
+      "verify": "Runner exits zero without swallowed errors",
+      "depends_on": ["m9"],
+      "unlocks": ["m11"],
+      "satisfies": ["wc1", "wc2"],
+      "is_branch_point": false,
+      "branches": []
+    },
+    {
+      "id": "m11",
+      "title": "Prove idempotence",
+      "deliverable": "Second identical backfill run",
+      "verify": "Stable counts and zero duplicate keys",
+      "depends_on": ["m10"],
+      "unlocks": ["m12"],
+      "satisfies": ["wc2"],
+      "is_branch_point": false,
+      "branches": []
+    },
+    {
+      "id": "m12",
+      "title": "Prove coverage",
+      "deliverable": "Coverage and freshness evidence JSON",
+      "verify": "620/620, 620/620, duplicates 0, stale 0",
+      "depends_on": ["m11"],
+      "unlocks": ["m13"],
+      "satisfies": ["wc1", "wc2", "wc3"],
+      "is_branch_point": false,
+      "branches": []
+    },
+    {
+      "id": "m13",
+      "title": "Semantic probes",
+      "deliverable": "Representative document and chunk probe set",
+      "verify": "Expected source IDs are recalled",
+      "depends_on": ["m12"],
+      "unlocks": ["m14"],
+      "satisfies": ["wc4"],
+      "is_branch_point": false,
+      "branches": []
+    },
+    {
+      "id": "m14",
+      "title": "Capture query plans",
+      "deliverable": "EXPLAIN ANALYSE and buffer evidence",
+      "verify": "Plans and timing saved",
+      "depends_on": ["m13"],
+      "unlocks": ["m15"],
+      "satisfies": ["wc5"],
+      "is_branch_point": true,
+      "branches": [
+        {
+          "decider": "planner evidence acceptable",
+          "if": "yes",
+          "then": ["m15"],
+          "reconverge": "m15"
+        },
+        {
+          "decider": "planner evidence acceptable",
+          "if": "no",
+          "then": ["m14a"],
+          "reconverge": "m15"
+        }
+      ]
+    },
+    {
+      "id": "m14a",
+      "title": "Tune branch query path",
+      "deliverable": "Evidence-led index/query adjustment",
+      "verify": "Re-run plans improve or justify scan",
+      "depends_on": ["m14"],
+      "unlocks": ["m15"],
+      "satisfies": ["wc5"],
+      "is_branch_point": false,
+      "branches": []
+    },
+    {
+      "id": "m15",
+      "title": "Independent review",
+      "deliverable": "Review and rollback verdict",
+      "verify": "Non-author verdict recorded",
+      "depends_on": ["m14"],
+      "unlocks": ["m16"],
+      "satisfies": ["wc6"],
+      "is_branch_point": false,
+      "branches": []
+    },
+    {
+      "id": "m16",
+      "title": "Propose PR",
+      "deliverable": "PR to main with evidence and founder gates",
+      "verify": "No merge, deploy or production mutation",
+      "depends_on": ["m15"],
+      "unlocks": [],
+      "satisfies": ["wc6"],
+      "is_branch_point": false,
+      "branches": []
+    }
+  ],
+  "risks": [
+    {
+      "id": "r1",
+      "risk": "Partial semantic state",
+      "response": "Use transactional RPC and read-back",
+      "mitigated_by_move": "m5"
+    },
+    {
+      "id": "r2",
+      "risk": "Accidental production write",
+      "response": "Reject production ref and require explicit write arming",
+      "mitigated_by_move": "m7"
+    },
+    {
+      "id": "r3",
+      "risk": "False green coverage",
+      "response": "Gate non-null vectors, chunks, duplicates and freshness",
+      "mitigated_by_move": "m12"
+    },
+    {
+      "id": "r4",
+      "risk": "Migration history cannot replay",
+      "response": "Repair baseline rather than bypassing to production",
+      "mitigated_by_move": "m8a"
+    }
+  ]
+}
