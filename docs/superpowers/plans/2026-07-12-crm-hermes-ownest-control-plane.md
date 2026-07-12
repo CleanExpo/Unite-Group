@@ -409,7 +409,7 @@ git commit -m "feat(ownest): reconcile CRM missions with Hermes"
 Assert:
 
 - invalid configuration returns exit code 1;
-- live off returns 0 without invoking the tick;
+- live off still invokes one reconcile-first tick so cancellation, STOP, lease, and terminal-state repair remain active, but cannot admit or create a new mission;
 - a clean tick returns 0 and emits one secret-free JSON summary line;
 - a failed tick returns 1;
 - logs never contain the service-role key.
@@ -430,7 +430,7 @@ Add:
 "ownest": "node dist/ownest-tick.js"
 ```
 
-The entrypoint performs exactly one bounded sweep and exits. Continuous operation belongs to launchd, preventing a hung in-process loop from becoming immortal.
+The entrypoint performs exactly one bounded reconcile-first sweep and exits. `CC_OWNEST_LIVE=0` disables admission, not reconciliation. Continuous operation belongs to launchd, preventing a hung in-process loop from becoming immortal.
 
 - [ ] **Step 4: Implement the wrappers**
 

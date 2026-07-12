@@ -213,7 +213,7 @@ CC_OWNEST_LIVE=0 node dist/ownest-tick.js
 bash scripts/install-ownest-service.sh
 ```
 
-Expected: tests/build pass, the kill-switch smoke test drains, LaunchAgent is loaded live-off, and no CRM/Hermes mission is created.
+Expected: tests/build pass, the live-off smoke test still runs one reconcile-first sweep, the LaunchAgent is loaded live-off, and no new CRM/Hermes mission is admitted or created. Any pre-existing managed mission remains subject to CRM cancellation, STOP, lease, and terminal-state repair.
 
 ### Task 6: Execute one low-risk advisory canary
 
