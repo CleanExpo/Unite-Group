@@ -2,17 +2,41 @@ import type { CcTask, CcTaskStatus, OwnestStateV1 } from './types.js'
 
 const ALLOWED_OWNERS = new Set(['hermes', 'nexus', 'empire'])
 
-const DANGEROUS_LANGUAGE = [
-  /\b(?:deploy|release|promote|ship)\b[\s\S]{0,60}\bprod(?:uction)?\b/i,
-  /\bprod(?:uction)?\b[\s\S]{0,60}\b(?:deploy(?:ment)?|database|db|schema|migration|mutat(?:e|ion)|write|update|delete)\b/i,
+const ALWAYS_DANGEROUS_LANGUAGE = [
   /\b(?:pay(?:ment|ments)?|purchase|buy|checkout|spend|invoice|charge|refund|transfer funds?|billing)\b/i,
-  /\b(?:send|publish|post|broadcast|email|message|notify|announce|release)\b[\s\S]{0,60}\b(?:customer|client|user|public(?:ly)?|external(?:ly)?|email|message|announcement|newsletter|social|press)\b/i,
-  /\b(?:access|read|retrieve|rotate|reveal|expose|share|disclose|grant|elevate|change|modify|reset|create)\b[\s\S]{0,60}\b(?:secret|credentials?|password|tokens?|api[-_ ]?keys?|service[-_ ]?role|privileges?|permissions?)\b/i,
   /\b(?:delete|destroy|drop|truncate|wipe|erase|purge)\b/i,
-  /\b(?:access[- ]control|rbac|row[- ]level security|rls|grant access|revoke access|change permissions?|modify permissions?|role assignments?)\b/i,
-  /\bbranch[- ]protection\b/i,
-  /\b(?:merge|squash[- ]?merge|auto[- ]?merge)\b[\s\S]{0,40}\b(?:pull request|pr|branch|main|master)\b/i,
 ] as const
+
+const DANGEROUS_ACTION_TARGETS = [
+  [
+    /\b(?:deploy|run|apply|execute|migrate|mutate|write|update|release|promote|ship)\b/i,
+    /\bprod(?:uction)?\b/i,
+  ],
+  [
+    /\b(?:send|publish(?:ed)?|post|broadcast|email(?:ed)?|message|notify|announce|release)\b/i,
+    /\b(?:customers?|clients?|users?|public(?:ly)?|external(?:ly)?|emails?|messages?|announcements?|newsletters?|social|press|blog|posts?|reports?|phill)\b/i,
+  ],
+  [
+    /\b(?:access|read|retrieve|rotate|reveal|expose|share|disclose|grant|elevate|escalate|change|modify|reset|create)\b/i,
+    /\b(?:secrets?|credentials?|passwords?|tokens?|api[-_ ]?keys?|service[-_ ]?roles?|privileges?|permissions?)\b/i,
+  ],
+  [
+    /\b(?:change|modify|disable|enable|grant|revoke|alter|remove|bypass|turn\s+off)\b/i,
+    /\b(?:access[- ]control|rbac|row[- ]level security|rls|permissions?|role assignments?)\b/i,
+  ],
+  [
+    /\b(?:change|modify|disable|enable|remove|bypass|turn\s+off)\b/i,
+    /\b(?:branch[- ]protection|protected branch(?:es)?|protection\b[\s\S]{0,40}\bbranch(?:es)?)\b/i,
+  ],
+  [
+    /\b(?:merge|merged|squash[- ]?merge|auto[- ]?merge)\b/i,
+    /\b(?:pull requests?|prs?|branches?|main|master|changes?|commits?|code|release)\b/i,
+  ],
+] as const
+
+const SENSITIVE_NOMINAL_ACTION = /\b(?:rotation|escalation)\b/i
+const SENSITIVE_NOMINAL_TARGET = /\b(?:secrets?|credentials?|passwords?|tokens?|api[-_ ]?keys?|service[-_ ]?accounts?|privileges?|permissions?)\b/i
+const CLEAR_ADVISORY_INTENT = /^\s*(?:research|analyse|analyze|review|compare|study|assess)\b/i
 
 const CREDENTIAL_LABEL = String.raw`(?:[A-Z0-9_-]*(?:API[-_ ]?(?:KEY|TOKEN)|ACCESS[-_ ]?TOKEN|AUTH[-_ ]?TOKEN|REFRESH[-_ ]?TOKEN|ID[-_ ]?TOKEN|CLIENT[-_ ]?SECRET|SERVICE[-_ ]?ROLE[-_ ]?KEY|SECRET|TOKEN|PASSWORD|PASSWD|CREDENTIAL)[A-Z0-9_-]*)`
 
@@ -106,7 +130,17 @@ export function extractOwnestState(metadata: unknown): OwnestStateV1 | null {
 
 function containsDangerousLanguage(task: CcTask): boolean {
   const missionText = `${task.title}\n${task.objective}`
-  return DANGEROUS_LANGUAGE.some((pattern) => pattern.test(missionText))
+  if (ALWAYS_DANGEROUS_LANGUAGE.some((pattern) => pattern.test(missionText))) return true
+  if (DANGEROUS_ACTION_TARGETS.some(([action, target]) => action.test(missionText) && target.test(missionText))) {
+    return true
+  }
+
+  return [task.title, task.objective].some(
+    (text) =>
+      SENSITIVE_NOMINAL_ACTION.test(text) &&
+      SENSITIVE_NOMINAL_TARGET.test(text) &&
+      !CLEAR_ADVISORY_INTENT.test(text),
+  )
 }
 
 /** Pure, fail-closed admission policy for the initial advisory canary. */

@@ -125,6 +125,38 @@ describe('evaluateEligibility', () => {
     expect(evaluateEligibility(task({ title }))).toMatchObject({ eligible: false })
   })
 
+  const dangerousPhraseRegressions = [
+    ['production migration', 'Run the database migration in production'],
+    ['production migration reversed', 'Apply the database migration in production'],
+    ['production migration target first', 'In production, execute the database migration'],
+    ['outbound blog publication', 'Publish the company blog post'],
+    ['outbound blog publication passive', 'The company blog post must be published'],
+    ['outbound direct email', 'Email Phill the report'],
+    ['outbound direct email passive', 'The report should be emailed to Phill'],
+    ['credential rotation', 'API key rotation for production'],
+    ['credential rotation reversed', 'Production rotation of the API key'],
+    ['privilege escalation', 'Privilege escalation for the service account'],
+    ['privilege escalation imperative', 'Escalate privileges for the service account'],
+    ['protected branches', 'Disable protected branches on main'],
+    ['protected branches reversed', 'Turn off protection for the main branch'],
+    ['merge approved changes', 'Merge the approved changes'],
+    ['merge approved changes passive', 'The approved changes must be merged'],
+  ] as const
+
+  it.each(dangerousPhraseRegressions)('rejects dangerous phrase regression: %s', (_category, title) => {
+    expect(evaluateEligibility(task({ title }))).toEqual({ eligible: false, reason: 'dangerous-language' })
+  })
+
+  it.each([
+    'Research production deployment best practices',
+    'Analyse company blog publishing trends',
+    'Review API key rotation policy options',
+    'Compare protected branch strategies',
+    'Research merge strategies for linear history',
+  ])('preserves clearly advisory research: %s', (title) => {
+    expect(evaluateEligibility(task({ title }))).toEqual({ eligible: true })
+  })
+
   it('rejects dangerous objective language case-insensitively', () => {
     expect(evaluateEligibility(task({ objective: 'ROTATE THE API KEY and share it with the contractor' }))).toMatchObject({
       eligible: false,
