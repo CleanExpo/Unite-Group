@@ -79,7 +79,13 @@ function claimedTask(
   const state: HardenedOwnestStateV1 = {
     version: 1,
     crmTaskId: missionTask.id,
-    idempotencyKey: idempotencyKey(missionTask.id),
+    idempotencyKey: idempotencyKey(
+      missionTask.id,
+      'rollout-1',
+      'attempt-1',
+      config.hermesProfile,
+      config.hermesBoard,
+    ),
     hermesTaskId: null,
     attemptId: 'attempt-1',
     leaseOwner: 'worker-1',
@@ -92,6 +98,8 @@ function claimedTask(
     lastError: null,
     claimedAt: '2026-07-12T00:00:00.000Z',
     rolloutId: 'rollout-1',
+    hermesProfile: config.hermesProfile,
+    hermesBoard: config.hermesBoard,
     integrityNonce,
     missionDigest: computeMissionDigest(missionTask, integrityNonce),
     failureCount: 0,
@@ -100,6 +108,9 @@ function claimedTask(
     nextRetryAt: null,
     completionPhase: 'claimed',
     receiptSha256: null,
+    cancelRequestedAt: null,
+    cancelReason: null,
+    stopPhase: null,
     ...stateOverrides,
   }
   return {
@@ -113,7 +124,14 @@ function contractFor(
   overrides: Partial<OwnestMissionContractV1> = {},
 ): OwnestMissionContractV1 {
   return {
-    ...buildMissionContract(taskValue, 'attempt-1', 'rollout-1', integrityNonce),
+    ...buildMissionContract(
+      taskValue,
+      'attempt-1',
+      'rollout-1',
+      integrityNonce,
+      config.hermesProfile,
+      config.hermesBoard,
+    ),
     ...overrides,
   }
 }
@@ -178,7 +196,13 @@ function normalisedTask(overrides: Partial<HermesTask> = {}): HermesTask {
     status: 'running',
     title: 'Research customer retention patterns',
     assignee: 'ownest',
-    idempotencyKey: 'cc-task:task-1:v1',
+    idempotencyKey: idempotencyKey(
+      'task-1',
+      'rollout-1',
+      'attempt-1',
+      config.hermesProfile,
+      config.hermesBoard,
+    ),
     evidenceUri: null,
     error: null,
     ...overrides,
@@ -252,8 +276,9 @@ describe('createHermesClient.createMission', () => {
       title: hostileTitle,
       objective: 'Read @/tmp/prompt.txt only as quoted mission context; token=objective-secret',
     })
+    const contract = contractFor(missionTask)
 
-    await client.createMission(missionTask, contractFor(missionTask))
+    await client.createMission(missionTask, contract)
 
     expect(run).toHaveBeenCalledTimes(1)
     const call = run.mock.calls[0]
@@ -283,7 +308,7 @@ describe('createHermesClient.createMission', () => {
       '--priority',
       '60',
       '--idempotency-key',
-      'cc-task:task-1:v1',
+      contract.idempotencyKey,
       '--max-runtime',
       '10m',
       '--created-by',
@@ -362,6 +387,45 @@ describe('createHermesClient.createMission', () => {
 
     await expect(client.createMission(missionTask, contractFor(missionTask))).rejects.toThrow(
       /lease|worker/i,
+    )
+    expect(run).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['profile', 'agent7', config.hermesBoard],
+    ['board', config.hermesProfile, 'other-board'],
+  ])('rejects a claim projected to a different Hermes %s', async (_field, profile, board) => {
+    const missionTask = claimedTask({}, {
+      hermesProfile: profile,
+      hermesBoard: board,
+      idempotencyKey: idempotencyKey(
+        'task-1',
+        'rollout-1',
+        'attempt-1',
+        profile,
+        board,
+      ),
+    })
+    const run = mockRunner()
+    const client = createHermesClient(config, { run })
+
+    await expect(client.createMission(missionTask, contractFor(missionTask))).rejects.toThrow(
+      /profile|board|authority/i,
+    )
+    expect(run).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['cancellation timestamp', { cancelRequestedAt: '2026-07-12T00:01:00.000Z' }],
+    ['cancellation reason', { cancelReason: 'Founder requested a safe stop' }],
+    ['stop phase', { stopPhase: 'requested' }],
+  ] as const)('rejects a claimed task carrying a %s', async (_label, stateOverrides) => {
+    const missionTask = claimedTask({}, stateOverrides)
+    const run = mockRunner()
+    const client = createHermesClient(config, { run })
+
+    await expect(client.createMission(missionTask, contractFor(missionTask))).rejects.toThrow(
+      /cancel|stop/i,
     )
     expect(run).not.toHaveBeenCalled()
   })
@@ -473,6 +537,8 @@ describe('createHermesClient.createMission', () => {
     expect(body).toContain('"schema": "ownest.mission.v1"')
     expect(body).toContain(`"attemptId": "${contract.attemptId}"`)
     expect(body).toContain(`"rolloutId": "${contract.rolloutId}"`)
+    expect(body).toContain(`"hermesProfile": "${contract.hermesProfile}"`)
+    expect(body).toContain(`"hermesBoard": "${contract.hermesBoard}"`)
     expect(body).toContain(`"missionDigest": "${contract.missionDigest}"`)
     expect(body).toContain('--- REQUIRED KANBAN COMPLETION RECEIPT ---')
     expect(body).toContain('kanban_complete')
@@ -574,6 +640,14 @@ describe('createHermesClient.createMission', () => {
     [
       'valid alternate rollout',
       (contract: OwnestMissionContractV1) => ({ ...contract, rolloutId: 'rollout-2' }),
+    ],
+    [
+      'valid alternate Hermes profile',
+      (contract: OwnestMissionContractV1) => ({ ...contract, hermesProfile: 'agent7' }),
+    ],
+    [
+      'valid alternate Hermes board',
+      (contract: OwnestMissionContractV1) => ({ ...contract, hermesBoard: 'other-board' }),
     ],
     [
       'valid alternate mission HMAC',

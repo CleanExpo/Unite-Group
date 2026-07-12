@@ -21,6 +21,8 @@ const SHA256_DIGEST = /^sha256:[0-9a-f]{64}$/
 const HMAC_SHA256_DIGEST = /^hmac-sha256:[0-9a-f]{64}$/
 const INTEGRITY_NONCE = /^[0-9a-f]{64}$/
 const SAFE_OWNEST_TOKEN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/
+const HERMES_PROFILE = /^[a-z0-9]{1,64}$/
+const HERMES_BOARD = /^[a-z0-9][a-z0-9_-]{0,63}$/
 const SAFE_FAILURE_CODE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const COMPLETION_PHASES = new Set([
   'claimed',
@@ -30,9 +32,12 @@ const COMPLETION_PHASES = new Set([
   'terminal',
 ])
 const FAILURE_CLASSES = new Set(['transient', 'permanent', 'integrity'])
+const STOP_PHASES = new Set(['requested', 'reclaimed', 'unassigned', 'archived'])
 const HARDENING_FIELD_NAMES = [
   'claimedAt',
   'rolloutId',
+  'hermesProfile',
+  'hermesBoard',
   'integrityNonce',
   'missionDigest',
   'failureCount',
@@ -41,6 +46,9 @@ const HARDENING_FIELD_NAMES = [
   'nextRetryAt',
   'completionPhase',
   'receiptSha256',
+  'cancelRequestedAt',
+  'cancelReason',
+  'stopPhase',
 ] as const
 
 const CLEAR_ADVISORY_INTENT =
@@ -262,6 +270,14 @@ function isSafeOwnestToken(value: unknown): value is string {
   return typeof value === 'string' && SAFE_OWNEST_TOKEN.test(value)
 }
 
+function isHermesProfile(value: unknown): value is string {
+  return typeof value === 'string' && HERMES_PROFILE.test(value)
+}
+
+function isHermesBoard(value: unknown): value is string {
+  return typeof value === 'string' && HERMES_BOARD.test(value)
+}
+
 function isSha256Digest(value: unknown): value is Sha256Digest {
   return typeof value === 'string' && SHA256_DIGEST.test(value)
 }
@@ -309,6 +325,24 @@ function isNullableSha256Digest(value: unknown): value is Sha256Digest | null {
   return value === null || isSha256Digest(value)
 }
 
+function isNullableCanonicalUtcTimestamp(value: unknown): value is string | null {
+  return value === null || isCanonicalUtcTimestamp(value)
+}
+
+function isNullableCancelReason(value: unknown): value is string | null {
+  return (
+    value === null ||
+    (typeof value === 'string' &&
+      value.length > 0 &&
+      value.length <= 512 &&
+      value.trim() === value)
+  )
+}
+
+function isStopPhase(value: unknown): value is HardenedOwnestStateV1['stopPhase'] {
+  return value === null || (typeof value === 'string' && STOP_PHASES.has(value))
+}
+
 function hasOwnestMetadata(metadata: unknown): boolean {
   return isRecord(metadata) && Object.prototype.hasOwnProperty.call(metadata, 'ownest')
 }
@@ -337,6 +371,8 @@ export function extractOwnestState(metadata: unknown, expectedTaskId: string): O
     lastError,
     claimedAt,
     rolloutId,
+    hermesProfile,
+    hermesBoard,
     integrityNonce,
     missionDigest,
     failureCount,
@@ -345,11 +381,13 @@ export function extractOwnestState(metadata: unknown, expectedTaskId: string): O
     nextRetryAt,
     completionPhase,
     receiptSha256,
+    cancelRequestedAt,
+    cancelReason,
+    stopPhase,
   } = value
 
   if (version !== 1) return null
   if (crmTaskId !== expectedTaskId) return null
-  if (key !== idempotencyKey(expectedTaskId)) return null
   if (!isNullableNonEmptyString(hermesTaskId)) return null
   if (!isNonEmptyString(attemptId)) return null
   if (!isNonEmptyString(leaseOwner)) return null
@@ -371,6 +409,8 @@ export function extractOwnestState(metadata: unknown, expectedTaskId: string): O
 
   if (hasOwn(value, 'claimedAt') && !isCanonicalUtcTimestamp(claimedAt)) return null
   if (hasOwn(value, 'rolloutId') && !isSafeOwnestToken(rolloutId)) return null
+  if (hasOwn(value, 'hermesProfile') && !isHermesProfile(hermesProfile)) return null
+  if (hasOwn(value, 'hermesBoard') && !isHermesBoard(hermesBoard)) return null
   if (hasOwn(value, 'integrityNonce') && !isIntegrityNonce(integrityNonce)) return null
   if (hasOwn(value, 'missionDigest') && !isHmacSha256Digest(missionDigest)) return null
   if (hasOwn(value, 'failureCount') && !isFailureCount(failureCount)) return null
@@ -379,10 +419,40 @@ export function extractOwnestState(metadata: unknown, expectedTaskId: string): O
   if (hasOwn(value, 'nextRetryAt') && !isNullableIsoTimestamp(nextRetryAt)) return null
   if (hasOwn(value, 'completionPhase') && !isCompletionPhase(completionPhase)) return null
   if (hasOwn(value, 'receiptSha256') && !isNullableSha256Digest(receiptSha256)) return null
+  if (
+    hasOwn(value, 'cancelRequestedAt') &&
+    !isNullableCanonicalUtcTimestamp(cancelRequestedAt)
+  ) {
+    return null
+  }
+  if (hasOwn(value, 'cancelReason') && !isNullableCancelReason(cancelReason)) return null
+  if (hasOwn(value, 'stopPhase') && !isStopPhase(stopPhase)) return null
+
+  if (hardeningFieldCount === 0) {
+    if (key !== idempotencyKey(expectedTaskId)) return null
+  } else {
+    if (!isSafeOwnestToken(expectedTaskId) || !isSafeOwnestToken(attemptId)) return null
+    if (
+      key !==
+      idempotencyKey(
+        expectedTaskId,
+        rolloutId as string,
+        attemptId,
+        hermesProfile as string,
+        hermesBoard as string,
+      )
+    ) {
+      return null
+    }
+  }
 
   const hardeningFields: Partial<OwnestStateV1> = {}
   if (hasOwn(value, 'claimedAt')) hardeningFields.claimedAt = claimedAt as string
   if (hasOwn(value, 'rolloutId')) hardeningFields.rolloutId = rolloutId as string
+  if (hasOwn(value, 'hermesProfile')) {
+    hardeningFields.hermesProfile = hermesProfile as string
+  }
+  if (hasOwn(value, 'hermesBoard')) hardeningFields.hermesBoard = hermesBoard as string
   if (hasOwn(value, 'integrityNonce')) {
     hardeningFields.integrityNonce = integrityNonce as IntegrityNonce
   }
@@ -400,6 +470,15 @@ export function extractOwnestState(metadata: unknown, expectedTaskId: string): O
   }
   if (hasOwn(value, 'receiptSha256')) {
     hardeningFields.receiptSha256 = receiptSha256 as Sha256Digest | null
+  }
+  if (hasOwn(value, 'cancelRequestedAt')) {
+    hardeningFields.cancelRequestedAt = cancelRequestedAt as string | null
+  }
+  if (hasOwn(value, 'cancelReason')) {
+    hardeningFields.cancelReason = cancelReason as string | null
+  }
+  if (hasOwn(value, 'stopPhase')) {
+    hardeningFields.stopPhase = stopPhase as HardenedOwnestStateV1['stopPhase']
   }
 
   return {
@@ -420,7 +499,7 @@ export function extractOwnestState(metadata: unknown, expectedTaskId: string): O
   }
 }
 
-/** Returns only the post-amendment state with every integrity field present. */
+/** Returns only the post-amendment state with every hardened field present. */
 export function extractHardenedOwnestState(
   metadata: unknown,
   expectedTaskId: string,
@@ -522,8 +601,40 @@ export function evaluateEligibility(task: CcTask): EligibilityDecision {
   return { eligible: true }
 }
 
-export function idempotencyKey(crmTaskId: string): string {
-  return `cc-task:${crmTaskId}:v1`
+export function idempotencyKey(crmTaskId: string): string
+export function idempotencyKey(
+  crmTaskId: string,
+  rolloutId: string,
+  attemptId: string,
+  hermesProfile: string,
+  hermesBoard: string,
+): string
+export function idempotencyKey(
+  crmTaskId: string,
+  rolloutId?: string,
+  attemptId?: string,
+  hermesProfile?: string,
+  hermesBoard?: string,
+): string {
+  const projection = [rolloutId, attemptId, hermesProfile, hermesBoard]
+  if (arguments.length === 1) return `cc-task:${crmTaskId}:v1`
+  if (arguments.length !== 5 || projection.some((value) => value === undefined)) {
+    throw new Error('OWNEST projection identity must be complete')
+  }
+  if (!isSafeOwnestToken(crmTaskId)) throw new Error('OWNEST CRM task id is invalid')
+  if (!isSafeOwnestToken(rolloutId)) throw new Error('OWNEST rollout id is invalid')
+  if (!isSafeOwnestToken(attemptId)) throw new Error('OWNEST attempt id is invalid')
+  if (!isHermesProfile(hermesProfile)) throw new Error('OWNEST Hermes profile is invalid')
+  if (!isHermesBoard(hermesBoard)) throw new Error('OWNEST Hermes board is invalid')
+
+  return `ownest:${deterministicUuid(
+    'ownest.idempotency.v1',
+    crmTaskId,
+    rolloutId,
+    attemptId,
+    hermesProfile,
+    hermesBoard,
+  )}`
 }
 
 /** Hashes the exact UTF-8 representation of a string. */
@@ -696,6 +807,8 @@ export function buildMissionContract(
   attemptId: string,
   rolloutId: string,
   integrityNonce: IntegrityNonce,
+  hermesProfile: string,
+  hermesBoard: string,
 ): OwnestMissionContractV1 {
   if (!isSafeOwnestToken(attemptId)) throw new Error('Mission attempt id is invalid')
   if (!isSafeOwnestToken(rolloutId)) throw new Error('Mission rollout id is invalid')
@@ -706,8 +819,16 @@ export function buildMissionContract(
     schema: 'ownest.mission.v1',
     crmTaskId: task.id,
     attemptId,
-    idempotencyKey: idempotencyKey(task.id),
+    idempotencyKey: idempotencyKey(
+      task.id,
+      rolloutId,
+      attemptId,
+      hermesProfile,
+      hermesBoard,
+    ),
     rolloutId,
+    hermesProfile,
+    hermesBoard,
     missionDigest,
     validationRequirements: buildValidationRequirements(task.validation_required, integrityNonce),
   }

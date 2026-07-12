@@ -26,6 +26,7 @@ export type HmacSha256Digest = string & { readonly [hmacSha256DigestBrand]: true
 declare const integrityNonceBrand: unique symbol
 export type IntegrityNonce = string & { readonly [integrityNonceBrand]: true }
 export type OwnestFailureClass = 'transient' | 'permanent' | 'integrity'
+export type OwnestStopPhase = null | 'requested' | 'reclaimed' | 'unassigned' | 'archived'
 export type OwnestCompletionPhase =
   | 'claimed'
   | 'dispatched'
@@ -49,6 +50,8 @@ export interface OwnestStateV1 {
   lastError: string | null
   claimedAt?: string
   rolloutId?: string
+  hermesProfile?: string
+  hermesBoard?: string
   integrityNonce?: IntegrityNonce
   missionDigest?: HmacSha256Digest
   failureCount?: number
@@ -57,12 +60,17 @@ export interface OwnestStateV1 {
   nextRetryAt?: string | null
   completionPhase?: OwnestCompletionPhase
   receiptSha256?: Sha256Digest | null
+  cancelRequestedAt?: string | null
+  cancelReason?: string | null
+  stopPhase?: OwnestStopPhase
 }
 
-/** A post-amendment state with every integrity and retry field persisted. */
+/** A post-amendment state with every integrity, projection, retry, and stop field persisted. */
 export interface HardenedOwnestStateV1 extends OwnestStateV1 {
   claimedAt: string
   rolloutId: string
+  hermesProfile: string
+  hermesBoard: string
   integrityNonce: IntegrityNonce
   missionDigest: HmacSha256Digest
   failureCount: number
@@ -71,6 +79,9 @@ export interface HardenedOwnestStateV1 extends OwnestStateV1 {
   nextRetryAt: string | null
   completionPhase: OwnestCompletionPhase
   receiptSha256: Sha256Digest | null
+  cancelRequestedAt: string | null
+  cancelReason: string | null
+  stopPhase: OwnestStopPhase
 }
 
 export interface OwnestValidationRequirementV1 {
@@ -85,6 +96,8 @@ export interface OwnestMissionContractV1 {
   readonly attemptId: string
   readonly idempotencyKey: string
   readonly rolloutId: string
+  readonly hermesProfile: string
+  readonly hermesBoard: string
   readonly missionDigest: HmacSha256Digest
   readonly validationRequirements: readonly OwnestValidationRequirementV1[]
 }

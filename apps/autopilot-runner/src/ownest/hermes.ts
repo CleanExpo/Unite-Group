@@ -586,6 +586,8 @@ function validateMissionContract(
     state.attemptId,
     state.rolloutId,
     state.integrityNonce,
+    state.hermesProfile,
+    state.hermesBoard,
   )
   if (state.idempotencyKey !== authoritative.idempotencyKey) {
     throw new Error('Claim idempotency key does not match the authoritative task')
@@ -617,6 +619,12 @@ function validateCreateScope(
   if (config.rolloutId === null || state.rolloutId !== config.rolloutId) {
     throw new Error('Hermes mission claim does not match the configured rollout')
   }
+  if (state.hermesProfile !== config.hermesProfile) {
+    throw new Error('Hermes mission claim does not match the configured profile authority')
+  }
+  if (state.hermesBoard !== config.hermesBoard) {
+    throw new Error('Hermes mission claim does not match the configured board authority')
+  }
   if (state.leaseOwner !== config.workerId) {
     throw new Error('Hermes mission claim does not match the configured worker')
   }
@@ -646,7 +654,16 @@ function prepareMissionContent(
   if (state.hermesTaskId !== null) {
     throw new Error('Hermes mission creation requires a claim without an existing mirror')
   }
-  if (createConfig !== null) validateCreateScope(task, taskId, state, createConfig)
+  if (createConfig !== null) {
+    if (
+      state.cancelRequestedAt !== null ||
+      state.cancelReason !== null ||
+      state.stopPhase !== null
+    ) {
+      throw new Error('Hermes mission creation rejects cancelled or stopping claims')
+    }
+    validateCreateScope(task, taskId, state, createConfig)
+  }
   const decision = evaluateEligibility({
     ...task,
     status: 'queued',
@@ -692,6 +709,8 @@ function buildPreparedMissionBody(content: PreparedMissionContent): string {
       attemptId: content.contract.attemptId,
       idempotencyKey: content.contract.idempotencyKey,
       rolloutId: content.contract.rolloutId,
+      hermesProfile: content.contract.hermesProfile,
+      hermesBoard: content.contract.hermesBoard,
       missionDigest: content.contract.missionDigest,
       validationRequirements: content.contract.validationRequirements.map((requirement) => ({
         id: requirement.id,

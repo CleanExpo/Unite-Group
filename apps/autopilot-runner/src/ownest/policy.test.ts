@@ -27,6 +27,8 @@ import type {
 const MISSION_TEXT_LIMIT = 16 * 1024
 const integrityNonce = generateIntegrityNonce()
 const differentIntegrityNonce = generateIntegrityNonce()
+const hermesProfile = 'ownest'
+const hermesBoard = 'unite-group-ownest'
 
 function task(overrides: Partial<CcTask> = {}): CcTask {
   return {
@@ -67,8 +69,17 @@ const ownestState: OwnestStateV1 = {
 
 const hardenedOwnestState: HardenedOwnestStateV1 = {
   ...ownestState,
+  idempotencyKey: idempotencyKey(
+    'task-1',
+    'ownest-canary-20260712',
+    'attempt-1',
+    hermesProfile,
+    hermesBoard,
+  ),
   claimedAt: '2026-07-12T00:00:00.000Z',
   rolloutId: 'ownest-canary-20260712',
+  hermesProfile,
+  hermesBoard,
   integrityNonce,
   missionDigest: computeMissionDigest(task(), integrityNonce),
   failureCount: 0,
@@ -77,11 +88,16 @@ const hardenedOwnestState: HardenedOwnestStateV1 = {
   nextRetryAt: null,
   completionPhase: 'claimed',
   receiptSha256: null,
+  cancelRequestedAt: null,
+  cancelReason: null,
+  stopPhase: null,
 }
 
 const hardeningFieldNames = [
   'claimedAt',
   'rolloutId',
+  'hermesProfile',
+  'hermesBoard',
   'integrityNonce',
   'missionDigest',
   'failureCount',
@@ -90,6 +106,9 @@ const hardeningFieldNames = [
   'nextRetryAt',
   'completionPhase',
   'receiptSha256',
+  'cancelRequestedAt',
+  'cancelReason',
+  'stopPhase',
 ] as const
 
 function assertIntegrityContractTypes(contract: OwnestMissionContractV1): void {
@@ -118,7 +137,7 @@ function assertIntegrityContractTypes(contract: OwnestMissionContractV1): void {
   // @ts-expect-error Validation digests require a branded CSPRNG nonce.
   buildValidationRequirements(['check'], '0123456789abcdef'.repeat(4))
   // @ts-expect-error Mission contracts require a branded CSPRNG nonce.
-  buildMissionContract(task(), 'attempt-1', 'rollout-1', '0123456789abcdef'.repeat(4))
+  buildMissionContract(task(), 'attempt-1', 'rollout-1', '0'.repeat(64), hermesProfile, hermesBoard)
   void forgedNonce
 
   // @ts-expect-error Mission contract fields are immutable after construction.
@@ -396,8 +415,68 @@ describe('evaluateEligibility', () => {
 })
 
 describe('idempotencyKey', () => {
-  it('builds the deterministic versioned CRM task key', () => {
+  it('preserves the deterministic legacy key when called with the CRM task alone', () => {
     expect(idempotencyKey('task-1')).toBe('cc-task:task-1:v1')
+  })
+
+  it('builds a bounded deterministic UUIDv8 key for the complete Hermes projection identity', () => {
+    const key = idempotencyKey(
+      'task-1',
+      'rollout-1',
+      'attempt-1',
+      hermesProfile,
+      hermesBoard,
+    )
+
+    expect(key).toBe(
+      idempotencyKey('task-1', 'rollout-1', 'attempt-1', hermesProfile, hermesBoard),
+    )
+    expect(key).toMatch(/^ownest:[0-9a-f]{8}-[0-9a-f]{4}-8[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+    expect(key.length).toBeLessThanOrEqual(64)
+  })
+
+  it.each([
+    ['task', ['task-2', 'rollout-1', 'attempt-1', hermesProfile, hermesBoard]],
+    ['rollout', ['task-1', 'rollout-2', 'attempt-1', hermesProfile, hermesBoard]],
+    ['attempt', ['task-1', 'rollout-1', 'attempt-2', hermesProfile, hermesBoard]],
+    ['profile', ['task-1', 'rollout-1', 'attempt-1', 'agent7', hermesBoard]],
+    ['board', ['task-1', 'rollout-1', 'attempt-1', hermesProfile, 'other-board']],
+  ] as const)('changes when only the projection %s changes', (_field, changed) => {
+    const baseline = idempotencyKey(
+      'task-1',
+      'rollout-1',
+      'attempt-1',
+      hermesProfile,
+      hermesBoard,
+    )
+
+    expect(idempotencyKey(changed[0], changed[1], changed[2], changed[3], changed[4])).not.toBe(
+      baseline,
+    )
+  })
+
+  it.each([
+    ['task', ['unsafe/task', 'rollout-1', 'attempt-1', hermesProfile, hermesBoard]],
+    ['rollout', ['task-1', 'unsafe/rollout', 'attempt-1', hermesProfile, hermesBoard]],
+    ['attempt', ['task-1', 'rollout-1', 'unsafe/attempt', hermesProfile, hermesBoard]],
+    ['profile', ['task-1', 'rollout-1', 'attempt-1', 'Ownest', hermesBoard]],
+    ['board', ['task-1', 'rollout-1', 'attempt-1', hermesProfile, 'unsafe/board']],
+  ] as const)('rejects an unsafe projection %s', (_field, projection) => {
+    expect(() =>
+      idempotencyKey(
+        projection[0],
+        projection[1],
+        projection[2],
+        projection[3],
+        projection[4],
+      ),
+    ).toThrow()
+  })
+
+  it('does not treat an explicitly incomplete projection call as legacy', () => {
+    const runtimeCall = idempotencyKey as (...parts: unknown[]) => string
+
+    expect(() => runtimeCall('task-1', undefined, undefined, undefined, undefined)).toThrow()
   })
 })
 
@@ -652,6 +731,12 @@ describe('extractOwnestState', () => {
     ['claimedAt', '2026-07-12T00:00:00.0000Z'],
     ['rolloutId', 'bad rollout'],
     ['rolloutId', `r${'x'.repeat(128)}`],
+    ['hermesProfile', 'Ownest'],
+    ['hermesProfile', 'agent-7'],
+    ['hermesProfile', 'a'.repeat(65)],
+    ['hermesBoard', 'Ownest-Primary'],
+    ['hermesBoard', 'unsafe/board'],
+    ['hermesBoard', 'b'.repeat(65)],
     ['integrityNonce', 'a'.repeat(62)],
     ['integrityNonce', 'A'.repeat(64)],
     ['integrityNonce', 'g'.repeat(64)],
@@ -672,6 +757,13 @@ describe('extractOwnestState', () => {
     ['nextRetryAt', 'tomorrow'],
     ['completionPhase', 'complete'],
     ['receiptSha256', `sha256:${'A'.repeat(64)}`],
+    ['cancelRequestedAt', '2026-07-12T00:00:00Z'],
+    ['cancelRequestedAt', '2026-07-12T10:00:00.000+10:00'],
+    ['cancelReason', ''],
+    ['cancelReason', ' stop requested'],
+    ['cancelReason', 'stop requested '],
+    ['cancelReason', 'x'.repeat(513)],
+    ['stopPhase', 'stopped'],
   ])('rejects malformed present optional hardening field %s=%#', (field, value) => {
     expect(
       extractOwnestState(
@@ -696,7 +788,28 @@ describe('extractHardenedOwnestState', () => {
     expect(extractHardenedOwnestState({ ownest: incomplete }, 'task-1')).toBeNull()
   })
 
-  it('allows canonical nullable retry, failure, and receipt fields', () => {
+  it('rejects the legacy task-only idempotency key on an otherwise hardened state', () => {
+    const state = { ...hardenedOwnestState, idempotencyKey: idempotencyKey('task-1') }
+
+    expect(extractHardenedOwnestState({ ownest: state }, 'task-1')).toBeNull()
+  })
+
+  it('rejects a projection key derived for a different Hermes authority', () => {
+    const state = {
+      ...hardenedOwnestState,
+      idempotencyKey: idempotencyKey(
+        'task-1',
+        hardenedOwnestState.rolloutId,
+        hardenedOwnestState.attemptId,
+        'agent7',
+        hardenedOwnestState.hermesBoard,
+      ),
+    }
+
+    expect(extractHardenedOwnestState({ ownest: state }, 'task-1')).toBeNull()
+  })
+
+  it('allows canonical hardened retry, receipt, cancellation, and stop values', () => {
     const state: HardenedOwnestStateV1 = {
       ...hardenedOwnestState,
       failureCount: 2,
@@ -705,6 +818,9 @@ describe('extractHardenedOwnestState', () => {
       nextRetryAt: '2026-07-12T00:05:00+00:00',
       completionPhase: 'receipt_validated',
       receiptSha256: sha256Digest('receipt'),
+      cancelRequestedAt: '2026-07-12T00:03:00.000Z',
+      cancelReason: 'Founder requested a safe stop',
+      stopPhase: 'requested',
     }
 
     expect(extractHardenedOwnestState({ ownest: state }, 'task-1')).toEqual(state)
@@ -816,7 +932,14 @@ describe('buildValidationRequirements', () => {
     )
     expect(() => computeMissionDigest(task(), nonce as never)).toThrow(/nonce/i)
     expect(() =>
-      buildMissionContract(task(), 'attempt-1', 'rollout-1', nonce as never),
+      buildMissionContract(
+        task(),
+        'attempt-1',
+        'rollout-1',
+        nonce as never,
+        hermesProfile,
+        hermesBoard,
+      ),
     ).toThrow(/nonce/i)
   })
 })
@@ -884,14 +1007,24 @@ describe('buildMissionContract', () => {
       'attempt-1',
       'ownest-canary-20260712',
       integrityNonce,
+      hermesProfile,
+      hermesBoard,
     )
 
     expect(contract).toMatchObject({
       schema: 'ownest.mission.v1',
       crmTaskId: 'task-1',
       attemptId: 'attempt-1',
-      idempotencyKey: 'cc-task:task-1:v1',
+      idempotencyKey: idempotencyKey(
+        'task-1',
+        'ownest-canary-20260712',
+        'attempt-1',
+        hermesProfile,
+        hermesBoard,
+      ),
       rolloutId: 'ownest-canary-20260712',
+      hermesProfile,
+      hermesBoard,
       validationRequirements: [
         {
           id: 'vr-001',
@@ -910,7 +1043,27 @@ describe('buildMissionContract', () => {
     ['unsafe rollout', 'attempt-1', 'rollout/1'],
     ['overlong rollout', 'attempt-1', `r${'x'.repeat(128)}`],
   ])('rejects %s', (_label, attemptId, rolloutId) => {
-    expect(() => buildMissionContract(task(), attemptId, rolloutId, integrityNonce)).toThrow()
+    expect(() =>
+      buildMissionContract(
+        task(),
+        attemptId,
+        rolloutId,
+        integrityNonce,
+        hermesProfile,
+        hermesBoard,
+      ),
+    ).toThrow()
+  })
+
+  it.each([
+    ['uppercase profile', 'Ownest', hermesBoard],
+    ['punctuated profile', 'agent-7', hermesBoard],
+    ['unsafe board', hermesProfile, 'unsafe/board'],
+    ['uppercase board', hermesProfile, 'Ownest-Primary'],
+  ])('rejects %s', (_label, profile, board) => {
+    expect(() =>
+      buildMissionContract(task(), 'attempt-1', 'rollout-1', integrityNonce, profile, board),
+    ).toThrow()
   })
 
   it('never serialises raw credentials, private email, secret values, or the integrity nonce', () => {
@@ -927,6 +1080,8 @@ describe('buildMissionContract', () => {
       'attempt-1',
       'ownest-canary-20260712',
       integrityNonce,
+      hermesProfile,
+      hermesBoard,
     )
     const serialised = JSON.stringify(contract)
 
@@ -938,13 +1093,29 @@ describe('buildMissionContract', () => {
   })
 
   it('is deterministic for identical input and nonce but rebinds every hash for another nonce', () => {
-    const first = buildMissionContract(task(), 'attempt-1', 'rollout-1', integrityNonce)
-    const repeated = buildMissionContract(task(), 'attempt-1', 'rollout-1', integrityNonce)
+    const first = buildMissionContract(
+      task(),
+      'attempt-1',
+      'rollout-1',
+      integrityNonce,
+      hermesProfile,
+      hermesBoard,
+    )
+    const repeated = buildMissionContract(
+      task(),
+      'attempt-1',
+      'rollout-1',
+      integrityNonce,
+      hermesProfile,
+      hermesBoard,
+    )
     const changed = buildMissionContract(
       task(),
       'attempt-1',
       'rollout-1',
       differentIntegrityNonce,
+      hermesProfile,
+      hermesBoard,
     )
 
     expect(first).toEqual(repeated)
@@ -952,6 +1123,28 @@ describe('buildMissionContract', () => {
     expect(first.validationRequirements[0]?.digest).not.toBe(
       changed.validationRequirements[0]?.digest,
     )
+  })
+
+  it('binds projection authority in the key without changing the task-authority mission digest', () => {
+    const baseline = buildMissionContract(
+      task(),
+      'attempt-1',
+      'rollout-1',
+      integrityNonce,
+      hermesProfile,
+      hermesBoard,
+    )
+    const changedProjection = buildMissionContract(
+      task(),
+      'attempt-1',
+      'rollout-1',
+      integrityNonce,
+      'agent7',
+      'other-board',
+    )
+
+    expect(changedProjection.missionDigest).toBe(baseline.missionDigest)
+    expect(changedProjection.idempotencyKey).not.toBe(baseline.idempotencyKey)
   })
 })
 

@@ -12,6 +12,7 @@ import {
   listMirroredTasks,
   loadOwnestConfig,
 } from './crm.js'
+import { idempotencyKey } from './policy.js'
 import type { CcTask, CrmDeps, OwnestConfig } from './types.js'
 
 const TASK_COLUMNS = [
@@ -81,8 +82,17 @@ function ownestState(taskId: string, hermesTaskId: string | null = 'hermes-1') {
 function hardenedOwnestState(taskId: string, hermesTaskId: string | null = null) {
   return {
     ...ownestState(taskId, hermesTaskId),
+    idempotencyKey: idempotencyKey(
+      taskId,
+      'rollout-2026-07-12',
+      'attempt-1',
+      'ownest',
+      'unite-group-ownest',
+    ),
     claimedAt: '2026-07-12T00:00:00.000Z',
     rolloutId: 'rollout-2026-07-12',
+    hermesProfile: 'ownest',
+    hermesBoard: 'unite-group-ownest',
     integrityNonce: '000102030405060708090a0b0c0d0e0f'.repeat(2),
     missionDigest: `hmac-sha256:${'b'.repeat(64)}`,
     failureCount: 0,
@@ -91,6 +101,9 @@ function hardenedOwnestState(taskId: string, hermesTaskId: string | null = null)
     nextRetryAt: null,
     completionPhase: 'claimed',
     receiptSha256: null,
+    cancelRequestedAt: null,
+    cancelReason: null,
+    stopPhase: null,
   }
 }
 
