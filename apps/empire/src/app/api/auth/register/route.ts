@@ -68,6 +68,21 @@ export async function POST(request: NextRequest) {
       lastName: sanitize(parsed.data.lastName),
     };
 
+    // Security: close open self-service signup. This is a single-founder app, so
+    // registration is restricted to an explicit allow-list (REGISTRATION_ALLOWED_EMAILS,
+    // comma-separated). Default empty => registration is CLOSED (403). Open signup
+    // let any party mint a valid `authenticated` JWT that could read permissive-RLS
+    // config/secret-index/wiki tables via PostgREST (see the RLS-exposure remediation).
+    const registrationAllowList = new Set(
+      (process.env.REGISTRATION_ALLOWED_EMAILS ?? '')
+        .split(',')
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean),
+    );
+    if (!registrationAllowList.has(email.toLowerCase())) {
+      return NextResponse.json({ error: 'Registration is closed.' }, { status: 403 });
+    }
+
     // Create user in Supabase auth via service role (bypasses RLS)
     const admin = getAdminClient();
     const { data: userData, error: signUpError } = await admin.auth.admin.createUser({
