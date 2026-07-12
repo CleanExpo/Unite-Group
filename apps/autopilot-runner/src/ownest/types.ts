@@ -303,6 +303,19 @@ export interface AppendOwnestEvidenceInput {
   confidence?: 'high' | 'medium' | 'low'
 }
 
+export interface EnsureCompletionArtifactsInput {
+  taskId: string
+  expectedContract: OwnestMissionContractV1
+  completion: HermesTask
+}
+
+export interface EnsureCompletionArtifactsResult {
+  readonly validationRunIds: readonly string[]
+  readonly evidenceRecordId: string
+  readonly evidenceAddedEventId: string
+  readonly completionEventId: string
+}
+
 /** Founder-scoped CRM operations consumed by the pure tick state machine. */
 export interface OwnestCrmClient {
   listCandidateTasks: () => Promise<CcTask[]>
@@ -314,6 +327,9 @@ export interface OwnestCrmClient {
   compareAndSetTask: (input: CompareAndSetTaskInput) => Promise<CcTask | null>
   appendTaskEvent: (input: AppendOwnestEventInput) => Promise<void>
   appendEvidence: (input: AppendOwnestEvidenceInput) => Promise<void>
+  ensureCompletionArtifacts: (
+    input: EnsureCompletionArtifactsInput,
+  ) => Promise<EnsureCompletionArtifactsResult>
 }
 
 /** Idempotent Hermes operations consumed by the pure tick state machine. */

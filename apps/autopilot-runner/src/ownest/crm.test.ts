@@ -12,8 +12,20 @@ import {
   listMirroredTasks,
   loadOwnestConfig,
 } from './crm.js'
-import { idempotencyKey } from './policy.js'
-import type { CcTask, CrmDeps, OwnestConfig } from './types.js'
+import {
+  buildMissionContract,
+  deterministicUuid,
+  idempotencyKey,
+  sha256Digest,
+} from './policy.js'
+import type {
+  CcTask,
+  CrmDeps,
+  HermesTask,
+  OwnestCompletionReceiptV1,
+  OwnestConfig,
+  OwnestMissionContractV1,
+} from './types.js'
 
 const TASK_COLUMNS = [
   'id',
@@ -50,6 +62,12 @@ const config: OwnestConfig = {
   maxInProgress: 1,
   leaseMs: 300_000,
   dailyDispatchLimit: 3,
+}
+
+const artifactConfig: OwnestConfig = {
+  ...config,
+  rolloutId: 'rollout-2026-07-12',
+  canaryTaskId: 'task-1',
 }
 
 const expectedUpdatedAt = '2026-07-12T00:00:00.000Z'
@@ -128,6 +146,175 @@ function task(overrides: Partial<CcTask> = {}): CcTask {
   }
 }
 
+interface CompletionFixture {
+  freshTask: CcTask
+  expectedContract: OwnestMissionContractV1
+  completion: HermesTask
+}
+
+function completionFixture(): CompletionFixture {
+  const integrityNonce = '000102030405060708090a0b0c0d0e0f'.repeat(2) as never
+  const missionTask = task({
+    status: 'running',
+    validation_required: ['Cite the source data', 'Explain material uncertainty'],
+  })
+  const expectedContract = buildMissionContract(
+    missionTask,
+    'attempt-1',
+    'rollout-2026-07-12',
+    integrityNonce,
+    artifactConfig.hermesProfile,
+    artifactConfig.hermesBoard,
+  )
+  const receipt: OwnestCompletionReceiptV1 = {
+    schema: 'ownest.completion.v1',
+    crmTaskId: missionTask.id,
+    hermesTaskId: 'hermes-1',
+    attemptId: expectedContract.attemptId,
+    rolloutId: expectedContract.rolloutId,
+    missionDigest: expectedContract.missionDigest,
+    verdict: 'passed',
+    evidence: [
+      {
+        id: 'ev-001',
+        kind: 'research',
+        uri: 'https://evidence.example.com/reports/retention',
+        digest: sha256Digest('retention-evidence'),
+      },
+    ],
+    validationResults: expectedContract.validationRequirements.map((requirement) => ({
+      requirementId: requirement.id,
+      requirementDigest: requirement.digest,
+      status: 'passed',
+      evidenceIds: ['ev-001'],
+    })),
+  }
+  const receiptSha256 = sha256Digest(JSON.stringify(receipt))
+  const completion: HermesTask = {
+    id: 'hermes-1',
+    status: 'done',
+    title: missionTask.title,
+    assignee: 'ownest',
+    idempotencyKey: null,
+    summary: 'Completed the retention evidence brief.',
+    runId: 7,
+    completedAt: '2026-07-14T03:35:20.000Z',
+    receipt,
+    receiptSha256,
+    latestRun: {
+      id: 7,
+      profile: 'ownest',
+      status: 'done',
+      outcome: 'completed',
+      summary: 'Completed the retention evidence brief.',
+      error: null,
+      metadata: null,
+      workerPid: 4321,
+      startedAt: 1_784_000_000,
+      endedAt: 1_784_000_120,
+    },
+    evidenceUri: 'hermes-kanban:/boards/unite-group-ownest/tasks/hermes-1/runs/7',
+    error: null,
+  }
+  const state = {
+    ...hardenedOwnestState(missionTask.id, completion.id),
+    idempotencyKey: expectedContract.idempotencyKey,
+    missionDigest: expectedContract.missionDigest,
+    completionPhase: 'receipt_validated' as const,
+    receiptSha256,
+  }
+  return {
+    freshTask: { ...missionTask, metadata: { ownest: state } },
+    expectedContract,
+    completion,
+  }
+}
+
+function artifactId(fixture: CompletionFixture, kind: string): string {
+  return deterministicUuid(
+    'ownest.completion.artifact.v1',
+    artifactConfig.founderId,
+    fixture.freshTask.id,
+    fixture.expectedContract.attemptId,
+    fixture.expectedContract.rolloutId,
+    kind,
+  )
+}
+
+function expectedArtifactRows(fixture: CompletionFixture) {
+  const receipt = fixture.completion.receipt
+  if (!receipt || !fixture.completion.evidenceUri || !fixture.completion.completedAt) {
+    throw new Error('completion fixture is incomplete')
+  }
+  const validationRunIds = fixture.expectedContract.validationRequirements.map((requirement) =>
+    artifactId(fixture, `validation:${requirement.id}`),
+  )
+  const evidenceRecordId = artifactId(fixture, 'evidence')
+  const evidenceAddedEventId = artifactId(fixture, 'event:evidence_added')
+  const completionEventId = artifactId(fixture, 'event:completed')
+  const evidenceById = new Map(receipt.evidence.map((item) => [item.id, item]))
+  const validationRows = receipt.validationResults.map((result, index) => ({
+    id: validationRunIds[index],
+    founder_id: artifactConfig.founderId,
+    task_id: fixture.freshTask.id,
+    gate: `ownest:${result.requirementId}:${result.requirementDigest}`,
+    command: null,
+    result: 'pass',
+    evidence_path: evidenceById.get(result.evidenceIds[0] ?? '')?.uri ?? null,
+    ran_at: fixture.completion.completedAt,
+  }))
+  const evidenceRow = {
+    id: evidenceRecordId,
+    founder_id: artifactConfig.founderId,
+    task_id: fixture.freshTask.id,
+    kind: 'validation',
+    wiki_path: fixture.completion.evidenceUri,
+    sources: receipt.evidence,
+    confidence: 'high',
+    created_at: fixture.completion.completedAt,
+  }
+  const sharedPayload = {
+    schema: 'ownest.completion-artifacts.v1',
+    taskId: fixture.freshTask.id,
+    hermesTaskId: fixture.completion.id,
+    attemptId: fixture.expectedContract.attemptId,
+    rolloutId: fixture.expectedContract.rolloutId,
+    receiptSha256: fixture.completion.receiptSha256,
+    validationRunIds,
+    evidenceRecordId,
+    evidenceUri: fixture.completion.evidenceUri,
+  }
+  const evidenceEventRow = {
+    id: evidenceAddedEventId,
+    founder_id: artifactConfig.founderId,
+    task_id: fixture.freshTask.id,
+    type: 'evidence_added',
+    actor: artifactConfig.workerId,
+    payload: { ...sharedPayload, evidenceCount: receipt.evidence.length },
+    at: fixture.completion.completedAt,
+  }
+  const completionEventRow = {
+    id: completionEventId,
+    founder_id: artifactConfig.founderId,
+    task_id: fixture.freshTask.id,
+    type: 'completed',
+    actor: artifactConfig.workerId,
+    payload: {
+      ...sharedPayload,
+      runId: fixture.completion.runId,
+      completedAt: fixture.completion.completedAt,
+    },
+    at: fixture.completion.completedAt,
+  }
+  return {
+    result: { validationRunIds, evidenceRecordId, evidenceAddedEventId, completionEventId },
+    validationRows,
+    evidenceRow,
+    evidenceEventRow,
+    completionEventRow,
+  }
+}
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -187,6 +374,71 @@ function firstRequest(fetchImpl: ReturnType<typeof mockFetch>): {
 function requestBody(init: RequestInit): Record<string, unknown> {
   if (typeof init.body !== 'string') throw new Error('request body was not JSON text')
   return JSON.parse(init.body) as Record<string, unknown>
+}
+
+const ARTIFACT_TABLES = [
+  'cc_validation_runs',
+  'cc_evidence_records',
+  'cc_task_events',
+] as const
+
+type ArtifactTable = (typeof ARTIFACT_TABLES)[number]
+type ArtifactStore = Record<ArtifactTable, Map<string, Record<string, unknown>>>
+
+function completionArtifactApi(
+  freshTask: CcTask,
+  options: {
+    initial?: Partial<Record<ArtifactTable, readonly Record<string, unknown>[]>>
+    failOnce?: (table: ArtifactTable, row: Record<string, unknown>) => boolean
+  } = {},
+): { fetchImpl: ReturnType<typeof mockFetch>; store: ArtifactStore } {
+  const store = Object.fromEntries(
+    ARTIFACT_TABLES.map((table) => [
+      table,
+      new Map(
+        (options.initial?.[table] ?? []).map((row) => {
+          if (typeof row.id !== 'string') throw new Error('initial artifact requires an id')
+          return [row.id, structuredClone(row)]
+        }),
+      ),
+    ]),
+  ) as ArtifactStore
+  let failureConsumed = false
+  const fetchImpl = vi.fn<typeof fetch>().mockImplementation(async (input, init) => {
+    const url = new URL(String(input))
+    const table = url.pathname.split('/').at(-1)
+    const method = init?.method ?? 'GET'
+    if (table === 'cc_tasks' && method === 'GET') return jsonResponse([freshTask])
+    if (!ARTIFACT_TABLES.includes(table as ArtifactTable)) {
+      throw new Error(`unexpected artifact table ${String(table)}`)
+    }
+    const artifactTable = table as ArtifactTable
+    if (method === 'POST') {
+      const row = requestBody(init ?? {})
+      if (!failureConsumed && options.failOnce?.(artifactTable, row)) {
+        failureConsumed = true
+        return new Response(
+          `${serviceRoleKey} token=artifact-secret owner@example.com ${'x'.repeat(1_200)}`,
+          { status: 500 },
+        )
+      }
+      if (typeof row.id !== 'string') throw new Error('artifact insert requires an id')
+      if (!store[artifactTable].has(row.id)) {
+        store[artifactTable].set(row.id, structuredClone(row))
+      }
+      return new Response(null, { status: 201 })
+    }
+    if (method === 'GET') {
+      const idFilter = url.searchParams.get('id')
+      const founderFilter = url.searchParams.get('founder_id')
+      const id = idFilter?.startsWith('eq.') ? idFilter.slice(3) : null
+      const founderId = founderFilter?.startsWith('eq.') ? founderFilter.slice(3) : null
+      const row = id ? store[artifactTable].get(id) : undefined
+      return jsonResponse(row && row.founder_id === founderId ? [row] : [])
+    }
+    throw new Error(`unexpected artifact method ${method}`)
+  }) as ReturnType<typeof mockFetch>
+  return { fetchImpl, store }
 }
 
 async function capturedError(run: () => Promise<unknown>): Promise<Error> {
@@ -1380,6 +1632,255 @@ describe('compareAndSetTask', () => {
     expect(error.message).toContain('Failed to serialise CRM task update')
     expect(error.message).not.toContain(serviceRoleKey)
     expect(error.message.length).toBeLessThanOrEqual(800)
+  })
+})
+
+describe('createCrmClient.ensureCompletionArtifacts', () => {
+  it('writes existing validation, evidence, and event schemas in strict deterministic order', async () => {
+    const fixture = completionFixture()
+    const expected = expectedArtifactRows(fixture)
+    const { fetchImpl } = completionArtifactApi(fixture.freshTask)
+    const client = createCrmClient(artifactConfig, deps(fetchImpl))
+
+    await expect(
+      client.ensureCompletionArtifacts({
+        taskId: fixture.freshTask.id,
+        expectedContract: fixture.expectedContract,
+        completion: fixture.completion,
+      }),
+    ).resolves.toEqual(expected.result)
+
+    expect(fetchImpl.mock.calls.map(([input, init]) => [
+      init?.method ?? 'GET',
+      new URL(String(input)).pathname,
+    ])).toEqual([
+      ['GET', '/rest/v1/cc_tasks'],
+      ['POST', '/rest/v1/cc_validation_runs'],
+      ['GET', '/rest/v1/cc_validation_runs'],
+      ['POST', '/rest/v1/cc_validation_runs'],
+      ['GET', '/rest/v1/cc_validation_runs'],
+      ['POST', '/rest/v1/cc_evidence_records'],
+      ['GET', '/rest/v1/cc_evidence_records'],
+      ['POST', '/rest/v1/cc_task_events'],
+      ['GET', '/rest/v1/cc_task_events'],
+      ['POST', '/rest/v1/cc_task_events'],
+      ['GET', '/rest/v1/cc_task_events'],
+    ])
+    const inserted = fetchImpl.mock.calls
+      .filter(([, init]) => init?.method === 'POST')
+      .map(([, init]) => requestBody(init ?? {}))
+    expect(inserted).toEqual([
+      ...expected.validationRows,
+      expected.evidenceRow,
+      expected.evidenceEventRow,
+      expected.completionEventRow,
+    ])
+    for (const [input, init] of fetchImpl.mock.calls.filter(([, value]) => value?.method === 'POST')) {
+      const url = new URL(String(input))
+      expect(url.searchParams.get('on_conflict')).toBe('id')
+      expect(init?.headers).toMatchObject({
+        Prefer: 'resolution=ignore-duplicates,return=minimal',
+      })
+    }
+    for (const [input] of fetchImpl.mock.calls.slice(1).filter(([, init]) => init?.method === 'GET')) {
+      const url = new URL(String(input))
+      expect(url.searchParams.get('founder_id')).toBe(`eq.${artifactConfig.founderId}`)
+      expect(url.searchParams.get('id')).toMatch(/^eq\.[0-9a-f-]{36}$/)
+      expect(url.searchParams.get('select')).not.toBeNull()
+    }
+    expect(fetchImpl.mock.calls.some(([, init]) => init?.method === 'PATCH')).toBe(false)
+  })
+
+  it('treats repeated inserts, JSON key order, and equivalent timestamptz text as the same artifacts', async () => {
+    const fixture = completionFixture()
+    const expected = expectedArtifactRows(fixture)
+    const { fetchImpl, store } = completionArtifactApi(fixture.freshTask)
+    const client = createCrmClient(artifactConfig, deps(fetchImpl))
+    const input = {
+      taskId: fixture.freshTask.id,
+      expectedContract: fixture.expectedContract,
+      completion: fixture.completion,
+    }
+
+    const first = await client.ensureCompletionArtifacts(input)
+    const evidence = store.cc_evidence_records.get(expected.result.evidenceRecordId)
+    const event = store.cc_task_events.get(expected.result.evidenceAddedEventId)
+    if (!evidence || !event || !Array.isArray(evidence.sources) || typeof event.payload !== 'object') {
+      throw new Error('expected stored completion artifacts')
+    }
+    evidence.sources = evidence.sources.map((source) =>
+      Object.fromEntries(Object.entries(source as Record<string, unknown>).reverse()),
+    )
+    event.payload = Object.fromEntries(
+      Object.entries(event.payload as Record<string, unknown>).reverse(),
+    )
+    for (const row of store.cc_validation_runs.values()) {
+      row.ran_at = '2026-07-14T03:35:20+00:00'
+    }
+    evidence.created_at = '2026-07-14T03:35:20+00:00'
+    for (const row of store.cc_task_events.values()) {
+      row.at = '2026-07-14T03:35:20+00:00'
+    }
+
+    await expect(client.ensureCompletionArtifacts(input)).resolves.toEqual(first)
+    expect(store.cc_validation_runs.size).toBe(2)
+    expect(store.cc_evidence_records.size).toBe(1)
+    expect(store.cc_task_events.size).toBe(2)
+    expect(fetchImpl.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(10)
+  })
+
+  it('fails with integrity classification when a deterministic id contains different content', async () => {
+    const fixture = completionFixture()
+    const expected = expectedArtifactRows(fixture)
+    const conflicting = { ...expected.validationRows[0], result: 'fail' }
+    const { fetchImpl, store } = completionArtifactApi(fixture.freshTask, {
+      initial: { cc_validation_runs: [conflicting] },
+    })
+    const client = createCrmClient(artifactConfig, deps(fetchImpl))
+
+    await expect(
+      client.ensureCompletionArtifacts({
+        taskId: fixture.freshTask.id,
+        expectedContract: fixture.expectedContract,
+        completion: fixture.completion,
+      }),
+    ).rejects.toThrow(/integrity/i)
+    expect(fetchImpl).toHaveBeenCalledTimes(3)
+    expect(store.cc_evidence_records.size).toBe(0)
+    expect(store.cc_task_events.size).toBe(0)
+  })
+
+  it('repairs a partial write without duplicates and keeps evidence before completion', async () => {
+    const fixture = completionFixture()
+    const expected = expectedArtifactRows(fixture)
+    const { fetchImpl, store } = completionArtifactApi(fixture.freshTask, {
+      failOnce: (table, row) => table === 'cc_task_events' && row.type === 'evidence_added',
+    })
+    const client = createCrmClient(artifactConfig, deps(fetchImpl))
+    const input = {
+      taskId: fixture.freshTask.id,
+      expectedContract: fixture.expectedContract,
+      completion: fixture.completion,
+    }
+
+    const firstError = await capturedError(() => client.ensureCompletionArtifacts(input))
+    expect(firstError.message).not.toContain(serviceRoleKey)
+    expect(firstError.message).not.toContain('artifact-secret')
+    expect(firstError.message).not.toContain('owner@example.com')
+    expect(firstError.message).toContain('[REDACTED]')
+    expect(firstError.message.length).toBeLessThanOrEqual(800)
+    expect(store.cc_validation_runs.size).toBe(2)
+    expect(store.cc_evidence_records.size).toBe(1)
+    expect(store.cc_task_events.size).toBe(0)
+
+    await expect(client.ensureCompletionArtifacts(input)).resolves.toEqual(expected.result)
+    expect(store.cc_validation_runs.size).toBe(2)
+    expect(store.cc_evidence_records.size).toBe(1)
+    expect(store.cc_task_events.size).toBe(2)
+    expect(store.cc_task_events.has(expected.result.evidenceAddedEventId)).toBe(true)
+    expect(store.cc_task_events.has(expected.result.completionEventId)).toBe(true)
+    expect(fetchImpl.mock.calls.some(([, init]) => init?.method === 'PATCH')).toBe(false)
+  })
+
+  it.each([
+    ['changed mission field', (value: CompletionFixture) => {
+      value.freshTask.title = 'Tampered mission title'
+    }],
+    ['changed validation digest', (value: CompletionFixture) => {
+      const requirements = value.expectedContract.validationRequirements as unknown as Array<Record<string, unknown>>
+      requirements[0] = { ...requirements[0], digest: `hmac-sha256:${'a'.repeat(64)}` }
+    }],
+    ['wrong state attempt', (value: CompletionFixture) => {
+      ;(value.freshTask.metadata.ownest as Record<string, unknown>).attemptId = 'attempt-2'
+    }],
+    ['wrong state rollout', (value: CompletionFixture) => {
+      ;(value.freshTask.metadata.ownest as Record<string, unknown>).rolloutId = 'rollout-2'
+    }],
+    ['wrong Hermes task projection', (value: CompletionFixture) => {
+      ;(value.freshTask.metadata.ownest as Record<string, unknown>).hermesTaskId = 'hermes-2'
+    }],
+    ['wrong Hermes profile projection', (value: CompletionFixture) => {
+      ;(value.freshTask.metadata.ownest as Record<string, unknown>).hermesProfile = 'agent7'
+    }],
+    ['wrong Hermes board projection', (value: CompletionFixture) => {
+      ;(value.freshTask.metadata.ownest as Record<string, unknown>).hermesBoard = 'other-board'
+    }],
+    ['wrong completion phase', (value: CompletionFixture) => {
+      ;(value.freshTask.metadata.ownest as Record<string, unknown>).completionPhase = 'dispatched'
+    }],
+    ['wrong persisted receipt digest', (value: CompletionFixture) => {
+      ;(value.freshTask.metadata.ownest as Record<string, unknown>).receiptSha256 = `sha256:${'a'.repeat(64)}`
+    }],
+    ['wrong receipt attempt', (value: CompletionFixture) => {
+      ;(value.completion.receipt as unknown as Record<string, unknown>).attemptId = 'attempt-2'
+    }],
+    ['wrong receipt Hermes task', (value: CompletionFixture) => {
+      ;(value.completion.receipt as unknown as Record<string, unknown>).hermesTaskId = 'hermes-2'
+    }],
+    ['wrong receipt validation digest', (value: CompletionFixture) => {
+      const results = value.completion.receipt?.validationResults as unknown as Array<Record<string, unknown>>
+      results[0] = { ...results[0], requirementDigest: `hmac-sha256:${'a'.repeat(64)}` }
+    }],
+    ['ephemeral receipt evidence', (value: CompletionFixture) => {
+      const evidence = value.completion.receipt?.evidence as unknown as Array<Record<string, unknown>>
+      evidence[0] = { ...evidence[0], uri: 'file:///tmp/evidence.json' }
+    }],
+    ['oversized completion summary', (value: CompletionFixture) => {
+      value.completion.summary = 'x'.repeat(32 * 1024 + 1)
+    }],
+  ] as const)('rejects %s after the founder-scoped preflight read and before writes', async (_label, mutate) => {
+    const fixture = structuredClone(completionFixture())
+    mutate(fixture)
+    const { fetchImpl } = completionArtifactApi(fixture.freshTask)
+    const client = createCrmClient(artifactConfig, deps(fetchImpl))
+
+    await expect(
+      client.ensureCompletionArtifacts({
+        taskId: fixture.freshTask.id,
+        expectedContract: fixture.expectedContract,
+        completion: fixture.completion,
+      }),
+    ).rejects.toThrow()
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+    expect(fetchImpl.mock.calls[0]?.[1]?.method).toBe('GET')
+  })
+
+  it.each([
+    ['missing canary', { ...artifactConfig, canaryTaskId: null }],
+    ['wrong canary', { ...artifactConfig, canaryTaskId: 'task-2' }],
+    ['missing rollout', { ...artifactConfig, rolloutId: null }],
+    ['wrong rollout', { ...artifactConfig, rolloutId: 'rollout-2' }],
+    ['wrong profile', { ...artifactConfig, hermesProfile: 'agent7' }],
+    ['wrong board', { ...artifactConfig, hermesBoard: 'other-board' }],
+  ])('rejects %s before service-role fetch', async (_label, invalidConfig) => {
+    const fixture = completionFixture()
+    const { fetchImpl } = completionArtifactApi(fixture.freshTask)
+    const client = createCrmClient(invalidConfig, deps(fetchImpl))
+
+    await expect(
+      client.ensureCompletionArtifacts({
+        taskId: fixture.freshTask.id,
+        expectedContract: fixture.expectedContract,
+        completion: fixture.completion,
+      }),
+    ).rejects.toThrow()
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it('rejects a cross-founder task returned through service-role bypass before writes', async () => {
+    const fixture = completionFixture()
+    fixture.freshTask.founder_id = 'different-founder'
+    const { fetchImpl } = completionArtifactApi(fixture.freshTask)
+    const client = createCrmClient(artifactConfig, deps(fetchImpl))
+
+    await expect(
+      client.ensureCompletionArtifacts({
+        taskId: fixture.freshTask.id,
+        expectedContract: fixture.expectedContract,
+        completion: fixture.completion,
+      }),
+    ).rejects.toThrow(/founder/i)
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
   })
 })
 

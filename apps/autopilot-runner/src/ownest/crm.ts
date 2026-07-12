@@ -1,9 +1,13 @@
 import { StringDecoder } from 'node:string_decoder'
 import { isDeepStrictEqual } from 'node:util'
 import {
+  buildMissionContract,
+  deterministicUuid,
   extractHardenedOwnestState,
   extractOwnestState,
   isCanonicalUtcTimestamp,
+  redactMissionText,
+  sha256Digest,
 } from './policy.js'
 import type {
   AppendOwnestEventInput,
@@ -11,7 +15,11 @@ import type {
   CcTask,
   CompareAndSetTaskInput,
   CrmDeps,
+  EnsureCompletionArtifactsInput,
+  EnsureCompletionArtifactsResult,
+  HermesTask,
   LoadOwnestConfigResult,
+  OwnestCompletionReceiptV1,
   OwnestConfig,
   OwnestCrmClient,
 } from './types.js'
@@ -27,6 +35,9 @@ const MAX_JSON_DEPTH = 64
 const MAX_SAFE_COUNT = BigInt(Number.MAX_SAFE_INTEGER)
 const MAX_EXACT_COUNT_CONTENT_RANGE_LENGTH = `0-0/${Number.MAX_SAFE_INTEGER}`.length
 const UTC_DAY_MS = 24 * 60 * 60 * 1000
+const COMPLETION_TEXT_MAX_BYTES = 32 * 1024
+const COMPLETION_RECEIPT_MAX_BYTES = 32 * 1024
+const EVIDENCE_URI_MAX_BYTES = 2048
 
 const TASK_COLUMNS = [
   'id',
@@ -92,6 +103,62 @@ const ISO_TIMESTAMP =
 const HERMES_BOARD = /^[a-z0-9][a-z0-9_-]{0,63}$/
 const HERMES_PROFILE = /^[a-z0-9]{1,64}$/
 const ROLLOUT_OR_TASK_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/
+const HERMES_TASK_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,255}$/
+const SHA256_DIGEST = /^sha256:[0-9a-f]{64}$/
+const COMPLETION_EVIDENCE_KINDS = new Set([
+  'source',
+  'research',
+  'test',
+  'artifact',
+  'commit',
+  'report',
+])
+const COMPLETION_INPUT_KEYS = new Set(['completion', 'expectedContract', 'taskId'])
+const COMPLETION_TASK_KEYS = new Set([
+  'assignee',
+  'completedAt',
+  'error',
+  'evidenceUri',
+  'id',
+  'idempotencyKey',
+  'latestRun',
+  'receipt',
+  'receiptSha256',
+  'runId',
+  'status',
+  'summary',
+  'title',
+])
+const COMPLETION_RUN_KEYS = new Set([
+  'endedAt',
+  'error',
+  'id',
+  'metadata',
+  'outcome',
+  'profile',
+  'startedAt',
+  'status',
+  'summary',
+  'workerPid',
+])
+const COMPLETION_RECEIPT_KEYS = new Set([
+  'attemptId',
+  'crmTaskId',
+  'evidence',
+  'hermesTaskId',
+  'missionDigest',
+  'rolloutId',
+  'schema',
+  'validationResults',
+  'verdict',
+])
+const COMPLETION_EVIDENCE_KEYS = new Set(['digest', 'id', 'kind', 'uri'])
+const COMPLETION_VALIDATION_KEYS = new Set([
+  'evidenceIds',
+  'requirementDigest',
+  'requirementId',
+  'status',
+])
 
 function optionalTrimmedString(value: unknown): string | null {
   if (typeof value !== 'string') return null
@@ -300,6 +367,246 @@ function isIsoTimestamp(value: unknown): value is string {
   }
 
   return Number.isFinite(Date.parse(value))
+}
+
+function hasExactKeys(value: Record<string, unknown>, keys: ReadonlySet<string>): boolean {
+  return Object.keys(value).length === keys.size && hasOnlyKeys(value, keys)
+}
+
+function isSafeCompletionToken(value: unknown): value is string {
+  return typeof value === 'string' && ROLLOUT_OR_TASK_ID.test(value)
+}
+
+function isPrivateCompletionIpv4(hostname: string): boolean {
+  const parts = hostname.split('.').map(Number)
+  if (
+    parts.length !== 4 ||
+    parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)
+  ) {
+    return false
+  }
+  const [first = 0, second = 0] = parts
+  return (
+    first === 0 ||
+    first === 10 ||
+    first === 127 ||
+    (first === 100 && second >= 64 && second <= 127) ||
+    (first === 169 && second === 254) ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && second === 168) ||
+    (first === 198 && (second === 18 || second === 19)) ||
+    first >= 224
+  )
+}
+
+function isDurableCompletionEvidenceUri(value: unknown): value is string {
+  if (
+    typeof value !== 'string' ||
+    Buffer.byteLength(value, 'utf8') > EVIDENCE_URI_MAX_BYTES ||
+    value.trim() !== value ||
+    /[\u0000-\u001f\u007f\s]/.test(value)
+  ) {
+    return false
+  }
+  if (/^(?:wiki|git|github):\/[A-Za-z0-9][A-Za-z0-9._~:/-]*$/.test(value)) {
+    const path = value.slice(value.indexOf(':/') + 2)
+    return !path.split('/').some((segment) => segment === '..')
+  }
+  try {
+    const url = new URL(value)
+    const hostname = url.hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '')
+    const reservedSuffixes = [
+      '.internal',
+      '.lan',
+      '.home',
+      '.corp',
+      '.local',
+      '.localhost',
+      '.test',
+      '.invalid',
+      '.example',
+    ]
+    return (
+      url.protocol === 'https:' &&
+      url.username === '' &&
+      url.password === '' &&
+      url.search === '' &&
+      url.hash === '' &&
+      hostname.includes('.') &&
+      !hostname.includes(':') &&
+      !reservedSuffixes.some(
+        (suffix) => hostname === suffix.slice(1) || hostname.endsWith(suffix),
+      ) &&
+      !isPrivateCompletionIpv4(hostname)
+    )
+  } catch {
+    return false
+  }
+}
+
+function validateCanonicalCompletionReceipt(
+  value: unknown,
+  expectedContract: EnsureCompletionArtifactsInput['expectedContract'],
+  hermesTaskId: string,
+): OwnestCompletionReceiptV1 {
+  if (!isPlainRecord(value) || !hasExactKeys(value, COMPLETION_RECEIPT_KEYS)) {
+    throw new Error('Completion receipt has an invalid shape')
+  }
+  try {
+    measureJsonBytes(value, COMPLETION_RECEIPT_MAX_BYTES, new Set<object>(), 0)
+  } catch {
+    throw new Error('Completion receipt exceeds its bounded JSON shape')
+  }
+  if (
+    value.schema !== 'ownest.completion.v1' ||
+    value.crmTaskId !== expectedContract.crmTaskId ||
+    value.hermesTaskId !== hermesTaskId ||
+    value.attemptId !== expectedContract.attemptId ||
+    value.rolloutId !== expectedContract.rolloutId ||
+    value.missionDigest !== expectedContract.missionDigest ||
+    value.verdict !== 'passed' ||
+    !Array.isArray(value.evidence) ||
+    value.evidence.length < 1 ||
+    value.evidence.length > 32 ||
+    !Array.isArray(value.validationResults) ||
+    value.validationResults.length !== expectedContract.validationRequirements.length
+  ) {
+    throw new Error('Completion receipt does not match the expected mission contract')
+  }
+
+  const evidence: Array<OwnestCompletionReceiptV1['evidence'][number]> = []
+  const evidenceIds = new Set<string>()
+  for (let index = 0; index < value.evidence.length; index += 1) {
+    const item = value.evidence[index]
+    if (!isPlainRecord(item) || !hasExactKeys(item, COMPLETION_EVIDENCE_KEYS)) {
+      throw new Error('Completion receipt evidence has an invalid shape')
+    }
+    const expectedId = `ev-${String(index + 1).padStart(3, '0')}`
+    if (
+      item.id !== expectedId ||
+      evidenceIds.has(expectedId) ||
+      typeof item.kind !== 'string' ||
+      !COMPLETION_EVIDENCE_KINDS.has(item.kind) ||
+      !isDurableCompletionEvidenceUri(item.uri) ||
+      typeof item.digest !== 'string' ||
+      !SHA256_DIGEST.test(item.digest)
+    ) {
+      throw new Error('Completion receipt evidence is invalid')
+    }
+    evidenceIds.add(expectedId)
+    evidence.push({
+      id: expectedId,
+      kind: item.kind as OwnestCompletionReceiptV1['evidence'][number]['kind'],
+      uri: item.uri,
+      digest: item.digest as OwnestCompletionReceiptV1['evidence'][number]['digest'],
+    })
+  }
+
+  const validationResults: Array<OwnestCompletionReceiptV1['validationResults'][number]> = []
+  for (let index = 0; index < expectedContract.validationRequirements.length; index += 1) {
+    const expected = expectedContract.validationRequirements[index]
+    const result = value.validationResults[index]
+    if (
+      !expected ||
+      !isPlainRecord(result) ||
+      !hasExactKeys(result, COMPLETION_VALIDATION_KEYS) ||
+      result.requirementId !== expected.id ||
+      result.requirementDigest !== expected.digest ||
+      result.status !== 'passed' ||
+      !Array.isArray(result.evidenceIds) ||
+      result.evidenceIds.length < 1 ||
+      result.evidenceIds.length > 8 ||
+      result.evidenceIds.some((id) => typeof id !== 'string' || !evidenceIds.has(id)) ||
+      new Set(result.evidenceIds).size !== result.evidenceIds.length
+    ) {
+      throw new Error('Completion validation result is invalid')
+    }
+    validationResults.push({
+      requirementId: expected.id,
+      requirementDigest: expected.digest,
+      status: 'passed',
+      evidenceIds: [...result.evidenceIds] as string[],
+    })
+  }
+
+  return {
+    schema: 'ownest.completion.v1',
+    crmTaskId: expectedContract.crmTaskId,
+    hermesTaskId,
+    attemptId: expectedContract.attemptId,
+    rolloutId: expectedContract.rolloutId,
+    missionDigest: expectedContract.missionDigest,
+    verdict: 'passed',
+    evidence,
+    validationResults,
+  }
+}
+
+interface ValidatedCompletion {
+  completion: HermesTask
+  receipt: OwnestCompletionReceiptV1
+  completedAt: string
+}
+
+function validateCompletionTask(
+  value: unknown,
+  expectedContract: EnsureCompletionArtifactsInput['expectedContract'],
+  config: OwnestConfig,
+): ValidatedCompletion {
+  if (!isPlainRecord(value) || !hasExactKeys(value, COMPLETION_TASK_KEYS)) {
+    throw new Error('Completion projection has an invalid shape')
+  }
+  if (
+    !HERMES_TASK_ID.test(String(value.id)) ||
+    value.status !== 'done' ||
+    value.assignee !== config.hermesProfile ||
+    !isNonEmptyString(value.title) ||
+    value.idempotencyKey !== null ||
+    !isNonEmptyString(value.summary) ||
+    Buffer.byteLength(value.summary, 'utf8') > COMPLETION_TEXT_MAX_BYTES ||
+    !Number.isSafeInteger(value.runId) ||
+    Number(value.runId) <= 0 ||
+    !isIsoTimestamp(value.completedAt) ||
+    typeof value.receiptSha256 !== 'string' ||
+    !SHA256_DIGEST.test(value.receiptSha256) ||
+    !isPlainRecord(value.latestRun) ||
+    !hasExactKeys(value.latestRun, COMPLETION_RUN_KEYS) ||
+    !isNonEmptyString(value.evidenceUri) ||
+    value.error !== null
+  ) {
+    throw new Error('Completion projection is invalid')
+  }
+  const run = value.latestRun
+  if (
+    run.id !== value.runId ||
+    run.profile !== config.hermesProfile ||
+    run.status !== 'done' ||
+    run.outcome !== 'completed' ||
+    run.summary !== value.summary ||
+    run.error !== null ||
+    run.metadata !== null ||
+    (run.workerPid !== null && !Number.isSafeInteger(run.workerPid)) ||
+    !Number.isSafeInteger(run.startedAt) ||
+    Number(run.startedAt) < 0 ||
+    !Number.isSafeInteger(run.endedAt) ||
+    Number(run.endedAt) < Number(run.startedAt)
+  ) {
+    throw new Error('Completion run is invalid')
+  }
+  const completedAt = new Date(Number(run.endedAt) * 1_000).toISOString()
+  const expectedEvidenceUri = `hermes-kanban:/boards/${encodeURIComponent(config.hermesBoard)}/tasks/${encodeURIComponent(String(value.id))}/runs/${String(value.runId)}`
+  if (value.completedAt !== completedAt || value.evidenceUri !== expectedEvidenceUri) {
+    throw new Error('Completion timestamp or Hermes evidence projection is invalid')
+  }
+  const receipt = validateCanonicalCompletionReceipt(
+    value.receipt,
+    expectedContract,
+    String(value.id),
+  )
+  if (sha256Digest(JSON.stringify(receipt)) !== value.receiptSha256) {
+    throw new Error('Completion receipt digest is invalid')
+  }
+  return { completion: value as unknown as HermesTask, receipt, completedAt }
 }
 
 function parseTask(value: unknown, founderId: string): CcTask {
@@ -831,6 +1138,372 @@ export async function getOwnedTask(
   return row
 }
 
+type CompletionArtifactTable =
+  | 'cc_validation_runs'
+  | 'cc_evidence_records'
+  | 'cc_task_events'
+
+interface CompletionArtifactPlan {
+  result: EnsureCompletionArtifactsResult
+  validationRows: Record<string, unknown>[]
+  evidenceRow: Record<string, unknown>
+  evidenceEventRow: Record<string, unknown>
+  completionEventRow: Record<string, unknown>
+}
+
+function validateCompletionInputAuthority(
+  input: EnsureCompletionArtifactsInput,
+  config: OwnestConfig,
+): void {
+  if (
+    !isPlainRecord(input) ||
+    !hasExactKeys(input, COMPLETION_INPUT_KEYS) ||
+    !isSafeCompletionToken(input.taskId)
+  ) {
+    throw new Error('CRM completion artifact input is invalid')
+  }
+  if (config.canaryTaskId === null || config.canaryTaskId !== input.taskId) {
+    throw new Error('CRM completion artifact task is outside the configured canary authority')
+  }
+  if (config.rolloutId === null) {
+    throw new Error('CRM completion artifacts require a configured rollout authority')
+  }
+  if (config.hermesProfile !== 'ownest' || config.hermesBoard !== 'unite-group-ownest') {
+    throw new Error('CRM completion artifacts require the OWNEST Hermes authority')
+  }
+  if (
+    !isPlainRecord(input.expectedContract) ||
+    input.expectedContract.crmTaskId !== input.taskId ||
+    input.expectedContract.rolloutId !== config.rolloutId ||
+    input.expectedContract.hermesProfile !== config.hermesProfile ||
+    input.expectedContract.hermesBoard !== config.hermesBoard
+  ) {
+    throw new Error('CRM completion mission contract is outside configured authority')
+  }
+}
+
+function validateCompletionPreflight(
+  task: CcTask,
+  input: EnsureCompletionArtifactsInput,
+  config: OwnestConfig,
+): ValidatedCompletion {
+  if (task.id !== input.taskId || task.founder_id !== config.founderId) {
+    throw new Error('CRM completion task is outside the configured founder authority')
+  }
+  if (task.status !== 'running') {
+    throw new Error('CRM completion artifacts require a running authoritative task')
+  }
+  const state = extractHardenedOwnestState(task.metadata, task.id)
+  if (!state) throw new Error('CRM completion task has invalid hardened OWNEST state')
+  if (
+    state.gateState !== 'eligible' ||
+    state.crmTaskId !== task.id ||
+    state.attemptId !== input.expectedContract.attemptId ||
+    state.rolloutId !== config.rolloutId ||
+    state.rolloutId !== input.expectedContract.rolloutId ||
+    state.hermesProfile !== config.hermesProfile ||
+    state.hermesProfile !== input.expectedContract.hermesProfile ||
+    state.hermesBoard !== config.hermesBoard ||
+    state.hermesBoard !== input.expectedContract.hermesBoard ||
+    state.hermesTaskId === null ||
+    state.completionPhase !== 'receipt_validated'
+  ) {
+    throw new Error('CRM completion task authority or phase is invalid')
+  }
+  const authoritativeContract = buildMissionContract(
+    task,
+    state.attemptId,
+    state.rolloutId,
+    state.integrityNonce,
+    state.hermesProfile,
+    state.hermesBoard,
+  )
+  if (
+    !isDeepStrictEqual(input.expectedContract, authoritativeContract) ||
+    state.idempotencyKey !== authoritativeContract.idempotencyKey ||
+    state.missionDigest !== authoritativeContract.missionDigest
+  ) {
+    throw new Error('CRM completion mission or validation digests are invalid')
+  }
+  const validated = validateCompletionTask(input.completion, authoritativeContract, config)
+  if (
+    validated.completion.id !== state.hermesTaskId ||
+    validated.completion.receiptSha256 === null ||
+    state.receiptSha256 !== validated.completion.receiptSha256
+  ) {
+    throw new Error('CRM completion receipt does not match the persisted OWNEST state')
+  }
+  return validated
+}
+
+function completionArtifactId(
+  config: OwnestConfig,
+  taskId: string,
+  attemptId: string,
+  rolloutId: string,
+  kind: string,
+): string {
+  return deterministicUuid(
+    'ownest.completion.artifact.v1',
+    config.founderId,
+    taskId,
+    attemptId,
+    rolloutId,
+    kind,
+  )
+}
+
+function buildCompletionArtifactPlan(
+  task: CcTask,
+  contract: EnsureCompletionArtifactsInput['expectedContract'],
+  validated: ValidatedCompletion,
+  config: OwnestConfig,
+): CompletionArtifactPlan {
+  const validationRunIds = contract.validationRequirements.map((requirement) =>
+    completionArtifactId(
+      config,
+      task.id,
+      contract.attemptId,
+      contract.rolloutId,
+      `validation:${requirement.id}`,
+    ),
+  )
+  const evidenceRecordId = completionArtifactId(
+    config,
+    task.id,
+    contract.attemptId,
+    contract.rolloutId,
+    'evidence',
+  )
+  const evidenceAddedEventId = completionArtifactId(
+    config,
+    task.id,
+    contract.attemptId,
+    contract.rolloutId,
+    'event:evidence_added',
+  )
+  const completionEventId = completionArtifactId(
+    config,
+    task.id,
+    contract.attemptId,
+    contract.rolloutId,
+    'event:completed',
+  )
+  const evidenceById = new Map(validated.receipt.evidence.map((item) => [item.id, item]))
+  const validationRows = validated.receipt.validationResults.map((result, index) => ({
+    id: validationRunIds[index],
+    founder_id: config.founderId,
+    task_id: task.id,
+    gate: `ownest:${result.requirementId}:${result.requirementDigest}`,
+    command: null,
+    result: 'pass',
+    evidence_path: evidenceById.get(result.evidenceIds[0] ?? '')?.uri ?? null,
+    ran_at: validated.completedAt,
+  }))
+  if (validationRows.some((row) => row.id === undefined || row.evidence_path === null)) {
+    throw new Error('CRM completion validation artifact plan is incomplete')
+  }
+  const evidenceUri = validated.completion.evidenceUri
+  if (evidenceUri === null) throw new Error('CRM completion evidence projection is missing')
+  const evidenceRow = {
+    id: evidenceRecordId,
+    founder_id: config.founderId,
+    task_id: task.id,
+    kind: 'validation',
+    wiki_path: evidenceUri,
+    sources: validated.receipt.evidence,
+    confidence: 'high',
+    created_at: validated.completedAt,
+  }
+  const sharedPayload = {
+    schema: 'ownest.completion-artifacts.v1',
+    taskId: task.id,
+    hermesTaskId: validated.completion.id,
+    attemptId: contract.attemptId,
+    rolloutId: contract.rolloutId,
+    receiptSha256: validated.completion.receiptSha256,
+    validationRunIds,
+    evidenceRecordId,
+    evidenceUri,
+  }
+  const evidenceEventRow = {
+    id: evidenceAddedEventId,
+    founder_id: config.founderId,
+    task_id: task.id,
+    type: 'evidence_added',
+    actor: config.workerId,
+    payload: { ...sharedPayload, evidenceCount: validated.receipt.evidence.length },
+    at: validated.completedAt,
+  }
+  const completionEventRow = {
+    id: completionEventId,
+    founder_id: config.founderId,
+    task_id: task.id,
+    type: 'completed',
+    actor: config.workerId,
+    payload: {
+      ...sharedPayload,
+      runId: validated.completion.runId,
+      completedAt: validated.completedAt,
+    },
+    at: validated.completedAt,
+  }
+  return {
+    result: {
+      validationRunIds,
+      evidenceRecordId,
+      evidenceAddedEventId,
+      completionEventId,
+    },
+    validationRows,
+    evidenceRow,
+    evidenceEventRow,
+    completionEventRow,
+  }
+}
+
+const COMPLETION_ARTIFACT_COLUMNS: Readonly<Record<CompletionArtifactTable, readonly string[]>> = {
+  cc_validation_runs: [
+    'id',
+    'founder_id',
+    'task_id',
+    'gate',
+    'command',
+    'result',
+    'evidence_path',
+    'ran_at',
+  ],
+  cc_evidence_records: [
+    'id',
+    'founder_id',
+    'task_id',
+    'kind',
+    'wiki_path',
+    'sources',
+    'confidence',
+    'created_at',
+  ],
+  cc_task_events: ['id', 'founder_id', 'task_id', 'type', 'actor', 'payload', 'at'],
+}
+
+const COMPLETION_ARTIFACT_TIMESTAMP_COLUMN: Readonly<Record<CompletionArtifactTable, string>> = {
+  cc_validation_runs: 'ran_at',
+  cc_evidence_records: 'created_at',
+  cc_task_events: 'at',
+}
+
+function completionArtifactRowsEqual(
+  table: CompletionArtifactTable,
+  actual: Record<string, unknown>,
+  expected: Record<string, unknown>,
+): boolean {
+  if (isDeepStrictEqual(actual, expected)) return true
+  const timestampColumn = COMPLETION_ARTIFACT_TIMESTAMP_COLUMN[table]
+  const actualTimestamp = actual[timestampColumn]
+  const expectedTimestamp = expected[timestampColumn]
+  if (
+    !isIsoTimestamp(actualTimestamp) ||
+    !isIsoTimestamp(expectedTimestamp) ||
+    Date.parse(actualTimestamp) !== Date.parse(expectedTimestamp)
+  ) {
+    return false
+  }
+  return isDeepStrictEqual(
+    { ...actual, [timestampColumn]: expectedTimestamp },
+    expected,
+  )
+}
+
+async function ensureCompletionArtifactRow(
+  table: CompletionArtifactTable,
+  expected: Record<string, unknown>,
+  config: OwnestConfig,
+  deps: CrmDeps,
+): Promise<void> {
+  const insertUrl = tableUrl(config, table)
+  insertUrl.searchParams.set('on_conflict', 'id')
+  await crmRequest(
+    `Failed to insert CRM completion artifact in ${table}`,
+    insertUrl,
+    {
+      method: 'POST',
+      headers: {
+        ...serviceHeaders(config),
+        'content-type': 'application/json',
+        Prefer: 'resolution=ignore-duplicates,return=minimal',
+      },
+      body: boundedJsonBody('Failed to serialise CRM completion artifact', expected, config),
+    },
+    config,
+    deps,
+  )
+
+  const columns = COMPLETION_ARTIFACT_COLUMNS[table]
+  const id = expected.id
+  if (typeof id !== 'string') throw new Error('CRM completion artifact id is invalid')
+  const readUrl = tableUrl(config, table)
+  readUrl.searchParams.set('select', columns.join(','))
+  readUrl.searchParams.set('founder_id', `eq.${config.founderId}`)
+  readUrl.searchParams.set('id', `eq.${id}`)
+  readUrl.searchParams.set('limit', '1')
+  const body = await crmRequest(
+    `Failed to read back CRM completion artifact from ${table}`,
+    readUrl,
+    { method: 'GET', headers: serviceHeaders(config) },
+    config,
+    deps,
+  )
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(body)
+  } catch {
+    throw new Error('CRM completion artifact readback contained malformed JSON')
+  }
+  if (!Array.isArray(parsed) || parsed.length !== 1 || !isPlainRecord(parsed[0])) {
+    throw new Error('CRM completion artifact readback returned an invalid row count or shape')
+  }
+  const row = parsed[0]
+  if (
+    !hasExactKeys(row, new Set(columns)) ||
+    row.id !== id ||
+    row.founder_id !== config.founderId ||
+    row.task_id !== expected.task_id
+  ) {
+    throw new Error('CRM completion artifact readback escaped its founder or task authority')
+  }
+  if (!completionArtifactRowsEqual(table, row, expected)) {
+    throw new Error('CRM completion artifact integrity conflict')
+  }
+}
+
+/** Repairs deterministic completion audit/evidence rows without changing cc_tasks. */
+export async function ensureCompletionArtifacts(
+  input: EnsureCompletionArtifactsInput,
+  config: OwnestConfig,
+  deps: CrmDeps,
+): Promise<EnsureCompletionArtifactsResult> {
+  try {
+    validateCompletionInputAuthority(input, config)
+    const task = await getOwnedTask(input.taskId, config, deps)
+    if (!task) throw new Error('CRM completion task was not found in founder scope')
+    const validated = validateCompletionPreflight(task, input, config)
+    const plan = buildCompletionArtifactPlan(task, input.expectedContract, validated, config)
+    for (const row of plan.validationRows) {
+      await ensureCompletionArtifactRow('cc_validation_runs', row, config, deps)
+    }
+    await ensureCompletionArtifactRow('cc_evidence_records', plan.evidenceRow, config, deps)
+    await ensureCompletionArtifactRow('cc_task_events', plan.evidenceEventRow, config, deps)
+    await ensureCompletionArtifactRow('cc_task_events', plan.completionEventRow, config, deps)
+    return plan.result
+  } catch (error) {
+    throw redactedError(
+      'Failed to ensure CRM completion artifacts',
+      redactMissionText(stringifyUnknown(error)),
+      config.serviceRoleKey,
+    )
+  }
+}
+
 /** Reads every founder-owned task governed by the hardened OWNEST state machine. */
 export async function listManagedTasks(config: OwnestConfig, deps: CrmDeps): Promise<CcTask[]> {
   const countParams = managedTaskParams(config, 'id')
@@ -1125,5 +1798,6 @@ export function createCrmClient(config: OwnestConfig, deps: CrmDeps): OwnestCrmC
     compareAndSetTask: (input) => compareAndSetTask(input, config, deps),
     appendTaskEvent: (input) => appendTaskEvent(input, config, deps),
     appendEvidence: (input) => appendEvidence(input, config, deps),
+    ensureCompletionArtifacts: (input) => ensureCompletionArtifacts(input, config, deps),
   }
 }
