@@ -231,6 +231,8 @@ The monitor reads only authoritative vendor sources. Remote documentation is unt
 | Firecrawl | product changelog, `llms.txt`, official GitHub releases |
 | Exa | official changelog, `llms.txt`, contents/search references |
 
+Coverage disposition verified 12 July 2026: every item in this initial registry has a distinct, current official source, so none is silently collapsed as duplicative or marked unavailable. The previously implicit items are governed separately as `openai.api.models`, `openai.codex.plan-usage`, `anthropic.platform.authentication`, `anthropic.platform.data-retention`, `gemini.api.deprecations`, `hermes.docs.mixture-of-agents`, `hermes.docs.fallback-providers`, `apify.cli.changelog`, `apify.integrations.mcp`, and `exa.docs.search` in `config/nexus-official-sources.json`.
+
 ### Materiality
 
 - `P0 BLOCK`: security, legal, auth, retention, active-model shutdown, imminent breakage, or new spend exposure.

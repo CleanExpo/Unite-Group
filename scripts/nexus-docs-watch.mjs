@@ -2,6 +2,7 @@
 
 import { createHash } from 'node:crypto'
 import { promises as dns } from 'node:dns'
+import { request as nativeHttpsRequest } from 'node:https'
 import {
   existsSync,
   lstatSync,
@@ -13,11 +14,57 @@ import {
   rename,
   writeFile,
 } from 'node:fs/promises'
-import { isIP } from 'node:net'
+import { BlockList, isIP } from 'node:net'
 import path from 'node:path'
+import { Readable } from 'node:stream'
 import { pathToFileURL } from 'node:url'
 
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308])
+const NETWORK_CEILINGS = Object.freeze({
+  timeoutMs: 60_000,
+  maxBytes: 5 * 1024 * 1024,
+  maxRedirects: 5,
+  concurrency: 8,
+})
+const BLOCKED_IPV4 = new BlockList()
+for (const [network, prefix] of [
+  ['0.0.0.0', 8],
+  ['10.0.0.0', 8],
+  ['100.64.0.0', 10],
+  ['127.0.0.0', 8],
+  ['169.254.0.0', 16],
+  ['172.16.0.0', 12],
+  ['192.0.0.0', 24],
+  ['192.0.2.0', 24],
+  ['192.88.99.0', 24],
+  ['192.168.0.0', 16],
+  ['198.18.0.0', 15],
+  ['198.51.100.0', 24],
+  ['203.0.113.0', 24],
+  ['224.0.0.0', 3],
+]) {
+  BLOCKED_IPV4.addSubnet(network, prefix, 'ipv4')
+}
+const BLOCKED_IPV6 = new BlockList()
+for (const [network, prefix] of [
+  ['::', 96],
+  ['::ffff:0:0', 96],
+  ['64:ff9b::', 96],
+  ['64:ff9b:1::', 48],
+  ['100::', 64],
+  ['100:0:0:1::', 64],
+  ['2001::', 23],
+  ['2001:db8::', 32],
+  ['2002::', 16],
+  ['3fff::', 20],
+  ['5f00::', 16],
+  ['fc00::', 7],
+  ['fe80::', 10],
+  ['fec0::', 10],
+  ['ff00::', 8],
+]) {
+  BLOCKED_IPV6.addSubnet(network, prefix, 'ipv6')
+}
 const ACTIVE_HTML_BLOCKS = [
   'script',
   'style',
@@ -93,46 +140,11 @@ function isUnsafeHostname(hostname) {
   )
 }
 
-function ipv4Parts(address) {
-  const parts = address.split('.').map(Number)
-  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
-    return null
-  }
-  return parts
-}
-
-function isPublicIpAddress(address) {
-  const family = isIP(address)
-  if (family === 4) {
-    const parts = ipv4Parts(address)
-    if (!parts) return false
-    const [a, b, c] = parts
-    if (a === 0 || a === 10 || a === 127 || a >= 224) return false
-    if (a === 100 && b >= 64 && b <= 127) return false
-    if (a === 169 && b === 254) return false
-    if (a === 172 && b >= 16 && b <= 31) return false
-    if (a === 192 && b === 0 && c === 0) return false
-    if (a === 192 && b === 0 && c === 2) return false
-    if (a === 192 && b === 168) return false
-    if (a === 198 && (b === 18 || b === 19)) return false
-    if (a === 198 && b === 51 && c === 100) return false
-    if (a === 203 && b === 0 && c === 113) return false
-    return true
-  }
-
-  if (family === 6) {
-    const candidate = address.toLowerCase().split('%')[0]
-    if (candidate === '::' || candidate === '::1') return false
-    if (candidate.startsWith('fc') || candidate.startsWith('fd')) return false
-    if (/^fe[89ab]/.test(candidate)) return false
-    if (candidate.startsWith('2001:db8:')) return false
-    if (candidate.startsWith('::ffff:')) {
-      const mapped = candidate.slice('::ffff:'.length)
-      return isPublicIpAddress(mapped)
-    }
-    return true
-  }
-
+export function isPublicIpAddress(address) {
+  const candidate = typeof address === 'string' ? address.toLowerCase().split('%')[0] : ''
+  const family = isIP(candidate)
+  if (family === 4) return !BLOCKED_IPV4.check(candidate, 'ipv4')
+  if (family === 6) return !BLOCKED_IPV6.check(candidate, 'ipv6')
   return false
 }
 
@@ -180,27 +192,33 @@ function validateSource(source) {
   }
 }
 
-export function validateRegistry(registry) {
-  if (!registry || typeof registry !== 'object' || Array.isArray(registry)) {
-    throw new WatchError('invalid_config', 'Registry must be an object')
-  }
-  if (registry.schemaVersion !== 1) {
-    throw new WatchError('invalid_config', 'Registry schemaVersion must be 1')
-  }
-  const defaults = registry.defaults
+function validateNetworkDefaults(defaults) {
   if (!defaults || typeof defaults !== 'object' || Array.isArray(defaults)) {
-    throw new WatchError('invalid_config', 'Registry defaults are required')
+    throw new WatchError('invalid_config', 'Network defaults are required')
   }
   for (const field of ['timeoutMs', 'maxBytes', 'maxRedirects']) {
     if (!Number.isInteger(defaults[field]) || defaults[field] <= 0) {
       throw new WatchError('invalid_config', `defaults.${field} must be a positive integer`)
     }
+    if (defaults[field] > NETWORK_CEILINGS[field]) {
+      throw new WatchError(
+        'invalid_config',
+        `defaults.${field} exceeds the hard ceiling of ${NETWORK_CEILINGS[field]}`,
+      )
+    }
   }
   if (
     defaults.concurrency !== undefined &&
-    (!Number.isInteger(defaults.concurrency) || defaults.concurrency <= 0 || defaults.concurrency > 8)
+    (
+      !Number.isInteger(defaults.concurrency) ||
+      defaults.concurrency <= 0 ||
+      defaults.concurrency > NETWORK_CEILINGS.concurrency
+    )
   ) {
-    throw new WatchError('invalid_config', 'defaults.concurrency must be between 1 and 8')
+    throw new WatchError(
+      'invalid_config',
+      `defaults.concurrency must be between 1 and ${NETWORK_CEILINGS.concurrency}`,
+    )
   }
   if (
     !Array.isArray(defaults.acceptedContentTypes) ||
@@ -209,6 +227,17 @@ export function validateRegistry(registry) {
   ) {
     throw new WatchError('invalid_config', 'defaults.acceptedContentTypes must be a non-empty string array')
   }
+  return defaults
+}
+
+export function validateRegistry(registry) {
+  if (!registry || typeof registry !== 'object' || Array.isArray(registry)) {
+    throw new WatchError('invalid_config', 'Registry must be an object')
+  }
+  if (registry.schemaVersion !== 1) {
+    throw new WatchError('invalid_config', 'Registry schemaVersion must be 1')
+  }
+  validateNetworkDefaults(registry.defaults)
   if (!Array.isArray(registry.sources) || registry.sources.length === 0) {
     throw new WatchError('invalid_config', 'Registry must contain at least one source')
   }
@@ -228,7 +257,25 @@ async function defaultResolveHost(hostname) {
   return dns.lookup(hostname, { all: true, verbatim: true })
 }
 
-async function assertSafeNetworkTarget(url, allowedHosts, resolveHost) {
+function abortable(promise, signal) {
+  if (signal.aborted) return Promise.reject(signal.reason)
+  return new Promise((resolve, reject) => {
+    const onAbort = () => reject(signal.reason)
+    signal.addEventListener('abort', onAbort, { once: true })
+    Promise.resolve(promise).then(
+      (value) => {
+        signal.removeEventListener('abort', onAbort)
+        resolve(value)
+      },
+      (error) => {
+        signal.removeEventListener('abort', onAbort)
+        reject(error)
+      },
+    )
+  })
+}
+
+async function assertSafeNetworkTarget(url, allowedHosts, resolveHost, signal) {
   if (url.protocol !== 'https:' || url.username || url.password) {
     throw new WatchError('unsafe_redirect', 'Redirect target must use credential-free HTTPS')
   }
@@ -245,19 +292,140 @@ async function assertSafeNetworkTarget(url, allowedHosts, resolveHost) {
 
   let addresses
   try {
-    addresses = await resolveHost(hostname)
-  } catch {
+    addresses = await abortable(resolveHost(hostname), signal)
+  } catch (error) {
+    if (signal.aborted) throw signal.reason
     throw new WatchError('dns_failure', `Could not resolve allowlisted host: ${hostname}`)
   }
   if (!Array.isArray(addresses) || addresses.length === 0) {
     throw new WatchError('dns_failure', `Allowlisted host returned no addresses: ${hostname}`)
   }
+
+  const approved = []
+  const seen = new Set()
   for (const record of addresses) {
-    const address = typeof record === 'string' ? record : record?.address
-    if (typeof address !== 'string' || !isPublicIpAddress(address)) {
+    const rawAddress = typeof record === 'string' ? record : record?.address
+    const address = typeof rawAddress === 'string' ? rawAddress.split('%')[0] : ''
+    const family = isIP(address)
+    if (
+      !family ||
+      (record?.family !== undefined && Number(record.family) !== family) ||
+      !isPublicIpAddress(address)
+    ) {
       throw new WatchError('private_address', `Allowlisted host resolved to a non-public address: ${hostname}`)
     }
+    const key = `${family}:${address.toLowerCase()}`
+    if (!seen.has(key)) {
+      approved.push({ address, family })
+      seen.add(key)
+    }
   }
+  return approved
+}
+
+export function createPinnedLookup(hostname, approvedAddresses) {
+  const expectedHostname = normaliseHostname(hostname)
+  const approved = approvedAddresses.map(({ address, family }) => ({ address, family }))
+  return (requestedHostname, options, callback) => {
+    const requested = normaliseHostname(requestedHostname)
+    if (requested !== expectedHostname) {
+      callback(new WatchError('dns_rebinding', `Pinned lookup refused unexpected hostname: ${requested}`))
+      return
+    }
+
+    const lookupOptions = typeof options === 'number' ? { family: options } : (options ?? {})
+    const requestedFamily = Number(lookupOptions.family) || 0
+    const matching = requestedFamily
+      ? approved.filter((record) => record.family === requestedFamily)
+      : approved
+    if (matching.length === 0) {
+      callback(new WatchError('dns_failure', `No prevalidated address for ${expectedHostname}`))
+      return
+    }
+    if (lookupOptions.all) {
+      callback(null, matching.map((record) => ({ ...record })))
+      return
+    }
+    callback(null, matching[0].address, matching[0].family)
+  }
+}
+
+function mappedIpv4(address) {
+  const match = address.toLowerCase().match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/)
+  return match?.[1] ?? null
+}
+
+export function assertPinnedPeer(remoteAddress, approvedAddresses) {
+  let candidate = typeof remoteAddress === 'string' ? remoteAddress.split('%')[0] : ''
+  let family = isIP(candidate)
+  const mapped = family === 6 ? mappedIpv4(candidate) : null
+  if (mapped) {
+    candidate = mapped
+    family = 4
+  }
+
+  for (const record of approvedAddresses) {
+    if (record.family !== family) continue
+    const exact = new BlockList()
+    exact.addAddress(record.address, family === 4 ? 'ipv4' : 'ipv6')
+    if (exact.check(candidate, family === 4 ? 'ipv4' : 'ipv6')) return
+  }
+  throw new WatchError('dns_rebinding', 'Connected peer was not in the prevalidated address set')
+}
+
+function nodeHeaders(headers) {
+  const normalised = new Headers()
+  for (const [name, value] of Object.entries(headers)) {
+    if (Array.isArray(value)) {
+      for (const item of value) normalised.append(name, item)
+    } else if (value !== undefined) {
+      normalised.set(name, value)
+    }
+  }
+  return normalised
+}
+
+export function requestPinnedHttps({
+  url,
+  approvedAddresses,
+  headers,
+  signal,
+  httpsRequestImpl = nativeHttpsRequest,
+}) {
+  return new Promise((resolve, reject) => {
+    let request
+    try {
+      request = httpsRequestImpl(url, {
+        method: 'GET',
+        headers,
+        signal,
+        agent: false,
+        lookup: createPinnedLookup(url.hostname, approvedAddresses),
+        servername: url.hostname,
+      }, (response) => {
+        resolve({
+          status: response.statusCode,
+          headers: nodeHeaders(response.headers),
+          body: Readable.toWeb(response),
+        })
+      })
+    } catch (error) {
+      reject(error)
+      return
+    }
+
+    request.once('socket', (socket) => {
+      socket.once('secureConnect', () => {
+        try {
+          assertPinnedPeer(socket.remoteAddress, approvedAddresses)
+        } catch (error) {
+          request.destroy(error)
+        }
+      })
+    })
+    request.once('error', reject)
+    request.end()
+  })
 }
 
 async function readBoundedBody(response, maxBytes) {
@@ -368,19 +536,217 @@ export function normaliseContent(value, contentType) {
   return normaliseText(value)
 }
 
+function assertExactKeys(value, expected, label) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new WatchError('invalid_baseline', `${label} must be an object`)
+  }
+  const actual = Object.keys(value).sort()
+  const wanted = [...expected].sort()
+  if (actual.length !== wanted.length || actual.some((key, index) => key !== wanted[index])) {
+    throw new WatchError('invalid_baseline', `${label} has an unexpected schema`)
+  }
+}
+
+function registryFingerprint(registry) {
+  const governed = {
+    schemaVersion: registry.schemaVersion,
+    defaults: registry.defaults,
+    sources: registry.sources
+      .map((source) => ({
+        id: source.id,
+        vendor: source.vendor,
+        url: source.url,
+        allowedHosts: source.allowedHosts.map(normaliseHostname).sort(),
+        critical: source.critical,
+        gateOnChange: source.gateOnChange,
+      }))
+      .sort((left, right) => left.id.localeCompare(right.id)),
+  }
+  return sha256(JSON.stringify(stableValue(governed)))
+}
+
+function validEtag(value) {
+  return (
+    value === null ||
+    (
+      typeof value === 'string' &&
+      value.length <= 1024 &&
+      /^(?:W\/)?"[\x21\x23-\x7e\x80-\xff]*"$/.test(value)
+    )
+  )
+}
+
+function validLastModified(value) {
+  return (
+    value === null ||
+    (
+      typeof value === 'string' &&
+      /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d{2} (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4} \d{2}:\d{2}:\d{2} GMT$/.test(value) &&
+      Number.isFinite(Date.parse(value))
+    )
+  )
+}
+
+function validateBaselineSourceEntry(entry, source, defaults) {
+  assertExactKeys(entry, [
+    'id',
+    'url',
+    'finalUrl',
+    'httpStatus',
+    'contentType',
+    'bytes',
+    'rawSha256',
+    'normalisedSha256',
+    'responseHeaders',
+  ], `Baseline source ${source.id}`)
+  if (entry.id !== source.id || entry.url !== source.url) {
+    throw new WatchError('invalid_baseline', `Baseline source identity mismatch: ${source.id}`)
+  }
+
+  let finalUrl
+  try {
+    finalUrl = new URL(entry.finalUrl)
+  } catch {
+    throw new WatchError('invalid_baseline', `Baseline source ${source.id} has an invalid final URL`)
+  }
+  const allowedHosts = source.allowedHosts.map(normaliseHostname)
+  if (
+    finalUrl.protocol !== 'https:' ||
+    finalUrl.username ||
+    finalUrl.password ||
+    (finalUrl.port && finalUrl.port !== '443') ||
+    isUnsafeHostname(finalUrl.hostname) ||
+    !allowedHosts.includes(normaliseHostname(finalUrl.hostname))
+  ) {
+    throw new WatchError('invalid_baseline', `Baseline source ${source.id} has an unsafe final URL`)
+  }
+
+  if (entry.httpStatus !== 200 && entry.httpStatus !== 304) {
+    throw new WatchError('invalid_baseline', `Baseline source ${source.id} has an invalid HTTP status`)
+  }
+  if (
+    typeof entry.contentType !== 'string' ||
+    entry.contentType !== canonicalContentType(entry.contentType) ||
+    !defaults.acceptedContentTypes.map(canonicalContentType).includes(entry.contentType)
+  ) {
+    throw new WatchError('invalid_baseline', `Baseline source ${source.id} has an invalid content type`)
+  }
+  if (!Number.isInteger(entry.bytes) || entry.bytes < 0 || entry.bytes > defaults.maxBytes) {
+    throw new WatchError('invalid_baseline', `Baseline source ${source.id} has an invalid byte count`)
+  }
+  for (const field of ['rawSha256', 'normalisedSha256']) {
+    if (typeof entry[field] !== 'string' || !/^[a-f0-9]{64}$/.test(entry[field])) {
+      throw new WatchError('invalid_baseline', `Baseline source ${source.id} has an invalid ${field}`)
+    }
+  }
+
+  assertExactKeys(entry.responseHeaders, ['etag', 'lastModified'], `Baseline source ${source.id} headers`)
+  if (!validEtag(entry.responseHeaders.etag) || !validLastModified(entry.responseHeaders.lastModified)) {
+    throw new WatchError('invalid_baseline', `Baseline source ${source.id} has invalid response headers`)
+  }
+  return entry
+}
+
+export function validateBaseline(baseline, registry) {
+  validateRegistry(registry)
+  assertExactKeys(
+    baseline,
+    ['schemaVersion', 'generatedAt', 'registrySha256', 'sources'],
+    'Baseline',
+  )
+  if (baseline.schemaVersion !== 1) {
+    throw new WatchError('invalid_baseline', 'Baseline schemaVersion must be 1')
+  }
+  if (
+    typeof baseline.generatedAt !== 'string' ||
+    !Number.isFinite(Date.parse(baseline.generatedAt)) ||
+    new Date(baseline.generatedAt).toISOString() !== baseline.generatedAt
+  ) {
+    throw new WatchError('invalid_baseline', 'Baseline generatedAt must be a canonical ISO timestamp')
+  }
+  if (baseline.registrySha256 !== registryFingerprint(registry)) {
+    throw new WatchError('invalid_baseline', 'Baseline registry fingerprint does not match')
+  }
+  if (!Array.isArray(baseline.sources)) {
+    throw new WatchError('invalid_baseline', 'Baseline sources must be an array')
+  }
+
+  const expectedSources = [...registry.sources].sort((left, right) => left.id.localeCompare(right.id))
+  const receivedIds = baseline.sources.map((entry) => entry?.id)
+  const expectedIds = expectedSources.map((source) => source.id)
+  if (
+    receivedIds.length !== expectedIds.length ||
+    receivedIds.some((id, index) => id !== expectedIds[index])
+  ) {
+    throw new WatchError(
+      'invalid_baseline',
+      'Baseline must contain every active registry source exactly once in source-id order',
+    )
+  }
+  baseline.sources.forEach((entry, index) => {
+    validateBaselineSourceEntry(entry, expectedSources[index], registry.defaults)
+  })
+  return baseline
+}
+
+export function buildFingerprintBaseline(report, registry) {
+  validateRegistry(registry)
+  if (!report || typeof report !== 'object' || !Array.isArray(report.sources)) {
+    throw new WatchError('invalid_baseline', 'Cannot build a baseline without report sources')
+  }
+  const byId = new Map()
+  for (const result of report.sources) {
+    if (byId.has(result.id) || result.outcome !== 'ok') {
+      throw new WatchError('invalid_baseline', 'Baseline candidates require unique successful sources')
+    }
+    byId.set(result.id, result)
+  }
+
+  const baseline = {
+    schemaVersion: 1,
+    generatedAt: report.generatedAt,
+    registrySha256: registryFingerprint(registry),
+    sources: [...registry.sources]
+      .sort((left, right) => left.id.localeCompare(right.id))
+      .map((source) => {
+        const result = byId.get(source.id)
+        if (!result) {
+          throw new WatchError('invalid_baseline', `Baseline candidate is missing source ${source.id}`)
+        }
+        return {
+          id: result.id,
+          url: result.url,
+          finalUrl: result.finalUrl,
+          httpStatus: result.httpStatus,
+          contentType: result.contentType,
+          bytes: result.bytes,
+          rawSha256: result.rawSha256,
+          normalisedSha256: result.normalisedSha256,
+          responseHeaders: {
+            etag: result.etag ?? null,
+            lastModified: result.lastModified ?? null,
+          },
+        }
+      }),
+  }
+  return validateBaseline(baseline, registry)
+}
+
 function baselineHeaders(baseline) {
   const headers = {
     accept: 'text/markdown,text/plain;q=0.95,application/json;q=0.9,application/atom+xml;q=0.9,application/xml;q=0.85,text/html;q=0.8,*/*;q=0.1',
     'accept-language': 'en-AU,en;q=0.9',
     'user-agent': 'Unite-Group-Nexus-Docs-Watch/1.0',
   }
-  if (baseline?.etag) headers['if-none-match'] = baseline.etag
-  if (baseline?.lastModified) headers['if-modified-since'] = baseline.lastModified
+  if (baseline?.responseHeaders.etag) headers['if-none-match'] = baseline.responseHeaders.etag
+  if (baseline?.responseHeaders.lastModified) {
+    headers['if-modified-since'] = baseline.responseHeaders.lastModified
+  }
   return headers
 }
 
 function baselineReuse(source, baseline, response) {
-  if (!baseline || baseline.outcome !== 'ok' || !baseline.normalisedSha256 || !baseline.rawSha256) {
+  if (!baseline) {
     throw new WatchError('invalid_304', `Source ${source.id} returned 304 without a usable baseline`)
   }
   return {
@@ -394,8 +760,8 @@ function baselineReuse(source, baseline, response) {
     bytes: baseline.bytes ?? 0,
     rawSha256: baseline.rawSha256,
     normalisedSha256: baseline.normalisedSha256,
-    etag: response.headers.get('etag') ?? baseline.etag ?? null,
-    lastModified: response.headers.get('last-modified') ?? baseline.lastModified ?? null,
+    etag: response.headers.get('etag') ?? baseline.responseHeaders.etag,
+    lastModified: response.headers.get('last-modified') ?? baseline.responseHeaders.lastModified,
     critical: source.critical,
     gateOnChange: source.gateOnChange,
   }
@@ -403,10 +769,23 @@ function baselineReuse(source, baseline, response) {
 
 export async function fetchOfficialSource(source, defaults, options = {}) {
   validateSource(source)
-  const fetchImpl = options.fetchImpl ?? globalThis.fetch
+  validateNetworkDefaults(defaults)
+  if (options.baseline !== undefined && options.baseline !== null) {
+    validateBaselineSourceEntry(options.baseline, source, defaults)
+  }
   const resolveHost = options.resolveHost ?? defaultResolveHost
-  if (typeof fetchImpl !== 'function') {
-    throw new WatchError('fetch_unavailable', 'A Fetch implementation is required')
+  const requestImpl = options.requestImpl ?? (
+    options.fetchImpl
+      ? ({ url, headers, signal }) => options.fetchImpl(url, {
+        method: 'GET',
+        redirect: 'manual',
+        headers,
+        signal,
+      })
+      : requestPinnedHttps
+  )
+  if (typeof requestImpl !== 'function') {
+    throw new WatchError('transport_unavailable', 'An HTTPS request implementation is required')
   }
 
   const allowedHosts = source.allowedHosts.map(normaliseHostname)
@@ -420,12 +799,17 @@ export async function fetchOfficialSource(source, defaults, options = {}) {
 
   try {
     while (true) {
-      await assertSafeNetworkTarget(currentUrl, allowedHosts, resolveHost)
+      const approvedAddresses = await assertSafeNetworkTarget(
+        currentUrl,
+        allowedHosts,
+        resolveHost,
+        controller.signal,
+      )
       let response
       try {
-        response = await fetchImpl(currentUrl, {
-          method: 'GET',
-          redirect: 'manual',
+        response = await requestImpl({
+          url: currentUrl,
+          approvedAddresses,
           headers: baselineHeaders(options.baseline),
           signal: controller.signal,
         })
@@ -446,6 +830,7 @@ export async function fetchOfficialSource(source, defaults, options = {}) {
         if (redirects > defaults.maxRedirects) {
           throw new WatchError('redirect_limit', `Source ${source.id} exceeded the redirect limit`)
         }
+        await response.body?.cancel?.('redirect response discarded')
         currentUrl = new URL(location, currentUrl)
         continue
       }
@@ -453,7 +838,7 @@ export async function fetchOfficialSource(source, defaults, options = {}) {
       if (response.status === 304) {
         return baselineReuse(source, options.baseline, response)
       }
-      if (response.status < 200 || response.status >= 300) {
+      if (response.status !== 200) {
         throw new WatchError('http_status', `Unexpected HTTP status ${response.status}`)
       }
 
@@ -516,7 +901,7 @@ function previousSources(baseline) {
 function comparableSource(result, baselineSource) {
   const change = result.outcome !== 'ok'
     ? null
-    : !baselineSource || baselineSource.outcome !== 'ok'
+    : !baselineSource
       ? 'first_seen'
       : baselineSource.normalisedSha256 === result.normalisedSha256
         ? 'unchanged'
@@ -669,13 +1054,20 @@ async function atomicWrite(target, value) {
   await rename(temporary, target)
 }
 
-async function writeReports(root, outputDir, json, markdown) {
+async function writeReports(root, outputDir, json, markdown, baselineCandidateJson) {
   const safeDirectory = assertPathInsideRoot(root, outputDir)
   await mkdir(safeDirectory, { recursive: true })
-  await Promise.all([
+  const writes = [
     atomicWrite(path.join(safeDirectory, 'report.json'), json),
     atomicWrite(path.join(safeDirectory, 'report.md'), markdown),
-  ])
+  ]
+  if (baselineCandidateJson) {
+    writes.push(atomicWrite(
+      path.join(safeDirectory, 'baseline.candidate.json'),
+      baselineCandidateJson,
+    ))
+  }
+  await Promise.all(writes)
   return safeDirectory
 }
 
@@ -713,6 +1105,7 @@ export async function runWatcher(options) {
   validateRegistry(options.registry)
   const root = realpathSync(options.root)
   const baseline = options.baseline ?? null
+  if (baseline) validateBaseline(baseline, options.registry)
   const baselineById = previousSources(baseline)
   const requestedIds = options.onlyIds ? new Set(options.onlyIds) : null
   const availableIds = new Set(options.registry.sources.map((source) => source.id))
@@ -731,6 +1124,7 @@ export async function runWatcher(options) {
       return await fetchOfficialSource(source, options.registry.defaults, {
         baseline: baselineById.get(source.id),
         fetchImpl: options.fetchImpl,
+        requestImpl: options.requestImpl,
         resolveHost: options.resolveHost,
       })
     } catch (error) {
@@ -745,11 +1139,23 @@ export async function runWatcher(options) {
   )
   const json = renderJson(report)
   const markdown = renderMarkdown(report)
+  const baselineCandidate = (
+    sources.length === options.registry.sources.length && report.summary.failed === 0
+  )
+    ? buildFingerprintBaseline(report, options.registry)
+    : null
+  const baselineCandidateJson = baselineCandidate ? renderJson(baselineCandidate) : null
   let writtenTo = null
   if (options.outputDir) {
-    writtenTo = await writeReports(root, options.outputDir, json, markdown)
+    writtenTo = await writeReports(
+      root,
+      options.outputDir,
+      json,
+      markdown,
+      baselineCandidateJson,
+    )
   }
-  return { report, json, markdown, writtenTo }
+  return { report, json, markdown, baselineCandidate, baselineCandidateJson, writtenTo }
 }
 
 function usage() {
@@ -759,7 +1165,7 @@ function usage() {
     'Options:',
     '  --root <dir>          Target repository root (default: current directory)',
     '  --config <file>       Registry JSON inside root (default: config/nexus-official-sources.json)',
-    '  --baseline <file>     Explicit prior report JSON inside root (read-only)',
+    '  --baseline <file>     Explicit fingerprint baseline JSON inside root (read-only)',
     '  --write <dir>         Explicit output directory inside root; omitted means no writes',
     '  --only <id,id>        Fetch only named source ids',
     '  --gate-material       Exit nonzero for changed sources configured with gateOnChange',
