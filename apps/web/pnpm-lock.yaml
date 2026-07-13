@@ -224,8 +224,8 @@ importers:
         specifier: ^14.0.1
         version: 14.0.1
       xero-node:
-        specifier: ^13.3.0
-        version: 13.4.0
+        specifier: ^18.0.0
+        version: 18.0.0
       yaml:
         specifier: ^2.9.0
         version: 2.9.0
@@ -7203,8 +7203,8 @@ packages:
     resolution: {integrity: sha512-sqMMuL1rc0FmMBOzCpd0yuy9trqF2yTTVe+E9ogwCSWQCdDEtQUwrZPT6AxqtsFGRNxycgncbP/xmOOSPw5ZUw==}
     engines: {node: '>= 6.0'}
 
-  xero-node@13.4.0:
-    resolution: {integrity: sha512-88GZDAEp660cGi5kaNYFrmPT5M4lqH1cTvzHgxa8w6g/ANvnJ8TVNXiscq/+WWF43jX0NijeFXip0G1toC83Ig==}
+  xero-node@18.0.0:
+    resolution: {integrity: sha512-n2j6llh0mi8AAp7SEMUh3LBqH9H3wk8izmrD4fT3FcMckAuDqULjBI46HkQZasu40n/CtaA+8Y4MlNcYiN+03g==}
 
   xml-name-validator@5.0.0:
     resolution: {integrity: sha512-EvGK8EJ3DhaHfbRlETOWAS5pO9MZITeauHKJyb8wyajUfQUenkIg2MvLDTZ4T/TgIcm3HU0TFBgWWboAZ30UHg==}
@@ -14651,7 +14651,7 @@ snapshots:
     dependencies:
       os-paths: 4.4.0
 
-  xero-node@13.4.0:
+  xero-node@18.0.0:
     dependencies:
       axios: 1.18.1
       openid-client: 5.7.1
