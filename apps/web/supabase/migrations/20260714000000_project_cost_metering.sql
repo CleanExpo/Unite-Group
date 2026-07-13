@@ -50,14 +50,19 @@ CREATE TABLE IF NOT EXISTS public.allocation_rule (
 -- ── attributed cost & revenue (the P&L tables) ───────────────────────────────
 CREATE TABLE IF NOT EXISTS public.cost_record (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  business_id       UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
+  -- NULL business_id = an internal cost centre (tooling), metered for total
+  -- burn but not billed to a client; excluded from the founder per-business view.
+  business_id       UUID REFERENCES public.businesses(id) ON DELETE CASCADE,
   cost_source_id    TEXT NOT NULL REFERENCES public.cost_source(id),
-  raw_cost_event_id UUID REFERENCES public.raw_cost_event(id) ON DELETE SET NULL,
+  raw_cost_event_id UUID REFERENCES public.raw_cost_event(id) ON DELETE CASCADE,
   period_start      DATE NOT NULL,
   period_end        DATE NOT NULL,
   amount_aud        NUMERIC(14,4) NOT NULL,
   allocation_note   TEXT,
-  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  -- Idempotent re-ingest: one row per (raw event, business). NULLS NOT DISTINCT
+  -- so internal rows (null business_id) dedupe too (Postgres 15+).
+  UNIQUE NULLS NOT DISTINCT (raw_cost_event_id, business_id)
 );
 CREATE INDEX IF NOT EXISTS cost_record_business_period_idx
   ON public.cost_record (business_id, period_start);
