@@ -59,6 +59,7 @@ const PUBLIC_PATHS = [
   '/api/health',
   '/api/cron',
   '/api/webhooks', // External provider callbacks verify their own signatures/secrets
+  '/api/leads',    // Public website lead capture (UNI-2355) — service-role insert, rate-limited above
   '/robots.txt',
   '/sitemap.xml',
   '/site.webmanifest',
