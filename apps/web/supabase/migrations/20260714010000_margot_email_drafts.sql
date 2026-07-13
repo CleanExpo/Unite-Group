@@ -12,9 +12,10 @@ CREATE TABLE IF NOT EXISTS public.margot_email_draft (
   business_key      TEXT,
   channel           TEXT NOT NULL DEFAULT 'email'
                       CHECK (channel IN ('email', 'telegram')),
+  account_email     TEXT,            -- the mailbox to send FROM (which inbox)
   source_message_id TEXT,            -- provider message id being replied to
   thread_id         TEXT,
-  to_address        TEXT,
+  to_address        TEXT,            -- recipient
   subject           TEXT,
   body              TEXT NOT NULL,
   voice_meta        JSONB NOT NULL DEFAULT '{}',
