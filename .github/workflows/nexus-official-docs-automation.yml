@@ -125,7 +125,7 @@ jobs:
           echo "url=${url}" >> "$GITHUB_OUTPUT"
 
       - name: Notify Telegram (summary and PR link only)
-        if: steps.pr.outputs.created == 'true' && secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != ''
+        if: steps.pr.outputs.created == 'true'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -133,6 +133,10 @@ jobs:
           MATERIAL: ${{ steps.review.outputs.material }}
         run: |
           set -euo pipefail
+          if [ -z "${TELEGRAM_BOT_TOKEN}" ] || [ -z "${TELEGRAM_CHAT_ID}" ]; then
+            echo "Telegram secrets unset; skipping notification."
+            exit 0
+          fi
           text="Nexus docs automation: ${MATERIAL} material change(s) proposed. Review: ${PR_URL}"
           curl --silent --show-error --fail --retry 3 --retry-delay 5 --max-time 30 \
             -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
@@ -141,13 +145,17 @@ jobs:
             --data-urlencode "disable_web_page_preview=true" > /dev/null
 
       - name: Notify Telegram on failure
-        if: failure() && secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != ''
+        if: failure()
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
+          if [ -z "${TELEGRAM_BOT_TOKEN}" ] || [ -z "${TELEGRAM_CHAT_ID}" ]; then
+            echo "Telegram secrets unset; skipping failure notification."
+            exit 0
+          fi
           text="Nexus docs automation FAILED. Logs: ${RUN_URL}"
           curl --silent --show-error --fail --retry 3 --retry-delay 5 --max-time 30 \
             -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
