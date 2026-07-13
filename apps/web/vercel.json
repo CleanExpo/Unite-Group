@@ -107,6 +107,10 @@
     {
       "path": "/api/cron/import-contacts",
       "schedule": "0 15 * * 1"
+    },
+    {
+      "path": "/api/cron/drip-process",
+      "schedule": "*/15 * * * *"
     }
   ],
   "functions": {
