@@ -15,8 +15,8 @@
     "verify:container": "bash scripts/verify-retirement-container.sh"
   },
   "devDependencies": {
-    "@types/node": "^26.1.1",
-    "typescript": "^7.0.2",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.6.3",
     "vitest": "^4.1.10"
   }
 }
