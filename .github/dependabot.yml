@@ -20,6 +20,7 @@ updates:
       time: "09:00"
       timezone: "Australia/Brisbane"
     open-pull-requests-limit: 5
+    versioning-strategy: increase-if-necessary
     labels:
       - "dependencies"
     groups:
@@ -38,6 +39,7 @@ updates:
       time: "09:00"
       timezone: "Australia/Brisbane"
     open-pull-requests-limit: 5
+    versioning-strategy: increase-if-necessary
     labels:
       - "dependencies"
     groups:
@@ -56,6 +58,7 @@ updates:
       time: "09:00"
       timezone: "Australia/Brisbane"
     open-pull-requests-limit: 5
+    versioning-strategy: increase-if-necessary
     labels:
       - "dependencies"
     groups:
@@ -74,6 +77,7 @@ updates:
       time: "09:00"
       timezone: "Australia/Brisbane"
     open-pull-requests-limit: 5
+    versioning-strategy: increase-if-necessary
     labels:
       - "dependencies"
     groups:
@@ -94,6 +98,7 @@ updates:
       time: "09:00"
       timezone: "Australia/Brisbane"
     open-pull-requests-limit: 5
+    versioning-strategy: increase-if-necessary
     labels:
       - "dependencies"
     groups:
@@ -112,6 +117,7 @@ updates:
       time: "09:00"
       timezone: "Australia/Brisbane"
     open-pull-requests-limit: 5
+    versioning-strategy: increase-if-necessary
     labels:
       - "dependencies"
     groups:
