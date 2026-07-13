@@ -94,6 +94,9 @@ function classifyTier(pathname: string): Tier | null {
   // Drip lifecycle actions are CRUD/workflow operations, not AI generation.
   if (pathname.startsWith('/api/campaigns/drip')) return 'standard';
 
+  // Public site chat agent — anonymous, spends model tokens; tightest tier.
+  if (pathname.startsWith('/api/agent')) return 'ai';
+
   // AI-heavy routes
   for (const fragment of AI_PATH_FRAGMENTS) {
     if (pathname.includes(fragment)) return 'ai';
