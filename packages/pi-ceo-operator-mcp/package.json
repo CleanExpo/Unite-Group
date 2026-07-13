@@ -20,11 +20,11 @@
   },
   "devDependencies": {
     "@skybridge/devtools": "^1.2.7",
-    "@types/node": "^26.1.1",
+    "@types/node": "^24.0.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "alpic": "^1.152.0",
-    "typescript": "^7.0.2"
+    "typescript": "^6.0.2"
   },
   "overrides": {
     "esbuild": "0.28.1"
