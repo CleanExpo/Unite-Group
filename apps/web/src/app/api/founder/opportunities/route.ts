@@ -29,10 +29,18 @@ export interface OpportunitySourceOfTruth {
   mode: 'forecast_only'
 }
 
+export interface OpportunityReadiness {
+  queueWindow: 'latest_500_created_at'
+  pagination: 'cursor_by_created_at'
+  latestOpportunityUpdatedAt: string | null
+  nextCursor: string | null
+}
+
 export interface OpportunitiesResponse {
   opportunities: Opportunity[]
   summary: OpportunitySummary
   sourceOfTruth: OpportunitySourceOfTruth
+  readiness: OpportunityReadiness
 }
 
 const SOURCE_OF_TRUTH: OpportunitySourceOfTruth = {
@@ -41,18 +49,61 @@ const SOURCE_OF_TRUTH: OpportunitySourceOfTruth = {
   mode: 'forecast_only',
 }
 
-export async function GET() {
+const READINESS: OpportunityReadiness = {
+  queueWindow: 'latest_500_created_at',
+  pagination: 'cursor_by_created_at',
+  latestOpportunityUpdatedAt: null,
+  nextCursor: null,
+}
+
+const PAGE_LIMIT = 500
+
+const NO_STORE_HEADERS = { 'Cache-Control': 'no-store' } as const
+
+function latestOpportunityUpdatedAt(opportunities: Opportunity[]): string | null {
+  return opportunities.reduce<string | null>((latest, opportunity) => {
+    if (!opportunity.updated_at || Number.isNaN(Date.parse(opportunity.updated_at))) return latest
+    if (!latest) return opportunity.updated_at
+    return Date.parse(opportunity.updated_at) > Date.parse(latest) ? opportunity.updated_at : latest
+  }, null)
+}
+
+function nextCursor(opportunities: Opportunity[]): string | null {
+  if (opportunities.length < PAGE_LIMIT) return null
+  const createdAt = opportunities[opportunities.length - 1]?.created_at
+  if (!createdAt || Number.isNaN(Date.parse(createdAt))) return null
+  return createdAt
+}
+
+function beforeCursor(request: Request | undefined): string | null {
+  if (!request) return null
+  const before = new URL(request.url).searchParams.get('before')
+  if (!before) return null
+  if (Number.isNaN(Date.parse(before))) return 'INVALID'
+  return before
+}
+
+export async function GET(request?: Request) {
   const user = await getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+  if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401, headers: NO_STORE_HEADERS })
+
+  const before = beforeCursor(request)
+  if (before === 'INVALID') {
+    return NextResponse.json({ error: 'Invalid before cursor' }, { status: 400, headers: NO_STORE_HEADERS })
+  }
 
   try {
     const supabase = await createClient()
-    const { data, error } = await supabase
+    let query = supabase
       .from('crm_opportunities')
       .select('*')
       .eq('founder_id', user.id)
+
+    if (before) query = query.lt('created_at', before)
+
+    const { data, error } = await query
       .order('created_at', { ascending: false })
-      .limit(500)
+      .limit(PAGE_LIMIT)
 
     if (error) throw error
 
@@ -70,11 +121,23 @@ export async function GET() {
       ),
     }
 
-    return NextResponse.json({ opportunities, summary, sourceOfTruth: SOURCE_OF_TRUTH } satisfies OpportunitiesResponse)
+    return NextResponse.json(
+      {
+        opportunities,
+        summary,
+        sourceOfTruth: SOURCE_OF_TRUTH,
+        readiness: {
+          ...READINESS,
+          latestOpportunityUpdatedAt: latestOpportunityUpdatedAt(opportunities),
+          nextCursor: nextCursor(opportunities),
+        },
+      } satisfies OpportunitiesResponse,
+      { headers: NO_STORE_HEADERS },
+    )
   } catch (err) {
     return NextResponse.json(
       { error: sanitiseError(err, 'Failed to load opportunities', { route: '/api/founder/opportunities' }) },
-      { status: 500 },
+      { status: 500, headers: NO_STORE_HEADERS },
     )
   }
 }

@@ -23,6 +23,13 @@ interface SourceOfTruth {
   mode: 'forecast_only'
 }
 
+interface Readiness {
+  queueWindow: 'latest_500_created_at'
+  pagination: 'cursor_by_created_at'
+  latestOpportunityUpdatedAt?: string | null
+  nextCursor?: string | null
+}
+
 const STAGE_OPTIONS = [
   'all', 'new_signal', 'qualified', 'discovery', 'proposal_needed', 'proposal_sent',
   'negotiation', 'decision_needed', 'won_pending_client_conversion', 'won_converted',
@@ -50,31 +57,126 @@ function label(stage: string): string {
   return stage.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
+function formatSourceTimestamp(iso: string): string | null {
+  const parsed = Date.parse(iso)
+  if (Number.isNaN(parsed)) return null
+  return `${new Intl.DateTimeFormat('en-AU', {
+    timeZone: 'Australia/Brisbane',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  }).format(new Date(parsed))} AEST`
+}
+
+function newestTimestamp(current?: string | null, incoming?: string | null): string | null {
+  const currentTime = current ? Date.parse(current) : Number.NaN
+  const incomingTime = incoming ? Date.parse(incoming) : Number.NaN
+  if (Number.isNaN(currentTime)) return Number.isNaN(incomingTime) ? null : incoming ?? null
+  if (Number.isNaN(incomingTime)) return current ?? null
+  return incomingTime > currentTime ? incoming ?? null : current ?? null
+}
+
+function mergeReadiness(current: Readiness | null, incoming: Readiness | null): Readiness | null {
+  if (!incoming) return current
+  if (!current) return incoming
+  return {
+    ...incoming,
+    latestOpportunityUpdatedAt: newestTimestamp(
+      current.latestOpportunityUpdatedAt,
+      incoming.latestOpportunityUpdatedAt,
+    ),
+  }
+}
+
+function mergeOpportunityRows(current: Opportunity[], incoming: Opportunity[]): Opportunity[] {
+  const seen = new Set(current.map((opportunity) => opportunity.id))
+  const uniqueIncoming = incoming.filter((opportunity) => {
+    if (seen.has(opportunity.id)) return false
+    seen.add(opportunity.id)
+    return true
+  })
+  return [...current, ...uniqueIncoming]
+}
+
+function summarizeOpportunities(rows: Opportunity[]): Summary {
+  const open = rows.filter((opportunity) => opportunity.status === 'open')
+  return {
+    total: rows.length,
+    open: open.length,
+    won: rows.filter((opportunity) => opportunity.status === 'won').length,
+    lost: rows.filter((opportunity) => opportunity.status === 'lost').length,
+    openValue: open.reduce((sum, opportunity) => sum + Number(opportunity.value_amount ?? 0), 0),
+    weightedPipeline: open.reduce(
+      (sum, opportunity) => sum + Number(opportunity.value_amount ?? 0) * ((opportunity.probability ?? 0) / 100),
+      0,
+    ),
+  }
+}
+
 export function OpportunitiesPageClient() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([])
   const [summary, setSummary] = useState<Summary | null>(null)
   const [sourceOfTruth, setSourceOfTruth] = useState<SourceOfTruth | null>(null)
+  const [readiness, setReadiness] = useState<Readiness | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadingOlder, setLoadingOlder] = useState(false)
   const [error, setError] = useState(false)
+  const [olderError, setOlderError] = useState(false)
   const [stageFilter, setStageFilter] = useState<string>('all')
 
   const fetchOpportunities = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/founder/opportunities', { cache: 'no-store' })
+      const res = await fetch('/api/founder/opportunities', {
+        credentials: 'include',
+        cache: 'no-store',
+      })
       if (!res.ok) throw new Error('Failed to load opportunities')
       const data = await res.json()
       setOpportunities(data.opportunities ?? [])
       setSummary(data.summary ?? null)
       setSourceOfTruth(data.sourceOfTruth ?? null)
+      setReadiness(data.readiness ?? null)
       setError(false)
+      setOlderError(false)
     } catch {
       // Honest hard-error state — never fabricate an empty pipeline (No-Invaders #1).
       setError(true)
+      setOlderError(false)
     } finally {
       setLoading(false)
     }
   }, [])
+
+  const fetchOlderOpportunities = useCallback(async () => {
+    const before = readiness?.nextCursor
+    if (!before) return
+
+    setLoadingOlder(true)
+    try {
+      const res = await fetch(`/api/founder/opportunities?before=${encodeURIComponent(before)}`, {
+        credentials: 'include',
+        cache: 'no-store',
+      })
+      if (!res.ok) throw new Error('Failed to load older opportunities')
+      const data = await res.json()
+      setOpportunities((current) => {
+        const merged = mergeOpportunityRows(current, data.opportunities ?? [])
+        setSummary(summarizeOpportunities(merged))
+        return merged
+      })
+      setReadiness((current) => mergeReadiness(current, data.readiness ?? null))
+      setOlderError(false)
+      setError(false)
+    } catch {
+      setOlderError(true)
+    } finally {
+      setLoadingOlder(false)
+    }
+  }, [readiness?.nextCursor])
 
   useEffect(() => {
     fetchOpportunities()
@@ -84,6 +186,19 @@ export function OpportunitiesPageClient() {
     if (stageFilter === 'all') return opportunities
     return opportunities.filter((o) => o.stage === stageFilter)
   }, [opportunities, stageFilter])
+
+  const latestOpportunityUpdateLabel = readiness?.latestOpportunityUpdatedAt
+    ? formatSourceTimestamp(readiness.latestOpportunityUpdatedAt)
+    : null
+
+  const loadedCountLabel = useMemo(() => {
+    if (loading) return null
+    const loadedLabel = `${opportunities.length} loaded ${opportunities.length === 1 ? 'opportunity' : 'opportunities'}`
+    const base = stageFilter === 'all'
+      ? `Showing ${loadedLabel}`
+      : `Showing ${filtered.length} of ${loadedLabel} for ${label(stageFilter)}`
+    return readiness?.nextCursor ? `${base} · older opportunities available` : base
+  }, [filtered.length, loading, opportunities.length, readiness?.nextCursor, stageFilter])
 
   const kpis = [
     { key: 'open', label: 'Open', value: String(summary?.open ?? 0) },
@@ -118,6 +233,12 @@ export function OpportunitiesPageClient() {
             >
               <span>CRM source: {sourceOfTruth.crm}</span>
               <span>{sourceOfTruth.mode === 'forecast_only' ? 'Forecast only' : sourceOfTruth.mode} · Billing truth stays in Stripe</span>
+              {readiness && (
+                <span>Queue window: latest 500 by created date · Cursor pagination available for older opportunities</span>
+              )}
+              {latestOpportunityUpdateLabel && (
+                <span>Latest opportunity update: {latestOpportunityUpdateLabel}</span>
+              )}
             </div>
           )}
 
@@ -140,17 +261,29 @@ export function OpportunitiesPageClient() {
           </div>
 
           {/* Stage filter */}
-          <select
-            value={stageFilter}
-            onChange={(e) => setStageFilter(e.target.value)}
-            aria-label="Filter by stage"
-            className="text-[12px] rounded-sm px-3 py-2 max-w-xs"
-            style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
-          >
-            {STAGE_OPTIONS.map((s) => (
-              <option key={s} value={s}>{s === 'all' ? 'All stages' : label(s)}</option>
-            ))}
-          </select>
+          <div className="flex flex-col gap-2">
+            <select
+              value={stageFilter}
+              onChange={(e) => setStageFilter(e.target.value)}
+              aria-label="Filter by stage"
+              className="text-[12px] rounded-sm px-3 py-2 max-w-xs"
+              style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
+            >
+              {STAGE_OPTIONS.map((s) => (
+                <option key={s} value={s}>{s === 'all' ? 'All stages' : label(s)}</option>
+              ))}
+            </select>
+            {loadedCountLabel && (
+              <p className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
+                {loadedCountLabel}
+              </p>
+            )}
+            {olderError && (
+              <p className="text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>
+                Older opportunities failed to load. Current page is still visible.
+              </p>
+            )}
+          </div>
 
           {/* List */}
           {!loading && filtered.length === 0 ? (
@@ -192,6 +325,17 @@ export function OpportunitiesPageClient() {
                   </div>
                 </div>
               ))}
+              {readiness?.nextCursor && (
+                <button
+                  type="button"
+                  onClick={fetchOlderOpportunities}
+                  disabled={loadingOlder}
+                  className="rounded-sm px-4 py-3 text-[12px] text-left"
+                  style={{ background: 'var(--surface-card)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
+                >
+                  {loadingOlder ? 'Loading older opportunities…' : 'Load older opportunities'}
+                </button>
+              )}
             </div>
           )}
         </>
