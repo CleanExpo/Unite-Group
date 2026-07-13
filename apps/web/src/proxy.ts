@@ -59,6 +59,8 @@ const PUBLIC_PATHS = [
   '/api/health',
   '/api/cron',
   '/api/webhooks', // External provider callbacks verify their own signatures/secrets
+  '/api/agent',    // Public site chat agent — auth is the publishable site key, validated in-route (UNI-2359)
+  '/widget',       // Embeddable chat widget script must load on third-party sites (UNI-2359)
   '/robots.txt',
   '/sitemap.xml',
   '/site.webmanifest',
